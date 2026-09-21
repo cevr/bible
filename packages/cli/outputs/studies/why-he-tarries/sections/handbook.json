@@ -1,0 +1,42 @@
+{
+  "title": "Why He Tarries — Country Living and the Third Angel in Verity",
+  "topic": "Why He Tarries — Country Living and the Third Angel in Verity",
+  "createdAt": "2026-06-26T12:00:00Z",
+  "thesis": "Ellen White wrote plainly that the Lord might already have come — that \"had the church of Christ done her appointed work as the Lord ordained, the whole world would before this have been warned, and the Lord Jesus would have come\" (_DA 633.3_) — and that the delay is ours to own, not God's: \"We may have to remain here in this world because of insubordination many more years, as did the children of Israel\" (_Ev 696.3_). The question this study presses is: which message, decisively ignored, held back the King? The answer offered here is the country-living message — not as a mere health or real-estate counsel, but as the natural, embodied response to the third angel's message, and therefore to righteousness by faith, which Ellen White calls \"the third angel's message in verity.\" To get out of the cities, to make homes in the country, to come out from the marked stream of buying and selling and building and planting, demanded sacrifice and inconvenience; and God's people, like Laodicea, would rather be \"rich, and increased with goods, and have need of nothing.\" It is the old line of Genesis: in the days of Noah men \"did eat, they drank, they married wives... and knew not until the flood came,\" while a remnant \"began to call upon the name of the LORD\" and built an ark of separation; in the days of Lot the same eating and drinking and buying and selling ran on \"until the day that Lot went out of Sodom\" — which is why the Lord nailed one warning to the end of the age: \"Remember Lot's wife.\" The marked contrast is the whole matter: those who separate unto God and bear the seal, and those who keep the city and receive the mark. He tarries because His people loved the city.",
+  "method": "After Haskell's Bible Handbook: ref → gloss, scannable; every symbol and doctrine defined FIRST from Scripture (Miller's Rule — the Bible defines its own figures). The argument is built from the text — Genesis 4-7 (the two seeds, the calling on the Name, the ark), Genesis 13-19 (Lot, Sodom, the pillar of salt), Luke 17 (the days of Noah and of Lot, \"Remember Lot's wife\"), Revelation 3 (Laodicea), Revelation 18 (\"Come out of her, my people\"), 2 Corinthians 6 (\"come out from among them, and be ye separate\"), and the seal vs. the mark of Revelation 7, 13, 14. Ellen White is the SECONDARY but indispensable witness who supplies the dated historical claim Scripture cannot — that the advent was delayed, and which message was refused — and who names the country-living message and identifies righteousness by faith as \"the third angel's message in verity.\" Quote every refcode verbatim; verify with `bible egw \"REF\"` (the Country Living [CL], Adventist Home [AH], Testimonies [#T], Great Controversy [GC], Selected Messages [#SM], and Letters & Manuscripts corpus); never invent one, and never let a doctrine or symbol rest on the testimony where Scripture must carry it.",
+  "outPath": "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/studies/2026-06-26-why-he-tarries-country-living-and-the-third-angel-in-verity.md",
+  "sections": [
+    {
+      "file": "01-the-tarrying.md",
+      "part": "I — The Tarrying"
+    },
+    {
+      "file": "02-third-angel-in-verity.md",
+      "part": "I — The Tarrying"
+    },
+    {
+      "file": "03-out-of-the-cities.md",
+      "part": "II — The Message Ignored"
+    },
+    {
+      "file": "04-rich-and-need-of-nothing.md",
+      "part": "II — The Message Ignored"
+    },
+    {
+      "file": "05-days-of-noah.md",
+      "part": "III — The Marked Contrast"
+    },
+    {
+      "file": "06-remember-lots-wife.md",
+      "part": "III — The Marked Contrast"
+    },
+    {
+      "file": "07-seal-or-mark.md",
+      "part": "IV — The Seal or the Mark"
+    },
+    {
+      "file": "08-come-out-and-be-ready.md",
+      "part": "IV — The Seal or the Mark"
+    }
+  ]
+}

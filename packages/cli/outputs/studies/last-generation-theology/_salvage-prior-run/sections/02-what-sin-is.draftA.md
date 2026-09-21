@@ -1,0 +1,65 @@
+## What Sin Is — Transgression, Not Inheritance
+
+> Sin is the transgression of the law — an act born when the will consents, never a guilt passed down by birth; yet the fallen nature we do inherit is a real bent that corrupts and enslaves until Christ delivers — corruption inherited: affirmed; guilt inherited: denied.
+
+**Sin defined — by the law, not by birth — 1 John 3:4:**
+
+- _1 John 3:4._ "Whosoever committeth sin transgresseth also the law: for sin is the transgression of the law" — the Bible's own definition: sin IS the transgression of the law, a committed act against a known standard — "whosoever COMMITTETH" — not a condition of birth.
+  - **sin** = the consented transgression of God's law — a chosen act against a known standard, born when desire conceives, that is, when the will yields; defined by the law, never by birth, so that guilt attaches to the choice and never to the mere presence of a fallen inclination (_1 John 3:4_; _James 1:14-15_, "when lust hath conceived, it bringeth forth sin"; _John 8:34_, "Whosoever committeth sin"; _Ezek. 18:20_; _Rom. 3:23_, "all have sinned").
+- _AA 555.1._ White: "'Whosoever committeth sin,' he writes, 'transgresseth also the law: for sin is the transgression of the law.'" — she lets John define sin, citing the verse verbatim and dealing with sin in plain terms as a doing, an act.
+
+**The genealogy of sin — born only when the will consents — James 1:14-15; John 8:34:**
+
+- _James 1:14._ "But every man is tempted, when he is drawn away of his own lust, and enticed" — temptation is the drawing of the inward bent; the drawing is not yet the sin.
+- _James 1:15._ "Then when lust hath conceived, it bringeth forth sin: and sin, when it is finished, bringeth forth death" — sin has a birthday: it is BORN when lust CONCEIVES — when the will says yes; the bent solicits, the consent births the sin, and the finished sin births death.
+- _John 8:34._ "Whosoever committeth sin is the servant of sin" — Christ ties the bondage to the COMMITTING; the servitude of sin follows the act, not the ancestry — and the Son breaks that dominion (v. 36).
+- _HP 251.3._ White: "There is no sin in having temptation, but sin comes in when temptation is yielded to" — the precise James 1 distinction: the solicitation of the fallen nature is not sin; sin is born at the yielding of the will.
+- _MYP 430.1._ White: "It is Satan's act to tempt you, but your own act to yield. It is not in the power of all the host of Satan to force the tempted to transgress. There is no excuse for sin" — guilt is located at the personal act of yielding; no inherited or external force compels transgression.
+- _5T 177.1._ White: "An impure thought tolerated, an unholy desire cherished, and the soul is contaminated... 'Then when lust hath conceived, it bringeth forth sin: and sin, when it is finished, bringeth forth death.'" — the birth of sin traced from a cherished, tolerated desire (the will's consent) to the act: sin conceived by the will, not by birth.
+- _2MCP 685.2._ White: "This is the governing power in the nature of man—the power of decision, of choice. Everything depends on the right action of the will... They do not yield the will to God" — ruin turns on the will's action, not on the mere existence of "evil propensities"; desires alone avail nothing either way.
+
+**Guilt is personal — the flat rejection of inherited guilt — Ezek. 18:4, 20; Deut. 24:16:**
+
+- _Ezek. 18:4._ "Behold, all souls are mine; as the soul of the father, so also the soul of the son is mine: the soul that sinneth, it shall die" — God claims every soul directly; each dies for its OWN sin, not the parent's — guilt attaches to the sinner, not the lineage (and the "soul" that dies is the whole man — see "Dust and Breath — What Man Is").
+- _Ezek. 18:20._ "The soul that sinneth, it shall die. The son shall not bear the iniquity of the father, neither shall the father bear the iniquity of the son" — guilt is personal and non-transferable; no man is charged with another's iniquity.
+- _Deut. 24:16._ "The fathers shall not be put to death for the children, neither shall the children be put to death for the fathers: every man shall be put to death for his own sin" — the judicial principle behind Ezekiel, written into the law itself: inherited guilt is foreign to God's government.
+- _1MR 142.3._ White (Minneapolis, 1888): "Well, you say, it was Adam's sin. You say, I am not guilty of that, and I am not responsible for his guilt and fall. Here all these natural tendencies are in me and I am not to blame if I act out these natural tendencies. Who is to blame? Is God?" — both sides held in one breath: we are NOT guilty of Adam's fall, yet the natural tendencies are really "in me" — and blame comes when we ACT them out. Preached at the very 1888 session where Waggoner and Jones pressed righteousness by faith.
+
+**Why all the world is guilty — because all have sinned — Rom. 3:19, 23; 5:12:**
+
+- _Rom. 3:19._ "that every mouth may be stopped, and all the world may become guilty before God" — every mouth is stopped; the ground of the guilt is stated four verses on.
+- _Rom. 3:23._ "For all have sinned, and come short of the glory of God" — the universal indictment rests on ACTS: "have sinned" is an active verb; men are guilty because all have sinned, not because all were born.
+- _Rom. 5:12._ "Wherefore, as by one man sin entered into the world, and death by sin; and so death passed upon all men, for that all have sinned" — death reigns universally, not because all inherited Adam's guilt, but "for that all have sinned": Adam introduced the fallen nature that made universal sinning the fact, and the verse charges every man with his own.
+
+**Yet the inherited corruption is real — shapen in iniquity — Ps. 51:5; Eph. 2:3:**
+
+- _Ps. 51:5._ "Behold, I was shapen in iniquity; and in sin did my mother conceive me" — David is bent from birth: a fallen NATURE inherited, not a crime charged — a condition to be delivered from, not a guilt to be sentenced for.
+  - **the flesh / fallen nature** = the inherited corruption — a real, terrible bent that inclines toward evil and holds dominion over the natural man, "sin that dwelleth in me" as a resident power, enslaving him until Christ delivers; it is NOT itself guilt, and it condemns only when obeyed (_Ps. 51:5_; _Eph. 2:3_; _Rom. 7:14_, "carnal, sold under sin"; _Rom. 7:17-18_; _Rom. 7:23_, "a law in my members").
+- _Eph. 2:3._ "and were by nature the children of wrath, even as others" — the fallen nature is universal; and mark the company the wrath keeps in the same verse — "fulfilling the desires of the flesh and of the mind" — the nature condemns when OBEYED, not merely possessed.
+- _CHR 26.2._ Waggoner: "David had all the passions of human nature. He says of himself, 'Behold I was shapen in iniquity; and in sin did my mother conceive me.' Psalm 51:5" — the flesh carries real "weaknesses and sinful tendencies"; corruption is inherited, the tendencies are real — yet in the whole argument no actual sin is conceded to the nature itself.
+- _CHR 91.1._ Waggoner: "We likewise can all say, with David, 'Behold, I was shapen in iniquity'... As a consequence, we are by nature so weak that we cannot do the things that we would" — Psalm 51:5 read as an inherited WEAKNESS that disables (the very confession of Rom. 7), a bent to be delivered from by Christ's power, not a charged guilt.
+
+**The bent enslaves — a law in the members — Rom. 7:14-25:**
+
+- _Rom. 7:14._ "For we know that the law is spiritual: but I am carnal, sold under sin" — the natural man is a slave; the fallen nature holds dominion — a slavery, not a guilt-tag.
+- _Rom. 7:17-18._ "it is no more I that do it, but sin that dwelleth in me. For I know that in me (that is, in my flesh,) dwelleth no good thing" — Paul distinguishes the indwelling sin in the FLESH from the willing self; the nature is a resident power, corrupting but not identical with the person's guilt.
+- _Rom. 7:23._ "But I see another law in my members, warring against the law of my mind, and bringing me into captivity to the law of sin which is in my members" — the inherited bent operates as a LAW of the nature: warring, taking captive, enslaving the natural man.
+- _WOR 122.1._ Waggoner: "This sin is in our flesh... But we are slaves. Whosoever commits sin is the slave of sin. John 8:34" — the law in the members is sin dwelling in the flesh holding the natural man in bondage; the fallen nature is a dominion, until liberty comes in Christ.
+- _Rom. 7:24-25._ "O wretched man that I am! who shall deliver me from the body of this death? I thank God through Jesus Christ our Lord" — the nature is not a life sentence: deliverance comes "through Jesus Christ." Corruption is curable; guilt would not be (see "The Second Adam — The Nature Christ Took").
+- _CH 440.1._ White: "Those who put their trust in Christ are not to be enslaved by any hereditary or cultivated habit or tendency... Whatever may be our inherited or cultivated tendencies to wrong, we can overcome through the power that He is ready to impart" — the hereditary tendency is real bondage of the "lower nature," and it is breakable.
+- _LOF_ATJ 127.6._ Jones: in the converted man "that same degenerate, sinful flesh is there with its same tendencies and desires. But the individual is no longer subject to these... a power that conquers, brings under, crucifies, and keeps under, the flesh, sinful as it is, with all its affections and lusts" — the flesh remains; the dominion does not (see "Complete Victory — Overcoming as He Overcame").
+
+**DEFINITION — WHAT SIN IS — TRANSGRESSION, NOT INHERITANCE =** sin is the transgression of the law (_1 John 3:4_) — an act, committed, born only "when lust hath conceived," when the will consents (_James 1:14-15_; _HP 251.3_; _MYP 430.1_); temptation is not sin, and no power in earth or hell can force the yielding (_2MCP 685.2_). Guilt therefore attaches to choice, never to birth: the son shall not bear the iniquity of the father (_Ezek. 18:4, 20_; _Deut. 24:16_), and all the world is guilty before God "for that all have sinned" (_Rom. 3:19, 23_; _5:12_) — universal condemnation stands on universal sinning, not on inherited guilt. Yet what IS inherited is real and terrible: a fallen nature, shapen in iniquity (_Ps. 51:5_), by nature the children of wrath (_Eph. 2:3_), carnal, sold under sin, a law in the members warring and taking captive (_Rom. 7:14, 17-18, 23_; _WOR 122.1_) — a corruption that inclines, enslaves, and holds dominion over the natural man; but it is a bondage, not a verdict, and it condemns only when obeyed (_Eph. 2:3_; _1MR 142.3_). Distinguish plainly: original-sin GUILT (guilty at birth) — rejected by the law and the prophets; inherited CORRUPTION (a bent that enslaves until Christ delivers) — affirmed by David and Paul alike, and curable where guilt would not be: "who shall deliver me?... I thank God through Jesus Christ our Lord" (_Rom. 7:24-25_; _CH 440.1_; _LOF_ATJ 127.6_). This distinction carries the whole handbook: because nature is not sin, Christ could take our fallen nature and be without sin (see "The Second Adam — The Nature Christ Took"); and because sin is in the consent, the consent can — by the same Christ — be forever withheld (see "Complete Victory — Overcoming as He Overcame").
+
+**Symbols defined here:**
+
+- **sin** = the consented transgression of God's law — a chosen act against a known standard, born when desire conceives (the will yields); defined by the law, not by birth; guilt attaches to the choice, never to the mere presence of a fallen inclination (_1 John 3:4_; _James 1:14-15_; _John 8:34_; _Ezek. 18:20_; _Rom. 3:23_).
+- **the flesh / fallen nature** = the inherited corruption — a real bent that inclines toward evil and holds dominion over the natural man, enslaving him until Christ delivers; "sin that dwelleth in me" as a resident power, but not itself guilt — it condemns only when obeyed (_Ps. 51:5_; _Eph. 2:3_; _Rom. 7:14, 17-18, 23-25_).
+
+**Symbols carried:** the living soul — "the soul that sinneth, it shall die" (_Ezek. 18:4, 20_) is the whole man dying for his own sin, not a ghost punished for another's (see "Dust and Breath — What Man Is").
+
+**For discussion:**
+
+1. James 1:14-15 gives sin a birthday — "when lust hath conceived." In your own experience, where is the line between being tempted and consenting, and what changes when you believe that "there is no sin in having temptation, but sin comes in when temptation is yielded to" (_HP 251.3_)?
+2. If guilt cannot be inherited (_Ezek. 18:20_), neither can it be excused by inheritance: "I am not to blame if I act out these natural tendencies. Who is to blame?" (_1MR 142.3_). What inherited or cultivated tendency have you been treating as a verdict instead of a bondage Christ stands ready to break (_CH 440.1_)?
+3. Romans 7 ends not in despair but in thanksgiving (_Rom. 7:24-25_). Practically, what is the difference between warring against the law in your members in your own strength and being delivered "through Jesus Christ our Lord"?

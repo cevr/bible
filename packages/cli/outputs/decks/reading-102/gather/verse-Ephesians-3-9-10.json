@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "Ephesians 3:9-10",
+  "verses": [
+    {
+      "book_name": "Ephesians",
+      "book": 49,
+      "chapter": 3,
+      "verse": 9,
+      "text": "And to make all [men] see what [is] the fellowship of the mystery, which from the beginning of the world hath been hid in God, who created all things by Jesus Christ:"
+    },
+    {
+      "book_name": "Ephesians",
+      "book": 49,
+      "chapter": 3,
+      "verse": 10,
+      "text": "To the intent that now unto the principalities and powers in heavenly [places] might be known by the church the manifold wisdom of God,"
+    }
+  ]
+}

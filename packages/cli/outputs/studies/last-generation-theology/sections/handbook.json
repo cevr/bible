@@ -1,0 +1,50 @@
+{
+  "title": "Last Generation Theology — A Bible Handbook Study",
+  "topic": "Last Generation Theology — A Bible Handbook Study",
+  "createdAt": "2026-07-06T12:00:00Z",
+  "thesis": "Man is dust made alive by the breath of God — a living soul, whole and mortal (Gen. 2:7). Sin is not a guilt inherited at birth but the consented transgression of the law (1 John 3:4; Jas. 1:14-15); yet the fallen nature we do inherit corrupts and enslaves (Rom. 7:14; Eph. 2:3). Into that very flesh the Son of God came — the second Adam, bearing the full fallen nature of man after four thousand years of sin, yet without sin (Rom. 8:3; Heb. 2:14-17; 4:15) — conceived of the Spirit and living from the manger, by faith in His Father, the surrendered life we enter by the new birth of water and the Spirit (John 3:5). Salvation is God saving His people FROM their sins, not in them (Matt. 1:21): righteousness by faith — the gospel in verity, the third angel’s message in verity — both credits Christ’s obedience to the believer and works it in him, so that complete victory over sin is provided, promised, and expected (Rom. 6:14; 1 John 5:4; Jude 24; Rev. 3:21). That message ripens a last generation who keep the commandments of God and the faith of Jesus (Rev. 14:12), stand through the time of trouble without a mediator because their sins have gone beforehand to judgment (Rev. 22:11; Dan. 12:1), and in whom the character of Christ is perfectly reproduced — the harvest that vindicates God before the universe (Mark 4:29; Rev. 14:1-5).",
+  "method": "After Haskell's Bible Handbook: ref → gloss, scannable; every doctrine established first from Scripture (Miller's Rule — the Bible defines its own terms), then corroborated by a central cloud of witnesses — E. J. Waggoner, A. T. Jones, S. N. Haskell, and Ellen G. White — quoted VERBATIM and verified against the corpus. This study argues the historic Adventist “last generation” understanding: full victory over sin through the indwelling Christ. On the nature of Christ it is careful and honest: He took our fallen NATURE, never our sin — nature is not guilt, and sin is in the consent — so no line may make Christ a sinner, and no line may give Him an unfallen-Adam advantage. Where a source cannot be quoted from the local corpus, the point rests on Scripture and what CAN be verified; no claim without a receipt.",
+  "outPath": "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/studies/2026-07-06-last-generation-theology-a-bible-handbook-study.md",
+  "sections": [
+    {
+      "file": "01-dust-and-breath.md",
+      "part": "I — The Man"
+    },
+    {
+      "file": "02-what-sin-is.md",
+      "part": "I — The Man"
+    },
+    {
+      "file": "03-nature-christ-took.md",
+      "part": "II — The Pattern"
+    },
+    {
+      "file": "04-born-of-the-spirit.md",
+      "part": "II — The Pattern"
+    },
+    {
+      "file": "05-what-salvation-is.md",
+      "part": "III — The Remedy"
+    },
+    {
+      "file": "06-rbf-gospel-in-verity.md",
+      "part": "III — The Remedy"
+    },
+    {
+      "file": "07-victory-over-sin.md",
+      "part": "III — The Remedy"
+    },
+    {
+      "file": "08-third-angels-message.md",
+      "part": "IV — The Last Generation"
+    },
+    {
+      "file": "09-time-of-trouble.md",
+      "part": "IV — The Last Generation"
+    },
+    {
+      "file": "10-final-demonstration.md",
+      "part": "IV — The Last Generation"
+    }
+  ]
+}

@@ -1,0 +1,623 @@
+{
+  "title": "The Two Resurrections",
+  "subtitle": "Bible Readings — Chapter 105 — A Scripture Narrative",
+  "deckName": "Reading 105 - The Two Resurrections",
+  "titleConcept": "a vast hillside cemetery at the first moment of sunrise, the sky opening with white-gold glory, stones rolled aside and graves standing open and empty, a path of light running from the dark foreground graves up toward the radiant horizon, no visible figure",
+  "app": "Keynote Creator Studio",
+  "canvas": {
+    "w": 1920,
+    "h": 1080
+  },
+  "layouts": {
+    "A_imageRight": {
+      "text": [
+        131,
+        408,
+        805,
+        264
+      ],
+      "image": [
+        1037,
+        75,
+        750,
+        903
+      ]
+    },
+    "B_imageLeft": {
+      "image": [
+        133,
+        75,
+        750,
+        903
+      ],
+      "text": [
+        984,
+        408,
+        805,
+        264
+      ]
+    }
+  },
+  "slides": [
+    {
+      "id": "s01-romans-5-12",
+      "ref": "Romans 5:12",
+      "section": "In Adam All Die",
+      "text": "Wherefore, as by one man sin entered into the world, and death by sin; and so death passed upon all men, for that all have sinned:",
+      "sourceImage": "images/s01-romans-5-12.png",
+      "concept": "Adam and Eve, clothed in rough skins, walking away from the glowing gate of Eden into a dim thorny wilderness, a long shadow falling from them across the whole land ahead, the first fallen leaves on the ground",
+      "side": "right",
+      "note": "Death has a pedigree: sin first, death its wage. One man opened the door and every man walks through it."
+    },
+    {
+      "id": "s02-1-corinthians-15-22",
+      "ref": "1 Corinthians 15:22",
+      "section": "In Adam All Die",
+      "text": "For as in Adam all die, even so in Christ shall all be made alive.",
+      "sourceImage": "images/s02-1-corinthians-15-22.png",
+      "concept": "a vast quiet hillside of ancient graves in deep shadow on the left, and on the right the same hillside at sunrise with every grave open and empty, one composition divided by the line of dawn",
+      "side": "left",
+      "note": "Two heads, two 'alls.' Every grave Adam filled, Christ empties. The remedy is as wide as the ruin."
+    },
+    {
+      "id": "s03-genesis-2-7",
+      "ref": "Genesis 2:7",
+      "section": "In Adam All Die",
+      "text": "And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.",
+      "sourceImage": "../what-is-truth/images/day3-v2/d3-c-breath.png",
+      "side": "right",
+      "note": "Dust plus breath equals a living soul. Man does not have a soul; he became one. GC 533.1 — Adam could not transmit what he did not possess."
+    },
+    {
+      "id": "s04-genesis-3-19",
+      "ref": "Genesis 3:19",
+      "section": "In Adam All Die",
+      "text": "In the sweat of thy face shalt thou eat bread, till thou return unto the ground; for out of it wast thou taken: for dust thou art, and unto dust shalt thou return.",
+      "sourceImage": "images/s04-genesis-3-19.png",
+      "concept": "an aged weathered farmer kneeling in a ploughed field at dusk, letting dry dust run through his open fingers back to the ground, thorns at the field's edge, low amber light",
+      "side": "left",
+      "note": "The sentence reverses Gen 2:7. Dust returns to dust. Nothing in the sentence says the man lives on elsewhere."
+    },
+    {
+      "id": "s05-ecclesiastes-9-10",
+      "ref": "Ecclesiastes 9:10",
+      "section": "The Grave: Silence",
+      "text": "Whatsoever thy hand findeth to do, do it with thy might; for there is no work, nor device, nor knowledge, nor wisdom, in the grave, whither thou goest.",
+      "sourceImage": "images/s05-ecclesiastes-9-10.png",
+      "concept": "an abandoned craftsman's workshop at twilight, tools laid down mid-task on the bench, an unfinished work under dust, an open door showing a quiet ancient Hebrew burial ground of plain rock-cut tombs on the hill beyond, no crosses anywhere",
+      "side": "right",
+      "note": "Four 'no's': no work, no device, no knowledge, no wisdom. And the address is plain — the grave, whither thou goest."
+    },
+    {
+      "id": "s06-ecclesiastes-9-5-6",
+      "ref": "Ecclesiastes 9:5-6",
+      "section": "The Grave: Silence",
+      "text": "For the living know that they shall die: but the dead know not any thing, neither have they any more a reward; for the memory of them is forgotten. Also their love, and their hatred, and their envy, is now perished; neither have they any more a portion for ever in any thing that is done under the sun.",
+      "sourceImage": "images/s06-ecclesiastes-9-5-6.png",
+      "concept": "a silent rock-hewn burial chamber, a wrapped figure lying at rest on a stone shelf in deep stillness, a single shaft of dusty light from the doorway, no spirits, no movement, profound peace and silence",
+      "side": "left",
+      "note": "Mind and affections both stopped. Love, hatred, envy — perished. The dead are not watching us."
+    },
+    {
+      "id": "s07-psalm-146-4",
+      "ref": "Psalm 146:4",
+      "section": "The Grave: Silence",
+      "text": "His breath goeth forth, he returneth to his earth; in that very day his thoughts perish.",
+      "sourceImage": "images/s07-psalm-146-4.png",
+      "concept": "a great king lying in state on a bier in a darkened palace hall, his crown and unrolled plans and maps left unfinished on a table beside him, a thin last wisp of breath-like mist rising in the candlelight, courtiers bowed",
+      "side": "right",
+      "note": "'In that very day his thoughts perish.' There is no interval of consciousness. GC 546.1 — Hezekiah saw no glorious prospect in death."
+    },
+    {
+      "id": "s08-acts-2-29-34",
+      "ref": "Acts 2:29, 34",
+      "section": "The Grave: Silence",
+      "text": "Men and brethren, let me freely speak unto you of the patriarch David, that he is both dead and buried, and his sepulchre is with us unto this day. ... For David is not ascended into the heavens: but he saith himself, The LORD said unto my Lord, Sit thou on my right hand,",
+      "sourceImage": "images/s08-acts-2-29-34.png",
+      "concept": "the apostle Peter preaching to a Jerusalem crowd at Pentecost, his arm stretched toward the ancient stone sepulchre of King David on the hillside behind them, morning light",
+      "side": "left",
+      "note": "Peter's Pentecost argument. GC 546.2 — David remains in the grave until the resurrection; the righteous do not go to heaven at death."
+    },
+    {
+      "id": "s09-john-11-11",
+      "ref": "John 11:11",
+      "section": "Death a Sleep",
+      "text": "These things said he: and after that he saith unto them, Our friend Lazarus sleepeth; but I go, that I may awake him out of sleep.",
+      "sourceImage": "images/s09-john-11-11.png",
+      "concept": "Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, standing on a dusty road beyond the Jordan speaking gently to his concerned disciples, his hand lifted toward distant Bethany on the horizon, tender compassion in his face, late afternoon light",
+      "character": "jesus",
+      "side": "right",
+      "note": "Christ's own word for death is sleep — and His chosen errand is to awake. DA 527.3 — Christ represents death as a sleep to His believing children."
+    },
+    {
+      "id": "s10-john-11-14",
+      "ref": "John 11:14",
+      "section": "Death a Sleep",
+      "text": "Then said Jesus unto them plainly, Lazarus is dead.",
+      "sourceImage": "images/s10-john-11-14.png",
+      "concept": "the rock tomb of Lazarus at Bethany sealed with a great round stone, mourners in dark veils seated on the ground before it, grey overcast light, grief and stillness",
+      "side": "left",
+      "note": "The figure explained by its Author: sleep equals death. No third state. Lazarus came back with no report of four days in glory."
+    },
+    {
+      "id": "s11-job-14-14-15",
+      "ref": "Job 14:14-15",
+      "section": "Death a Sleep",
+      "text": "If a man die, shall he live again? all the days of my appointed time will I wait, till my change come. Thou shalt call, and I will answer thee: thou wilt have a desire to the work of thine hands.",
+      "sourceImage": "images/s11-job-14-14-15.png",
+      "concept": "the patriarch Job, old and afflicted, seated among ashes at night with his face lifted to a sky full of stars, one hand open upward as if waiting to be called, quiet hope in suffering",
+      "side": "right",
+      "note": "Job waits in the grave for a call. 'Thou shalt call, and I will answer.' GC 549.3 — time, long or short, is but a moment to them."
+    },
+    {
+      "id": "s12-john-11-24",
+      "ref": "John 11:24",
+      "section": "Death a Sleep",
+      "text": "Martha saith unto him, I know that he shall rise again in the resurrection at the last day.",
+      "sourceImage": "images/s12-john-11-24.png",
+      "concept": "Martha of Bethany in a mourning veil meeting Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash on the road outside the village, her tear-marked face lifted to him with firm faith, olive trees and the village behind",
+      "character": "jesus",
+      "side": "left",
+      "note": "Martha's creed: not 'he is in heaven,' but 'he shall rise again at the last day.' Luther — they shall seem to have slept scarce one minute (GC 549.2)."
+    },
+    {
+      "id": "s13-hosea-13-14",
+      "ref": "Hosea 13:14",
+      "section": "Ransomed From the Grave",
+      "text": "I will ransom them from the power of the grave; I will redeem them from death: O death, I will be thy plagues; O grave, I will be thy destruction: repentance shall be hid from mine eyes.",
+      "sourceImage": "images/s13-hosea-13-14.png",
+      "concept": "a massive dark prison fortress cut into a mountainside, its great iron gates torn off and lying broken on the ground, brilliant white-gold dawn light pouring into the empty dungeon, broken chains on the threshold",
+      "side": "right",
+      "note": "A promise addressed to the prison itself. God speaks to the grave by name and pledges to destroy it."
+    },
+    {
+      "id": "s14-1-corinthians-15-21",
+      "ref": "1 Corinthians 15:21",
+      "section": "Ransomed From the Grave",
+      "text": "For since by man came death, by man came also the resurrection of the dead.",
+      "sourceImage": "images/s14-1-corinthians-15-21.png",
+      "concept": "two hills in one landscape: on the left a withered tree over a dark valley of graves, on the right the garden tomb with the stone rolled away and radiant morning light streaming out, a path joining the two",
+      "side": "left",
+      "note": "The ransom had to be paid in Adam's own coin: a man. By man came death; by Man came the resurrection."
+    },
+    {
+      "id": "s15-john-3-16",
+      "ref": "John 3:16",
+      "section": "Ransomed From the Grave",
+      "text": "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+      "sourceImage": "../why-suffering-scripture-narrative/images/s16-plan.png",
+      "side": "right",
+      "note": "The alternatives are perish or life — not life in bliss or life in misery. Immortality is only in the Son."
+    },
+    {
+      "id": "s16-job-19-25-27",
+      "ref": "Job 19:25-27",
+      "section": "Ransomed From the Grave",
+      "text": "For I know that my redeemer liveth, and that he shall stand at the latter day upon the earth: And though after my skin worms destroy this body, yet in my flesh shall I see God: Whom I shall see for myself, and mine eyes shall behold, and not another; though my reins be consumed within me.",
+      "sourceImage": "images/s16-job-19-25-27.png",
+      "concept": "the patriarch Job standing up from the ash heap at first light, scarred and thin, his arms lifted and his eyes fixed on a radiant horizon where a great light is rising over the earth, strong hope",
+      "side": "left",
+      "note": "A bodily hope, ages before Paul: 'in my flesh shall I see God... mine eyes shall behold, and not another.'"
+    },
+    {
+      "id": "s17-jeremiah-31-16",
+      "ref": "Jeremiah 31:16",
+      "section": "Ransomed From the Grave",
+      "text": "Thus saith the LORD; Refrain thy voice from weeping, and thine eyes from tears: for thy work shall be rewarded, saith the LORD; and they shall come again from the land of the enemy.",
+      "sourceImage": "images/s17-jeremiah-31-16.png",
+      "concept": "a grieving Hebrew mother in ancient Bethlehem kneeling beside a small empty cradle, her tears stilled as soft golden dawn light enters the doorway and falls upon her lifted face, comfort arriving",
+      "side": "right",
+      "note": "Spoken to Rachel's slain children (Matt 2:17-18). The land of the enemy is the grave. Waggoner, AERS 282.4 — death is the enemy from whose land they will be brought."
+    },
+    {
+      "id": "s18-ezekiel-37-12-13",
+      "ref": "Ezekiel 37:12-13",
+      "section": "Ransomed From the Grave",
+      "text": "Therefore prophesy and say unto them, Thus saith the Lord GOD; Behold, O my people, I will open your graves, and cause you to come up out of your graves, and bring you into the land of Israel. And ye shall know that I am the LORD, when I have opened your graves, O my people, and brought you up out of your graves,",
+      "sourceImage": "images/s18-ezekiel-37-12-13.png",
+      "concept": "the prophet Ezekiel standing in a wide valley as graves open across the plain and a great living multitude rises to its feet, wind moving through their garments, shafts of light breaking through storm clouds",
+      "side": "left",
+      "note": "This is the Lord's own explanation of the vision: 'I will open your graves.' Waggoner, AERS 283.1 — no one should presume to explain the Lord's explanation."
+    },
+    {
+      "id": "s19-1-corinthians-15-16-18",
+      "ref": "1 Corinthians 15:16-18",
+      "section": "If the Dead Rise Not",
+      "text": "For if the dead rise not, then is not Christ raised: And if Christ be not raised, your faith is vain; ye are yet in your sins. Then they also which are fallen asleep in Christ are perished.",
+      "sourceImage": "images/s19-1-corinthians-15-16-18.png",
+      "concept": "the apostle Paul writing a letter by lamplight at a rough table, his face grave and earnest, through the window behind him a moonlit early Christian burial ground with simple markers",
+      "side": "right",
+      "note": "No resurrection equals perished. That sentence is impossible if the saints are already in heaven. GC 546.3 — no resurrection would be necessary."
+    },
+    {
+      "id": "s20-luke-14-14",
+      "ref": "Luke 14:14",
+      "section": "If the Dead Rise Not",
+      "text": "And thou shalt be blessed; for they cannot recompense thee: for thou shalt be recompensed at the resurrection of the just.",
+      "sourceImage": "images/s20-luke-14-14.png",
+      "concept": "Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, seated at a humble table sharing bread with the poor, the lame and the blind, warm lamplight, gratitude on their faces, a feast given to those who cannot repay",
+      "character": "jesus",
+      "side": "left",
+      "note": "Pay-day is dated: at the resurrection of the just. Not at death. 2 Tim 4:8 — the crown is laid up 'at that day.'"
+    },
+    {
+      "id": "s21-luke-20-27",
+      "ref": "Luke 20:27",
+      "section": "The Denial",
+      "text": "Then came to him certain of the Sadducees, which deny that there is any resurrection; and they asked him,",
+      "sourceImage": "images/s21-luke-20-27.png",
+      "concept": "a group of wealthy Sadducee priests in rich robes confronting Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, in the temple court, their faces skeptical and cold, his expression calm and sure, columns and morning light",
+      "character": "jesus",
+      "side": "right",
+      "note": "One party denied the resurrection outright. Another makes it needless — the immortal soul. GC 547.2 — hope of bliss at death led to neglect of the resurrection."
+    },
+    {
+      "id": "s22-matthew-22-29",
+      "ref": "Matthew 22:29",
+      "section": "The Denial",
+      "text": "Jesus answered and said unto them, Ye do err, not knowing the scriptures, nor the power of God.",
+      "sourceImage": "images/s22-matthew-22-29.png",
+      "concept": "an open ancient Hebrew scroll on a stone table in the temple court glowing in a shaft of sunlight, while robed scholars stand with their backs turned to it arguing among themselves in the shadow",
+      "side": "left",
+      "note": "Two roots of every denial: not knowing the Scriptures, nor the power of God."
+    },
+    {
+      "id": "s23-luke-20-37-38",
+      "ref": "Luke 20:37-38",
+      "section": "The Denial",
+      "text": "Now that the dead are raised, even Moses shewed at the bush, when he calleth the Lord the God of Abraham, and the God of Isaac, and the God of Jacob. For he is not a God of the dead, but of the living: for all live unto him.",
+      "sourceImage": "images/s23-luke-20-37-38.png",
+      "concept": "Moses as a shepherd, barefoot with his sandals set aside, shielding his face before the bush that burns with white-gold fire yet is not consumed, on the slope of Horeb at dusk",
+      "side": "right",
+      "note": "Christ cites the bush to prove 'that the dead are raised' — not a present life. DA 606.1 — God counts the things that are not as though they were."
+    },
+    {
+      "id": "s24-acts-26-8",
+      "ref": "Acts 26:8",
+      "section": "The Denial",
+      "text": "Why should it be thought a thing incredible with you, that God should raise the dead?",
+      "sourceImage": "images/s24-acts-26-8.png",
+      "concept": "the apostle Paul in chains standing before King Agrippa and Festus in a marble audience hall, one chained hand raised in earnest appeal, the rulers leaning forward on their thrones",
+      "side": "left",
+      "note": "The Maker of Gen 2:7 can do it twice. Why should it be thought a thing incredible?"
+    },
+    {
+      "id": "s25-1-corinthians-15-36",
+      "ref": "1 Corinthians 15:36",
+      "section": "The Seed",
+      "text": "Thou fool, that which thou sowest is not quickened, except it die:",
+      "sourceImage": "images/s25-1-corinthians-15-36.png",
+      "concept": "a sower's weathered hand dropping bare grain into a dark open furrow in the foreground, and beyond the ploughed field a wide ripe golden wheat harvest glowing under a rising sun",
+      "side": "right",
+      "note": "Nature preaches the resurrection every spring. Death is not the obstacle to the harvest; it is the road."
+    },
+    {
+      "id": "s26-john-12-24",
+      "ref": "John 12:24",
+      "section": "The Seed",
+      "text": "Verily, verily, I say unto you, Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit.",
+      "sourceImage": "images/s26-john-12-24.png",
+      "concept": "a cutaway of rich dark earth showing a single grain of wheat buried and splitting open, a tender green shoot rising from it up into sunlight and becoming a full heavy head of wheat",
+      "side": "left",
+      "note": "Spoken first of Himself. One Seed buried at Calvary; a harvest of the risen. Wheat raises wheat."
+    },
+    {
+      "id": "s27-1-corinthians-15-20",
+      "ref": "1 Corinthians 15:20",
+      "section": "Firstfruits: The Pledge",
+      "text": "But now is Christ risen from the dead, and become the firstfruits of them that slept.",
+      "sourceImage": "../what-is-truth/images/day3-v2/d3-j-resurrection.png",
+      "side": "right",
+      "note": "The first sheaf is already waved. DA 785.4 — His resurrection is the type and pledge of the resurrection of all the righteous dead."
+    },
+    {
+      "id": "s28-leviticus-23-10-11",
+      "ref": "Leviticus 23:10-11",
+      "section": "Firstfruits: The Pledge",
+      "text": "Speak unto the children of Israel, and say unto them, When ye be come into the land which I give unto you, and shall reap the harvest thereof, then ye shall bring a sheaf of the firstfruits of your harvest unto the priest: And he shall wave the sheaf before the LORD, to be accepted for you: on the morrow after the sabbath the priest shall wave it.",
+      "sourceImage": "images/s28-leviticus-23-10-11.png",
+      "concept": "an Israelite priest in white linen lifting a single golden sheaf of barley high before the altar of the sanctuary at sunrise, worshippers behind him, unharvested ripe fields visible beyond the court",
+      "side": "left",
+      "note": "The type: first sheaf, first day of the week, before any sickle touches the field. Christ rose on the very day the sheaf was waved."
+    },
+    {
+      "id": "s29-matthew-27-52-53",
+      "ref": "Matthew 27:52-53",
+      "section": "Firstfruits: The Pledge",
+      "text": "And the graves were opened; and many bodies of the saints which slept arose, And came out of the graves after his resurrection, and went into the holy city, and appeared unto many.",
+      "sourceImage": "images/s29-matthew-27-52-53.png",
+      "concept": "rock tombs split open by an earthquake on the hillside outside Jerusalem at dawn, a company of risen saints in white walking together toward the city gate, astonished onlookers, golden morning light",
+      "side": "right",
+      "note": "The sheaf was a handful, not one stalk. DA 786.1 — He brought from the grave a multitude of captives. Lazarus died again (DA 786.2); these did not."
+    },
+    {
+      "id": "s30-john-5-28-29",
+      "ref": "John 5:28-29",
+      "section": "Whose Voice?",
+      "text": "Marvel not at this: for the hour is coming, in the which all that are in the graves shall hear his voice, And shall come forth; they that have done good, unto the resurrection of life; and they that have done evil, unto the resurrection of damnation.",
+      "sourceImage": "images/s30-john-5-28-29.png",
+      "concept": "a vast ancient cemetery stretching to the horizon under a sky splitting open with white-gold glory, the ground trembling and gravestones beginning to shift, no figure visible, only the light like a voice descending",
+      "side": "left",
+      "note": "'All,' 'in the graves,' 'his voice.' They are called up from the dust — not called down from heaven. DA 787.2 — that voice will penetrate the graves."
+    },
+    {
+      "id": "s31-john-5-26",
+      "ref": "John 5:26",
+      "section": "Whose Voice?",
+      "text": "For as the Father hath life in himself; so hath he given to the Son to have life in himself;",
+      "sourceImage": "images/s31-john-5-26.png",
+      "concept": "Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, standing alone on a hill at dawn, radiant soft light emanating from within him, withered ground turning green and flowers opening in a circle around his feet, life flowing outward from him",
+      "character": "jesus",
+      "side": "right",
+      "note": "Why His voice can do it. DA 530.3 — in Christ is life, original, unborrowed, underived."
+    },
+    {
+      "id": "s32-john-11-43-44",
+      "ref": "John 11:43-44",
+      "section": "Whose Voice?",
+      "text": "And when he thus had spoken, he cried with a loud voice, Lazarus, come forth. And he that was dead came forth, bound hand and foot with graveclothes: and his face was bound about with a napkin. Jesus saith unto them, Loose him, and let him go.",
+      "sourceImage": "images/s32-john-11-43-44.png",
+      "concept": "Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, standing before the open rock tomb at Bethany with his arm outstretched in command, Lazarus wrapped in grave-clothes stepping out alive into the daylight, Mary and Martha and the crowd in astonishment",
+      "character": "jesus",
+      "side": "left",
+      "note": "The sample of the last day: a name called, a grave obeying."
+    },
+    {
+      "id": "s33-acts-24-15",
+      "ref": "Acts 24:15",
+      "section": "Two Classes, Two Resurrections",
+      "text": "And have hope toward God, which they themselves also allow, that there shall be a resurrection of the dead, both of the just and unjust.",
+      "sourceImage": "images/s33-acts-24-15.png",
+      "concept": "the apostle Paul in chains before the Roman governor Felix on his judgment seat, Paul's hand lifted upward in confident testimony, accusers in priestly robes at the side, light from a high window on Paul's face",
+      "side": "right",
+      "note": "Two classes. Christ names them: resurrection of life, resurrection of damnation. U. Smith, DAR 298.1 — the general resurrection is not a mixed resurrection."
+    },
+    {
+      "id": "s34-1-thessalonians-4-16-17",
+      "ref": "1 Thessalonians 4:16-17",
+      "section": "The First: At His Coming",
+      "text": "For the Lord himself shall descend from heaven with a shout, with the voice of the archangel, and with the trump of God: and the dead in Christ shall rise first: Then we which are alive and remain shall be caught up together with them in the clouds, to meet the Lord in the air: and so shall we ever be with the Lord.",
+      "sourceImage": "../what-is-truth/images/day3-v2/d3-g-first-resurrection.png",
+      "side": "left",
+      "note": "Shout, voice, trump. Dead first; the living 'together with them.' No saint arrives early. GC 644.2 — 'Awake, awake, awake, ye that sleep in the dust!'"
+    },
+    {
+      "id": "s35-1-thessalonians-4-13-14",
+      "ref": "1 Thessalonians 4:13-14",
+      "section": "The First: At His Coming",
+      "text": "But I would not have you to be ignorant, brethren, concerning them which are asleep, that ye sorrow not, even as others which have no hope. For if we believe that Jesus died and rose again, even so them also which sleep in Jesus will God bring with him.",
+      "sourceImage": "images/s35-1-thessalonians-4-13-14.png",
+      "concept": "a small company of early Christians at a fresh graveside at sunset, grieving yet calm, an elder with an open letter in his hand comforting a widow, the sky behind them glowing with promise",
+      "side": "right",
+      "note": "The comfort offered is the resurrection, not a present heaven. Sorrow — but not as others which have no hope."
+    },
+    {
+      "id": "s36-1-corinthians-15-51-52",
+      "ref": "1 Corinthians 15:51-52",
+      "section": "The First: At His Coming",
+      "text": "Behold, I shew you a mystery; We shall not all sleep, but we shall all be changed, In a moment, in the twinkling of an eye, at the last trump: for the trumpet shall sound, and the dead shall be raised incorruptible, and we shall be changed.",
+      "sourceImage": "images/s36-1-corinthians-15-51-52.png",
+      "concept": "living believers in a field looking upward as the sky blazes with glory, their worn faces and bodies transfigured with radiant light in an instant, garments turning white, a great angelic trumpet in the clouds above",
+      "side": "left",
+      "note": "Same trump, two groups, one change. The living are changed in the twinkling of an eye — and gain no head start on the sleepers."
+    },
+    {
+      "id": "s37-isaiah-25-9",
+      "ref": "Isaiah 25:9",
+      "section": "The First: At His Coming",
+      "text": "And it shall be said in that day, Lo, this is our God; we have waited for him, and he will save us: this is the LORD; we have waited for him, we will be glad and rejoice in his salvation.",
+      "sourceImage": "images/s37-isaiah-25-9.png",
+      "concept": "a waiting multitude of every nation on a hillside with hands and faces lifted in joy toward a radiant cloud of glory descending from heaven, tears turning to gladness, mothers reunited with little children carried by angels",
+      "side": "right",
+      "note": "'Lo, this is our God; we have waited for him.' GC 645.1 — little children are borne by holy angels to their mothers' arms."
+    },
+    {
+      "id": "s38-daniel-12-2",
+      "ref": "Daniel 12:2",
+      "section": "The Special Resurrection",
+      "text": "And many of them that sleep in the dust of the earth shall awake, some to everlasting life, and some to shame and everlasting contempt.",
+      "sourceImage": "images/s38-daniel-12-2.png",
+      "concept": "a dark earthquake-torn night landscape under a strange clearing sky, a number of graves opening: some ordinary men and women in plain nineteenth-century and ancient dress rising glorified and shining with joy, others rising in shadow covering their faces in dread, Christ is not in the scene",
+      "side": "left",
+      "note": "'Many of' — a partial, mixed awaking at the voice of God, before He appears. GC 637.1 — all who died in the faith of the third angel's message come forth glorified."
+    },
+    {
+      "id": "s39-revelation-1-7",
+      "ref": "Revelation 1:7",
+      "section": "The Special Resurrection",
+      "text": "Behold, he cometh with clouds; and every eye shall see him, and they also which pierced him: and all kindreds of the earth shall wail because of him. Even so, Amen.",
+      "sourceImage": "images/s39-revelation-1-7.png",
+      "concept": "a vast cloud of blazing glory filled with countless angels descending over the earth, in the foreground Roman soldiers and robed priests of the first century risen from their graves, shielding their eyes and wailing in terror",
+      "side": "right",
+      "note": "His murderers must be raised to see it. Promised to Caiaphas himself — Matt 26:64. GC 637.1 — those that mocked His dying agonies are raised to behold Him in His glory."
+    },
+    {
+      "id": "s40-1-corinthians-15-42-44",
+      "ref": "1 Corinthians 15:42-44",
+      "section": "The Body That Shall Be",
+      "text": "So also is the resurrection of the dead. It is sown in corruption; it is raised in incorruption: It is sown in dishonour; it is raised in glory: it is sown in weakness; it is raised in power: It is sown a natural body; it is raised a spiritual body. There is a natural body, and there is a spiritual body.",
+      "sourceImage": "images/s40-1-corinthians-15-42-44.png",
+      "concept": "a frail aged body being laid to rest in the earth in dim grey light on the left, and on the right the same person rising from the same ground young, strong and radiant in white, glory streaming around them",
+      "side": "left",
+      "note": "'It... it' — one subject through all eight clauses. Same person, new body. GC 644.3 — all blemishes and deformities are left in the grave."
+    },
+    {
+      "id": "s41-philippians-3-20-21",
+      "ref": "Philippians 3:20-21",
+      "section": "The Body That Shall Be",
+      "text": "For our conversation is in heaven; from whence also we look for the Saviour, the Lord Jesus Christ: Who shall change our vile body, that it may be fashioned like unto his glorious body, according to the working whereby he is able even to subdue all things unto himself.",
+      "sourceImage": "images/s41-philippians-3-20-21.png",
+      "concept": "the risen Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, glorified and radiant, nail-scarred hands extended in welcome, and before him a redeemed man and woman being transformed into shining likeness, mortal weakness falling away like a shadow",
+      "character": "jesus",
+      "side": "right",
+      "note": "The pattern is Christ's own glorious body. A real body — 'in my flesh shall I see God' (Job 19:26)."
+    },
+    {
+      "id": "s42-psalm-17-15",
+      "ref": "Psalm 17:15",
+      "section": "The Body That Shall Be",
+      "text": "As for me, I will behold thy face in righteousness: I shall be satisfied, when I awake, with thy likeness.",
+      "sourceImage": "images/s42-psalm-17-15.png",
+      "concept": "King David, young again and radiant, awakening and rising from a stone sepulchre at sunrise, his face lit with wonder and complete satisfaction as he looks up into an unseen glorious light",
+      "side": "left",
+      "note": "David's expectation: awake — and like Him. Satisfied 'when I awake,' not when I die."
+    },
+    {
+      "id": "s43-luke-20-36",
+      "ref": "Luke 20:36",
+      "section": "Neither Can They Die Any More",
+      "text": "Neither can they die any more: for they are equal unto the angels; and are the children of God, being the children of the resurrection.",
+      "sourceImage": "images/s43-luke-20-36.png",
+      "concept": "the redeemed in shining white walking side by side with tall bright angels along the river of life beneath the tree of life, families together, children running ahead, everlasting morning light, deep peace",
+      "side": "right",
+      "note": "Not 'shall not' but 'cannot.' Equal unto the angels. EW 287.1 — friends whom death had separated were united, never more to part."
+    },
+    {
+      "id": "s44-1-corinthians-15-54-55",
+      "ref": "1 Corinthians 15:54-55",
+      "section": "Neither Can They Die Any More",
+      "text": "So when this corruptible shall have put on incorruption, and this mortal shall have put on immortality, then shall be brought to pass the saying that is written, Death is swallowed up in victory. O death, where is thy sting? O grave, where is thy victory?",
+      "sourceImage": "images/s44-1-corinthians-15-54-55.png",
+      "concept": "a countless host of risen saints in white standing upon their own empty shattered tombs, arms raised in a triumphant shout toward a blazing sky, broken gravestones underfoot, overwhelming victory and joy",
+      "side": "left",
+      "note": "Hos 13:14 and Isa 25:8 cashed in the same moment. GC 549.3 — last thought the grave, first glad thought the shout: 'O death, where is thy sting?'"
+    },
+    {
+      "id": "s45-revelation-20-6",
+      "ref": "Revelation 20:6",
+      "section": "Neither Can They Die Any More",
+      "text": "Blessed and holy is he that hath part in the first resurrection: on such the second death hath no power, but they shall be priests of God and of Christ, and shall reign with him a thousand years.",
+      "sourceImage": "images/s45-revelation-20-6.png",
+      "concept": "the redeemed clothed in white priestly robes with golden crowns standing in ranks on the sea of glass before a throne of formless blazing light, palm branches in their hands, serene holy joy",
+      "side": "right",
+      "note": "Blessed and holy. On such the second death hath no power. Their standing, and their work for a thousand years."
+    },
+    {
+      "id": "s46-revelation-20-4",
+      "ref": "Revelation 20:4",
+      "section": "Neither Can They Die Any More",
+      "text": "And I saw thrones, and they sat upon them, and judgment was given unto them: and I saw the souls of them that were beheaded for the witness of Jesus, and for the word of God, and which had not worshipped the beast, neither his image, neither had received his mark upon their foreheads, or in their hands; and they lived and reigned with Christ a thousand years.",
+      "sourceImage": "images/s46-revelation-20-4.png",
+      "concept": "a great heavenly hall with rows of golden thrones on which the redeemed sit in white robes, great open books of record before them on golden tables, attending angels, solemn light from above",
+      "side": "left",
+      "note": "The millennium is spent judging — in heaven. Every question about who is missing, and why, is answered from the books."
+    },
+    {
+      "id": "s47-revelation-20-5",
+      "ref": "Revelation 20:5",
+      "section": "The Rest of the Dead",
+      "text": "But the rest of the dead lived not again until the thousand years were finished. This is the first resurrection.",
+      "sourceImage": "images/s47-revelation-20-5.png",
+      "concept": "a desolate ruined earth under dark heavy skies, broken cities and endless silent graveyards stretching to the horizon, no living person anywhere, a thousand years of stillness, dust and cold dim light",
+      "side": "right",
+      "note": "'Lived not' — no consciousness in between. 'Until' — they do live again. Isa 24:22 — after many days shall they be visited."
+    },
+    {
+      "id": "s48-revelation-20-13",
+      "ref": "Revelation 20:13",
+      "section": "The Rest of the Dead",
+      "text": "And the sea gave up the dead which were in it; and death and hell delivered up the dead which were in them: and they were judged every man according to their works.",
+      "sourceImage": "images/s48-revelation-20-13.png",
+      "concept": "a stormy sea and a dark shore giving up their dead, a numberless multitude of every age and nation rising from waves and graves under a lurid sky, worn sickly faces bearing the marks of disease, fear and defiance",
+      "side": "left",
+      "note": "Every holding-place surrenders. GC 662.1 — the wicked bear the traces of disease and death. GC 662.2 — they come forth with the same enmity to Christ."
+    },
+    {
+      "id": "s49-revelation-20-12",
+      "ref": "Revelation 20:12",
+      "section": "The Rest of the Dead",
+      "text": "And I saw the dead, small and great, stand before God; and the books were opened: and another book was opened, which is the book of life: and the dead were judged out of those things which were written in the books, according to their works.",
+      "sourceImage": "../what-is-truth/images/day3/e03-white-throne.png",
+      "side": "right",
+      "note": "Raised to stand and hear. Not a second chance — GC 662.2, no new probation. Every knee bows, every tongue confesses (Rom 14:11)."
+    },
+    {
+      "id": "s50-revelation-20-7-8",
+      "ref": "Revelation 20:7-8",
+      "section": "The Rest of the Dead",
+      "text": "And when the thousand years are expired, Satan shall be loosed out of his prison, And shall go out to deceive the nations which are in the four quarters of the earth, Gog and Magog, to gather them together to battle: the number of whom is as the sand of the sea.",
+      "sourceImage": "../reading-102/images/s32-rev-20-7-8.png",
+      "side": "left",
+      "note": "What looses Satan is the return of his subjects. Their first act is a siege. The grave converts no one."
+    },
+    {
+      "id": "s51-revelation-20-9",
+      "ref": "Revelation 20:9",
+      "section": "The Second Death",
+      "text": "And they went up on the breadth of the earth, and compassed the camp of the saints about, and the beloved city: and fire came down from God out of heaven, and devoured them.",
+      "sourceImage": "../what-is-truth/images/day3/e04-world-fire.png",
+      "side": "right",
+      "note": "Fire from God out of heaven — and the verb is 'devoured.' Not preserved in misery: consumed."
+    },
+    {
+      "id": "s52-revelation-21-8",
+      "ref": "Revelation 21:8",
+      "section": "The Second Death",
+      "text": "But the fearful, and unbelieving, and the abominable, and murderers, and whoremongers, and sorcerers, and idolaters, and all liars, shall have their part in the lake which burneth with fire and brimstone: which is the second death.",
+      "sourceImage": "images/s52-revelation-21-8.png",
+      "concept": "a vast lake of fire and brimstone spreading across the surface of the broken earth beneath a black sky, seen from a great distance, no figures visible, the holy city shining untouched and safe on the far horizon",
+      "side": "left",
+      "note": "Scripture names the lake: the second death. The roll opens with 'the fearful, and unbelieving.' GC 544.2 — He deprives him of the existence his transgressions have forfeited."
+    },
+    {
+      "id": "s53-malachi-4-1-3",
+      "ref": "Malachi 4:1, 3",
+      "section": "The Second Death",
+      "text": "For, behold, the day cometh, that shall burn as an oven; and all the proud, yea, and all that do wickedly, shall be stubble: and the day that cometh shall burn them up, saith the LORD of hosts, that it shall leave them neither root nor branch. ... And ye shall tread down the wicked; for they shall be ashes under the soles of your feet in the day that I shall do this, saith the LORD of hosts.",
+      "sourceImage": "../reading-102/images/s34-mal-4-1-3.png",
+      "side": "right",
+      "note": "Neither root nor branch — ashes. GC 673.1 — in the cleansing flames the wicked are at last destroyed, root and branch. An end, not endless misery."
+    },
+    {
+      "id": "s54-1-corinthians-15-26",
+      "ref": "1 Corinthians 15:26",
+      "section": "The Last Enemy",
+      "text": "The last enemy that shall be destroyed is death.",
+      "sourceImage": "images/s54-1-corinthians-15-26.png",
+      "concept": "the last graveyard on earth, its weathered tombstones and sepulchres crumbling into dust while living grass and flowers overgrow them, a wave of white-gold light sweeping across the hillside, no figures, no crosses",
+      "side": "left",
+      "note": "Death is an enemy — never a friend or a doorway. And it is the last one standing."
+    },
+    {
+      "id": "s55-revelation-20-14",
+      "ref": "Revelation 20:14",
+      "section": "The Last Enemy",
+      "text": "And death and hell were cast into the lake of fire. This is the second death.",
+      "sourceImage": "images/s55-revelation-20-14.png",
+      "concept": "broken tombstones, empty coffins, shattered chains and the iron gates of a great sepulchre all sinking into a sea of cleansing fire, the last graveyard on earth being consumed, above the smoke a clearing sky",
+      "side": "right",
+      "note": "Death and the grave themselves die. Hos 13:14 kept to the letter: 'O grave, I will be thy destruction.'"
+    },
+    {
+      "id": "s56-revelation-21-4",
+      "ref": "Revelation 21:4",
+      "section": "The Last Enemy",
+      "text": "And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.",
+      "sourceImage": "../what-is-truth/images/day3/n30-new-earth.png",
+      "side": "left",
+      "note": "The last funeral has been held. In Adam all die — the last enemy destroyed — and between them stands one empty tomb."
+    },
+    {
+      "id": "s57-revelation-1-18",
+      "ref": "Revelation 1:18",
+      "section": "Appeal",
+      "text": "I am he that liveth, and was dead; and, behold, I am alive for evermore, Amen; and have the keys of hell and of death.",
+      "sourceImage": "images/s57-revelation-1-18.png",
+      "concept": "the risen glorified Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, standing before the open empty garden tomb at sunrise, holding up a ring of great ancient iron keys in his nail-scarred hand, calm sovereign victory",
+      "character": "jesus",
+      "side": "right",
+      "note": "At your graveside or a loved one's: He has the keys. Which resurrection is not decided at the trump — it is decided before you sleep."
+    },
+    {
+      "id": "s58-john-11-25-26",
+      "ref": "John 11:25-26",
+      "section": "Appeal",
+      "text": "Jesus said unto her, I am the resurrection, and the life: he that believeth in me, though he were dead, yet shall he live: And whosoever liveth and believeth in me shall never die. Believest thou this?",
+      "sourceImage": "images/s58-john-11-25-26.png",
+      "concept": "Jesus matching the reference character with long dark brown hair, short beard, white robe with gold-trimmed sleeves and golden sash, looking directly toward the viewer with tender searching eyes, one nail-scarred hand extended in invitation, behind him an open empty tomb filled with morning light, intimate and personal",
+      "character": "jesus",
+      "side": "left",
+      "note": "Two resurrections, and everyone here will be in one of them. Christ asks what He asked Martha: 'Believest thou this?'"
+    }
+  ]
+}

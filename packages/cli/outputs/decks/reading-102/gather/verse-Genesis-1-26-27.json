@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "Genesis 1:26-27",
+  "verses": [
+    {
+      "book_name": "Genesis",
+      "book": 1,
+      "chapter": 1,
+      "verse": 26,
+      "text": "¶ And God said, Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air, and over the cattle, and over all the earth, and over every creeping thing that creepeth upon the earth."
+    },
+    {
+      "book_name": "Genesis",
+      "book": 1,
+      "chapter": 1,
+      "verse": 27,
+      "text": "So God created man in his [own] image, in the image of God created he him; male and female created he them."
+    }
+  ]
+}
