@@ -34,7 +34,7 @@ export const SearchRequest = S.Struct({
 export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
 
 /** Public, version 1, and dependent on no actor: the contract's defaults. */
-export const Search = query('search', {
+export const Search = query.batched('search', {
   args: SearchRequest,
   result: SearchResponseSchema,
 });

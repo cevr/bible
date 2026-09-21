@@ -10,7 +10,7 @@
     "build": "bun build src/index.tsx --target browser --format esm --outdir dist --minify && cp index.html src/styles.css dist/",
     "start": "NODE_ENV=production bun server/main.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "bun test src server",
     "gate": "bun run typecheck && bun run test"
   },
   "dependencies": {
