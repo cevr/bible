@@ -250,9 +250,27 @@ const SqlLive = SqliteBun.layer({ filename: at('egw-paragraphs.db') });
  *  cache cannot hold enough of a 4.3 GB b-tree for one query's lookups to help
  *  the next.
  *
- *  512 MB on a 32 GB container. The corpus is read-only here, so cached pages
- *  are never invalidated by a write. */
-const PAGE_CACHE_KIB = 512 * 1024;
+ *  **4 GB on a 32 GB container** (`memory.max` = 32,000,000,000; `MemTotal` is
+ *  322 GB on the host). 512 MB was the first tuning and is too small by the
+ *  one measurement that matters: `paragraphs_fts_data`, the posting lists every
+ *  lexical query reads, is **421 MB by itself**. A 512 MB cache holds the
+ *  postings *or* the b-tree pages the bodies join seeks through, not both, so
+ *  the warm-up's own passes evicted each other and the first real query still
+ *  paid full cold cost — `lexicalMs: 12640` for `god` against 425 ms on the
+ *  very next identical request.
+ *
+ *  4 GB holds the whole 421 MB of postings plus room for the hot part of the
+ *  3.6 GB `paragraphs` b-tree, and still leaves 28 GB of the limit for the
+ *  process, the embedding model and the vector index. The corpus is read-only
+ *  here, so cached pages are never invalidated by a write, and the cache is an
+ *  upper bound rather than an allocation: SQLite grows into it on demand.
+ *
+ *  Worth knowing before tuning this further: the corpus lives on a *network*
+ *  volume (`/dev/zd2144` mounted at `/data`), not local disk. Reading the
+ *  421 MB of postings cold takes ~43 s, about 10 MB/s, which is why a cold
+ *  cache is so expensive here and why holding it matters more than it would on
+ *  an instance-local SSD. */
+const PAGE_CACHE_KIB = 4 * 1024 * 1024;
 
 /** How much of the file SQLite may memory-map.
  *
