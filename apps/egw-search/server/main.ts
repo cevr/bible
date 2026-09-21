@@ -81,10 +81,20 @@ const MAX_CONTEXT = 3;
  *  the exclusion is a `WHERE` clause instead: the apparatus never enters the
  *  candidate pool, and the thirty rows are thirty rows of prose.
  *
- *  Forced on rather than defaulted, because it is a property of this surface —
- *  the CLI and the desktop reader both have uses for the indexes; a search box
- *  over the writings does not. A reader who wants them can still select
- *  `type=dictionary` explicitly, which names them positively. */
+ *  Forced on rather than defaulted, because it is a property of this surface: a
+ *  search box over the writings has no use for a see-also stub. A reader who
+ *  wants them can still select `type=dictionary` explicitly, which names them
+ *  positively.
+ *
+ *  This used to add "the CLI and the desktop reader both have uses for the
+ *  indexes", and `bible egw search` accordingly shipped the exclusion as an
+ *  opt-in. That was wrong about the CLI: looking a reference up is a real use,
+ *  but it is not what the *search* command is for, and an index entry is short
+ *  and made almost entirely of the query's own words — so BM25 ranks it well
+ *  for exactly the topical phrases this corpus is searched with. `latter rain`
+ *  returned six `TopIndex` rows in its first ten there. The CLI now excludes by
+ *  default too and takes `--apparatus` to put them back, so both surfaces answer
+ *  the same query the same way. */
 const NEVER_APPARATUS = true;
 
 const clamp = (raw: number | undefined, fallback: number, max: number): number => {

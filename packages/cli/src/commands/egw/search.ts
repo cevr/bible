@@ -163,26 +163,30 @@ const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
   Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
   Flag.optional,
 );
-/** Drop the lookup apparatus — dictionaries, topical and scripture indexes.
+/** Put the lookup apparatus back in — dictionaries, topical and scripture
+ *  indexes, 39% of the corpus (`APPARATUS_TYPES`).
  *
- *  `SearchQuery` has carried a `filter` since the classification landed, and
- *  this command was the one caller that never passed one: the web app forces
- *  `excludeApparatus` on (`NEVER_APPARATUS`), while the CLI had no way to ask
- *  for it at all. A reader here could not exclude the indexes even by naming
- *  every other type positively, because `type.include` is a whitelist over four
- *  types and the apparatus is three of them.
+ *  **Excluded by default, like the web surface.** `NEVER_APPARATUS` argues that
+ *  a search box over the writings has no use for a see-also stub, and adds that
+ *  "the CLI and the desktop reader both have uses for the indexes" — which is
+ *  true, and was the reason this command first shipped the exclusion as an
+ *  opt-in `--no-apparatus`. Measuring it settled the question the other way: an
+ *  index entry is short and made almost entirely of the query's own words, so
+ *  BM25 ranks it *well* for exactly the topical phrases this corpus is searched
+ *  with. `latter rain` returned six `TopIndex` rows in its first ten, none of
+ *  them an answer — "latter, See Latter rain" is a pointer to where to look,
+ *  taking the slot of the paragraph that would have said something.
  *
- *  Off by default, deliberately. `NEVER_APPARATUS` explains why that surface
- *  forces it — a search box over the writings has no use for a see-also stub —
- *  and says in the same breath that "the CLI and the desktop reader both have
- *  uses for the indexes". Looking a reference up *is* a CLI use, so the default
- *  stays as it was and the flag is how a reader turns it off.
+ *  So the default now matches what a reader searching the writings means, and
+ *  the flag is how someone looking a reference *up* asks for the apparatus
+ *  back. That is the narrower, more deliberate act of the two, which is the one
+ *  that should have to be named.
  *
- *  Worth knowing what it costs to leave off: a topical query is dominated by
- *  the apparatus, because a see-also stub matches on nearly every term it
- *  contains. `latter rain` returns six `TopIndex` rows in its first ten. */
-const noApparatus = Flag.boolean('no-apparatus').pipe(
-  Flag.withDescription('Exclude dictionaries and topical/scripture indexes from the results'),
+ *  Both surfaces agreeing is the point: the same query typed into either now
+ *  returns the same rows, and neither hides the other's behaviour behind a
+ *  default nobody can see. */
+const apparatus = Flag.boolean('apparatus').pipe(
+  Flag.withDescription('Include dictionaries and topical/scripture indexes (excluded by default)'),
   Flag.withDefault(false),
 );
 /** The remote search path. `FullLayer` — the API client plus auth — is provided
@@ -213,7 +217,7 @@ const remoteSearch = (queryStr: string, lang: string, limit: number, json: boole
 
 export const egwSearch = Command.make(
   'search',
-  { query, book, limit, remote, json, lang, scope, full, noApparatus },
+  { query, book, limit, remote, json, lang, scope, full, apparatus },
   (args) =>
     Effect.gen(function* () {
       const queryStr = args.query.join(' ').trim();
@@ -241,9 +245,9 @@ export const egwSearch = Command.make(
               scope: args.scope,
               bookCode: args.book,
               limit: Option.some(args.limit),
-              // The same axis the web app forces on; see `noApparatus` for why
-              // this surface defaults it off instead.
-              filter: { ...NO_FILTER, excludeApparatus: args.noApparatus },
+              // Excluded unless asked for, matching the web surface; see
+              // `apparatus` for why the default moved.
+              filter: { ...NO_FILTER, excludeApparatus: !args.apparatus },
             }),
           ),
         ),
