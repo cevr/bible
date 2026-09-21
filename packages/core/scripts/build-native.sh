@@ -18,6 +18,8 @@
 # `zig cc` rather than `cc`: one toolchain cross-compiles to every target the
 # deployment needs (the Railway container is linux/arm64) and to wasm32, and
 # Apple's clang cannot target wasm32 at all.
+# `-g0` is deliberate: path-dependent debug data would break byte equality
+# when the same C is built from different checkouts or working directories.
 
 set -euo pipefail
 
@@ -35,7 +37,7 @@ build_wasm() {
   # that supplies a smaller `WebAssembly.Memory` — which is every host, because
   # the size depends on the corpus — fails to instantiate with a LinkError
   # rather than falling back cleanly.
-  zig cc --target=wasm32-freestanding -msimd128 -O3 -nostdlib \
+  zig cc --target=wasm32-freestanding -msimd128 -O3 -g0 -nostdlib \
     -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0 \
     -o "$out/vector-scan.wasm" "$src/vector-scan-wasm.c"
 }
@@ -63,7 +65,7 @@ build_native() {
     # that kills the process rather than an error any fallback can catch.
     echo "$TARGET${TARGET_CFLAGS:+ $TARGET_CFLAGS} -> $out/vector-scan-$TARGET.so"
     # shellcheck disable=SC2086 -- TARGET_CFLAGS is a flag list, split on purpose.
-    zig cc --target="$TARGET" ${TARGET_CFLAGS:-} -O3 -shared -fPIC \
+    zig cc --target="$TARGET" ${TARGET_CFLAGS:-} -O3 -g0 -shared -fPIC \
       -o "$out/vector-scan-$TARGET.so" "$src/vector-scan.c"
     verify_isa "$out/vector-scan-$TARGET.so"
   else
@@ -71,7 +73,7 @@ build_native() {
     # -O3 only: never -march=native, which bakes in whatever the *build*
     # machine happens to support and faults on an older one. The source
     # selects NEON or AVX2 from the target's own feature macros.
-    zig cc -O3 -shared -fPIC -o "$out/vector-scan.$ext" "$src/vector-scan.c"
+    zig cc -O3 -g0 -shared -fPIC -o "$out/vector-scan.$ext" "$src/vector-scan.c"
   fi
 }
 
@@ -126,7 +128,7 @@ check_wasm() {
   fi
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  zig cc --target=wasm32-freestanding -msimd128 -O3 -nostdlib \
+  zig cc --target=wasm32-freestanding -msimd128 -O3 -g0 -nostdlib \
     -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0 \
     -o "$tmp/vector-scan.wasm" "$src/vector-scan-wasm.c"
   if cmp -s "$tmp/vector-scan.wasm" "$committed"; then
@@ -139,7 +141,7 @@ check_wasm() {
   # The committed x86-64 library, checked the same way and for the same reason.
   linux="$out/vector-scan-x86_64-linux-gnu.so"
   if [ -f "$linux" ]; then
-    zig cc --target=x86_64-linux-gnu -mavx2 -O3 -shared -fPIC \
+    zig cc --target=x86_64-linux-gnu -mavx2 -O3 -g0 -shared -fPIC \
       -o "$tmp/vector-scan-x86_64-linux-gnu.so" "$src/vector-scan.c"
     if cmp -s "$tmp/vector-scan-x86_64-linux-gnu.so" "$linux"; then
       echo "x86_64 avx2 matches vector-scan.c"
