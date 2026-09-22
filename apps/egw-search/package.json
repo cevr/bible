@@ -9,6 +9,7 @@
     "server:dev": "bun --watch server/main.ts",
     "build": "bun build src/index.tsx --target browser --format esm --outdir dist --minify && cp index.html src/styles.css dist/",
     "start": "NODE_ENV=production bun server/main.ts",
+    "test:browser": "bun run build && playwright test --config=test/browser/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src server",
     "gate": "bun run typecheck && bun run test"
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "20.14.5",
+    "@playwright/test": "1.63.0",
     "concurrently": "^9.1.2",
     "happy-dom": "20.14.5"
   }

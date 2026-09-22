@@ -190,10 +190,10 @@ describe('SearchPage', () => {
         Effect.sync(() => filterToggle?.click()),
         {
           label: 'second pane opens filters',
-          until: (actualRoot) =>
-            elementRoot(actualRoot)
-              ?.querySelectorAll<HTMLElement>('.pane')[1]
-              ?.querySelector('.fbody') !== null,
+          until: (actualRoot) => {
+            const pane = elementRoot(actualRoot)?.querySelectorAll<HTMLElement>('.pane')[1];
+            return pane !== undefined && pane.querySelector('.fbody') !== null;
+          },
         },
       );
       const scope = Array.from(
@@ -208,10 +208,10 @@ describe('SearchPage', () => {
         ),
         {
           label: 'second pane filter replaces the URL',
-          until: (actualRoot) =>
-            elementRoot(actualRoot)
-              ?.querySelectorAll<HTMLElement>('.pane')[1]
-              ?.querySelector('.filtered') !== null,
+          until: (actualRoot) => {
+            const pane = elementRoot(actualRoot)?.querySelectorAll<HTMLElement>('.pane')[1];
+            return pane !== undefined && pane.querySelector('.filtered') !== null;
+          },
         },
       );
       expect(replacement.kind).toBe('replace');
