@@ -7,8 +7,8 @@ import { Query as HostQuery } from 'effect-frame/actor';
 import { QueryTest } from 'effect-frame/actor/testing';
 import { Location, Route, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
-import { Dom, render } from 'effect-frame/view';
-import { Effect, Queue, Ref, Schema, Stream } from 'effect';
+import { Dom, ViewTest } from 'effect-frame/view';
+import { Effect, Layer, Queue, Ref, Schema, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
@@ -19,8 +19,14 @@ if (!GlobalRegistrator.isRegistered) {
   GlobalRegistrator.register({ url: 'http://app.test/' });
 }
 
+const elementRoot = (root: Node): HTMLElement | undefined => {
+  if (root instanceof HTMLElement) return root;
+  return undefined;
+};
+
 interface FakeLocation {
   readonly service: LocationService;
+  readonly writes: Queue.Queue<{ readonly kind: 'push' | 'replace'; readonly url: URL }>;
   readonly pop: (href: string) => Effect.Effect<void>;
 }
 
@@ -28,13 +34,20 @@ const makeLocation = (initial: string): Effect.Effect<FakeLocation> =>
   Effect.gen(function* () {
     const current = yield* Ref.make(new URL(initial));
     const pops = yield* Queue.unbounded<URL>();
+    const writes = yield* Queue.unbounded<{
+      readonly kind: 'push' | 'replace';
+      readonly url: URL;
+    }>();
     return {
       service: {
         current: Ref.get(current),
-        push: (url) => Ref.set(current, url),
-        replace: (url) => Ref.set(current, url),
+        push: (url) =>
+          Effect.andThen(Ref.set(current, url), Queue.offer(writes, { kind: 'push', url })),
+        replace: (url) =>
+          Effect.andThen(Ref.set(current, url), Queue.offer(writes, { kind: 'replace', url })),
         pops: Stream.fromQueue(pops),
       },
+      writes,
       pop: (href) =>
         Effect.gen(function* () {
           const url = new URL(href, initial);
@@ -51,26 +64,30 @@ const paragraph = (text: string) => ({
   isHeading: false,
 });
 
-const answerFor = (query: string): SearchResponse => ({
-  hits: [
-    {
-      refcode: 'GC 1.1',
-      bookCode: 'GC',
-      bookTitle: 'The Great Controversy',
-      author: 'Ellen White',
-      text: query,
-      isHeading: false,
-      lexicalRank: 1,
-      vectorRank: null,
-      url: null,
-      before: [paragraph(`${query} before one`), paragraph(`${query} before two`)],
-      after: [paragraph(`${query} after one`), paragraph(`${query} after two`)],
-    },
-  ],
-  scope: 'all',
-  vector: 'lexical — absent',
-  nonSelective: false,
-});
+const answerFor = (request: SearchRequest): SearchResponse => {
+  let text = request.q;
+  if (request.scope !== 'all') text = `${request.q} [${request.scope}]`;
+  return {
+    hits: [
+      {
+        refcode: 'GC 1.1',
+        bookCode: 'GC',
+        bookTitle: 'The Great Controversy',
+        author: 'Ellen White',
+        text,
+        isHeading: false,
+        lexicalRank: 1,
+        vectorRank: null,
+        url: null,
+        before: [paragraph(`${request.q} before one`), paragraph(`${request.q} before two`)],
+        after: [paragraph(`${request.q} after one`), paragraph(`${request.q} after two`)],
+      },
+    ],
+    scope: 'all',
+    vector: 'lexical — absent',
+    nonSelective: false,
+  };
+};
 
 const start = (initial: string) =>
   Effect.gen(function* () {
@@ -85,7 +102,7 @@ const start = (initial: string) =>
             Effect.andThen(
               Queue.offer(batches, requests),
               Effect.succeed((request: (typeof requests)[number]) =>
-                Effect.succeed(answerFor(request.q)),
+                Effect.succeed(answerFor(request)),
               ),
             ),
         }),
@@ -99,18 +116,28 @@ const start = (initial: string) =>
       view: SearchPage,
     });
 
-    yield* mount({
-      routes: [search],
-      notFound: () => Effect.succeed(<p>not found</p>),
+    // Build the query layer in the test's root scope. The mounted page owns a
+    // child scope, but its cache and host remain alive until that page closes.
+    const testContext = yield* Layer.build(testLayer);
+    const page = yield* ViewTest.make({
       host: Dom.host,
       root,
-    }).pipe(
-      Effect.provideService(Location, location.service),
-      // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its local query test layer.
-      Effect.provide(testLayer),
-    );
+      rootId: 'egw-search-page',
+      summarizeRoot: (actualRoot) => elementRoot(actualRoot)?.innerHTML ?? '',
+      setup: (host, mountRoot) =>
+        mount({
+          routes: [search],
+          notFound: () => Effect.succeed(<p>not found</p>),
+          host,
+          root: mountRoot,
+        }).pipe(
+          Effect.provideService(Location, location.service),
+          // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its local query test layer.
+          Effect.provide(testContext),
+        ),
+    });
 
-    return { root, batches };
+    return { page, root, batches, location };
   });
 
 const nextBatchFor = (
@@ -127,48 +154,151 @@ const nextBatchFor = (
 describe('SearchPage', () => {
   test('keeps expanded rows when another pane filter changes', () =>
     Effect.gen(function* () {
-      const { root, batches } = yield* start('http://app.test/?q=first&q2=second');
+      const { page, root, batches, location } = yield* start('http://app.test/?q=first&q2=second');
       const initial = yield* Queue.take(batches);
       expect(initial.map((request) => request.q).toSorted()).toEqual(['first', 'second']);
-      yield* render;
+      expect(initial).toHaveLength(2);
+      yield* page.waitFor({
+        label: 'initial two-pane results',
+        timeout: '2 seconds',
+        until: (actualRoot) =>
+          elementRoot(actualRoot)?.querySelectorAll('.pane .hit:not(.skeleton)').length === 2,
+      });
 
       const firstPane = root.querySelector('.pane') as HTMLElement;
+      const firstHit = firstPane.querySelector('.hit');
       const expand = firstPane.querySelector('.expand');
       expect(expand).not.toBeNull();
-      expand?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      yield* render;
+      yield* page.act(
+        Effect.sync(() => {
+          expand?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        }),
+        {
+          label: 'first pane expands its context',
+          until: (actualRoot) =>
+            elementRoot(actualRoot)?.querySelector('.pane')?.querySelectorAll('.context').length ===
+            4,
+        },
+      );
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
 
       const secondPane = root.querySelectorAll<HTMLElement>('.pane')[1];
       expect(secondPane).toBeDefined();
-      secondPane?.querySelector<HTMLButtonElement>('.ftoggle')?.click();
-      yield* render;
+      const filterToggle = secondPane?.querySelector<HTMLButtonElement>('.ftoggle');
+      expect(filterToggle).not.toBeNull();
+      yield* page.act(
+        Effect.sync(() => filterToggle?.click()),
+        {
+          label: 'second pane opens filters',
+          until: (actualRoot) =>
+            elementRoot(actualRoot)
+              ?.querySelectorAll<HTMLElement>('.pane')[1]
+              ?.querySelector('.fbody') !== null,
+        },
+      );
       const scope = Array.from(
         secondPane?.querySelectorAll<HTMLButtonElement>('.fchips button') ?? [],
       ).find((button) => button.textContent === 'Ellen White');
       expect(scope).toBeDefined();
-      scope?.click();
-      yield* Effect.yieldNow;
-      yield* TestClock.adjust('100 millis');
-      yield* nextBatchFor(batches, (request) => request.q === 'second' && request.scope === 'egw');
-      yield* render;
+      const secondHit = secondPane?.querySelector('.hit');
+      const replacement = yield* page.act(
+        Effect.andThen(
+          Effect.sync(() => scope?.click()),
+          Queue.take(location.writes),
+        ),
+        {
+          label: 'second pane filter replaces the URL',
+          until: (actualRoot) =>
+            elementRoot(actualRoot)
+              ?.querySelectorAll<HTMLElement>('.pane')[1]
+              ?.querySelector('.filtered') !== null,
+        },
+      );
+      expect(replacement.kind).toBe('replace');
+
+      yield* page.act(
+        Effect.gen(function* () {
+          yield* TestClock.adjust('100 millis');
+          const requests = yield* nextBatchFor(
+            batches,
+            (request) => request.q === 'second' && request.scope === 'egw',
+          );
+          expect(requests).toHaveLength(1);
+        }),
+        {
+          label: 'second pane renders its filtered response',
+          until: (actualRoot) =>
+            elementRoot(actualRoot)
+              ?.querySelectorAll<HTMLElement>('.pane')[1]
+              ?.querySelector('.text')?.textContent === 'second [egw]',
+        },
+      );
 
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
+      expect(firstPane.querySelector('.hit')).toBe(firstHit);
 
       const firstInput = root.querySelector<HTMLInputElement>('.pane input');
       expect(firstInput).not.toBeNull();
       if (firstInput !== null) {
-        firstInput.value = 'fresh';
-        firstInput.dispatchEvent(new Event('input', { bubbles: true }));
-        yield* render;
-        firstInput.form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        const submit = firstInput.form;
+        expect(submit).not.toBeNull();
+        const submitButton =
+          firstInput.form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+        expect(submitButton).not.toBeNull();
+        yield* page.act(
+          Effect.sync(() => {
+            firstInput.value = '';
+            firstInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }),
+          {
+            label: 'first pane clears its draft',
+            until: (actualRoot) =>
+              elementRoot(actualRoot)
+                ?.querySelector('.pane button[type="submit"]')
+                ?.hasAttribute('disabled') === true,
+          },
+        );
+        yield* page.act(
+          Effect.sync(() => {
+            firstInput.value = 'fresh';
+            firstInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }),
+          {
+            label: 'first pane accepts its fresh draft',
+            until: (actualRoot) => {
+              const actual = elementRoot(actualRoot);
+              return (
+                actual?.querySelector('.pane input') === firstInput &&
+                (actual?.querySelector('.pane input') as HTMLInputElement | null)?.value ===
+                  'fresh' &&
+                actual?.querySelector('.pane button[type="submit"]')?.hasAttribute('disabled') ===
+                  false
+              );
+            },
+          },
+        );
+        const pushed = yield* page.act(
+          Effect.gen(function* () {
+            submit?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            const write = yield* Queue.take(location.writes);
+            yield* TestClock.adjust('100 millis');
+            const requests = yield* nextBatchFor(batches, (request) => request.q === 'fresh');
+            expect(requests).toHaveLength(1);
+            return write;
+          }),
+          {
+            label: 'first pane submits a fresh query',
+            until: (actualRoot) =>
+              elementRoot(actualRoot)?.querySelector('.pane')?.querySelector('.text')
+                ?.textContent === 'fresh',
+          },
+        );
+        expect(pushed.kind).toBe('push');
       }
-      yield* Effect.yieldNow;
-      yield* TestClock.adjust('100 millis');
-      yield* nextBatchFor(batches, (request) => request.q === 'fresh');
-      yield* render;
 
       expect(firstPane.querySelectorAll('.context')).toHaveLength(2);
+      expect(secondPane?.querySelector('.hit')).toBe(secondHit);
+      expect(secondPane?.querySelector('.text')?.textContent).toBe('second [egw]');
     }).pipe(
       // oxlint-disable-next-line effect/noInlineProvide -- the test clock must own debounce timers.
       Effect.provide(TestClock.layer()),
