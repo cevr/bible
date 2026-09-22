@@ -15,9 +15,9 @@
  * restores a previous URL, the router publishes the decoded search into the
  * page's `Source`, and the query re-runs.
  *
- * This module is pure. The router owns the location; this file owns the two
- * inverse functions between a query string and a workspace, and the codec
- * (`Workspace`) that hands them to the router as one route's `search` Schema.
+ * This module is pure. The router owns the location and `UrlState` owns the
+ * mutations; this file owns the two inverse functions between a query string
+ * and a workspace, and the codec (`Workspace`) for the view-owned URL state.
  */
 
 import { Route } from 'effect-frame/router';
@@ -301,10 +301,10 @@ export const toWorkspaceString = (panes: readonly SearchParams[]): string => {
 };
 
 // ---------------------------------------------------------------------------
-// The route's search codec
+// The view-owned URL-state codec
 // ---------------------------------------------------------------------------
 
-/** One pane, as a Schema, so the router can carry the workspace as data. */
+/** One pane, as a Schema, so UrlState can carry the workspace as URL data. */
 const SearchParamsSchema = S.Struct({
   q: S.String,
   scope: SearchRequest.fields.scope,
@@ -315,10 +315,10 @@ const SearchParamsSchema = S.Struct({
   limit: S.Finite,
 });
 
-/** The router hands the query string over as a keyed multimap; the two
- *  functions above turn it into panes and back. Going through
- *  `URLSearchParams` in both directions keeps this file's parser the only
- *  parser: the codec is a thin adapter, not a second reading of the URL. */
+/** UrlState hands the query string over as a keyed multimap; the two functions
+ *  above turn it into panes and back. Going through `URLSearchParams` in both
+ *  directions keeps this file's parser the only parser: the codec is a thin
+ *  adapter, not a second reading of the URL. */
 const fromRecord = (record: Route.SearchRecord): readonly SearchParams[] =>
   parseWorkspace(Route.printSearch(record));
 
