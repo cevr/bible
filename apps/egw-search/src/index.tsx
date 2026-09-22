@@ -21,12 +21,13 @@ import { Effect, Layer, Option, Schema } from 'effect';
 
 import { SearchPage } from './app.js';
 import { actorPrefix } from './contract.js';
-import { Workspace } from './url-state.js';
+
+const EmptySearch = Route.search(Schema.Struct({}));
 
 const search = Route.client('search', {
   path: '/',
   params: Schema.Struct({}),
-  search: Workspace,
+  search: EmptySearch,
   view: SearchPage,
 });
 
@@ -35,7 +36,7 @@ const search = Route.client('search', {
 const NotFound = (props: { readonly url: Source<URL> }) =>
   Effect.gen(function* () {
     // A typed link: the href is printed through the route's own Schemas.
-    const home = yield* link(search, {}, []);
+    const home = yield* link(search, {}, {});
     return (
       <div class="shell">
         <header class="masthead">

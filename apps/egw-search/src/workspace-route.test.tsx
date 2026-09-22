@@ -1,12 +1,12 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { describe, expect, test } from 'bun:test';
 import { Deferred, Effect, Queue, Ref, Schema, Stream } from 'effect';
-import { Location, Route, mount } from 'effect-frame/router';
+import { Location, Route, UrlState, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
 import type { Source } from 'effect-frame/actor/client';
 import { Dom, View, render } from 'effect-frame/view';
 
-import { Workspace as WorkspaceSchema } from './url-state.js';
+import { WORKSPACE_KEYS, Workspace as WorkspaceSchema } from './url-state.js';
 
 if (!GlobalRegistrator.isRegistered) {
   GlobalRegistrator.register({ url: 'http://app.test/' });
@@ -20,8 +20,7 @@ interface FakeLocation {
 }
 
 type Workspace = Schema.Schema.Type<typeof WorkspaceSchema>;
-type WorkspaceRouteProps = Route.RouteProps<{}, Workspace>;
-type CapturedNavigation = Pick<WorkspaceRouteProps, 'updateSearch' | 'replaceSearch'>;
+type CapturedNavigation = UrlState.State<Workspace>;
 
 const makeLocation = (initial: string): Effect.Effect<FakeLocation> =>
   Effect.gen(function* () {
@@ -64,17 +63,13 @@ const start = (initial: string) =>
     const search = Route.client('search', {
       path: '/',
       params: Schema.Struct({}),
-      search: WorkspaceSchema,
-      view: (props: WorkspaceRouteProps) => {
-        const text = View.bind(props.search, (panes) => panes.map((pane) => pane.q).join('|'));
-        return Effect.as(
-          Deferred.succeed(captured, {
-            updateSearch: props.updateSearch,
-            replaceSearch: props.replaceSearch,
-          }),
-          <p id="workspace">{text}</p>,
-        );
-      },
+      search: Route.search(Schema.Struct({})),
+      view: () =>
+        Effect.gen(function* () {
+          const state = yield* UrlState.make(WorkspaceSchema, { keys: WORKSPACE_KEYS });
+          const text = View.bind(state.state, (panes) => panes.map((pane) => pane.q).join('|'));
+          return yield* Effect.as(Deferred.succeed(captured, state), <p id="workspace">{text}</p>);
+        }),
     });
     yield* mount({ routes: [search], notFound: NotFound, host: Dom.host, root }).pipe(
       Effect.provideService(Location, location.service),
@@ -97,7 +92,7 @@ describe('workspace route updates', () => {
     Effect.gen(function* () {
       const { root, location, navigation } = yield* start('http://app.test/?q=first&q2=second');
       yield* Effect.all(
-        [navigation.updateSearch(updatePane(0, 'a')), navigation.updateSearch(updatePane(1, 'b'))],
+        [navigation.push.update(updatePane(0, 'a')), navigation.push.update(updatePane(1, 'b'))],
         { concurrency: 2 },
       );
       yield* render;
@@ -108,7 +103,7 @@ describe('workspace route updates', () => {
       expect(current.searchParams.get('q')).toBe('firsta');
       expect(current.searchParams.get('q2')).toBe('secondb');
 
-      yield* navigation.replaceSearch((currentWorkspace) =>
+      yield* navigation.update((currentWorkspace) =>
         currentWorkspace.map((pane, index) => {
           if (index === 1) return { ...pane, scope: 'egw' };
           return pane;

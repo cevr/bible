@@ -3,12 +3,11 @@
 /**
  * EGW searcher — effect-frame views over the search query.
  *
- * **The URL is the state.** The router decodes the query string into the
- * workspace (`props.search`, one `SearchParams` per pane) and publishes every
- * navigation into that `Source`. Submitting a query pushes a functional
- * search update, while filter changes replace the current entry, so every
- * view the app can show has a link and the back button keeps its search
- * history. See `./url-state.ts`.
+ * **The URL is the state.** `UrlState.make` decodes the query string into the
+ * workspace and publishes every navigation into that `Source`. Submitting a
+ * query pushes a functional search update, while filter changes replace the
+ * current entry, so every view the app can show has a link and the back button
+ * keeps its search history. See `./url-state.ts`.
  *
  * **The async states are the framework's.** `followQuery` keeps the previous
  * result on screen, marked stale, while the next one loads; `Query` draws the
@@ -23,8 +22,7 @@
 
 import type { QueryFailure, QueryState } from 'effect-frame/actor/client';
 import { Cell, followQuery, isReady, match, select, Source, zip } from 'effect-frame/actor/client';
-import type { RouteProps } from 'effect-frame/router';
-import { Router } from 'effect-frame/router';
+import { Router, UrlState } from 'effect-frame/router';
 import type { Child, Node } from 'effect-frame/view';
 import { Dom, For, Query, Show, View } from 'effect-frame/view';
 import { Effect, Option, Predicate, Schema } from 'effect';
@@ -43,6 +41,8 @@ import {
   EMPTY_PARAMS,
   hasFilters,
   MAX_PANES,
+  WORKSPACE_KEYS,
+  Workspace as WorkspaceSchema,
   type SearchParams,
   type Sign,
   signOf,
@@ -141,28 +141,29 @@ const pluralResults = (count: number): string => {
 
 const canAddPane = (count: number): boolean => count < MAX_PANES;
 
-export const SearchPage = Effect.fn('SearchPage')(function* (props: RouteProps<{}, Workspace>) {
-  const panes = props.search;
+export const SearchPage = Effect.fn('SearchPage')(function* () {
+  const workspaceState = yield* UrlState.make(WorkspaceSchema, { keys: WORKSPACE_KEYS });
+  const panes = workspaceState.state;
   const count = select(panes, (list) => list.length);
 
   const workspace: WorkspaceProps = {
     panes,
     update: (index, update) =>
-      props.updateSearch((current) =>
+      workspaceState.push.update((current) =>
         current.map((existing, position) => {
           if (position === index) return update(existing);
           return existing;
         }),
       ),
     replace: (index, update) =>
-      props.replaceSearch((current) =>
+      workspaceState.update((current) =>
         current.map((existing, position) => {
           if (position === index) return update(existing);
           return existing;
         }),
       ),
     close: (index) =>
-      props.updateSearch((current) => {
+      workspaceState.push.update((current) => {
         if (current.length <= 1 || index < 0 || index >= current.length) return current;
         return current.filter((_, position) => position !== index);
       }),
@@ -171,7 +172,7 @@ export const SearchPage = Effect.fn('SearchPage')(function* (props: RouteProps<{
   // The new pane inherits the previous pane's filters but none of its
   // query: a second pane is almost always the same corpus asked a different
   // question.
-  const addPane = props.updateSearch((current) => {
+  const addPane = workspaceState.push.update((current) => {
     if (current.length >= MAX_PANES) return current;
     const last = Option.getOrElse(
       Option.fromNullishOr(current[current.length - 1]),

@@ -270,6 +270,11 @@ const PANE_FIELDS = [
   'limit',
 ] satisfies readonly string[];
 
+/** Every finite wire key the URL-owned workspace may encode. */
+export const WORKSPACE_KEYS: readonly string[] = Array.from({ length: MAX_PANES }, (_, pane) =>
+  PANE_FIELDS.map((field) => paneKey(field, pane)),
+).flat();
+
 const countPanes = (url: URLSearchParams): number => {
   const present = (pane: number): boolean =>
     PANE_FIELDS.some((field) => url.has(paneKey(field, pane)));

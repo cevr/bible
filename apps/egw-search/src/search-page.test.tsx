@@ -6,15 +6,14 @@ import { describe, expect, test } from 'bun:test';
 import { Query as HostQuery } from 'effect-frame/actor';
 import { QueryTest } from 'effect-frame/actor/testing';
 import { Location, Route, mount } from 'effect-frame/router';
-import type { LocationService, RouteProps } from 'effect-frame/router';
+import type { LocationService } from 'effect-frame/router';
 import { Dom, render } from 'effect-frame/view';
-import { Deferred, Effect, Queue, Ref, Schema, Stream } from 'effect';
+import { Effect, Queue, Ref, Schema, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
 import { Search, type SearchRequest } from './contract.js';
 import { SearchPage } from './app.js';
-import { Workspace as WorkspaceSchema } from './url-state.js';
 
 if (!GlobalRegistrator.isRegistered) {
   GlobalRegistrator.register({ url: 'http://app.test/' });
@@ -73,21 +72,11 @@ const answerFor = (query: string): SearchResponse => ({
   nonSelective: false,
 });
 
-type Workspace = Schema.Schema.Type<typeof WorkspaceSchema>;
-type SearchPageProps = RouteProps<{}, Workspace>;
-
-interface Started {
-  readonly root: HTMLElement;
-  readonly navigation: Pick<SearchPageProps, 'updateSearch' | 'replaceSearch'>;
-  readonly batches: Queue.Queue<ReadonlyArray<SearchRequest>>;
-}
-
 const start = (initial: string) =>
   Effect.gen(function* () {
     const root = yield* Effect.sync(() => document.createElement('main'));
     const location = yield* makeLocation(initial);
     const batches = yield* Queue.unbounded<ReadonlyArray<SearchRequest>>();
-    const captured = yield* Deferred.make<Started['navigation']>();
 
     const testLayer = QueryTest.layer({
       queries: [
@@ -106,15 +95,8 @@ const start = (initial: string) =>
     const search = Route.client('search-page-test', {
       path: '/',
       params: Schema.Struct({}),
-      search: WorkspaceSchema,
-      view: (props: SearchPageProps) =>
-        Effect.gen(function* () {
-          yield* Deferred.succeed(captured, {
-            updateSearch: props.updateSearch,
-            replaceSearch: props.replaceSearch,
-          });
-          return yield* SearchPage(props);
-        }),
+      search: Route.search(Schema.Struct({})),
+      view: SearchPage,
     });
 
     yield* mount({
@@ -128,7 +110,7 @@ const start = (initial: string) =>
       Effect.provide(testLayer),
     );
 
-    return { root, navigation: yield* Deferred.await(captured), batches };
+    return { root, batches };
   });
 
 const nextBatchFor = (
@@ -145,7 +127,7 @@ const nextBatchFor = (
 describe('SearchPage', () => {
   test('keeps expanded rows when another pane filter changes', () =>
     Effect.gen(function* () {
-      const { root, navigation, batches } = yield* start('http://app.test/?q=first&q2=second');
+      const { root, batches } = yield* start('http://app.test/?q=first&q2=second');
       const initial = yield* Queue.take(batches);
       expect(initial.map((request) => request.q).toSorted()).toEqual(['first', 'second']);
       yield* render;
@@ -157,12 +139,15 @@ describe('SearchPage', () => {
       yield* render;
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
 
-      yield* navigation.replaceSearch((current) =>
-        current.map((pane, index) => {
-          if (index === 1) return { ...pane, scope: 'egw' };
-          return pane;
-        }),
-      );
+      const secondPane = root.querySelectorAll<HTMLElement>('.pane')[1];
+      expect(secondPane).toBeDefined();
+      secondPane?.querySelector<HTMLButtonElement>('.ftoggle')?.click();
+      yield* render;
+      const scope = Array.from(
+        secondPane?.querySelectorAll<HTMLButtonElement>('.fchips button') ?? [],
+      ).find((button) => button.textContent === 'Ellen White');
+      expect(scope).toBeDefined();
+      scope?.click();
       yield* Effect.yieldNow;
       yield* TestClock.adjust('100 millis');
       yield* nextBatchFor(batches, (request) => request.q === 'second' && request.scope === 'egw');
@@ -170,12 +155,14 @@ describe('SearchPage', () => {
 
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
 
-      yield* navigation.updateSearch((current) =>
-        current.map((pane, index) => {
-          if (index === 0) return { ...pane, q: 'fresh' };
-          return pane;
-        }),
-      );
+      const firstInput = root.querySelector<HTMLInputElement>('.pane input');
+      expect(firstInput).not.toBeNull();
+      if (firstInput !== null) {
+        firstInput.value = 'fresh';
+        firstInput.dispatchEvent(new Event('input', { bubbles: true }));
+        yield* render;
+        firstInput.form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
       yield* Effect.yieldNow;
       yield* TestClock.adjust('100 millis');
       yield* nextBatchFor(batches, (request) => request.q === 'fresh');
