@@ -22,10 +22,10 @@
 
 import type { QueryFailure, QueryState } from 'effect-frame/actor/client';
 import { Cell, followQuery, isReady, match, select, Source, zip } from 'effect-frame/actor/client';
-import { Router, UrlState } from 'effect-frame/router';
+import { UrlState } from 'effect-frame/router';
 import type { Child, Node } from 'effect-frame/view';
 import { Dom, For, Query, Show, View } from 'effect-frame/view';
-import { Effect, Option, Predicate, Schema } from 'effect';
+import { Effect, Option, Predicate, Schema, Stream } from 'effect';
 
 import {
   type BookSubtype,
@@ -220,7 +220,6 @@ interface PaneProps {
 const hasSeveral = (list: Workspace): boolean => list.length > 1;
 
 const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
-  const router = yield* Router;
   const { workspace, index } = props;
 
   /** This pane's slice of the workspace. Every read below goes through it,
@@ -231,10 +230,15 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
 
   /** The text in the box, uncommitted — the only state not in the URL,
    *  because a half-typed query is not a place anyone wants to link to.
-   *  `None` means "nothing typed since the last navigation", which is what
-   *  makes the box follow the back button. */
+   *  `None` means "nothing typed since this pane's query last changed", which
+   *  is what makes the box follow the back button. Another pane's filter is a
+   *  navigation too, but it must not discard this pane's unsent text. */
   const typed = yield* Cell.make(Option.none<string>());
-  yield* Source.on(router.navigations, () => typed.set(Option.none()));
+  const query: Source<string> = {
+    get: Effect.map(params.get, (current) => current.q),
+    changes: Stream.changes(Stream.map(params.changes, (current) => current.q)),
+  };
+  yield* Source.on(query, () => typed.set(Option.none()));
   const draft = zip(typed.state, params, (text, current) =>
     Option.getOrElse(text, () => current.q),
   );

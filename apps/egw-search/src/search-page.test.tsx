@@ -356,6 +356,22 @@ describe('SearchPage', () => {
       );
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
 
+      const unsentInput = firstPane.querySelector<HTMLInputElement>('input');
+      expect(unsentInput).not.toBeNull();
+      yield* page.act(
+        Effect.sync(() => {
+          if (unsentInput === null) return;
+          unsentInput.value = 'unsent';
+          unsentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }),
+        {
+          label: 'first pane holds an unsent draft',
+          until: (actualRoot) =>
+            elementRoot(actualRoot)?.querySelector<HTMLInputElement>('.pane input')?.value ===
+            'unsent',
+        },
+      );
+
       const secondPane = root.querySelectorAll<HTMLElement>('.pane')[1];
       expect(secondPane).toBeDefined();
       const filterToggle = secondPane?.querySelector<HTMLButtonElement>('.ftoggle');
@@ -426,6 +442,8 @@ describe('SearchPage', () => {
 
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
       expect(firstPane.querySelector('.hit')).toBe(firstHit);
+      // Another pane's filter is a navigation, but not this pane's query.
+      expect(firstPane.querySelector<HTMLInputElement>('input')?.value).toBe('unsent');
 
       const firstInput = root.querySelector<HTMLInputElement>('.pane input');
       expect(firstInput).not.toBeNull();
