@@ -18,7 +18,7 @@ import {
 import { actorPrefix, Search, type SearchRequest } from '../../src/contract.js';
 import type { SearchResponse } from '../../server/api.js';
 
-const PORT = Number(process.env['PORT'] ?? 3187);
+const PORT = 3187;
 const STATIC_ROOT = `${import.meta.dir}/../../dist`;
 
 class FixtureQueryFailure extends Schema.TaggedError<FixtureQueryFailure>()('FixtureQueryFailure', {
@@ -33,10 +33,16 @@ interface FixtureState {
   singleHttpRequests: number;
   queryBatches: number;
   holdReleases: number;
-  holdHandlerInterruptions: number;
+  holdResolverInterruptions: number;
   holdWorkCompletions: number;
   holdWorkObserved: number;
   lastBatch: ReadonlyArray<string>;
+}
+
+interface RequestState {
+  readonly handlerExited: Deferred.Deferred<void>;
+  handlerExits: number;
+  handlerInterruptions: number;
 }
 
 const makeFixtureState = (): FixtureState =>
@@ -50,7 +56,7 @@ const makeFixtureState = (): FixtureState =>
         singleHttpRequests: 0,
         queryBatches: 0,
         holdReleases: 0,
-        holdHandlerInterruptions: 0,
+        holdResolverInterruptions: 0,
         holdWorkCompletions: 0,
         holdWorkObserved: 0,
         lastBatch: [],
@@ -58,8 +64,21 @@ const makeFixtureState = (): FixtureState =>
     }),
   );
 
+const makeRequestState = (): RequestState =>
+  Effect.runSync(
+    Effect.gen(function* () {
+      return {
+        handlerExited: yield* Deferred.make<void>(),
+        handlerExits: 0,
+        handlerInterruptions: 0,
+      } satisfies RequestState;
+    }),
+  );
+
 let state = makeFixtureState();
 let heldBatch: FixtureState | undefined;
+let lastBatchRequestState: RequestState | undefined;
+let heldRequestState: RequestState | undefined;
 
 const paragraph = (text: string) => ({
   refcode: null,
@@ -103,6 +122,7 @@ const resolveFixtureBatch = (requests: ReadonlyArray<SearchRequest>) =>
     const hasHold = requests.some((request) => request.q === 'hold');
     if (hasHold) {
       heldBatch = batchState;
+      heldRequestState = lastBatchRequestState;
       yield* Deferred.succeed(batchState.holdStarted, void 0);
       return yield* Effect.gen(function* () {
         yield* Deferred.await(batchState.holdWork);
@@ -111,7 +131,7 @@ const resolveFixtureBatch = (requests: ReadonlyArray<SearchRequest>) =>
       }).pipe(
         Effect.onExit((exit) =>
           Effect.gen(function* () {
-            if (Exit.hasInterrupts(exit)) batchState.holdHandlerInterruptions += 1;
+            if (Exit.hasInterrupts(exit)) batchState.holdResolverInterruptions += 1;
             batchState.holdReleases += 1;
             yield* Deferred.succeed(batchState.holdReleased, void 0);
           }),
@@ -133,13 +153,28 @@ const ActorsRouteLive = HttpRouter.use((router) =>
     const handle = yield* HttpServer.make;
     yield* router.add('*', `${actorPrefix}/*`, (request) =>
       Effect.gen(function* () {
-        const web = yield* HttpServerRequest.toWeb(request);
-        const url = new URL(web.url);
-        url.pathname = url.pathname.slice(actorPrefix.length);
-        if (url.pathname === '/query/batch') state.batchHttpRequests += 1;
-        if (url.pathname === '/query') state.singleHttpRequests += 1;
-        const response = yield* handle(new Request(url, web));
-        return HttpServerResponse.fromWeb(response);
+        const isBatch = request.url.split('?')[0]?.endsWith('/query/batch') === true;
+        let requestState: RequestState | undefined;
+        if (isBatch) {
+          requestState = makeRequestState();
+          lastBatchRequestState = requestState;
+        }
+        return yield* Effect.gen(function* () {
+          const web = yield* HttpServerRequest.toWeb(request);
+          const url = new URL(web.url);
+          url.pathname = url.pathname.slice(actorPrefix.length);
+          if (url.pathname === '/query/batch') state.batchHttpRequests += 1;
+          if (url.pathname === '/query') state.singleHttpRequests += 1;
+          const response = yield* handle(new Request(url, web));
+          return HttpServerResponse.fromWeb(response);
+        }).pipe(
+          Effect.onExit((exit) => {
+            if (requestState === undefined) return Effect.void;
+            requestState.handlerExits += 1;
+            if (Exit.hasInterrupts(exit)) requestState.handlerInterruptions += 1;
+            return Deferred.succeed(requestState.handlerExited, void 0);
+          }),
+        );
       }),
     );
   }),
@@ -151,6 +186,9 @@ const FixtureRoutes = HttpRouter.use((router) =>
     yield* router.add('POST', '/__fixture/reset', () =>
       Effect.sync(() => {
         state = makeFixtureState();
+        heldBatch = undefined;
+        lastBatchRequestState = undefined;
+        heldRequestState = undefined;
         return HttpServerResponse.jsonUnsafe({ reset: true });
       }),
     );
@@ -163,9 +201,11 @@ const FixtureRoutes = HttpRouter.use((router) =>
             singleHttpRequests: state.singleHttpRequests,
             queryBatches: state.queryBatches,
             holdReleases: held?.holdReleases ?? 0,
-            holdHandlerInterruptions: held?.holdHandlerInterruptions ?? 0,
+            holdResolverInterruptions: held?.holdResolverInterruptions ?? 0,
             holdWorkCompletions: held?.holdWorkCompletions ?? 0,
             holdWorkObserved: held?.holdWorkObserved ?? 0,
+            requestHandlerExits: heldRequestState?.handlerExits ?? 0,
+            requestHandlerInterruptions: heldRequestState?.handlerInterruptions ?? 0,
             lastBatch: state.lastBatch,
           });
         })(),
@@ -187,6 +227,15 @@ const FixtureRoutes = HttpRouter.use((router) =>
         return HttpServerResponse.jsonUnsafe({ completed });
       }),
     );
+    yield* router.add('GET', '/__fixture/hold-handler-exited', () => {
+      const request = heldRequestState;
+      if (request === undefined)
+        return Effect.succeed(HttpServerResponse.jsonUnsafe({ exited: false }));
+      return Effect.as(
+        Deferred.await(request.handlerExited),
+        HttpServerResponse.jsonUnsafe({ exited: true }),
+      );
+    });
     yield* router.add('GET', '/__fixture/hold-released', () => {
       const batch = heldBatch ?? state;
       return Effect.as(

@@ -17,6 +17,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'bun server.ts',
+    env: { PORT: String(port) },
     url: `http://127.0.0.1:${String(port)}/__fixture/ready`,
     reuseExistingServer: false,
     timeout: 30_000,

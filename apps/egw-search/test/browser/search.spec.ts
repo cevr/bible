@@ -8,9 +8,11 @@ interface Receipts {
   readonly singleHttpRequests: number;
   readonly queryBatches: number;
   readonly holdReleases: number;
-  readonly holdHandlerInterruptions: number;
+  readonly holdResolverInterruptions: number;
   readonly holdWorkCompletions: number;
   readonly holdWorkObserved: number;
+  readonly requestHandlerExits: number;
+  readonly requestHandlerInterruptions: number;
   readonly lastBatch: readonly string[];
 }
 
@@ -198,6 +200,9 @@ test('aborts a held real query and releases its fixture resource', async ({ page
   expect((await released.json()) as { readonly released: boolean }).toEqual({ released: true });
   const aborted = await failedBatch;
   expect(aborted.failure()?.errorText).toBeTruthy();
+  const handlerExited = await page.request.get('/__fixture/hold-handler-exited');
+  expect(handlerExited.ok()).toBe(true);
+  expect((await handlerExited.json()) as { readonly exited: boolean }).toEqual({ exited: true });
 
   const completed = await page.request.get('/__fixture/hold-complete');
   expect(completed.ok()).toBe(true);
@@ -207,9 +212,20 @@ test('aborts a held real query and releases its fixture resource', async ({ page
   const result = await receipts(page);
   expect(result.lastBatch).toEqual(['hold']);
   expect(result.holdReleases).toBe(1);
-  expect(result.holdHandlerInterruptions).toBe(1);
+  expect(result.holdResolverInterruptions).toBe(1);
   expect(result.holdWorkCompletions).toBe(1);
   expect(result.holdWorkObserved).toBe(0);
+  expect(result.requestHandlerExits).toBe(1);
+  expect(result.requestHandlerInterruptions).toBe(1);
   expect(result.singleHttpRequests).toBe(0);
   expect(errors).toEqual([]);
+
+  await resetFixture(page);
+  const reset = await receipts(page);
+  expect(reset.holdReleases).toBe(0);
+  expect(reset.holdResolverInterruptions).toBe(0);
+  expect(reset.holdWorkCompletions).toBe(0);
+  expect(reset.holdWorkObserved).toBe(0);
+  expect(reset.requestHandlerExits).toBe(0);
+  expect(reset.requestHandlerInterruptions).toBe(0);
 });
