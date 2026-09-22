@@ -9,7 +9,20 @@ import * as Frame from 'effect-frame/frame';
 import { Location, Route, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
 import { Dom, ViewTest } from 'effect-frame/view';
-import { Context, Effect, Inspectable, Layer, Queue, Ref, Schema, Stream } from 'effect';
+import {
+  Cause,
+  Context,
+  Deferred,
+  Effect,
+  Exit,
+  Inspectable,
+  Layer,
+  Option,
+  Queue,
+  Ref,
+  Schema,
+  Stream,
+} from 'effect';
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
@@ -95,17 +108,21 @@ const start = (initial: string) =>
     const root = yield* Effect.sync(() => document.createElement('main'));
     const location = yield* makeLocation(initial);
     const batches = yield* Queue.unbounded<ReadonlyArray<SearchRequest>>();
+    const holdStarted = yield* Deferred.make<void>();
+    const releaseHold = yield* Deferred.make<void>();
 
     const testLayer = QueryTest.layer({
       queries: [
         HostQuery.batched(Search, {
           resolve: (requests) =>
-            Effect.andThen(
-              Queue.offer(batches, requests),
-              Effect.succeed((request: (typeof requests)[number]) =>
-                Effect.succeed(answerFor(request)),
-              ),
-            ),
+            Effect.gen(function* () {
+              yield* Queue.offer(batches, requests);
+              if (requests.some((request) => request.q === 'diagnostic-hold')) {
+                yield* Deferred.succeed(holdStarted, undefined);
+                yield* Deferred.await(releaseHold);
+              }
+              return (request: (typeof requests)[number]) => Effect.succeed(answerFor(request));
+            }),
         }),
       ],
     }).pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search-test' })));
@@ -137,9 +154,13 @@ const start = (initial: string) =>
           // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its local query test layer.
           Effect.provide(testContext),
         ),
-    });
+    }).pipe(
+      // The mounted app owns this context. ViewTest also captures it for bounded diagnostics.
+      // oxlint-disable-next-line effect/noInlineProvide -- diagnostics must use the app Frame.
+      Effect.provide(testContext),
+    );
 
-    return { page, root, batches, location, frame };
+    return { page, root, batches, location, frame, holdStarted, releaseHold };
   });
 
 const nextBatchFor = (
@@ -154,6 +175,117 @@ const nextBatchFor = (
   });
 
 describe('SearchPage', () => {
+  test('inspects a held Loading query and disposes the same Frame root after continuation', () =>
+    Effect.gen(function* () {
+      const { page, batches, frame, holdStarted, releaseHold } = yield* start(
+        'http://app.test/?q=diagnostic-hold',
+      );
+      const initial = yield* Queue.take(batches);
+      expect(initial).toHaveLength(1);
+      expect(initial[0]?.q).toBe('diagnostic-hold');
+      yield* Deferred.await(holdStarted);
+      yield* page.waitFor({
+        label: 'held query renders Loading',
+        timeout: '2 seconds',
+        until: (actualRoot) => elementRoot(actualRoot)?.querySelector('.skeleton') !== null,
+      });
+
+      const loadingInspection = yield* frame.inspect;
+      const loadingMount = loadingInspection.mounts.find(({ phase }) => phase === 'mounted');
+      const loadingRoute = loadingInspection.routes[0];
+      const loadingQuery = loadingInspection.queries.find((query) =>
+        query.key.includes('"q":"diagnostic-hold"'),
+      );
+      expect(loadingInspection.root.id).toBeDefined();
+      expect(loadingInspection.mounts).toHaveLength(1);
+      expect(loadingMount).toBeDefined();
+      expect(loadingRoute?.routeName).toBe('search-page-test');
+      expect(loadingRoute?.phase).toBe('mounted');
+      expect(loadingMount?.ownerId).toBeDefined();
+      expect(loadingRoute?.ownerId).toBeDefined();
+      expect(loadingRoute?.parentOwnerId).toBeDefined();
+      expect(loadingQuery?.state).toBe('Loading');
+      expect(loadingQuery?.failure).toBeNull();
+
+      const diagnosticExit = yield* Effect.exit(
+        page.waitFor({
+          label: 'held query never becomes ready',
+          timeout: '100 millis',
+          until: () => false,
+        }),
+      );
+      expect(Exit.isFailure(diagnosticExit)).toBe(true);
+      if (!Exit.isFailure(diagnosticExit)) {
+        return yield* Effect.die('expected the held query condition to time out');
+      }
+      const diagnosticError = Cause.findErrorOption(diagnosticExit.cause);
+      expect(Option.isSome(diagnosticError)).toBe(true);
+      if (Option.isNone(diagnosticError)) {
+        return yield* Effect.die('expected a typed condition receipt');
+      }
+      expect(Schema.is(ViewTest.ConditionNotObserved)(diagnosticError.value)).toBe(true);
+      if (!Schema.is(ViewTest.ConditionNotObserved)(diagnosticError.value)) {
+        return yield* Effect.die('expected a ConditionNotObserved receipt');
+      }
+      const conditionError = diagnosticError.value;
+      expect(conditionError._tag).toBe('ConditionNotObserved');
+      expect(conditionError.rootDisposed).toBe(false);
+      expect(conditionError.inspection._tag).toBe('Available');
+      if (conditionError.inspection._tag === 'Available') {
+        const snapshot = conditionError.inspection.snapshot;
+        const snapshotMount = snapshot.mounts.find(({ phase }) => phase === 'mounted');
+        const snapshotRoute = snapshot.routes[0];
+        expect(snapshot.root.id).toBe(loadingInspection.root.id);
+        expect(snapshot.mounts).toHaveLength(1);
+        expect(snapshotMount).toBeDefined();
+        expect(snapshotRoute?.routeName).toBe('search-page-test');
+        expect(snapshotRoute?.phase).toBe('mounted');
+        expect(snapshotMount?.ownerId).toBeDefined();
+        expect(snapshotRoute?.ownerId).toBeDefined();
+        expect(snapshotRoute?.parentOwnerId).toBeDefined();
+        expect(snapshot.actors.length).toBeGreaterThan(0);
+        expect(snapshot.actors.every(({ kind }) => kind === 'local')).toBe(true);
+        expect(
+          snapshot.actors.every(({ parentOwnerId }) => parentOwnerId === snapshotMount?.ownerId),
+        ).toBe(true);
+        expect(
+          snapshot.queries.some(
+            (query) => query.state === 'Loading' && query.key.includes('"q":"diagnostic-hold"'),
+          ),
+        ).toBe(true);
+        expect(snapshot.commands._tag).toBe('Unavailable');
+      }
+
+      yield* Deferred.succeed(releaseHold, undefined);
+      yield* page.waitFor({
+        label: 'held query continues to ready results',
+        timeout: '2 seconds',
+        until: (actualRoot) =>
+          elementRoot(actualRoot)?.querySelector('.text')?.textContent === 'diagnostic-hold',
+      });
+      const continuedInspection = yield* frame.inspect;
+      expect(continuedInspection.root.id).toBe(loadingInspection.root.id);
+      expect(
+        continuedInspection.queries.some(
+          (query) => query.state === 'Ready' && query.key.includes('"q":"diagnostic-hold"'),
+        ),
+      ).toBe(true);
+
+      yield* page.close;
+      const closedInspection = yield* frame.inspect;
+      expect(closedInspection.root.id).toBe(loadingInspection.root.id);
+      expect(closedInspection.mounts).toEqual([]);
+      expect(closedInspection.routes).toEqual([]);
+      expect(closedInspection.actors).toEqual([]);
+      expect(closedInspection.queries).toEqual([]);
+      expect(closedInspection.urlStates).toEqual([]);
+    }).pipe(
+      // oxlint-disable-next-line effect/noInlineProvide -- the test clock must own debounce timers.
+      Effect.provide(TestClock.layer()),
+      Effect.scoped,
+      Effect.runPromise,
+    ));
+
   test('keeps expanded rows when another pane filter changes', () =>
     Effect.gen(function* () {
       const { page, root, batches, location, frame } = yield* start(
