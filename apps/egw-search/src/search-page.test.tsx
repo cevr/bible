@@ -175,7 +175,7 @@ const nextBatchFor = (
   });
 
 describe('SearchPage', () => {
-  test('inspects a held Loading query and disposes the same Frame root after continuation', () =>
+  test('continues on the same Frame root and releases page records', () =>
     Effect.gen(function* () {
       const { page, batches, frame, holdStarted, releaseHold } = yield* start(
         'http://app.test/?q=diagnostic-hold',
@@ -187,7 +187,8 @@ describe('SearchPage', () => {
       yield* page.waitFor({
         label: 'held query renders Loading',
         timeout: '2 seconds',
-        until: (actualRoot) => elementRoot(actualRoot)?.querySelector('.skeleton') !== null,
+        until: (actualRoot) =>
+          (elementRoot(actualRoot)?.querySelector('.skeleton') ?? null) !== null,
       });
 
       const loadingInspection = yield* frame.inspect;
@@ -271,6 +272,7 @@ describe('SearchPage', () => {
         ),
       ).toBe(true);
 
+      // Closing the page releases its records. The Frame root stays alive for inspection.
       yield* page.close;
       const closedInspection = yield* frame.inspect;
       expect(closedInspection.root.id).toBe(loadingInspection.root.id);
