@@ -254,7 +254,7 @@ describe('SearchPage', () => {
             (query) => query.state === 'Loading' && query.key.includes('"q":"diagnostic-hold"'),
           ),
         ).toBe(true);
-        expect(snapshot.commands._tag).toBe('Unavailable');
+        expect(snapshot.commands).toEqual({ _tag: 'Available', records: [] });
       }
 
       yield* Deferred.succeed(releaseHold, undefined);
@@ -337,7 +337,7 @@ describe('SearchPage', () => {
       expect(
         initialInspection.queries.map(({ key }) => key).some((key) => key.includes('"q":"second"')),
       ).toBe(true);
-      expect(initialInspection.commands._tag).toBe('Unavailable');
+      expect(initialInspection.commands).toEqual({ _tag: 'Available', records: [] });
 
       const firstPane = root.querySelector('.pane') as HTMLElement;
       const firstHit = firstPane.querySelector('.hit');
@@ -515,7 +515,7 @@ describe('SearchPage', () => {
       expect(closedInspection.actors).toEqual([]);
       expect(closedInspection.queries).toEqual([]);
       expect(closedInspection.urlStates).toEqual([]);
-      expect(closedInspection.commands._tag).toBe('Unavailable');
+      expect(closedInspection.commands).toEqual({ _tag: 'Available', records: [] });
     }).pipe(
       // oxlint-disable-next-line effect/noInlineProvide -- the test clock must own debounce timers.
       Effect.provide(TestClock.layer()),
