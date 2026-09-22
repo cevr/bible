@@ -5,10 +5,11 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { describe, expect, test } from 'bun:test';
 import { Query as HostQuery } from 'effect-frame/actor';
 import { QueryTest } from 'effect-frame/actor/testing';
+import * as Frame from 'effect-frame/frame';
 import { Location, Route, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
 import { Dom, ViewTest } from 'effect-frame/view';
-import { Effect, Layer, Queue, Ref, Schema, Stream } from 'effect';
+import { Context, Effect, Inspectable, Layer, Queue, Ref, Schema, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
@@ -107,7 +108,7 @@ const start = (initial: string) =>
             ),
         }),
       ],
-    });
+    }).pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search-test' })));
 
     const search = Route.client('search-page-test', {
       path: '/',
@@ -119,6 +120,7 @@ const start = (initial: string) =>
     // Build the query layer in the test's root scope. The mounted page owns a
     // child scope, but its cache and host remain alive until that page closes.
     const testContext = yield* Layer.build(testLayer);
+    const frame = Context.get(testContext, Frame.Service);
     const page = yield* ViewTest.make({
       host: Dom.host,
       root,
@@ -137,7 +139,7 @@ const start = (initial: string) =>
         ),
     });
 
-    return { page, root, batches, location };
+    return { page, root, batches, location, frame };
   });
 
 const nextBatchFor = (
@@ -154,7 +156,9 @@ const nextBatchFor = (
 describe('SearchPage', () => {
   test('keeps expanded rows when another pane filter changes', () =>
     Effect.gen(function* () {
-      const { page, root, batches, location } = yield* start('http://app.test/?q=first&q2=second');
+      const { page, root, batches, location, frame } = yield* start(
+        'http://app.test/?q=first&q2=second',
+      );
       const initial = yield* Queue.take(batches);
       expect(initial.map((request) => request.q).toSorted()).toEqual(['first', 'second']);
       expect(initial).toHaveLength(2);
@@ -164,6 +168,42 @@ describe('SearchPage', () => {
         until: (actualRoot) =>
           elementRoot(actualRoot)?.querySelectorAll('.pane .hit:not(.skeleton)').length === 2,
       });
+      const initialInspection = yield* frame.inspect;
+      const initialMount = initialInspection.mounts.find(({ phase }) => phase === 'mounted');
+      const initialRoute = initialInspection.routes[0];
+      const initialUrlState = initialInspection.urlStates[0];
+      const initialFirstQuery = initialInspection.queries.find((query) =>
+        query.key.includes('"q":"first"'),
+      );
+      const initialActorIds = initialInspection.actors.map(({ id }) => id).toSorted();
+
+      expect(initialInspection.mounts).toHaveLength(1);
+      expect(initialRoute?.routeName).toBe('search-page-test');
+      expect(initialRoute?.phase).toBe('mounted');
+      expect(initialRoute?.canonicalUrl).toBe('http://app.test/?q=first&q2=second');
+      expect(initialInspection.urlStates).toHaveLength(1);
+      expect(initialUrlState?.routeInstanceId).toBe(initialRoute?.routeInstanceId);
+      expect(initialUrlState?.keys).toContain('q');
+      expect(initialUrlState?.keys).toContain('q2');
+      const urlStateText = Inspectable.toStringUnknown(initialUrlState?.value, 0);
+      expect(urlStateText).toContain('first');
+      expect(urlStateText).toContain('second');
+      expect(initialInspection.actors.length).toBeGreaterThanOrEqual(6);
+      expect(initialInspection.actors.every(({ kind }) => kind === 'local')).toBe(true);
+      expect(
+        initialInspection.actors.every(
+          ({ parentOwnerId }) => parentOwnerId === initialMount?.ownerId,
+        ),
+      ).toBe(true);
+      expect(initialInspection.queries).toHaveLength(2);
+      expect(initialInspection.queries.every(({ state }) => state === 'Ready')).toBe(true);
+      expect(
+        initialInspection.queries.map(({ key }) => key).some((key) => key.includes('"q":"first"')),
+      ).toBe(true);
+      expect(
+        initialInspection.queries.map(({ key }) => key).some((key) => key.includes('"q":"second"')),
+      ).toBe(true);
+      expect(initialInspection.commands._tag).toBe('Unavailable');
 
       const firstPane = root.querySelector('.pane') as HTMLElement;
       const firstHit = firstPane.querySelector('.hit');
@@ -233,6 +273,22 @@ describe('SearchPage', () => {
               ?.querySelector('.text')?.textContent === 'second [egw]',
         },
       );
+      const filteredInspection = yield* frame.inspect;
+      expect(filteredInspection.routes[0]?.routeInstanceId).toBe(initialRoute?.routeInstanceId);
+      expect(filteredInspection.mounts[0]?.id).toBe(initialMount?.id);
+      expect(filteredInspection.urlStates[0]?.id).toBe(initialUrlState?.id);
+      expect(filteredInspection.actors.map(({ id }) => id).toSorted()).toEqual(initialActorIds);
+      expect(filteredInspection.queries.some(({ id }) => id === initialFirstQuery?.id)).toBe(true);
+      expect(
+        filteredInspection.queries.some(
+          ({ key }) => key.includes('"q":"second"') && key.includes('"scope":"egw"'),
+        ),
+      ).toBe(true);
+      expect(
+        filteredInspection.queries.some(
+          ({ key }) => key.includes('"q":"second"') && key.includes('"scope":"all"'),
+        ),
+      ).toBe(false);
 
       expect(firstPane.querySelectorAll('.context')).toHaveLength(4);
       expect(firstPane.querySelector('.hit')).toBe(firstHit);
@@ -299,6 +355,15 @@ describe('SearchPage', () => {
       expect(firstPane.querySelectorAll('.context')).toHaveLength(2);
       expect(secondPane?.querySelector('.hit')).toBe(secondHit);
       expect(secondPane?.querySelector('.text')?.textContent).toBe('second [egw]');
+
+      yield* page.close;
+      const closedInspection = yield* frame.inspect;
+      expect(closedInspection.mounts).toEqual([]);
+      expect(closedInspection.routes).toEqual([]);
+      expect(closedInspection.actors).toEqual([]);
+      expect(closedInspection.queries).toEqual([]);
+      expect(closedInspection.urlStates).toEqual([]);
+      expect(closedInspection.commands._tag).toBe('Unavailable');
     }).pipe(
       // oxlint-disable-next-line effect/noInlineProvide -- the test clock must own debounce timers.
       Effect.provide(TestClock.layer()),

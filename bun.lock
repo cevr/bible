@@ -63,7 +63,7 @@
         "@effect/platform-bun": "catalog:",
         "@effect/sql-sqlite-bun": "catalog:",
         "effect": "catalog:",
-        "effect-frame": "0.6.0",
+        "effect-frame": "0.7.0",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "20.14.5",
@@ -983,7 +983,7 @@
 
     "effect-bun-test": ["effect-bun-test@0.3.0", "", { "peerDependencies": { "bun": "*", "effect": ">=3.19.0" } }, "sha512-P2xZ4HBZg4bFw2ePY4E5UB6EZ2d1L/HO13+KdoprTYFuc8B1uTpdn7V4UU6qyYiYsqTY9DZ1TFB94Ekx2YLA4g=="],
 
-    "effect-frame": ["effect-frame@0.6.0", "", { "dependencies": { "@solidjs/signals": "2.0.0-rc.8", "effect-machine": "0.27.0" }, "peerDependencies": { "@opentui/core": "0.5.11", "effect": "^4.0.0-rc.115" }, "optionalPeers": ["@opentui/core"] }, "sha512-HM+Vfto0vwyzAs2JesIdnTGJSZ/86Y30JgQOflEUYTeygmBKDl43spTG7TZEWAxz0e/3SbCmEQ1SMRDBoPKKoA=="],
+    "effect-frame": ["effect-frame@0.7.0", "", { "dependencies": { "@solidjs/signals": "2.0.0-rc.8", "effect-machine": "0.27.0" }, "peerDependencies": { "@opentui/core": "0.5.11", "effect": "^4.0.0-rc.115" }, "optionalPeers": ["@opentui/core"] }, "sha512-YKJNH97xKiEXKLqiyntJXpwFGsZSdwE6z6TBlBUW7SN0xi8igPKDc2s6c4d4hiCAmRc4lHzfuoDVs1St7qhIiw=="],
 
     "effect-machine": ["effect-machine@0.27.0", "", { "peerDependencies": { "effect": ">=4.0.0-rc.112 <5" } }, "sha512-gBZq1P+qUZxvPFRkU/4oylypGgmfuPyPLlPmaPa1R0YA6dAzZDID8POYMWIjmpgks7srFFPBVelyYbvpUlR9FA=="],
 

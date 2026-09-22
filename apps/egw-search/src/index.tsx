@@ -7,6 +7,7 @@
 
 import { HttpTransport, queryCacheLayer } from 'effect-frame/actor/client';
 import type { Source } from 'effect-frame/actor/client';
+import * as Frame from 'effect-frame/frame';
 import {
   Link,
   Location,
@@ -69,7 +70,7 @@ const services = Layer.mergeAll(
     baseUrl: `${location.origin}${actorPrefix}`,
     reconnect: HttpTransport.defaultReconnect,
   }),
-  queryCacheLayer,
+  queryCacheLayer.pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search' }))),
   Layer.succeed(Location, browserLocation),
 );
 
