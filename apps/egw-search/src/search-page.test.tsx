@@ -3,12 +3,12 @@
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { describe, expect, test } from 'bun:test';
-import { ActorTransport, type QueryKey } from 'effect-frame/actor';
-import { queryCacheLayer } from 'effect-frame/actor/client';
+import { Query as HostQuery } from 'effect-frame/actor';
+import { QueryTest } from 'effect-frame/actor/testing';
 import { Location, Route, mount } from 'effect-frame/router';
 import type { LocationService, RouteProps } from 'effect-frame/router';
 import { Dom, render } from 'effect-frame/view';
-import { Deferred, Effect, Layer, Queue, Ref, Schema, Stream } from 'effect';
+import { Deferred, Effect, Queue, Ref, Schema, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
@@ -79,36 +79,29 @@ type SearchPageProps = RouteProps<{}, Workspace>;
 interface Started {
   readonly root: HTMLElement;
   readonly navigation: Pick<SearchPageProps, 'updateSearch' | 'replaceSearch'>;
-  readonly batches: Queue.Queue<ReadonlyArray<QueryKey>>;
+  readonly batches: Queue.Queue<ReadonlyArray<SearchRequest>>;
 }
 
 const start = (initial: string) =>
   Effect.gen(function* () {
     const root = yield* Effect.sync(() => document.createElement('main'));
     const location = yield* makeLocation(initial);
-    const batches = yield* Queue.unbounded<ReadonlyArray<QueryKey>>();
+    const batches = yield* Queue.unbounded<ReadonlyArray<SearchRequest>>();
     const captured = yield* Deferred.make<Started['navigation']>();
 
-    const transport: ActorTransport['Service'] = {
-      send: () => Effect.die('send is not used by SearchPage'),
-      call: () => Effect.die('call is not used by SearchPage'),
-      snapshot: () => Effect.die('snapshot is not used by SearchPage'),
-      query: () => Effect.die('query is not used by SearchPage'),
-      queryBatch: (keys) =>
-        Effect.andThen(
-          Queue.offer(batches, keys),
-          Effect.succeed(
-            keys.map((key) => ({
-              _tag: 'Refreshed' as const,
-              key,
-              result: Schema.encodeSync(Search.result)(
-                answerFor(Schema.decodeSync(Search.args)(key.args).q),
+    const testLayer = QueryTest.layer({
+      queries: [
+        HostQuery.batched(Search, {
+          resolve: (requests) =>
+            Effect.andThen(
+              Queue.offer(batches, requests),
+              Effect.succeed((request: (typeof requests)[number]) =>
+                Effect.succeed(answerFor(request.q)),
               ),
-            })),
-          ),
-        ),
-      changes: () => Stream.empty,
-    };
+            ),
+        }),
+      ],
+    });
 
     const search = Route.client('search-page-test', {
       path: '/',
@@ -131,24 +124,21 @@ const start = (initial: string) =>
       root,
     }).pipe(
       Effect.provideService(Location, location.service),
-      // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its test transport.
-      Effect.provide(Layer.merge(Layer.succeed(ActorTransport, transport), queryCacheLayer)),
+      // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its local query test layer.
+      Effect.provide(testLayer),
     );
 
     return { root, navigation: yield* Deferred.await(captured), batches };
   });
 
-const decodedRequests = (keys: ReadonlyArray<QueryKey>): ReadonlyArray<SearchRequest> =>
-  keys.map((key) => Schema.decodeSync(Search.args)(key.args));
-
 const nextBatchFor = (
-  batches: Queue.Queue<ReadonlyArray<QueryKey>>,
+  batches: Queue.Queue<ReadonlyArray<SearchRequest>>,
   matches: (request: SearchRequest) => boolean,
 ) =>
   Effect.gen(function* () {
     while (true) {
-      const keys = yield* Queue.take(batches);
-      if (decodedRequests(keys).some(matches)) return keys;
+      const requests = yield* Queue.take(batches);
+      if (requests.some(matches)) return requests;
     }
   });
 
@@ -157,11 +147,7 @@ describe('SearchPage', () => {
     Effect.gen(function* () {
       const { root, navigation, batches } = yield* start('http://app.test/?q=first&q2=second');
       const initial = yield* Queue.take(batches);
-      expect(
-        decodedRequests(initial)
-          .map((request) => request.q)
-          .toSorted(),
-      ).toEqual(['first', 'second']);
+      expect(initial.map((request) => request.q).toSorted()).toEqual(['first', 'second']);
       yield* render;
 
       const firstPane = root.querySelector('.pane') as HTMLElement;
