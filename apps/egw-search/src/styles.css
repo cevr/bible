@@ -458,10 +458,17 @@ body {
 
 /* --------------------------------------------------------------- result -- */
 
+/* A result list is never the scroll anchor. A list is only ever replaced
+ *  whole, by a new search or by Back and Forward, and a row of the old list
+ *  says nothing about where the reader is in the new one. Anchored to one, the
+ *  swap moved the page: Back restored 3000, then landed on 2163 when the rows
+ *  arrived. Unanchored, the page stays where `Preserve` and the traversal put
+ *  it. */
 .results {
   list-style: none;
   margin: 0;
   padding: 0 0 var(--s5);
+  overflow-anchor: none;
 }
 
 /* Phone: one column, reference stacked above the passage. */
