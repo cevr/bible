@@ -10,7 +10,7 @@
 
 import { HttpTransport, Streaming, queryCacheLayer } from 'effect-frame/actor/client';
 import * as Frame from 'effect-frame/frame';
-import { Location, browserLocation, followLinks, mount } from 'effect-frame/router';
+import { Location, browserNavigation, followLinks, mount } from 'effect-frame/router';
 import { Dom, render } from 'effect-frame/view';
 import { Effect, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
@@ -58,12 +58,11 @@ const services = Layer.mergeAll(
     reconnect: HttpTransport.defaultReconnect,
   }),
   queryCacheLayer.pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search' }))),
-  // The History API Location, not `browserNavigation`. The search route is
-  // `Preserve`, and under the Navigation API a `Preserve` traversal is
-  // intercepted with manual scroll and never placed, so Back would lose the
-  // browser's saved position. Here the browser restores it on `popstate`.
-  // This app has no leave checks, the other thing `browserNavigation` adds.
-  Layer.succeed(Location, browserLocation),
+  // The Navigation API Location. The search route is `Preserve`: a new search
+  // keeps the page where it is, and Back or Forward returns to the entry's
+  // saved position once the router has drawn it. A browser without the
+  // Navigation API gets the History API Location.
+  Layer.effect(Location, browserNavigation),
 );
 
 /** Run the page: the one place the client services are provided. */
