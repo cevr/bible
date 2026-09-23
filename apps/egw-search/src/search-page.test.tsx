@@ -26,6 +26,7 @@ import {
 import { TestClock } from 'effect/testing';
 
 import type { SearchResponse } from '../server/api.js';
+import { PoliciesLive } from '../server/policies.js';
 import { Search, type SearchRequest } from './contract.js';
 import { SearchPage } from './app.js';
 
@@ -125,7 +126,12 @@ const start = (initial: string) =>
             }),
         }),
       ],
-    }).pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search-test' })));
+    }).pipe(
+      // The page reads through the same table the server builds its host with.
+      Layer.provide(PoliciesLive),
+      Layer.orDie,
+      Layer.provideMerge(Frame.layer({ name: 'egw-search-test' })),
+    );
 
     const search = Route.client('search-page-test', {
       path: '/',

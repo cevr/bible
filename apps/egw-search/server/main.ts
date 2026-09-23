@@ -61,6 +61,7 @@ import { NO_SELECTION, SearchApi } from './api.js';
 import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
 import { InspectRouteLive } from './inspect.js';
+import { PoliciesLive } from './policies.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
 const DEFAULT_LIMIT = 40;
@@ -442,11 +443,17 @@ const StaticLive = HttpStaticServer.layer({
 const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchLive] }).pipe(
   Layer.provide(searchLayer),
   Layer.provide(TunedSqlLive),
+  Layer.provide(PoliciesLive),
+  // Every name the contract declares is in `PoliciesLive`; a miss is a bug in
+  // that file, so the server refuses to start rather than serve without it.
+  Layer.orDie,
 );
 
 const ActorsRouteLive = HttpRouter.use((router) =>
   Effect.gen(function* () {
-    const handle = yield* HttpServer.make;
+    // No accounts and no sessions: every request is anonymous, and that is a
+    // written line rather than a default.
+    const handle = yield* HttpServer.make({ principal: HttpServer.anonymous });
     yield* router.add('*', `${actorPrefix}/*`, (request) =>
       Effect.gen(function* () {
         const web = yield* HttpServerRequest.toWeb(request);

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const port = 3187;
+// oxlint-disable-next-line effect/noGlobals -- the runner's one knob: a free port when 3187 is taken.
+const port = Number(process.env['EGW_BROWSER_PORT'] ?? 3187);
 
 export default defineConfig({
   testDir: '.',

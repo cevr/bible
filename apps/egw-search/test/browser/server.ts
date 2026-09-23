@@ -17,8 +17,10 @@ import {
 
 import { actorPrefix, Search, type SearchRequest } from '../../src/contract.js';
 import type { SearchResponse } from '../../server/api.js';
+import { PoliciesLive } from '../../server/policies.js';
 
-const PORT = 3187;
+/** The Playwright config passes its port as `PORT`. */
+const PORT = Number(process.env['PORT'] ?? 3187);
 const STATIC_ROOT = `${import.meta.dir}/../../dist`;
 
 class FixtureQueryFailure extends Schema.TaggedError<FixtureQueryFailure>()('FixtureQueryFailure', {
@@ -146,11 +148,14 @@ const resolveFixtureBatch = (requests: ReadonlyArray<SearchRequest>) =>
 
 const SearchFixture = Query.batched(Search, { resolve: resolveFixtureBatch });
 
-const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchFixture] });
+const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchFixture] }).pipe(
+  Layer.provide(PoliciesLive),
+  Layer.orDie,
+);
 
 const ActorsRouteLive = HttpRouter.use((router) =>
   Effect.gen(function* () {
-    const handle = yield* HttpServer.make;
+    const handle = yield* HttpServer.make({ principal: HttpServer.anonymous });
     yield* router.add('*', `${actorPrefix}/*`, (request) =>
       Effect.gen(function* () {
         const isBatch = request.url.split('?')[0]?.endsWith('/query/batch') === true;

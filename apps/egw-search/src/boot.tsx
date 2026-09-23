@@ -14,6 +14,7 @@ import * as Frame from 'effect-frame/frame';
 import {
   Link,
   Location,
+  NavigationBehavior,
   Route,
   browserLocation,
   followLinks,
@@ -29,11 +30,20 @@ import { actorPrefix } from './contract.js';
 
 const EmptySearch = Route.search(Schema.Struct({}));
 
+/**
+ * **Preserve.** Every move on this route is workspace state on the leaf the
+ * reader is already on: a search pushes, a filter replaces, a pane opens or
+ * closes. None of them is a new page, so none may scroll the page to the top
+ * or take focus to the page root. A new pane's search box places itself
+ * (its `Dom.scrollIntoView` and `Dom.focus` in `./app.tsx`); the router has
+ * no landing for a node that appears inside a stayed leaf.
+ */
 const search = Route.client('search', {
   path: '/',
   params: Schema.Struct({}),
   search: EmptySearch,
   view: SearchPage,
+  behavior: NavigationBehavior.Preserve,
 });
 
 /** The server sends every unknown path to this page, so the router is what
@@ -81,6 +91,11 @@ const services = Layer.mergeAll(
     reconnect: HttpTransport.defaultReconnect,
   }),
   queryCacheLayer.pipe(Layer.provideMerge(Frame.layer({ name: 'egw-search' }))),
+  // The History API Location, not `browserNavigation`. The search route is
+  // `Preserve`, and under the Navigation API a `Preserve` traversal is
+  // intercepted with manual scroll and never placed, so Back would lose the
+  // browser's saved position. Here the browser restores it on `popstate`.
+  // This app has no leave checks, the other thing `browserNavigation` adds.
   Layer.succeed(Location, browserLocation),
 );
 

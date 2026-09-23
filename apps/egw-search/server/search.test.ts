@@ -12,6 +12,7 @@ import {
 } from '@bible/core/search';
 
 import { Search, type SearchRequest } from '../src/contract.js';
+import { PoliciesLive } from './policies.js';
 import { runSearch, SearchLive } from './search.js';
 
 const emptySelection = { include: [], exclude: [] } as const;
@@ -124,6 +125,8 @@ const makeFixture = (): Fixture => {
   ).pipe(Layer.provide(sqlite));
   const layer = ActorHost.layerMemory([], [SearchLive]).pipe(
     Layer.provideMerge(Layer.merge(searchLayer, countedSql)),
+    Layer.provide(PoliciesLive),
+    Layer.orDie,
   );
   return { calls, layer };
 };

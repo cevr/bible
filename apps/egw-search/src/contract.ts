@@ -33,10 +33,15 @@ export const SearchRequest = S.Struct({
 });
 export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
 
-/** Public, version 1, and dependent on no actor: the contract's defaults. */
+/** The one policy name this app declares. The search box needs no sign-in, so
+ *  the server's table (`../server/policies.ts`) maps it to allow-all. */
+export const PUBLIC_POLICY = 'public';
+
+/** Version 1, dependent on no actor, and readable by anyone. */
 export const Search = query.batched('search', {
   args: SearchRequest,
   result: SearchResponseSchema,
+  policy: PUBLIC_POLICY,
 });
 
 /** The actor transport's mount point, shared by the server and the client. */

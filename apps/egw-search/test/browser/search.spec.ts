@@ -229,3 +229,55 @@ test('aborts a held real query and releases its fixture resource', async ({ page
   expect(reset.requestHandlerExits).toBe(0);
   expect(reset.requestHandlerInterruptions).toBe(0);
 });
+
+test('a filter change and a new pane leave the viewport where the reader is', async ({ page }) => {
+  const errors = pageErrors(page);
+  await page.setViewportSize({ width: 390, height: 640 });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+
+  // The panes stack on a phone: the second pane's filters are below the fold.
+  const secondPane = page.locator('.pane').nth(1);
+  await secondPane.locator('.ftoggle').scrollIntoViewIfNeeded();
+  await secondPane.locator('.ftoggle').click();
+  const chip = secondPane.getByRole('button', { name: 'Ellen White' });
+  await chip.scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(0);
+  // A filter replaces the URL. The page must not jump to the top.
+  await chip.click();
+  await expect(secondPane.locator('.text')).toHaveText('beta [egw]');
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+
+  // A new pane pushes the URL. Its search box takes focus and comes into
+  // view; the page must not jump back to the top over it.
+  await page.getByRole('button', { name: '+ pane' }).click();
+  const thirdInput = page.locator('.pane').nth(2).locator('input');
+  await expect(thirdInput).toBeFocused();
+  await expect(thirdInput).toBeInViewport();
+  expect(errors).toEqual([]);
+});
+
+test('Back returns to the position the reader left', async ({ page }) => {
+  const errors = pageErrors(page);
+  await page.setViewportSize({ width: 390, height: 640 });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+  const secondPane = page.locator('.pane').nth(1);
+  const input = secondPane.locator('input');
+  await input.scrollIntoViewIfNeeded();
+  const left = await page.evaluate(() => window.scrollY);
+  expect(left).toBeGreaterThan(0);
+
+  await input.fill('gamma');
+  await input.press('Enter');
+  await expect(secondPane.locator('.text')).toHaveText('gamma');
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  await page.goBack();
+  await expect(secondPane.locator('.text')).toHaveText('beta');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(left);
+  expect(errors).toEqual([]);
+});
