@@ -62,6 +62,7 @@ import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
 import { InspectRouteLive } from './inspect.js';
 import { PoliciesLive } from './policies.js';
+import type { WarmRequest, WarmResult } from './warm-corpus.worker.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
 const DEFAULT_LIMIT = 40;
@@ -306,88 +307,49 @@ const EmbedderLive = layerBunEmbedder;
  *  structure every query for that term reads — and the bodies path is not.
  *  Cutting `bodiesMs` needs fewer or cheaper seeks, not a warmer cache.
  *
- *  Forked and detached, exactly as `WarmEmbedderLive` is: the port must open
- *  immediately. A reader who arrives mid-warm-up is not blocked, only unlucky,
- *  and pays the same cost they would have paid anyway.
+ *  **On its own thread** (`./warm-corpus.worker.ts`). `bun:sqlite` runs a
+ *  statement synchronously, so a forked fiber gives no concurrency: when this
+ *  warm-up was a detached fiber on the server's connection, its ~69 s of reads
+ *  held the one JS thread, the server bound its port only after the warm-up
+ *  ended, and every deploy served 502 for that long. The worker opens its own
+ *  read-only connection; the pages it pulls off the volume land in the OS page
+ *  cache, which the server's `mmap` reads come from. The port opens at once. A
+ *  reader who arrives mid-warm-up is not blocked, only unlucky, and pays the
+ *  same cost they would have paid anyway.
  *
  *  Failures are logged, never fatal. Warming is an optimization; a corpus that
  *  cannot be warmed can still be searched. */
-/** The terms whose posting lists the warm-up scores.
- *
- *  Frequent in this corpus and *ungated* — a term the selectivity gate refuses
- *  is never scored by a query, so warming its pages would buy nothing. Their
- *  match counts, measured: `god` 570,900, `lord` 299,913, `christ` 283,120,
- *  `jesus` 141,862, `love` 96,205, `heaven` 91,727, `sabbath` 68,411.
- *
- *  Literals, and only ever literals: they are interpolated into SQL below. */
-const WARM_TERMS: readonly string[] = [
-  'god',
-  'lord',
-  'jesus',
-  'christ',
-  'love',
-  'heaven',
-  'sabbath',
-];
-
-const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.effectDiscard(
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    yield* Effect.gen(function* () {
-      const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-      // The posting lists, whole. `count(*)` over the shadow table reads every
-      // page of it without materializing rows.
-      yield* sql.unsafe(`SELECT count(*) FROM paragraphs_fts_data`);
-      const postingsAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-      // Real ranked queries: scoring, the bodies join and the books join.
-      //
-      // Several terms, not one, and *common* ones. A first version warmed
-      // `sanctuary` alone and did not help: `god` still took 7,124 ms on the
-      // first query against 961 ms on the second. Scoring cost is linear in a
-      // term's posting list, and `god` (570,900 rows) touches 34x what
-      // `sanctuary` (16,765) does — so warming a selective term faults in
-      // almost none of the pages a common one needs.
-      //
-      // These are the frequent ungated terms of this corpus, which is both
-      // where the cost concentrates and what readers actually type. Gated
-      // stopwords are deliberately absent: the selectivity gate means no query
-      // ever scores them, so their pages are never wanted.
-      // **The `ORDER BY` must match `searchScoredParagraphs`'s.** It orders by
-      // `bm25(paragraphs_fts)` rather than the bare `rank`, and the two are the
-      // same ranking by *different code paths*: `rank` plans as FTS5's internal
-      // `VIRTUAL TABLE INDEX 32:M3` rank-merge, `bm25()` as `INDEX 0:M3` plus a
-      // bounded top-N heap. They touch different index structures, so a
-      // warm-up ordered the other way faults in pages no query will read and
-      // leaves the ones it will read cold — it warms the wrong thing while
-      // reporting success. This clause tracks the live statement; if that one
-      // changes, change this one with it.
-      //
-      // Interpolated rather than bound because `sql.unsafe` takes no
-      // parameters. Safe only because these are literals in this file: nothing
-      // here is ever derived from a request, and a term must never become so.
-      for (const term of WARM_TERMS) {
-        yield* sql.unsafe(`
-          SELECT p.ref_code, p.nodes_json
-          FROM paragraphs_fts fts
-          JOIN paragraphs p ON p.rowid = fts.rowid
-          JOIN books b ON p.book_id = b.book_id
-          WHERE paragraphs_fts MATCH '${term}'
-          ORDER BY bm25(paragraphs_fts)
-          LIMIT 60
-        `);
+const WarmCorpusLive: Layer.Layer<never> = Layer.effectDiscard(
+  Effect.callback<WarmResult>((resume) => {
+    const worker = new Worker(new URL('./warm-corpus.worker.ts', import.meta.url));
+    // One answer, then the thread ends; an interruption ends it too.
+    worker.onmessage = (event: MessageEvent<WarmResult>) => {
+      worker.terminate();
+      resume(Effect.succeed(event.data));
+    };
+    // A thread that dies before it answers is a warm-up that failed.
+    worker.onerror = (event) => {
+      worker.terminate();
+      resume(Effect.succeed({ _tag: 'Failed', message: event.message }));
+    };
+    const request: WarmRequest = { filename: at('egw-paragraphs.db'), mmapBytes: MMAP_BYTES };
+    worker.postMessage(request);
+    return Effect.sync(() => worker.terminate());
+  }).pipe(
+    Effect.flatMap((result) => {
+      if (result._tag === 'Failed') {
+        return Effect.logWarning('search.corpus.warm_failed', `cause=${result.message}`);
       }
-      const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-      yield* Effect.log(
+      return Effect.log(
         'search.corpus.warm',
-        `state=ready postingsMs=${String(postingsAt - startedAt)} queryMs=${String(doneAt - postingsAt)}`,
+        `state=ready postingsMs=${String(result.postingsMs)} queryMs=${String(result.queryMs)}`,
       );
-    }).pipe(
-      Effect.catchCause((cause) =>
-        Effect.logWarning('search.corpus.warm_failed', `cause=${String(cause)}`),
-      ),
-      Effect.forkDetach,
-    );
-  }),
+    }),
+    Effect.catchCause((cause) =>
+      Effect.logWarning('search.corpus.warm_failed', `cause=${String(cause)}`),
+    ),
+    Effect.forkDetach,
+  ),
 );
 
 const searchLayer = Layer.mergeAll(
@@ -397,11 +359,9 @@ const searchLayer = Layer.mergeAll(
     Layer.provide(BunServices.layer),
   ),
   WarmEmbedderLive,
-  // After `TunedSqlLive` in the merge so the pragmas are applied to the
-  // connection before the warm-up reads through it: warming an 8 MB cache
-  // would fault pages in and immediately evict them.
   TunedSqlLive,
-  WarmCorpusLive.pipe(Layer.provide(TunedSqlLive)),
+  // Its own connection on its own thread: it needs nothing from this merge.
+  WarmCorpusLive,
 ).pipe(Layer.provideMerge(EmbedderLive));
 
 // ---------------------------------------------------------------------------
