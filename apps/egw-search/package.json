@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -n web,api -c magenta,cyan \"bun run client:watch\" \"bun run server:dev\"",
-    "client:watch": "bun build src/index.tsx --target browser --format esm --outdir dist --watch",
+    "client:watch": "bun build src/index.dev.tsx --target browser --format esm --outfile dist/index.js --watch",
     "server:dev": "bun --watch server/main.ts",
     "build": "bun build src/index.tsx --target browser --format esm --outdir dist --minify && cp index.html src/styles.css dist/",
     "start": "NODE_ENV=production bun server/main.ts",
@@ -19,7 +19,7 @@
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "effect": "catalog:",
-    "effect-frame": "0.11.1"
+    "effect-frame": "0.12.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "20.14.5",

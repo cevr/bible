@@ -60,6 +60,7 @@ import { actorPrefix } from '../src/contract.js';
 import { NO_SELECTION, SearchApi } from './api.js';
 import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
+import { InspectRouteLive } from './inspect.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
 const DEFAULT_LIMIT = 40;
@@ -458,7 +459,10 @@ const ActorsRouteLive = HttpRouter.use((router) =>
   }),
 ).pipe(Layer.provide(ActorsLive));
 
-const RouterLive = Layer.mergeAll(StaticLive, ActorsRouteLive, ApiLive);
+/** Live Frame inspection for development; empty unless `EGW_INSPECT=1`. */
+const InspectLive = InspectRouteLive(process.env);
+
+const RouterLive = Layer.mergeAll(StaticLive, ActorsRouteLive, ApiLive, InspectLive);
 
 const HttpLive = Layer.unwrap(
   HttpRouter.toHttpEffect(RouterLive).pipe(
