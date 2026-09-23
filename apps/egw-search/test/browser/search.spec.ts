@@ -60,6 +60,16 @@ const pageErrors = (page: Page): Error[] => {
   return errors;
 };
 
+/** The boot logs one `[hydrate] mismatch` line when the client drew a node
+ *  other than the one the server streamed. */
+const hydrationMismatches = (page: Page): string[] => {
+  const lines: string[] = [];
+  page.on('console', (message) => {
+    if (message.text().includes('[hydrate]')) lines.push(message.text());
+  });
+  return lines;
+};
+
 const waitForTwoResults = async (page: Page): Promise<void> => {
   await expect(page.locator('.pane')).toHaveCount(2);
   await expect(page.locator('.pane .hit:not(.skeleton)')).toHaveCount(2);
@@ -67,6 +77,7 @@ const waitForTwoResults = async (page: Page): Promise<void> => {
 
 test('runs the real batched workflow with identity and URL receipts', async ({ page }) => {
   const errors = pageErrors(page);
+  const mismatches = hydrationMismatches(page);
   const batchRequests: string[] = [];
   const singleRequests: string[] = [];
   page.on('request', (request) => {
@@ -79,10 +90,13 @@ test('runs the real batched workflow with identity and URL receipts', async ({ p
 
   await page.goto('/?q=alpha&q2=beta');
   await waitForTwoResults(page);
-  expect(batchRequests).toHaveLength(1);
+  // The server read both panes' queries in one batch and streamed the values
+  // into the document. The page hydrated over them and asked for nothing.
+  expect(batchRequests).toHaveLength(0);
   expect(singleRequests).toHaveLength(0);
   const initialReceipts = await receipts(page);
-  expect(initialReceipts.batchHttpRequests).toBe(1);
+  expect(initialReceipts.queryBatches).toBe(1);
+  expect(initialReceipts.batchHttpRequests).toBe(0);
   expect(initialReceipts.singleHttpRequests).toBe(0);
   expect(initialReceipts.lastBatch.toSorted()).toEqual(['alpha', 'beta']);
 
@@ -151,10 +165,12 @@ test('runs the real batched workflow with identity and URL receipts', async ({ p
   expect(new URL(page.url()).searchParams.get('scope2')).toBe('egw');
   expect(await historyWrites(page)).toEqual(['replace', 'push', 'push', 'push']);
   expect(errors).toEqual([]);
+  expect(mismatches).toEqual([]);
 });
 
 test('renders a typed query failure and recovers through the real transport', async ({ page }) => {
   const errors = pageErrors(page);
+  const mismatches = hydrationMismatches(page);
   const failedRequests: string[] = [];
   page.on('requestfailed', (request) => failedRequests.push(request.url()));
   await resetFixture(page);
@@ -170,10 +186,12 @@ test('renders a typed query failure and recovers through the real transport', as
   const result = await receipts(page);
   expect(result.queryBatches).toBe(2);
   expect(errors).toEqual([]);
+  expect(mismatches).toEqual([]);
 });
 
 test('aborts a held real query and releases its fixture resource', async ({ page }) => {
   const errors = pageErrors(page);
+  const mismatches = hydrationMismatches(page);
   const failedBatch = page.waitForEvent('requestfailed', {
     predicate: (request) => new URL(request.url()).pathname.endsWith('/query/batch'),
   });
@@ -219,6 +237,7 @@ test('aborts a held real query and releases its fixture resource', async ({ page
   expect(result.requestHandlerInterruptions).toBe(1);
   expect(result.singleHttpRequests).toBe(0);
   expect(errors).toEqual([]);
+  expect(mismatches).toEqual([]);
 
   await resetFixture(page);
   const reset = await receipts(page);

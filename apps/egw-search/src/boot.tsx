@@ -2,70 +2,21 @@
  * The browser boot, shared by the two entries. This file is the browser
  * boundary: `document` and `location` live here only. It provides the actor
  * transport the query reads through, the query cache, and the document's own
- * location, and mounts the one route.
+ * location, and hydrates the routes over the document the server streamed.
  *
  * `index.tsx` boots with nothing extra. `index.dev.tsx` boots with the live
  * inspection attachment, so the production bundle carries none of it.
  */
 
-import { HttpTransport, queryCacheLayer } from 'effect-frame/actor/client';
-import type { Source } from 'effect-frame/actor/client';
+import { HttpTransport, Streaming, queryCacheLayer } from 'effect-frame/actor/client';
 import * as Frame from 'effect-frame/frame';
-import {
-  Link,
-  Location,
-  NavigationBehavior,
-  Route,
-  browserLocation,
-  followLinks,
-  link,
-  mount,
-} from 'effect-frame/router';
-import { Dom, View } from 'effect-frame/view';
-import { Effect, Layer, Option, Schema } from 'effect';
+import { Location, browserLocation, followLinks, mount } from 'effect-frame/router';
+import { Dom, render } from 'effect-frame/view';
+import { Effect, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
 
-import { SearchPage } from './app.js';
 import { actorPrefix } from './contract.js';
-
-const EmptySearch = Route.search(Schema.Struct({}));
-
-/**
- * **Preserve.** Every move on this route is workspace state on the leaf the
- * reader is already on: a search pushes, a filter replaces, a pane opens or
- * closes. None of them is a new page, so none may scroll the page to the top
- * or take focus to the page root. A new pane's search box places itself
- * (its `Dom.scrollIntoView` and `Dom.focus` in `./app.tsx`); the router has
- * no landing for a node that appears inside a stayed leaf.
- */
-const search = Route.client('search', {
-  path: '/',
-  params: Schema.Struct({}),
-  search: EmptySearch,
-  view: SearchPage,
-  behavior: NavigationBehavior.Preserve,
-});
-
-/** The server sends every unknown path to this page, so the router is what
- *  says a path is nothing. */
-const NotFound = (props: { readonly url: Source<URL> }) =>
-  Effect.gen(function* () {
-    // A typed link: the href is printed through the route's own Schemas.
-    const home = yield* link(search, {}, {});
-    return (
-      <div class="shell">
-        <header class="masthead">
-          <h1>EGW&nbsp;Search</h1>
-        </header>
-        <div class="status">
-          <span>
-            nothing at {View.bind(props.url, (url) => url.pathname)} —{' '}
-            <Link link={home}>search</Link>
-          </span>
-        </div>
-      </div>
-    );
-  });
+import { NotFound, routes } from './routes.js';
 
 /** Work that runs beside the mounted page, in the page's scope, with the
  *  page's Frame. */
@@ -78,7 +29,23 @@ const start = (beside: Beside) =>
       return yield* Effect.die('egw-search: no #root element to mount on');
     }
     const root = found.value;
-    const router = yield* mount({ routes: [search], notFound: NotFound, host: Dom.host, root });
+    // The server streamed the shell and each query's value into the
+    // document. Seed the cache before mounting, so a pane that declares a
+    // settled key reads it from the document and never fetches it.
+    const resumed = yield* Streaming.resume(yield* Dom.readRecords);
+    // Adopt the server's nodes. A document with an empty root (the server's
+    // time-limit fallback) has nothing to adopt, and the page draws fresh.
+    const hydration = Dom.hydrate(root);
+    const router = yield* mount({ routes, notFound: NotFound, host: hydration.host, root });
+    yield* render;
+    const report = yield* hydration.finish;
+    if (report.mismatches.length > 0) {
+      yield* Effect.logWarning(
+        `[hydrate] mismatch count=${String(report.mismatches.length)} first=${report.mismatches[0] ?? ''}`,
+      );
+    }
+    // Seeds no pane took are dropped: a pane opened later reads its own.
+    yield* resumed.hydrated;
     yield* followLinks(root, router);
     yield* beside;
     // The page lives as long as the tab does.

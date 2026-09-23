@@ -1,3 +1,6 @@
+/** @jsxImportSource effect-frame/view */
+// The server imports this file and runs from the repository root, where Bun
+// reads no app tsconfig, so the file names its JSX runtime itself.
 /* oxlint-disable effect/noNullish -- the wire shape is JSON (see ../server/api.ts); `null` is what an absent refcode or link arrives as. */
 
 /**

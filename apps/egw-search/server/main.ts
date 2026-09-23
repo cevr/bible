@@ -38,7 +38,6 @@ import {
   HttpServer as PlatformHttpServer,
   HttpServerRequest,
   HttpServerResponse,
-  HttpStaticServer,
 } from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import { SqlClient } from 'effect/unstable/sql';
@@ -58,6 +57,7 @@ import { layerBunEmbedder } from '@bible/core/search/bun';
 
 import { actorPrefix } from '../src/contract.js';
 import { NO_SELECTION, SearchApi } from './api.js';
+import { SiteLive } from './document.js';
 import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
 import { InspectRouteLive } from './inspect.js';
@@ -416,23 +416,9 @@ const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide
 
 const ApiLive = HttpApiBuilder.layer(SearchApi).pipe(Layer.provide(GroupLive));
 
-/** The built client, served from the same router as the API.
- *
- *  In development vite owns the UI on its own port and proxies `/api` here, so
- *  this layer is dead weight; in production there is no vite, and without it
- *  the root would 404 while `/api/search` answered perfectly. `spa: true`
- *  sends unknown paths to `index.html` so a deep link is the client's to
- *  route, not a 404 from the file system.
- *
- *  The API is merged *after* the static server so an explicitly declared
- *  route always wins over a file that happens to share its path. */
+/** Where the built client lives: `index.js` and `styles.css`. The server
+ *  writes the page document itself (`./document.ts`). */
 const STATIC_ROOT = process.env['EGW_SEARCH_STATIC_DIR'] ?? `${import.meta.dir}/../dist`;
-
-const StaticLive = HttpStaticServer.layer({
-  root: STATIC_ROOT,
-  spa: true,
-  index: 'index.html',
-});
 
 /** The actor transport the page reads through, mounted under `/actors`.
  *
@@ -466,10 +452,14 @@ const ActorsRouteLive = HttpRouter.use((router) =>
   }),
 ).pipe(Layer.provide(ActorsLive));
 
+/** The built client and the streamed page document. The document renders
+ *  its queries through the same in-process host the actor route serves. */
+const SiteRouteLive = SiteLive({ staticRoot: STATIC_ROOT }).pipe(Layer.provide(ActorsLive));
+
 /** Live Frame inspection for development; empty unless `EGW_INSPECT=1`. */
 const InspectLive = InspectRouteLive(process.env);
 
-const RouterLive = Layer.mergeAll(StaticLive, ActorsRouteLive, ApiLive, InspectLive);
+const RouterLive = Layer.mergeAll(SiteRouteLive, ActorsRouteLive, ApiLive, InspectLive);
 
 const HttpLive = Layer.unwrap(
   HttpRouter.toHttpEffect(RouterLive).pipe(

@@ -11,12 +11,12 @@ import {
   HttpRouter,
   HttpServerRequest,
   HttpServerResponse,
-  HttpStaticServer,
   HttpServer as PlatformHttpServer,
 } from 'effect/unstable/http';
 
 import { actorPrefix, Search, type SearchRequest } from '../../src/contract.js';
 import type { SearchResponse } from '../../server/api.js';
+import { SiteLive } from '../../server/document.js';
 import { PoliciesLive } from '../../server/policies.js';
 
 /** The Playwright config passes its port as `PORT`. */
@@ -251,8 +251,8 @@ const FixtureRoutes = HttpRouter.use((router) =>
   }),
 );
 
-const StaticLive = HttpStaticServer.layer({ root: STATIC_ROOT, spa: true, index: 'index.html' });
-const RouterLive = Layer.mergeAll(StaticLive, ActorsRouteLive, FixtureRoutes);
+const SiteRouteLive = SiteLive({ staticRoot: STATIC_ROOT }).pipe(Layer.provide(ActorsLive));
+const RouterLive = Layer.mergeAll(SiteRouteLive, ActorsRouteLive, FixtureRoutes);
 
 const HttpLive = Layer.unwrap(
   HttpRouter.toHttpEffect(RouterLive).pipe(
