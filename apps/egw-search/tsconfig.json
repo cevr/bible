@@ -6,6 +6,13 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts", "test/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "server/**/*.ts",
+    "test/**/*.ts",
+    "infra/**/*.ts",
+    "alchemy.*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

@@ -9,6 +9,10 @@
     "server:dev": "bun --watch server/main.ts",
     "build": "bun build src/index.tsx --target browser --format esm --outdir dist --minify && cp src/styles.css dist/",
     "start": "NODE_ENV=production bun server/main.ts",
+    "plan": "alchemy plan alchemy.run.ts --stage prod",
+    "plan:bucket": "alchemy plan alchemy.bucket.ts --stage prod",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod",
+    "deploy:bucket": "alchemy deploy alchemy.bucket.ts --stage prod",
     "test:browser": "bun run build && playwright test --config=test/browser/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src server",
@@ -19,11 +23,12 @@
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "effect": "catalog:",
-    "effect-frame": "0.23.0"
+    "effect-frame": "0.23.1"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "20.14.5",
     "@playwright/test": "1.63.0",
+    "alchemy": "2.0.0-beta.79",
     "concurrently": "^9.1.2",
     "happy-dom": "20.14.5"
   }

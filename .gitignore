@@ -187,3 +187,8 @@ packages/core/dist-native/*
 # shadow a Linux developer's own `vector-scan.so`, and built with -mavx2, which
 # the container's AMD EPYC 9655P reports on every core.
 !packages/core/dist-native/vector-scan-x86_64-linux-gnu.so
+
+# Alchemy local state (apps/egw-search/.alchemy). It holds adopted resource ids
+# and, in plain text, the egw-celld bucket keys and any EGW secret a deploy was
+# given. Never commit it.
+.alchemy/
