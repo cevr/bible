@@ -171,7 +171,17 @@ export const SearchGroup = HttpApiGroup.make('search')
   )
   .add(
     HttpApiEndpoint.get('health', '/health', {
-      success: S.Struct({ ok: S.Boolean }),
+      success: S.Struct({
+        /** True whenever the server answers: search works from the moment
+         *  the port opens, so a platform healthcheck passes before the vector
+         *  index is in memory. */
+        ok: S.Boolean,
+        /** `'ready'` when the vector leg can run; otherwise §9.6's reason it
+         *  cannot, which is `'loading'` until the index has been read. A
+         *  string for the reason `SearchResponseSchema.vector` is one: the
+         *  browser bundle imports this module and not the search core. */
+        vector: S.String,
+      }),
     }),
   );
 

@@ -119,6 +119,9 @@ export const formatVectorAbsence = (reason: VectorAbsenceReason): string => {
   if (reason === 'short-circuit') {
     return 'lexical only — the top lexical hit was decisive, so the vector leg was skipped';
   }
+  if (reason === 'loading') {
+    return 'lexical only — the vector index is still loading';
+  }
   return 'lexical only — this query routes straight to the text index';
 };
 

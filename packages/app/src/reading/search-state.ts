@@ -110,7 +110,7 @@ export interface SearchView {
 
 /** What to tell the reader about each §9.6 absence.
  *
- *  A record over the union rather than a branch, so a sixth reason added to
+ *  A record over the union rather than a branch, so a new reason added to
  *  `VectorAbsenceReason` fails to typecheck here instead of rendering as a blank
  *  notice. `show` is false for the two reasons that are not degradations: the
  *  router never sent the query to the vector leg, or the lexical top hit was
@@ -127,6 +127,7 @@ const ABSENCE = {
   },
   'short-circuit': { show: false, message: '' },
   route: { show: false, message: '' },
+  loading: { show: true, message: 'Searching text only — the meaning index is still loading.' },
 } satisfies Record<VectorAbsenceReason, VectorNoticeView>;
 
 /** Whether a typed query is worth asking the search service about.

@@ -70,6 +70,10 @@ export const VectorAbsenceReason = Schema.Literals([
   'short-circuit',
   /** The route was `phrase` or `locate`, which §9.3 makes lexical-only. */
   'route',
+  /** An artifact is installed, and the host is still reading it. A server
+   *  that opens its port before the index is in memory answers text-only
+   *  until then; the next search after the load runs the vector leg. */
+  'loading',
 ]);
 export type VectorAbsenceReason = typeof VectorAbsenceReason.Type;
 

@@ -1,6 +1,4 @@
 /* oxlint-disable effect/noNullish -- the HTTP wire shape is JSON: an absent refcode, rank or deep link is encoded as `null`, exactly as `./api.ts` declares it. */
-/* oxlint-disable effect/noTernary -- one branch on §9.6's two-case vector status, rendered into a label. */
-/* oxlint-disable effect/noInlineProvide -- `verifiedVectorIndex` provides the byte source at its own boundary so the 265 MB artifact is read once and the gate's decision is passed down as a value; this is the shape `packages/cli/src/commands/egw/search-layer.ts` uses for the same reason. */
 /* oxlint-disable effect/noGlobals -- the corpus paths are needed to *construct* the layers below, before any Effect runs; reading them through `Config` would force a `Layer.unwrap` whose outputs the type checker then cannot see (which is what made the shared SqlClient leak out as an unmet requirement). */
 
 /**
@@ -15,7 +13,9 @@
  * Every corpus path comes from `BIBLE_CORPUS_DIR` (default `~/.bible`) rather
  * than being hardcoded, because the deployed host mounts them on a volume.
  * The vector index and the embedder are both optional by §9.6: if either is
- * absent, search degrades to lexical-only and the result says so.
+ * absent, search degrades to lexical-only and the result says so. The index
+ * is read after the port opens (`./vector-index.ts`), so a new deploy answers
+ * text-only searches at once and gains the vector leg when the read ends.
  *
  * **No wiki.** This surface is a search box over the writings, and it has no
  * topic pages to pin: the client never rendered the `topics` field it was
@@ -48,77 +48,43 @@ import {
   layerFileVectorIndexBytes,
   loadVectorIndex,
   QueryEmbedder,
-  ResolvedVectorIndex,
+  type LoadedVectorIndex,
   SearchCorpusSources,
-  SearchService,
-  VectorIndexBytes,
+  type VectorIndexBytes,
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
 
 import { actorPrefix } from '../src/contract.js';
-import { NO_SELECTION, SearchApi } from './api.js';
+import { SearchApi } from './api.js';
 import { SiteLive } from './document.js';
-import { runSearch, SearchLive } from './search.js';
+import { SearchLive } from './search.js';
+import { SearchGroupLive } from './search-api.js';
 import { EgwSyncLive } from './sync.js';
 import { InspectRouteLive } from './inspect.js';
 import { PoliciesLive } from './policies.js';
 import { teardown } from './teardown.js';
+import { lateVectorIndex } from './vector-index.js';
 import type { WarmRequest, WarmResult } from './warm-corpus.worker.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
-const DEFAULT_LIMIT = 40;
-const DEFAULT_CONTEXT = 1;
-
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
-/** The JSON wire's defaults, applied where the `HttpApi` leaves a field
- *  optional. `runSearch` in `./search.ts` takes the full request. */
-const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
-  Effect.gen(function* () {
-    // Resolved once, when the group is built, so a request carries no
-    // requirement of its own out through the router.
-    const services = yield* Effect.context<SearchService | SqlClient.SqlClient>();
-    return handlers
-      .handle('health', () => Effect.succeed({ ok: true }))
-      .handle('query', ({ query: params }) =>
-        runSearch({
-          q: params.q,
-          scope: params.scope ?? 'all',
-          section: params.section ?? NO_SELECTION,
-          type: params.type ?? NO_SELECTION,
-          subtype: params.subtype ?? NO_SELECTION,
-          excludeApparatus: params.noref === '1',
-          limit: params.limit ?? DEFAULT_LIMIT,
-          context: params.context ?? DEFAULT_CONTEXT,
-        }).pipe(Effect.provideContext(services)),
-      );
-  }),
-);
 
 // ---------------------------------------------------------------------------
 // Layer composition — the CLI's `installedSearchLayer`, rooted at a configured
 // corpus directory instead of `~/.bible`.
 // ---------------------------------------------------------------------------
 
-/** Gate the index on the shipped parser before anything scans it, and hand the
- *  *parsed* result down so the 265 MB artifact is read exactly once per
- *  process. A refusal degrades to lexical-only, logged once at startup rather
- *  than per query. */
-const verifiedVectorIndex = (
-  filename: string,
-): Layer.Layer<ResolvedVectorIndex | VectorIndexBytes> =>
-  Layer.unwrap(
-    Effect.gen(function* () {
-      const source = layerFileVectorIndexBytes(filename).pipe(Layer.provide(BunServices.layer));
-      const loaded = yield* loadVectorIndex.pipe(Effect.provide(source));
-      if (loaded._tag !== 'index') {
-        yield* Effect.logInfo('search.vectorIndex.refused').pipe(
-          Effect.annotateLogs({ filename, reason: loaded.absence.reason }),
-        );
-      }
-      return Layer.merge(ResolvedVectorIndex.layerOf(loaded), VectorIndexBytes.None);
+/** Read the index and gate it on the shipped parser, once per process.
+ *
+ *  An effect rather than a layer: `lateVectorIndex` runs it after the port
+ *  opens (see `./vector-index.ts`). A refusal degrades to lexical-only, logged
+ *  once here rather than per query. */
+const readVectorIndex: Effect.Effect<LoadedVectorIndex, never, VectorIndexBytes> =
+  loadVectorIndex.pipe(
+    Effect.tap((loaded) => {
+      if (loaded._tag === 'index') return Effect.void;
+      return Effect.logInfo('search.vectorIndex.refused').pipe(
+        Effect.annotateLogs({ reason: loaded.absence.reason }),
+      );
     }),
   );
 
@@ -238,7 +204,7 @@ const CorpusSources = Layer.effect(
  *  is the other case: it *will* be searched, and whoever arrives first should
  *  not be the one to wait. Measured on the deployed container, the first query
  *  after a deploy took ~49 s against ~0.5 s warm, and the model load is the
- *  bulk of it — the vector index is already resolved before the port opens.
+ *  bulk of it.
  *
  *  Forked, so the port still opens immediately. A search arriving mid-load
  *  waits on the same memoized cell rather than starting a second load, so the
@@ -354,9 +320,10 @@ const WarmCorpusLive: Layer.Layer<never> = Layer.effectDiscard(
 );
 
 const searchLayer = Layer.mergeAll(
-  SearchService.Live.pipe(
+  // Serves from the first request; the index joins when it has been read.
+  lateVectorIndex(readVectorIndex).pipe(
     Layer.provide(CorpusSources),
-    Layer.provide(verifiedVectorIndex(at('vectors.bvi'))),
+    Layer.provide(layerFileVectorIndexBytes(at('vectors.bvi'))),
     Layer.provide(BunServices.layer),
   ),
   WarmEmbedderLive,
