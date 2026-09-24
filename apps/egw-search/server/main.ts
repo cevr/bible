@@ -62,6 +62,7 @@ import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
 import { InspectRouteLive } from './inspect.js';
 import { PoliciesLive } from './policies.js';
+import { teardown } from './teardown.js';
 import type { WarmRequest, WarmResult } from './warm-corpus.worker.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
@@ -472,4 +473,4 @@ const PlatformLive = Layer.mergeAll(
   TunedSqlLive,
 );
 
-Layer.launch(HttpLive).pipe(Effect.provide(PlatformLive), BunRuntime.runMain);
+Layer.launch(HttpLive).pipe(Effect.provide(PlatformLive), BunRuntime.runMain({ teardown }));
