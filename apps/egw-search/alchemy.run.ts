@@ -8,9 +8,8 @@
  * nothing else. See `./infra/railway.ts` for the adoption and retention rules
  * and for why the `/data` volume stays undeclared.
  *
- * The build keeps the Railpack build's shape: the Docker context is the repo
- * root, and `turbo prune @bible/egw-search` runs inside the image
- * (`./infra/Dockerfile`).
+ * The build context is a `turbo prune @bible/egw-search --docker` of the
+ * repo, written fresh each time the stack runs (`./infra/context.ts`).
  */
 import * as Alchemy from 'alchemy';
 import { providers } from 'alchemy/Railway/Providers';
@@ -19,12 +18,9 @@ import { Service } from 'alchemy/Railway/Service';
 import * as Config from 'effect/Config';
 import * as Effect from 'effect/Effect';
 import * as Option from 'effect/Option';
-import { fileURLToPath } from 'node:url';
 
+import { DOCKERFILE, makeContext } from './infra/context.ts';
 import { BibleStudies, EgwCelld, PORT, bucketOutputs } from './infra/railway.ts';
-
-/** The monorepo root: Railway builds from here, as `railway up` did. */
-const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /**
  * An EGW API credential, synced only when the deploy's environment supplies
@@ -40,6 +36,10 @@ export default Alchemy.Stack(
   'egw-search',
   { providers: providers(), state: Alchemy.localState() },
   Effect.gen(function* () {
+    // What Railway builds: the app and its workspace dependencies, pruned.
+    // The stack fails only with configuration errors, so a failed prune is a
+    // defect that stops the plan or deploy before anything is uploaded.
+    const context = yield* Effect.orDie(makeContext);
     const project = yield* BibleStudies;
     const bucket = yield* EgwCelld;
     const egwClientId = yield* optionalSecret('EGW_CLIENT_ID');
@@ -51,8 +51,8 @@ export default Alchemy.Stack(
     const service = yield* Service('EgwSearch', {
       project,
       name: 'egw-search',
-      context: REPO_ROOT,
-      dockerfilePath: 'apps/egw-search/infra/Dockerfile',
+      context,
+      dockerfilePath: DOCKERFILE,
       port: PORT,
       // The service is reached through egw.cvr.im only. `false` stops Alchemy
       // from adding a generated `*.up.railway.app` domain, and it removes a

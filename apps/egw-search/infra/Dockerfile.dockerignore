@@ -1,45 +1,15 @@
-# The EGW Search build context: the repo root, reduced to what
-# `turbo prune @bible/egw-search` and the build need.
-#
-# Alchemy applies this file when it packs the upload, and BuildKit applies it
-# again. Everything is excluded first, then the inputs are allowed back by
-# name. That keeps the upload near 4 MB, under Alchemy's 32 MiB limit, and keeps
-# local secrets out of it.
+# The EGW Search build context, `apps/egw-search/.deploy` (`./context.ts`).
+# `turbo prune` already left out everything git ignores: node_modules, build
+# output, local state and secrets. This file removes the tracked files the
+# image does not need. Alchemy applies it when it packs the upload, and
+# BuildKit applies it again.
 
-*
+# Hymn audio and other large assets: the server does not read them.
+full/packages/core/assets
 
-# Workspace graph: turbo reads every workspace manifest to prune the lockfile.
-!package.json
-!bun.lock
-!turbo.json
-!tsconfig.json
-!apps/*/package.json
-!packages/*/package.json
-
-# The app, without local build output, state or secrets.
-!apps/egw-search
-apps/egw-search/node_modules
-apps/egw-search/dist
-apps/egw-search/.turbo
-apps/egw-search/test-results
-apps/egw-search/playwright-report
-apps/egw-search/.alchemy
-apps/egw-search/.env*
-apps/egw-search/infra
-apps/egw-search/alchemy.*.ts
-
-# @bible/core: source plus the committed runtime files. The local corpus,
-# vector index and tokens under data/ stay out; production reads them from /data.
-!packages/core
-packages/core/node_modules
-packages/core/.turbo
-packages/core/tsconfig.tsbuildinfo
-packages/core/assets
-packages/core/data/*
-!packages/core/data/hymnal.db
-!packages/core/data/topics.db
-packages/core/dist-native/*
-!packages/core/dist-native/vector-scan.wasm
-!packages/core/dist-native/vector-scan-x86_64-linux-gnu.so
+# The deployment's own description.
+full/apps/egw-search/infra
+full/apps/egw-search/alchemy.*.ts
+full/apps/egw-search/test
 
 **/.DS_Store
