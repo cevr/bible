@@ -48,6 +48,7 @@ body.export .stage canvas {
   box-shadow: none;
 }
 .bar {
+  position: relative;
   background: var(--panel);
   padding: 10px 16px 14px;
   display: grid;
@@ -87,7 +88,7 @@ body.export .stage canvas {
 }
 .track {
   position: relative;
-  height: 28px;
+  height: 34px;
   background: #2b261f;
   border-radius: 6px;
   cursor: pointer;
@@ -105,13 +106,92 @@ body.export .stage canvas {
 .track .seg span {
   position: absolute;
   left: 4px;
-  top: 6px;
+  top: 11px;
   font-size: 10px;
   color: var(--muted);
   white-space: nowrap;
 }
+.track .tick {
+  position: absolute;
+  z-index: 1;
+}
+/* A narration mark: a short tick at the foot of the track. */
+.track .tick.mark {
+  bottom: 0;
+  height: 10px;
+  width: 7px;
+  margin-left: -3.5px;
+  /* One pixel of tick, with room either side to hover it. */
+  border-inline: 3px solid transparent;
+  background: rgb(239 230 212 / 0.55);
+  background-clip: padding-box;
+}
+/* A named cue: a bar along the foot, as long as the cue. */
+.track .tick.cue {
+  bottom: 0;
+  height: 4px;
+  min-width: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+/* A sound effect: a dot along the top. */
+.track .tick.effect {
+  top: 3px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #7fc4c0;
+}
+/* A music act starts: a line through the whole track. */
+.track .tick.act {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #d9826a;
+}
+.tip {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #0d0b09;
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+.keys i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+.keys .k-mark {
+  width: 1px;
+  background: rgb(239 230 212 / 0.55);
+}
+.keys .k-cue {
+  height: 4px;
+  vertical-align: 1px;
+  background: var(--accent);
+}
+.keys .k-effect {
+  border-radius: 50%;
+  background: #7fc4c0;
+}
+.keys .k-act {
+  width: 2px;
+  background: #d9826a;
+}
 .track .head {
   position: absolute;
+  z-index: 2;
+  pointer-events: none;
   top: 0;
   bottom: 0;
   width: 2px;

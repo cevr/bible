@@ -44,7 +44,10 @@ missing), and its captions are also written as WebVTT beside it. Ctrl-C stops
 a render cleanly: every page, the browser, the server and every ffmpeg child
 close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. A striped timeline segment means that beat's narration is
-estimated, not recorded.
+estimated, not recorded. The track also marks every `{mark}` (a tick at its
+foot), every named cue (a bar as long as the cue), every sound effect (a dot
+along the top) and every music act's start (a line through it), from the film's
+`sound` passed to `createFilm`; hover one for its name and time.
 
 ## How a film is built
 

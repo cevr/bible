@@ -6,7 +6,7 @@ import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { captionCues } from '../core/captions.ts';
 import { type Placed, layout, transitionDur } from '../core/layout.ts';
-import type { TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
+import type { Sound, TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
 import type { ResolvedCue } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, probeOf, probing, recordText } from './probe.ts';
@@ -79,6 +79,8 @@ export interface FilmSpec {
   readonly captions?: CaptionStyle;
   /** Film-wide narration track, when every scene is recorded. */
   readonly audio?: string;
+  /** The film's music and effects (`sound.ts`): the player marks them on its timeline. */
+  readonly sound?: Sound;
 }
 
 export interface RenderOptions {
@@ -99,6 +101,7 @@ export interface Film {
   readonly duration: number;
   readonly placed: ReadonlyArray<Placed<SceneSpec>>;
   readonly audio: string | undefined;
+  readonly sound: Sound | undefined;
   readonly allRecorded: boolean;
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
@@ -295,6 +298,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     duration,
     placed,
     audio: allRecorded ? spec.audio : undefined,
+    sound: spec.sound,
     allRecorded,
     sceneAt,
     render,

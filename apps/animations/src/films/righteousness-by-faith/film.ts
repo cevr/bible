@@ -5,6 +5,7 @@ import { type Timings, TimingsJson } from '@bible/film/core';
 import { Schema } from 'effect';
 import { fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
+import { sound } from './sound.ts';
 
 const loadTimings = async (): Promise<Timings | undefined> => {
   const res = await fetch('/films/righteousness-by-faith/narration/timings.json');
@@ -19,5 +20,6 @@ export const film = async () =>
     scenes,
     timings: await loadTimings(),
     audio: '/films/righteousness-by-faith/narration/full.mp3',
+    sound,
     captions: { font: `500 38px "${fonts.body}"`, color: palette.ink, plate: palette.robe },
   });

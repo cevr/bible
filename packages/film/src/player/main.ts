@@ -4,6 +4,8 @@
 
 import type { Film } from '../canvas/film.ts';
 import type { TextBox } from '../core/schema.ts';
+import { timelineTicks } from '../core/ticks.ts';
+import { Option } from 'effect';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -118,7 +120,8 @@ const preview = (
       <button data-act="captions">CC</button>
     </div>
     <div class="track"><div class="head"></div></div>
-    <div class="keys">space play · ←/→ frame (shift: 1s) · [ ] scene · c captions · striped = narration estimated, not recorded</div>`;
+    <div class="tip" hidden></div>
+    <div class="keys">space play · ←/→ frame (shift: 1s) · [ ] scene · c captions · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => {
     const el = bar.querySelector<T & Element>(sel);
@@ -131,6 +134,7 @@ const preview = (
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
+  const tip = q<HTMLDivElement>('.tip');
 
   const hue = (i: number) => `hsl(${(i * 47) % 360} 30% 30%)`;
   for (const p of film.placed) {
@@ -142,6 +146,30 @@ const preview = (
     seg.innerHTML = `<span>${p.spec.id}</span>`;
     track.append(seg);
   }
+
+  // Marks, cue spans, sound effects and music acts, from the same placements the render uses.
+  const pct = (secs: number) => `${(secs / film.duration) * 100}%`;
+  for (const tick of timelineTicks(film.placed, Option.fromNullishOr(film.sound))) {
+    const el = document.createElement('div');
+    el.className = `tick ${tick.kind}`;
+    el.dataset['name'] = `${tick.name} · ${tick.at.toFixed(2)}s`;
+    el.style.left = pct(tick.at);
+    if (tick.kind === 'cue') el.style.width = pct(tick.dur);
+    track.insertBefore(el, head);
+  }
+  track.addEventListener('pointerover', (e) => {
+    const name = e.target instanceof HTMLElement ? e.target.dataset['name'] : undefined;
+    if (name === undefined) return;
+    const t = e.target instanceof HTMLElement ? e.target.getBoundingClientRect() : undefined;
+    const b = bar.getBoundingClientRect();
+    tip.textContent = name;
+    tip.hidden = false;
+    tip.style.left = `${(t?.left ?? 0) + (t?.width ?? 0) / 2 - b.left}px`;
+    tip.style.top = `${track.offsetTop - 26}px`;
+  });
+  track.addEventListener('pointerout', () => {
+    tip.hidden = true;
+  });
 
   const audio = film.audio === undefined ? undefined : new Audio(film.audio);
   const fromHash = Number.parseFloat(location.hash.slice(1));
