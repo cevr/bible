@@ -15,7 +15,7 @@
  * then read the live page with `effect-frame roots` / `effect-frame inspect`.
  */
 
-import { attachGateway } from 'effect-frame/inspection';
+import { attachGateway, defaultOpenTimeout, defaultRetry } from 'effect-frame/inspection';
 import { Effect, Option, Schema } from 'effect';
 
 import { boot } from './boot.js';
@@ -34,7 +34,11 @@ const inspect = Effect.gen(function* () {
   if (Option.isNone(gateway)) {
     return;
   }
-  yield* attachGateway(gateway.value).pipe(
+  yield* attachGateway({
+    ...gateway.value,
+    retry: defaultRetry,
+    openTimeout: defaultOpenTimeout,
+  }).pipe(
     Effect.catchTag('InvalidAttachOptions', (error) =>
       Effect.logWarning(`[inspect] attach refused detail=${error.detail}`),
     ),

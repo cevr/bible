@@ -2,9 +2,9 @@
  * Its mutable receipt state is the test server's lifecycle boundary, not an
  * application service or production endpoint. */
 
-import { ActorHost, HttpServer, Query } from 'effect-frame/actor';
+import { ActorHost, HttpServer, implementBatchedQuery } from 'effect-frame/actor';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
-import { Deferred, Effect, Exit, Layer, Schema } from 'effect';
+import { Deferred, Effect, Exit, Layer, Option, Schema } from 'effect';
 import {
   HttpMiddleware,
   HttpPlatform,
@@ -147,16 +147,22 @@ const resolveFixtureBatch = (requests: ReadonlyArray<SearchRequest>) =>
     return (request: SearchRequest) => Effect.succeed(fixtureResponse(request));
   });
 
-const SearchFixture = Query.batched(Search, { resolve: resolveFixtureBatch });
+const SearchFixture = implementBatchedQuery(Search, { resolve: resolveFixtureBatch });
 
-const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchFixture] }).pipe(
-  Layer.provide(PoliciesLive),
-  Layer.orDie,
-);
+const ActorsLive = ActorHost.layer({
+  implementations: [],
+  queries: [SearchFixture],
+  store: ActorHost.memoryStore,
+}).pipe(Layer.provide(PoliciesLive), Layer.orDie);
 
 const ActorsRouteLive = HttpRouter.use((router) =>
   Effect.gen(function* () {
-    const handle = yield* HttpServer.make({ principal: HttpServer.anonymous });
+    const handle = yield* HttpServer.make({
+      prefix: actorPrefix,
+      principal: HttpServer.anonymous,
+      maxBodyBytes: HttpServer.defaultMaxBodyBytes,
+      form: Option.none(),
+    });
     yield* router.add('*', `${actorPrefix}/*`, (request) =>
       Effect.gen(function* () {
         const isBatch = request.url.split('?')[0]?.endsWith('/query/batch') === true;
@@ -167,11 +173,10 @@ const ActorsRouteLive = HttpRouter.use((router) =>
         }
         return yield* Effect.gen(function* () {
           const web = yield* HttpServerRequest.toWeb(request);
-          const url = new URL(web.url);
-          url.pathname = url.pathname.slice(actorPrefix.length);
-          if (url.pathname === '/query/batch') state.batchHttpRequests += 1;
-          if (url.pathname === '/query') state.singleHttpRequests += 1;
-          const response = yield* handle(new Request(url, web));
+          const { pathname } = new URL(web.url);
+          if (pathname === `${actorPrefix}/query/batch`) state.batchHttpRequests += 1;
+          if (pathname === `${actorPrefix}/query`) state.singleHttpRequests += 1;
+          const response = yield* handle(web);
           return HttpServerResponse.fromWeb(response);
         }).pipe(
           Effect.onExit((exit) => {

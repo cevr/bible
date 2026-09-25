@@ -9,7 +9,7 @@
  * then shares context reads by radius before assembling one response per input.
  */
 
-import { Query } from 'effect-frame/actor';
+import { implementBatchedQuery } from 'effect-frame/actor';
 import { Cause, Effect, Option, Result, Schema } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
@@ -270,4 +270,4 @@ const resolveSearch = (requests: ReadonlyArray<SearchRequest>) =>
   resolveSearchWith(requests, surroundingParagraphs);
 
 /** The query host's declared batched implementation. */
-export const SearchLive = Query.batched(Search, { resolve: resolveSearch });
+export const SearchLive = implementBatchedQuery(Search, { resolve: resolveSearch });

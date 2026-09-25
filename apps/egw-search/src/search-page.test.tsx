@@ -3,12 +3,13 @@
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { describe, expect, test } from 'bun:test';
-import { Query as HostQuery } from 'effect-frame/actor';
-import { QueryTest } from 'effect-frame/actor/testing';
+import { ActorHost, implementBatchedQuery } from 'effect-frame/actor';
+import { QueryCache } from 'effect-frame/actor/client';
 import * as Frame from 'effect-frame/frame';
-import { Location, Route, mount } from 'effect-frame/router';
+import { Location, NavigationBehavior, Route, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
-import { Dom, ViewTest } from 'effect-frame/view';
+import { Dom } from 'effect-frame/view';
+import { ViewTest } from 'effect-frame/view/testing';
 import {
   Cause,
   Context,
@@ -113,9 +114,13 @@ const start = (initial: string) =>
     const holdStarted = yield* Deferred.make<void>();
     const releaseHold = yield* Deferred.make<void>();
 
-    const testLayer = QueryTest.layer({
+    // The production wiring, with the host in the test's runtime in place of
+    // the HTTP transport.
+    const host = ActorHost.layer({
+      implementations: [],
+      store: ActorHost.memoryStore,
       queries: [
-        HostQuery.batched(Search, {
+        implementBatchedQuery(Search, {
           resolve: (requests) =>
             Effect.gen(function* () {
               yield* Queue.offer(batches, requests);
@@ -127,19 +132,19 @@ const start = (initial: string) =>
             }),
         }),
       ],
-    }).pipe(
+    });
+    const testLayer = Layer.merge(QueryCache.layer, host).pipe(
       // The page reads through the same table the server builds its host with.
       Layer.provide(PoliciesLive),
       Layer.orDie,
       Layer.provideMerge(Frame.layer({ name: 'egw-search-test' })),
     );
 
-    const search = Route.client('search-page-test', {
+    const segment = Route.segment('search', {
       path: '/',
-      params: Schema.Struct({}),
       search: Route.search(Schema.Struct({})),
-      view: SearchPage,
     });
+    const search = Route.client('search-page-test', Route.leaf(segment, SearchPage));
 
     // Build the query layer in the test's root scope. The mounted page owns a
     // child scope, but its cache and host remain alive until that page closes.
@@ -156,6 +161,8 @@ const start = (initial: string) =>
           notFound: () => Effect.succeed(<p>not found</p>),
           host,
           root: mountRoot,
+          landing: NavigationBehavior.Restore,
+          traversalReadLimit: '3 seconds',
         }).pipe(
           Effect.provideService(Location, location.service),
           // oxlint-disable-next-line effect/noInlineProvide -- the mounted page needs its local query test layer.

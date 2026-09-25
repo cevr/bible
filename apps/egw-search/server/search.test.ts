@@ -124,7 +124,11 @@ const makeFixture = (): Fixture => {
       });
     }),
   ).pipe(Layer.provide(sqlite));
-  const layer = ActorHost.layerMemory([], [SearchLive]).pipe(
+  const layer = ActorHost.layer({
+    implementations: [],
+    queries: [SearchLive],
+    store: ActorHost.memoryStore,
+  }).pipe(
     Layer.provideMerge(Layer.merge(searchLayer, countedSql)),
     Layer.provide(PoliciesLive),
     Layer.orDie,

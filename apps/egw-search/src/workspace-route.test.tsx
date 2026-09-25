@@ -1,10 +1,11 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { describe, expect, test } from 'bun:test';
 import { Deferred, Effect, Queue, Ref, Schema, Stream } from 'effect';
-import { Location, Route, UrlState, mount } from 'effect-frame/router';
+import { Location, NavigationBehavior, Route, UrlState, mount } from 'effect-frame/router';
 import type { LocationService } from 'effect-frame/router';
 import type { Source } from 'effect-frame/actor/client';
-import { Dom, View, ViewTest } from 'effect-frame/view';
+import { Dom, View } from 'effect-frame/view';
+import { ViewTest } from 'effect-frame/view/testing';
 
 import { WORKSPACE_KEYS, Workspace as WorkspaceSchema } from './url-state.js';
 
@@ -60,13 +61,15 @@ const start = (initial: string) =>
     const root = yield* Effect.sync(() => document.createElement('main'));
     const location = yield* makeLocation(initial);
     const captured = yield* Deferred.make<CapturedNavigation>();
-    const search = Route.client('search', {
+    const segment = Route.segment('search', {
       path: '/',
-      params: Schema.Struct({}),
       search: Route.search(Schema.Struct({})),
-      view: () =>
+    });
+    const search = Route.client(
+      'search',
+      Route.leaf(segment, () =>
         Effect.gen(function* () {
-          const state = yield* UrlState.make(WorkspaceSchema, { keys: WORKSPACE_KEYS });
+          const state = yield* UrlState.make(WorkspaceSchema, { searchKeys: WORKSPACE_KEYS });
           const text = View.bind(state.state, (panes) => panes.map((pane) => pane.q).join('|'));
           const scopes = View.bind(state.state, (panes) =>
             panes.map((pane) => pane.scope).join('|'),
@@ -79,7 +82,8 @@ const start = (initial: string) =>
             </>,
           );
         }),
-    });
+      ),
+    );
     const page = yield* ViewTest.make({
       host: Dom.host,
       root,
@@ -89,9 +93,14 @@ const start = (initial: string) =>
         return '';
       },
       setup: (host, mountRoot) =>
-        mount({ routes: [search], notFound: NotFound, host, root: mountRoot }).pipe(
-          Effect.provideService(Location, location.service),
-        ),
+        mount({
+          routes: [search],
+          notFound: NotFound,
+          host,
+          root: mountRoot,
+          landing: NavigationBehavior.Restore,
+          traversalReadLimit: '3 seconds',
+        }).pipe(Effect.provideService(Location, location.service)),
     });
     return { page, root, location, navigation: yield* Deferred.await(captured) };
   });
@@ -122,10 +131,9 @@ describe('workspace route updates', () => {
         'http://app.test/?q=first&q2=second',
       );
       yield* page.act(
-        Effect.all(
-          [navigation.push.update(updatePane(0, 'a')), navigation.push.update(updatePane(1, 'b'))],
-          { concurrency: 2 },
-        ),
+        Effect.all([navigation.push(updatePane(0, 'a')), navigation.push(updatePane(1, 'b'))], {
+          concurrency: 2,
+        }),
         {
           label: 'both pane pushes render',
           until: (actualRoot) => textOf(actualRoot) === 'firsta|secondb',
@@ -139,7 +147,7 @@ describe('workspace route updates', () => {
       expect(current.searchParams.get('q2')).toBe('secondb');
 
       yield* page.act(
-        navigation.update((currentWorkspace) =>
+        navigation.replace((currentWorkspace) =>
           currentWorkspace.map((pane, index) => {
             if (index === 1) return { ...pane, scope: 'egw' };
             return pane;

@@ -13,7 +13,7 @@
  * keeps its search history. See `./url-state.ts`.
  *
  * **The async states are the framework's.** `followQuery` keeps the previous
- * result on screen, marked stale, while the next one loads; `Query` draws the
+ * result on screen, marked stale, while the next one loads; `Await` draws the
  * skeleton, the failure with a retry, or the results with a stale flag.
  * Nothing here holds a pending flag.
  *
@@ -23,12 +23,25 @@
  * when a neighbour opens or closes.
  */
 
-import type { QueryFailure, QueryState } from 'effect-frame/actor/client';
-import { Cell, followQuery, isReady, match, select, Source, zip } from 'effect-frame/actor/client';
+import type {
+  ActorStopped,
+  LocalActorRef,
+  QueryFailure,
+  SetValue,
+} from 'effect-frame/actor/client';
+import {
+  Actor,
+  Behavior,
+  followQuery,
+  modify,
+  QueryState,
+  Source,
+  Value,
+} from 'effect-frame/actor/client';
 import { UrlState } from 'effect-frame/router';
 import type { Child, Node } from 'effect-frame/view';
-import { Dom, For, Query, Show, View } from 'effect-frame/view';
-import { Effect, Option, Predicate, Schema, Stream } from 'effect';
+import { Await, Dom, For, Show, View } from 'effect-frame/view';
+import { Effect, Equivalence, Option, Predicate, Schema } from 'effect';
 
 import {
   type BookSubtype,
@@ -54,6 +67,18 @@ import {
 } from './url-state.js';
 
 type Hit = SearchResponse['hits'][number];
+
+/** A view's own state: a local actor holding one value, in the view's scope. */
+type Local<A> = LocalActorRef<A, SetValue<A>>;
+
+/** A write from one of the view's own handlers. The actor lives in the
+ *  view's scope, so it is stopped only once the view is gone and no handler
+ *  of it can matter: the write is dropped. */
+const whileMounted = <A,>(write: Effect.Effect<A, ActorStopped>): Effect.Effect<void> =>
+  write.pipe(
+    Effect.asVoid,
+    Effect.catchTag('ActorStopped', () => Effect.void),
+  );
 type ContextParagraph = Hit['before'][number];
 
 /** Paragraphs *fetched* on each side of a match, which is not the number shown.
@@ -145,28 +170,28 @@ const pluralResults = (count: number): string => {
 const canAddPane = (count: number): boolean => count < MAX_PANES;
 
 export const SearchPage = Effect.fn('SearchPage')(function* () {
-  const workspaceState = yield* UrlState.make(WorkspaceSchema, { keys: WORKSPACE_KEYS });
+  const workspaceState = yield* UrlState.make(WorkspaceSchema, { searchKeys: WORKSPACE_KEYS });
   const panes = workspaceState.state;
-  const count = select(panes, (list) => list.length);
+  const count = Source.select(panes, (list) => list.length);
 
   const workspace: WorkspaceProps = {
     panes,
     update: (index, update) =>
-      workspaceState.push.update((current) =>
+      workspaceState.push((current) =>
         current.map((existing, position) => {
           if (position === index) return update(existing);
           return existing;
         }),
       ),
     replace: (index, update) =>
-      workspaceState.update((current) =>
+      workspaceState.replace((current) =>
         current.map((existing, position) => {
           if (position === index) return update(existing);
           return existing;
         }),
       ),
     close: (index) =>
-      workspaceState.push.update((current) => {
+      workspaceState.push((current) => {
         if (current.length <= 1 || index < 0 || index >= current.length) return current;
         return current.filter((_, position) => position !== index);
       }),
@@ -175,7 +200,7 @@ export const SearchPage = Effect.fn('SearchPage')(function* () {
   // The new pane inherits the previous pane's filters but none of its
   // query: a second pane is almost always the same corpus asked a different
   // question.
-  const addPane = workspaceState.push.update((current) => {
+  const addPane = workspaceState.push((current) => {
     if (current.length >= MAX_PANES) return current;
     const last = Option.getOrElse(
       Option.fromNullishOr(current[current.length - 1]),
@@ -184,7 +209,7 @@ export const SearchPage = Effect.fn('SearchPage')(function* () {
     return [...current, { ...last, q: '' }];
   });
 
-  const rows: Source<ReadonlyArray<PaneRow>> = select(panes, (list) =>
+  const rows: Source<ReadonlyArray<PaneRow>> = Source.select(panes, (list) =>
     list.map((_, index) => ({ key: String(index), index })),
   );
   const paneList = yield* View.list({
@@ -227,7 +252,7 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
 
   /** This pane's slice of the workspace. Every read below goes through it,
    *  so a pane never sees another pane's query. */
-  const params: Source<SearchParams> = select(workspace.panes, (list) =>
+  const params: Source<SearchParams> = Source.select(workspace.panes, (list) =>
     Option.getOrElse(Option.fromNullishOr(list[index]), () => EMPTY_PARAMS),
   );
 
@@ -236,13 +261,15 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
    *  `None` means "nothing typed since this pane's query last changed", which
    *  is what makes the box follow the back button. Another pane's filter is a
    *  navigation too, but it must not discard this pane's unsent text. */
-  const typed = yield* Cell.make(Option.none<string>());
-  const query: Source<string> = {
-    get: Effect.map(params.get, (current) => current.q),
-    changes: Stream.changes(Stream.map(params.changes, (current) => current.q)),
-  };
-  yield* Source.on(query, () => typed.set(Option.none()));
-  const draft = zip(typed.state, params, (text, current) =>
+  const typed: Local<Option.Option<string>> = yield* Actor.local(
+    Behavior.value(Option.none<string>()),
+  );
+  const query = Source.dedupe(
+    Source.select(params, (current) => current.q),
+    Equivalence.String,
+  );
+  yield* Source.on(query, () => whileMounted(typed.send(Value.Set(Option.none()))));
+  const draft = Source.zip(typed.state, params, (text, current) =>
     Option.getOrElse(text, () => current.q),
   );
 
@@ -253,7 +280,7 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
    *  back through each toggle the reader tried. */
   const refine = (f: (current: SearchParams) => SearchParams) => workspace.replace(index, f);
 
-  const rawArgs: Source<Option.Option<SearchRequest>> = select(params, (current) => {
+  const rawArgs: Source<Option.Option<SearchRequest>> = Source.select(params, (current) => {
     if (current.q.trim() === '') return Option.none();
     return Option.some(toRequest(current, CONTEXT));
   });
@@ -261,8 +288,8 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
   // short quiet period so rapid filter changes share one request.
   const args = yield* Source.debounce(rawArgs, '100 millis');
   const results = yield* followQuery(Search, args);
-  const pending = zip(rawArgs, args, (requested, emitted) => !sameArgs(requested, emitted));
-  const displayState = zip(results.state, pending, (current, waiting) => {
+  const pending = Source.zip(rawArgs, args, (requested, emitted) => !sameArgs(requested, emitted));
+  const displayState = Source.zip(results.state, pending, (current, waiting) => {
     if (!waiting || current._tag !== 'Ready' || current.stale) return current;
     return { ...current, stale: true };
   });
@@ -300,7 +327,9 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
           autocomplete="off"
           autocapitalize="off"
           spellcheck={false}
-          onInput={View.event((event) => typed.set(Option.some(event.value)))}
+          onInput={View.event((event) =>
+            whileMounted(typed.send(Value.Set(Option.some(event.value)))),
+          )}
         />
         <button type="submit" disabled={View.bind(draft, (text) => text.trim() === '')}>
           Search
@@ -424,7 +453,7 @@ const toggleLabel = (open: boolean): string => {
  */
 const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
   const { params, refine } = props;
-  const open = yield* Cell.make(false);
+  const open: Local<boolean> = yield* Actor.local(Behavior.value(false));
 
   return (
     <div class="filters">
@@ -433,7 +462,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
           type="button"
           class="ftoggle"
           aria-expanded={View.bind(open.state, String)}
-          onClick={View.event(() => open.update((value) => !value))}
+          onClick={View.event(() => whileMounted(modify(open, (value) => !value)))}
         >
           {View.bind(open.state, toggleLabel)}
         </button>
@@ -454,7 +483,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
             {SECTIONS.map((entry) =>
               SignedChip({
                 label: entry.label,
-                sign: select(params, (current) => signOf(current.section, entry.value)),
+                sign: Source.select(params, (current) => signOf(current.section, entry.value)),
                 onPick: refine((current) => toggle(current, 'section', entry.value)),
               }),
             )}
@@ -464,7 +493,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
             {SCOPES.map((entry) =>
               Chip({
                 label: entry.label,
-                active: select(params, (current) => current.scope === entry.value),
+                active: Source.select(params, (current) => current.scope === entry.value),
                 onPick: refine((current) => ({ ...current, scope: entry.value })),
               }),
             )}
@@ -474,7 +503,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
             {TYPES.map((entry) =>
               SignedChip({
                 label: entry.label,
-                sign: select(params, (current) => signOf(current.type, entry.value)),
+                sign: Source.select(params, (current) => signOf(current.type, entry.value)),
                 onPick: refine((current) => toggle(current, 'type', entry.value)),
               }),
             )}
@@ -484,7 +513,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
             {SELECTABLE_SUBTYPES.map((entry) =>
               SignedChip({
                 label: SUBTYPE_LABELS[entry],
-                sign: select(params, (current) => signOf(current.subtype, entry)),
+                sign: Source.select(params, (current) => signOf(current.subtype, entry)),
                 onPick: refine((current) => toggle(current, 'subtype', entry)),
               }),
             )}
@@ -493,7 +522,7 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
           <FilterRow label="Apparatus">
             {Chip({
               label: 'Hide dictionaries & indexes',
-              active: select(params, (current) => current.excludeApparatus),
+              active: Source.select(params, (current) => current.excludeApparatus),
               onPick: refine((current) => ({
                 ...current,
                 excludeApparatus: !current.excludeApparatus,
@@ -527,7 +556,7 @@ const readyLabel = (query: string, value: SearchResponse, stale: boolean): strin
 const statusLabel = (params: SearchParams, state: SearchState): string => {
   const query = params.q;
   if (query === '') return 'awaiting query';
-  return match(state, {
+  return QueryState.match(state, {
     Loading: () => `searching “${query}”…`,
     Failed: () => `“${query}” — failed`,
     Ready: ({ value, stale }) => readyLabel(query, value, stale),
@@ -538,7 +567,7 @@ const Status = (props: {
   readonly params: Source<SearchParams>;
   readonly state: Source<SearchState>;
 }): Node => {
-  const label = zip(props.params, props.state, statusLabel);
+  const label = Source.zip(props.params, props.state, statusLabel);
   return (
     <div class="status">
       <span>{View.bind(label)}</span>
@@ -559,7 +588,7 @@ const Empty = (props: {
   readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
 }): Node => {
   const { params } = props;
-  const narrowed = select(params, (current) => current.q !== '' && hasFilters(current));
+  const narrowed = Source.select(params, (current) => current.q !== '' && hasFilters(current));
   const heading = (current: SearchParams): string => {
     if (props.nonSelective) return 'too common to rank';
     if (current.q === '') return 'no query yet';
@@ -568,7 +597,7 @@ const Empty = (props: {
   return (
     <div class="empty">
       <div>{View.bind(params, heading)}</div>
-      <Show when={select(params, () => props.nonSelective)}>
+      <Show when={Source.select(params, () => props.nonSelective)}>
         <div class="hint">
           “{View.bind(params, (current) => current.q)}” appears in a large share of the corpus, so
           ranking it would not surface anything in particular. Add a word or two to narrow it.
@@ -663,12 +692,12 @@ interface Row {
   readonly hit: Hit;
 }
 
-const isFresh = (state: SearchState): boolean => isReady(state) && !state.stale;
+const isFresh = (state: SearchState): boolean => QueryState.isReady(state) && !state.stale;
 
 const hasHits = (value: SearchResponse): boolean => value.hits.length > 0;
 
 /**
- * One `Query` over the three states. The first search draws skeletons
+ * One `Await` over the three states. The first search draws skeletons
  * because there is no value yet; a re-search keeps the old results on
  * screen, dimmed, because `followQuery` carries them as stale; a failure
  * shows one fallback with a retry.
@@ -678,15 +707,17 @@ const ResultsRegion = Effect.fn('ResultsRegion')(function* (props: ResultsProps)
 
   // Which rows the reader has expanded, by position. Reset whenever a
   // fresh answer lands: the rows are a different page then.
-  const expanded = yield* Cell.make<ReadonlySet<string>>(new Set());
+  const expanded: Local<ReadonlySet<string>> = yield* Actor.local(
+    Behavior.value<ReadonlySet<string>>(new Set()),
+  );
   yield* Source.on(results.settledState, (state) => {
-    if (isFresh(state)) return expanded.set(new Set());
+    if (isFresh(state)) return whileMounted(expanded.send(Value.Set(new Set())));
     return Effect.void;
   });
-  const expand = (key: string) => expanded.update((keys) => new Set([...keys, key]));
+  const expand = (key: string) => whileMounted(modify(expanded, (keys) => new Set([...keys, key])));
 
   return (
-    <Query
+    <Await
       state={results.state}
       loading={Skeleton()}
       failed={(error) => (
@@ -698,7 +729,7 @@ const ResultsRegion = Effect.fn('ResultsRegion')(function* (props: ResultsProps)
         </div>
       )}
       ready={(value, stale) => {
-        const rows: Source<ReadonlyArray<Row>> = select(value, (current) =>
+        const rows: Source<ReadonlyArray<Row>> = Source.select(value, (current) =>
           current.hits.map((hit, position) => ({ key: String(position), hit })),
         );
         return (
@@ -761,7 +792,7 @@ const matchClass = (state: RowState): string => {
  *  stores without a citation show nothing here, so the book title moves up
  *  and the row does not look like a broken link. */
 const Reference = (props: {
-  readonly className: string;
+  readonly class: string;
   readonly refcode: Source<string | null>;
   readonly url: Source<string | null>;
 }): Node => (
@@ -770,15 +801,10 @@ const Reference = (props: {
       <Show
         when={props.url}
         is={isPresent}
-        fallback={<span class={props.className}>{View.bind(refcode)}</span>}
+        fallback={<span class={props.class}>{View.bind(refcode)}</span>}
       >
         {(url) => (
-          <a
-            class={props.className}
-            href={View.bind(url)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a class={props.class} href={View.bind(url)} target="_blank" rel="noopener noreferrer">
             {View.bind(refcode)}
           </a>
         )}
@@ -794,7 +820,7 @@ const HitRow = (props: {
   readonly expanded: Source<ReadonlySet<string>>;
   readonly expand: (key: string) => Effect.Effect<void>;
 }): Node => {
-  const state: Source<RowState> = zip(props.row, props.expanded, (row, keys) => ({
+  const state: Source<RowState> = Source.zip(props.row, props.expanded, (row, keys) => ({
     hit: row.hit,
     key: row.key,
     expanded: keys.has(row.key),
@@ -807,9 +833,9 @@ const HitRow = (props: {
     <li class="hit">
       <div class="meta">
         {Reference({
-          className: 'refcode',
-          refcode: select(state, (current) => current.hit.refcode),
-          url: select(state, (current) => current.hit.url),
+          class: 'refcode',
+          refcode: Source.select(state, (current) => current.hit.refcode),
+          url: Source.select(state, (current) => current.hit.url),
         })}
         <span class="book">{View.bind(state, (current) => current.hit.bookTitle)}</span>
         {/* Says what the row *is*, next to where it came from. */}
@@ -827,7 +853,7 @@ const HitRow = (props: {
           </button>
         </Show>
         <For
-          each={select(state, (current) => keyed(beforeSide(current).shown))}
+          each={Source.select(state, (current) => keyed(beforeSide(current).shown))}
           keyBy={(paragraph: Paragraph) => paragraph.key}
         >
           {(paragraph) => Context({ paragraph })}
@@ -837,7 +863,7 @@ const HitRow = (props: {
           <p class="text">{View.bind(state, (current) => current.hit.text)}</p>
         </div>
         <For
-          each={select(state, (current) => keyed(afterSide(current).shown))}
+          each={Source.select(state, (current) => keyed(afterSide(current).shown))}
           keyBy={(paragraph: Paragraph) => paragraph.key}
         >
           {(paragraph) => Context({ paragraph })}
@@ -867,9 +893,9 @@ const Context = (props: { readonly paragraph: Source<Paragraph> }): Node => {
     <p class={View.bind(paragraph, contextClass)}>
       {View.bind(paragraph, (current) => current.para.text)}
       {Reference({
-        className: 'cref',
-        refcode: select(paragraph, (current) => current.para.refcode),
-        url: select(paragraph, (current) => current.para.url),
+        class: 'cref',
+        refcode: Source.select(paragraph, (current) => current.para.refcode),
+        url: Source.select(paragraph, (current) => current.para.url),
       })}
     </p>
   );

@@ -13,14 +13,13 @@
  * the rule the static server's SPA fallback used, without the fallback file.
  */
 
-import { ActorTransport } from 'effect-frame/actor/client';
-import { renderDocument } from 'effect-frame/router';
+import { ActorTransport, Anonymous } from 'effect-frame/actor/client';
+import type { Principal } from 'effect-frame/actor/client';
+import { renderDocument, respondDocument } from 'effect-frame/router';
 import type { DocumentTimedOut } from 'effect-frame/router';
 import type { Html } from 'effect-frame/view';
-import { Effect, Option, Stream } from 'effect';
-import type { Scope } from 'effect';
+import { Effect, Option } from 'effect';
 import {
-  HttpEffect,
   HttpRouter,
   HttpServerRequest,
   HttpServerRespondable,
@@ -28,6 +27,7 @@ import {
   HttpStaticServer,
 } from 'effect/unstable/http';
 
+import { rootId } from '../src/document.js';
 import { NotFound, routes } from '../src/routes.js';
 
 /** The page around the routed markup. The module script sits in the head: a
@@ -46,15 +46,15 @@ const page: Html.Document = {
     '<script type="module" src="/index.js"></script>',
     '</head>',
     '<body>',
-    '<div id="root">',
   ].join(''),
-  tail: '</div>',
+  rootId,
+  tail: '',
   bootstrap: '',
   end: '</body></html>',
 };
 
 /** The same page with nothing drawn: the browser mounts into the empty root. */
-const clientOnly = `${page.head}${page.tail}${page.end}`;
+const clientOnly = `${page.head}<div id="${rootId}"></div>${page.tail}${page.end}`;
 
 /** How long a document may wait for its queries.
  *
@@ -73,40 +73,36 @@ const isFilePath = (pathname: string): boolean => {
   return last.includes('.');
 };
 
-/** Render one request's document, in the request's Scope. A `Streamed` body
- *  goes on writing after the handler returns, so the response takes the
- *  request Scope with it and closes it when the body ends. */
-const renderPage = (url: URL) =>
-  renderDocument({
-    routes,
-    notFound: NotFound,
-    url,
-    document: page,
-    closeWhen: Effect.sleep(DOCUMENT_LIMIT),
-  }).pipe(
-    Effect.map((outcome) => {
-      if (outcome._tag === 'Redirect') {
-        return HttpServerResponse.redirect(outcome.location, { status: 303 });
-      }
-      return HttpEffect.scopeTransferToStream(
-        HttpServerResponse.stream(Stream.encodeText(outcome.body), {
-          status: outcome.status,
-          contentType: HTML,
-        }),
-      );
+/** This app has no accounts: every page is drawn for nobody in particular,
+ *  as every actor call is (`HttpServer.anonymous` in `./main.ts`). */
+const nobody: Principal = Anonymous.make({});
+
+/** Answer one page request. `respondDocument` owns the render's Scope: a
+ *  `Streamed` body goes on writing after the handler returns and closes the
+ *  Scope when it ends. It answers a redirect with 303 and a defect with 500. */
+const answerPage = (url: URL) =>
+  respondDocument(
+    renderDocument({
+      routes,
+      notFound: NotFound,
+      url,
+      document: page,
+      closeWhen: Effect.sleep(DOCUMENT_LIMIT),
+      principal: nobody,
     }),
-    Effect.catchTag('DocumentTimedOut', (error: DocumentTimedOut) =>
-      Effect.as(
-        Effect.logWarning(`[document] timed out phase=${error.phase} path=${url.pathname}`),
-        HttpServerResponse.text(clientOnly, { contentType: HTML }),
-      ),
-    ),
-  );
+    {
+      onTimeout: (error: DocumentTimedOut) =>
+        Effect.as(
+          Effect.logWarning(`[document] timed out phase=${error.phase} path=${url.pathname}`),
+          new Response(clientOnly, { headers: { 'content-type': HTML } }),
+        ),
+    },
+  ).pipe(Effect.map(HttpServerResponse.fromWeb));
 
 type Handler = Effect.Effect<
   HttpServerResponse.HttpServerResponse,
   never,
-  HttpServerRequest.HttpServerRequest | Scope.Scope
+  HttpServerRequest.HttpServerRequest
 >;
 
 export const SiteLive = (options: { readonly staticRoot: string }) =>
@@ -117,8 +113,7 @@ export const SiteLive = (options: { readonly staticRoot: string }) =>
       );
       // Resolved once, when the route is built, so a request carries no
       // requirement of its own out through the router. The transport alone,
-      // not the build's whole context: the render must run in the request's
-      // Scope, which the streamed response takes and closes.
+      // not the build's whole context.
       const transport = yield* ActorTransport;
       const handle = (request: HttpServerRequest.HttpServerRequest): Handler =>
         Option.match(HttpServerRequest.toURL(request), {
@@ -127,7 +122,7 @@ export const SiteLive = (options: { readonly staticRoot: string }) =>
             if (isFilePath(url.pathname)) {
               return files;
             }
-            return renderPage(url).pipe(Effect.provideService(ActorTransport, transport));
+            return answerPage(url).pipe(Effect.provideService(ActorTransport, transport));
           },
         });
       yield* router.add('GET', '/*', handle);

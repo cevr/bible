@@ -37,15 +37,17 @@ import { SearchPage } from './app.js';
  * (its `Dom.scrollIntoView` and `Dom.focus` in `./app.tsx`); the router has
  * no landing for a node that appears inside a stayed leaf.
  */
-export const search = Route.streamed('search', {
+export const search = Route.segment('search', {
   path: '/',
-  params: Schema.Struct({}),
   search: Route.search(Schema.Struct({})),
-  view: SearchPage,
-  behavior: NavigationBehavior.Preserve,
 });
 
-export const routes = [search];
+export const SearchRoute = Route.streamed(
+  'search',
+  Route.leaf(search, SearchPage, { landing: NavigationBehavior.Preserve }),
+);
+
+export const routes = [SearchRoute];
 
 /** The server sends every unknown path here, so the router is what says a
  *  path is nothing. */

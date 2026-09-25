@@ -11,7 +11,7 @@
  * explicit refresh; the contract declares no dependency.
  */
 
-import { query } from 'effect-frame/actor/client';
+import { batchedQuery } from 'effect-frame/actor/client';
 import { Schema as S } from 'effect';
 
 import { BookSubtype, BookType, CorpusScope, CorpusSection, Signed } from '@bible/core/writings';
@@ -38,7 +38,9 @@ export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
 export const PUBLIC_POLICY = 'public';
 
 /** Version 1, dependent on no actor, and readable by anyone. */
-export const Search = query.batched('search', {
+export const Search = batchedQuery('search', {
+  version: 1,
+  depends: [],
   args: SearchRequest,
   result: SearchResponseSchema,
   policy: PUBLIC_POLICY,

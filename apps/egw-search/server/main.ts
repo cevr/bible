@@ -28,7 +28,7 @@
 import { ActorHost, HttpServer } from 'effect-frame/actor';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Option } from 'effect';
 import {
   Etag,
   FetchHttpClient,
@@ -351,10 +351,17 @@ const STATIC_ROOT = process.env['EGW_SEARCH_STATIC_DIR'] ?? `${import.meta.dir}/
 /** The actor transport the page reads through, mounted under `/actors`.
  *
  *  The host serves no actors — only the `Search` query — and it answers over
- *  the same `searchLayer` the JSON API does. The route strips the prefix and
- *  hands the raw web request to effect-frame's handler, which owns the wire
- *  (`POST /query`, and the actor verbs no contract here uses). */
-const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchLive] }).pipe(
+ *  the same `searchLayer` the JSON API does. The route hands the raw web
+ *  request to effect-frame's handler, which owns the wire (`POST
+ *  /actors/query`, and the actor verbs no contract here uses).
+ *
+ *  An in-memory store: with no actors there is nothing to keep across a
+ *  restart. */
+const ActorsLive = ActorHost.layer({
+  implementations: [],
+  queries: [SearchLive],
+  store: ActorHost.memoryStore,
+}).pipe(
   Layer.provide(searchLayer),
   Layer.provide(TunedSqlLive),
   Layer.provide(PoliciesLive),
@@ -365,15 +372,18 @@ const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchLive] 
 
 const ActorsRouteLive = HttpRouter.use((router) =>
   Effect.gen(function* () {
-    // No accounts and no sessions: every request is anonymous, and that is a
-    // written line rather than a default.
-    const handle = yield* HttpServer.make({ principal: HttpServer.anonymous });
+    // No accounts and no sessions: every request is anonymous. No plain
+    // form posts: the page sends nothing but queries.
+    const handle = yield* HttpServer.make({
+      prefix: actorPrefix,
+      principal: HttpServer.anonymous,
+      maxBodyBytes: HttpServer.defaultMaxBodyBytes,
+      form: Option.none(),
+    });
     yield* router.add('*', `${actorPrefix}/*`, (request) =>
       Effect.gen(function* () {
         const web = yield* HttpServerRequest.toWeb(request);
-        const url = new URL(web.url);
-        url.pathname = url.pathname.slice(actorPrefix.length);
-        const response = yield* handle(new Request(url, web));
+        const response = yield* handle(web);
         return HttpServerResponse.fromWeb(response);
       }),
     );
