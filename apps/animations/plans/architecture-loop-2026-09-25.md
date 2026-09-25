@@ -11,13 +11,18 @@
 
 | Directory                                               | Files | Mark    | Pass |
 | ------------------------------------------------------- | ----- | ------- | ---- |
-| apps/animations                                         | 1     | unswept | 2    |
-| apps/animations/scripts                                 | 5     | unswept | 2    |
-| apps/animations/src/engine                              | 14    | unswept | 2    |
+| apps/animations                                         | 2     | unswept | 2    |
+| apps/animations/src                                     | 1     | unswept | 2    |
 | apps/animations/src/films                               | 1     | unswept | 2    |
 | apps/animations/src/films/righteousness-by-faith        | 6     | unswept | 2    |
 | apps/animations/src/films/righteousness-by-faith/scenes | 23    | unswept | 2    |
-| apps/animations/src/player                              | 1     | unswept | 2    |
+| apps/animations/test                                    | 3     | unswept | 2    |
+| packages/film/src/canvas                                | 11    | unswept | 2    |
+| packages/film/src/core                                  | 17    | unswept | 2    |
+| packages/film/src/player                                | 2     | unswept | 2    |
+| packages/film/src/tools                                 | 29    | unswept | 2    |
+
+Pass 1 moved every directory (engine → packages/film, scripts → tools). Source lines after pass 1: 15268 (from 9175): the framework, its tests (99 in @bible/film) and the Effect tooling.
 
 Pass 1 is the framework build. Its findings come from the retro and the prior-art reports, which already carry receipts. Pass 2 sweeps the new package and the app. Decided by redesign-from-first-principles: sweeping the old layout just before it moves would spend the sweep on files that are about to change.
 
@@ -53,24 +58,32 @@ Decided by redesign-from-first-principles and small-interface-deep-implementatio
 
 ## Pass 1
 
-Rift: `.rifts/film-pass1`. Apply batches in order; each commit compiles and passes the gate.
+Worktree: `../bible-tools-film-pass1`, branch `film-pass1` (rift could not clone this repo: `Permission denied` on the copy-on-write clone). Apply batches in order; each commit compiles and passes the gate.
 
 | ID   | Candidate                                                                                                                                                                             | North star             | Files                                                     | Lines removed | Risk | Status                                                                                                                                                                                                                                                                                          |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------- | ------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P1-1 | Move the engine into `packages/film` (core / canvas / player), no behavior change                                                                                                     | explicit over implicit | `engine/`, `player/`, film imports                        | ~0            | med  | done `c61e888f` (cli fixes the gate needed) + `9c35d41e`                                                                                                                                                                                                                                        |
 | P1-2 | Named cues: `timeline` on a drawing, resolved in `layout()`, `f.cue`; sound cues reference them; migrate every sound-referenced moment                                                | declared once          | core/timeline, core/layout, canvas/film, sound.ts, scenes | ~20           | med  | done `f29802db` + `d3bbfb67`; sound moved to match the picture: coins −0.80, shimmer(hand) +0.50, stamp(1888) −0.35, robe −0.30, stamp(witness) +0.25, stamp(justified) +0.05; picture unchanged (54 cue stills psnr=inf)                                                                       |
-| P1-3 | Effect tooling: Schema boundaries, typed errors, services, `film` CLI; scoped renderer with a chunk queue; WAV master; captions; preflights; lint rules back on outside the draw path | Effect-native tooling  | scripts/* → packages/film/src/tools                       | tbd           | high | pending                                                                                                                                                                                                                                                                                         |
+| P1-3 | Effect tooling: Schema boundaries, typed errors, services, `film` CLI; scoped renderer with a chunk queue; WAV master; captions; preflights; lint rules back on outside the draw path | Effect-native tooling  | scripts/* → packages/film/src/tools                       | tbd           | high | done `e0ae942d` `b9990cf6` `c3d6be24` (schema, services, CLI, lint split) + `32eb5eca` `7e199942` `5cf8a982` `bfedcf13` (WAV master, VTT, scoped renderer, 4% faster, interrupt leaves no process); full.mp3 byte-identical to baseline                                                         |
 | P1-4 | `film check`: cue bounds, sound cue names, stale takes, text collisions at marks; marks/cues/acts on the player timeline                                                              | checked not eyeballed  | tools/check, player                                       | ~0            | med  | done `61951e90` + fixes `04107480` (justified: word strip over quote), `4f246f0b` (1888: cite tag over masthead) + `82bbaed2` (player ticks) + `a6274c57` (doctor/preflights); probe pixel-neutral (golden inf before fixes); after fixes only justified and 1888 stills differ; cues unchanged |
 
 Counsel defects:
 
-| ID  | Defect | Red test | Status |
-| --- | ------ | -------- | ------ |
+| ID  | Defect                                                                          | Red test                            | Status                                                                         |
+| --- | ------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
+| C1  | Interrupted mix left a truncated `full.wav`; render muxed no audio and exited 0 | mixer + renderer + check tests (7)  | done `582aa4cb`                                                                |
+| C2  | `check --scene` documented, flag was `--only`                                   | cli test                            | done `582aa4cb`                                                                |
+| C3  | Misspelt scene ids passed `check`/`cues`                                        | cli tests                           | done `582aa4cb`                                                                |
+| C4  | `FILMS_DIR` moved the tools but not the page                                    | film-repo test                      | done `582aa4cb` (knob removed)                                                 |
+| C5  | Timings schema accepted negative/inverted times                                 | schema tests (4)                    | done `582aa4cb`                                                                |
+| C6  | Take audio written before its timings (crash window)                            | narrator crash-at-every-step test   | done `582aa4cb` (content-named takes; timings rename is the only commit point) |
+| C7  | `after:`/`with:` typos compiled                                                 | `drawing.types.ts` @ts-expect-error | done `582aa4cb`                                                                |
 
-Live render: pending
+Live render: full film from `582aa4cb` — 10499 frames, video 349.967 s, audio 349.960 s, mean −23.2 dB (baseline −23.5), 569 s wall at 18.4 fps, VTT written; frame sheet matches the baseline scene for scene; golden: 14/16 inf, justified and 1888 changed only by the P1-4 fixes; `full.mp3` byte-identical to baseline; no process left running.
 
 ## Close
 
-- Unswept directories: all (pass 2)
+- Unswept directories: all ten (pass 2 sweeps them)
+- Blind spot found: strokes over text (the rule through MINNEAPOLIS in 1888) — `check` cannot see it, so pass 1 is not the last (close rule)
 - Largest sweep finding: —
 - Structural change named by the loop reader: —
