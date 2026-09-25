@@ -103,6 +103,7 @@ export const fakeElevenLabs = (
           return { text: Option.getOrElse(heard, () => said) };
         }),
       composeMusic: (_plan, _model, out) => Effect.sync(() => void calls.music.push(out)),
+      ready: Effect.void,
       apiKey: Option.match(Option.fromNullishOr(options.apiKey), {
         onNone: () => Effect.fail(ApiKeyMissing.make({})),
         onSome: (key) => Effect.succeed(Redacted.make(key)),
@@ -118,6 +119,7 @@ export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
     Ffmpeg,
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void runs.push(args)),
+      version: Effect.void,
       probeDuration: () => Effect.succeed(2.5),
       encode: (args, input) =>
         Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
@@ -231,6 +233,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     Ffmpeg,
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void ledger.runs.push(args)),
+      version: Effect.void,
       probeDuration: () => Effect.succeed(info.duration),
       encode: (_args, input) =>
         Effect.acquireUseRelease(

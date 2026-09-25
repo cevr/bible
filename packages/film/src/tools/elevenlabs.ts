@@ -9,7 +9,7 @@ import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { MusicModel, Plan, type Voice } from '../core/schema.ts';
 import { ApiKeyMissing, ElevenLabsFailed } from './errors.ts';
-import { type Finished, collect } from './process.ts';
+import { type Finished, collect, isNotFound } from './process.ts';
 
 const OUTPUT_FORMAT = 'mp3_44100_192';
 
@@ -45,6 +45,13 @@ const SoundEffectBody = Schema.fromJsonString(
 );
 
 // Responses.
+
+/** `auth status`: each credential scheme and whether it is logged in. */
+const AuthStatus = Schema.fromJsonString(
+  Schema.Struct({
+    schemes: Schema.Array(Schema.Struct({ scheme: Schema.String, logged_in: Schema.Boolean })),
+  }),
+);
 
 /** `text-to-speech convert_with_timestamps`: the audio, and when each character is spoken. */
 export const TtsResponse = Schema.Struct({
@@ -83,6 +90,8 @@ export interface ElevenLabsService {
     model: typeof MusicModel.Type,
     out: string,
   ) => Effect.Effect<void, ElevenLabsFailed>;
+  /** Preflight: the CLI is installed and logged in (free: reads the local credential store). */
+  readonly ready: Effect.Effect<void, ElevenLabsFailed>;
   /** The key sound effects need; resolved once. */
   readonly apiKey: Effect.Effect<Redacted.Redacted<string>, ApiKeyMissing>;
   readonly soundEffect: (
@@ -204,6 +213,38 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         );
       });
 
+      const checkReady = Effect.fn('ElevenLabs.ready')(function* () {
+        const done = yield* collect(
+          spawner,
+          ChildProcess.make('elevenlabs', ['auth', 'status', '--format', 'json']),
+        ).pipe(
+          Effect.mapError((error) => {
+            if (isNotFound(error))
+              return ElevenLabsFailed.make({
+                op: 'auth',
+                exitCode: -1,
+                reason:
+                  'the elevenlabs CLI is not on PATH; install it, then run: elevenlabs auth login',
+              });
+            return failed('auth')(error);
+          }),
+        );
+        if (done.exitCode !== 0)
+          return yield* ElevenLabsFailed.make({
+            op: 'auth',
+            exitCode: done.exitCode,
+            reason: done.stderr.trim(),
+          });
+        const status = yield* decodeReply('auth', AuthStatus, done.stdout);
+        if (status.schemes.some((s) => s.logged_in)) return;
+        return yield* ElevenLabsFailed.make({
+          op: 'auth',
+          exitCode: 0,
+          reason: 'not logged in; run: elevenlabs auth login',
+        });
+      });
+      const ready = checkReady();
+
       /** The environment first, then the Keychain; an empty value counts as none. */
       const lookupKey = Effect.gen(function* () {
         const env = yield* Config.option(Config.Redacted('ELEVENLABS_API_KEY')).pipe(
@@ -257,7 +298,7 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         );
       });
 
-      return ElevenLabs.of({ tts, stt, composeMusic, apiKey, soundEffect });
+      return ElevenLabs.of({ tts, stt, composeMusic, ready, apiKey, soundEffect });
     }),
   );
 }

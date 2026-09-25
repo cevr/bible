@@ -14,6 +14,8 @@ export type FfmpegError = FfmpegFailed | FfmpegMissing;
 export interface FfmpegService {
   /** Run ffmpeg with these arguments (without the program name). */
   readonly run: (args: ReadonlyArray<string>) => Effect.Effect<void, FfmpegError>;
+  /** Preflight: ffmpeg and ffprobe are installed and run. */
+  readonly version: Effect.Effect<void, FfmpegError>;
   /** A media file's duration in seconds. */
   readonly probeDuration: (file: string) => Effect.Effect<number, FfmpegError>;
   /**
@@ -59,6 +61,11 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
       const run = Effect.fn('Ffmpeg.run')(function* (args: ReadonlyArray<string>) {
         yield* exec('ffmpeg', args);
       });
+
+      const version = Effect.all([exec('ffmpeg', ['-version']), exec('ffprobe', ['-version'])], {
+        concurrency: 2,
+        discard: true,
+      }).pipe(Effect.withSpan('Ffmpeg.version'));
 
       const probeDuration = Effect.fn('Ffmpeg.probeDuration')(function* (file: string) {
         const out = yield* exec('ffprobe', [
@@ -117,7 +124,7 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
           }),
         ).pipe(Effect.withSpan('Ffmpeg.encode'));
 
-      return Ffmpeg.of({ run, probeDuration, encode });
+      return Ffmpeg.of({ run, version, probeDuration, encode });
     }),
   );
 }

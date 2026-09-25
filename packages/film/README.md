@@ -24,7 +24,7 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|score|mix|cues|check|render <film>` runs from the app that holds the
+`film narrate|score|mix|cues|check|render <film>` (and `film doctor`) runs from the app that holds the
 films (`src/films/<film>`, or `FILMS_DIR`). The app owns the entry: it calls
 `runFilmCli(previewServer)` with a scoped `PreviewServer` layer that serves its
 player page, because only the app can bundle its HTML and films (see
@@ -36,6 +36,13 @@ update is serialized. At most three paid jobs run at once. Failures are
 tagged errors (`TakeMismatch`, `ApiKeyMissing`, `FfmpegMissing`, ...) in
 `tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
+
+Preflights: `film doctor` checks ffmpeg and ffprobe (`FfmpegMissing`),
+headless Chromium (launched and closed; `BrowserMissing` carries the install
+command) and the `elevenlabs` CLI and its login (`auth status`, free),
+reports each, and fails if any is missing. `narrate` and `score` run the
+ffmpeg and ElevenLabs checks before their first paid call, and `render`
+checks ffmpeg before it opens a page.
 
 `mix` writes `narration/full.mp3` for the player and its lossless master
 `narration/full.wav` (16-bit) from one graph.

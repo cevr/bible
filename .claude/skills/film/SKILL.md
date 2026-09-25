@@ -17,6 +17,8 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 ## Steps
 
+0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether ffmpeg, headless Chromium and the logged-in `elevenlabs` CLI are there, and how to fix each that is not. `narrate` and `score` run the same checks before spending a credit.
+
 1. **Sources.** Build the corpus with `bible egw study <subject> --pioneers --export <file> --full`. Copy each quote you will use into `apps/animations/script/sources.md` verbatim, with its refcode, after checking it against the local database. Done when every quote the script will speak or show has a checked row.
 
 2. **Script.** Write `script.ts`: ordered beats `{ id, say, cite, picture }`. Put a `{mark}` before each word a picture must hit. Marks are stripped before speech, so adding one never re-records. `bun run dev` plays undrawn beats as storyboard cards at estimated timing. Done when the storyboard reads as the argument, start to finish.

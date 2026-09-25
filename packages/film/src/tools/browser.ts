@@ -199,6 +199,14 @@ const openPage = (page: Page, url: string) =>
     return { info, frame, probe } satisfies FramePage;
   });
 
+/** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */
+export const browserReady: Effect.Effect<void, BrowserMissing | BrowserFailed, Path.Path> =
+  Effect.scoped(
+    Effect.asVoid(
+      Effect.acquireRelease(launch, (b) => Effect.ignore(Effect.tryPromise(() => b.close()))),
+    ),
+  ).pipe(Effect.withSpan('Browser.ready'));
+
 export class Browser extends Context.Service<Browser, BrowserService>()(
   '@bible/film/tools/Browser',
 ) {

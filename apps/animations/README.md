@@ -14,6 +14,7 @@ bun run score <film>                           # generate stale music + effects,
 bun run mix <film> [--stems]                   # remix full.mp3 + full.wav (no API); stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
+bun run doctor                                 # ffmpeg, headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages + ffmpeg)

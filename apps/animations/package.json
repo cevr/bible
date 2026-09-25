@@ -10,6 +10,7 @@
     "mix": "bun cli.ts mix",
     "cues": "bun cli.ts cues",
     "check": "bun cli.ts check",
+    "doctor": "bun cli.ts doctor",
     "render": "bun cli.ts render",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",

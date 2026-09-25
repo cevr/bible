@@ -231,6 +231,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       });
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
+        // Before a page opens: a missing ffmpeg would otherwise surface only at the first chunk.
+        yield* ffmpeg.version;
         const query = [
           `film=${encodeURIComponent(film.paths.name)}`,
           'export',

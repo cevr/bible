@@ -7,6 +7,7 @@
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
+//   film doctor
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //
@@ -14,17 +15,24 @@
 // same inputs; mix alone never calls a paid API.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
-import { Console, Effect, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Console, Effect, Layer, Option, type Path, Result, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
-import { Browser } from './browser.ts';
+import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import { CheckFailed, CuesLate, SoundMissing } from './errors.ts';
-import { Ffmpeg } from './ffmpeg.ts';
+import {
+  type BrowserFailed,
+  type BrowserMissing,
+  CheckFailed,
+  CuesLate,
+  type ElevenLabsFailed,
+  SoundMissing,
+} from './errors.ts';
+import { Ffmpeg, type FfmpegError } from './ffmpeg.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
@@ -44,6 +52,54 @@ const only = Flag.String('only').pipe(
 const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
   Flag.withDescription('print what would be generated, then stop'),
+);
+
+/** What a paid run needs before it spends a credit: ffmpeg for the remix and a logged-in CLI. */
+const paidPreflight = Effect.gen(function* () {
+  const ffmpeg = yield* Ffmpeg;
+  const elevenLabs = yield* ElevenLabs;
+  yield* Effect.all([ffmpeg.version, elevenLabs.ready], { concurrency: 2, discard: true });
+});
+
+interface ToolCheck {
+  readonly tool: string;
+  /** The commands that need it. */
+  readonly needed: string;
+  readonly run: Effect.Effect<
+    void,
+    FfmpegError | BrowserMissing | BrowserFailed | ElevenLabsFailed,
+    Path.Path
+  >;
+}
+
+const doctor = Command.make(
+  'doctor',
+  {},
+  Effect.fn('film.doctor')(function* () {
+    const ffmpeg = yield* Ffmpeg;
+    const elevenLabs = yield* ElevenLabs;
+    const checks: ReadonlyArray<ToolCheck> = [
+      { tool: 'ffmpeg', needed: 'mix, render', run: ffmpeg.version },
+      { tool: 'chromium', needed: 'render, check', run: browserReady },
+      { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
+    ];
+    const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
+      concurrency: 3,
+    });
+    for (const [{ tool, needed }, result] of Arr.zip(checks, results))
+      yield* Console.log(
+        Result.match(result, {
+          onSuccess: () => `ok      ${tool.padEnd(11)} (${needed})`,
+          onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
+        }),
+      );
+    const failure = Arr.head(Arr.getFailures(results));
+    if (Option.isSome(failure)) return yield* failure.value;
+  }),
+).pipe(
+  Command.withDescription(
+    'Check the tools the film commands need: ffmpeg, headless Chromium, and the elevenlabs CLI and its login',
+  ),
 );
 
 const narrate = Command.make(
@@ -72,6 +128,8 @@ const narrate = Command.make(
       `narrate.plan film=${input.film} beats=${plan.beats.length} to_record=${stale}`,
     );
     if (input.dryRun) return;
+    // Before the first paid take: ffprobe measures each take, and the CLI must be logged in.
+    yield* paidPreflight;
     yield* narrator.record(loaded, plan, options);
     yield* (yield* Mixer).mix(input.film, { stems: false });
   }),
@@ -88,6 +146,7 @@ const score = Command.make(
     const repo = yield* FilmRepo;
     const composer = yield* Composer;
     const loaded = yield* repo.load(input.film);
+    if (!input.dryRun) yield* paidPreflight;
     yield* composer.score(loaded, { only: input.only, dryRun: input.dryRun });
     if (input.dryRun) return;
     yield* (yield* Mixer).mix(input.film, { stems: false });
@@ -300,7 +359,15 @@ export const runFilmCli = <E>(previewServer: Layer.Layer<PreviewServer, E>): voi
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const root = Command.make('film').pipe(
     Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
-    Command.withSubcommands([narrate, score, mix, cues, check(checkLayer), render(renderLayer)]),
+    Command.withSubcommands([
+      narrate,
+      score,
+      mix,
+      cues,
+      check(checkLayer),
+      render(renderLayer),
+      doctor,
+    ]),
   );
   Command.run(root, { version: '0.1.0' }).pipe(Effect.provide(Services), BunRuntime.runMain);
 };
