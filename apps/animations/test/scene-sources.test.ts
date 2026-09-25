@@ -10,6 +10,7 @@ import {
   FilmRepo,
   SceneSources,
   type Slot,
+  StaticCheck,
   drawingSites,
   parseModule,
 } from '@bible/film/tools';
@@ -20,6 +21,7 @@ import { FILMS } from '../server.ts';
 import { scenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
 
 const FILM = 'righteousness-by-faith';
+const CLI = new URL('../cli.ts', import.meta.url).pathname;
 
 const Sources = SceneSources.layer.pipe(
   Layer.provide(FilmRepo.layer(FILMS)),
@@ -70,6 +72,18 @@ describe('scene sources', () => {
       const error = yield* Effect.flip((yield* SceneSources).site(FILM, 'no-such-scene'));
       expect(error._tag).toBe('SceneNotLocated');
     }),
+  );
+
+  it.effect.layer(Sources)("the lab's check runs this CLI fresh and reads its findings", () =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path;
+      const check = yield* StaticCheck;
+      const findings = yield* check.run(FILM);
+      // The gate holds the film at no static errors; its unmade sounds are warnings.
+      expect(findings.length).toBeGreaterThan(0);
+      expect(findings.filter((f) => f.level === 'error')).toEqual([]);
+      expect(path.basename(CLI)).toBe('cli.ts');
+    }).pipe(Effect.provide(StaticCheck.layer(['bun', CLI]))),
   );
 
   it.effect.layer(Sources)('oxfmt leaves every scene file as it is', () =>

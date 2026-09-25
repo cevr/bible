@@ -398,3 +398,13 @@ export class UndoUnavailable extends Schema.TaggedError<UndoUnavailable>()('Undo
     return `nothing to undo: ${this.reason}`;
   }
 }
+
+/** `film check --static`, run for the lab after a write, did not run to a report. */
+export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
+  'StaticCheckFailed',
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `the static check did not run: ${this.reason}`;
+  }
+}

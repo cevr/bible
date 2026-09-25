@@ -33,4 +33,6 @@ runFilmCli({
   previewServer: player(Effect.succeed(0), false),
   // A port to keep open in a tab across runs.
   labServer: (lab) => player(labPort, true, lab),
+  // This CLI, for the lab's fresh `check --static` after each write.
+  self: ['bun', import.meta.path],
 });

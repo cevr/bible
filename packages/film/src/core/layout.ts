@@ -6,7 +6,7 @@ import { Array as Arr, Result } from 'effect';
 import { UnknownScene } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
 import type { Knob, Timed, Timings, Transition, Word } from './schema.ts';
-import { type ResolvedCue, resolveTimeline } from './timeline.ts';
+import { type ResolvedCue, type SceneClock, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
   readonly spec: S;
@@ -25,6 +25,27 @@ export interface Placed<S extends Timed = Timed> {
 export const transitionDur = (t: Transition | undefined) =>
   t === undefined || t.kind === 'cut' ? 0 : t.dur;
 
+const clockOf = (
+  scene: string,
+  voice: SceneVoice,
+  speechStart: number,
+  dur: number,
+): SceneClock => ({
+  scene,
+  marks: voice.marks,
+  speechStart,
+  speechEnd: speechStart + voice.duration,
+  dur,
+});
+
+/**
+ * The clock a placed scene's timeline resolved on: resolving another timeline
+ * on it (the lab's preview of a dragged cue, a timeline read back from source)
+ * places each cue exactly as `layout()` would.
+ */
+export const sceneClock = (p: Placed): SceneClock =>
+  clockOf(p.spec.id, p.voice, p.speechStart, p.dur);
+
 /** Lay scenes end to end. Pure. */
 export const layout = <S extends Timed>(
   scenes: ReadonlyArray<S>,
@@ -41,13 +62,7 @@ export const layout = <S extends Timed>(
     const tail = spec.tail ?? 0.9;
     const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
     const speechStart = voice.duration > 0 ? lead : 0;
-    const cues = resolveTimeline(spec.timeline, {
-      scene: spec.id,
-      marks: voice.marks,
-      speechStart,
-      speechEnd: speechStart + voice.duration,
-      dur,
-    });
+    const cues = resolveTimeline(spec.timeline, clockOf(spec.id, voice, speechStart, dur));
     const knobs = new Map(Object.entries(spec.knobs ?? {}));
     out.push({ spec, index, start, dur, voice, speechStart, cues, knobs });
     start += dur;

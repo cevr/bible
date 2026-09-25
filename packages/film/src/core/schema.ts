@@ -450,3 +450,71 @@ export const NotePost = Schema.Struct({
 
 /** The lab's `POST /lab/notes/:id/reply` body. */
 export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });
+
+// ---------------------------------------------------------------------------
+// Lab write-back: the lab edits a scene's cues and knobs in its source file.
+
+/** `POST /lab/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
+export const CuePatch = Schema.Struct({
+  offset: Schema.optionalKey(Schema.Finite),
+  dur: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+  ease: Schema.optionalKey(EaseName),
+}).check(
+  Schema.makeFilter((p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, ease'),
+);
+export type CuePatch = typeof CuePatch.Type;
+
+/** `POST /lab/knobs/:scene/:knob`: the knob's new value. */
+export const KnobPatch = Schema.Struct({ value: Knob });
+
+/** A resolved cue, scene-local seconds. */
+export const CueTiming = Schema.Struct({
+  start: Schema.Finite,
+  end: Schema.Finite,
+  dur: Schema.Finite,
+  ease: EaseName,
+});
+export type CueTiming = typeof CueTiming.Type;
+
+/** One finding of `film check --static`, as it prints it. */
+export const CheckLine = Schema.Struct({
+  level: Schema.Literals(['error', 'warning']),
+  tag: Schema.String,
+  message: Schema.String,
+});
+export type CheckLine = typeof CheckLine.Type;
+
+/** `GET /lab/check`. */
+export const CheckReport = Schema.Struct({ findings: Schema.Array(CheckLine) });
+export type CheckReport = typeof CheckReport.Type;
+
+const FieldState = Schema.Literals(['literal', 'absent', 'computed']);
+
+/** `GET /lab/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
+export const SceneSource = Schema.Struct({
+  scene: Schema.String,
+  /** The scene file, relative to the film's folder. */
+  file: Schema.String,
+  cues: Schema.Array(
+    Schema.Struct({ name: Schema.String, offset: FieldState, dur: FieldState, ease: FieldState }),
+  ),
+  knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
+});
+export type SceneSource = typeof SceneSource.Type;
+
+/** What a lab write (or its undo) answers: what the file now declares, and the check after it. */
+export const LabWrite = Schema.Struct({
+  scene: Schema.String,
+  file: Schema.String,
+  /** What changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
+  target: Schema.String,
+  /** The cue's span as the file now declares it, when every field of it is a literal. */
+  span: Schema.optionalKey(Span),
+  /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */
+  resolved: Schema.optionalKey(CueTiming),
+  /** The knob's value as the file now declares it. */
+  knob: Schema.optionalKey(Knob),
+  /** `film check --static`, run fresh after the write. */
+  findings: Schema.Array(CheckLine),
+});
+export type LabWrite = typeof LabWrite.Type;

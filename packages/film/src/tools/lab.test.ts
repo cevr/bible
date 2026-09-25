@@ -7,13 +7,31 @@ import { ConfigProvider, Effect, Encoding, Layer, Path, Schema } from 'effect';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
+import { FilmRepo } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
+import { SceneSources } from './scene-sources.ts';
+import { SceneWriter } from './scene-writer.ts';
+import { StaticCheck } from './static-check.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 const files = () => new Map<string, Uint8Array>();
 
+/** The scene-source routes are not called here: their services only have to exist. */
+const unused = Effect.die('not used by the notes routes');
+const noSource = Layer.mergeAll(
+  Layer.succeed(
+    SceneSources,
+    SceneSources.of({ locate: () => unused, site: () => unused, editable: () => unused }),
+  ),
+  Layer.succeed(
+    SceneWriter,
+    SceneWriter.of({ setCue: () => unused, setKnob: () => unused, undo: unused }),
+  ),
+  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unused })),
+);
+
 const labLayer = (store: Map<string, Uint8Array>) =>
-  NotesStore.layer.pipe(
+  Layer.mergeAll(NotesStore.layer, FilmRepo.layer('/films'), noSource).pipe(
     Layer.provide(ContentStore.layer),
     Layer.provideMerge([
       memoryFileSystem(store),

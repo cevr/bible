@@ -405,7 +405,8 @@ export const textBox = (
  * registry renames (`alpha` registered as `beta`) beside a decoy file that
  * exports a `beta` of its own, a scene whose timeline the registry builds in
  * code, and one with nothing to edit. Every file is as oxfmt leaves it, under
- * the repo's `.oxfmtrc.json`, copied to the root. Returns the films folder.
+ * the repo's `.oxfmtrc.json`, copied to the root; `f/voice.ts` lets FilmRepo
+ * load it. Returns the films folder.
  */
 export const sceneFixture = Effect.fn('test.sceneFixture')(function* (root: string) {
   const fs = yield* FileSystem.FileSystem;
@@ -418,6 +419,7 @@ export const sceneFixture = Effect.fn('test.sceneFixture')(function* (root: stri
   );
   const files = {
     'drawing.ts': 'export const drawing = <T>(d: T): T => d;\n',
+    '../voice.ts': "export const voice = { voiceId: 'v', model: 'eleven_v3', settings: {} };\n",
     'hand.ts': `import { drawing } from './drawing.ts';
 
 const GAP = 0.2;
@@ -451,7 +453,7 @@ export const beta = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw
 import { hand } from './hand.ts';
 
 export const scenes = [
-  { id: 'hand', ...hand },
+  { id: 'hand', say: 'Faith {earns} nothing.', ...hand },
   { id: 'beta', ...alpha },
   { id: 'built', timeline: { x: { scene: 'start' } } },
   { id: 'plain' },

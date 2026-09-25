@@ -19,7 +19,7 @@ import {
   type Statement,
   parseSync,
 } from 'oxc-parser';
-import { EaseName, type Knob, Timeline } from '../core/schema.ts';
+import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
 import { SourceRefused } from './errors.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
@@ -36,13 +36,6 @@ export interface DrawingSite {
   readonly at: number;
   readonly timeline: Slot;
   readonly knobs: Slot;
-}
-
-/** A cue edit: each field given is set, and added when the span has none. */
-export interface CuePatch {
-  readonly offset?: number;
-  readonly dur?: number;
-  readonly ease?: EaseName;
 }
 
 /** What a field holds in the source: a literal the lab may rewrite, nothing yet, or code. */
@@ -570,11 +563,31 @@ const plain = (e: Expression): Option.Option<unknown> => {
   );
 };
 
-const decodeTimeline = Schema.decodeUnknownOption(Timeline);
+const decodeSpan = Schema.decodeUnknownOption(Span);
 
-/** The timeline of the drawing exported as `name`, when every span in it is literal. */
-export const readTimeline = (file: string, source: string, name: string): Option.Option<Timeline> =>
+/**
+ * The spans of the drawing's timeline that are literal through and through,
+ * by cue, as the file declares them now; a computed span (or a timeline that
+ * is not an object literal) is left out.
+ */
+export const readSpans = (
+  file: string,
+  source: string,
+  name: string,
+): Readonly<Record<string, Span>> =>
   Result.match(literalOf(file, source, name, 'timeline'), {
-    onFailure: () => Option.none(),
-    onSuccess: (node) => Option.flatMap(plain(node), decodeTimeline),
+    onFailure: () => ({}),
+    onSuccess: (node) =>
+      Object.fromEntries(
+        literalProperties({ _tag: 'Literal', node }).flatMap((p) =>
+          Option.match(
+            Option.zipWith(
+              keyName(p),
+              Option.flatMap(Option.flatMap(valueOf(p), plain), decodeSpan),
+              (cue, span) => [cue, span] satisfies readonly [string, Span],
+            ),
+            { onNone: () => [], onSome: (entry) => [entry] },
+          ),
+        ),
+      ),
   });

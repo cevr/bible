@@ -12,7 +12,7 @@ import {
   parseModule,
   readCue,
   readKnob,
-  readTimeline,
+  readSpans,
 } from './scene-source.ts';
 
 const FILE = 'scenes/hand.ts';
@@ -130,16 +130,11 @@ describe('scene source', () => {
     ]);
   });
 
-  it('reads a whole timeline only when every span in it is literal', () => {
-    expect(readTimeline(FILE, scene, 'hand')._tag).toBe('None');
-    const plain = scene.replace('offset: GAP * 2', 'offset: 0.4');
-    expect(readTimeline(FILE, plain, 'hand')).toEqual(
-      Option.some({
-        topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
-        shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' },
-        late: { after: 'topple', offset: 0.4 },
-        bare: { scene: 'speech' },
-      }),
-    );
+  it('reads every span that is literal through and through, and leaves out the rest', () => {
+    expect(readSpans(FILE, scene, 'hand')).toEqual({
+      topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+      shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' },
+      bare: { scene: 'speech' },
+    });
   });
 });

@@ -59,6 +59,9 @@ import { NotesStore } from './notes-store.ts';
 import { noteLine, replyLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
+import { SceneSources } from './scene-sources.ts';
+import { SceneWriter } from './scene-writer.ts';
+import { StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
 const film = Argument.String('film').pipe(
@@ -398,7 +401,7 @@ const lab = <E>(labServer: LabServer<E>) =>
     }, Effect.scoped),
   ).pipe(
     Command.withDescription(
-      'Open the film lab: the player in dev mode with notes on frames (Ctrl-C stops it)',
+      'Open the film lab: the player in dev mode with notes on frames, and cues and knobs that write back to the scene files (Ctrl-C stops it)',
     ),
   );
 
@@ -503,6 +506,12 @@ export interface FilmApp<E> {
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /** The player in development mode with the lab's routes, served while `lab` runs. */
   readonly labServer: LabServer<E>;
+  /**
+   * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
+   * runs `check --static` through it in a fresh process after each write, so
+   * the check reads the scene files as the write left them.
+   */
+  readonly self: ReadonlyArray<string>;
 }
 
 /**
@@ -510,11 +519,16 @@ export interface FilmApp<E> {
  * server and the browser start only for `render` and the layout leg of
  * `check`, and stop with them; the lab server runs while `lab` does.
  */
-export const runFilmCli = <E>({ films, previewServer, labServer }: FilmApp<E>): void => {
+export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
+  const Source = SceneWriter.layer.pipe(
+    Layer.provideMerge(SceneSources.layer),
+    Layer.provide([Repo, Store, Platform]),
+  );
+  const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
   const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Store, Tools, Platform)),
+    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Tools, Platform)),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
