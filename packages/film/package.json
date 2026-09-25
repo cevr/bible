@@ -1,0 +1,17 @@
+{
+  "name": "@bible/film",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./core": "./src/core/index.ts",
+    "./canvas": "./src/canvas/index.ts",
+    "./player": "./src/player/index.ts",
+    "./player.css": "./src/player/player.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src",
+    "gate": "bun run typecheck && bun run test"
+  }
+}

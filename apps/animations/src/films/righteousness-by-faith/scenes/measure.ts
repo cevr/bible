@@ -1,9 +1,5 @@
-import { camera } from '../../../engine/camera.ts';
-import { cutout } from '../../../engine/cutout.ts';
-import { ellipse, ellipseShape, quad, stroke } from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, keys, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { camera, cutout, ellipse, ellipseShape, quad, stroke, write } from '@bible/film/canvas';
+import { hash2, clamp, ease, keys, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, planet, quote, star, tablets, wordCard } from '../kit.ts';
 import type { Drawing } from './index.ts';
 

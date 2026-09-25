@@ -1,5 +1,5 @@
-import { ease, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { ease, progress } from '@bible/film/core';
+import { write } from '@bible/film/canvas';
 import { C, F, hand, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';
 

@@ -62,21 +62,33 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `mix --stems` and measure: speech sits near -23 dB mean, the bed ~16 dB under
 it while speaking and ~7 dB under between lines.
 
-## Engine (`src/engine/`)
+## Engine (`@bible/film`)
 
-| Module                 | What it gives a scene                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------- |
-| `film.ts`              | `Frame` (t, dur, boil, mark, spoken, hand), layout, transitions (`fade`, `pan`, `ink`, `cut`), captions |
-| `ink.ts`               | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`   |
-| `cutout.ts`            | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                             |
-| `figure.ts`            | a poseable cut-paper person (`drawFigure`)                                                              |
-| `type.ts`              | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                 |
-| `paper.ts`             | the sheet under everything and the grain over everything                                                |
-| `camera.ts`            | pan/zoom over a scene's world                                                                           |
-| `time.ts`, `random.ts` | easing, `progress`, `keys`, `envelope`; seeded hash and noise                                           |
-| `storyboard.ts`        | placeholder card for a beat with no drawing yet                                                         |
-| `sound.ts`             | music acts → composition plan, effect cues → film times, asset hashes (pure; read by `score`/`mix`)     |
+The engine lives in [`packages/film`](../../packages/film); this app is its
+first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
+with the registry in `src/films/index.ts`. Scenes import from three entry
+points:
+
+| Entry point          | Module          | What it gives a scene                                                                                         |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines` |
+|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                |
+|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                        |
+|                      | `random.ts`     | seeded hash and noise                                                                                         |
+|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                 |
+| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, spoken, hand), `SceneSpec`, `createFilm`, the transition compositor, captions    |
+|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`         |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                   |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                    |
+|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                       |
+|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                      |
+|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                 |
+|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                               |
+| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                      |
+
+`core` is pure and DOM-free, so the scripts and tests read it without a
+browser.
 
 Rules that keep renders deterministic: never call `Math.random` (use
-`f.hand(key)` seeds and `random.ts`), and never keep state between frames —
-compute everything from `f.t`.
+`f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
+state between frames — compute everything from `f.t`.

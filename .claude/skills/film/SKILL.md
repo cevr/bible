@@ -11,7 +11,7 @@ description: >
 
 # Film
 
-A film lives in `apps/animations/src/films/<film>/`. The engine API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show.
+A film lives in `apps/animations/src/films/<film>/`. The engine is the `@bible/film` package (`packages/film`). Its API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show.
 
 Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (the CLI's login sits in the Keychain; Chromium sits in `~/Library/Caches/ms-playwright`).
 
@@ -23,7 +23,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 3. **Voice.** `bun run narrate <film>` records stale beats and transcribes each take back. A take over 8% word error prints `MISMATCH`: re-record it with `--only <id>`. Done when every beat is recorded with no mismatch.
 
-4. **Scenes.** One `Drawing` per beat in `scenes/`. Pin every motion to a mark (`f.mark`, `f.spoken`), never to a hand-timed second. For many scenes, fork agents in parallel: each gets its own `scenes/group-N.ts` registry and `props-N.ts`, may not edit `src/engine/`, `kit.ts` or `scenes/index.ts`, and reports engine bugs rather than working around them. Done when no beat plays as a storyboard card.
+4. **Scenes.** One `Drawing` per beat in `scenes/`. Pin every motion to a mark (`f.mark`, `f.spoken`), never to a hand-timed second. For many scenes, fork agents in parallel: each gets its own `scenes/group-N.ts` registry and `props-N.ts`, may not edit `packages/film/` (the engine), `kit.ts` or `scenes/index.ts`, and reports engine bugs rather than working around them. Done when no beat plays as a storyboard card.
 
 5. **Review.** Per scene: `bun scripts/cues.ts <film> <scene>`, then `bun run render <film> --scene <id> --contact 1.5 --tag <tag>`, then full-size `--stills <t>` at the marks. Read the images. The defects this loop finds are **collisions**: text over text, a prop crossing a quote, text leaving the frame as the camera pushes in, anything in the caption band (y > 960) or the cite slot (top left). Done when every scene's contact sheet and its mark stills are clean.
 

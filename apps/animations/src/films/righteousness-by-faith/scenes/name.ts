@@ -1,9 +1,16 @@
-import { camera } from '../../../engine/camera.ts';
-import { at, cutout } from '../../../engine/cutout.ts';
-import { robeShape } from '../../../engine/figure.ts';
-import { type Pt, ellipseShape, line, quad, stroke } from '../../../engine/ink.ts';
-import { clamp, ease, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import {
+  camera,
+  at,
+  cutout,
+  robeShape,
+  type Pt,
+  ellipseShape,
+  line,
+  quad,
+  stroke,
+  write,
+} from '@bible/film/canvas';
+import { clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { changing, glow } from './props-3.ts';

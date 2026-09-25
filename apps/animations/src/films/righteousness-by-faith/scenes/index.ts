@@ -3,8 +3,7 @@
 // Imports nothing that touches the DOM at module load: the narrate script
 // reads this to lay out the audio track.
 
-import type { SceneSpec } from '../../../engine/film.ts';
-import { storyboard } from '../../../engine/storyboard.ts';
+import { type SceneSpec, storyboard } from '@bible/film/canvas';
 import { script } from '../script.ts';
 import { measure } from './measure.ts';
 import { question } from './question.ts';

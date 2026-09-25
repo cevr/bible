@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { layout } from './film.ts';
+import { layout } from './layout.ts';
 import { estimate, hashText, parse, voiceFor, wordsFromAlignment } from './narration.ts';
 
 describe('narration', () => {

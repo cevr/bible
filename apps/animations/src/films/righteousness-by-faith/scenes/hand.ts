@@ -1,8 +1,5 @@
-import { at, cutout } from '../../../engine/cutout.ts';
-import { ellipseShape, line, quad, rectShape, stroke } from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, envelope, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { at, cutout, ellipseShape, line, quad, rectShape, stroke, write } from '@bible/film/canvas';
+import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { coin, gift, openHand } from './props-2.ts';

@@ -1,9 +1,14 @@
-import { at, cutout } from '../../../engine/cutout.ts';
-import type { Frame } from '../../../engine/film.ts';
-import { type Pt, line, rectShape, stroke } from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, envelope, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import {
+  at,
+  cutout,
+  type Frame,
+  type Pt,
+  line,
+  rectShape,
+  stroke,
+  write,
+} from '@bible/film/canvas';
+import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { balance, christ, person } from './props-2.ts';

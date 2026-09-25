@@ -3,7 +3,7 @@
 // scene's mark, so re-recording a line moves its sounds with it. Pure — the
 // score and mix scripts read it without a DOM.
 
-import type { Placed } from './film.ts';
+import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
 
 /** A moment on the film clock: a scene, then a mark in its narration, then an offset in seconds. */

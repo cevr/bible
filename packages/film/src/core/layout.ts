@@ -1,0 +1,77 @@
+// The film clock, without the canvas: scenes laid end to end, each sized to its
+// voice. Pure — the player, the renderer and the Bun scripts all read it, and
+// it names no drawing type, so it runs where there is no DOM.
+
+import { type SceneVoice, type Timings, type Word, voiceFor } from './narration.ts';
+
+export type Transition =
+  | { readonly kind: 'cut' }
+  | { readonly kind: 'fade'; readonly dur: number }
+  /** Slide across one long sheet, like a camera panning a mural. */
+  | { readonly kind: 'pan'; readonly dur: number; readonly dir?: 1 | -1 }
+  /** A broad brush stroke sweeps across and leaves the new scene behind it. */
+  | { readonly kind: 'ink'; readonly dur: number; readonly color?: string };
+
+/** The part of a scene the clock reads. */
+export interface Timed {
+  readonly id: string;
+  /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
+  readonly say?: string;
+  /** Silence before the voice starts. */
+  readonly lead?: number;
+  /** Silence after the voice ends. */
+  readonly tail?: number;
+  /** Minimum scene length. */
+  readonly min?: number;
+  /** How this scene arrives from the previous one. */
+  readonly enter?: Transition;
+}
+
+export interface Placed<S extends Timed = Timed> {
+  readonly spec: S;
+  readonly index: number;
+  readonly start: number;
+  readonly dur: number;
+  readonly voice: SceneVoice;
+  /** Scene-local time the voice starts. */
+  readonly speechStart: number;
+}
+
+export const transitionDur = (t: Transition | undefined) =>
+  t === undefined || t.kind === 'cut' ? 0 : t.dur;
+
+/** Lay scenes end to end. Pure. */
+export const layout = <S extends Timed>(
+  scenes: ReadonlyArray<S>,
+  timings: Timings | undefined,
+): Placed<S>[] => {
+  const out: Placed<S>[] = [];
+  let start = 0;
+  const ids = new Set<string>();
+  scenes.forEach((spec, index) => {
+    if (ids.has(spec.id)) throw new Error(`duplicate scene id ${spec.id}`);
+    ids.add(spec.id);
+    const voice = voiceFor(spec.id, spec.say ?? '', timings);
+    const lead = spec.lead ?? Math.max(0.5, transitionDur(spec.enter) * 0.7);
+    const tail = spec.tail ?? 0.9;
+    const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
+    out.push({ spec, index, start, dur, voice, speechStart: voice.duration > 0 ? lead : 0 });
+    start += dur;
+  });
+  return out;
+};
+
+/** Group words into short caption lines, breaking at punctuation. */
+export const captionLines = (words: ReadonlyArray<Word>, max = 7): Word[][] => {
+  const out: Word[][] = [];
+  let cur: Word[] = [];
+  for (const w of words) {
+    cur.push(w);
+    if (cur.length >= max || /[.!?;:,—]["”’)]*$/.test(w.text)) {
+      out.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length > 0) out.push(cur);
+  return out;
+};

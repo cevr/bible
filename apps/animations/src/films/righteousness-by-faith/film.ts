@@ -1,7 +1,7 @@
 // Righteousness by Faith — the film.
 
-import { createFilm } from '../../engine/film.ts';
-import type { Timings } from '../../engine/narration.ts';
+import { createFilm } from '@bible/film/canvas';
+import type { Timings } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
 

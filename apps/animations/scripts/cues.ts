@@ -2,8 +2,8 @@
 //   bun scripts/cues.ts <film> [scene-id]
 
 import { join } from 'node:path';
-import { layout, type SceneSpec } from '../src/engine/film.ts';
-import type { Timings } from '../src/engine/narration.ts';
+import { layout, type Timings } from '@bible/film/core';
+import type { SceneSpec } from '@bible/film/canvas';
 
 const [film, only] = Bun.argv.slice(2);
 if (film === undefined) throw new Error('usage: bun scripts/cues.ts <film> [scene]');

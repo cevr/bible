@@ -2,7 +2,7 @@
 // once from a seed; grain cycles through a few tiles on the boil tick so the
 // surface feels alive without flickering at the full frame rate.
 
-import { fbm, hash2, rng } from './random.ts';
+import { fbm, hash2, rng } from '../core/random.ts';
 
 export interface PaperStyle {
   base: string;

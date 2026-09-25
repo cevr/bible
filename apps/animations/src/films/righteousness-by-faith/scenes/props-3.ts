@@ -1,9 +1,12 @@
 // Props for the closing beats: the wilderness camp, serpents, the bronze
 // serpent, the heart, flowers, the 1888 newspaper and stamp, and the angel.
 
-import { at, cutout } from '../../../engine/cutout.ts';
-import { type Look, type Pose, drawFigure } from '../../../engine/figure.ts';
 import {
+  at,
+  cutout,
+  type Look,
+  type Pose,
+  drawFigure,
   type Hand,
   type Pt,
   ellipseShape,
@@ -12,10 +15,9 @@ import {
   rectShape,
   spline,
   stroke,
-} from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+  write,
+} from '@bible/film/canvas';
+import { hash2, clamp } from '@bible/film/core';
 import { C, F, hand } from '../kit.ts';
 
 const sub = (h: Hand, k: number): Hand => ({ boil: h.boil, seed: h.seed + k });

@@ -10,8 +10,10 @@
     "score": "bun scripts/score.ts",
     "mix": "bun scripts/mix.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
-    "gate": "bun run typecheck && bun run test"
+    "gate": "bun run typecheck"
+  },
+  "dependencies": {
+    "@bible/film": "workspace:*"
   },
   "devDependencies": {
     "playwright-core": "1.63.0"

@@ -1,7 +1,5 @@
-import { at } from '../../../engine/cutout.ts';
-import type { Look } from '../../../engine/figure.ts';
-import { clamp, ease, envelope, keys, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { at, type Look, write } from '@bible/film/canvas';
+import { clamp, ease, envelope, keys, progress } from '@bible/film/core';
 import { C, cite, hand, quote } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { brazen, changing, glow, snake, wilderness } from './props-3.ts';

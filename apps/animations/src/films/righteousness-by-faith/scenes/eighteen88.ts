@@ -1,8 +1,5 @@
-import { at } from '../../../engine/cutout.ts';
-import { drawFigure } from '../../../engine/figure.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { at, drawFigure, write } from '@bible/film/canvas';
+import { hash2, clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, quote, sheet, star, tablets } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { angel, glow, newspaper, silhouette, stamp } from './props-3.ts';

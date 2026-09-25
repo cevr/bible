@@ -1,9 +1,5 @@
-import { camera } from '../../../engine/camera.ts';
-import { at } from '../../../engine/cutout.ts';
-import { drawFigure } from '../../../engine/figure.ts';
-import { type Pt, quad, stroke } from '../../../engine/ink.ts';
-import { clamp, ease, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import { camera, at, drawFigure, type Pt, quad, stroke, write } from '@bible/film/canvas';
+import { clamp, ease, progress } from '@bible/film/core';
 import { C, book, cite, hand, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';
 

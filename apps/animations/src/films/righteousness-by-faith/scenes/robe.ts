@@ -1,7 +1,8 @@
-import { at, cutout } from '../../../engine/cutout.ts';
-import type { Frame } from '../../../engine/film.ts';
-import { robeShape } from '../../../engine/figure.ts';
 import {
+  at,
+  cutout,
+  type Frame,
+  robeShape,
   ellipse,
   ellipseShape,
   line,
@@ -9,10 +10,9 @@ import {
   rectShape,
   spline,
   stroke,
-} from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, envelope, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+  write,
+} from '@bible/film/canvas';
+import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { LINEN, blowRags, loom, mix, person, stains } from './props-2.ts';

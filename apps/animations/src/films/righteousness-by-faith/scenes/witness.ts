@@ -1,8 +1,14 @@
-import { at, cutout } from '../../../engine/cutout.ts';
-import { drawFigure } from '../../../engine/figure.ts';
-import { type Pt, line, rectShape, stroke } from '../../../engine/ink.ts';
-import { clamp, ease, envelope, lerp, progress } from '../../../engine/time.ts';
-import { write } from '../../../engine/type.ts';
+import {
+  at,
+  cutout,
+  drawFigure,
+  type Pt,
+  line,
+  rectShape,
+  stroke,
+  write,
+} from '@bible/film/canvas';
+import { clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, tablets } from '../kit.ts';
 import type { Drawing } from './index.ts';
 import { circleMark, note } from './props-1.ts';

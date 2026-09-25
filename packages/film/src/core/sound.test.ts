@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { layout } from './film.ts';
+import { layout } from './layout.ts';
 import { type Music, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 const draw = () => {};

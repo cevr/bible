@@ -2,8 +2,8 @@
 // wobble with noise keyed to `boil` — a counter that ticks at 12 fps, so lines
 // "boil" like hand-inked animation on twos while motion stays smooth at 30 fps.
 
-import { hash2, noise1 } from './random.ts';
-import { clamp, lerp } from './time.ts';
+import { hash2, noise1 } from '../core/random.ts';
+import { clamp, lerp } from '../core/time.ts';
 
 export type Pt = readonly [number, number];
 export type Path = ReadonlyArray<Pt>;

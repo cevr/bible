@@ -9,9 +9,9 @@
 
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type SceneSpec, layout } from '../src/engine/film.ts';
-import type { Timings } from '../src/engine/narration.ts';
 import {
+  layout,
+  type Timings,
   type Sound,
   type SoundManifest,
   cueTime,
@@ -19,7 +19,8 @@ import {
   filmEnd,
   musicKey,
   musicPlan,
-} from '../src/engine/sound.ts';
+} from '@bible/film/core';
+import type { SceneSpec } from '@bible/film/canvas';
 
 export const filmDir = (film: string) => join(import.meta.dir, '..', 'src', 'films', film);
 

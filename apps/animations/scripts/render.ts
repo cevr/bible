@@ -11,10 +11,10 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { type Browser, chromium } from 'playwright-core';
-import type { ExportHandle } from '../src/player/main.ts';
+import type { ExportHandle } from '@bible/film/player';
+import { layout, type Timings } from '@bible/film/core';
+import type { SceneSpec } from '@bible/film/canvas';
 import { serve } from '../server.ts';
-import { layout, type SceneSpec } from '../src/engine/film.ts';
-import type { Timings } from '../src/engine/narration.ts';
 
 const { values, positionals } = parseArgs({
   args: Bun.argv.slice(2),

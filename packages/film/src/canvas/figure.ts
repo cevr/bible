@@ -4,7 +4,7 @@
 
 import { type CutoutStyle, cutout } from './cutout.ts';
 import { type Hand, type Pt, ellipseShape, quad, spline, stroke } from './ink.ts';
-import { hash2 } from './random.ts';
+import { hash2 } from '../core/random.ts';
 
 export interface Pose {
   /** Whole-body lean, radians (+ leans right). */

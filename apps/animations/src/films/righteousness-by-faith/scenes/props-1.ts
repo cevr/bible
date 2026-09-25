@@ -1,7 +1,8 @@
 // Props for the problem-and-word scenes (rags, witness, void, centurion).
 
-import { at, cutout } from '../../../engine/cutout.ts';
 import {
+  at,
+  cutout,
   type Hand,
   type Pt,
   ellipseShape,
@@ -10,8 +11,8 @@ import {
   rectShape,
   spline,
   stroke,
-} from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
+} from '@bible/film/canvas';
+import { hash2 } from '@bible/film/core';
 import { C } from '../kit.ts';
 
 export const SKY = '#8fb8c9';

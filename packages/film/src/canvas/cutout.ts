@@ -3,7 +3,7 @@
 // shadow where it lifts off the sheet beneath.
 
 import { type Hand, type Path, type Pt, resample } from './ink.ts';
-import { hash2, noise1, rng } from './random.ts';
+import { hash2, noise1, rng } from '../core/random.ts';
 
 export interface CutoutStyle {
   color: string;

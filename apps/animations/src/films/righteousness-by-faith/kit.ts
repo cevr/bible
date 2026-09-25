@@ -1,9 +1,10 @@
 // The film's recurring props and type treatments. Scenes compose these so the
 // world stays one world: the same sun, the same tablets, the same tags.
 
-import { at, cutout } from '../../engine/cutout.ts';
-import type { Frame } from '../../engine/film.ts';
 import {
+  at,
+  cutout,
+  type Frame,
   type Hand,
   type Pt,
   ellipseShape,
@@ -12,10 +13,12 @@ import {
   rectShape,
   spline,
   stroke,
-} from '../../engine/ink.ts';
-import { hash2 } from '../../engine/random.ts';
-import { clamp, ease, envelope, progress } from '../../engine/time.ts';
-import { type TextStyle, block, measure, write } from '../../engine/type.ts';
+  type TextStyle,
+  block,
+  measure,
+  write,
+} from '@bible/film/canvas';
+import { hash2, clamp, ease, envelope, progress } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;

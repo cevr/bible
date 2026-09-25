@@ -3,8 +3,8 @@
 // same hand-made world as the drawings.
 
 import type { Hand } from './ink.ts';
-import { hash2, noise1 } from './random.ts';
-import { clamp, ease } from './time.ts';
+import { hash2, noise1 } from '../core/random.ts';
+import { clamp, ease } from '../core/time.ts';
 
 export interface TextStyle {
   family: string;

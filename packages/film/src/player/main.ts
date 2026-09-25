@@ -1,8 +1,8 @@
-// The browser entry. Preview mode is a scrubbable player; export mode
-// (`?export`) hides the chrome and hands `window.__film` to the renderer.
+// The browser player. An app's entry calls `mountPlayer(films)` with its film
+// registry. Preview mode is a scrubbable player; export mode (`?export`) hides
+// the chrome and hands `window.__film` to the renderer.
 
-import type { Film } from '../engine/film.ts';
-import { films } from '../films/index.ts';
+import type { Film } from '../canvas/film.ts';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -34,58 +34,71 @@ declare global {
   }
 }
 
-const params = new URLSearchParams(location.search);
-const name = params.get('film') ?? Object.keys(films)[0] ?? '';
-const exporting = params.has('export');
-const captions = { on: params.get('captions') !== '0' };
+/** Mount the player for `films` into the page, choosing a film by `?film=<name>`. */
+export const mountPlayer = (films: Record<string, () => Promise<Film>>): void => {
+  const params = new URLSearchParams(location.search);
+  const name = params.get('film') ?? Object.keys(films)[0] ?? '';
+  const exporting = params.has('export');
+  const captions = { on: params.get('captions') !== '0' };
 
-const main = async () => {
-  const load = films[name];
-  if (load === undefined)
-    throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
-  await Promise.all([
-    ...FONTS.map((f) => document.fonts.load(f, 'Aaα')),
-    document.fonts.load('400 40px "Frank Ruhl Libre"', 'א'),
-  ]);
-  const film = await load();
-  document.title = film.title;
+  const main = async () => {
+    const load = films[name];
+    if (load === undefined)
+      throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
+    await Promise.all([
+      ...FONTS.map((f) => document.fonts.load(f, 'Aaα')),
+      document.fonts.load('400 40px "Frank Ruhl Libre"', 'א'),
+    ]);
+    const film = await load();
+    document.title = film.title;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = film.width;
-  canvas.height = film.height;
-  const ctx = canvas.getContext('2d');
-  if (ctx === null) throw new Error('2d context unavailable');
-  const stage = document.createElement('div');
-  stage.className = 'stage';
-  stage.append(canvas);
-  document.body.append(stage);
+    const canvas = document.createElement('canvas');
+    canvas.width = film.width;
+    canvas.height = film.height;
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) throw new Error('2d context unavailable');
+    const stage = document.createElement('div');
+    stage.className = 'stage';
+    stage.append(canvas);
+    document.body.append(stage);
 
-  if (exporting) {
-    document.body.classList.add('export');
-    window.__film = {
-      width: film.width,
-      height: film.height,
-      fps: film.fps,
-      duration: film.duration,
-      frames: Math.ceil(film.duration * film.fps),
-      audio: film.audio,
-      frame: async (i, type = 'image/png') => {
-        film.render(ctx, i / film.fps, { captions: captions.on });
-        const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
-        if (blob === null) throw new Error('toBlob failed');
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        let bin = '';
-        for (let k = 0; k < bytes.length; k += 0x8000)
-          bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-        return btoa(bin);
-      },
-    };
-    return;
-  }
-  preview(film, canvas, ctx);
+    if (exporting) {
+      document.body.classList.add('export');
+      window.__film = {
+        width: film.width,
+        height: film.height,
+        fps: film.fps,
+        duration: film.duration,
+        frames: Math.ceil(film.duration * film.fps),
+        audio: film.audio,
+        frame: async (i, type = 'image/png') => {
+          film.render(ctx, i / film.fps, { captions: captions.on });
+          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
+          if (blob === null) throw new Error('toBlob failed');
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          let bin = '';
+          for (let k = 0; k < bytes.length; k += 0x8000)
+            bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+          return btoa(bin);
+        },
+      };
+      return;
+    }
+    preview(film, canvas, ctx, captions);
+  };
+
+  main().catch((e: unknown) => {
+    document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
+    throw e;
+  });
 };
 
-const preview = (film: Film, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+const preview = (
+  film: Film,
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  captions: { on: boolean },
+) => {
   const bar = document.createElement('div');
   bar.className = 'bar';
   bar.innerHTML = `
@@ -208,8 +221,3 @@ const preview = (film: Film, canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   });
   draw();
 };
-
-main().catch((e: unknown) => {
-  document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
-  throw e;
-});

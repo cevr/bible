@@ -3,10 +3,11 @@
 // any instant T — the same function serves the preview player and the export.
 
 import type { Hand } from './ink.ts';
-import { type SceneVoice, type Timings, type Word, voiceFor } from './narration.ts';
+import { type Placed, type Timed, captionLines, layout, transitionDur } from '../core/layout.ts';
+import type { Timings, Word } from '../core/narration.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
-import { seedOf } from './random.ts';
-import { clamp, ease } from './time.ts';
+import { seedOf } from '../core/random.ts';
+import { clamp, ease } from '../core/time.ts';
 
 export const BOIL_FPS = 12;
 
@@ -36,62 +37,9 @@ export interface Frame {
   hand(key: string | number): Hand;
 }
 
-export type Transition =
-  | { readonly kind: 'cut' }
-  | { readonly kind: 'fade'; readonly dur: number }
-  /** Slide across one long sheet, like a camera panning a mural. */
-  | { readonly kind: 'pan'; readonly dur: number; readonly dir?: 1 | -1 }
-  /** A broad brush stroke sweeps across and leaves the new scene behind it. */
-  | { readonly kind: 'ink'; readonly dur: number; readonly color?: string };
-
-export interface SceneSpec {
-  readonly id: string;
-  /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
-  readonly say?: string;
-  /** Silence before the voice starts. */
-  readonly lead?: number;
-  /** Silence after the voice ends. */
-  readonly tail?: number;
-  /** Minimum scene length. */
-  readonly min?: number;
-  /** How this scene arrives from the previous one. */
-  readonly enter?: Transition;
+export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
 }
-
-export interface Placed {
-  readonly spec: SceneSpec;
-  readonly index: number;
-  readonly start: number;
-  readonly dur: number;
-  readonly voice: SceneVoice;
-  /** Scene-local time the voice starts. */
-  readonly speechStart: number;
-}
-
-const transitionDur = (t: Transition | undefined) =>
-  t === undefined || t.kind === 'cut' ? 0 : t.dur;
-
-/** Lay scenes end to end. Pure. */
-export const layout = (
-  scenes: ReadonlyArray<SceneSpec>,
-  timings: Timings | undefined,
-): Placed[] => {
-  const out: Placed[] = [];
-  let start = 0;
-  const ids = new Set<string>();
-  scenes.forEach((spec, index) => {
-    if (ids.has(spec.id)) throw new Error(`duplicate scene id ${spec.id}`);
-    ids.add(spec.id);
-    const voice = voiceFor(spec.id, spec.say ?? '', timings);
-    const lead = spec.lead ?? Math.max(0.5, transitionDur(spec.enter) * 0.7);
-    const tail = spec.tail ?? 0.9;
-    const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
-    out.push({ spec, index, start, dur, voice, speechStart: voice.duration > 0 ? lead : 0 });
-    start += dur;
-  });
-  return out;
-};
 
 export interface CaptionStyle {
   readonly font: string;
@@ -123,10 +71,10 @@ export interface Film {
   readonly height: number;
   readonly fps: number;
   readonly duration: number;
-  readonly placed: ReadonlyArray<Placed>;
+  readonly placed: ReadonlyArray<Placed<SceneSpec>>;
   readonly audio: string | undefined;
   readonly allRecorded: boolean;
-  sceneAt(T: number): Placed;
+  sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
 }
 
@@ -148,7 +96,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = placed.every((p) => p.voice.duration === 0 || p.voice.recorded);
 
-  // Built lazily: `layout` above must stay usable where there is no DOM.
+  // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:
     | {
         paper: HTMLCanvasElement;
@@ -165,7 +113,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       b: offscreen(width, height),
     });
 
-  const sceneAt = (T: number): Placed => {
+  const sceneAt = (T: number): Placed<SceneSpec> => {
     for (let i = placed.length - 1; i >= 0; i--) {
       const p = placed[i];
       if (p !== undefined && T >= p.start) return p;
@@ -186,7 +134,12 @@ export const createFilm = (spec: FilmSpec): Film => {
     ]),
   );
 
-  const drawScene = (ctx: CanvasRenderingContext2D, p: Placed, T: number, boil: number) => {
+  const drawScene = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+  ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
     const frame: Frame = {
@@ -225,7 +178,12 @@ export const createFilm = (spec: FilmSpec): Film => {
   };
 
   /** Paper plus one scene, into a layer. */
-  const layer = (target: ReturnType<typeof offscreen>, p: Placed, T: number, boil: number) => {
+  const layer = (
+    target: ReturnType<typeof offscreen>,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+  ) => {
     const { paper } = getAssets();
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
@@ -331,24 +289,9 @@ const inkWipe = (
   ctx.restore();
 };
 
-/** Group words into short caption lines, breaking at punctuation. */
-export const captionLines = (words: ReadonlyArray<Word>, max = 7): Word[][] => {
-  const out: Word[][] = [];
-  let cur: Word[] = [];
-  for (const w of words) {
-    cur.push(w);
-    if (cur.length >= max || /[.!?;:,—]["”’)]*$/.test(w.text)) {
-      out.push(cur);
-      cur = [];
-    }
-  }
-  if (cur.length > 0) out.push(cur);
-  return out;
-};
-
 const caption = (
   ctx: CanvasRenderingContext2D,
-  p: Placed,
+  p: Placed<SceneSpec>,
   local: number,
   w: number,
   h: number,

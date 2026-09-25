@@ -15,16 +15,17 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { type SceneSpec, layout } from '../src/engine/film.ts';
-import type { Timings } from '../src/engine/narration.ts';
 import {
+  layout,
+  type Timings,
   type Asset,
   effectKey,
   filmEnd,
   musicKey,
   musicPlan,
   type SoundManifest,
-} from '../src/engine/sound.ts';
+} from '@bible/film/core';
+import type { SceneSpec } from '@bible/film/canvas';
 import { exec, filmDir, loadSound, mixFilm } from './mix.ts';
 
 const { values, positionals } = parseArgs({

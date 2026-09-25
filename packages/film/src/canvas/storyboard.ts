@@ -5,7 +5,7 @@ import type { SceneSpec } from './film.ts';
 import { rectShape } from './ink.ts';
 import { cutout } from './cutout.ts';
 import { block, write } from './type.ts';
-import { progress } from './time.ts';
+import { progress } from '../core/time.ts';
 
 export const storyboard = (id: string, picture: string): Omit<SceneSpec, 'id' | 'say'> => ({
   enter: { kind: 'fade', dur: 0.4 },

@@ -180,15 +180,15 @@
       }
     },
     {
-      // The animation engine and its Bun tools (apps/animations). A film frame
-      // is a pure function of time drawn into a Canvas 2D context thousands of
-      // times per render; the engine is plain arithmetic over numbers and
-      // paths, with no services, errors to model, or resources to scope. The
-      // scripts are one-shot entry points that drive Chromium, ffmpeg and the
-      // ElevenLabs CLI, and render frames strictly in order. Effect's rules
-      // guard application code; here they would only add a runtime to a
-      // hot drawing loop.
-      "files": ["**/apps/animations/**/*.ts"],
+      // The film engine (packages/film) and the films and Bun tools that use it
+      // (apps/animations). A film frame is a pure function of time drawn into a
+      // Canvas 2D context thousands of times per render; the engine is plain
+      // arithmetic over numbers and paths, with no services, errors to model,
+      // or resources to scope. The app's scripts are one-shot entry points that
+      // drive Chromium, ffmpeg and the ElevenLabs CLI, and render frames
+      // strictly in order. Effect's rules guard application code; here they
+      // would only add a runtime to a hot drawing loop.
+      "files": ["**/apps/animations/**/*.ts", "**/packages/film/**/*.ts"],
       "rules": {
         "no-await-in-loop": "off",
         "effect/noAs": "off",

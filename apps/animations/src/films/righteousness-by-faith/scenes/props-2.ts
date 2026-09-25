@@ -1,9 +1,13 @@
 // Props for the exchange half of the film: the Christ figure, the balance,
 // the open hand, the torn rags, the loom.
 
-import { at, cutout } from '../../../engine/cutout.ts';
-import { type Look, type Pose, drawFigure, robeShape } from '../../../engine/figure.ts';
 import {
+  at,
+  cutout,
+  type Look,
+  type Pose,
+  drawFigure,
+  robeShape,
   type Hand,
   type Pt,
   ellipseShape,
@@ -12,9 +16,8 @@ import {
   rectShape,
   spline,
   stroke,
-} from '../../../engine/ink.ts';
-import { hash2 } from '../../../engine/random.ts';
-import { clamp, ease, lerp } from '../../../engine/time.ts';
+} from '@bible/film/canvas';
+import { hash2, clamp, ease, lerp } from '@bible/film/core';
 import { C } from '../kit.ts';
 
 /** Blend two #rrggbb colours. */

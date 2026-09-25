@@ -13,14 +13,14 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import type { SceneSpec } from '../src/engine/film.ts';
+import type { SceneSpec } from '@bible/film/canvas';
 import {
   type Timings,
   type VoiceTiming,
   hashText,
   parse,
   wordsFromAlignment,
-} from '../src/engine/narration.ts';
+} from '@bible/film/core';
 import { exec, filmDir, mixFilm } from './mix.ts';
 
 const { values, positionals } = parseArgs({

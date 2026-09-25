@@ -3,7 +3,7 @@
 // prompt or an act regenerates that asset on the next `bun run score`; gains
 // only need a remix.
 
-import type { Sound } from '../../engine/sound.ts';
+import type { Sound } from '@bible/film/core';
 
 /** Scenes that open on a new sheet get a page sound. */
 const PAGES = ['measure', 'witness', 'centurion', 'exchange', 'hand', 'within', 'name'];
