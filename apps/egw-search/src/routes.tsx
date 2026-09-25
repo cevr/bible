@@ -25,9 +25,10 @@
 import type { Source } from 'effect-frame/actor/client';
 import { Link, NavigationBehavior, Route, link } from 'effect-frame/router';
 import { View } from 'effect-frame/view';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 
 import { SearchPage } from './app.js';
+import { search } from './segments.js';
 
 /**
  * **Preserve.** Every move on this route is workspace state on the leaf the
@@ -37,11 +38,6 @@ import { SearchPage } from './app.js';
  * (its `Dom.scrollIntoView` and `Dom.focus` in `./app.tsx`); the router has
  * no landing for a node that appears inside a stayed leaf.
  */
-export const search = Route.segment('search', {
-  path: '/',
-  search: Route.search(Schema.Struct({})),
-});
-
 export const SearchRoute = Route.streamed(
   'search',
   Route.leaf(search, SearchPage, { landing: NavigationBehavior.Preserve }),
