@@ -1,16 +1,18 @@
-import { at, drawFigure, write } from '@bible/film/canvas';
+import { at, drawing, drawFigure, write } from '@bible/film/canvas';
 import { hash2, clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, quote, sheet, star, tablets } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { angel, glow, newspaper, silhouette, stamp } from './props-3.ts';
 
 /** Minneapolis, 1888: two editors, a most precious message, the third angel. */
-export const eighteen88: Drawing = {
+export const eighteen88 = drawing({
   enter: { kind: 'ink', dur: 0.9, color: C.clay },
   lead: 0.7,
+  timeline: {
+    /** The year, stamped big onto the page. */
+    yearStamp: { mark: 'year', offset: -0.2, dur: 0.6 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
-    const year = f.mark('year');
     const names = f.mark('names');
     const lost = f.mark('lost');
     const precious = f.mark('precious');
@@ -40,7 +42,7 @@ export const eighteen88: Drawing = {
         );
 
         // The year, stamped big; it steps back when the portraits arrive.
-        const yp = progress(t, year - 0.2, 0.6, ease.outBack);
+        const yp = f.at('yearStamp', ease.outBack);
         const shrink = progress(t, names - 0.3, 0.9, ease.inOutCubic);
         if (yp > 0)
           write(
@@ -161,4 +163,4 @@ export const eighteen88: Drawing = {
     });
     cite(f, 'Ellen G. White, Review and Herald, April 1, 1890', verity - 0.2, f.dur);
   },
-};
+});

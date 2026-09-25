@@ -1,6 +1,7 @@
 import {
   camera,
   at,
+  drawing,
   cutout,
   robeShape,
   type Pt,
@@ -12,16 +13,19 @@ import {
 } from '@bible/film/canvas';
 import { clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, sun } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { changing, glow } from './props-3.ts';
 
 /**
  * The opening page again — same person, same question, same far light — now
  * answered: the robe received, the thread reaching all the way.
  */
-export const name: Drawing = {
+export const name = drawing({
   enter: { kind: 'fade', dur: 1 },
   tail: 2.8,
+  timeline: {
+    /** The crown of the coming King rises in its glow. */
+    crown: { mark: 'jer', offset: 0.4, dur: 0.8 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const not = f.mark('not');
@@ -141,7 +145,7 @@ export const name: Drawing = {
       );
 
       // The coming King, and His name.
-      const crown = progress(t, jer + 0.4, 0.8, ease.outBack);
+      const crown = f.at('crown', ease.outBack);
       if (crown > 0) {
         at(ctx, { x: 1230, y: lerp(580, 620, crown), scale: crown }, () => {
           glow(ctx, 0, 0, 160, 0.6, '230, 179, 71');
@@ -187,4 +191,4 @@ export const name: Drawing = {
     });
     cite(f, 'Jeremiah 23:6', jer - 0.1, f.dur);
   },
-};
+});

@@ -1,12 +1,15 @@
-import { at, cutout, ellipseShape, rectShape, write } from '@bible/film/canvas';
+import { at, drawing, cutout, ellipseShape, rectShape, write } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, quote, star, sun } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { HILL, HILL_DARK, SEA, SKY, flower, hills, tree } from './props-1.ts';
 
 /** Where righteousness comes from: back to the beginning, where the word made what it said. */
-export const voidScene: Drawing = {
+export const voidScene = drawing({
   enter: { kind: 'ink', dur: 0.9, color: C.night },
+  timeline: {
+    /** The written word bursts into the sun. */
+    burst: { mark: 'spake', offset: -0.1, dur: 0.6 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const back = f.mark('back');
@@ -122,7 +125,7 @@ export const voidScene: Drawing = {
 
     // ── God spoke: one word, written in light, bursts into a sun.
     const writeP = progress(t, spoke - 0.1, 0.9, ease.linear);
-    const burst = progress(t, spake - 0.1, 0.6, ease.inCubic);
+    const burst = f.at('burst', ease.inCubic);
     if (writeP > 0 && burst < 1) {
       ctx.save();
       ctx.globalAlpha *= 1 - burst;
@@ -215,4 +218,4 @@ export const voidScene: Drawing = {
     );
     cite(f, 'A. T. Jones, Lessons on Faith', f.mark('jones') - 0.2, f.dur);
   },
-};
+});

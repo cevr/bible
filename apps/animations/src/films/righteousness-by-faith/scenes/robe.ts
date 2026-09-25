@@ -1,5 +1,6 @@
 import {
   at,
+  drawing,
   cutout,
   type Frame,
   robeShape,
@@ -14,7 +15,6 @@ import {
 } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star, sun } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { LINEN, blowRags, loom, mix, person, stains } from './props-2.ts';
 
 const CX = 960;
@@ -42,10 +42,16 @@ const turban = (f: Frame) =>
   );
 
 /** Zechariah's vision: filthy garments taken, a robe from heaven's loom, sin taken away. */
-export const robe: Drawing = {
+export const robe = drawing({
   enter: { kind: 'ink', dur: 0.9, color: C.tealDeep },
   // Let the stain's dissolve and the sunrise breathe after the last word.
   tail: 3.2,
+  timeline: {
+    /** The filthy garments tear away on the wind. */
+    tear: { mark: 'take', offset: 0.1, dur: 2.6 },
+    /** The robe from heaven descends onto him. */
+    robeFalls: { mark: 'clothe', dur: 2 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const priest = f.mark('priest');
@@ -129,7 +135,8 @@ export const robe: Drawing = {
       if (pop > 0) {
         const soiled = progress(t, filthy, 1);
         const bare = progress(t, take + 0.2, 0.5);
-        const land = progress(t, clothe, 2, ease.inOutCubic);
+        const land = f.at('robeFalls', ease.inOutCubic);
+        const landed = f.cue('robeFalls').end;
         const clothed = land >= 1;
         const joy = clothed || gone > 0;
         at(ctx, { x: CX, y: FEET, scale: S * pop }, () => {
@@ -154,8 +161,8 @@ export const robe: Drawing = {
           person(
             ctx,
             {
-              armL: 0.15 + (joy ? 0.9 : 0) * progress(t, clothe + 2, 1),
-              armR: 0.15 + (joy ? 0.9 : 0) * progress(t, clothe + 2, 1),
+              armL: 0.15 + (joy ? 0.9 : 0) * progress(t, landed, 1),
+              armR: 0.15 + (joy ? 0.9 : 0) * progress(t, landed, 1),
               headTilt: soiled > 0 && !joy ? -0.14 : 0,
             },
             {
@@ -167,8 +174,7 @@ export const robe: Drawing = {
           );
           if (bare === 0) stains(ctx, f.hand('stains'), soiled);
           // The filthy garments tear away on the wind.
-          if (t > take)
-            blowRags(ctx, progress(t, take + 0.1, 2.6, ease.linear), f.hand('rags'), C.teal, 1);
+          if (t > take) blowRags(ctx, f.at('tear', ease.linear), f.hand('rags'), C.teal, 1);
           turban(f);
         });
         // The descending robe is drawn in world space above the figure.
@@ -392,4 +398,4 @@ export const robe: Drawing = {
     });
     cite(f, 'E. J. Waggoner, Christ and His Righteousness', does - 0.2, f.dur, 0);
   },
-};
+});

@@ -1,7 +1,16 @@
-import { at, cutout, ellipseShape, line, quad, rectShape, stroke, write } from '@bible/film/canvas';
+import {
+  at,
+  drawing,
+  cutout,
+  ellipseShape,
+  line,
+  quad,
+  rectShape,
+  stroke,
+  write,
+} from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { coin, gift, openHand } from './props-2.ts';
 
 const HX = 960;
@@ -9,8 +18,14 @@ const HY = 800;
 const COINS = 10;
 
 /** Faith is the hand, not the price: a tower of merit slides off; a gift is laid in. */
-export const hand_: Drawing = {
+export const hand_ = drawing({
   enter: { kind: 'pan', dur: 0.8, dir: -1 },
+  timeline: {
+    /** The tower of merit tips and slides off the palm. */
+    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+    /** Stars rise around the gift once it lies in the palm; they stay to the end. */
+    shine: { mark: 'gift', offset: 0.5, dur: 0.3 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const saviour = f.mark('saviour');
@@ -72,7 +87,7 @@ export const hand_: Drawing = {
         0.2 * progress(t, gifted + 0.7, 0.5, ease.outCubic);
       const y = lerp(1300, HY, rise);
       // The tower tips and slides off the palm.
-      const topple = progress(t, earns + 0.1, 1.8, ease.inCubic);
+      const topple = f.at('topple', ease.inCubic);
       at(ctx, { x: HX, y, scale: 1.35 }, () => {
         // Glow once the hand is empty.
         const glow = progress(t, handAt, 1.2) * (1 - 0.3 * progress(t, gifted, 1));
@@ -191,7 +206,8 @@ export const hand_: Drawing = {
           at(ctx, { x: 0, y: gy, rot: (1 - fall) * 0.2, scale: 0.9 }, () =>
             gift(ctx, f.hand('gift')),
           );
-          const shine = envelope(t, gifted + 0.5, f.dur, 0.3, 0.2);
+          const rise = f.cue('shine');
+          const shine = envelope(t, rise.start, f.dur, rise.dur, 0.2);
           if (shine > 0)
             for (let i = 0; i < 10; i++) {
               const a = (i / 10) * Math.PI * 2 + t * 0.2;
@@ -276,6 +292,6 @@ export const hand_: Drawing = {
     });
     cite(f, 'Ellen G. White, The Desire of Ages', saviour - 0.2, open + 1.2, 0);
   },
-};
+});
 
 export { hand_ as hand };

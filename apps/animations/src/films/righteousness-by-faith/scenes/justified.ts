@@ -1,6 +1,7 @@
 import {
   camera,
   at,
+  drawing,
   cutout,
   ellipseShape,
   line,
@@ -12,15 +13,18 @@ import {
 } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, keys, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star, sun, wordCard } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { person } from './props-2.ts';
 
 /**
  * Justified = declared righteous — and God's declaring is creating. A stamp
  * that isn't paperwork; a word that carries its thing; a void that fills.
  */
-export const justified: Drawing = {
+export const justified = drawing({
   enter: { kind: 'pan', dur: 0.9 },
+  timeline: {
+    /** RIGHTEOUS slams onto the decree. */
+    slam: { mark: 'fiction', offset: 0.9, dur: 0.35 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const j = f.mark('justified');
@@ -110,7 +114,7 @@ export const justified: Drawing = {
           f.hand('doc-sig'),
         );
         // The stamp slams down on "declares".
-        const slam = progress(t, fiction + 0.9, 0.35, ease.inQuad);
+        const slam = f.at('slam', ease.inQuad);
         if (slam > 0) {
           const s = lerp(1.8, 1, slam);
           at(ctx, { x: 120, y: 90, rot: -0.2, scale: s }, () => {
@@ -343,4 +347,4 @@ export const justified: Drawing = {
     cite(f, 'Romans 3:24', j - 0.2, fiction + 0.2, 0);
     cite(f, 'A. T. Jones, Lessons on Faith', spoken - 0.1, f.dur, 0);
   },
-};
+});

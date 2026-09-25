@@ -1,5 +1,6 @@
 import {
   at,
+  drawing,
   cutout,
   drawFigure,
   type Pt,
@@ -10,7 +11,6 @@ import {
 } from '@bible/film/canvas';
 import { clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, tablets } from '../kit.ts';
-import type { Drawing } from './index.ts';
 import { circleMark, note } from './props-1.ts';
 
 const MX = 1260;
@@ -31,8 +31,12 @@ const arch = (x: number, y: number, w: number, h: number): Pt[] => {
 };
 
 /** The law as a mirror: it shows every stain, and cannot wash one. */
-export const witness: Drawing = {
+export const witness = drawing({
   enter: { kind: 'cut' },
+  timeline: {
+    /** GUILTY slams onto the glass. */
+    guilty: { mark: 'call', offset: 0.9, dur: 0.35 },
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const standard = f.mark('standard');
@@ -114,7 +118,7 @@ export const witness: Drawing = {
         );
         ctx.restore();
         // GUILTY, stamped across the glass.
-        const stamp = progress(t, call + 0.9, 0.35, ease.outCubic);
+        const stamp = f.at('guilty', ease.outCubic);
         const stampOut = progress(t, must + 0.4, 0.5);
         if (stamp > 0 && stampOut < 1) {
           ctx.save();
@@ -224,4 +228,4 @@ export const witness: Drawing = {
     );
     cite(f, 'E. J. Waggoner, Christ and His Righteousness', must - 0.2, f.dur);
   },
-};
+});

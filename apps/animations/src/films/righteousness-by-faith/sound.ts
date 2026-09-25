@@ -1,5 +1,7 @@
 // The film's music and effects. The score follows the argument in acts; the
-// effects are paper and desk sounds, kept sparse so the voice leads. Changing a
+// effects are paper and desk sounds, kept sparse so the voice leads. Each
+// effect that hits a picture names the scene's cue, so it lands where the
+// drawing does; only page and slide sounds sit at a scene's start. Changing a
 // prompt or an act regenerates that asset on the next `bun run score`; gains
 // only need a remix.
 
@@ -97,37 +99,38 @@ export const sound: Sound = {
       secs: 0.7,
       gain: 0.7,
       at: [
-        { scene: 'witness', mark: 'call', offset: 1 },
-        { scene: 'justified', mark: 'fiction', offset: 1.2 },
-        { scene: '1888', mark: 'year', offset: 0.15 },
+        // Each stamp thuds as it meets the paper.
+        { scene: 'witness', cue: 'guilty', edge: 'end' },
+        { scene: 'justified', cue: 'slam', edge: 'end' },
+        { scene: '1888', cue: 'yearStamp' },
       ],
     },
     tear: {
       prompt: 'old cloth fabric ripping apart, one short tear',
       secs: 1.2,
       gain: 0.55,
-      at: [{ scene: 'robe', mark: 'take', offset: 0.1 }],
+      at: [{ scene: 'robe', cue: 'tear' }],
     },
     robe: {
       prompt: 'soft clean linen settling over someone, gentle fabric whoosh',
       secs: 1.6,
       gain: 0.5,
-      at: [{ scene: 'robe', mark: 'clothe', offset: 0.3 }],
+      at: [{ scene: 'robe', cue: 'robeFalls' }],
     },
     coins: {
       prompt: 'a small stack of coins and medals toppling and clattering onto a wooden table',
       secs: 2,
       gain: 0.45,
-      at: [{ scene: 'hand', mark: 'earns', offset: 0.9 }],
+      at: [{ scene: 'hand', cue: 'topple' }],
     },
     shimmer: {
       prompt: 'a soft warm glockenspiel shimmer, gentle and bright, fading out',
       secs: 2.2,
       gain: 0.4,
       at: [
-        { scene: 'void', mark: 'spake', offset: -0.1 },
-        { scene: 'hand', mark: 'gift' },
-        { scene: 'name', mark: 'jer', offset: 0.4 },
+        { scene: 'void', cue: 'burst' },
+        { scene: 'hand', cue: 'shine' },
+        { scene: 'name', cue: 'crown' },
       ],
     },
   },
