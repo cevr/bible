@@ -64,13 +64,13 @@ export interface RunCliResult {
  *  failed — failed runs still record observable side effects before the failure
  *  point, and tests need to assert on them.
  */
-// @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
 const runProvided = (
   cli: (args: string[]) => Effect.Effect<void, unknown, unknown>,
   args: string[],
   recordingConsole: Console.Console,
   layer: Layer.Layer<never, never, never>,
 ): Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }> =>
+  // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
   Effect.gen(function* () {
     const cliExit = yield* Effect.exit(
       cli(args).pipe(Effect.provideService(Console.Console, recordingConsole)),

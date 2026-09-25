@@ -20,6 +20,7 @@
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "ai": "^7.0.77",
+    "cheerio": "^1.2.0",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
     "gray-matter": "^4.0.3",
