@@ -134,7 +134,9 @@ test('runs the real batched workflow with identity and URL receipts', async ({ p
   await expect(page.locator('.pane')).toHaveCount(3);
   await page.locator('.pane').nth(2).getByRole('button', { name: 'Close pane 3' }).click();
   await expect(page.locator('.pane')).toHaveCount(2);
-  expect(await historyWrites(page)).toEqual(['replace', 'push', 'push', 'push']);
+  // The first replace keys the entry the page loaded on (for its scroll
+  // position); the URL does not change. The second is the filter.
+  expect(await historyWrites(page)).toEqual(['replace', 'replace', 'push', 'push', 'push']);
 
   await page.goBack();
   await expect(page.locator('.pane')).toHaveCount(3);
@@ -145,7 +147,7 @@ test('runs the real batched workflow with identity and URL receipts', async ({ p
   await expect(secondPane.locator('.text')).toHaveText('beta [egw]');
   expect(new URL(page.url()).searchParams.get('q')).toBe('alpha');
   expect(new URL(page.url()).searchParams.get('scope2')).toBe('egw');
-  expect(await historyWrites(page)).toEqual(['replace', 'push', 'push', 'push']);
+  expect(await historyWrites(page)).toEqual(['replace', 'replace', 'push', 'push', 'push']);
   expect(errors).toEqual([]);
 });
 
@@ -265,6 +267,38 @@ test('Back returns to the position the reader left', async ({ page }) => {
   await input.press('Enter');
   await expect(secondPane.locator('.text')).toHaveText('gamma');
   await page.evaluate(() => window.scrollTo(0, 0));
+
+  await page.goBack();
+  await expect(secondPane.locator('.text')).toHaveText('beta');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(left);
+  expect(errors).toEqual([]);
+});
+
+test('a reload keeps the position, and Back after it still finds the older one', async ({
+  page,
+}) => {
+  const errors = pageErrors(page);
+  await page.setViewportSize({ width: 390, height: 640 });
+  await resetFixture(page);
+  await page.goto('/?q=alpha&q2=beta');
+  await waitForTwoResults(page);
+  const secondPane = page.locator('.pane').nth(1);
+  const input = secondPane.locator('input');
+  await input.scrollIntoViewIfNeeded();
+  const left = await page.evaluate(() => window.scrollY);
+  expect(left).toBeGreaterThan(0);
+
+  await input.fill('gamma');
+  await input.press('Enter');
+  await expect(secondPane.locator('.text')).toHaveText('gamma');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await secondPane.locator('.text').scrollIntoViewIfNeeded();
+  const reading = await page.evaluate(() => window.scrollY);
+  expect(reading).toBeGreaterThan(0);
+
+  await page.reload();
+  await expect(secondPane.locator('.text')).toHaveText('gamma');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(reading);
 
   await page.goBack();
   await expect(secondPane.locator('.text')).toHaveText('beta');

@@ -18,10 +18,12 @@
  * second: it scrolls on `popstate`, before the entry's results are drawn, so it
  * lands on a page of the wrong height. The position is restored here instead,
  * once the reads the entry started have settled (`trackRead`), or after
- * {@link TRAVERSAL_READ_LIMIT} if they have not.
+ * {@link TRAVERSAL_READ_LIMIT} if they have not. The positions live in the
+ * tab's session storage, so a reload lands where the reader was, and Back
+ * after a reload still finds the older entries' positions.
  */
 
-import { Option, Schema as S } from 'effect';
+import { Option, Result, Schema as S } from 'effect';
 import { createSignal, type Accessor } from 'solid-js';
 
 import { parseWorkspace, toWorkspaceString, type SearchParams } from './url-state.js';
@@ -42,28 +44,63 @@ export const isHome = (): boolean => window.location.pathname === '/';
 /** How long Back or Forward waits for the entry's reads before it scrolls. */
 const TRAVERSAL_READ_LIMIT = 3000;
 
-/** Each entry carries a key in `history.state`; its position is kept here
- *  against that key. The first entry of a visit has no state yet. */
-const FIRST_ENTRY = 'first';
-
+/** Each entry carries a key in `history.state`; its position is kept against
+ *  that key. Keys are unique across loads, so a reload keeps them apart. */
 const EntryState = S.Struct({ key: S.String });
 const readEntryState = S.decodeUnknownOption(EntryState);
 
-/** The key of the entry whose state this is. */
-const entryKey = (state: typeof window.history.state): string =>
-  Option.match(readEntryState(state), {
-    onNone: () => FIRST_ENTRY,
-    onSome: (entry) => entry.key,
-  });
+let entries = 0;
 
-const positions = new Map<string, number>();
-let current = entryKey(window.history.state);
+const newKey = (): string => {
+  entries += 1;
+  return `${String(Date.now())}-${String(entries)}`;
+};
+
+/** The key of the entry on screen. The first entry of a visit has no state
+ *  yet, so it gets one here, without changing the URL. */
+const keyOnLoad = (): string =>
+  Option.getOrElse(
+    Option.map(readEntryState(window.history.state), (entry) => entry.key),
+    () => {
+      const key = newKey();
+      window.history.replaceState({ key }, '', window.location.href);
+      return key;
+    },
+  );
+
+/** Where the positions outlive a reload: the latest {@link KEPT_ENTRIES},
+ *  oldest first. Storage may refuse (a private window, a full quota); the
+ *  positions then last for this load only. */
+const STORAGE_KEY = 'egw-search:scroll';
+const KEPT_ENTRIES = 100;
+const StoredPositions = S.fromJsonString(S.Array(S.Tuple([S.String, S.Finite])));
+const decodeStored = S.decodeUnknownOption(StoredPositions);
+const encodeStored = S.encodeSync(StoredPositions);
+
+const loadPositions = (): Map<string, number> => {
+  const stored = Result.getOrElse(
+    Result.try(() => window.sessionStorage.getItem(STORAGE_KEY)),
+    () => null,
+  );
+  return new Map(Option.getOrElse(decodeStored(stored), () => []));
+};
+
+const positions = loadPositions();
+let current = keyOnLoad();
+
+const persist = (): void => {
+  const kept = [...positions].slice(-KEPT_ENTRIES);
+  void Result.try(() => window.sessionStorage.setItem(STORAGE_KEY, encodeStored(kept)));
+};
 
 // The app restores positions itself; see the module note.
 window.history.scrollRestoration = 'manual';
 
+/** Keep the position of the entry on screen, as its latest. */
 const saveScroll = (): void => {
+  positions.delete(current);
   positions.set(current, window.scrollY);
+  persist();
 };
 
 /** Reads in flight for the entry on screen, and who waits for them to end. */
@@ -119,21 +156,24 @@ const restoreScroll = (key: string): void => {
 
 window.addEventListener('popstate', (event) => {
   saveScroll();
-  current = entryKey(event.state);
+  // Every entry this app made has a key; one made before it did gets a fresh one.
+  current = Option.getOrElse(
+    Option.map(readEntryState(event.state), (entry) => entry.key),
+    newKey,
+  );
   setSearch(window.location.search);
   restoreScroll(current);
 });
 
+// A reload or a close leaves the entry without a popstate or a push to save it.
+window.addEventListener('pagehide', saveScroll);
+
+// A reload lands on the entry's saved position, once its reads have settled.
+if (positions.has(current)) restoreScroll(current);
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
-
-let entries = 0;
-
-const newKey = (): string => {
-  entries += 1;
-  return `${String(Date.now())}-${String(entries)}`;
-};
 
 /**
  * Change the workspace.
