@@ -1,0 +1,4 @@
+# Renders, stills and contact sheets — rebuilt by `bun run render`.
+out/
+# The mixed track — rebuilt from the committed takes, score and effects by `bun run mix`.
+src/films/*/narration/full.mp3

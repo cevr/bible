@@ -180,6 +180,36 @@
       }
     },
     {
+      // The animation engine and its Bun tools (apps/animations). A film frame
+      // is a pure function of time drawn into a Canvas 2D context thousands of
+      // times per render; the engine is plain arithmetic over numbers and
+      // paths, with no services, errors to model, or resources to scope. The
+      // scripts are one-shot entry points that drive Chromium, ffmpeg and the
+      // ElevenLabs CLI, and render frames strictly in order. Effect's rules
+      // guard application code; here they would only add a runtime to a
+      // hot drawing loop.
+      "files": ["**/apps/animations/**/*.ts"],
+      "rules": {
+        "no-await-in-loop": "off",
+        "effect/noAs": "off",
+        "effect/noAsyncFunction": "off",
+        "effect/noConditionalEmptyObjectSpread": "off",
+        "effect/noDynamicImports": "off",
+        "effect/noGlobals": "off",
+        "effect/noKnownValueWidening": "off",
+        "effect/noNewError": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noNullish": "off",
+        "effect/noRuntimeTypeof": "off",
+        "effect/noShapeInSymbolNames": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off",
+        "effect/noTryCatch": "off",
+        "effect/noUnknownParameters": "off"
+      }
+    },
+    {
       "files": ["**/apps/web/src/workers/sqlite-host.ts"],
       "rules": {
         "effect/noAsyncFunction": "off"

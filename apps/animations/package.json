@@ -1,0 +1,19 @@
+{
+  "name": "@bible/animations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot server.ts",
+    "narrate": "bun scripts/narrate.ts",
+    "render": "bun scripts/render.ts",
+    "score": "bun scripts/score.ts",
+    "mix": "bun scripts/mix.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src",
+    "gate": "bun run typecheck && bun run test"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}
