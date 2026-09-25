@@ -4,10 +4,19 @@
 // re-recording a line moves its sounds with it. Pure — the score and mix
 // scripts read it without a DOM.
 
-import { Schema } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
+import {
+  ActTooShort,
+  CueInvalid,
+  type SoundCueError,
+  UnknownCue,
+  UnknownMark,
+  UnknownScene,
+} from './errors.ts';
 import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
+  type Act,
   type Cue,
   EffectRequestKey,
   type Music,
@@ -20,36 +29,65 @@ import {
 /** The API refuses chunks shorter than this. */
 const MIN_CHUNK_MS = 3000;
 
-const sceneOf = (placed: ReadonlyArray<Placed>, id: string): Placed => {
-  const p = placed.find((s) => s.spec.id === id);
-  if (p === undefined) throw new Error(`sound: no scene "${id}"`);
-  return p;
-};
+const sceneOf = (
+  placed: ReadonlyArray<Placed>,
+  scene: string,
+): Result.Result<Placed, UnknownScene> =>
+  Result.fromOption(
+    Arr.findFirst(placed, (p) => p.spec.id === scene),
+    () => UnknownScene.make({ scene }),
+  );
 
-export const filmEnd = (placed: ReadonlyArray<Placed>): number => {
-  const last = placed.at(-1);
-  return last === undefined ? 0 : last.start + last.dur;
+export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
+  Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
+
+/** Where in its scene a cue lands, from the scene's start, before its offset. */
+const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => {
+  const { scene } = cue;
+  if (cue.cue !== undefined && cue.mark !== undefined)
+    return Result.fail(CueInvalid.make({ scene, reason: 'names both cue and mark' }));
+  if (cue.edge !== undefined && cue.cue === undefined)
+    return Result.fail(CueInvalid.make({ scene, reason: 'has an edge but names no cue' }));
+  if (cue.cue !== undefined) {
+    const name = cue.cue;
+    const end = cue.edge === 'end';
+    return Result.fromOption(
+      Option.map(Option.fromNullishOr(p.cues.get(name)), (c) => {
+        if (end) return c.end;
+        return c.start;
+      }),
+      () => UnknownCue.make({ scene, cue: name }),
+    );
+  }
+  if (cue.mark !== undefined) {
+    const mark = cue.mark;
+    return Result.fromOption(
+      Option.map(Option.fromNullishOr(p.voice.marks.get(mark)), (m) => p.speechStart + m),
+      () => UnknownMark.make({ scene, mark }),
+    );
+  }
+  return Result.succeed(0);
 };
 
 /** Absolute film time of a cue. */
-export const cueTime = (cue: Cue, placed: ReadonlyArray<Placed>): number => {
-  const p = sceneOf(placed, cue.scene);
-  let t = p.start + (cue.offset ?? 0);
-  if (cue.cue !== undefined && cue.mark !== undefined)
-    throw new Error(`sound: a cue in scene "${cue.scene}" names both cue and mark`);
-  if (cue.edge !== undefined && cue.cue === undefined)
-    throw new Error(`sound: a cue in scene "${cue.scene}" has an edge but names no cue`);
-  if (cue.cue !== undefined) {
-    const c = p.cues.get(cue.cue);
-    if (c === undefined) throw new Error(`sound: scene "${cue.scene}" has no cue "${cue.cue}"`);
-    t += cue.edge === 'end' ? c.end : c.start;
-  }
-  if (cue.mark !== undefined) {
-    const m = p.voice.marks.get(cue.mark);
-    if (m === undefined) throw new Error(`sound: scene "${cue.scene}" has no mark "${cue.mark}"`);
-    t += p.speechStart + m;
-  }
-  return t;
+export const cueTime = (
+  cue: Cue,
+  placed: ReadonlyArray<Placed>,
+): Result.Result<number, SoundCueError> =>
+  Result.gen(function* () {
+    const p = yield* sceneOf(placed, cue.scene);
+    const anchor = yield* anchorOf(cue, p);
+    return p.start + Option.getOrElse(Option.fromNullishOr(cue.offset), () => 0) + anchor;
+  });
+
+/** Where an act starts: the first always opens the film. */
+const actStart = (
+  act: Act,
+  index: number,
+  placed: ReadonlyArray<Placed>,
+): Result.Result<number, UnknownScene> => {
+  if (index === 0) return Result.succeed(0);
+  return Result.map(sceneOf(placed, act.from), (p) => p.start);
 };
 
 /**
@@ -57,24 +95,31 @@ export const cueTime = (cue: Cue, placed: ReadonlyArray<Placed>): number => {
  * carries the film-wide styles ahead of its own. The act name is a structure
  * tag, never a lyric.
  */
-export const musicPlan = (music: Music, placed: ReadonlyArray<Placed>): Plan => {
-  const end = filmEnd(placed);
-  const starts = music.acts.map((a, i) => (i === 0 ? 0 : sceneOf(placed, a.from).start));
-  const bounds = [...starts, end].map((s) => Math.round(s * 1000));
-  const chunks = music.acts.map((a, i): PlanChunk => {
-    const ms = (bounds[i + 1] ?? 0) - (bounds[i] ?? 0);
-    if (ms < MIN_CHUNK_MS)
-      throw new Error(`sound: act "${a.name}" is ${ms}ms; acts must run in film order, 3s or more`);
-    return {
-      text: `[${a.name}]`,
-      duration_ms: ms,
-      positive_styles: [...music.styles, ...a.styles],
-      negative_styles: [...music.avoid, ...(a.avoid ?? [])],
-      context_adherence: 'high',
-    };
+export const musicPlan = (
+  music: Music,
+  placed: ReadonlyArray<Placed>,
+): Result.Result<Plan, UnknownScene | ActTooShort> =>
+  Result.gen(function* () {
+    const starts: number[] = [];
+    for (const [i, act] of music.acts.entries()) starts.push(yield* actStart(act, i, placed));
+    const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
+    const chunks: PlanChunk[] = [];
+    for (const [i, act] of music.acts.entries()) {
+      const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
+      if (ms < MIN_CHUNK_MS) return yield* Result.fail(ActTooShort.make({ act: act.name, ms }));
+      chunks.push({
+        text: `[${act.name}]`,
+        duration_ms: ms,
+        positive_styles: [...music.styles, ...act.styles],
+        negative_styles: [
+          ...music.avoid,
+          ...Option.getOrElse(Option.fromNullishOr(act.avoid), () => []),
+        ],
+        context_adherence: 'high',
+      });
+    }
+    return { chunks };
   });
-  return { chunks };
-};
 
 export const musicKey = (music: Music, plan: Plan): string =>
   hashText(Schema.encodeSync(MusicRequestKey)({ model: music.model, plan }));

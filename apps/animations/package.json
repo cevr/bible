@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot server.ts",
-    "narrate": "bun scripts/narrate.ts",
+    "narrate": "film narrate",
+    "score": "film score",
+    "mix": "film mix",
+    "cues": "film cues",
     "render": "bun scripts/render.ts",
-    "score": "bun scripts/score.ts",
-    "mix": "bun scripts/mix.ts",
     "typecheck": "tsc --noEmit",
-    "gate": "bun run typecheck && bun run test",
-    "test": "bun test test"
+    "test": "bun test test",
+    "gate": "bun run typecheck && bun run test"
   },
   "dependencies": {
     "@bible/film": "workspace:*",

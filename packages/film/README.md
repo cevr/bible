@@ -11,6 +11,28 @@ recorded words, and every frame is a pure function of that film and a time.
 | `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`. |
 | `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard) and `createFilm`, which composites any `T`.                               |
 | `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                       |
+| `@bible/film/tools`  | The `film` CLI and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`Mixer.graph` is the pure ffmpeg graph). |
+
+## Data
+
+`core/schema.ts` holds the Schemas for everything a film reads or writes:
+`Timed` scenes, `Voice`, `Timings` (`narration/timings.json`), `Sound`, and
+`SoundManifest` (`sound/manifest.json`). The TypeScript types derive from them.
+`TimingsJson` and `SoundManifestJson` decode a file's text and encode it back
+byte for byte; the request hashes (`voiceKey`, `musicKey`, `effectKey`) are
+taken over Schema-encoded requests, so a committed hash stays current.
+
+## Tools
+
+`film narrate|score|mix|cues <film>` runs from the app that holds the films
+(`src/films/<film>`, or `FILMS_DIR`). Paid calls (ElevenLabs speech, music,
+effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
+`--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
+produces an asset only when its stored hash is stale, and every manifest
+update is serialized. At most three paid jobs run at once. Failures are
+tagged errors (`TakeMismatch`, `ApiKeyMissing`, `FfmpegMissing`, ...) in
+`tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
+`tools/testing.ts` has the in-memory doubles the tool tests use.
 
 ## Named cues
 
@@ -40,8 +62,8 @@ sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
 ## The purity rule
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
-fine) and never imports from `canvas` or `player`. Bun scripts, tests and the
-browser all read it. `canvas` may import `core`; `player` may import both.
+fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`).

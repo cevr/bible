@@ -7,7 +7,7 @@ Read-only review of pass <N> in the rift `<rift path>`: `git log --oneline <base
 
 Judge each commit against `.claude/skills/film-architecture-loop/north-stars.md` and the ledger `<ledger path>`. Look for real defects only:
 - a frame that now depends on an earlier frame, the wall clock, or unseeded randomness;
-- a motion or sound that moved in time where the ledger row says "no behavior change" (compare mark times from `bun scripts/cues.ts <film>` before and after);
+- a motion or sound that moved in time where the ledger row says "no behavior change" (compare mark times from `bun run cues <film>` before and after);
 - a committed asset (take, score, effect) whose hash changed, so it reads as stale or re-records;
 - a scope, page, or child process that no longer closes on failure or interrupt;
 - a boundary that now accepts malformed JSON or script data without a decode error;

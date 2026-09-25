@@ -2,12 +2,16 @@
   "name": "@bible/film",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "film": "./src/tools/cli.ts"
+  },
   "type": "module",
   "exports": {
     "./core": "./src/core/index.ts",
     "./canvas": "./src/canvas/index.ts",
     "./player": "./src/player/index.ts",
-    "./player.css": "./src/player/player.css"
+    "./player.css": "./src/player/player.css",
+    "./tools": "./src/tools/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

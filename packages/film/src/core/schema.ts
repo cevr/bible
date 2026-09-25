@@ -63,6 +63,73 @@ export const Voice = Schema.Struct({
 export type Voice = typeof Voice.Type;
 
 // ---------------------------------------------------------------------------
+// Scenes: the part of a scene the clock reads. A drawing adds `draw`, which is
+// code, not data; the tools decode only this part.
+
+/** How a scene arrives from the previous one. */
+export const Transition = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal('cut') }),
+  Schema.Struct({ kind: Schema.Literal('fade'), dur: Schema.Finite }),
+  /** Slide across one long sheet, like a camera panning a mural. */
+  Schema.Struct({
+    kind: Schema.Literal('pan'),
+    dur: Schema.Finite,
+    dir: Schema.optionalKey(Schema.Literals([1, -1])),
+  }),
+  /** A broad brush stroke sweeps across and leaves the new scene behind it. */
+  Schema.Struct({
+    kind: Schema.Literal('ink'),
+    dur: Schema.Finite,
+    color: Schema.optionalKey(Schema.String),
+  }),
+]);
+export type Transition = typeof Transition.Type;
+
+const spanTiming = {
+  offset: Schema.optionalKey(Schema.Finite),
+  /** Defaults to 0, an instant. */
+  dur: Schema.optionalKey(Schema.Finite),
+};
+
+/** Where a named cue starts, plus how long it lasts. */
+export const Span = Schema.Union([
+  /** At a `{mark}` in the scene's narration. */
+  Schema.Struct({ mark: Schema.String, ...spanTiming }),
+  /** At the end of another cue. */
+  Schema.Struct({ after: Schema.String, ...spanTiming }),
+  /** At the start of another cue. */
+  Schema.Struct({ with: Schema.String, ...spanTiming }),
+  /** At a scene landmark: its start, where the voice starts or ends, or its end. */
+  Schema.Struct({
+    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
+    ...spanTiming,
+  }),
+]);
+export type Span = typeof Span.Type;
+
+/** A scene's timeline: cue name → span. */
+export const Timeline = Schema.Record(Schema.String, Span);
+export type Timeline = typeof Timeline.Type;
+
+/** The part of a scene the clock reads. */
+export const Timed = Schema.Struct({
+  id: Schema.String,
+  /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
+  say: Schema.optionalKey(Schema.String),
+  /** Silence before the voice starts. */
+  lead: Schema.optionalKey(Schema.Finite),
+  /** Silence after the voice ends. */
+  tail: Schema.optionalKey(Schema.Finite),
+  /** Minimum scene length. */
+  min: Schema.optionalKey(Schema.Finite),
+  /** How this scene arrives from the previous one. */
+  enter: Schema.optionalKey(Transition),
+  /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
+  timeline: Schema.optionalKey(Timeline),
+});
+export type Timed = typeof Timed.Type;
+
+// ---------------------------------------------------------------------------
 // Sound
 
 /**

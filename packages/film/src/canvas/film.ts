@@ -3,9 +3,9 @@
 // any instant T — the same function serves the preview player and the export.
 
 import type { Hand } from './ink.ts';
-import { type Placed, type Timed, captionLines, layout, transitionDur } from '../core/layout.ts';
-import type { Timings, Word } from '../core/schema.ts';
-import type { ResolvedCue, Timeline } from '../core/timeline.ts';
+import { type Placed, captionLines, layout, transitionDur } from '../core/layout.ts';
+import type { Timed, Timeline, Timings, Word } from '../core/schema.ts';
+import type { ResolvedCue } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { seedOf } from '../core/random.ts';
 import { type Ease, clamp, ease, progress } from '../core/time.ts';

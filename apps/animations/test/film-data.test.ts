@@ -69,7 +69,8 @@ describe('righteousness-by-faith data', () => {
       );
       const decoded = yield* Schema.decodeEffect(Sound)(sound);
       const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.music));
-      expect(musicKey(music, musicPlan(music, layout(scenes, timings)))).toBe('be8be957');
+      const plan = yield* Effect.fromResult(musicPlan(music, layout(scenes, timings)));
+      expect(musicKey(music, plan)).toBe('be8be957');
     }),
   );
 });

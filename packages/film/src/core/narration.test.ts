@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { Result } from 'effect';
 import { layout } from './layout.ts';
 import { estimate, hashText, parse, voiceFor, wordsFromAlignment } from './narration.ts';
 
@@ -19,9 +20,14 @@ describe('narration', () => {
     const chars = [...text];
     const starts = chars.map((_, i) => i * 0.1);
     const ends = chars.map((_, i) => i * 0.1 + 0.1);
-    const words = wordsFromAlignment(text, chars, starts, ends);
+    const words = Result.getOrThrow(wordsFromAlignment(text, chars, starts, ends));
     expect(words.map((w) => w.text)).toEqual(['Look', 'and', 'live.']);
     expect(words[2]?.start).toBeCloseTo(0.9);
+  });
+
+  test('an alignment that regroups into other words is a typed failure', () => {
+    const r = wordsFromAlignment('Look and live.', [...'Lookandlive.'], [], []);
+    expect(Result.isFailure(r) && r.failure._tag).toBe('AlignmentMismatch');
   });
 
   test('a take is used only while its text is unchanged', () => {

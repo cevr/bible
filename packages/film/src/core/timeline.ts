@@ -4,23 +4,7 @@
 // it. Resolved once per layout; the picture and the sound both read the result.
 // Pure and DOM-free.
 
-/** Where a cue starts, plus how long it lasts (`dur` defaults to 0, an instant). */
-export type Span =
-  /** At a `{mark}` in the scene's narration. */
-  | { readonly mark: string; readonly offset?: number; readonly dur?: number }
-  /** At the end of another cue. */
-  | { readonly after: string; readonly offset?: number; readonly dur?: number }
-  /** At the start of another cue. */
-  | { readonly with: string; readonly offset?: number; readonly dur?: number }
-  /** At a scene landmark: its start, where the voice starts or ends, or its end. */
-  | {
-      readonly scene: 'start' | 'speech' | 'speechEnd' | 'end';
-      readonly offset?: number;
-      readonly dur?: number;
-    };
-
-/** A scene's timeline: cue name → span. */
-export type Timeline = Readonly<Record<string, Span>>;
+import type { Span, Timeline } from './schema.ts';
 
 /** A cue on the scene clock, in scene-local seconds. */
 export interface ResolvedCue {

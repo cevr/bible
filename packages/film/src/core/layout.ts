@@ -3,33 +3,8 @@
 // it names no drawing type, so it runs where there is no DOM.
 
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Timings, Word } from './schema.ts';
-import { type ResolvedCue, type Timeline, resolveTimeline } from './timeline.ts';
-
-export type Transition =
-  | { readonly kind: 'cut' }
-  | { readonly kind: 'fade'; readonly dur: number }
-  /** Slide across one long sheet, like a camera panning a mural. */
-  | { readonly kind: 'pan'; readonly dur: number; readonly dir?: 1 | -1 }
-  /** A broad brush stroke sweeps across and leaves the new scene behind it. */
-  | { readonly kind: 'ink'; readonly dur: number; readonly color?: string };
-
-/** The part of a scene the clock reads. */
-export interface Timed {
-  readonly id: string;
-  /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
-  readonly say?: string;
-  /** Silence before the voice starts. */
-  readonly lead?: number;
-  /** Silence after the voice ends. */
-  readonly tail?: number;
-  /** Minimum scene length. */
-  readonly min?: number;
-  /** How this scene arrives from the previous one. */
-  readonly enter?: Transition;
-  /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
-  readonly timeline?: Timeline;
-}
+import type { Timed, Timings, Transition, Word } from './schema.ts';
+import { type ResolvedCue, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
   readonly spec: S;

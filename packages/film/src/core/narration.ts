@@ -7,7 +7,8 @@
 // recorded voice when timings exist, estimated from the text when they don't.
 // Pure: runs in the browser, in scripts, and in tests.
 
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
+import { AlignmentMismatch } from './errors.ts';
 import { type Timings, type Voice, VoiceKey, type Word } from './schema.ts';
 
 export interface Parsed {
@@ -75,7 +76,7 @@ export const wordsFromAlignment = (
   chars: ReadonlyArray<string>,
   starts: ReadonlyArray<number>,
   ends: ReadonlyArray<number>,
-): Word[] => {
+): Result.Result<Word[], AlignmentMismatch> => {
   const out: Word[] = [];
   let start = -1;
   let end = 0;
@@ -98,8 +99,8 @@ export const wordsFromAlignment = (
   flush();
   const expected = spoken.split(/\s+/).filter((x) => x.length > 0).length;
   if (out.length !== expected)
-    throw new Error(`alignment has ${out.length} words, text has ${expected}`);
-  return out;
+    return Result.fail(AlignmentMismatch.make({ spoken, words: out.length, expected }));
+  return Result.succeed(out);
 };
 
 export interface SceneVoice {

@@ -1,0 +1,232 @@
+// Record a film's narration, one take per beat. A take is current while the
+// hash of its spoken text (and the voice that read it) matches, so editing a
+// line re-records only that line. Every new take is transcribed back and
+// compared with the script; a take that says something else fails the run
+// unless it is accepted, and is never recorded as current.
+
+import { Array as Arr, Context, Effect, Encoding, FileSystem, Layer, Option, Path } from 'effect';
+import { hashText, parse, voiceKey, wordsFromAlignment } from '../core/narration.ts';
+import type { Timings, VoiceTiming } from '../core/schema.ts';
+import { ContentStore, isStale, type StoreError } from './content-store.ts';
+import { ElevenLabs } from './elevenlabs.ts';
+import {
+  type AlignmentMismatch,
+  ElevenLabsFailed,
+  type FfmpegFailed,
+  type FfmpegMissing,
+  TakeMismatch,
+} from './errors.ts';
+import { Ffmpeg } from './ffmpeg.ts';
+import type { LoadedFilm } from './film-repo.ts';
+import { settleAll } from './settle.ts';
+
+/** A take whose transcript is further than this from its script is a mismatch. */
+export const MAX_WORD_ERROR = 0.08;
+
+/** One beat's spoken line, in film order. */
+export interface Beat {
+  readonly id: string;
+  readonly text: string;
+}
+
+export interface NarrateOptions {
+  /** Record just these beats, current or not. */
+  readonly only: Option.Option<ReadonlySet<string>>;
+  /** Record every beat. */
+  readonly force: boolean;
+  /** Keep a take whose transcript does not match, with a warning. */
+  readonly acceptMismatch: boolean;
+}
+
+export interface NarrationPlan {
+  readonly beats: ReadonlyArray<Beat>;
+  /** The beats to record, in film order. */
+  readonly stale: ReadonlyArray<Beat>;
+  /** `voiceKey(voice)`: the key every take is recorded under. */
+  readonly voice: string;
+}
+
+export type NarrateError =
+  | TakeMismatch
+  | AlignmentMismatch
+  | ElevenLabsFailed
+  | FfmpegFailed
+  | FfmpegMissing
+  | StoreError;
+
+/** Takes recorded under the current voice; a different voice leaves none current. */
+const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
+  if (timings.voice === voice) return timings.scenes;
+  return {};
+};
+
+/** What to record, from the film and its timings. Pure. */
+export const planNarration = (film: LoadedFilm, options: NarrateOptions): NarrationPlan => {
+  const voice = voiceKey(film.voice);
+  const takes = currentTakes(film.timings, voice);
+  const beats = film.scenes.map((s) => ({
+    id: s.id,
+    text: parse(Option.getOrElse(Option.fromNullishOr(s.say), () => '')).spoken,
+  }));
+  const stale = beats
+    .filter((b) => b.text.length > 0)
+    .filter((b) =>
+      Option.match(options.only, {
+        onSome: (only) => only.has(b.id),
+        onNone: () =>
+          isStale(
+            Option.map(Option.fromNullishOr(takes[b.id]), (t) => t.hash),
+            hashText(b.text),
+            options.force,
+          ),
+      }),
+    );
+  return { beats, stale, voice };
+};
+
+/** Words only, lowercased: punctuation and casing never fail a take. */
+export const normalizeWords = (s: string): ReadonlyArray<string> =>
+  s
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+
+/** Word-level edit distance, as a share of the script's words. */
+export const wordError = (want: ReadonlyArray<string>, got: ReadonlyArray<string>): number => {
+  let previous: ReadonlyArray<number> = Arr.makeBy(got.length + 1, (j) => j);
+  for (const [i, w] of want.entries()) {
+    const row: Array<number> = [i + 1];
+    for (const [j, g] of got.entries()) {
+      const substitute = Arr.getUnsafe(previous, j) + Number(w !== g);
+      row.push(Math.min(Arr.getUnsafe(previous, j + 1) + 1, Arr.getUnsafe(row, j) + 1, substitute));
+    }
+    previous = row;
+  }
+  return Arr.getUnsafe(previous, got.length) / Math.max(1, want.length);
+};
+
+/** Put one take into the timings, dropping any recorded under another voice. */
+const withTake =
+  (voice: string, id: string, take: VoiceTiming) =>
+  (timings: Timings): Timings => ({
+    voice,
+    scenes: { ...currentTakes(timings, voice), [id]: take },
+  });
+
+/** Keep only the takes of beats that still exist. */
+const withoutRemoved =
+  (voice: string, beats: ReadonlyArray<Beat>) =>
+  (timings: Timings): Timings => {
+    const ids = new Set(beats.map((b) => b.id));
+    const scenes = Object.entries(currentTakes(timings, voice)).filter(([id]) => ids.has(id));
+    return { voice, scenes: Object.fromEntries(scenes) };
+  };
+
+export interface NarratorService {
+  /** Record every stale beat of the plan, then drop the takes of removed beats. */
+  readonly record: (
+    film: LoadedFilm,
+    plan: NarrationPlan,
+    options: NarrateOptions,
+  ) => Effect.Effect<void, NarrateError>;
+}
+
+export class Narrator extends Context.Service<Narrator, NarratorService>()(
+  '@bible/film/tools/Narrator',
+) {
+  static readonly layer = Layer.effect(
+    Narrator,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const store = yield* ContentStore;
+      const elevenLabs = yield* ElevenLabs;
+      const ffmpeg = yield* Ffmpeg;
+
+      const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
+        film: LoadedFilm,
+        plan: NarrationPlan,
+        options: NarrateOptions,
+        beat: Beat,
+      ) {
+        const index = plan.beats.findIndex((b) => b.id === beat.id);
+        const neighbour = (at: number) =>
+          Option.getOrElse(
+            Option.map(Arr.get(plan.beats, at), (b) => b.text),
+            () => '',
+          );
+        const reply = yield* elevenLabs.tts({
+          text: beat.text,
+          voice: film.voice,
+          previousText: neighbour(index - 1),
+          nextText: neighbour(index + 1),
+        });
+        const { alignment } = reply;
+        const words = yield* Effect.fromResult(
+          wordsFromAlignment(
+            beat.text,
+            alignment.characters,
+            alignment.character_start_times_seconds,
+            alignment.character_end_times_seconds,
+          ),
+        );
+        const audio = yield* Effect.fromResult(Encoding.decodeBase64(reply.audio_base64)).pipe(
+          Effect.mapError((error) =>
+            ElevenLabsFailed.make({ op: 'tts', exitCode: 0, reason: error.message }),
+          ),
+        );
+
+        // The take stays beside the current one until it has been heard back.
+        const file = `${beat.id}.mp3`;
+        const pending = path.join(film.paths.narration, `${beat.id}.take.mp3`);
+        yield* store.writeFile(pending, audio);
+        const heard = yield* elevenLabs.stt(pending);
+        const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
+        const duration = yield* ffmpeg.probeDuration(pending);
+        yield* Effect.log(
+          `narrate.take id=${beat.id} words=${words.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
+        );
+        if (wer > MAX_WORD_ERROR) {
+          const mismatch = TakeMismatch.make({
+            id: beat.id,
+            script: beat.text,
+            heard: heard.text,
+            wer,
+          });
+          if (!options.acceptMismatch) {
+            yield* fs.remove(pending);
+            return yield* mismatch;
+          }
+          yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
+        }
+        yield* fs.rename(pending, path.join(film.paths.narration, file));
+        yield* store.update(
+          film.paths.timings,
+          withTake(plan.voice, beat.id, { hash: hashText(beat.text), file, duration, words }),
+        );
+      });
+
+      const record = Effect.fn('Narrator.record')(function* (
+        film: LoadedFilm,
+        plan: NarrationPlan,
+        options: NarrateOptions,
+      ) {
+        yield* settleAll(
+          plan.stale,
+          (beat) =>
+            recordBeat(film, plan, options, beat).pipe(
+              Effect.tapError((error) =>
+                Effect.logError(`narrate.failed id=${beat.id} error=${error._tag}`),
+              ),
+            ),
+          3,
+        );
+        yield* store.update(film.paths.timings, withoutRemoved(plan.voice, plan.beats));
+      });
+
+      return Narrator.of({ record });
+    }),
+  );
+}

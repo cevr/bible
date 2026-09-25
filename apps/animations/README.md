@@ -12,12 +12,19 @@ bun run dev                                    # player at http://localhost:4400
 bun run narrate <film>                         # record stale beats, verify, mix full.mp3
 bun run score <film>                           # generate stale music + effects, mix full.mp3
 bun run mix <film> [--stems]                   # remix only (no API); stems to out/<film>/stems
-bun scripts/cues.ts <film> [scene]             # scene times, {mark} times, named cues (fails if one overruns)
-bun scripts/cues.ts <film> [scene] --sound     # every effect placement's film time
+bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
+bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run render <film>                          # out/<film>.mp4 (parallel pages + ffmpeg)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills
 ```
+
+`narrate`, `score`, `mix` and `cues` are the `film` CLI from `@bible/film/tools`
+(`film --help`). Narrate flags: `--only id,id` (record these, current or not),
+`--force` (every beat), `--dry-run` (print what is stale, record nothing),
+`--accept-mismatch` (keep a take whose transcript differs). Score flags:
+`--only music,<effect>` and `--dry-run`. `FILMS_DIR` and `FILMS_OUT` override
+`src/films` and `out`.
 
 Render flags: `--from/--to` seconds, `--workers n`, `--scale 0.5`,
 `--no-captions`, `--tag name` (output subfolder, so parallel renders don't
@@ -52,12 +59,16 @@ a mark, another cue (`after` / `with`) or a scene landmark, and read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
 `f.at(name, ease)` (0→1 across it). Wrap the drawing in `drawing({ timeline,
 draw })` so an undeclared name fails to compile. `layout()` resolves every cue
-once; `cues.ts` prints them and fails when one ends after its scene. Ornament
+once; `cues` prints them and fails when one ends after its scene. Ornament
 (wobble, idle motion) stays inline.
 
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text and
 re-records only beats whose text changed, transcribes every new take back with
-speech-to-text, and warns when the take doesn't say what the script says.
+speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
+what the script says (over 8% word error). A failed take never replaces the
+current one; `--accept-mismatch` keeps it with a warning. `timings.json` and
+`sound/manifest.json` are Schema-decoded (`@bible/film/core` `schema.ts`) and
+written one writer at a time, so takes finishing together never lose entries.
 
 **Sound follows the same clock.** `sound.ts` declares the score as acts, each
 starting at a scene, and effects as prompts placed at a scene's named cue —
