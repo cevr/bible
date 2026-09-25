@@ -128,8 +128,8 @@ export const spawnSearchDaemon: Effect.Effect<
   const _reref = yield* handle.unref;
 }).pipe(
   Effect.scoped,
-  Effect.mapError(
-    (cause) => new SearchDaemonSpawnError({ message: `daemon spawn failed: ${String(cause)}` }),
+  Effect.mapError((cause) =>
+    SearchDaemonSpawnError.make({ message: `daemon spawn failed: ${String(cause)}` }),
   ),
 );
 

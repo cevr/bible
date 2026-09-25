@@ -1,0 +1,66 @@
+diff --git a/dist/SqliteClient.js b/dist/SqliteClient.js
+index 2bd54d4913c2ef9ab0ecfe8ef40ffec5254ebbc2..4035cf6ad279e80d271a4f6646064354f66cd323 100644
+--- a/dist/SqliteClient.js
++++ b/dist/SqliteClient.js
+@@ -13,7 +13,7 @@
+  *
+  * @since 4.0.0
+  */
+-import { Database } from "bun:sqlite";
++import { Database, constants } from "bun:sqlite";
+ import * as Config from "effect/Config";
+ import * as Context from "effect/Context";
+ import * as Duration from "effect/Duration";
+@@ -63,7 +63,10 @@ export const make = options => Effect.gen(function* () {
+   const transformRows = options.transformResultNames ? Statement.defaultTransforms(options.transformResultNames).array : undefined;
+   const makeConnection = Effect.gen(function* () {
+     const readonly = options.readonly === true;
+-    const db = new Database(options.filename, {
++    // bible-tools patch: a `file:` filename is a SQLite URI. Bun's bundled
++    // SQLite (Linux) interprets URIs only with SQLITE_OPEN_URI; the macOS
++    // system SQLite interprets them always. Pass the flag so both agree.
++    const db = options.filename.startsWith("file:") ? new Database(options.filename, (readonly ? constants.SQLITE_OPEN_READONLY : constants.SQLITE_OPEN_READWRITE | ((options.create ?? true) ? constants.SQLITE_OPEN_CREATE : 0)) | constants.SQLITE_OPEN_URI) : new Database(options.filename, {
+       readonly,
+       readwrite: readonly ? false : options.readwrite ?? true,
+       create: readonly ? false : options.create ?? true
+diff --git a/src/SqliteClient.ts b/src/SqliteClient.ts
+index fcb753d8c9c6e622cf13a375ae29770ab1272362..34f7626273967d20d59aa29acf21393b36182701 100644
+--- a/src/SqliteClient.ts
++++ b/src/SqliteClient.ts
+@@ -13,7 +13,7 @@
+  *
+  * @since 4.0.0
+  */
+-import { Database } from "bun:sqlite"
++import { constants, Database } from "bun:sqlite"
+ import * as Config from "effect/Config"
+ import * as Context from "effect/Context"
+ import * as Duration from "effect/Duration"
+@@ -129,11 +129,22 @@ export const make = (
+ 
+     const makeConnection = Effect.gen(function*() {
+       const readonly = options.readonly === true
+-      const db = new Database(options.filename, {
+-        readonly,
+-        readwrite: readonly ? false : options.readwrite ?? true,
+-        create: readonly ? false : options.create ?? true
+-      } as any)
++      // bible-tools patch: a `file:` filename is a SQLite URI. Bun's bundled
++      // SQLite (Linux) interprets URIs only with SQLITE_OPEN_URI; the macOS
++      // system SQLite interprets them always. Pass the flag so both agree.
++      const db = options.filename.startsWith("file:")
++        ? new Database(
++          options.filename,
++          (readonly
++            ? constants.SQLITE_OPEN_READONLY
++            : constants.SQLITE_OPEN_READWRITE | ((options.create ?? true) ? constants.SQLITE_OPEN_CREATE : 0)) |
++            constants.SQLITE_OPEN_URI
++        )
++        : new Database(options.filename, {
++          readonly,
++          readwrite: readonly ? false : options.readwrite ?? true,
++          create: readonly ? false : options.create ?? true
++        } as any)
+       yield* Effect.addFinalizer(() => Effect.sync(() => db.close()))
+       const busyTimeout = Math.min(
+         MAX_BUSY_TIMEOUT,

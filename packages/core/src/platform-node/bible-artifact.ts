@@ -119,7 +119,7 @@ export const provenanceFrom = (stored: typeof StoredProvenance.Type): CorpusProv
  *  rather than to an explicit `undefined` the exact-optional decoder refuses. */
 export const storedGeneration = (raw: Option.Option<string>): { readonly generation?: number } =>
   Option.match(
-    Option.flatMap(raw, (value) => Schema.decodeUnknownOption(Schema.Int)(Number(value))),
+    Option.flatMap(raw, (value) => Schema.decodeOption(Schema.Int)(Number(value))),
     {
       onNone: () => ({}),
       onSome: (generation) => ({ generation }),
@@ -472,7 +472,7 @@ const readSidecar = (filename: string): Effect.Effect<SidecarPointer, unknown> =
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const raw = yield* fs.readFileString(sidecarPath(filename));
-    const stored = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(StoredProvenance))(raw);
+    const stored = yield* Schema.decodeEffect(Schema.fromJsonString(StoredProvenance))(raw);
     return {
       provenance: provenanceFrom(stored),
       artifact: Option.fromUndefinedOr(stored.artifact),

@@ -70,13 +70,13 @@ describe('SignedFromStrings', () => {
     }));
 
   test('works over the other two axes with the same spelling', () =>
-    Effect.sync(() => {
-      expect(Schema.decodeUnknownSync(SignedFromStrings(CorpusSection))(['-bible'])).toEqual({
+    Effect.gen(function* () {
+      expect(yield* Schema.decodeEffect(SignedFromStrings(CorpusSection))(['-bible'])).toEqual({
         include: [],
         exclude: ['bible'],
       });
       expect(
-        Schema.decodeUnknownSync(SignedFromStrings(BookType))(['book', '-dictionary']),
+        yield* Schema.decodeEffect(SignedFromStrings(BookType))(['book', '-dictionary']),
       ).toEqual({ include: ['book'], exclude: ['dictionary'] });
     }));
 });

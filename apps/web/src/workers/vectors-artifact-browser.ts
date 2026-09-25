@@ -91,7 +91,7 @@ const readProvenance = (
   Effect.gen(function* () {
     const bytes = yield* files.read(sidecarName(filename));
     if (Option.isNone(bytes)) return yield* Effect.fail('no sidecar');
-    const stored = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(StoredProvenance))(
+    const stored = yield* Schema.decodeEffect(Schema.fromJsonString(StoredProvenance))(
       new TextDecoder().decode(bytes.value),
     );
     return CorpusProvenance.make({

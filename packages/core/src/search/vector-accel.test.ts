@@ -132,6 +132,24 @@ describe('vector scan acceleration', () => {
     }),
   );
 
+  it.effect('a tier answers only for the vectors it was built from', () =>
+    Effect.gen(function* () {
+      // The native tier holds a pointer to one index's vectors. Read against
+      // another index, it would score the wrong buffer and return plausible,
+      // wrong neighbors, so the other index must fall back to the pure loop.
+      resetVectorAccel();
+      const built = makeIndex(256, 5);
+      const other = makeIndex(256, 5);
+      yield* vectorAccel(built);
+      expect(Option.isNone(readyVectorAccel(other))).toBe(true);
+      // Asking for the other index resolves a tier for it, and the first
+      // index no longer has one.
+      const rebuilt = yield* vectorAccel(other);
+      expect(Option.isSome(readyVectorAccel(other))).toBe(Option.isSome(rebuilt));
+      expect(Option.isNone(readyVectorAccel(built))).toBe(true);
+    }),
+  );
+
   it.live('the priming path is what production reads, and it lands', () =>
     Effect.gen(function* () {
       // Production never awaits a tier: the layer calls `primeVectorAccel` and
@@ -141,7 +159,7 @@ describe('vector scan acceleration', () => {
       // TypeScript loop, and no other test here would notice.
       resetVectorAccel();
       const index = makeIndex(256, 5);
-      expect(Option.isNone(readyVectorAccel())).toBe(true);
+      expect(Option.isNone(readyVectorAccel(index))).toBe(true);
       primeVectorAccel(index);
       // `it.live`, because priming resolves on the real clock rather than a
       // test one, and a virtual clock would wait forever.
@@ -149,7 +167,7 @@ describe('vector scan acceleration', () => {
       // An unbuilt checkout resolves to no tier, and that is a pass: the two
       // sides agree either way, which is the property under test.
       const built = yield* vectorAccel(index);
-      expect(Option.isSome(readyVectorAccel())).toBe(Option.isSome(built));
+      expect(Option.isSome(readyVectorAccel(index))).toBe(Option.isSome(built));
     }),
   );
 });

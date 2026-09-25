@@ -557,7 +557,7 @@ const scanWith = (
     const vector = yield* embedder.embedQuery(text);
     const scanAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     // Whatever tier has finished loading by now; `None` until then.
-    const accel = readyVectorAccel();
+    const accel = readyVectorAccel(index);
     const scan = scanVectorIndex(index, vector, {
       ...scanScope(allow, candidates),
       ...Option.match(accel, {

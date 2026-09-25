@@ -74,5 +74,8 @@
     "effect-bun-test": "0.3.0",
     "solid-js": "2.0.0-rc.9",
     "vite-plugin-solid": "3.0.0-next.27"
+  },
+  "patchedDependencies": {
+    "@effect/sql-sqlite-bun@4.0.0-rc.115": "patches/@effect%2Fsql-sqlite-bun@4.0.0-rc.115.patch"
   }
 }

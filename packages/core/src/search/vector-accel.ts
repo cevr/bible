@@ -287,14 +287,28 @@ const loadWasm = (target: AccelTarget): Effect.Effect<Option.Option<VectorAccel>
     });
   }).pipe(Effect.catchCause(() => Effect.succeed(Option.none<VectorAccel>())));
 
-/** The tier resolved for this process. */
-let resolved: Option.Option<Option.Option<VectorAccel>> = Option.none();
+/** The tier resolved for this process, and the vectors it was built for.
+ *
+ *  The native tier captures a pointer to `vectors` and the WebAssembly tier
+ *  copies it, so a tier answers only for the buffer it was built from. Holding
+ *  that buffer beside the tier lets every read check it rather than trust it. */
+let resolved: Option.Option<{
+  readonly vectors: Int8Array;
+  readonly accel: Option.Option<VectorAccel>;
+}> = Option.none();
 
 /** Whether a resolution is already in flight, so `primeVectorAccel` starts at
  *  most one regardless of how many callers ask. */
 let priming = false;
 
-/** The tier this process has *already* resolved, read synchronously.
+/** The tier resolved for exactly this index's vectors. */
+const resolvedFor = (target: AccelTarget): Option.Option<Option.Option<VectorAccel>> =>
+  Option.map(
+    Option.filter(resolved, (entry) => entry.vectors === target.vectors),
+    (entry) => entry.accel,
+  );
+
+/** The tier this process has *already* resolved for `target`, read synchronously.
  *
  *  This is what the scan uses. Loading an accelerator is asynchronous host work
  *  — a `dlopen`, a `WebAssembly.instantiate` — and search must stay runnable
@@ -303,10 +317,14 @@ let priming = false;
  *  TypeScript loop while `primeVectorAccel` resolves in the background, and
  *  every query after that gets the accelerator.
  *
+ *  A tier built for other vectors answers `None`: scoring this index through a
+ *  pointer to another one returns plausible, wrong neighbors.
+ *
  *  The cost of that choice is a few slow queries at startup. The alternative —
  *  awaiting the tier — turns every caller of `SearchService.query` asynchronous,
  *  which is a far larger change than the speed is worth. */
-export const readyVectorAccel = (): Option.Option<VectorAccel> => Option.flatten(resolved);
+export const readyVectorAccel = (target: AccelTarget): Option.Option<VectorAccel> =>
+  Option.flatten(resolvedFor(target));
 
 /** Starts resolving the tier, without making the caller wait.
  *
@@ -314,7 +332,7 @@ export const readyVectorAccel = (): Option.Option<VectorAccel> => Option.flatten
  *  `Effect` the layer yields on: yielding would make the layer asynchronous and
  *  reintroduce exactly the problem `readyVectorAccel` exists to avoid. */
 export const primeVectorAccel = (target: AccelTarget): void => {
-  if (Option.isSome(resolved) || priming) return;
+  if (Option.isSome(resolvedFor(target)) || priming) return;
   priming = true;
   // `vectorAccel` never fails — every load fault is already an `Option.none`
   // — so this only has to release the flag, never handle an error.
@@ -329,23 +347,23 @@ export const primeVectorAccel = (target: AccelTarget): void => {
   );
 };
 
-/** The accelerator for this index, resolved once.
+/** The accelerator for this index, resolved once per index.
  *
- *  Keyed to the process rather than to the index because a host holds one
- *  index: the native tier captures a pointer to `vectors` and the WebAssembly
- *  tier copies it, so neither survives being handed a different index.
+ *  One tier is held per process because a host holds one index. Handing it a
+ *  different index resolves a new tier for those vectors and drops the old one.
  *  `resetVectorAccel` exists for the tests that need to.
  */
 export const vectorAccel = (target: AccelTarget): Effect.Effect<Option.Option<VectorAccel>> =>
   Effect.gen(function* () {
-    if (Option.isSome(resolved)) return resolved.value;
+    const held = resolvedFor(target);
+    if (Option.isSome(held)) return held.value;
     // Native first, WebAssembly second, and the pure loop when neither loads.
     const native = yield* loadNative(target);
     const chosen = yield* Option.match(native, {
       onNone: () => loadWasm(target),
       onSome: (ready) => Effect.succeed(Option.some(ready)),
     });
-    resolved = Option.some(chosen);
+    resolved = Option.some({ vectors: target.vectors, accel: chosen });
     return chosen;
   });
 
