@@ -191,10 +191,13 @@ places them freely. While dragging, the frame previews the edit in memory
 clock, `sceneClock(p)`, as `layout()` does); the release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
 inputs, and an ease picker drawing each curve (the ease is only ever data:
-`f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the
-frame, but only when every read of it this frame was straight onto the
-canvas, untransformed (`RenderOptions.knobs` records each read and whether
-the transform was the identity); under a transform or in a transition it is
+`f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
+`RenderOptions.knobs` records each read with the canvas transform at the
+read (`KnobRead.transform`, like the probe reads it), so the handle sits at
+`transform · value` and a drag maps the pointer back through the inverse
+(`core/affine.ts`), to whole units of the knob's own space: a knob read
+inside `at(...)`, scaled or tilted, drags where it is drawn. Read inside a
+transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
 disabled. Undo write reverts the last write.
 

@@ -13,8 +13,9 @@
 // snap to word starts and ends, marks and other cues' edges within a few
 // pixels, else move by whole frames; hold shift to place freely.
 
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
+import { type Affine, applyAffine, invertAffine, sameAffine } from '../core/affine.ts';
 import type { Placed } from '../core/layout.ts';
 import {
   type CheckLine,
@@ -378,51 +379,80 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   // ── Knob handles on the frame. ──
   const handles = svg('g', { class: 'lab-handles' });
   overlay.append(handles);
-  /** Point knobs the frame read straight onto itself, so a handle lands where the knob does. */
-  const directPoints = (scene: string) => {
-    const reads = player.knobReads().filter((r) => r.scene === scene);
-    const names = [...new Set(reads.map((r) => r.name))];
-    return names.flatMap((name) => {
-      const mine = reads.filter((r) => r.name === name);
-      const value = mine[0]?.value;
-      if (value === undefined || !isPoint(value)) return [];
-      return mine.every((r) => r.direct) ? [{ name, value }] : [];
+  /**
+   * A point knob's handle: where the frame last read it, as a transform from
+   * the knob's space to the frame. Only when every read this frame was
+   * straight onto the frame (not a transition's layer) under one invertible
+   * transform; otherwise why there is no handle.
+   */
+  type HandleAt =
+    | { readonly kind: 'handle'; readonly value: Point; readonly m: Affine; readonly inv: Affine }
+    | { readonly kind: 'none'; readonly why: string };
+  const handleOf = (scene: string, name: string): HandleAt => {
+    const mine = player.knobReads().filter((r) => r.scene === scene && r.name === name);
+    const first = mine[0];
+    if (first === undefined) return { kind: 'none', why: 'not read at this frame: numbers only' };
+    const value = first.value;
+    if (!isPoint(value)) return { kind: 'none', why: 'a number' };
+    const m = first.transform;
+    if (m === undefined || mine.some((r) => r.transform === undefined))
+      return { kind: 'none', why: 'read inside a transition here: numbers only' };
+    if (mine.some((r) => r.transform === undefined || !sameAffine(r.transform, m)))
+      return { kind: 'none', why: 'read under more than one transform here: numbers only' };
+    return Option.match(invertAffine(m), {
+      onNone: (): HandleAt => ({ kind: 'none', why: 'drawn squashed flat here: numbers only' }),
+      onSome: (inv): HandleAt => ({ kind: 'handle', value, m, inv }),
+    });
+  };
+  /** Point knobs with a handle on the frame now. */
+  const handlePoints = (scene: string) => {
+    const names = new Set(
+      player
+        .knobReads()
+        .filter((r) => r.scene === scene)
+        .map((r) => r.name),
+    );
+    return [...names].flatMap((name) => {
+      const at = handleOf(scene, name);
+      return at.kind === 'handle' ? [{ name, ...at }] : [];
     });
   };
   const renderHandles = () => {
     handles.replaceChildren();
     const scene = film.sceneAt(player.now()).spec.id;
-    for (const { name, value } of directPoints(scene)) {
-      const g = svg('g', { class: 'lab-handle', 'data-knob': name });
-      const selected = selection?.kind === 'knob' && selection.name === name;
+    for (const at of handlePoints(scene)) {
+      const [x, y] = applyAffine(at.m, at.value);
+      const g = svg('g', { class: 'lab-handle', 'data-knob': at.name });
+      const selected = selection?.kind === 'knob' && selection.name === at.name;
       if (selected) g.classList.add('selected');
       g.append(
-        svg('circle', { cx: `${value[0]}`, cy: `${value[1]}`, r: '18' }),
-        svg('line', {
-          x1: `${value[0] - 28}`,
-          y1: `${value[1]}`,
-          x2: `${value[0] + 28}`,
-          y2: `${value[1]}`,
-        }),
-        svg('line', {
-          x1: `${value[0]}`,
-          y1: `${value[1] - 28}`,
-          x2: `${value[0]}`,
-          y2: `${value[1] + 28}`,
-        }),
+        svg('circle', { cx: `${x}`, cy: `${y}`, r: '18' }),
+        svg('line', { x1: `${x - 28}`, y1: `${y}`, x2: `${x + 28}`, y2: `${y}` }),
+        svg('line', { x1: `${x}`, y1: `${y - 28}`, x2: `${x}`, y2: `${y + 28}` }),
       );
-      g.addEventListener('pointerdown', (e) => dragKnob(e, scene, name, value));
+      g.addEventListener('pointerdown', (e) => dragKnob(e, scene, at.name, at));
       handles.append(g);
     }
   };
+  /** A pointer's position in frame pixels. */
   const toCanvas = (e: PointerEvent): Point => {
     const r = overlay.getBoundingClientRect();
     return [
-      Math.round(((e.clientX - r.left) / r.width) * film.width),
-      Math.round(((e.clientY - r.top) / r.height) * film.height),
+      ((e.clientX - r.left) / r.width) * film.width,
+      ((e.clientY - r.top) / r.height) * film.height,
     ];
   };
-  const dragKnob = (e: PointerEvent, scene: string, name: string, from: Point) => {
+  /**
+   * Drag a point knob's handle: the pointer moves in frame pixels, and the
+   * knob by the same move taken back through the transform it was read
+   * under, to whole units of its own space.
+   */
+  const dragKnob = (
+    e: PointerEvent,
+    scene: string,
+    name: string,
+    at: { readonly value: Point; readonly m: Affine; readonly inv: Affine },
+  ) => {
     // The handle, not a note: the overlay never sees this press.
     e.stopPropagation();
     e.preventDefault();
@@ -434,12 +464,19 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       setStatus(`cannot move ${name}: its value is computed in the source`);
       return;
     }
+    const from = at.value;
+    // Where on the handle it was grabbed, so the knob does not jump to the pointer.
+    const grab = applyAffine(at.m, from);
     const start = toCanvas(e);
     let value: Point = from;
     dragging = true;
     const move = (ev: PointerEvent) => {
       const now = toCanvas(ev);
-      value = [from[0] + now[0] - start[0], from[1] + now[1] - start[1]];
+      const [x, y] = applyAffine(at.inv, [
+        grab[0] + now[0] - start[0],
+        grab[1] + now[1] - start[1],
+      ]);
+      value = [Math.round(x), Math.round(y)];
       preview(scene, { ...edits.get(scene), knobs: { ...declaredKnobs(p), [name]: value } });
       renderInspector();
     };
@@ -568,13 +605,6 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const knobs = Object.keys(declaredKnobs(p));
     if (knobs.length === 0) return box;
     box.append(el('div', 'lab-edit-title', `${p.spec.id} · knobs`));
-    const direct = new Set(directPoints(p.spec.id).map((k) => k.name));
-    const reads = new Set(
-      player
-        .knobReads()
-        .filter((r) => r.scene === p.spec.id)
-        .map((r) => r.name),
-    );
     for (const name of knobs) {
       const value = knobValue(p, name);
       if (value === undefined) continue;
@@ -593,11 +623,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
           numberInput(value[0], ok, (v) => commit([v, value[1]])),
           numberInput(value[1], ok, (v) => commit([value[0], v])),
         );
-        const where = direct.has(name)
-          ? 'drag its handle on the frame'
-          : reads.has(name)
-            ? 'drawn under a transform here: numbers only'
-            : 'not read at this frame: numbers only';
+        const at = handleOf(p.spec.id, name);
+        const where = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
         row.append(el('span', 'lab-edit-note', where));
       }
       if (!ok) row.append(el('span', 'lab-edit-note', 'computed in the source'));

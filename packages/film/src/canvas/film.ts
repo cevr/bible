@@ -4,6 +4,7 @@
 
 import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
+import type { Affine } from '../core/affine.ts';
 import { captionCues } from '../core/captions.ts';
 import {
   type Placed,
@@ -136,16 +137,18 @@ export interface KnobRead {
   readonly name: string;
   readonly value: Knob;
   /**
-   * Whether the scene read it with the canvas untransformed, drawn straight
-   * onto the frame (not a transition's layer): only then is a point knob's
-   * value where it lands in frame pixels, as far as the frame can tell.
+   * The canvas transform when the scene read it, straight onto the frame: a
+   * point knob drawn at its value in that space lands at `transform · value`
+   * in frame pixels. None when read into a transition's layer, which is
+   * composited moving or fading: there the frame cannot say where it lands.
    */
-  readonly direct: boolean;
+  readonly transform: Affine | undefined;
 }
 
 /** Where a frame records the knobs it read, for the lab (`RenderOptions.knobs`). */
 interface Reads {
   readonly list: KnobRead[];
+  /** Read straight onto the frame, not into a transition's layer. */
   readonly direct: boolean;
 }
 
@@ -194,6 +197,8 @@ export interface Film {
   /** A scene's cues as the frame draws them: previewed, or as laid out. */
   cuesOf(scene: string): ReadonlyMap<string, ResolvedCue>;
 }
+
+const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
 
 const offscreen = (w: number, h: number) => {
   const c = document.createElement('canvas');
@@ -323,7 +328,7 @@ export const createFilm = (spec: FilmSpec): Film => {
           scene: p.spec.id,
           name,
           value: k,
-          direct: reads.direct && ctx.getTransform().isIdentity,
+          transform: reads.direct ? affineOf(ctx.getTransform()) : undefined,
         });
         return k;
       },

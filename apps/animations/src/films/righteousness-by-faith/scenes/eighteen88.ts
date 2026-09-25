@@ -11,6 +11,10 @@ export const eighteen88 = drawing({
     /** The year, stamped big onto the page. */
     yearStamp: { mark: 'year', offset: -0.2, dur: 0.6, ease: 'outBack' },
   },
+  knobs: {
+    /** Where MINNEAPOLIS sits under the masthead, in the page's own (moving, tilted) space. */
+    city: [960, 218],
+  },
   draw: (f) => {
     const { ctx, t } = f;
     const names = f.mark('names');
@@ -25,11 +29,12 @@ export const eighteen88 = drawing({
       // At 0.9 about the frame's centre, the masthead clears the cite slot (top left).
       at(ctx, { x: 96 - away * 2100, y: 57, rot: -0.015 * (1 - away), scale: 0.9 }, () => {
         newspaper(ctx, 300, 70, 1320, 1000, 'GENERAL CONFERENCE', f.hand('paper'));
+        const [cityX, cityY] = f.knob('city');
         write(
           ctx,
           'MINNEAPOLIS',
-          960,
-          218,
+          cityX,
+          cityY,
           {
             family: F.display,
             size: 34,
