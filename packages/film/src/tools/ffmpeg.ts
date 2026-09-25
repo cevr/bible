@@ -3,7 +3,7 @@
 // `encode` feeds a stream of bytes to ffmpeg's stdin, waiting for the pipe to
 // drain, and kills the child when its scope closes (a failure, an interrupt).
 
-import { Context, Data, Effect, Fiber, Layer, Schema, Sink, Stream } from 'effect';
+import { Context, Data, Duration, Effect, Fiber, Layer, Schema, Sink, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FfmpegFailed, FfmpegMissing } from './errors.ts';
@@ -25,6 +25,9 @@ export interface FfmpegService {
     input: Stream.Stream<Uint8Array, E, R>,
   ) => Effect.Effect<void, FfmpegError | E, R>;
 }
+
+/** How long an interrupted encoder gets to exit on SIGTERM before SIGKILL. */
+const ENCODER_GRACE = Duration.seconds(1);
 
 /** ffmpeg closed its stdin early; its exit code and stderr say why. */
 class StdinClosed extends Data.TaggedError('StdinClosed') {}
@@ -82,7 +85,15 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
         Effect.scoped(
           Effect.gen(function* () {
             const handle = yield* spawner
-              .spawn(ChildProcess.make('ffmpeg', args, { stdin: 'pipe', stdout: 'ignore' }))
+              .spawn(
+                ChildProcess.make('ffmpeg', args, {
+                  stdin: 'pipe',
+                  stdout: 'ignore',
+                  // ffmpeg blocked reading an open stdin ignores SIGTERM; a closing
+                  // scope must not wait on it forever.
+                  forceKillAfter: ENCODER_GRACE,
+                }),
+              )
               .pipe(Effect.mapError(spawnFailed('ffmpeg')));
             const stderr = yield* Effect.forkScoped(
               Effect.orElseSucceed(text(handle.stderr), () => ''),
