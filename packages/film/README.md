@@ -127,12 +127,37 @@ export const justified = drawing({
 ```
 
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
-`{ start, end, dur }`); an unknown mark or cue, or a cycle, is an error naming
+`{ start, end, dur, ease }`); an unknown mark or cue, or a cycle, is an error naming
 the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name,
-ease)` its eased progress; with `drawing(...)`, a name the timeline lacks, in
+ease)` its eased progress. A span may declare its easing as data, `ease:
+'inQuad'` (one of the names in `ease`, `EaseName`); `f.at(name)` with no ease
+argument uses it, and a span without one eases `inOutCubic`, as `progress`
+does; with `drawing(...)`, a name the timeline lacks, in
 `f.cue`, `f.at` or a span's `after`/`with`, is a compile error
 (`canvas/drawing.types.ts` holds the checks). The sound plan's `cueTime` reads the same map, so picture and
 sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
+
+## Knobs
+
+A value a note might ask to tweak (where a hand rests, a tag's angle) is a
+knob: declared once on the drawing, read by name.
+
+```ts
+export const hand = drawing({
+  timeline: { ... },
+  knobs: { palm: [960, 800], tagAngle: 0.12 },
+  draw: (f) => {
+    const [x, y] = f.knob('palm'); // a point
+    const rot = f.knob('tagAngle'); // a number
+  },
+});
+```
+
+A knob is a number or a point (`Knob` in `core/schema.ts`, decoded with the
+scene); `layout()` carries them into `Placed.knobs`. With `drawing(...)`,
+`f.knob` names only declared knobs and returns the declared kind (a number
+stays `number`, a point `readonly [number, number]`). Promoting a constant to
+a knob draws the same frame; it is what lets the lab tweak it.
 
 ## The purity rule
 

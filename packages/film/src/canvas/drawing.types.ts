@@ -36,3 +36,34 @@ export const withTypo = drawing({
   },
   draw: () => {},
 });
+
+/** Reads a value as exactly `A`, so a widened or narrowed knob type fails the typecheck. */
+const is =
+  <A>() =>
+  (_value: A) => {};
+
+export const knobbed = drawing({
+  timeline: {
+    // An ease is one of the kit's names.
+    slam: { mark: 'justified', ease: 'outBack' },
+    // @ts-expect-error: `ease` names a curve in `ease`.
+    thud: { mark: 'justified', ease: 'bouncy' },
+  },
+  knobs: { handY: 800, quoteAt: [960, 170] },
+  draw: (f) => {
+    is<number>()(f.knob('handY'));
+    is<readonly [number, number]>()(f.knob('quoteAt'));
+    // @ts-expect-error: `f.knob` names only declared knobs.
+    f.knob('handX');
+    // @ts-expect-error: a number knob is not a point.
+    is<readonly [number, number]>()(f.knob('handY'));
+  },
+});
+
+export const knobless = drawing({
+  timeline: {},
+  draw: (f) => {
+    // @ts-expect-error: a drawing with no knobs has no `f.knob` names.
+    f.knob('handY');
+  },
+});

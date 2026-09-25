@@ -14,8 +14,6 @@ import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star } from '../kit.ts';
 import { coin, gift, openHand } from './props-2.ts';
 
-const HX = 960;
-const HY = 800;
 const COINS = 10;
 
 /** Faith is the hand, not the price: a tower of merit slides off; a gift is laid in. */
@@ -26,6 +24,10 @@ export const hand_ = drawing({
     topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
     /** Stars rise around the gift once it lies in the palm; they stay to the end. */
     shine: { mark: 'gift', offset: 0.5, dur: 0.3 },
+  },
+  knobs: {
+    /** Where the palm comes to rest, once it has risen. */
+    palm: [960, 800],
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -86,10 +88,11 @@ export const hand_ = drawing({
         0.55 * Math.max(0, grasp) +
         lerp(0.35, 0, progress(t, open - 0.2, 1, ease.inOutCubic)) +
         0.2 * progress(t, gifted + 0.7, 0.5, ease.outCubic);
-      const y = lerp(1300, HY, rise);
+      const [palmX, palmY] = f.knob('palm');
+      const y = lerp(1300, palmY, rise);
       // The tower tips and slides off the palm.
       const topple = f.at('topple', ease.inCubic);
-      at(ctx, { x: HX, y, scale: 1.35 }, () => {
+      at(ctx, { x: palmX, y, scale: 1.35 }, () => {
         // Glow once the hand is empty.
         const glow = progress(t, handAt, 1.2) * (1 - 0.3 * progress(t, gifted, 1));
         if (glow > 0) {

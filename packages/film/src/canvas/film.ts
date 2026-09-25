@@ -6,17 +6,34 @@ import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { captionCues } from '../core/captions.ts';
 import { type Placed, everyTakeRecorded, layout, transitionDur } from '../core/layout.ts';
-import type { Sound, Span, TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
-import type { ResolvedCue } from '../core/timeline.ts';
+import type {
+  Knob,
+  Knobs,
+  Point,
+  Sound,
+  Span,
+  TextBox,
+  Timed,
+  Timeline,
+  Timings,
+  Word,
+} from '../core/schema.ts';
+import { type ResolvedCue, cueProgress } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, probeOf, probing, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
-import { type Ease, clamp, ease, progress } from '../core/time.ts';
+import { type Ease, clamp, ease } from '../core/time.ts';
 
 export const BOIL_FPS = 12;
 
-/** One instant of one scene. `C` names the scene's cues, when its drawing declares them. */
-export interface Frame<C extends string = string> {
+/** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
+export type KnobValue<V extends Knob> = V extends number ? number : Point;
+
+/**
+ * One instant of one scene. `C` names the scene's cues and `K` its knobs, when
+ * its drawing declares them.
+ */
+export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   readonly ctx: CanvasRenderingContext2D;
   readonly w: number;
   readonly h: number;
@@ -33,8 +50,13 @@ export interface Frame<C extends string = string> {
   mark(name: string): number;
   /** A named cue from the scene's `timeline`, scene-local. */
   cue(name: C): ResolvedCue;
-  /** 0→1 across a named cue, eased: `progress(t, cue.start, cue.dur, ease)`. */
+  /**
+   * 0→1 across a named cue, eased: `progress(t, cue.start, cue.dur, e)`, or
+   * the cue's own `ease` (default `inOutCubic`) when `e` is left out.
+   */
   at(name: C, e?: Ease): number;
+  /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
+  knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
   readonly words: ReadonlyArray<Word>;
   /**
@@ -62,15 +84,20 @@ type SpanOf<K extends string> = Span extends infer S
 /** A timeline whose cues refer only to each other. */
 type Closed<T extends Timeline> = { readonly [N in keyof T]: SpanOf<keyof T & string> };
 
+/** No knobs: every `f.knob` name is a compile error. */
+type NoKnobs = Record<never, Knob>;
+
 /**
- * Declare a drawing with a timeline, so `after` and `with` in the timeline,
- * and `f.cue` and `f.at` in `draw`, accept only the cue names it declares. An
- * identity: the result is an ordinary scene drawing.
+ * Declare a drawing with a timeline and knobs, so `after` and `with` in the
+ * timeline, `f.cue` and `f.at` in `draw` accept only the cue names it
+ * declares, and `f.knob` only its knob names, typed as declared. An identity:
+ * the result is an ordinary scene drawing.
  */
-export const drawing = <const T extends Timeline>(
-  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'draw'> & {
+export const drawing = <const T extends Timeline, const K extends Knobs = NoKnobs>(
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw'> & {
     readonly timeline: T & Closed<T>;
-    readonly draw: (f: Frame<keyof T & string>) => void;
+    readonly knobs?: K;
+    readonly draw: (f: Frame<keyof T & string, K>) => void;
   },
 ) => d;
 
@@ -203,9 +230,11 @@ export const createFilm = (spec: FilmSpec): Film => {
         if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
         return c;
       },
-      at: (name, e) => {
-        const c = frame.cue(name);
-        return progress(t, c.start, c.dur, e);
+      at: (name, e) => cueProgress(frame.cue(name), t, e),
+      knob: (name) => {
+        const k = p.knobs.get(name);
+        if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
+        return k;
       },
       hand: (key) => ({
         boil,

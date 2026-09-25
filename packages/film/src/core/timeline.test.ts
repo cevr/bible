@@ -4,7 +4,8 @@ import type { Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { type SceneClock, resolveTimeline } from './timeline.ts';
+import { ease } from './time.ts';
+import { DEFAULT_EASE, type SceneClock, cueProgress, resolveTimeline } from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
@@ -24,7 +25,28 @@ describe('timeline', () => {
       start: 0.5 + 2 + 0.9,
       end: 0.5 + 2 + 0.9 + 0.35,
       dur: 0.35,
+      ease: DEFAULT_EASE,
     });
+  });
+
+  test('a span’s ease is data: the resolved cue carries it, or the default', () => {
+    const cues = resolveTimeline(
+      { slam: { mark: 'fiction', dur: 1, ease: 'inQuad' }, lift: { after: 'slam', dur: 1 } },
+      clock,
+    );
+    expect(cues.get('slam')?.ease).toBe('inQuad');
+    expect(cues.get('lift')?.ease).toBe('inOutCubic');
+  });
+
+  test('cueProgress eases by the cue’s own ease unless the draw passes one', () => {
+    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad' } as const;
+    // Halfway through: inQuad gives 0.25, the passed linear 0.5, the default inOutCubic 0.5.
+    expect(cueProgress(cue, 2)).toBeCloseTo(0.25);
+    expect(cueProgress(cue, 2, ease.linear)).toBeCloseTo(0.5);
+    expect(cueProgress({ ...cue, ease: DEFAULT_EASE }, 2.5)).toBeCloseTo(ease.inOutCubic(0.75));
+    // Before and after the span it is pinned, whatever the ease.
+    expect(cueProgress(cue, 0)).toBe(0);
+    expect(cueProgress(cue, 9)).toBe(1);
   });
 
   test('`after` chains from the end of a cue, `with` from its start, in any declared order', () => {
@@ -54,7 +76,7 @@ describe('timeline', () => {
       },
       clock,
     );
-    expect(cues.get('open')).toEqual({ start: 0.1, end: 0.1, dur: 0 });
+    expect(cues.get('open')).toEqual({ start: 0.1, end: 0.1, dur: 0, ease: DEFAULT_EASE });
     expect(cues.get('voice')?.start).toBe(0.5);
     expect(cues.get('hush')?.start).toBeCloseTo(8.7);
     expect(cues.get('close')?.end).toBeCloseTo(9.4);
@@ -84,5 +106,18 @@ describe('timeline', () => {
       noTakes,
     );
     expect(a?.cues.get('lift')?.start).toBe(0.5 + (a?.voice.marks.get('live') ?? NaN));
+  });
+
+  test('layout carries each scene’s knobs as declared; a scene without them has none', () => {
+    const [a, b] = layout(
+      [
+        { id: 'a', knobs: { handY: 800, quoteAt: [960, 170] } },
+        { id: 'b', say: 'Look.' },
+      ],
+      noTakes,
+    );
+    expect(a?.knobs.get('handY')).toBe(800);
+    expect(a?.knobs.get('quoteAt')).toEqual([960, 170]);
+    expect(b?.knobs.size).toBe(0);
   });
 });

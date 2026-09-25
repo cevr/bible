@@ -5,6 +5,7 @@
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
+import type { ease } from './time.ts';
 
 /**
  * A JSON file as the repo keeps it: two-space indent and a final newline, which
@@ -112,10 +113,36 @@ export const Transition = Schema.Union([
 ]);
 export type Transition = typeof Transition.Type;
 
+/** The name of an easing curve in `ease` (`time.ts`), so a cue's easing is data. */
+export const EaseName = Schema.Literals([
+  'linear',
+  'inQuad',
+  'outQuad',
+  'inOutQuad',
+  'inCubic',
+  'outCubic',
+  'inOutCubic',
+  'outQuart',
+  'inOutQuart',
+  'outExpo',
+  'inOutExpo',
+  'inOutSine',
+  'outBack',
+  'outSoft',
+]);
+export type EaseName = typeof EaseName.Type;
+
+/** Fails the typecheck unless `EaseName` names every curve in `ease` and nothing else. */
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Assert<T extends true> = T;
+export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
+
 const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
   /** Defaults to 0, an instant. */
   dur: Schema.optionalKey(Schema.Finite),
+  /** How `f.at(name)` eases across the cue when `draw` passes no ease. Defaults to `inOutCubic`. */
+  ease: Schema.optionalKey(EaseName),
 };
 
 /** Where a named cue starts, plus how long it lasts. */
@@ -138,6 +165,18 @@ export type Span = typeof Span.Type;
 export const Timeline = Schema.Record(Schema.String, Span);
 export type Timeline = typeof Timeline.Type;
 
+/** A point in canvas pixels. */
+export const Point = Schema.Tuple([Schema.Finite, Schema.Finite]);
+export type Point = typeof Point.Type;
+
+/** A value a drawing reads by name (`f.knob`) instead of hard-coding: a number or a point. */
+export const Knob = Schema.Union([Schema.Finite, Point]);
+export type Knob = typeof Knob.Type;
+
+/** A drawing's knobs: name → value, the one place the value lives. */
+export const Knobs = Schema.Record(Schema.String, Knob);
+export type Knobs = typeof Knobs.Type;
+
 /** The part of a scene the clock reads. */
 export const Timed = Schema.Struct({
   id: Schema.String,
@@ -153,6 +192,8 @@ export const Timed = Schema.Struct({
   enter: Schema.optionalKey(Transition),
   /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
   timeline: Schema.optionalKey(Timeline),
+  /** Named numbers and points the drawing reads with `f.knob`. */
+  knobs: Schema.optionalKey(Knobs),
 });
 export type Timed = typeof Timed.Type;
 
@@ -277,10 +318,6 @@ export const ExportInfo = Schema.Struct({
   audio: Schema.optional(Schema.String),
 });
 export type ExportInfo = typeof ExportInfo.Type;
-
-/** A point in canvas pixels. */
-export const Point = Schema.Tuple([Schema.Finite, Schema.Finite]);
-export type Point = typeof Point.Type;
 
 /**
  * One line of text as drawn, from the text probe, in canvas pixels after the

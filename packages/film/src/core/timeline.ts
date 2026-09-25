@@ -4,14 +4,23 @@
 // it. Resolved once per layout; the picture and the sound both read the result.
 // Pure and DOM-free.
 
-import type { Span, Timeline } from './schema.ts';
+import type { EaseName, Span, Timeline } from './schema.ts';
+import { type Ease, ease, progress } from './time.ts';
 
-/** A cue on the scene clock, in scene-local seconds. */
+/** The ease a cue declares none of: the same curve `progress` defaults to. */
+export const DEFAULT_EASE: EaseName = 'inOutCubic';
+
+/** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
 export interface ResolvedCue {
   readonly start: number;
   readonly end: number;
   readonly dur: number;
+  readonly ease: EaseName;
 }
+
+/** 0→1 across a cue at scene time `t`: eased by `e` when given, else by the cue's own ease. */
+export const cueProgress = (cue: ResolvedCue, t: number, e?: Ease): number =>
+  progress(t, cue.start, cue.dur, e ?? ease[cue.ease]);
 
 /** What a timeline resolves against. `marks` are speech-relative, as narration gives them. */
 export interface SceneClock {
@@ -46,7 +55,7 @@ export const resolveTimeline = (
     const start = anchor(name, span) + (span.offset ?? 0);
     visiting.delete(name);
     const dur = span.dur ?? 0;
-    const cue = { start, end: start + dur, dur };
+    const cue = { start, end: start + dur, dur, ease: span.ease ?? DEFAULT_EASE };
     out.set(name, cue);
     return cue;
   };

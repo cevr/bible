@@ -88,8 +88,15 @@ a mark, another cue (`after` / `with`) or a scene landmark, and read it in
 `f.at(name, ease)` (0→1 across it). Wrap the drawing in `drawing({ timeline,
 draw })` so an undeclared name fails to compile, in `f.cue`/`f.at` and in the
 timeline's own `after`/`with`. `layout()` resolves every cue
-once; `cues` prints them and fails when one ends after its scene. Ornament
+once; `cues` prints them and fails when one ends after its scene. A span's
+easing is data too (`{ mark: 'fiction', dur: 0.35, ease: 'inQuad' }`):
+`f.at(name)` uses it when `draw` passes no ease. Ornament
 (wobble, idle motion) stays inline.
+
+**A tweakable value is a knob.** A position or an angle a review may ask to
+move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
+`f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
+constant.
 
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text and
 re-records only beats whose text changed, transcribes every new take back with
@@ -128,23 +135,23 @@ first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
 with the registry in `src/films/index.ts`. Scenes import from three entry
 points:
 
-| Entry point          | Module          | What it gives a scene                                                                                               |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`       |
-|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                            |
-|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                      |
-|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                              |
-|                      | `random.ts`     | seeded hash and noise                                                                                               |
-|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                       |
-| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
-|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`               |
-|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                         |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                          |
-|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                             |
-|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                            |
-|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                       |
-|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                     |
-| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                            |
+| Entry point          | Module          | What it gives a scene                                                                                                     |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`             |
+|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                  |
+|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                            |
+|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                    |
+|                      | `random.ts`     | seeded hash and noise                                                                                                     |
+|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                             |
+| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
+|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                     |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                               |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                                |
+|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                   |
+|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                  |
+|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                             |
+|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                           |
+| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                  |
 
 `core` is pure and DOM-free, so the scripts and tests read it without a
 browser.

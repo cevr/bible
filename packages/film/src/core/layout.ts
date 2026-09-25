@@ -5,7 +5,7 @@
 import { Array as Arr, Result } from 'effect';
 import { UnknownScene } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Timed, Timings, Transition, Word } from './schema.ts';
+import type { Knob, Timed, Timings, Transition, Word } from './schema.ts';
 import { type ResolvedCue, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
@@ -18,6 +18,8 @@ export interface Placed<S extends Timed = Timed> {
   readonly speechStart: number;
   /** The scene's named cues, scene-local. */
   readonly cues: ReadonlyMap<string, ResolvedCue>;
+  /** The scene's knobs, as its drawing declares them. */
+  readonly knobs: ReadonlyMap<string, Knob>;
 }
 
 export const transitionDur = (t: Transition | undefined) =>
@@ -46,7 +48,8 @@ export const layout = <S extends Timed>(
       speechEnd: speechStart + voice.duration,
       dur,
     });
-    out.push({ spec, index, start, dur, voice, speechStart, cues });
+    const knobs = new Map(Object.entries(spec.knobs ?? {}));
+    out.push({ spec, index, start, dur, voice, speechStart, cues, knobs });
     start += dur;
   });
   return out;

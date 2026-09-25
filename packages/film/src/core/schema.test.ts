@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Result, Schema } from 'effect';
-import { Timings, TimingsJson, type VoiceTiming, type Word } from './schema.ts';
+import { Timed, Timings, TimingsJson, type VoiceTiming, type Word } from './schema.ts';
 
 const take: VoiceTiming = {
   hash: 'h',
@@ -52,5 +52,23 @@ describe('Timings', () => {
     expect(decodes(withWord(2, { start: 99, end: 99.5 }))).toBe(false);
     // Within the tolerance the take's measured length is allowed to differ by.
     expect(decodes(withWord(2, { end: 2.01 }))).toBe(true);
+  });
+});
+
+describe('Timed', () => {
+  /** A scene as JSON text, decoded as the tools decode a scene module. */
+  const decodes = (json: string) =>
+    Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(Timed))(json));
+
+  test('a span may name an ease; an ease the kit lacks is refused', () => {
+    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"outBack"}}}')).toBe(true);
+    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"bouncy"}}}')).toBe(false);
+  });
+
+  test('knobs are numbers or points, nothing else', () => {
+    expect(decodes('{"id":"a","knobs":{"handY":800,"quoteAt":[960,170]}}')).toBe(true);
+    expect(decodes('{"id":"a","knobs":{"handY":"800"}}')).toBe(false);
+    expect(decodes('{"id":"a","knobs":{"quoteAt":[960]}}')).toBe(false);
+    expect(decodes('{"id":"a","knobs":{"handY":null}}')).toBe(false);
   });
 });
