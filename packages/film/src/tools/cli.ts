@@ -1,6 +1,7 @@
 // `film`: the tools that turn a film's script into sound and pictures, run
-// from the app that holds the films (`src/films/<film>`, or FILMS_DIR). The app
-// owns its entry (`runFilmCli`), because only it can serve its player page.
+// from the app that holds the films. The app owns its entry (`runFilmCli`): it
+// names its films folder and serves its player page, which imports the same
+// folder, so the tools and the page always read one film.
 //
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
@@ -15,8 +16,19 @@
 // same inputs; mix alone never calls a paid API.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
-import { Array as Arr, Console, Effect, Layer, Option, type Path, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Console,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  type Path,
+  Result,
+  Schema,
+} from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { scenesOf } from '../core/layout.ts';
 import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
@@ -34,7 +46,7 @@ import {
 } from './errors.ts';
 import { Ffmpeg, type FfmpegError } from './ffmpeg.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { Mixer } from './mixer.ts';
+import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import type { PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
@@ -48,6 +60,11 @@ const film = Argument.String('film').pipe(
 const only = Flag.String('only').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => new Set(ids.split(',')))),
+);
+/** `--scene a,b`: scenes by id, for `check` and `render`. */
+const scenes = Flag.String('scene').pipe(
+  Flag.optional,
+  Flag.map(Option.map((ids: string) => ids.split(','))),
 );
 const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
@@ -196,7 +213,7 @@ const cues = Command.make(
       for (const line of lines) yield* Console.log(line);
       return;
     }
-    const report = sceneReport(placed, input.scene);
+    const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
     for (const line of report.lines) yield* Console.log(line);
     if (report.late > 0) return yield* CuesLate.make({ count: report.late });
   }),
@@ -225,9 +242,9 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       ),
       allowStale: Flag.Boolean('allow-stale').pipe(
         Flag.withDefault(false),
-        Flag.withDescription('report stale takes and stale sounds as warnings, not errors'),
+        Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
       ),
-      scene: only.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
+      scene: scenes.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
       workers: Flag.Int('workers').pipe(
         Flag.withDefault(4),
         Flag.withDescription('pages probing at once'),
@@ -236,11 +253,24 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
     Effect.fn('film.check')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
+      // A misspelt scene fails here, in either leg, rather than probing nothing.
+      const only = yield* Option.match(input.scene, {
+        onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
+        onSome: (ids) =>
+          Effect.fromResult(scenesOf(placed, ids)).pipe(
+            Effect.map((picked) => Option.some(new Set(picked.map((p) => p.spec.id)))),
+          ),
+      });
+      const master = yield* measureMaster(
+        yield* FileSystem.FileSystem,
+        yield* Ffmpeg,
+        masterFile(loaded.paths),
+      );
       const found: Array<Reported> = [
-        ...staticFindings(loaded, placed, { allowStale: input.allowStale }),
+        ...staticFindings(loaded, placed, { allowStale: input.allowStale }, master),
       ];
       if (!input.static) {
-        const layout = yield* layoutLeg(loaded, input.workers, input.scene);
+        const layout = yield* layoutLeg(loaded, input.workers, only);
         for (const finding of layout) found.push({ level: 'error', finding });
       }
       for (const { level, finding } of found)
@@ -275,8 +305,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.optional,
         Flag.withDescription('write a contact sheet, a frame every this many seconds'),
       ),
-      scene: Flag.String('scene').pipe(
-        Flag.optional,
+      scene: scenes.pipe(
         Flag.withDescription("span these scenes (id,id), read from the film's layout"),
       ),
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
@@ -311,7 +340,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         onNone: () => Effect.succeed({ from: input.from, to: input.to }),
         onSome: (ids) =>
           placeFilm(loaded).pipe(
-            Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids.split(',')))),
+            Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids))),
             Effect.map((span) => ({ from: Option.some(span.from), to: Option.some(span.to) })),
           ),
       });
@@ -345,16 +374,24 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
 const Tools = Layer.mergeAll(Ffmpeg.layer, ElevenLabs.layer).pipe(Layer.provide(Platform));
-const Repo = FilmRepo.layer.pipe(Layer.provide([Store, Platform]));
-const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
-  Layer.provideMerge(Layer.mergeAll(Repo, Store, Tools, Platform)),
-);
+
+/** What the app hands the CLI: where its films are, and the server for its player page. */
+export interface FilmApp<E> {
+  /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
+  readonly films: string;
+  readonly previewServer: Layer.Layer<PreviewServer, E>;
+}
 
 /**
- * Run the `film` CLI with the app's player server. The server and the browser
- * start only for `render` and the layout leg of `check`, and stop with them.
+ * Run the `film` CLI over the app's films, with its player server. The server
+ * and the browser start only for `render` and the layout leg of `check`, and
+ * stop with them.
  */
-export const runFilmCli = <E>(previewServer: Layer.Layer<PreviewServer, E>): void => {
+export const runFilmCli = <E>({ films, previewServer }: FilmApp<E>): void => {
+  const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
+  const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
+    Layer.provideMerge(Layer.mergeAll(Repo, Store, Tools, Platform)),
+  );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const root = Command.make('film').pipe(

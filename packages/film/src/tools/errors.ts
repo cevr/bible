@@ -181,6 +181,28 @@ export class AudioMissing extends Schema.TaggedError<AudioMissing>()('AudioMissi
   }
 }
 
+/** The audio master is not as long as the film: a mix was cut short, or made for another cut. */
+export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
+  file: Schema.String,
+  /** The master's measured length, in seconds. */
+  length: Schema.Finite,
+  /** The film's length, in seconds. */
+  film: Schema.Finite,
+}) {
+  override get message() {
+    return `the audio master ${this.file} runs ${this.length.toFixed(3)}s, the film ${this.film.toFixed(3)}s; run mix to rebuild it (no API calls)`;
+  }
+}
+
+/** The rendered video came out of the mux without the audio stream it was given. */
+export class AudioNotMuxed extends Schema.TaggedError<AudioNotMuxed>()('AudioNotMuxed', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} has no audio stream, though the film has a mixed track`;
+  }
+}
+
 /** A render range with no frames in it. */
 export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
   from: Schema.Finite,

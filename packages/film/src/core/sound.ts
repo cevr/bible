@@ -11,9 +11,9 @@ import {
   type SoundCueError,
   UnknownCue,
   UnknownMark,
-  UnknownScene,
+  type UnknownScene,
 } from './errors.ts';
-import type { Placed } from './layout.ts';
+import { type Placed, sceneOf } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
   type Act,
@@ -28,15 +28,6 @@ import {
 
 /** The API refuses chunks shorter than this. */
 export const MIN_CHUNK_MS = 3000;
-
-const sceneOf = (
-  placed: ReadonlyArray<Placed>,
-  scene: string,
-): Result.Result<Placed, UnknownScene> =>
-  Result.fromOption(
-    Arr.findFirst(placed, (p) => p.spec.id === scene),
-    () => UnknownScene.make({ scene }),
-  );
 
 export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
   Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });

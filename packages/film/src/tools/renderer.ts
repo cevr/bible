@@ -23,7 +23,9 @@ import { filmCaptions, webVtt } from '../core/captions.ts';
 import type { ExportInfo } from '../core/schema.ts';
 import { Browser, type FramePage, type PageOpenError } from './browser.ts';
 import {
-  AudioMissing,
+  AudioNotMuxed,
+  type AudioMissing,
+  type AudioStale,
   type FfmpegFailed,
   type FfmpegMissing,
   type FrameFailed,
@@ -34,6 +36,7 @@ import {
 } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
   type AudioCut,
@@ -63,6 +66,8 @@ export type RenderError =
   | FfmpegFailed
   | FfmpegMissing
   | AudioMissing
+  | AudioStale
+  | AudioNotMuxed
   | RangeEmpty
   | LayoutInvalid
   | PlatformError;
@@ -101,14 +106,19 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const total = end - start;
         const target = Option.getOrElse(job.out, () => `${film.paths.out}.mp4`);
 
-        // The film declares its track only once every take is recorded; its master must exist.
+        // The film declares its track only once every take is recorded. Before
+        // a frame is drawn, its master must be there and cover the whole film
+        // to within a frame: a mix cut short would otherwise mux silence.
         const audio: Option.Option<AudioCut> = Option.map(Option.fromNullishOr(info.audio), () => ({
-          file: path.join(film.paths.narration, 'full.wav'),
+          file: masterFile(film.paths),
           start: start / info.fps,
           duration: total / info.fps,
         }));
-        if (Option.isSome(audio) && !(yield* fs.exists(audio.value.file)))
-          return yield* AudioMissing.make({ file: audio.value.file });
+        if (Option.isSome(audio)) {
+          const length = yield* measureMaster(fs, ffmpeg, audio.value.file);
+          const finding = masterFinding(audio.value.file, length, info.duration, 1 / info.fps);
+          if (Option.isSome(finding)) return yield* finding.value;
+        }
 
         const segDir = path.join(dir, 'segments');
         yield* fresh(segDir);
@@ -165,6 +175,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const list = path.join(segDir, 'list.txt');
         yield* fs.writeFileString(list, concatList(segments));
         yield* ffmpeg.run(muxArgs(list, audio, target));
+        if (Option.isSome(audio) && !(yield* ffmpeg.probeStreams(target)).includes('audio'))
+          return yield* AudioNotMuxed.make({ file: target });
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;

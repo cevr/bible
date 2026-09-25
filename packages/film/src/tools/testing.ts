@@ -29,9 +29,9 @@ const notFound = (method: string, path: string) =>
     pathOrDescriptor: path,
   });
 
-/** A file system over a map of path → bytes. */
-export const memoryFileSystem = (files: Map<string, Uint8Array>) =>
-  FileSystem.layerNoop({
+/** File operations over a map of path → bytes. */
+const memoryOps = (files: Map<string, Uint8Array>) =>
+  ({
     exists: (path) =>
       Effect.succeed(files.has(path) || [...files.keys()].some((f) => f.startsWith(`${path}/`))),
     readFile: (path) =>
@@ -57,7 +57,50 @@ export const memoryFileSystem = (files: Map<string, Uint8Array>) =>
           }),
       }),
     remove: (path) => Effect.sync(() => void files.delete(path)),
+    readDirectory: (path) =>
+      Effect.sync(() =>
+        [...files.keys()]
+          .filter((f) => f.startsWith(`${path}/`))
+          .map((f) => f.slice(path.length + 1))
+          .filter((name) => !name.includes('/')),
+      ),
+  }) satisfies Partial<FileSystem.FileSystem>;
+
+/** A file system over a map of path → bytes. */
+export const memoryFileSystem = (files: Map<string, Uint8Array>) =>
+  FileSystem.layerNoop(memoryOps(files));
+
+/**
+ * `files`, whose `nth` write, rename or remove (counting from 1) fails as a
+ * crash would: nothing after it runs. Every op before it has landed. `ops()`
+ * counts the writes, renames and removes attempted so far.
+ */
+export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) => {
+  const ops = memoryOps(files);
+  let count = 0;
+  const crash = (method: string, path: string) =>
+    Effect.suspend(() => {
+      count += 1;
+      if (count !== nth) return Effect.void;
+      return Effect.fail(
+        PlatformError.systemError({
+          _tag: 'Unknown',
+          module: 'FileSystem',
+          method,
+          pathOrDescriptor: path,
+          description: 'crash',
+        }),
+      );
+    });
+  const layer = FileSystem.layerNoop({
+    ...ops,
+    writeFile: (path, data) =>
+      crash('writeFile', path).pipe(Effect.andThen(ops.writeFile(path, data))),
+    rename: (from, to) => crash('rename', from).pipe(Effect.andThen(ops.rename(from, to))),
+    remove: (path) => crash('remove', path).pipe(Effect.andThen(ops.remove(path))),
   });
+  return { layer, ops: () => count };
+};
 
 export const text = (s: string) => new TextEncoder().encode(s);
 
@@ -71,8 +114,9 @@ export interface ElevenLabsCalls {
 
 /**
  * Speech comes back aligned one character per 0.05 s, and its "audio" is the
- * text itself, so the transcript of a take file is what was spoken into it,
- * unless `heard` maps that text to something else.
+ * text itself, padded with one space per take so no two takes are the same
+ * bytes. The transcript of a take file is what was spoken into it, unless
+ * `heard` maps that text to something else.
  */
 export const fakeElevenLabs = (
   files: Map<string, Uint8Array>,
@@ -87,7 +131,7 @@ export const fakeElevenLabs = (
           calls.tts.push(request);
           const characters = [...request.text];
           return {
-            audio_base64: Encoding.encodeBase64(request.text),
+            audio_base64: Encoding.encodeBase64(request.text + ' '.repeat(calls.tts.length)),
             alignment: {
               characters,
               character_start_times_seconds: characters.map((_, i) => i * 0.05),
@@ -98,7 +142,7 @@ export const fakeElevenLabs = (
       stt: (file) =>
         Effect.sync(() => {
           calls.stt.push(file);
-          const said = new TextDecoder().decode(files.get(file));
+          const said = new TextDecoder().decode(files.get(file)).trim();
           const heard = Option.fromNullishOr(options.heard?.get(said));
           return { text: Option.getOrElse(heard, () => said) };
         }),
@@ -114,13 +158,24 @@ export const fakeElevenLabs = (
 
 export const emptyCalls = (): ElevenLabsCalls => ({ tts: [], stt: [], music: [], effects: [] });
 
-export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
+/** A take's length as the fake ffmpeg measures it: a tenth of a second per byte. */
+export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;
+
+/** An ffmpeg that records its runs; with `files`, it measures a file by `fakeLength`, else as 2.5 s. */
+export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>, files?: Map<string, Uint8Array>) =>
   Layer.succeed(
     Ffmpeg,
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void runs.push(args)),
       version: Effect.void,
-      probeDuration: () => Effect.succeed(2.5),
+      probeDuration: (file) =>
+        Effect.succeed(
+          Option.match(Option.fromNullishOr(files?.get(file)), {
+            onNone: () => 2.5,
+            onSome: fakeLength,
+          }),
+        ),
+      probeStreams: () => Effect.succeed(['audio']),
       encode: (args, input) =>
         Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
     }),
@@ -170,6 +225,10 @@ export interface FakeRenderHost {
   readonly probe?: (
     i: number,
   ) => Effect.Effect<ReadonlyArray<TextBox>, PageError | PageCrashed | FrameFailed>;
+  /** How long ffprobe measures the audio master (default: the film's length). */
+  readonly master?: number;
+  /** The streams ffprobe finds in the rendered video (default: video, plus audio if the film has it). */
+  readonly streams?: ReadonlyArray<string>;
 }
 
 /**
@@ -234,7 +293,17 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void ledger.runs.push(args)),
       version: Effect.void,
-      probeDuration: () => Effect.succeed(info.duration),
+      probeDuration: () =>
+        Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
+      probeStreams: () =>
+        Effect.succeed(
+          Option.getOrElse(Option.fromNullishOr(host.streams), () =>
+            Option.match(Option.fromNullishOr(info.audio), {
+              onNone: () => ['video'],
+              onSome: () => ['video', 'audio'],
+            }),
+          ),
+        ),
       encode: (_args, input) =>
         Effect.acquireUseRelease(
           Effect.sync(() => void (ledger.encoders.spawned += 1)),

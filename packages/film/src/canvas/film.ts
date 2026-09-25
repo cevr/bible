@@ -5,8 +5,8 @@
 import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { captionCues } from '../core/captions.ts';
-import { type Placed, layout, transitionDur } from '../core/layout.ts';
-import type { Sound, TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
+import { type Placed, everyTakeRecorded, layout, transitionDur } from '../core/layout.ts';
+import type { Sound, Span, TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
 import type { ResolvedCue } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, probeOf, probing, recordText } from './probe.ts';
@@ -50,13 +50,26 @@ export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
 }
 
+/** A span whose `after` or `with` names one of the cues `K`. */
+type SpanOf<K extends string> = Span extends infer S
+  ? S extends { readonly after: string }
+    ? Omit<S, 'after'> & { readonly after: K }
+    : S extends { readonly with: string }
+      ? Omit<S, 'with'> & { readonly with: K }
+      : S
+  : never;
+
+/** A timeline whose cues refer only to each other. */
+type Closed<T extends Timeline> = { readonly [N in keyof T]: SpanOf<keyof T & string> };
+
 /**
- * Declare a drawing with a timeline, so `f.cue` and `f.at` accept only the cue
- * names it declares. An identity: the result is an ordinary scene drawing.
+ * Declare a drawing with a timeline, so `after` and `with` in the timeline,
+ * and `f.cue` and `f.at` in `draw`, accept only the cue names it declares. An
+ * identity: the result is an ordinary scene drawing.
  */
 export const drawing = <const T extends Timeline>(
   d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'draw'> & {
-    readonly timeline: T;
+    readonly timeline: T & Closed<T>;
     readonly draw: (f: Frame<keyof T & string>) => void;
   },
 ) => d;
@@ -123,7 +136,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const placed = layout(spec.scenes, spec.timings);
   const last = placed[placed.length - 1];
   const duration = last === undefined ? 0 : last.start + last.dur;
-  const allRecorded = placed.every((p) => p.voice.duration === 0 || p.voice.recorded);
+  const allRecorded = everyTakeRecorded(placed);
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:

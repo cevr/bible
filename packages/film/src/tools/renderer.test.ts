@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
+import type { ExportInfo } from '../core/schema.ts';
 import { PageCrashed, PageError } from './errors.ts';
 import { RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
@@ -12,7 +13,9 @@ import {
   emptyLedger,
   fakeRenderHost,
   memoryFileSystem,
+  testExportInfo,
   testFilm,
+  text,
 } from './testing.ts';
 
 const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
@@ -163,4 +166,52 @@ describe('Renderer', () => {
       expect(ledger.runs.at(-1)?.join(' ')).toContain('tile=6x1');
     }),
   );
+
+  describe('with the mixed track', () => {
+    const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.mp3' };
+    const MASTER = '/films/test/narration/full.wav';
+    const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
+      Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));
+
+    it.live('muxes the master when it covers the film', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({ info });
+        files.set(MASTER, text('pcm'));
+        yield* render(video);
+        expect(ledger.runs[0]).toContain(MASTER);
+        expectAllClosed(ledger);
+      }),
+    );
+
+    it.live('a master shorter than the film fails before a frame is drawn', () =>
+      Effect.gen(function* () {
+        // An interrupted mix left 12 s of a 20 s film.
+        const { ledger, files, render } = setup({ info, master: 12 });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
+        expect(ledger.frames).toEqual([]);
+        expect(ledger.runs).toEqual([]);
+      }),
+    );
+
+    it.live('no master fails before a frame is drawn', () =>
+      Effect.gen(function* () {
+        const { ledger, render } = setup({ info });
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('AudioMissing'));
+        expect(ledger.frames).toEqual([]);
+      }),
+    );
+
+    it.live('a video that comes out without its audio stream fails the render', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({ info, streams: ['video'] });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('AudioNotMuxed'));
+        expectAllClosed(ledger);
+      }),
+    );
+  });
 });

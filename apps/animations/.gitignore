@@ -4,3 +4,9 @@ out/
 src/films/*/narration/full.mp3
 # Its lossless master, which the renderer encodes the MP4's audio from.
 src/films/*/narration/full.wav
+# Writes in flight: a file lands as `<file>.partial` (takes, timings, sound) or
+# `full.partial.mp3|wav` (the mix) and is renamed only once whole. A crash can
+# leave one; `narrate` removes them, with any take the timings no longer name.
+src/films/**/*.partial
+src/films/*/narration/full.partial.*
+src/films/*/narration/*.take.mp3

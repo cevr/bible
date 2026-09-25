@@ -1,12 +1,13 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
-// of order, stale takes and sounds) and the layout findings (text over text,
+// of order, stale takes and sounds, an audio master missing or not as long as
+// the film) and the layout findings (text over text,
 // text off the frame) in the text boxes a probed frame reports. Every finding
 // is collected; none stops the others.
 
 import { Array as Arr, Option, Order, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { transitionDur } from '../core/layout.ts';
+import { everyTakeRecorded, sceneOf, transitionDur } from '../core/layout.ts';
 import { hashText, parse, voiceKey } from '../core/narration.ts';
 import type { Music, Point, Sound, SoundManifest, TextBox } from '../core/schema.ts';
 import { MIN_CHUNK_MS, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
@@ -14,6 +15,8 @@ import {
   ActTooShort,
   AssetMissing,
   AssetStale,
+  type AudioMissing,
+  type AudioStale,
   CueLate,
   type CueInvalid,
   TakeStale,
@@ -21,15 +24,18 @@ import {
   TextOverlap,
   type UnknownCue,
   type UnknownMark,
-  UnknownScene,
+  type UnknownScene,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import { masterFile, masterFinding } from './mixer.ts';
 
 export type StaticFinding =
   | CueLate
   | TakeStale
   | AssetStale
   | AssetMissing
+  | AudioMissing
+  | AudioStale
   | UnknownScene
   | UnknownCue
   | UnknownMark
@@ -100,10 +106,9 @@ export const musicFindings = (
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
 ): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> => {
-  const ids = new Set(placed.map((p) => p.spec.id));
-  const unknown = music.acts
-    .filter((act) => !ids.has(act.from))
-    .map((act) => UnknownScene.make({ scene: act.from }));
+  const unknown = music.acts.flatMap((act) =>
+    Result.match(sceneOf(placed, act.from), { onFailure: (e) => [e], onSuccess: () => [] }),
+  );
   if (unknown.length > 0) return unknown;
   const starts = music.acts.map((act, i) => {
     if (i === 0) return 0;
@@ -151,6 +156,8 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
   switch (finding._tag) {
     case 'TakeStale':
     case 'AssetStale':
+    case 'AudioStale':
+    case 'AudioMissing':
       if (options.allowStale) return 'warning';
       return 'error';
     case 'AssetMissing':
@@ -160,11 +167,35 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
   }
 };
 
-/** Everything the check finds without drawing a frame. */
+/**
+ * How far the audio master may differ from the film's length. The check does
+ * not know the film's frame rate, so it holds the master to a frame at 60 fps,
+ * no looser than the render's one frame at any rate up to that; a mix is
+ * trimmed to the film's length, so a current master is exact.
+ */
+export const MASTER_TOLERANCE = 1 / 60;
+
+/** Once every take is recorded the film has a mixed track, and its master must cover the film. */
+export const masterFindings = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+  length: Option.Option<number>,
+): ReadonlyArray<AudioMissing | AudioStale> => {
+  if (!everyTakeRecorded(placed)) return [];
+  return Option.toArray(
+    masterFinding(masterFile(film.paths), length, filmEnd(placed), MASTER_TOLERANCE),
+  );
+};
+
+/**
+ * Everything the check finds without drawing a frame. `master` is the audio
+ * master's measured length, or none when there is no master.
+ */
 export const staticFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
   options: CheckOptions,
+  master: Option.Option<number>,
 ): ReadonlyArray<Reported> => {
   const sound = Option.toArray(film.sound).flatMap((s) => [
     ...Option.toArray(Option.fromNullishOr(s.music)).flatMap((m) =>
@@ -172,7 +203,8 @@ export const staticFindings = (
     ),
     ...effectFindings(s, placed, film.manifest),
   ]);
-  return [...lateCues(placed), ...staleTakes(film), ...sound].map((finding) => ({
+  const audio = masterFindings(film, placed, master);
+  return [...lateCues(placed), ...staleTakes(film), ...sound, ...audio].map((finding) => ({
     level: levelOf(finding, options),
     finding,
   }));

@@ -6,9 +6,11 @@ import { Schema } from 'effect';
 
 export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownScene', {
   scene: Schema.String,
+  /** The scenes the film has, in film order. */
+  known: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `the film has no scene "${this.scene}"`;
+    return `the film has no scene "${this.scene}"; its scenes are ${this.known.join(', ')}`;
   }
 }
 

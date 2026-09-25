@@ -5,7 +5,8 @@
 import { join, normalize } from 'node:path';
 import index from './index.html';
 
-const FILMS = join(import.meta.dir, 'src/films');
+/** The films folder: the player imports its registry, and the film CLI reads each film here. */
+export const FILMS = join(import.meta.dir, 'src/films');
 
 export const serve = (port: number, development: boolean) =>
   Bun.serve({

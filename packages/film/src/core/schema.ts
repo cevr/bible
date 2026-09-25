@@ -4,7 +4,7 @@
 // from these, so a decoded file and a hand-written film module share one
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
-import { Schema, SchemaTransformation } from 'effect';
+import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
 
 /**
  * A JSON file as the repo keeps it: two-space indent and a final newline, which
@@ -18,22 +18,49 @@ const fileText = SchemaTransformation.transform<string, string>({
 // ---------------------------------------------------------------------------
 // Narration
 
+/** Seconds: finite, never negative. */
+const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
+/**
+ * How far a take's last word may end past its measured length: the alignment
+ * and ffprobe measure the same audio, a frame or so apart at most.
+ */
+export const TAKE_TOLERANCE = 0.05;
+
 /** One spoken word, in seconds from the start of its take. */
 export const Word = Schema.Struct({
   text: Schema.String,
-  start: Schema.Finite,
-  end: Schema.Finite,
-});
+  start: Seconds,
+  end: Seconds,
+}).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
-/** What narrate records for one scene. */
+/** What narrate records for one scene: its words in order, all inside the take. */
 export const VoiceTiming = Schema.Struct({
   /** Hash of the spoken text; a mismatch means the take is stale. */
   hash: Schema.String,
   file: Schema.String,
-  duration: Schema.Finite,
+  duration: Seconds,
   words: Schema.Array(Word),
-});
+}).check(
+  Schema.makeFilter((take) => {
+    const issues: Array<Schema.FilterIssue> = [];
+    for (const [i, w] of take.words.entries()) {
+      const early = Option.exists(Arr.get(take.words, i - 1), (before) => w.start < before.start);
+      if (early)
+        issues.push({
+          path: ['words', i],
+          issue: `"${w.text}" starts before the word ahead of it`,
+        });
+      if (w.end > take.duration + TAKE_TOLERANCE)
+        issues.push({
+          path: ['words', i],
+          issue: `"${w.text}" ends at ${w.end}s, after the ${take.duration}s take`,
+        });
+    }
+    return issues;
+  }),
+);
 export type VoiceTiming = typeof VoiceTiming.Type;
 
 /** `narration/timings.json`: every current take, under the voice that read it. */

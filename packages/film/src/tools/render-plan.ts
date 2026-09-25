@@ -4,8 +4,8 @@
 // Chromium or ffmpeg; `Renderer` only runs it.
 
 import { Array as Arr, Data, Option, Result } from 'effect';
-import { UnknownScene } from '../core/errors.ts';
-import type { Placed } from '../core/layout.ts';
+import type { UnknownScene } from '../core/errors.ts';
+import { type Placed, scenesOf } from '../core/layout.ts';
 import type { ExportInfo } from '../core/schema.ts';
 
 interface JobBase {
@@ -39,15 +39,11 @@ export const RenderJob = Data.taggedEnum<RenderJob>();
 export const sceneSpan = (
   placed: ReadonlyArray<Placed>,
   ids: ReadonlyArray<string>,
-): Result.Result<{ readonly from: number; readonly to: number }, UnknownScene> => {
-  const missing = Arr.findFirst(ids, (id) => !placed.some((p) => p.spec.id === id));
-  if (Option.isSome(missing)) return Result.fail(UnknownScene.make({ scene: missing.value }));
-  const hit = placed.filter((p) => ids.includes(p.spec.id));
-  return Result.succeed({
+): Result.Result<{ readonly from: number; readonly to: number }, UnknownScene> =>
+  Result.map(scenesOf(placed, ids), (hit) => ({
     from: Math.min(...hit.map((p) => p.start)),
     to: Math.max(...hit.map((p) => p.start + p.dur)),
-  });
-};
+  }));
 
 /** Frames `[start, end)`. */
 export interface FrameSpan {

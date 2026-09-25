@@ -28,20 +28,30 @@ Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 loads. Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
-`--only music,<effect>` and `--dry-run`. `FILMS_DIR` and `FILMS_OUT` override
-`src/films` and `out`.
+`--only music,<effect>` and `--dry-run`. The films are always `src/films`, the
+folder the player imports (`cli.ts` hands it to the tools); `FILMS_OUT`
+overrides `out`.
 
-Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes
-and sound are warnings), `--scene id,id` (probe only these scenes' layout),
-`--workers n`. The app's `gate` runs the static leg with `--allow-stale`: it
+Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes,
+sound and audio master are warnings), `--scene id,id` (probe only these
+scenes' layout), `--workers n`. A scene id the film lacks (`--scene`, or
+`cues <film> <scene>`) fails with `UnknownScene`, listing the film's scenes.
+Once every take is recorded, the static leg also measures `narration/full.wav`:
+missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
+(a mix cut short, or made before a re-timing); `mix` fixes both. The app's `gate` runs the static leg with `--allow-stale`: it
 is instant and needs no browser, and a script edit or a re-timing waiting on
 a paid re-record must not block a commit; the layout leg is a review step.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`. A video's audio
-is encoded once from the lossless `narration/full.wav` (run `mix` if it is
-missing), and its captions are also written as WebVTT beside it. Ctrl-C stops
+is encoded once from the lossless `narration/full.wav`, which must cover the
+whole film to within a frame before a frame is drawn (`AudioMissing` or
+`AudioStale` otherwise: run `mix`), and a video that comes out of the mux
+without its audio stream fails with `AudioNotMuxed`. Its captions are also
+written as WebVTT beside it. `mix` writes `full.partial.mp3` and
+`full.partial.wav` and renames both only once ffmpeg finishes, so a failed or
+interrupted mix leaves the previous pair as it was. Ctrl-C stops
 a render cleanly: every page, the browser, the server and every ffmpeg child
 close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. A striped timeline segment means that beat's narration is
@@ -76,7 +86,8 @@ moment (a sound, another cue), name it in the scene's `timeline`, anchored to
 a mark, another cue (`after` / `with`) or a scene landmark, and read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
 `f.at(name, ease)` (0→1 across it). Wrap the drawing in `drawing({ timeline,
-draw })` so an undeclared name fails to compile. `layout()` resolves every cue
+draw })` so an undeclared name fails to compile, in `f.cue`/`f.at` and in the
+timeline's own `after`/`with`. `layout()` resolves every cue
 once; `cues` prints them and fails when one ends after its scene. Ornament
 (wobble, idle motion) stays inline.
 
@@ -84,9 +95,15 @@ once; `cues` prints them and fails when one ends after its scene. Ornament
 re-records only beats whose text changed, transcribes every new take back with
 speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
 what the script says (over 8% word error). A failed take never replaces the
-current one; `--accept-mismatch` keeps it with a warning. `timings.json` and
-`sound/manifest.json` are Schema-decoded (`@bible/film/core` `schema.ts`) and
-written one writer at a time, so takes finishing together never lose entries.
+current one; `--accept-mismatch` keeps it with a warning. A new take is saved
+as `<id>.<audio hash>.mp3`, beside the take it replaces, and becomes current
+only when `timings.json` is rewritten to name it, so a crash at any step
+leaves every take the timings name on disk and matching them. The next
+`narrate` removes what a crash or a failed take left (takes the timings no
+longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
+Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
+non-negative, words run in order, and none ends after its take) and written
+one writer at a time, so takes finishing together never lose entries.
 
 **Sound follows the same clock.** `sound.ts` declares the score as acts, each
 starting at a scene, and effects as prompts placed at a scene's named cue —

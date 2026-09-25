@@ -25,10 +25,11 @@ taken over Schema-encoded requests, so a committed hash stays current.
 ## Tools
 
 `film narrate|score|mix|cues|check|render <film>` (and `film doctor`) runs from the app that holds the
-films (`src/films/<film>`, or `FILMS_DIR`). The app owns the entry: it calls
-`runFilmCli(previewServer)` with a scoped `PreviewServer` layer that serves its
+films. The app owns the entry: it calls `runFilmCli({ films, previewServer })`
+with its films folder and a scoped `PreviewServer` layer that serves its
 player page, because only the app can bundle its HTML and films (see
-`apps/animations/cli.ts`). Paid calls (ElevenLabs speech, music,
+`apps/animations/cli.ts`). The player imports the same folder, so the tools
+and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
 produces an asset only when its stored hash is stale, and every manifest
@@ -45,7 +46,16 @@ ffmpeg and ElevenLabs checks before their first paid call, and `render`
 checks ffmpeg before it opens a page.
 
 `mix` writes `narration/full.mp3` for the player and its lossless master
-`narration/full.wav` (16-bit) from one graph.
+`narration/full.wav` (16-bit) from one graph, to `full.partial.mp3|wav`,
+renamed together only once ffmpeg finishes: a failed or interrupted mix leaves
+the previous pair. `masterFinding` holds the master to the film's length
+(`AudioMissing`, `AudioStale`); the renderer checks it before the first frame
+and `check` in its static leg.
+
+`narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
+only by rewriting `timings.json`, so no crash leaves a take and its timings
+disagreeing; it removes the takes the timings no longer name, and partial
+writes, at the start and end of every run.
 
 `render` opens the app's server, headless Chromium (`Browser`, the only
 Playwright code) and a pool of player pages in one scope; a failure in any
@@ -55,7 +65,8 @@ page, at least a second each) on a queue that idle pages pull from; each chunk
 streams PNG frames into its own ffmpeg (`Ffmpeg.encode`, which waits for the
 pipe to drain), and a chunk whose page crashes is retried once on a new page.
 The segments join in order with the audio encoded to AAC once from
-`full.wav`, cut with `-ss`/`-t`, and `out/<film>.vtt` is written beside the
+`full.wav`, cut with `-ss`/`-t` (the joined MP4 is probed for its audio
+stream: `AudioNotMuxed` when it is missing), and `out/<film>.vtt` is written beside the
 MP4 from `captionCues`, the same line timing the burned-in captions use. An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
@@ -69,8 +80,11 @@ what a review used to find by eye:
   (`CueLate`); a sound cue naming an unknown scene, cue or mark; a music act
   out of film order or under 3 s (`ActTooShort`); a take that is missing or
   was recorded for other text or another voice (`TakeStale`); a generated
-  sound whose request hash has moved (`AssetStale`). `--allow-stale` reports
-  stale takes and sounds as warnings. A sound never generated
+  sound whose request hash has moved (`AssetStale`); once every take is
+  recorded, an audio master that is missing (`AudioMissing`) or not the
+  film's length (`AudioStale`). `--allow-stale` reports stale takes, sounds
+  and master as warnings. `--scene id,id` limits the layout leg; an id the
+  film lacks fails with `UnknownScene`. A sound never generated
   (`AssetMissing`) is always a warning: the mix plays without it.
 - **Layout** (headless pages, like `render`): each scene is sampled at every
   mark, every cue's start and end, and its 60% point, pulled after its
@@ -115,8 +129,9 @@ export const justified = drawing({
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
 `{ start, end, dur }`); an unknown mark or cue, or a cycle, is an error naming
 the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name,
-ease)` its eased progress; with `drawing(...)`, a name the timeline lacks is a
-compile error. The sound plan's `cueTime` reads the same map, so picture and
+ease)` its eased progress; with `drawing(...)`, a name the timeline lacks, in
+`f.cue`, `f.at` or a span's `after`/`with`, is a compile error
+(`canvas/drawing.types.ts` holds the checks). The sound plan's `cueTime` reads the same map, so picture and
 sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
 
 ## The purity rule

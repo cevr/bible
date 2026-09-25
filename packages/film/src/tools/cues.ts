@@ -2,10 +2,10 @@
 // named cues, or each sound effect's film time. Pure; `film cues` prints it.
 
 import { Option, Result } from 'effect';
-import type { Placed } from '../core/layout.ts';
+import type { SoundCueError, UnknownScene } from '../core/errors.ts';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Cue, Sound } from '../core/schema.ts';
 import { cueTime } from '../core/sound.ts';
-import type { SoundCueError } from '../core/errors.ts';
 
 export interface CueReport {
   readonly lines: ReadonlyArray<string>;
@@ -13,8 +13,15 @@ export interface CueReport {
   readonly late: number;
 }
 
-const inScene = (only: Option.Option<string>, scene: string) =>
-  Option.match(only, { onNone: () => true, onSome: (id) => id === scene });
+/** Which scenes to report: all, or the one `only` names, which must exist. */
+const sceneFilter = (
+  placed: ReadonlyArray<Placed>,
+  only: Option.Option<string>,
+): Result.Result<(scene: string) => boolean, UnknownScene> =>
+  Option.match(only, {
+    onNone: () => Result.succeed(() => true),
+    onSome: (id) => Result.map(sceneOf(placed, id), (p) => (scene: string) => scene === p.spec.id),
+  });
 
 interface CueLine {
   readonly line: string;
@@ -45,10 +52,11 @@ const lineOf = (p: Placed): CueLine => {
 export const sceneReport = (
   placed: ReadonlyArray<Placed>,
   only: Option.Option<string>,
-): CueReport => {
-  const rows = placed.filter((p) => inScene(only, p.spec.id)).map(lineOf);
-  return { lines: rows.map((r) => r.line), late: rows.reduce((n, r) => n + r.late, 0) };
-};
+): Result.Result<CueReport, UnknownScene> =>
+  Result.map(sceneFilter(placed, only), (inScene) => {
+    const rows = placed.filter((p) => inScene(p.spec.id)).map(lineOf);
+    return { lines: rows.map((r) => r.line), late: rows.reduce((n, r) => n + r.late, 0) };
+  });
 
 const anchorLabel = (cue: Cue): string => {
   const anchor = Option.orElse(Option.fromNullishOr(cue.cue), () =>
@@ -65,10 +73,11 @@ export const soundReport = (
   only: Option.Option<string>,
 ): Result.Result<ReadonlyArray<string>, SoundCueError> =>
   Result.gen(function* () {
+    const inScene = yield* sceneFilter(placed, only);
     const lines: Array<string> = [];
     for (const [name, effect] of Object.entries(sound.effects))
       for (const cue of effect.at) {
-        if (!inScene(only, cue.scene)) continue;
+        if (!inScene(cue.scene)) continue;
         const at = yield* cueTime(cue, placed);
         lines.push(
           `${name.padEnd(8)} ${cue.scene.padEnd(11)} ${at.toFixed(3).padStart(8)} ${anchorLabel(cue)}`,

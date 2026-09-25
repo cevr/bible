@@ -18,6 +18,8 @@ export interface FfmpegService {
   readonly version: Effect.Effect<void, FfmpegError>;
   /** A media file's duration in seconds. */
   readonly probeDuration: (file: string) => Effect.Effect<number, FfmpegError>;
+  /** The type of each stream in a media file (`video`, `audio`, ...). */
+  readonly probeStreams: (file: string) => Effect.Effect<ReadonlyArray<string>, FfmpegError>;
   /**
    * Run ffmpeg reading `input` on stdin (`-i -`). The stream is pulled only
    * as fast as ffmpeg drains the pipe; a stream failure kills ffmpeg.
@@ -88,6 +90,22 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
         );
       });
 
+      const probeStreams = Effect.fn('Ffmpeg.probeStreams')(function* (file: string) {
+        const out = yield* exec('ffprobe', [
+          '-v',
+          'error',
+          '-show_entries',
+          'stream=codec_type',
+          '-of',
+          'csv=p=0',
+          file,
+        ]);
+        return out
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0);
+      });
+
       const encode = <E, R>(args: ReadonlyArray<string>, input: Stream.Stream<Uint8Array, E, R>) =>
         Effect.scoped(
           Effect.gen(function* () {
@@ -124,7 +142,7 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
           }),
         ).pipe(Effect.withSpan('Ffmpeg.encode'));
 
-      return Ffmpeg.of({ run, version, probeDuration, encode });
+      return Ffmpeg.of({ run, version, probeDuration, probeStreams, encode });
     }),
   );
 }

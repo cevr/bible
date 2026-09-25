@@ -2,6 +2,8 @@
 // voice. Pure — the player, the renderer and the Bun scripts all read it, and
 // it names no drawing type, so it runs where there is no DOM.
 
+import { Array as Arr, Result } from 'effect';
+import { UnknownScene } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
 import type { Timed, Timings, Transition, Word } from './schema.ts';
 import { type ResolvedCue, resolveTimeline } from './timeline.ts';
@@ -64,3 +66,24 @@ export const captionLines = (words: ReadonlyArray<Word>, max = 7): Word[][] => {
   if (cur.length > 0) out.push(cur);
   return out;
 };
+
+/** The placed scene `scene` names, or `UnknownScene` listing the scenes there are. */
+export const sceneOf = <S extends Timed>(
+  placed: ReadonlyArray<Placed<S>>,
+  scene: string,
+): Result.Result<Placed<S>, UnknownScene> =>
+  Result.fromOption(
+    Arr.findFirst(placed, (p) => p.spec.id === scene),
+    () => UnknownScene.make({ scene, known: placed.map((p) => p.spec.id) }),
+  );
+
+/** The placed scenes `ids` name, every one of them checked. */
+export const scenesOf = <S extends Timed>(
+  placed: ReadonlyArray<Placed<S>>,
+  ids: ReadonlyArray<string>,
+): Result.Result<ReadonlyArray<Placed<S>>, UnknownScene> =>
+  Result.all(ids.map((id) => sceneOf(placed, id)));
+
+/** Whether every scene that speaks has its take recorded: only then is there a mixed track. */
+export const everyTakeRecorded = (placed: ReadonlyArray<Placed>): boolean =>
+  placed.every((p) => p.voice.duration === 0 || p.voice.recorded);

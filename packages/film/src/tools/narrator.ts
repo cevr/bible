@@ -3,7 +3,15 @@
 // line re-records only that line. Every new take is transcribed back and
 // compared with the script; a take that says something else fails the run
 // unless it is accepted, and is never recorded as current.
+//
+// A crash at any point leaves the takes and their timings in agreement. A new
+// take is written under a name of its own (its beat and a hash of its audio),
+// never over a file the timings name; rewriting `timings.json` whole is the
+// one step that makes it current. What a crashed or failed run leaves behind
+// (a take never made current, a take replaced, a partial write) the timings
+// name nowhere, and the next run removes it.
 
+import { createHash } from 'node:crypto';
 import { Array as Arr, Context, Effect, Encoding, FileSystem, Layer, Option, Path } from 'effect';
 import { hashText, parse, voiceKey, wordsFromAlignment } from '../core/narration.ts';
 import type { Timings, VoiceTiming } from '../core/schema.ts';
@@ -18,6 +26,7 @@ import {
 } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import { trackFile } from './mixer.ts';
 import { settleAll } from './settle.ts';
 
 /** A take whose transcript is further than this from its script is a mismatch. */
@@ -107,6 +116,10 @@ export const wordError = (want: ReadonlyArray<string>, got: ReadonlyArray<string
   return Arr.getUnsafe(previous, got.length) / Math.max(1, want.length);
 };
 
+/** A new take's file name: `<beat>.<hash of its audio>.mp3`, never the name of another take. */
+export const takeFile = (id: string, audio: Uint8Array): string =>
+  `${id}.${createHash('sha256').update(audio).digest('hex').slice(0, 12)}.mp3`;
+
 /** Put one take into the timings, dropping any recorded under another voice. */
 const withTake =
   (voice: string, id: string, take: VoiceTiming) =>
@@ -178,13 +191,13 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
           ),
         );
 
-        // The take stays beside the current one until it has been heard back.
-        const file = `${beat.id}.mp3`;
-        const pending = path.join(film.paths.narration, `${beat.id}.take.mp3`);
-        yield* store.writeFile(pending, audio);
-        const heard = yield* elevenLabs.stt(pending);
+        // The take lands beside the current one; only the timings make it current.
+        const file = takeFile(beat.id, audio);
+        const take = path.join(film.paths.narration, file);
+        yield* store.writeFile(take, audio);
+        const heard = yield* elevenLabs.stt(take);
         const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
-        const duration = yield* ffmpeg.probeDuration(pending);
+        const duration = yield* ffmpeg.probeDuration(take);
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
         );
@@ -195,17 +208,34 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             heard: heard.text,
             wer,
           });
-          if (!options.acceptMismatch) {
-            yield* fs.remove(pending);
-            return yield* mismatch;
-          }
+          // Never made current, the take is removed with the run's leftovers.
+          if (!options.acceptMismatch) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
-        yield* fs.rename(pending, path.join(film.paths.narration, file));
+        // The commit: timings.json is replaced whole, naming the new take.
         yield* store.update(
           film.paths.timings,
           withTake(plan.voice, beat.id, { hash: hashText(beat.text), file, duration, words }),
         );
+      });
+
+      /**
+       * Remove every take file the timings do not name, and every partial
+       * write: what a crashed or failed run left, or a take since replaced.
+       */
+      const sweep = Effect.fn('Narrator.sweep')(function* (film: LoadedFilm) {
+        const dir = film.paths.narration;
+        if (!(yield* fs.exists(dir))) return;
+        const timings = yield* store.read(film.paths.timings);
+        const named = new Set([
+          path.basename(trackFile(film.paths)),
+          ...Object.values(timings.scenes).map((t) => t.file),
+        ]);
+        const stray = (yield* fs.readDirectory(dir)).filter(
+          (name) => name.endsWith('.partial') || (name.endsWith('.mp3') && !named.has(name)),
+        );
+        yield* Effect.forEach(stray, (name) => fs.remove(path.join(dir, name)), { discard: true });
+        if (stray.length > 0) yield* Effect.log(`narrate.sweep removed=${stray.join(',')}`);
       });
 
       const record = Effect.fn('Narrator.record')(function* (
@@ -213,6 +243,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         plan: NarrationPlan,
         options: NarrateOptions,
       ) {
+        yield* sweep(film);
         yield* settleAll(
           plan.stale,
           (beat) =>
@@ -222,8 +253,15 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
               ),
             ),
           3,
+        ).pipe(
+          Effect.andThen(store.update(film.paths.timings, withoutRemoved(plan.voice, plan.beats))),
+          // Also after a failed take: a take never made current does not stay.
+          Effect.ensuring(
+            sweep(film).pipe(
+              Effect.catch((error) => Effect.logWarning(`narrate.sweep failed=${error._tag}`)),
+            ),
+          ),
         );
-        yield* store.update(film.paths.timings, withoutRemoved(plan.voice, plan.beats));
       });
 
       return Narrator.of({ record });

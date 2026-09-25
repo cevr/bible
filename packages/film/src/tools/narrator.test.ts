@@ -2,16 +2,18 @@
 // something else does. No network, no ffmpeg.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, Path, Schema } from 'effect';
+import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { type NarrateOptions, Narrator, planNarration } from './narrator.ts';
 import {
   type ElevenLabsCalls,
+  crashingFileSystem,
   emptyCalls,
   fakeElevenLabs,
   fakeFfmpeg,
+  fakeLength,
   memoryFileSystem,
   storeLayer,
   testFilm,
@@ -84,8 +86,9 @@ describe('Narrator', () => {
       expect(spoken(calls)).toEqual(['The second line.']);
       expect(after.scenes['b']?.hash).toBe(hashText('The second line.'));
       expect(after.scenes['a']).toEqual(recorded.scenes['a']);
-      expect(files.has('/films/test/narration/b.mp3')).toBe(true);
-      expect(files.has('/films/test/narration/b.take.mp3')).toBe(false);
+      // A new take has a name of its own; the timings name it.
+      expect(after.scenes['b']?.file).toMatch(/^b\.[0-9a-f]{12}\.mp3$/);
+      expect(files.has(`/films/test/narration/${after.scenes['b']?.file}`)).toBe(true);
 
       yield* narrate(layer);
       expect(spoken(calls)).toEqual(['The second line.']);
@@ -127,8 +130,8 @@ describe('Narrator', () => {
         new TextDecoder().decode(files.get(TIMINGS)),
       );
       expect(stored).toEqual(recorded);
-      expect(files.has('/films/test/narration/b.take.mp3')).toBe(false);
-      expect(files.has('/films/test/narration/b.mp3')).toBe(false);
+      // The rejected take is not left on disk.
+      expect([...files.keys()].filter((f) => f.startsWith('/films/test/narration/b'))).toEqual([]);
     }),
   );
 
@@ -140,4 +143,86 @@ describe('Narrator', () => {
       expect(after.scenes['b']?.hash).toBe(hashText('The second line.'));
     }),
   );
+
+  describe('crash safety', () => {
+    const DIR = '/films/test/narration';
+    const said = 'Hello world.';
+    /** `a` recorded, its file on disk and its timings in agreement. */
+    const agreed = (): Map<string, Uint8Array> => {
+      const audio = text(said);
+      const timings: Timings = {
+        voice: voiceKey(testVoice),
+        scenes: {
+          a: { hash: hashText(said), file: 'a.mp3', duration: fakeLength(audio), words: [] },
+        },
+      };
+      return new Map([
+        [TIMINGS, text(Schema.encodeSync(TimingsJson)(timings))],
+        [`${DIR}/a.mp3`, audio],
+        [`${DIR}/full.mp3`, text('mix')],
+      ]);
+    };
+    const reRecordA: NarrateOptions = { ...defaults, only: Option.some(new Set(['a'])) };
+
+    const run = (files: Map<string, Uint8Array>, fs: Layer.Layer<FileSystem.FileSystem>) => {
+      const layer = Narrator.layer.pipe(
+        Layer.provideMerge(ContentStore.layer.pipe(Layer.provide([fs, Path.layer]))),
+        Layer.provide([fs, Path.layer, fakeElevenLabs(files, emptyCalls()), fakeFfmpeg([], files)]),
+      );
+      return narrate(layer, testVoice, reRecordA);
+    };
+
+    /** Every take the timings mark current is on disk, and is the audio they describe. */
+    const expectAgreement = (files: Map<string, Uint8Array>) => {
+      const timings = Schema.decodeSync(TimingsJson)(new TextDecoder().decode(files.get(TIMINGS)));
+      for (const [id, take] of Object.entries(timings.scenes)) {
+        const audio = Option.fromNullishOr(files.get(`${DIR}/${take.file}`));
+        expect({ id, onDisk: Option.isSome(audio) }).toEqual({ id, onDisk: true });
+        if (Option.isNone(audio)) continue;
+        expect({ id, duration: fakeLength(audio.value) }).toEqual({ id, duration: take.duration });
+        expect(hashText(new TextDecoder().decode(audio.value).trim())).toBe(take.hash);
+      }
+    };
+
+    it.effect('a re-recorded take and its timings agree after a crash at any step', () =>
+      Effect.gen(function* () {
+        // Count the steps of a clean run, then crash at each one in turn.
+        const clean = agreed();
+        const counted = crashingFileSystem(clean, 0);
+        yield* run(clean, counted.layer);
+        expectAgreement(clean);
+        expect(counted.ops()).toBeGreaterThan(4);
+        for (let nth = 1; nth <= counted.ops(); nth++) {
+          const files = agreed();
+          yield* Effect.exit(run(files, crashingFileSystem(files, nth).layer));
+          expectAgreement(files);
+        }
+      }),
+    );
+
+    it.effect('the next run removes what a crashed run left behind', () =>
+      Effect.gen(function* () {
+        const files = agreed();
+        files.set(`${DIR}/b.take.mp3`, text('stray'));
+        files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
+        files.set(`${TIMINGS}.partial`, text('{'));
+        const layer = Narrator.layer.pipe(
+          Layer.provideMerge(storeLayer(files)),
+          Layer.provide([
+            memoryFileSystem(files),
+            Path.layer,
+            fakeElevenLabs(files, emptyCalls()),
+            fakeFfmpeg([], files),
+          ]),
+        );
+        yield* narrate(layer);
+        const left = [...files.keys()].filter((f) => f.startsWith(`${DIR}/`)).toSorted();
+        const takes = yield* Schema.decodeEffect(TimingsJson)(
+          new TextDecoder().decode(files.get(TIMINGS)),
+        );
+        const current = Object.values(takes.scenes).map((t) => `${DIR}/${t.file}`);
+        expect(left).toEqual([`${DIR}/full.mp3`, TIMINGS, ...current].toSorted());
+      }),
+    );
+  });
 });

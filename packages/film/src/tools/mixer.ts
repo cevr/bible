@@ -5,28 +5,70 @@
 // a paid API.
 
 import { Context, Effect, FileSystem, Layer, Option, Record as Rec, Result } from 'effect';
+import type { PlatformError } from 'effect/PlatformError';
 import type { Placed } from '../core/layout.ts';
 import type { Sound, SoundManifest } from '../core/schema.ts';
 import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import type { StoreError } from './content-store.ts';
-import type {
-  ActTooShort,
-  CueInvalid,
-  FfmpegFailed,
-  FfmpegMissing,
-  FilmModuleInvalid,
-  FilmNotFound,
-  LayoutInvalid,
-  UnknownCue,
-  UnknownMark,
-  UnknownScene,
+import {
+  type ActTooShort,
+  AudioMissing,
+  AudioStale,
+  type CueInvalid,
+  type FfmpegFailed,
+  type FfmpegMissing,
+  type FilmModuleInvalid,
+  type FilmNotFound,
+  type LayoutInvalid,
+  type UnknownCue,
+  type UnknownMark,
+  type UnknownScene,
 } from './errors.ts';
-import { Ffmpeg } from './ffmpeg.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import { Ffmpeg, type FfmpegError, type FfmpegService } from './ffmpeg.ts';
+import { type FilmPaths, FilmRepo, placeFilm } from './film-repo.ts';
 
 /** How far the bed sits under the voice: gentle ratio, slow release so it breathes back. */
 const DUCK = 'sidechaincompress=threshold=0.02:ratio=3:attack=80:release=1000:knee=4';
 const FMT = 'aformat=sample_rates=44100:channel_layouts=stereo';
+
+/** The mixed track the player streams. */
+export const trackFile = (paths: FilmPaths): string => `${paths.narration}/full.mp3`;
+/** Its lossless master, which the renderer encodes a video's audio from. */
+export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full.wav`;
+
+/** Where ffmpeg writes an output until the whole mix has finished: `full.mp3` → `full.partial.mp3`. */
+const partialFile = (file: string): string => file.replace(/(\.[^./]+)$/, '.partial$1');
+
+/** The master's measured length in seconds, or none when there is no master. */
+export const measureMaster = (
+  fs: FileSystem.FileSystem,
+  ffmpeg: FfmpegService,
+  file: string,
+): Effect.Effect<Option.Option<number>, FfmpegError | PlatformError> =>
+  Effect.gen(function* () {
+    if (!(yield* fs.exists(file))) return Option.none();
+    return Option.some(yield* ffmpeg.probeDuration(file));
+  });
+
+/**
+ * The master against the film it must cover: missing, or longer or shorter
+ * than `seconds` by more than `tolerance` (a frame), it is not this film's
+ * track. A mix is trimmed to the film's length, so a current one is exact.
+ */
+export const masterFinding = (
+  file: string,
+  length: Option.Option<number>,
+  seconds: number,
+  tolerance: number,
+): Option.Option<AudioMissing | AudioStale> =>
+  Option.match(length, {
+    onNone: () => Option.some(AudioMissing.make({ file })),
+    onSome: (measured) =>
+      Option.liftPredicate(
+        AudioStale.make({ file, length: measured, film: seconds }),
+        () => Math.abs(measured - seconds) > tolerance,
+      ),
+  });
 
 export interface MixInput {
   readonly placed: ReadonlyArray<Placed>;
@@ -210,7 +252,12 @@ export type MixError =
   | FfmpegMissing;
 
 export interface MixerService {
-  /** Rebuild `narration/full.mp3` and its lossless master `full.wav` from the film's current takes, score and effects. */
+  /**
+   * Rebuild `narration/full.mp3` and its lossless master `full.wav` from the
+   * film's current takes, score and effects. Both are written beside the old
+   * pair and replace it together once ffmpeg finishes; a failed or
+   * interrupted mix leaves the old pair as it was.
+   */
   readonly mix: (film: string, options: MixOptions) => Effect.Effect<void, MixError>;
 }
 
@@ -227,8 +274,9 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         const placed = yield* placeFilm(film);
         const stemDir = `${film.paths.out}/stems`;
         const stems = Option.liftPredicate(stemDir, () => options.stems);
-        const out = `${film.paths.narration}/full.mp3`;
-        const master = `${film.paths.narration}/full.wav`;
+        const out = trackFile(film.paths);
+        const master = masterFile(film.paths);
+        const outputs = [out, master].map((file) => ({ file, partial: partialFile(file) }));
         const mixed = yield* Effect.fromResult(
           graph({
             placed,
@@ -236,14 +284,25 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
             manifest: film.manifest,
             narration: film.paths.narration,
             soundDir: film.paths.sound,
-            out,
-            master,
+            out: partialFile(out),
+            master: partialFile(master),
             stems,
           }),
         );
         for (const warning of mixed.warnings) yield* Effect.logWarning(warning);
         if (Option.isSome(stems)) yield* fs.makeDirectory(stems.value, { recursive: true });
-        yield* ffmpeg.run(mixed.args);
+        const discardPartials = Effect.forEach(
+          outputs,
+          ({ partial }) => fs.remove(partial, { force: true }),
+          { discard: true },
+        ).pipe(Effect.ignore);
+        yield* ffmpeg.run(mixed.args).pipe(Effect.onError(() => discardPartials));
+        // Both land together: an interrupt cannot fall between the two renames.
+        yield* Effect.uninterruptible(
+          Effect.forEach(outputs, ({ file, partial }) => fs.rename(partial, file), {
+            discard: true,
+          }),
+        );
         if (Option.isSome(stems))
           yield* Effect.log(`mix.stems names=${mixed.stems.join(',')} dir=${stems.value}`);
         yield* Effect.log(
