@@ -8,10 +8,9 @@
  * inspection attachment, so the production bundle carries none of it.
  */
 
-import { HttpTransport, Streaming, queryCacheLayer } from 'effect-frame/actor/client';
+import { HttpTransport, queryCacheLayer } from 'effect-frame/actor/client';
 import * as Frame from 'effect-frame/frame';
-import { Location, browserNavigation, followLinks, mount } from 'effect-frame/router';
-import { Dom, render } from 'effect-frame/view';
+import { Location, browserNavigation, followLinks, hydrate } from 'effect-frame/router';
 import { Effect, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
 
@@ -29,23 +28,17 @@ const start = (beside: Beside) =>
       return yield* Effect.die('egw-search: no #root element to mount on');
     }
     const root = found.value;
-    // The server streamed the shell and each query's value into the
-    // document. Seed the cache before mounting, so a pane that declares a
-    // settled key reads it from the document and never fetches it.
-    const resumed = yield* Streaming.resume(yield* Dom.readRecords);
-    // Adopt the server's nodes. A document with an empty root (the server's
-    // time-limit fallback) has nothing to adopt, and the page draws fresh.
-    const hydration = Dom.hydrate(root);
-    const router = yield* mount({ routes, notFound: NotFound, host: hydration.host, root });
-    yield* render;
-    const report = yield* hydration.finish;
+    // One call reads the records the server streamed into the document,
+    // seeds the cache (a pane that declares a settled key never fetches it),
+    // adopts the server's nodes, and drops the seeds no pane took. A
+    // document with an empty root (the server's time-limit fallback) has
+    // nothing to adopt, and the page draws fresh.
+    const { router, report } = yield* hydrate({ routes, notFound: NotFound, root });
     if (report.mismatches.length > 0) {
       yield* Effect.logWarning(
         `[hydrate] mismatch count=${String(report.mismatches.length)} first=${report.mismatches[0] ?? ''}`,
       );
     }
-    // Seeds no pane took are dropped: a pane opened later reads its own.
-    yield* resumed.hydrated;
     yield* followLinks(root, router);
     yield* beside;
     // The page lives as long as the tab does.
