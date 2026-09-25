@@ -5,7 +5,14 @@ import { type Music, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './
 const draw = () => {};
 const placed = layout(
   [
-    { id: 'a', say: 'Look {live}and live.', lead: 0.5, tail: 1, draw },
+    {
+      id: 'a',
+      say: 'Look {live}and live.',
+      lead: 0.5,
+      tail: 1,
+      timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
+      draw,
+    },
     { id: 'b', min: 4, draw },
     { id: 'c', min: 5, draw },
   ],
@@ -33,9 +40,22 @@ describe('sound', () => {
     expect(cueTime({ scene: 'c' }, placed)).toBe(placed[2]?.start ?? NaN);
   });
 
-  test('an unknown scene or mark is an authoring error', () => {
+  test('a named cue lands on the start or end of the cue the picture reads', () => {
+    const lift = placed[0]?.cues.get('lift');
+    const start = lift?.start ?? NaN;
+    expect(cueTime({ scene: 'a', cue: 'lift' }, placed)).toBe(start);
+    expect(cueTime({ scene: 'a', cue: 'lift', edge: 'end' }, placed)).toBeCloseTo(start + 0.6);
+    expect(cueTime({ scene: 'a', cue: 'lift', offset: 0.1 }, placed)).toBeCloseTo(start + 0.1);
+  });
+
+  test('an unknown scene, mark or cue is an authoring error', () => {
     expect(() => cueTime({ scene: 'z' }, placed)).toThrow('no scene');
     expect(() => cueTime({ scene: 'a', mark: 'nope' }, placed)).toThrow('no mark');
+    expect(() => cueTime({ scene: 'a', cue: 'nope' }, placed)).toThrow(
+      'scene "a" has no cue "nope"',
+    );
+    expect(() => cueTime({ scene: 'a', cue: 'lift', mark: 'live' }, placed)).toThrow('both');
+    expect(() => cueTime({ scene: 'a', mark: 'live', edge: 'end' }, placed)).toThrow('edge');
   });
 
   test('acts cover the whole film, split at their scenes', () => {

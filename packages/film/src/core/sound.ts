@@ -1,14 +1,21 @@
 // Sound: a film's music and effects, declared as data and placed on the same
-// clock as the pictures. A music act starts at a scene; an effect fires at a
-// scene's mark, so re-recording a line moves its sounds with it. Pure — the
-// score and mix scripts read it without a DOM.
+// clock as the pictures. A music act starts at a scene; an effect fires at one
+// of a scene's named cues (the same cue its picture reads), or at a mark, so
+// re-recording a line moves its sounds with it. Pure — the score and mix
+// scripts read it without a DOM.
 
 import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
 
-/** A moment on the film clock: a scene, then a mark in its narration, then an offset in seconds. */
+/**
+ * A moment on the film clock: a scene, then one of its named cues (its start,
+ * or its end with `edge: 'end'`) or a mark in its narration, then an offset in
+ * seconds. With neither, the offset counts from the scene's start.
+ */
 export interface Cue {
   readonly scene: string;
+  readonly cue?: string;
+  readonly edge?: 'start' | 'end';
   readonly mark?: string;
   readonly offset?: number;
 }
@@ -87,6 +94,15 @@ export const filmEnd = (placed: ReadonlyArray<Placed>): number => {
 export const cueTime = (cue: Cue, placed: ReadonlyArray<Placed>): number => {
   const p = sceneOf(placed, cue.scene);
   let t = p.start + (cue.offset ?? 0);
+  if (cue.cue !== undefined && cue.mark !== undefined)
+    throw new Error(`sound: a cue in scene "${cue.scene}" names both cue and mark`);
+  if (cue.edge !== undefined && cue.cue === undefined)
+    throw new Error(`sound: a cue in scene "${cue.scene}" has an edge but names no cue`);
+  if (cue.cue !== undefined) {
+    const c = p.cues.get(cue.cue);
+    if (c === undefined) throw new Error(`sound: scene "${cue.scene}" has no cue "${cue.cue}"`);
+    t += cue.edge === 'end' ? c.end : c.start;
+  }
   if (cue.mark !== undefined) {
     const m = p.voice.marks.get(cue.mark);
     if (m === undefined) throw new Error(`sound: scene "${cue.scene}" has no mark "${cue.mark}"`);

@@ -12,7 +12,8 @@ bun run dev                                    # player at http://localhost:4400
 bun run narrate <film>                         # record stale beats, verify, mix full.mp3
 bun run score <film>                           # generate stale music + effects, mix full.mp3
 bun run mix <film> [--stems]                   # remix only (no API); stems to out/<film>/stems
-bun scripts/cues.ts <film> [scene]             # scene times and {mark} cue times
+bun scripts/cues.ts <film> [scene]             # scene times, {mark} times, named cues (fails if one overruns)
+bun scripts/cues.ts <film> [scene] --sound     # every effect placement's film time
 bun run render <film>                          # out/<film>.mp4 (parallel pages + ffmpeg)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills
@@ -31,9 +32,9 @@ src/films/<film>/
   script.ts        the screenplay: ordered beats — narration, citations, picture brief
   voice.ts         ElevenLabs voice + model (changing it re-records everything)
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
-  scenes/*.ts      one Drawing per beat: draw(frame) + enter transition + timing
+  scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props and type treatments
-  sound.ts         music acts and sound effects, placed on scenes and marks
+  sound.ts         music acts and sound effects, placed on scenes' named cues
   narration/       one take per beat + timings.json (word timings); full.mp3 is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
@@ -45,13 +46,25 @@ src/films/<film>/
 one never re-records. `f.spoken(from, to)` is 0→1 in step with the words
 between two marks — quotes reveal as they are read.
 
+**A moment is declared once.** When something besides the drawing reads a
+moment (a sound, another cue), name it in the scene's `timeline`, anchored to
+a mark, another cue (`after` / `with`) or a scene landmark, and read it in
+`draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
+`f.at(name, ease)` (0→1 across it). Wrap the drawing in `drawing({ timeline,
+draw })` so an undeclared name fails to compile. `layout()` resolves every cue
+once; `cues.ts` prints them and fails when one ends after its scene. Ornament
+(wobble, idle motion) stays inline.
+
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text and
 re-records only beats whose text changed, transcribes every new take back with
 speech-to-text, and warns when the take doesn't say what the script says.
 
 **Sound follows the same clock.** `sound.ts` declares the score as acts, each
-starting at a scene, and effects as prompts placed at a scene's `{mark}` plus an
-offset — so a re-recorded line carries its sounds with it. `score` sends the
+starting at a scene, and effects as prompts placed at a scene's named cue —
+`{ scene, cue, edge }`, the cue's start or end — so the sound lands where the
+picture does and a re-recorded line carries both. A sound with no picture event
+(a page turn at a scene's start) takes `{ scene, offset }`; `{ scene, mark }`
+still works for a sound on a word. `score` sends the
 acts as one timed ElevenLabs composition plan (music v2 enforces the section
 lengths, so the score turns where the film does) and generates each effect.
 Assets are content-addressed like takes: re-timing a scene makes the score
@@ -69,22 +82,23 @@ first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
 with the registry in `src/films/index.ts`. Scenes import from three entry
 points:
 
-| Entry point          | Module          | What it gives a scene                                                                                         |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines` |
-|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                |
-|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                        |
-|                      | `random.ts`     | seeded hash and noise                                                                                         |
-|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                 |
-| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, spoken, hand), `SceneSpec`, `createFilm`, the transition compositor, captions    |
-|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`         |
-|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                   |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                    |
-|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                       |
-|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                      |
-|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                 |
-|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                               |
-| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                      |
+| Entry point          | Module          | What it gives a scene                                                                                               |
+| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`       |
+|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                            |
+|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                      |
+|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                              |
+|                      | `random.ts`     | seeded hash and noise                                                                                               |
+|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                       |
+| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
+|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`               |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                         |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                          |
+|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                             |
+|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                            |
+|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                       |
+|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                     |
+| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                            |
 
 `core` is pure and DOM-free, so the scripts and tests read it without a
 browser.

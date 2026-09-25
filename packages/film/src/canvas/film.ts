@@ -5,13 +5,15 @@
 import type { Hand } from './ink.ts';
 import { type Placed, type Timed, captionLines, layout, transitionDur } from '../core/layout.ts';
 import type { Timings, Word } from '../core/narration.ts';
+import type { ResolvedCue, Timeline } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { seedOf } from '../core/random.ts';
-import { clamp, ease } from '../core/time.ts';
+import { type Ease, clamp, ease, progress } from '../core/time.ts';
 
 export const BOIL_FPS = 12;
 
-export interface Frame {
+/** One instant of one scene. `C` names the scene's cues, when its drawing declares them. */
+export interface Frame<C extends string = string> {
   readonly ctx: CanvasRenderingContext2D;
   readonly w: number;
   readonly h: number;
@@ -26,6 +28,10 @@ export interface Frame {
   readonly speech: { readonly start: number; readonly end: number };
   /** Local start time of a `{mark}` in this scene's narration. */
   mark(name: string): number;
+  /** A named cue from the scene's `timeline`, scene-local. */
+  cue(name: C): ResolvedCue;
+  /** 0→1 across a named cue, eased: `progress(t, cue.start, cue.dur, ease)`. */
+  at(name: C, e?: Ease): number;
   /** The spoken words, scene-local. */
   readonly words: ReadonlyArray<Word>;
   /**
@@ -40,6 +46,17 @@ export interface Frame {
 export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
 }
+
+/**
+ * Declare a drawing with a timeline, so `f.cue` and `f.at` accept only the cue
+ * names it declares. An identity: the result is an ordinary scene drawing.
+ */
+export const drawing = <const T extends Timeline>(
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'draw'> & {
+    readonly timeline: T;
+    readonly draw: (f: Frame<keyof T & string>) => void;
+  },
+) => d;
 
 export interface CaptionStyle {
   readonly font: string;
@@ -155,6 +172,15 @@ export const createFilm = (spec: FilmSpec): Film => {
         const at = p.voice.marks.get(name);
         if (at === undefined) throw new Error(`scene ${p.spec.id} has no mark {${name}}`);
         return p.speechStart + at;
+      },
+      cue: (name) => {
+        const c = p.cues.get(name);
+        if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
+        return c;
+      },
+      at: (name, e) => {
+        const c = frame.cue(name);
+        return progress(t, c.start, c.dur, e);
       },
       hand: (key) => ({
         boil,

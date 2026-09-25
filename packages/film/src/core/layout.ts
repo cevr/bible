@@ -3,6 +3,7 @@
 // it names no drawing type, so it runs where there is no DOM.
 
 import { type SceneVoice, type Timings, type Word, voiceFor } from './narration.ts';
+import { type ResolvedCue, type Timeline, resolveTimeline } from './timeline.ts';
 
 export type Transition =
   | { readonly kind: 'cut' }
@@ -25,6 +26,8 @@ export interface Timed {
   readonly min?: number;
   /** How this scene arrives from the previous one. */
   readonly enter?: Transition;
+  /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
+  readonly timeline?: Timeline;
 }
 
 export interface Placed<S extends Timed = Timed> {
@@ -35,6 +38,8 @@ export interface Placed<S extends Timed = Timed> {
   readonly voice: SceneVoice;
   /** Scene-local time the voice starts. */
   readonly speechStart: number;
+  /** The scene's named cues, scene-local. */
+  readonly cues: ReadonlyMap<string, ResolvedCue>;
 }
 
 export const transitionDur = (t: Transition | undefined) =>
@@ -55,7 +60,15 @@ export const layout = <S extends Timed>(
     const lead = spec.lead ?? Math.max(0.5, transitionDur(spec.enter) * 0.7);
     const tail = spec.tail ?? 0.9;
     const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
-    out.push({ spec, index, start, dur, voice, speechStart: voice.duration > 0 ? lead : 0 });
+    const speechStart = voice.duration > 0 ? lead : 0;
+    const cues = resolveTimeline(spec.timeline, {
+      scene: spec.id,
+      marks: voice.marks,
+      speechStart,
+      speechEnd: speechStart + voice.duration,
+      dur,
+    });
+    out.push({ spec, index, start, dur, voice, speechStart, cues });
     start += dur;
   });
   return out;
