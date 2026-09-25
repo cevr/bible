@@ -8,6 +8,7 @@ import {
   quad,
   rectShape,
   spline,
+  probePlate,
   stroke,
   write,
 } from '@bible/film/canvas';
@@ -215,6 +216,7 @@ export const justified = drawing({
           { color: C.robe, torn: 3, rim: 0, shadow: 0.7, grain: 0.3 },
           f.hand('strip'),
         );
+        probePlate(ctx, 'light', -40, -70, 250, 100);
         write(ctx, 'light', 85, 2, { ...hand(78, C.ink), align: 'center' }, f.hand('word'), {
           boil: 0.5,
         });
@@ -237,7 +239,8 @@ export const justified = drawing({
     if (lt > 0 && ltOut < 1) {
       ctx.save();
       ctx.globalAlpha *= 1 - ltOut;
-      write(ctx, '“Let there be light”', 200, 230, hand(96, C.orange), f.hand('let'), {
+      // Left of where the risen word strip settles, clear of its paper.
+      write(ctx, '“Let there be light”', 130, 230, hand(84, C.orange), f.hand('let'), {
         progress: lt,
         reveal: 'write',
       });
