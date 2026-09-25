@@ -361,12 +361,13 @@ export const ticket = (ctx: CanvasRenderingContext2D, h: Hand) => {
   ];
   cutout(ctx, shape, { color: C.gold, torn: 1.5, rim: 3, shadow: 0.5 }, h);
   stroke(ctx, line([60, -46], [60, 46], 0.01, 1), { color: C.orange, width: 3 }, sub(h, 1));
+  // The words sit on the body, between the notch (x -104) and the tear (x 60).
   write(
     ctx,
     'ADMIT ONE',
-    -26,
-    12,
-    { family: F.display, size: 26, weight: 700, color: C.ink, align: 'center', tracking: 0.12 },
+    -22,
+    10,
+    { family: F.display, size: 22, weight: 700, color: C.ink, align: 'center', tracking: 0.12 },
     sub(h, 2),
     { boil: 0.2 },
   );

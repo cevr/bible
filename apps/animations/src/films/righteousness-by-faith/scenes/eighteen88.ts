@@ -12,8 +12,8 @@ export const eighteen88 = drawing({
     yearStamp: { mark: 'year', offset: -0.2, dur: 0.6, ease: 'outBack' },
   },
   knobs: {
-    /** Where MINNEAPOLIS sits under the masthead, in the page's own (moving, tilted) space. */
-    city: [960, 218],
+    /** Where MINNEAPOLIS sits, between the masthead rules (y 210) and the columns (y 250), in the page's own (moving, tilted) space. */
+    city: [960, 242],
   },
   draw: (f) => {
     const { ctx, t } = f;
