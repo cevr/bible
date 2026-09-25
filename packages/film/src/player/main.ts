@@ -6,6 +6,7 @@ import type { Film } from '../canvas/film.ts';
 import type { TextBox } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
+import { mountLab } from './lab.ts';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -39,7 +40,27 @@ declare global {
   }
 }
 
-/** Mount the player for `films` into the page, choosing a film by `?film=<name>`. */
+/** What the lab drives: the preview's clock, its canvas and its timeline. */
+export interface Player {
+  readonly film: Film;
+  readonly canvas: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+  readonly captions: { on: boolean };
+  /** The panel under the canvas, and the timeline in it. */
+  readonly bar: HTMLDivElement;
+  readonly track: HTMLDivElement;
+  /** Film seconds shown now. */
+  now(): number;
+  seek(T: number): void;
+  pause(): void;
+  /** Called after every frame the preview draws. */
+  onDraw(listener: (T: number) => void): void;
+}
+
+/**
+ * Mount the player for `films` into the page, choosing a film by
+ * `?film=<name>`. `&lab` adds the lab: notes on frames (`film lab`).
+ */
 export const mountPlayer = (films: Record<string, () => Promise<Film>>): void => {
   const params = new URLSearchParams(location.search);
   const name = params.get('film') ?? Object.keys(films)[0] ?? '';
@@ -94,7 +115,8 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
       };
       return;
     }
-    preview(film, canvas, ctx, captions);
+    const player = preview(film, canvas, ctx, captions);
+    if (params.has('lab')) mountLab(player, name);
   };
 
   main().catch((e: unknown) => {
@@ -108,7 +130,7 @@ const preview = (
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   captions: { on: boolean },
-) => {
+): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
   bar.innerHTML = `
@@ -177,9 +199,11 @@ const preview = (
   let playing = false;
   let wallStart = 0;
   let tStart = 0;
+  const listeners: Array<(T: number) => void> = [];
 
   const draw = () => {
     film.render(ctx, T, { captions: captions.on });
+    for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
     timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}`;
@@ -241,6 +265,8 @@ const preview = (
   });
   canvas.addEventListener('click', toggle);
   window.addEventListener('keydown', (e) => {
+    // Typing in a field (the lab's note composer) is not a player key.
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     const step = e.shiftKey ? 1 : 1 / film.fps;
     const cur = film.sceneAt(T);
     if (e.key === ' ') toggle();
@@ -256,4 +282,20 @@ const preview = (
     e.preventDefault();
   });
   draw();
+  return {
+    film,
+    canvas,
+    ctx,
+    captions,
+    bar,
+    track,
+    now: () => T,
+    seek,
+    pause: () => {
+      if (playing) toggle();
+    },
+    onDraw: (listener) => {
+      listeners.push(listener);
+    },
+  };
 };

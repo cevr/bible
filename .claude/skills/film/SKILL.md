@@ -33,6 +33,16 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 7. **Render.** `bun run render <film> --workers 6` takes about 10 minutes and writes about 1 GB, plus `out/<film>.vtt` captions. It takes its audio from `narration/full.wav`; if a render stops with `AudioMissing` or `AudioStale` (a mix cut short, or made before a re-timing), run `bun run mix <film>` (free). Ctrl-C is safe: the render's scope closes every page, the browser, the server and kills every ffmpeg. Re-encode a share copy (`-crf 22 -preset slow -tune animation`), pull a frame sheet from the MP4 (`fps=1/6,tile=8x8`), read it, then `open` the MP4 for the user. Done when the sheet shows every scene and the file plays.
 
+## Lab loop
+
+The user reviews in the lab and the agent answers each note with the frame after the change.
+
+1. **Open it.** `bun run lab <film>` (background, `dangerouslyDisableSandbox: true`) prints `http://localhost:4401/?film=<film>&lab`; hand the URL to the user. It runs until Ctrl-C and hot-reloads scenes as they change.
+2. **Watch.** Start a Monitor on `bun run notes <film> --watch` (in `apps/animations`). Each new note and each user reply arrives once as a line: `note id=n3 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 … still=/…/stills/n3.png text="…"`. Notes made before the watch started are not replayed: list them first with `bun run notes <film>` (the log line gives the `cursor`; `--since 0` replays everything).
+3. **Read the note.** Read the `still` as an image; the box (canvas pixels, a pin is `w`×`h` 0) and the nearest cue and mark say where and when. A timing note is a cue's `offset`/`dur`/`ease`; a position is a knob. If the value is still a constant, promote it to a knob or a cue first (a one-line change that draws the same frame).
+4. **Change it and prove it.** Edit the scene, then `bun run render <film> --stills <T> --tag lab-<id>` and read the after-still.
+5. **Answer.** `bun run notes reply <film> <id> "what changed" --still out/<film>/lab-<id>/stills/t<T>.png`. The lab shows the reply and the still at once; the note becomes `replied`. The user resolves it in the lab (or replies, which reopens it); `bun run notes resolve <film> <id>` when the user said so.
+
 ## Gotchas
 
 - **Playwright browser missing**: `render` fails with `BrowserMissing`, whose message is the exact install command for the installed playwright-core (the cache in `~/Library/Caches/ms-playwright` was wiped). Run it with `dangerouslyDisableSandbox: true`.

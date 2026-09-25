@@ -201,3 +201,202 @@ body.export .stage canvas {
   color: var(--muted);
   font-size: 11px;
 }
+
+/* ── The lab (`?lab`): notes on frames. ─────────────────────────────────── */
+body.lab {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+body.lab .stage,
+body.lab .bar {
+  grid-column: 1;
+  /* A grid item may not grow past its column: the long narration line clips instead. */
+  min-width: 0;
+}
+body.lab .bar {
+  grid-template-columns: minmax(0, 1fr);
+}
+.lab-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: var(--panel);
+  border-left: 1px solid #3a342c;
+}
+.lab-panel header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.lab-hint {
+  flex: 1;
+  color: var(--muted);
+  font-size: 11px;
+}
+.lab-panel button {
+  background: none;
+  border: 1px solid #3a342c;
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font: inherit;
+}
+.lab-panel button:hover,
+.lab-panel button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lab-compose {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+.lab-compose[hidden] {
+  display: none;
+}
+.lab-where {
+  color: var(--accent);
+  font-size: 12px;
+}
+.lab-panel textarea,
+.lab-reply-input {
+  width: 100%;
+  background: #16130f;
+  color: var(--text);
+  border: 1px solid #3a342c;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+  resize: vertical;
+}
+.lab-actions,
+.lab-reply-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.lab-status {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lab-notes,
+.lab-thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.lab-note-item {
+  padding: 8px;
+  border: 1px solid #3a342c;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+.lab-note-item.selected {
+  border-color: var(--accent);
+}
+.lab-note-item.resolved {
+  opacity: 0.55;
+}
+.lab-note-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.lab-badge {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #3a342c;
+}
+.lab-badge.open {
+  background: #7a3b2e;
+  color: var(--text);
+}
+.lab-badge.replied {
+  background: #2e5a57;
+  color: var(--text);
+}
+.lab-note-text,
+.lab-reply-text {
+  margin: 0;
+}
+.lab-still {
+  width: 100%;
+  border-radius: 4px;
+  display: block;
+}
+.lab-reply {
+  padding-left: 8px;
+  border-left: 2px solid #3a342c;
+  display: grid;
+  gap: 4px;
+}
+.lab-reply.agent {
+  border-left-color: #7fc4c0;
+}
+.lab-by {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* The layer over the canvas: the lab's marks, never drawn into the film. */
+.lab-overlay {
+  position: fixed;
+  z-index: 3;
+  cursor: crosshair;
+  touch-action: none;
+}
+.lab-overlay.pen {
+  cursor: cell;
+}
+.lab-overlay rect,
+.lab-overlay circle,
+.lab-overlay polyline {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.lab-overlay .lab-draft,
+.lab-overlay .lab-draft-ink {
+  stroke: #e2b04a;
+  stroke-dasharray: 8 6;
+  stroke-width: 2;
+}
+.lab-overlay .lab-note,
+.lab-overlay .lab-note-ink {
+  stroke: #ff5d8f;
+  stroke-width: 2.5;
+}
+.lab-overlay .lab-draft-ink,
+.lab-overlay .lab-note-ink {
+  stroke-dasharray: none;
+}
+/* A note on the timeline: a pin through the track. */
+.track .tick.note {
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  margin-left: -4.5px;
+  border-inline: 3px solid transparent;
+  background: #ff5d8f;
+  background-clip: padding-box;
+  cursor: pointer;
+  z-index: 2;
+}
+.track .tick.note.resolved {
+  background-color: #6b6259;
+}

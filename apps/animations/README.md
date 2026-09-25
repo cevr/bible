@@ -60,7 +60,10 @@ written as WebVTT beside it. `mix` writes `full.partial.mp3` and
 interrupted mix leaves the previous pair as it was. Ctrl-C stops
 a render cleanly: every page, the browser, the server and every ffmpeg child
 close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
-`c` captions. A striped timeline segment means that beat's narration is
+`c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
+note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
+notes show as pink pins on the track and in the side list, where the
+agent's replies arrive with their after-stills. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every music act's start (a line through it), from the film's

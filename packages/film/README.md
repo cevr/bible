@@ -10,7 +10,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                           |
 | `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                        |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                                                                 |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames. `player.css` styles it.                                                                    |
 | `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore and the lab's routes (`lab.ts`). |
 
 ## Data
@@ -111,6 +111,19 @@ note's still is written before the note that names it.
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
 it, the nearest named-cue edge and `{mark}`; the page computes it from the
 layout it draws, so a note carries the cue the viewer saw.
+
+**The page** (`player/lab.ts`, plain DOM over the preview): on the canvas a
+click pins a point, a drag draws a box, and the Pen toggle draws freehand
+ink; `n` notes the whole frame, Escape drops the draft. The composer shows
+the scene, time, frame and the nearest cue and mark, and pauses playback.
+Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
+as the still. Every lab mark lives on an SVG layer over the canvas, never on
+the canvas, so a still, an export frame and a probe are the film's pixels
+alone. Notes appear as pins through the timeline (the tick machinery, hover
+for the text) and in a side list with their status, still and thread,
+newest first; clicking one seeks to its frame and draws its box and ink
+there. The selected note takes a reply or a resolve. A long-poll on
+`/lab/notes/wait` refreshes the list the moment the agent replies.
 
 `film notes <film>` prints each unresolved note as one line:
 
