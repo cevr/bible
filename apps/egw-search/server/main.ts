@@ -25,19 +25,17 @@
  * application's answer is that it has none.
  */
 
-import { ActorHost, HttpServer } from 'effect-frame/actor';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer } from 'effect';
 import {
   Etag,
   FetchHttpClient,
   HttpMiddleware,
   HttpPlatform,
   HttpRouter,
-  HttpServer as PlatformHttpServer,
-  HttpServerRequest,
-  HttpServerResponse,
+  HttpServer,
+  HttpStaticServer,
 } from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import { SqlClient } from 'effect/unstable/sql';
@@ -54,14 +52,9 @@ import {
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
 
-import { actorPrefix } from '../src/contract.js';
 import { SearchApi } from './api.js';
-import { SiteLive } from './document.js';
-import { SearchLive } from './search.js';
 import { SearchGroupLive } from './search-api.js';
 import { EgwSyncLive } from './sync.js';
-import { InspectRouteLive } from './inspect.js';
-import { PoliciesLive } from './policies.js';
 import { teardown } from './teardown.js';
 import { lateVectorIndex } from './vector-index.js';
 import type { WarmRequest, WarmResult } from './warm-corpus.worker.js';
@@ -234,7 +227,6 @@ const WarmEmbedderLive: Layer.Layer<never, never, QueryEmbedder> = Layer.effectD
  *  and the warm-up would then load a model no query ever reads. */
 const EmbedderLive = layerBunEmbedder;
 
-/** The hybrid service, plus the SQL client the context lookup shares with it. */
 /** Fault the corpus in before a reader does.
  *
  *  A container that has just started has nothing of the 4.5 GB database
@@ -344,66 +336,31 @@ const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide
 
 const ApiLive = HttpApiBuilder.layer(SearchApi).pipe(Layer.provide(GroupLive));
 
-/** Where the built client lives: `index.js` and `styles.css`. The server
- *  writes the page document itself (`./document.ts`). */
+/** The built client, served from the same router as the API.
+ *
+ *  In development Vite owns the UI on its own port and proxies `/api` here,
+ *  so this layer is dead weight; in production there is no Vite, and without
+ *  it the root would 404 while `/api/search` answered perfectly. `spa: true`
+ *  sends unknown paths to `index.html`, so a deep link is the client's to
+ *  route: the page draws its own not-found view for any path but `/`.
+ *
+ *  The API is merged *after* the static server so an explicitly declared
+ *  route always wins over a file that happens to share its path. */
 const STATIC_ROOT = process.env['EGW_SEARCH_STATIC_DIR'] ?? `${import.meta.dir}/../dist`;
 
-/** The actor transport the page reads through, mounted under `/actors`.
- *
- *  The host serves no actors — only the `Search` query — and it answers over
- *  the same `searchLayer` the JSON API does. The route hands the raw web
- *  request to effect-frame's handler, which owns the wire (`POST
- *  /actors/query`, and the actor verbs no contract here uses).
- *
- *  An in-memory store: with no actors there is nothing to keep across a
- *  restart. */
-const ActorsLive = ActorHost.layer({
-  implementations: [],
-  queries: [SearchLive],
-  store: ActorHost.memoryStore,
-}).pipe(
-  Layer.provide(searchLayer),
-  Layer.provide(TunedSqlLive),
-  Layer.provide(PoliciesLive),
-  // Every name the contract declares is in `PoliciesLive`; a miss is a bug in
-  // that file, so the server refuses to start rather than serve without it.
-  Layer.orDie,
-);
+const StaticLive = HttpStaticServer.layer({
+  root: STATIC_ROOT,
+  spa: true,
+  index: 'index.html',
+});
 
-const ActorsRouteLive = HttpRouter.use((router) =>
-  Effect.gen(function* () {
-    // No accounts and no sessions: every request is anonymous. No plain
-    // form posts: the page sends nothing but queries.
-    const handle = yield* HttpServer.make({
-      prefix: actorPrefix,
-      principal: HttpServer.anonymous,
-      maxBodyBytes: HttpServer.defaultMaxBodyBytes,
-      form: Option.none(),
-    });
-    yield* router.add('*', `${actorPrefix}/*`, (request) =>
-      Effect.gen(function* () {
-        const web = yield* HttpServerRequest.toWeb(request);
-        const response = yield* handle(web);
-        return HttpServerResponse.fromWeb(response);
-      }),
-    );
-  }),
-).pipe(Layer.provide(ActorsLive));
-
-/** The built client and the streamed page document. The document renders
- *  its queries through the same in-process host the actor route serves. */
-const SiteRouteLive = SiteLive({ staticRoot: STATIC_ROOT }).pipe(Layer.provide(ActorsLive));
-
-/** Live Frame inspection for development; empty unless `EGW_INSPECT=1`. */
-const InspectLive = InspectRouteLive(process.env);
-
-const RouterLive = Layer.mergeAll(SiteRouteLive, ActorsRouteLive, ApiLive, InspectLive);
+const RouterLive = Layer.mergeAll(StaticLive, ApiLive);
 
 const HttpLive = Layer.unwrap(
   HttpRouter.toHttpEffect(RouterLive).pipe(
     Effect.map((httpApp) =>
-      PlatformHttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
-        PlatformHttpServer.withLogAddress,
+      HttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
+        HttpServer.withLogAddress,
         Layer.provide(BunHttpServer.layer({ port: PORT })),
       ),
     ),

@@ -4,28 +4,31 @@
 /**
  * Search preparation and result assembly.
  *
- * `GET /api/search`, `POST /api/search/batch` and the effect-frame query use
- * the same pipeline. A batch runs the canonical `SearchService.query` once per
- * input, then shares context reads by radius before assembling one response
- * per input.
+ * `GET /api/search` answers one request and `POST /api/search/batch` answers
+ * several; both run the same pipeline. A batch runs the canonical
+ * `SearchService.query` once per input, then shares context reads by radius
+ * before assembling one response per input.
  */
 
-import { implementBatchedQuery } from 'effect-frame/actor';
-import { Cause, Effect, Option, Result, Schema } from 'effect';
+import { Cause, Effect, Option, Result } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
 import { SearchQuery, SearchService, type SearchResult } from '@bible/core/search';
 import type { CorpusFilter } from '@bible/core/writings';
 
-import { Search, SearchRequest } from '../src/contract.js';
-import { readerUrl, SearchFailed, type SearchResponse, type SearchSlot } from './api.js';
+import {
+  readerUrl,
+  SearchFailed,
+  type SearchRequest,
+  type SearchResponse,
+  type SearchSlot,
+} from './api.js';
 import { emptySurrounding, surroundingParagraphs, type Surrounding } from './context.js';
 
 const DEFAULT_LIMIT = 40;
 const MAX_LIMIT = 100;
 const DEFAULT_CONTEXT = 1;
 const MAX_CONTEXT = 3;
-const requestEquivalence = Schema.toEquivalence(SearchRequest);
 
 /** This surface never returns lookup apparatus.
  *
@@ -115,20 +118,6 @@ const queryOne = (
 
 const distinct = (values: readonly string[]): readonly string[] => [...new Set(values)];
 
-/** Match decoded values by the contract's data equality, not object identity.
- * The host currently passes the same objects back to the resolver, but the
- * resolver's contract is about arguments, so this keeps the seam independent
- * of that implementation detail. */
-const findRequest = <A>(
-  entries: ReadonlyArray<readonly [SearchRequest, A]>,
-  request: SearchRequest,
-): Option.Option<A> => {
-  for (const [candidate, value] of entries) {
-    if (requestEquivalence(candidate, request)) return Option.some(value);
-  }
-  return Option.none();
-};
-
 const anchorsOf = (successful: SuccessfulSearch): readonly string[] =>
   successful.result.paragraphs
     .slice(0, successful.prepared.limit)
@@ -203,7 +192,7 @@ const responseFor = (
   nonSelective: result.nonSelective,
 });
 
-/** The legacy one-request path uses the same retrieval, context, and assembly. */
+/** The one-request path uses the same retrieval, context, and assembly. */
 export const runSearch = (
   request: SearchRequest,
 ): Effect.Effect<SearchResponse, SearchFailed, SearchService | SqlClient.SqlClient> =>
@@ -265,57 +254,3 @@ export const runSearchBatchWith = (
 /** The batch endpoint's pipeline, over the real context lookup. */
 export const runSearchBatch = (requests: BatchInput) =>
   runSearchBatchWith(requests, surroundingParagraphs);
-
-/** Resolve one actor batch without repeating context SQL for each input. */
-const resolveSearchWith = (
-  requests: ReadonlyArray<SearchRequest>,
-  lookup: ContextLookup,
-): Effect.Effect<
-  (request: SearchRequest) => Effect.Effect<SearchResponse, SearchFailed>,
-  never,
-  SearchService | SqlClient.SqlClient
-> =>
-  Effect.gen(function* () {
-    const search = yield* SearchService;
-    const prepared = requests.map(prepare);
-    const outcomes = yield* Effect.forEach(
-      prepared,
-      (one) => Effect.map(Effect.result(queryOne(one, search)), (result) => ({ one, result })),
-      { concurrency: 16 },
-    );
-
-    const responses: Array<readonly [SearchRequest, SearchResponse]> = [];
-    const failures: Array<readonly [SearchRequest, SearchFailed]> = [];
-    const successful: SuccessfulSearch[] = [];
-    for (const outcome of outcomes) {
-      if (Result.isFailure(outcome.result)) {
-        failures.push([outcome.one.request, outcome.result.failure]);
-      } else if (Option.isNone(outcome.result.success)) {
-        responses.push([outcome.one.request, idleResponse(outcome.one.scope)]);
-      } else {
-        successful.push({ prepared: outcome.one, result: outcome.result.success.value });
-      }
-    }
-
-    const contexts = yield* contextsFor(successful, lookup);
-    for (const one of successful) {
-      responses.push([
-        one.prepared.request,
-        responseFor(one.prepared, one.result, contexts.get(one.prepared.radius) ?? new Map()),
-      ]);
-    }
-
-    return (request: SearchRequest): Effect.Effect<SearchResponse, SearchFailed> => {
-      const failure = findRequest(failures, request);
-      if (Option.isSome(failure)) return Effect.fail(failure.value);
-      const response = findRequest(responses, request);
-      if (Option.isSome(response)) return Effect.succeed(response.value);
-      return Effect.fail(SearchFailed.make({ message: 'search batch omitted input' }));
-    };
-  });
-
-const resolveSearch = (requests: ReadonlyArray<SearchRequest>) =>
-  resolveSearchWith(requests, surroundingParagraphs);
-
-/** The query host's declared batched implementation. */
-export const SearchLive = implementBatchedQuery(Search, { resolve: resolveSearch });

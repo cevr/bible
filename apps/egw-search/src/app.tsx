@@ -1,48 +1,40 @@
-/** @jsxImportSource effect-frame/view */
-// The server imports this file and runs from the repository root, where Bun
-// reads no app tsconfig, so the file names its JSX runtime itself.
 /* oxlint-disable effect/noNullish -- the wire shape is JSON (see ../server/api.ts); `null` is what an absent refcode or link arrives as. */
+/* oxlint-disable effect/noTernary -- these are JSX render branches, not domain matches; `Match.value` in an attribute position reads worse and builds a matcher per render. */
+/* oxlint-disable effect/noGlobals -- a new pane's search box takes the caret on the next frame, once it is in the document. */
 
 /**
- * EGW searcher — effect-frame views over the search query.
+ * EGW searcher — Solid 2 + Effect 4.
  *
- * **The URL is the state.** `UrlState.make` decodes the query string into the
- * workspace and publishes every navigation into that `Source`. Submitting a
- * query pushes a functional search update, while filter changes replace the
- * current entry, so every view the app can show has a link and the back button
- * keeps its search history. See `./url-state.ts`.
+ * **The URL is the state.** Each pane holds exactly one signal of its own —
+ * the uncommitted text in its box — and reads everything else from
+ * `currentPanes()`, which parses the address bar. Submitting a query or
+ * toggling a filter is an `updateWorkspace` call, not a `setState`, so every
+ * view the app can show has a link, and the back button works without any
+ * code that knows what "back" means. See `./url-state.ts` and `./history.ts`.
  *
- * **The async states are the framework's.** `followQuery` keeps the previous
- * result on screen, marked stale, while the next one loads; `Await` draws the
- * skeleton, the failure with a retry, or the results with a stale flag.
- * Nothing here holds a pending flag.
- *
- * **Panes are rows.** `View.list` gives each pane a setup of its own — its
- * query, its draft, its filter panel — in a scope that closes when the pane
- * does. A pane is keyed by its position, which is what keeps its local state
- * when a neighbour opens or closes.
+ * **The async states are the framework's, not hand-rolled.** Solid 2 ships
+ * `isPending` (a request is in flight) and `latest` (the previous settled
+ * value while a new one resolves). Together they are stale-while-revalidate:
+ * the first search renders skeletons because there is no previous value, and a
+ * re-search keeps the old results on screen, dimmed, because there is.
  */
 
-import type {
-  ActorStopped,
-  LocalActorRef,
-  QueryFailure,
-  SetValue,
-} from 'effect-frame/actor/client';
+import { Effect, Option } from 'effect';
+import type { Element } from 'solid-js';
 import {
-  Actor,
-  Behavior,
-  followQuery,
-  modify,
-  QueryState,
-  Source,
-  Value,
-} from 'effect-frame/actor/client';
-import type { Route } from 'effect-frame/router';
-import { UrlState } from 'effect-frame/router';
-import type { Child, Node } from 'effect-frame/view';
-import { Await, Dom, For, Show, View } from 'effect-frame/view';
-import { Effect, Equivalence, Option, Predicate, Schema } from 'effect';
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  isPending,
+  latest,
+  Loading,
+  onCleanup,
+  Show,
+  untrack,
+  useContext,
+} from 'solid-js';
 
 import {
   type BookSubtype,
@@ -53,46 +45,36 @@ import {
   type SearchResponse,
 } from '../server/api.js';
 import { contextSide } from './context-window.js';
-import { Search, SearchRequest } from './contract.js';
-import type { search } from './segments.js';
+import { currentPanes, isHome, trackRead, updateWorkspace } from './history.js';
+import { remembered, runQuery, search, type ContextParagraph, type Hit } from './search.js';
 import {
   EMPTY_PARAMS,
   hasFilters,
   MAX_PANES,
-  WORKSPACE_KEYS,
-  Workspace as WorkspaceSchema,
   type SearchParams,
   type Sign,
   signOf,
   toggle,
   toRequest,
+  toWorkspaceString,
 } from './url-state.js';
-
-type Hit = SearchResponse['hits'][number];
-
-/** A view's own state: a local actor holding one value, in the view's scope. */
-type Local<A> = LocalActorRef<A, SetValue<A>>;
-
-/** A write from one of the view's own handlers. The actor lives in the
- *  view's scope, so it is stopped only once the view is gone and no handler
- *  of it can matter: the write is dropped. */
-const whileMounted = <A,>(write: Effect.Effect<A, ActorStopped>): Effect.Effect<void> =>
-  write.pipe(
-    Effect.asVoid,
-    Effect.catchTag('ActorStopped', () => Effect.void),
-  );
-type ContextParagraph = Hit['before'][number];
 
 /** Paragraphs *fetched* on each side of a match, which is not the number shown.
  *
- *  One neighbour is usually the sentence that makes the hit land; more turns
- *  the results page into a reader. So the page renders {@link CONTEXT_SHOWN}
- *  and keeps the rest for the expand control — fetching the full radius up
- *  front means "show more" is instant and costs no second request. */
+ *  One neighbour is usually the sentence that makes the hit land; more turns the
+ *  results page into a reader. So the page renders {@link CONTEXT_SHOWN} and
+ *  keeps the rest for the expand control — fetching the full radius up front
+ *  means "show more" is instant and costs no second request. The server caps
+ *  this at `MAX_CONTEXT` (3) regardless. */
 const CONTEXT = 3;
 
 /** Paragraphs shown on each side before the reader asks for more. */
 const CONTEXT_SHOWN = 1;
+
+/** How long a pane's request waits for the reader to stop changing it. The
+ *  URL changes at once, for links and history; the request waits for a short
+ *  quiet period so rapid filter changes share one request. */
+const QUIET = '100 millis';
 
 const EXAMPLES: readonly string[] = [
   'walk through the fire',
@@ -137,283 +119,329 @@ const SUBTYPE_LABELS = {
 } satisfies Record<BookSubtype, string>;
 
 // ---------------------------------------------------------------------------
-// The page
+// One pane's state
 // ---------------------------------------------------------------------------
 
-export type Workspace = ReadonlyArray<SearchParams>;
+/** What a pane's request has come to. `Idle` is the client's own case — no
+ *  query yet — rather than anything the server returns. */
+type Outcome =
+  | { readonly _tag: 'Idle' }
+  | { readonly _tag: 'Ready'; readonly response: SearchResponse }
+  | { readonly _tag: 'Failed'; readonly message: string };
 
-interface WorkspaceProps {
-  /** Every pane, as the URL names them. */
-  readonly panes: Source<Workspace>;
-  /** Push one pane update against the latest workspace URL. */
-  readonly update: (
-    index: number,
-    update: (current: SearchParams) => SearchParams,
-  ) => Effect.Effect<void>;
-  /** Replace one pane against the latest workspace URL. */
-  readonly replace: (
-    index: number,
-    update: (current: SearchParams) => SearchParams,
-  ) => Effect.Effect<void>;
-  readonly close: (index: number) => Effect.Effect<void>;
+const IDLE: Outcome = { _tag: 'Idle' };
+
+const hitsOf = (outcome: Outcome): readonly Hit[] =>
+  outcome._tag === 'Ready' ? outcome.response.hits : [];
+
+/** What every part of a pane can read. The provider below is the only thing
+ *  that knows *how* any of it is produced. */
+interface SearchStore {
+  /** The text in the box, uncommitted — the only state not in the URL, because
+   *  a half-typed query is not a place anyone wants to link to. */
+  readonly draft: () => string;
+  readonly setDraft: (value: string) => void;
+  /** This pane's committed search state, parsed from the address bar. */
+  readonly params: () => SearchParams;
+  /** The last settled outcome. While a request is in flight this is the
+   *  previous one, which is what keeps a re-search's rows on screen. */
+  readonly settled: () => Outcome;
+  /** Whether a request is owed or in flight for the current URL. */
+  readonly pending: () => boolean;
+  /** Commit a query — used by the form and by the example chips alike. */
+  readonly search: (value: string) => void;
+  /** Change the filters, keeping the query. `replace` rather than `push` so
+   *  the back button returns to the previous *search* rather than walking back
+   *  through each toggle the reader tried. */
+  readonly refine: (update: (current: SearchParams) => SearchParams) => void;
+  /** Ask again after a failure. */
+  readonly retry: () => void;
 }
 
-/** A pane's row in the list: its position is its key. */
-interface PaneRow {
-  readonly key: string;
-  readonly index: number;
-}
+/** Default-less on purpose: `useContext` throws `ContextNotFoundError` outside
+ *  a provider, so a missing provider is a loud bug rather than a silent
+ *  `undefined` every consumer would have to guard. */
+const SearchContext = createContext<SearchStore>();
 
-const pluralResults = (count: number): string => {
-  if (count === 1) return '1 result';
-  return `${String(count)} results`;
+const useSearch = (): SearchStore => useContext(SearchContext);
+
+const SearchProvider = (props: { readonly pane: number; readonly children: Element }) => {
+  /** This pane's slice of the workspace. Every read below goes through it, so
+   *  a pane never sees another pane's query. */
+  const params = (): SearchParams => currentPanes()[props.pane] ?? EMPTY_PARAMS;
+
+  /** Replace this pane against the workspace as the URL holds it now, leaving
+   *  the others exactly as they are. */
+  const put = (
+    update: (current: SearchParams) => SearchParams,
+    options?: { readonly replace?: boolean },
+  ): void => {
+    updateWorkspace(
+      (panes) =>
+        panes.map((existing, index) => (index === props.pane ? update(existing) : existing)),
+      options,
+    );
+  };
+
+  /** What the box shows: the committed query, until the reader types — then
+   *  what they typed, until this pane's query changes.
+   *
+   *  `None` means "nothing typed since this pane's query last changed", which
+   *  is what makes the box follow the back button. It is keyed on this pane's
+   *  own query rather than on every navigation: another pane's filter is a
+   *  navigation too, and it must not discard this pane's unsent text. */
+  const [typed, setTyped] = createSignal(Option.none<string>());
+  const committed = createMemo(() => params().q);
+  // Solid 2's `createEffect` takes *two* functions: `compute` is the tracked
+  // read, `effect` the untracked reaction to its result.
+  createEffect(committed, () => {
+    setTyped(Option.none());
+  });
+
+  const draft = (): string => Option.getOrElse(typed(), () => params().q);
+
+  /** This pane's request, as a string.
+   *
+   *  `currentPanes()` re-parses the URL on every navigation and hands back
+   *  fresh objects, so a memo that depends on `params()` would re-run whenever
+   *  *any* pane changes: adding a fourth pane re-fetched the other three.
+   *  Comparing the serialised request instead makes the dependency the request
+   *  itself. `toWorkspaceString` is exhaustive over `SearchParams`, so an axis
+   *  added later cannot silently drop out of the key. */
+  const requestKey = createMemo((): string => {
+    const current = params();
+    if (current.q.trim() === '') return '';
+    return toWorkspaceString([current]);
+  });
+
+  /** Whether the first commit has happened.
+   *
+   *  `render()` builds the tree and then *schedules* the first DOM insertion,
+   *  which produces nothing while a memo it depends on is still unsettled — so
+   *  a first load with a query in the URL painted no masthead and no search
+   *  box until the query came back. Seeding `false` gives the first pass a
+   *  *settled* value to commit, so the shell paints; the effect then flips it
+   *  and the query starts. */
+  const [mounted, setMounted] = createSignal(false);
+  createEffect(
+    () => undefined,
+    () => {
+      setMounted(true);
+    },
+  );
+
+  /** Bumped by a retry: a new input, so the retry reads as pending. */
+  const [attempt, setAttempt] = createSignal(0);
+
+  /** The request. An async memo is Solid 2's resource: it re-runs when this
+   *  pane's own request changes — by a submit, a filter toggle or the back
+   *  button — and a superseded or disposed run aborts its read, which leaves
+   *  the batch it was in (see `./batch.ts`).
+   *
+   *  An answer this page has already seen is drawn at once, without the
+   *  quiet period; that is what lets Back and Forward land on their rows. */
+  const outcome = createMemo((): Outcome | Promise<Outcome> => {
+    const ready = mounted();
+    const key = requestKey();
+    attempt();
+    if (!ready || key === '') return IDLE;
+    const request = toRequest(untrack(params), CONTEXT);
+    const known = remembered(request);
+    if (Option.isSome(known)) return { _tag: 'Ready', response: known.value };
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());
+    const read = Effect.andThen(Effect.sleep(QUIET), search(request)).pipe(
+      Effect.match({
+        onFailure: (error): Outcome => ({ _tag: 'Failed', message: error.message }),
+        onSuccess: (response): Outcome => ({ _tag: 'Ready', response }),
+      }),
+    );
+    return trackRead(runQuery(read, controller.signal));
+  });
+
+  const store: SearchStore = {
+    draft,
+    setDraft: (value) => {
+      setTyped(Option.some(value));
+    },
+    params,
+    settled: () => latest(outcome),
+    // `!mounted()` covers the frame before the query is released; `isPending`
+    // covers it once in flight. Either way the reader is waiting.
+    pending: () => (!mounted() && requestKey() !== '') || isPending(() => outcome()),
+    search: (value) => {
+      put((current) => ({ ...current, q: value.trim() }));
+    },
+    refine: (update) => put(update, { replace: true }),
+    retry: () => setAttempt((count) => count + 1),
+  };
+
+  // Solid 2: the context object *is* its own provider component.
+  return <SearchContext value={store}>{props.children}</SearchContext>;
 };
 
-const canAddPane = (count: number): boolean => count < MAX_PANES;
+// ---------------------------------------------------------------------------
+// View
+// ---------------------------------------------------------------------------
 
-/** The route's leaf. It reads nothing from the router's props: the workspace
- *  is URL state it owns itself. */
-export const SearchPage = (_props: Route.PropsOf<typeof search>) =>
-  Effect.gen(function* () {
-    const workspaceState = yield* UrlState.make(WorkspaceSchema, { searchKeys: WORKSPACE_KEYS });
-    const panes = workspaceState.state;
-    const count = Source.select(panes, (list) => list.length);
+/** The page: the workspace on `/`, the not-found view anywhere else. */
+export const App = () => (
+  <Show when={isHome()} fallback={<NotFound />}>
+    <Workspace />
+  </Show>
+);
 
-    const workspace: WorkspaceProps = {
-      panes,
-      update: (index, update) =>
-        workspaceState.push((current) =>
-          current.map((existing, position) => {
-            if (position === index) return update(existing);
-            return existing;
-          }),
-        ),
-      replace: (index, update) =>
-        workspaceState.replace((current) =>
-          current.map((existing, position) => {
-            if (position === index) return update(existing);
-            return existing;
-          }),
-        ),
-      close: (index) =>
-        workspaceState.push((current) => {
-          if (current.length <= 1 || index < 0 || index >= current.length) return current;
-          return current.filter((_, position) => position !== index);
-        }),
-    };
+/** The server answers every unknown path with the app, so the app is what
+ *  says a path is nothing. */
+const NotFound = () => (
+  <div class="shell">
+    <header class="masthead">
+      <h1>EGW&nbsp;Search</h1>
+    </header>
+    <div class="status">
+      <span>
+        nothing at {window.location.pathname} — <a href="/">search</a>
+      </span>
+    </div>
+  </div>
+);
 
-    // The new pane inherits the previous pane's filters but none of its
-    // query: a second pane is almost always the same corpus asked a different
-    // question.
-    const addPane = workspaceState.push((current) => {
+/**
+ * The workspace: one or more independent searches, side by side.
+ *
+ * Each pane is a whole `SearchProvider`, so a pane has its own query, its own
+ * filters and its own request, and nothing is shared but the URL they all
+ * live in.
+ *
+ * `keyed={false}`, Solid 2's spelling of Solid 1's `<Index>`: the row is keyed
+ * by *position* rather than by item identity. `currentPanes()` parses the URL
+ * afresh on every navigation, so every pane object is new on every filter
+ * click; keyed by identity, all of them re-mounted and threw away each pane's
+ * local UI state. A pane *is* its position.
+ */
+const Workspace = () => {
+  const panes = (): readonly SearchParams[] => currentPanes();
+
+  /** The pane whose search box takes the caret when it mounts: the one the
+   *  reader just added, and no other — not the panes of a link, and not the
+   *  panes Back restores. */
+  let claim: number | undefined;
+
+  const addPane = (): void => {
+    updateWorkspace((current) => {
       if (current.length >= MAX_PANES) return current;
-      const last = Option.getOrElse(
-        Option.fromNullishOr(current[current.length - 1]),
-        () => EMPTY_PARAMS,
-      );
+      // The new pane inherits the previous pane's filters but none of its
+      // query: a second pane is almost always the same corpus asked a
+      // different question.
+      const last = current[current.length - 1] ?? EMPTY_PARAMS;
+      claim = current.length;
       return [...current, { ...last, q: '' }];
     });
+  };
 
-    const rows: Source<ReadonlyArray<PaneRow>> = Source.select(panes, (list) =>
-      list.map((_, index) => ({ key: String(index), index })),
-    );
-    const paneList = yield* View.list({
-      each: rows,
-      keyBy: (row: PaneRow) => row.key,
-      row: (row: Source<PaneRow>) =>
-        Effect.flatMap(row.get, (current) => Pane({ index: current.index, workspace })),
+  const closePane = (index: number): void => {
+    updateWorkspace((current) => {
+      if (current.length <= 1) return current;
+      return current.filter((_, position) => position !== index);
     });
+  };
 
-    return (
-      <div class="shell">
-        <header class="masthead">
-          <h1>EGW&nbsp;Search</h1>
-          <Show when={count} is={canAddPane}>
-            <button type="button" class="addpane" onClick={View.event(() => addPane)}>
-              + pane
-            </button>
-          </Show>
-        </header>
-        <div class="panes" data-count={View.bind(count, String)}>
-          {paneList}
-        </div>
+  /** A new pane's box takes the caret and comes into view — once it is in
+   *  the document, which is the frame after it is made. */
+  const takeCaret =
+    (pane: number) =>
+    (input: HTMLInputElement): void => {
+      if (claim !== pane) return;
+      claim = undefined;
+      window.requestAnimationFrame(() => {
+        input.focus({ preventScroll: true });
+        input.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    };
+
+  return (
+    <div class="shell">
+      <header class="masthead">
+        <h1>EGW&nbsp;Search</h1>
+        <Show when={panes().length < MAX_PANES}>
+          <button type="button" class="addpane" onClick={addPane}>
+            + pane
+          </button>
+        </Show>
+      </header>
+
+      <div class="panes" data-count={String(panes().length)}>
+        <For each={panes()} keyed={false}>
+          {(_params, index) => (
+            <SearchProvider pane={index}>
+              <section class="pane">
+                <Show when={panes().length > 1}>
+                  <button
+                    type="button"
+                    class="closepane"
+                    aria-label={`Close pane ${String(index + 1)}`}
+                    onClick={() => closePane(index)}
+                  >
+                    ✕
+                  </button>
+                </Show>
+                <SearchBar ref={takeCaret(index)} />
+                <Filters />
+                <Results />
+              </section>
+            </SearchProvider>
+          )}
+        </For>
       </div>
-    );
-  });
-
-// ---------------------------------------------------------------------------
-// One pane
-// ---------------------------------------------------------------------------
-
-interface PaneProps {
-  readonly index: number;
-  readonly workspace: WorkspaceProps;
-}
-
-const hasSeveral = (list: Workspace): boolean => list.length > 1;
-
-const Pane = (props: PaneProps) =>
-  Effect.gen(function* () {
-    const { workspace, index } = props;
-
-    /** This pane's slice of the workspace. Every read below goes through it,
-     *  so a pane never sees another pane's query. */
-    const params: Source<SearchParams> = Source.select(workspace.panes, (list) =>
-      Option.getOrElse(Option.fromNullishOr(list[index]), () => EMPTY_PARAMS),
-    );
-
-    /** The text in the box, uncommitted — the only state not in the URL,
-     *  because a half-typed query is not a place anyone wants to link to.
-     *  `None` means "nothing typed since this pane's query last changed", which
-     *  is what makes the box follow the back button. Another pane's filter is a
-     *  navigation too, but it must not discard this pane's unsent text. */
-    const typed: Local<Option.Option<string>> = yield* Actor.local(
-      Behavior.value(Option.none<string>()),
-    );
-    const query = Source.dedupe(
-      Source.select(params, (current) => current.q),
-      Equivalence.String,
-    );
-    yield* Source.on(query, () => whileMounted(typed.send(Value.Set(Option.none()))));
-    const draft = Source.zip(typed.state, params, (text, current) =>
-      Option.getOrElse(text, () => current.q),
-    );
-
-    const search = (value: string) =>
-      workspace.update(index, (current) => ({ ...current, q: value.trim() }));
-    /** Replace the filters, keeping the query. `replace` rather than `push` so
-     *  the back button returns to the previous *search* rather than walking
-     *  back through each toggle the reader tried. */
-    const refine = (f: (current: SearchParams) => SearchParams) => workspace.replace(index, f);
-
-    const rawArgs: Source<Option.Option<SearchRequest>> = Source.select(params, (current) => {
-      if (current.q.trim() === '') return Option.none();
-      return Option.some(toRequest(current, CONTEXT));
-    });
-    // URL changes stay immediate for links and history. Query reads wait for a
-    // short quiet period so rapid filter changes share one request.
-    const args = yield* Source.debounce(rawArgs, '100 millis');
-    const results = yield* followQuery(Search, args);
-    const pending = Source.zip(
-      rawArgs,
-      args,
-      (requested, emitted) => !sameArgs(requested, emitted),
-    );
-    const displayState = Source.zip(results.state, pending, (current, waiting) => {
-      if (!waiting || current._tag !== 'Ready' || current.stale) return current;
-      return { ...current, stale: true };
-    });
-
-    const filters = yield* Filters({ params, refine });
-    const status = Status({ params, state: displayState });
-    const region = yield* ResultsRegion({
-      params,
-      results: { state: displayState, settledState: results.state, refresh: results.refresh },
-      search,
-      refine,
-    });
-
-    return (
-      <section class="pane">
-        <Show when={workspace.panes} is={hasSeveral}>
-          <button
-            type="button"
-            class="closepane"
-            aria-label={`Close pane ${String(index + 1)}`}
-            onClick={View.event(() => workspace.close(index))}
-          >
-            ✕
-          </button>
-        </Show>
-        <form class="searchbar" onSubmit={View.submit(() => Effect.flatMap(draft.get, search))}>
-          <input
-            type="search"
-            value={View.bind(draft)}
-            attach={[
-              Dom.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
-              Dom.focus({ preventScroll: true }),
-            ]}
-            placeholder="search the writings…"
-            autocomplete="off"
-            autocapitalize="off"
-            spellcheck={false}
-            onInput={View.event((event) =>
-              whileMounted(typed.send(Value.Set(Option.some(event.value)))),
-            )}
-          />
-          <button type="submit" disabled={View.bind(draft, (text) => text.trim() === '')}>
-            Search
-          </button>
-        </form>
-        {filters}
-        {status}
-        <Show
-          when={params}
-          is={hasQuery}
-          fallback={Empty({ params, nonSelective: false, search, refine })}
-        >
-          {region}
-        </Show>
-      </section>
-    );
-  });
-
-const hasQuery = (current: SearchParams): boolean => current.q.trim() !== '';
-
-// ---------------------------------------------------------------------------
-// The filter panel
-// ---------------------------------------------------------------------------
-
-interface FiltersProps {
-  readonly params: Source<SearchParams>;
-  readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
-}
-
-const chipClass = (active: boolean): string => {
-  if (active) return 'chip on';
-  return 'chip';
+    </div>
+  );
 };
 
-/** One toggle. A `button` with `aria-pressed` rather than a checkbox: these
- *  are filters that take effect immediately, not a form to submit, and the
- *  pressed state is what a screen reader should hear. */
+const SearchBar = (props: { readonly ref: (input: HTMLInputElement) => void }) => {
+  const search = useSearch();
+
+  return (
+    <form
+      class="searchbar"
+      onSubmit={(event) => {
+        event.preventDefault();
+        search.search(search.draft());
+      }}
+    >
+      <input
+        ref={props.ref}
+        type="search"
+        value={search.draft()}
+        placeholder="search the writings…"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck={false}
+        onInput={(event) => search.setDraft(event.currentTarget.value)}
+      />
+      <button type="submit" disabled={search.draft().trim() === ''}>
+        Search
+      </button>
+    </form>
+  );
+};
+
+/** One toggle. A `button` with `aria-pressed` rather than a checkbox: these are
+ *  filters that take effect immediately, not a form to submit, and the pressed
+ *  state is what a screen reader should hear. */
 const Chip = (props: {
   readonly label: string;
-  readonly active: Source<boolean>;
-  readonly onPick: Effect.Effect<void>;
-}): Node => (
+  readonly active: boolean;
+  readonly onPick: () => void;
+}) => (
   <button
     type="button"
-    class={View.bind(props.active, chipClass)}
-    aria-pressed={View.bind(props.active, String)}
-    onClick={View.event(() => props.onPick)}
+    class={props.active ? 'chip on' : 'chip'}
+    aria-pressed={props.active ? 'true' : 'false'}
+    onClick={() => props.onPick()}
   >
     {props.label}
   </button>
 );
-
-const signedClass = (sign: Sign): string => {
-  if (sign === 'off') return 'chip';
-  return `chip ${sign}`;
-};
-
-const signedTitle = (label: string, sign: Sign): string => {
-  if (sign === 'exclude') return `Excluding ${label} — click to clear`;
-  if (sign === 'include') return `Only ${label} — click to exclude`;
-  return `Click to require ${label}, twice to exclude`;
-};
-
-const signedName = (label: string, sign: Sign): string => {
-  if (sign === 'exclude') return `${label}, excluded`;
-  return label;
-};
-
-const signGlyph = (sign: Sign): string => {
-  if (sign === 'include') return '✓';
-  return '−';
-};
-
-const isSigned = (sign: Sign): boolean => sign !== 'off';
 
 /**
  * A chip over one value of a signed axis: off → include → exclude → off.
@@ -424,214 +452,276 @@ const isSigned = (sign: Sign): boolean => sign !== 'off';
  */
 const SignedChip = (props: {
   readonly label: string;
-  readonly sign: Source<Sign>;
-  readonly onPick: Effect.Effect<void>;
-}): Node => (
+  readonly sign: Sign;
+  readonly onPick: () => void;
+}) => (
   <button
     type="button"
-    class={View.bind(props.sign, signedClass)}
-    aria-pressed={View.bind(props.sign, (sign) => String(isSigned(sign)))}
-    aria-label={View.bind(props.sign, (sign) => signedName(props.label, sign))}
-    title={View.bind(props.sign, (sign) => signedTitle(props.label, sign))}
-    onClick={View.event(() => props.onPick)}
+    class={props.sign === 'off' ? 'chip' : `chip ${props.sign}`}
+    aria-pressed={props.sign === 'off' ? 'false' : 'true'}
+    aria-label={props.sign === 'exclude' ? `${props.label}, excluded` : props.label}
+    title={
+      props.sign === 'exclude'
+        ? `Excluding ${props.label} — click to clear`
+        : props.sign === 'include'
+          ? `Only ${props.label} — click to exclude`
+          : `Click to require ${props.label}, twice to exclude`
+    }
+    onClick={() => props.onPick()}
   >
-    <Show when={props.sign} is={isSigned}>
+    <Show when={props.sign !== 'off'}>
       <span class="csign" aria-hidden="true">
-        {View.bind(props.sign, signGlyph)}
+        {props.sign === 'include' ? '✓' : '−'}
       </span>
     </Show>
     {props.label}
   </button>
 );
 
-const FilterRow = (props: { readonly label: string; readonly children: Child }): Node => (
+const FilterRow = (props: { readonly label: string; readonly children: Element }) => (
   <div class="frow">
     <span class="flabel">{props.label}</span>
     <div class="fchips">{props.children}</div>
   </div>
 );
 
-const toggleLabel = (open: boolean): string => {
-  if (open) return '− Filters';
-  return '+ Filters';
+/**
+ * The filter panel.
+ *
+ * Collapsed by default behind a summary, because on a first visit the filters
+ * are noise. Once something is set, the summary says what, so a narrowed
+ * search never looks like an empty one.
+ */
+const Filters = () => {
+  const search = useSearch();
+  const [open, setOpen] = createSignal(false);
+  const active = (): boolean => hasFilters(search.params());
+
+  return (
+    <div class="filters">
+      <div class="fhead">
+        <button
+          type="button"
+          class="ftoggle"
+          aria-expanded={open() ? 'true' : 'false'}
+          onClick={() => setOpen(!open())}
+        >
+          {open() ? '− Filters' : '+ Filters'}
+        </button>
+        <Show when={active()}>
+          <button
+            type="button"
+            class="fclear"
+            onClick={() => search.refine((current) => ({ ...EMPTY_PARAMS, q: current.q }))}
+          >
+            clear
+          </button>
+        </Show>
+      </div>
+
+      <Show when={open()}>
+        <div class="fbody">
+          <FilterRow label="Library">
+            <For each={SECTIONS}>
+              {(entry) => (
+                <SignedChip
+                  label={entry.label}
+                  sign={signOf(search.params().section, entry.value)}
+                  onPick={() => search.refine((current) => toggle(current, 'section', entry.value))}
+                />
+              )}
+            </For>
+          </FilterRow>
+
+          <FilterRow label="Author">
+            <For each={SCOPES}>
+              {(entry) => (
+                <Chip
+                  label={entry.label}
+                  active={search.params().scope === entry.value}
+                  onPick={() => search.refine((current) => ({ ...current, scope: entry.value }))}
+                />
+              )}
+            </For>
+          </FilterRow>
+
+          <FilterRow label="Kind">
+            <For each={TYPES}>
+              {(entry) => (
+                <SignedChip
+                  label={entry.label}
+                  sign={signOf(search.params().type, entry.value)}
+                  onPick={() => search.refine((current) => toggle(current, 'type', entry.value))}
+                />
+              )}
+            </For>
+          </FilterRow>
+
+          <FilterRow label="Form">
+            <For each={SELECTABLE_SUBTYPES}>
+              {(entry) => (
+                <SignedChip
+                  label={SUBTYPE_LABELS[entry]}
+                  sign={signOf(search.params().subtype, entry)}
+                  onPick={() => search.refine((current) => toggle(current, 'subtype', entry))}
+                />
+              )}
+            </For>
+          </FilterRow>
+
+          <FilterRow label="Apparatus">
+            <Chip
+              label="Hide dictionaries & indexes"
+              active={search.params().excludeApparatus}
+              onPick={() =>
+                search.refine((current) => ({
+                  ...current,
+                  excludeApparatus: !current.excludeApparatus,
+                }))
+              }
+            />
+          </FilterRow>
+        </div>
+      </Show>
+    </div>
+  );
 };
 
 /**
- * Collapsed by default behind a summary, because on a first visit the
- * filters are noise. Once something is set, the summary says what, so a
- * narrowed search never looks like an empty one.
+ * The results region.
+ *
+ * `settled()` is the whole loading strategy: during a request it yields the
+ * previous outcome rather than suspending, so a re-search keeps its rows and
+ * only dims. On the *first* search there are no previous rows, and `pending()`
+ * picks that case up to render skeletons.
+ *
+ * The `<Loading>` boundary is a backstop, not the loading strategy: `latest`
+ * and `isPending` deliberately do not throw, so on the normal path it catches
+ * nothing. It is here for any pending read not routed through them, so that
+ * such a read suspends this region rather than the tree.
  */
-const Filters = (props: FiltersProps) =>
-  Effect.gen(function* () {
-    const { params, refine } = props;
-    const open: Local<boolean> = yield* Actor.local(Behavior.value(false));
+const Results = () => {
+  const search = useSearch();
+  const rows = (): readonly Hit[] => hitsOf(search.settled());
+  const failure = (): string | undefined => {
+    const current = search.settled();
+    return current._tag === 'Failed' ? current.message : undefined;
+  };
 
-    return (
-      <div class="filters">
-        <div class="fhead">
-          <button
-            type="button"
-            class="ftoggle"
-            aria-expanded={View.bind(open.state, String)}
-            onClick={View.event(() => whileMounted(modify(open, (value) => !value)))}
-          >
-            {View.bind(open.state, toggleLabel)}
-          </button>
-          <Show when={params} is={hasFilters}>
-            <button
-              type="button"
-              class="fclear"
-              onClick={View.event(() => refine((current) => ({ ...EMPTY_PARAMS, q: current.q })))}
-            >
-              clear
-            </button>
-          </Show>
-        </div>
-
-        <Show when={open.state}>
-          <div class="fbody">
-            <FilterRow label="Library">
-              {SECTIONS.map((entry) =>
-                SignedChip({
-                  label: entry.label,
-                  sign: Source.select(params, (current) => signOf(current.section, entry.value)),
-                  onPick: refine((current) => toggle(current, 'section', entry.value)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Author">
-              {SCOPES.map((entry) =>
-                Chip({
-                  label: entry.label,
-                  active: Source.select(params, (current) => current.scope === entry.value),
-                  onPick: refine((current) => ({ ...current, scope: entry.value })),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Kind">
-              {TYPES.map((entry) =>
-                SignedChip({
-                  label: entry.label,
-                  sign: Source.select(params, (current) => signOf(current.type, entry.value)),
-                  onPick: refine((current) => toggle(current, 'type', entry.value)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Form">
-              {SELECTABLE_SUBTYPES.map((entry) =>
-                SignedChip({
-                  label: SUBTYPE_LABELS[entry],
-                  sign: Source.select(params, (current) => signOf(current.subtype, entry)),
-                  onPick: refine((current) => toggle(current, 'subtype', entry)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Apparatus">
-              {Chip({
-                label: 'Hide dictionaries & indexes',
-                active: Source.select(params, (current) => current.excludeApparatus),
-                onPick: refine((current) => ({
-                  ...current,
-                  excludeApparatus: !current.excludeApparatus,
-                })),
-              })}
-            </FilterRow>
-          </div>
+  return (
+    <Loading fallback={<Skeleton />}>
+      <Status />
+      <Show when={!search.pending() || rows().length > 0} fallback={<Skeleton />}>
+        <Show
+          when={failure()}
+          fallback={
+            <Show when={rows().length > 0} fallback={<Empty />}>
+              <ul
+                class={search.pending() ? 'results stale' : 'results'}
+                aria-busy={search.pending() ? 'true' : 'false'}
+              >
+                {/* Keyed by position: a new answer updates the rows in place
+                    rather than rebuilding the list. */}
+                <For each={rows()} keyed={false}>
+                  {(hit) => <HitRow hit={hit()} />}
+                </For>
+              </ul>
+            </Show>
+          }
+        >
+          {(message) => (
+            <div class="status">
+              <span class="err">search failed — {message()}</span>
+              <button type="button" onClick={() => search.retry()}>
+                retry
+              </button>
+            </div>
+          )}
         </Show>
-      </div>
-    );
-  });
-
-// ---------------------------------------------------------------------------
-// The status line and the results region
-// ---------------------------------------------------------------------------
-
-type SearchState = QueryState<SearchResponse, QueryFailure>;
-
-const requestEquivalence = Schema.toEquivalence(SearchRequest);
-const sameArgs = Option.makeEquivalence(requestEquivalence);
-
-const readyLabel = (query: string, value: SearchResponse, stale: boolean): string => {
-  if (stale) return `searching “${query}”…`;
-  if (value.nonSelective) return `“${query}” — too common to rank`;
-  return `“${query}” — ${pluralResults(value.hits.length)}`;
+      </Show>
+    </Loading>
+  );
 };
 
-/** What the status line says. The non-selective case must precede the count:
- *  it *has* no count, and "0 results" for a word in half the corpus states
- *  the opposite of what happened. */
-const statusLabel = (params: SearchParams, state: SearchState): string => {
-  const query = params.q;
-  if (query === '') return 'awaiting query';
-  return QueryState.match(state, {
-    Loading: () => `searching “${query}”…`,
-    Failed: () => `“${query}” — failed`,
-    Ready: ({ value, stale }) => readyLabel(query, value, stale),
-  });
-};
+const pluralResults = (count: number): string =>
+  count === 1 ? '1 result' : `${String(count)} results`;
 
-const Status = (props: {
-  readonly params: Source<SearchParams>;
-  readonly state: Source<SearchState>;
-}): Node => {
-  const label = Source.zip(props.params, props.state, statusLabel);
+const Status = () => {
+  const search = useSearch();
+
+  /** What the status line says, as a guard chain rather than nested
+   *  ternaries. The non-selective case must precede the count: it *has* no
+   *  count, and "0 results" for a word in half the corpus states the opposite
+   *  of what happened. */
+  const label = (): string => {
+    const query = search.params().q;
+    if (query === '') return 'awaiting query';
+    if (search.pending()) return `searching “${query}”…`;
+    const current = search.settled();
+    if (current._tag === 'Failed') return `“${query}” — failed`;
+    if (current._tag === 'Ready' && current.response.nonSelective) {
+      return `“${query}” — too common to rank`;
+    }
+    return `“${query}” — ${pluralResults(hitsOf(current).length)}`;
+  };
+
   return (
     <div class="status">
-      <span>{View.bind(label)}</span>
-      <Show when={props.params} is={hasFilters}>
+      <span>{label()}</span>
+      <Show when={hasFilters(search.params())}>
         <span class="filtered">filtered</span>
       </Show>
     </div>
   );
 };
 
-/** Nothing to show: no query yet, a query that matched nothing, or a query
- *  too common to rank. Offers the examples in every case, since all three
- *  want the same next step — a different query. */
-const Empty = (props: {
-  readonly params: Source<SearchParams>;
-  readonly nonSelective: boolean;
-  readonly search: (value: string) => Effect.Effect<void>;
-  readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
-}): Node => {
-  const { params } = props;
-  const narrowed = Source.select(params, (current) => current.q !== '' && hasFilters(current));
-  const heading = (current: SearchParams): string => {
-    if (props.nonSelective) return 'too common to rank';
-    if (current.q === '') return 'no query yet';
-    return 'no matches';
+/** Nothing to show: no query yet, a query that matched nothing, or a query too
+ *  common to rank. Offers the examples in every case, since all three want the
+ *  same next step — a different query. */
+const Empty = () => {
+  const search = useSearch();
+  const narrowed = (): boolean => search.params().q !== '' && hasFilters(search.params());
+  const nonSelective = (): boolean => {
+    const current = search.settled();
+    return current._tag === 'Ready' && current.response.nonSelective;
   };
+
   return (
     <div class="empty">
-      <div>{View.bind(params, heading)}</div>
-      <Show when={Source.select(params, () => props.nonSelective)}>
+      {/* Three states, not two. A query the corpus does not contain and a
+          query the corpus contains half a million times both arrive here with
+          no hits, and telling a reader who searched "the" that there are "no
+          matches" would be a plain falsehood. */}
+      <Show when={!nonSelective()} fallback={<div>too common to rank</div>}>
+        <div>{search.params().q === '' ? 'no query yet' : 'no matches'}</div>
+      </Show>
+      <Show when={nonSelective()}>
         <div class="hint">
-          “{View.bind(params, (current) => current.q)}” appears in a large share of the corpus, so
-          ranking it would not surface anything in particular. Add a word or two to narrow it.
+          “{search.params().q}” appears in a large share of the corpus, so ranking it would not
+          surface anything in particular. Add a word or two to narrow it.
         </div>
       </Show>
+      {/* A filtered empty result is the one case where the fix is not a
+          different query: say so, and offer the undo rather than the
+          examples. */}
       <Show
-        when={narrowed}
+        when={narrowed()}
         fallback={
           <div class="examples">
-            {EXAMPLES.map((example) => (
-              <button type="button" onClick={View.event(() => props.search(example))}>
-                {example}
-              </button>
-            ))}
+            <For each={EXAMPLES}>
+              {(example) => (
+                <button type="button" onClick={() => search.search(example)}>
+                  {example}
+                </button>
+              )}
+            </For>
           </div>
         }
       >
         <div class="examples">
           <button
             type="button"
-            onClick={View.event(() =>
-              props.refine((current) => ({ ...EMPTY_PARAMS, q: current.q })),
-            )}
+            onClick={() => search.refine((current) => ({ ...EMPTY_PARAMS, q: current.q }))}
           >
             clear filters and search again
           </button>
@@ -642,7 +732,8 @@ const Empty = (props: {
 };
 
 /** First search only: rows in the shape of the answer, so the page does not
- *  jump when results land. Line widths are uneven so it reads as prose. */
+ *  jump when results land. Line widths are uneven so it reads as prose rather
+ *  than as a progress bar. */
 const SKELETON_ROWS: readonly (readonly string[])[] = [
   ['92%', '88%', '64%'],
   ['85%', '94%', '71%'],
@@ -650,239 +741,79 @@ const SKELETON_ROWS: readonly (readonly string[])[] = [
   ['88%', '91%', '58%'],
 ];
 
-const Skeleton = (): Node => (
+const Skeleton = () => (
   <ul class="results" aria-busy="true">
-    {SKELETON_ROWS.map((lines) => (
-      <li class="hit skeleton">
-        <div class="meta">
-          <span class="sk sk-ref" />
-          <span class="sk sk-book" />
-        </div>
-        <div class="body">
-          {lines.map((width) => (
-            <span class="sk sk-line" style={`width: ${width}`} />
-          ))}
-        </div>
-      </li>
-    ))}
+    <For each={SKELETON_ROWS}>
+      {(lines) => (
+        <li class="hit skeleton">
+          <div class="meta">
+            <span class="sk sk-ref" />
+            <span class="sk sk-book" />
+          </div>
+          <div class="body">
+            <For each={lines}>{(width) => <span class="sk sk-line" style={{ width }} />}</For>
+          </div>
+        </li>
+      )}
+    </For>
   </ul>
 );
 
-/** The failure is typed: every query failure carries a tag, and the ones the
- *  handler raises carry the handler's own message as `detail`. */
-const carriesDetail = Predicate.or(
-  Predicate.isTagged('QueryFailed'),
-  Predicate.isTagged('InvalidQueryArgs'),
-);
-
-const describeFailure = (error: QueryFailure): string => {
-  if (carriesDetail(error)) return error.detail;
-  return error._tag;
-};
-
-interface ResultsProps {
-  readonly params: Source<SearchParams>;
-  readonly results: {
-    readonly state: Source<SearchState>;
-    /** The followQuery source controls row reset. Display state may be stale
-     *  for a pending URL update, but that is not a new answer. */
-    readonly settledState: Source<SearchState>;
-    readonly refresh: Effect.Effect<void>;
-  };
-  readonly search: (value: string) => Effect.Effect<void>;
-  readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
-}
-
-const resultsClass = (stale: boolean): string => {
-  if (stale) return 'results stale';
-  return 'results';
-};
-
-interface Row {
-  readonly key: string;
-  readonly hit: Hit;
-}
-
-const isFresh = (state: SearchState): boolean => QueryState.isReady(state) && !state.stale;
-
-const hasHits = (value: SearchResponse): boolean => value.hits.length > 0;
-
 /**
- * One `Await` over the three states. The first search draws skeletons
- * because there is no value yet; a re-search keeps the old results on
- * screen, dimmed, because `followQuery` carries them as stale; a failure
- * shows one fallback with a retry.
+ * One hit, with its context disclosed on demand.
+ *
+ * The row shows {@link CONTEXT_SHOWN} neighbour on each side and a "Show more"
+ * control for the rest. The row is a position in the list, so it outlives
+ * the hit it shows; the expansion is held against the hit itself, so a fresh
+ * answer starts collapsed while a neighbouring pane's search — which leaves
+ * this pane's hits as they are — leaves the expansion alone.
  */
-const ResultsRegion = (props: ResultsProps) =>
-  Effect.gen(function* () {
-    const { params, results } = props;
-
-    // Which rows the reader has expanded, by position. Reset whenever a
-    // fresh answer lands: the rows are a different page then.
-    const expanded: Local<ReadonlySet<string>> = yield* Actor.local(
-      Behavior.value<ReadonlySet<string>>(new Set()),
-    );
-    yield* Source.on(results.settledState, (state) => {
-      if (isFresh(state)) return whileMounted(expanded.send(Value.Set(new Set())));
-      return Effect.void;
-    });
-    const expand = (key: string) =>
-      whileMounted(modify(expanded, (keys) => new Set([...keys, key])));
-
-    return (
-      <Await
-        state={results.state}
-        loading={Skeleton()}
-        failed={(error) => (
-          <div class="status">
-            <span class="err">search failed — {View.bind(error, describeFailure)}</span>
-            <button type="button" onClick={View.event(() => results.refresh)}>
-              retry
-            </button>
-          </div>
-        )}
-        ready={(value, stale) => {
-          const rows: Source<ReadonlyArray<Row>> = Source.select(value, (current) =>
-            current.hits.map((hit, position) => ({ key: String(position), hit })),
-          );
-          return (
-            <Show
-              when={value}
-              is={hasHits}
-              fallback={Empty({
-                params,
-                nonSelective: false,
-                search: props.search,
-                refine: props.refine,
-              })}
-            >
-              <ul class={View.bind(stale, resultsClass)} aria-busy={View.bind(stale, String)}>
-                <For each={rows} keyBy={(row: Row) => row.key}>
-                  {(row) => HitRow({ row, expanded: expanded.state, expand })}
-                </For>
-              </ul>
-            </Show>
-          );
-        }}
-      />
-    );
-  });
-
-// ---------------------------------------------------------------------------
-// One hit
-// ---------------------------------------------------------------------------
-
-interface RowState {
-  readonly hit: Hit;
-  readonly key: string;
-  readonly expanded: boolean;
-}
-
-interface Paragraph {
-  readonly key: string;
-  readonly para: ContextParagraph;
-}
-
-const keyed = (paragraphs: readonly ContextParagraph[]): ReadonlyArray<Paragraph> =>
-  paragraphs.map((para, position) => ({ key: String(position), para }));
-
-/** `before` is in reading order and the nearest neighbour is the *last*
- *  entry, so it is reversed to walk outward, trimmed, then reversed back. */
-const beforeSide = (state: RowState) => {
-  const outward = [...state.hit.before].reverse();
-  const side = contextSide(outward, state.expanded, CONTEXT_SHOWN);
-  return { shown: [...side.shown].reverse(), more: side.more };
-};
-
-const afterSide = (state: RowState) => contextSide(state.hit.after, state.expanded, CONTEXT_SHOWN);
-
-const matchClass = (state: RowState): string => {
-  if (state.hit.isHeading) return 'match heading';
-  return 'match';
-};
-
-/** A reference, linked when the corpus has a link for it. Rows the corpus
- *  stores without a citation show nothing here, so the book title moves up
- *  and the row does not look like a broken link. */
-const Reference = (props: {
-  readonly class: string;
-  readonly refcode: Source<string | null>;
-  readonly url: Source<string | null>;
-}): Node => (
-  <Show when={props.refcode} is={isPresent}>
-    {(refcode) => (
-      <Show
-        when={props.url}
-        is={isPresent}
-        fallback={<span class={props.class}>{View.bind(refcode)}</span>}
-      >
-        {(url) => (
-          <a class={props.class} href={View.bind(url)} target="_blank" rel="noopener noreferrer">
-            {View.bind(refcode)}
-          </a>
-        )}
-      </Show>
-    )}
-  </Show>
-);
-
-const isPresent = (value: string | null): value is string => value !== null;
-
-const HitRow = (props: {
-  readonly row: Source<Row>;
-  readonly expanded: Source<ReadonlySet<string>>;
-  readonly expand: (key: string) => Effect.Effect<void>;
-}): Node => {
-  const state: Source<RowState> = Source.zip(props.row, props.expanded, (row, keys) => ({
-    hit: row.hit,
-    key: row.key,
-    expanded: keys.has(row.key),
-  }));
-  const expandThis = View.event(() =>
-    Effect.flatMap(props.row.get, (row) => props.expand(row.key)),
-  );
-
+const HitRow = (props: { readonly hit: Hit }) => {
+  const [expandedHit, setExpandedHit] = createSignal<Hit | undefined>(undefined);
+  const expanded = (): boolean => expandedHit() === props.hit;
+  const expand = (): void => {
+    setExpandedHit(props.hit);
+  };
+  // `before` is in reading order and the nearest neighbour is the *last* entry,
+  // so it is reversed to walk outward, trimmed, then reversed back for display.
+  const before = () => {
+    const outward = [...props.hit.before].reverse();
+    const side = contextSide(outward, expanded(), CONTEXT_SHOWN);
+    return { shown: [...side.shown].reverse(), more: side.more };
+  };
+  const after = () => contextSide(props.hit.after, expanded(), CONTEXT_SHOWN);
   return (
     <li class="hit">
       <div class="meta">
-        {Reference({
-          class: 'refcode',
-          refcode: Source.select(state, (current) => current.hit.refcode),
-          url: Source.select(state, (current) => current.hit.url),
-        })}
-        <span class="book">{View.bind(state, (current) => current.hit.bookTitle)}</span>
-        {/* Says what the row *is*, next to where it came from. */}
-        <Show when={state} is={(current) => current.hit.isHeading}>
+        <Reference class="refcode" refcode={props.hit.refcode} url={props.hit.url} />
+        <span class="book">{props.hit.bookTitle}</span>
+        {/* Says what the row *is*, next to where it came from. A chapter title
+            and a sentence are otherwise the same shape — a refcode and a line
+            of text. */}
+        <Show when={props.hit.isHeading}>
           <span class="kind">Chapter</span>
         </Show>
-        <Show when={state} is={(current) => current.hit.backMatter}>
+        {/* The server orders back matter last; this says why it is there. */}
+        <Show when={props.hit.backMatter}>
           <span class="kind">Back matter</span>
         </Show>
       </div>
       <div class="body">
-        <Show when={state} is={(current) => beforeSide(current).more > 0}>
-          <button type="button" class="expand" onClick={expandThis}>
+        <Show when={before().more > 0}>
+          <button type="button" class="expand" onClick={expand}>
             Show more
           </button>
         </Show>
-        <For
-          each={Source.select(state, (current) => keyed(beforeSide(current).shown))}
-          keyBy={(paragraph: Paragraph) => paragraph.key}
-        >
-          {(paragraph) => Context({ paragraph })}
-        </For>
-        {/* The match carries the accent bar; the neighbours carry nothing. */}
-        <div class={View.bind(state, matchClass)}>
-          <p class="text">{View.bind(state, (current) => current.hit.text)}</p>
+        <For each={before().shown}>{(para) => <Context para={para} />}</For>
+        {/* The match carries the accent bar; the neighbours carry nothing. The
+            decoration marks *what you searched for*, so the eye lands on it
+            before it reads anything around it. */}
+        <div class={props.hit.isHeading ? 'match heading' : 'match'}>
+          <p class="text">{props.hit.text}</p>
         </div>
-        <For
-          each={Source.select(state, (current) => keyed(afterSide(current).shown))}
-          keyBy={(paragraph: Paragraph) => paragraph.key}
-        >
-          {(paragraph) => Context({ paragraph })}
-        </For>
-        <Show when={state} is={(current) => afterSide(current).more > 0}>
-          <button type="button" class="expand" onClick={expandThis}>
+        <For each={after().shown}>{(para) => <Context para={para} />}</For>
+        <Show when={after().more > 0}>
+          <button type="button" class="expand" onClick={expand}>
             Show more
           </button>
         </Show>
@@ -891,25 +822,37 @@ const HitRow = (props: {
   );
 };
 
-const contextClass = (paragraph: Paragraph): string => {
-  if (paragraph.para.isHeading) return 'context heading';
-  return 'context';
-};
+/** A reference, linked when the corpus has a link for it. Rows the corpus
+ *  stores without a citation (signatures, datelines, "this chapter is based
+ *  on..." notes) show nothing here, so the book title moves up and the row
+ *  does not look like a broken link. */
+const Reference = (props: {
+  readonly class: string;
+  readonly refcode: string | null;
+  readonly url: string | null;
+}) => (
+  <Show when={props.refcode}>
+    {(refcode) => (
+      <Show when={props.url} fallback={<span class={props.class}>{refcode()}</span>}>
+        {(href) => (
+          <a class={props.class} href={href()} target="_blank" rel="noopener noreferrer">
+            {refcode()}
+          </a>
+        )}
+      </Show>
+    )}
+  </Show>
+);
 
-/** A neighbouring paragraph: smaller and dimmer than the match, but
- *  addressable in its own right — its reference links into egwwritings
- *  exactly as the match's does. The reference trails the text so the three
- *  paragraphs of a hit all begin on prose. */
-const Context = (props: { readonly paragraph: Source<Paragraph> }): Node => {
-  const { paragraph } = props;
-  return (
-    <p class={View.bind(paragraph, contextClass)}>
-      {View.bind(paragraph, (current) => current.para.text)}
-      {Reference({
-        class: 'cref',
-        refcode: Source.select(paragraph, (current) => current.para.refcode),
-        url: Source.select(paragraph, (current) => current.para.url),
-      })}
-    </p>
-  );
-};
+/** A neighbouring paragraph: smaller and dimmer than the match, but addressable
+ *  in its own right — its reference links into egwwritings exactly as the
+ *  match's does. The reference trails the text rather than leading it, so the
+ *  three paragraphs of a hit all begin on prose. */
+const Context = (props: { readonly para: ContextParagraph }) => (
+  // A neighbouring heading is the chapter the hit opens under, so it reads as a
+  // label rather than as another sentence of prose.
+  <p class={props.para.isHeading ? 'context heading' : 'context'}>
+    {props.para.text}
+    <Reference class="cref" refcode={props.para.refcode} url={props.para.url} />
+  </p>
+);

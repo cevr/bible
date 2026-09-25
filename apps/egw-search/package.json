@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n web,api -c magenta,cyan \"bun run client:watch\" \"bun run server:dev\"",
-    "client:watch": "bun build src/index.dev.tsx --target browser --format esm --outfile dist/index.js --watch",
+    "dev": "concurrently -n web,api -c magenta,cyan \"bun run vite:dev\" \"bun run server:dev\"",
+    "vite:dev": "vite",
     "server:dev": "bun --watch server/main.ts",
-    "build": "bun build src/index.tsx --target browser --format esm --outdir dist --minify && cp src/styles.css dist/",
+    "build": "vite build",
+    "preview": "vite preview",
     "start": "NODE_ENV=production bun server/main.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "plan:bucket": "alchemy plan alchemy.bucket.ts --stage prod",
@@ -22,14 +23,15 @@
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
+    "@solidjs/web": "catalog:",
     "effect": "catalog:",
-    "effect-frame": "0.27.0"
+    "solid-js": "catalog:"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "20.14.5",
     "@playwright/test": "1.63.0",
     "alchemy": "2.0.0-beta.79",
     "concurrently": "^9.1.2",
-    "happy-dom": "20.14.5"
+    "vite": "^8.2.2",
+    "vite-plugin-solid": "catalog:"
   }
 }
