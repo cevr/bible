@@ -5,16 +5,28 @@ import {
   cutout,
   ellipseShape,
   line,
+  measure,
   quad,
   rectShape,
   spline,
   probePlate,
   stroke,
+  type TextStyle,
   write,
 } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, keys, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star, sun, wordCard } from '../kit.ts';
 import { person } from './props-2.ts';
+
+/** The verdict stamped on the decree. */
+const RIGHTEOUS: TextStyle = {
+  family: 'Fraunces',
+  size: 52,
+  weight: 700,
+  color: C.red,
+  align: 'center',
+  tracking: 0.12,
+};
 
 /**
  * Justified = declared righteous — and God's declaring is creating. A stamp
@@ -118,30 +130,17 @@ export const justified = drawing({
         const slam = f.at('slam');
         if (slam > 0) {
           const s = lerp(1.8, 1, slam);
-          at(ctx, { x: 120, y: 90, rot: -0.2, scale: s }, () => {
+          at(ctx, { x: 92, y: 70, rot: -0.17, scale: s }, () => {
             ctx.globalAlpha *= clamp(slam * 1.5);
+            // The border is cut to the word, 26 px clear of it either side.
+            const w = measure(ctx, 'RIGHTEOUS', RIGHTEOUS) + 2 * (26 + 4);
             stroke(
               ctx,
-              rectShape(-190, -56, 380, 112).concat([[-190, -56]]),
+              rectShape(-w / 2, -56, w, 112).concat([[-w / 2, -56]]),
               { color: C.red, width: 8, jitter: 1.6 },
               f.hand('stamp-box'),
             );
-            write(
-              ctx,
-              'RIGHTEOUS',
-              0,
-              20,
-              {
-                family: 'Fraunces',
-                size: 62,
-                weight: 700,
-                color: C.red,
-                align: 'center',
-                tracking: 0.12,
-              },
-              f.hand('stamp'),
-              { boil: 0.5 },
-            );
+            write(ctx, 'RIGHTEOUS', 0, 20, RIGHTEOUS, f.hand('stamp'), { boil: 0.5 });
           });
         }
       });

@@ -5,7 +5,9 @@ import {
   drawFigure,
   type Pt,
   line,
+  measure,
   rectShape,
+  type TextStyle,
   stroke,
   write,
 } from '@bible/film/canvas';
@@ -28,6 +30,16 @@ const arch = (x: number, y: number, w: number, h: number): Pt[] => {
   }
   pts.push([x + r, y]);
   return pts;
+};
+
+/** The verdict stamped on the glass. */
+const GUILTY: TextStyle = {
+  family: 'Fraunces',
+  size: 68,
+  weight: 800,
+  color: C.red,
+  align: 'center',
+  tracking: 0.1,
 };
 
 /** The law as a mirror: it shows every stain, and cannot wash one. */
@@ -124,7 +136,8 @@ export const witness = drawing({
           ctx.save();
           ctx.globalAlpha *= (1 - stampOut) * clamp(stamp * 2);
           at(ctx, { x: 0, y: -300, rot: -0.14, scale: lerp(1.6, 1, stamp) }, () => {
-            const w = 300;
+            // The border is cut to the word: 20 px clear of it inside the inner rule.
+            const w = measure(ctx, 'GUILTY', GUILTY) + 2 * (20 + 12 + 4);
             for (const k of [0, 1]) {
               const inset = k * 12;
               const r = rectShape(-w / 2 + inset, -54 + inset, w - inset * 2, 108 - inset * 2);
@@ -135,22 +148,7 @@ export const witness = drawing({
                 f.hand(`stamp${k}`),
               );
             }
-            write(
-              ctx,
-              'GUILTY',
-              0,
-              24,
-              {
-                family: 'Fraunces',
-                size: 68,
-                weight: 800,
-                color: C.red,
-                align: 'center',
-                tracking: 0.1,
-              },
-              f.hand('guilty'),
-              { boil: 0.4 },
-            );
+            write(ctx, 'GUILTY', 0, 24, GUILTY, f.hand('guilty'), { boil: 0.4 });
           });
           ctx.restore();
         }
