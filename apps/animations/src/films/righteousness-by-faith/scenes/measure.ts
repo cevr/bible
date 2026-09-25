@@ -45,26 +45,28 @@ export const measure: Drawing = {
     ]);
     const cx = 960;
     const cy = 640;
+    // The ring is drawn round the tablets (their middle is at `cy`), just wide
+    // enough to hold them: until it grows, its top stays under the quote.
+    const ringY = cy;
     const R = keys(t, [
-      [circle, 330],
-      [circle + 1.2, 330],
+      [circle, 262],
+      [circle + 1.2, 262],
       [circle + 6.4, 4200, ease.inOutCubic],
     ]);
-    // The quote sits ~300px above the circle's centre on screen: light text once night covers it.
-    const night = R * zoom > 420 && t > circle + 1.4;
-    camera(ctx, { x: cx, y: lerp(cy, cy - 10, 1 - zoom), zoom }, f.w, f.h, () => {
+    const camY = lerp(cy, cy - 10, 1 - zoom);
+    const ring = progress(t, circle - 0.2, 1.4, ease.inOutCubic);
+    const space = progress(t, circle + 1, 1.8);
+    camera(ctx, { x: cx, y: camY, zoom }, f.w, f.h, () => {
       // Universe inside the circle.
-      const ring = progress(t, circle - 0.2, 1.4, ease.inOutCubic);
-      const space = progress(t, circle + 1, 1.8);
       if (space > 0) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(cx, cy - 150, R, 0, Math.PI * 2);
+        ctx.arc(cx, ringY, R, 0, Math.PI * 2);
         ctx.clip();
         ctx.globalAlpha *= space;
         cutout(
           ctx,
-          ellipseShape(cx, cy - 150, R + 20, R + 20, 96),
+          ellipseShape(cx, ringY, R + 20, R + 20, 96),
           { color: C.night, torn: 0, rim: 0, shadow: 0, grain: 0.9 },
           f.hand('space'),
         );
@@ -75,7 +77,7 @@ export const measure: Drawing = {
           star(
             ctx,
             cx + Math.cos(a) * d,
-            cy - 150 + Math.sin(a) * d,
+            ringY + Math.sin(a) * d,
             4 + hash2(i, 3) * 9,
             i % 5 === 0 ? C.gold : C.robe,
             0.5 + 0.5 * tw,
@@ -97,7 +99,7 @@ export const measure: Drawing = {
             planet(
               ctx,
               cx + dx * 2.2,
-              cy - 150 + dy * 2.2,
+              ringY + dy * 2.2,
               r * d * 1.8,
               color,
               f.hand(`planet${i}`),
@@ -109,7 +111,7 @@ export const measure: Drawing = {
       if (ring > 0)
         stroke(
           ctx,
-          ellipse(cx, cy - 150, R, R, 3, 0.25),
+          ellipse(cx, ringY, R, R, 3, 0.25),
           { color: C.gold, width: 14 / Math.max(0.4, zoom), progress: ring, jitter: 1.4 },
           f.hand('ring'),
         );
@@ -154,24 +156,41 @@ export const measure: Drawing = {
     quote(f, '“All thy commandments are righteousness.”', 960, 230, 1500, {
       from: 'psalm',
       to: 'char',
-      until: circle - 0.3,
+      // Gone before the ring starts drawing through where it stood.
+      until: circle - 0.8,
       size: 72,
       align: 'center',
     });
     cite(f, 'Psalm 119:172', psalm - 0.2, circle - 0.3);
-    quote(
-      f,
-      '“the decalogue is a circle having a circumference as great as the universe.”',
-      960,
-      210,
-      1300,
-      {
-        from: 'circle',
-        size: 62,
-        align: 'center',
-        color: night ? C.robe : C.ink,
-      },
-    );
+    // Waggoner's words: ink on the page, light where the night has reached them.
+    const waggoner = (color: string) =>
+      quote(
+        f,
+        '“the decalogue is a circle having a circumference as great as the universe.”',
+        960,
+        210,
+        1300,
+        { from: 'circle', size: 62, align: 'center', color },
+      );
+    if (space < 0.5) waggoner(C.ink);
+    else {
+      // The night on screen: the ring's disk through the camera.
+      const disk = () => {
+        ctx.beginPath();
+        ctx.arc(f.w / 2, f.h / 2 + (ringY - camY) * zoom, R * zoom, 0, Math.PI * 2);
+      };
+      ctx.save();
+      disk();
+      ctx.rect(0, 0, f.w, f.h);
+      ctx.clip('evenodd');
+      waggoner(C.ink);
+      ctx.restore();
+      ctx.save();
+      disk();
+      ctx.clip();
+      waggoner(C.robe);
+      ctx.restore();
+    }
     cite(f, 'E. J. Waggoner, Christ and His Righteousness', circle - 0.1, f.dur);
   },
 };
