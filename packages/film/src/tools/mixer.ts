@@ -36,8 +36,10 @@ export interface MixInput {
   readonly narration: string;
   /** Directory of the generated music and effects. */
   readonly soundDir: string;
-  /** The mixed track. */
+  /** The mixed track the player streams (mp3). */
   readonly out: string;
+  /** The same mix, lossless (16-bit WAV): the renderer encodes its audio from this once. */
+  readonly master: string;
   /** Where to write one WAV per bus, when stems are wanted. */
   readonly stems: Option.Option<string>;
 }
@@ -153,7 +155,7 @@ export const graph = (input: MixInput): Result.Result<MixGraph, GraphError> =>
 
     const buses = [...bus.values()].join('');
     filters.push(
-      `${buses}amix=inputs=${bus.size}:normalize=0,alimiter=limit=0.95:level=false,apad,atrim=0:${total.toFixed(3)}[out]`,
+      `${buses}amix=inputs=${bus.size}:normalize=0,alimiter=limit=0.95:level=false,apad,atrim=0:${total.toFixed(3)},asplit=2[out][master]`,
     );
     const args = [
       '-y',
@@ -171,6 +173,15 @@ export const graph = (input: MixInput): Result.Result<MixGraph, GraphError> =>
       '-b:a',
       '192k',
       input.out,
+      '-map',
+      '[master]',
+      '-ac',
+      '2',
+      '-ar',
+      '44100',
+      '-c:a',
+      'pcm_s16le',
+      input.master,
       ...stemMaps,
     ];
     return {
@@ -199,7 +210,7 @@ export type MixError =
   | FfmpegMissing;
 
 export interface MixerService {
-  /** Rebuild `narration/full.mp3` from the film's current takes, score and effects. */
+  /** Rebuild `narration/full.mp3` and its lossless master `full.wav` from the film's current takes, score and effects. */
   readonly mix: (film: string, options: MixOptions) => Effect.Effect<void, MixError>;
 }
 
@@ -217,6 +228,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         const stemDir = `${film.paths.out}/stems`;
         const stems = Option.liftPredicate(stemDir, () => options.stems);
         const out = `${film.paths.narration}/full.mp3`;
+        const master = `${film.paths.narration}/full.wav`;
         const mixed = yield* Effect.fromResult(
           graph({
             placed,
@@ -225,6 +237,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
             narration: film.paths.narration,
             soundDir: film.paths.sound,
             out,
+            master,
             stems,
           }),
         );
@@ -234,7 +247,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         if (Option.isSome(stems))
           yield* Effect.log(`mix.stems names=${mixed.stems.join(',')} dir=${stems.value}`);
         yield* Effect.log(
-          `mix.track takes=${mixed.takes} music=${mixed.music} effects=${mixed.effects} secs=${mixed.seconds.toFixed(1)} file=${out}`,
+          `mix.track takes=${mixed.takes} music=${mixed.music} effects=${mixed.effects} secs=${mixed.seconds.toFixed(1)} file=${out} master=${master}`,
         );
       });
 

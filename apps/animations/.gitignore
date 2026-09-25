@@ -2,3 +2,5 @@
 out/
 # The mixed track — rebuilt from the committed takes, score and effects by `bun run mix`.
 src/films/*/narration/full.mp3
+# Its lossless master, which the renderer encodes the MP4's audio from.
+src/films/*/narration/full.wav

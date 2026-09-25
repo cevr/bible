@@ -10,3 +10,4 @@ export * from './narration.ts';
 export * from './sound.ts';
 export * from './timeline.ts';
 export * from './layout.ts';
+export * from './captions.ts';

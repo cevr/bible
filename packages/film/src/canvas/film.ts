@@ -4,7 +4,8 @@
 
 import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
-import { type Placed, captionLines, layout, transitionDur } from '../core/layout.ts';
+import { captionCues } from '../core/captions.ts';
+import { type Placed, layout, transitionDur } from '../core/layout.ts';
 import type { Timed, Timeline, Timings, Word } from '../core/schema.ts';
 import type { ResolvedCue } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
@@ -325,14 +326,9 @@ const caption = (
   style: CaptionStyle,
 ) => {
   const t = local - p.speechStart;
-  const lines = captionLines(p.voice.words);
-  const line = lines.find((l, i) => {
-    const s = l[0]?.start ?? 0;
-    const nextStart = lines[i + 1]?.[0]?.start ?? (l[l.length - 1]?.end ?? 0) + 0.6;
-    return t >= s - 0.05 && t < nextStart;
-  });
+  const line = captionCues(p.voice.words).find((c) => t >= c.start && t < c.end);
   if (line === undefined) return;
-  const text = line.map((x) => x.text).join(' ');
+  const text = line.text;
   ctx.save();
   ctx.font = style.font;
   ctx.textAlign = 'center';

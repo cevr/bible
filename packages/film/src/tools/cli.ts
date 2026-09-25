@@ -97,7 +97,11 @@ const mix = Command.make(
   Effect.fn('film.mix')(function* (input) {
     yield* (yield* Mixer).mix(input.film, { stems: input.stems });
   }),
-).pipe(Command.withDescription('Rebuild narration/full.mp3 from the current takes and sound'));
+).pipe(
+  Command.withDescription(
+    'Rebuild narration/full.mp3 and its lossless master full.wav from the current takes and sound',
+  ),
+);
 
 const cues = Command.make(
   'cues',

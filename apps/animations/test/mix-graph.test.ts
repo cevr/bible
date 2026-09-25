@@ -1,7 +1,8 @@
 // The mix graph for this film, pinned to the exact ffmpeg arguments the
 // pre-Effect mix script produced (fixtures/mix-argv.json, `<app>` standing for
 // this app's directory): voice only as committed, with stems, and with every
-// effect generated so each cue's placement is checked too.
+// effect generated so each cue's placement is checked too. The one change
+// since is the lossless master: the final mix also splits to `full.wav`.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -55,16 +56,29 @@ const argv = (
       narration: `${film}/narration`,
       soundDir: `${film}/sound`,
       out: `${film}/narration/full.mp3`,
+      master: `${film}/narration/full.wav`,
       stems,
     }),
     (mixed) => ['ffmpeg', ...mixed.args],
   );
 
+/** The pre-Effect argv plus the master: the final mix splits, and its copy goes to a 16-bit WAV. */
+const withMaster = (fixture: ReadonlyArray<string>) =>
+  fixture.flatMap((arg) => {
+    if (arg !== '[out]' && arg.endsWith('[out]'))
+      return [`${arg.slice(0, -'[out]'.length)},asplit=2[out][master]`];
+    if (arg !== `${film}/narration/full.mp3`) return [arg];
+    const master = ['-map', '[master]', '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le'];
+    return [arg, ...master, `${film}/narration/full.wav`];
+  });
+
 describe('mix graph', () => {
   it.effect.layer(BunServices.layer)('voice and score, as committed', () =>
     Effect.gen(function* () {
       const { placed, manifest, fixtures } = yield* load();
-      expect(Result.getOrThrow(argv(placed, manifest, Option.none()))).toEqual([...fixtures.plain]);
+      expect(Result.getOrThrow(argv(placed, manifest, Option.none()))).toEqual(
+        withMaster(fixtures.plain),
+      );
     }),
   );
 
@@ -72,7 +86,7 @@ describe('mix graph', () => {
     Effect.gen(function* () {
       const { placed, manifest, fixtures } = yield* load();
       const stems = Option.some('<app>/out/righteousness-by-faith/stems');
-      expect(Result.getOrThrow(argv(placed, manifest, stems))).toEqual([...fixtures.stems]);
+      expect(Result.getOrThrow(argv(placed, manifest, stems))).toEqual(withMaster(fixtures.stems));
     }),
   );
 
@@ -87,7 +101,7 @@ describe('mix graph', () => {
       );
       const stems = Option.some('<app>/out/righteousness-by-faith/stems');
       const mixed = argv(placed, { ...manifest, effects }, stems);
-      expect(Result.getOrThrow(mixed)).toEqual([...fixtures.effects]);
+      expect(Result.getOrThrow(mixed)).toEqual(withMaster(fixtures.effects));
     }),
   );
 });
