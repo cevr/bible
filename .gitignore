@@ -196,3 +196,6 @@ packages/core/dist-native/*
 # The EGW Search build context (apps/egw-search/.deploy), written by
 # apps/egw-search/infra/context.ts before every plan and deploy.
 apps/egw-search/.deploy/
+
+# Written by the CLI tests (a local .bible home).
+packages/cli/.bible/
