@@ -10,12 +10,16 @@
     "score": "bun scripts/score.ts",
     "mix": "bun scripts/mix.ts",
     "typecheck": "tsc --noEmit",
-    "gate": "bun run typecheck"
+    "gate": "bun run typecheck && bun run test",
+    "test": "bun test test"
   },
   "dependencies": {
-    "@bible/film": "workspace:*"
+    "@bible/film": "workspace:*",
+    "@effect/platform-bun": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
+    "effect-bun-test": "catalog:",
     "playwright-core": "1.63.0"
   }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { layout } from './layout.ts';
-import { type Music, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
+import type { Music } from './schema.ts';
+import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 const draw = () => {};
 const placed = layout(

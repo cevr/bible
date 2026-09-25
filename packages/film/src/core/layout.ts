@@ -2,7 +2,8 @@
 // voice. Pure — the player, the renderer and the Bun scripts all read it, and
 // it names no drawing type, so it runs where there is no DOM.
 
-import { type SceneVoice, type Timings, type Word, voiceFor } from './narration.ts';
+import { type SceneVoice, voiceFor } from './narration.ts';
+import type { Timings, Word } from './schema.ts';
 import { type ResolvedCue, type Timeline, resolveTimeline } from './timeline.ts';
 
 export type Transition =

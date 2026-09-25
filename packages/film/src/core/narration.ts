@@ -7,25 +7,8 @@
 // recorded voice when timings exist, estimated from the text when they don't.
 // Pure: runs in the browser, in scripts, and in tests.
 
-export interface Word {
-  readonly text: string;
-  readonly start: number;
-  readonly end: number;
-}
-
-/** What the narrate script records for one scene. */
-export interface VoiceTiming {
-  /** Hash of the spoken text; a mismatch means the take is stale. */
-  readonly hash: string;
-  readonly file: string;
-  readonly duration: number;
-  readonly words: ReadonlyArray<Word>;
-}
-
-export interface Timings {
-  readonly voice: string;
-  readonly scenes: Readonly<Record<string, VoiceTiming>>;
-}
+import { Schema } from 'effect';
+import { type Timings, type Voice, VoiceKey, type Word } from './schema.ts';
 
 export interface Parsed {
   /** Text as spoken, marks removed. */
@@ -60,6 +43,10 @@ export const hashText = (s: string): string => {
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return (h >>> 0).toString(16).padStart(8, '0');
 };
+
+/** The voice part of `timings.json`: a take recorded under another key is stale. */
+export const voiceKey = (voice: Voice): string =>
+  `${voice.voiceId}/${voice.model}/${Schema.encodeSync(VoiceKey)(voice.settings)}`;
 
 /**
  * Words with estimated times: ~2.7 words/s, longer words take longer, and

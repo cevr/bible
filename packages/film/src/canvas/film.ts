@@ -4,7 +4,7 @@
 
 import type { Hand } from './ink.ts';
 import { type Placed, type Timed, captionLines, layout, transitionDur } from '../core/layout.ts';
-import type { Timings, Word } from '../core/narration.ts';
+import type { Timings, Word } from '../core/schema.ts';
 import type { ResolvedCue, Timeline } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { seedOf } from '../core/random.ts';

@@ -1,13 +1,14 @@
 // Righteousness by Faith — the film.
 
 import { createFilm } from '@bible/film/canvas';
-import type { Timings } from '@bible/film/core';
+import { type Timings, TimingsJson } from '@bible/film/core';
+import { Schema } from 'effect';
 import { fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
 
 const loadTimings = async (): Promise<Timings | undefined> => {
   const res = await fetch('/films/righteousness-by-faith/narration/timings.json');
-  return res.ok ? ((await res.json()) as Timings) : undefined;
+  return res.ok ? Schema.decodeSync(TimingsJson)(await res.text()) : undefined;
 };
 
 export const film = async () =>

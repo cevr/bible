@@ -30,8 +30,11 @@
       "version": "0.1.0",
       "dependencies": {
         "@bible/film": "workspace:*",
+        "@effect/platform-bun": "catalog:",
+        "effect": "catalog:",
       },
       "devDependencies": {
+        "effect-bun-test": "catalog:",
         "playwright-core": "1.63.0",
       },
     },
@@ -177,6 +180,16 @@
     "packages/film": {
       "name": "@bible/film",
       "version": "0.1.0",
+      "bin": {
+        "film": "./src/tools/cli.ts",
+      },
+      "dependencies": {
+        "@effect/platform-bun": "catalog:",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "effect-bun-test": "catalog:",
+      },
     },
     "packages/scripts": {
       "name": "@bible/scripts",

@@ -4,77 +4,18 @@
 // re-recording a line moves its sounds with it. Pure — the score and mix
 // scripts read it without a DOM.
 
+import { Schema } from 'effect';
 import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
-
-/**
- * A moment on the film clock: a scene, then one of its named cues (its start,
- * or its end with `edge: 'end'`) or a mark in its narration, then an offset in
- * seconds. With neither, the offset counts from the scene's start.
- */
-export interface Cue {
-  readonly scene: string;
-  readonly cue?: string;
-  readonly edge?: 'start' | 'end';
-  readonly mark?: string;
-  readonly offset?: number;
-}
-
-/** One stretch of the score, from the start of `from` until the next act begins. */
-export interface Act {
-  readonly from: string;
-  readonly name: string;
-  readonly styles: ReadonlyArray<string>;
-  readonly avoid?: ReadonlyArray<string>;
-}
-
-export interface Music {
-  readonly model: 'music_v2' | 'music_v2_5';
-  readonly styles: ReadonlyArray<string>;
-  readonly avoid: ReadonlyArray<string>;
-  readonly acts: ReadonlyArray<Act>;
-  /** Linear gain of the bed before it ducks under the voice. */
-  readonly gain: number;
-}
-
-export interface Effect {
-  readonly prompt: string;
-  readonly secs: number;
-  /** Linear gain; 1 leaves the generated level alone. */
-  readonly gain?: number;
-  readonly at: ReadonlyArray<Cue>;
-}
-
-export interface Sound {
-  readonly music?: Music;
-  readonly effects: Readonly<Record<string, Effect>>;
-}
-
-/** The generated files, keyed so a changed request is known to be stale. */
-export interface Asset {
-  readonly hash: string;
-  readonly file: string;
-}
-
-export interface SoundManifest {
-  readonly music?: Asset;
-  readonly effects: Readonly<Record<string, Asset>>;
-}
-
-/**
- * The ElevenLabs composition plan for the v2 music models: timed chunks, each
- * carrying its own styles. v2 always honours chunk durations, which is what
- * lets the score turn with the film.
- */
-export interface Plan {
-  readonly chunks: ReadonlyArray<{
-    readonly text: string;
-    readonly duration_ms: number;
-    readonly positive_styles: ReadonlyArray<string>;
-    readonly negative_styles: ReadonlyArray<string>;
-    readonly context_adherence: 'high';
-  }>;
-}
+import {
+  type Cue,
+  EffectRequestKey,
+  type Music,
+  MusicRequestKey,
+  type Plan,
+  type PlanChunk,
+  type SoundEffect,
+} from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
 const MIN_CHUNK_MS = 3000;
@@ -120,7 +61,7 @@ export const musicPlan = (music: Music, placed: ReadonlyArray<Placed>): Plan => 
   const end = filmEnd(placed);
   const starts = music.acts.map((a, i) => (i === 0 ? 0 : sceneOf(placed, a.from).start));
   const bounds = [...starts, end].map((s) => Math.round(s * 1000));
-  const chunks = music.acts.map((a, i) => {
+  const chunks = music.acts.map((a, i): PlanChunk => {
     const ms = (bounds[i + 1] ?? 0) - (bounds[i] ?? 0);
     if (ms < MIN_CHUNK_MS)
       throw new Error(`sound: act "${a.name}" is ${ms}ms; acts must run in film order, 3s or more`);
@@ -129,14 +70,14 @@ export const musicPlan = (music: Music, placed: ReadonlyArray<Placed>): Plan => 
       duration_ms: ms,
       positive_styles: [...music.styles, ...a.styles],
       negative_styles: [...music.avoid, ...(a.avoid ?? [])],
-      context_adherence: 'high' as const,
+      context_adherence: 'high',
     };
   });
   return { chunks };
 };
 
 export const musicKey = (music: Music, plan: Plan): string =>
-  hashText(JSON.stringify({ model: music.model, plan }));
+  hashText(Schema.encodeSync(MusicRequestKey)({ model: music.model, plan }));
 
-export const effectKey = (e: Effect): string =>
-  hashText(JSON.stringify({ prompt: e.prompt, secs: e.secs }));
+export const effectKey = (e: SoundEffect): string =>
+  hashText(Schema.encodeSync(EffectRequestKey)({ prompt: e.prompt, secs: e.secs }));

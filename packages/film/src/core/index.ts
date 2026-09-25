@@ -4,6 +4,7 @@
 
 export * from './time.ts';
 export * from './random.ts';
+export * from './schema.ts';
 export * from './narration.ts';
 export * from './sound.ts';
 export * from './timeline.ts';

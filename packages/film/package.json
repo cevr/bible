@@ -13,5 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "gate": "bun run typecheck && bun run test"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "effect-bun-test": "catalog:"
   }
 }
