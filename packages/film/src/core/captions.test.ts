@@ -10,10 +10,10 @@ const word = (text: string, start: number, end: number): Word => ({ text, start,
 const words = [word('Grace,', 0.2, 0.6), word('freely', 0.8, 1.2), word('given.', 1.3, 1.9)];
 
 describe('captionCues', () => {
-  test('a line leads its first word and holds until the next line', () => {
+  test('the first line leads its word; each holds until the next line, with no overlap', () => {
     expect(captionCues(words)).toEqual([
       { start: 0.2 - 0.05, end: 0.8, text: 'Grace,' },
-      { start: 0.8 - 0.05, end: 1.9 + 0.6, text: 'freely given.' },
+      { start: 0.8, end: 1.9 + 0.6, text: 'freely given.' },
     ]);
   });
 
@@ -43,7 +43,7 @@ describe('filmCaptions', () => {
     expect(cues.map((c) => c.text)).toEqual(['Grace,', 'freely given.', 'Amen.']);
     // Scene a is 1 + 2 + 0.1 long; its last line's hold would run past it.
     expect(cues[1]?.end).toBeCloseTo(3.1);
-    // Scene b's line leads its word, after the scene's own lead.
+    // Scene b's first line leads its word, after the scene's own lead.
     expect(cues[2]?.start).toBeCloseTo(3.1 + 0.5 - 0.05);
   });
 

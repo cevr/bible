@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`. |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard) and `createFilm`, which composites any `T`.                               |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                       |
-| `@bible/film/tools`  | The `film` CLI and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`Mixer.graph` is the pure ffmpeg graph). |
+| Import               | What it holds                                                                                                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard) and `createFilm`, which composites any `T`.                                                                                                              |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                                                      |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan). |
 
 ## Data
 
@@ -24,8 +24,11 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|score|mix|cues <film>` runs from the app that holds the films
-(`src/films/<film>`, or `FILMS_DIR`). Paid calls (ElevenLabs speech, music,
+`film narrate|score|mix|cues|render <film>` runs from the app that holds the
+films (`src/films/<film>`, or `FILMS_DIR`). The app owns the entry: it calls
+`runFilmCli(previewServer)` with a scoped `PreviewServer` layer that serves its
+player page, because only the app can bundle its HTML and films (see
+`apps/animations/cli.ts`). Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
 produces an asset only when its stored hash is stale, and every manifest
@@ -33,6 +36,22 @@ update is serialized. At most three paid jobs run at once. Failures are
 tagged errors (`TakeMismatch`, `ApiKeyMissing`, `FfmpegMissing`, ...) in
 `tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
+
+`mix` writes `narration/full.mp3` for the player and its lossless master
+`narration/full.wav` (16-bit) from one graph.
+
+`render` opens the app's server, headless Chromium (`Browser`, the only
+Playwright code) and a pool of player pages in one scope; a failure in any
+page, or Ctrl-C, closes every page, the browser and the server and kills every
+ffmpeg child. A video's frames split into chunks (`planChunks`: about four per
+page, at least a second each) on a queue that idle pages pull from; each chunk
+streams PNG frames into its own ffmpeg (`Ffmpeg.encode`, which waits for the
+pipe to drain), and a chunk whose page crashes is retried once on a new page.
+The segments join in order with the audio encoded to AAC once from
+`full.wav`, cut with `-ss`/`-t`, and `out/<film>.vtt` is written beside the
+MP4 from `captionCues`, the same line timing the burned-in captions use. An
+uncaught error in the page is a `PageError`, never a log line. A missing
+browser is `BrowserMissing`, whose message is the install command.
 
 ## Named cues
 

@@ -19,8 +19,8 @@ bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame pe
 bun run render <film> --stills 3,10.5          # PNG stills
 ```
 
-`narrate`, `score`, `mix` and `cues` are the `film` CLI from `@bible/film/tools`
-(`film --help`). Narrate flags: `--only id,id` (record these, current or not),
+`narrate`, `score`, `mix` and `cues` are the `film` CLI from `@bible/film/tools`,
+run by this app's `cli.ts` (`bun cli.ts --help`). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
 `--only music,<effect>` and `--dry-run`. `FILMS_DIR` and `FILMS_OUT` override

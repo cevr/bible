@@ -115,3 +115,78 @@ export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
     return `${this.count} cue(s) end after their scene`;
   }
 }
+
+/** No headless Chromium to render with: Playwright ships without one. */
+export class BrowserMissing extends Schema.TaggedError<BrowserMissing>()('BrowserMissing', {
+  executable: Schema.String,
+  install: Schema.String,
+}) {
+  override get message() {
+    return `no headless Chromium at ${this.executable}; install it with:\n  ${this.install}`;
+  }
+}
+
+export class BrowserFailed extends Schema.TaggedError<BrowserFailed>()('BrowserFailed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the browser failed: ${this.reason}`;
+  }
+}
+
+/** The player page did not load, or loaded without an export handle. */
+export class PageLoadFailed extends Schema.TaggedError<PageLoadFailed>()('PageLoadFailed', {
+  url: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the player did not load at ${this.url}: ${this.reason}`;
+  }
+}
+
+/** The film threw in the page: a render must not keep going on a broken frame. */
+export class PageError extends Schema.TaggedError<PageError>()('PageError', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the film threw in the page: ${this.reason}`;
+  }
+}
+
+/** The page's renderer process died. A chunk is retried once on a fresh page. */
+export class PageCrashed extends Schema.TaggedError<PageCrashed>()('PageCrashed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `a render page crashed: ${this.reason}`;
+  }
+}
+
+/** Frame `frame` did not come back from the page. */
+export class FrameFailed extends Schema.TaggedError<FrameFailed>()('FrameFailed', {
+  frame: Schema.Int,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `frame ${this.frame} failed: ${this.reason}`;
+  }
+}
+
+/** The film declares its mixed track but the lossless master is not there. */
+export class AudioMissing extends Schema.TaggedError<AudioMissing>()('AudioMissing', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `no audio master at ${this.file}; run mix to build it (no API calls)`;
+  }
+}
+
+/** A render range with no frames in it. */
+export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
+  from: Schema.Finite,
+  to: Schema.Finite,
+}) {
+  override get message() {
+    return `nothing to render between ${this.from}s and ${this.to}s`;
+  }
+}

@@ -2,9 +2,10 @@
 // ffmpeg that answer from memory and count their calls. No network, no ffmpeg,
 // no credits.
 
-import { Effect, Encoding, FileSystem, Layer, Option, Path, Redacted } from 'effect';
+import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted, Stream } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import {
+  type ExportInfo,
   SoundManifestJson,
   type Timed,
   type Timings,
@@ -13,9 +14,11 @@ import {
 } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type TtsRequest } from './elevenlabs.ts';
-import { ApiKeyMissing } from './errors.ts';
+import { Browser } from './browser.ts';
+import { ApiKeyMissing, type FrameFailed, type PageCrashed, type PageError } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import { PreviewServer } from './preview-server.ts';
 
 const notFound = (method: string, path: string) =>
   PlatformError.systemError({
@@ -41,6 +44,7 @@ export const memoryFileSystem = (files: Map<string, Uint8Array>) =>
         onSome: (bytes) => Effect.succeed(new TextDecoder().decode(bytes)),
       }),
     writeFile: (path, data) => Effect.sync(() => void files.set(path, data)),
+    writeFileString: (path, data) => Effect.sync(() => void files.set(path, text(data))),
     makeDirectory: () => Effect.void,
     rename: (from, to) =>
       Option.match(Option.fromNullishOr(files.get(from)), {
@@ -114,8 +118,122 @@ export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void runs.push(args)),
       probeDuration: () => Effect.succeed(2.5),
+      encode: (args, input) =>
+        Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
     }),
   );
+
+/** Everything the fake render host opened and closed, so a test can check nothing leaked. */
+export interface RenderLedger {
+  readonly server: { started: number; stopped: number };
+  readonly browser: { launched: number; closed: number };
+  readonly pages: { opened: number; closed: number };
+  readonly encoders: { spawned: number; finished: number; killed: number };
+  /** Every frame drawn, by any page. */
+  readonly frames: Array<number>;
+  /** Every ffmpeg run that is not an encode (concat, contact sheet). */
+  readonly runs: Array<ReadonlyArray<string>>;
+}
+
+export const emptyLedger = (): RenderLedger => ({
+  server: { started: 0, stopped: 0 },
+  browser: { launched: 0, closed: 0 },
+  pages: { opened: 0, closed: 0 },
+  encoders: { spawned: 0, finished: 0, killed: 0 },
+  frames: [],
+  runs: [],
+});
+
+export const testExportInfo: ExportInfo = {
+  width: 1920,
+  height: 1080,
+  fps: 30,
+  duration: 20,
+  frames: 600,
+};
+
+export interface FakeRenderHost {
+  readonly info?: ExportInfo;
+  /**
+   * How page number `page` (1 for the first page opened) draws frame `i`:
+   * fail to break it. Every frame first yields for a millisecond, so pages and
+   * encoders really run side by side.
+   */
+  readonly frame?: (
+    i: number,
+    page: number,
+  ) => Effect.Effect<void, PageError | PageCrashed | FrameFailed>;
+}
+
+/**
+ * A preview server, a browser whose pages draw one-byte frames, and an ffmpeg
+ * that drains its input, each recording in `ledger` when it opens and closes.
+ */
+export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
+  const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
+  const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
+  const server = Layer.effect(
+    PreviewServer,
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        ledger.server.started += 1;
+        return PreviewServer.of({ url: 'http://preview.test/' });
+      }),
+      () => Effect.sync(() => void (ledger.server.stopped += 1)),
+    ),
+  );
+  const browser = Layer.effect(
+    Browser,
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        ledger.browser.launched += 1;
+        return Browser.of({
+          open: () =>
+            Effect.acquireRelease(
+              Effect.sync(() => {
+                ledger.pages.opened += 1;
+                return ledger.pages.opened;
+              }),
+              () => Effect.sync(() => void (ledger.pages.closed += 1)),
+            ).pipe(
+              Effect.map((page) => ({
+                info,
+                frame: (i: number) =>
+                  Effect.sleep('1 millis').pipe(
+                    Effect.andThen(draw(i, page)),
+                    Effect.map(() => {
+                      ledger.frames.push(i);
+                      return new Uint8Array([i % 256]);
+                    }),
+                  ),
+              })),
+            ),
+        });
+      }),
+      () => Effect.sync(() => void (ledger.browser.closed += 1)),
+    ),
+  );
+  const ffmpeg = Layer.succeed(
+    Ffmpeg,
+    Ffmpeg.of({
+      run: (args) => Effect.sync(() => void ledger.runs.push(args)),
+      probeDuration: () => Effect.succeed(info.duration),
+      encode: (_args, input) =>
+        Effect.acquireUseRelease(
+          Effect.sync(() => void (ledger.encoders.spawned += 1)),
+          () => Stream.runDrain(input),
+          (_, exit) =>
+            Effect.sync(() =>
+              Exit.match(exit, {
+                onSuccess: () => void (ledger.encoders.finished += 1),
+                onFailure: () => void (ledger.encoders.killed += 1),
+              }),
+            ),
+        ),
+    }),
+  );
+  return Layer.mergeAll(server, browser, ffmpeg);
+};
 
 export const testVoice: Voice = {
   voiceId: 'voice-1',

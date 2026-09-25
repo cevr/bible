@@ -236,3 +236,17 @@ export const MusicRequestKey = Schema.fromJsonString(
 export const EffectRequestKey = Schema.fromJsonString(
   Schema.Struct({ prompt: Schema.String, secs: Schema.Finite }),
 );
+
+// ---------------------------------------------------------------------------
+// Export: what the player's `?export` handle reports about the film it loaded.
+
+export const ExportInfo = Schema.Struct({
+  width: Schema.Int,
+  height: Schema.Int,
+  fps: Schema.Finite,
+  duration: Schema.Finite,
+  frames: Schema.Int,
+  /** The mixed track's URL, present only when every take is recorded. */
+  audio: Schema.optional(Schema.String),
+});
+export type ExportInfo = typeof ExportInfo.Type;

@@ -2,9 +2,6 @@
   "name": "@bible/film",
   "version": "0.1.0",
   "private": true,
-  "bin": {
-    "film": "./src/tools/cli.ts"
-  },
   "type": "module",
   "exports": {
     "./core": "./src/core/index.ts",
@@ -20,7 +17,8 @@
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "playwright-core": "1.63.0"
   },
   "devDependencies": {
     "effect-bun-test": "catalog:"

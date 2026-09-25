@@ -18,7 +18,10 @@ export interface CaptionCue {
   readonly text: string;
 }
 
-/** A take's caption lines, take-local: each shows until the next line starts. */
+/**
+ * A take's caption lines, take-local. The first leads its first word; each
+ * shows until the next line's first word, so no two lines overlap.
+ */
 export const captionCues = (words: ReadonlyArray<Word>): Array<CaptionCue> => {
   const lines = captionLines(words);
   return lines.flatMap((line, i) => {
@@ -29,8 +32,10 @@ export const captionCues = (words: ReadonlyArray<Word>): Array<CaptionCue> => {
       onNone: () => last.value.end + CAPTION_HOLD,
       onSome: (next) => next.start,
     });
+    // Only the first line leads: a later one starts where the line before it ends.
+    const lead = Arr.match(lines.slice(0, i), { onEmpty: () => CAPTION_LEAD, onNonEmpty: () => 0 });
     const text = line.map((w) => w.text).join(' ');
-    return [{ start: first.value.start - CAPTION_LEAD, end, text }];
+    return [{ start: first.value.start - lead, end, text }];
   });
 };
 

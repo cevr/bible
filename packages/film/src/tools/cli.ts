@@ -1,18 +1,21 @@
-#!/usr/bin/env bun
-// `film`: the tools that turn a film's script into sound, run from the app
-// that holds the films (`src/films/<film>`, or FILMS_DIR).
+// `film`: the tools that turn a film's script into sound and pictures, run
+// from the app that holds the films (`src/films/<film>`, or FILMS_DIR). The app
+// owns its entry (`runFilmCli`), because only it can serve its player page.
 //
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
+//   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
+//                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
-import { Console, Effect, Layer, Option } from 'effect';
+import { Console, Effect, Layer, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Browser } from './browser.ts';
 import { Composer } from './composer.ts';
 import { ContentStore } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
@@ -22,6 +25,9 @@ import { Ffmpeg } from './ffmpeg.ts';
 import { FilmRepo, placeFilm } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
+import type { PreviewServer } from './preview-server.ts';
+import { RenderJob, sceneSpan } from './render-plan.ts';
+import { Renderer } from './renderer.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -138,10 +144,88 @@ const cues = Command.make(
   ),
 );
 
-const root = Command.make('film').pipe(
-  Command.withDescription('Narrate, score, mix and inspect a cut-paper film'),
-  Command.withSubcommands([narrate, score, mix, cues]),
-);
+/** `--stills 3,10.5`: seconds, each a finite number. */
+const Seconds = Schema.Array(Schema.FiniteFromString);
+
+const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
+  Command.make(
+    'render',
+    {
+      film,
+      stills: Flag.String('stills').pipe(
+        Flag.optional,
+        Flag.withDescription('write full-size PNG stills at these seconds (t,t,...)'),
+      ),
+      contact: Flag.Finite('contact').pipe(
+        Flag.optional,
+        Flag.withDescription('write a contact sheet, a frame every this many seconds'),
+      ),
+      scene: Flag.String('scene').pipe(
+        Flag.optional,
+        Flag.withDescription("span these scenes (id,id), read from the film's layout"),
+      ),
+      from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
+      to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
+      workers: Flag.Int('workers').pipe(
+        Flag.withDefault(4),
+        Flag.withDescription('pages rendering at once'),
+      ),
+      scale: Flag.Finite('scale').pipe(
+        Flag.withDefault(1),
+        Flag.withDescription('scale the video, e.g. 0.5'),
+      ),
+      captions: Flag.Boolean('captions').pipe(
+        Flag.withDefault(true),
+        Flag.withDescription('burn the captions in (--no-captions to leave them out)'),
+      ),
+      tag: Flag.String('tag').pipe(
+        Flag.withDefault(''),
+        Flag.withDescription(
+          'output subfolder under out/<film>, so parallel renders do not collide',
+        ),
+      ),
+      out: Flag.String('out').pipe(
+        Flag.optional,
+        Flag.withDescription('the video file (default out/<film>.mp4)'),
+      ),
+    },
+    Effect.fn('film.render')(function* (input) {
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      // `--scene` sets the range from the film's own layout.
+      const { from, to } = yield* Option.match(input.scene, {
+        onNone: () => Effect.succeed({ from: input.from, to: input.to }),
+        onSome: (ids) =>
+          placeFilm(loaded).pipe(
+            Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids.split(',')))),
+            Effect.map((span) => ({ from: Option.some(span.from), to: Option.some(span.to) })),
+          ),
+      });
+      const base = {
+        tag: input.tag,
+        captions: input.captions,
+        workers: Math.max(1, input.workers),
+      };
+      const job = yield* Option.match(input.stills, {
+        onSome: (list) =>
+          Schema.decodeEffect(Seconds)(list.split(',')).pipe(
+            Effect.map((times) => RenderJob.Stills({ ...base, times })),
+          ),
+        onNone: () =>
+          Effect.succeed(
+            Option.match(input.contact, {
+              onSome: (every) => RenderJob.Contact({ ...base, every, from, to }),
+              onNone: () =>
+                RenderJob.Video({ ...base, from, to, scale: input.scale, out: input.out }),
+            }),
+          ),
+      });
+      yield* (yield* Renderer).render(loaded, job);
+    }, Effect.provide(renderLayer)),
+  ).pipe(
+    Command.withDescription(
+      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet',
+    ),
+  );
 
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
@@ -151,4 +235,15 @@ const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pip
   Layer.provideMerge(Layer.mergeAll(Repo, Store, Tools, Platform)),
 );
 
-Command.run(root, { version: '0.1.0' }).pipe(Effect.provide(Services), BunRuntime.runMain);
+/**
+ * Run the `film` CLI with the app's player server. The server and the browser
+ * start only for `render`, and stop with it.
+ */
+export const runFilmCli = <E>(previewServer: Layer.Layer<PreviewServer, E>): void => {
+  const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const root = Command.make('film').pipe(
+    Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
+    Command.withSubcommands([narrate, score, mix, cues, render(renderLayer)]),
+  );
+  Command.run(root, { version: '0.1.0' }).pipe(Effect.provide(Services), BunRuntime.runMain);
+};

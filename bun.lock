@@ -180,12 +180,10 @@
     "packages/film": {
       "name": "@bible/film",
       "version": "0.1.0",
-      "bin": {
-        "film": "./src/tools/cli.ts",
-      },
       "dependencies": {
         "@effect/platform-bun": "catalog:",
         "effect": "catalog:",
+        "playwright-core": "1.63.0",
       },
       "devDependencies": {
         "effect-bun-test": "catalog:",

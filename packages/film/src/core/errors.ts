@@ -8,7 +8,7 @@ export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownSce
   scene: Schema.String,
 }) {
   override get message() {
-    return `sound: no scene "${this.scene}"`;
+    return `the film has no scene "${this.scene}"`;
   }
 }
 
