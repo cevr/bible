@@ -129,13 +129,13 @@ export const witness = drawing({
           f.hand('sheen2'),
         );
         ctx.restore();
-        // GUILTY, stamped across the glass.
+        // GUILTY, stamped across the glass above the reflection's head.
         const stamp = f.at('guilty');
         const stampOut = progress(t, must + 0.4, 0.5);
         if (stamp > 0 && stampOut < 1) {
           ctx.save();
           ctx.globalAlpha *= (1 - stampOut) * clamp(stamp * 2);
-          at(ctx, { x: 0, y: -300, rot: -0.14, scale: lerp(1.6, 1, stamp) }, () => {
+          at(ctx, { x: 0, y: -440, rot: -0.14, scale: lerp(1.5, 0.88, stamp) }, () => {
             // The border is cut to the word: 20 px clear of it inside the inner rule.
             const w = measure(ctx, 'GUILTY', GUILTY) + 2 * (20 + 12 + 4);
             for (const k of [0, 1]) {
