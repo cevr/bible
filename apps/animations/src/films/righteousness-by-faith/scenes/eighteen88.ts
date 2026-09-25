@@ -22,7 +22,8 @@ export const eighteen88 = drawing({
     // ── The newspaper page ──────────────────────────────────────────────────
     const away = progress(t, asked, 1.4, ease.inOutCubic);
     if (away < 1) {
-      at(ctx, { x: -away * 2100, y: 0, rot: -0.015 * (1 - away) }, () => {
+      // At 0.9 about the frame's centre, the masthead clears the cite slot (top left).
+      at(ctx, { x: 96 - away * 2100, y: 57, rot: -0.015 * (1 - away), scale: 0.9 }, () => {
         newspaper(ctx, 300, 70, 1320, 1000, 'GENERAL CONFERENCE', f.hand('paper'));
         write(
           ctx,
