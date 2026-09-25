@@ -57,8 +57,6 @@ export interface Player {
   redraw(): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
-  /** `scene:cue` for each cue the last frame drawn eased with an ease of its own. */
-  easedOver(): ReadonlySet<string>;
   /** Called after every frame the preview draws. */
   onDraw(listener: (T: number) => void): void;
 }
@@ -208,12 +206,10 @@ const preview = (
   let tStart = 0;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
-  let easedOver = new Set<string>();
 
   const draw = () => {
     reads = [];
-    easedOver = new Set();
-    film.render(ctx, T, { captions: captions.on, knobs: reads, easedOver });
+    film.render(ctx, T, { captions: captions.on, knobs: reads });
     for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
@@ -307,7 +303,6 @@ const preview = (
     },
     redraw: draw,
     knobReads: () => reads,
-    easedOver: () => easedOver,
     onDraw: (listener) => {
       listeners.push(listener);
     },

@@ -554,14 +554,6 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       eases.append(b);
     }
     box.append(eases);
-    if (player.easedOver().has(`${p.spec.id}:${name}`))
-      box.append(
-        el(
-          'p',
-          'lab-edit-note lab-eased-over',
-          `This frame draws ${name} with an ease of its own (f.at('${name}', ease.…)); the declared ease changes nothing here.`,
-        ),
-      );
     return box;
   };
 

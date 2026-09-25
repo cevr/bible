@@ -190,9 +190,8 @@ places them freely. While dragging, the frame previews the edit in memory
 (`film.preview(scene, edit)` resolves the edited timeline on the scene's own
 clock, `sceneClock(p)`, as `layout()` does); the release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs, and an ease picker drawing each curve; it says so when the frame
-eases the cue itself (`f.at(name, ease.x)`), where the declared ease changes
-nothing. Knobs take number inputs; a point knob also gets a handle on the
+inputs, and an ease picker drawing each curve (the ease is only ever data:
+`f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the
 frame, but only when every read of it this frame was straight onto the
 canvas, untransformed (`RenderOptions.knobs` records each read and whether
 the transform was the identity); under a transform or in a transition it is
@@ -245,9 +244,9 @@ never to an absolute second:
 
 ```ts
 export const justified = drawing({
-  timeline: { slam: { mark: 'fiction', offset: 0.9, dur: 0.35 } },
+  timeline: { slam: { mark: 'fiction', offset: 0.9, dur: 0.35, ease: 'inQuad' } },
   draw: (f) => {
-    const slam = f.at('slam', ease.inQuad); // progress(t, cue.start, cue.dur, ease)
+    const slam = f.at('slam'); // progress(t, cue.start, cue.dur, ease.inQuad)
   },
 });
 // sound.ts: the thud lands where the stamp lands.
@@ -256,11 +255,11 @@ export const justified = drawing({
 
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
 `{ start, end, dur, ease }`); an unknown mark or cue, or a cycle, is an error naming
-the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name,
-ease)` its eased progress. A span may declare its easing as data, `ease:
-'inQuad'` (one of the names in `ease`, `EaseName`); `f.at(name)` with no ease
-argument uses it, and a span without one eases `inOutCubic`, as `progress`
-does; with `drawing(...)`, a name the timeline lacks, in
+the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name)`
+its eased progress. A span declares its easing as data, `ease: 'inQuad'` (one
+of the names in `ease`, `EaseName`), and a span without one eases
+`inOutCubic`, as `progress` does. `f.at` takes no ease of its own: the ease
+lives in one place, so the lab's picker always changes the frame. With `drawing(...)`, a name the timeline lacks, in
 `f.cue`, `f.at` or a span's `after`/`with`, is a compile error
 (`canvas/drawing.types.ts` holds the checks). The sound plan's `cueTime` reads the same map, so picture and
 sound cannot drift apart. Ornament (wobble, idle motion) stays inline.

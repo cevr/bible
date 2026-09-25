@@ -101,12 +101,13 @@ between two marks — quotes reveal as they are read.
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
 a mark, another cue (`after` / `with`) or a scene landmark, and read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
-`f.at(name, ease)` (0→1 across it). Wrap the drawing in `drawing({ timeline,
+`f.at(name)` (0→1 across it, eased by the span's `ease`). Wrap the drawing in `drawing({ timeline,
 draw })` so an undeclared name fails to compile, in `f.cue`/`f.at` and in the
 timeline's own `after`/`with`. `layout()` resolves every cue
 once; `cues` prints them and fails when one ends after its scene. A span's
-easing is data too (`{ mark: 'fiction', dur: 0.35, ease: 'inQuad' }`):
-`f.at(name)` uses it when `draw` passes no ease. Ornament
+easing is data too (`{ mark: 'fiction', dur: 0.35, ease: 'inQuad' }`), and
+only data: `f.at` takes no ease, so the lab's ease picker always changes the
+frame. Ornament
 (wobble, idle motion) stays inline.
 
 **A tweakable value is a knob.** A position or an angle a review may ask to

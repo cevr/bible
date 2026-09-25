@@ -35,7 +35,7 @@ export const witness = drawing({
   enter: { kind: 'cut' },
   timeline: {
     /** GUILTY slams onto the glass. */
-    guilty: { mark: 'call', offset: 0.9, dur: 0.35 },
+    guilty: { mark: 'call', offset: 0.9, dur: 0.35, ease: 'outCubic' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -118,7 +118,7 @@ export const witness = drawing({
         );
         ctx.restore();
         // GUILTY, stamped across the glass.
-        const stamp = f.at('guilty', ease.outCubic);
+        const stamp = f.at('guilty');
         const stampOut = progress(t, must + 0.4, 0.5);
         if (stamp > 0 && stampOut < 1) {
           ctx.save();

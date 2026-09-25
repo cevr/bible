@@ -25,7 +25,7 @@ export const name = drawing({
   tail: 2.8,
   timeline: {
     /** The crown of the coming King rises in its glow. */
-    crown: { mark: 'jer', offset: 0.4, dur: 0.8 },
+    crown: { mark: 'jer', offset: 0.4, dur: 0.8, ease: 'outBack' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -146,7 +146,7 @@ export const name = drawing({
       );
 
       // The coming King, and His name.
-      const crown = f.at('crown', ease.outBack);
+      const crown = f.at('crown');
       if (crown > 0) {
         at(ctx, { x: 1230, y: lerp(580, 620, crown), scale: crown }, () => {
           glow(ctx, 0, 0, 160, 0.6, '230, 179, 71');

@@ -9,7 +9,7 @@ export const eighteen88 = drawing({
   lead: 0.7,
   timeline: {
     /** The year, stamped big onto the page. */
-    yearStamp: { mark: 'year', offset: -0.2, dur: 0.6 },
+    yearStamp: { mark: 'year', offset: -0.2, dur: 0.6, ease: 'outBack' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -43,7 +43,7 @@ export const eighteen88 = drawing({
         );
 
         // The year, stamped big; it steps back when the portraits arrive.
-        const yp = f.at('yearStamp', ease.outBack);
+        const yp = f.at('yearStamp');
         const shrink = progress(t, names - 0.3, 0.9, ease.inOutCubic);
         if (yp > 0)
           write(

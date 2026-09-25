@@ -14,6 +14,8 @@ export const declared = drawing({
   draw: (f) => {
     f.cue('stamp');
     f.at('cord');
+    // @ts-expect-error: a cue's ease is data on its span, never passed by the draw.
+    f.at('cord', (x: number) => x);
     // @ts-expect-error: `f.cue` names only declared cues.
     f.cue('stmap');
   },

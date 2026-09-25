@@ -21,7 +21,7 @@ export const hand_ = drawing({
   enter: { kind: 'pan', dur: 0.8, dir: -1 },
   timeline: {
     /** The tower of merit tips and slides off the palm. */
-    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+    topple: { mark: 'earns', offset: 0.1, dur: 1.8, ease: 'inCubic' },
     /** Stars rise around the gift once it lies in the palm; they stay to the end. */
     shine: { mark: 'gift', offset: 0.5, dur: 0.3 },
   },
@@ -91,7 +91,7 @@ export const hand_ = drawing({
       const [palmX, palmY] = f.knob('palm');
       const y = lerp(1300, palmY, rise);
       // The tower tips and slides off the palm.
-      const topple = f.at('topple', ease.inCubic);
+      const topple = f.at('topple');
       at(ctx, { x: palmX, y, scale: 1.35 }, () => {
         // Glow once the hand is empty.
         const glow = progress(t, handAt, 1.2) * (1 - 0.3 * progress(t, gifted, 1));

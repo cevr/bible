@@ -28,7 +28,7 @@ import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, probeOf, probing, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
-import { type Ease, clamp, ease } from '../core/time.ts';
+import { clamp, ease } from '../core/time.ts';
 
 export const BOIL_FPS = 12;
 
@@ -57,10 +57,11 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   /** A named cue from the scene's `timeline`, scene-local. */
   cue(name: C): ResolvedCue;
   /**
-   * 0→1 across a named cue, eased: `progress(t, cue.start, cue.dur, e)`, or
-   * the cue's own `ease` (default `inOutCubic`) when `e` is left out.
+   * 0→1 across a named cue, eased by the cue's declared `ease` (default
+   * `inOutCubic`): `progress(t, cue.start, cue.dur, ease[cue.ease])`. The ease
+   * is data on the span, so the lab can change it; the draw never passes one.
    */
-  at(name: C, e?: Ease): number;
+  at(name: C): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
@@ -142,11 +143,10 @@ export interface KnobRead {
   readonly direct: boolean;
 }
 
-/** Where a frame records what it read, for the lab (`RenderOptions.knobs`, `easedOver`). */
+/** Where a frame records the knobs it read, for the lab (`RenderOptions.knobs`). */
 interface Reads {
   readonly list: KnobRead[];
   readonly direct: boolean;
-  readonly easedOver: Set<string> | undefined;
 }
 
 /** A scene's timeline or knobs, standing in for its drawing's while the lab previews an edit. */
@@ -159,11 +159,6 @@ export interface RenderOptions {
   readonly captions?: boolean;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
-  /**
-   * Collect `scene:cue` for every cue the frame eases with an ease of its own
-   * (`f.at(name, ease.x)`), where the cue's declared ease changes nothing.
-   */
-  readonly easedOver?: Set<string>;
   /**
    * Collect every line of text the frame draws into this array (the text
    * probe `film check` reads). Leave it out for an ordinary frame; the pixels
@@ -307,10 +302,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
         return c;
       },
-      at: (name, e) => {
-        if (e !== undefined) reads?.easedOver?.add(`${p.spec.id}:${name}`);
-        return cueProgress(frame.cue(name), t, e);
-      },
+      at: (name) => cueProgress(frame.cue(name), t),
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
@@ -372,11 +364,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     const boxes = opts.probe;
     const knobs = opts.knobs;
     /** Knob reads straight onto the frame, or from a transition's layer. */
-    const easedOver = opts.easedOver;
     const reads = (direct: boolean): Reads | undefined =>
-      knobs === undefined && easedOver === undefined
-        ? undefined
-        : { list: knobs ?? [], direct, easedOver };
+      knobs === undefined ? undefined : { list: knobs, direct };
     /** A probe for text one scene draws, landing `dx` across and composited at `alpha`. */
     const probe = (p: Placed<SceneSpec>, dx: number, alpha: number): Probe | undefined =>
       boxes === undefined ? undefined : { boxes, scene: p.spec.id, dx, alpha };

@@ -49,9 +49,9 @@ export const robe = drawing({
   tail: 3.2,
   timeline: {
     /** The filthy garments tear away on the wind. */
-    tear: { mark: 'take', offset: 0.1, dur: 2.6 },
+    tear: { mark: 'take', offset: 0.1, dur: 2.6, ease: 'linear' },
     /** The robe from heaven descends onto him. */
-    robeFalls: { mark: 'clothe', dur: 2 },
+    robeFalls: { mark: 'clothe', dur: 2, ease: 'inOutCubic' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -136,7 +136,7 @@ export const robe = drawing({
       if (pop > 0) {
         const soiled = progress(t, filthy, 1);
         const bare = progress(t, take + 0.2, 0.5);
-        const land = f.at('robeFalls', ease.inOutCubic);
+        const land = f.at('robeFalls');
         const landed = f.cue('robeFalls').end;
         const clothed = land >= 1;
         const joy = clothed || gone > 0;
@@ -174,7 +174,7 @@ export const robe = drawing({
           );
           if (bare === 0) stains(ctx, f.hand('stains'), soiled);
           // The filthy garments tear away on the wind.
-          if (t > take) blowRags(ctx, f.at('tear', ease.linear), f.hand('rags'), C.teal, 1);
+          if (t > take) blowRags(ctx, f.at('tear'), f.hand('rags'), C.teal, 1);
           turban(f);
         });
         // The descending robe is drawn in world space above the figure.

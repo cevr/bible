@@ -24,7 +24,7 @@ export const justified = drawing({
   enter: { kind: 'pan', dur: 0.9 },
   timeline: {
     /** RIGHTEOUS slams onto the decree. */
-    slam: { mark: 'fiction', offset: 0.9, dur: 0.35 },
+    slam: { mark: 'fiction', offset: 0.9, dur: 0.35, ease: 'inQuad' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -115,7 +115,7 @@ export const justified = drawing({
           f.hand('doc-sig'),
         );
         // The stamp slams down on "declares".
-        const slam = f.at('slam', ease.inQuad);
+        const slam = f.at('slam');
         if (slam > 0) {
           const s = lerp(1.8, 1, slam);
           at(ctx, { x: 120, y: 90, rot: -0.2, scale: s }, () => {

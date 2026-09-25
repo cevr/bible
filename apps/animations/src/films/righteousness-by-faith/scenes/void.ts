@@ -8,7 +8,7 @@ export const voidScene = drawing({
   enter: { kind: 'ink', dur: 0.9, color: C.night },
   timeline: {
     /** The written word bursts into the sun. */
-    burst: { mark: 'spake', offset: -0.1, dur: 0.6 },
+    burst: { mark: 'spake', offset: -0.1, dur: 0.6, ease: 'inCubic' },
   },
   draw: (f) => {
     const { ctx, t } = f;
@@ -125,7 +125,7 @@ export const voidScene = drawing({
 
     // ── God spoke: one word, written in light, bursts into a sun.
     const writeP = progress(t, spoke - 0.1, 0.9, ease.linear);
-    const burst = f.at('burst', ease.inCubic);
+    const burst = f.at('burst');
     if (writeP > 0 && burst < 1) {
       ctx.save();
       ctx.globalAlpha *= 1 - burst;

@@ -38,11 +38,10 @@ describe('timeline', () => {
     expect(cues.get('lift')?.ease).toBe('inOutCubic');
   });
 
-  test('cueProgress eases by the cue’s own ease unless the draw passes one', () => {
+  test('cueProgress eases by the cue’s own ease', () => {
     const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad' } as const;
-    // Halfway through: inQuad gives 0.25, the passed linear 0.5, the default inOutCubic 0.5.
+    // Halfway through: inQuad gives 0.25.
     expect(cueProgress(cue, 2)).toBeCloseTo(0.25);
-    expect(cueProgress(cue, 2, ease.linear)).toBeCloseTo(0.5);
     expect(cueProgress({ ...cue, ease: DEFAULT_EASE }, 2.5)).toBeCloseTo(ease.inOutCubic(0.75));
     // Before and after the span it is pinned, whatever the ease.
     expect(cueProgress(cue, 0)).toBe(0);
