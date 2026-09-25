@@ -381,9 +381,10 @@ export const pastFrame = (
  */
 export const HIDING_ALPHA = 0.8;
 /**
- * A stroke drawn before a line of text lies under it, and one fainter than
- * this is page texture the words read over (greeked copy on a newspaper): only
- * a stroke drawn over the text, or a heavy one under it, strikes it.
+ * A stroke drawn before a line of text lies under it, and one at no more than
+ * this opacity is page texture the words read over (greeked copy on a
+ * newspaper, the lines of a decree under its stamp): only a stroke drawn over
+ * the text, or a heavier one under it, strikes it.
  */
 export const UNDER_ALPHA = 0.5;
 /** Along a crossing, the check looks for a plate over the stroke every this many pixels. */
@@ -500,7 +501,7 @@ export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOv
   for (const text of texts)
     for (const stroke of strokes) {
       if (stroke.marks === text.text || !near(stroke, text, stroke.width)) continue;
-      if (stroke.order < text.order && stroke.alpha < UNDER_ALPHA) continue;
+      if (stroke.order < text.order && stroke.alpha <= UNDER_ALPHA) continue;
       const length = crossing(stroke, text, covers);
       if (length <= OVERLAP_TOLERANCE) continue;
       const found = Option.getOrElse(Option.fromNullishOr(byText.get(text.text)), () => []);

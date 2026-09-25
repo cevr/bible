@@ -246,7 +246,7 @@ What the rules leave alone, and why:
 
 - A fade-out under a fade-in is not a collision (the 0.3 opacity floor), so
   there is no per-drawing allow-list.
-- A stroke drawn **under** a line at less than 0.5 opacity is page texture
+- A stroke drawn **under** a line at no more than 0.5 opacity is page texture
   the words read over (greeked copy on a newspaper); drawn over the line, or
   heavy, it strikes it.
 - A stroke that marks a line on purpose (an underline, a highlighter swash,
