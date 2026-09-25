@@ -2,7 +2,7 @@
 // registry. Preview mode is a scrubbable player; export mode (`?export`) hides
 // the chrome and hands `window.__film` to the renderer.
 
-import type { Film } from '../canvas/film.ts';
+import type { Film, KnobRead } from '../canvas/film.ts';
 import type { TextBox } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
@@ -53,6 +53,12 @@ export interface Player {
   now(): number;
   seek(T: number): void;
   pause(): void;
+  /** Draw the frame shown now again: after the lab previews an edit. */
+  redraw(): void;
+  /** Every knob the last frame drawn read, and how (`KnobRead`). */
+  knobReads(): ReadonlyArray<KnobRead>;
+  /** `scene:cue` for each cue the last frame drawn eased with an ease of its own. */
+  easedOver(): ReadonlySet<string>;
   /** Called after every frame the preview draws. */
   onDraw(listener: (T: number) => void): void;
 }
@@ -175,6 +181,7 @@ const preview = (
     const el = document.createElement('div');
     el.className = `tick ${tick.kind}`;
     el.dataset['name'] = `${tick.name} · ${tick.at.toFixed(2)}s`;
+    el.dataset['tick'] = tick.name;
     el.style.left = pct(tick.at);
     if (tick.kind === 'cue') el.style.width = pct(tick.dur);
     track.insertBefore(el, head);
@@ -200,9 +207,13 @@ const preview = (
   let wallStart = 0;
   let tStart = 0;
   const listeners: Array<(T: number) => void> = [];
+  let reads: KnobRead[] = [];
+  let easedOver = new Set<string>();
 
   const draw = () => {
-    film.render(ctx, T, { captions: captions.on });
+    reads = [];
+    easedOver = new Set();
+    film.render(ctx, T, { captions: captions.on, knobs: reads, easedOver });
     for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
@@ -294,6 +305,9 @@ const preview = (
     pause: () => {
       if (playing) toggle();
     },
+    redraw: draw,
+    knobReads: () => reads,
+    easedOver: () => easedOver,
     onDraw: (listener) => {
       listeners.push(listener);
     },

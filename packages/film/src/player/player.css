@@ -400,3 +400,191 @@ body.lab .bar {
 .track .tick.note.resolved {
   background-color: #6b6259;
 }
+
+/* ── The lab's editor: the current scene's cues, draggable, and the inspector. ── */
+.lab-strip {
+  position: relative;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  user-select: none;
+  touch-action: none;
+}
+.lab-strip-head {
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lab-strip-rows {
+  position: relative;
+  margin-left: 72px;
+  background: #1c1915;
+  border-radius: 3px;
+}
+.lab-strip-words {
+  position: relative;
+  height: 18px;
+  border-bottom: 1px solid #3a342c;
+}
+.lab-word {
+  position: absolute;
+  top: 2px;
+  height: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--text);
+  background: #2c2720;
+  border-left: 1px solid #5a5043;
+}
+.lab-strip-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+.lab-strip-row {
+  position: relative;
+  height: 16px;
+}
+.lab-cue-label {
+  position: absolute;
+  left: -72px;
+  width: 68px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 16px;
+}
+.lab-cue {
+  position: absolute;
+  top: 3px;
+  height: 10px;
+  min-width: 3px;
+  box-sizing: border-box;
+  background: #6d8fb8;
+  border-left: 5px solid #a8c3e3;
+  border-right: 5px solid #a8c3e3;
+  border-radius: 2px;
+  cursor: grab;
+}
+.lab-cue.selected {
+  background: var(--accent);
+  border-color: #f6d690;
+}
+.lab-cue.late {
+  outline: 1px solid #d0644c;
+}
+.lab-strip-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #fff;
+  pointer-events: none;
+}
+.lab-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a342c;
+  font-size: 12px;
+}
+.lab-edit-file {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lab-edit-title {
+  font-weight: 600;
+  margin: 4px 0;
+}
+.lab-edit-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+}
+.lab-edit-key,
+.lab-edit-note {
+  color: var(--muted);
+}
+.lab-edit-note {
+  font-size: 11px;
+}
+.lab-num {
+  width: 80px;
+  background: #16130f;
+  color: var(--text);
+  border: 1px solid #3a342c;
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.lab-eases {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 4px;
+}
+.lab-panel .lab-ease {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px;
+  font-size: 9px;
+}
+.lab-ease-axis {
+  stroke: #3a342c;
+  stroke-width: 1;
+}
+.lab-ease-curve {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+.lab-ease.on .lab-ease-curve {
+  stroke: var(--accent);
+}
+.lab-knob {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.lab-knob.selected .lab-edit-key {
+  color: var(--accent);
+}
+.lab-findings {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+}
+.lab-finding.error {
+  color: #e0806b;
+}
+.lab-finding.warning {
+  color: #d9b56a;
+}
+.lab-edit-status {
+  font-size: 11px;
+  color: var(--muted);
+}
+.lab-handle {
+  cursor: move;
+  pointer-events: all;
+}
+.lab-handle circle {
+  fill: rgb(226 176 74 / 0.18);
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.lab-handle line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.lab-handle.selected circle {
+  fill: rgb(226 176 74 / 0.4);
+}

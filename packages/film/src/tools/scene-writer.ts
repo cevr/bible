@@ -70,6 +70,8 @@ export interface SceneWriterService {
   ) => Effect.Effect<Written, WriteError>;
   /** Put the last write's file back as it was; once. */
   readonly undo: Effect.Effect<Written, UndoUnavailable | PlatformError>;
+  /** The write `undo` would put back, if any. */
+  readonly last: Effect.Effect<Option.Option<Written>>;
 }
 
 /** Whether two numbers are the same value as the lab writes it. */
@@ -152,31 +154,35 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           after: string,
         ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
       ) =>
+        // Uninterruptible: the page the write reloads drops its request, and a
+        // write must not stop between the rename and the check that it read back.
         writer.withPermits(1)(
-          Effect.gen(function* () {
-            const at = yield* sources.site(film, scene);
-            const before = yield* fs.readFileString(at.file);
-            const next = yield* Effect.fromResult(edit(at, before));
-            yield* store.writeFile(at.file, new TextEncoder().encode(next));
-            const undone = <E>(error: E) =>
-              Effect.andThen(restore(at.file, before), Effect.fail(error));
-            yield* format(at.file).pipe(Effect.catchTag('FormatFailed', undone));
-            const after = yield* fs.readFileString(at.file);
-            const missed = Result.match(verify(at, after), {
-              onFailure: (e) => [e.reason],
-              onSuccess: (m) => m,
-            });
-            if (missed.length > 0)
-              return yield* undone(
-                WriteUnverified.make({ file: at.file, target, reason: missed.join(', ') }),
+          Effect.uninterruptible(
+            Effect.gen(function* () {
+              const at = yield* sources.site(film, scene);
+              const before = yield* fs.readFileString(at.file);
+              const next = yield* Effect.fromResult(edit(at, before));
+              yield* store.writeFile(at.file, new TextEncoder().encode(next));
+              const undone = <E>(error: E) =>
+                Effect.andThen(restore(at.file, before), Effect.fail(error));
+              yield* format(at.file).pipe(Effect.catchTag('FormatFailed', undone));
+              const after = yield* fs.readFileString(at.file);
+              const missed = Result.match(verify(at, after), {
+                onFailure: (e) => [e.reason],
+                onSuccess: (m) => m,
+              });
+              if (missed.length > 0)
+                return yield* undone(
+                  WriteUnverified.make({ file: at.file, target, reason: missed.join(', ') }),
+                );
+              const written: Written = { scene, file: at.file, target, before, after };
+              yield* Ref.set(last, Option.some(written));
+              yield* Effect.log(
+                `lab.write film=${film} scene=${scene} target="${target}" file=${path.relative(repo.paths(film).dir, at.file)}`,
               );
-            const written: Written = { scene, file: at.file, target, before, after };
-            yield* Ref.set(last, Option.some(written));
-            yield* Effect.log(
-              `lab.write film=${film} scene=${scene} target="${target}" file=${path.relative(repo.paths(film).dir, at.file)}`,
-            );
-            return written;
-          }),
+              return written;
+            }),
+          ),
         );
 
       const setCue = Effect.fn('SceneWriter.setCue')(function* (
@@ -217,32 +223,34 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
 
       const undo = writer
         .withPermits(1)(
-          Effect.gen(function* () {
-            const previous = yield* Ref.get(last);
-            if (Option.isNone(previous))
-              return yield* UndoUnavailable.make({ reason: 'the lab has made no write to undo' });
-            const w = previous.value;
-            const now = yield* fs.readFileString(w.file);
-            if (now !== w.after)
-              return yield* UndoUnavailable.make({
-                reason: `${w.file} has changed since the lab wrote ${w.target}`,
-              });
-            yield* restore(w.file, w.before);
-            yield* Ref.set(last, Option.none());
-            yield* Effect.log(`lab.undo scene=${w.scene} target="${w.target}" file=${w.file}`);
-            const undone: Written = {
-              scene: w.scene,
-              file: w.file,
-              target: `undo ${w.target}`,
-              before: w.after,
-              after: w.before,
-            };
-            return undone;
-          }),
+          Effect.uninterruptible(
+            Effect.gen(function* () {
+              const previous = yield* Ref.get(last);
+              if (Option.isNone(previous))
+                return yield* UndoUnavailable.make({ reason: 'the lab has made no write to undo' });
+              const w = previous.value;
+              const now = yield* fs.readFileString(w.file);
+              if (now !== w.after)
+                return yield* UndoUnavailable.make({
+                  reason: `${w.file} has changed since the lab wrote ${w.target}`,
+                });
+              yield* restore(w.file, w.before);
+              yield* Ref.set(last, Option.none());
+              yield* Effect.log(`lab.undo scene=${w.scene} target="${w.target}" file=${w.file}`);
+              const undone: Written = {
+                scene: w.scene,
+                file: w.file,
+                target: `undo ${w.target}`,
+                before: w.after,
+                after: w.before,
+              };
+              return undone;
+            }),
+          ),
         )
         .pipe(Effect.withSpan('SceneWriter.undo'));
 
-      return SceneWriter.of({ setCue, setKnob, undo });
+      return SceneWriter.of({ setCue, setKnob, undo, last: Ref.get(last) });
     }),
   );
 }

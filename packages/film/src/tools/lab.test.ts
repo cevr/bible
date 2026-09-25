@@ -25,7 +25,12 @@ const noSource = Layer.mergeAll(
   ),
   Layer.succeed(
     SceneWriter,
-    SceneWriter.of({ setCue: () => unused, setKnob: () => unused, undo: unused }),
+    SceneWriter.of({
+      setCue: () => unused,
+      setKnob: () => unused,
+      undo: unused,
+      last: unused,
+    }),
   ),
   Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unused })),
 );

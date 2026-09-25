@@ -63,7 +63,14 @@ close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
-agent's replies arrive with their after-stills. A striped timeline segment means that beat's narration is
+agent's replies arrive with their after-stills. The strip under the timeline shows the
+current scene's cues: drag one (body = offset, edges = start/end; snaps to
+words and frames, shift for free) and the release writes the new value into
+the scene's `.ts` file, the page reloading at the same time and selection.
+The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
+knob drawn untransformed gets a handle on the frame. `film check --static`
+runs after each write and its findings show in the panel; Undo write puts the
+last write back. Review with `git diff`. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every music act's start (a line through it), from the film's

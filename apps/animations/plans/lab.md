@@ -63,7 +63,10 @@ box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animation
 - L1 `ease` on Span + knobs (`f.knob`), typed; tests. No picture change.
 - L2 lab server + notes store + `film notes` (list/watch/reply/resolve) + notes UI (pin, box, thread).
 - L3 cue editing on the timeline + inspector + source write-back (oxc splice) + HMR round-trip test.
-- L4 knob handles on canvas, onion skin, loop/slow, compare vs HEAD.
+  Done: identity locator (SceneSources), SceneWriter (splice, oxfmt, read-back, one undo), StaticCheck
+  after each write, the strip and inspector; point-knob handles came with it where the read is untransformed.
+- L4 onion skin, loop/slow, compare vs HEAD, look-book, stroke probe for `check`; handles under a
+  transform (needs the drawing to report its mapping).
 - L5 skill + README: the lab loop; a Monitor recipe for `film notes --watch`.
 
 ## From Steve Ruiz's Danger World thread (x.com/steveruizok/status/2099053259147121069)

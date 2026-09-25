@@ -5,7 +5,13 @@
 import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { captionCues } from '../core/captions.ts';
-import { type Placed, everyTakeRecorded, layout, transitionDur } from '../core/layout.ts';
+import {
+  type Placed,
+  everyTakeRecorded,
+  layout,
+  sceneClock,
+  transitionDur,
+} from '../core/layout.ts';
 import type {
   Knob,
   Knobs,
@@ -18,7 +24,7 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { type ResolvedCue, cueProgress } from '../core/timeline.ts';
+import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, probeOf, probing, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
@@ -123,8 +129,41 @@ export interface FilmSpec {
   readonly sound?: Sound;
 }
 
+/** A knob as a frame read it (`RenderOptions.knobs`): the lab's handles come from these. */
+export interface KnobRead {
+  readonly scene: string;
+  readonly name: string;
+  readonly value: Knob;
+  /**
+   * Whether the scene read it with the canvas untransformed, drawn straight
+   * onto the frame (not a transition's layer): only then is a point knob's
+   * value where it lands in frame pixels, as far as the frame can tell.
+   */
+  readonly direct: boolean;
+}
+
+/** Where a frame records what it read, for the lab (`RenderOptions.knobs`, `easedOver`). */
+interface Reads {
+  readonly list: KnobRead[];
+  readonly direct: boolean;
+  readonly easedOver: Set<string> | undefined;
+}
+
+/** A scene's timeline or knobs, standing in for its drawing's while the lab previews an edit. */
+export interface SceneEdit {
+  readonly timeline?: Timeline;
+  readonly knobs?: Knobs;
+}
+
 export interface RenderOptions {
   readonly captions?: boolean;
+  /** Collect every knob the frame reads into this array. The pixels are the same either way. */
+  readonly knobs?: KnobRead[];
+  /**
+   * Collect `scene:cue` for every cue the frame eases with an ease of its own
+   * (`f.at(name, ease.x)`), where the cue's declared ease changes nothing.
+   */
+  readonly easedOver?: Set<string>;
   /**
    * Collect every line of text the frame draws into this array (the text
    * probe `film check` reads). Leave it out for an ordinary frame; the pixels
@@ -145,6 +184,15 @@ export interface Film {
   readonly allRecorded: boolean;
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
+  /**
+   * Draw `scene` with `edit`'s timeline and knobs in place of its drawing's
+   * (resolved on the scene's own clock, as `layout()` resolves them) until
+   * called again with `undefined`. The lab's live preview of a drag; nothing
+   * is written. Returns the scene's cues as they now resolve.
+   */
+  preview(scene: string, edit: SceneEdit | undefined): ReadonlyMap<string, ResolvedCue>;
+  /** A scene's cues as the frame draws them: previewed, or as laid out. */
+  cuesOf(scene: string): ReadonlyMap<string, ResolvedCue>;
 }
 
 const offscreen = (w: number, h: number) => {
@@ -192,6 +240,33 @@ export const createFilm = (spec: FilmSpec): Film => {
     return first;
   };
 
+  const placedOf = (scene: string) => {
+    const p = placed.find((x) => x.spec.id === scene);
+    if (p === undefined) throw new Error(`film has no scene "${scene}"`);
+    return p;
+  };
+
+  /** The lab's previewed cues and knobs, by scene. */
+  const previews = new Map<
+    string,
+    { readonly cues: ReadonlyMap<string, ResolvedCue>; readonly knobs: ReadonlyMap<string, Knob> }
+  >();
+
+  const preview = (scene: string, edit: SceneEdit | undefined) => {
+    const p = placedOf(scene);
+    if (edit === undefined) {
+      previews.delete(scene);
+      return p.cues;
+    }
+    const cues =
+      edit.timeline === undefined ? p.cues : resolveTimeline(edit.timeline, sceneClock(p));
+    const knobs = edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs));
+    previews.set(scene, { cues, knobs });
+    return cues;
+  };
+
+  const cuesOf = (scene: string) => previews.get(scene)?.cues ?? placedOf(scene).cues;
+
   const localWords = new Map(
     placed.map((p) => [
       p,
@@ -208,9 +283,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     p: Placed<SceneSpec>,
     T: number,
     boil: number,
+    reads: Reads | undefined,
   ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
+    const shown = previews.get(p.spec.id) ?? p;
     const frame: Frame = {
       ctx,
       w: width,
@@ -226,14 +303,23 @@ export const createFilm = (spec: FilmSpec): Film => {
         return p.speechStart + at;
       },
       cue: (name) => {
-        const c = p.cues.get(name);
+        const c = shown.cues.get(name);
         if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
         return c;
       },
-      at: (name, e) => cueProgress(frame.cue(name), t, e),
+      at: (name, e) => {
+        if (e !== undefined) reads?.easedOver?.add(`${p.spec.id}:${name}`);
+        return cueProgress(frame.cue(name), t, e);
+      },
       knob: (name) => {
-        const k = p.knobs.get(name);
+        const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
+        reads?.list.push({
+          scene: p.spec.id,
+          name,
+          value: k,
+          direct: reads.direct && ctx.getTransform().isIdentity,
+        });
         return k;
       },
       hand: (key) => ({
@@ -264,13 +350,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     probe: Probe | undefined,
+    reads: Reads | undefined,
   ) => {
     const { paper } = getAssets();
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
     target.ctx.drawImage(paper, 0, 0);
-    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil));
+    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil, reads));
     return target.c;
   };
 
@@ -283,6 +370,13 @@ export const createFilm = (spec: FilmSpec): Film => {
     const tr = transitionDur(enter);
     const local = T - cur.start;
     const boxes = opts.probe;
+    const knobs = opts.knobs;
+    /** Knob reads straight onto the frame, or from a transition's layer. */
+    const easedOver = opts.easedOver;
+    const reads = (direct: boolean): Reads | undefined =>
+      knobs === undefined && easedOver === undefined
+        ? undefined
+        : { list: knobs ?? [], direct, easedOver };
     /** A probe for text one scene draws, landing `dx` across and composited at `alpha`. */
     const probe = (p: Placed<SceneSpec>, dx: number, alpha: number): Probe | undefined =>
       boxes === undefined ? undefined : { boxes, scene: p.spec.id, dx, alpha };
@@ -291,20 +385,21 @@ export const createFilm = (spec: FilmSpec): Film => {
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       ctx.drawImage(paper, 0, 0);
-      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil));
+      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil, reads(true)));
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
       const dir = enter.kind === 'pan' ? (enter.dir ?? 1) : 1;
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
-      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p));
+      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false));
       const inn = layer(
         b,
         cur,
         T,
         boil,
         probe(cur, enter.kind === 'pan' ? dx + dir * width : 0, 1 - fading * (1 - p)),
+        reads(false),
       );
       switch (enter.kind) {
         case 'fade':
@@ -344,6 +439,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     allRecorded,
     sceneAt,
     render,
+    preview,
+    cuesOf,
   };
 };
 

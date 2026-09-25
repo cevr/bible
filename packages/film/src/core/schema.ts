@@ -485,7 +485,16 @@ export const CheckLine = Schema.Struct({
 export type CheckLine = typeof CheckLine.Type;
 
 /** `GET /lab/check`. */
-export const CheckReport = Schema.Struct({ findings: Schema.Array(CheckLine) });
+/**
+ * `GET /lab/check`: `film check --static` now, and the lab's last write, the
+ * one Undo puts back (a page reloaded by that write learns of it here).
+ */
+export const CheckReport = Schema.Struct({
+  findings: Schema.Array(CheckLine),
+  last: Schema.optionalKey(
+    Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String }),
+  ),
+});
 export type CheckReport = typeof CheckReport.Type;
 
 const FieldState = Schema.Literals(['literal', 'absent', 'computed']);

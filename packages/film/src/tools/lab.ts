@@ -18,7 +18,7 @@
 //   POST /lab/cues/:scene/:cue          set a cue's offset, dur or ease: CuePatch
 //   POST /lab/knobs/:scene/:knob        set a knob: KnobPatch
 //   POST /lab/undo                      put the last write's file back, byte for byte
-//   GET  /lab/check                     `film check --static` now
+//   GET  /lab/check                     `film check --static` now, and the write Undo reverts
 
 import { Duration, Effect, FileSystem, Option, Path, Record as Rec, Result, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
@@ -299,7 +299,18 @@ export const labRoutes = (film: string) =>
       '/lab/check',
       handled(
         Effect.gen(function* () {
-          return yield* checkJson({ findings: yield* findings(film) });
+          const path = yield* Path.Path;
+          const dir = (yield* FilmRepo).paths(film).dir;
+          const last = yield* (yield* SceneWriter).last;
+          return yield* checkJson({
+            findings: yield* findings(film),
+            ...Option.match(last, {
+              onNone: () => ({}),
+              onSome: (w) => ({
+                last: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
+              }),
+            }),
+          });
         }),
       ),
     ),

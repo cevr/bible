@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { layout } from './layout.ts';
+import { layout, sceneClock } from './layout.ts';
 import type { Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
@@ -119,5 +119,33 @@ describe('timeline', () => {
     expect(a?.knobs.get('handY')).toBe(800);
     expect(a?.knobs.get('quoteAt')).toEqual([960, 170]);
     expect(b?.knobs.size).toBe(0);
+  });
+
+  test('a placed scene re-resolves on its own clock exactly as layout placed it', () => {
+    const placed = layout(
+      [
+        {
+          id: 'hand',
+          say: 'Faith {earns} nothing.',
+          timeline: {
+            topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+            stars: { after: 'topple', offset: 0.2, dur: 1 },
+          },
+        },
+      ],
+      noTakes,
+    );
+    expect(placed.length).toBe(1);
+    for (const p of placed) {
+      const clockOfHand = sceneClock(p);
+      expect(resolveTimeline(p.spec.timeline, clockOfHand)).toEqual(p.cues);
+      // The lab's preview of a drag: +0.3s on topple moves it and what follows it.
+      const dragged = resolveTimeline(
+        { ...p.spec.timeline, topple: { mark: 'earns', offset: 0.4, dur: 1.8 } },
+        clockOfHand,
+      );
+      for (const name of ['topple', 'stars'])
+        expect(dragged.get(name)?.start).toBeCloseTo((p.cues.get(name)?.start ?? NaN) + 0.3, 9);
+    }
   });
 });

@@ -18,6 +18,7 @@ import {
   NotesWait,
   type Point,
 } from '../core/schema.ts';
+import { mountEditor } from './lab-edit.ts';
 import type { Player } from './main.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -138,6 +139,8 @@ export const mountLab = (player: Player, filmName: string): void => {
     return found;
   };
   const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
+  // The editor: drag cues and knobs, written back to the scene files.
+  mountEditor(player, panel, overlay);
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');

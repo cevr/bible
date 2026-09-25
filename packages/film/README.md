@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                     |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                           |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                        |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames. `player.css` styles it.                                                                    |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore and the lab's routes (`lab.ts`). |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                                                                                       |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                    |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`). `player.css` styles it.                                                                                      |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, StaticCheck. |
 
 ## Data
 
@@ -138,6 +138,66 @@ note arrives as a notification. `film notes reply <film> <id> "…" [--still
 file.png]` answers as the agent (the still is copied to `stills/<id>.r<seq>.png`
 and the note becomes `replied`); `film notes resolve <film> <id>` closes it.
 An unknown id fails with `NoteNotFound`, listing the film's notes.
+
+### Editing cues and knobs
+
+The lab also edits the scene source: a cue's `offset`, `dur` and `ease` and a
+knob's value, each written into the scene's `.ts` file on release. The dev
+server rebuilds and reloads the page at the same `#T`, with the selection
+kept in the URL (`&sel=cue:hand:topple`, `&sel=knob:hand:palm`); review the
+change with `git diff`.
+
+| Route                           | What it does                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `GET /lab/scenes/:scene/source` | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
+| `POST /lab/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`, `ease?`, at least one); answers the span, the cue resolved, findings |
+| `POST /lab/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
+| `POST /lab/undo`                | puts the last write's file back, byte for byte; once                                                |
+| `GET /lab/check`                | `film check --static` now, and the write Undo would revert (`last`)                                 |
+
+A scene that is not located is a 404, a value the lab will not rewrite a 422,
+an undo with nothing to undo (or a file changed since) a 409.
+
+**SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
+not by name: the parser (oxc) lists every exported `drawing({...})` call in
+the film's folder, the film's registry (`scenes/index.ts`) is imported, and a
+scene belongs to the call whose exported `timeline` or `knobs` is the very
+object the scene reads. A renamed registry entry or two files exporting the
+same name cannot point a scene at the wrong literal; a scene built without a
+literal (a spread, a function) is reported as not located, with the reason.
+
+**SceneWriter** (`scene-writer.ts`, splices in `scene-source.ts`) re-reads the
+file, replaces only the value's text (a missing `offset`, `dur` or `ease` is
+added after the fields before it), writes the file whole through
+ContentStore (a partial renamed into place), runs `oxfmt` on it and reads the
+value back. If oxfmt fails or the value does not read back, the file is put
+back and the write fails (`FormatFailed`, `WriteUnverified`). It refuses what
+it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
+computed key, a shorthand) and names it. Writes run one at a time and are
+uninterruptible (the reload a write causes drops its request). The last write
+can be undone once, only while the file is exactly as that write left it.
+
+**StaticCheck** (`static-check.ts`) runs `film check <film> --static
+--allow-stale` in a new process after each write (this one imported the
+scene modules at start) and returns its findings, which the lab lists.
+
+**The editor** (`player/lab-edit.ts`): a strip under the timeline shows the
+current scene zoomed, its words and marks, and one row per cue. Drag a cue's
+body to move its offset, its left edge to move its start (offset and dur),
+its right edge to move its end (dur). Edges snap to word starts and ends,
+marks and other cues' edges within 8 px, else move by whole frames; shift
+places them freely. While dragging, the frame previews the edit in memory
+(`film.preview(scene, edit)` resolves the edited timeline on the scene's own
+clock, `sceneClock(p)`, as `layout()` does); the release writes. The
+inspector shows the selected cue's anchor (read-only), `offset` and `dur`
+inputs, and an ease picker drawing each curve; it says so when the frame
+eases the cue itself (`f.at(name, ease.x)`), where the declared ease changes
+nothing. Knobs take number inputs; a point knob also gets a handle on the
+frame, but only when every read of it this frame was straight onto the
+canvas, untransformed (`RenderOptions.knobs` records each read and whether
+the transform was the identity); under a transform or in a transition it is
+numbers only, and the inspector says why. A field computed in source is shown
+disabled. Undo write reverts the last write.
 
 ## Check
 

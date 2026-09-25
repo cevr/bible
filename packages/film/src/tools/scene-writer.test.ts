@@ -5,7 +5,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Path } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
@@ -104,7 +104,11 @@ describe('scene writer', () => {
       const fs = yield* FileSystem.FileSystem;
       const before = yield* read();
       yield* writer.setCue('f', 'hand', 'topple', { ease: 'outBack' });
+      expect(Option.map(yield* writer.last, (w) => w.target)).toEqual(
+        Option.some('cue topple ease'),
+      );
       const undone = yield* writer.undo;
+      expect(Option.isNone(yield* writer.last)).toBe(true);
       expect(yield* read()).toBe(before);
       expect(undone.target).toBe('undo cue topple ease');
       expect((yield* Effect.flip(writer.undo))._tag).toBe('UndoUnavailable');
