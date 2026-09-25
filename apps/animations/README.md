@@ -21,6 +21,7 @@ bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
+bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run lab <film>                             # the lab at http://localhost:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch]                 # open lab notes, one line each; --watch streams new ones
 bun run notes reply <film> <id> "text" [--still file.png]
@@ -68,9 +69,16 @@ current scene's cues: drag one (body = offset, edges = start/end; snaps to
 words and frames, shift for free) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
-knob drawn untransformed gets a handle on the frame. `film check --static`
+knob gets a handle on the frame, placed through the transform it was read
+under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
 runs after each write and its findings show in the panel; Undo write puts the
-last write back. Review with `git diff`. A striped timeline segment means that beat's narration is
+last write back. Review with `git diff`. The panel's Motion section ghosts the frames
+around a paused one (Onion: warm before, cool after), slows the clock to
+0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
+Compare draws the same frame as HEAD declared the scene's timeline and
+knobs: wipe (HEAD left of a divider you drag) or blink. The panel's
+Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
+sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every music act's start (a line through it), from the film's

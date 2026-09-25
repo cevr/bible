@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                                                                                       |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                    |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`). `player.css` styles it.                                                                                      |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, StaticCheck. |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                                                                                                          |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                       |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it. |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck.         |
 
 ## Data
 
@@ -154,6 +154,7 @@ change with `git diff`.
 | `POST /lab/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
 | `POST /lab/undo`                | puts the last write's file back, byte for byte; once                                                |
 | `GET /lab/check`                | `film check --static` now, and the write Undo would revert (`last`)                                 |
+| `GET /lab/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422,
 an undo with nothing to undo (or a file changed since) a 409.
@@ -200,6 +201,37 @@ inside `at(...)`, scaled or tilted, drags where it is drawn. Read inside a
 transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
 disabled. Undo write reverts the last write.
+
+### Motion, compare and the look-book
+
+**Motion** (`player/lab-motion.ts`) never draws on the film canvas. The
+onion skin renders the frames around the one shown (± 1–4, every 1–15
+frames) at half size, keeps only the pixels that moved (darker than the
+frame on a light page, lighter on a dark one) and paints them on a layer
+over the film, warm before and cool after, fainter the further away; it
+shows on a paused frame. Speed (0.25×, 0.5×, 1×) and loops drive the
+player's clock (`Player.setRate`, `Player.setLoop`); narration plays only
+at 1×. A cue loop follows the cue as it is edited; a cue under 0.2 s loops
+with 0.4 s either side. A–B loops any range.
+
+**Compare** (`player/lab-compare.ts`) reads the scene's file at HEAD
+(`GET /lab/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
+and parses it with the locator and parser the writer uses) and draws the
+frame with HEAD's timeline and knobs through today's code (`film.render(…,
+{ edit })`) on a layer over the film: wipe (HEAD left of a draggable
+divider) or blink. Only data can differ that way; when the file's code
+changed since HEAD the panel says so.
+
+**The look-book** (`player/lookbook.ts`) is one sheet of the whole film:
+the palette (`createFilm({ palette })`) as swatches, then per scene a row of
+stills at every cue's start and end and its 60% point (`sceneMoments`, the
+moments `film check` samples, less the marks), each labelled with the cue
+and time. The page composes it with `film.render`, so the lab shows it live
+(`?film=<film>&lab&lookbook`, a still opening that frame in the lab) and
+`film lookbook <film> [--captions] [--tag t]` asks one export page for the
+same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`) and writes
+`out/<film>/lookbook.jpg`. It is the first page to read for a new film
+and the consistency reference while its scenes are built.
 
 ## Check
 

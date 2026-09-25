@@ -60,14 +60,47 @@ box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animation
 
 ## Build order (each a commit that passes the gate)
 
-- L1 `ease` on Span + knobs (`f.knob`), typed; tests. No picture change.
-- L2 lab server + notes store + `film notes` (list/watch/reply/resolve) + notes UI (pin, box, thread).
-- L3 cue editing on the timeline + inspector + source write-back (oxc splice) + HMR round-trip test.
-  Done: identity locator (SceneSources), SceneWriter (splice, oxfmt, read-back, one undo), StaticCheck
-  after each write, the strip and inspector; point-knob handles came with it where the read is untransformed.
-- L4 onion skin, loop/slow, compare vs HEAD, look-book, stroke probe for `check`; handles under a
-  transform (needs the drawing to report its mapping).
-- L5 skill + README: the lab loop; a Monitor recipe for `film notes --watch`.
+All five batches are built.
+
+- L1 Done. `ease` on Span + knobs (`f.knob`), typed; tests. No picture change. Every cue declares its ease
+  (`refactor(animations): declared eases for every cue`).
+- L2 Done. Lab server + notes store + `film notes` (list/watch/reply/resolve) + notes UI (pin, box, pen,
+  thread).
+- L3 Done. Cue editing on the timeline + inspector + source write-back (oxc splice) + HMR round-trip test:
+  identity locator (SceneSources), SceneWriter (splice, oxfmt, read-back, one undo), StaticCheck after each
+  write, the strip and inspector.
+- L4 Done.
+  - Motion tools (`lab-motion.ts`): onion skin (± N frames, warm before / cool after, only what moved), 0.25×
+    and 0.5× playback, loop the selected cue or A–B. Step by frame was already the player's ←/→.
+  - Compare vs HEAD (`lab-compare.ts`, SceneHead): wipe and blink; data only, says when code changed.
+  - Knob handles under a transform: each read records its canvas transform (`KnobRead.transform`); the
+    handle sits at `transform · value` and a drag maps back through the inverse (`core/affine.ts`).
+  - Stroke probe for `check`: `InkOverText` (a stroke's centre line through a line of text) and
+    `PlateOffFrame`, with `marks` for deliberate marks and `probePlate` for plates. It found and fixed five
+    real defects (measure, witness, justified, within, 1888).
+  - Look-book (`lookbook.ts`, `film lookbook`): palette swatches + every scene's stills at its cue edges
+    and 60% point, live in the lab and written to `out/<film>/lookbook.jpg`.
+- L5 Done. The film skill's Lab loop (look-book first, Monitor on `film notes --watch`, per-note
+  still → change → same-frame render → reply with the after-still → resolve on the user's OK, motion,
+  compare, `git diff` review, check after edits) and both READMEs.
+
+## Later
+
+Not built; each waits for a need.
+
+- **Generated painted assets with key-colour regions.** When the look pass brings in generated art, its
+  key-colour regions (Ruiz's magenta hair) become knobs, so a character is recoloured without regenerating.
+- **A props-and-figures sheet.** The look-book shows scenes at their moments; a sheet of every kit prop and
+  figure drawn alone, at one scale, would check consistency before any scene uses them.
+- **Compare vs golden**, beside compare vs HEAD (the golden stills already exist; the lab would load one).
+- **Compare a code change.** Compare draws HEAD's data through today's code; a code change needs HEAD's
+  bundle in a second page.
+- **A motion trail** for a knob-driven object (the path its handle takes across a cue), next to the onion
+  skin.
+- **A board of stills** the agent posts into the lab for review (per cue, per scene), Ruiz's shared board.
+- **Continuous sampling in `check`.** The probe samples marks, cue edges and the 60% point; a sweep that
+  crosses text between two samples is still found by eye.
+- **A WebGL look pass** (post-processing over the 2D frame), opt-in.
 
 ## From Steve Ruiz's Danger World thread (x.com/steveruizok/status/2099053259147121069)
 
