@@ -1,5 +1,6 @@
-// Serves the player and each film's recorded narration. The export script
-// starts this in-process; `bun run dev` runs it with hot reload.
+// Serves the player and each film's recorded narration. `render` starts this
+// in-process as the film CLI's PreviewServer (cli.ts); `bun run dev` runs it
+// with hot reload.
 
 import { join, normalize } from 'node:path';
 import index from './index.html';

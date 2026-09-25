@@ -260,24 +260,6 @@
       }
     },
     {
-      // The renderer: drives Chromium pages and pipes frames to ffmpeg strictly
-      // in order, a one-shot entry point over Playwright's promise API.
-      "files": ["**/apps/animations/scripts/render.ts"],
-      "rules": {
-        "no-await-in-loop": "off",
-        "effect/noAs": "off",
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNewError": "off",
-        "effect/noNewPromise": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noNullish": "off",
-        "effect/noTernary": "off",
-        "effect/noThrowStatement": "off",
-        "effect/noTryCatch": "off"
-      }
-    },
-    {
       "files": ["**/apps/web/src/workers/sqlite-host.ts"],
       "rules": {
         "effect/noAsyncFunction": "off"

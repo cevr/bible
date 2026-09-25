@@ -9,7 +9,7 @@
     "score": "bun cli.ts score",
     "mix": "bun cli.ts mix",
     "cues": "bun cli.ts cues",
-    "render": "bun scripts/render.ts",
+    "render": "bun cli.ts render",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",
     "gate": "bun run typecheck && bun run test"
@@ -20,7 +20,6 @@
     "effect": "catalog:"
   },
   "devDependencies": {
-    "effect-bun-test": "catalog:",
-    "playwright-core": "1.63.0"
+    "effect-bun-test": "catalog:"
   }
 }

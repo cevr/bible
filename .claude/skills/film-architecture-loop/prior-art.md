@@ -32,7 +32,7 @@ The rule behind every rejection: a frame is a pure function of `T` (north star "
 
 Most of Remotion exists to make an async React page render the same frame every time (`delayRender`, premounting, media sync). A synchronous canvas that is a pure function of `T` needs none of it.
 
-- **Adopt:** a lossless audio master: the `Mixer` writes `full.wav`, and `render.ts` encodes AAC from it once, cut with `-t` (the mp3 stays for the player). One scope for the browser, pages and ffmpeg, with a chunk retried when a page crashes (`render-frame-and-retry-target-close.ts`). Chunks on a queue, about 4× the worker count, and a wait for ffmpeg's stdin to drain (`write-with-backpressure.ts`). Captions (SRT/VTT) from the word timings.
+- **Adopt:** a lossless audio master: the `Mixer` writes `full.wav`, and the `Renderer` (`tools/renderer.ts`) encodes AAC from it once, cut with `-t` (the mp3 stays for the player). One scope for the browser, pages and ffmpeg, with a chunk retried when a page crashes (`render-frame-and-retry-target-close.ts`). Chunks on a queue, about 4× the worker count, and a wait for ffmpeg's stdin to drain (`write-with-backpressure.ts`). Captions (SRT/VTT) from the word timings.
 - **Adapt:** `<Sequence>`'s nested offsets as a local clock, `f.from(mark)`. Frame transport as JPEG capture, only after measuring fps. Marks, effect cues and music acts drawn on the player's timeline.
 - **Rejected:** callback-array cancellation and errors matched by message text (Effect scopes and tagged errors replace them). The Studio props and keyframe editors. Per-frame audio registration (sound resolves from cues). Shortening the film for transitions (narration sets the length).
 

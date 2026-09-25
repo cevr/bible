@@ -11,24 +11,30 @@ scrubbable preview and a frame-exact MP4 export.
 bun run dev                                    # player at http://localhost:4400
 bun run narrate <film>                         # record stale beats, verify, mix full.mp3
 bun run score <film>                           # generate stale music + effects, mix full.mp3
-bun run mix <film> [--stems]                   # remix only (no API); stems to out/<film>/stems
+bun run mix <film> [--stems]                   # remix full.mp3 + full.wav (no API); stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
-bun run render <film>                          # out/<film>.mp4 (parallel pages + ffmpeg)
+bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages + ffmpeg)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
-bun run render <film> --stills 3,10.5          # PNG stills
+bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
+bun run render <film> --scene id[,id] ...      # any render, over those scenes
 ```
 
-`narrate`, `score`, `mix` and `cues` are the `film` CLI from `@bible/film/tools`,
-run by this app's `cli.ts` (`bun cli.ts --help`). Narrate flags: `--only id,id` (record these, current or not),
+Every command is the `film` CLI from `@bible/film/tools`, run by this app's
+`cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
+loads. Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
 `--only music,<effect>` and `--dry-run`. `FILMS_DIR` and `FILMS_OUT` override
 `src/films` and `out`.
 
-Render flags: `--from/--to` seconds, `--workers n`, `--scale 0.5`,
-`--no-captions`, `--tag name` (output subfolder, so parallel renders don't
-collide). Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
+Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
+(pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
+subfolder, so parallel renders don't collide), `--out file`. A video's audio
+is encoded once from the lossless `narration/full.wav` (run `mix` if it is
+missing), and its captions are also written as WebVTT beside it. Ctrl-C stops
+a render cleanly: every page, the browser, the server and every ffmpeg child
+close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. A striped timeline segment means that beat's narration is
 estimated, not recorded.
 
@@ -42,7 +48,7 @@ src/films/<film>/
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
-  narration/       one take per beat + timings.json (word timings); full.mp3 is derived
+  narration/       one take per beat + timings.json (word timings); full.mp3 + full.wav are derived
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
 
