@@ -33,6 +33,7 @@ import {
 } from '../egw-db/book-database.js';
 import type { CorpusScope } from '../writings/corpus-scope.js';
 import type { CorpusFilter } from '../writings/corpus-class.js';
+import { backMatterClassifier } from './back-matter.js';
 import { QueryEmbedder, type QueryEmbedderApi } from './embedder.js';
 import { fuse, ORIGINAL_QUERY_WEIGHT, type FusionList } from './fusion.js';
 import {
@@ -166,6 +167,8 @@ export interface SearchParagraphRow {
   /** The route's own inputs, carried from the row rather than derived — see
    *  `SearchParagraphHit.publicationId` (round-2 B2). */
   readonly publicationId: number;
+  /** Where the paragraph sits in its book — what `backMatterOf` places it by. */
+  readonly puborder: number;
   readonly rawParaId: Option.Option<string>;
   /** Absent for a paragraph the corpus stores with neither a short refcode nor
    *  a `ref_code` — see `SearchParagraphHit.refcode` for why those rows exist
@@ -258,6 +261,7 @@ const isNonEmpty = (value: string): boolean => value.length > 0;
 const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
   paragraphId: row.para_id,
   publicationId: row.publicationId,
+  puborder: row.puborder,
   rawParaId: row.rawParaId,
   // The short refcode, else `ref_code`, else absent — and empty counts as
   // absent at both steps. `refcode_short` is an Option over SQLite NULL, so it
@@ -770,6 +774,50 @@ const vectorOnlyBodies = (
   );
 };
 
+/** Which paragraphs of a result sit in their book's back matter.
+ *
+ *  Two statements — the outlines of the books the rows came from, and each
+ *  row's nearest heading — see
+ *  `back-matter.ts` for the rule. Degrades to "none is back matter" on a
+ *  corpus fault: the ranking then keeps its fused order, which is the result
+ *  the search gave before back matter was demoted, not a failed search. */
+const backMatterOf = (
+  sources: SearchSources,
+  rows: readonly SearchParagraphRow[],
+): Effect.Effect<(row: SearchParagraphRow) => boolean> =>
+  Effect.all(
+    [
+      sources.paragraphs.getSectionHeadings([...new Set(rows.map((row) => row.publicationId))]),
+      sources.paragraphs.getNearestHeadings(rows),
+    ],
+    { concurrency: 'unbounded' },
+  ).pipe(
+    Effect.map(([outline, nearest]) => {
+      const classify = backMatterClassifier(outline, nearest);
+      return (row: SearchParagraphRow) => classify(row.publicationId, row.puborder);
+    }),
+    Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
+      Effect.logWarning('search.backMatter.degraded').pipe(
+        Effect.annotateLogs({ reason: String(cause) }),
+        Effect.as(() => false),
+      ),
+    ),
+  );
+
+/** A hit's place on the page: prose first, then headings, then back matter.
+ *
+ *  BM25 normalizes by length, so a two-word title or a one-line index entry
+ *  holding the query outranks the prose that discusses it: 32 of the top 40
+ *  results for `latter rain` were headings, and `1EGWLM 962.55` ("Latter rain,
+ *  178, 300, 306, …") sat among them. Both still answer the query — a heading
+ *  names the chapter that treats the subject — so they are ordered last, not
+ *  dropped. Within a tier the fused order holds. */
+const tierOf = (hit: SearchParagraphHit): number => {
+  if (hit.backMatter) return 2;
+  if (hit.isHeading) return 1;
+  return 0;
+};
+
 /** Fuses the two legs and rebuilds rows in the fused order (§9.4).
  *
  *  Both legs' bodies are in `bodies` — the lexical rows and the vector-only rows
@@ -783,6 +831,7 @@ const fuseResults = (
   vectorOnly: readonly SearchParagraphRow[],
   vectorIds: readonly string[],
   limit: number,
+  backMatter: (row: SearchParagraphRow) => boolean,
 ): readonly SearchParagraphHit[] => {
   const bodies = new Map([...lexical, ...vectorOnly].map((row) => [row.paragraphId, row]));
   const lists: readonly FusionList[] = [
@@ -805,14 +854,17 @@ const fuseResults = (
         author: body.author,
         snippet: body.snippet,
         isHeading: body.isHeading,
+        backMatter: backMatter(body),
         score: fused.score,
         lexicalRank: Option.flatten(Arr.get(fused.ranks, 0)),
         vectorRank: Option.flatten(Arr.get(fused.ranks, 1)),
       }),
     );
-    if (hits.length === limit) break;
   }
-  return hits;
+  // Every fused row, then the page: a demoted row must not hold a slot that a
+  // prose row ranked below it would fill. `toSorted` is stable, so each tier
+  // keeps the fused order.
+  return hits.toSorted((a, b) => tierOf(a) - tierOf(b)).slice(0, limit);
 };
 
 const emptyResult = (input: SearchQuery, status: VectorLegStatus): SearchResult =>
@@ -931,6 +983,10 @@ const makeQuery =
           attributes: { vectorStatus: vector.status._tag },
         }),
       );
+      const bodiesAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      const backMatter = yield* backMatterOf(sources, [...lexical.rows, ...vectorOnly]).pipe(
+        Effect.withSpan('search.backMatter'),
+      );
       const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
 
       yield* Effect.logInfo('search.timing').pipe(
@@ -955,7 +1011,9 @@ const makeQuery =
           // reader's words. See `LexicalLegResult.matches`.
           matches: lexical.matches,
           vectorMs: vectorAt - lexicalAt,
-          bodiesMs: doneAt - vectorAt,
+          bodiesMs: bodiesAt - vectorAt,
+          // The outline read that places each row under its headings.
+          backMatterMs: doneAt - bodiesAt,
           totalMs: doneAt - startedAt,
           // What the bodies join actually had to fetch. A large number here
           // with a small `bodiesMs` means the join is cheap and the legs simply
@@ -970,7 +1028,13 @@ const makeQuery =
         route: routed._tag,
         scope,
         locate,
-        paragraphs: fuseResults(lexical.rows, vectorOnly, vector.ids, queryLimit(input)),
+        paragraphs: fuseResults(
+          lexical.rows,
+          vectorOnly,
+          vector.ids,
+          queryLimit(input),
+          backMatter,
+        ),
         vector: vector.status,
         nonSelective: lexical.nonSelective,
       });

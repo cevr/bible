@@ -142,10 +142,14 @@ const formatSearchHit = (hit: SearchParagraphHit, index: number, full: boolean):
   // print identically otherwise — a refcode and a line of text — and BM25
   // normalizes by length, so a short title containing the whole query outranks
   // the paragraphs that discuss it. Headings are 17.7% of the corpus and can be
-  // most of a result page: 32 of the top 40 for `latter rain`.
+  // most of a result page: 32 of the top 40 for `latter rain`. The ranking
+  // puts both kinds after prose; the label says why a row is down there.
   let kind = '';
   if (hit.isHeading) {
     kind = ' [chapter]';
+  }
+  if (hit.backMatter) {
+    kind = `${kind} [back matter]`;
   }
   return `  ${String(index + 1)}. ${refcode}${kind} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
 };

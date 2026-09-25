@@ -99,6 +99,10 @@ export const SearchHitSchema = S.Struct({
    *  same shape on the wire, so without this the client cannot tell the chapter
    *  title "The Loud Cry" from the phrase written mid-paragraph. */
   isHeading: S.Boolean,
+  /** Whether this hit sits in its book's back matter — an appendix, a table of
+   *  contents, a bibliography or an index. See `SearchParagraphHit.backMatter`.
+   *  The server already orders these last; this lets the client say why. */
+  backMatter: S.Boolean,
   lexicalRank: S.NullOr(S.Finite),
   vectorRank: S.NullOr(S.Finite),
   /** The egwwritings.org deep link, null for a paragraph the corpus stores

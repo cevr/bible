@@ -816,6 +816,9 @@ const HitRow = (props: {
         <Show when={state} is={(current) => current.hit.isHeading}>
           <span class="kind">Chapter</span>
         </Show>
+        <Show when={state} is={(current) => current.hit.backMatter}>
+          <span class="kind">Back matter</span>
+        </Show>
       </div>
       <div class="body">
         <Show when={state} is={(current) => beforeSide(current).more > 0}>

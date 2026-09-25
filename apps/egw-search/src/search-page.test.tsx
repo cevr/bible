@@ -91,6 +91,7 @@ const answerFor = (request: SearchRequest): SearchResponse => {
         author: 'Ellen White',
         text,
         isHeading: false,
+        backMatter: false,
         lexicalRank: 1,
         vectorRank: null,
         url: null,

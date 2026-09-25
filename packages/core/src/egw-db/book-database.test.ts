@@ -634,6 +634,79 @@ describe('EGWParagraphDatabase', () => {
         }),
       ));
 
+    // Search reads a book's outline to demote back matter: the `h1`–`h3`
+    // headings, and each hit's closest heading of any level. Both statements
+    // are SQL the double cannot prove (a JSON parameter and a backward seek).
+    test('reads a book outline and the nearest heading of each position', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const id = publicationId(9102);
+          const code = publicationCode('OUT');
+          const rows = [
+            { element: 'h1', text: 'The Book' },
+            { element: 'h2', text: 'Appendix' },
+            { element: 'p', text: 'appendix prose' },
+            { element: 'h4', text: 'L' },
+            { element: 'p', text: 'Latter rain, 178, 300' },
+          ];
+          yield* db.installPublicationArchive(
+            PublicationArchive.make({
+              publication: Publication.make({
+                id,
+                code,
+                title: 'Outline',
+                author: 'Ellen Gould White',
+                paragraphCount: Option.some(rows.length),
+              }),
+              paragraphs: rows.map((row, index) =>
+                ArchivedParagraph.make({
+                  refcode: `OUT ${String(index + 1)}`,
+                  paragraph: WritingsParagraph.make({
+                    reference: WritingsReference.paragraph(id, `out-${String(index + 1)}`),
+                    publicationCode: code,
+                    order: publicationOrder(index + 1),
+                    page: Option.none(),
+                    number: Option.none(),
+                    refcode: Option.some(`OUT ${String(index + 1)}`),
+                    nodes: [{ _tag: 'Text', text: row.text }],
+                    elementType: Option.some(row.element),
+                    elementSubtype: Option.none(),
+                  }),
+                  isHeading: row.element !== 'p',
+                }),
+              ),
+              bibleReferences: [],
+            }),
+          );
+
+          const outline = yield* db.getSectionHeadings([9102]);
+          expect(
+            outline
+              .toSorted((a, b) => a.puborder - b.puborder)
+              .map((heading) => [heading.puborder, heading.level, heading.title]),
+          ).toEqual([
+            [1, 1, 'The Book'],
+            [2, 2, 'Appendix'],
+          ]);
+
+          const nearest = yield* db.getNearestHeadings([
+            { publicationId: 9102, puborder: 3 },
+            { publicationId: 9102, puborder: 5 },
+            { publicationId: 9102, puborder: 0 },
+          ]);
+          expect(
+            nearest
+              .toSorted((a, b) => a.puborder - b.puborder)
+              .map((entry) => [entry.puborder, entry.heading.puborder, entry.heading.level]),
+          ).toEqual([
+            [3, 2, 2],
+            [5, 4, 4],
+          ]);
+          expect(yield* db.getNearestHeadings([])).toEqual([]);
+        }),
+      ));
+
     // §9.4's fusion ranks ids from two legs, and the vector leg returns ids the
     // lexical leg never saw. Without this lookup those ids have no row and are
     // dropped, which removes the recall hybrid search exists to buy.

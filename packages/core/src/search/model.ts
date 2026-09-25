@@ -167,8 +167,16 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
    *
    *  A field rather than a filter, deliberately. A heading *is* a real answer —
    *  it names the chapter that treats the subject, which is often exactly what
-   *  a reader wants — so the repair is to say what the row is, not to hide it. */
+   *  a reader wants — so the repair is to say what the row is, not to hide it.
+   *  The ranking orders headings after prose, and this says why one is there. */
   isHeading: Schema.Boolean,
+  /** Whether this hit sits in its book's back matter: an appendix, a table of
+   *  contents, a bibliography or an index (see `back-matter.ts`).
+   *
+   *  The ranking orders these last, after headings: an index line such as
+   *  "Latter rain, 178, 300, 306" names where a subject is treated without
+   *  treating it. A hit here is still an answer, so it is ordered, not hidden. */
+  backMatter: Schema.Boolean,
   /** The RRF score this row fused to, §9.4's k=60 formula. */
   score: Schema.Finite,
   /** 1-based rank in the lexical list, absent when only the vector leg found it. */
