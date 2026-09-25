@@ -139,7 +139,13 @@ const post = async (url: string, body: unknown) => {
  * Mount the editor: the strip in the player's bar, the inspector at the top
  * of the lab panel, and knob handles on the lab's overlay.
  */
-export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGElement): void => {
+/** What the rest of the lab reads from the editor. */
+export interface Editor {
+  /** The cue selected on the strip, if a cue is selected. */
+  readonly selectedCue: () => { readonly scene: string; readonly name: string } | undefined;
+}
+
+export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGElement): Editor => {
   const { film } = player;
 
   // ── State. ──
@@ -690,4 +696,9 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       renderInspector();
     })
     .catch((err: unknown) => setStatus(`check: ${String(err)}`));
+  const editor: Editor = {
+    selectedCue: () =>
+      selection?.kind === 'cue' ? { scene: selection.scene, name: selection.name } : undefined,
+  };
+  return editor;
 };

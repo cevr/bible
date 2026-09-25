@@ -19,6 +19,7 @@ import {
   type Point,
 } from '../core/schema.ts';
 import { mountEditor } from './lab-edit.ts';
+import { mountMotion } from './lab-motion.ts';
 import type { Player } from './main.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -91,19 +92,26 @@ export const mountLab = (player: Player, filmName: string): void => {
   });
   const marks = svg('g', { class: 'lab-marks' });
   overlay.append(marks);
-  document.body.append(overlay);
+  /** Layers kept exactly over the film canvas: the overlay, and the motion and compare layers under it. */
+  const pinned: Array<HTMLElement | SVGSVGElement> = [];
   const place = () => {
     const r = canvas.getBoundingClientRect();
-    Object.assign(overlay.style, {
-      left: `${r.left}px`,
-      top: `${r.top}px`,
-      width: `${r.width}px`,
-      height: `${r.height}px`,
-    });
+    for (const layer of pinned)
+      Object.assign(layer.style, {
+        left: `${r.left}px`,
+        top: `${r.top}px`,
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+      });
   };
+  const pin = (layer: HTMLElement | SVGSVGElement) => {
+    pinned.push(layer);
+    document.body.append(layer);
+    place();
+  };
+  pin(overlay);
   new ResizeObserver(place).observe(canvas);
   window.addEventListener('resize', place);
-  place();
 
   /** A pointer's position in canvas pixels, to the nearest pixel. */
   const toCanvas = (e: PointerEvent): Point => {
@@ -140,7 +148,9 @@ export const mountLab = (player: Player, filmName: string): void => {
   };
   const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
   // The editor: drag cues and knobs, written back to the scene files.
-  mountEditor(player, panel, overlay);
+  const editor = mountEditor(player, panel, overlay);
+  // Onion skin, speed and loops.
+  mountMotion(player, panel, pin, editor.selectedCue);
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');

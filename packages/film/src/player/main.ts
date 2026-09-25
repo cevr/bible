@@ -40,6 +40,12 @@ declare global {
   }
 }
 
+/** A span of film seconds playback repeats: `from` to `to`. */
+export interface LoopRange {
+  readonly from: number;
+  readonly to: number;
+}
+
 /** What the lab drives: the preview's clock, its canvas and its timeline. */
 export interface Player {
   readonly film: Film;
@@ -53,6 +59,15 @@ export interface Player {
   now(): number;
   seek(T: number): void;
   pause(): void;
+  play(): void;
+  playing(): boolean;
+  /**
+   * Play at `rate` × (0.25, 0.5, 1). The narration plays only at 1×; at any
+   * other rate the clock runs on its own and the audio is paused (muted).
+   */
+  setRate(rate: number): void;
+  /** Repeat `range` while playing (none to stop repeating). */
+  setLoop(range: LoopRange | undefined): void;
   /** Draw the frame shown now again: after the lab previews an edit. */
   redraw(): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
@@ -204,6 +219,10 @@ const preview = (
   let playing = false;
   let wallStart = 0;
   let tStart = 0;
+  let rate = 1;
+  let loop: LoopRange | undefined;
+  /** The narration follows the clock only at 1×. */
+  const audible = () => audio !== undefined && rate === 1;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
 
@@ -213,7 +232,10 @@ const preview = (
     for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
-    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}`;
+    const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
+    const shownLoop =
+      loop === undefined ? '' : ` · loop ${loop.from.toFixed(2)}–${loop.to.toFixed(2)}`;
+    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}${shownRate}${shownLoop}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
@@ -228,15 +250,19 @@ const preview = (
     draw();
   };
 
-  const toggle = () => {
-    playing = !playing;
+  /** Restart the clock at `T`, and the narration with it when it is audible. */
+  const rebase = () => {
     tStart = T;
     wallStart = performance.now();
-    if (audio !== undefined) {
-      audio.currentTime = T;
-      if (playing) void audio.play();
-      else audio.pause();
-    }
+    if (audio === undefined) return;
+    audio.currentTime = T;
+    if (playing && audible()) void audio.play();
+    else audio.pause();
+  };
+
+  const toggle = () => {
+    playing = !playing;
+    rebase();
     if (playing) requestAnimationFrame(tick);
     draw();
   };
@@ -244,10 +270,13 @@ const preview = (
   const tick = () => {
     if (!playing) return;
     T =
-      audio !== undefined && !audio.paused
+      audible() && audio !== undefined && !audio.paused
         ? audio.currentTime
-        : tStart + (performance.now() - wallStart) / 1000;
-    if (T >= film.duration) {
+        : tStart + ((performance.now() - wallStart) / 1000) * rate;
+    if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
+      T = loop.from;
+      rebase();
+    } else if (T >= film.duration) {
       T = film.duration;
       playing = false;
       audio?.pause();
@@ -300,6 +329,19 @@ const preview = (
     seek,
     pause: () => {
       if (playing) toggle();
+    },
+    play: () => {
+      if (!playing) toggle();
+    },
+    playing: () => playing,
+    setRate: (r) => {
+      rate = r;
+      rebase();
+      draw();
+    },
+    setLoop: (range) => {
+      loop = range === undefined || range.to <= range.from ? undefined : range;
+      draw();
     },
     redraw: draw,
     knobReads: () => reads,

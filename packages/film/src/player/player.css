@@ -588,3 +588,36 @@ body.lab .bar {
 .lab-handle.selected circle {
   fill: rgb(226 176 74 / 0.4);
 }
+
+/* ── Motion tools: onion skin, speed, loops. ────────────────────────────── */
+.lab-onion,
+.lab-compare {
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+}
+.lab-motion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a342c;
+}
+.lab-motion header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.lab-motion-status {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lab-motion-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.lab-motion-row input[type='number'] {
+  width: 3.4em;
+}
