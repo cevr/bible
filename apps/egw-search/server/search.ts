@@ -4,9 +4,10 @@
 /**
  * Search preparation and result assembly.
  *
- * The legacy `GET /api/search` handler and the effect-frame query use the same
- * pipeline. A batch runs the canonical `SearchService.query` once per input,
- * then shares context reads by radius before assembling one response per input.
+ * `GET /api/search`, `POST /api/search/batch` and the effect-frame query use
+ * the same pipeline. A batch runs the canonical `SearchService.query` once per
+ * input, then shares context reads by radius before assembling one response
+ * per input.
  */
 
 import { implementBatchedQuery } from 'effect-frame/actor';
@@ -17,7 +18,7 @@ import { SearchQuery, SearchService, type SearchResult } from '@bible/core/searc
 import type { CorpusFilter } from '@bible/core/writings';
 
 import { Search, SearchRequest } from '../src/contract.js';
-import { readerUrl, SearchFailed, type SearchResponse } from './api.js';
+import { readerUrl, SearchFailed, type SearchResponse, type SearchSlot } from './api.js';
 import { emptySurrounding, surroundingParagraphs, type Surrounding } from './context.js';
 
 const DEFAULT_LIMIT = 40;
@@ -217,6 +218,53 @@ export const runSearch = (
     );
     return responseFor(prepared, result.value, contexts.get(prepared.radius) ?? new Map());
   });
+
+/** A batch's inputs in order, each answered by its own slot. */
+type BatchInput = ReadonlyArray<SearchRequest>;
+
+/** Answer a batch without repeating context SQL for each input.
+ *
+ *  Exported with its lookup as a parameter so a test can count the context
+ *  statements; `runSearchBatch` below is the one the endpoint serves. */
+export const runSearchBatchWith = (
+  requests: BatchInput,
+  lookup: ContextLookup,
+): Effect.Effect<ReadonlyArray<SearchSlot>, never, SearchService | SqlClient.SqlClient> =>
+  Effect.gen(function* () {
+    const search = yield* SearchService;
+    const prepared = requests.map(prepare);
+    const outcomes = yield* Effect.forEach(
+      prepared,
+      (one) => Effect.result(queryOne(one, search)),
+      { concurrency: 16 },
+    );
+
+    const successful: SuccessfulSearch[] = [];
+    for (const [index, outcome] of outcomes.entries()) {
+      const one = prepared[index];
+      if (one === undefined || Result.isFailure(outcome) || Option.isNone(outcome.success)) {
+        continue;
+      }
+      successful.push({ prepared: one, result: outcome.success.value });
+    }
+    const contexts = yield* contextsFor(successful, lookup);
+
+    return outcomes.map((outcome, index): SearchSlot => {
+      const one = prepared[index];
+      if (Result.isFailure(outcome)) return { _tag: 'Failed', message: outcome.failure.message };
+      if (one === undefined || Option.isNone(outcome.success)) {
+        return { _tag: 'Answered', response: idleResponse(requests[index]?.scope ?? 'all') };
+      }
+      return {
+        _tag: 'Answered',
+        response: responseFor(one, outcome.success.value, contexts.get(one.radius) ?? new Map()),
+      };
+    });
+  });
+
+/** The batch endpoint's pipeline, over the real context lookup. */
+export const runSearchBatch = (requests: BatchInput) =>
+  runSearchBatchWith(requests, surroundingParagraphs);
 
 /** Resolve one actor batch without repeating context SQL for each input. */
 const resolveSearchWith = (

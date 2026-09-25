@@ -1,7 +1,7 @@
 /* oxlint-disable effect/noNullish -- the `HttpApi` leaves each optional query parameter `undefined`, and `??` applies the JSON wire's default at that boundary. */
 
 /**
- * The JSON API's handlers: `/api/search` and `/health`.
+ * The JSON API's handlers: `/api/search`, `/api/search/batch` and `/health`.
  *
  * Its own module, apart from `./main.ts`, so a test can serve the same group
  * over a fixture corpus. `./main.ts` builds the process; this is what answers.
@@ -14,7 +14,7 @@ import type { SqlClient } from 'effect/unstable/sql';
 import type { SearchService } from '@bible/core/search';
 
 import { NO_SELECTION, SearchApi } from './api.js';
-import { runSearch } from './search.js';
+import { runSearch, runSearchBatch } from './search.js';
 import { VectorIndexLoad } from './vector-index.js';
 
 const DEFAULT_LIMIT = 40;
@@ -41,6 +41,11 @@ export const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handle
           limit: params.limit ?? DEFAULT_LIMIT,
           context: params.context ?? DEFAULT_CONTEXT,
         }).pipe(Effect.provideContext(services)),
+      )
+      .handle('batch', ({ payload }) =>
+        Effect.map(runSearchBatch(payload.requests), (results) => ({ results })).pipe(
+          Effect.provideContext(services),
+        ),
       );
   }),
 );

@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { SqliteClient } from '@effect/sql-sqlite-bun';
-import { ActorHost, ActorTransport } from 'effect-frame/actor';
-import { Effect, Layer, Option, Schema } from 'effect';
+import { Effect, Layer, Option } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
 import {
@@ -11,9 +10,9 @@ import {
   VectorIndexUnavailable,
 } from '@bible/core/search';
 
-import { Search, type SearchRequest } from '../src/contract.js';
-import { PoliciesLive } from './policies.js';
-import { runSearch, SearchLive } from './search.js';
+import type { SearchRequest, SearchResponse, SearchSlot } from './api.js';
+import { surroundingParagraphs } from './context.js';
+import { runSearch, runSearchBatchWith } from './search.js';
 
 const emptySelection = { include: [], exclude: [] } as const;
 
@@ -105,52 +104,36 @@ const seed = Effect.gen(function* () {
 });
 
 interface Fixture {
+  /** Context statements run, counted at the lookup. */
   readonly calls: { value: number };
-  readonly layer: Layer.Layer<ActorTransport | SearchService | SqlClient.SqlClient>;
+  readonly layer: Layer.Layer<SearchService | SqlClient.SqlClient>;
 }
 
 const makeFixture = (): Fixture => {
   const calls = { value: 0 };
-  const sqlite = SqliteClient.layer({ filename: ':memory:' });
-  const countedSql = Layer.effect(
-    SqlClient.SqlClient,
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
-      return new Proxy(sql, {
-        apply(target, thisArg, args) {
-          calls.value += 1;
-          return Reflect.apply(target, thisArg, args);
-        },
-      });
-    }),
-  ).pipe(Layer.provide(sqlite));
-  const layer = ActorHost.layer({
-    implementations: [],
-    queries: [SearchLive],
-    store: ActorHost.memoryStore,
-  }).pipe(
-    Layer.provideMerge(Layer.merge(searchLayer, countedSql)),
-    Layer.provide(PoliciesLive),
-    Layer.orDie,
-  );
+  const layer = Layer.merge(searchLayer, SqliteClient.layer({ filename: ':memory:' }));
   return { calls, layer };
 };
 
 const run = <A, E>(
   fixture: Fixture,
-  program: Effect.Effect<A, E, ActorTransport | SearchService | SqlClient.SqlClient>,
-) => program.pipe(Effect.provide(fixture.layer), Effect.scoped, Effect.runPromise);
+  program: Effect.Effect<A, E, SearchService | SqlClient.SqlClient>,
+) => program.pipe(Effect.provide(fixture.layer), Effect.runPromise);
 
-const keyFor = (request: SearchRequest) => ({
-  query: Search.name,
-  version: Search.version,
-  args: Schema.encodeSync(Search.args)(request),
-});
+/** The batch pipeline over the real lookup, counting each context read. */
+const batch = (fixture: Fixture, requests: readonly SearchRequest[]) =>
+  runSearchBatchWith(requests, (anchors, radius) => {
+    fixture.calls.value += 1;
+    return surroundingParagraphs(anchors, radius);
+  });
 
-const resultFor = (encoded: string) => Schema.decodeSync(Search.result)(encoded);
+const answered = (slot: SearchSlot): SearchResponse => {
+  if (slot._tag === 'Answered') return slot.response;
+  return expect.unreachable(`expected an answer, got: ${slot.message}`);
+};
 
 describe('batched EGW search', () => {
-  test('matches separate legacy searches and shares same-radius context lookup', () => {
+  test('matches separate searches and shares one same-radius context lookup', () => {
     const fixture = makeFixture();
     return run(
       fixture,
@@ -158,22 +141,14 @@ describe('batched EGW search', () => {
         yield* seed;
         const first = request('first', 3);
         const second = request('second', 3);
-        fixture.calls.value = 0;
-
-        const legacy = yield* Effect.all([runSearch(first), runSearch(second)]);
-        expect(fixture.calls.value).toBe(2);
+        const single = yield* Effect.all([runSearch(first), runSearch(second)]);
 
         fixture.calls.value = 0;
-        const transport = yield* ActorTransport;
-        const batch = yield* transport.queryBatch([keyFor(first), keyFor(second)]);
+        const slots = yield* batch(fixture, [first, second]);
 
         expect(fixture.calls.value).toBe(1);
-        expect(batch.map((result) => result._tag)).toEqual(['Refreshed', 'Refreshed']);
-        const batched = batch.flatMap((result) => {
-          if (result._tag !== 'Refreshed') return [];
-          return [resultFor(result.result)];
-        });
-        expect(batched).toEqual(legacy);
+        expect(slots.map((slot) => slot._tag)).toEqual(['Answered', 'Answered']);
+        expect(slots.map(answered)).toEqual(single);
       }),
     );
   });
@@ -184,20 +159,31 @@ describe('batched EGW search', () => {
       fixture,
       Effect.gen(function* () {
         yield* seed;
-        const failed = request('bad input', 3);
-        const successful = request('first', 3);
-        const transport = yield* ActorTransport;
-        const batch = yield* transport.queryBatch([keyFor(failed), keyFor(successful)]);
+        const slots = yield* batch(fixture, [request('bad input', 3), request('first', 3)]);
 
-        expect(batch.map((result) => result._tag)).toEqual(['RefreshFailed', 'Refreshed']);
-        const failure = batch[0];
-        const success = batch[1];
-        if (failure?._tag === 'RefreshFailed') {
-          expect(failure.error._tag).toBe('QueryFailed');
-        }
-        if (success?._tag === 'Refreshed') {
-          expect(resultFor(success.result).hits[0]?.text).toBe('first');
-        }
+        expect(slots.map((slot) => slot._tag)).toEqual(['Failed', 'Answered']);
+        expect(slots.slice(1).map(answered)[0]?.hits[0]?.text).toBe('first');
+      }),
+    );
+  });
+
+  test('answers an empty query as idle without reading context', () => {
+    const fixture = makeFixture();
+    return run(
+      fixture,
+      Effect.gen(function* () {
+        yield* seed;
+        const slots = yield* batch(fixture, [request('   ', 3)]);
+
+        expect(fixture.calls.value).toBe(0);
+        expect(slots.map(answered)).toEqual([
+          {
+            hits: [],
+            scope: 'all',
+            vector: 'idle',
+            nonSelective: false,
+          },
+        ]);
       }),
     );
   });
@@ -208,26 +194,19 @@ describe('batched EGW search', () => {
       fixture,
       Effect.gen(function* () {
         yield* seed;
-        const near = request('first', 1);
-        const far = request('second', 3);
-        const transport = yield* ActorTransport;
-        const batch = yield* transport.queryBatch([keyFor(near), keyFor(far)]);
+        const slots = yield* batch(fixture, [request('first', 1), request('second', 3)]);
 
         expect(fixture.calls.value).toBe(2);
-        expect(batch.map((result) => result._tag)).toEqual(['Refreshed', 'Refreshed']);
-        const nearSlot = batch[0];
-        const farSlot = batch[1];
-        if (nearSlot?._tag !== 'Refreshed' || farSlot?._tag !== 'Refreshed') return;
-        const [nearResult, farResult] = [resultFor(nearSlot.result), resultFor(farSlot.result)];
-        expect(nearResult.hits[0]?.before.map((row) => row.text)).toEqual(['before first']);
-        expect(farResult.hits[0]?.before.map((row) => row.text)).toEqual([
-          'after first',
-          'before two far',
-          'before two near',
-        ]);
-        expect(farResult.hits[0]?.after.map((row) => row.text)).toEqual([
-          'after two near',
-          'after two far',
+        const contexts = slots.map(answered).map((response) => ({
+          before: response.hits[0]?.before.map((row) => row.text),
+          after: response.hits[0]?.after.map((row) => row.text),
+        }));
+        expect(contexts).toEqual([
+          { before: ['before first'], after: ['after first'] },
+          {
+            before: ['after first', 'before two far', 'before two near'],
+            after: ['after two near', 'after two far'],
+          },
         ]);
       }),
     );

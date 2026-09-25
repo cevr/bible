@@ -12,26 +12,12 @@
  */
 
 import { batchedQuery } from 'effect-frame/actor/client';
-import { Schema as S } from 'effect';
 
-import { BookSubtype, BookType, CorpusScope, CorpusSection, Signed } from '@bible/core/writings';
+import { SearchRequest, SearchResponseSchema } from '../server/api.js';
 
-import { SearchResponseSchema } from '../server/api.js';
-
-/** Everything the server needs to answer one pane, already split by sign. */
-export const SearchRequest = S.Struct({
-  q: S.String,
-  scope: CorpusScope,
-  section: Signed(CorpusSection),
-  type: Signed(BookType),
-  subtype: Signed(BookSubtype),
-  excludeApparatus: S.Boolean,
-  limit: S.Finite,
-  /** Paragraphs fetched on each side of a hit. A rendering choice the caller
-   *  supplies, not search state; see `CONTEXT` in `./app.tsx`. */
-  context: S.Finite,
-});
-export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
+/** The request is the JSON API's batch input; the page and the batch
+ *  endpoint send the same shape. */
+export { SearchRequest };
 
 /** The one policy name this app declares. The search box needs no sign-in, so
  *  the server's table (`../server/policies.ts`) maps it to allow-all. */
