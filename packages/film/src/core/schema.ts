@@ -511,6 +511,26 @@ export const SceneSource = Schema.Struct({
 });
 export type SceneSource = typeof SceneSource.Type;
 
+/**
+ * `GET /lab/scenes/:scene/head`: the scene's timeline and knobs as the file
+ * declares them at HEAD (literals only), for the lab to draw beside now.
+ */
+export const HeadSource = Schema.Struct({
+  scene: Schema.String,
+  /** The scene file, relative to the film's folder. */
+  file: Schema.String,
+  timeline: Timeline,
+  knobs: Knobs,
+  /**
+   * The file's code (all but the drawing's timeline and knobs literals)
+   * differs from HEAD: the compare draws HEAD's data through today's code.
+   */
+  codeChanged: Schema.Boolean,
+  /** HEAD declares the same timeline and knobs as the file does now. */
+  sameData: Schema.Boolean,
+});
+export type HeadSource = typeof HeadSource.Type;
+
 /** What a lab write (or its undo) answers: what the file now declares, and the check after it. */
 export const LabWrite = Schema.Struct({
   scene: Schema.String,

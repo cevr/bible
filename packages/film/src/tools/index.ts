@@ -21,6 +21,7 @@ export * from './notes-store.ts';
 export * from './lab.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
+export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
 export * from './static-check.ts';

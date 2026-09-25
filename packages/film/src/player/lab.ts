@@ -18,6 +18,7 @@ import {
   NotesWait,
   type Point,
 } from '../core/schema.ts';
+import { mountCompare } from './lab-compare.ts';
 import { mountEditor } from './lab-edit.ts';
 import { mountMotion } from './lab-motion.ts';
 import type { Player } from './main.ts';
@@ -151,6 +152,8 @@ export const mountLab = (player: Player, filmName: string): void => {
   const editor = mountEditor(player, panel, overlay);
   // Onion skin, speed and loops.
   mountMotion(player, panel, pin, editor.selectedCue);
+  // The frame beside HEAD's timeline and knobs.
+  mountCompare(player, panel, overlay, pin);
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');

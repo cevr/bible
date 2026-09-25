@@ -621,3 +621,36 @@ body.lab .bar {
 .lab-motion-row input[type='number'] {
   width: 3.4em;
 }
+.lab-compare-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a342c;
+}
+.lab-compare-tools header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.lab-divider line {
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.lab-divider circle {
+  fill: rgb(20 18 16 / 0.6);
+  stroke: #fff;
+  stroke-width: 3;
+  cursor: ew-resize;
+  pointer-events: all;
+}
+.lab-divider text {
+  fill: #fff;
+  font:
+    600 30px Inter,
+    sans-serif;
+  paint-order: stroke;
+  stroke: rgb(20 18 16 / 0.7);
+  stroke-width: 6px;
+}

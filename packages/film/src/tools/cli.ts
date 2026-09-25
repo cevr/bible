@@ -59,6 +59,7 @@ import { NotesStore } from './notes-store.ts';
 import { noteLine, replyLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
+import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { StaticCheck } from './static-check.ts';
@@ -522,7 +523,7 @@ export interface FilmApp<E> {
 export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  const Source = SceneWriter.layer.pipe(
+  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
     Layer.provideMerge(SceneSources.layer),
     Layer.provide([Repo, Store, Platform]),
   );

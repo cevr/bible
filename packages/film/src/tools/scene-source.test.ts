@@ -12,7 +12,9 @@ import {
   parseModule,
   readCue,
   readKnob,
+  readKnobs,
   readSpans,
+  codeOf,
 } from './scene-source.ts';
 
 const FILE = 'scenes/hand.ts';
@@ -136,5 +138,24 @@ describe('scene source', () => {
       shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' },
       bare: { scene: 'speech' },
     });
+  });
+
+  it('reads every literal knob, and leaves out a computed one', () => {
+    expect(readKnobs(FILE, scene, 'hand')).toEqual({ palm: [960, 800], tilt: 0.12 });
+  });
+
+  it('sees code apart from the timeline and knobs literals', () => {
+    const data = ok(
+      editKnob(
+        FILE,
+        ok(editCue(FILE, scene, 'hand', 'topple', { offset: 0.5 })),
+        'hand',
+        'palm',
+        [1, 2],
+      ),
+    );
+    expect(ok(codeOf(FILE, data, 'hand'))).toBe(ok(codeOf(FILE, scene, 'hand')));
+    const code = scene.replace("f.at('topple');", "f.at('shine');");
+    expect(ok(codeOf(FILE, code, 'hand'))).not.toBe(ok(codeOf(FILE, scene, 'hand')));
   });
 });

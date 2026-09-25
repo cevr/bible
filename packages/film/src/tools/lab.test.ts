@@ -9,6 +9,7 @@ import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
 import { FilmRepo } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
+import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { StaticCheck } from './static-check.ts';
@@ -33,6 +34,7 @@ const noSource = Layer.mergeAll(
     }),
   ),
   Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unused })),
+  Layer.succeed(SceneHead, SceneHead.of({ head: () => unused })),
 );
 
 const labLayer = (store: Map<string, Uint8Array>) =>

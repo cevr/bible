@@ -157,6 +157,11 @@ export interface SceneEdit {
 
 export interface RenderOptions {
   readonly captions?: boolean;
+  /**
+   * Draw `scene` with this edit's timeline and knobs for this frame only, in
+   * place of its drawing's and any preview (the lab's compare with HEAD).
+   */
+  readonly edit?: { readonly scene: string; readonly edit: SceneEdit };
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
   /**
@@ -241,11 +246,20 @@ export const createFilm = (spec: FilmSpec): Film => {
     return p;
   };
 
+  /** A scene's cues and knobs as a frame draws them. */
+  interface Shown {
+    readonly cues: ReadonlyMap<string, ResolvedCue>;
+    readonly knobs: ReadonlyMap<string, Knob>;
+  }
+
+  /** An edit's timeline and knobs, resolved on the scene's own clock as `layout()` resolves them. */
+  const resolveEdit = (p: Placed<SceneSpec>, edit: SceneEdit): Shown => ({
+    cues: edit.timeline === undefined ? p.cues : resolveTimeline(edit.timeline, sceneClock(p)),
+    knobs: edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs)),
+  });
+
   /** The lab's previewed cues and knobs, by scene. */
-  const previews = new Map<
-    string,
-    { readonly cues: ReadonlyMap<string, ResolvedCue>; readonly knobs: ReadonlyMap<string, Knob> }
-  >();
+  const previews = new Map<string, Shown>();
 
   const preview = (scene: string, edit: SceneEdit | undefined) => {
     const p = placedOf(scene);
@@ -253,11 +267,9 @@ export const createFilm = (spec: FilmSpec): Film => {
       previews.delete(scene);
       return p.cues;
     }
-    const cues =
-      edit.timeline === undefined ? p.cues : resolveTimeline(edit.timeline, sceneClock(p));
-    const knobs = edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs));
-    previews.set(scene, { cues, knobs });
-    return cues;
+    const shown = resolveEdit(p, edit);
+    previews.set(scene, shown);
+    return shown.cues;
   };
 
   const cuesOf = (scene: string) => previews.get(scene)?.cues ?? placedOf(scene).cues;
@@ -279,10 +291,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     reads: Reads | undefined,
+    override: { readonly scene: string; readonly shown: Shown } | undefined,
   ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
-    const shown = previews.get(p.spec.id) ?? p;
+    const shown = override?.scene === p.spec.id ? override.shown : (previews.get(p.spec.id) ?? p);
     const frame: Frame = {
       ctx,
       w: width,
@@ -343,13 +356,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
+    override: { readonly scene: string; readonly shown: Shown } | undefined,
   ) => {
     const { paper } = getAssets();
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
     target.ctx.drawImage(paper, 0, 0);
-    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil, reads));
+    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil, reads, override));
     return target.c;
   };
 
@@ -363,6 +377,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     const local = T - cur.start;
     const boxes = opts.probe;
     const knobs = opts.knobs;
+    const edited = opts.edit;
+    const override =
+      edited === undefined
+        ? undefined
+        : { scene: edited.scene, shown: resolveEdit(placedOf(edited.scene), edited.edit) };
     /** Knob reads straight onto the frame, or from a transition's layer. */
     const reads = (direct: boolean): Reads | undefined =>
       knobs === undefined ? undefined : { list: knobs, direct };
@@ -374,14 +393,14 @@ export const createFilm = (spec: FilmSpec): Film => {
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       ctx.drawImage(paper, 0, 0);
-      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil, reads(true)));
+      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil, reads(true), override));
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
       const dir = enter.kind === 'pan' ? (enter.dir ?? 1) : 1;
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
-      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false));
+      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), override);
       const inn = layer(
         b,
         cur,
@@ -389,6 +408,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         boil,
         probe(cur, enter.kind === 'pan' ? dx + dir * width : 0, 1 - fading * (1 - p)),
         reads(false),
+        override,
       );
       switch (enter.kind) {
         case 'fade':

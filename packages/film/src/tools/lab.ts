@@ -15,6 +15,7 @@
 // lands in the scene's `.ts` file, then `film check --static` runs fresh.
 //
 //   GET  /lab/scenes/:scene/source      the scene's file and which cues and knobs are literals
+//   GET  /lab/scenes/:scene/head        its timeline and knobs at HEAD, and whether its code changed
 //   POST /lab/cues/:scene/:cue          set a cue's offset, dur or ease: CuePatch
 //   POST /lab/knobs/:scene/:knob        set a knob: KnobPatch
 //   POST /lab/undo                      put the last write's file back, byte for byte
@@ -27,6 +28,7 @@ import {
   type CheckLine,
   CheckReport,
   CuePatch,
+  HeadSource,
   KnobPatch,
   LabWrite,
   Note,
@@ -41,6 +43,7 @@ import { resolveTimeline } from '../core/timeline.ts';
 import { FilmRepo, placeFilm } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
+import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter, type Written } from './scene-writer.ts';
 import { StaticCheck } from './static-check.ts';
@@ -67,6 +70,7 @@ const waitJson = HttpServerResponse.schemaJson(NotesWait);
 const writeJson = HttpServerResponse.schemaJson(LabWrite);
 const sourceJson = HttpServerResponse.schemaJson(SceneSource);
 const checkJson = HttpServerResponse.schemaJson(CheckReport);
+const headJson = HttpServerResponse.schemaJson(HeadSource);
 
 /**
  * The status a failure answers with: a missing note or scene 404, a bad
@@ -74,7 +78,7 @@ const checkJson = HttpServerResponse.schemaJson(CheckReport);
  * something newer) in the way 409, the rest 500.
  */
 const statusOf = (tag: string) => {
-  if (tag === 'NoteNotFound' || tag === 'SceneNotLocated') return 404;
+  if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
   if (tag === 'SourceRefused') return 422;
   if (tag === 'UndoUnavailable') return 409;
@@ -243,6 +247,25 @@ export const labRoutes = (film: string) =>
       ),
     ),
     HttpRouter.route(
+      'GET',
+      '/lab/scenes/:scene/head',
+      handled(
+        Effect.gen(function* () {
+          const { scene } = yield* HttpRouter.schemaPathParams(SceneParams);
+          const head = yield* (yield* SceneHead).head(film, scene);
+          const dir = (yield* FilmRepo).paths(film).dir;
+          return yield* headJson({
+            scene,
+            file: (yield* Path.Path).relative(dir, head.site.file),
+            timeline: head.timeline,
+            knobs: head.knobs,
+            codeChanged: head.codeChanged,
+            sameData: head.sameData,
+          });
+        }),
+      ),
+    ),
+    HttpRouter.route(
       'POST',
       '/lab/cues/:scene/:cue',
       handled(
@@ -329,6 +352,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     | FilmRepo
     | SceneSources
     | SceneWriter
+    | SceneHead
     | StaticCheck
   >();
   const { handler } = yield* Effect.acquireRelease(

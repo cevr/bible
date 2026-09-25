@@ -591,3 +591,54 @@ export const readSpans = (
         ),
       ),
   });
+
+/**
+ * The knobs of the drawing's `knobs` literal that are literal numbers or
+ * points, by name, as the file declares them now; a computed knob is left out.
+ */
+export const readKnobs = (
+  file: string,
+  source: string,
+  name: string,
+): Readonly<Record<string, Knob>> =>
+  Result.match(literalOf(file, source, name, 'knobs'), {
+    onFailure: () => ({}),
+    onSuccess: (node) =>
+      Object.fromEntries(
+        literalProperties({ _tag: 'Literal', node }).flatMap((p) =>
+          Option.match(keyName(p), {
+            onNone: () => [],
+            onSome: (knob) =>
+              Result.match(readKnob(file, source, name, knob), {
+                onFailure: () => [],
+                onSuccess: (v) =>
+                  Option.match(v, {
+                    onNone: () => [],
+                    onSome: (value) => [[knob, value] satisfies readonly [string, Knob]],
+                  }),
+              }),
+          }),
+        ),
+      ),
+  });
+
+/**
+ * The module's code apart from the drawing's data: the source with the
+ * `timeline` and `knobs` object literals of the drawing exported as `name`
+ * blanked out. Two versions of a scene whose code is the same differ only in
+ * data, which the lab can draw from values alone.
+ */
+export const codeOf = (
+  file: string,
+  source: string,
+  name: string,
+): Result.Result<string, SourceRefused> =>
+  Result.map(siteNamed(file, source, name), (site) =>
+    applySplices(
+      source,
+      [site.timeline, site.knobs].flatMap((slot) => {
+        if (slot._tag !== 'Literal') return [];
+        return [{ start: slot.node.start, end: slot.node.end, text: '{}' }];
+      }),
+    ),
+  );

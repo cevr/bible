@@ -7,11 +7,14 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
-import { LabWrite, SceneSource } from '../core/schema.ts';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
+import { collect } from './process.ts';
+import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { StaticCheck } from './static-check.ts';
@@ -40,7 +43,7 @@ const fixture = Layer.unwrap(
     const root = yield* fs.makeTempDirectoryScoped();
     const films = yield* sceneFixture(root);
     return Layer.mergeAll(
-      SceneWriter.layer.pipe(
+      Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
         Layer.provideMerge(SceneSources.layer),
         Layer.provideMerge(FilmRepo.layer(films)),
       ),
@@ -129,6 +132,50 @@ describe('lab source routes', () => {
       expect(yield* read()).toBe(before);
       const again = yield* Effect.promise(() => lab(post('/lab/undo', '{}')).then((r) => r.status));
       expect(again).toBe(409);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("head answers HEAD's data, and says when the code changed since", () =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler('f');
+      const fs = yield* FileSystem.FileSystem;
+      const file = yield* HandFile;
+      const dir = (yield* Path.Path).dirname(file);
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+      const git = (...args: ReadonlyArray<string>) =>
+        collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
+      const request = () =>
+        Effect.promise(() => lab(new Request('http://lab.test/lab/scenes/hand/head')));
+      const head = Effect.fn('test.head')(function* () {
+        const res = yield* request();
+        return yield* Schema.decodeUnknownEffect(HeadSource)(
+          yield* Effect.promise(() => res.json()),
+        );
+      });
+      // Not in a repository yet: nothing to compare with.
+      expect((yield* request()).status).toBe(404);
+      yield* git('init', '-q');
+      yield* git('add', '.');
+      yield* git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'scenes');
+      expect(yield* head()).toMatchObject({
+        file: 'scenes/hand.ts',
+        codeChanged: false,
+        sameData: true,
+        knobs: { palm: [960, 800] },
+      });
+      // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
+      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"offset":0.4}')));
+      const moved = yield* head();
+      expect(moved).toMatchObject({
+        codeChanged: false,
+        sameData: false,
+        timeline: { topple: { mark: 'earns', offset: 0.1, dur: 1.8 } },
+      });
+      expect(Object.keys(moved.timeline)).toEqual(['topple']);
+      // Code outside the literals changed: the compare can show data only.
+      const now = yield* fs.readFileString(file);
+      yield* fs.writeFileString(file, now.replace('const GAP = 0.2;', 'const GAP = 0.3;'));
+      expect(yield* head()).toMatchObject({ codeChanged: true });
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 });

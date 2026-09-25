@@ -408,3 +408,13 @@ export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
     return `the static check did not run: ${this.reason}`;
   }
 }
+
+/** A scene file with no version at HEAD the lab can compare with: new, or not in a git repository. */
+export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('HeadUnavailable', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: no HEAD version to compare with: ${this.reason}`;
+  }
+}
