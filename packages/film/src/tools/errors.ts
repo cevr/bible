@@ -190,3 +190,109 @@ export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
     return `nothing to render between ${this.from}s and ${this.to}s`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// `film check` findings. Each is a value the check collects, never the first
+// failure only; the run fails with `CheckFailed` once every one is reported.
+
+/** A named cue that ends after its scene does. */
+export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
+  scene: Schema.String,
+  cue: Schema.String,
+  end: Schema.Finite,
+  dur: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" ends at ${this.end.toFixed(2)}s, after the scene (${this.dur.toFixed(2)}s)`;
+  }
+}
+
+/** A beat whose take is missing, or was recorded for other text or another voice. */
+export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
+  scene: Schema.String,
+  reason: Schema.Literals(['missing', 'text changed', 'voice changed']),
+}) {
+  override get message() {
+    return `scene "${this.scene}": take is stale (${this.reason}); run narrate`;
+  }
+}
+
+/** A generated sound asset whose stored hash no longer matches its request. */
+export class AssetStale extends Schema.TaggedError<AssetStale>()('AssetStale', {
+  asset: Schema.String,
+  stored: Schema.String,
+  wanted: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.asset}" is stale (made for ${this.stored}, the film now asks for ${this.wanted}); run score`;
+  }
+}
+
+/** A sound the film declares that has never been generated, so the mix leaves it out. */
+export class AssetMissing extends Schema.TaggedError<AssetMissing>()('AssetMissing', {
+  asset: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.asset}" has not been generated; the mix plays without it`;
+  }
+}
+
+/** Where a layout sample was taken: a scene, a film time, and what the time is. */
+const sampled = {
+  scene: Schema.String,
+  time: Schema.Finite,
+  at: Schema.String,
+};
+
+const where = (f: { readonly scene: string; readonly time: number; readonly at: string }) =>
+  `scene "${f.scene}" at ${f.time.toFixed(2)}s (${f.at})`;
+
+/** Two different lines of text on screen over each other. */
+export class TextOverlap extends Schema.TaggedError<TextOverlap>()('TextOverlap', {
+  ...sampled,
+  a: Schema.String,
+  b: Schema.String,
+  /** Overlap in square canvas pixels. */
+  area: Schema.Finite,
+  /** How many sampled frames show this pair overlapping. */
+  frames: Schema.Int,
+}) {
+  override get message() {
+    return `${where(this)}: "${this.a}" overlaps "${this.b}" by ${Math.round(this.area)} px² (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A line of text reaching past the edge of the frame. */
+export class TextOffFrame extends Schema.TaggedError<TextOffFrame>()('TextOffFrame', {
+  ...sampled,
+  text: Schema.String,
+  /** How far past the frame's edges it reaches, in canvas pixels. */
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: "${this.text}" leaves the frame, ${past.join(', ')} (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** The check found errors; each was printed above. */
+export class CheckFailed extends Schema.TaggedError<CheckFailed>()('CheckFailed', {
+  errors: Schema.Int,
+  warnings: Schema.Int,
+}) {
+  override get message() {
+    return `film check failed: ${this.errors} error(s), ${this.warnings} warning(s)`;
+  }
+}

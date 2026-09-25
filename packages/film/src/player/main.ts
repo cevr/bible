@@ -3,6 +3,7 @@
 // the chrome and hands `window.__film` to the renderer.
 
 import type { Film } from '../canvas/film.ts';
+import type { TextBox } from '../core/schema.ts';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -26,6 +27,8 @@ export interface ExportHandle {
   readonly audio: string | undefined;
   /** Draw frame `i` and return it encoded. */
   frame(i: number, type?: 'image/png' | 'image/jpeg'): Promise<string>;
+  /** Draw frame `i` with the text probe on: every line of text it draws, boxed in canvas pixels. */
+  probe(i: number): TextBox[];
 }
 
 declare global {
@@ -80,6 +83,11 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
           for (let k = 0; k < bytes.length; k += 0x8000)
             bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
           return btoa(bin);
+        },
+        probe: (i) => {
+          const boxes: TextBox[] = [];
+          film.render(ctx, i / film.fps, { captions: captions.on, probe: boxes });
+          return boxes;
         },
       };
       return;

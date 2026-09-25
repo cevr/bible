@@ -6,9 +6,10 @@ import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { captionCues } from '../core/captions.ts';
 import { type Placed, layout, transitionDur } from '../core/layout.ts';
-import type { Timed, Timeline, Timings, Word } from '../core/schema.ts';
+import type { TextBox, Timed, Timeline, Timings, Word } from '../core/schema.ts';
 import type { ResolvedCue } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
+import { type Probe, probeOf, probing, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { type Ease, clamp, ease, progress } from '../core/time.ts';
 
@@ -82,6 +83,12 @@ export interface FilmSpec {
 
 export interface RenderOptions {
   readonly captions?: boolean;
+  /**
+   * Collect every line of text the frame draws into this array (the text
+   * probe `film check` reads). Leave it out for an ordinary frame; the pixels
+   * are the same either way.
+   */
+  readonly probe?: TextBox[];
 }
 
 export interface Film {
@@ -211,13 +218,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     p: Placed<SceneSpec>,
     T: number,
     boil: number,
+    probe: Probe | undefined,
   ) => {
     const { paper } = getAssets();
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
     target.ctx.drawImage(paper, 0, 0);
-    drawScene(target.ctx, p, T, boil);
+    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil));
     return target.c;
   };
 
@@ -229,29 +237,40 @@ export const createFilm = (spec: FilmSpec): Film => {
     const enter = cur.spec.enter;
     const tr = transitionDur(enter);
     const local = T - cur.start;
+    const boxes = opts.probe;
+    /** A probe for text one scene draws, landing `dx` across and composited at `alpha`. */
+    const probe = (p: Placed<SceneSpec>, dx: number, alpha: number): Probe | undefined =>
+      boxes === undefined ? undefined : { boxes, scene: p.spec.id, dx, alpha };
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       ctx.drawImage(paper, 0, 0);
-      drawScene(ctx, cur, T, boil);
+      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil));
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
-      const out = layer(a, prev, T, boil);
-      const inn = layer(b, cur, T, boil);
+      // The incoming sheet covers the outgoing one as it arrives.
+      const dir = enter.kind === 'pan' ? (enter.dir ?? 1) : 1;
+      const dx = enter.kind === 'pan' ? -dir * p * width : 0;
+      const fading = enter.kind === 'pan' ? 0 : 1;
+      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p));
+      const inn = layer(
+        b,
+        cur,
+        T,
+        boil,
+        probe(cur, enter.kind === 'pan' ? dx + dir * width : 0, 1 - fading * (1 - p)),
+      );
       switch (enter.kind) {
         case 'fade':
           ctx.drawImage(out, 0, 0);
           ctx.globalAlpha = p;
           ctx.drawImage(inn, 0, 0);
           break;
-        case 'pan': {
-          const dir = enter.dir ?? 1;
-          const dx = -dir * p * width;
+        case 'pan':
           ctx.drawImage(out, dx, 0);
           ctx.drawImage(inn, dx + dir * width, 0);
           break;
-        }
         case 'ink':
           ctx.drawImage(out, 0, 0);
           inkWipe(ctx, inn, p, width, height, enter.color ?? spec.shade);
@@ -261,8 +280,10 @@ export const createFilm = (spec: FilmSpec): Film => {
 
     vignette(ctx, width, height, spec.shade, 0.28);
     grain(ctx, getAssets().grain, boil, width, height, 0.09);
-    if (opts.captions === true && spec.captions !== undefined)
-      caption(ctx, cur, local, width, height, spec.captions);
+    if (opts.captions === true && spec.captions !== undefined) {
+      const style = spec.captions;
+      probing(ctx, probe(cur, 0, 1), () => caption(ctx, cur, local, width, height, style));
+    }
     ctx.restore();
   };
 
@@ -343,5 +364,9 @@ const caption = (
   ctx.globalAlpha = 1;
   ctx.fillStyle = style.color;
   ctx.fillText(text, w / 2, y + 1);
+  // The plate hides whatever is under it, so the check measures the plate.
+  const probe = probeOf(ctx);
+  if (probe !== undefined)
+    recordText(ctx, probe, text, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
   ctx.restore();
 };

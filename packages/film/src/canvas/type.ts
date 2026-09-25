@@ -3,6 +3,7 @@
 // same hand-made world as the drawings.
 
 import type { Hand } from './ink.ts';
+import { probeOf, recordText, textExtent } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
 import { clamp, ease } from '../core/time.ts';
 
@@ -94,6 +95,11 @@ export const write = (
   const baseAlpha = ctx.globalAlpha * (opts.alpha ?? 1);
   // Each glyph's own 0→1, overlapping its neighbours.
   const spread = reveal === 'write' ? 1 : 3;
+  // Only a check attaches a probe: the visible glyphs' span and their strongest opacity.
+  const probe = probeOf(ctx);
+  let shownFrom = Infinity;
+  let shownTo = -Infinity;
+  let shownAlpha = 0;
   for (let i = 0; i < n; i++) {
     const ch = chars[i] ?? '';
     if (ch === ' ') continue;
@@ -101,6 +107,13 @@ export const write = (
     if (local <= 0) continue;
     const gx = x0 + (xs[i] ?? 0);
     const gw = ws[i] ?? 0;
+    if (probe !== undefined) {
+      shownFrom = Math.min(shownFrom, gx);
+      shownTo = Math.max(shownTo, gx + gw);
+      const shown =
+        reveal === 'rise' ? ease.outCubic(local) : reveal === 'pop' ? clamp(local * 3) : 1;
+      shownAlpha = Math.max(shownAlpha, shown);
+    }
     const jx = boil * noise1(hand.boil * 1.3 + i * 7.1, hand.seed);
     const jy = boil * noise1(hand.boil * 1.7 + i * 3.3, hand.seed + 1);
     const rot = boil * 0.006 * noise1(hand.boil + i * 5.3, hand.seed + 2);
@@ -123,6 +136,19 @@ export const write = (
     }
     ctx.fillText(ch, -gw / 2, 0);
     ctx.restore();
+  }
+  if (probe !== undefined && shownTo > shownFrom) {
+    const { ascent, descent } = textExtent(ctx, text);
+    recordText(
+      ctx,
+      probe,
+      text,
+      shownFrom,
+      y - ascent,
+      shownTo - shownFrom,
+      ascent + descent,
+      baseAlpha * shownAlpha,
+    );
   }
   ctx.restore();
   return width;
@@ -222,6 +248,21 @@ const writeWhole = (
     right + b * noise1(hand.boil * 1.3, hand.seed),
     y + b * noise1(hand.boil * 1.7, hand.seed + 1),
   );
+  const probe = probeOf(ctx);
+  if (probe !== undefined && p > 0) {
+    const { ascent, descent } = textExtent(ctx, text);
+    const shown = Math.min(width, (width + 20) * p);
+    recordText(
+      ctx,
+      probe,
+      text,
+      right - shown,
+      y - ascent,
+      shown,
+      ascent + descent,
+      ctx.globalAlpha,
+    );
+  }
   ctx.restore();
   return width;
 };

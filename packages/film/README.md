@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard) and `createFilm`, which composites any `T`.                                                                                                              |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                                                      |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan). |
+| Import               | What it holds                                                                                                                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                               |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                            |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                                                                                                     |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors). |
 
 ## Data
 
@@ -24,7 +24,7 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|score|mix|cues|render <film>` runs from the app that holds the
+`film narrate|score|mix|cues|check|render <film>` runs from the app that holds the
 films (`src/films/<film>`, or `FILMS_DIR`). The app owns the entry: it calls
 `runFilmCli(previewServer)` with a scoped `PreviewServer` layer that serves its
 player page, because only the app can bundle its HTML and films (see
@@ -52,6 +52,40 @@ The segments join in order with the audio encoded to AAC once from
 MP4 from `captionCues`, the same line timing the burned-in captions use. An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
+
+## Check
+
+`film check <film>` fails (after reporting every finding, not the first) on
+what a review used to find by eye:
+
+- **Static** (no browser, `--static`): a named cue that ends after its scene
+  (`CueLate`); a sound cue naming an unknown scene, cue or mark; a music act
+  out of film order or under 3 s (`ActTooShort`); a take that is missing or
+  was recorded for other text or another voice (`TakeStale`); a generated
+  sound whose request hash has moved (`AssetStale`). `--allow-stale` reports
+  stale takes and sounds as warnings. A sound never generated
+  (`AssetMissing`) is always a warning: the mix plays without it.
+- **Layout** (headless pages, like `render`): each scene is sampled at every
+  mark, every cue's start and end, and its 60% point, pulled after its
+  entering transition (mid-transition two scenes cross by design). The player
+  draws each sample with the **text probe** on and returns every line of text
+  as a box in canvas pixels, turned with its transform. Two different lines
+  both above 0.3 opacity that overlap by more than 4 px either way are a
+  `TextOverlap`; a visible line cut off by the frame's edge is a
+  `TextOffFrame` (a line wholly outside the frame has slid away and is not).
+  Findings merge per scene and pair, at the worst sampled frame.
+
+The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
+and the captions record through it; a drawing declares the plate its text
+sits on (a torn tag) with `probePlate`, because a plate hides what is under
+it as the text does. With no probe attached a draw costs one WeakMap lookup,
+and a probed frame is pixel for pixel the same (it only reads the transform
+and `measureText`). The export handle exposes it as `probe(i)`.
+
+A fade-out under a fade-in is not a collision (the 0.3 opacity floor), so
+there is no per-drawing allow-list. Strokes over text (a thread crossing a
+quote) are not probed yet: it needs `stroke` to record its path's bounds
+through the same probe and a segment-versus-box test.
 
 ## Named cues
 

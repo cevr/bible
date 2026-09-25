@@ -250,3 +250,26 @@ export const ExportInfo = Schema.Struct({
   audio: Schema.optional(Schema.String),
 });
 export type ExportInfo = typeof ExportInfo.Type;
+
+/** A point in canvas pixels. */
+export const Point = Schema.Tuple([Schema.Finite, Schema.Finite]);
+export type Point = typeof Point.Type;
+
+/**
+ * One line of text as drawn, from the text probe, in canvas pixels after the
+ * transform it was drawn under: its box as four corners (top-left, top-right,
+ * bottom-right, bottom-left; rotated with the text), the axis-aligned box
+ * around them (`x, y, w, h`), and its effective opacity. `scene` is the scene
+ * that drew it.
+ */
+export const TextBox = Schema.Struct({
+  text: Schema.String,
+  scene: Schema.String,
+  x: Schema.Finite,
+  y: Schema.Finite,
+  w: Schema.Finite,
+  h: Schema.Finite,
+  corners: Schema.Tuple([Point, Point, Point, Point]),
+  alpha: Schema.Finite,
+});
+export type TextBox = typeof TextBox.Type;

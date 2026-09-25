@@ -10,6 +10,8 @@ export * from './narrator.ts';
 export * from './composer.ts';
 export * from './mixer.ts';
 export * from './cues.ts';
+export * from './check.ts';
+export * from './checker.ts';
 export * from './preview-server.ts';
 export * from './browser.ts';
 export * from './render-plan.ts';

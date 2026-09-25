@@ -7,6 +7,7 @@ import * as PlatformError from 'effect/PlatformError';
 import {
   type ExportInfo,
   SoundManifestJson,
+  type TextBox,
   type Timed,
   type Timings,
   TimingsJson,
@@ -163,6 +164,10 @@ export interface FakeRenderHost {
     i: number,
     page: number,
   ) => Effect.Effect<void, PageError | PageCrashed | FrameFailed>;
+  /** The text boxes a probe of frame `i` reports (none by default); failing breaks the page. */
+  readonly probe?: (
+    i: number,
+  ) => Effect.Effect<ReadonlyArray<TextBox>, PageError | PageCrashed | FrameFailed>;
 }
 
 /**
@@ -172,6 +177,10 @@ export interface FakeRenderHost {
 export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
+  const probe = Option.getOrElse(
+    Option.fromNullishOr(host.probe),
+    () => (): Effect.Effect<ReadonlyArray<TextBox>> => Effect.succeed([]),
+  );
   const server = Layer.effect(
     PreviewServer,
     Effect.acquireRelease(
@@ -205,6 +214,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                       ledger.frames.push(i);
                       return new Uint8Array([i % 256]);
                     }),
+                  ),
+                probe: (i: number) =>
+                  Effect.sleep('1 millis').pipe(
+                    Effect.andThen(probe(i)),
+                    Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
                   ),
               })),
             ),
@@ -273,3 +287,42 @@ export const testFilm = (
 
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));
+
+/**
+ * A probed line of text: a `w` × `h` box at (`x`, `y`), turned `rot` radians
+ * about its centre, in scene `scene`.
+ */
+export const textBox = (
+  text: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  options: { readonly alpha?: number; readonly rot?: number; readonly scene?: string } = {},
+): TextBox => {
+  const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const turn = (px: number, py: number): readonly [number, number] => [
+    cx + (px - cx) * Math.cos(rot) - (py - cy) * Math.sin(rot),
+    cy + (px - cx) * Math.sin(rot) + (py - cy) * Math.cos(rot),
+  ];
+  const corners: TextBox['corners'] = [
+    turn(x, y),
+    turn(x + w, y),
+    turn(x + w, y + h),
+    turn(x, y + h),
+  ];
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  return {
+    text,
+    scene: Option.getOrElse(Option.fromNullishOr(options.scene), () => 'a'),
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+    corners,
+    alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
+  };
+};

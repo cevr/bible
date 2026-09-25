@@ -16,6 +16,7 @@ import {
   type TextStyle,
   block,
   measure,
+  probePlate,
   write,
 } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, progress } from '@bible/film/core';
@@ -97,6 +98,7 @@ export const cite = (f: Frame, text: string, start: number, end: number, slot = 
       { color: C.robe, torn: 2.5, rim: 0, shadow: 0.5, grain: 0.3 },
       f.hand(`cite${slot}`),
     );
+    probePlate(ctx, text, 0, 0, w, 54);
     cutout(
       ctx,
       rectShape(-10, 12, 18, 30),

@@ -6,6 +6,7 @@
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
+//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //
@@ -16,13 +17,15 @@ import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Console, Effect, Layer, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { Browser } from './browser.ts';
+import { type Reported, staticFindings } from './check.ts';
+import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import { CuesLate, SoundMissing } from './errors.ts';
+import { CheckFailed, CuesLate, SoundMissing } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import type { PreviewServer } from './preview-server.ts';
@@ -144,6 +147,59 @@ const cues = Command.make(
   ),
 );
 
+const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
+  /** The browser leg: the server and the browser start only when it runs. */
+  const layoutLeg = Effect.fn('film.check.layout')(function* (
+    loaded: LoadedFilm,
+    workers: number,
+    scenes: Option.Option<ReadonlySet<string>>,
+  ) {
+    return yield* (yield* Checker).layout(loaded, { workers, scenes });
+  }, Effect.provide(checkLayer));
+  return Command.make(
+    'check',
+    {
+      film,
+      static: Flag.Boolean('static').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('skip the layout leg: no browser, only cues, takes and sound'),
+      ),
+      allowStale: Flag.Boolean('allow-stale').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('report stale takes and stale sounds as warnings, not errors'),
+      ),
+      scene: only.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
+      workers: Flag.Int('workers').pipe(
+        Flag.withDefault(4),
+        Flag.withDescription('pages probing at once'),
+      ),
+    },
+    Effect.fn('film.check')(function* (input) {
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
+      const found: Array<Reported> = [
+        ...staticFindings(loaded, placed, { allowStale: input.allowStale }),
+      ];
+      if (!input.static) {
+        const layout = yield* layoutLeg(loaded, input.workers, input.scene);
+        for (const finding of layout) found.push({ level: 'error', finding });
+      }
+      for (const { level, finding } of found)
+        yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+      const errors = found.filter((r) => r.level === 'error').length;
+      const warnings = found.length - errors;
+      yield* Effect.log(
+        `check.done film=${input.film} layout=${!input.static} errors=${errors} warnings=${warnings}`,
+      );
+      if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+    }),
+  ).pipe(
+    Command.withDescription(
+      'Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, and no text over text or off the frame at any mark or cue',
+    ),
+  );
+};
+
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);
 
@@ -237,13 +293,14 @@ const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pip
 
 /**
  * Run the `film` CLI with the app's player server. The server and the browser
- * start only for `render`, and stop with it.
+ * start only for `render` and the layout leg of `check`, and stop with them.
  */
 export const runFilmCli = <E>(previewServer: Layer.Layer<PreviewServer, E>): void => {
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const root = Command.make('film').pipe(
     Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
-    Command.withSubcommands([narrate, score, mix, cues, render(renderLayer)]),
+    Command.withSubcommands([narrate, score, mix, cues, check(checkLayer), render(renderLayer)]),
   );
   Command.run(root, { version: '0.1.0' }).pipe(Effect.provide(Services), BunRuntime.runMain);
 };

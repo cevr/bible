@@ -27,7 +27,7 @@ import {
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
-const MIN_CHUNK_MS = 3000;
+export const MIN_CHUNK_MS = 3000;
 
 const sceneOf = (
   placed: ReadonlyArray<Placed>,

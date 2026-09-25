@@ -9,10 +9,11 @@
     "score": "bun cli.ts score",
     "mix": "bun cli.ts mix",
     "cues": "bun cli.ts cues",
+    "check": "bun cli.ts check",
     "render": "bun cli.ts render",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",
-    "gate": "bun run typecheck && bun run test"
+    "gate": "bun run typecheck && bun run test && bun cli.ts check righteousness-by-faith --static --allow-stale"
   },
   "dependencies": {
     "@bible/film": "workspace:*",

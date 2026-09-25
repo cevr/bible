@@ -14,6 +14,8 @@ bun run score <film>                           # generate stale music + effects,
 bun run mix <film> [--stems]                   # remix full.mp3 + full.wav (no API); stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
+bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages + ffmpeg)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
@@ -27,6 +29,12 @@ loads. Narrate flags: `--only id,id` (record these, current or not),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
 `--only music,<effect>` and `--dry-run`. `FILMS_DIR` and `FILMS_OUT` override
 `src/films` and `out`.
+
+Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes
+and sound are warnings), `--scene id,id` (probe only these scenes' layout),
+`--workers n`. The app's `gate` runs the static leg with `--allow-stale`: it
+is instant and needs no browser, and a script edit or a re-timing waiting on
+a paid re-record must not block a commit; the layout leg is a review step.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output

@@ -5,6 +5,7 @@ export * from './ink.ts';
 export * from './cutout.ts';
 export * from './paper.ts';
 export * from './type.ts';
+export * from './probe.ts';
 export * from './figure.ts';
 export * from './camera.ts';
 export * from './storyboard.ts';
