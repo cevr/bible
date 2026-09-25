@@ -398,3 +398,67 @@ export const textBox = (
     alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
   };
 };
+
+/**
+ * A film folder on disk for the lab's source tools: `f/scenes/` with a hand
+ * scene (a literal timeline and knobs, one computed offset), a drawing the
+ * registry renames (`alpha` registered as `beta`) beside a decoy file that
+ * exports a `beta` of its own, a scene whose timeline the registry builds in
+ * code, and one with nothing to edit. Every file is as oxfmt leaves it, under
+ * the repo's `.oxfmtrc.json`, copied to the root. Returns the films folder.
+ */
+export const sceneFixture = Effect.fn('test.sceneFixture')(function* (root: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const scenes = path.join(root, 'films', 'f', 'scenes');
+  yield* fs.makeDirectory(scenes, { recursive: true });
+  yield* fs.copyFile(
+    path.join(import.meta.dir, '..', '..', '..', '..', '.oxfmtrc.json'),
+    path.join(root, '.oxfmtrc.json'),
+  );
+  const files = {
+    'drawing.ts': 'export const drawing = <T>(d: T): T => d;\n',
+    'hand.ts': `import { drawing } from './drawing.ts';
+
+const GAP = 0.2;
+
+/** Faith is the hand, not the price. */
+export const hand_ = drawing({
+  enter: { kind: 'pan', dur: 0.8, dir: -1 },
+  timeline: {
+    /** The tower of merit tips and slides off the palm. */
+    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+    late: { after: 'topple', offset: GAP * 2 },
+  },
+  knobs: {
+    /** Where the palm comes to rest. */
+    palm: [960, 800],
+  },
+  draw: () => {},
+});
+
+export { hand_ as hand };
+`,
+    'a.ts': `import { drawing } from './drawing.ts';
+
+export const alpha = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
+`,
+    'decoy.ts': `import { drawing } from './drawing.ts';
+
+export const beta = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
+`,
+    'index.ts': `import { alpha } from './a.ts';
+import { hand } from './hand.ts';
+
+export const scenes = [
+  { id: 'hand', ...hand },
+  { id: 'beta', ...alpha },
+  { id: 'built', timeline: { x: { scene: 'start' } } },
+  { id: 'plain' },
+];
+`,
+  };
+  for (const [name, source] of Object.entries(files))
+    yield* fs.writeFileString(path.join(scenes, name), source);
+  return path.join(root, 'films');
+});

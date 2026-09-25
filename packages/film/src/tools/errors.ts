@@ -340,3 +340,61 @@ export class NotesLocked extends Schema.TaggedError<NotesLocked>()('NotesLocked'
     return `${this.lock} is held; if no film lab or notes command is running, remove it`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Lab write-back: the scene source the lab edits.
+
+/** A scene whose drawing the lab cannot find in the film's source files. */
+export class SceneNotLocated extends Schema.TaggedError<SceneNotLocated>()('SceneNotLocated', {
+  film: Schema.String,
+  scene: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `film "${this.film}": scene "${this.scene}" has no editable drawing in source: ${this.reason}`;
+  }
+}
+
+/**
+ * An edit the lab will not make: the target is not a literal it can prove it
+ * rewrites (a computed value, a spread, a shorthand), or it does not exist.
+ */
+export class SourceRefused extends Schema.TaggedError<SourceRefused>()('SourceRefused', {
+  file: Schema.String,
+  target: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: will not edit ${this.target}: ${this.reason}`;
+  }
+}
+
+/** oxfmt failed on a file the lab wrote; the file was put back as it was. */
+export class FormatFailed extends Schema.TaggedError<FormatFailed>()('FormatFailed', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: oxfmt failed, the edit was undone: ${this.reason}`;
+  }
+}
+
+/** A written value did not read back from the formatted file; the file was put back as it was. */
+export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('WriteUnverified', {
+  file: Schema.String,
+  target: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: ${this.target} did not read back after the write (${this.reason}); the edit was undone`;
+  }
+}
+
+/** An undo with no write to undo, or one whose file has changed since the write. */
+export class UndoUnavailable extends Schema.TaggedError<UndoUnavailable>()('UndoUnavailable', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `nothing to undo: ${this.reason}`;
+  }
+}

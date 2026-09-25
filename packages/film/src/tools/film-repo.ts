@@ -53,8 +53,12 @@ const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
 
-/** The one place a film module is imported by path. */
-const importFilmModule = (file: string) => import(file);
+/**
+ * The one place a film module is imported by path. The process keeps the
+ * module it first loaded: a tool that must see a file as it is now parses it
+ * (`scene-source.ts`) instead.
+ */
+export const importFilmModule = (file: string) => import(file);
 
 /** Lay the film out, turning `layout()`'s authoring errors into a typed failure. */
 export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, LayoutInvalid> =>
