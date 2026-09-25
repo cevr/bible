@@ -156,7 +156,7 @@ export const wordCard = (
   if (opts.gloss !== undefined) {
     const gy = y + (opts.original === undefined ? 110 : 180);
     const gP = progress(f.t, opts.glossAt ?? opts.start + 1, 1, ease.linear);
-    const style = { ...hand(72, C.orange), align: 'center' as const };
+    const style: TextStyle = { ...hand(72, C.orange), align: 'center' };
     // A marker swash behind the gloss.
     const gw = measure(ctx, opts.gloss, style);
     stroke(

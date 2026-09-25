@@ -10,6 +10,7 @@ import {
   quad,
   stroke,
   write,
+  type TextStyle,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, sun } from '../kit.ts';
@@ -37,7 +38,7 @@ export const name = drawing({
       // The question, as it was — rewritten as it is asked again, set upper left
       // so the thread can climb past it to the light without crossing the words.
       const qp = f.spoken('so', 'not');
-      const big = { ...hand(116), align: 'center' as const };
+      const big: TextStyle = { ...hand(116), align: 'center' };
       write(ctx, 'How should man be', 700, 260, big, f.hand('q1'), {
         progress: clamp(qp * 1.9),
         reveal: 'write',
@@ -92,7 +93,7 @@ export const name = drawing({
               [10, -226],
               [14, -170],
               [-46, -166],
-            ] as Pt[],
+            ] satisfies Pt[],
             { color: C.tealDeep, torn: 2, rim: 2, shadow: 0.2 },
             f.hand('patch1'),
           );
@@ -103,7 +104,7 @@ export const name = drawing({
               [74, -126],
               [70, -72],
               [24, -70],
-            ] as Pt[],
+            ] satisfies Pt[],
             { color: C.tealPale, torn: 2, rim: 2, shadow: 0.2 },
             f.hand('patch2'),
           );
@@ -163,7 +164,7 @@ export const name = drawing({
             [-45, 20, C.red],
             [0, 18, C.teal],
             [45, 20, C.red],
-          ] as const)
+          ] satisfies ReadonlyArray<readonly [number, number, string]>)
             cutout(
               ctx,
               ellipseShape(x, y, 10, 10, 14),
@@ -172,12 +173,12 @@ export const name = drawing({
             );
         });
       }
-      const answer = {
+      const answer: TextStyle = {
         family: F.display,
         size: 84,
         weight: 800,
         color: C.ink,
-        align: 'center' as const,
+        align: 'center',
         tracking: 0.06,
       };
       write(ctx, 'THE LORD', 1230, 800, answer, f.hand('a1'), {

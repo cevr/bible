@@ -16,7 +16,13 @@ export interface CueReport {
 const inScene = (only: Option.Option<string>, scene: string) =>
   Option.match(only, { onNone: () => true, onSome: (id) => id === scene });
 
-const lineOf = (p: Placed): { readonly line: string; readonly late: number } => {
+interface CueLine {
+  readonly line: string;
+  /** Named cues on this line that end after the scene. */
+  readonly late: number;
+}
+
+const lineOf = (p: Placed): CueLine => {
   const marks = [...p.voice.marks].map(([k, v]) => `${k}@${(p.speechStart + v).toFixed(2)}`);
   let late = 0;
   const cues = [...p.cues].map(([k, c]) => {
@@ -32,7 +38,7 @@ const lineOf = (p: Placed): { readonly line: string; readonly late: number } => 
   if (!p.voice.recorded) parts.push('(estimated) ');
   parts.push(marks.join(' '));
   if (cues.length > 0) parts.push(` | cues: ${cues.join(' ')}`);
-  return { line: parts.join(''), late };
+  return { line: parts.join(''), late } satisfies CueLine;
 };
 
 /** Each scene's placement, marks and cues. */
@@ -45,11 +51,11 @@ export const sceneReport = (
 };
 
 const anchorLabel = (cue: Cue): string => {
-  const parts: Array<string> = [];
-  if (cue.cue !== undefined) parts.push(cue.cue);
-  else if (cue.mark !== undefined) parts.push(`{${cue.mark}}`);
-  if (cue.edge !== undefined) parts.push(`.${cue.edge}`);
-  return parts.join('');
+  const anchor = Option.orElse(Option.fromNullishOr(cue.cue), () =>
+    Option.map(Option.fromNullishOr(cue.mark), (mark) => `{${mark}}`),
+  );
+  const edge = Option.map(Option.fromNullishOr(cue.edge), (e) => `.${e}`);
+  return [anchor, edge].flatMap((part) => Option.toArray(part)).join('');
 };
 
 /** Each effect placement's film time. */

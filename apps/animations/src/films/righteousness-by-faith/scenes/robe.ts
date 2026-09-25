@@ -7,6 +7,7 @@ import {
   ellipse,
   ellipseShape,
   line,
+  type Pt,
   quad,
   rectShape,
   spline,
@@ -145,11 +146,10 @@ export const robe = drawing({
           if (stink > 0)
             for (let i = 0; i < 3; i++) {
               const x = -90 + i * 90;
-              const pts = Array.from(
-                { length: 14 },
-                (_, k) =>
-                  [x + Math.sin(k * 0.9 + t * 4 + i) * 12, -330 - k * 10] as [number, number],
-              );
+              const pts = Array.from({ length: 14 }, (_, k): Pt => [
+                x + Math.sin(k * 0.9 + t * 4 + i) * 12,
+                -330 - k * 10,
+              ]);
               stroke(
                 ctx,
                 pts,
@@ -329,12 +329,9 @@ export const robe = drawing({
         const fall = progress(t, human + 0.4, 1.4, ease.inCubic);
         if (tryIn > 0 && fall < 1) {
           const tip = lerp(-640, -470, tryIn);
-          const pts = Array.from({ length: 20 }, (_, k) => {
+          const pts = Array.from({ length: 20 }, (_, k): Pt => {
             const u = k / 19;
-            return [
-              lerp(-690, tip, u),
-              40 + Math.sin(u * 9 + t * 3) * 10 + fall * fall * 500 * u,
-            ] as [number, number];
+            return [lerp(-690, tip, u), 40 + Math.sin(u * 9 + t * 3) * 10 + fall * fall * 500 * u];
           });
           stroke(ctx, pts, { color: C.teal, width: 9, alpha: 1 - fall }, f.hand('human'));
           write(

@@ -44,13 +44,16 @@ export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
 /** Where in its scene a cue lands, from the scene's start, before its offset. */
 const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => {
   const { scene } = cue;
-  if (cue.cue !== undefined && cue.mark !== undefined)
+  const named = Option.fromNullishOr(cue.cue);
+  const mark = Option.fromNullishOr(cue.mark);
+  const edge = Option.fromNullishOr(cue.edge);
+  if (Option.isSome(named) && Option.isSome(mark))
     return Result.fail(CueInvalid.make({ scene, reason: 'names both cue and mark' }));
-  if (cue.edge !== undefined && cue.cue === undefined)
+  if (Option.isSome(edge) && Option.isNone(named))
     return Result.fail(CueInvalid.make({ scene, reason: 'has an edge but names no cue' }));
-  if (cue.cue !== undefined) {
-    const name = cue.cue;
-    const end = cue.edge === 'end';
+  if (Option.isSome(named)) {
+    const name = named.value;
+    const end = Option.contains(edge, 'end');
     return Result.fromOption(
       Option.map(Option.fromNullishOr(p.cues.get(name)), (c) => {
         if (end) return c.end;
@@ -59,13 +62,11 @@ const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => 
       () => UnknownCue.make({ scene, cue: name }),
     );
   }
-  if (cue.mark !== undefined) {
-    const mark = cue.mark;
+  if (Option.isSome(mark))
     return Result.fromOption(
-      Option.map(Option.fromNullishOr(p.voice.marks.get(mark)), (m) => p.speechStart + m),
-      () => UnknownMark.make({ scene, mark }),
+      Option.map(Option.fromNullishOr(p.voice.marks.get(mark.value)), (m) => p.speechStart + m),
+      () => UnknownMark.make({ scene, mark: mark.value }),
     );
-  }
   return Result.succeed(0);
 };
 

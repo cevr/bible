@@ -6,4 +6,7 @@ import { rags } from './rags.ts';
 import { voidScene } from './void.ts';
 import { witness } from './witness.ts';
 
-export const group1: Record<string, Drawing> = { rags, witness, void: voidScene, centurion };
+export const group1 = { rags, witness, void: voidScene, centurion } satisfies Record<
+  string,
+  Drawing
+>;

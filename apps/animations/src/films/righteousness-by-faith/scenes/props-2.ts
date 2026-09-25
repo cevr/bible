@@ -205,9 +205,10 @@ export const balance = (
   );
   const top: Pt = [0, -420];
   const arm = 330;
-  const ends: Pt[] = [-1, 1].map(
-    (s) => [top[0] + s * Math.cos(tilt) * arm, top[1] - s * Math.sin(tilt) * arm] as Pt,
-  );
+  const ends: Pt[] = [-1, 1].map((s): Pt => [
+    top[0] + s * Math.cos(tilt) * arm,
+    top[1] - s * Math.sin(tilt) * arm,
+  ]);
   stroke(
     ctx,
     line(ends[0] ?? top, ends[1] ?? top, 0.01, 3),

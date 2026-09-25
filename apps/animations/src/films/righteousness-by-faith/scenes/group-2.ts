@@ -6,4 +6,4 @@ import type { Drawing } from './index.ts';
 import { justified } from './justified.ts';
 import { robe } from './robe.ts';
 
-export const group2: Record<string, Drawing> = { justified, exchange, robe, hand };
+export const group2 = { justified, exchange, robe, hand } satisfies Record<string, Drawing>;

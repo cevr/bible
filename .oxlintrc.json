@@ -180,33 +180,101 @@
       }
     },
     {
-      // The film engine (packages/film) and the films and Bun tools that use it
-      // (apps/animations). A film frame is a pure function of time drawn into a
-      // Canvas 2D context thousands of times per render; the engine is plain
-      // arithmetic over numbers and paths, with no services, errors to model,
-      // or resources to scope. The app's scripts are one-shot entry points that
-      // drive Chromium, ffmpeg and the ElevenLabs CLI, and render frames
-      // strictly in order. Effect's rules guard application code; here they
-      // would only add a runtime to a hot drawing loop.
-      "files": ["**/apps/animations/**/*.ts", "**/packages/film/**/*.ts"],
+      // The film draw path: the Canvas 2D kit, each film's scenes and props, and
+      // the easing and seeded-noise helpers they call. A frame is a pure
+      // function of time drawn thousands of times per render, so it keeps plain
+      // arithmetic: ternaries and `?? default` for optional geometry, short
+      // shape names (`pts`, `rim`), and a thrown Error for a programming
+      // mistake (a missing cue, an unknown mark) that must stop the render.
+      // Every other rule applies. The tools and the Schema/data modules of
+      // packages/film are not listed here and get the full rule set.
+      "files": [
+        "**/packages/film/src/canvas/**/*.ts",
+        "**/packages/film/src/core/time.ts",
+        "**/packages/film/src/core/random.ts",
+        "**/apps/animations/src/films/**/*.ts"
+      ],
+      "rules": {
+        "effect/noNewError": "off",
+        "effect/noNullish": "off",
+        "effect/noShapeInSymbolNames": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off"
+      }
+    },
+    {
+      // The film clock, read by the draw path every frame and by the tools:
+      // `layout` places scenes, `narration` times words, `timeline` resolves
+      // named cues. Optional scene fields stay plain optionals, and a layout
+      // mistake throws so the player and renderer stop; the tools lift that
+      // throw into LayoutInvalid at their boundary (tools/film-repo.ts).
+      "files": [
+        "**/packages/film/src/core/layout.ts",
+        "**/packages/film/src/core/narration.ts",
+        "**/packages/film/src/core/timeline.ts"
+      ],
+      "rules": {
+        "effect/noNewError": "off",
+        "effect/noNullish": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off"
+      }
+    },
+    {
+      // A film's scene registry builds each SceneSpec with its optional `say`.
+      "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
+      "rules": {
+        "effect/noConditionalEmptyObjectSpread": "off"
+      }
+    },
+    {
+      // A film's browser loader: fetches its timings and builds the film.
+      "files": ["**/apps/animations/src/films/*/film.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      // The browser player: DOM, audio element and requestAnimationFrame, plus
+      // the `?export` handle the renderer drives through page.evaluate.
+      "files": ["**/packages/film/src/player/**/*.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNewError": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNullish": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off",
+        "effect/noUnknownParameters": "off"
+      }
+    },
+    {
+      // The dev server: Bun.serve over the app's files.
+      "files": ["**/apps/animations/server.ts"],
+      "rules": {
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
+      // The renderer: drives Chromium pages and pipes frames to ffmpeg strictly
+      // in order, a one-shot entry point over Playwright's promise API.
+      "files": ["**/apps/animations/scripts/render.ts"],
       "rules": {
         "no-await-in-loop": "off",
         "effect/noAs": "off",
         "effect/noAsyncFunction": "off",
-        "effect/noConditionalEmptyObjectSpread": "off",
-        "effect/noDynamicImports": "off",
         "effect/noGlobals": "off",
-        "effect/noKnownValueWidening": "off",
         "effect/noNewError": "off",
         "effect/noNewPromise": "off",
         "effect/noNodeBuiltinImport": "off",
         "effect/noNullish": "off",
-        "effect/noRuntimeTypeof": "off",
-        "effect/noShapeInSymbolNames": "off",
         "effect/noTernary": "off",
         "effect/noThrowStatement": "off",
-        "effect/noTryCatch": "off",
-        "effect/noUnknownParameters": "off"
+        "effect/noTryCatch": "off"
       }
     },
     {

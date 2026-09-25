@@ -2,6 +2,7 @@
 // drawing; the film lays them end to end, sizes each to its voice, and draws
 // any instant T — the same function serves the preview player and the export.
 
+import { Predicate } from 'effect';
 import type { Hand } from './ink.ts';
 import { type Placed, captionLines, layout, transitionDur } from '../core/layout.ts';
 import type { Timed, Timeline, Timings, Word } from '../core/schema.ts';
@@ -184,7 +185,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       },
       hand: (key) => ({
         boil,
-        seed: typeof key === 'number' ? key : seedOf(`${p.spec.id}:${key}`),
+        seed: Predicate.isNumber(key) ? key : seedOf(`${p.spec.id}:${key}`),
       }),
       words,
       spoken: (from, to) => {

@@ -4,6 +4,7 @@ import {
   cutout,
   ellipseShape,
   line,
+  type Pt,
   quad,
   rectShape,
   stroke,
@@ -100,12 +101,12 @@ export const hand_ = drawing({
         }
         if (grasp > 0) {
           const down = progress(t, hold - 1.8, 1.1, ease.outCubic);
-          const pts = Array.from({ length: 24 }, (_, k) => {
+          const pts = Array.from({ length: 24 }, (_, k): Pt => {
             const u = k / 23;
             return [
               60 + Math.sin(u * 7 + t * 2) * 10 * (1 - u),
               lerp(-370, lerp(-370, -10, down), u),
-            ] as [number, number];
+            ];
           });
           stroke(
             ctx,

@@ -2,6 +2,8 @@
 
 import type { Film } from '@bible/film/canvas';
 
-export const films: Record<string, () => Promise<Film>> = {
-  'righteousness-by-faith': () => import('./righteousness-by-faith/film.ts').then((m) => m.film()),
-};
+const righteousnessByFaith = () => import('./righteousness-by-faith/film.ts');
+
+export const films = {
+  'righteousness-by-faith': () => righteousnessByFaith().then((m) => m.film()),
+} satisfies Record<string, () => Promise<Film>>;

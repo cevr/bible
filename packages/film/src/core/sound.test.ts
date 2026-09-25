@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { layout } from './layout.ts';
-import type { Music } from './schema.ts';
+import type { Music, Timings } from './schema.ts';
+
+/** No recorded takes: every scene is estimated. */
+const noTakes: Timings = { voice: '', scenes: {} };
 import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 /** The failure's tag, or `ok`. */
@@ -22,7 +25,7 @@ const placed = layout(
     { id: 'b', min: 4, draw },
     { id: 'c', min: 5, draw },
   ],
-  undefined,
+  noTakes,
 );
 
 const music: Music = {

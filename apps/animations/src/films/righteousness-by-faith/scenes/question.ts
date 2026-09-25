@@ -1,4 +1,13 @@
-import { camera, at, drawFigure, type Pt, quad, stroke, write } from '@bible/film/canvas';
+import {
+  camera,
+  at,
+  drawFigure,
+  type Pt,
+  quad,
+  stroke,
+  type TextStyle,
+  write,
+} from '@bible/film/canvas';
 import { clamp, ease, progress } from '@bible/film/core';
 import { C, book, cite, hand, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';
@@ -38,7 +47,7 @@ export const question: Drawing = {
 
       // The question, written out as it is read.
       const qp = f.spoken('q', 'after');
-      const big = { ...hand(150), align: 'center' as const };
+      const big: TextStyle = { ...hand(150), align: 'center' };
       write(ctx, 'How should man be', 960, 330, big, f.hand('q1'), {
         progress: clamp(qp * 1.9),
         reveal: 'write',

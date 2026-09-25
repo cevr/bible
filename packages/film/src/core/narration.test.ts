@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { layout } from './layout.ts';
+import type { Timings } from './schema.ts';
+
+/** No recorded takes: every scene is estimated. */
+const noTakes: Timings = { voice: '', scenes: {} };
 import { estimate, hashText, parse, voiceFor, wordsFromAlignment } from './narration.ts';
 
 describe('narration', () => {
@@ -45,7 +49,7 @@ describe('narration', () => {
         { id: 'a', say: 'One two three.', lead: 0.5, tail: 1, draw },
         { id: 'b', min: 4, draw },
       ],
-      undefined,
+      noTakes,
     );
     const a = placed[0];
     const b = placed[1];

@@ -7,4 +7,7 @@ import { name } from './name.ts';
 import { serpent } from './serpent.ts';
 import { within } from './within.ts';
 
-export const group3: Record<string, Drawing> = { serpent, within, '1888': eighteen88, name, end };
+export const group3 = { serpent, within, '1888': eighteen88, name, end } satisfies Record<
+  string,
+  Drawing
+>;

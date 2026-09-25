@@ -482,7 +482,7 @@ export const stamp = (
     for (const [inset, width] of [
       [0, 9],
       [16, 4],
-    ] as const)
+    ] satisfies ReadonlyArray<readonly [number, number]>)
       for (const [a, b] of [
         [
           [-w / 2 + inset, -ht / 2 + inset],
@@ -500,7 +500,7 @@ export const stamp = (
           [-w / 2 + inset, ht / 2 - inset],
           [-w / 2 + inset, -ht / 2 + inset],
         ],
-      ] as const)
+      ] satisfies ReadonlyArray<readonly [Pt, Pt]>)
         stroke(
           ctx,
           line(a, b, 0.004, inset + width),

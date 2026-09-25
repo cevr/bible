@@ -4,7 +4,7 @@
 // without ffmpeg. `Mixer.mix` loads the film and runs it. Remixing never calls
 // a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option, Result } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
 import type { Sound, SoundManifest } from '../core/schema.ts';
 import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
@@ -78,10 +78,15 @@ export const graph = (input: MixInput): Result.Result<MixGraph, GraphError> =>
     };
 
     // Voice, padded so the ducking key outlasts the last word and the score plays out.
-    const takes = placed.flatMap((p) => {
-      if (!p.voice.recorded || p.voice.file === undefined) return [];
-      return [{ file: p.voice.file, at: p.start + p.speechStart }];
-    });
+    const takes = placed.flatMap((p) =>
+      Option.match(
+        Option.filter(Option.fromNullishOr(p.voice.file), () => p.voice.recorded),
+        {
+          onNone: () => [],
+          onSome: (file) => [{ file, at: p.start + p.speechStart }],
+        },
+      ),
+    );
     for (const [k, take] of takes.entries()) {
       const i = addInput(`${input.narration}/${take.file}`);
       filters.push(`[${i}:a]${FMT},${delay(take.at)}[v${k}]`);
@@ -114,11 +119,12 @@ export const graph = (input: MixInput): Result.Result<MixGraph, GraphError> =>
     const fxTags: Array<string> = [];
     const effects = Option.match(input.sound, { onNone: () => ({}), onSome: (s) => s.effects });
     for (const [id, fx] of Object.entries(effects)) {
-      const asset = manifest.effects[id];
-      if (asset === undefined) {
+      const made = Rec.get(manifest.effects, id);
+      if (Option.isNone(made)) {
         warnings.push(`mix.missing effect=${id} hint="run score to generate it"`);
         continue;
       }
+      const asset = made.value;
       if (asset.hash !== effectKey(fx)) warnings.push(`mix.stale effect=${id}`);
       const gain = Option.getOrElse(Option.fromNullishOr(fx.gain), () => 1);
       for (const cue of fx.at) {

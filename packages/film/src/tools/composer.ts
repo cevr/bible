@@ -4,7 +4,7 @@
 // changing a gain never does. Without an API key, effects are skipped with a
 // warning and the music is still made.
 
-import { Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Context, Duration, Effect, FileSystem, Layer, Option, Path, Record as Rec } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import type { Asset, SoundManifest } from '../core/schema.ts';
@@ -43,8 +43,7 @@ interface Job {
   readonly run: Effect.Effect<unknown, ElevenLabsFailed | ApiKeyMissing | StoreError>;
 }
 
-const storedHash = (asset: Asset | undefined): Option.Option<string> =>
-  Option.map(Option.fromNullishOr(asset), (a) => a.hash);
+const hashOf = (asset: Asset): string => asset.hash;
 
 /** The manifest with the music set or cleared; `music` is omitted, never undefined. */
 const withMusic = (manifest: SoundManifest, music: Option.Option<Asset>): SoundManifest =>
@@ -87,15 +86,16 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
           });
         const jobs: Array<Job> = [];
 
-        if (sound.music !== undefined) {
-          const music = sound.music;
+        const score = Option.fromNullishOr(sound.music);
+        if (Option.isSome(score)) {
+          const music = score.value;
           const plan = yield* Effect.fromResult(musicPlan(music, placed));
           const hash = musicKey(music, plan);
           const acts = plan.chunks.map((c) => `${c.text}:${(c.duration_ms / 1000).toFixed(1)}`);
           yield* Effect.log(
             `score.acts secs=${filmEnd(placed).toFixed(1)} acts=${acts.join(' | ')}`,
           );
-          const stored = storedHash(film.manifest.music);
+          const stored = Option.map(Option.fromNullishOr(film.manifest.music), hashOf);
           if (wanted('music', stored, hash)) {
             const file = `music-${hash}.mp3`;
             jobs.push({
@@ -104,7 +104,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
                 manifest,
                 hash,
                 force: forced('music'),
-                stored: (m) => storedHash(m.music),
+                stored: (m) => Option.map(Option.fromNullishOr(m.music), hashOf),
                 produce: elevenLabs.composeMusic(
                   plan,
                   music.model,
@@ -117,7 +117,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
         }
 
         const staleEffects = Object.entries(sound.effects).filter(([id, fx]) =>
-          wanted(id, storedHash(film.manifest.effects[id]), effectKey(fx)),
+          wanted(id, Option.map(Rec.get(film.manifest.effects, id), hashOf), effectKey(fx)),
         );
         // The OAuth login cannot reach sound generation; an API key can.
         const keyed =
@@ -140,7 +140,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
                 manifest,
                 hash,
                 force: forced(id),
-                stored: (m) => storedHash(m.effects[id]),
+                stored: (m) => Option.map(Rec.get(m.effects, id), hashOf),
                 produce: elevenLabs.soundEffect(
                   { prompt: fx.prompt, secs: fx.secs },
                   path.join(film.paths.sound, file),
@@ -175,7 +175,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
             Object.hasOwn(sound.effects, id),
           );
           const kept = { ...m, effects: Object.fromEntries(effects) };
-          if (sound.music === undefined) return withMusic(kept, Option.none());
+          if (Option.isNone(score)) return withMusic(kept, Option.none());
           return kept;
         });
       });

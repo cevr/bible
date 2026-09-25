@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { layout } from './layout.ts';
+import type { Timings } from './schema.ts';
+
+/** No recorded takes: every scene is estimated. */
+const noTakes: Timings = { voice: '', scenes: {} };
 import { type SceneClock, resolveTimeline } from './timeline.ts';
 
 const clock: SceneClock = {
@@ -77,7 +81,7 @@ describe('timeline', () => {
   test('layout resolves each scene’s cues once, against its own voice', () => {
     const [a] = layout(
       [{ id: 'a', say: 'Look {live}and live.', lead: 0.5, timeline: { lift: { mark: 'live' } } }],
-      undefined,
+      noTakes,
     );
     expect(a?.cues.get('lift')?.start).toBe(0.5 + (a?.voice.marks.get('live') ?? NaN));
   });

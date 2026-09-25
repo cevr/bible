@@ -14,17 +14,12 @@ import { group3 } from './group-3.ts';
 
 export type Drawing = Omit<SceneSpec, 'id' | 'say'>;
 
-const drawings: Record<string, Drawing> = {
-  question,
-  title,
-  measure,
-  ...group1,
-  ...group2,
-  ...group3,
-};
+const drawings = new Map<string, Drawing>(
+  Object.entries({ question, title, measure, ...group1, ...group2, ...group3 }),
+);
 
 export const scenes: SceneSpec[] = script.map((beat) => ({
   id: beat.id,
   ...(beat.say === undefined ? {} : { say: beat.say }),
-  ...(drawings[beat.id] ?? storyboard(beat.id, beat.picture)),
+  ...(drawings.get(beat.id) ?? storyboard(beat.id, beat.picture)),
 }));

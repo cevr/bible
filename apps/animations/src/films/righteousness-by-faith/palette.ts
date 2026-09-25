@@ -19,7 +19,7 @@ export const palette = {
   rose: '#e9a3a0',
   skin: '#c98f63',
   clay: '#9a6b4b',
-} as const;
+} satisfies Record<string, string>;
 
 export const fonts = {
   display: 'Fraunces',
@@ -27,4 +27,4 @@ export const fonts = {
   hand: 'Gaegu',
   greek: 'EB Garamond',
   hebrew: 'Frank Ruhl Libre',
-} as const;
+} satisfies Record<string, string>;
