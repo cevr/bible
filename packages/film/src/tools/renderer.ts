@@ -30,6 +30,7 @@ import {
   type FfmpegMissing,
   type FrameFailed,
   type LayoutInvalid,
+  type LookbookFailed,
   type PageCrashed,
   type PageError,
   RangeEmpty,
@@ -45,6 +46,8 @@ import {
   concatList,
   contactArgs,
   contactName,
+  contactSheetName,
+  lookbookName,
   contactTimes,
   frameAt,
   frameSpan,
@@ -63,6 +66,7 @@ export type RenderError =
   | PageError
   | PageCrashed
   | FrameFailed
+  | LookbookFailed
   | FfmpegFailed
   | FfmpegMissing
   | AudioMissing
@@ -235,12 +239,22 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             ),
           { concurrency: job.workers, discard: true },
         );
-        const sheet = path.join(dir, 'contact.jpg');
+        const sheet = path.join(dir, contactSheetName);
         yield* ffmpeg.run(contactArgs(path.join(frameDir, '%04d.jpg'), times.length, sheet));
         yield* Effect.log(
           `render.contact frames=${times.length} every=${job.every}s file=${sheet}`,
         );
       });
+
+      const lookbook = Effect.fnUntraced(function* (
+        pool: Pool.Pool<FramePage, PageOpenError>,
+        dir: string,
+      ) {
+        const page = yield* Pool.get(pool);
+        const file = path.join(dir, lookbookName);
+        yield* fs.writeFile(file, yield* page.lookbook);
+        yield* Effect.log(`render.lookbook file=${file}`);
+      }, Effect.scoped);
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
         // Before a page opens: a missing ffmpeg would otherwise surface only at the first chunk.
@@ -257,6 +271,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           Video: (v) => v.workers,
           Stills: (s) => Math.min(s.workers, s.times.length),
           Contact: (c) => c.workers,
+          // One page composes the whole sheet.
+          LookBook: () => 1,
         });
         yield* Effect.scoped(
           Effect.gen(function* () {
@@ -266,6 +282,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               Video: (v) => video(film, v, pool, info, dir),
               Stills: (s) => stills(s, pool, info, dir),
               Contact: (c) => contact(c, pool, info, dir),
+              LookBook: () => lookbook(pool, dir),
             });
           }),
         );

@@ -17,7 +17,7 @@ interface JobBase {
   readonly workers: number;
 }
 
-/** A render: the film as video, a few stills, or a contact sheet. */
+/** A render: the film as video, a few stills, a contact sheet, or its look-book. */
 export type RenderJob = Data.TaggedEnum<{
   Video: JobBase & {
     readonly from: Option.Option<number>;
@@ -32,6 +32,8 @@ export type RenderJob = Data.TaggedEnum<{
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
   };
+  /** Every scene's stills at its cue edges and 60% point, with the palette: `lookbook.jpg`. */
+  LookBook: JobBase;
 }>;
 export const RenderJob = Data.taggedEnum<RenderJob>();
 
@@ -108,6 +110,12 @@ const pad = (n: number, width: number) => String(n).padStart(width, '0');
 
 /** A segment's file name, so the concat list sorts in frame order. */
 export const segmentName = (chunk: Chunk): string => `${pad(chunk.index, 3)}.mp4`;
+
+/** The contact sheet's file name, in the job's folder. */
+export const contactSheetName = 'contact.jpg';
+
+/** The look-book's file name, in the job's folder. */
+export const lookbookName = 'lookbook.jpg';
 
 /** A contact frame's file name. */
 export const contactName = (k: number): string => `${pad(k, 4)}.jpg`;

@@ -130,6 +130,7 @@ export const mountLab = (player: Player, filmName: string): void => {
       <strong>Lab</strong>
       <span class="lab-hint">click pin · drag box · <kbd>n</kbd> note this frame</span>
       <button data-act="pen" title="draw freehand ink on the frame">Pen</button>
+      <a class="lab-lookbook" href="?film=${encodeURIComponent(filmName)}&lab&lookbook" title="every scene's stills at its cue edges and 60% point, with the palette">Look-book</a>
     </header>
     <form class="lab-compose" hidden>
       <div class="lab-where"></div>

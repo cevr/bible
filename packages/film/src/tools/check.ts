@@ -7,7 +7,8 @@
 
 import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { everyTakeRecorded, sceneOf, transitionDur } from '../core/layout.ts';
+import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
+import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { hashText, parse, voiceKey } from '../core/narration.ts';
 import type {
   InkMark,
@@ -224,53 +225,11 @@ export const staticFindings = (
 // Layout
 
 /** A frame the layout leg probes, and why: a mark, a cue edge, the scene's 60% point. */
-export interface Sample {
-  readonly scene: string;
-  readonly frame: number;
-  /** Film seconds. */
-  readonly time: number;
-  readonly at: string;
-}
+export type Sample = SceneMoment;
 
-/**
- * The frames to probe in each scene: every mark, every cue's start and end,
- * and the 60% point. A time is pulled inside the scene's own frames, after
- * its entering transition: mid-transition, two scenes slide or fade across
- * each other by design.
- */
+/** The frames to probe in each scene: every mark, every cue's start and end, and the 60% point. */
 export const layoutSamples = (placed: ReadonlyArray<Placed>, fps: number): ReadonlyArray<Sample> =>
-  placed.flatMap((p) => {
-    const moments: Array<readonly [string, number]> = [
-      ...[...p.voice.marks].map(([name, at]): readonly [string, number] => [
-        `mark ${name}`,
-        p.speechStart + at,
-      ]),
-      ...[...p.cues].flatMap(([name, c]): Array<readonly [string, number]> => [
-        [`cue ${name} start`, c.start],
-        [`cue ${name} end`, c.end],
-      ]),
-      ['60%', p.dur * 0.6],
-    ];
-    // The first scene has nothing to arrive from.
-    const settled = Math.min(p.index, 1) * transitionDur(p.spec.enter);
-    const first = Math.ceil((p.start + settled) * fps - 1e-6);
-    const last = Math.ceil((p.start + p.dur) * fps - 1e-6) - 1;
-    const byFrame = new Map<number, Array<string>>();
-    for (const [at, t] of moments) {
-      const frame = Math.min(last, Math.max(first, Math.round((p.start + t) * fps)));
-      const before = Option.getOrElse(Option.fromNullishOr(byFrame.get(frame)), () => []);
-      byFrame.set(frame, [...before, at]);
-    }
-    return Arr.sort(
-      [...byFrame].map(([frame, at]) => ({
-        scene: p.spec.id,
-        frame,
-        time: frame / fps,
-        at: at.join(', '),
-      })),
-      Order.mapInput(Order.Number, (s: Sample) => s.frame),
-    );
-  });
+  sceneMoments(placed, fps, { marks: true });
 
 /**
  * Text fainter than this reads as gone. Both lines of a pair must be above it

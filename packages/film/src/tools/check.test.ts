@@ -1,3 +1,4 @@
+import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
@@ -304,6 +305,11 @@ describe('layoutSamples', () => {
     const one = layoutSamples(placed, 30).filter((s) => s.scene === 'one');
     expect(one.map((s) => s.at)).toEqual(['mark go, cue pop start', 'cue pop end', '60%']);
     for (const s of one) expect(s.time).toBeCloseTo(s.frame / 30);
+  });
+
+  test('without marks, as the look-book takes them: cue edges and the 60% point', () => {
+    const one = sceneMoments(placed, 30, { marks: false }).filter((s) => s.scene === 'one');
+    expect(one.map((s) => s.at)).toEqual(['cue pop start', 'cue pop end', '60%']);
   });
 
   test('a moment inside the entering transition waits for it to settle', () => {

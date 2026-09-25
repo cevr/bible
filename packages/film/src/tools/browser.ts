@@ -22,6 +22,7 @@ import {
   BrowserFailed,
   BrowserMissing,
   FrameFailed,
+  LookbookFailed,
   PageCrashed,
   PageError,
   PageLoadFailed,
@@ -39,6 +40,8 @@ export interface FramePage {
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | FrameFailed>;
   /** Draw frame `i` with the probe on and return every line of text and mark of ink it drew. */
   readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
+  /** Compose the film's look-book and return it as a JPEG. */
+  readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
 }
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
@@ -52,6 +55,8 @@ export interface BrowserService {
 const LOAD_TIMEOUT_MS = 60_000;
 /** A frame that takes longer than this has hung. */
 const FRAME_TIMEOUT = Duration.minutes(2);
+/** The look-book draws every scene's stills in one call. */
+const LOOKBOOK_TIMEOUT = Duration.minutes(5);
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
 
@@ -192,7 +197,26 @@ const openPage = (page: Page, url: string) =>
         ),
       );
 
-    return { info, frame, probe } satisfies FramePage;
+    const lookbook = guarded(
+      Effect.tryPromise({
+        try: () => page.evaluate(() => window.__film?.lookbook('image/jpeg')),
+        catch: (cause) => LookbookFailed.make({ reason: String(cause) }),
+      }).pipe(
+        Effect.timeoutOrElse({
+          duration: LOOKBOOK_TIMEOUT,
+          orElse: () => Effect.fail(LookbookFailed.make({ reason: 'timed out' })),
+        }),
+      ),
+    ).pipe(
+      Effect.flatMap((encoded) =>
+        Option.match(Option.fromNullishOr(encoded), {
+          onNone: () => Effect.fail(LookbookFailed.make({ reason: 'the export handle is gone' })),
+          onSome: (base64) => Effect.succeed(Uint8Array.fromBase64(base64)),
+        }),
+      ),
+    );
+
+    return { info, frame, probe, lookbook } satisfies FramePage;
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

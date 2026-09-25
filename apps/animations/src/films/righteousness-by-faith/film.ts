@@ -21,5 +21,6 @@ export const film = async () =>
     timings: await loadTimings(),
     audio: '/films/righteousness-by-faith/narration/full.mp3',
     sound,
+    palette,
     captions: { font: `500 38px "${fonts.body}"`, color: palette.ink, plate: palette.robe },
   });

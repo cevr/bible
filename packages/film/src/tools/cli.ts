@@ -15,6 +15,7 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
+//   film lookbook <film> [--captions] [--tag name]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -384,6 +385,33 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     ),
   );
 
+const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
+  Command.make(
+    'lookbook',
+    {
+      film,
+      captions: Flag.Boolean('captions').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('burn the captions into the stills (off: the look, not the words)'),
+      ),
+      tag: Flag.String('tag').pipe(
+        Flag.withDefault(''),
+        Flag.withDescription('output subfolder under out/<film> (default: out/<film> itself)'),
+      ),
+    },
+    Effect.fn('film.lookbook')(function* (input) {
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      yield* (yield* Renderer).render(
+        loaded,
+        RenderJob.LookBook({ tag: input.tag, captions: input.captions, workers: 1 }),
+      );
+    }, Effect.provide(renderLayer)),
+  ).pipe(
+    Command.withDescription(
+      "Write out/<film>/lookbook.jpg: every scene's stills at its cue edges and 60% point, labelled, with the palette",
+    ),
+  );
+
 const lab = <E>(labServer: LabServer<E>) =>
   Command.make(
     'lab',
@@ -542,6 +570,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       cues,
       check(checkLayer),
       render(renderLayer),
+      lookbook(renderLayer),
       doctor,
       lab(labServer),
       notes,

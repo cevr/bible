@@ -191,6 +191,8 @@ export interface RenderLedger {
   readonly encoders: { spawned: number; finished: number; killed: number };
   /** Every frame drawn, by any page. */
   readonly frames: Array<number>;
+  /** Look-books composed, by any page. */
+  readonly lookbooks: { composed: number };
   /** Every ffmpeg run that is not an encode (concat, contact sheet). */
   readonly runs: Array<ReadonlyArray<string>>;
 }
@@ -201,6 +203,7 @@ export const emptyLedger = (): RenderLedger => ({
   pages: { opened: 0, closed: 0 },
   encoders: { spawned: 0, finished: 0, killed: 0 },
   frames: [],
+  lookbooks: { composed: 0 },
   runs: [],
 });
 
@@ -281,6 +284,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     Effect.andThen(probe(i)),
                     Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
                   ),
+                lookbook: Effect.sync(() => {
+                  ledger.lookbooks.composed += 1;
+                  return new Uint8Array([0xff, 0xd8]);
+                }),
               })),
             ),
         });

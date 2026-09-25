@@ -172,6 +172,15 @@ export class FrameFailed extends Schema.TaggedError<FrameFailed>()('FrameFailed'
   }
 }
 
+/** The page could not compose the film's look-book. */
+export class LookbookFailed extends Schema.TaggedError<LookbookFailed>()('LookbookFailed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the look-book failed: ${this.reason}`;
+  }
+}
+
 /** The film declares its mixed track but the lossless master is not there. */
 export class AudioMissing extends Schema.TaggedError<AudioMissing>()('AudioMissing', {
   file: Schema.String,

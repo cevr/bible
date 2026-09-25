@@ -8,6 +8,7 @@ import type { Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
+import { composeLookbook, mountLookbook } from './lookbook.ts';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -22,6 +23,17 @@ const FONTS = [
   '700 40px "Gaegu"',
 ];
 
+/** A canvas as base64 PNG or JPEG: what the export handle hands back across `page.evaluate`. */
+const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
+  if (blob === null) throw new Error('toBlob failed');
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let k = 0; k < bytes.length; k += 0x8000)
+    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+  return btoa(bin);
+};
+
 export interface ExportHandle {
   readonly width: number;
   readonly height: number;
@@ -33,6 +45,8 @@ export interface ExportHandle {
   frame(i: number, type?: 'image/png' | 'image/jpeg'): Promise<string>;
   /** Draw frame `i` with the probe on: every line of text and mark of ink it draws, in canvas pixels. */
   probe(i: number): Probed;
+  /** Compose the film's look-book (`composeLookbook`) and return it encoded. */
+  lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
 }
 
 declare global {
@@ -117,24 +131,21 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         duration: film.duration,
         frames: Math.ceil(film.duration * film.fps),
         audio: film.audio,
-        frame: async (i, type = 'image/png') => {
+        frame: (i, type = 'image/png') => {
           film.render(ctx, i / film.fps, { captions: captions.on });
-          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
-          if (blob === null) throw new Error('toBlob failed');
-          const bytes = new Uint8Array(await blob.arrayBuffer());
-          let bin = '';
-          for (let k = 0; k < bytes.length; k += 0x8000)
-            bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-          return btoa(bin);
+          return encode(canvas, type);
         },
         probe: (i) => {
           const sink: ProbeSink = { texts: [], inks: [] };
           film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
           return sink;
         },
+        lookbook: async (type = 'image/jpeg') =>
+          encode((await composeLookbook(film, { captions: captions.on })).canvas, type),
       };
       return;
     }
+    if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
     const player = preview(film, canvas, ctx, captions);
     if (params.has('lab')) mountLab(player, name);
   };

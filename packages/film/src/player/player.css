@@ -654,3 +654,40 @@ body.lab .bar {
   stroke: rgb(20 18 16 / 0.7);
   stroke-width: 6px;
 }
+
+/* The look-book page (`?film=…&lab&lookbook`). */
+body.lookbook {
+  display: block;
+  height: auto;
+}
+.lookbook-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.lookbook-status {
+  color: var(--muted);
+}
+.lookbook-bar a {
+  margin-left: auto;
+  color: var(--accent);
+}
+.lookbook-sheet {
+  padding: 16px;
+}
+.lookbook-sheet canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+.lab-lookbook {
+  color: var(--accent);
+  font-size: 12px;
+}

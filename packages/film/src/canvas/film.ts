@@ -128,6 +128,8 @@ export interface FilmSpec {
   readonly audio?: string;
   /** The film's music and effects (`sound.ts`): the player marks them on its timeline. */
   readonly sound?: Sound;
+  /** The film's named colours (`palette.ts`): the look-book shows them as swatches. */
+  readonly palette?: Readonly<Record<string, string>>;
 }
 
 /** A knob as a frame read it (`RenderOptions.knobs`): the lab's handles come from these. */
@@ -183,6 +185,8 @@ export interface Film {
   readonly placed: ReadonlyArray<Placed<SceneSpec>>;
   readonly audio: string | undefined;
   readonly sound: Sound | undefined;
+  /** Named colours, as declared (none when the film declares none). */
+  readonly palette: Readonly<Record<string, string>>;
   readonly allRecorded: boolean;
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
@@ -449,6 +453,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     placed,
     audio: allRecorded ? spec.audio : undefined,
     sound: spec.sound,
+    palette: spec.palette ?? {},
     allRecorded,
     sceneAt,
     render,

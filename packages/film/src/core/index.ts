@@ -14,3 +14,4 @@ export * from './captions.ts';
 export * from './ticks.ts';
 export * from './notes.ts';
 export * from './affine.ts';
+export * from './moments.ts';

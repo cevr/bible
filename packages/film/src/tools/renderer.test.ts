@@ -167,6 +167,17 @@ describe('Renderer', () => {
     }),
   );
 
+  it.live('a look-book is one page composing one sheet, written beside the stills', () =>
+    Effect.gen(function* () {
+      const { ledger, files, render } = setup();
+      yield* render(RenderJob.LookBook({ tag: '', captions: false, workers: 4 }));
+      expect(files.has('/out/test/lookbook.jpg')).toBe(true);
+      expect(ledger.pages.opened).toBe(1);
+      expect(ledger.lookbooks.composed).toBe(1);
+      expectAllClosed(ledger);
+    }),
+  );
+
   describe('with the mixed track', () => {
     const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.mp3' };
     const MASTER = '/films/test/narration/full.wav';
