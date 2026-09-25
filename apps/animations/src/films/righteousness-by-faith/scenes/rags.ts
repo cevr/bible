@@ -186,7 +186,8 @@ export const rags: Drawing = {
           stroke(
             ctx,
             quad([x - 30, y], [x, y + 12], [x + 34, y - 6]),
-            { color: C.ink, width: 10 },
+            // It soils the promises pinned there too: they are the filthy rags.
+            { color: C.ink, width: 10, marks: 'I promise!' },
             f.hand(`grime${k}`),
           );
         }

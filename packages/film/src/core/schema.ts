@@ -324,7 +324,8 @@ export type ExportInfo = typeof ExportInfo.Type;
  * transform it was drawn under: its box as four corners (top-left, top-right,
  * bottom-right, bottom-left; rotated with the text), the axis-aligned box
  * around them (`x, y, w, h`), and its effective opacity. `scene` is the scene
- * that drew it.
+ * that drew it; `order` is when, among everything the probe recorded in the
+ * frame (text and ink share one count).
  */
 export const TextBox = Schema.Struct({
   text: Schema.String,
@@ -335,8 +336,39 @@ export const TextBox = Schema.Struct({
   h: Schema.Finite,
   corners: Schema.Tuple([Point, Point, Point, Point]),
   alpha: Schema.Finite,
+  order: Schema.Int,
 });
 export type TextBox = typeof TextBox.Type;
+
+/**
+ * What the ink probe records: a brush `stroke` (its centre line, as drawn,
+ * and its width), a `fill` (a cutout's or flat fill's outline) or a declared
+ * `plate` under a line of text (`probePlate`, the caption plate). In canvas
+ * pixels after its transform, with the box around it, its effective opacity
+ * and its place in the frame's drawing order. `marks` names the text a stroke
+ * marks on purpose (a strike through it, a ring round it), which it may cross.
+ */
+export const InkMark = Schema.Struct({
+  kind: Schema.Literals(['stroke', 'fill', 'plate']),
+  scene: Schema.String,
+  points: Schema.Array(Point),
+  width: Schema.Finite,
+  x: Schema.Finite,
+  y: Schema.Finite,
+  w: Schema.Finite,
+  h: Schema.Finite,
+  alpha: Schema.Finite,
+  order: Schema.Int,
+  marks: Schema.optionalKey(Schema.String),
+});
+export type InkMark = typeof InkMark.Type;
+
+/** A probed frame: every line of text and every mark of ink it drew. */
+export const Probed = Schema.Struct({
+  texts: Schema.Array(TextBox),
+  inks: Schema.Array(InkMark),
+});
+export type Probed = typeof Probed.Type;
 
 // ---------------------------------------------------------------------------
 // Lab notes: what a viewer marks on a frame in the lab (`film lab`), and the

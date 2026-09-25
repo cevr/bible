@@ -9,6 +9,7 @@ import {
   type LayoutFinding,
   type Sample,
   frameFindings,
+  platesOffFrame,
   layoutSamples,
   mergeFindings,
 } from './check.ts';
@@ -68,8 +69,12 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
               Effect.scoped(
                 Effect.gen(function* () {
                   const page = yield* Pool.get(pool);
-                  const boxes = yield* page.probe(sample.frame);
-                  return frameFindings(sample, boxes, info);
+                  const probed = yield* page.probe(sample.frame);
+                  // A plate past an edge may be moving: only then is the next frame worth drawing.
+                  if (platesOffFrame(sample, probed, info).length === 0)
+                    return frameFindings(sample, probed, info);
+                  const next = yield* page.probe(Math.min(sample.frame + 1, info.frames - 1));
+                  return frameFindings(sample, probed, info, next);
                 }),
               );
             const found = yield* Effect.forEach(samples, probe, { concurrency: workers });

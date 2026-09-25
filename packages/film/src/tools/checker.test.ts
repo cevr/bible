@@ -51,8 +51,8 @@ describe('Checker', () => {
       const { ledger, check } = setup({
         probe: (i) => {
           const one = textBox('one', 100, 100, 300, 60);
-          if (i !== hitFrame) return Effect.succeed([one]);
-          return Effect.succeed([one, textBox('two', 150, 120, 300, 60)]);
+          if (i !== hitFrame) return Effect.succeed({ texts: [one], inks: [] });
+          return Effect.succeed({ texts: [one, textBox('two', 150, 120, 300, 60)], inks: [] });
         },
       });
       const findings = yield* check();

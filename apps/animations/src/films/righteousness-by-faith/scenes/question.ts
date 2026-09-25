@@ -62,6 +62,7 @@ export const question: Drawing = {
             width: 16,
             progress: progress(t, f.mark('after') - 0.4, 0.8),
             alpha: 0.9,
+            marks: 'just with God?',
           },
           f.hand('swash'),
         );

@@ -2,6 +2,7 @@
 // wobble with noise keyed to `boil` — a counter that ticks at 12 fps, so lines
 // "boil" like hand-inked animation on twos while motion stays smooth at 30 fps.
 
+import { probeOf, recordInk, unprobed } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
 import { clamp, lerp } from '../core/time.ts';
 
@@ -260,6 +261,12 @@ export interface StrokeStyle {
   /** Width variation along the stroke, 0..1. */
   pressure?: number;
   alpha?: number;
+  /**
+   * The text this stroke marks on purpose: a strike through it, a ring round
+   * it, an underline. `film check` lets it cross that text; any other text it
+   * crosses is a finding. Changes nothing drawn.
+   */
+  marks?: string;
 }
 
 /**
@@ -319,6 +326,9 @@ export const stroke = (
   }
   ctx.closePath();
   ctx.fill();
+  const probe = probeOf(ctx);
+  if (probe !== undefined)
+    recordInk(ctx, probe, 'stroke', drawn, style.width, ctx.globalAlpha, style.marks);
   ctx.restore();
 };
 
@@ -375,6 +385,9 @@ export const fill = (ctx: CanvasRenderingContext2D, shape: Path, style: FillStyl
   );
   ctx.closePath();
   ctx.fill();
+  const probe = probeOf(ctx);
+  if (probe !== undefined)
+    recordInk(ctx, probe, 'fill', translate(shape, ox, oy), 0, ctx.globalAlpha);
   ctx.restore();
 };
 
@@ -417,22 +430,25 @@ export const hatch = (
   ctx.clip();
   const count = Math.ceil((2 * r) / spacing);
   const shown = Math.round(count * clamp(style.progress ?? 1));
-  for (let i = 0; i < shown; i++) {
-    const d = -r + i * spacing;
-    const a: Pt = [cx + -s * d - c * r, cy + c * d - s * r];
-    const b: Pt = [cx + -s * d + c * r, cy + c * d + s * r];
-    stroke(
-      ctx,
-      line(a, b, 0.01, hand.seed + i),
-      {
-        color: style.color,
-        width: style.width ?? 2,
-        jitter: 0.8,
-        alpha: style.alpha ?? 1,
-        taper: 0.1,
-      },
-      { boil: hand.boil, seed: hand.seed + i * 13 },
-    );
-  }
+  // Clipped to the shape: a hatch line's path runs past where its ink shows, so it is not probed.
+  unprobed(ctx, () => {
+    for (let i = 0; i < shown; i++) {
+      const d = -r + i * spacing;
+      const a: Pt = [cx + -s * d - c * r, cy + c * d - s * r];
+      const b: Pt = [cx + -s * d + c * r, cy + c * d + s * r];
+      stroke(
+        ctx,
+        line(a, b, 0.01, hand.seed + i),
+        {
+          color: style.color,
+          width: style.width ?? 2,
+          jitter: 0.8,
+          alpha: style.alpha ?? 1,
+          taper: 0.1,
+        },
+        { boil: hand.boil, seed: hand.seed + i * 13 },
+      );
+    }
+  });
   ctx.restore();
 };

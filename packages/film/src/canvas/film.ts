@@ -19,7 +19,6 @@ import type {
   Point,
   Sound,
   Span,
-  TextBox,
   Timed,
   Timeline,
   Timings,
@@ -27,7 +26,7 @@ import type {
 } from '../core/schema.ts';
 import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
-import { type Probe, probeOf, probing, recordText } from './probe.ts';
+import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { clamp, ease } from '../core/time.ts';
 
@@ -168,11 +167,11 @@ export interface RenderOptions {
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
   /**
-   * Collect every line of text the frame draws into this array (the text
-   * probe `film check` reads). Leave it out for an ordinary frame; the pixels
-   * are the same either way.
+   * Collect every line of text and every mark of ink the frame draws into
+   * this sink (the probe `film check` reads). Leave it out for an ordinary
+   * frame; the pixels are the same either way.
    */
-  readonly probe?: TextBox[];
+  readonly probe?: ProbeSink;
 }
 
 export interface Film {
@@ -380,7 +379,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const enter = cur.spec.enter;
     const tr = transitionDur(enter);
     const local = T - cur.start;
-    const boxes = opts.probe;
+    const sink = opts.probe;
     const knobs = opts.knobs;
     const edited = opts.edit;
     const override =
@@ -390,9 +389,9 @@ export const createFilm = (spec: FilmSpec): Film => {
     /** Knob reads straight onto the frame, or from a transition's layer. */
     const reads = (direct: boolean): Reads | undefined =>
       knobs === undefined ? undefined : { list: knobs, direct };
-    /** A probe for text one scene draws, landing `dx` across and composited at `alpha`. */
+    /** A probe for what one scene draws, landing `dx` across and composited at `alpha`. */
     const probe = (p: Placed<SceneSpec>, dx: number, alpha: number): Probe | undefined =>
-      boxes === undefined ? undefined : { boxes, scene: p.spec.id, dx, alpha };
+      sink === undefined ? undefined : { sink, scene: p.spec.id, dx, alpha };
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -523,7 +522,9 @@ const caption = (
   ctx.fillText(text, w / 2, y + 1);
   // The plate hides whatever is under it, so the check measures the plate.
   const probe = probeOf(ctx);
-  if (probe !== undefined)
+  if (probe !== undefined) {
+    recordPlate(ctx, probe, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
     recordText(ctx, probe, text, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
+  }
   ctx.restore();
 };

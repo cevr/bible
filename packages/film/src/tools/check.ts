@@ -1,15 +1,23 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
 // of order, stale takes and sounds, an audio master missing or not as long as
-// the film) and the layout findings (text over text,
-// text off the frame) in the text boxes a probed frame reports. Every finding
-// is collected; none stops the others.
+// the film) and the layout findings in what a probed frame reports: text over
+// text, text off the frame, brush strokes across text, and a plate carrying
+// text cut off by the frame. Every finding is collected; none stops the others.
 
-import { Array as Arr, Option, Order, Record as Rec, Result } from 'effect';
+import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
 import { everyTakeRecorded, sceneOf, transitionDur } from '../core/layout.ts';
 import { hashText, parse, voiceKey } from '../core/narration.ts';
-import type { Music, Point, Sound, SoundManifest, TextBox } from '../core/schema.ts';
+import type {
+  InkMark,
+  Music,
+  Point,
+  Probed,
+  Sound,
+  SoundManifest,
+  TextBox,
+} from '../core/schema.ts';
 import { MIN_CHUNK_MS, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   ActTooShort,
@@ -19,6 +27,8 @@ import {
   type AudioStale,
   CueLate,
   type CueInvalid,
+  InkOverText,
+  PlateOffFrame,
   TakeStale,
   TextOffFrame,
   TextOverlap,
@@ -41,7 +51,7 @@ export type StaticFinding =
   | UnknownMark
   | CueInvalid
   | ActTooShort;
-export type LayoutFinding = TextOverlap | TextOffFrame;
+export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame;
 export type Finding = StaticFinding | LayoutFinding;
 
 export type Level = 'error' | 'warning';
@@ -350,7 +360,11 @@ export const overlapArea = (a: TextBox, b: TextBox): number => {
  * it does not). A box wholly outside the frame shows nothing, so it reaches
  * past nothing: text that has slid or fallen away is gone, not cut off.
  */
-export const pastFrame = (box: TextBox, width: number, height: number) => {
+export const pastFrame = (
+  box: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  width: number,
+  height: number,
+) => {
   const gone = box.x >= width || box.y >= height || box.x + box.w <= 0 || box.y + box.h <= 0;
   if (gone) return { left: 0, top: 0, right: 0, bottom: 0 };
   return {
@@ -361,13 +375,226 @@ export const pastFrame = (box: TextBox, width: number, height: number) => {
   };
 };
 
-/** The layout findings in one probed frame. */
+/**
+ * A plate or fill at least this opaque hides the strokes drawn before it; a
+ * fainter one lets them show through.
+ */
+export const HIDING_ALPHA = 0.8;
+/**
+ * A stroke drawn before a line of text lies under it, and one fainter than
+ * this is page texture the words read over (greeked copy on a newspaper): only
+ * a stroke drawn over the text, or a heavy one under it, strikes it.
+ */
+export const UNDER_ALPHA = 0.5;
+/** Along a crossing, the check looks for a plate over the stroke every this many pixels. */
+const CROSS_STEP = 2;
+
+/** Whether `p` lies inside the polygon `poly` (even-odd; any winding, convex or not). */
+export const insidePolygon = (poly: ReadonlyArray<Point>, p: Point): boolean =>
+  poly.reduce((inside, a, i) => {
+    const b = Arr.getUnsafe(poly, (i + poly.length - 1) % poly.length);
+    const crosses =
+      a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0];
+    return crosses !== inside;
+  }, false);
+
+/**
+ * The part of the segment `p` → `q` inside the convex polygon `poly`, as the
+ * fractions of the way along it where it enters and leaves (Cyrus–Beck); none
+ * when it misses.
+ */
+export const clipSegment = (
+  p: Point,
+  q: Point,
+  poly: ReadonlyArray<Point>,
+): Option.Option<readonly [number, number]> => {
+  const winding = Math.sign(signedArea(poly));
+  if (winding === 0) return Option.none();
+  const d = sub(q, p);
+  let enter = 0;
+  let leave = 1;
+  for (const [i, a] of poly.entries()) {
+    const edge = sub(Arr.getUnsafe(poly, (i + 1) % poly.length), a);
+    // Inside where winding · cross(edge, x − a) ≥ 0, with x = p + t·d.
+    const at = winding * cross(edge, sub(p, a));
+    const rate = winding * cross(edge, d);
+    if (rate === 0) {
+      if (at < 0) return Option.none();
+      continue;
+    }
+    const t = -at / rate;
+    if (rate > 0) enter = Math.max(enter, t);
+    else leave = Math.min(leave, t);
+    if (enter > leave) return Option.none();
+  }
+  return Option.some([enter, leave]);
+};
+
+/**
+ * How much of a stroke runs through a line of text where it shows: its
+ * centre line clipped to the text's box, grown by half the stroke's width less
+ * half the tolerance (so a stroke that grazes a box by no more than the
+ * tolerance does not cross it), less every stretch a plate or fill drawn
+ * after the stroke covers.
+ */
+export const crossing = (
+  stroke: InkMark,
+  text: TextBox,
+  covers: ReadonlyArray<InkMark>,
+): number => {
+  const box = inset(text.corners, OVERLAP_TOLERANCE / 2);
+  if (Option.isNone(box)) return 0;
+  const over = covers.filter((c) => c.order > stroke.order);
+  const hidden = (at: Point) => over.some((c) => insidePolygon(c.points, at));
+  return stroke.points.slice(1).reduce((sum, q, i) => {
+    const p = Arr.getUnsafe(stroke.points, i);
+    return Option.match(clipSegment(p, q, box.value), {
+      onNone: () => sum,
+      onSome: ([enter, leave]) => {
+        const len = Math.hypot(...sub(q, p)) * (leave - enter);
+        const steps = Math.max(1, Math.ceil(len / CROSS_STEP));
+        const shown = Arr.range(0, steps - 1).filter((k) => {
+          const t = enter + ((leave - enter) * (k + 0.5)) / steps;
+          return !hidden([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+        }).length;
+        return sum + (len * shown) / steps;
+      },
+    });
+  }, 0);
+};
+
+/** Two boxes' bounds meet, with `pad` pixels to spare. */
+const near = (
+  a: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  b: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  pad: number,
+) =>
+  a.x - pad <= b.x + b.w &&
+  b.x <= a.x + a.w + pad &&
+  a.y - pad <= b.y + b.h &&
+  b.y <= a.y + a.h + pad;
+
+/** The box around a set of ink marks. */
+const boundsOf = (marks: ReadonlyArray<InkMark>) => {
+  const x = Math.min(...marks.map((m) => m.x));
+  const y = Math.min(...marks.map((m) => m.y));
+  return {
+    x,
+    y,
+    w: Math.max(...marks.map((m) => m.x + m.w)) - x,
+    h: Math.max(...marks.map((m) => m.y + m.h)) - y,
+  };
+};
+
+/**
+ * Strokes across text: for each visible line, the visible strokes whose
+ * centre line runs through its box (and is not hidden there by a plate drawn
+ * after them), other than a stroke that `marks` that very text on purpose.
+ */
+export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOverText> => {
+  const texts = probed.texts.filter(visible);
+  const strokes = probed.inks.filter((m) => m.kind === 'stroke' && m.alpha > VISIBLE_ALPHA);
+  const covers = probed.inks.filter((m) => m.kind !== 'stroke' && m.alpha >= HIDING_ALPHA);
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const byText = new Map<string, Array<readonly [InkMark, number]>>();
+  for (const text of texts)
+    for (const stroke of strokes) {
+      if (stroke.marks === text.text || !near(stroke, text, stroke.width)) continue;
+      if (stroke.order < text.order && stroke.alpha < UNDER_ALPHA) continue;
+      const length = crossing(stroke, text, covers);
+      if (length <= OVERLAP_TOLERANCE) continue;
+      const found = Option.getOrElse(Option.fromNullishOr(byText.get(text.text)), () => []);
+      byText.set(text.text, [...found, [stroke, length]]);
+    }
+  return [...byText].map(([text, crossed]) => {
+    const marks = Arr.dedupe(crossed.map(([m]) => m));
+    return InkOverText.make({
+      ...where,
+      text,
+      strokes: marks.length,
+      length: crossed.reduce((sum, [, len]) => sum + len, 0),
+      ...boundsOf(marks),
+    });
+  });
+};
+
+/** The plate under a line of text: the topmost fill or plate under its centre, drawn before it. */
+const plateUnder = (probed: Probed, text: TextBox) => {
+  const centre: Point = [text.x + text.w / 2, text.y + text.h / 2];
+  return Arr.last(
+    probed.inks.filter(
+      (m) =>
+        m.kind !== 'stroke' &&
+        m.alpha > VISIBLE_ALPHA &&
+        m.order < text.order &&
+        insidePolygon(m.points, centre),
+    ),
+  );
+};
+
+/** A plate at least this share of the frame wide or high is a backdrop, and may bleed. */
+const BACKDROP = 0.5;
+/** How far a plate may drift between two frames and still be at rest. */
+const AT_REST = 1;
+
+/**
+ * Plates cut off by the frame: a line of text, wholly inside the frame, whose
+ * plate (the topmost fill under its centre, drawn before it) reaches past an
+ * edge by more than the tolerance and sits still there (`next`, the following
+ * frame, has the same line on the same plate). A plate half the frame wide or
+ * high is a backdrop or a panel (a sky, a split page) and bleeds off it by
+ * design; a line that is past an edge itself, or a plate still moving, is
+ * entering or leaving.
+ */
+export const platesOffFrame = (
+  sample: Sample,
+  probed: Probed,
+  size: { readonly width: number; readonly height: number },
+  next: Probed = probed,
+): ReadonlyArray<PlateOffFrame> => {
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const still = (plate: InkMark, text: TextBox) =>
+    Arr.some(next.texts, (later) => {
+      if (later.text !== text.text) return false;
+      return Option.match(plateUnder(next, later), {
+        onNone: () => false,
+        onSome: (moved) =>
+          Math.max(
+            Math.abs(moved.x - plate.x),
+            Math.abs(moved.y - plate.y),
+            Math.abs(moved.w - plate.w),
+            Math.abs(moved.h - plate.h),
+          ) <= AT_REST,
+      });
+    });
+  return probed.texts.filter(visible).flatMap((text) => {
+    const inside = pastFrame(text, size.width, size.height);
+    if (Math.max(inside.left, inside.top, inside.right, inside.bottom) > 0) return [];
+    return Option.match(plateUnder(probed, text), {
+      onNone: () => [],
+      onSome: (plate) => {
+        if (plate.w >= size.width * BACKDROP || plate.h >= size.height * BACKDROP) return [];
+        const past = pastFrame(plate, size.width, size.height);
+        if (Math.max(past.left, past.top, past.right, past.bottom) <= OVERLAP_TOLERANCE) return [];
+        if (!still(plate, text)) return [];
+        return [PlateOffFrame.make({ ...where, text: text.text, ...past })];
+      },
+    });
+  });
+};
+
+/**
+ * The layout findings in one probed frame; `next` is the frame after it, which
+ * tells a plate at rest from one on its way in or out (the frame itself when
+ * there is none).
+ */
 export const frameFindings = (
   sample: Sample,
-  boxes: ReadonlyArray<TextBox>,
+  probed: Probed,
   size: { readonly width: number; readonly height: number },
+  next: Probed = probed,
 ): ReadonlyArray<LayoutFinding> => {
-  const shown = boxes.filter(visible);
+  const shown = probed.texts.filter(visible);
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const overlaps = shown.flatMap((a, i) =>
     shown.slice(i + 1).flatMap((b) => {
@@ -383,24 +610,74 @@ export const frameFindings = (
     if (past.left + past.top + past.right + past.bottom <= 0) return [];
     return [TextOffFrame.make({ ...where, text: box.text, ...past })];
   });
-  return [...overlaps, ...off];
+  return [
+    ...overlaps,
+    ...off,
+    ...inkOverText(sample, probed),
+    ...platesOffFrame(sample, probed, size, next),
+  ];
 };
 
-const keyOf = (f: LayoutFinding): string => {
-  if (f._tag === 'TextOverlap') return `overlap\u0000${f.scene}\u0000${f.a}\u0000${f.b}`;
-  return `off\u0000${f.scene}\u0000${f.text}`;
-};
+const matchFinding = Match.type<LayoutFinding>();
 
-const size = (f: LayoutFinding): number => {
-  if (f._tag === 'TextOverlap') return f.area;
-  return f.left + f.top + f.right + f.bottom;
-};
+const keyOf = matchFinding.pipe(
+  Match.tagsExhaustive({
+    TextOverlap: (f) => `overlap\u0000${f.scene}\u0000${f.a}\u0000${f.b}`,
+    TextOffFrame: (f) => `off\u0000${f.scene}\u0000${f.text}`,
+    InkOverText: (f) => `ink\u0000${f.scene}\u0000${f.text}`,
+    PlateOffFrame: (f) => `plate\u0000${f.scene}\u0000${f.text}`,
+  }),
+);
+
+const edges = (f: { left: number; top: number; right: number; bottom: number }) =>
+  f.left + f.top + f.right + f.bottom;
+
+const size = matchFinding.pipe(
+  Match.tagsExhaustive({
+    TextOverlap: (f) => f.area,
+    InkOverText: (f) => f.length,
+    TextOffFrame: edges,
+    PlateOffFrame: edges,
+  }),
+);
 
 const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
   const where = { scene: f.scene, time: f.time, at: f.at, frames };
-  if (f._tag === 'TextOverlap') return TextOverlap.make({ ...where, a: f.a, b: f.b, area: f.area });
-  const { left, top, right, bottom } = f;
-  return TextOffFrame.make({ ...where, text: f.text, left, top, right, bottom });
+  return matchFinding.pipe(
+    Match.tagsExhaustive({
+      TextOverlap: (o): LayoutFinding =>
+        TextOverlap.make({ ...where, a: o.a, b: o.b, area: o.area }),
+      InkOverText: (o): LayoutFinding =>
+        InkOverText.make({
+          ...where,
+          text: o.text,
+          strokes: o.strokes,
+          length: o.length,
+          x: o.x,
+          y: o.y,
+          w: o.w,
+          h: o.h,
+        }),
+      TextOffFrame: (o): LayoutFinding =>
+        TextOffFrame.make({
+          ...where,
+          text: o.text,
+          left: o.left,
+          top: o.top,
+          right: o.right,
+          bottom: o.bottom,
+        }),
+      PlateOffFrame: (o): LayoutFinding =>
+        PlateOffFrame.make({
+          ...where,
+          text: o.text,
+          left: o.left,
+          top: o.top,
+          right: o.right,
+          bottom: o.bottom,
+        }),
+    }),
+  )(f);
 };
 
 /**

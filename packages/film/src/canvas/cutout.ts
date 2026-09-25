@@ -3,6 +3,7 @@
 // shadow where it lifts off the sheet beneath.
 
 import { type Hand, type Path, type Pt, resample } from './ink.ts';
+import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
 
 export interface CutoutStyle {
@@ -130,6 +131,8 @@ export const cutout = (
   ctx.fillStyle = style.color;
   trace(ctx, face);
   ctx.fill();
+  const probe = probeOf(ctx);
+  if (probe !== undefined) recordInk(ctx, probe, 'fill', shape, 0, ctx.globalAlpha);
 
   const g = style.grain ?? 0.6;
   if (g > 0) {

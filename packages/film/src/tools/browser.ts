@@ -17,7 +17,7 @@ import {
   type Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
-import { ExportInfo, TextBox } from '../core/schema.ts';
+import { ExportInfo, Probed } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,
@@ -37,10 +37,8 @@ export interface FramePage {
     i: number,
     format: FrameFormat,
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | FrameFailed>;
-  /** Draw frame `i` with the text probe on and return every line of text it drew. */
-  readonly probe: (
-    i: number,
-  ) => Effect.Effect<ReadonlyArray<TextBox>, PageError | PageCrashed | FrameFailed>;
+  /** Draw frame `i` with the probe on and return every line of text and mark of ink it drew. */
+  readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
 }
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
@@ -56,8 +54,6 @@ const LOAD_TIMEOUT_MS = 60_000;
 const FRAME_TIMEOUT = Duration.minutes(2);
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
-
-const TextBoxes = Schema.Array(TextBox);
 
 /** Playwright's own installer, run with Bun, for the error that says how to get a browser. */
 const installCommand = Effect.gen(function* () {
@@ -190,7 +186,7 @@ const openPage = (page: Page, url: string) =>
         ),
       ).pipe(
         Effect.flatMap((boxes) =>
-          Schema.decodeUnknownEffect(TextBoxes)(boxes).pipe(
+          Schema.decodeUnknownEffect(Probed)(boxes).pipe(
             Effect.mapError((error) => FrameFailed.make({ frame: i, reason: error.message })),
           ),
         ),

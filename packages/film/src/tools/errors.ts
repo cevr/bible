@@ -418,3 +418,49 @@ export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('Head
     return `${this.file}: no HEAD version to compare with: ${this.reason}`;
   }
 }
+
+/** Brush strokes drawn across a line of text, where the check can see them. */
+export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText', {
+  ...sampled,
+  text: Schema.String,
+  /** How many strokes cross it. */
+  strokes: Schema.Int,
+  /** How much of their length runs visibly through the text's box, in canvas pixels. */
+  length: Schema.Finite,
+  /** The box around the crossing strokes, in canvas pixels. */
+  x: Schema.Finite,
+  y: Schema.Finite,
+  w: Schema.Finite,
+  h: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const box = `${Math.round(this.x)},${Math.round(this.y)} ${Math.round(this.w)}×${Math.round(this.h)}`;
+    return `${where(this)}: ${this.strokes} stroke(s) at ${box} cross "${this.text}" for ${Math.round(this.length)} px (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A plate (a cutout smaller than the frame) carrying text, cut off by the frame's edge. */
+export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOffFrame', {
+  ...sampled,
+  /** A line of text the plate carries. */
+  text: Schema.String,
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: the plate under "${this.text}" leaves the frame, ${past.join(', ')} (${this.frames} sampled frame(s))`;
+  }
+}

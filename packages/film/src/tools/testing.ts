@@ -7,6 +7,8 @@ import * as PlatformError from 'effect/PlatformError';
 import {
   type ExportInfo,
   SoundManifestJson,
+  type InkMark,
+  type Probed,
   type TextBox,
   type Timed,
   type Timings,
@@ -221,10 +223,8 @@ export interface FakeRenderHost {
     i: number,
     page: number,
   ) => Effect.Effect<void, PageError | PageCrashed | FrameFailed>;
-  /** The text boxes a probe of frame `i` reports (none by default); failing breaks the page. */
-  readonly probe?: (
-    i: number,
-  ) => Effect.Effect<ReadonlyArray<TextBox>, PageError | PageCrashed | FrameFailed>;
+  /** What a probe of frame `i` reports (nothing by default); failing breaks the page. */
+  readonly probe?: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** How long ffprobe measures the audio master (default: the film's length). */
   readonly master?: number;
   /** The streams ffprobe finds in the rendered video (default: video, plus audio if the film has it). */
@@ -240,7 +240,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
-    () => (): Effect.Effect<ReadonlyArray<TextBox>> => Effect.succeed([]),
+    () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
   );
   const server = Layer.effect(
     PreviewServer,
@@ -370,7 +370,12 @@ export const textBox = (
   y: number,
   w: number,
   h: number,
-  options: { readonly alpha?: number; readonly rot?: number; readonly scene?: string } = {},
+  options: {
+    readonly alpha?: number;
+    readonly rot?: number;
+    readonly scene?: string;
+    readonly order?: number;
+  } = {},
 ): TextBox => {
   const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
   const cx = x + w / 2;
@@ -396,7 +401,42 @@ export const textBox = (
     h: Math.max(...ys) - Math.min(...ys),
     corners,
     alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
+    order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
   };
+};
+
+/**
+ * A probed mark of ink along `points`: a stroke `width` wide (a fill or a
+ * plate takes the points as its outline), drawn `order`-th in the frame.
+ */
+export const inkMark = (
+  kind: InkMark['kind'],
+  points: ReadonlyArray<readonly [number, number]>,
+  options: {
+    readonly width?: number;
+    readonly alpha?: number;
+    readonly order?: number;
+    readonly marks?: string;
+  } = {},
+): InkMark => {
+  const xs = points.map((c) => c[0]);
+  const ys = points.map((c) => c[1]);
+  const mark: InkMark = {
+    kind,
+    scene: 'a',
+    points,
+    width: Option.getOrElse(Option.fromNullishOr(options.width), () => 4),
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+    alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
+    order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
+  };
+  return Option.match(Option.fromNullishOr(options.marks), {
+    onNone: () => mark,
+    onSome: (marks) => ({ ...mark, marks }),
+  });
 };
 
 /**

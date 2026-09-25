@@ -219,24 +219,44 @@ what a review used to find by eye:
 - **Layout** (headless pages, like `render`): each scene is sampled at every
   mark, every cue's start and end, and its 60% point, pulled after its
   entering transition (mid-transition two scenes cross by design). The player
-  draws each sample with the **text probe** on and returns every line of text
-  as a box in canvas pixels, turned with its transform. Two different lines
-  both above 0.3 opacity that overlap by more than 4 px either way are a
-  `TextOverlap`; a visible line cut off by the frame's edge is a
+  draws each sample with the **probe** on and returns every line of text as
+  a box in canvas pixels, turned with its transform, and every mark of ink
+  (a brush stroke's centre line and width, a fill's outline, a declared
+  plate) with its opacity and its place in the drawing order. Two different
+  lines both above 0.3 opacity that overlap by more than 4 px either way are
+  a `TextOverlap`; a visible line cut off by the frame's edge is a
   `TextOffFrame` (a line wholly outside the frame has slid away and is not).
-  Findings merge per scene and pair, at the worst sampled frame.
+  A visible stroke whose centre line runs through a visible line's box for
+  more than 4 px, where no opaque plate drawn after the stroke covers it, is
+  an `InkOverText`, measured along the crossing (a segment-versus-box
+  clip, not the bounds). A line on a plate that the frame cuts off, and that
+  sits still there, is a `PlateOffFrame`. Findings merge per scene and text
+  (or pair), at the worst sampled frame.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
-and the captions record through it; a drawing declares the plate its text
-sits on (a torn tag) with `probePlate`, because a plate hides what is under
-it as the text does. With no probe attached a draw costs one WeakMap lookup,
-and a probed frame is pixel for pixel the same (it only reads the transform
-and `measureText`). The export handle exposes it as `probe(i)`.
+and the captions record their text through it; `stroke` records its drawn
+centre line, `fill` and `cutout` their outlines (a `hatch` is texture and
+does not record). A drawing declares the plate its text sits on (a torn tag)
+with `probePlate`, because a plate hides what is under it as the text does.
+With no probe attached a draw costs one WeakMap lookup, and a probed frame
+is pixel for pixel the same (it only reads the transform, `measureText` and
+the path it was going to draw). The export handle exposes it as `probe(i)`.
 
-A fade-out under a fade-in is not a collision (the 0.3 opacity floor), so
-there is no per-drawing allow-list. Strokes over text (a thread crossing a
-quote) are not probed yet: it needs `stroke` to record its path's bounds
-through the same probe and a segment-versus-box test.
+What the rules leave alone, and why:
+
+- A fade-out under a fade-in is not a collision (the 0.3 opacity floor), so
+  there is no per-drawing allow-list.
+- A stroke drawn **under** a line at less than 0.5 opacity is page texture
+  the words read over (greeked copy on a newspaper); drawn over the line, or
+  heavy, it strikes it.
+- A stroke that marks a line on purpose (an underline, a highlighter swash,
+  a ring, a strike) says so with `marks: '<the text>'` in its style; it may
+  cross that line and no other. It changes nothing drawn.
+- A plate's "plate" is the topmost fill under the line's centre, drawn before
+  it. One half the frame wide or high is a backdrop or a panel (a sky, a
+  split page) and may bleed; a plate whose line is itself past the edge, or
+  that has moved by the next frame (the check draws that frame only for a
+  candidate), is entering or leaving.
 
 ## Named cues
 

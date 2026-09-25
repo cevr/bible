@@ -48,7 +48,13 @@ export const name = drawing({
         stroke(
           ctx,
           quad([499, 397], [700, 409], [905, 392]),
-          { color: C.gold, width: 16, progress: progress(t, not - 0.6, 0.8), alpha: 0.9 },
+          {
+            color: C.gold,
+            width: 16,
+            progress: progress(t, not - 0.6, 0.8),
+            alpha: 0.9,
+            marks: 'just with God?',
+          },
           f.hand('swash'),
         );
         write(ctx, 'just with God?', 700, 380, big, f.hand('q2'), {

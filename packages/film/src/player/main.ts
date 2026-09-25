@@ -3,7 +3,8 @@
 // the chrome and hands `window.__film` to the renderer.
 
 import type { Film, KnobRead } from '../canvas/film.ts';
-import type { TextBox } from '../core/schema.ts';
+import type { ProbeSink } from '../canvas/probe.ts';
+import type { Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
@@ -30,8 +31,8 @@ export interface ExportHandle {
   readonly audio: string | undefined;
   /** Draw frame `i` and return it encoded. */
   frame(i: number, type?: 'image/png' | 'image/jpeg'): Promise<string>;
-  /** Draw frame `i` with the text probe on: every line of text it draws, boxed in canvas pixels. */
-  probe(i: number): TextBox[];
+  /** Draw frame `i` with the probe on: every line of text and mark of ink it draws, in canvas pixels. */
+  probe(i: number): Probed;
 }
 
 declare global {
@@ -127,9 +128,9 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
           return btoa(bin);
         },
         probe: (i) => {
-          const boxes: TextBox[] = [];
-          film.render(ctx, i / film.fps, { captions: captions.on, probe: boxes });
-          return boxes;
+          const sink: ProbeSink = { texts: [], inks: [] };
+          film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
+          return sink;
         },
       };
       return;
