@@ -1,0 +1,41 @@
+---
+name: film
+description: >
+  Make or change a narrated explainer film in apps/animations (cut-paper
+  Canvas films, BibleProject-style): source-checked script, ElevenLabs
+  narration, drawn scenes, score and effects, review renders, MP4 export. Use
+  when asked for an animation, explainer video, or film; when editing a film's
+  script, scenes, timing, voice, music or sound; or when a render, narrate or
+  score run fails.
+---
+
+# Film
+
+A film lives in `apps/animations/src/films/<film>/`. The engine API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show.
+
+Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (the CLI's login sits in the Keychain; Chromium sits in `~/Library/Caches/ms-playwright`).
+
+## Steps
+
+1. **Sources.** Build the corpus with `bible egw study <subject> --pioneers --export <file> --full`. Copy each quote you will use into `apps/animations/script/sources.md` verbatim, with its refcode, after checking it against the local database. Done when every quote the script will speak or show has a checked row.
+
+2. **Script.** Write `script.ts`: ordered beats `{ id, say, cite, picture }`. Put a `{mark}` before each word a picture must hit. Marks are stripped before speech, so adding one never re-records. `bun run dev` plays undrawn beats as storyboard cards at estimated timing. Done when the storyboard reads as the argument, start to finish.
+
+3. **Voice.** `bun run narrate <film>` records stale beats and transcribes each take back. A take over 8% word error prints `MISMATCH`: re-record it with `--only <id>`. Done when every beat is recorded with no mismatch.
+
+4. **Scenes.** One `Drawing` per beat in `scenes/`. Pin every motion to a mark (`f.mark`, `f.spoken`), never to a hand-timed second. For many scenes, fork agents in parallel: each gets its own `scenes/group-N.ts` registry and `props-N.ts`, may not edit `src/engine/`, `kit.ts` or `scenes/index.ts`, and reports engine bugs rather than working around them. Done when no beat plays as a storyboard card.
+
+5. **Review.** Per scene: `bun scripts/cues.ts <film> <scene>`, then `bun run render <film> --scene <id> --contact 1.5 --tag <tag>`, then full-size `--stills <t>` at the marks. Read the images. The defects this loop finds are **collisions**: text over text, a prop crossing a quote, text leaving the frame as the camera pushes in, anything in the caption band (y > 960) or the cite slot (top left). Done when every scene's contact sheet and its mark stills are clean.
+
+6. **Sound.** Declare music acts and effects in `sound.ts`, then `bun run score <film>`. Balance with `bun run mix <film> --stems` and `volumedetect`: the voice sits near -23 dB mean, the bed about 16 dB under it during speech and about 7 dB under it between lines. Done when the stems measure in range and the score transcribes as instrumental (`elevenlabs speech-to-text convert --model-id scribe_v1`).
+
+7. **Render.** `bun run render <film> --workers 6` takes about 10 minutes and writes about 1 GB. Re-encode a share copy (`-crf 22 -preset slow -tune animation`), pull a frame sheet from the MP4 (`fps=1/6,tile=8x8`), read it, then `open` the MP4 for the user. Done when the sheet shows every scene and the file plays.
+
+## Gotchas
+
+- **Playwright browser missing** (`Executable doesn't exist … chrome-headless-shell`): the cache was wiped. Reinstall with `bun node_modules/.bun/playwright-core@1.63.0/node_modules/playwright-core/cli.js install chromium-headless-shell` from the repo root.
+- **Sound effects return 401** under the CLI's OAuth login, which covers speech, speech-to-text and music only. Effects need `ELEVENLABS_API_KEY` in the environment or in the Keychain under that service name; `score` skips them without one. The OAuth token also cannot create keys.
+- **Music plans:** `music_v2` and `music_v2_5` take `{ chunks: [...] }`; a v1 `sections` plan fails with "Invalid type of composition_plan".
+- **Timing changes:** changing a scene's `lead`, `tail` or `min` moves every later scene. Remix with `bun run mix <film>` (no API cost); the score goes stale and `score` regenerates it.
+- **Shell loops:** zsh does not word-split `$var`; run loops over time windows with `bash -c`.
+- **Commits:** the pre-commit hook runs the whole repo gate (about 20 s). Check a staged subset on its own with `git checkout-index -a --prefix=<dir>/`, then symlink the root and app `node_modules` into it.
