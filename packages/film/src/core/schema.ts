@@ -337,3 +337,116 @@ export const TextBox = Schema.Struct({
   alpha: Schema.Finite,
 });
 export type TextBox = typeof TextBox.Type;
+
+// ---------------------------------------------------------------------------
+// Lab notes: what a viewer marks on a frame in the lab (`film lab`), and the
+// thread the agent answers it in. `lab/<film>/notes.json` holds them; stills sit
+// beside it in `stills/`.
+
+/** A pinned point (`w` and `h` 0) or a dragged box, in canvas pixels. */
+export const NoteBox = Schema.Struct({
+  x: Schema.Finite,
+  y: Schema.Finite,
+  w: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+  h: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+});
+export type NoteBox = typeof NoteBox.Type;
+
+/** One freehand pen stroke, in canvas pixels. */
+export const InkStroke = Schema.Array(Point);
+export type InkStroke = typeof InkStroke.Type;
+
+export const NoteAuthor = Schema.Literals(['user', 'agent']);
+export type NoteAuthor = typeof NoteAuthor.Type;
+
+/** `open` until the agent replies (`replied`); a user reply opens it again; `resolved` closes it. */
+export const NoteStatus = Schema.Literals(['open', 'replied', 'resolved']);
+export type NoteStatus = typeof NoteStatus.Type;
+
+/** A change's place in the film's note log: every change takes the next number. */
+const Seq = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
+export const Reply = Schema.Struct({
+  seq: Seq,
+  by: NoteAuthor,
+  text: Schema.String,
+  /** A still file in `stills/`, e.g. the agent's after-frame. */
+  still: Schema.optionalKey(Schema.String),
+  /** ISO time. */
+  at: Schema.String,
+});
+export type Reply = typeof Reply.Type;
+
+/** The named cue edge nearest the note's time, in its scene. */
+export const NoteCue = Schema.Struct({
+  name: Schema.String,
+  edge: Schema.Literals(['start', 'end']),
+});
+export type NoteCue = typeof NoteCue.Type;
+
+/** What the lab sends for a new note: the frame, where it was marked, and what it says. */
+export const NoteDraft = Schema.Struct({
+  scene: Schema.String,
+  /** Film seconds. */
+  T: Seconds,
+  frame: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  cue: Schema.optionalKey(NoteCue),
+  /** The `{mark}` nearest the note's time, in its scene. */
+  mark: Schema.optionalKey(Schema.String),
+  box: Schema.optionalKey(NoteBox),
+  ink: Schema.optionalKey(Schema.Array(InkStroke)),
+  text: Schema.String.check(Schema.isNonEmpty()),
+});
+export type NoteDraft = typeof NoteDraft.Type;
+
+export const Note = Schema.Struct({
+  ...NoteDraft.fields,
+  /** `n<seq>`: short enough to type in `film notes reply`. */
+  id: Schema.String,
+  film: Schema.String,
+  /** The change that made the note. */
+  seq: Seq,
+  /** The last change to touch it (made, replied or resolved). */
+  changed: Seq,
+  status: NoteStatus,
+  /** The exact frame, as the lab drew it, in `stills/`. */
+  still: Schema.String,
+  thread: Schema.Array(Reply),
+  /** ISO time. */
+  createdAt: Schema.String,
+});
+export type Note = typeof Note.Type;
+
+/** `lab/<film>/notes.json`. `seq` is the last change's number: the cursor a watcher waits past. */
+export const NotesFile = Schema.Struct({
+  film: Schema.String,
+  seq: Seq,
+  notes: Schema.Array(Note),
+});
+export type NotesFile = typeof NotesFile.Type;
+
+/** `notes.json` on disk. */
+export const NotesFileJson = Schema.String.pipe(
+  Schema.decodeTo(Schema.fromJsonString(NotesFile, { space: 2 }), fileText),
+);
+
+/** A change after a cursor: a new note, a reply in a thread, or a note resolved. */
+export const NoteEvent = Schema.Union([
+  Schema.TaggedStruct('NoteAdded', { seq: Seq, note: Note }),
+  Schema.TaggedStruct('NoteReplied', { seq: Seq, note: Note, reply: Reply }),
+  Schema.TaggedStruct('NoteResolved', { seq: Seq, note: Note }),
+]);
+export type NoteEvent = typeof NoteEvent.Type;
+
+/** What a wait returns: the changes past `since`, in order, and the cursor to wait past next. */
+export const NotesWait = Schema.Struct({ cursor: Seq, events: Schema.Array(NoteEvent) });
+export type NotesWait = typeof NotesWait.Type;
+
+/** The lab's `POST /lab/notes` body: a draft and its still, a PNG in base64. */
+export const NotePost = Schema.Struct({
+  ...NoteDraft.fields,
+  still: Schema.Uint8ArrayFromBase64,
+});
+
+/** The lab's `POST /lab/notes/:id/reply` body. */
+export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });

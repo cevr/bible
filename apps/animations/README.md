@@ -21,11 +21,17 @@ bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
+bun run lab <film>                             # the lab at http://localhost:4401/?film=<film>&lab (Ctrl-C stops it)
+bun run notes <film> [--watch]                 # open lab notes, one line each; --watch streams new ones
+bun run notes reply <film> <id> "text" [--still file.png]
+bun run notes resolve <film> <id>
 ```
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
-loads. Narrate flags: `--only id,id` (record these, current or not),
+loads and, for `lab`, the same server in development mode with the lab's
+routes at `/lab/*` (`LAB_PORT`, default 4401). Lab notes and their stills are
+written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
 `--only music,<effect>` and `--dry-run`. The films are always `src/films`, the

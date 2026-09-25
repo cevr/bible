@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                               |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                            |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                     |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors). |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                           |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                        |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), and the `?export` handle (`ExportHandle`) a renderer drives. `player.css` styles it.                                                                                                                 |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore and the lab's routes (`lab.ts`). |
 
 ## Data
 
@@ -24,11 +24,13 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|score|mix|cues|check|render <film>` (and `film doctor`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, previewServer })`
-with its films folder and a scoped `PreviewServer` layer that serves its
-player page, because only the app can bundle its HTML and films (see
-`apps/animations/cli.ts`). The player imports the same folder, so the tools
+`film narrate|score|mix|cues|check|render|lab|notes <film>` (and `film doctor`) runs from the app that holds the
+films. The app owns the entry: it calls `runFilmCli({ films, previewServer, labServer })`
+with its films folder, a scoped `PreviewServer` layer that serves its
+player page, and `labServer`, which serves the same page in development
+mode with the lab's routes mounted, because only the app can bundle its HTML
+and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
+key=value`) go to stderr; stdout carries only what a command prints. The player imports the same folder, so the tools
 and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
@@ -70,6 +72,59 @@ stream: `AudioNotMuxed` when it is missing), and `out/<film>.vtt` is written bes
 MP4 from `captionCues`, the same line timing the burned-in captions use. An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
+
+## Lab
+
+`film lab <film>` serves the player in development mode (the bundle rebuilds
+and hot-reloads as scenes change) at `?film=<film>&lab`, prints that URL,
+and runs until Ctrl-C, which stops the server and the routes with the
+command's scope. The framework owns the routes (`lab.ts`, an `HttpRouter` web
+handler over NotesStore); the app mounts them at `/lab/*`:
+
+| Route                                    | What it does                                                         |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| `GET /lab/notes`                         | the film's notes file; its `seq` is the cursor                       |
+| `POST /lab/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
+| `POST /lab/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
+| `POST /lab/notes/:id/resolve`            | resolves it                                                          |
+| `GET /lab/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
+| `GET /lab/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
+
+A bad body is a 400, an unknown note a 404, and every failure is logged.
+
+**Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
+in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
+git). The file is the source of truth: the lab server and `film notes` both
+go through NotesStore, so either works without the other. A note is `{ id,
+film, scene, T, frame, cue?: { name, edge }, mark?, box?, ink?, text,
+status, still, thread, createdAt }`, plus `seq` (the change that made it) and
+`changed` (the last change to touch it). A click saves a pin as a zero-size
+box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
+(`core/notes.ts`) returns each new note, reply and resolve exactly once past
+a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
+the CLI wrote while the server was waiting. Writes are atomic (a partial
+file renamed into place, through ContentStore), serialized in the process
+(a Semaphore) and across processes (a `notes.lock` directory held for each
+change; a lock held past about 5 s fails with `NotesLocked`, naming it). A
+note's still is written before the note that names it.
+
+`nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
+it, the nearest named-cue edge and `{mark}`; the page computes it from the
+layout it draws, so a note carries the cue the viewer saw.
+
+`film notes <film>` prints each unresolved note as one line:
+
+```
+note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
+```
+
+`--watch` prints each new note, and each reply from the user (`reply id=…
+by=user … still=… text="…"`), once per run, starting past the current cursor
+(`--since n` to start earlier): run it under a Claude Code Monitor and each
+note arrives as a notification. `film notes reply <film> <id> "…" [--still
+file.png]` answers as the agent (the still is copied to `stills/<id>.r<seq>.png`
+and the note becomes `replied`); `film notes resolve <film> <id>` closes it.
+An unknown id fails with `NoteNotFound`, listing the film's notes.
 
 ## Check
 

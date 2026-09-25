@@ -9,6 +9,10 @@
 //   film cues <film> [scene] [--sound]
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
 //   film doctor
+//   film lab <film>
+//   film notes <film> [--watch] [--since n]
+//   film notes reply <film> <id> <text> [--still file.png]
+//   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //
@@ -19,9 +23,11 @@ import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Console,
+  Context,
   Effect,
   FileSystem,
   Layer,
+  Logger,
   Option,
   type Path,
   Result,
@@ -33,7 +39,7 @@ import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
-import { ContentStore } from './content-store.ts';
+import { ContentStore, type StoreError } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -48,7 +54,10 @@ import { Ffmpeg, type FfmpegError } from './ffmpeg.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
-import type { PreviewServer } from './preview-server.ts';
+import { labHandler } from './lab.ts';
+import { NotesStore } from './notes-store.ts';
+import { noteLine, replyLine } from './notes-lines.ts';
+import { type LabServer, PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
 
@@ -371,26 +380,141 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     ),
   );
 
+const lab = <E>(labServer: LabServer<E>) =>
+  Command.make(
+    'lab',
+    { film },
+    Effect.fn('film.lab')(function* (input) {
+      // An unknown film fails here, before a server starts.
+      yield* (yield* FilmRepo).load(input.film);
+      const handler = yield* labHandler(input.film);
+      const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
+      const url = `${server.url}?film=${encodeURIComponent(input.film)}&lab`;
+      const notes = (yield* NotesStore).paths(input.film).notes.file;
+      yield* Console.log(url);
+      yield* Effect.log(`lab.ready film=${input.film} url=${url} notes=${notes}`);
+      // Until Ctrl-C: the scope then stops the server and the handler.
+      return yield* Effect.never;
+    }, Effect.scoped),
+  ).pipe(
+    Command.withDescription(
+      'Open the film lab: the player in dev mode with notes on frames (Ctrl-C stops it)',
+    ),
+  );
+
+const noteId = Argument.String('id').pipe(Argument.withDescription('the note, e.g. n3'));
+
+const notesReply = Command.make(
+  'reply',
+  {
+    film,
+    id: noteId,
+    text: Argument.String('text').pipe(Argument.withDescription('the reply')),
+    still: Flag.String('still').pipe(
+      Flag.optional,
+      Flag.withDescription('a PNG to show with the reply: the frame after the change'),
+    ),
+  },
+  Effect.fn('film.notes.reply')(function* (input) {
+    const fs = yield* FileSystem.FileSystem;
+    const still = yield* Option.match(input.still, {
+      onNone: () => Effect.succeedNone,
+      onSome: (file) => Effect.map(fs.readFile(file), Option.some),
+    });
+    const note = yield* (yield* NotesStore).reply(input.film, input.id, {
+      by: 'agent',
+      text: input.text,
+      still,
+    });
+    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note));
+  }),
+).pipe(Command.withDescription("Reply to a note as the agent; it shows in the lab's thread"));
+
+const notesResolve = Command.make(
+  'resolve',
+  { film, id: noteId },
+  Effect.fn('film.notes.resolve')(function* (input) {
+    const note = yield* (yield* NotesStore).resolve(input.film, input.id);
+    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note));
+  }),
+).pipe(Command.withDescription('Mark a note resolved'));
+
+/** How long one wait of `--watch` holds before it asks again. */
+const WATCH_WAIT = '30 seconds';
+
+const notes = Command.make(
+  'notes',
+  {
+    film,
+    watch: Flag.Boolean('watch').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'stream each new note, and each reply from the user, as one line, once (for a Monitor)',
+      ),
+    ),
+    since: Flag.Int('since').pipe(
+      Flag.optional,
+      Flag.withDescription('with --watch: start past this cursor instead of the current one'),
+    ),
+  },
+  Effect.fn('film.notes')(function* (input) {
+    const store = yield* NotesStore;
+    const at = store.paths(input.film);
+    const file = yield* store.read(input.film);
+    if (!input.watch) {
+      const open = file.notes.filter((n) => n.status !== 'resolved');
+      for (const note of open) yield* Console.log(noteLine(at, note));
+      yield* Effect.log(`notes.list film=${input.film} open=${open.length} cursor=${file.seq}`);
+      return;
+    }
+    const start = Option.getOrElse(input.since, () => file.seq);
+    yield* Effect.log(`notes.watch film=${input.film} since=${start}`);
+    // Each wait passes the cursor on, so every change prints once.
+    const watch = (since: number): Effect.Effect<never, StoreError> =>
+      store.wait(input.film, since, WATCH_WAIT).pipe(
+        Effect.tap((waited) =>
+          Effect.forEach(waited.events, (event) => {
+            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note));
+            if (event._tag === 'NoteReplied' && event.reply.by === 'user')
+              return Console.log(replyLine(at, event.note, event.reply));
+            return Effect.void;
+          }),
+        ),
+        Effect.flatMap((waited) => watch(waited.cursor)),
+      );
+    return yield* watch(start);
+  }),
+).pipe(
+  Command.withDescription(
+    "List a film's open notes from the lab (id, scene, time, nearest cue, still, text), or --watch for new ones",
+  ),
+  Command.withSubcommands([notesReply, notesResolve]),
+);
+
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
 const Tools = Layer.mergeAll(Ffmpeg.layer, ElevenLabs.layer).pipe(Layer.provide(Platform));
 
-/** What the app hands the CLI: where its films are, and the server for its player page. */
+/** What the app hands the CLI: where its films are, and the servers for its player page. */
 export interface FilmApp<E> {
   /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
   readonly films: string;
+  /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
+  /** The player in development mode with the lab's routes, served while `lab` runs. */
+  readonly labServer: LabServer<E>;
 }
 
 /**
- * Run the `film` CLI over the app's films, with its player server. The server
- * and the browser start only for `render` and the layout leg of `check`, and
- * stop with them.
+ * Run the `film` CLI over the app's films, with its player servers. The
+ * server and the browser start only for `render` and the layout leg of
+ * `check`, and stop with them; the lab server runs while `lab` does.
  */
-export const runFilmCli = <E>({ films, previewServer }: FilmApp<E>): void => {
+export const runFilmCli = <E>({ films, previewServer, labServer }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
+  const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Store, Tools, Platform)),
+    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Store, Tools, Platform)),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
@@ -404,7 +528,15 @@ export const runFilmCli = <E>({ films, previewServer }: FilmApp<E>): void => {
       check(checkLayer),
       render(renderLayer),
       doctor,
+      lab(labServer),
+      notes,
     ]),
   );
-  Command.run(root, { version: '0.1.0' }).pipe(Effect.provide(Services), BunRuntime.runMain);
+  // Logs go to stderr, so stdout carries only what a command prints: the lines
+  // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
+  const Logs = Layer.succeed(Logger.LogToStderr, true);
+  Command.run(root, { version: '0.1.0' }).pipe(
+    Effect.provide(Layer.mergeAll(Services, Logs)),
+    BunRuntime.runMain,
+  );
 };

@@ -1,6 +1,7 @@
 // Serves the player and each film's recorded narration. `render` starts this
 // in-process as the film CLI's PreviewServer (cli.ts); `bun run dev` runs it
-// with hot reload.
+// with hot reload; `bun run lab` runs it in development mode with the lab's
+// routes (the film framework's handler) at /lab/*.
 
 import { join, normalize } from 'node:path';
 import index from './index.html';
@@ -8,12 +9,22 @@ import index from './index.html';
 /** The films folder: the player imports its registry, and the film CLI reads each film here. */
 export const FILMS = join(import.meta.dir, 'src/films');
 
-export const serve = (port: number, development: boolean) =>
+/** A wait on `/lab/notes/wait` holds up to 60 s: the connection must outlive it. */
+const IDLE_SECONDS = 75;
+
+type Handler = (req: Request) => Response | Promise<Response>;
+
+const notFound: Handler = () => new Response('not found', { status: 404 });
+
+/** The player on `port`; `lab` answers `/lab/*` (the film lab's API) when the lab runs. */
+export const serve = (port: number, development: boolean, lab: Handler = notFound) =>
   Bun.serve({
     port,
     development,
+    idleTimeout: IDLE_SECONDS,
     routes: {
       '/': index,
+      '/lab/*': lab,
       // Narration takes: /films/<film>/narration/<file>
       '/films/*': (req) => {
         const rel = normalize(

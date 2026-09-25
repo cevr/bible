@@ -318,3 +318,25 @@ export class CheckFailed extends Schema.TaggedError<CheckFailed>()('CheckFailed'
     return `film check failed: ${this.errors} error(s), ${this.warnings} warning(s)`;
   }
 }
+
+/** `film notes reply|resolve` named a note the film's lab does not have. */
+export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()('NoteNotFound', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The ids the film's notes do have. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0) return `film "${this.film}" has no note "${this.id}"; it has none`;
+    return `film "${this.film}" has no note "${this.id}"; its notes are ${this.known.join(', ')}`;
+  }
+}
+
+/** Another process held the notes lock for too long: a crashed writer left it behind. */
+export class NotesLocked extends Schema.TaggedError<NotesLocked>()('NotesLocked', {
+  lock: Schema.String,
+}) {
+  override get message() {
+    return `${this.lock} is held; if no film lab or notes command is running, remove it`;
+  }
+}
