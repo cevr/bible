@@ -118,7 +118,7 @@ export const witness = drawing({
         // Sheen.
         stroke(
           ctx,
-          line([-160, -420], [-60, -520], 0.02, 1),
+          line([-115, -465], [-60, -520], 0.02, 1),
           { color: '#ffffff', width: 18, alpha: 0.5 },
           f.hand('sheen1'),
         );

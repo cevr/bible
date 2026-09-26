@@ -49,7 +49,7 @@ export const centurion: Drawing = {
       ctx.translate((1 - room) * 900, 0);
       cutout(
         ctx,
-        rectShape(FOLD, 340, 900, 780),
+        rectShape(FOLD, 340, 960, 780),
         { color: ROOM, torn: 6, rim: 4, shadow: 0.8, grain: 0.7 },
         f.hand('room'),
       );

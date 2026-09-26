@@ -73,7 +73,7 @@ export const eighteen88 = drawing({
         // The two editors, as silhouettes.
         silhouette(
           ctx,
-          700,
+          660,
           740,
           0.62,
           'A. T. Jones',
@@ -82,7 +82,7 @@ export const eighteen88 = drawing({
         );
         silhouette(
           ctx,
-          1220,
+          1260,
           740,
           0.62,
           'E. J. Waggoner',
@@ -116,7 +116,7 @@ export const eighteen88 = drawing({
         stamp(
           ctx,
           960,
-          520,
+          540,
           ['A MOST PRECIOUS', 'MESSAGE'],
           progress(t, precious - 0.1, 0.5, ease.outCubic),
           f.hand('stamp'),

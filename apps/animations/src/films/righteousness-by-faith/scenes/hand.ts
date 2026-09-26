@@ -183,7 +183,7 @@ export const hand_ = drawing({
                   { boil: 0.4 },
                 );
               });
-              at(ctx, { x: -160, y: -330, rot: -0.1 }, () => {
+              at(ctx, { x: -160, y: -350, rot: -0.1 }, () => {
                 cutout(
                   ctx,
                   rectShape(-80, -34, 160, 60),
@@ -235,8 +235,8 @@ export const hand_ = drawing({
         write(
           ctx,
           'earns nothing',
-          1500,
-          560,
+          1530,
+          540,
           { ...hand(64, C.teal), align: 'center' },
           f.hand('nothing'),
           { progress: progress(t, earns + 0.4, 0.9, ease.linear), reveal: 'write' },
