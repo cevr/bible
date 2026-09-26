@@ -107,6 +107,17 @@ export class FfmpegMissing extends Schema.TaggedError<FfmpegMissing>()('FfmpegMi
   }
 }
 
+/** A media file that could not be read, decoded or written. */
+export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
+  op: Schema.Literals(['read', 'decode', 'write']),
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `could not ${this.op} ${this.file}: ${this.reason}`;
+  }
+}
+
 /** Some named cue ends after its scene does. */
 export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
   count: Schema.Int,

@@ -18,6 +18,8 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
+    "mediabunny": "1.60.0",
+    "mpg123-decoder": "1.0.3",
     "oxc-parser": "0.151.0",
     "playwright-core": "1.63.0"
   },

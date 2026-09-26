@@ -6,6 +6,7 @@ export * from './content-store.ts';
 export * from './film-repo.ts';
 export * from './elevenlabs.ts';
 export * from './ffmpeg.ts';
+export * from './media.ts';
 export * from './narrator.ts';
 export * from './composer.ts';
 export * from './mixer.ts';

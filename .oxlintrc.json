@@ -231,6 +231,15 @@
       }
     },
     {
+      // Planar PCM, sample by sample: typed arrays indexed with `?? 0` (past
+      // an array's end is silence) and a branch per sample, as the draw path does.
+      "files": ["**/packages/film/src/core/audio.ts"],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
       // A film's scene registry builds each SceneSpec with its optional `say`.
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {

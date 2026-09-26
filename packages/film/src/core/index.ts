@@ -15,3 +15,4 @@ export * from './ticks.ts';
 export * from './notes.ts';
 export * from './affine.ts';
 export * from './moments.ts';
+export * from './audio.ts';
