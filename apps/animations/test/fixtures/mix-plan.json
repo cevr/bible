@@ -1,0 +1,268 @@
+{
+  "plain": {
+    "seconds": 349.96,
+    "voice": [
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/question.mp3",
+        "ms": 500,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/measure.mp3",
+        "ms": 18660,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/rags.mp3",
+        "ms": 42030,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/witness.mp3",
+        "ms": 66470,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/void.mp3",
+        "ms": 83600,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/centurion.mp3",
+        "ms": 106720,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/justified.mp3",
+        "ms": 137210,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/exchange.mp3",
+        "ms": 167810,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/robe.mp3",
+        "ms": 188780,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/hand.mp3",
+        "ms": 220460,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/serpent.mp3",
+        "ms": 238060,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/within.mp3",
+        "ms": 269680,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/1888.mp3",
+        "ms": 300400,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/name.mp3",
+        "ms": 324640,
+        "gain": 1
+      }
+    ],
+    "music": {
+      "sound": "<app>/src/films/righteousness-by-faith/sound/music-be8be957.mp3",
+      "gain": 0.5
+    },
+    "effects": []
+  },
+  "effects": {
+    "seconds": 349.96,
+    "voice": [
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/question.mp3",
+        "ms": 500,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/measure.mp3",
+        "ms": 18660,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/rags.mp3",
+        "ms": 42030,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/witness.mp3",
+        "ms": 66470,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/void.mp3",
+        "ms": 83600,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/centurion.mp3",
+        "ms": 106720,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/justified.mp3",
+        "ms": 137210,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/exchange.mp3",
+        "ms": 167810,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/robe.mp3",
+        "ms": 188780,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/hand.mp3",
+        "ms": 220460,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/serpent.mp3",
+        "ms": 238060,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/within.mp3",
+        "ms": 269680,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/1888.mp3",
+        "ms": 300400,
+        "gain": 1
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/narration/name.mp3",
+        "ms": 324640,
+        "gain": 1
+      }
+    ],
+    "music": {
+      "sound": "<app>/src/films/righteousness-by-faith/sound/music-be8be957.mp3",
+      "gain": 0.5
+    },
+    "effects": [
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 18210,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 66020,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 106070,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 167360,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 219950,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 269170,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-page-66999dc3.mp3",
+        "ms": 323990,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-slide-a12f39e2.mp3",
+        "ms": 41450,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-slide-a12f39e2.mp3",
+        "ms": 136630,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-slide-a12f39e2.mp3",
+        "ms": 188200,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-slide-a12f39e2.mp3",
+        "ms": 237410,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-slide-a12f39e2.mp3",
+        "ms": 299750,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-stamp-e84cc6e2.mp3",
+        "ms": 72568,
+        "gain": 0.7
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-stamp-e84cc6e2.mp3",
+        "ms": 143380,
+        "gain": 0.7
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-stamp-e84cc6e2.mp3",
+        "ms": 300333,
+        "gain": 0.7
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-tear-12537c83.mp3",
+        "ms": 195920,
+        "gain": 0.55
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-robe-8dbaefe9.mp3",
+        "ms": 198060,
+        "gain": 0.5
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-coins-6fb493f9.mp3",
+        "ms": 228040,
+        "gain": 0.45
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-shimmer-03abbc75.mp3",
+        "ms": 93220,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-shimmer-03abbc75.mp3",
+        "ms": 236480,
+        "gain": 0.4
+      },
+      {
+        "sound": "<app>/src/films/righteousness-by-faith/sound/sfx-shimmer-03abbc75.mp3",
+        "ms": 334000,
+        "gain": 0.4
+      }
+    ]
+  }
+}

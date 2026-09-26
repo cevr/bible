@@ -231,9 +231,11 @@
       }
     },
     {
-      // Planar PCM, sample by sample: typed arrays indexed with `?? 0` (past
-      // an array's end is silence) and a branch per sample, as the draw path does.
-      "files": ["**/packages/film/src/core/audio.ts"],
+      // The mix's sample loops: planar PCM and the ported ffmpeg filters, run
+      // over every sample of a film's track. They index typed arrays with
+      // `?? 0` (past an array's end is silence) and branch per sample with
+      // ternaries, as the draw path does.
+      "files": ["**/packages/film/src/core/audio.ts", "**/packages/film/src/core/dsp.ts"],
       "rules": {
         "effect/noNullish": "off",
         "effect/noTernary": "off"

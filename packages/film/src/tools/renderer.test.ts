@@ -179,7 +179,7 @@ describe('Renderer', () => {
   );
 
   describe('with the mixed track', () => {
-    const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.mp3' };
+    const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.wav' };
     const MASTER = '/films/test/narration/full.wav';
     const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
       Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));

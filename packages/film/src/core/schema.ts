@@ -24,7 +24,7 @@ const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 
 /**
  * How far a take's last word may end past its measured length: the alignment
- * and ffprobe measure the same audio, a frame or so apart at most.
+ * and the decoded take measure the same audio, a frame or so apart at most.
  */
 export const TAKE_TOLERANCE = 0.05;
 

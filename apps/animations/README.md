@@ -9,12 +9,12 @@ scrubbable preview and a frame-exact MP4 export.
 
 ```sh
 bun run dev                                    # player at http://127.0.0.1:4400
-bun run narrate <film>                         # record stale beats, verify, mix full.mp3
-bun run score <film>                           # generate stale music + effects, mix full.mp3
-bun run mix <film> [--stems]                   # remix full.mp3 + full.wav (no API); stems to out/<film>/stems
+bun run narrate <film>                         # record stale beats, verify, remix full.wav
+bun run score <film>                           # generate stale music + effects, remix full.wav
+bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
-bun run doctor                                 # ffmpeg, headless Chromium, elevenlabs CLI + login: ok or how to fix
+bun run doctor                                 # ffmpeg (render), headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages + ffmpeg)
@@ -52,13 +52,16 @@ a paid re-record must not block a commit; the layout leg is a review step.
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`. A video's audio
-is encoded once from the lossless `narration/full.wav`, which must cover the
+is encoded once from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`), and a video that comes out of the mux
 without its audio stream fails with `AudioNotMuxed`. Its captions are also
-written as WebVTT beside it. `mix` writes `full.partial.mp3` and
-`full.partial.wav` and renames both only once ffmpeg finishes, so a failed or
-interrupted mix leaves the previous pair as it was. Ctrl-C stops
+written as WebVTT beside it. `mix` runs in-process (`@bible/film/core`'s
+`mixPlan` and `renderMix`, the filters ported from the ffmpeg graph it
+replaced) and logs each bus's mean and peak dBFS (`mix.levels`), so balancing
+needs no other tool; it writes `full.partial.wav` and renames it only once
+whole, so a failed or interrupted mix leaves the previous track as it was. The
+player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser, the server and every ffmpeg child
 close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
@@ -94,7 +97,7 @@ src/films/<film>/
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
-  narration/       one take per beat + timings.json (word timings); full.mp3 + full.wav are derived
+  narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
 

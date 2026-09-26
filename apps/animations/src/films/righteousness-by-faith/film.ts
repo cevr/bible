@@ -19,7 +19,7 @@ export const film = async () =>
     shade: palette.tealDeep,
     scenes,
     timings: await loadTimings(),
-    audio: '/films/righteousness-by-faith/narration/full.mp3',
+    audio: '/films/righteousness-by-faith/narration/full.wav',
     sound,
     palette,
     captions: { font: `500 38px "${fonts.body}"`, color: palette.ink, plate: palette.robe },

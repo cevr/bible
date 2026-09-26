@@ -1,9 +1,9 @@
-// ffmpeg and ffprobe, as a service: a run either finishes cleanly or fails
-// with the tool's own stderr, and a missing binary says how to install it.
+// ffmpeg, as a service: a run either finishes cleanly or fails with the
+// tool's own stderr, and a missing binary says how to install it.
 // `encode` feeds a stream of bytes to ffmpeg's stdin, waiting for the pipe to
 // drain, and kills the child when its scope closes (a failure, an interrupt).
 
-import { Context, Data, Duration, Effect, Fiber, Layer, Schema, Sink, Stream } from 'effect';
+import { Context, Data, Duration, Effect, Fiber, Layer, Sink, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FfmpegFailed, FfmpegMissing } from './errors.ts';
@@ -14,12 +14,8 @@ export type FfmpegError = FfmpegFailed | FfmpegMissing;
 export interface FfmpegService {
   /** Run ffmpeg with these arguments (without the program name). */
   readonly run: (args: ReadonlyArray<string>) => Effect.Effect<void, FfmpegError>;
-  /** Preflight: ffmpeg and ffprobe are installed and run. */
+  /** Preflight: ffmpeg is installed and runs. */
   readonly version: Effect.Effect<void, FfmpegError>;
-  /** A media file's duration in seconds. */
-  readonly probeDuration: (file: string) => Effect.Effect<number, FfmpegError>;
-  /** The type of each stream in a media file (`video`, `audio`, ...). */
-  readonly probeStreams: (file: string) => Effect.Effect<ReadonlyArray<string>, FfmpegError>;
   /**
    * Run ffmpeg reading `input` on stdin (`-i -`). The stream is pulled only
    * as fast as ffmpeg drains the pipe; a stream failure kills ffmpeg.
@@ -64,47 +60,10 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
         yield* exec('ffmpeg', args);
       });
 
-      const version = Effect.all([exec('ffmpeg', ['-version']), exec('ffprobe', ['-version'])], {
-        concurrency: 2,
-        discard: true,
-      }).pipe(Effect.withSpan('Ffmpeg.version'));
-
-      const probeDuration = Effect.fn('Ffmpeg.probeDuration')(function* (file: string) {
-        const out = yield* exec('ffprobe', [
-          '-v',
-          'error',
-          '-show_entries',
-          'format=duration',
-          '-of',
-          'csv=p=0',
-          file,
-        ]);
-        return yield* Schema.decodeEffect(Schema.FiniteFromString)(out.trim()).pipe(
-          Effect.mapError((error) =>
-            FfmpegFailed.make({
-              tool: 'ffprobe',
-              exitCode: 0,
-              stderr: `${file}: ${error.message}`,
-            }),
-          ),
-        );
-      });
-
-      const probeStreams = Effect.fn('Ffmpeg.probeStreams')(function* (file: string) {
-        const out = yield* exec('ffprobe', [
-          '-v',
-          'error',
-          '-show_entries',
-          'stream=codec_type',
-          '-of',
-          'csv=p=0',
-          file,
-        ]);
-        return out
-          .split('\n')
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0);
-      });
+      const version = exec('ffmpeg', ['-version']).pipe(
+        Effect.asVoid,
+        Effect.withSpan('Ffmpeg.version'),
+      );
 
       const encode = <E, R>(args: ReadonlyArray<string>, input: Stream.Stream<Uint8Array, E, R>) =>
         Effect.scoped(
@@ -142,7 +101,7 @@ export class Ffmpeg extends Context.Service<Ffmpeg, FfmpegService>()('@bible/fil
           }),
         ).pipe(Effect.withSpan('Ffmpeg.encode'));
 
-      return Ffmpeg.of({ run, version, probeDuration, probeStreams, encode });
+      return Ffmpeg.of({ run, version, encode });
     }),
   );
 }

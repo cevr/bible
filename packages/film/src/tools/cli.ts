@@ -53,6 +53,7 @@ import {
 } from './errors.ts';
 import { Ffmpeg, type FfmpegError } from './ffmpeg.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { Media } from './media.ts';
 import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import { labHandler } from './lab.ts';
@@ -85,11 +86,9 @@ const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDescription('print what would be generated, then stop'),
 );
 
-/** What a paid run needs before it spends a credit: ffmpeg for the remix and a logged-in CLI. */
+/** What a paid run needs before it spends a credit: a logged-in CLI. The remix after it runs in-process. */
 const paidPreflight = Effect.gen(function* () {
-  const ffmpeg = yield* Ffmpeg;
-  const elevenLabs = yield* ElevenLabs;
-  yield* Effect.all([ffmpeg.version, elevenLabs.ready], { concurrency: 2, discard: true });
+  yield* (yield* ElevenLabs).ready;
 });
 
 interface ToolCheck {
@@ -110,7 +109,7 @@ const doctor = Command.make(
     const ffmpeg = yield* Ffmpeg;
     const elevenLabs = yield* ElevenLabs;
     const checks: ReadonlyArray<ToolCheck> = [
-      { tool: 'ffmpeg', needed: 'mix, render', run: ffmpeg.version },
+      { tool: 'ffmpeg', needed: 'render', run: ffmpeg.version },
       { tool: 'chromium', needed: 'render, check', run: browserReady },
       { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
     ];
@@ -159,7 +158,7 @@ const narrate = Command.make(
       `narrate.plan film=${input.film} beats=${plan.beats.length} to_record=${stale}`,
     );
     if (input.dryRun) return;
-    // Before the first paid take: ffprobe measures each take, and the CLI must be logged in.
+    // Before the first paid take: the CLI must be logged in.
     yield* paidPreflight;
     yield* narrator.record(loaded, plan, options);
     yield* (yield* Mixer).mix(input.film, { stems: false });
@@ -198,7 +197,7 @@ const mix = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Rebuild narration/full.mp3 and its lossless master full.wav from the current takes and sound',
+    'Rebuild narration/full.wav, the mixed track, from the current takes and sound',
   ),
 );
 
@@ -277,7 +276,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       });
       const master = yield* measureMaster(
         yield* FileSystem.FileSystem,
-        yield* Ffmpeg,
+        yield* Media,
         masterFile(loaded.paths),
       );
       const found: Array<Reported> = [
@@ -530,7 +529,9 @@ const notes = Command.make(
 
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-const Tools = Layer.mergeAll(Ffmpeg.layer, ElevenLabs.layer).pipe(Layer.provide(Platform));
+const Tools = Layer.mergeAll(Ffmpeg.layer, ElevenLabs.layer, Media.layer).pipe(
+  Layer.provide(Platform),
+);
 
 /** What the app hands the CLI: where its films are, and the servers for its player page. */
 export interface FilmApp<E> {

@@ -20,13 +20,11 @@ import { ElevenLabs } from './elevenlabs.ts';
 import {
   type AlignmentMismatch,
   ElevenLabsFailed,
-  type FfmpegFailed,
-  type FfmpegMissing,
+  type MediaFailed,
   TakeMismatch,
 } from './errors.ts';
-import { Ffmpeg } from './ffmpeg.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { trackFile } from './mixer.ts';
+import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 
 /** A take whose transcript is further than this from its script is a mismatch. */
@@ -59,8 +57,7 @@ export type NarrateError =
   | TakeMismatch
   | AlignmentMismatch
   | ElevenLabsFailed
-  | FfmpegFailed
-  | FfmpegMissing
+  | MediaFailed
   | StoreError;
 
 /** Takes recorded under the current voice; a different voice leaves none current. */
@@ -156,7 +153,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
       const path = yield* Path.Path;
       const store = yield* ContentStore;
       const elevenLabs = yield* ElevenLabs;
-      const ffmpeg = yield* Ffmpeg;
+      const media = yield* Media;
 
       const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
         film: LoadedFilm,
@@ -197,7 +194,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         yield* store.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
         const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
-        const duration = yield* ffmpeg.probeDuration(take);
+        const duration = yield* media.duration(take);
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
         );
@@ -227,10 +224,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const dir = film.paths.narration;
         if (!(yield* fs.exists(dir))) return;
         const timings = yield* store.read(film.paths.timings);
-        const named = new Set([
-          path.basename(trackFile(film.paths)),
-          ...Object.values(timings.scenes).map((t) => t.file),
-        ]);
+        const named = new Set(Object.values(timings.scenes).map((t) => t.file));
         const stray = (yield* fs.readDirectory(dir)).filter(
           (name) => name.endsWith('.partial') || (name.endsWith('.mp3') && !named.has(name)),
         );

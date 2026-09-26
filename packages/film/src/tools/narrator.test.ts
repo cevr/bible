@@ -1,5 +1,5 @@
 // Narrator with fakes: which beats are recorded, and what a take that says
-// something else does. No network, no ffmpeg.
+// something else does. No network, no media files.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
@@ -12,7 +12,7 @@ import {
   crashingFileSystem,
   emptyCalls,
   fakeElevenLabs,
-  fakeFfmpeg,
+  fakeMedia,
   fakeLength,
   memoryFileSystem,
   storeLayer,
@@ -54,7 +54,7 @@ const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map())
       memoryFileSystem(files),
       Path.layer,
       fakeElevenLabs(files, calls, { heard }),
-      fakeFfmpeg([]),
+      fakeMedia(),
     ]),
   );
   return { files, calls, layer };
@@ -159,7 +159,7 @@ describe('Narrator', () => {
       return new Map([
         [TIMINGS, text(Schema.encodeSync(TimingsJson)(timings))],
         [`${DIR}/a.mp3`, audio],
-        [`${DIR}/full.mp3`, text('mix')],
+        [`${DIR}/full.wav`, text('mix')],
       ]);
     };
     const reRecordA: NarrateOptions = { ...defaults, only: Option.some(new Set(['a'])) };
@@ -167,7 +167,7 @@ describe('Narrator', () => {
     const run = (files: Map<string, Uint8Array>, fs: Layer.Layer<FileSystem.FileSystem>) => {
       const layer = Narrator.layer.pipe(
         Layer.provideMerge(ContentStore.layer.pipe(Layer.provide([fs, Path.layer]))),
-        Layer.provide([fs, Path.layer, fakeElevenLabs(files, emptyCalls()), fakeFfmpeg([], files)]),
+        Layer.provide([fs, Path.layer, fakeElevenLabs(files, emptyCalls()), fakeMedia(files)]),
       );
       return narrate(layer, testVoice, reRecordA);
     };
@@ -212,7 +212,7 @@ describe('Narrator', () => {
             memoryFileSystem(files),
             Path.layer,
             fakeElevenLabs(files, emptyCalls()),
-            fakeFfmpeg([], files),
+            fakeMedia(files),
           ]),
         );
         yield* narrate(layer);
@@ -221,7 +221,7 @@ describe('Narrator', () => {
           new TextDecoder().decode(files.get(TIMINGS)),
         );
         const current = Object.values(takes.scenes).map((t) => `${DIR}/${t.file}`);
-        expect(left).toEqual([`${DIR}/full.mp3`, TIMINGS, ...current].toSorted());
+        expect(left).toEqual([`${DIR}/full.wav`, TIMINGS, ...current].toSorted());
       }),
     );
   });

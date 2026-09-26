@@ -1,5 +1,5 @@
 // The film tools as a library: the services behind the `film` CLI and the
-// pure pieces (the mix graph, the narration plan, the cue reports) they share.
+// pure pieces (the narration plan, the cue reports) they share.
 
 export * from './errors.ts';
 export * from './content-store.ts';

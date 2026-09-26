@@ -13,14 +13,7 @@ import {
 } from '../core/schema.ts';
 import { musicKey, musicPlan } from '../core/sound.ts';
 import { Composer } from './composer.ts';
-import {
-  emptyCalls,
-  fakeElevenLabs,
-  fakeFfmpeg,
-  memoryFileSystem,
-  storeLayer,
-  testFilm,
-} from './testing.ts';
+import { emptyCalls, fakeElevenLabs, memoryFileSystem, storeLayer, testFilm } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [
   { id: 'open', min: 8 },
@@ -54,12 +47,7 @@ describe('Composer', () => {
   const calls = emptyCalls();
   const layer = Composer.layer.pipe(
     Layer.provide(storeLayer(files)),
-    Layer.provide([
-      memoryFileSystem(files),
-      Path.layer,
-      fakeElevenLabs(files, calls),
-      fakeFfmpeg([]),
-    ]),
+    Layer.provide([memoryFileSystem(files), Path.layer, fakeElevenLabs(files, calls)]),
   );
 
   it.effect('without a key, skips the effects and still makes the music', () =>

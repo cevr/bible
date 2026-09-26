@@ -31,12 +31,14 @@ import {
   type FrameFailed,
   type LayoutInvalid,
   type LookbookFailed,
+  type MediaFailed,
   type PageCrashed,
   type PageError,
   RangeEmpty,
 } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
@@ -69,6 +71,7 @@ export type RenderError =
   | LookbookFailed
   | FfmpegFailed
   | FfmpegMissing
+  | MediaFailed
   | AudioMissing
   | AudioStale
   | AudioNotMuxed
@@ -89,6 +92,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const ffmpeg = yield* Ffmpeg;
+      const media = yield* Media;
       const browser = yield* Browser;
       const server = yield* PreviewServer;
 
@@ -119,7 +123,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           duration: total / info.fps,
         }));
         if (Option.isSome(audio)) {
-          const length = yield* measureMaster(fs, ffmpeg, audio.value.file);
+          const length = yield* measureMaster(fs, media, audio.value.file);
           const finding = masterFinding(audio.value.file, length, info.duration, 1 / info.fps);
           if (Option.isSome(finding)) return yield* finding.value;
         }
@@ -179,7 +183,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const list = path.join(segDir, 'list.txt');
         yield* fs.writeFileString(list, concatList(segments));
         yield* ffmpeg.run(muxArgs(list, audio, target));
-        if (Option.isSome(audio) && !(yield* ffmpeg.probeStreams(target)).includes('audio'))
+        if (Option.isSome(audio) && !(yield* media.tracks(target)).includes('audio'))
           return yield* AudioNotMuxed.make({ file: target });
 
         const placed = yield* placeFilm(film);

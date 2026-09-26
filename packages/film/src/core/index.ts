@@ -1,5 +1,5 @@
 // Pure film core: the clock, seeded randomness, narration timing, named cues,
-// sound cues and scene layout. Nothing here touches the DOM at runtime, so the Bun
+// sound cues, scene layout and the mix. Nothing here touches the DOM at runtime, so the Bun
 // scripts and tests import it directly.
 
 export * from './time.ts';
@@ -16,3 +16,5 @@ export * from './notes.ts';
 export * from './affine.ts';
 export * from './moments.ts';
 export * from './audio.ts';
+export * from './dsp.ts';
+export * from './mix.ts';

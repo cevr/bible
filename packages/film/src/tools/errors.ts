@@ -118,6 +118,16 @@ export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed'
   }
 }
 
+/** A sound the mix plays that is not at the mix's rate: the mix never resamples. */
+export class SampleRateMismatch extends Schema.TaggedError<SampleRateMismatch>()(
+  'SampleRateMismatch',
+  { file: Schema.String, rate: Schema.Finite, expected: Schema.Finite },
+) {
+  override get message() {
+    return `${this.file} is at ${this.rate} Hz; the mix runs at ${this.expected} Hz`;
+  }
+}
+
 /** Some named cue ends after its scene does. */
 export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
   count: Schema.Int,

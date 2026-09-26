@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`.                                                                                                                                                                                                                                                          |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                       |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it. |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Ffmpeg, Narrator, Composer, Mixer (`graph` is the pure ffmpeg graph), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck.         |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                      |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                       |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                 |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123: durations, tracks, decode, WAV), Ffmpeg (render only), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
 ## Data
 
@@ -40,19 +40,30 @@ tagged errors (`TakeMismatch`, `ApiKeyMissing`, `FfmpegMissing`, ...) in
 `tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
 
-Preflights: `film doctor` checks ffmpeg and ffprobe (`FfmpegMissing`),
+Preflights: `film doctor` checks ffmpeg (`FfmpegMissing`; render only),
 headless Chromium (launched and closed; `BrowserMissing` carries the install
 command) and the `elevenlabs` CLI and its login (`auth status`, free),
 reports each, and fails if any is missing. `narrate` and `score` run the
-ffmpeg and ElevenLabs checks before their first paid call, and `render`
-checks ffmpeg before it opens a page.
+ElevenLabs check before their first paid call, and `render` checks ffmpeg
+before it opens a page.
 
-`mix` writes `narration/full.mp3` for the player and its lossless master
-`narration/full.wav` (16-bit) from one graph, to `full.partial.mp3|wav`,
-renamed together only once ffmpeg finishes: a failed or interrupted mix leaves
-the previous pair. `masterFinding` holds the master to the film's length
-(`AudioMissing`, `AudioStale`); the renderer checks it before the first frame
-and `check` in its static leg.
+Media files go through `Media` (`tools/media.ts`): mediabunny reads and writes
+the containers in-process, and MP3 decodes through mpg123 (WASM), gapless, so
+a take measures what it plays (`duration`). Every byte moves through the
+FileSystem service; failures are `MediaFailed`.
+
+`mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
+and ducked under it, the effects on their cues, summed and limited: ported
+from the ffmpeg graph it replaced, which it matched to a −98.8 dB residual)
+and writes the film's one track, `narration/full.wav` (16-bit), to
+`full.partial.wav`, renamed only once whole: a failed or interrupted mix
+leaves the previous track. It logs each bus's mean and peak dBFS
+(`mix.levels`), and `--stems` writes each bus the film's length. A sound at
+another rate fails as `SampleRateMismatch`: the mix never resamples. The
+player streams the WAV (the preview server answers range requests);
+`masterFinding` holds it to the film's length (`AudioMissing`, `AudioStale`);
+the renderer checks it before the first frame and `check` in its static
+leg.
 
 `narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
 only by rewriting `timings.json`, so no crash leaves a take and its timings

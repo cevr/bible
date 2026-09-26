@@ -1,9 +1,11 @@
-// Test doubles for the tools: an in-memory file system, and ElevenLabs and
-// ffmpeg that answer from memory and count their calls. No network, no ffmpeg,
-// no credits.
+// Test doubles for the tools: an in-memory file system, and ElevenLabs, media
+// and ffmpeg that answer from memory and count their calls. No network, no
+// ffmpeg, no credits.
 
 import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted, Stream } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
+import { silence } from '../core/audio.ts';
+import { MIX_RATE } from '../core/mix.ts';
 import {
   type ExportInfo,
   SoundManifestJson,
@@ -21,6 +23,7 @@ import { Browser } from './browser.ts';
 import { ApiKeyMissing, type FrameFailed, type PageCrashed, type PageError } from './errors.ts';
 import { Ffmpeg } from './ffmpeg.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import { Media, type TrackKind } from './media.ts';
 import { PreviewServer } from './preview-server.ts';
 
 const notFound = (method: string, path: string) =>
@@ -160,26 +163,40 @@ export const fakeElevenLabs = (
 
 export const emptyCalls = (): ElevenLabsCalls => ({ tts: [], stt: [], music: [], effects: [] });
 
-/** A take's length as the fake ffmpeg measures it: a tenth of a second per byte. */
+/** A take's length as the fake media measures it: a tenth of a second per byte. */
 export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;
 
-/** An ffmpeg that records its runs; with `files`, it measures a file by `fakeLength`, else as 2.5 s. */
-export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>, files?: Map<string, Uint8Array>) =>
+/** An ffmpeg that records its runs. */
+export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
   Layer.succeed(
     Ffmpeg,
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void runs.push(args)),
       version: Effect.void,
-      probeDuration: (file) =>
+      encode: (args, input) =>
+        Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
+    }),
+  );
+
+/**
+ * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
+ * is not there), decodes to a second of mono silence at the mix's rate, and a
+ * WAV written lands as `wav <frames>`.
+ */
+export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
+  Layer.succeed(
+    Media,
+    Media.of({
+      duration: (file) =>
         Effect.succeed(
-          Option.match(Option.fromNullishOr(files?.get(file)), {
+          Option.match(Option.fromNullishOr(files.get(file)), {
             onNone: () => 2.5,
             onSome: fakeLength,
           }),
         ),
-      probeStreams: () => Effect.succeed(['audio']),
-      encode: (args, input) =>
-        Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
+      tracks: () => Effect.succeed(['audio']),
+      decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
+      writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
     }),
   );
 
@@ -228,15 +245,16 @@ export interface FakeRenderHost {
   ) => Effect.Effect<void, PageError | PageCrashed | FrameFailed>;
   /** What a probe of frame `i` reports (nothing by default); failing breaks the page. */
   readonly probe?: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
-  /** How long ffprobe measures the audio master (default: the film's length). */
+  /** How long the audio master measures (default: the film's length). */
   readonly master?: number;
-  /** The streams ffprobe finds in the rendered video (default: video, plus audio if the film has it). */
-  readonly streams?: ReadonlyArray<string>;
+  /** The tracks found in the rendered video (default: video, plus audio if the film has it). */
+  readonly streams?: ReadonlyArray<TrackKind>;
 }
 
 /**
  * A preview server, a browser whose pages draw one-byte frames, and an ffmpeg
- * that drains its input, each recording in `ledger` when it opens and closes.
+ * that drains its input, each recording in `ledger` when it opens and closes;
+ * and media that measures the master and finds the rendered video's tracks.
  */
 export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
@@ -295,22 +313,29 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       () => Effect.sync(() => void (ledger.browser.closed += 1)),
     ),
   );
+  const media = Layer.succeed(
+    Media,
+    Media.of({
+      duration: () =>
+        Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
+      tracks: () =>
+        Effect.succeed(
+          Option.getOrElse(Option.fromNullishOr(host.streams), () =>
+            Option.match(Option.fromNullishOr(info.audio), {
+              onNone: (): ReadonlyArray<TrackKind> => ['video'],
+              onSome: (): ReadonlyArray<TrackKind> => ['video', 'audio'],
+            }),
+          ),
+        ),
+      decode: () => Effect.succeed(silence(MIX_RATE, 0, 2)),
+      writeWav: () => Effect.void,
+    }),
+  );
   const ffmpeg = Layer.succeed(
     Ffmpeg,
     Ffmpeg.of({
       run: (args) => Effect.sync(() => void ledger.runs.push(args)),
       version: Effect.void,
-      probeDuration: () =>
-        Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
-      probeStreams: () =>
-        Effect.succeed(
-          Option.getOrElse(Option.fromNullishOr(host.streams), () =>
-            Option.match(Option.fromNullishOr(info.audio), {
-              onNone: () => ['video'],
-              onSome: () => ['video', 'audio'],
-            }),
-          ),
-        ),
       encode: (_args, input) =>
         Effect.acquireUseRelease(
           Effect.sync(() => void (ledger.encoders.spawned += 1)),
@@ -325,7 +350,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
     }),
   );
-  return Layer.mergeAll(server, browser, ffmpeg);
+  return Layer.mergeAll(server, browser, ffmpeg, media);
 };
 
 export const testVoice: Voice = {
