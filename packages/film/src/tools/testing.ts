@@ -382,6 +382,8 @@ export const textBox = (
     readonly rot?: number;
     readonly scene?: string;
     readonly order?: number;
+    /** The seed of the hand that wrote it: what a stroke's `marks` names. */
+    readonly hand?: number;
   } = {},
 ): TextBox => {
   const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
@@ -409,6 +411,10 @@ export const textBox = (
     corners,
     alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
     order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
+    ...Option.match(Option.fromNullishOr(options.hand), {
+      onNone: () => ({}),
+      onSome: (hand) => ({ hand }),
+    }),
   };
 };
 
@@ -423,7 +429,8 @@ export const inkMark = (
     readonly width?: number;
     readonly alpha?: number;
     readonly order?: number;
-    readonly marks?: string;
+    /** The seeds of the hands whose text this stroke marks on purpose. */
+    readonly marks?: ReadonlyArray<number>;
   } = {},
 ): InkMark => {
   const xs = points.map((c) => c[0]);

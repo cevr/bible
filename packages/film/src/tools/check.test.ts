@@ -168,10 +168,66 @@ describe('ink over text', () => {
   });
 
   test('a stroke that marks the text on purpose may cross it; another text it crosses is still found', () => {
-    const strike = rule(204, { marks: 'MINNEAPOLIS' });
-    expect(frameFindings(sample, { texts: [city], inks: [strike] }, frame)).toEqual([]);
-    const other = textBox('1888', 1300, 196, 120, 30, { order: 6 });
-    expect(tags(frameFindings(sample, { texts: [city, other], inks: [strike] }, frame))).toEqual([
+    const marked = { ...city, hand: 11 };
+    const strike = rule(204, { marks: [11] });
+    expect(frameFindings(sample, { texts: [marked], inks: [strike] }, frame)).toEqual([]);
+    const other = textBox('1888', 1300, 196, 120, 30, { order: 6, hand: 12 });
+    expect(tags(frameFindings(sample, { texts: [marked, other], inks: [strike] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('marks binds to the one line it names, not to every line with the same words', () => {
+    // Two GUILTY stamps; the strike is declared for the first and runs through the second.
+    const first = textBox('GUILTY', 300, 400, 300, 60, { order: 5, hand: 21 });
+    const second = textBox('GUILTY', 1200, 400, 300, 60, { order: 5, hand: 22 });
+    const strike = inkMark(
+      'stroke',
+      [
+        [1150, 430],
+        [1550, 432],
+      ],
+      { order: 6, width: 12, marks: [21] },
+    );
+    const found = frameFindings(sample, { texts: [first, second], inks: [strike] }, frame);
+    expect(tags(found)).toEqual(['InkOverText']);
+    expect(found[0]).toMatchObject({ text: 'GUILTY', x: 1150 });
+  });
+
+  test('a wide stroke counts its width: 40 px of ink whose centre passes above 12 px text covers it', () => {
+    const small = textBox('small print', 800, 500, 200, 12, { order: 5 });
+    // Centre line 10 px above the text's top: the stroke's lower half covers 10 of its 12 px.
+    const band = (width: number) =>
+      inkMark(
+        'stroke',
+        [
+          [700, 490],
+          [1100, 490],
+        ],
+        { order: 6, width },
+      );
+    expect(tags(frameFindings(sample, { texts: [small], inks: [band(40)] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+    // A thin one on the same line stays clear of it.
+    expect(frameFindings(sample, { texts: [small], inks: [band(8)] }, frame)).toEqual([]);
+  });
+
+  test('page texture is light AND thin: a light bar as wide as the letters under them is found', () => {
+    // 0.5 opacity, drawn before the text, but 70 px wide across 28 px letters.
+    const bar = rule(204, { alpha: 0.5, width: 70 });
+    expect(tags(frameFindings(sample, { texts: [city], inks: [bar] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+    // The same light ink as a rule a third of the letters' height or less is texture.
+    const greeked = rule(204, { alpha: 0.5, width: 9 });
+    expect(frameFindings(sample, { texts: [city], inks: [greeked] }, frame)).toEqual([]);
+  });
+
+  test('ink at 0.3 opacity or less does not read over text and is not checked; above it is', () => {
+    const over = (alpha: number) => rule(204, { alpha, order: 6 });
+    expect(frameFindings(sample, { texts: [city], inks: [over(0.3)] }, frame)).toEqual([]);
+    expect(tags(frameFindings(sample, { texts: [city], inks: [over(0.31)] }, frame))).toEqual([
       'InkOverText',
     ]);
   });
@@ -194,6 +250,57 @@ describe('ink over text', () => {
     expect(
       tags(frameFindings(sample, { texts: [city], inks: [plate(2), rule(200)] }, frame)),
     ).toEqual(['InkOverText']);
+  });
+
+  test('a plate over the text hides the edge of a wide stroke whose centre runs beside it', () => {
+    // A caption on its plate, and a 60 px arm drawn before it whose centre
+    // line runs 20 px below the plate: only the arm's edge reaches the words,
+    // and the plate covers exactly that edge.
+    const caption = textBox('and in the darkened void', 700, 960, 520, 60, { order: 5 });
+    const plate = inkMark(
+      'plate',
+      [
+        [700, 960],
+        [1220, 960],
+        [1220, 1020],
+        [700, 1020],
+      ],
+      { order: 4 },
+    );
+    const arm = inkMark(
+      'stroke',
+      [
+        [600, 1040],
+        [1300, 1040],
+      ],
+      { order: 2, width: 60 },
+    );
+    expect(frameFindings(sample, { texts: [caption], inks: [arm, plate] }, frame)).toEqual([]);
+    // Without the plate, its edge is over the words.
+    expect(tags(frameFindings(sample, { texts: [caption], inks: [arm] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('fills over a stroke fade it by their opacity: hidden once what shows is 0.3 or less', () => {
+    // A blanket fading out over an arm: at 0.74 the arm shows at 0.26 and
+    // does not read; at 0.5 it shows at 0.5 and does; two 0.5 layers leave 0.25.
+    const blanket = (alpha: number, order: number) =>
+      inkMark(
+        'fill',
+        [
+          [680, 180],
+          [1240, 180],
+          [1240, 230],
+          [680, 230],
+        ],
+        { order, alpha },
+      );
+    const shown = (inks: ReadonlyArray<ReturnType<typeof inkMark>>) =>
+      tags(frameFindings(sample, { texts: [city], inks: [rule(200), ...inks] }, frame));
+    expect(shown([blanket(0.74, 4)])).toEqual([]);
+    expect(shown([blanket(0.5, 4)])).toEqual(['InkOverText']);
+    expect(shown([blanket(0.5, 4), blanket(0.5, 4.5)])).toEqual([]);
   });
 });
 
@@ -220,14 +327,35 @@ describe('plates off the frame', () => {
     expect(found[0]).toMatchObject({ right: 60 });
   });
 
-  test('a plate with no text on it, a backdrop, a panel half the frame high, or text drawn before it, is not', () => {
+  test('a banner half the frame high but narrow is not a backdrop: cut by the edge, it is found', () => {
+    // 300 × 600, 100 px past the right edge.
+    const banner = inkMark(
+      'fill',
+      [
+        [1720, 200],
+        [2020, 200],
+        [2020, 800],
+        [1720, 800],
+      ],
+      { order: 1 },
+    );
+    const found = frameFindings(
+      sample,
+      { texts: [textBox('VERDICT', 1740, 480, 150, 40, { order: 2 })], inks: [banner] },
+      frame,
+    );
+    expect(found).toMatchObject([{ _tag: 'PlateOffFrame', text: 'VERDICT', right: 100 }]);
+  });
+
+  test('a plate with no text on it, a backdrop, a panel half the frame wide and high, or text drawn before it, is not', () => {
+    // One half of a split page: 960 wide, the frame's height and more.
     const panel = inkMark(
       'fill',
       [
-        [1110, 340],
+        [1000, 340],
         [2010, 340],
         [2010, 1120],
-        [1110, 1120],
+        [1000, 1120],
       ],
       { order: 1 },
     );
@@ -275,6 +403,43 @@ describe('plates off the frame', () => {
       frame,
     );
     expect(tags(leaving)).toEqual(['TextOffFrame']);
+  });
+
+  test('text wholly off the frame shows nothing, so the plate under it is not cut off', () => {
+    // A room slid away left: its sheet still shows 10 px at the edge, its words are gone.
+    const sheet = inkMark(
+      'fill',
+      [
+        [-890, 340],
+        [10, 340],
+        [10, 1120],
+        [-890, 1120],
+      ],
+      { order: 0 },
+    );
+    const gone = textBox('far away', -574, 402, 169, 39, { order: 2 });
+    expect(frameFindings(sample, { texts: [gone], inks: [sheet] }, frame)).toEqual([]);
+  });
+
+  test('a band that runs past both opposite edges spans the frame: it may bleed', () => {
+    // A stripe of sky the frame's width and 60 px more each side, a quote on it.
+    const band = (left: number) =>
+      inkMark(
+        'fill',
+        [
+          [left, 170],
+          [1980, 170],
+          [1980, 430],
+          [left, 430],
+        ],
+        { order: 1 },
+      );
+    const quote = textBox('must the Son of man be lifted up.', 549, 220, 822, 58, { order: 2 });
+    expect(frameFindings(sample, { texts: [quote], inks: [band(-60)] }, frame)).toEqual([]);
+    // Past one edge only, the same band is cut off.
+    expect(tags(frameFindings(sample, { texts: [quote], inks: [band(40)] }, frame))).toEqual([
+      'PlateOffFrame',
+    ]);
   });
 });
 

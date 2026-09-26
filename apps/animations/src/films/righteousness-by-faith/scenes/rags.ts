@@ -187,7 +187,7 @@ export const rags: Drawing = {
             ctx,
             quad([x - 30, y], [x, y + 12], [x + 34, y - 6]),
             // It soils the promises pinned there too: they are the filthy rags.
-            { color: C.ink, width: 10, marks: 'I promise!' },
+            { color: C.ink, width: 10, marks: NOTES.map((_, n) => f.hand(`noteT${n}`)) },
             f.hand(`grime${k}`),
           );
         }

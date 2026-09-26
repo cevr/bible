@@ -337,6 +337,11 @@ export const TextBox = Schema.Struct({
   corners: Schema.Tuple([Point, Point, Point, Point]),
   alpha: Schema.Finite,
   order: Schema.Int,
+  /**
+   * The seed of the hand that wrote it (`f.hand(key)`): which line this is,
+   * when two say the same words. A stroke's `marks` names it.
+   */
+  hand: Schema.optionalKey(Schema.Finite),
 });
 export type TextBox = typeof TextBox.Type;
 
@@ -345,8 +350,10 @@ export type TextBox = typeof TextBox.Type;
  * and its width), a `fill` (a cutout's or flat fill's outline) or a declared
  * `plate` under a line of text (`probePlate`, the caption plate). In canvas
  * pixels after its transform, with the box around it, its effective opacity
- * and its place in the frame's drawing order. `marks` names the text a stroke
- * marks on purpose (a strike through it, a ring round it), which it may cross.
+ * and its place in the frame's drawing order. `marks` names the lines of text
+ * a stroke marks on purpose (a strike through it, a ring round it), by the
+ * seed of the hand that wrote each: it may cross those lines, and no other,
+ * even one with the same words.
  */
 export const InkMark = Schema.Struct({
   kind: Schema.Literals(['stroke', 'fill', 'plate']),
@@ -359,7 +366,7 @@ export const InkMark = Schema.Struct({
   h: Schema.Finite,
   alpha: Schema.Finite,
   order: Schema.Int,
-  marks: Schema.optionalKey(Schema.String),
+  marks: Schema.optionalKey(Schema.Array(Schema.Finite)),
 });
 export type InkMark = typeof InkMark.Type;
 

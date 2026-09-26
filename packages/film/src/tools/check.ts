@@ -314,6 +314,13 @@ export const overlapArea = (a: TextBox, b: TextBox): number => {
   return sharedArea(a.corners, b.corners);
 };
 
+/** Whether a box lies wholly outside a `width` × `height` frame: it shows nothing. */
+export const offFrame = (
+  box: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  width: number,
+  height: number,
+) => box.x >= width || box.y >= height || box.x + box.w <= 0 || box.y + box.h <= 0;
+
 /**
  * How far a box reaches past each edge of a `width` × `height` frame (0 where
  * it does not). A box wholly outside the frame shows nothing, so it reaches
@@ -324,8 +331,7 @@ export const pastFrame = (
   width: number,
   height: number,
 ) => {
-  const gone = box.x >= width || box.y >= height || box.x + box.w <= 0 || box.y + box.h <= 0;
-  if (gone) return { left: 0, top: 0, right: 0, bottom: 0 };
+  if (offFrame(box, width, height)) return { left: 0, top: 0, right: 0, bottom: 0 };
   return {
     left: Math.max(0, -box.x),
     top: Math.max(0, -box.y),
@@ -335,17 +341,29 @@ export const pastFrame = (
 };
 
 /**
- * A plate or fill at least this opaque hides the strokes drawn before it; a
- * fainter one lets them show through.
+ * A plate or fill drawn over a stroke lets `1 - alpha` of it through, and
+ * layers multiply: the stroke is hidden where what shows of it is no more
+ * than `VISIBLE_ALPHA`, the opacity below which ink does not read over text
+ * (so a full-strength stroke is hidden by one layer at 0.7 or more).
  */
-export const HIDING_ALPHA = 0.8;
+export const showing = (stroke: InkMark, layers: ReadonlyArray<InkMark>): number =>
+  layers.reduce((left, layer) => left * (1 - layer.alpha), stroke.alpha);
 /**
- * A stroke drawn before a line of text lies under it, and one at no more than
- * this opacity is page texture the words read over (greeked copy on a
- * newspaper, the lines of a decree under its stamp): only a stroke drawn over
- * the text, or a heavier one under it, strikes it.
+ * A stroke drawn before a line of text lies under it, and one that is both
+ * light and thin is page texture the words read over (greeked copy on a
+ * newspaper, the lines of a decree under its stamp). Light: at most this
+ * opacity, so full-strength letters keep at least twice the ink's contrast
+ * over it. Only a stroke drawn over the text, or a heavier or wider one under
+ * it, strikes it.
  */
 export const UNDER_ALPHA = 0.5;
+/**
+ * Thin, for texture: at most this share of the letters' height (the text box
+ * measured down its own side, so a turned line counts its real height). A
+ * rule that thin sits across a third of each glyph at most and every letter
+ * keeps its shape; a wider one is a bar through the words.
+ */
+export const TEXTURE_WIDTH = 1 / 3;
 /** Along a crossing, the check looks for a plate over the stroke every this many pixels. */
 const CROSS_STEP = 2;
 
@@ -390,22 +408,51 @@ export const clipSegment = (
   return Option.some([enter, leave]);
 };
 
+/** The point of the segment `a` → `b` nearest `p`. */
+const nearestOnSegment = (a: Point, b: Point, p: Point): Point => {
+  const d = sub(b, a);
+  const span = d[0] * d[0] + d[1] * d[1];
+  if (span === 0) return a;
+  const t = Math.min(1, Math.max(0, ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / span));
+  return [a[0] + d[0] * t, a[1] + d[1] * t];
+};
+
+/** The point of the quad `q` (its inside or its outline) nearest `p`: `p` itself when inside. */
+export const nearestIn = (q: Quad, p: Point): Point => {
+  if (insidePolygon(q, p)) return p;
+  const candidates = q.map((a, i) => nearestOnSegment(a, Arr.getUnsafe(q, (i + 1) % q.length), p));
+  return Arr.reduce(candidates.slice(1), Arr.getUnsafe(candidates, 0), (best, c) => {
+    if (Math.hypot(...sub(c, p)) < Math.hypot(...sub(best, p))) return c;
+    return best;
+  });
+};
+
 /**
  * How much of a stroke runs through a line of text where it shows: its
- * centre line clipped to the text's box, grown by half the stroke's width less
- * half the tolerance (so a stroke that grazes a box by no more than the
- * tolerance does not cross it), less every stretch a plate or fill drawn
- * after the stroke covers.
+ * centre line clipped to the text's box grown by half the stroke's width (in
+ * canvas pixels, after its transform) less half the tolerance, so the
+ * stroke's edge, not its centre, is what meets the letters, and a stroke that
+ * grazes a box by no more than the tolerance does not cross it; less every
+ * stretch the plates and fills drawn after the stroke hide (see `showing`). Where the centre
+ * runs beside the box, what meets the letters is the edge, so a plate hides
+ * that stretch when it covers the point of the letters (less the tolerance)
+ * nearest the centre.
  */
 export const crossing = (
   stroke: InkMark,
   text: TextBox,
   covers: ReadonlyArray<InkMark>,
 ): number => {
-  const box = inset(text.corners, OVERLAP_TOLERANCE / 2);
+  const box = inset(text.corners, OVERLAP_TOLERANCE / 2 - stroke.width / 2);
   if (Option.isNone(box)) return 0;
   const over = covers.filter((c) => c.order > stroke.order);
-  const hidden = (at: Point) => over.some((c) => insidePolygon(c.points, at));
+  // The letters less the tolerance: where an edge that crosses by more than it lands.
+  const letters = Option.getOrElse(inset(text.corners, OVERLAP_TOLERANCE / 2), () => text.corners);
+  const hidden = (at: Point) => {
+    const meets = nearestIn(letters, at);
+    const layers = over.filter((c) => insidePolygon(c.points, meets));
+    return showing(stroke, layers) <= VISIBLE_ALPHA;
+  };
   return stroke.points.slice(1).reduce((sum, q, i) => {
     const p = Arr.getUnsafe(stroke.points, i);
     return Option.match(clipSegment(p, q, box.value), {
@@ -446,21 +493,42 @@ const boundsOf = (marks: ReadonlyArray<InkMark>) => {
   };
 };
 
+/** The letters' height: the text box measured down its own side. */
+const lettersHeight = (text: TextBox) => Math.hypot(...sub(text.corners[3], text.corners[0]));
+
+/** Whether `stroke` marks this very line on purpose: it names the hand that wrote it. */
+const marksLine = (stroke: InkMark, text: TextBox) =>
+  text.scene === stroke.scene &&
+  Option.exists(Option.fromUndefinedOr(text.hand), (hand) =>
+    Option.exists(Option.fromUndefinedOr(stroke.marks), (marks) => marks.includes(hand)),
+  );
+
+/** Whether `stroke` is page texture under `text`: drawn before it, light and thin. */
+const textureUnder = (stroke: InkMark, text: TextBox) =>
+  stroke.order < text.order &&
+  stroke.alpha <= UNDER_ALPHA &&
+  stroke.width <= lettersHeight(text) * TEXTURE_WIDTH;
+
 /**
- * Strokes across text: for each visible line, the visible strokes whose
- * centre line runs through its box (and is not hidden there by a plate drawn
- * after them), other than a stroke that `marks` that very text on purpose.
+ * Strokes across text: for each visible line, the visible strokes (more than
+ * `VISIBLE_ALPHA`: fainter ink does not read over letters) whose width runs
+ * through its box (and is not hidden there by the plates and fills drawn after them),
+ * other than page texture under it and a stroke that `marks` that very line.
+ *
+ * Hatching is not measured: it is shading clipped inside a cutout, which the
+ * probe records as a fill (`unprobed` in the draw path), so its lines are not
+ * where its ink shows; the cutout's outline is what the check sees.
  */
 export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOverText> => {
   const texts = probed.texts.filter(visible);
   const strokes = probed.inks.filter((m) => m.kind === 'stroke' && m.alpha > VISIBLE_ALPHA);
-  const covers = probed.inks.filter((m) => m.kind !== 'stroke' && m.alpha >= HIDING_ALPHA);
+  const covers = probed.inks.filter((m) => m.kind !== 'stroke');
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const byText = new Map<string, Array<readonly [InkMark, number]>>();
   for (const text of texts)
     for (const stroke of strokes) {
-      if (stroke.marks === text.text || !near(stroke, text, stroke.width)) continue;
-      if (stroke.order < text.order && stroke.alpha <= UNDER_ALPHA) continue;
+      if (marksLine(stroke, text) || !near(stroke, text, stroke.width)) continue;
+      if (textureUnder(stroke, text)) continue;
       const length = crossing(stroke, text, covers);
       if (length <= OVERLAP_TOLERANCE) continue;
       const found = Option.getOrElse(Option.fromNullishOr(byText.get(text.text)), () => []);
@@ -492,7 +560,7 @@ const plateUnder = (probed: Probed, text: TextBox) => {
   );
 };
 
-/** A plate at least this share of the frame wide or high is a backdrop, and may bleed. */
+/** A plate at least this share of the frame wide and high is a backdrop, and may bleed. */
 const BACKDROP = 0.5;
 /** How far a plate may drift between two frames and still be at rest. */
 const AT_REST = 1;
@@ -501,10 +569,14 @@ const AT_REST = 1;
  * Plates cut off by the frame: a line of text, wholly inside the frame, whose
  * plate (the topmost fill under its centre, drawn before it) reaches past an
  * edge by more than the tolerance and sits still there (`next`, the following
- * frame, has the same line on the same plate). A plate half the frame wide or
- * high is a backdrop or a panel (a sky, a split page) and bleeds off it by
- * design; a line that is past an edge itself, or a plate still moving, is
- * entering or leaving.
+ * frame, has the same line on the same plate). Two kinds of plate bleed off it
+ * by design: one at least half the frame wide and half its height, a backdrop
+ * or a panel (a sky, a split page), and a band that runs past both opposite
+ * edges (a stripe of sky across the frame), whose ends are never meant to
+ * show; a banner that is only tall, or only wide, and cut by one edge, is a
+ * plate like any other. A line that is past an edge itself, or wholly off
+ * the frame (it shows nothing), or a plate still moving, is entering or
+ * leaving.
  */
 export const platesOffFrame = (
   sample: Sample,
@@ -528,14 +600,18 @@ export const platesOffFrame = (
       });
     });
   return probed.texts.filter(visible).flatMap((text) => {
+    if (offFrame(text, size.width, size.height)) return [];
     const inside = pastFrame(text, size.width, size.height);
     if (Math.max(inside.left, inside.top, inside.right, inside.bottom) > 0) return [];
     return Option.match(plateUnder(probed, text), {
       onNone: () => [],
       onSome: (plate) => {
-        if (plate.w >= size.width * BACKDROP || plate.h >= size.height * BACKDROP) return [];
+        if (plate.w >= size.width * BACKDROP && plate.h >= size.height * BACKDROP) return [];
         const past = pastFrame(plate, size.width, size.height);
         if (Math.max(past.left, past.top, past.right, past.bottom) <= OVERLAP_TOLERANCE) return [];
+        const across = past.left > OVERLAP_TOLERANCE && past.right > OVERLAP_TOLERANCE;
+        const down = past.top > OVERLAP_TOLERANCE && past.bottom > OVERLAP_TOLERANCE;
+        if (across || down) return [];
         if (!still(plate, text)) return [];
         return [PlateOffFrame.make({ ...where, text: text.text, ...past })];
       },

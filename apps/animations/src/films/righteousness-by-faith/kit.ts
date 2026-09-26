@@ -164,7 +164,14 @@ export const wordCard = (
     stroke(
       ctx,
       line([x - gw / 2 - 20, gy - 20], [x + gw / 2 + 20, gy - 16], 0.02, 5),
-      { color: C.glow, width: 64, progress: gP, alpha: 0.9, taper: 0.05, marks: opts.gloss },
+      {
+        color: C.glow,
+        width: 64,
+        progress: gP,
+        alpha: 0.9,
+        taper: 0.05,
+        marks: [f.hand(`g:${word}`)],
+      },
       f.hand(`sw:${word}`),
     );
     write(ctx, opts.gloss, x, gy, style, f.hand(`g:${word}`), { progress: gP, reveal: 'write' });

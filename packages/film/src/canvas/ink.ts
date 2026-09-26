@@ -262,11 +262,13 @@ export interface StrokeStyle {
   pressure?: number;
   alpha?: number;
   /**
-   * The text this stroke marks on purpose: a strike through it, a ring round
-   * it, an underline. `film check` lets it cross that text; any other text it
-   * crosses is a finding. Changes nothing drawn.
+   * The lines of text this stroke marks on purpose (a strike through one, a
+   * ring round it, an underline), each named by the hand that wrote it: the
+   * very `f.hand(key)` passed to `write`. `film check` lets it cross those
+   * lines; any other text it crosses is a finding, even the same words written
+   * by another hand. Changes nothing drawn.
    */
-  marks?: string;
+  marks?: ReadonlyArray<Hand>;
 }
 
 /**
@@ -328,7 +330,15 @@ export const stroke = (
   ctx.fill();
   const probe = probeOf(ctx);
   if (probe !== undefined)
-    recordInk(ctx, probe, 'stroke', drawn, style.width, ctx.globalAlpha, style.marks);
+    recordInk(
+      ctx,
+      probe,
+      'stroke',
+      drawn,
+      style.width,
+      ctx.globalAlpha,
+      style.marks?.map((h) => h.seed),
+    );
   ctx.restore();
 };
 

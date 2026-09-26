@@ -28,7 +28,11 @@ export interface Probe {
 
 const probes = new WeakMap<CanvasRenderingContext2D, Probe>();
 
-/** Run `draw` with `probe` recording the text drawn into `ctx`; without a probe, just draw. */
+/**
+ * Run `draw` with `probe` recording the text drawn into `ctx`; without a
+ * probe, just draw. The probe comes off even when `draw` throws, so a failed
+ * frame's probe never records the next frame.
+ */
 export const probing = (
   ctx: CanvasRenderingContext2D,
   probe: Probe | undefined,
@@ -36,8 +40,11 @@ export const probing = (
 ) => {
   if (probe === undefined) return draw();
   probes.set(ctx, probe);
-  draw();
-  probes.delete(ctx);
+  try {
+    draw();
+  } finally {
+    probes.delete(ctx);
+  }
 };
 
 /** The probe attached to `ctx`, if a check is recording it. */
@@ -51,8 +58,11 @@ export const unprobed = (ctx: CanvasRenderingContext2D, draw: () => void) => {
   const probe = probes.get(ctx);
   if (probe === undefined) return draw();
   probes.delete(ctx);
-  draw();
-  probes.set(ctx, probe);
+  try {
+    draw();
+  } finally {
+    probes.set(ctx, probe);
+  }
 };
 
 /** When the next record lands in the frame's drawing order. */
@@ -81,6 +91,7 @@ export const recordText = (
   width: number,
   height: number,
   alpha: number,
+  hand?: number,
 ) => {
   const map = screen(ctx, probe);
   const corners: [Point, Point, Point, Point] = [
@@ -93,7 +104,7 @@ export const recordText = (
   const ys = corners.map((c) => c[1]);
   const x = Math.min(...xs);
   const y = Math.min(...ys);
-  probe.sink.texts.push({
+  const box: TextBox = {
     text,
     scene: probe.scene,
     x,
@@ -103,7 +114,8 @@ export const recordText = (
     corners,
     alpha: alpha * probe.alpha,
     order: nextOrder(probe.sink),
-  });
+  };
+  probe.sink.texts.push(hand === undefined ? box : { ...box, hand });
 };
 
 /** A recorded path keeps a point every this many pixels (in its own space) at most. */
@@ -113,6 +125,8 @@ const INK_STEP = 6;
  * Record a mark of ink drawn in the current transform's space: a stroke's
  * centre line `path` `width` wide, or a fill's or plate's outline, at opacity
  * `alpha`. The path is thinned to a point every few pixels; its ends stay.
+ * `marks` are the seeds of the hands whose lines of text the stroke marks on
+ * purpose.
  */
 export const recordInk = (
   ctx: CanvasRenderingContext2D,
@@ -121,7 +135,7 @@ export const recordInk = (
   path: ReadonlyArray<Point>,
   width: number,
   alpha: number,
-  marks?: string,
+  marks?: ReadonlyArray<number>,
 ) => {
   const first = path[0];
   if (first === undefined) return;

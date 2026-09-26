@@ -148,6 +148,7 @@ export const write = (
       shownTo - shownFrom,
       ascent + descent,
       baseAlpha * shownAlpha,
+      hand.seed,
     );
   }
   ctx.restore();
@@ -261,6 +262,7 @@ const writeWhole = (
       shown,
       ascent + descent,
       ctx.globalAlpha,
+      hand.seed,
     );
   }
   ctx.restore();

@@ -203,6 +203,16 @@
       }
     },
     {
+      // The check's probe, on the draw path: it attaches to a canvas context
+      // for one synchronous draw, and must come off even when the draw throws
+      // (else the next frame records into a failed frame's list). The draw
+      // path runs no Effect, so a plain try/finally is the release.
+      "files": ["**/packages/film/src/canvas/probe.ts"],
+      "rules": {
+        "effect/noTryCatch": "off"
+      }
+    },
+    {
       // The film clock, read by the draw path every frame and by the tools:
       // `layout` places scenes, `narration` times words, `timeline` resolves
       // named cues. Optional scene fields stay plain optionals, and a layout

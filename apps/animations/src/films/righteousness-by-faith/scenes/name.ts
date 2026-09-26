@@ -53,7 +53,7 @@ export const name = drawing({
             width: 16,
             progress: progress(t, not - 0.6, 0.8),
             alpha: 0.9,
-            marks: 'just with God?',
+            marks: [f.hand('q2')],
           },
           f.hand('swash'),
         );
