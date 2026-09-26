@@ -8,6 +8,8 @@ import type { Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
+import { composeContact } from './contact.ts';
+import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 
 const FONTS = [
@@ -23,15 +25,19 @@ const FONTS = [
   '700 40px "Gaegu"',
 ];
 
-/** A canvas as base64 PNG or JPEG: what the export handle hands back across `page.evaluate`. */
-const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
-  if (blob === null) throw new Error('toBlob failed');
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+/** Bytes as base64: what the export handle hands back across `page.evaluate`. */
+const base64 = (bytes: Uint8Array) => {
   let bin = '';
   for (let k = 0; k < bytes.length; k += 0x8000)
     bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
   return btoa(bin);
+};
+
+/** A canvas as base64 PNG or JPEG. */
+const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
+  if (blob === null) throw new Error('toBlob failed');
+  return base64(new Uint8Array(await blob.arrayBuffer()));
 };
 
 export interface ExportHandle {
@@ -47,6 +53,12 @@ export interface ExportHandle {
   probe(i: number): Probed;
   /** Compose the film's look-book (`composeLookbook`) and return it encoded. */
   lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
+  /** Whether the film can be encoded here at `scale` (`encoderCheck`). */
+  encoder(scale: number): Promise<EncoderCheck>;
+  /** Frames `[from, to)` encoded as an H.264 MP4 at `scale` (`encodeChunk`), as base64. */
+  encode(from: number, to: number, scale: number): Promise<string>;
+  /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
+  contact(frames: ReadonlyArray<number>): Promise<string>;
 }
 
 declare global {
@@ -124,6 +136,7 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
 
     if (exporting) {
       document.body.classList.add('export');
+      const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
       window.__film = {
         width: film.width,
         height: film.height,
@@ -132,7 +145,7 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         frames: Math.ceil(film.duration * film.fps),
         audio: film.audio,
         frame: (i, type = 'image/png') => {
-          film.render(ctx, i / film.fps, { captions: captions.on });
+          draw(i);
           return encode(canvas, type);
         },
         probe: (i) => {
@@ -142,6 +155,10 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         },
         lookbook: async (type = 'image/jpeg') =>
           encode((await composeLookbook(film, { captions: captions.on })).canvas, type),
+        encoder: (scale) => encoderCheck(canvas, film.fps, scale),
+        encode: async (from, to, scale) =>
+          base64(await encodeChunk(draw, canvas, film.fps, from, to, scale)),
+        contact: (frames) => encode(composeContact(draw, canvas, frames), 'image/jpeg'),
       };
       return;
     }

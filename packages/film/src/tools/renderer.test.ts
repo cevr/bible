@@ -1,10 +1,10 @@
 // Renderer with fakes: a failure in one page, an interrupt, or a crash closes
-// or recovers every resource the render opened. No Chromium, no ffmpeg.
+// or recovers every resource the render opened. No Chromium, no encoder.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
-import { PageCrashed, PageError } from './errors.ts';
+import { EncoderMissing, PageCrashed, PageError } from './errors.ts';
 import { RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
 import {
@@ -44,7 +44,7 @@ const setup = (host: FakeRenderHost = {}) => {
   return { ledger, files, render };
 };
 
-/** Every resource the render opened was closed, and every encoder ended. */
+/** Every resource the render opened was closed, and every chunk's encode ended. */
 const expectAllClosed = (ledger: RenderLedger) => {
   expect(ledger.server).toEqual({ started: 1, stopped: 1 });
   expect(ledger.browser).toEqual({ launched: 1, closed: 1 });
@@ -54,7 +54,7 @@ const expectAllClosed = (ledger: RenderLedger) => {
 };
 
 describe('Renderer', () => {
-  it.live('renders every frame once, joins the segments, and closes everything', () =>
+  it.live('renders every frame once, joins the segments in order, and closes everything', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
       yield* render(video);
@@ -63,8 +63,30 @@ describe('Renderer', () => {
       );
       expect(ledger.encoders).toEqual({ spawned: 16, finished: 16, killed: 0 });
       expect(ledger.pages.opened).toBe(4);
-      expect(ledger.runs[0]).toContain('concat');
+      const [join] = ledger.joins;
+      expect(join?.out).toBe('/out/test.mp4');
+      expect(join?.frames).toBe(600);
+      // Sixteen chunks of 38 frames (the last 30), each placed where its first frame plays.
+      expect(join?.segments.map((s) => s.at)).toEqual(
+        Array.from({ length: 16 }, (_, k) => (k * 38) / 30),
+      );
+      expect(files.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
+      expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test.vtt')).toBe(true);
+      expectAllClosed(ledger);
+    }),
+  );
+
+  it.live('a browser that cannot encode the film fails before a frame is drawn', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup({
+        encoder: Effect.fail(EncoderMissing.make({ reason: 'no H.264' })),
+      });
+      const exit = yield* Effect.exit(render(video));
+      expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag))).toEqual(
+        Option.some('EncoderMissing'),
+      );
+      expect(ledger.frames).toEqual([]);
       expectAllClosed(ledger);
     }),
   );
@@ -85,10 +107,10 @@ describe('Renderer', () => {
         expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag))).toEqual(
           Option.some('PageError'),
         );
-        // Sibling chunks were mid-encode: their ffmpeg children were killed, not left running.
+        // Sibling chunks were mid-encode: they were cut off, not left running.
         expect(ledger.encoders.killed).toBeGreaterThan(1);
         expect(ledger.frames).not.toContain(599);
-        expect(ledger.runs).toEqual([]);
+        expect(ledger.joins).toEqual([]);
         expectAllClosed(ledger);
       }),
   );
@@ -162,8 +184,9 @@ describe('Renderer', () => {
           to: Option.none(),
         }),
       );
-      expect(files.has('/out/test/g/contact/0003.jpg')).toBe(true);
-      expect(ledger.runs.at(-1)?.join(' ')).toContain('tile=6x1');
+      // One page tiles every fifth second's frame into the sheet.
+      expect(files.has('/out/test/g/contact.jpg')).toBe(true);
+      expect(ledger.contacts).toEqual([[0, 150, 300, 450]]);
     }),
   );
 
@@ -184,13 +207,27 @@ describe('Renderer', () => {
     const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
       Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));
 
-    it.live('muxes the master when it covers the film', () =>
+    it.live('joins the master under the film when it covers it', () =>
       Effect.gen(function* () {
         const { ledger, files, render } = setup({ info });
         files.set(MASTER, text('pcm'));
         yield* render(video);
-        expect(ledger.runs[0]).toContain(MASTER);
+        const audio = ledger.joins[0]?.audio ?? Option.none();
+        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(20 * 44100));
         expectAllClosed(ledger);
+      }),
+    );
+
+    it.live('a range takes the master under that range only', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({ info });
+        files.set(MASTER, text('pcm'));
+        yield* render({ ...video, from: Option.some(2), to: Option.some(5) });
+        const [join] = ledger.joins;
+        expect(join?.frames).toBe(90);
+        expect(join?.segments[0]?.at).toBe(0);
+        const audio = join?.audio ?? Option.none();
+        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(3 * 44100));
       }),
     );
 
@@ -202,7 +239,7 @@ describe('Renderer', () => {
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
         expect(ledger.frames).toEqual([]);
-        expect(ledger.runs).toEqual([]);
+        expect(ledger.joins).toEqual([]);
       }),
     );
 
@@ -212,16 +249,6 @@ describe('Renderer', () => {
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioMissing'));
         expect(ledger.frames).toEqual([]);
-      }),
-    );
-
-    it.live('a video that comes out without its audio stream fails the render', () =>
-      Effect.gen(function* () {
-        const { ledger, files, render } = setup({ info, streams: ['video'] });
-        files.set(MASTER, text('pcm'));
-        const exit = yield* Effect.exit(render(video));
-        expect(tagOf(exit)).toEqual(Option.some('AudioNotMuxed'));
-        expectAllClosed(ledger);
       }),
     );
   });

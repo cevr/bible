@@ -89,24 +89,6 @@ export class ApiKeyMissing extends Schema.TaggedError<ApiKeyMissing>()('ApiKeyMi
   }
 }
 
-export class FfmpegFailed extends Schema.TaggedError<FfmpegFailed>()('FfmpegFailed', {
-  tool: Schema.String,
-  exitCode: Schema.Int,
-  stderr: Schema.String,
-}) {
-  override get message() {
-    return `${this.tool} failed (${this.exitCode}): ${this.stderr}`;
-  }
-}
-
-export class FfmpegMissing extends Schema.TaggedError<FfmpegMissing>()('FfmpegMissing', {
-  tool: Schema.String,
-}) {
-  override get message() {
-    return `${this.tool} is not installed (brew install ffmpeg)`;
-  }
-}
-
 /** A media file that could not be read, decoded, written or joined into a film. */
 export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
   op: Schema.Literals(['read', 'decode', 'write', 'join']),
@@ -202,6 +184,35 @@ export class LookbookFailed extends Schema.TaggedError<LookbookFailed>()('Lookbo
   }
 }
 
+/** The page could not compose the contact sheet. */
+export class ContactFailed extends Schema.TaggedError<ContactFailed>()('ContactFailed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the contact sheet failed: ${this.reason}`;
+  }
+}
+
+/** The browser has no H.264 encoder for the film: checked before a frame is drawn. */
+export class EncoderMissing extends Schema.TaggedError<EncoderMissing>()('EncoderMissing', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the browser cannot encode the film: ${this.reason}`;
+  }
+}
+
+/** The page could not encode frames `[from, to)`. */
+export class EncodeFailed extends Schema.TaggedError<EncodeFailed>()('EncodeFailed', {
+  from: Schema.Int,
+  to: Schema.Int,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `frames ${this.from}–${this.to} failed to encode: ${this.reason}`;
+  }
+}
+
 /** The film declares its mixed track but the lossless master is not there. */
 export class AudioMissing extends Schema.TaggedError<AudioMissing>()('AudioMissing', {
   file: Schema.String,
@@ -221,15 +232,6 @@ export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
 }) {
   override get message() {
     return `the audio master ${this.file} runs ${this.length.toFixed(3)}s, the film ${this.film.toFixed(3)}s; run mix to rebuild it (no API calls)`;
-  }
-}
-
-/** The rendered video came out of the mux without the audio stream it was given. */
-export class AudioNotMuxed extends Schema.TaggedError<AudioNotMuxed>()('AudioNotMuxed', {
-  file: Schema.String,
-}) {
-  override get message() {
-    return `${this.file} has no audio stream, though the film has a mixed track`;
   }
 }
 

@@ -25,15 +25,11 @@ import {
   Output,
   StreamTarget,
   type StreamTargetChunk,
-  type TrackType,
   WavOutputFormat,
 } from 'mediabunny';
 import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
 import { MediaFailed } from './errors.ts';
-
-/** What a track carries: `video`, `audio` or `subtitle`. */
-export type TrackKind = TrackType;
 
 export interface MediaService {
   /**
@@ -41,8 +37,6 @@ export interface MediaService {
    * padding trimmed), anything else by its container.
    */
   readonly duration: (file: string) => Effect.Effect<number, MediaFailed>;
-  /** The kind of each track in `file`. */
-  readonly tracks: (file: string) => Effect.Effect<ReadonlyArray<TrackKind>, MediaFailed>;
   /** `file`'s first audio track (MP3, WAV) decoded to planar PCM at its own rate. */
   readonly decode: (file: string) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` written to `file` as a 16-bit WAV. */
@@ -391,16 +385,6 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         );
       });
 
-      const tracks = Effect.fn('Media.tracks')(function* (file: string) {
-        return yield* Effect.scoped(
-          Effect.gen(function* () {
-            const opened = yield* open(file);
-            const found = yield* attempt('read', file, () => opened.input.getTracks());
-            return found.map((track) => track.type);
-          }),
-        );
-      });
-
       const decode = Effect.fn('Media.decode')(function* (file: string) {
         return yield* Effect.scoped(Effect.flatMap(open(file), decodeOpened));
       });
@@ -455,7 +439,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         yield* Effect.scoped(joinInto(fs, film));
       });
 
-      return Media.of({ duration, tracks, decode, writeWav, join });
+      return Media.of({ duration, decode, writeWav, join });
     }),
   );
 }

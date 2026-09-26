@@ -17,7 +17,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 ## Steps
 
-0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether ffmpeg (render only), headless Chromium and the logged-in `elevenlabs` CLI are there, and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit.
+0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether headless Chromium and the logged-in `elevenlabs` CLI are there, and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit.
 
 1. **Sources.** Build the corpus with `bible egw study <subject> --pioneers --export <file> --full`. Copy each quote you will use into `apps/animations/script/sources.md` verbatim, with its refcode, after checking it against the local database. Done when every quote the script will speak or show has a checked row.
 
@@ -31,7 +31,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 
 6. **Sound.** Declare music acts and effects in `sound.ts`, then `bun run score <film>`. An effect that hits a picture event references the scene's cue, `{ scene, cue, edge: 'start' | 'end' }`, never a `mark + offset` copy of the scene's arithmetic; only scene-start sounds (page, slide) take `{ scene, offset }`. `bun run cues <film> --sound` prints every placement's film time. Balance by the `mix.levels` lines `bun run mix <film>` logs (each bus's mean and peak dBFS over the film): the voice sits near -23 dB mean, the bed about 16 dB under it during speech and about 7 dB under it between lines; `--stems` writes each bus the film's length, to hear alone. Done when the stems measure in range and the score transcribes as instrumental (`elevenlabs speech-to-text convert --model-id scribe_v1`).
 
-7. **Render.** `bun run render <film> --workers 6` takes about 10 minutes and writes about 1 GB, plus `out/<film>.vtt` captions. It takes its audio from `narration/full.wav`; if a render stops with `AudioMissing` or `AudioStale` (a mix cut short, or made before a re-timing), run `bun run mix <film>` (free). Ctrl-C is safe: the render's scope closes every page, the browser, the server and kills every ffmpeg. Re-encode a share copy (`-crf 22 -preset slow -tune animation`), pull a frame sheet from the MP4 (`fps=1/6,tile=8x8`), read it, then `open` the MP4 for the user. Done when the sheet shows every scene and the file plays.
+7. **Render.** `bun run render <film>` takes about a minute and a half for a six-minute film (each page encodes H.264 on the GPU) and writes about 1.6 GB, plus `out/<film>.vtt` captions. It takes its audio from `narration/full.wav`; if a render stops with `AudioMissing` or `AudioStale` (a mix cut short, or made before a re-timing), run `bun run mix <film>` (free). Ctrl-C is safe: the render's scope closes every page, the browser and the server. Re-encode a share copy (`-crf 22 -preset slow -tune animation`), pull a frame sheet from the MP4 (`fps=1/6,tile=8x8`), read it, then `open` the MP4 for the user. Done when the sheet shows every scene and the file plays.
 
 ## Lab loop
 

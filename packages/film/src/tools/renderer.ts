@@ -1,9 +1,10 @@
 // Render a film frame by frame in headless Chromium. Every frame is a pure
 // function of time, so pages render any chunk in any order: a video splits
-// into chunks on a queue that idle pages pull from, each chunk piped into its
-// own ffmpeg segment, then the segments join in order with the audio cut from
-// the lossless master. The server, the browser, every page and every ffmpeg
-// child live in one scope: a failure, or Ctrl-C, closes them all.
+// into chunks on a queue that idle pages pull from, each page drawing and
+// encoding its chunk to its own H.264 segment, then the segments join in
+// order (copied, not re-encoded) with the audio cut from the lossless master
+// and encoded to AAC. The server, the browser and every page live in one
+// scope: a failure, or Ctrl-C, closes them all.
 
 import {
   Array as Arr,
@@ -16,18 +17,18 @@ import {
   Path,
   Pool,
   Ref,
-  Stream,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { slice } from '../core/audio.ts';
 import { filmCaptions, webVtt } from '../core/captions.ts';
 import type { ExportInfo } from '../core/schema.ts';
 import { Browser, type FramePage, type PageOpenError } from './browser.ts';
 import {
-  AudioNotMuxed,
   type AudioMissing,
   type AudioStale,
-  type FfmpegFailed,
-  type FfmpegMissing,
+  type ContactFailed,
+  type EncodeFailed,
+  type EncoderMissing,
   type FrameFailed,
   type LayoutInvalid,
   type LookbookFailed,
@@ -36,7 +37,6 @@ import {
   type PageError,
   RangeEmpty,
 } from './errors.ts';
-import { Ffmpeg } from './ffmpeg.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
@@ -45,23 +45,15 @@ import {
   type AudioCut,
   type Chunk,
   RenderJob,
-  concatList,
-  contactArgs,
-  contactName,
   contactSheetName,
   lookbookName,
   contactTimes,
   frameAt,
   frameSpan,
-  muxArgs,
   planChunks,
-  segmentArgs,
   segmentName,
   stillName,
 } from './render-plan.ts';
-
-/** Progress is logged every this many frames. */
-const PROGRESS_EVERY = 60;
 
 export type RenderError =
   | PageOpenError
@@ -69,12 +61,12 @@ export type RenderError =
   | PageCrashed
   | FrameFailed
   | LookbookFailed
-  | FfmpegFailed
-  | FfmpegMissing
+  | ContactFailed
+  | EncoderMissing
+  | EncodeFailed
   | MediaFailed
   | AudioMissing
   | AudioStale
-  | AudioNotMuxed
   | RangeEmpty
   | LayoutInvalid
   | PlatformError;
@@ -91,7 +83,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const ffmpeg = yield* Ffmpeg;
       const media = yield* Media;
       const browser = yield* Browser;
       const server = yield* PreviewServer;
@@ -128,63 +119,59 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           if (Option.isSome(finding)) return yield* finding.value;
         }
 
+        // Before a frame is drawn: a browser that cannot encode the film fails here.
+        yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
+
         const segDir = path.join(dir, 'segments');
         yield* fresh(segDir);
         const chunks = planChunks(start, end, job.workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
-        const tick = Effect.gen(function* () {
-          const n = yield* Ref.updateAndGet(done, (k) => k + 1);
-          if (n % PROGRESS_EVERY !== 0) return;
-          const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
-          const rate = n / secs;
-          yield* Effect.log(
-            `render.progress frames=${n}/${total} fps=${rate.toFixed(1)} eta=${((total - n) / rate).toFixed(0)}s`,
-          );
-        });
+        const progress = (frames: number) =>
+          Effect.gen(function* () {
+            const n = yield* Ref.updateAndGet(done, (k) => k + frames);
+            const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
+            const rate = n / secs;
+            yield* Effect.log(
+              `render.progress frames=${n}/${total} fps=${rate.toFixed(1)} eta=${((total - n) / rate).toFixed(0)}s`,
+            );
+          });
 
         /**
-         * One chunk's frames, drawn on whichever page is free. The page goes back
-         * to the pool as soon as the last frame is drawn, while ffmpeg is still
-         * flushing, so the next chunk starts at once; a crashed page is dropped.
+         * One chunk drawn and encoded on whichever page is free, to its own
+         * segment; a crashed page is dropped and the chunk retried once on a
+         * fresh one.
          */
-        const frames = (chunk: Chunk) =>
-          Stream.unwrap(
-            Effect.map(Pool.get(pool), (page) =>
-              Stream.range(chunk.from, chunk.to - 1).pipe(
-                Stream.mapEffect((i) =>
-                  page
-                    .frame(i, 'image/png')
-                    .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page))),
-                ),
-              ),
-            ),
+        const encode = (chunk: Chunk) =>
+          Effect.scoped(
+            Effect.gen(function* () {
+              const page = yield* Pool.get(pool);
+              const bytes = yield* page
+                .encode(chunk, job.scale)
+                .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page)));
+              const file = path.join(segDir, segmentName(chunk));
+              yield* fs.writeFile(file, bytes);
+              yield* progress(chunk.to - chunk.from);
+              return { file, at: (chunk.from - start) / info.fps };
+            }),
           ).pipe(
-            Stream.tap(() => tick),
-            // The page draws the next frame while ffmpeg drains this one.
-            Stream.buffer({ capacity: 2 }),
-          );
-
-        /** One chunk to its own segment, retried once on a fresh page if its page crashes. */
-        const encode = (chunk: Chunk) => {
-          const file = path.join(segDir, segmentName(chunk));
-          return ffmpeg.encode(segmentArgs(info.fps, job.scale, file), frames(chunk)).pipe(
             Effect.tapErrorTag('PageCrashed', (error) =>
               Effect.logWarning(`render.retry chunk=${chunk.index} reason="${error.reason}"`),
             ),
             Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
-            Effect.as(file),
           );
-        };
 
-        // Twice as many chunks in flight as pages: while one chunk's ffmpeg
-        // flushes, the next is already drawing on the page it freed.
-        const segments = yield* Effect.forEach(chunks, encode, { concurrency: job.workers * 2 });
-        const list = path.join(segDir, 'list.txt');
-        yield* fs.writeFileString(list, concatList(segments));
-        yield* ffmpeg.run(muxArgs(list, audio, target));
-        if (Option.isSome(audio) && !(yield* media.tracks(target)).includes('audio'))
-          return yield* AudioNotMuxed.make({ file: target });
+        const segments = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
+        const track = yield* Option.match(audio, {
+          onNone: () => Effect.succeedNone,
+          onSome: (cut) =>
+            Effect.map(media.decode(cut.file), (pcm) =>
+              Option.some(
+                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
+              ),
+            ),
+        });
+        yield* media.join({ out: target, segments, frames: total, audio: track });
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
@@ -226,29 +213,16 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         info: ExportInfo,
         dir: string,
       ) {
-        const frameDir = path.join(dir, 'contact');
-        yield* fresh(frameDir);
         const from = Option.getOrElse(job.from, () => 0);
         const to = Option.getOrElse(job.to, () => info.duration);
         const times = contactTimes(from, to, job.every);
-        yield* Effect.forEach(
-          times,
-          (t, k) =>
-            Effect.scoped(
-              Effect.gen(function* () {
-                const page = yield* Pool.get(pool);
-                const bytes = yield* page.frame(frameAt(info, t), 'image/jpeg');
-                yield* fs.writeFile(path.join(frameDir, contactName(k)), bytes);
-              }),
-            ),
-          { concurrency: job.workers, discard: true },
-        );
+        const page = yield* Pool.get(pool);
         const sheet = path.join(dir, contactSheetName);
-        yield* ffmpeg.run(contactArgs(path.join(frameDir, '%04d.jpg'), times.length, sheet));
+        yield* fs.writeFile(sheet, yield* page.contact(times.map((t) => frameAt(info, t))));
         yield* Effect.log(
           `render.contact frames=${times.length} every=${job.every}s file=${sheet}`,
         );
-      });
+      }, Effect.scoped);
 
       const lookbook = Effect.fnUntraced(function* (
         pool: Pool.Pool<FramePage, PageOpenError>,
@@ -261,8 +235,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       }, Effect.scoped);
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
-        // Before a page opens: a missing ffmpeg would otherwise surface only at the first chunk.
-        yield* ffmpeg.version;
         const query = [
           `film=${encodeURIComponent(film.paths.name)}`,
           'export',
@@ -274,8 +246,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const pages = RenderJob.$match(job, {
           Video: (v) => v.workers,
           Stills: (s) => Math.min(s.workers, s.times.length),
-          Contact: (c) => c.workers,
           // One page composes the whole sheet.
+          Contact: () => 1,
           LookBook: () => 1,
         });
         yield* Effect.scoped(

@@ -14,10 +14,10 @@ bun run score <film>                           # generate stale music + effects,
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
-bun run doctor                                 # ffmpeg (render), headless Chromium, elevenlabs CLI + login: ok or how to fix
+bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
-bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages + ffmpeg)
+bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
@@ -54,16 +54,14 @@ Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 subfolder, so parallel renders don't collide), `--out file`. A video's audio
 is encoded once from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
-`AudioStale` otherwise: run `mix`), and a video that comes out of the mux
-without its audio stream fails with `AudioNotMuxed`. Its captions are also
+`AudioStale` otherwise: run `mix`). Its captions are also
 written as WebVTT beside it. `mix` runs in-process (`@bible/film/core`'s
 `mixPlan` and `renderMix`, the filters ported from the ffmpeg graph it
 replaced) and logs each bus's mean and peak dBFS (`mix.levels`), so balancing
 needs no other tool; it writes `full.partial.wav` and renames it only once
 whole, so a failed or interrupted mix leaves the previous track as it was. The
 player streams the same WAV. Ctrl-C stops
-a render cleanly: every page, the browser, the server and every ffmpeg child
-close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
+a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the

@@ -51,7 +51,6 @@ import {
   type ElevenLabsFailed,
   SoundMissing,
 } from './errors.ts';
-import { Ffmpeg, type FfmpegError } from './ffmpeg.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer, masterFile, measureMaster } from './mixer.ts';
@@ -95,26 +94,20 @@ interface ToolCheck {
   readonly tool: string;
   /** The commands that need it. */
   readonly needed: string;
-  readonly run: Effect.Effect<
-    void,
-    FfmpegError | BrowserMissing | BrowserFailed | ElevenLabsFailed,
-    Path.Path
-  >;
+  readonly run: Effect.Effect<void, BrowserMissing | BrowserFailed | ElevenLabsFailed, Path.Path>;
 }
 
 const doctor = Command.make(
   'doctor',
   {},
   Effect.fn('film.doctor')(function* () {
-    const ffmpeg = yield* Ffmpeg;
     const elevenLabs = yield* ElevenLabs;
     const checks: ReadonlyArray<ToolCheck> = [
-      { tool: 'ffmpeg', needed: 'render', run: ffmpeg.version },
       { tool: 'chromium', needed: 'render, check', run: browserReady },
       { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
     ];
     const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
-      concurrency: 3,
+      concurrency: checks.length,
     });
     for (const [{ tool, needed }, result] of Arr.zip(checks, results))
       yield* Console.log(
@@ -128,7 +121,7 @@ const doctor = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Check the tools the film commands need: ffmpeg, headless Chromium, and the elevenlabs CLI and its login',
+    'Check the tools the film commands need: headless Chromium, and the elevenlabs CLI and its login',
   ),
 );
 
@@ -529,9 +522,7 @@ const notes = Command.make(
 
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-const Tools = Layer.mergeAll(Ffmpeg.layer, ElevenLabs.layer, Media.layer).pipe(
-  Layer.provide(Platform),
-);
+const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(Platform));
 
 /** What the app hands the CLI: where its films are, and the servers for its player page. */
 export interface FilmApp<E> {

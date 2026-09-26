@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import {
+  MAX_CHUNK_FRAMES,
   MIN_CHUNK_FRAMES,
   contactTimes,
   frameSpan,
-  muxArgs,
   planChunks,
   sceneSpan,
   stillName,
@@ -25,8 +25,14 @@ describe('planChunks', () => {
   });
 
   test('about four chunks per page, so an idle page always has one to pull', () => {
-    expect(planChunks(0, 10_499, 6)).toHaveLength(24);
     expect(planChunks(0, 2400, 4)).toHaveLength(16);
+    expect(planChunks(0, 3000, 6)).toHaveLength(24);
+  });
+
+  test('never over eight seconds of frames, however few the pages', () => {
+    const chunks = planChunks(0, 10_499, 6);
+    expect(chunks).toHaveLength(Math.ceil(10_499 / MAX_CHUNK_FRAMES));
+    expect(chunks.every((c) => c.to - c.from <= MAX_CHUNK_FRAMES)).toBe(true);
   });
 
   test('never under a second of frames', () => {
@@ -82,21 +88,5 @@ describe('ranges', () => {
   test('stills are named by time so they sort', () => {
     expect(stillName(8.14)).toBe('t0008.14.png');
     expect(stillName(347.16)).toBe('t0347.16.png');
-  });
-});
-
-describe('muxArgs', () => {
-  test('the audio is cut from the WAV master and encoded once, with -t, not -shortest', () => {
-    const args = muxArgs(
-      'list.txt',
-      Option.some({ file: 'full.wav', start: 120, duration: 20 }),
-      'out.mp4',
-    );
-    expect(args.join(' ')).toContain('-ss 120.000000 -t 20.000000 -i full.wav -c:a aac');
-    expect(args).not.toContain('-shortest');
-  });
-
-  test('a film with no track muxes video only', () => {
-    expect(muxArgs('list.txt', Option.none(), 'out.mp4')).not.toContain('-c:a');
   });
 });

@@ -21,6 +21,9 @@ import { ExportInfo, Probed } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,
+  ContactFailed,
+  EncodeFailed,
+  EncoderMissing,
   FrameFailed,
   LookbookFailed,
   PageCrashed,
@@ -42,6 +45,19 @@ export interface FramePage {
   readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** Compose the film's look-book and return it as a JPEG. */
   readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
+  /** Fail unless the page can encode the film at `scale`. */
+  readonly encoder: (
+    scale: number,
+  ) => Effect.Effect<void, PageError | PageCrashed | EncoderMissing>;
+  /** Draw frames `[from, to)` and return them as an H.264 MP4 at `scale`, its first frame at 0. */
+  readonly encode: (
+    chunk: { readonly from: number; readonly to: number },
+    scale: number,
+  ) => Effect.Effect<Uint8Array, PageError | PageCrashed | EncodeFailed>;
+  /** Draw `frames` and return them tiled into the contact sheet, as a JPEG. */
+  readonly contact: (
+    frames: ReadonlyArray<number>,
+  ) => Effect.Effect<Uint8Array, PageError | PageCrashed | ContactFailed>;
 }
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
@@ -55,8 +71,10 @@ export interface BrowserService {
 const LOAD_TIMEOUT_MS = 60_000;
 /** A frame that takes longer than this has hung. */
 const FRAME_TIMEOUT = Duration.minutes(2);
-/** The look-book draws every scene's stills in one call. */
-const LOOKBOOK_TIMEOUT = Duration.minutes(5);
+/** The look-book and the contact sheet draw many frames in one call. */
+const SHEET_TIMEOUT = Duration.minutes(5);
+/** A chunk draws and encodes a few hundred frames in one call. */
+const ENCODE_TIMEOUT = Duration.minutes(5);
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
 
@@ -75,7 +93,15 @@ const launch = Effect.gen(function* () {
   return yield* Effect.tryPromise({
     try: () =>
       chromium.launch({
-        args: ['--disable-gpu-vsync', '--disable-frame-rate-limit'],
+        args: [
+          '--disable-gpu-vsync',
+          '--disable-frame-rate-limit',
+          // The GPU process holds the hardware H.264 encoder a render encodes
+          // with; the 2D canvas stays in software, so frames draw as before.
+          '--enable-gpu',
+          '--use-angle=metal',
+          '--disable-accelerated-2d-canvas',
+        ],
         // The scope closes the browser; Playwright must not race it on a signal.
         handleSIGINT: false,
         handleSIGTERM: false,
@@ -93,6 +119,12 @@ const launch = Effect.gen(function* () {
     },
   });
 });
+
+/** What the page says of its encoder (`player/encode.ts`, `EncoderCheck`). */
+const EncoderCheck = Schema.Union([
+  Schema.TaggedStruct('Ready', {}),
+  Schema.TaggedStruct('Missing', { reason: Schema.String }),
+]).pipe(Schema.toTaggedUnion('_tag'));
 
 const openPage = (page: Page, url: string) =>
   Effect.gen(function* () {
@@ -153,29 +185,40 @@ const openPage = (page: Page, url: string) =>
       Effect.mapError((error) => PageLoadFailed.make({ url, reason: error.message })),
     );
 
-    const frame = (i: number, format: FrameFormat) =>
+    /**
+     * A handle call that hands back base64, decoded; `fail` says what failed,
+     * and it fails too if the call outlasts `timeout` or the handle is gone.
+     */
+    const bytes = <E>(
+      call: () => Promise<unknown>,
+      timeout: Duration.Duration,
+      fail: (reason: string) => E,
+    ) =>
       guarded(
-        Effect.tryPromise({
-          try: () =>
-            page.evaluate(([n, type]) => window.__film?.frame(n, type), [i, format] satisfies [
-              number,
-              FrameFormat,
-            ]),
-          catch: (cause) => FrameFailed.make({ frame: i, reason: String(cause) }),
-        }).pipe(
+        Effect.tryPromise({ try: call, catch: (cause) => fail(String(cause)) }).pipe(
           Effect.timeoutOrElse({
-            duration: FRAME_TIMEOUT,
-            orElse: () => Effect.fail(FrameFailed.make({ frame: i, reason: 'timed out' })),
+            duration: timeout,
+            orElse: () => Effect.fail(fail('timed out')),
           }),
         ),
       ).pipe(
         Effect.flatMap((encoded) =>
-          Option.match(Option.fromNullishOr(encoded), {
-            onNone: () =>
-              Effect.fail(FrameFailed.make({ frame: i, reason: 'the export handle is gone' })),
-            onSome: (base64) => Effect.succeed(Uint8Array.fromBase64(base64)),
-          }),
+          Schema.decodeUnknownEffect(Schema.String)(encoded).pipe(
+            Effect.mapError(() => fail('the export handle is gone')),
+          ),
         ),
+        Effect.map((base64) => Uint8Array.fromBase64(base64)),
+      );
+
+    const frame = (i: number, format: FrameFormat) =>
+      bytes(
+        () =>
+          page.evaluate(([n, type]) => window.__film?.frame(n, type), [i, format] satisfies [
+            number,
+            FrameFormat,
+          ]),
+        FRAME_TIMEOUT,
+        (reason) => FrameFailed.make({ frame: i, reason }),
       );
 
     const probe = (i: number) =>
@@ -197,26 +240,52 @@ const openPage = (page: Page, url: string) =>
         ),
       );
 
-    const lookbook = guarded(
-      Effect.tryPromise({
-        try: () => page.evaluate(() => window.__film?.lookbook('image/jpeg')),
-        catch: (cause) => LookbookFailed.make({ reason: String(cause) }),
-      }).pipe(
-        Effect.timeoutOrElse({
-          duration: LOOKBOOK_TIMEOUT,
-          orElse: () => Effect.fail(LookbookFailed.make({ reason: 'timed out' })),
-        }),
-      ),
-    ).pipe(
-      Effect.flatMap((encoded) =>
-        Option.match(Option.fromNullishOr(encoded), {
-          onNone: () => Effect.fail(LookbookFailed.make({ reason: 'the export handle is gone' })),
-          onSome: (base64) => Effect.succeed(Uint8Array.fromBase64(base64)),
-        }),
-      ),
+    const lookbook = bytes(
+      () => page.evaluate(() => window.__film?.lookbook('image/jpeg')),
+      SHEET_TIMEOUT,
+      (reason) => LookbookFailed.make({ reason }),
     );
 
-    return { info, frame, probe, lookbook } satisfies FramePage;
+    const encoder = (scale: number) =>
+      guarded(
+        Effect.tryPromise({
+          try: () => page.evaluate((k) => window.__film?.encoder(k), scale),
+          catch: (cause) => EncoderMissing.make({ reason: String(cause) }),
+        }),
+      ).pipe(
+        Effect.flatMap((reported) =>
+          Schema.decodeUnknownEffect(EncoderCheck)(reported).pipe(
+            Effect.mapError((error) => EncoderMissing.make({ reason: error.message })),
+          ),
+        ),
+        Effect.flatMap((check) =>
+          EncoderCheck.match(check, {
+            Ready: () => Effect.void,
+            Missing: ({ reason }) => Effect.fail(EncoderMissing.make({ reason })),
+          }),
+        ),
+      );
+
+    const encode = (chunk: { readonly from: number; readonly to: number }, scale: number) =>
+      bytes(
+        () =>
+          page.evaluate(([from, to, k]) => window.__film?.encode(from, to, k), [
+            chunk.from,
+            chunk.to,
+            scale,
+          ] satisfies [number, number, number]),
+        ENCODE_TIMEOUT,
+        (reason) => EncodeFailed.make({ from: chunk.from, to: chunk.to, reason }),
+      );
+
+    const contact = (frames: ReadonlyArray<number>) =>
+      bytes(
+        () => page.evaluate((all) => window.__film?.contact(all), [...frames]),
+        SHEET_TIMEOUT,
+        (reason) => ContactFailed.make({ reason }),
+      );
+
+    return { info, frame, probe, lookbook, encoder, encode, contact } satisfies FramePage;
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

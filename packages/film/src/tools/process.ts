@@ -1,6 +1,6 @@
 // One child process, run to completion: its exit code and everything it
-// printed. The ElevenLabs and ffmpeg layers map a failure into their own
-// typed errors; this module only runs and collects.
+// printed. The ElevenLabs layer maps a failure into its own typed errors;
+// this module only runs and collects.
 
 import { Duration, Effect, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';

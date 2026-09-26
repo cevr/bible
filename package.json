@@ -76,6 +76,7 @@
     "vite-plugin-solid": "3.0.0-next.27"
   },
   "patchedDependencies": {
-    "@mediabunny/aac-encoder@1.60.0": "patches/@mediabunny%2Faac-encoder@1.60.0.patch"
+    "@mediabunny/aac-encoder@1.60.0": "patches/@mediabunny%2Faac-encoder@1.60.0.patch",
+    "@effect/platform-node-shared@4.0.0-rc.117": "patches/@effect%2Fplatform-node-shared@4.0.0-rc.117.patch"
   }
 }

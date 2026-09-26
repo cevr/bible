@@ -1,8 +1,8 @@
-// Test doubles for the tools: an in-memory file system, and ElevenLabs, media
-// and ffmpeg that answer from memory and count their calls. No network, no
-// ffmpeg, no credits.
+// Test doubles for the tools: an in-memory file system, and ElevenLabs, media,
+// a browser and its pages that answer from memory and count their calls. No
+// network, no Chromium, no credits.
 
-import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted, Stream } from 'effect';
+import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -20,10 +20,16 @@ import {
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser } from './browser.ts';
-import { ApiKeyMissing, type FrameFailed, type PageCrashed, type PageError } from './errors.ts';
-import { Ffmpeg } from './ffmpeg.ts';
+import {
+  ApiKeyMissing,
+  EncodeFailed,
+  type EncoderMissing,
+  type FrameFailed,
+  type PageCrashed,
+  type PageError,
+} from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { Media, type TrackKind } from './media.ts';
+import { type JoinedFilm, Media } from './media.ts';
 import { PreviewServer } from './preview-server.ts';
 
 const notFound = (method: string, path: string) =>
@@ -212,18 +218,6 @@ export const emptyCalls = (): ElevenLabsCalls => ({ tts: [], stt: [], music: [],
 /** A take's length as the fake media measures it: a tenth of a second per byte. */
 export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;
 
-/** An ffmpeg that records its runs. */
-export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
-  Layer.succeed(
-    Ffmpeg,
-    Ffmpeg.of({
-      run: (args) => Effect.sync(() => void runs.push(args)),
-      version: Effect.void,
-      encode: (args, input) =>
-        Stream.runDrain(input).pipe(Effect.tap(() => Effect.sync(() => void runs.push(args)))),
-    }),
-  );
-
 /**
  * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
  * is not there), decodes to a second of mono silence at the mix's rate, and a
@@ -240,7 +234,6 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
             onSome: fakeLength,
           }),
         ),
-      tracks: () => Effect.succeed(['audio']),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
@@ -252,13 +245,16 @@ export interface RenderLedger {
   readonly server: { started: number; stopped: number };
   readonly browser: { launched: number; closed: number };
   readonly pages: { opened: number; closed: number };
+  /** Chunks a page began to encode: each finished, or was cut off (killed). */
   readonly encoders: { spawned: number; finished: number; killed: number };
   /** Every frame drawn, by any page. */
   readonly frames: Array<number>;
   /** Look-books composed, by any page. */
   readonly lookbooks: { composed: number };
-  /** Every ffmpeg run that is not an encode (concat, contact sheet). */
-  readonly runs: Array<ReadonlyArray<string>>;
+  /** The frames of every contact sheet composed. */
+  readonly contacts: Array<ReadonlyArray<number>>;
+  /** Every film joined. */
+  readonly joins: Array<JoinedFilm>;
 }
 
 export const emptyLedger = (): RenderLedger => ({
@@ -268,7 +264,8 @@ export const emptyLedger = (): RenderLedger => ({
   encoders: { spawned: 0, finished: 0, killed: 0 },
   frames: [],
   lookbooks: { composed: 0 },
-  runs: [],
+  contacts: [],
+  joins: [],
 });
 
 export const testExportInfo: ExportInfo = {
@@ -294,18 +291,19 @@ export interface FakeRenderHost {
   readonly probe?: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** How long the audio master measures (default: the film's length). */
   readonly master?: number;
-  /** The tracks found in the rendered video (default: video, plus audio if the film has it). */
-  readonly streams?: ReadonlyArray<TrackKind>;
+  /** What a page's encoder check finds (ready by default). */
+  readonly encoder?: Effect.Effect<void, EncoderMissing>;
 }
 
 /**
- * A preview server, a browser whose pages draw one-byte frames, and an ffmpeg
- * that drains its input, each recording in `ledger` when it opens and closes;
- * and media that measures the master and finds the rendered video's tracks.
+ * A preview server, and a browser whose pages draw one-byte frames and encode
+ * chunks of them, each recording in `ledger` when it opens and closes; and
+ * media that measures the master and records every film it joins.
  */
 export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
+  const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -334,26 +332,63 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
               }),
               () => Effect.sync(() => void (ledger.pages.closed += 1)),
             ).pipe(
-              Effect.map((page) => ({
-                info,
-                frame: (i: number) =>
+              Effect.map((page) => {
+                const frame = (i: number) =>
                   Effect.sleep('1 millis').pipe(
                     Effect.andThen(draw(i, page)),
                     Effect.map(() => {
                       ledger.frames.push(i);
                       return new Uint8Array([i % 256]);
                     }),
-                  ),
-                probe: (i: number) =>
-                  Effect.sleep('1 millis').pipe(
-                    Effect.andThen(probe(i)),
-                    Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
-                  ),
-                lookbook: Effect.sync(() => {
-                  ledger.lookbooks.composed += 1;
-                  return new Uint8Array([0xff, 0xd8]);
-                }),
-              })),
+                  );
+                return {
+                  info,
+                  frame,
+                  probe: (i: number) =>
+                    Effect.sleep('1 millis').pipe(
+                      Effect.andThen(probe(i)),
+                      Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
+                    ),
+                  lookbook: Effect.sync(() => {
+                    ledger.lookbooks.composed += 1;
+                    return new Uint8Array([0xff, 0xd8]);
+                  }),
+                  encoder: () => encoder,
+                  encode: (chunk: { readonly from: number; readonly to: number }) =>
+                    Effect.acquireUseRelease(
+                      Effect.sync(() => void (ledger.encoders.spawned += 1)),
+                      () =>
+                        Effect.forEach(
+                          Array.from({ length: chunk.to - chunk.from }, (_, k) => chunk.from + k),
+                          frame,
+                          { discard: true },
+                        ),
+                      (_, exit) =>
+                        Effect.sync(() =>
+                          Exit.match(exit, {
+                            onSuccess: () => void (ledger.encoders.finished += 1),
+                            onFailure: () => void (ledger.encoders.killed += 1),
+                          }),
+                        ),
+                    ).pipe(
+                      Effect.catchTag('FrameFailed', (error) =>
+                        Effect.fail(
+                          EncodeFailed.make({
+                            from: chunk.from,
+                            to: chunk.to,
+                            reason: error.reason,
+                          }),
+                        ),
+                      ),
+                      Effect.as(text(`mp4 ${chunk.from}-${chunk.to}`)),
+                    ),
+                  contact: (frames: ReadonlyArray<number>) =>
+                    Effect.sync(() => {
+                      ledger.contacts.push(frames);
+                      return new Uint8Array([0xff, 0xd8]);
+                    }),
+                };
+              }),
             ),
         });
       }),
@@ -365,40 +400,12 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     Media.of({
       duration: () =>
         Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
-      tracks: () =>
-        Effect.succeed(
-          Option.getOrElse(Option.fromNullishOr(host.streams), () =>
-            Option.match(Option.fromNullishOr(info.audio), {
-              onNone: (): ReadonlyArray<TrackKind> => ['video'],
-              onSome: (): ReadonlyArray<TrackKind> => ['video', 'audio'],
-            }),
-          ),
-        ),
-      decode: () => Effect.succeed(silence(MIX_RATE, 0, 2)),
+      decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
       writeWav: () => Effect.void,
-      join: () => Effect.void,
+      join: (film) => Effect.sync(() => void ledger.joins.push(film)),
     }),
   );
-  const ffmpeg = Layer.succeed(
-    Ffmpeg,
-    Ffmpeg.of({
-      run: (args) => Effect.sync(() => void ledger.runs.push(args)),
-      version: Effect.void,
-      encode: (_args, input) =>
-        Effect.acquireUseRelease(
-          Effect.sync(() => void (ledger.encoders.spawned += 1)),
-          () => Stream.runDrain(input),
-          (_, exit) =>
-            Effect.sync(() =>
-              Exit.match(exit, {
-                onSuccess: () => void (ledger.encoders.finished += 1),
-                onFailure: () => void (ledger.encoders.killed += 1),
-              }),
-            ),
-        ),
-    }),
-  );
-  return Layer.mergeAll(server, browser, ffmpeg, media);
+  return Layer.mergeAll(server, browser, media);
 };
 
 export const testVoice: Voice = {

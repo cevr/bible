@@ -160,4 +160,51 @@ describe('Media', () => {
       expect([error._tag, error.op, error.file]).toEqual(['MediaFailed', 'join', '/wide.mp4']);
     }),
   );
+
+  it.effect.layer(Layer.provideMerge(Media.layer, BunServices.layer))(
+    'on a real disk, the index lands in the space reserved at the head of the file',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const dir = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
+          const fixture = (name: string) => `${import.meta.dir}/fixtures/${name}`;
+          yield* media.join({
+            out: `${dir}/film.mp4`,
+            segments: [
+              { file: fixture('segment-a.mp4'), at: 0 },
+              { file: fixture('segment-b.mp4'), at: 0.5 },
+            ],
+            frames: 30,
+            audio: Option.some(second()),
+          });
+          const [video, audio] = yield* readBack(`${dir}/film.mp4`);
+          expect([video?.times.length, audio?.codec]).toEqual([30, 'aac']);
+        }),
+      ),
+  );
+
+  // `join` writes the index back at the head of a film once its media is out.
+  // Under Bun, Effect's file handle wrote by `fs.write(fd, data, undefined,
+  // undefined, position)`, whose position Bun ignored: every write appended.
+  // The handle is patched (patches/) to pass the offset and length.
+  it.effect.layer(BunServices.layer)('on a real disk, a file writes where it seeks', () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const file = `${yield* fs.makeTempDirectoryScoped()}/seek.bin`;
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const handle = yield* fs.open(file, { flag: 'w' });
+            yield* handle.writeAll(text('AAAAAAAA'));
+            yield* handle.seek(2n, 'start');
+            yield* handle.writeAll(text('BB'));
+            yield* handle.seek(6n, 'start');
+            yield* handle.write(text('C'));
+          }),
+        );
+        expect(yield* fs.readFileString(file)).toBe('AABBAACA');
+      }),
+    ),
+  );
 });

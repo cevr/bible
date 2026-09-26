@@ -1,7 +1,6 @@
 // What a render does, decided before a browser opens: the job, the frames it
-// covers, how they split into chunks, where each output lands, and the ffmpeg
-// arguments that stitch them. Pure, so the scheduling is checked without
-// Chromium or ffmpeg; `Renderer` only runs it.
+// covers, how they split into chunks, and where each output lands. Pure, so
+// the scheduling is checked without Chromium; `Renderer` only runs it.
 
 import { Array as Arr, Data, Option, Result } from 'effect';
 import type { UnknownScene } from '../core/errors.ts';
@@ -72,16 +71,21 @@ export interface Chunk {
 
 /** About four chunks per page, so a page that finishes early pulls more work… */
 export const CHUNKS_PER_WORKER = 4;
-/** …but never under a second of frames, where ffmpeg's start-up would dominate. */
+/** …but never under a second of frames, where the encoder's start-up would dominate… */
 export const MIN_CHUNK_FRAMES = 30;
+/**
+ * …nor over eight seconds at 30 fps: a chunk crosses from the page as one
+ * base64 string, about 45 MB at this size.
+ */
+export const MAX_CHUNK_FRAMES = 240;
 
 /** Split `[start, end)` into in-order chunks for `workers` pages to pull from a queue. */
 export const planChunks = (start: number, end: number, workers: number): ReadonlyArray<Chunk> => {
   const frames = end - start;
   if (frames <= 0) return [];
-  const size = Math.max(
-    MIN_CHUNK_FRAMES,
-    Math.ceil(frames / (Math.max(1, workers) * CHUNKS_PER_WORKER)),
+  const size = Math.min(
+    MAX_CHUNK_FRAMES,
+    Math.max(MIN_CHUNK_FRAMES, Math.ceil(frames / (Math.max(1, workers) * CHUNKS_PER_WORKER))),
   );
   return Arr.makeBy(Math.ceil(frames / size), (index) => ({
     index,
@@ -108,7 +112,7 @@ export const contactTimes = (from: number, to: number, every: number): ReadonlyA
 
 const pad = (n: number, width: number) => String(n).padStart(width, '0');
 
-/** A segment's file name, so the concat list sorts in frame order. */
+/** A segment's file name, so the segments sort in frame order. */
 export const segmentName = (chunk: Chunk): string => `${pad(chunk.index, 3)}.mp4`;
 
 /** The contact sheet's file name, in the job's folder. */
@@ -117,113 +121,9 @@ export const contactSheetName = 'contact.jpg';
 /** The look-book's file name, in the job's folder. */
 export const lookbookName = 'lookbook.jpg';
 
-/** A contact frame's file name. */
-export const contactName = (k: number): string => `${pad(k, 4)}.jpg`;
-
-/** ffmpeg: PNG frames on stdin to one H.264 segment. */
-export const segmentArgs = (fps: number, scale: number, file: string): ReadonlyArray<string> => [
-  '-y',
-  '-loglevel',
-  'error',
-  '-f',
-  'image2pipe',
-  '-framerate',
-  String(fps),
-  '-i',
-  '-',
-  ...Arr.match(
-    Arr.filter([scale], (s) => s !== 1),
-    {
-      onEmpty: () => [],
-      onNonEmpty: ([s]) => ['-vf', `scale=iw*${s}:ih*${s}:flags=lanczos`],
-    },
-  ),
-  '-c:v',
-  'libx264',
-  '-preset',
-  'slow',
-  '-crf',
-  '15',
-  '-pix_fmt',
-  'yuv420p',
-  '-tune',
-  'animation',
-  file,
-];
-
 /** The part of the lossless master under a range: from `start`, `duration` long. */
 export interface AudioCut {
   readonly file: string;
   readonly start: number;
   readonly duration: number;
 }
-
-/** The concat list for ffmpeg's concat demuxer. */
-export const concatList = (segments: ReadonlyArray<string>): string =>
-  segments.map((s) => `file '${s}'`).join('\n');
-
-/**
- * ffmpeg: the segments joined in order (no re-encode), with the audio cut from
- * the WAV master and encoded to AAC once.
- */
-export const muxArgs = (
-  list: string,
-  audio: Option.Option<AudioCut>,
-  out: string,
-): ReadonlyArray<string> => [
-  '-y',
-  '-loglevel',
-  'error',
-  '-f',
-  'concat',
-  '-safe',
-  '0',
-  '-i',
-  list,
-  ...Option.match(audio, {
-    onNone: () => [],
-    onSome: (a) => [
-      '-ss',
-      a.start.toFixed(6),
-      '-t',
-      a.duration.toFixed(6),
-      '-i',
-      a.file,
-      '-c:a',
-      'aac',
-      '-b:a',
-      '192k',
-    ],
-  }),
-  '-c:v',
-  'copy',
-  '-movflags',
-  '+faststart',
-  out,
-];
-
-/** ffmpeg: `count` numbered JPEGs tiled six across into one sheet. */
-export const contactArgs = (
-  pattern: string,
-  count: number,
-  sheet: string,
-): ReadonlyArray<string> => {
-  const cols = 6;
-  const rows = Math.max(1, Math.ceil(count / cols));
-  return [
-    '-y',
-    '-loglevel',
-    'error',
-    '-framerate',
-    '1',
-    '-i',
-    pattern,
-    '-vf',
-    `scale=480:-1,tile=${cols}x${rows}:padding=4`,
-    '-frames:v',
-    '1',
-    '-q:v',
-    '3',
-    sheet,
-  ];
-};

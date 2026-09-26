@@ -33,7 +33,6 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
     Media,
     Media.of({
       duration: () => Effect.succeed(5),
-      tracks: () => Effect.succeed(['audio']),
       decode: () => Effect.succeed(silence(rate, rate, 1)),
       writeWav: (file, pcm) =>
         Effect.gen(function* () {
