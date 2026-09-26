@@ -354,7 +354,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     return new Uint8Array([0xff, 0xd8]);
                   }),
                   encoder: () => encoder,
-                  encode: (chunk: { readonly from: number; readonly to: number }) =>
+                  encode: (
+                    chunk: { readonly from: number; readonly to: number },
+                    _scale: number,
+                    share: boolean,
+                  ) =>
                     Effect.acquireUseRelease(
                       Effect.sync(() => void (ledger.encoders.spawned += 1)),
                       () =>
@@ -380,7 +384,13 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                           }),
                         ),
                       ),
-                      Effect.as(text(`mp4 ${chunk.from}-${chunk.to}`)),
+                      Effect.as({
+                        master: text(`mp4 ${chunk.from}-${chunk.to}`),
+                        share: Option.filter(
+                          Option.some(text(`share ${chunk.from}-${chunk.to}`)),
+                          () => share,
+                        ),
+                      }),
                     ),
                   contact: (frames: ReadonlyArray<number>) =>
                     Effect.sync(() => {

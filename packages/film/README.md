@@ -84,8 +84,9 @@ frames split into chunks (`planChunks`: about four per page, at least a second
 and at most eight each) on a queue that idle pages pull from; each page draws
 its chunk and encodes it with the browser's hardware H.264 encoder through
 mediabunny (`player/encode.ts`: quantizer 16, a key frame every two seconds)
-into a segment of its own, and a chunk whose page crashes is retried once on
-a new page. `Media.join` joins the segments in order with the track cut from
+into a segment of its own (and, unless `--no-share`, a share copy at
+quantizer 26 from a second encoder in the same pass), and a chunk whose page
+crashes is retried once on a new page. `Media.join` joins the segments in order with the track cut from
 `full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
 use. A contact sheet is composed in one page (`player/contact.ts`). An

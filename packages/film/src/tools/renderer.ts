@@ -52,6 +52,7 @@ import {
   frameSpan,
   planChunks,
   segmentName,
+  shareName,
   stillName,
 } from './render-plan.ts';
 
@@ -123,7 +124,9 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
 
         const segDir = path.join(dir, 'segments');
+        const shareDir = path.join(dir, 'share');
         yield* fresh(segDir);
+        if (job.share) yield* fresh(shareDir);
         const chunks = planChunks(start, end, job.workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
@@ -139,20 +142,27 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         /**
          * One chunk drawn and encoded on whichever page is free, to its own
-         * segment; a crashed page is dropped and the chunk retried once on a
-         * fresh one.
+         * segment (and its share copy's); a crashed page is dropped and the
+         * chunk retried once on a fresh one.
          */
         const encode = (chunk: Chunk) =>
           Effect.scoped(
             Effect.gen(function* () {
               const page = yield* Pool.get(pool);
-              const bytes = yield* page
-                .encode(chunk, job.scale)
+              const encoded = yield* page
+                .encode(chunk, job.scale, job.share)
                 .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page)));
+              const at = (chunk.from - start) / info.fps;
               const file = path.join(segDir, segmentName(chunk));
-              yield* fs.writeFile(file, bytes);
+              yield* fs.writeFile(file, encoded.master);
+              const copy = path.join(shareDir, segmentName(chunk));
+              const share = yield* Option.match(encoded.share, {
+                onNone: () => Effect.succeedNone,
+                onSome: (bytes) =>
+                  Effect.as(fs.writeFile(copy, bytes), Option.some({ file: copy, at })),
+              });
               yield* progress(chunk.to - chunk.from);
-              return { file, at: (chunk.from - start) / info.fps };
+              return { master: { file, at }, share };
             }),
           ).pipe(
             Effect.tapErrorTag('PageCrashed', (error) =>
@@ -161,7 +171,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
           );
 
-        const segments = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
+        const encoded = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
         const track = yield* Option.match(audio, {
           onNone: () => Effect.succeedNone,
           onSome: (cut) =>
@@ -171,7 +181,23 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               ),
             ),
         });
-        yield* media.join({ out: target, segments, frames: total, audio: track });
+        yield* media.join({
+          out: target,
+          segments: encoded.map((chunk) => chunk.master),
+          frames: total,
+          audio: track,
+        });
+        const shared = Option.filter(Option.some(shareName(target)), () => job.share);
+        yield* Option.match(shared, {
+          onNone: () => Effect.void,
+          onSome: (out) =>
+            media.join({
+              out,
+              segments: encoded.flatMap((chunk) => Option.toArray(chunk.share)),
+              frames: total,
+              audio: track,
+            }),
+        });
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
@@ -180,7 +206,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
         yield* Effect.log(
-          `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} file=${target} captions=${captions}`,
+          `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} file=${target} share=${Option.getOrElse(shared, () => 'none')} captions=${captions}`,
         );
       });
 

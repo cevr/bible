@@ -14,10 +14,17 @@ import {
 } from 'mediabunny';
 
 /**
- * H.264 at quantizer 16 on the hardware encoder: on this film, about 33 Mbps
- * at 1080p30, beside x264's CRF 15 at `slow` in the ffmpeg master it replaces.
+ * The master: H.264 at quantizer 16 on the hardware encoder, about 37 Mbps
+ * at 1080p30 on this film, beside x264's CRF 15 at `slow` in the ffmpeg
+ * master it replaces.
  */
 const QUALITY = new Quality({ quantizer: 16 });
+
+/**
+ * The share copy: quantizer 26, the smallest that keeps the paper's grain. A
+ * 4 Mbps target on the hardware encoder smoothed the grain away entirely.
+ */
+const SHARE_QUALITY = new Quality({ quantizer: 26 });
 
 /** A key frame every this many seconds, and at the start of every chunk. */
 const KEY_FRAME_EVERY = 2;
@@ -31,10 +38,15 @@ export const encodedSize = (width: number, height: number, scale: number) => ({
   height: even(height * scale),
 });
 
-const config = (width: number, height: number, scale: number): VideoEncodingConfig => {
+const config = (
+  width: number,
+  height: number,
+  scale: number,
+  quality: Quality = QUALITY,
+): VideoEncodingConfig => {
   const base: VideoEncodingConfig = {
     codec: 'avc',
-    quality: QUALITY,
+    quality,
     hardwareAcceleration: 'prefer-hardware',
     keyFrameInterval: KEY_FRAME_EVERY,
     latencyMode: 'quality',
@@ -75,9 +87,29 @@ export const encoderCheck = async (
       };
 };
 
+/** A chunk encoded: the master, and the share copy when one was asked for. */
+export interface EncodedChunk {
+  readonly master: Uint8Array;
+  readonly share: Uint8Array | undefined;
+}
+
+/** One encoder taking the canvas into an MP4 of its own. */
+const rendition = (canvas: HTMLCanvasElement, fps: number, video: VideoEncodingConfig) => {
+  const target = new BufferTarget();
+  const output = new Output({ format: new Mp4OutputFormat(), target });
+  const source = new CanvasSource(canvas, video);
+  output.addVideoTrack(source, { frameRate: fps });
+  const bytes = () => {
+    if (target.buffer === null) throw new Error('the encoder wrote nothing');
+    return new Uint8Array(target.buffer);
+  };
+  return { output, source, bytes };
+};
+
 /**
  * Frames `[from, to)` drawn by `draw` onto `canvas` and encoded as an MP4 whose
- * first frame plays at 0.
+ * first frame plays at 0, and with `share`, a small copy encoded in the same
+ * pass.
  */
 export const encodeChunk = async (
   draw: (i: number) => void,
@@ -86,25 +118,25 @@ export const encodeChunk = async (
   from: number,
   to: number,
   scale: number,
-): Promise<Uint8Array> => {
-  const target = new BufferTarget();
-  const output = new Output({ format: new Mp4OutputFormat(), target });
-  const source = new CanvasSource(canvas, config(canvas.width, canvas.height, scale));
-  output.addVideoTrack(source, { frameRate: fps });
-  // One frame at a time: the canvas is drawn again only once the encoder has taken it.
+  share: boolean,
+): Promise<EncodedChunk> => {
+  const { width, height } = canvas;
+  const master = rendition(canvas, fps, config(width, height, scale));
+  const copies = share ? [rendition(canvas, fps, config(width, height, scale, SHARE_QUALITY))] : [];
+  const all = [master, ...copies];
+  // One frame at a time: the canvas is drawn again only once every encoder has taken it.
   const frames = async () => {
-    await output.start();
+    await Promise.all(all.map((r) => r.output.start()));
     await Array.from({ length: to - from }, (_, k) => from + k).reduce(async (before, i) => {
       await before;
       draw(i);
-      await source.add((i - from) / fps, 1 / fps);
+      await Promise.all(all.map((r) => r.source.add((i - from) / fps, 1 / fps)));
     }, Promise.resolve());
-    await output.finalize();
+    await Promise.all(all.map((r) => r.output.finalize()));
   };
   await frames().catch(async (e: unknown) => {
-    await output.cancel();
+    await Promise.all(all.map((r) => r.output.cancel()));
     throw e;
   });
-  if (target.buffer === null) throw new Error('the encoder wrote nothing');
-  return new Uint8Array(target.buffer);
+  return { master: master.bytes(), share: copies[0]?.bytes() };
 };

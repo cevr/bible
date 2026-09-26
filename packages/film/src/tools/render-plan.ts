@@ -24,6 +24,8 @@ export type RenderJob = Data.TaggedEnum<{
     readonly scale: number;
     /** Default `out/<film>.mp4`. */
     readonly out: Option.Option<string>;
+    /** Also a small copy to send, encoded in the same pass: `shareName(out)`. */
+    readonly share: boolean;
   };
   Stills: JobBase & { readonly times: ReadonlyArray<number> };
   Contact: JobBase & {
@@ -114,6 +116,9 @@ const pad = (n: number, width: number) => String(n).padStart(width, '0');
 
 /** A segment's file name, so the segments sort in frame order. */
 export const segmentName = (chunk: Chunk): string => `${pad(chunk.index, 3)}.mp4`;
+
+/** The share copy beside a video: `film.mp4` → `film.share.mp4`. */
+export const shareName = (video: string): string => `${video.replace(/\.[^./]+$/, '')}.share.mp4`;
 
 /** The contact sheet's file name, in the job's folder. */
 export const contactSheetName = 'contact.jpg';

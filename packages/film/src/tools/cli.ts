@@ -15,6 +15,7 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
+//                      [--no-share]
 //   film lookbook <film> [--captions] [--tag name]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
@@ -338,6 +339,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.optional,
         Flag.withDescription('the video file (default out/<film>.mp4)'),
       ),
+      share: Flag.Boolean('share').pipe(
+        Flag.withDefault(true),
+        Flag.withDescription(
+          'also write a smaller copy to send, <out>.share.mp4 (--no-share to skip it)',
+        ),
+      ),
     },
     Effect.fn('film.render')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
@@ -365,7 +372,14 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
             Option.match(input.contact, {
               onSome: (every) => RenderJob.Contact({ ...base, every, from, to }),
               onNone: () =>
-                RenderJob.Video({ ...base, from, to, scale: input.scale, out: input.out }),
+                RenderJob.Video({
+                  ...base,
+                  from,
+                  to,
+                  scale: input.scale,
+                  out: input.out,
+                  share: input.share,
+                }),
             }),
           ),
       });

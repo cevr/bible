@@ -55,8 +55,16 @@ export interface ExportHandle {
   lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
   /** Whether the film can be encoded here at `scale` (`encoderCheck`). */
   encoder(scale: number): Promise<EncoderCheck>;
-  /** Frames `[from, to)` encoded as an H.264 MP4 at `scale` (`encodeChunk`), as base64. */
-  encode(from: number, to: number, scale: number): Promise<string>;
+  /**
+   * Frames `[from, to)` encoded as an H.264 MP4 at `scale` (`encodeChunk`), and
+   * with `share` a small copy beside it, each as base64.
+   */
+  encode(
+    from: number,
+    to: number,
+    scale: number,
+    share: boolean,
+  ): Promise<{ readonly master: string; readonly share?: string }>;
   /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
   contact(frames: ReadonlyArray<number>): Promise<string>;
 }
@@ -156,8 +164,11 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         lookbook: async (type = 'image/jpeg') =>
           encode((await composeLookbook(film, { captions: captions.on })).canvas, type),
         encoder: (scale) => encoderCheck(canvas, film.fps, scale),
-        encode: async (from, to, scale) =>
-          base64(await encodeChunk(draw, canvas, film.fps, from, to, scale)),
+        encode: async (from, to, scale, share) => {
+          const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share);
+          const master = base64(chunk.master);
+          return chunk.share === undefined ? { master } : { master, share: base64(chunk.share) };
+        },
         contact: (frames) => encode(composeContact(draw, canvas, frames), 'image/jpeg'),
       };
       return;

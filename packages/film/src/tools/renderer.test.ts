@@ -29,6 +29,7 @@ const video = RenderJob.Video({
   to: Option.none(),
   scale: 1,
   out: Option.none(),
+  share: false,
 });
 
 const setup = (host: FakeRenderHost = {}) => {
@@ -74,6 +75,18 @@ describe('Renderer', () => {
       expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test.vtt')).toBe(true);
       expectAllClosed(ledger);
+    }),
+  );
+
+  it.live('a share copy encodes in the same pass and joins beside the film', () =>
+    Effect.gen(function* () {
+      const { ledger, files, render } = setup();
+      yield* render({ ...video, share: true });
+      expect(ledger.encoders.spawned).toBe(16);
+      expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
+      const [, share] = ledger.joins;
+      expect(files.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
+      expect(share?.segments.map((s) => s.at)).toEqual(ledger.joins[0]?.segments.map((s) => s.at));
     }),
   );
 

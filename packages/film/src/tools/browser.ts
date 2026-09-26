@@ -49,11 +49,15 @@ export interface FramePage {
   readonly encoder: (
     scale: number,
   ) => Effect.Effect<void, PageError | PageCrashed | EncoderMissing>;
-  /** Draw frames `[from, to)` and return them as an H.264 MP4 at `scale`, its first frame at 0. */
+  /**
+   * Draw frames `[from, to)` and return them as an H.264 MP4 at `scale`, its
+   * first frame at 0, and with `share` a small copy encoded in the same pass.
+   */
   readonly encode: (
     chunk: { readonly from: number; readonly to: number },
     scale: number,
-  ) => Effect.Effect<Uint8Array, PageError | PageCrashed | EncodeFailed>;
+    share: boolean,
+  ) => Effect.Effect<EncodedChunk, PageError | PageCrashed | EncodeFailed>;
   /** Draw `frames` and return them tiled into the contact sheet, as a JPEG. */
   readonly contact: (
     frames: ReadonlyArray<number>,
@@ -119,6 +123,13 @@ const launch = Effect.gen(function* () {
     },
   });
 });
+
+/** A chunk from the page (`player/encode.ts`): the master, and the share copy if asked for. */
+const EncodedChunk = Schema.Struct({
+  master: Schema.Uint8ArrayFromBase64,
+  share: Schema.OptionFromOptionalKey(Schema.Uint8ArrayFromBase64),
+});
+export type EncodedChunk = typeof EncodedChunk.Type;
 
 /** What the page says of its encoder (`player/encode.ts`, `EncoderCheck`). */
 const EncoderCheck = Schema.Union([
@@ -186,11 +197,12 @@ const openPage = (page: Page, url: string) =>
     );
 
     /**
-     * A handle call that hands back base64, decoded; `fail` says what failed,
+     * A handle call, its answer decoded by `schema`; `fail` says what failed,
      * and it fails too if the call outlasts `timeout` or the handle is gone.
      */
-    const bytes = <E>(
+    const handle = <A, E>(
       call: () => Promise<unknown>,
+      schema: Schema.Decoder<A>,
       timeout: Duration.Duration,
       fail: (reason: string) => E,
     ) =>
@@ -202,13 +214,19 @@ const openPage = (page: Page, url: string) =>
           }),
         ),
       ).pipe(
-        Effect.flatMap((encoded) =>
-          Schema.decodeUnknownEffect(Schema.String)(encoded).pipe(
+        Effect.flatMap((answer) =>
+          Schema.decodeUnknownEffect(schema)(answer).pipe(
             Effect.mapError(() => fail('the export handle is gone')),
           ),
         ),
-        Effect.map((base64) => Uint8Array.fromBase64(base64)),
       );
+
+    /** A handle call that hands back bytes as base64. */
+    const bytes = <E>(
+      call: () => Promise<unknown>,
+      timeout: Duration.Duration,
+      fail: (reason: string) => E,
+    ) => handle(call, Schema.Uint8ArrayFromBase64, timeout, fail);
 
     const frame = (i: number, format: FrameFormat) =>
       bytes(
@@ -266,14 +284,20 @@ const openPage = (page: Page, url: string) =>
         ),
       );
 
-    const encode = (chunk: { readonly from: number; readonly to: number }, scale: number) =>
-      bytes(
+    const encode = (
+      chunk: { readonly from: number; readonly to: number },
+      scale: number,
+      share: boolean,
+    ) =>
+      handle(
         () =>
-          page.evaluate(([from, to, k]) => window.__film?.encode(from, to, k), [
+          page.evaluate(([from, to, k, copy]) => window.__film?.encode(from, to, k, copy), [
             chunk.from,
             chunk.to,
             scale,
-          ] satisfies [number, number, number]),
+            share,
+          ] satisfies [number, number, number, boolean]),
+        EncodedChunk,
         ENCODE_TIMEOUT,
         (reason) => EncodeFailed.make({ from: chunk.from, to: chunk.to, reason }),
       );

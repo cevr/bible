@@ -51,7 +51,8 @@ a paid re-record must not block a commit; the layout leg is a review step.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
-subfolder, so parallel renders don't collide), `--out file`. A video's audio
+subfolder, so parallel renders don't collide), `--out file`, `--no-share`
+(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass). A video's audio
 is encoded once from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`). Its captions are also
