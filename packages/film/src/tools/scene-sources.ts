@@ -4,12 +4,20 @@
 // Locating is by identity, not by name. The parser lists every exported
 // `drawing({...})` call in the film's folder; the film's own scene registry
 // (`scenes/index.ts`) is imported; and a scene belongs to the call whose
-// exported object's `timeline` (or `knobs`) is the very object the scene
-// reads. A registry that renames a drawing, or two files that export the same
-// name, cannot point a scene at the wrong literal: either the object is the
-// same, or the scene is not located. The files are parsed as they are now;
-// the imports only prove which export is which scene, and export names do not
-// change when the lab writes a value.
+// exported `timeline` is the very object the scene reads as its timeline, or
+// whose `knobs` is the very object it reads as its knobs. A registry that
+// renames a drawing, or two files that export the same name, cannot point a
+// scene at the wrong literal: either the object is the same, or the scene is
+// not located. The files are parsed as they are now; the imports only prove
+// which export is which scene, and export names do not change when the lab
+// writes a value.
+//
+// Each field is then writable on its own terms: cues only when the scene's
+// timeline is the drawing's own object, knobs only when its knobs are. A
+// scene that spreads a drawing and overrides its timeline plays a timeline no
+// file declares as a literal, so its cues are refused (its knobs may still be
+// written); a literal two scenes read (both spread one drawing) is refused for
+// both, since a write for one would move the other.
 
 import {
   Array as Arr,
@@ -24,15 +32,34 @@ import {
   Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { FilmModuleInvalid, FilmNotFound, SceneNotLocated, type SourceRefused } from './errors.ts';
+import {
+  FilmModuleInvalid,
+  FilmNotFound,
+  SceneNotLocated,
+  type SourceRefused,
+  SourceShared,
+} from './errors.ts';
 import { FilmRepo, importFilmModule } from './film-repo.ts';
 import { type Editable, drawingSites, editable, parseModule } from './scene-source.ts';
 
-/** Where a scene's drawing is declared: the file, and a name the file exports it under. */
+/** A drawing's field the lab writes: `timeline` for cues, `knobs` for knobs. */
+export type Field = 'timeline' | 'knobs';
+
+/** Whether the lab may write a field of a scene's drawing: only the literal the scene reads, alone. */
+export type FieldAccess =
+  | { readonly _tag: 'Writable' }
+  | { readonly _tag: 'Refused'; readonly error: SceneNotLocated | SourceShared };
+
+/**
+ * Where a scene's drawing is declared (the file, and a name the file exports
+ * it under), and for each field whether that literal is the one the scene
+ * reads and no other scene does.
+ */
 export interface SceneSite {
   readonly scene: string;
   readonly file: string;
   readonly exportName: string;
+  readonly access: { readonly [F in Field]: FieldAccess };
 }
 
 /** Every scene with a timeline or knobs: located, or why not. */
@@ -58,12 +85,25 @@ export interface SceneSourcesService {
     film: string,
     scene: string,
   ) => Effect.Effect<SceneSite, LocateError | SceneNotLocated>;
-  /** Which of the scene's cues and knobs are literals the lab can rewrite, read from the file now. */
+  /** One scene's drawing where the lab may write `field`, or why it may not. */
+  readonly writable: (
+    film: string,
+    scene: string,
+    field: Field,
+  ) => Effect.Effect<SceneSite, LocateError | SceneNotLocated | SourceShared>;
+  /**
+   * Which of the scene's cues and knobs are literals the lab can rewrite, read
+   * from the file now; a field the lab may not write lists none, and `refused`
+   * says why.
+   */
   readonly editable: (
     film: string,
     scene: string,
   ) => Effect.Effect<
-    Editable & { readonly site: SceneSite },
+    Editable & {
+      readonly refused: ReadonlyArray<{ readonly field: Field; readonly reason: string }>;
+      readonly site: SceneSite;
+    },
     LocateError | SceneNotLocated | SourceRefused
   >;
 }
@@ -86,9 +126,13 @@ const ModuleExports = Schema.Record(Schema.String, Schema.Unknown);
 const decodeOwner = Schema.decodeUnknownOption(Owner);
 const decodeExports = Schema.decodeUnknownOption(ModuleExports);
 
-/** The objects that identify a drawing (or a scene spread from one). */
-const identities = (owner: typeof Owner.Type): ReadonlyArray<object> =>
-  [owner.timeline, owner.knobs].filter(Predicate.isObject);
+const FIELDS: ReadonlyArray<Field> = ['timeline', 'knobs'];
+
+/** The object a drawing (or a scene spread from one) reads as `field`, when it has one. */
+const identity = (owner: typeof Owner.Type, field: Field): Option.Option<object> =>
+  Option.liftPredicate(owner[field], Predicate.isObject);
+
+const WRITABLE: FieldAccess = { _tag: 'Writable' };
 
 export class SceneSources extends Context.Service<SceneSources, SceneSourcesService>()(
   '@bible/film/tools/SceneSources',
@@ -127,8 +171,12 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
           { concurrency: 8 },
         );
         const withSites = parsed.filter((p) => p.sites.length > 0);
-        // The object each exported name evaluates to, as this process loaded it.
-        const owners = new Map<object, Array<Owned>>();
+        // The object each exported name evaluates to as `timeline` and as
+        // `knobs`, as this process loaded it: one map per field.
+        const owners = {
+          timeline: new Map<object, Array<Owned>>(),
+          knobs: new Map<object, Array<Owned>>(),
+        } satisfies Record<Field, Map<object, Array<Owned>>>;
         for (const { file, sites } of withSites) {
           const exports = decodeExports(yield* importModule(film, file));
           for (const site of sites)
@@ -136,11 +184,14 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
               const drawing = Option.flatMap(exports, (m) =>
                 Option.flatMap(Option.fromUndefinedOr(m[exportName]), decodeOwner),
               );
-              for (const obj of Option.match(drawing, { onNone: () => [], onSome: identities })) {
-                const list = owners.get(obj) ?? [];
-                list.push({ file, exportName, at: site.at });
-                owners.set(obj, list);
-              }
+              for (const field of FIELDS)
+                for (const obj of Option.toArray(
+                  Option.flatMap(drawing, (d) => identity(d, field)),
+                )) {
+                  const list = owners[field].get(obj) ?? [];
+                  list.push({ file, exportName, at: site.at });
+                  owners[field].set(obj, list);
+                }
             }
         }
         const registry = yield* Schema.decodeUnknownEffect(Registry)(
@@ -150,20 +201,62 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
             FilmModuleInvalid.make({ film, module: 'scenes/index.ts', reason: error.message }),
           ),
         );
+        /** The scenes that read the same object as `field` as `scene` does, in registry order. */
+        const readers = (field: Field, scene: (typeof registry.scenes)[number]) =>
+          registry.scenes
+            .filter((s) =>
+              Option.exists(identity(scene, field), (obj) =>
+                Option.contains(identity(s, field), obj),
+              ),
+            )
+            .map((s) => s.id);
         const sites = new Map<string, SceneSite>();
         const unlocated: Array<SceneNotLocated> = [];
         for (const scene of registry.scenes) {
-          const objects = identities(scene);
+          const objects = FIELDS.flatMap((field) =>
+            Option.toArray(Option.map(identity(scene, field), (obj) => ({ field, obj }))),
+          );
           if (objects.length === 0) continue;
           // One drawing may be exported under several names: one call, one literal.
           const calls = Arr.dedupeWith(
-            objects.flatMap((o) => owners.get(o) ?? []),
+            objects.flatMap(({ field, obj }) => owners[field].get(obj) ?? []),
             (a, b) => a.file === b.file && a.at === b.at,
           );
           const found = Option.filter(Arr.head(calls), () => calls.length === 1);
           if (Option.isSome(found)) {
-            const { file, exportName } = found.value;
-            sites.set(scene.id, { scene: scene.id, file, exportName });
+            const { file, exportName, at } = found.value;
+            const where = `${path.relative(dir, file)}#${exportName}`;
+            const accessOf = (field: Field): FieldAccess =>
+              Option.match(identity(scene, field), {
+                onNone: () => WRITABLE,
+                onSome: (obj): FieldAccess => {
+                  const own = (owners[field].get(obj) ?? []).some(
+                    (o) => o.file === file && o.at === at,
+                  );
+                  if (!own)
+                    return {
+                      _tag: 'Refused',
+                      error: SceneNotLocated.make({
+                        film,
+                        scene: scene.id,
+                        reason: `the ${field} scene "${scene.id}" reads is not the one ${where} declares (the registry builds or overrides it), so no literal in source is what it plays`,
+                      }),
+                    };
+                  const shared = readers(field, scene);
+                  if (shared.length > 1)
+                    return {
+                      _tag: 'Refused',
+                      error: SourceShared.make({ film, field, file: where, scenes: shared }),
+                    };
+                  return WRITABLE;
+                },
+              });
+            sites.set(scene.id, {
+              scene: scene.id,
+              file,
+              exportName,
+              access: { timeline: accessOf('timeline'), knobs: accessOf('knobs') },
+            });
             continue;
           }
           const names = calls.map((c) => `${path.relative(dir, c.file)}#${c.exportName}`);
@@ -203,6 +296,17 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
         });
       });
 
+      const writable = Effect.fn('SceneSources.writable')(function* (
+        film: string,
+        scene: string,
+        field: Field,
+      ) {
+        const at = yield* site(film, scene);
+        const access = at.access[field];
+        if (access._tag === 'Refused') return yield* access.error;
+        return at;
+      });
+
       const readEditable = Effect.fn('SceneSources.editable')(function* (
         film: string,
         scene: string,
@@ -210,10 +314,22 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
         const at = yield* site(film, scene);
         const source = yield* fs.readFileString(at.file);
         const found = yield* Effect.fromResult(editable(at.file, source, at.exportName));
-        return { ...found, site: at };
+        // Only the fields the lab may write: a refused one lists nothing, and says why.
+        const refused = FIELDS.flatMap((field) => {
+          const access = at.access[field];
+          if (access._tag === 'Writable') return [];
+          return [{ field, reason: access.error.message }];
+        });
+        const open = (field: Field) => at.access[field]._tag === 'Writable';
+        return {
+          cues: found.cues.filter(() => open('timeline')),
+          knobs: found.knobs.filter(() => open('knobs')),
+          refused,
+          site: at,
+        };
       });
 
-      return SceneSources.of({ locate, site, editable: readEditable });
+      return SceneSources.of({ locate, site, writable, editable: readEditable });
     }),
   );
 }

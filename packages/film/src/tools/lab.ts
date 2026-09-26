@@ -20,8 +20,25 @@
 //   POST /lab/knobs/:scene/:knob        set a knob: KnobPatch
 //   POST /lab/undo                      put the last write's file back, byte for byte
 //   GET  /lab/check                     `film check --static` now, and the write Undo reverts
+//
+// The API rewrites source, so it answers only the lab's own page (`admit`):
+// the server listens on the loopback interface, every request must name the
+// bound host:port as its Host (a rebound DNS name does not), a browser request
+// must be same-origin, and a write must carry a JSON body from that origin (a
+// cross-site form post can send text/plain without a preflight; JSON cannot).
 
-import { Duration, Effect, FileSystem, Option, Path, Record as Rec, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Duration,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Record as Rec,
+  Result,
+  Schema,
+  String as Str,
+} from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
 import { sceneClock, sceneOf } from '../core/layout.ts';
 import {
@@ -48,8 +65,68 @@ import { SceneSources } from './scene-sources.ts';
 import { SceneWriter, type Written } from './scene-writer.ts';
 import { StaticCheck } from './static-check.ts';
 
-/** A web handler for the lab's routes, as a Bun route takes it. */
-export type LabHandler = (request: Request) => Promise<Response>;
+/** Where the server that mounts the lab listens: Bun hands each route its server. */
+export interface LabBound {
+  readonly hostname?: string;
+  readonly port?: number;
+}
+
+/** A web handler for the lab's routes, as a Bun route takes it: the request and its server. */
+export type LabHandler = (request: Request, server: LabBound) => Promise<Response>;
+
+/** A request the lab does not answer, and the status it answers instead. */
+export interface Refusal {
+  readonly status: 403 | 415;
+  readonly reason: string;
+}
+
+/** The names the loopback host answers to, beside the one the server was bound with. */
+const LOOPBACK: ReadonlyArray<string> = ['127.0.0.1', 'localhost'];
+/** `Sec-Fetch-Site` values of a request the lab's own page (or a tool, `none`) made. */
+const OWN_FETCH: ReadonlyArray<string> = ['same-origin', 'none'];
+const SAFE_METHODS: ReadonlyArray<string> = ['GET', 'HEAD'];
+
+const header = (request: Request, name: string) => Option.fromNullishOr(request.headers.get(name));
+
+const refused = (status: Refusal['status'], reason: string) =>
+  Option.some<Refusal>({ status, reason });
+
+/**
+ * Whether the lab answers `request` at all: `None` when it does, else why
+ * not. Pure: the Host (or, where no header is sent, the URL's host) must be
+ * the bound port on a loopback name; a browser's `Sec-Fetch-Site` must be
+ * same-origin; and a write must come from no Origin (a tool, like curl) or
+ * the lab's own, with a JSON body.
+ */
+export const admit = (request: Request, bound: LabBound): Option.Option<Refusal> =>
+  Option.match(Option.fromUndefinedOr(bound.port), {
+    onNone: () => refused(403, 'the server has no port to check the Host against'),
+    onSome: (port) => {
+      const hosts = Arr.dedupe([
+        ...Option.toArray(Option.fromUndefinedOr(bound.hostname)),
+        ...LOOPBACK,
+      ]).map((name) => `${name}:${port}`);
+      const host = Option.getOrElse(header(request, 'host'), () => new URL(request.url).host);
+      if (!hosts.includes(host))
+        return refused(403, `Host ${host} is not the lab's (${hosts.join(', ')})`);
+      const site = header(request, 'sec-fetch-site');
+      if (Option.exists(site, (s) => !OWN_FETCH.includes(s)))
+        return refused(403, `a ${Option.getOrElse(site, () => '')} request`);
+      if (SAFE_METHODS.includes(request.method)) return Option.none();
+      const origin = header(request, 'origin');
+      if (Option.exists(origin, (o) => !hosts.some((h) => o === `http://${h}`)))
+        return refused(403, `Origin ${Option.getOrElse(origin, () => '')} is not the lab's`);
+      const type = Option.getOrElse(
+        Option.map(header(request, 'content-type'), (t) =>
+          Arr.headNonEmpty(Str.split(t, ';')).trim().toLowerCase(),
+        ),
+        () => 'no body type',
+      );
+      if (type !== 'application/json')
+        return refused(415, `a write must send application/json, not ${type}`);
+      return Option.none();
+    },
+  });
 
 /** The longest a wait may hold a request open. */
 export const MAX_WAIT = Duration.seconds(60);
@@ -74,14 +151,14 @@ const headJson = HttpServerResponse.schemaJson(HeadSource);
 
 /**
  * The status a failure answers with: a missing note or scene 404, a bad
- * request 400, an edit the lab will not make 422, an undo with nothing (or
- * something newer) in the way 409, the rest 500.
+ * request 400, an edit the lab will not make 422, a write or an undo with
+ * something newer in the file (or nothing to undo) 409, the rest 500.
  */
 const statusOf = (tag: string) => {
   if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
-  if (tag === 'SourceRefused') return 422;
-  if (tag === 'UndoUnavailable') return 409;
+  if (tag === 'SourceRefused' || tag === 'SourceShared') return 422;
+  if (tag === 'UndoUnavailable' || tag === 'SourceChanged') return 409;
   return 500;
 };
 
@@ -124,7 +201,11 @@ const resolveCue = Effect.fn('lab.resolveCue')(function* (
 const answer = Effect.fn('lab.answer')(function* (
   film: string,
   written: Written,
-  read: Effect.Effect<Partial<Pick<LabWrite, 'span' | 'resolved' | 'knob'>>, never, FilmRepo>,
+  read: Effect.Effect<
+    Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob'>>,
+    never,
+    FilmRepo
+  >,
 ) {
   const path = yield* Path.Path;
   const dir = (yield* FilmRepo).paths(film).dir;
@@ -242,6 +323,7 @@ export const labRoutes = (film: string) =>
             file: (yield* Path.Path).relative(dir, found.site.file),
             cues: found.cues,
             knobs: found.knobs,
+            refused: found.refused,
           });
         }),
       ),
@@ -273,16 +355,23 @@ export const labRoutes = (film: string) =>
           const { scene, cue } = yield* HttpRouter.schemaPathParams(CueParams);
           const patch = yield* HttpServerRequest.schemaBodyJson(CuePatch);
           const written = yield* (yield* SceneWriter).setCue(film, scene, cue, patch);
-          const site = yield* (yield* SceneSources).site(film, scene);
-          const spans = readSpans(site.file, written.after, site.exportName);
-          const read = Effect.gen(function* () {
-            const span = Rec.get(spans, cue);
-            const resolved = yield* resolveCue(film, scene, spans, cue);
-            return {
-              ...Option.match(span, { onNone: () => ({}), onSome: (s) => ({ span: s }) }),
+          const spans = readSpans(written.file, written.after, written.exportName);
+          const span = Option.match(Rec.get(spans, cue), {
+            onNone: () => ({}),
+            onSome: (s) => ({ span: s }),
+          });
+          // The write landed; a cue that does not resolve says why in the answer, and in the log.
+          const read = resolveCue(film, scene, spans, cue).pipe(
+            Effect.map((resolved) => ({
+              ...span,
               ...Option.match(resolved, { onNone: () => ({}), onSome: (r) => ({ resolved: r }) }),
-            };
-          }).pipe(Effect.orElseSucceed(() => ({})));
+            })),
+            Effect.catch((error) =>
+              Effect.logWarning(
+                `lab.cue.unresolved film=${film} scene=${scene} cue=${cue} tag=${error._tag} reason=${error.message}`,
+              ).pipe(Effect.as({ ...span, unresolved: `${error._tag}: ${error.message}` })),
+            ),
+          );
           return yield* answer(film, written, read);
         }),
       ),
@@ -295,9 +384,8 @@ export const labRoutes = (film: string) =>
           const { scene, knob } = yield* HttpRouter.schemaPathParams(KnobParams);
           const { value } = yield* HttpServerRequest.schemaBodyJson(KnobPatch);
           const written = yield* (yield* SceneWriter).setKnob(film, scene, knob, value);
-          const site = yield* (yield* SceneSources).site(film, scene);
           const read = Effect.succeed(
-            Result.match(readKnob(site.file, written.after, site.exportName, knob), {
+            Result.match(readKnob(written.file, written.after, written.exportName, knob), {
               onFailure: () => ({}),
               onSuccess: (v) =>
                 Option.match(v, { onNone: () => ({}), onSome: (k) => ({ knob: k }) }),
@@ -359,7 +447,25 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     Effect.sync(() => HttpRouter.toWebHandler(labRoutes(film), { disableLogger: true })),
     (web) => Effect.promise(() => web.dispose()),
   );
-  // Each request runs with the caller's store and file system.
-  const lab: LabHandler = (request) => handler(request, services);
+  const run = Effect.runPromiseWith(services);
+  // Each admitted request runs with the caller's store and file system; a refused one, logged, runs nothing.
+  const lab: LabHandler = (request, server) =>
+    Option.match(admit(request, server), {
+      onNone: () => handler(request, services),
+      onSome: (refusal) =>
+        run(
+          Effect.logWarning(
+            `lab.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
+          ).pipe(
+            Effect.map(() =>
+              HttpServerResponse.toWeb(
+                HttpServerResponse.text(`LabRequestRefused: ${refusal.reason}`, {
+                  status: refusal.status,
+                }),
+              ),
+            ),
+          ),
+        ),
+    });
   return lab;
 });

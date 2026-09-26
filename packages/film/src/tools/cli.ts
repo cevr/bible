@@ -57,7 +57,7 @@ import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
-import { noteLine, replyLine } from './notes-lines.ts';
+import { cursorLine, noteLine, replyLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
@@ -458,7 +458,7 @@ const notesReply = Command.make(
       text: input.text,
       still,
     });
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note));
+    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
   }),
 ).pipe(Command.withDescription("Reply to a note as the agent; it shows in the lab's thread"));
 
@@ -467,7 +467,7 @@ const notesResolve = Command.make(
   { film, id: noteId },
   Effect.fn('film.notes.resolve')(function* (input) {
     const note = yield* (yield* NotesStore).resolve(input.film, input.id);
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note));
+    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
   }),
 ).pipe(Command.withDescription('Mark a note resolved'));
 
@@ -481,12 +481,14 @@ const notes = Command.make(
     watch: Flag.Boolean('watch').pipe(
       Flag.withDefault(false),
       Flag.withDescription(
-        'stream each new note, and each reply from the user, as one line, once (for a Monitor)',
+        'stream each new note, and each reply from the user, as one line, once (for a Monitor); prints `watch since=<seq>` first',
       ),
     ),
     since: Flag.Int('since').pipe(
       Flag.optional,
-      Flag.withDescription('with --watch: start past this cursor instead of the current one'),
+      Flag.withDescription(
+        'with --watch: start past this cursor (from `cursor seq=` of a list, or the last `seq=` a watch printed) instead of the current one',
+      ),
     ),
   },
   Effect.fn('film.notes')(function* (input) {
@@ -495,18 +497,21 @@ const notes = Command.make(
     const file = yield* store.read(input.film);
     if (!input.watch) {
       const open = file.notes.filter((n) => n.status !== 'resolved');
-      for (const note of open) yield* Console.log(noteLine(at, note));
+      for (const note of open) yield* Console.log(noteLine(at, note, note.changed));
+      // The cursor this list saw: a watch started past it misses nothing made since.
+      yield* Console.log(cursorLine(file.seq));
       yield* Effect.log(`notes.list film=${input.film} open=${open.length} cursor=${file.seq}`);
       return;
     }
     const start = Option.getOrElse(input.since, () => file.seq);
+    yield* Console.log(watchLine(start));
     yield* Effect.log(`notes.watch film=${input.film} since=${start}`);
     // Each wait passes the cursor on, so every change prints once.
     const watch = (since: number): Effect.Effect<never, StoreError> =>
       store.wait(input.film, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
           Effect.forEach(waited.events, (event) => {
-            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note));
+            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note, event.seq));
             if (event._tag === 'NoteReplied' && event.reply.by === 'user')
               return Console.log(replyLine(at, event.note, event.reply));
             return Effect.void;

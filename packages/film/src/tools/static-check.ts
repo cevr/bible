@@ -4,16 +4,22 @@
 // write left them. The static leg is cheap (no browser; about a quarter
 // second), and its printed lines (`level tag message`) are the report.
 
-import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
+import { Array as Arr, Context, Duration, Effect, Layer, Option } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import type { CheckLine } from '../core/schema.ts';
 import { StaticCheckFailed } from './errors.ts';
-import { collect } from './process.ts';
+import { collectWithin } from './process.ts';
 
 export interface StaticCheckService {
   /** Every finding of `film check <film> --static --allow-stale`, read fresh from disk. */
   readonly run: (film: string) => Effect.Effect<ReadonlyArray<CheckLine>, StaticCheckFailed>;
 }
+
+/**
+ * The longest one check may take. It runs in about a quarter second; a lab
+ * request waits on it, so one that hangs is stopped and reported.
+ */
+export const CHECK_LIMIT = Duration.seconds(30);
 
 const LINE = /^(error|warning)\s+(\S+)\s+(.*)$/;
 
@@ -48,9 +54,11 @@ export class StaticCheck extends Context.Service<StaticCheck, StaticCheckService
         const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
         const [program = 'bun', ...args] = command;
         const run = Effect.fn('StaticCheck.run')(function* (film: string) {
-          const done = yield* collect(
+          const done = yield* collectWithin(
             spawner,
+            'film check --static',
             ChildProcess.make(program, [...args, 'check', film, '--static', '--allow-stale']),
+            CHECK_LIMIT,
           ).pipe(Effect.mapError((error) => StaticCheckFailed.make({ reason: error.message })));
           const lines = checkLines(done.stdout);
           // Exit 1 is the check failing on its findings; anything else is the run failing.

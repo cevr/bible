@@ -346,7 +346,7 @@ export class NotesLocked extends Schema.TaggedError<NotesLocked>()('NotesLocked'
   lock: Schema.String,
 }) {
   override get message() {
-    return `${this.lock} is held; if no film lab or notes command is running, remove it`;
+    return `${this.lock} is held by a running writer; it is broken once that writer exits or the lock is 30 s old`;
   }
 }
 
@@ -361,6 +361,21 @@ export class SceneNotLocated extends Schema.TaggedError<SceneNotLocated>()('Scen
 }) {
   override get message() {
     return `film "${this.film}": scene "${this.scene}" has no editable drawing in source: ${this.reason}`;
+  }
+}
+
+/**
+ * A literal more than one scene reads (each spreads one drawing): a write for
+ * one scene would move the others too, so the lab does not make it.
+ */
+export class SourceShared extends Schema.TaggedError<SourceShared>()('SourceShared', {
+  film: Schema.String,
+  field: Schema.Literals(['timeline', 'knobs']),
+  file: Schema.String,
+  scenes: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `film "${this.film}": the ${this.field} in ${this.file} is read by scenes ${this.scenes.join(', ')}; the lab will not write a literal they share (give each scene its own drawing)`;
   }
 }
 
@@ -384,7 +399,7 @@ export class FormatFailed extends Schema.TaggedError<FormatFailed>()('FormatFail
   reason: Schema.String,
 }) {
   override get message() {
-    return `${this.file}: oxfmt failed, the edit was undone: ${this.reason}`;
+    return `${this.file}: oxfmt failed, the file was left as it was: ${this.reason}`;
   }
 }
 
@@ -395,7 +410,30 @@ export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('Writ
   reason: Schema.String,
 }) {
   override get message() {
-    return `${this.file}: ${this.target} did not read back after the write (${this.reason}); the edit was undone`;
+    return `${this.file}: ${this.target} did not read back once formatted (${this.reason}); the file was left as it was`;
+  }
+}
+
+/**
+ * The scene file changed on disk (an editor saved it) between the lab reading
+ * it and writing it back: the lab writes nothing over it, and the change stays.
+ */
+export class SourceChanged extends Schema.TaggedError<SourceChanged>()('SourceChanged', {
+  file: Schema.String,
+  target: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} changed on disk while the lab was writing ${this.target}; it was left as it is now: reload and write again`;
+  }
+}
+
+/** A child process that ran past its time limit, and was stopped. */
+export class ProcessTimedOut extends Schema.TaggedError<ProcessTimedOut>()('ProcessTimedOut', {
+  command: Schema.String,
+  seconds: Schema.Finite,
+}) {
+  override get message() {
+    return `${this.command} did not finish within ${this.seconds} s and was stopped`;
   }
 }
 

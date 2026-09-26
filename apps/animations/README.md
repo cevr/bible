@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run dev                                    # player at http://localhost:4400
+bun run dev                                    # player at http://127.0.0.1:4400
 bun run narrate <film>                         # record stale beats, verify, mix full.mp3
 bun run score <film>                           # generate stale music + effects, mix full.mp3
 bun run mix <film> [--stems]                   # remix full.mp3 + full.wav (no API); stems to out/<film>/stems
@@ -22,8 +22,8 @@ bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame pe
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
-bun run lab <film>                             # the lab at http://localhost:4401/?film=<film>&lab (Ctrl-C stops it)
-bun run notes <film> [--watch]                 # open lab notes, one line each; --watch streams new ones
+bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
+bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png]
 bun run notes resolve <film> <id>
 ```

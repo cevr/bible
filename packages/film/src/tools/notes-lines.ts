@@ -1,6 +1,8 @@
 // How `film notes` prints a note: one line of `key=value` fields an agent (or
 // a Claude Code Monitor on `--watch`) reads without parsing JSON. The still is
-// an absolute path, so the reader can open the frame directly. Pure.
+// an absolute path, so the reader can open the frame directly. Every line
+// carries `seq=`, the change it reports: `--watch --since <seq>` resumes right
+// after it. Pure.
 
 import { Option } from 'effect';
 import type { Note, Reply } from '../core/schema.ts';
@@ -24,12 +26,21 @@ const fields = (note: Note) => {
   ].join('');
 };
 
-/** A note: `note id=n3 status=open scene=hand T=230.38 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`. */
-export const noteLine = (at: NotesPaths, note: Note) =>
-  `note id=${note.id} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;
+/**
+ * A note as of change `seq` (it was made then, or last changed then):
+ * `note id=n3 seq=3 status=open scene=hand T=230.38 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`.
+ */
+export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
+  `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;
 
 /** A reply in a note's thread; its still is the reply's own, else the note's frame. */
 export const replyLine = (at: NotesPaths, note: Note, reply: Reply) => {
   const still = Option.getOrElse(Option.fromNullishOr(reply.still), () => note.still);
-  return `reply id=${note.id} by=${reply.by} ${fields(note)} still=${at.stills}/${still} text=${quoted(reply.text)}`;
+  return `reply id=${note.id} seq=${reply.seq} by=${reply.by} ${fields(note)} still=${at.stills}/${still} text=${quoted(reply.text)}`;
 };
+
+/** The notes file's cursor: pass it to `--watch --since` to see every change after it. */
+export const cursorLine = (seq: number) => `cursor seq=${seq}`;
+
+/** What `--watch` prints first: the cursor it starts past. */
+export const watchLine = (since: number) => `watch since=${since}`;

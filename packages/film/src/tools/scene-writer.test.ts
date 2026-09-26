@@ -5,30 +5,94 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import {
+  Context,
+  Deferred,
+  Duration,
+  Effect,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+} from 'effect';
+import { TestClock } from 'effect/testing';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { SceneSources } from './scene-sources.ts';
-import { SceneWriter } from './scene-writer.ts';
+import { FORMAT_LIMIT, SceneWriter } from './scene-writer.ts';
 import { sceneFixture } from './testing.ts';
 
 /** The fixture's hand scene: a fresh copy per test. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
-const fixture = Layer.unwrap(
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const films = yield* sceneFixture(yield* fs.makeTempDirectoryScoped());
-    return SceneWriter.layer.pipe(
-      Layer.provideMerge(SceneSources.layer),
-      Layer.provide(FilmRepo.layer(films)),
-      Layer.provide(ContentStore.layer),
-      Layer.merge(Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts'))),
-    );
-  }),
-).pipe(Layer.provideMerge(BunServices.layer));
+/**
+ * The writer over a fresh fixture. `spawning` stands in front of every child
+ * process the writer starts, given the hand file: a test uses it to act as an
+ * editor saving the file while oxfmt runs, or to make oxfmt fail.
+ */
+const fixtureWith = (
+  spawning: (
+    file: string,
+    command: ChildProcess.Command,
+  ) => Effect.Effect<ChildProcess.Command, never, FileSystem.FileSystem> = (_, command) =>
+    Effect.succeed(command),
+  registry: Option.Option<string> = Option.none(),
+) =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const real = yield* ChildProcessSpawner.ChildProcessSpawner;
+      const films = yield* sceneFixture(yield* fs.makeTempDirectoryScoped());
+      const file = path.join(films, 'f', 'scenes', 'hand.ts');
+      yield* Effect.forEach(Option.toArray(registry), (text) =>
+        fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), text),
+      );
+      const spawner = ChildProcessSpawner.make((command) =>
+        spawning(file, command).pipe(
+          Effect.provideService(FileSystem.FileSystem, fs),
+          Effect.flatMap(real.spawn),
+        ),
+      );
+      return SceneWriter.layer.pipe(
+        Layer.provideMerge(SceneSources.layer),
+        Layer.provide(FilmRepo.layer(films)),
+        Layer.provide(ContentStore.layer),
+        Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
+        Layer.merge(Layer.succeed(HandFile, file)),
+      );
+    }),
+  ).pipe(Layer.provideMerge(BunServices.layer));
+
+const fixture = fixtureWith();
+
+/** A registry that overrides the timeline `hand` spreads: the scene reads its own, not hand.ts's. */
+const OVERRIDDEN = `import { hand } from './hand.ts';
+
+export const scenes = [
+  { id: 'hand', ...hand, timeline: { topple: { mark: 'earns', offset: 5 } } },
+];
+`;
+
+/** A registry where two scenes spread one drawing: both read hand.ts's literals. */
+const SHARED = `import { hand } from './hand.ts';
+
+export const scenes = [
+  { id: 'hand', ...hand },
+  { id: 'again', ...hand },
+];
+`;
+
+const keep = (_: string, command: ChildProcess.Command) => Effect.succeed(command);
+
+/** Whether `command` is the writer's oxfmt run. */
+const isOxfmt = (command: ChildProcess.Command) =>
+  command._tag === 'StandardCommand' && command.args.includes('oxfmt');
+
+/** What an editor saves: its buffer (the file as it was before the lab's write) plus a new line. */
+const EDITOR_LINE = '// a line typed in the editor\n';
 
 const read = Effect.fn('test.read')(function* () {
   return yield* (yield* FileSystem.FileSystem).readFileString(yield* HandFile);
@@ -117,5 +181,123 @@ describe('scene writer', () => {
       const refused = yield* Effect.flip(writer.undo);
       expect(refused.message).toContain('has changed since the lab wrote knob palm');
     }).pipe(Effect.provide(fixture)),
+  );
+
+  it.effect('an editor save while oxfmt runs is kept, and the write fails as SourceChanged', () =>
+    Effect.gen(function* () {
+      const before = yield* read();
+      const error = yield* Effect.flip(
+        (yield* SceneWriter).setCue('f', 'hand', 'topple', { offset: 0.4 }),
+      );
+      expect(error._tag).toBe('SourceChanged');
+      // The editor's text survives, byte for byte: the lab neither overwrote nor "restored" it.
+      expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
+    }).pipe(
+      Effect.provide(
+        fixtureWith((file, command) =>
+          Effect.gen(function* () {
+            if (!isOxfmt(command)) return command;
+            const fs = yield* FileSystem.FileSystem;
+            // The editor's buffer predates the lab's write.
+            const buffer = yield* Effect.orDie(fs.readFileString(`${file}.buffer`));
+            yield* Effect.orDie(fs.writeFileString(file, `${buffer}${EDITOR_LINE}`));
+            return command;
+          }),
+        ).pipe(
+          Layer.tap((context) =>
+            Effect.gen(function* () {
+              const fs = Context.get(context, FileSystem.FileSystem);
+              const file = Context.get(context, HandFile);
+              yield* Effect.orDie(fs.copyFile(file, `${file}.buffer`));
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  it.effect('a failed oxfmt leaves an editor save in place', () =>
+    Effect.gen(function* () {
+      const before = yield* read();
+      const error = yield* Effect.flip((yield* SceneWriter).setKnob('f', 'hand', 'palm', [1, 2]));
+      expect(error._tag).toBe('FormatFailed');
+      expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
+    }).pipe(
+      Effect.provide(
+        fixtureWith((file, command) =>
+          Effect.gen(function* () {
+            if (!isOxfmt(command)) return command;
+            const fs = yield* FileSystem.FileSystem;
+            const now = yield* Effect.orDie(fs.readFileString(file));
+            // The editor saves what it had (the file before any write) and oxfmt then fails.
+            const buffer = now.replace('palm: [1, 2]', 'palm: [960, 800]');
+            yield* Effect.orDie(fs.writeFileString(file, `${buffer}${EDITOR_LINE}`));
+            return ChildProcess.make('sh', ['-c', 'exit 3']);
+          }),
+        ),
+      ),
+    ),
+  );
+
+  /** Done when the hung oxfmt below has started. */
+  const hung = Deferred.makeUnsafe<boolean>();
+
+  it.effect(
+    'an oxfmt that hangs is stopped at the limit; the write fails, the file untouched',
+    () =>
+      Effect.gen(function* () {
+        const before = yield* read();
+        const write = yield* Effect.forkChild(
+          (yield* SceneWriter).setCue('f', 'hand', 'topple', { offset: 0.4 }),
+        );
+        yield* Deferred.await(hung);
+        // Let the write's timeout start its (test) clock before the clock moves.
+        yield* Effect.repeat(Effect.yieldNow, { times: 50 });
+        yield* TestClock.adjust(Duration.sum(FORMAT_LIMIT, Duration.seconds(1)));
+        const error = yield* Effect.flip(Fiber.join(write));
+        expect(error._tag).toBe('FormatFailed');
+        expect(error.message).toContain('did not finish within 20 s');
+        expect(yield* read()).toBe(before);
+      }).pipe(
+        Effect.provide(
+          fixtureWith((_, command) =>
+            Effect.gen(function* () {
+              if (!isOxfmt(command)) return command;
+              yield* Deferred.succeed(hung, true);
+              return ChildProcess.make('sleep', ['30']);
+            }),
+          ),
+        ),
+      ),
+  );
+
+  it.effect(
+    'a scene that overrides the timeline it spreads: cues are refused, knobs still land',
+    () =>
+      Effect.gen(function* () {
+        const writer = yield* SceneWriter;
+        const before = yield* read();
+        // hand.ts's topple is not what the scene plays (it plays offset 5): writing it would change nothing.
+        const refused = yield* Effect.flip(writer.setCue('f', 'hand', 'topple', { offset: 0.4 }));
+        expect(refused._tag).toBe('SceneNotLocated');
+        expect(refused.message).toContain('the timeline scene "hand" reads is not the one');
+        expect(yield* read()).toBe(before);
+        // Its knobs are hand.ts's own object: that literal is the one the scene reads.
+        yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
+        expect(yield* read()).toBe(before.replace('palm: [960, 800]', 'palm: [1, 2]'));
+      }).pipe(Effect.provide(fixtureWith(keep, Option.some(OVERRIDDEN)))),
+  );
+
+  it.effect('two scenes that spread one drawing: its literals are refused, naming both', () =>
+    Effect.gen(function* () {
+      const writer = yield* SceneWriter;
+      const before = yield* read();
+      const cue = yield* Effect.flip(writer.setCue('f', 'again', 'topple', { offset: 0.4 }));
+      expect(cue._tag).toBe('SourceShared');
+      expect(cue.message).toContain('scenes hand, again');
+      const knob = yield* Effect.flip(writer.setKnob('f', 'hand', 'palm', [1, 2]));
+      expect(knob._tag).toBe('SourceShared');
+      expect(yield* read()).toBe(before);
+    }).pipe(Effect.provide(fixtureWith(keep, Option.some(SHARED)))),
   );
 });

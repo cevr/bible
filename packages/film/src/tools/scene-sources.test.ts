@@ -27,6 +27,9 @@ const fixture = Layer.unwrap(
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));
 
+/** Both fields writable: each scene reads its drawing's own literals, and no other scene does. */
+const open = { timeline: { _tag: 'Writable' }, knobs: { _tag: 'Writable' } } as const;
+
 describe('scene sources', () => {
   it.effect('finds each scene by the objects it reads', () =>
     Effect.gen(function* () {
@@ -36,9 +39,9 @@ describe('scene sources', () => {
       const scenes = path.join(films, 'f', 'scenes');
       const located = yield* sources.locate('f');
       expect([...located.sites.values()]).toEqual([
-        { scene: 'hand', file: path.join(scenes, 'hand.ts'), exportName: 'hand_' },
+        { scene: 'hand', file: path.join(scenes, 'hand.ts'), exportName: 'hand_', access: open },
         // Registered as `beta`: declared as `alpha` in a.ts, never decoy.ts's `beta`.
-        { scene: 'beta', file: path.join(scenes, 'a.ts'), exportName: 'alpha' },
+        { scene: 'beta', file: path.join(scenes, 'a.ts'), exportName: 'alpha', access: open },
       ]);
       expect(located.unlocated.map((u) => [u.scene, u.reason])).toEqual([
         [

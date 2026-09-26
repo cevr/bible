@@ -5,14 +5,24 @@
 // now — so the answer also says whether the file's code (everything but those
 // two literals) changed since HEAD.
 
-import { Context, Effect, FileSystem, Layer, Path, Result, Schema } from 'effect';
+import {
+  Context,
+  Duration,
+  Effect,
+  FileSystem,
+  Layer,
+  Path,
+  Record as Rec,
+  Result,
+  Schema,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { type Knob, Knobs, type Span, Timeline } from '../core/schema.ts';
-import { HeadUnavailable, type SceneNotLocated } from './errors.ts';
-import { collect } from './process.ts';
+import { HeadUnavailable, type ProcessTimedOut, type SceneNotLocated } from './errors.ts';
+import { collectWithin } from './process.ts';
 import { codeOf, readKnobs, readSpans } from './scene-source.ts';
-import { type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
+import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 
 /** A scene's data at HEAD beside the file now. */
 export interface SceneAtHead {
@@ -29,6 +39,9 @@ export interface SceneHeadService {
     scene: string,
   ) => Effect.Effect<SceneAtHead, LocateError | SceneNotLocated | HeadUnavailable>;
 }
+
+/** The longest `git show` may take: a lab request waits on it. */
+const GIT_LIMIT = Duration.seconds(10);
 
 /** The same data, key order aside. */
 const sameTimeline = Schema.toEquivalence(Timeline);
@@ -47,13 +60,15 @@ export class SceneHead extends Context.Service<SceneHead, SceneHeadService>()(
 
       /** The file's text at HEAD, run where the file is so any repository root works. */
       const atHead = (file: string) =>
-        collect(
+        collectWithin(
           spawner,
+          'git show',
           ChildProcess.make('git', ['show', `HEAD:./${path.basename(file)}`], {
             cwd: path.dirname(file),
           }),
+          GIT_LIMIT,
         ).pipe(
-          Effect.mapError((error: PlatformError) =>
+          Effect.mapError((error: PlatformError | ProcessTimedOut) =>
             HeadUnavailable.make({ file, reason: error.message }),
           ),
           Effect.flatMap((done) => {
@@ -77,15 +92,19 @@ export class SceneHead extends Context.Service<SceneHead, SceneHeadService>()(
         const thenCode = code(then);
         if (Result.isFailure(thenCode))
           return yield* HeadUnavailable.make({ file: site.file, reason: thenCode.failure.reason });
-        const timeline = readSpans(site.file, then, site.exportName);
-        const knobs = readKnobs(site.file, then, site.exportName);
+        // Only a field the scene reads from this literal: another's data is not the scene's.
+        const ours = (field: Field) => site.access[field]._tag === 'Writable';
+        const spans = (source: string): Readonly<Record<string, Span>> =>
+          Rec.filter(readSpans(site.file, source, site.exportName), () => ours('timeline'));
+        const knobsOf = (source: string): Readonly<Record<string, Knob>> =>
+          Rec.filter(readKnobs(site.file, source, site.exportName), () => ours('knobs'));
+        const timeline = spans(then);
+        const knobs = knobsOf(then);
         const codeChanged = Result.match(code(now), {
           onFailure: () => true,
           onSuccess: (c) => c !== thenCode.success,
         });
-        const sameData =
-          sameTimeline(timeline, readSpans(site.file, now, site.exportName)) &&
-          sameKnobs(knobs, readKnobs(site.file, now, site.exportName));
+        const sameData = sameTimeline(timeline, spans(now)) && sameKnobs(knobs, knobsOf(now));
         yield* Effect.logDebug(
           `scene-head.read scene=${scene} code_changed=${codeChanged} same_data=${sameData}`,
         );

@@ -3,9 +3,12 @@
 // never overwritten; a wait reports each change past its cursor once.
 
 import { BunServices } from '@effect/platform-bun';
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import {
+  Clock,
   ConfigProvider,
+  DateTime,
   Effect,
   Exit,
   Fiber,
@@ -15,9 +18,10 @@ import {
   Path,
   Schema,
 } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { type NoteDraft, NotesFileJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
-import { NotesStore } from './notes-store.ts';
+import { LockOwnerJson, NotesStore, lockVerdict } from './notes-store.ts';
 import { crashingFileSystem, memoryFileSystem, text } from './testing.ts';
 
 const film = 'f';
@@ -160,4 +164,73 @@ describe('NotesStore', () => {
       expect(yield* fs.exists(`${dir}/${film}/notes.lock`)).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
+
+  /** A store over the real file system, notes under `dir`. */
+  const storeAt = (dir: string) =>
+    NotesStore.layer.pipe(
+      Layer.provide(ContentStore.layer),
+      Layer.provide([BunServices.layer, labAt(dir)]),
+    );
+
+  /** Add one note through a fresh store over `dir`: another process, as far as the lock knows. */
+  const addAt = (dir: string) =>
+    Effect.flatMap(NotesStore, (n) => n.add(film, draft('after'), png)).pipe(
+      Effect.provide(storeAt(dir)),
+    );
+
+  /** The pid of a process that has exited: it names no one now. */
+  const deadPid = Effect.scoped(
+    Effect.gen(function* () {
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+      const handle = yield* spawner.spawn(ChildProcess.make('true', []));
+      yield* handle.exitCode;
+      return Number(handle.pid);
+    }),
+  );
+
+  it.live('a lock left by a writer that died is broken, and the next write lands', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      yield* fs.makeDirectory(`${dir}/${film}`, { recursive: true });
+      const created = yield* Clock.currentTimeMillis;
+      const owner = { pid: yield* deadPid, created, token: 'crashed' };
+      yield* fs.writeFileString(
+        `${dir}/${film}/notes.lock`,
+        yield* Schema.encodeEffect(LockOwnerJson)(owner),
+      );
+      const note = yield* addAt(dir);
+      expect(note.id).toBe('n1');
+      // Broken at once, not after the 5 s of retries a live lock gets.
+      expect((yield* Clock.currentTimeMillis) - created).toBeLessThan(2000);
+      expect(yield* fs.exists(`${dir}/${film}/notes.lock`)).toBe(false);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live('a lock older than 30 s is broken, whoever holds it (an old lock directory too)', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const lock = `${dir}/${film}/notes.lock`;
+      // What a crashed writer of the old store left: a bare directory, a minute old.
+      yield* fs.makeDirectory(lock, { recursive: true });
+      const old = DateTime.toDate(DateTime.subtract(yield* DateTime.now, { minutes: 1 }));
+      yield* fs.utimes(lock, old, old);
+      const note = yield* addAt(dir);
+      expect(note.id).toBe('n1');
+      expect(yield* fs.exists(lock)).toBe(false);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  test('a lock is stale when its holder is gone or it is past 30 s; a live, fresh one holds', () => {
+    const owner = { pid: 42, created: 1_000_000, token: 't' };
+    const alive = () => true;
+    expect(lockVerdict(Option.some(owner), 1_000_000 + 29_000, alive)).toEqual(Option.none());
+    expect(lockVerdict(Option.some(owner), 1_000_000 + 1_000, () => false)).toEqual(
+      Option.some('its holder, pid 42, is gone'),
+    );
+    expect(lockVerdict(Option.some(owner), 1_000_000 + 31_000, alive)).toEqual(
+      Option.some('it was taken 31 s ago'),
+    );
+  });
 });

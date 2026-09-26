@@ -10,6 +10,7 @@ import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
+import { FilmModuleInvalid } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
@@ -36,26 +37,48 @@ const fakeCheck = Layer.succeed(
   }),
 );
 
-const fixture = Layer.unwrap(
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const root = yield* fs.makeTempDirectoryScoped();
-    const films = yield* sceneFixture(root);
-    return Layer.mergeAll(
-      Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
-        Layer.provideMerge(SceneSources.layer),
-        Layer.provideMerge(FilmRepo.layer(films)),
-      ),
-      NotesStore.layer,
-      fakeCheck,
-      Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),
-    ).pipe(Layer.provideMerge(ContentStore.layer));
-  }),
-).pipe(Layer.provideMerge(BunServices.layer));
+/** The film repo over `films`, but loading the film fails (its paths still resolve). */
+const brokenRepo = (films: string) =>
+  Layer.effect(
+    FilmRepo,
+    Effect.map(FilmRepo, (repo) =>
+      FilmRepo.of({
+        paths: repo.paths,
+        load: (film) =>
+          Effect.fail(
+            FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
+          ),
+      }),
+    ),
+  ).pipe(Layer.provide(FilmRepo.layer(films)));
+
+const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.layer>) =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = yield* fs.makeTempDirectoryScoped();
+      const films = yield* sceneFixture(root);
+      return Layer.mergeAll(
+        Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+          Layer.provideMerge(SceneSources.layer),
+          Layer.provideMerge(repoOver(films)),
+        ),
+        NotesStore.layer,
+        fakeCheck,
+        Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),
+      ).pipe(Layer.provideMerge(ContentStore.layer));
+    }),
+  ).pipe(Layer.provideMerge(BunServices.layer));
+
+const fixture = fixtureWith(FilmRepo.layer);
+
+/** Where the lab server listens: the only host the routes answer to. */
+const bound = { hostname: '127.0.0.1', port: 4401 } as const;
+const at = (path: string) => `http://127.0.0.1:4401${path}`;
 
 const post = (path: string, body: string) =>
-  new Request(`http://lab.test${path}`, {
+  new Request(at(path), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body,
@@ -73,14 +96,14 @@ describe('lab source routes', () => {
         const lab = yield* labHandler('f');
         const before = yield* read();
         const source = yield* Effect.promise(() =>
-          lab(new Request('http://lab.test/lab/scenes/hand/source')).then((r) => r.json()),
+          lab(new Request(at('/lab/scenes/hand/source')), bound).then((r) => r.json()),
         );
         expect(yield* Schema.decodeUnknownEffect(SceneSource)(source)).toMatchObject({
           file: 'scenes/hand.ts',
           knobs: [{ name: 'palm', state: 'literal' }],
         });
         const res = yield* Effect.promise(() =>
-          lab(post('/lab/cues/hand/topple', '{"offset":0.4}')),
+          lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound),
         );
         expect(res.status).toBe(200);
         const written = yield* Schema.decodeUnknownEffect(LabWrite)(
@@ -104,15 +127,17 @@ describe('lab source routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
       const knob = yield* Effect.promise(() =>
-        lab(post('/lab/knobs/hand/palm', '{"value":[1000,760]}')).then((r) => r.json()),
+        lab(post('/lab/knobs/hand/palm', '{"value":[1000,760]}'), bound).then((r) => r.json()),
       );
       expect(knob).toMatchObject({ target: 'knob palm', knob: [1000, 760] });
       const after = yield* read();
-      const refused = yield* Effect.promise(() => lab(post('/lab/cues/hand/late', '{"offset":1}')));
+      const refused = yield* Effect.promise(() =>
+        lab(post('/lab/cues/hand/late', '{"offset":1}'), bound),
+      );
       expect(refused.status).toBe(422);
       expect(yield* Effect.promise(() => refused.text())).toContain('`GAP * 2`, not a literal');
       expect(yield* read()).toBe(after);
-      const status = (req: Request) => Effect.promise(() => lab(req).then((r) => r.status));
+      const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       expect(yield* status(post('/lab/cues/nope/topple', '{"dur":1}'))).toBe(404);
       expect(yield* status(post('/lab/cues/hand/topple', '{}'))).toBe(400);
       expect(yield* status(post('/lab/cues/hand/topple', '{"ease":"bouncy"}'))).toBe(400);
@@ -123,14 +148,16 @@ describe('lab source routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
       const before = yield* read();
-      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"ease":"inQuad"}')));
+      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"ease":"inQuad"}'), bound));
       expect(yield* read()).not.toBe(before);
       const undone = yield* Effect.promise(() =>
-        lab(post('/lab/undo', '{}')).then((r) => r.json()),
+        lab(post('/lab/undo', '{}'), bound).then((r) => r.json()),
       );
       expect(undone).toMatchObject({ target: 'undo cue topple ease' });
       expect(yield* read()).toBe(before);
-      const again = yield* Effect.promise(() => lab(post('/lab/undo', '{}')).then((r) => r.status));
+      const again = yield* Effect.promise(() =>
+        lab(post('/lab/undo', '{}'), bound).then((r) => r.status),
+      );
       expect(again).toBe(409);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
@@ -145,7 +172,7 @@ describe('lab source routes', () => {
       const git = (...args: ReadonlyArray<string>) =>
         collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
       const request = () =>
-        Effect.promise(() => lab(new Request('http://lab.test/lab/scenes/hand/head')));
+        Effect.promise(() => lab(new Request(at('/lab/scenes/hand/head')), bound));
       const head = Effect.fn('test.head')(function* () {
         const res = yield* request();
         return yield* Schema.decodeUnknownEffect(HeadSource)(
@@ -164,7 +191,7 @@ describe('lab source routes', () => {
         knobs: { palm: [960, 800] },
       });
       // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
-      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"offset":0.4}')));
+      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound));
       const moved = yield* head();
       expect(moved).toMatchObject({
         codeChanged: false,
@@ -177,5 +204,24 @@ describe('lab source routes', () => {
       yield* fs.writeFileString(file, now.replace('const GAP = 0.2;', 'const GAP = 0.3;'));
       expect(yield* head()).toMatchObject({ codeChanged: true });
     }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect(
+    'a cue that lands but does not resolve says why, instead of leaving it out silently',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler('f');
+        const res = yield* Effect.promise(() =>
+          lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound),
+        );
+        expect(res.status).toBe(200);
+        const written = yield* Schema.decodeUnknownEffect(LabWrite)(
+          yield* Effect.promise(() => res.json()),
+        );
+        expect(written.span).toEqual({ mark: 'earns', offset: 0.4, dur: 1.8 });
+        expect(written.resolved).toBeUndefined();
+        expect(written.unresolved).toContain('FilmModuleInvalid');
+        expect(written.unresolved).toContain('broken for the test');
+      }).pipe(Effect.scoped, Effect.provide(fixtureWith(brokenRepo))),
   );
 });

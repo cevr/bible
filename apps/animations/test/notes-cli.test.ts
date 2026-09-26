@@ -93,14 +93,16 @@ describe('film notes', () => {
       const lab = yield* labDir;
       const empty = yield* cli(lab, 'notes', film);
       expect(empty.exitCode).toBe(0);
-      expect(empty.stdout).toBe('');
+      // No notes: only the cursor a watch resumes from.
+      expect(empty.stdout).toBe('cursor seq=0\n');
 
       yield* handNote('the hand sits too low');
       const listed = yield* cli(lab, 'notes', film);
       expect(listed.exitCode).toBe(0);
-      expect(listed.stdout.trim()).toBe(
-        `note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=earns box=860,640,200x120 replies=0 still=${lab}/${film}/stills/n1.png text="the hand sits too low"`,
-      );
+      expect(listed.stdout.trim().split('\n')).toEqual([
+        `note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=earns box=860,640,200x120 replies=0 still=${lab}/${film}/stills/n1.png text="the hand sits too low"`,
+        'cursor seq=1',
+      ]);
 
       const after = `${lab}/after.png`;
       yield* fs.writeFile(after, png);
@@ -124,7 +126,7 @@ describe('film notes', () => {
       expect(unknown.out).toContain('has no note "n9"; its notes are n1');
 
       expect((yield* cli(lab, 'notes', 'resolve', film, 'n1')).exitCode).toBe(0);
-      expect((yield* cli(lab, 'notes', film)).stdout).toBe('');
+      expect((yield* cli(lab, 'notes', film)).stdout).toBe('cursor seq=3\n');
     }).pipe(Effect.provide(LabStore)),
   );
 
@@ -146,7 +148,7 @@ describe('film notes', () => {
       const lines = yield* Effect.forkChild(
         Stream.decodeText(watch.stdout).pipe(
           Stream.splitLines,
-          Stream.take(2),
+          Stream.take(3),
           Stream.runCollect,
           Effect.timeoutOption(Duration.seconds(20)),
         ),
@@ -157,12 +159,72 @@ describe('film notes', () => {
       yield* notes.reply(film, 'n1', { by: 'agent', text: 'mine', still: Option.none() });
       yield* notes.reply(film, 'n2', { by: 'user', text: 'and lower', still: Option.none() });
       const got = Option.getOrThrow(yield* Fiber.join(lines));
-      expect(got.map((l) => l.split(' ').slice(0, 2).join(' '))).toEqual([
-        'note id=n2',
-        'reply id=n2',
+      // First the cursor it starts from; then each line carries its own change number.
+      expect(got.map((l) => l.split(' ').slice(0, 3).join(' '))).toEqual([
+        'watch since=1',
+        'note id=n2 seq=2',
+        'reply id=n2 seq=4',
       ]);
-      expect(got[1]).toContain('by=user');
-      expect(got[1]).toContain('text="and lower"');
+      expect(got[2]).toContain('by=user');
+      expect(got[2]).toContain('text="and lower"');
     }).pipe(Effect.scoped, Effect.provide(LabStore)),
+  );
+
+  it.live(
+    'list, then watch from the cursor it printed: a note made between the two is not lost',
+    () =>
+      Effect.gen(function* () {
+        const path = yield* Path.Path;
+        const notes = yield* NotesStore;
+        const lab = yield* labDir;
+        yield* handNote('seen by the list');
+        const listed = yield* cli(lab, 'notes', film);
+        const cursor = /^cursor seq=(\d+)$/m.exec(listed.stdout)?.[1];
+        expect(cursor).toBe('1');
+        // Made after the list, before the watch starts: the gap a Monitor used to fall into.
+        yield* handNote('made in the gap');
+        yield* notes.reply(film, 'n2', { by: 'user', text: 'and this', still: Option.none() });
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const watch = yield* spawner.spawn(
+          ChildProcess.make('bun', ['cli.ts', 'notes', film, '--watch', '--since', `${cursor}`], {
+            cwd: path.join(import.meta.dir, '..'),
+            env: { FILMS_LAB: lab },
+            extendEnv: true,
+          }),
+        );
+        const got = Option.getOrThrow(
+          yield* Stream.decodeText(watch.stdout).pipe(
+            Stream.splitLines,
+            Stream.take(3),
+            Stream.runCollect,
+            Effect.timeoutOption(Duration.seconds(20)),
+          ),
+        );
+        expect(got.map((l) => l.split(' ').slice(0, 3).join(' '))).toEqual([
+          'watch since=1',
+          'note id=n2 seq=2',
+          'reply id=n2 seq=3',
+        ]);
+        // A watcher that restarts resumes past the last seq it printed: nothing twice, nothing lost.
+        const resumed = yield* spawner.spawn(
+          ChildProcess.make('bun', ['cli.ts', 'notes', film, '--watch', '--since', '2'], {
+            cwd: path.join(import.meta.dir, '..'),
+            env: { FILMS_LAB: lab },
+            extendEnv: true,
+          }),
+        );
+        const again = Option.getOrThrow(
+          yield* Stream.decodeText(resumed.stdout).pipe(
+            Stream.splitLines,
+            Stream.take(2),
+            Stream.runCollect,
+            Effect.timeoutOption(Duration.seconds(20)),
+          ),
+        );
+        expect(again.map((l) => l.split(' ').slice(0, 3).join(' '))).toEqual([
+          'watch since=2',
+          'reply id=n2 seq=3',
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(LabStore)),
   );
 });

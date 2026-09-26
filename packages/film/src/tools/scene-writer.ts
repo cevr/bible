@@ -2,16 +2,20 @@
 // knob's value, in the `drawing({...})` literal SceneSources locates.
 //
 // A write re-reads the file (the modules this process imported are as they
-// were at start), splices the one value (`scene-source.ts`), writes the file
-// whole (a partial file renamed into place), runs oxfmt on it, and reads the
-// value back from the formatted file. If oxfmt fails or the value does not
-// read back, the file is put back as it was and the write fails. Writes run
-// one at a time. The last write can be undone once, byte for byte, while the
-// file is still exactly as that write left it.
+// were at start), splices the one value (`scene-source.ts`), formats the new
+// text with oxfmt through its stdin, and reads the value back from the
+// formatted text. Only then does it touch the file, and only if the file is
+// still the text the edit was made from (an editor may have saved it since):
+// then it writes the file whole (a partial file renamed into place), else it
+// fails as `SourceChanged` and writes nothing. So a failed write never
+// changes the file, and there is nothing to put back. Writes run one at a
+// time. The last write can be undone once, byte for byte, while the file is
+// still exactly as that write left it.
 
 import {
   Array as Arr,
   Context,
+  Duration,
   Effect,
   FileSystem,
   Layer,
@@ -21,6 +25,7 @@ import {
   Ref,
   Result,
   Semaphore,
+  Stream,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
@@ -29,19 +34,23 @@ import { ContentStore } from './content-store.ts';
 import {
   FormatFailed,
   type SceneNotLocated,
+  SourceChanged,
   type SourceRefused,
+  type SourceShared,
   UndoUnavailable,
   WriteUnverified,
 } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
-import { collect } from './process.ts';
+import { collectWithin } from './process.ts';
 import { editCue, editKnob, readCue, readKnob, roundValue } from './scene-source.ts';
-import { type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
+import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 
 /** One write the lab made: the file's text before and after it. */
 export interface Written {
   readonly scene: string;
   readonly file: string;
+  /** The name the file exports the drawing under: where the written value reads back. */
+  readonly exportName: string;
   /** What changed, e.g. `cue topple offset,dur` or `knob palm`. */
   readonly target: string;
   readonly before: string;
@@ -53,7 +62,9 @@ export type WriteError =
   | SceneNotLocated
   | SourceRefused
   | FormatFailed
-  | WriteUnverified;
+  | WriteUnverified
+  | SourceChanged
+  | SourceShared;
 
 export interface SceneWriterService {
   readonly setCue: (
@@ -73,6 +84,13 @@ export interface SceneWriterService {
   /** The write `undo` would put back, if any. */
   readonly last: Effect.Effect<Option.Option<Written>>;
 }
+
+/**
+ * The longest oxfmt may take on one file. Writes run one at a time, so a hung
+ * oxfmt would hold every later write: past this it is stopped and the write
+ * fails with the file untouched.
+ */
+export const FORMAT_LIMIT = Duration.seconds(20);
 
 /** Whether two numbers are the same value as the lab writes it. */
 const same = (a: number, b: number) => roundValue(a) === roundValue(b);
@@ -125,15 +143,28 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
       const writer = yield* Semaphore.make(1);
       const last = yield* Ref.make(Option.none<Written>());
 
-      /** Put `text` back as the file, when a write has to be undone. */
-      const restore = (file: string, text: string) =>
+      /** Write `text` as the file, whole. */
+      const put = (file: string, text: string) =>
         store.writeFile(file, new TextEncoder().encode(text));
 
-      const format = (file: string) =>
-        collect(spawner, ChildProcess.make('bunx', ['oxfmt', file])).pipe(
+      /**
+       * `text` as oxfmt formats it for `file`, through its stdin: the file is
+       * not touched. Run from the file's folder, so oxfmt finds the config the
+       * file is formatted with.
+       */
+      const format = (file: string, text: string) =>
+        collectWithin(
+          spawner,
+          'oxfmt',
+          ChildProcess.make('bunx', ['oxfmt', `--stdin-filepath=${file}`], {
+            cwd: path.dirname(file),
+            stdin: Stream.make(new TextEncoder().encode(text)),
+          }),
+          FORMAT_LIMIT,
+        ).pipe(
           Effect.mapError((error) => FormatFailed.make({ file, reason: error.message })),
           Effect.flatMap((done) => {
-            if (done.exitCode === 0) return Effect.void;
+            if (done.exitCode === 0) return Effect.succeed(done.stdout);
             return Effect.fail(
               FormatFailed.make({ file, reason: `${done.stderr}${done.stdout}`.trim() }),
             );
@@ -142,11 +173,12 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
 
       /**
        * Rewrite one value of a scene's drawing: `edit` gives the new text, and
-       * `verify` reads the formatted file back, naming what did not land.
+       * `verify` reads the formatted text back, naming what did not land.
        */
       const write = (
         film: string,
         scene: string,
+        field: Field,
         target: string,
         edit: (at: SceneSite, source: string) => Result.Result<string, SourceRefused>,
         verify: (
@@ -154,35 +186,46 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           after: string,
         ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
       ) =>
-        // Uninterruptible: the page the write reloads drops its request, and a
-        // write must not stop between the rename and the check that it read back.
         writer.withPermits(1)(
-          Effect.uninterruptible(
-            Effect.gen(function* () {
-              const at = yield* sources.site(film, scene);
-              const before = yield* fs.readFileString(at.file);
-              const next = yield* Effect.fromResult(edit(at, before));
-              yield* store.writeFile(at.file, new TextEncoder().encode(next));
-              const undone = <E>(error: E) =>
-                Effect.andThen(restore(at.file, before), Effect.fail(error));
-              yield* format(at.file).pipe(Effect.catchTag('FormatFailed', undone));
-              const after = yield* fs.readFileString(at.file);
-              const missed = Result.match(verify(at, after), {
-                onFailure: (e) => [e.reason],
-                onSuccess: (m) => m,
+          Effect.gen(function* () {
+            const at = yield* sources.writable(film, scene, field);
+            const before = yield* fs.readFileString(at.file);
+            const next = yield* Effect.fromResult(edit(at, before));
+            const after = yield* format(at.file, next);
+            const missed = Result.match(verify(at, after), {
+              onFailure: (e) => [e.reason],
+              onSuccess: (m) => m,
+            });
+            if (missed.length > 0)
+              return yield* WriteUnverified.make({
+                file: at.file,
+                target,
+                reason: missed.join(', '),
               });
-              if (missed.length > 0)
-                return yield* undone(
-                  WriteUnverified.make({ file: at.file, target, reason: missed.join(', ') }),
+            // Uninterruptible: the write reloads the page, which drops its
+            // request; the file and `last` must still agree once it lands.
+            return yield* Effect.uninterruptible(
+              Effect.gen(function* () {
+                // Compare and swap: only over the very text the edit was made from.
+                if ((yield* fs.readFileString(at.file)) !== before)
+                  return yield* SourceChanged.make({ file: at.file, target });
+                yield* put(at.file, after);
+                const written: Written = {
+                  scene,
+                  file: at.file,
+                  exportName: at.exportName,
+                  target,
+                  before,
+                  after,
+                };
+                yield* Ref.set(last, Option.some(written));
+                yield* Effect.log(
+                  `lab.write film=${film} scene=${scene} target="${target}" file=${path.relative(repo.paths(film).dir, at.file)}`,
                 );
-              const written: Written = { scene, file: at.file, target, before, after };
-              yield* Ref.set(last, Option.some(written));
-              yield* Effect.log(
-                `lab.write film=${film} scene=${scene} target="${target}" file=${path.relative(repo.paths(film).dir, at.file)}`,
-              );
-              return written;
-            }),
-          ),
+                return written;
+              }),
+            );
+          }),
         );
 
       const setCue = Effect.fn('SceneWriter.setCue')(function* (
@@ -194,6 +237,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         return yield* write(
           film,
           scene,
+          'timeline',
           `cue ${cue} ${fieldsOf(patch).join(',')}`,
           (at, source) => editCue(at.file, source, at.exportName, cue, patch),
           (at, after) =>
@@ -212,6 +256,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         return yield* write(
           film,
           scene,
+          'knobs',
           `knob ${knob}`,
           (at, source) => editKnob(at.file, source, at.exportName, knob, value),
           (at, after) =>
@@ -234,12 +279,13 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
                 return yield* UndoUnavailable.make({
                   reason: `${w.file} has changed since the lab wrote ${w.target}`,
                 });
-              yield* restore(w.file, w.before);
+              yield* put(w.file, w.before);
               yield* Ref.set(last, Option.none());
               yield* Effect.log(`lab.undo scene=${w.scene} target="${w.target}" file=${w.file}`);
               const undone: Written = {
                 scene: w.scene,
                 file: w.file,
+                exportName: w.exportName,
                 target: `undo ${w.target}`,
                 before: w.after,
                 after: w.before,

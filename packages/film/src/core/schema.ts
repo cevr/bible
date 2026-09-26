@@ -540,6 +540,14 @@ export const SceneSource = Schema.Struct({
     Schema.Struct({ name: Schema.String, offset: FieldState, dur: FieldState, ease: FieldState }),
   ),
   knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
+  /**
+   * A field the lab will not write, and why: the scene reads a timeline or
+   * knobs no literal declares (the registry overrides it), or one other
+   * scenes read too. Its cues or knobs are not listed.
+   */
+  refused: Schema.Array(
+    Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),
+  ),
 });
 export type SceneSource = typeof SceneSource.Type;
 
@@ -573,6 +581,8 @@ export const LabWrite = Schema.Struct({
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */
   resolved: Schema.optionalKey(CueTiming),
+  /** Why the written cue could not be resolved (the film did not load or lay out), when it could not. */
+  unresolved: Schema.optionalKey(Schema.String),
   /** The knob's value as the file now declares it. */
   knob: Schema.optionalKey(Knob),
   /** `film check --static`, run fresh after the write. */

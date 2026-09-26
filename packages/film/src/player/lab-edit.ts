@@ -259,6 +259,12 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     ...[...film.cuesOf(p.spec.id)].flatMap(([name, c]) => (name === skip ? [] : [c.start, c.end])),
   ];
 
+  /** Why the lab will not write a scene's timeline or knobs at all, when it will not. */
+  const refusal = (field: 'timeline' | 'knobs') =>
+    source?.refused.find((r) => r.field === field)?.reason;
+  /** Why a cue's or knob's value cannot be written: the field refused, else computed. */
+  const whyNot = (field: 'timeline' | 'knobs') => refusal(field) ?? 'it is computed in the source';
+
   /** A field the lab may write: a literal, or absent (then added). */
   const writable = (cue: string, field: 'offset' | 'dur' | 'ease') => {
     const found = source?.cues.find((c) => c.name === cue);
@@ -284,7 +290,9 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       setStatus(
         source === undefined
           ? `cannot edit: ${sourceError || 'no source for this scene'}`
-          : `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
+          : refusal('timeline') !== undefined
+            ? `cannot drag ${cue}: ${whyNot('timeline')}`
+            : `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
       );
       return;
     }
@@ -352,7 +360,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   };
   const shown = (w: LabWrite) => {
     findings = w.findings;
-    setStatus(`wrote ${w.file}: ${w.target}`);
+    const unresolved = w.unresolved === undefined ? '' : ` (not resolved: ${w.unresolved})`;
+    setStatus(`wrote ${w.file}: ${w.target}${unresolved}`);
     renderInspector();
   };
   const failed = (scene: string, err: unknown) => {
@@ -461,7 +470,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const p = placedOf(scene);
     if (p === undefined) return;
     if (!knobWritable(name)) {
-      setStatus(`cannot move ${name}: its value is computed in the source`);
+      setStatus(`cannot move ${name}: ${whyNot('knobs')}`);
       return;
     }
     const from = at.value;
@@ -627,7 +636,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
         const where = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
         row.append(el('span', 'lab-edit-note', where));
       }
-      if (!ok) row.append(el('span', 'lab-edit-note', 'computed in the source'));
+      if (!ok)
+        row.append(el('span', 'lab-edit-note', refusal('knobs') ?? 'computed in the source'));
       box.append(row);
     }
     return box;
