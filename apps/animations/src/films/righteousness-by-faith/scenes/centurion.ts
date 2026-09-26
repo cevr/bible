@@ -37,10 +37,11 @@ export const centurion: Drawing = {
     const story = f.mark('story');
     const faith = f.mark('faith');
 
-    // The whole story slides away when the definition arrives.
+    // The whole story slides away when the definition arrives, the far room's
+    // right edge (FOLD + 960) with it.
     const away = progress(t, story - 0.1, 1.1, ease.inOutCubic);
     ctx.save();
-    ctx.translate(-away * 2000, 0);
+    ctx.translate(-away * 2100, 0);
 
     // ── The far room: a warm sheet beyond a torn fold, under a red roof.
     const room = progress(t, servant - 0.3, 0.9, ease.outCubic);
