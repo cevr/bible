@@ -138,7 +138,7 @@ const readProvenance = (
       // source gives — rather than as an incomplete provenance.
       generation: Option.fromNullishOr(values.get('corpus_generation')).pipe(
         Option.filter(Predicate.isString),
-        Option.flatMap((raw) => Schema.decodeUnknownOption(CorpusGeneration)(Number(raw))),
+        Option.flatMap((raw) => Schema.decodeOption(CorpusGeneration)(Number(raw))),
       ),
     });
   }).pipe(Effect.option);
