@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { concat, levels, silence, toInt16, toStereo } from './audio.ts';
+import { concat, levels, silence, slice, toInt16, toStereo } from './audio.ts';
 
 const pcm = (...channels: ReadonlyArray<ReadonlyArray<number>>) => ({
   rate: 44100,
@@ -53,6 +53,17 @@ describe('concat', () => {
     expect(joined.channels.map((c) => [...c])).toEqual([
       [1, 2, 5],
       [3, 4, 6],
+    ]);
+  });
+});
+
+describe('slice', () => {
+  test('cuts frames from a point, with silence past the end', () => {
+    const cut = slice(pcm([1, 2, 3], [4, 5, 6]), 1, 3);
+    expect(cut.frames).toBe(3);
+    expect(cut.channels.map((c) => [...c])).toEqual([
+      [2, 3, 0],
+      [5, 6, 0],
     ]);
   });
 });

@@ -107,9 +107,9 @@ export class FfmpegMissing extends Schema.TaggedError<FfmpegMissing>()('FfmpegMi
   }
 }
 
-/** A media file that could not be read, decoded or written. */
+/** A media file that could not be read, decoded, written or joined into a film. */
 export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
-  op: Schema.Literals(['read', 'decode', 'write']),
+  op: Schema.Literals(['read', 'decode', 'write', 'join']),
   file: Schema.String,
   reason: Schema.String,
 }) {

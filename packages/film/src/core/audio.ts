@@ -28,6 +28,17 @@ export const concat = (rate: number, channels: number, blocks: ReadonlyArray<Pcm
   return { rate, frames, channels: out };
 };
 
+/** `frames` frames of `pcm` from frame `from`; any past its end are silence. */
+export const slice = (pcm: Pcm, from: number, frames: number): Pcm => ({
+  rate: pcm.rate,
+  frames,
+  channels: pcm.channels.map((plane) => {
+    const out = new Float32Array(frames);
+    out.set(plane.subarray(from, Math.min(pcm.frames, from + frames)));
+    return out;
+  }),
+});
+
 /**
  * Two channels. Mono spreads to both sides at −3 dB, as ffmpeg's rematrix did
  * in the graph the mix was balanced with (libswresample/rematrix.c,

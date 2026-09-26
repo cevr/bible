@@ -34,9 +34,55 @@ const notFound = (method: string, path: string) =>
     pathOrDescriptor: path,
   });
 
+/**
+ * `path` opened for writing over `files`: emptied, then written at a cursor
+ * that seeks anywhere. Only what writing needs is there; reads fail.
+ */
+const memoryFile = (files: Map<string, Uint8Array>, path: string): FileSystem.File => {
+  files.set(path, new Uint8Array(0));
+  let cursor = 0;
+  const unsupported = (method: string) =>
+    Effect.fail(
+      PlatformError.systemError({
+        _tag: 'Unknown',
+        module: 'FileSystem',
+        method,
+        pathOrDescriptor: path,
+        description: 'the memory file only writes',
+      }),
+    );
+  const put = (buffer: Uint8Array) => {
+    const old = files.get(path) ?? new Uint8Array(0);
+    const end = cursor + buffer.length;
+    const next = new Uint8Array(Math.max(old.length, end));
+    next.set(old);
+    next.set(buffer, cursor);
+    files.set(path, next);
+    cursor = end;
+    return buffer.length;
+  };
+  return {
+    [FileSystem.FileTypeId]: FileSystem.FileTypeId,
+    stat: unsupported('stat'),
+    sync: Effect.void,
+    seek: (offset, from) =>
+      Effect.sync(() => {
+        if (from === 'start') cursor = 0;
+        cursor += Number(offset);
+        return BigInt(cursor);
+      }),
+    read: () => unsupported('read'),
+    readAlloc: () => unsupported('readAlloc'),
+    truncate: () => unsupported('truncate'),
+    write: (buffer) => Effect.sync(() => put(buffer)),
+    writeAll: (buffer) => Effect.sync(() => void put(buffer)),
+  };
+};
+
 /** File operations over a map of path → bytes. */
 const memoryOps = (files: Map<string, Uint8Array>) =>
   ({
+    open: (path) => Effect.sync(() => memoryFile(files, path)),
     exists: (path) =>
       Effect.succeed(files.has(path) || [...files.keys()].some((f) => f.startsWith(`${path}/`))),
     readFile: (path) =>
@@ -181,7 +227,7 @@ export const fakeFfmpeg = (runs: Array<ReadonlyArray<string>>) =>
 /**
  * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
  * is not there), decodes to a second of mono silence at the mix's rate, and a
- * WAV written lands as `wav <frames>`.
+ * WAV written lands as `wav <frames>`, and a joined film as `mp4 <frames>`.
  */
 export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
   Layer.succeed(
@@ -197,6 +243,7 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
       tracks: () => Effect.succeed(['audio']),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
+      join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
     }),
   );
 
@@ -329,6 +376,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
       decode: () => Effect.succeed(silence(MIX_RATE, 0, 2)),
       writeWav: () => Effect.void,
+      join: () => Effect.void,
     }),
   );
   const ffmpeg = Layer.succeed(

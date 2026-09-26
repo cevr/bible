@@ -42,6 +42,7 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
             return yield* MediaFailed.make({ op: 'write', file, reason: 'no space' });
           if (finish === 'hang') return yield* Effect.never;
         }),
+      join: () => Effect.void,
     }),
   );
 

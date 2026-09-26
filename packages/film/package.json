@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
+    "@mediabunny/aac-encoder": "1.60.0",
     "effect": "catalog:",
     "mediabunny": "1.60.0",
     "mpg123-decoder": "1.0.3",
