@@ -27,12 +27,7 @@ const FONTS = [
 ];
 
 /** Bytes as base64: what the export handle hands back across `page.evaluate`. */
-const base64 = (bytes: Uint8Array) => {
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
+const base64 = (bytes: Uint8Array) => bytes.toBase64();
 
 /** A canvas as base64 PNG or JPEG. */
 const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
