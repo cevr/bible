@@ -9,9 +9,11 @@
 // its findings show under the inspector.
 //
 // On the strip: drag a cue's body to move its offset, its left edge to move
-// its start (offset and dur), its right edge to move its end (dur). Edges
-// snap to word starts and ends, marks and other cues' edges within a few
-// pixels, else move by whole frames; hold shift to place freely.
+// its start (offset and dur), its right edge to move its end (dur). A bar
+// too short for two edges and a body (under 3 × EDGE_PX) is all body; alt-drag
+// it to move its end. Edges snap to word starts and ends, marks and other
+// cues' edges within a few pixels, else move by whole frames; hold shift to
+// place freely.
 
 import { Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
@@ -38,7 +40,7 @@ import type { Player } from './main.ts';
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
 const SNAP_PX = 8;
 /** How wide (screen pixels) a cue's edge is to grab. */
-const EDGE_PX = 6;
+export const EDGE_PX = 6;
 
 const decodeWrite = Schema.decodeUnknownSync(LabWrite);
 const decodeSource = Schema.decodeUnknownSync(SceneSource);
@@ -50,6 +52,18 @@ type Selection =
   | { readonly kind: 'knob'; readonly scene: string; readonly name: string };
 
 type DragMode = 'move' | 'start' | 'end';
+
+/**
+ * What a press `x` pixels into a cue's bar `width` wide grabs. A bar under
+ * 3 × EDGE_PX has no room for two edges and a body, so it is all body (its
+ * offset), or its end (dur) with alt held.
+ */
+export const dragModeAt = (x: number, width: number, alt: boolean): DragMode => {
+  if (width < EDGE_PX * 3) return alt ? 'end' : 'move';
+  if (x < EDGE_PX) return 'start';
+  if (width - x < EDGE_PX) return 'end';
+  return 'move';
+};
 
 /** Where a dragged cue now sits: its offset from its anchor and its length, in seconds. */
 interface Placement {
@@ -272,12 +286,7 @@ export const mountEditor = (
     // Measured before selecting: selecting draws the strip again, with new bars.
     const rect = bar.getBoundingClientRect();
     select({ kind: 'cue', scene: p.spec.id, name: cue });
-    const mode: DragMode =
-      e.clientX - rect.left < EDGE_PX && rect.width > EDGE_PX * 2
-        ? 'start'
-        : rect.right - e.clientX < EDGE_PX
-          ? 'end'
-          : 'move';
+    const mode = dragModeAt(e.clientX - rect.left, rect.width, e.altKey);
     const needs: ReadonlyArray<'offset' | 'dur'> =
       mode === 'move' ? ['offset'] : mode === 'end' ? ['dur'] : ['offset', 'dur'];
     const scene = p.spec.id;

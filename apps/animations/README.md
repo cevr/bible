@@ -69,8 +69,8 @@ a render cleanly: every page, the browser and the server close. Player keys: spa
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills. The strip under the timeline shows the
-current scene's cues: drag one (body = offset, edges = start/end; snaps to
-words and frames, shift for free) and the release writes the new value into
+current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
+all body, alt-drag for its end; snaps to words and frames, shift for free) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
