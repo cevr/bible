@@ -72,15 +72,16 @@ export const cueTime = (
     return p.start + Option.getOrElse(Option.fromNullishOr(cue.offset), () => 0) + anchor;
   });
 
-/** Where an act starts: the first always opens the film. */
+/** Where an act starts: the first always opens the film, though its scene must exist too. */
 const actStart = (
   act: Act,
   index: number,
   placed: ReadonlyArray<Placed>,
-): Result.Result<number, UnknownScene> => {
-  if (index === 0) return Result.succeed(0);
-  return Result.map(sceneOf(placed, act.from), (p) => p.start);
-};
+): Result.Result<number, UnknownScene> =>
+  Result.map(sceneOf(placed, act.from), (p) => {
+    if (index === 0) return 0;
+    return p.start;
+  });
 
 /**
  * The score's plan: each act lasts from its scene to the next act's scene, and

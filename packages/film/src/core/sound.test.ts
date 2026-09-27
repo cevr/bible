@@ -83,6 +83,11 @@ describe('sound', () => {
     expect(open?.text).toBe('[Open]');
   });
 
+  test('an act naming no scene is refused, the first one too', () => {
+    const lost = { ...music, acts: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
+    expect(outcome(musicPlan(lost, placed))).toBe('UnknownScene');
+  });
+
   test('acts out of film order are refused', () => {
     const backwards = { ...music, acts: [...music.acts].reverse() };
     expect(outcome(musicPlan(backwards, placed))).toBe('ActTooShort');
