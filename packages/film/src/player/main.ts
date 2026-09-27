@@ -9,6 +9,7 @@ import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
 import { composeContact } from './contact.ts';
+import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 
@@ -24,21 +25,6 @@ const FONTS = [
   '400 40px "Gaegu"',
   '700 40px "Gaegu"',
 ];
-
-/** Bytes as base64: what the export handle hands back across `page.evaluate`. */
-const base64 = (bytes: Uint8Array) => {
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
-
-/** A canvas as base64 PNG or JPEG. */
-const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
-  if (blob === null) throw new Error('toBlob failed');
-  return base64(new Uint8Array(await blob.arrayBuffer()));
-};
 
 export interface ExportHandle {
   readonly width: number;
@@ -154,7 +140,7 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         audio: film.audio,
         frame: (i, type = 'image/png') => {
           draw(i);
-          return encode(canvas, type);
+          return canvasBase64(canvas, type);
         },
         probe: (i) => {
           const sink: ProbeSink = { texts: [], inks: [] };
@@ -162,14 +148,16 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
           return sink;
         },
         lookbook: async (type = 'image/jpeg') =>
-          encode((await composeLookbook(film, { captions: captions.on })).canvas, type),
+          canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
         encoder: (scale) => encoderCheck(canvas, film.fps, scale),
         encode: async (from, to, scale, share) => {
           const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share);
-          const master = base64(chunk.master);
-          return chunk.share === undefined ? { master } : { master, share: base64(chunk.share) };
+          const master = bytesBase64(chunk.master);
+          return chunk.share === undefined
+            ? { master }
+            : { master, share: bytesBase64(chunk.share) };
         },
-        contact: (frames) => encode(composeContact(draw, canvas, frames), 'image/jpeg'),
+        contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
       };
       return;
     }
@@ -204,11 +192,7 @@ const preview = (
     <div class="tip" hidden></div>
     <div class="keys">space play · ←/→ frame (shift: 1s) · [ ] scene · c captions · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
   document.body.append(bar);
-  const q = <T extends Element>(sel: string) => {
-    const el = bar.querySelector<T & Element>(sel);
-    if (el === null) throw new Error(`missing ${sel}`);
-    return el;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
   const head = q<HTMLDivElement>('.head');
   const timeEl = q<HTMLSpanElement>('.time');

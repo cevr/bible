@@ -13,10 +13,10 @@
 // snap to word starts and ends, marks and other cues' edges within a few
 // pixels, else move by whole frames; hold shift to place freely.
 
-import { Option, Schema } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
 import { type Affine, applyAffine, invertAffine, sameAffine } from '../core/affine.ts';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import {
   type CheckLine,
   CheckReport,
@@ -32,9 +32,9 @@ import {
 } from '../core/schema.ts';
 import { ease } from '../core/time.ts';
 import { DEFAULT_EASE, type ResolvedCue } from '../core/timeline.ts';
+import { el, postJson, required, svg } from './dom.ts';
 import type { Player } from './main.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
 const SNAP_PX = 8;
 /** How wide (screen pixels) a cue's edge is to grab. */
@@ -81,23 +81,6 @@ const selectionToUrl = (sel: Selection | undefined) => {
   history.replaceState(null, '', `?${params.toString()}${location.hash}`);
 };
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
-
 /** Seconds and pixels to the thousandth, as the write stores them. */
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
@@ -126,15 +109,8 @@ const curve = (name: EaseName) => {
   return node;
 };
 
-const post = async (url: string, body: unknown) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return decodeWrite(await res.json());
-};
+/** A write to the lab's API, answered with what landed. */
+const post = (url: string, body: unknown) => postJson(url, body).then(decodeWrite);
 
 /**
  * Mount the editor: the strip in the player's bar, the inspector at the top
@@ -162,7 +138,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   let dragging = false;
 
   const placedOf = (scene: string): Placed<SceneSpec> | undefined =>
-    film.placed.find((p) => p.spec.id === scene);
+    Result.getOrUndefined(sceneOf(film.placed, scene));
   const declaredTimeline = (p: Placed<SceneSpec>): Timeline =>
     edits.get(p.spec.id)?.timeline ?? p.spec.timeline ?? {};
   const declaredKnobs = (p: Placed<SceneSpec>): Knobs =>
@@ -517,11 +493,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   const header = panel.querySelector('header');
   if (header === null) panel.prepend(section);
   else header.after(section);
-  const q = <T extends Element>(sel: string) => {
-    const found = section.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(section, sel);
   const fileEl = q<HTMLSpanElement>('.lab-edit-file');
   const body = q<HTMLDivElement>('.lab-edit-body');
   const findingsEl = q<HTMLUListElement>('.lab-findings');

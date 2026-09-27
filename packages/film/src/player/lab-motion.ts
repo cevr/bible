@@ -8,8 +8,10 @@
 // narration plays only at 1×.
 
 import type { SceneSpec } from '../canvas/film.ts';
-import type { Placed } from '../core/layout.ts';
+import { Result } from 'effect';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Editor } from './lab-edit.ts';
+import { el, required } from './dom.ts';
 import type { LoopRange, Player } from './main.ts';
 
 /** The rates the lab plays at. */
@@ -27,17 +29,6 @@ const AFTER: readonly [number, number, number] = [60, 150, 230];
 type LoopSource =
   | { readonly kind: 'cue'; readonly scene: string; readonly name: string }
   | { readonly kind: 'ab' };
-
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
 
 const canvas2d = (w: number, h: number, className = '') => {
   const c = el('canvas', className);
@@ -119,11 +110,7 @@ export const mountMotion = (
   const edit = panel.querySelector('.lab-edit');
   if (edit === null) panel.prepend(section);
   else edit.after(section);
-  const q = <T extends Element>(sel: string) => {
-    const found = section.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(section, sel);
   const status = q<HTMLSpanElement>('.lab-motion-status');
   const onionBtn = q<HTMLButtonElement>('[data-act="onion"]');
   const countIn = q<HTMLInputElement>('[data-field="count"]');
@@ -152,7 +139,7 @@ export const mountMotion = (
   let b: number | undefined;
   let source: LoopSource | undefined;
   const placedOf = (scene: string): Placed<SceneSpec> | undefined =>
-    film.placed.find((p) => p.spec.id === scene);
+    Result.getOrUndefined(sceneOf(film.placed, scene));
   /** The span a source loops now: a cue follows its own edits. */
   const rangeOf = (s: LoopSource): LoopRange | undefined => {
     if (s.kind === 'ab')

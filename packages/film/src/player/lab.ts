@@ -11,22 +11,23 @@ import { Option, Schema } from 'effect';
 import { nearestMoment } from '../core/notes.ts';
 import {
   type InkStroke,
-  type Note,
+  Note,
   type NoteBox,
   type NoteDraft,
   NotesFile,
   NotesWait,
   type Point,
 } from '../core/schema.ts';
+import { canvasBase64, el, postJson, required, svg } from './dom.ts';
 import { mountCompare } from './lab-compare.ts';
 import { mountEditor } from './lab-edit.ts';
 import { mountMotion } from './lab-motion.ts';
 import type { Player } from './main.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 /** A pointer that moves less than this many screen pixels clicked; more, it dragged a box. */
 const DRAG_PX = 6;
 
+const decodeNote = Schema.decodeUnknownSync(Note);
 const decodeNotes = Schema.decodeUnknownSync(NotesFile);
 const decodeWait = Schema.decodeUnknownSync(NotesWait);
 
@@ -36,45 +37,7 @@ interface Draft {
   ink: InkStroke[];
 }
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
-
 const pointsAttr = (stroke: InkStroke) => stroke.map(([x, y]) => `${x},${y}`).join(' ');
-
-/** The frame on the canvas as a base64 PNG: exactly what the film drew, no lab marks. */
-const stillOf = async (canvas: HTMLCanvasElement) => {
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-  if (blob === null) throw new Error('toBlob failed');
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
-
-const post = async (url: string, body: unknown) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
-  return res;
-};
 
 const label = (note: Note) => {
   const cue = note.cue === undefined ? '' : ` · ${note.cue.name}:${note.cue.edge}`;
@@ -143,11 +106,7 @@ export const mountLab = (player: Player, filmName: string): void => {
     </form>
     <ol class="lab-notes"></ol>`;
   document.body.append(panel);
-  const q = <T extends Element>(sel: string) => {
-    const found = panel.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(panel, sel);
   const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
   // The editor: drag cues and knobs, written back to the scene files.
   const editor = mountEditor(player, panel, overlay);
@@ -272,9 +231,8 @@ export const mountLab = (player: Player, filmName: string): void => {
     void (async () => {
       // The still is the film canvas at this very frame, drawn fresh: no lab marks can be in it.
       film.render(player.ctx, T, { captions: player.captions.on });
-      const still = await stillOf(canvas);
-      const res = await post('/lab/notes', { ...note, still });
-      const saved: { id: string } = await res.json();
+      const still = await canvasBase64(canvas, 'image/png');
+      const saved = decodeNote(await postJson('/lab/notes', { ...note, still }));
       selected = saved.id;
       closeComposer();
       await refresh();
@@ -395,10 +353,10 @@ export const mountLab = (player: Player, filmName: string): void => {
             e.preventDefault();
             const text = input.value.trim();
             if (text === '') return;
-            void post(`/lab/notes/${note.id}/reply`, { text }).then(refresh);
+            void postJson(`/lab/notes/${note.id}/reply`, { text }).then(refresh);
           });
           resolve.addEventListener('click', () => {
-            void post(`/lab/notes/${note.id}/resolve`, {}).then(refresh);
+            void postJson(`/lab/notes/${note.id}/resolve`, {}).then(refresh);
           });
           item.append(form);
         }

@@ -7,12 +7,13 @@
 // flips between them. Only data can differ this way: when the file's code
 // changed since HEAD, the panel says so.
 
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import type { SceneEdit } from '../canvas/film.ts';
+import { sceneOf } from '../core/layout.ts';
 import { HeadSource } from '../core/schema.ts';
+import { el, svg } from './dom.ts';
 import type { Player } from './main.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 const decodeHead = Schema.decodeUnknownSync(HeadSource);
 /** How long each side of a blink shows. */
 const BLINK_MS = 450;
@@ -23,23 +24,6 @@ type Mode = 'off' | 'wipe' | 'blink';
 type Loaded =
   | { readonly kind: 'head'; readonly head: HeadSource; readonly edit: SceneEdit }
   | { readonly kind: 'none'; readonly reason: string };
-
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
 
 /**
  * Mount the compare: a section in the lab panel, the HEAD layer (`pin` keeps
@@ -117,7 +101,7 @@ export const mountCompare = (
       .then(async (res): Promise<Loaded> => {
         if (!res.ok) return { kind: 'none', reason: (await res.text()).replace(/^\w+: /, '') };
         const head = decodeHead(await res.json());
-        const p = film.placed.find((x) => x.spec.id === scene);
+        const p = Result.getOrUndefined(sceneOf(film.placed, scene));
         // HEAD's literals over today's declarations: a span HEAD computed stays as it is now.
         const edit: SceneEdit = {
           timeline: { ...p?.spec.timeline, ...head.timeline },
