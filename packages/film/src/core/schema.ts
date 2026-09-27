@@ -174,7 +174,7 @@ const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
   /** Defaults to 0, an instant. */
   dur: Schema.optionalKey(Schema.Finite),
-  /** How `f.at(name)` eases across the cue. Defaults to `inOutCubic`. */
+  /** How `f.at(name)` eases across the cue. Defaults to `DEFAULT_EASE` (`time.ts`). */
   ease: Schema.optionalKey(EaseName),
 };
 

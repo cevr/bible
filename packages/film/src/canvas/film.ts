@@ -59,7 +59,7 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   cue(name: C): ResolvedCue;
   /**
    * 0→1 across a named cue, eased by the cue's declared `ease` (default
-   * `inOutCubic`): `progress(t, cue.start, cue.dur, ease[cue.ease])`. The ease
+   * `DEFAULT_EASE`, `inOutCubic`): `progress(t, cue.start, cue.dur, ease[cue.ease])`. The ease
    * is data on the span, so the lab can change it; the draw never passes one.
    */
   at(name: C): number;

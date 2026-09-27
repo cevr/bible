@@ -33,8 +33,11 @@ export const ease = {
   outSoft: (t) => 1 - (1 - t) ** 3 * Math.cos(t * Math.PI * 1.1),
 } satisfies Record<string, Ease>;
 
+/** The ease a cue, a `progress`, an `envelope` or a keyframe declares none of. */
+export const DEFAULT_EASE = 'inOutCubic' satisfies keyof typeof ease;
+
 /** 0→1 over [start, start + dur], eased. Before start: 0. After: 1. */
-export const progress = (t: number, start: number, dur: number, e: Ease = ease.inOutCubic) =>
+export const progress = (t: number, start: number, dur: number, e: Ease = ease[DEFAULT_EASE]) =>
   dur <= 0 ? (t >= start ? 1 : 0) : e(clamp((t - start) / dur));
 
 /** Rises 0→1 over `inDur`, holds, falls 1→0 over `outDur` ending at `end`. */
@@ -44,7 +47,7 @@ export const envelope = (
   end: number,
   inDur = 0.5,
   outDur = 0.5,
-  e: Ease = ease.inOutCubic,
+  e: Ease = ease[DEFAULT_EASE],
 ) => Math.min(progress(t, start, inDur, e), 1 - progress(t, end - outDur, outDur, e));
 
 export type Key = readonly [time: number, value: number, ease?: Ease];
@@ -59,7 +62,7 @@ export const keys = (t: number, frames: ReadonlyArray<Key>): number => {
     const next = frames[i];
     if (prev === undefined || next === undefined) break;
     if (t <= next[0]) {
-      const e = next[2] ?? ease.inOutCubic;
+      const e = next[2] ?? ease[DEFAULT_EASE];
       return lerp(prev[1], next[1], e(invLerp(prev[0], next[0], t)));
     }
   }

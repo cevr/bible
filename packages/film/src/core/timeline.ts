@@ -4,11 +4,8 @@
 // it. Resolved once per layout; the picture and the sound both read the result.
 // Pure and DOM-free.
 
-import type { EaseName, ResolvedCue, Span, Timeline } from './schema.ts';
-import { ease, progress } from './time.ts';
-
-/** The ease a cue declares none of: the same curve `progress` defaults to. */
-export const DEFAULT_EASE: EaseName = 'inOutCubic';
+import type { ResolvedCue, Span, Timeline } from './schema.ts';
+import { DEFAULT_EASE, ease, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>

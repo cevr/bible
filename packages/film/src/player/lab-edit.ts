@@ -31,8 +31,7 @@ import {
   type Span,
   type Timeline,
 } from '../core/schema.ts';
-import { ease } from '../core/time.ts';
-import { DEFAULT_EASE } from '../core/timeline.ts';
+import { DEFAULT_EASE, ease } from '../core/time.ts';
 import type { Player } from './main.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';

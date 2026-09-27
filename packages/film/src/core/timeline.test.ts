@@ -4,8 +4,8 @@ import type { Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { ease } from './time.ts';
-import { DEFAULT_EASE, type SceneClock, cueProgress, resolveTimeline } from './timeline.ts';
+import { DEFAULT_EASE, ease } from './time.ts';
+import { type SceneClock, cueProgress, resolveTimeline } from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
