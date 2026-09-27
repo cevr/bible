@@ -1,5 +1,5 @@
 import { TOPICS_SCHEMA_MAJOR, TOPICS_SCHEMA_MINOR } from '@bible/core/corpus-supply';
-import { isBoundaryAt, normalizeAlias, type Block } from '@bible/core/wiki';
+import { isBoundaryAt, normalizeAlias, type Block, type CitationInline } from '@bible/core/wiki';
 import { Effect, Option, Schema } from 'effect';
 
 import { blocksToText, collectCitations, parseBody, type ParsedBody } from './markdown.js';
@@ -170,14 +170,16 @@ const hashList = (hasher: Bun.CryptoHasher, name: string, values: readonly strin
   for (const value of values) hasher.update(`${String(value.length)}:${value}`);
 };
 
+/** Stable listing order, independent of directory iteration order. */
+const sortBySlug = (sources: readonly TopicSource[]): readonly TopicSource[] =>
+  [...sources].sort((a, b) => a.frontmatter.slug.localeCompare(b.frontmatter.slug));
+
 const sourceDigest = (sources: readonly TopicSource[]): Effect.Effect<string> =>
   Effect.sync(() => {
     const hasher = new Bun.CryptoHasher('sha256');
     // Sorted by slug so the digest is a property of the content set, not of
     // the order the filesystem happened to hand the files over.
-    for (const source of [...sources].sort((a, b) =>
-      a.frontmatter.slug.localeCompare(b.frontmatter.slug),
-    )) {
+    for (const source of sortBySlug(sources)) {
       const fields = digestFields(source);
       hashScalar(hasher, 'slug', fields.slug);
       hashScalar(hasher, 'title', fields.title);
@@ -190,30 +192,26 @@ const sourceDigest = (sources: readonly TopicSource[]): Effect.Effect<string> =>
     return hasher.digest('hex');
   });
 
-/** Compiles every approved source into the artifact's row set. Draft sources
- *  are dropped before anything else runs (§3.3), so a draft cannot trip a
- *  duplicate-alias or citation error and cannot contribute a row. */
-export const compileTopics = Effect.fn('TopicsCompiler.compile')(function* (input: {
-  readonly sources: readonly TopicSource[];
-  readonly paragraphs: ParagraphLookup;
-  readonly catalog: CatalogLookup;
-}) {
-  const approved = input.sources.filter((source) => source.frontmatter.status === 'approved');
+/** Appends `value` to the list `key` owns, creating the list on first use. */
+const appendTo = <V>(map: Map<string, V[]>, key: string, value: V): void => {
+  const owned = map.get(key) ?? [];
+  owned.push(value);
+  map.set(key, owned);
+};
 
-  const byslug = new Map<string, readonly string[]>();
-  for (const source of approved) {
-    const seen = byslug.get(source.frontmatter.slug) ?? [];
-    byslug.set(source.frontmatter.slug, [...seen, source.file]);
-  }
+const rejectDuplicateSlugs = Effect.fn('TopicsCompiler.rejectDuplicateSlugs')(function* (
+  approved: readonly TopicSource[],
+) {
+  const byslug = new Map<string, string[]>();
+  for (const source of approved) appendTo(byslug, source.frontmatter.slug, source.file);
   for (const [slug, files] of byslug) {
     if (files.length > 1) return yield* DuplicateSlugError.make({ slug, files });
   }
+});
 
-  // Stable listing order, independent of directory iteration order.
-  const ordered = [...approved].sort((a, b) =>
-    a.frontmatter.slug.localeCompare(b.frontmatter.slug),
-  );
-
+/** One topic row per source, plus each source's parsed body keyed by slug for
+ *  the passes that read it again (backlinks, citations). */
+const compileTopicRows = (ordered: readonly TopicSource[]) => {
   const topics: CompiledTopic[] = [];
   const parsed = new Map<string, ParsedBody>();
   for (const [index, source] of ordered.entries()) {
@@ -227,41 +225,47 @@ export const compileTopics = Effect.fn('TopicsCompiler.compile')(function* (inpu
       position: index,
     });
   }
+  return { topics, parsed };
+};
 
-  // --- aliases -------------------------------------------------------------
-  // The canonical alias is the topic's title, so every flagship page is
-  // reachable by its own name even when the author listed none.
-  const aliasOwners = new Map<string, string[]>();
+/** One source's alias rows. The canonical alias is the topic's title, so every
+ *  flagship page is reachable by its own name even when the author listed none. */
+const sourceAliases = (source: TopicSource): readonly CompiledAlias[] => {
+  const slug = source.frontmatter.slug;
+  const entries = [
+    { display: source.frontmatter.title, canonical: true },
+    ...(source.frontmatter.aliases ?? []).map((display) => ({ display, canonical: false })),
+  ];
+  const seen = new Set<string>();
   const aliases: CompiledAlias[] = [];
-  for (const source of ordered) {
-    const slug = source.frontmatter.slug;
-    const declared = source.frontmatter.aliases ?? [];
-    const entries = [
-      { display: source.frontmatter.title, canonical: true },
-      ...declared.map((display) => ({ display, canonical: false })),
-    ];
-    const seen = new Set<string>();
-    for (const entry of entries) {
-      const alias = normalizeAlias(entry.display);
-      if (alias.length === 0) continue;
-      // A topic repeating its own title in `aliases:` is harmless duplication
-      // within one page, not the cross-topic collision §3.4 rejects.
-      if (seen.has(alias)) continue;
-      seen.add(alias);
-      const owners = aliasOwners.get(alias) ?? [];
-      owners.push(slug);
-      aliasOwners.set(alias, owners);
-      aliases.push({ alias, display: entry.display, slug, canonical: entry.canonical });
-    }
+  for (const entry of entries) {
+    const alias = normalizeAlias(entry.display);
+    // A topic repeating its own title in `aliases:` is harmless duplication
+    // within one page, not the cross-topic collision §3.4 rejects.
+    if (alias.length === 0 || seen.has(alias)) continue;
+    seen.add(alias);
+    aliases.push({ alias, display: entry.display, slug, canonical: entry.canonical });
   }
+  return aliases;
+};
+
+const compileAliases = Effect.fn('TopicsCompiler.aliases')(function* (
+  ordered: readonly TopicSource[],
+) {
+  const aliases = ordered.flatMap(sourceAliases);
+  const aliasOwners = new Map<string, string[]>();
+  for (const alias of aliases) appendTo(aliasOwners, alias.alias, alias.slug);
   for (const [alias, owners] of aliasOwners) {
     if (owners.length > 1) return yield* DuplicateAliasError.make({ alias, slugs: owners });
   }
+  return aliases;
+});
 
-  // --- authored edges ------------------------------------------------------
+const compileAuthoredEdges = Effect.fn('TopicsCompiler.authoredEdges')(function* (
+  ordered: readonly TopicSource[],
+) {
   const slugs = new Set(ordered.map((source) => source.frontmatter.slug));
   const edges: CompiledEdge[] = [];
-  const edgeKeys = new Set<string>();
   for (const source of ordered) {
     const from = source.frontmatter.slug;
     for (const [position, related] of (source.frontmatter.related ?? []).entries()) {
@@ -272,119 +276,179 @@ export const compileTopics = Effect.fn('TopicsCompiler.compile')(function* (inpu
         return yield* UnknownRelatedSlugError.make({ slug: from, related });
       }
       edges.push({ from, to: related, kind: 'authored', position });
-      edgeKeys.add(`${from} ${related} authored`);
     }
   }
+  return edges;
+});
 
-  // --- compile-derived backlinks (§2.3) ------------------------------------
-  // Runs the alias dictionary over every flagship body and records
-  // flagship→flagship hits. Word-boundary matched on the normalized text so a
-  // phrase inside a longer word does not create an edge.
+const edgeKey = (edge: Pick<CompiledEdge, 'from' | 'to' | 'kind'>): string =>
+  `${edge.from} ${edge.to} ${edge.kind}`;
+
+/** The backlinks one flagship body contributes. `edgeKeys` is shared across
+ *  sources and grows as backlinks are recorded. */
+const sourceBacklinks = (
+  from: string,
+  body: ParsedBody,
+  aliasBySlug: ReadonlyMap<string, readonly string[]>,
+  edgeKeys: Set<string>,
+): readonly CompiledEdge[] => {
+  const haystack = normalizeAlias(`${blocksToText(body.thesis)} ${blocksToText(body.body)}`);
+  const backlinks: CompiledEdge[] = [];
+  for (const [target, targetAliases] of aliasBySlug) {
+    if (target === from) continue;
+    if (!targetAliases.some((alias) => containsPhrase(haystack, alias))) continue;
+    const key = edgeKey({ from, to: target, kind: 'backlink' });
+    // An authored edge already says the same thing; the artifact should not
+    // carry both and the PK would reject the pair anyway.
+    if (edgeKeys.has(edgeKey({ from, to: target, kind: 'authored' })) || edgeKeys.has(key)) {
+      continue;
+    }
+    edgeKeys.add(key);
+    backlinks.push({ from, to: target, kind: 'backlink', position: backlinks.length });
+  }
+  return backlinks;
+};
+
+/** Compile-derived backlinks (§2.3). Runs the alias dictionary over every
+ *  flagship body and records flagship→flagship hits. Word-boundary matched on
+ *  the normalized text so a phrase inside a longer word does not create an
+ *  edge. */
+const deriveBacklinks = (
+  ordered: readonly TopicSource[],
+  parsed: ReadonlyMap<string, ParsedBody>,
+  aliases: readonly CompiledAlias[],
+  authored: readonly CompiledEdge[],
+): readonly CompiledEdge[] => {
   const aliasBySlug = new Map<string, string[]>();
-  for (const alias of aliases) {
-    const owned = aliasBySlug.get(alias.slug) ?? [];
-    owned.push(alias.alias);
-    aliasBySlug.set(alias.slug, owned);
-  }
-  for (const source of ordered) {
+  for (const alias of aliases) appendTo(aliasBySlug, alias.slug, alias.alias);
+  const edgeKeys = new Set(authored.map(edgeKey));
+  return ordered.flatMap((source) => {
     const from = source.frontmatter.slug;
-    const parsedBody = Option.fromUndefinedOr(parsed.get(from));
-    if (Option.isNone(parsedBody)) continue;
-    const haystack = normalizeAlias(
-      `${blocksToText(parsedBody.value.thesis)} ${blocksToText(parsedBody.value.body)}`,
-    );
-    let position = 0;
-    for (const [target, targetAliases] of aliasBySlug) {
-      if (target === from) continue;
-      const hit = targetAliases.some((alias) => containsPhrase(haystack, alias));
-      if (!hit) continue;
-      const key = `${from} ${target} backlink`;
-      // An authored edge already says the same thing; the artifact should not
-      // carry both and the PK would reject the pair anyway.
-      if (edgeKeys.has(`${from} ${target} authored`) || edgeKeys.has(key)) continue;
-      edgeKeys.add(key);
-      edges.push({ from, to: target, kind: 'backlink', position });
-      position += 1;
-    }
-  }
+    return Option.match(Option.fromUndefinedOr(parsed.get(from)), {
+      onNone: (): readonly CompiledEdge[] => [],
+      onSome: (body) => sourceBacklinks(from, body, aliasBySlug, edgeKeys),
+    });
+  });
+};
 
-  // --- overlay keying (§2.4) ----------------------------------------------
+/** Overlay keying (§2.4) for one source: its catalog key, none when the name
+ *  matches nothing, or the ambiguity error when it matches more than one. */
+const catalogKeyFor = Effect.fn('TopicsCompiler.catalogKey')(function* (
+  source: TopicSource,
+  catalog: CatalogLookup,
+) {
+  const slug = source.frontmatter.slug;
+  const override = Option.fromNullishOr(source.frontmatter.catalog);
+  const name = Option.getOrElse(override, () => source.frontmatter.title);
+  const ids = yield* catalog.idsForName(name);
+  if (ids.length > 1) {
+    return yield* OverlayAmbiguityError.make({ slug, name, catalogIds: ids });
+  }
+  // No match is fine and common — the page simply renders without the
+  // catalog-sourced key-verses section. Only ambiguity is an error.
+  return Option.map(Option.fromNullishOr(ids[0]), (catalogId): CompiledCatalogKey => ({
+    slug,
+    catalogId,
+    matchedBy: Option.match(override, {
+      onNone: (): CompiledCatalogKey['matchedBy'] => 'name',
+      onSome: () => 'override',
+    }),
+  }));
+});
+
+const compileCatalogKeys = Effect.fn('TopicsCompiler.catalogKeys')(function* (
+  ordered: readonly TopicSource[],
+  catalog: CatalogLookup,
+) {
   const catalogKeys: CompiledCatalogKey[] = [];
   for (const source of ordered) {
-    const slug = source.frontmatter.slug;
-    const override = Option.fromNullishOr(source.frontmatter.catalog);
-    const name = Option.getOrElse(override, () => source.frontmatter.title);
-    const ids = yield* input.catalog.idsForName(name);
-    if (ids.length > 1) {
-      return yield* OverlayAmbiguityError.make({ slug, name, catalogIds: ids });
-    }
-    const id = Option.fromNullishOr(ids[0]);
-    // No match is fine and common — the page simply renders without the
-    // catalog-sourced key-verses section. Only ambiguity is an error.
-    if (Option.isNone(id)) continue;
-    catalogKeys.push({
+    const key = yield* catalogKeyFor(source, catalog);
+    if (Option.isSome(key)) catalogKeys.push(key.value);
+  }
+  return catalogKeys;
+});
+
+/** Why one citation fails verification (§3.4 step 6), or none when its quote
+ *  appears in a paragraph its refcode resolves to. */
+const citationFailure = Effect.fn('TopicsCompiler.citationFailure')(function* (
+  citation: CitationInline,
+  paragraphs: ParagraphLookup,
+) {
+  // A quote with no letter or digit — blank, or only punctuation — matches
+  // any paragraph carrying that same punctuation, so verification would
+  // "pass" without the source having said anything. Reject it before the
+  // lookup rather than let it through as a citation that asserts nothing.
+  const quote = normalizeQuote(citation.text);
+  if (!quotesText(quote)) return Option.some('citation quotes no text');
+  const found = yield* paragraphs.paragraphsFor(citation.refcode);
+  if (found.length === 0) {
+    return Option.some('refcode resolves to no paragraph in the local writings database');
+  }
+  if (!found.some((paragraph) => normalizeQuote(paragraph).includes(quote))) {
+    return Option.some('quoted text does not appear in the cited paragraph');
+  }
+  return Option.none<string>();
+});
+
+const verifySourceCitations = Effect.fn('TopicsCompiler.verifySourceCitations')(function* (
+  slug: string,
+  body: ParsedBody,
+  paragraphs: ParagraphLookup,
+) {
+  // A citation the parser could not build at all — `{{REFCODE|}}` — never
+  // becomes a node, so it would otherwise leave no trace in the artifact.
+  for (const malformed of body.blankCitations) {
+    return yield* CitationUnverifiedError.make({
       slug,
-      catalogId: id.value,
-      matchedBy: Option.match(override, {
-        onNone: (): CompiledCatalogKey['matchedBy'] => 'name',
-        onSome: () => 'override',
-      }),
+      refcode: malformed.refcode,
+      quote: malformed.quote,
+      reason: 'citation quotes no text',
     });
   }
-
-  // --- citation verification (§3.4 step 6) ---------------------------------
-  for (const source of ordered) {
-    const slug = source.frontmatter.slug;
-    const parsedBody = Option.fromUndefinedOr(parsed.get(slug));
-    if (Option.isNone(parsedBody)) continue;
-    // A citation the parser could not build at all — `{{REFCODE|}}` — never
-    // becomes a node, so it would otherwise leave no trace in the artifact.
-    for (const malformed of parsedBody.value.blankCitations) {
+  for (const citation of [...collectCitations(body.thesis), ...collectCitations(body.body)]) {
+    const failure = yield* citationFailure(citation, paragraphs);
+    if (Option.isSome(failure)) {
       return yield* CitationUnverifiedError.make({
         slug,
-        refcode: malformed.refcode,
-        quote: malformed.quote,
-        reason: 'citation quotes no text',
+        refcode: citation.refcode,
+        quote: citation.text,
+        reason: failure.value,
       });
     }
-    const citations = [
-      ...collectCitations(parsedBody.value.thesis),
-      ...collectCitations(parsedBody.value.body),
-    ];
-    for (const citation of citations) {
-      // A quote with no letter or digit — blank, or only punctuation — matches
-      // any paragraph carrying that same punctuation, so verification would
-      // "pass" without the source having said anything. Reject it before the
-      // lookup rather than let it through as a citation that asserts nothing.
-      const quote = normalizeQuote(citation.text);
-      if (!quotesText(quote)) {
-        return yield* CitationUnverifiedError.make({
-          slug,
-          refcode: citation.refcode,
-          quote: citation.text,
-          reason: 'citation quotes no text',
-        });
-      }
-      const paragraphs = yield* input.paragraphs.paragraphsFor(citation.refcode);
-      if (paragraphs.length === 0) {
-        return yield* CitationUnverifiedError.make({
-          slug,
-          refcode: citation.refcode,
-          quote: citation.text,
-          reason: 'refcode resolves to no paragraph in the local writings database',
-        });
-      }
-      const found = paragraphs.some((paragraph) => normalizeQuote(paragraph).includes(quote));
-      if (!found) {
-        return yield* CitationUnverifiedError.make({
-          slug,
-          refcode: citation.refcode,
-          quote: citation.text,
-          reason: 'quoted text does not appear in the cited paragraph',
-        });
-      }
-    }
   }
+});
+
+/** Citation verification (§3.4 step 6) across every approved source. */
+const verifyCitations = Effect.fn('TopicsCompiler.verifyCitations')(function* (
+  ordered: readonly TopicSource[],
+  parsed: ReadonlyMap<string, ParsedBody>,
+  paragraphs: ParagraphLookup,
+) {
+  for (const source of ordered) {
+    const slug = source.frontmatter.slug;
+    const body = Option.fromUndefinedOr(parsed.get(slug));
+    if (Option.isSome(body)) yield* verifySourceCitations(slug, body.value, paragraphs);
+  }
+});
+
+/** Compiles every approved source into the artifact's row set. Draft sources
+ *  are dropped before anything else runs (§3.3), so a draft cannot trip a
+ *  duplicate-alias or citation error and cannot contribute a row. */
+export const compileTopics = Effect.fn('TopicsCompiler.compile')(function* (input: {
+  readonly sources: readonly TopicSource[];
+  readonly paragraphs: ParagraphLookup;
+  readonly catalog: CatalogLookup;
+}) {
+  const approved = input.sources.filter((source) => source.frontmatter.status === 'approved');
+  yield* rejectDuplicateSlugs(approved);
+
+  const ordered = sortBySlug(approved);
+  const { topics, parsed } = compileTopicRows(ordered);
+  const aliases = yield* compileAliases(ordered);
+  const authored = yield* compileAuthoredEdges(ordered);
+  const edges = [...authored, ...deriveBacklinks(ordered, parsed, aliases, authored)];
+  const catalogKeys = yield* compileCatalogKeys(ordered, input.catalog);
+  yield* verifyCitations(ordered, parsed, input.paragraphs);
 
   return {
     topics,

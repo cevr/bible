@@ -96,109 +96,156 @@ export const encodeRoute = (route: AppRoute): string =>
     }),
   );
 
+/** Decodes the path segments (and, for search, the query) under one root
+ *  segment. Each decoder owns its route's segment-count rule. */
+type RouteDecoder = (segments: readonly string[], url: URL) => Option.Option<AppRoute>;
+
+const decodeBibleRoute: RouteDecoder = (segments) => {
+  if (segments.length < 3 || segments.length > 4) return Option.none();
+  const book = positiveInteger(segments[1]);
+  const chapter = positiveInteger(segments[2]);
+  if (Option.isNone(book) || book.value > 66 || Option.isNone(chapter)) return Option.none();
+  if (segments.length === 4) {
+    return Option.map(positiveInteger(segments[3]), (verseNumber) => ({
+      _tag: 'bible',
+      reference: BibleReference.verse(book.value, chapter.value, verseNumber),
+    }));
+  }
+  return Option.some({
+    _tag: 'bible',
+    reference: BibleReference.chapter(book.value, chapter.value),
+  });
+};
+
+/** `/writings/:id/page/:page` and `/writings/:id/p/:paragraph`. */
+const decodeWritingsLocation = (
+  publicationId: number,
+  segments: readonly string[],
+): Option.Option<AppRoute> => {
+  const [, , kind, value] = segments;
+  if (kind === 'page') {
+    return Option.map(positiveInteger(value), (page) => ({
+      _tag: 'writings',
+      reference: WritingsReference.page(publicationId, page),
+    }));
+  }
+  if (kind === 'p') {
+    return Option.map(decodeSegment(value), (paragraphId) => ({
+      _tag: 'writings',
+      reference: WritingsReference.paragraph(publicationId, paragraphId),
+    }));
+  }
+  return Option.none();
+};
+
+const decodeWritingsRoute: RouteDecoder = (segments) => {
+  if (segments.length === 1) return Option.some({ _tag: 'writings-catalog' });
+  const publicationId = positiveInteger(segments[1]);
+  if (Option.isNone(publicationId)) return Option.none();
+  if (segments.length === 2) {
+    return Option.some({
+      _tag: 'writings',
+      reference: WritingsReference.publication(publicationId.value),
+    });
+  }
+  if (segments.length === 4) {
+    return decodeWritingsLocation(publicationId.value, segments);
+  }
+  return Option.none();
+};
+
+const searchParam = (url: URL, name: string): Option.Option<string> =>
+  Option.fromNullishOr(url.searchParams.get(name));
+
+const decodeSearchRoute: RouteDecoder = (segments, url) => {
+  if (segments.length !== 1) return Option.none();
+  const scope = searchParam(url, 'scope').pipe(
+    Option.filter((value): value is SearchScope => value === 'bible' || value === 'writings'),
+    Option.getOrElse((): SearchScope => 'all'),
+  );
+  const books = normalizeBooks(
+    Option.getOrElse(searchParam(url, 'books'), () => '')
+      .split(',')
+      .map((book) => Number.parseInt(book, 10)),
+  );
+  const query = Option.getOrElse(searchParam(url, 'q'), () => '');
+  // An unrecognized corpus decodes to absent rather than to a failed route: a
+  // link written against a later vocabulary should still open the search, and
+  // core applies `SEARCH_DEFAULT_SCOPE` for whatever this does not pin.
+  const corpus = Option.filter(
+    searchParam(url, 'corpus'),
+    (value): value is CorpusScope => value === 'egw' || value === 'pioneer' || value === 'all',
+  );
+  // Decoded through the shared schema rather than an inline length check, so
+  // the route and `SearchQuery` cannot disagree about which codes are legal.
+  const bookCode = Option.flatMap(searchParam(url, 'book'), (value) =>
+    Schema.decodeOption(WritingsBookCode)(value),
+  );
+  return Option.some({ _tag: 'search', query, scope, books, corpus, bookCode });
+};
+
+/** The optional id segment of `/topics`, `/plans`, and `/practice`, which
+ *  accept at most one segment after the root. */
+const optionalId = (segments: readonly string[]): Option.Option<Option.Option<string>> => {
+  if (segments.length > 2) return Option.none();
+  return Option.some(decodeSegment(segments[1]));
+};
+
+const decodeTopicsRoute: RouteDecoder = (segments) =>
+  Option.map(optionalId(segments), (topicId) => ({
+    _tag: 'topics',
+    topicId: Option.getOrUndefined(topicId),
+  }));
+
+// `/wiki` with no slug decodes to nothing rather than to a landing page: the
+// page model composes *a topic*, and there is no topic here. The route table
+// renders the not-found content for it, which is the same answer a nonexistent
+// slug gets — and the honest one, because the wiki has no index in v1.
+const decodeWikiRoute: RouteDecoder = (segments) => {
+  if (segments.length !== 2) return Option.none();
+  return Option.flatMap(decodeSegment(segments[1]), (slug) =>
+    Option.map(readTopicSlug(slug), (branded) => ({ _tag: 'wiki', slug: branded })),
+  );
+};
+
+const decodePlansRoute: RouteDecoder = (segments) =>
+  Option.map(optionalId(segments), (planId) => ({
+    _tag: 'plans',
+    planId: Option.getOrUndefined(planId),
+  }));
+
+const decodePracticeRoute: RouteDecoder = (segments) =>
+  Option.map(optionalId(segments), (memoryVerseId) => ({
+    _tag: 'practice',
+    memoryVerseId: Option.getOrUndefined(memoryVerseId),
+  }));
+
+const decodeSettingsRoute: RouteDecoder = (segments) => {
+  if (segments.length > 2) return Option.none();
+  const section = segments[1] ?? 'reader';
+  if (!isSettingsSection(section)) return Option.none();
+  return Option.some({ _tag: 'settings', section });
+};
+
+/** One decoder per root segment. A `Map` rather than an object literal so a
+ *  root such as `constructor` cannot resolve to a prototype member. */
+const routeDecoders: ReadonlyMap<string, RouteDecoder> = new Map([
+  ['bible', decodeBibleRoute],
+  ['writings', decodeWritingsRoute],
+  ['search', decodeSearchRoute],
+  ['topics', decodeTopicsRoute],
+  ['wiki', decodeWikiRoute],
+  ['plans', decodePlansRoute],
+  ['practice', decodePracticeRoute],
+  ['settings', decodeSettingsRoute],
+]);
+
 const decodeParsedRoute = (url: URL): Option.Option<AppRoute> => {
   const segments = url.pathname.split('/').filter(Boolean);
-  const [root, one, two, three] = segments;
-
-  if (root === 'bible' && segments.length >= 3 && segments.length <= 4) {
-    const book = positiveInteger(one);
-    const chapter = positiveInteger(two);
-    const verse = positiveInteger(three);
-    if (Option.isNone(book) || book.value > 66 || Option.isNone(chapter)) return Option.none();
-    if (segments.length === 4) {
-      return Option.map(verse, (verseNumber) => ({
-        _tag: 'bible',
-        reference: BibleReference.verse(book.value, chapter.value, verseNumber),
-      }));
-    }
-    return Option.some({
-      _tag: 'bible',
-      reference: BibleReference.chapter(book.value, chapter.value),
-    });
-  }
-
-  if (root === 'writings') {
-    if (segments.length === 1) return Option.some({ _tag: 'writings-catalog' });
-    const publicationId = positiveInteger(one);
-    if (Option.isNone(publicationId)) return Option.none();
-    if (segments.length === 2) {
-      return Option.some({
-        _tag: 'writings',
-        reference: WritingsReference.publication(publicationId.value),
-      });
-    }
-    if (segments.length === 4 && two === 'page') {
-      return Option.map(positiveInteger(three), (page) => ({
-        _tag: 'writings',
-        reference: WritingsReference.page(publicationId.value, page),
-      }));
-    }
-    if (segments.length === 4 && two === 'p') {
-      return Option.map(decodeSegment(three), (paragraphId) => ({
-        _tag: 'writings',
-        reference: WritingsReference.paragraph(publicationId.value, paragraphId),
-      }));
-    }
-    return Option.none();
-  }
-
-  if (root === 'search' && segments.length === 1) {
-    const requestedScope = Option.fromNullishOr(url.searchParams.get('scope'));
-    let scope: SearchScope = 'all';
-    if (Option.isSome(requestedScope)) {
-      if (requestedScope.value === 'bible' || requestedScope.value === 'writings') {
-        scope = requestedScope.value;
-      }
-    }
-    const books = normalizeBooks(
-      Option.getOrElse(Option.fromNullishOr(url.searchParams.get('books')), () => '')
-        .split(',')
-        .map((book) => Number.parseInt(book, 10)),
-    );
-    const query = Option.getOrElse(Option.fromNullishOr(url.searchParams.get('q')), () => '');
-    // An unrecognized corpus decodes to absent rather than to a failed route: a
-    // link written against a later vocabulary should still open the search, and
-    // core applies `SEARCH_DEFAULT_SCOPE` for whatever this does not pin.
-    const corpus = Option.filter(
-      Option.fromNullishOr(url.searchParams.get('corpus')),
-      (value): value is CorpusScope => value === 'egw' || value === 'pioneer' || value === 'all',
-    );
-    // Decoded through the shared schema rather than an inline length check, so
-    // the route and `SearchQuery` cannot disagree about which codes are legal.
-    const bookCode = Option.flatMap(Option.fromNullishOr(url.searchParams.get('book')), (value) =>
-      Schema.decodeOption(WritingsBookCode)(value),
-    );
-    return Option.some({ _tag: 'search', query, scope, books, corpus, bookCode });
-  }
-
-  if (root === 'topics' && segments.length <= 2) {
-    return Option.some({ _tag: 'topics', topicId: Option.getOrUndefined(decodeSegment(one)) });
-  }
-  // `/wiki` with no slug decodes to nothing rather than to a landing page: the
-  // page model composes *a topic*, and there is no topic here. The route table
-  // renders the not-found content for it, which is the same answer a nonexistent
-  // slug gets — and the honest one, because the wiki has no index in v1.
-  if (root === 'wiki' && segments.length === 2) {
-    return Option.flatMap(decodeSegment(one), (slug) =>
-      Option.map(readTopicSlug(slug), (branded) => ({ _tag: 'wiki', slug: branded })),
-    );
-  }
-  if (root === 'plans' && segments.length <= 2) {
-    return Option.some({ _tag: 'plans', planId: Option.getOrUndefined(decodeSegment(one)) });
-  }
-  if (root === 'practice' && segments.length <= 2) {
-    return Option.some({
-      _tag: 'practice',
-      memoryVerseId: Option.getOrUndefined(decodeSegment(one)),
-    });
-  }
-  if (root === 'settings' && segments.length <= 2) {
-    const section = one ?? 'reader';
-    if (!isSettingsSection(section)) return Option.none();
-    return Option.some({ _tag: 'settings', section });
-  }
-
-  return Option.none();
+  return Option.fromNullishOr(segments[0]).pipe(
+    Option.flatMap((root) => Option.fromUndefinedOr(routeDecoders.get(root))),
+    Option.flatMap((decode) => decode(segments, url)),
+  );
 };
 
 export const decodeRoute = (pathWithQuery: string): Option.Option<AppRoute> =>

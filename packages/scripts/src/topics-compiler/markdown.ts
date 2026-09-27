@@ -118,118 +118,125 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})[^\n]*$/u;
 const INDENTED = /^(?: {4}|\t)/u;
 const BLANK_LINE = /^[ \t]*$/u;
 
-/** Every region CommonMark would render literally: fenced code, indented code,
- *  and inline code spans.
- *
- *  Scanned line by line for the block forms, then character by character for
- *  backtick runs, matching a run only against a closer of equal length as
- *  CommonMark §6.1 requires. An unclosed opener protects nothing — CommonMark
- *  treats its backticks as literal text, so the pre-pass does too. */
-const protectedSpans = (body: string): readonly Span[] => {
+/** A fence the block scan is inside: its opener's run of backticks or tildes,
+ *  and the offset of the line that opened it. */
+interface OpenFence {
+  readonly marker: string;
+  readonly start: number;
+}
+
+/** The fence marker a line opens, if it opens one. */
+const fenceOpener = (line: string): Option.Option<string> =>
+  Option.fromNullishOr(FENCE.exec(line)).pipe(
+    Option.flatMap((match) => Option.fromNullishOr(match[1])),
+  );
+
+/** Whether a line closes a fence: a run of the opener's character, at least as
+ *  long, alone on its line. */
+const closesFence = (line: string, marker: string): boolean => {
+  const closer = line.trim();
+  return (
+    closer.length >= marker.length && [...closer].every((character) => character === marker[0])
+  );
+};
+
+/** Fenced and indented code blocks, scanned line by line. An unclosed fence
+ *  runs to the end of the document (CommonMark §4.5). */
+const blockCodeSpans = (body: string): Span[] => {
   const spans: Span[] = [];
-  const lines = body.split('\n');
-  let offset = 0;
-  let fence = Option.none<string>();
-  let fenceStart = 0;
+  let fence = Option.none<OpenFence>();
   let indentedStart = Option.none<number>();
-  const openRegions: Span[] = [];
-  let cursor = 0;
-  for (const line of lines) {
+  const closeIndented = (end: number): void => {
+    if (Option.isNone(indentedStart)) return;
+    spans.push({ start: indentedStart.value, end });
+    indentedStart = Option.none();
+  };
+  let offset = 0;
+  for (const line of body.split('\n')) {
     const lineStart = offset;
     const lineEnd = offset + line.length;
     offset = lineEnd + 1;
     if (Option.isSome(fence)) {
-      // A closer is a run of the opener's character, at least as long, alone on
-      // its line.
-      const closer = line.trim();
-      const marker = fence.value;
-      if (
-        closer.length >= marker.length &&
-        [...closer].every((character) => character === marker[0])
-      ) {
-        spans.push({ start: fenceStart, end: lineEnd });
+      if (closesFence(line, fence.value.marker)) {
+        spans.push({ start: fence.value.start, end: lineEnd });
         fence = Option.none();
       }
       continue;
     }
-    const opener = Option.fromNullishOr(FENCE.exec(line)).pipe(
-      Option.flatMap((match) => Option.fromNullishOr(match[1])),
-    );
+    const opener = fenceOpener(line);
     if (Option.isSome(opener)) {
-      // An unclosed fence runs to the end of the document (CommonMark §4.5).
-      fence = opener;
-      fenceStart = lineStart;
-      if (Option.isSome(indentedStart)) {
-        spans.push({ start: indentedStart.value, end: lineStart });
-        indentedStart = Option.none();
-      }
+      fence = Option.some({ marker: opener.value, start: lineStart });
+      closeIndented(lineStart);
       continue;
     }
     if (INDENTED.test(line)) {
       if (Option.isNone(indentedStart)) indentedStart = Option.some(lineStart);
       continue;
     }
-    if (Option.isSome(indentedStart) && !BLANK_LINE.test(line)) {
-      spans.push({ start: indentedStart.value, end: lineStart });
-      indentedStart = Option.none();
-    }
+    if (!BLANK_LINE.test(line)) closeIndented(lineStart);
   }
-  if (Option.isSome(fence)) spans.push({ start: fenceStart, end: body.length });
-  if (Option.isSome(indentedStart)) spans.push({ start: indentedStart.value, end: body.length });
-
-  // Inline code spans are only meaningful outside the block forms found above,
-  // so the remaining open regions are scanned rather than the whole body.
-  const sorted = [...spans].sort((a, b) => a.start - b.start);
-  for (const span of sorted) {
-    if (span.start > cursor) openRegions.push({ start: cursor, end: span.start });
-    cursor = Math.max(cursor, span.end);
-  }
-  if (cursor < body.length) openRegions.push({ start: cursor, end: body.length });
-
-  for (const region of openRegions) {
-    let index = region.start;
-    while (index < region.end) {
-      if (body[index] === '\\') {
-        // An escaped backtick opens nothing.
-        index += 2;
-        continue;
-      }
-      if (body[index] !== '`') {
-        index += 1;
-        continue;
-      }
-      let run = index;
-      while (run < region.end && body[run] === '`') run += 1;
-      const length = run - index;
-      let search = run;
-      let closed = Option.none<number>();
-      while (search < region.end) {
-        if (body[search] !== '`') {
-          search += 1;
-          continue;
-        }
-        let candidate = search;
-        while (candidate < region.end && body[candidate] === '`') candidate += 1;
-        if (candidate - search === length) {
-          closed = Option.some(candidate);
-          break;
-        }
-        search = candidate;
-      }
-      if (Option.isNone(closed)) {
-        // Unclosed: the backticks are literal, and the text after them is still
-        // open to substitution.
-        index = run;
-        continue;
-      }
-      spans.push({ start: index, end: closed.value });
-      index = closed.value;
-    }
-  }
-  return spans.sort((a, b) => a.start - b.start);
+  if (Option.isSome(fence)) spans.push({ start: fence.value.start, end: body.length });
+  closeIndented(body.length);
+  return spans;
 };
 
-/** The complement of `protectedSpans`: the regions substitution may rewrite. */
+/** The offset just past the run of backticks starting at `from`. */
+const backtickRunEnd = (body: string, from: number, end: number): number => {
+  let run = from;
+  while (run < end && body[run] === '`') run += 1;
+  return run;
+};
+
+/** The end of the first backtick run of exactly `length` at or after `from` —
+ *  the only closer CommonMark §6.1 pairs with an opener of that length. */
+const findCloser = (
+  body: string,
+  from: number,
+  end: number,
+  length: number,
+): Option.Option<number> => {
+  let search = from;
+  while (search < end) {
+    if (body[search] !== '`') {
+      search += 1;
+      continue;
+    }
+    const candidate = backtickRunEnd(body, search, end);
+    if (candidate - search === length) return Option.some(candidate);
+    search = candidate;
+  }
+  return Option.none();
+};
+
+/** Inline code spans within one open region. */
+const inlineCodeSpans = (body: string, region: Span): readonly Span[] => {
+  const spans: Span[] = [];
+  let index = region.start;
+  while (index < region.end) {
+    if (body[index] === '\\') {
+      // An escaped backtick opens nothing.
+      index += 2;
+      continue;
+    }
+    if (body[index] !== '`') {
+      index += 1;
+      continue;
+    }
+    const run = backtickRunEnd(body, index, region.end);
+    const closed = findCloser(body, run, region.end, run - index);
+    if (Option.isNone(closed)) {
+      // Unclosed: the backticks are literal, and the text after them is still
+      // open to substitution.
+      index = run;
+      continue;
+    }
+    spans.push({ start: index, end: closed.value });
+    index = closed.value;
+  }
+  return spans;
+};
+
+/** The complement of a sorted span list: the regions substitution may rewrite. */
 const openSpans = (body: string, guarded: readonly Span[]): readonly Span[] => {
   const open: Span[] = [];
   let cursor = 0;
@@ -239,6 +246,25 @@ const openSpans = (body: string, guarded: readonly Span[]): readonly Span[] => {
   }
   if (cursor < body.length) open.push({ start: cursor, end: body.length });
   return open;
+};
+
+const byStart = (a: Span, b: Span): number => a.start - b.start;
+
+/** Every region CommonMark would render literally: fenced code, indented code,
+ *  and inline code spans.
+ *
+ *  Scanned line by line for the block forms, then character by character for
+ *  backtick runs, matching a run only against a closer of equal length as
+ *  CommonMark §6.1 requires. An unclosed opener protects nothing — CommonMark
+ *  treats its backticks as literal text, so the pre-pass does too. */
+const protectedSpans = (body: string): readonly Span[] => {
+  const blockSpans = blockCodeSpans(body);
+  // Inline code spans are only meaningful outside the block forms found above,
+  // so the remaining open regions are scanned rather than the whole body.
+  const inlineSpans = openSpans(body, [...blockSpans].sort(byStart)).flatMap((region) =>
+    inlineCodeSpans(body, region),
+  );
+  return [...blockSpans, ...inlineSpans].sort(byStart);
 };
 
 /** Substitutes every citation and scripture reference with a placeholder token,
