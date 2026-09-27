@@ -72,6 +72,10 @@ The user reviews in the lab and the agent answers each note with the frame after
 8. **Prove it.** Render the note's frame: `bun run render <film> --stills <T> --tag lab-<id>`, and read the after-still as an image. It must show the note's problem gone, at the note's `T`.
 9. **Answer.** `bun run notes reply <film> <id> "what changed" --still out/<film>/lab-<id>/stills/t0230.38.png` (a still is named by its time, zero-padded to seven characters with two decimals: 8.14 s is `t0008.14.png`, 230.38 s is `t0230.38.png`). The lab shows the reply and the still at once; the note becomes `replied`. The user resolves it in the lab (or replies, which reopens it, and the Monitor hands it back). `bun run notes resolve <film> <id>` only when the user said OK.
 
+## Speed
+
+A change to the draw path or the render claims its speed with `bun run bench <film>` (`dangerouslyDisableSandbox: true`), before and after: ms of draw per frame per scene, the median of `--runs`, written to `out/<film>/bench.json`. Before the change, `bun run bench <film> --hash --baseline` keeps a baseline; after it, `bun run bench <film> --hash --budget` fails when a scene or the film draws more than 10% slower, or a hashed frame's pixels moved (a change meant to be pixel-identical is proved there). Numbers compare only on one machine and under the same load: other renders running at once move them. `--workers 4,6,8 --scene id,id` times whole renders of a range per page count instead.
+
 ## Gotchas
 
 - **Playwright browser missing**: `render` fails with `BrowserMissing`, whose message is the exact install command for the installed playwright-core (the cache in `~/Library/Caches/ms-playwright` was wiped). Run it with `dangerouslyDisableSandbox: true`.

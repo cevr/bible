@@ -22,6 +22,8 @@ bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame pe
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
+bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
+bun run bench <film> --workers 4,6,8 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png]
@@ -48,6 +50,20 @@ missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. The app's `gate` runs the static leg with `--allow-stale`: it
 is instant and needs no browser, and a script edit or a re-timing waiting on
 a paid re-record must not block a commit; the layout leg is a review step.
+
+Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
+(default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
+30th frame's pixels), `--baseline` (keep the run as
+`out/<film>/bench.baseline.json`), `--budget` (fail with `BenchOverBudget` when
+a scene's median or the film's summed draw is more than 10% over the baseline,
+or with `PixelsMoved` when a hashed frame differs; a scene under 2 ms never
+fails). The bench times each frame in one headless export page, the render's
+page and flags, with the raster flushed; a run always compares with a baseline
+on disk and logs what it finds, and only `--budget` fails. A baseline is per
+machine: on another machine it warns and compares nothing. The budget is opt-in,
+never in the gate. `--workers n,n` instead renders the range (`--scene`, or
+`--from/--to`) at each page count `--runs` times, as `render` would (share copy
+on unless `--no-share`), and reports the median fps.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output

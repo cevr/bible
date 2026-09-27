@@ -62,6 +62,14 @@ export interface FramePage {
   readonly contact: (
     frames: ReadonlyArray<number>,
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | ContactFailed>;
+  /** Draw `frames` and return how many milliseconds each took, raster included. */
+  readonly time: (
+    frames: ReadonlyArray<number>,
+  ) => Effect.Effect<ReadonlyArray<number>, PageError | PageCrashed | FrameFailed>;
+  /** Draw `frames` and return a hash of each one's pixels. */
+  readonly hash: (
+    frames: ReadonlyArray<number>,
+  ) => Effect.Effect<ReadonlyArray<string>, PageError | PageCrashed | FrameFailed>;
 }
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
@@ -309,7 +317,37 @@ const openPage = (page: Page, url: string) =>
         (reason) => ContactFailed.make({ reason }),
       );
 
-    return { info, frame, probe, lookbook, encoder, encode, contact } satisfies FramePage;
+    /** A failed batch of frames names its first. */
+    const batchFailed = (frames: ReadonlyArray<number>) => (reason: string) =>
+      FrameFailed.make({ frame: frames[0] ?? 0, reason });
+
+    const time = (frames: ReadonlyArray<number>) =>
+      handle(
+        () => page.evaluate((all) => window.__film?.time(all), [...frames]),
+        Schema.Array(Schema.Finite),
+        SHEET_TIMEOUT,
+        batchFailed(frames),
+      );
+
+    const hash = (frames: ReadonlyArray<number>) =>
+      handle(
+        () => page.evaluate((all) => window.__film?.hash(all), [...frames]),
+        Schema.Array(Schema.String),
+        SHEET_TIMEOUT,
+        batchFailed(frames),
+      );
+
+    return {
+      info,
+      frame,
+      probe,
+      lookbook,
+      encoder,
+      encode,
+      contact,
+      time,
+      hash,
+    } satisfies FramePage;
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

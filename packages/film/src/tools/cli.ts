@@ -17,6 +17,8 @@
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //                      [--no-share]
 //   film lookbook <film> [--captions] [--tag name]
+//   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
+//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -37,6 +39,7 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { scenesOf } from '../core/layout.ts';
+import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
@@ -418,6 +421,104 @@ const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     ),
   );
 
+/** `--workers 2,4,6`: page counts, each a whole number from 1. */
+const WorkerCounts = Schema.Array(
+  Schema.FiniteFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
+);
+
+const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
+  Command.make(
+    'bench',
+    {
+      film,
+      every: Flag.Int('every').pipe(
+        Flag.withDefault(10),
+        Flag.withDescription('time every this many frames'),
+      ),
+      runs: Flag.Int('runs').pipe(
+        Flag.withDefault(3),
+        Flag.withDescription(
+          'time each frame (or render each count) this many times; the median counts',
+        ),
+      ),
+      scene: scenes.pipe(Flag.withDescription('only these scenes (id,id)')),
+      hash: Flag.Boolean('hash').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('also hash every 30th frame, to compare pixels with the baseline'),
+      ),
+      baseline: Flag.Boolean('baseline').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('keep this run as out/<film>/bench.baseline.json'),
+      ),
+      budget: Flag.Boolean('budget').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription(
+          'fail when a scene or the film draws over 10% slower than the baseline on this machine, or a hashed frame moved',
+        ),
+      ),
+      workers: Flag.String('workers').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          'instead: render the range (--scene, or --from/--to) at each of these page counts (n,n) and report the median fps',
+        ),
+      ),
+      from: Flag.Finite('from').pipe(
+        Flag.optional,
+        Flag.withDescription('with --workers: start, in seconds'),
+      ),
+      to: Flag.Finite('to').pipe(
+        Flag.optional,
+        Flag.withDescription('with --workers: end, in seconds'),
+      ),
+      share: Flag.Boolean('share').pipe(
+        Flag.withDefault(true),
+        Flag.withDescription('with --workers: encode the share copy too, as a render does'),
+      ),
+    },
+    Effect.fn('film.bench')(function* (input) {
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
+      const bencher = yield* Bencher;
+      const picked = yield* Option.match(input.scene, {
+        onNone: () => Effect.succeedNone,
+        onSome: (ids) => Effect.map(Effect.fromResult(scenesOf(placed, ids)), Option.some),
+      });
+      if (Option.isSome(input.workers)) {
+        const counts = yield* Schema.decodeEffect(WorkerCounts)(input.workers.value.split(','));
+        const span = Option.map(picked, (hit) => ({
+          from: Math.min(...hit.map((p) => p.start)),
+          to: Math.max(...hit.map((p) => p.start + p.dur)),
+        }));
+        yield* bencher.workers(loaded, {
+          workers: counts,
+          runs: input.runs,
+          share: input.share,
+          from: Option.orElse(
+            Option.map(span, (s) => s.from),
+            () => input.from,
+          ),
+          to: Option.orElse(
+            Option.map(span, (s) => s.to),
+            () => input.to,
+          ),
+        });
+        return;
+      }
+      yield* bencher.draw(loaded, {
+        every: Math.max(1, input.every),
+        runs: Math.max(1, input.runs),
+        scenes: Option.map(picked, (hit) => new Set(hit.map((p) => p.spec.id))),
+        hash: input.hash,
+        baseline: input.baseline,
+        budget: input.budget,
+      });
+    }, Effect.provide(benchLayer)),
+  ).pipe(
+    Command.withDescription(
+      'Time a film on the render path: ms of draw per frame per scene (out/<film>/bench.json, a 10% budget against --baseline with --budget), or render fps per worker count (--workers)',
+    ),
+  );
+
 const lab = <E>(labServer: LabServer<E>) =>
   Command.make(
     'lab',
@@ -572,6 +673,10 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const benchLayer = Bencher.layer.pipe(
+    Layer.provide(Renderer.layer),
+    Layer.provide([Browser.layer, previewServer]),
+  );
   const root = Command.make('film').pipe(
     Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
     Command.withSubcommands([
@@ -582,6 +687,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       check(checkLayer),
       render(renderLayer),
       lookbook(renderLayer),
+      bench(benchLayer),
       doctor,
       lab(labServer),
       notes,

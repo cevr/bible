@@ -67,7 +67,13 @@ const memoryOps = (files: Map<string, Uint8Array>) =>
             files.set(to, bytes);
           }),
       }),
-    remove: (path) => Effect.sync(() => void files.delete(path)),
+    // A folder goes with everything under it, as `recursive` asks.
+    remove: (path) =>
+      Effect.sync(() => {
+        for (const file of [...files.keys()])
+          if (file === path || file.startsWith(`${path}/`)) files.delete(file);
+      }),
+    makeTempDirectoryScoped: () => Effect.succeed('/tmp/film-test'),
     readDirectory: (path) =>
       Effect.sync(() =>
         [...files.keys()]
@@ -274,6 +280,10 @@ export interface FakeRenderHost {
   readonly master?: number;
   /** What a page's encoder check finds (ready by default). */
   readonly encoder?: Effect.Effect<void, EncoderMissing>;
+  /** How many milliseconds frame `i` takes to draw, as `time` reports it (default 10). */
+  readonly drawMs?: (i: number) => number;
+  /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
+  readonly pixels?: (i: number) => string;
 }
 
 /**
@@ -285,6 +295,8 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
   const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
+  const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
+  const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -378,6 +390,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                       ledger.contacts.push(frames);
                       return new Uint8Array([0xff, 0xd8]);
                     }),
+                  time: (frames: ReadonlyArray<number>) =>
+                    Effect.forEach(frames, (i) => Effect.as(frame(i), drawMs(i))),
+                  hash: (frames: ReadonlyArray<number>) =>
+                    Effect.forEach(frames, (i) => Effect.as(frame(i), pixels(i))),
                 };
               }),
             ),

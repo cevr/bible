@@ -236,6 +236,40 @@ export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
   }
 }
 
+/** `film bench --budget` with no baseline to hold the run against. */
+export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `no bench baseline at ${this.file}; run bench --baseline first`;
+  }
+}
+
+/** A bench run more than the budget slower than its baseline, on the same machine. */
+export class BenchOverBudget extends Schema.TaggedError<BenchOverBudget>()('BenchOverBudget', {
+  /** Each measure over: a scene's median ms, or the film's summed draw seconds. */
+  slower: Schema.Array(
+    Schema.Struct({ what: Schema.String, now: Schema.Finite, before: Schema.Finite }),
+  ),
+}) {
+  override get message() {
+    const lines = this.slower.map(
+      (s) =>
+        `${s.what} ${s.now.toFixed(1)} against ${s.before.toFixed(1)} (+${((s.now / s.before - 1) * 100).toFixed(0)}%)`,
+    );
+    return `slower than the baseline by more than the budget: ${lines.join('; ')}`;
+  }
+}
+
+/** A bench run whose frames' pixels differ from the baseline's. */
+export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved', {
+  frames: Schema.Array(Schema.Int),
+}) {
+  override get message() {
+    return `${this.frames.length} hashed frames differ from the baseline: ${this.frames.join(', ')}`;
+  }
+}
+
 /** A render range with no frames in it. */
 export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
   from: Schema.Finite,
