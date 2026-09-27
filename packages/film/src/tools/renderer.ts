@@ -36,6 +36,7 @@ import {
   type PageCrashed,
   type PageError,
   RangeEmpty,
+  type TooManyEncoders,
 } from './errors.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
@@ -50,6 +51,7 @@ import {
   contactTimes,
   frameAt,
   frameSpan,
+  encoderBudget,
   planChunks,
   segmentName,
   shareName,
@@ -69,6 +71,7 @@ export type RenderError =
   | AudioMissing
   | AudioStale
   | RangeEmpty
+  | TooManyEncoders
   | LayoutInvalid
   | PlatformError;
 
@@ -266,6 +269,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           'export',
           ...Arr.filter(['captions=0'], () => !job.captions),
         ];
+        // Before a page opens: a video past the encoders the hardware runs would hang.
+        yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
         const dir = path.join(film.paths.out, job.tag);
         yield* fs.makeDirectory(dir, { recursive: true });

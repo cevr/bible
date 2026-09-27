@@ -4,7 +4,7 @@
 
 import { Array as Arr, Data, Option, Result } from 'effect';
 import type { UnknownScene } from '../core/errors.ts';
-import { FlagsConflict } from './errors.ts';
+import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import type { ExportInfo } from '../core/schema.ts';
 
@@ -149,6 +149,33 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
   });
   return Result.map(flagConflicts(given, RENDER_RULES), () => job);
 };
+
+/**
+ * Hardware encoders a render may run at once. Measured on the M-series Mac the
+ * films render on: 14 (7 pages with a share copy) ran, and at 16 every page
+ * stalled with its first chunk unfinished until the encode timed out.
+ */
+export const MAX_ENCODERS = 14;
+
+/** The hardware encoders `workers` pages run (two each with a share copy), within `MAX_ENCODERS`. */
+export const videoEncoders = (
+  workers: number,
+  share: boolean,
+): Result.Result<number, TooManyEncoders> =>
+  Result.liftPredicate(
+    workers * (1 + Number(share)),
+    (n) => n <= MAX_ENCODERS,
+    () => TooManyEncoders.make({ workers, share, max: MAX_ENCODERS }),
+  );
+
+/** A job's hardware encoders: a video's `videoEncoders`; stills and sheets encode none. */
+export const encoderBudget = (job: RenderJob): Result.Result<number, TooManyEncoders> =>
+  RenderJob.$match(job, {
+    Video: ({ workers, share }) => videoEncoders(workers, share),
+    Stills: () => Result.succeed(0),
+    Contact: () => Result.succeed(0),
+    LookBook: () => Result.succeed(0),
+  });
 
 /** `--scene a,b`: the seconds from the first scene's start to the last one's end. */
 export const sceneSpan = (

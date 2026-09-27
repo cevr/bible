@@ -23,7 +23,7 @@ bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills
 bun run render <film> --scene id[,id] ...      # any render, over those scenes
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
-bun run bench <film> --workers 4,6,8 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
+bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png]
@@ -77,7 +77,11 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
-(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass). A video's audio
+(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
+Each page runs one hardware encoder, two with the share copy; past 14 at once
+the encoder hangs, so a render that would need more fails with
+`TooManyEncoders` before a page opens (at most 7 pages with the share copy,
+14 without). A video's audio
 is encoded once from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`). Its captions are also

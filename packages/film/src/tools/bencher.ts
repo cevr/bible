@@ -46,7 +46,7 @@ import {
 } from './errors.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
-import { RenderJob, frameSpan } from './render-plan.ts';
+import { RenderJob, frameSpan, videoEncoders } from './render-plan.ts';
 import { type RenderError, Renderer } from './renderer.ts';
 
 export interface DrawBenchOptions {
@@ -286,6 +286,10 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
         film: LoadedFilm,
         options: WorkersBenchOptions,
       ) {
+        // Before a page opens: every count must fit the encoders, not just the first.
+        yield* Effect.forEach(options.workers, (n) =>
+          Effect.fromResult(videoEncoders(n, options.share)),
+        );
         const info = yield* Effect.scoped(Effect.map(browser.open(url(film)), (page) => page.info));
         const { start, end } = frameSpan(info, options.from, options.to);
         const from = start / info.fps;

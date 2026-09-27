@@ -4,7 +4,10 @@ import { layout } from '../core/layout.ts';
 import {
   MAX_CHUNK_FRAMES,
   MIN_CHUNK_FRAMES,
+  MAX_ENCODERS,
+  RenderJob,
   contactTimes,
+  encoderBudget,
   flagConflicts,
   jobOf,
   frameSpan,
@@ -164,5 +167,33 @@ describe('ranges', () => {
   test('stills are named by time so they sort', () => {
     expect(stillName(8.14)).toBe('t0008.14.png');
     expect(stillName(347.16)).toBe('t0347.16.png');
+  });
+});
+
+describe('encoderBudget', () => {
+  const video = (workers: number, share: boolean) =>
+    RenderJob.Video({
+      tag: 't',
+      captions: true,
+      workers,
+      from: Option.none(),
+      to: Option.none(),
+      scale: 1,
+      out: Option.none(),
+      share,
+    });
+  const tag = (job: RenderJob) =>
+    Result.match(encoderBudget(job), { onSuccess: String, onFailure: (e) => e._tag });
+
+  test('two encoders a page with a share copy; past MAX_ENCODERS fails', () => {
+    expect(MAX_ENCODERS).toBe(14);
+    expect(tag(video(7, true))).toBe('14');
+    expect(tag(video(8, true))).toBe('TooManyEncoders');
+    expect(tag(video(14, false))).toBe('14');
+    expect(tag(video(15, false))).toBe('TooManyEncoders');
+  });
+
+  test('stills encode no video', () => {
+    expect(tag(RenderJob.Stills({ tag: 't', captions: true, workers: 32, times: [1] }))).toBe('0');
   });
 });

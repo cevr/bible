@@ -90,6 +90,20 @@ describe('Renderer', () => {
     }),
   );
 
+  it.live('a video needing more encoders than the machine runs fails before a page opens', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      // Eight pages with a share copy are sixteen encoders: the hardware encoder hangs at sixteen.
+      const exit = yield* Effect.exit(render({ ...video, workers: 8, share: true }));
+      expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e.message))).toEqual(
+        Option.some(
+          '8 pages with a share copy need 16 encoders at once, over the 14 a render may run; use --workers 7 or fewer, or --no-share',
+        ),
+      );
+      expect(ledger.pages.opened).toBe(0);
+    }),
+  );
+
   it.live('a browser that cannot encode the film fails before a frame is drawn', () =>
     Effect.gen(function* () {
       const { ledger, render } = setup({

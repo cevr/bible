@@ -299,6 +299,20 @@ export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved'
 }
 
 /** A render range with no frames in it. */
+/** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
+export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
+  workers: Schema.Int,
+  share: Schema.Boolean,
+  max: Schema.Int,
+}) {
+  override get message() {
+    const perPage = 1 + Number(this.share);
+    const copy = ' with a share copy'.repeat(Number(this.share));
+    const orNoShare = ', or --no-share'.repeat(Number(this.share));
+    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
+  }
+}
+
 export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
   from: Schema.Finite,
   to: Schema.Finite,

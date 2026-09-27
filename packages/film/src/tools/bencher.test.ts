@@ -138,4 +138,15 @@ describe('Bencher', () => {
       expect(files.has('/out/test/bench.workers.json')).toBe(true);
     }),
   );
+
+  it.live('--workers with a count past the encoders fails before any render', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const { ledger, workers } = setup(files);
+      const error = yield* Effect.flip(workers([2, 15]));
+      expect(error._tag).toBe('TooManyEncoders');
+      expect(ledger.joins).toEqual([]);
+      expect(ledger.pages.opened).toBe(0);
+    }),
+  );
 });
