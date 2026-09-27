@@ -26,7 +26,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
 1. **Frame and sources.**
    - Find the film's topic in [frame/README.md](frame/README.md). Read its 1889 principle and the topic file whole.
    - For anything the topic file lacks, build a corpus with `bible egw study <subject> --pioneers --export <file> --full`.
-   - Copy each quote you will use into `apps/animations/script/sources.md`, verbatim and with its refcode. Add each one as a record to `src/films/<film>/quotes.jsonl`, and run the frame's verifier over that file (see **Verify** in the frame).
+   - Copy each quote you will use into `src/films/<film>/sources.md`, verbatim and with its refcode. Add each one as a record to `src/films/<film>/quotes.jsonl`, and run the frame's verifier over that file (see **Verify** in the frame).
    - Done when every quote the script will speak or show verifies, and you can name, for the topic, what the film must show and what it must not say or show.
 
 2. **Script.** Write `script.ts`: ordered beats `{ id, say, cite, picture }`. Put a `{mark}` before each word a picture must hit. Marks are stripped before speech, so adding one never re-records.

@@ -1,6 +1,6 @@
 # _Righteousness by Faith_ against the pioneer frame
 
-Reviewed 2026-09-25 against the frame in `.claude/skills/film/frame/` (the 1889 principles and the topic files). The quotations below are verified records in `righteousness-by-faith-frame-review.jsonl` beside this file and in the frame's `.jsonl` files. Nothing here has been applied to the film yet.
+Reviewed 2026-09-25 against the frame in `.claude/skills/film/frame/` (the 1889 principles and the topic files). It reviews the first cut, now `src/films/righteousness-by-faith-v1`; the paths below are as they were then. The rebuild in `src/films/righteousness-by-faith` answers each finding. The quotations below are verified records in `righteousness-by-faith-frame-review.jsonl` beside this file and in the frame's `.jsonl` files. Nothing here has been applied to the film yet.
 
 Checked:
 

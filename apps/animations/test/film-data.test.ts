@@ -17,19 +17,19 @@ import {
 } from '@bible/film/core';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { scenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
-import { sound } from '../src/films/righteousness-by-faith/sound.ts';
-import { voice } from '../src/films/righteousness-by-faith/voice.ts';
+import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
+import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
+import { voice } from '../src/films/righteousness-by-faith-v1/voice.ts';
 
 const readFilmFile = Effect.fn('test.readFilmFile')(function* (file: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   return yield* fs.readFileString(
-    path.join(import.meta.dir, '..', 'src', 'films', 'righteousness-by-faith', file),
+    path.join(import.meta.dir, '..', 'src', 'films', 'righteousness-by-faith-v1', file),
   );
 });
 
-describe('righteousness-by-faith data', () => {
+describe('righteousness-by-faith-v1 data', () => {
   it.effect.layer(BunServices.layer)('timings.json decodes and re-encodes byte for byte', () =>
     Effect.gen(function* () {
       const text = yield* readFilmFile('narration/timings.json');

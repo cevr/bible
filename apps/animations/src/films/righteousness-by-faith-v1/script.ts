@@ -2,7 +2,7 @@
 // doing. The film plays these beats in this order; each id needs a drawing in
 // scenes/. `{mark}` cues sit before the word the picture should hit.
 //
-// Every quotation is verbatim from script/sources.md (checked against the
+// Every quotation is verbatim from sources.md (checked against the
 // local corpus). KJV supplied-word brackets are dropped for speech.
 
 export interface Beat {

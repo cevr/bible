@@ -152,8 +152,8 @@ stale; a gain change only needs `mix`. The mix ducks the music under the voice
 with a sidechain compressor. Music works with the CLI's OAuth login; effects
 need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `ELEVENLABS_API_KEY`) — without one they are skipped, not faked. Balance with
-`mix --stems` and measure: speech sits near -23 dB mean, the bed ~16 dB under
-it while speaking and ~7 dB under between lines.
+`mix --stems` against the levels in rule 10 of the film skill's
+[CRAFT.md](../../.claude/skills/film/CRAFT.md).
 
 ## Engine (`@bible/film`)
 

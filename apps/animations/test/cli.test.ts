@@ -7,7 +7,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 
-const film = 'righteousness-by-faith';
+const film = 'righteousness-by-faith-v1';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));

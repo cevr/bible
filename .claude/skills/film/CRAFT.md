@@ -1,6 +1,6 @@
 # Craft
 
-How a film carries its argument. These rules come from measuring sixteen BibleProject films against our first film, `righteousness-by-faith`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most.
+How a film carries its argument. These rules come from measuring sixteen BibleProject films against the first cut of our first film, now `righteousness-by-faith-v1`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most.
 
 Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphrase stays inside its quote's words, and a picture shows nothing the topic's MUST NOT SAY-OR-SHOW forbids.
 

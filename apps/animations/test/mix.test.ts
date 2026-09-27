@@ -21,8 +21,8 @@ import {
 import { Media, decodePlan } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
-import { scenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
-import { sound } from '../src/films/righteousness-by-faith/sound.ts';
+import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
+import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
 
 const Placed = Schema.Struct({ sound: Schema.String, ms: Schema.Int, gain: Schema.Finite });
 const Plan = Schema.Struct({
@@ -40,7 +40,7 @@ const Levels = Schema.fromJsonString(
   }),
 );
 
-const FILM = 'src/films/righteousness-by-faith';
+const FILM = 'src/films/righteousness-by-faith-v1';
 
 /** The ffmpeg master's levels hold to this, in dB: far above an LSB, far below anything audible. */
 const LEVEL_TOLERANCE = 0.01;

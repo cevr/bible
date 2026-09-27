@@ -18,9 +18,9 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Result } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FILMS } from '../server.ts';
-import { scenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
+import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
 
-const FILM = 'righteousness-by-faith';
+const FILM = 'righteousness-by-faith-v1';
 const CLI = new URL('../cli.ts', import.meta.url).pathname;
 
 const Sources = SceneSources.layer.pipe(
