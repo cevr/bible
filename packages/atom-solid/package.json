@@ -10,8 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun --conditions=browser --conditions=development test",
-    "gate": "bun run typecheck && bun run test"
+    "test": "bun --conditions=browser --conditions=development test"
   },
   "dependencies": {
     "effect": "catalog:",

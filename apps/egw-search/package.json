@@ -16,8 +16,7 @@
     "deploy:bucket": "alchemy deploy alchemy.bucket.ts --stage prod",
     "test:browser": "bun run build && playwright test --config=test/browser/playwright.config.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src server",
-    "gate": "bun run typecheck && bun run test"
+    "test": "bun test src server"
   },
   "dependencies": {
     "@bible/core": "workspace:*",

@@ -24,4 +24,5 @@ The per-frame draw path (`draw(frame)`, ink, cutout, type, camera, the kit) runs
 - **Explicit** beats **declarative brevity**: shorter code that hides a clock, a seed or a time is rejected.
 - **Pure frames** beats **authoring ergonomics** and **Performant**: a timeline model that needs replay to seek, or a cache carried between frames, is rejected unless it compiles to random-access time.
 - **Performant** claims need the bench: a candidate without a before/after is a question, not a finding.
+- **Art direction** beats **Performant** (owner, 2026-09-27): performance stays top of mind, but never at the cost of the look. The raster (grain, pastel, shadow, vignette) is most of the frame time, and it is the look: a speed change that moves pixels must be indistinguishable to the eye in side-by-side stills at the scene's busiest and quietest frames, is owner-approved, and is reverted when a still shows the difference. Find speed in how a look is drawn, never in drawing less of it.
 - Adopt a pattern from prior art only when it keeps every north star. Record which north star each rejected pattern fails.

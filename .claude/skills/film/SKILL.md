@@ -19,6 +19,14 @@ A film lives in `apps/animations/src/films/<film>/`. The engine is the `@bible/f
 
 Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (the CLI's login sits in the Keychain; Chromium sits in `~/Library/Caches/ms-playwright`).
 
+## Corpus, not memory (paramount)
+
+Generate against the corpus, never against training data. A film's doctrine, its argument's shape, every quote, reference, date and attribution, and every picture that teaches come from the frame ([frame/README.md](frame/README.md) and its topic files) and from what the `bible` CLI printed in this session (`bible egw study <subject> --pioneers --export <file> --full`, verse and EGW lookups). Training data carries mainstream framings (for example, justification as a verdict only, with change coming later) and misremembered wording; the corpus is the pioneer record.
+
+- **Fetch, then write.** Each line a beat speaks or shows as a quote is in `sources.md` and `quotes.jsonl`, verbatim with its refcode, and passes the frame's verifier.
+- **Frame from the corpus.** The spine of the script (what the doctrine is, what it includes, in what order) is read from the topic file and the pioneers in context, never from a familiar summary. Where they differ, follow the corpus and name the difference in the topic file.
+- **A gap stays a gap.** A claim the corpus does not support is cut or marked unverified; memory never fills it.
+
 ## Steps
 
 0. **Tools.** `bun run doctor` (with `dangerouslyDisableSandbox: true`) says whether headless Chromium and the logged-in `elevenlabs` CLI are there, and how to fix each that is not. `narrate` and `score` check the `elevenlabs` login before spending a credit.
