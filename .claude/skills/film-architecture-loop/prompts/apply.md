@@ -17,7 +17,7 @@ Work rules:
 - Timing: a change that claims no timing change diffs `bun run cues <film>` before and after.
 - Performance: a speed claim has a before/after from the bench (median of several runs, same machine). No cache that carries state between frames.
 - Draw path (packages/film/src/canvas, the kit and scenes): plain synchronous code in the pmndrs math style (out-params, no per-point allocation); use `math` where it has the helper. Tooling: Effect, Scope, Schema, typed errors.
-- Guardrails in effect-oxlint (~/Developer/personal/effect-oxlint) go in a commit there with a unit test, an integration fixture and a changeset; do not push or release it: report it for the orchestrator.
+- A lint guardrail is a rule in the repo's `film` oxlint plugin (`packages/film/lint/`), written with the builder from `oxlint-plugin-effect/rule-bindings` (examples: `node_modules/oxlint-plugin-effect/dist/rules/`), scoped with an `overrides` entry in `.oxlintrc.json`, with a test that is red on a fixture. A rule true of any Effect code is reported for the orchestrator as an upstream effect-oxlint candidate instead.
 - No paid API calls (narrate, score, effects). Committed takes and score keep their hashes.
 - Complexity caps stay: split into named operations, never raise a cap or add a disable comment.
 - Comments describe today's behavior. One concern per file; new code goes into the concern's existing module.
@@ -34,5 +34,5 @@ SAFETY (mandatory; in a sibling repo a heredoc of probe text once ran `rm -rf ~`
 - Probe strings target only harmless paths such as /nonexistent/film-probe-x.
 - Never read or print credentials (the ElevenLabs key, tokens). Never log private reading or note content.
 
-Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the pixel/timing/performance comparisons, the last `GATE EXIT`, decisions for the orchestrator, anything to release (effect-oxlint), and what the live check should drive (stills at which times, which lab controls).
+Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the pixel/timing/performance comparisons, the last `GATE EXIT`, decisions for the orchestrator, upstream effect-oxlint candidates, and what the live check should drive (stills at which times, which lab controls).
 ```

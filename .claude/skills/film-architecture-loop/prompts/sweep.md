@@ -17,13 +17,13 @@ In flight, do not report: <batch: items>. Open review items (the review batch ow
 
 Performance baseline (from the ledger): <table>. A performance claim needs a measurement from the bench or a scratch script under <scratchpad>; without one it is a question.
 
-Vocabulary, used exactly: module, interface, depth, seam, adapter, leverage, locality, deletion test. A candidate is: a shallow module, a pass-through, one concept with two owners, a time written in two places, a hand-timed second where a mark belongs, a constant a lab note cannot reach, a one-adapter seam with no guard, a single-caller export, dead code, a guard gap (a defect class no film check, effect-oxlint rule or type can see), a comment that tells history, a Promise or throw where an Effect belongs outside the draw path, an unscoped resource, an untyped boundary, per-point or per-frame allocation in the draw path, a helper pmndrs math already has, or a public export no test uses as its subject.
+Vocabulary, used exactly: module, interface, depth, seam, adapter, leverage, locality, deletion test. A candidate is: a shallow module, a pass-through, one concept with two owners, a time written in two places, a hand-timed second where a mark belongs, a constant a lab note cannot reach, a one-adapter seam with no guard, a single-caller export, dead code, a guard gap (a defect class no film check, lint rule or type can see), a comment that tells history, a Promise or throw where an Effect belongs outside the draw path, an unscoped resource, an untyped boundary, per-point or per-frame allocation in the draw path, a helper pmndrs math already has, or a public export no test uses as its subject.
 
 Find, with receipts:
 - Bugs: an input or state that gives a wrong frame, time, sound or file, with file:line and the scenario, verified end to end.
 - Reductions: code the deletion test shows is a pass-through or has no consumer. Caller greps cover apps/animations/ and packages/film/.
 - Structural: a concept that belongs in the kit, core or tools and not where it is; an idiom bypassed.
-- Guardrails: a defect class that happened (git log, the ledger, review items) and no check would catch again, with where the check belongs (effect-oxlint rule, type, film check detector, bench budget).
+- Guardrails: a defect class that happened (git log, the ledger, review items) and no check would catch again, with where the check belongs (a `film/` lint rule, a type, a film check detector, a bench budget).
 
 Classes: P1 wrong output a viewer or the owner hits; P2 wrong at an edge, a real reduction (more than 100 lines or one concept), a measured saving over 10%; P3 polish. Under about 5 lines of value: one line in a "not worth a pass" list. An area with only polish says "only polish" with the receipts checked; that is the wanted result of a late pass.
 

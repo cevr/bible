@@ -45,8 +45,8 @@ Reports: `<scratchpad>/film-pass<N>/<area>.md`
 
 Guardrails added:
 
-| Defect class | Check (effect-oxlint rule / type / film check / bench budget) | Red on | Hash |
-| ------------ | ------------------------------------------------------------- | ------ | ---- |
+| Defect class | Check (`film/` lint rule / type / film check / bench budget) | Red on | Hash |
+| ------------ | ------------------------------------------------------------ | ------ | ---- |
 
 Counsel defects:
 
