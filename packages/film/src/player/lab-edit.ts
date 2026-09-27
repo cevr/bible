@@ -132,10 +132,22 @@ export const mountEditor = (
 
   // ── State. ──
   let selection = selectionFromUrl();
-  /** The scene the strip shows, and what the lab knows of its source. */
+  /** The scene the strip shows. */
   let stripScene: string | undefined;
-  let source: SceneSource | undefined;
-  let sourceError = '';
+  /**
+   * What the lab knows of a scene's source: the strip scene's and the
+   * selection's, which differ once the playhead leaves the selected scene.
+   * Each is fetched again when its scene is shown or selected.
+   */
+  const sources = new Map<string, SceneSource | { readonly error: string }>();
+  const sourceOf = (scene: string): SceneSource | undefined => {
+    const known = sources.get(scene);
+    return known === undefined || 'error' in known ? undefined : known;
+  };
+  const sourceErrorOf = (scene: string): string => {
+    const known = sources.get(scene);
+    return known !== undefined && 'error' in known ? known.error : '';
+  };
   /** An edit previewed and not yet reloaded from source, by scene. */
   const edits = new Map<string, SceneEdit>();
   let findings: ReadonlyArray<CheckLine> = [];
@@ -172,7 +184,7 @@ export const mountEditor = (
     const p = placedOf(stripScene ?? '');
     stripRows.replaceChildren();
     if (p === undefined) return;
-    stripHead.textContent = `${p.spec.id} · ${p.dur.toFixed(2)}s · ${source?.file ?? sourceError}`;
+    stripHead.textContent = `${p.spec.id} · ${p.dur.toFixed(2)}s · ${sourceOf(p.spec.id)?.file ?? sourceErrorOf(p.spec.id)}`;
     const words = el('div', 'lab-strip-words');
     for (const w of p.voice.words) {
       const word = el('span', 'lab-word', w.text);
@@ -241,14 +253,15 @@ export const mountEditor = (
   ];
 
   /** Why the lab will not write a scene's timeline or knobs at all, when it will not. */
-  const refusal = (field: 'timeline' | 'knobs') =>
-    source?.refused.find((r) => r.field === field)?.reason;
+  const refusal = (scene: string, field: 'timeline' | 'knobs') =>
+    sourceOf(scene)?.refused.find((r) => r.field === field)?.reason;
   /** Why a cue's or knob's value cannot be written: the field refused, else computed. */
-  const whyNot = (field: 'timeline' | 'knobs') => refusal(field) ?? 'it is computed in the source';
+  const whyNot = (scene: string, field: 'timeline' | 'knobs') =>
+    refusal(scene, field) ?? 'it is computed in the source';
 
-  /** A field the lab may write: a literal, or absent (then added). */
-  const writable = (cue: string, field: 'offset' | 'dur' | 'ease') => {
-    const found = source?.cues.find((c) => c.name === cue);
+  /** A field of a scene's cue the lab may write: a literal, or absent (then added). */
+  const writable = (scene: string, cue: string, field: 'offset' | 'dur' | 'ease') => {
+    const found = sourceOf(scene)?.cues.find((c) => c.name === cue);
     return found !== undefined && found[field] !== 'computed';
   };
 
@@ -267,12 +280,13 @@ export const mountEditor = (
           : 'move';
     const needs: ReadonlyArray<'offset' | 'dur'> =
       mode === 'move' ? ['offset'] : mode === 'end' ? ['dur'] : ['offset', 'dur'];
-    if (source === undefined || !needs.every((f) => writable(cue, f))) {
+    const scene = p.spec.id;
+    if (sourceOf(scene) === undefined || !needs.every((f) => writable(scene, cue, f))) {
       setStatus(
-        source === undefined
-          ? `cannot edit: ${sourceError || 'no source for this scene'}`
-          : refusal('timeline') !== undefined
-            ? `cannot drag ${cue}: ${whyNot('timeline')}`
+        sourceOf(scene) === undefined
+          ? `cannot edit: ${sourceErrorOf(scene) || 'no source for this scene'}`
+          : refusal(scene, 'timeline') !== undefined
+            ? `cannot drag ${cue}: ${whyNot(scene, 'timeline')}`
             : `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
       );
       return;
@@ -450,8 +464,8 @@ export const mountEditor = (
     select({ kind: 'knob', scene, name });
     const p = placedOf(scene);
     if (p === undefined) return;
-    if (!knobWritable(name)) {
-      setStatus(`cannot move ${name}: ${whyNot('knobs')}`);
+    if (!knobWritable(scene, name)) {
+      setStatus(`cannot move ${name}: ${whyNot(scene, 'knobs')}`);
       return;
     }
     const from = at.value;
@@ -481,8 +495,8 @@ export const mountEditor = (
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   };
-  const knobWritable = (name: string) =>
-    source?.knobs.find((k) => k.name === name)?.state === 'literal';
+  const knobWritable = (scene: string, name: string) =>
+    sourceOf(scene)?.knobs.find((k) => k.name === name)?.state === 'literal';
 
   // ── The inspector. ──
   const section = el('section', 'lab-edit');
@@ -529,7 +543,7 @@ export const mountEditor = (
     box.append(el('div', 'lab-edit-title', `${p.spec.id} · cue ${name}`));
     const grid = el('div', 'lab-edit-grid');
     grid.append(el('span', 'lab-edit-key', 'anchor'), el('span', 'lab-edit-val', anchorText(span)));
-    const offset = numberInput(span.offset ?? 0, writable(name, 'offset'), (v) => {
+    const offset = numberInput(span.offset ?? 0, writable(p.spec.id, name, 'offset'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
         timeline: { ...declaredTimeline(p), [name]: { ...span, offset: v } },
@@ -538,7 +552,7 @@ export const mountEditor = (
       writeCue(p.spec.id, name, { offset: round(v) });
     });
     offset.dataset['field'] = 'offset';
-    const dur = numberInput(span.dur ?? 0, writable(name, 'dur'), (v) => {
+    const dur = numberInput(span.dur ?? 0, writable(p.spec.id, name, 'dur'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
         timeline: { ...declaredTimeline(p), [name]: { ...span, dur: Math.max(0, v) } },
@@ -563,7 +577,7 @@ export const mountEditor = (
       ),
     );
     const eases = el('div', 'lab-eases');
-    const canEase = writable(name, 'ease');
+    const canEase = writable(p.spec.id, name, 'ease');
     for (const e of EaseName.literals) {
       const b = el('button', `lab-ease${e === c.ease ? ' on' : ''}`);
       b.type = 'button';
@@ -599,7 +613,7 @@ export const mountEditor = (
       row.dataset['knob'] = name;
       if (selection?.kind === 'knob' && selection.name === name) row.classList.add('selected');
       row.append(el('span', 'lab-edit-key', name));
-      const ok = knobWritable(name);
+      const ok = knobWritable(p.spec.id, name);
       const commit = (v: Knob) => {
         preview(p.spec.id, { ...edits.get(p.spec.id), knobs: { ...declaredKnobs(p), [name]: v } });
         writeKnob(p.spec.id, name, v);
@@ -614,7 +628,9 @@ export const mountEditor = (
         row.append(el('span', 'lab-edit-note lab-knob-where'));
       }
       if (!ok)
-        row.append(el('span', 'lab-edit-note', refusal('knobs') ?? 'computed in the source'));
+        row.append(
+          el('span', 'lab-edit-note', refusal(p.spec.id, 'knobs') ?? 'computed in the source'),
+        );
       box.append(row);
     }
     return box;
@@ -634,7 +650,7 @@ export const mountEditor = (
   const renderInspector = () => {
     const scene = selection?.scene ?? film.sceneAt(player.now()).spec.id;
     const p = placedOf(scene);
-    fileEl.textContent = source !== undefined && source.scene === scene ? source.file : '';
+    fileEl.textContent = sourceOf(scene)?.file ?? '';
     body.replaceChildren();
     if (p !== undefined) {
       if (selection?.kind === 'cue') body.append(cueInspector(p, selection.name));
@@ -654,6 +670,8 @@ export const mountEditor = (
   };
 
   const select = (sel: Selection) => {
+    // The selection's scene may not be the one shown: its source is its own.
+    if (sel.scene !== stripScene) loadSource(sel.scene);
     selection = sel;
     selectionToUrl(sel);
     renderStrip();
@@ -688,20 +706,18 @@ export const mountEditor = (
   });
 
   // ── Following the frame: the strip follows the scene shown. ──
+  /** Fetch `scene`'s source again; what the lab knew of it stands until the answer lands. */
   const loadSource = (scene: string) => {
-    source = undefined;
-    sourceError = '';
     fetch(`${api}/scenes/${encodeURIComponent(scene)}/source`)
       .then(async (res) => {
-        if (stripScene !== scene) return;
         if (!res.ok) {
-          sourceError = (await res.text()).replace(/^\w+: /, '');
+          sources.set(scene, { error: (await res.text()).replace(/^\w+: /, '') });
           return;
         }
-        source = decodeSource(await res.json());
+        sources.set(scene, decodeSource(await res.json()));
       })
       .catch((err: unknown) => {
-        sourceError = String(err);
+        sources.set(scene, { error: String(err) });
       })
       .finally(() => {
         renderStrip();
@@ -722,10 +738,10 @@ export const mountEditor = (
   });
 
   // On load: the selection from the URL, and the film's findings as they stand.
-  if (selection !== undefined) select(selection);
   stripScene = film.sceneAt(player.now()).spec.id;
-  renderStrip();
   loadSource(stripScene);
+  if (selection !== undefined) select(selection);
+  renderStrip();
   renderHandles();
   fetch(`${api}/check`)
     .then(async (res) => {
