@@ -187,13 +187,6 @@ const onHead = (p: Person, x: number, y: number): Pt => {
   ];
 };
 
-/** The turban's wraps: each band's height on the head and half its width, in head radii. */
-const TURBAN_BANDS: ReadonlyArray<Pt> = [
-  [-0.82, 0.92],
-  [-1.02, 0.8],
-  [-1.22, 0.5],
-];
-
 /** The turban's dome, over a head centred on (0, 0) of radii rx, ry: high enough to leave the brows showing. */
 const turbanShape = (rx: number, ry: number): Pt[] =>
   spline(
@@ -264,7 +257,12 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   if (p.turban === true) {
     const dome = turbanShape(HEAD_RX, HEAD_RY).map(([x, y]): Pt => [cx + x, cy + y]);
     piece(ctx, dome, C.paper, sub(hand, 5));
-    for (const [y, w] of TURBAN_BANDS)
+    // Each wrap: its height on the head and half its width, in head radii.
+    for (const [y, w] of [
+      [-0.82, 0.92],
+      [-1.02, 0.8],
+      [-1.22, 0.5],
+    ] as const)
       stroke(
         ctx,
         quad(

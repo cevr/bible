@@ -34,12 +34,6 @@ const JUDGE: Pt = [1180, 350];
 const GAVEL: Pt = [1330, 445];
 
 /** The wall's two tall sheets: where each stands, and its seed. */
-const PILLARS: ReadonlyArray<Pt> = [
-  [300, 1],
-  [1580, 2],
-];
-const SIDES: ReadonlyArray<-1 | 1> = [-1, 1];
-
 const STAINS = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 
 const SHEETS = (() => {
@@ -131,7 +125,10 @@ export const cold = drawing({
           // The wall: tall sheets of toned paper, and the floor's edge.
           z: 1.35,
           draw: () => {
-            for (const [x, k] of PILLARS)
+            for (const [x, k] of [
+              [300, 1],
+              [1580, 2],
+            ] as const)
               piece(ctx, rectShape(x, 80, 200, 800), `${C.paperTone}30`, f.hand(`pillar${k}`), {
                 line: 0,
                 torn: 3,
@@ -161,7 +158,7 @@ export const cold = drawing({
                 ctx.ellipse(x + ex, -8 + ey, 4.5, 5.5, 0, 0, Math.PI * 2);
                 ctx.fill();
               }
-              for (const side of SIDES)
+              for (const side of [-1, 1] as const)
                 stroke(
                   ctx,
                   line([side * 22 - 13, -28], [side * 22 + 13, -28]),

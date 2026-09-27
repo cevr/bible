@@ -44,10 +44,6 @@ const CHEEK: Pt = [-19, -160];
 const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
 
 /** The court's pillars: where each stands, and its seed. */
-const PILLARS: ReadonlyArray<Pt> = [
-  [150, 34],
-  [1790, 35],
-];
 /** Where the flakes that lifted from him hang in the air. */
 const FLAKES: ReadonlyArray<Pt> = [
   [440, 330],
@@ -203,7 +199,10 @@ export const robe = drawing({
         ctx.lineTo(LOOM[0] - 330, 960);
         ctx.fill();
         ctx.restore();
-        for (const [x, k] of PILLARS)
+        for (const [x, k] of [
+          [150, 34],
+          [1790, 35],
+        ] as const)
           piece(ctx, rectShape(x - 65, 60, 130, 1000), C.board, sub(hand('pillar'), k), {
             line: 0,
             torn: 3,
