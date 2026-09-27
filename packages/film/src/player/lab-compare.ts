@@ -1,6 +1,6 @@
 // The lab's compare: the frame shown beside the same frame as HEAD declared
 // the scene's timeline and knobs. The server reads the scene file at HEAD
-// (`GET /lab/scenes/:scene/head`, parsed with the same locator and parser the
+// (`GET /lab/<film>/scenes/:scene/head`, parsed with the same locator and parser the
 // writer uses); the page draws HEAD's values through the code it has now
 // (`film.render(…, { edit })`, one frame, nothing kept) onto a layer over the
 // film. A wipe shows HEAD left of a divider you drag, now to its right; blink
@@ -34,6 +34,7 @@ export const mountCompare = (
   panel: HTMLElement,
   overlay: SVGSVGElement,
   pin: (layer: HTMLElement) => void,
+  api: string,
 ): void => {
   const { film } = player;
   const section = el('section', 'lab-compare-tools');
@@ -97,7 +98,7 @@ export const mountCompare = (
   const load = (scene: string) => {
     if (loaded.has(scene) || loading.has(scene)) return;
     loading.add(scene);
-    fetch(`/lab/scenes/${encodeURIComponent(scene)}/head`)
+    fetch(`${api}/scenes/${encodeURIComponent(scene)}/head`)
       .then(async (res): Promise<Loaded> => {
         if (!res.ok) return { kind: 'none', reason: (await res.text()).replace(/^\w+: /, '') };
         const head = decodeHead(await res.json());

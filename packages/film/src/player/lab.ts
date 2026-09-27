@@ -17,6 +17,7 @@ import {
   NotesFile,
   NotesWait,
   type Point,
+  labBase,
 } from '../core/schema.ts';
 import { canvasBase64, el, postJson, required, svg } from './dom.ts';
 import { mountCompare } from './lab-compare.ts';
@@ -46,6 +47,8 @@ const label = (note: Note) => {
 
 export const mountLab = (player: Player, filmName: string): void => {
   const { film, canvas } = player;
+  /** Every call names this film (`/lab/<film>/…`): the lab refuses a page for another. */
+  const api = labBase(filmName);
   document.body.classList.add('lab');
 
   // ── The layer over the canvas: every lab mark draws here, never on the film. ──
@@ -109,11 +112,11 @@ export const mountLab = (player: Player, filmName: string): void => {
   const q = <T extends Element>(sel: string) => required<T>(panel, sel);
   const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
   // The editor: drag cues and knobs, written back to the scene files.
-  const editor = mountEditor(player, panel, overlay);
+  const editor = mountEditor(player, panel, overlay, api);
   // Onion skin, speed and loops.
   mountMotion(player, panel, pin, editor.selectedCue);
   // The frame beside HEAD's timeline and knobs.
-  mountCompare(player, panel, overlay, pin);
+  mountCompare(player, panel, overlay, pin, api);
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');
@@ -232,7 +235,7 @@ export const mountLab = (player: Player, filmName: string): void => {
       // The still is the film canvas at this very frame, drawn fresh: no lab marks can be in it.
       film.render(player.ctx, T, { captions: player.captions.on });
       const still = await canvasBase64(canvas, 'image/png');
-      const saved = decodeNote(await postJson('/lab/notes', { ...note, still }));
+      const saved = decodeNote(await postJson(`${api}/notes`, { ...note, still }));
       selected = saved.id;
       closeComposer();
       await refresh();
@@ -315,7 +318,7 @@ export const mountLab = (player: Player, filmName: string): void => {
   };
   const still = (name: string, cls: string) => {
     const img = el('img', cls);
-    img.src = `/lab/stills/${name}`;
+    img.src = `${api}/stills/${name}`;
     img.alt = name;
     img.loading = 'lazy';
     return img;
@@ -353,10 +356,10 @@ export const mountLab = (player: Player, filmName: string): void => {
             e.preventDefault();
             const text = input.value.trim();
             if (text === '') return;
-            void postJson(`/lab/notes/${note.id}/reply`, { text }).then(refresh);
+            void postJson(`${api}/notes/${note.id}/reply`, { text }).then(refresh);
           });
           resolve.addEventListener('click', () => {
-            void postJson(`/lab/notes/${note.id}/resolve`, {}).then(refresh);
+            void postJson(`${api}/notes/${note.id}/resolve`, {}).then(refresh);
           });
           item.append(form);
         }
@@ -370,8 +373,8 @@ export const mountLab = (player: Player, filmName: string): void => {
     redrawMarks();
   };
   const refresh = async () => {
-    const res = await fetch('/lab/notes');
-    if (!res.ok) throw new Error(`/lab/notes: ${res.status}`);
+    const res = await fetch(`${api}/notes`);
+    if (!res.ok) throw new Error(`${api}/notes: ${res.status}`);
     const file = decodeNotes(await res.json());
     notes = file.notes;
     cursor = Math.max(cursor, file.seq);
@@ -381,9 +384,9 @@ export const mountLab = (player: Player, filmName: string): void => {
 
   // ── Live: each change (a note, a reply from the agent, a resolve) as it lands. ──
   const follow = (): void => {
-    fetch(`/lab/notes/wait?since=${cursor}&timeout=55`)
+    fetch(`${api}/notes/wait?since=${cursor}&timeout=55`)
       .then(async (res) => {
-        if (!res.ok) throw new Error(`/lab/notes/wait: ${res.status}`);
+        if (!res.ok) throw new Error(`${api}/notes/wait: ${res.status}`);
         const waited = decodeWait(await res.json());
         if (waited.events.length > 0) await refresh();
         cursor = Math.max(cursor, waited.cursor);

@@ -575,7 +575,13 @@ export const CheckLine = Schema.Struct({
 });
 export type CheckLine = typeof CheckLine.Type;
 
-/** `GET /lab/check`. */
+/**
+ * The lab API's root for one film: every route is under `/lab/<film>/`, so a
+ * page for another film cannot read or write this one's (the server answers
+ * 409 for a film it does not serve).
+ */
+export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
+
 /**
  * `GET /lab/check`: `film check --static` now, and the lab's last write, the
  * one Undo puts back (a page reloaded by that write learns of it here).

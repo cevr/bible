@@ -2,7 +2,7 @@
 // film's timeline, draggable, and an inspector for the selected cue and the
 // scene's knobs. A drag previews in memory — `film.preview`, which resolves
 // the edited timeline on the scene's own clock exactly as the layout does —
-// and writes once, on release (`POST /lab/cues/:scene/:cue`). Each write
+// and writes once, on release (`POST /lab/<film>/cues/:scene/:cue`). Each write
 // lands in the scene's `.ts` file; the dev server rebuilds and the page
 // reloads at the same `#T`, with the selection kept in the URL
 // (`&sel=cue:hand:topple`). `film check --static` runs after every write, and
@@ -122,7 +122,12 @@ export interface Editor {
   readonly selectedCue: () => { readonly scene: string; readonly name: string } | undefined;
 }
 
-export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGElement): Editor => {
+export const mountEditor = (
+  player: Player,
+  panel: HTMLElement,
+  overlay: SVGSVGElement,
+  api: string,
+): Editor => {
   const { film } = player;
 
   // ── State. ──
@@ -348,14 +353,14 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   };
   const writeCue = (scene: string, cue: string, patch: CuePatch) => {
     setStatus('writing…');
-    post(`/lab/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
+    post(`${api}/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
   };
   const writeKnob = (scene: string, knob: string, value: Knob) => {
     setStatus('writing…');
-    post(`/lab/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
+    post(`${api}/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
@@ -646,7 +651,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
 
   q<HTMLButtonElement>('[data-act="undo"]').addEventListener('click', () => {
     setStatus('undoing…');
-    post('/lab/undo', {})
+    post(`${api}/undo`, {})
       .then((w) => {
         findings = w.findings;
         setStatus(`undid ${w.target.replace(/^undo /, '')} in ${w.file}`);
@@ -659,7 +664,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   const loadSource = (scene: string) => {
     source = undefined;
     sourceError = '';
-    fetch(`/lab/scenes/${encodeURIComponent(scene)}/source`)
+    fetch(`${api}/scenes/${encodeURIComponent(scene)}/source`)
       .then(async (res) => {
         if (stripScene !== scene) return;
         if (!res.ok) {
@@ -694,7 +699,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   renderStrip();
   loadSource(stripScene);
   renderHandles();
-  fetch('/lab/check')
+  fetch(`${api}/check`)
     .then(async (res) => {
       if (!res.ok) throw new Error(await res.text());
       const report = decodeCheck(await res.json());

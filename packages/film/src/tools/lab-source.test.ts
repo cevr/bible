@@ -96,14 +96,14 @@ describe('lab source routes', () => {
         const lab = yield* labHandler('f');
         const before = yield* read();
         const source = yield* Effect.promise(() =>
-          lab(new Request(at('/lab/scenes/hand/source')), bound).then((r) => r.json()),
+          lab(new Request(at('/lab/f/scenes/hand/source')), bound).then((r) => r.json()),
         );
         expect(yield* Schema.decodeUnknownEffect(SceneSource)(source)).toMatchObject({
           file: 'scenes/hand.ts',
           knobs: [{ name: 'palm', state: 'literal' }],
         });
         const res = yield* Effect.promise(() =>
-          lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound),
+          lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound),
         );
         expect(res.status).toBe(200);
         const written = yield* Schema.decodeUnknownEffect(LabWrite)(
@@ -127,20 +127,20 @@ describe('lab source routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
       const knob = yield* Effect.promise(() =>
-        lab(post('/lab/knobs/hand/palm', '{"value":[1000,760]}'), bound).then((r) => r.json()),
+        lab(post('/lab/f/knobs/hand/palm', '{"value":[1000,760]}'), bound).then((r) => r.json()),
       );
       expect(knob).toMatchObject({ target: 'knob palm', knob: [1000, 760] });
       const after = yield* read();
       const refused = yield* Effect.promise(() =>
-        lab(post('/lab/cues/hand/late', '{"offset":1}'), bound),
+        lab(post('/lab/f/cues/hand/late', '{"offset":1}'), bound),
       );
       expect(refused.status).toBe(422);
       expect(yield* Effect.promise(() => refused.text())).toContain('`GAP * 2`, not a literal');
       expect(yield* read()).toBe(after);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
-      expect(yield* status(post('/lab/cues/nope/topple', '{"dur":1}'))).toBe(404);
-      expect(yield* status(post('/lab/cues/hand/topple', '{}'))).toBe(400);
-      expect(yield* status(post('/lab/cues/hand/topple', '{"ease":"bouncy"}'))).toBe(400);
+      expect(yield* status(post('/lab/f/cues/nope/topple', '{"dur":1}'))).toBe(404);
+      expect(yield* status(post('/lab/f/cues/hand/topple', '{}'))).toBe(400);
+      expect(yield* status(post('/lab/f/cues/hand/topple', '{"ease":"bouncy"}'))).toBe(400);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
@@ -148,15 +148,15 @@ describe('lab source routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
       const before = yield* read();
-      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"ease":"inQuad"}'), bound));
+      yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"ease":"inQuad"}'), bound));
       expect(yield* read()).not.toBe(before);
       const undone = yield* Effect.promise(() =>
-        lab(post('/lab/undo', '{}'), bound).then((r) => r.json()),
+        lab(post('/lab/f/undo', '{}'), bound).then((r) => r.json()),
       );
       expect(undone).toMatchObject({ target: 'undo cue topple ease' });
       expect(yield* read()).toBe(before);
       const again = yield* Effect.promise(() =>
-        lab(post('/lab/undo', '{}'), bound).then((r) => r.status),
+        lab(post('/lab/f/undo', '{}'), bound).then((r) => r.status),
       );
       expect(again).toBe(409);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
@@ -172,7 +172,7 @@ describe('lab source routes', () => {
       const git = (...args: ReadonlyArray<string>) =>
         collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
       const request = () =>
-        Effect.promise(() => lab(new Request(at('/lab/scenes/hand/head')), bound));
+        Effect.promise(() => lab(new Request(at('/lab/f/scenes/hand/head')), bound));
       const head = Effect.fn('test.head')(function* () {
         const res = yield* request();
         return yield* Schema.decodeUnknownEffect(HeadSource)(
@@ -191,7 +191,7 @@ describe('lab source routes', () => {
         knobs: { palm: [960, 800] },
       });
       // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
-      yield* Effect.promise(() => lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound));
+      yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound));
       const moved = yield* head();
       expect(moved).toMatchObject({
         codeChanged: false,
@@ -212,7 +212,7 @@ describe('lab source routes', () => {
       Effect.gen(function* () {
         const lab = yield* labHandler('f');
         const res = yield* Effect.promise(() =>
-          lab(post('/lab/cues/hand/topple', '{"offset":0.4}'), bound),
+          lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound),
         );
         expect(res.status).toBe(200);
         const written = yield* Schema.decodeUnknownEffect(LabWrite)(

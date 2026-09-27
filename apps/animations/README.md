@@ -32,7 +32,8 @@ bun run notes resolve <film> <id>
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
 loads and, for `lab`, the same server in development mode with the lab's
-routes at `/lab/*` (`LAB_PORT`, default 4401). Lab notes and their stills are
+routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
+is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
