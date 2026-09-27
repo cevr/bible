@@ -92,7 +92,8 @@ Verdict: no P1 outside the films; the framework is sound where the last loop swe
 Decisions (decided by redesign-from-first-principles unless noted):
 
 - v1 is frozen: new lint rules scope to films after it (`righteousness-by-faith` and later); v1's 259 hand-timed sites stay.
-- Look changes that save time (PF1 pastel pre-blend −22.7%, PF2 vignette −10.6%, PF3 grain sheet −9.8%): owner approved all three (2026-09-27); batch `look` after `engine` merges, proved by the bench and max pixel delta per frame against the sweep's numbers.
+- Look changes that save time (PF1 pastel pre-blend −22.7%, PF2 vignette −10.6%, PF3 grain sheet −9.8%): owner approved all three (2026-09-27), with the rule that art direction is never traded for speed: batch `look` after `engine` merges; each change is proved by the bench, the max pixel delta per frame, and side-by-side stills that read identical to the eye (the title frame PF1 moved by 18/255 must be fixed or left out of PF1).
+- Pass 2 (owner, 2026-09-27): run a second pass after this one closes its batches, whatever the close rule says.
 - G2: owner removed the film check from the app's `gate` entirely (`chore(animations)` on main); `film check` is a review step run by hand.
 - Static holds (R3 class): owner chose a `film check` warning for more than 4 s with no cue or motion while the voice speaks; batch `hold` after `guard` merges.
 - Script doctrine (owner, 2026-09-27): the spine "declares, clothes, changes" and the verdict open frame justification as a legal declaration; justification is faith, forgiveness and power, all gifts (made righteous), and sanctification is the daily choice. A draft revision with verified sources is in `<scratchpad>/script-revision/draft.md`; re-recording waits for the owner's approval of the draft. `films-b` starts after the revised script lands.
