@@ -119,7 +119,30 @@ export const drawing = <const T extends Timeline, const K extends Knobs = NoKnob
 export interface CaptionStyle {
   readonly font: string;
   readonly color: string;
+  /** The plate's colour. */
   readonly plate: string;
+  /** How opaque the plate shows, 0..1. Defaults to 0.82. */
+  readonly plateOpacity?: number;
+  /** The plate's height in px. Defaults to 60. */
+  readonly plateHeight?: number;
+  /** Space either side of the line inside the plate, in px. Defaults to 26. */
+  readonly platePadding?: number;
+  /** The plate's corner radius in px. Defaults to 12. */
+  readonly plateRadius?: number;
+  /** How far above the frame's bottom edge the line's centre sits, in px. Defaults to 86. */
+  readonly bottom?: number;
+}
+
+/** The finish laid over every frame, after the scenes: a vignette and film grain. */
+export interface FinishStyle {
+  /** How strongly the vignette darkens the edges toward `shade`, 0..1. Defaults to 0.28. */
+  readonly vignette?: number;
+  /** How strongly the film grain overlays the frame, 0..1. Defaults to 0.09. */
+  readonly grain?: number;
+  /** A grain tile's side in px. Defaults to 256. */
+  readonly grainSize?: number;
+  /** How many grain tiles cycle on the boil tick. Defaults to 6. */
+  readonly grainTiles?: number;
 }
 
 export interface FilmSpec {
@@ -128,7 +151,10 @@ export interface FilmSpec {
   readonly height?: number;
   readonly fps?: number;
   readonly paper: PaperStyle;
+  /** The vignette's colour, and an ink transition's when it names none. */
   readonly shade: string;
+  /** The vignette and grain over every frame. */
+  readonly finish?: FinishStyle;
   readonly scenes: ReadonlyArray<SceneSpec>;
   readonly timings?: Timings;
   readonly captions?: CaptionStyle;
@@ -211,6 +237,26 @@ export interface Film {
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
 
+/** A film's finish, each value it leaves out at its default. */
+const finishOf = (f: FinishStyle = {}): Required<FinishStyle> => ({
+  vignette: f.vignette ?? 0.28,
+  grain: f.grain ?? 0.09,
+  grainSize: f.grainSize ?? 256,
+  grainTiles: f.grainTiles ?? 6,
+});
+
+/** A film's caption style, each plate value it leaves out at its default. */
+const captionOf = (c: CaptionStyle): Required<CaptionStyle> => ({
+  font: c.font,
+  color: c.color,
+  plate: c.plate,
+  plateOpacity: c.plateOpacity ?? 0.82,
+  plateHeight: c.plateHeight ?? 60,
+  platePadding: c.platePadding ?? 26,
+  plateRadius: c.plateRadius ?? 12,
+  bottom: c.bottom ?? 86,
+});
+
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
@@ -219,6 +265,8 @@ export const createFilm = (spec: FilmSpec): Film => {
   const last = placed[placed.length - 1];
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = everyTakeRecorded(placed);
+  const finish = finishOf(spec.finish);
+  const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:
@@ -232,7 +280,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const getAssets = () =>
     (assets ??= {
       paper: makePaper(width, height, spec.paper),
-      grain: makeGrain(256, 6, spec.paper.seed + 99),
+      grain: makeGrain(finish.grainSize, finish.grainTiles, spec.paper.seed + 99),
       a: offscreen(width, height),
       b: offscreen(width, height),
     });
@@ -434,10 +482,10 @@ export const createFilm = (spec: FilmSpec): Film => {
       }
     }
 
-    vignette(ctx, width, height, spec.shade, 0.28);
-    grain(ctx, getAssets().grain, boil, width, height, 0.09);
-    if (opts.captions === true && spec.captions !== undefined) {
-      const style = spec.captions;
+    vignette(ctx, width, height, spec.shade, finish.vignette);
+    grain(ctx, getAssets().grain, boil, width, height, finish.grain);
+    if (opts.captions === true && captions !== undefined) {
+      const style = captions;
       probing(ctx, probe(cur, 0, 1), () => caption(ctx, cur, local, width, height, style));
     }
     ctx.restore();
@@ -504,7 +552,7 @@ const caption = (
   local: number,
   w: number,
   h: number,
-  style: CaptionStyle,
+  style: Required<CaptionStyle>,
 ) => {
   const t = local - p.speechStart;
   const line = captionCues(p.voice.words, p.voice.turns).find((c) => t >= c.start && t < c.end);
@@ -515,11 +563,14 @@ const caption = (
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const tw = ctx.measureText(text).width;
-  const y = h - 86;
-  ctx.globalAlpha = 0.82;
+  const y = h - style.bottom;
+  const left = w / 2 - tw / 2 - style.platePadding;
+  const top = y - style.plateHeight / 2;
+  const pw = tw + 2 * style.platePadding;
+  ctx.globalAlpha = style.plateOpacity;
   ctx.fillStyle = style.plate;
   ctx.beginPath();
-  ctx.roundRect(w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 12);
+  ctx.roundRect(left, top, pw, style.plateHeight, style.plateRadius);
   ctx.fill();
   ctx.globalAlpha = 1;
   ctx.fillStyle = style.color;
@@ -527,8 +578,8 @@ const caption = (
   // The plate hides whatever is under it, so the check measures the plate.
   const probe = probeOf(ctx);
   if (probe !== undefined) {
-    recordPlate(ctx, probe, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
-    recordText(ctx, probe, text, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
+    recordPlate(ctx, probe, left, top, pw, style.plateHeight, style.plateOpacity);
+    recordText(ctx, probe, text, left, top, pw, style.plateHeight, style.plateOpacity);
   }
   ctx.restore();
 };
