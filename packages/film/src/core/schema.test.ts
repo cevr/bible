@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Result, Schema } from 'effect';
-import { Timed, Timings, TimingsJson, type VoiceTiming, type Word } from './schema.ts';
+import { Beat, Timings, TimingsJson, type VoiceTiming, type Word } from './schema.ts';
 
 const take: VoiceTiming = {
   hash: 'h',
@@ -55,20 +55,20 @@ describe('Timings', () => {
   });
 });
 
-describe('Timed', () => {
-  /** A scene as JSON text, decoded as the tools decode a scene module. */
+describe('Beat', () => {
+  /** A beat as JSON text, decoded as the tools decode a film's script. */
   const decodes = (json: string) =>
-    Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(Timed))(json));
+    Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(Beat))(json));
 
-  test('a span may name an ease; an ease the kit lacks is refused', () => {
-    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"outBack"}}}')).toBe(true);
-    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"bouncy"}}}')).toBe(false);
+  test('a beat carries the brief its picture is drawn to', () => {
+    expect(decodes('{"id":"a","say":"Look.","picture":"A figure looks up."}')).toBe(true);
+    expect(decodes('{"id":"a","say":"Look."}')).toBe(false);
   });
 
-  test('knobs are numbers or points, nothing else', () => {
-    expect(decodes('{"id":"a","knobs":{"handY":800,"quoteAt":[960,170]}}')).toBe(true);
-    expect(decodes('{"id":"a","knobs":{"handY":"800"}}')).toBe(false);
-    expect(decodes('{"id":"a","knobs":{"quoteAt":[960]}}')).toBe(false);
-    expect(decodes('{"id":"a","knobs":{"handY":null}}')).toBe(false);
+  test('a scene arrives by a cut, a fade or a pan, nothing else', () => {
+    const entering = (enter: string) => decodes(`{"id":"a","picture":"p","enter":${enter}}`);
+    expect(entering('{"kind":"pan","dur":0.8,"dir":-1}')).toBe(true);
+    expect(entering('{"kind":"fade","dur":0.6}')).toBe(true);
+    expect(entering('{"kind":"ink","dur":0.6}')).toBe(false);
   });
 });

@@ -1,22 +1,18 @@
 // `film`: the tools that turn a film's script into sound and pictures, run
-// from the app that holds the films. The app owns its entry (`runFilmCli`): it
-// names its films folder and serves its player page, which imports the same
-// folder, so the tools and the page always read one film.
+// from the app that holds the films. The app owns its entry (`runFilmCli`) and
+// names its films folder. The pictures are each film's Rive project, drawn in
+// the Rive editor or in RML; `sync` keeps it in step with the script and the
+// takes, and moves it to and from the Rive file the editor opens.
 //
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
+//   film sync <film> [--pull] [--push] [--project id] [--name label]
 //   film cues <film> [scene] [--sound]
-//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
+//   film check <film> [--allow-stale] [--scene id,id]
 //   film doctor
-//   film lab <film>
-//   film notes <film> [--watch] [--since n]
-//   film notes reply <film> <id> <text> [--still file.png]
-//   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
-//                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
-//                      [--no-share]
-//   film lookbook <film> [--captions] [--tag name]
+//                      [--fps n] [--workers n] [--scale k] [--tag name] [--out file] [--no-share]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -25,7 +21,6 @@ import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Console,
-  Context,
   Effect,
   FileSystem,
   Layer,
@@ -37,35 +32,33 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { scenesOf } from '../core/layout.ts';
+import { eventTimes, filmScenes } from '../core/scenes.ts';
+import type { EventTimes } from '../core/sound.ts';
 import { Browser, browserReady } from './browser.ts';
-import { type Reported, staticFindings } from './check.ts';
-import { Checker } from './checker.ts';
+import { type Reported, projectFindings, staticFindings } from './check.ts';
 import { Composer } from './composer.ts';
-import { ContentStore, type StoreError } from './content-store.ts';
+import { ContentStore } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type BrowserFailed,
   type BrowserMissing,
   CheckFailed,
-  CuesLate,
   type ElevenLabsFailed,
+  type RiveFailed,
+  type RiveMissing,
   SoundMissing,
 } from './errors.ts';
-import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmRepo, placeFilm } from './film-repo.ts';
+import { masterFile, measureMaster } from './master.ts';
 import { Media } from './media.ts';
-import { Mixer, masterFile, measureMaster } from './mixer.ts';
+import { Mixer } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
-import { labHandler } from './lab.ts';
-import { NotesStore } from './notes-store.ts';
-import { cursorLine, noteLine, replyLine, watchLine } from './notes-lines.ts';
-import { type LabServer, PreviewServer } from './preview-server.ts';
+import { PageServer } from './page-server.ts';
+import { FilmProject } from './project.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
-import { SceneHead } from './scene-head.ts';
-import { SceneSources } from './scene-sources.ts';
-import { SceneWriter } from './scene-writer.ts';
-import { StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
+import { Rive } from './rive.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -95,7 +88,12 @@ interface ToolCheck {
   readonly tool: string;
   /** The commands that need it. */
   readonly needed: string;
-  readonly run: Effect.Effect<void, BrowserMissing | BrowserFailed | ElevenLabsFailed, Path.Path>;
+  /** What it found, when it is there. */
+  readonly run: Effect.Effect<
+    string,
+    BrowserMissing | BrowserFailed | ElevenLabsFailed | RiveMissing | RiveFailed,
+    Path.Path
+  >;
 }
 
 const doctor = Command.make(
@@ -103,9 +101,19 @@ const doctor = Command.make(
   {},
   Effect.fn('film.doctor')(function* () {
     const elevenLabs = yield* ElevenLabs;
+    const rive = yield* Rive;
+    const riveCheck = Effect.gen(function* () {
+      const version = yield* rive.version;
+      const who = yield* rive.whoami;
+      return Option.match(who, {
+        onNone: () => `${version}, signed out: sync --pull/--push need \`rive login\``,
+        onSome: (user) => `${version}, signed in as ${user}`,
+      });
+    });
     const checks: ReadonlyArray<ToolCheck> = [
-      { tool: 'chromium', needed: 'render, check', run: browserReady },
-      { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
+      { tool: 'chromium', needed: 'render', run: Effect.as(browserReady, '') },
+      { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
+      { tool: 'rive', needed: 'sync, check, render', run: riveCheck },
     ];
     const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
       concurrency: checks.length,
@@ -113,7 +121,8 @@ const doctor = Command.make(
     for (const [{ tool, needed }, result] of Arr.zip(checks, results))
       yield* Console.log(
         Result.match(result, {
-          onSuccess: () => `ok      ${tool.padEnd(11)} (${needed})`,
+          onSuccess: (found) =>
+            [`ok      ${tool.padEnd(11)} (${needed})`, found].filter((p) => p !== '').join(' '),
           onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
         }),
       );
@@ -122,7 +131,7 @@ const doctor = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Check the tools the film commands need: headless Chromium, and the elevenlabs CLI and its login',
+    'Check the tools the film commands need: headless Chromium, the elevenlabs CLI and its login, and the rive CLI',
   ),
 );
 
@@ -195,6 +204,14 @@ const mix = Command.make(
   ),
 );
 
+/** Where each scene's Events play; none before the film's first sync. */
+const filmEvents = Effect.fn('film.events')(function* (film: string) {
+  const loaded = yield* (yield* FilmRepo).load(film);
+  const placed = yield* placeFilm(loaded);
+  const events: EventTimes = yield* (yield* FilmProject).events(loaded, placed);
+  return { loaded, placed, events };
+});
+
 const cues = Command.make(
   'cues',
   {
@@ -209,96 +226,128 @@ const cues = Command.make(
     ),
   },
   Effect.fn('film.cues')(function* (input) {
-    const loaded = yield* (yield* FilmRepo).load(input.film);
-    const placed = yield* placeFilm(loaded);
+    const { loaded, placed, events } = yield* filmEvents(input.film);
     if (input.sound) {
       const sound = yield* Option.match(loaded.sound, {
         onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
         onSome: Effect.succeed,
       });
-      const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
+      const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene, events));
       for (const line of lines) yield* Console.log(line);
       return;
     }
-    const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
-    for (const line of report.lines) yield* Console.log(line);
-    if (report.late > 0) return yield* CuesLate.make({ count: report.late });
+    const lines = yield* Effect.fromResult(sceneReport(placed, input.scene, events));
+    for (const line of lines) yield* Console.log(line);
   }),
 ).pipe(
   Command.withDescription(
-    "Print each scene's placement, marks and named cues; fails when a cue ends after its scene",
+    "Print each scene's placement, its marks, and where its Events play (film seconds from the scene's start)",
   ),
 );
 
-const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
-  /** The browser leg: the server and the browser start only when it runs. */
-  const layoutLeg = Effect.fn('film.check.layout')(function* (
-    loaded: LoadedFilm,
-    workers: number,
-    scenes: Option.Option<ReadonlySet<string>>,
-  ) {
-    return yield* (yield* Checker).layout(loaded, { workers, scenes });
-  }, Effect.provide(checkLayer));
-  return Command.make(
-    'check',
-    {
-      film,
-      static: Flag.Boolean('static').pipe(
-        Flag.withDefault(false),
-        Flag.withDescription('skip the layout leg: no browser, only cues, takes and sound'),
+const sync = Command.make(
+  'sync',
+  {
+    film,
+    pull: Flag.Boolean('pull').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        "first pull what was drawn in the editor over the project (refused while git lacks the project's changes)",
       ),
-      allowStale: Flag.Boolean('allow-stale').pipe(
-        Flag.withDefault(false),
-        Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
-      ),
-      scene: scenes.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
-      workers: Flag.Int('workers').pipe(
-        Flag.withDefault(4),
-        Flag.withDescription('pages probing at once'),
-      ),
-    },
-    Effect.fn('film.check')(function* (input) {
-      const loaded = yield* (yield* FilmRepo).load(input.film);
-      const placed = yield* placeFilm(loaded);
-      // A misspelt scene fails here, in either leg, rather than probing nothing.
-      const only = yield* Option.match(input.scene, {
-        onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
-        onSome: (ids) =>
-          Effect.fromResult(scenesOf(placed, ids)).pipe(
-            Effect.map((picked) => Option.some(new Set(picked.map((p) => p.spec.id)))),
-          ),
-      });
-      const master = yield* measureMaster(
-        yield* FileSystem.FileSystem,
-        yield* Media,
-        masterFile(loaded.paths),
-      );
-      const found: Array<Reported> = [
-        ...staticFindings(loaded, placed, { allowStale: input.allowStale }, master),
-      ];
-      if (!input.static) {
-        const layout = yield* layoutLeg(loaded, input.workers, only);
-        for (const finding of layout) found.push({ level: 'error', finding });
-      }
-      for (const { level, finding } of found)
-        yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
-      const errors = found.filter((r) => r.level === 'error').length;
-      const warnings = found.length - errors;
-      yield* Effect.log(
-        `check.done film=${input.film} layout=${!input.static} errors=${errors} warnings=${warnings}`,
-      );
-      if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
-    }),
-  ).pipe(
-    Command.withDescription(
-      'Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, and no text over text or off the frame at any mark or cue',
     ),
-  );
-};
+    push: Flag.Boolean('push').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription('then push the project to its Rive file, for the editor'),
+    ),
+    project: Flag.String('project').pipe(
+      Flag.optional,
+      Flag.withDescription('the Rive project a first push creates the file in'),
+    ),
+    name: Flag.String('name').pipe(
+      Flag.optional,
+      Flag.withDescription("the pushed revision's label"),
+    ),
+  },
+  Effect.fn('film.sync')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const placed = yield* placeFilm(loaded);
+    const synced = yield* (yield* FilmProject).sync(loaded, placed, {
+      pull: input.pull,
+      push: input.push || Option.isSome(input.project),
+      project: input.project,
+      name: input.name,
+    });
+    for (const beat of synced.seeded) yield* Console.log(`seeded     ${beat}`);
+    for (const pins of synced.pins) {
+      for (const mark of pins.unpinned) yield* Console.log(`unpinned   ${pins.scene} {${mark}}`);
+      for (const mark of pins.disordered) yield* Console.log(`disordered ${pins.scene} {${mark}}`);
+    }
+    for (const board of synced.extra) yield* Console.log(`extra      ${board}`);
+    yield* Effect.log(
+      `sync.done film=${input.film} seeded=${synced.seeded.length} soundtrack=${synced.soundtrack} riv=${synced.built.riv} bytes=${synced.built.bytes}`,
+    );
+  }),
+).pipe(
+  Command.withDescription(
+    "Keep the film's Rive project in step: seed a storyboard for each undrawn beat, write the Film and its soundtrack, build; --pull and --push move it to and from the editor",
+  ),
+);
+
+const check = Command.make(
+  'check',
+  {
+    film,
+    allowStale: Flag.Boolean('allow-stale').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'report stale takes, sounds, audio master and Film as warnings, not errors',
+      ),
+    ),
+    scene: scenes.pipe(Flag.withDescription("check just these beats' scenes (id,id)")),
+  },
+  Effect.fn('film.check')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const placed = yield* placeFilm(loaded);
+    // A misspelt scene fails here, before the project is read.
+    const only = yield* Option.match(input.scene, {
+      onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
+      onSome: (ids) =>
+        Effect.fromResult(scenesOf(placed, ids)).pipe(
+          Effect.map((picked) => Option.some(new Set(picked.map((p) => p.spec.id)))),
+        ),
+    });
+    const project = yield* (yield* FilmProject).state(loaded, placed);
+    const events: EventTimes = Option.match(project, {
+      onNone: () => new Map(),
+      onSome: (state) => eventTimes(filmScenes(placed, state.doc).scenes),
+    });
+    const master = yield* measureMaster(
+      yield* FileSystem.FileSystem,
+      yield* Media,
+      masterFile(loaded.paths),
+    );
+    const options = { allowStale: input.allowStale };
+    const found: ReadonlyArray<Reported> = [
+      ...staticFindings(loaded, placed, options, master, events),
+      ...projectFindings(loaded, placed, project, only, options),
+    ];
+    for (const { level, finding } of found)
+      yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(17)} ${finding.message}`);
+    const errors = found.filter((r) => r.level === 'error').length;
+    const warnings = found.length - errors;
+    yield* Effect.log(`check.done film=${input.film} errors=${errors} warnings=${warnings}`);
+    if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+  }),
+).pipe(
+  Command.withDescription(
+    'Check a film: current takes and sounds, sound cues that resolve, an audio master as long as the film, and its Rive project: every beat drawn, every mark on an Event, the Film current',
+  ),
+);
 
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);
 
+/** The browser and the page server start only when `render` runs, and stop with it. */
 const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
   Command.make(
     'render',
@@ -317,6 +366,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       ),
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
+      fps: Flag.Int('fps').pipe(Flag.withDefault(30), Flag.withDescription('frames per second')),
       workers: Flag.Int('workers').pipe(
         Flag.withDefault(4),
         Flag.withDescription('pages rendering at once'),
@@ -324,10 +374,6 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       scale: Flag.Finite('scale').pipe(
         Flag.withDefault(1),
         Flag.withDescription('scale the video, e.g. 0.5'),
-      ),
-      captions: Flag.Boolean('captions').pipe(
-        Flag.withDefault(true),
-        Flag.withDescription('burn the captions in (--no-captions to leave them out)'),
       ),
       tag: Flag.String('tag').pipe(
         Flag.withDefault(''),
@@ -357,11 +403,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
             Effect.map((span) => ({ from: Option.some(span.from), to: Option.some(span.to) })),
           ),
       });
-      const base = {
-        tag: input.tag,
-        captions: input.captions,
-        workers: Math.max(1, input.workers),
-      };
+      const base = { tag: input.tag, fps: input.fps, workers: Math.max(1, input.workers) };
       const job = yield* Option.match(input.stills, {
         onSome: (list) =>
           Schema.decodeEffect(Seconds)(list.split(',')).pipe(
@@ -387,208 +429,41 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     }, Effect.provide(renderLayer)),
   ).pipe(
     Command.withDescription(
-      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet',
+      "Render a film's Rive project to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet",
     ),
   );
-
-const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
-  Command.make(
-    'lookbook',
-    {
-      film,
-      captions: Flag.Boolean('captions').pipe(
-        Flag.withDefault(false),
-        Flag.withDescription('burn the captions into the stills (off: the look, not the words)'),
-      ),
-      tag: Flag.String('tag').pipe(
-        Flag.withDefault(''),
-        Flag.withDescription('output subfolder under out/<film> (default: out/<film> itself)'),
-      ),
-    },
-    Effect.fn('film.lookbook')(function* (input) {
-      const loaded = yield* (yield* FilmRepo).load(input.film);
-      yield* (yield* Renderer).render(
-        loaded,
-        RenderJob.LookBook({ tag: input.tag, captions: input.captions, workers: 1 }),
-      );
-    }, Effect.provide(renderLayer)),
-  ).pipe(
-    Command.withDescription(
-      "Write out/<film>/lookbook.jpg: every scene's stills at its cue edges and 60% point, labelled, with the palette",
-    ),
-  );
-
-const lab = <E>(labServer: LabServer<E>) =>
-  Command.make(
-    'lab',
-    { film },
-    Effect.fn('film.lab')(function* (input) {
-      // An unknown film fails here, before a server starts.
-      yield* (yield* FilmRepo).load(input.film);
-      const handler = yield* labHandler(input.film);
-      const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
-      const url = `${server.url}?film=${encodeURIComponent(input.film)}&lab`;
-      const notes = (yield* NotesStore).paths(input.film).notes.file;
-      yield* Console.log(url);
-      yield* Effect.log(`lab.ready film=${input.film} url=${url} notes=${notes}`);
-      // Until Ctrl-C: the scope then stops the server and the handler.
-      return yield* Effect.never;
-    }, Effect.scoped),
-  ).pipe(
-    Command.withDescription(
-      'Open the film lab: the player in dev mode with notes on frames, and cues and knobs that write back to the scene files (Ctrl-C stops it)',
-    ),
-  );
-
-const noteId = Argument.String('id').pipe(Argument.withDescription('the note, e.g. n3'));
-
-const notesReply = Command.make(
-  'reply',
-  {
-    film,
-    id: noteId,
-    text: Argument.String('text').pipe(Argument.withDescription('the reply')),
-    still: Flag.String('still').pipe(
-      Flag.optional,
-      Flag.withDescription('a PNG to show with the reply: the frame after the change'),
-    ),
-  },
-  Effect.fn('film.notes.reply')(function* (input) {
-    const fs = yield* FileSystem.FileSystem;
-    const still = yield* Option.match(input.still, {
-      onNone: () => Effect.succeedNone,
-      onSome: (file) => Effect.map(fs.readFile(file), Option.some),
-    });
-    const note = yield* (yield* NotesStore).reply(input.film, input.id, {
-      by: 'agent',
-      text: input.text,
-      still,
-    });
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
-  }),
-).pipe(Command.withDescription("Reply to a note as the agent; it shows in the lab's thread"));
-
-const notesResolve = Command.make(
-  'resolve',
-  { film, id: noteId },
-  Effect.fn('film.notes.resolve')(function* (input) {
-    const note = yield* (yield* NotesStore).resolve(input.film, input.id);
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
-  }),
-).pipe(Command.withDescription('Mark a note resolved'));
-
-/** How long one wait of `--watch` holds before it asks again. */
-const WATCH_WAIT = '30 seconds';
-
-const notes = Command.make(
-  'notes',
-  {
-    film,
-    watch: Flag.Boolean('watch').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription(
-        'stream each new note, and each reply from the user, as one line, once (for a Monitor); prints `watch since=<seq>` first',
-      ),
-    ),
-    since: Flag.Int('since').pipe(
-      Flag.optional,
-      Flag.withDescription(
-        'with --watch: start past this cursor (from `cursor seq=` of a list, or the last `seq=` a watch printed) instead of the current one',
-      ),
-    ),
-  },
-  Effect.fn('film.notes')(function* (input) {
-    const store = yield* NotesStore;
-    const at = store.paths(input.film);
-    const file = yield* store.read(input.film);
-    if (!input.watch) {
-      const open = file.notes.filter((n) => n.status !== 'resolved');
-      for (const note of open) yield* Console.log(noteLine(at, note, note.changed));
-      // The cursor this list saw: a watch started past it misses nothing made since.
-      yield* Console.log(cursorLine(file.seq));
-      yield* Effect.log(`notes.list film=${input.film} open=${open.length} cursor=${file.seq}`);
-      return;
-    }
-    const start = Option.getOrElse(input.since, () => file.seq);
-    yield* Console.log(watchLine(start));
-    yield* Effect.log(`notes.watch film=${input.film} since=${start}`);
-    // Each wait passes the cursor on, so every change prints once.
-    const watch = (since: number): Effect.Effect<never, StoreError> =>
-      store.wait(input.film, since, WATCH_WAIT).pipe(
-        Effect.tap((waited) =>
-          Effect.forEach(waited.events, (event) => {
-            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note, event.seq));
-            if (event._tag === 'NoteReplied' && event.reply.by === 'user')
-              return Console.log(replyLine(at, event.note, event.reply));
-            return Effect.void;
-          }),
-        ),
-        Effect.flatMap((waited) => watch(waited.cursor)),
-      );
-    return yield* watch(start);
-  }),
-).pipe(
-  Command.withDescription(
-    "List a film's open notes from the lab (id, scene, time, nearest cue, still, text), or --watch for new ones",
-  ),
-  Command.withSubcommands([notesReply, notesResolve]),
-);
 
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(Platform));
+const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer, Rive.layer).pipe(
+  Layer.provide(Platform),
+);
 
-/** What the app hands the CLI: where its films are, and the servers for its player page. */
-export interface FilmApp<E> {
-  /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
+/** What the app hands the CLI. */
+export interface FilmApp {
+  /** The films folder: `<film>/script.ts`, `<film>/narration`, `<film>/rive`, ... */
   readonly films: string;
-  /** The player, served while `render` or `check` runs. */
-  readonly previewServer: Layer.Layer<PreviewServer, E>;
-  /** The player in development mode with the lab's routes, served while `lab` runs. */
-  readonly labServer: LabServer<E>;
-  /**
-   * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
-   * runs `check --static` through it in a fresh process after each write, so
-   * the check reads the scene files as the write left them.
-   */
-  readonly self: ReadonlyArray<string>;
 }
 
 /**
- * Run the `film` CLI over the app's films, with its player servers. The
- * server and the browser start only for `render` and the layout leg of
- * `check`, and stop with them; the lab server runs while `lab` does.
+ * Run the `film` CLI over the app's films. The page server and the browser
+ * start only for `render`, and stop with it.
  */
-export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp<E>): void => {
+export const runFilmCli = ({ films }: FilmApp): void => {
   const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
-  const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
-    Layer.provideMerge(SceneSources.layer),
-    Layer.provide([Repo, Store, Platform]),
-  );
-  const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
+  const Project = FilmProject.layer.pipe(Layer.provide([Tools, Platform]));
   const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Tools, Platform)),
+    Layer.provideMerge(Layer.mergeAll(Repo, Project, Store, Tools, Platform)),
   );
-  const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
-  const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const Render = Renderer.layer.pipe(
+    Layer.provide([Browser.layer, PageServer.layer, Project, Tools, Platform]),
+  );
   const root = Command.make('film').pipe(
-    Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
-    Command.withSubcommands([
-      narrate,
-      score,
-      mix,
-      cues,
-      check(checkLayer),
-      render(renderLayer),
-      lookbook(renderLayer),
-      doctor,
-      lab(labServer),
-      notes,
-    ]),
+    Command.withDescription('Narrate, score, mix, sync, check and render a film drawn in Rive'),
+    Command.withSubcommands([narrate, score, mix, sync, cues, check, render(Render), doctor]),
   );
   // Logs go to stderr, so stdout carries only what a command prints: the lines
-  // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
+  // `cues`, `sync` and `check` hand to a reader.
   const Logs = Layer.succeed(Logger.LogToStderr, true);
   Command.run(root, { version: '0.1.0' }).pipe(
     Effect.provide(Layer.mergeAll(Services, Logs)),

@@ -14,12 +14,13 @@ export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownSce
   }
 }
 
-export class UnknownCue extends Schema.TaggedError<UnknownCue>()('UnknownCue', {
+/** A sound placed on an Event its scene's main timeline never fires. */
+export class UnknownEvent extends Schema.TaggedError<UnknownEvent>()('UnknownEvent', {
   scene: Schema.String,
-  cue: Schema.String,
+  event: Schema.String,
 }) {
   override get message() {
-    return `sound: scene "${this.scene}" has no cue "${this.cue}"`;
+    return `sound: scene "${this.scene}" fires no Event "${this.event}" on its main timeline`;
   }
 }
 
@@ -32,7 +33,7 @@ export class UnknownMark extends Schema.TaggedError<UnknownMark>()('UnknownMark'
   }
 }
 
-/** A sound cue that names both a cue and a mark, or an edge without a cue. */
+/** A sound cue that names both an Event and a mark. */
 export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   scene: Schema.String,
   reason: Schema.String,
@@ -61,7 +62,7 @@ export class AlignmentMismatch extends Schema.TaggedError<AlignmentMismatch>()(
   }
 }
 
-export type SoundCueError = UnknownScene | UnknownCue | UnknownMark | CueInvalid;
+export type SoundCueError = UnknownScene | UnknownEvent | UnknownMark | CueInvalid;
 
 /** A line hands over to a voice the film's cast does not have. */
 export class UnknownVoice extends Schema.TaggedError<UnknownVoice>()('UnknownVoice', {

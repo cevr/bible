@@ -14,7 +14,7 @@ import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
-import { memoryFileSystem, testFilm, testVoice, text } from './testing.ts';
+import { fakeProject, memoryFileSystem, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello.', min: 5 }];
 const timings: Timings = {
@@ -63,7 +63,9 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
       });
     }),
   ).pipe(Layer.provide(writingMedia(files, finish, rate)));
-  const layer = Mixer.layer.pipe(Layer.provide([memoryFileSystem(files), repo, media]));
+  const layer = Mixer.layer.pipe(
+    Layer.provide([memoryFileSystem(files), repo, media, fakeProject()]),
+  );
   const mix = (stems = false) =>
     Effect.gen(function* () {
       yield* (yield* Mixer).mix('test', { stems });

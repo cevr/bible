@@ -1,22 +1,22 @@
 // Test doubles for the tools: an in-memory file system, and ElevenLabs, media,
-// a browser and its pages that answer from memory and count their calls. No
-// network, no Chromium, no credits.
+// the film's Rive project, the page server, and a browser and its pages that
+// answer from memory and count their calls. No network, no Chromium, no Rive
+// CLI, no credits.
 
 import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import {
+  type Beat,
   type ExportInfo,
   SoundManifestJson,
-  type InkMark,
-  type Probed,
-  type TextBox,
   type Timed,
   type Timings,
   TimingsJson,
   type Voice,
 } from '../core/schema.ts';
+import type { EventTimes } from '../core/sound.ts';
 import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser } from './browser.ts';
@@ -30,7 +30,8 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media } from './media.ts';
-import { PreviewServer } from './preview-server.ts';
+import { PageServer } from './page-server.ts';
+import { FilmProject, type ProjectState } from './project.ts';
 
 const notFound = (method: string, path: string) =>
   PlatformError.systemError({
@@ -230,8 +231,8 @@ export interface RenderLedger {
   readonly encoders: { spawned: number; finished: number; killed: number };
   /** Every frame drawn, by any page. */
   readonly frames: Array<number>;
-  /** Look-books composed, by any page. */
-  readonly lookbooks: { composed: number };
+  /** Projects built for a render. */
+  readonly builds: { count: number };
   /** The frames of every contact sheet composed. */
   readonly contacts: Array<ReadonlyArray<number>>;
   /** Every film joined. */
@@ -244,7 +245,7 @@ export const emptyLedger = (): RenderLedger => ({
   pages: { opened: 0, closed: 0 },
   encoders: { spawned: 0, finished: 0, killed: 0 },
   frames: [],
-  lookbooks: { composed: 0 },
+  builds: { count: 0 },
   contacts: [],
   joins: [],
 });
@@ -268,16 +269,44 @@ export interface FakeRenderHost {
     i: number,
     page: number,
   ) => Effect.Effect<void, PageError | PageCrashed | FrameFailed>;
-  /** What a probe of frame `i` reports (nothing by default); failing breaks the page. */
-  readonly probe?: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** How long the audio master measures (default: the film's length). */
   readonly master?: number;
   /** What a page's encoder check finds (ready by default). */
   readonly encoder?: Effect.Effect<void, EncoderMissing>;
 }
 
+/** The built .riv a fake render plays. */
+export const testRiv = '/films/test/rive/build/test.riv';
+
 /**
- * A preview server, and a browser whose pages draw one-byte frames and encode
+ * The film's Rive project: its Events are `events`, its state `state` (none:
+ * never synced), and a build writes nothing and counts in `ledger`.
+ */
+export const fakeProject = (
+  options: {
+    readonly events?: EventTimes;
+    readonly state?: Option.Option<ProjectState>;
+    readonly ledger?: RenderLedger;
+  } = {},
+) =>
+  Layer.succeed(
+    FilmProject,
+    FilmProject.of({
+      inspect: () => Effect.succeed(Option.map(options.state ?? Option.none(), (s) => s.doc)),
+      events: () => Effect.succeed(options.events ?? new Map()),
+      state: () => Effect.succeed(options.state ?? Option.none()),
+      sync: () => Effect.die('the fake project does not sync'),
+      build: () =>
+        Effect.sync(() => {
+          for (const ledger of Option.toArray(Option.fromNullishOr(options.ledger)))
+            ledger.builds.count += 1;
+          return { riv: testRiv, bytes: 1, warnings: [] };
+        }),
+    }),
+  );
+
+/**
+ * A page server, the film's project, and a browser whose pages draw one-byte frames and encode
  * chunks of them, each recording in `ledger` when it opens and closes; and
  * media that measures the master and records every film it joins.
  */
@@ -285,19 +314,18 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
   const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
-  const probe = Option.getOrElse(
-    Option.fromNullishOr(host.probe),
-    () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
-  );
-  const server = Layer.effect(
-    PreviewServer,
-    Effect.acquireRelease(
-      Effect.sync(() => {
-        ledger.server.started += 1;
-        return PreviewServer.of({ url: 'http://preview.test/' });
-      }),
-      () => Effect.sync(() => void (ledger.server.stopped += 1)),
-    ),
+  const server = Layer.succeed(
+    PageServer,
+    PageServer.of({
+      serve: () =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            ledger.server.started += 1;
+            return 'http://page.test/';
+          }),
+          () => Effect.sync(() => void (ledger.server.stopped += 1)),
+        ),
+    }),
   );
   const browser = Layer.effect(
     Browser,
@@ -325,15 +353,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                 return {
                   info,
                   frame,
-                  probe: (i: number) =>
-                    Effect.sleep('1 millis').pipe(
-                      Effect.andThen(probe(i)),
-                      Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
-                    ),
-                  lookbook: Effect.sync(() => {
-                    ledger.lookbooks.composed += 1;
-                    return new Uint8Array([0xff, 0xd8]);
-                  }),
                   encoder: () => encoder,
                   encode: (
                     chunk: { readonly from: number; readonly to: number },
@@ -396,7 +415,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       join: (film) => Effect.sync(() => void ledger.joins.push(film)),
     }),
   );
-  return Layer.mergeAll(server, browser, media);
+  return Layer.mergeAll(server, browser, media, fakeProject({ ledger }));
 };
 
 export const testVoice: Voice = {
@@ -405,9 +424,9 @@ export const testVoice: Voice = {
   settings: { stability: 0.5 },
 };
 
-/** A small film at `/films/test`, laid out in memory. */
+/** A small film at `/films/test`, laid out in memory; a beat with no picture gets an empty brief. */
 export const testFilm = (
-  scenes: ReadonlyArray<Timed>,
+  scenes: ReadonlyArray<Timed & { readonly picture?: string }>,
   timings: Timings,
   voice: Voice = testVoice,
 ): LoadedFilm => ({
@@ -416,6 +435,7 @@ export const testFilm = (
     dir: '/films/test',
     narration: '/films/test/narration',
     sound: '/films/test/sound',
+    rive: '/films/test/rive',
     out: '/out/test',
     timings: {
       file: '/films/test/narration/timings.json',
@@ -428,7 +448,7 @@ export const testFilm = (
       empty: { effects: {} },
     },
   },
-  scenes,
+  scenes: scenes.map((s): Beat => ({ picture: '', ...s })),
   voice,
   sound: Option.none(),
   timings,
@@ -437,155 +457,3 @@ export const testFilm = (
 
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));
-
-/**
- * A probed line of text: a `w` × `h` box at (`x`, `y`), turned `rot` radians
- * about its centre, in scene `scene`.
- */
-export const textBox = (
-  text: string,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  options: {
-    readonly alpha?: number;
-    readonly rot?: number;
-    readonly scene?: string;
-    readonly order?: number;
-    /** The seed of the hand that wrote it: what a stroke's `marks` names. */
-    readonly hand?: number;
-  } = {},
-): TextBox => {
-  const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
-  const cx = x + w / 2;
-  const cy = y + h / 2;
-  const turn = (px: number, py: number): readonly [number, number] => [
-    cx + (px - cx) * Math.cos(rot) - (py - cy) * Math.sin(rot),
-    cy + (px - cx) * Math.sin(rot) + (py - cy) * Math.cos(rot),
-  ];
-  const corners: TextBox['corners'] = [
-    turn(x, y),
-    turn(x + w, y),
-    turn(x + w, y + h),
-    turn(x, y + h),
-  ];
-  const xs = corners.map((c) => c[0]);
-  const ys = corners.map((c) => c[1]);
-  return {
-    text,
-    scene: Option.getOrElse(Option.fromNullishOr(options.scene), () => 'a'),
-    x: Math.min(...xs),
-    y: Math.min(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-    corners,
-    alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
-    order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
-    ...Option.match(Option.fromNullishOr(options.hand), {
-      onNone: () => ({}),
-      onSome: (hand) => ({ hand }),
-    }),
-  };
-};
-
-/**
- * A probed mark of ink along `points`: a stroke `width` wide (a fill or a
- * plate takes the points as its outline), drawn `order`-th in the frame.
- */
-export const inkMark = (
-  kind: InkMark['kind'],
-  points: ReadonlyArray<readonly [number, number]>,
-  options: {
-    readonly width?: number;
-    readonly alpha?: number;
-    readonly order?: number;
-    /** The seeds of the hands whose text this stroke marks on purpose. */
-    readonly marks?: ReadonlyArray<number>;
-  } = {},
-): InkMark => {
-  const xs = points.map((c) => c[0]);
-  const ys = points.map((c) => c[1]);
-  const mark: InkMark = {
-    kind,
-    scene: 'a',
-    points,
-    width: Option.getOrElse(Option.fromNullishOr(options.width), () => 4),
-    x: Math.min(...xs),
-    y: Math.min(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
-    alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
-    order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
-  };
-  return Option.match(Option.fromNullishOr(options.marks), {
-    onNone: () => mark,
-    onSome: (marks) => ({ ...mark, marks }),
-  });
-};
-
-/**
- * A film folder on disk for the lab's source tools: `f/scenes/` with a hand
- * scene (a literal timeline and knobs, one computed offset), a drawing the
- * registry renames (`alpha` registered as `beta`) beside a decoy file that
- * exports a `beta` of its own, a scene whose timeline the registry builds in
- * code, and one with nothing to edit. Every file is as oxfmt leaves it, under
- * the repo's `.oxfmtrc.json`, copied to the root; `f/voice.ts` lets FilmRepo
- * load it. Returns the films folder.
- */
-export const sceneFixture = Effect.fn('test.sceneFixture')(function* (root: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const scenes = path.join(root, 'films', 'f', 'scenes');
-  yield* fs.makeDirectory(scenes, { recursive: true });
-  yield* fs.copyFile(
-    path.join(import.meta.dir, '..', '..', '..', '..', '.oxfmtrc.json'),
-    path.join(root, '.oxfmtrc.json'),
-  );
-  const files = {
-    'drawing.ts': 'export const drawing = <T>(d: T): T => d;\n',
-    '../voice.ts': "export const voice = { voiceId: 'v', model: 'eleven_v3', settings: {} };\n",
-    'hand.ts': `import { drawing } from './drawing.ts';
-
-const GAP = 0.2;
-
-/** Faith is the hand, not the price. */
-export const hand_ = drawing({
-  enter: { kind: 'pan', dur: 0.8, dir: -1 },
-  timeline: {
-    /** The tower of merit tips and slides off the palm. */
-    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
-    late: { after: 'topple', offset: GAP * 2 },
-  },
-  knobs: {
-    /** Where the palm comes to rest. */
-    palm: [960, 800],
-  },
-  draw: () => {},
-});
-
-export { hand_ as hand };
-`,
-    'a.ts': `import { drawing } from './drawing.ts';
-
-export const alpha = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
-`,
-    'decoy.ts': `import { drawing } from './drawing.ts';
-
-export const beta = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
-`,
-    'index.ts': `import { alpha } from './a.ts';
-import { hand } from './hand.ts';
-
-export const scenes = [
-  { id: 'hand', say: 'Faith {earns} nothing.', ...hand },
-  { id: 'beta', ...alpha },
-  { id: 'built', timeline: { x: { scene: 'start' } } },
-  { id: 'plain' },
-];
-`,
-  };
-  for (const [name, source] of Object.entries(files))
-    yield* fs.writeFileString(path.join(scenes, name), source);
-  return path.join(root, 'films');
-});

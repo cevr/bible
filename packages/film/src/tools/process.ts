@@ -1,11 +1,10 @@
 // One child process, run to completion: its exit code and everything it
-// printed. The ElevenLabs layer maps a failure into its own typed errors;
-// this module only runs and collects.
+// printed. The ElevenLabs and Rive layers map a failure into their own typed
+// errors; this module only runs and collects.
 
-import { Duration, Effect, Stream } from 'effect';
+import { Effect, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { ProcessTimedOut } from './errors.ts';
 
 export interface Finished {
   readonly exitCode: number;
@@ -30,25 +29,6 @@ export const collect = (
         { concurrency: 3 },
       );
       return { exitCode, stdout, stderr };
-    }),
-  );
-
-/**
- * `collect`, bounded: a process still running after `limit` is interrupted
- * (its scope closes, which kills it) and the run fails as `ProcessTimedOut`,
- * which calls it `name`.
- */
-export const collectWithin = (
-  spawner: ChildProcessSpawner.ChildProcessSpawner['Service'],
-  name: string,
-  command: ChildProcess.Command,
-  limit: Duration.Duration,
-): Effect.Effect<Finished, PlatformError | ProcessTimedOut> =>
-  collect(spawner, command).pipe(
-    Effect.timeoutOrElse({
-      duration: limit,
-      orElse: () =>
-        Effect.fail(ProcessTimedOut.make({ command: name, seconds: Duration.toSeconds(limit) })),
     }),
   );
 

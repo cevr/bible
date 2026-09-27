@@ -1,0 +1,38 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="721130:40" clip="true" x="33600" y="0" width="1920" height="1080" styleId="721130:2" name="end" id="721130:1">
+        <Fill name="Background" id="721130:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="721130:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="721130:2"/>
+        <Node x="0" y="0" name="storyboard" id="721130:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="721130:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="721130:12">
+                    <Fill name="Fill" id="721130:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="721130:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="721130:12" text="end" name="beat" id="721130:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="721130:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="721130:17">
+                    <Fill name="Fill" id="721130:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="721130:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="721130:17" text="End card on parchment: Righteousness by Faith, and the sources." name="brief" id="721130:20"/>
+            </Text>
+        </Node>
+        <StateMachine name="Play" id="721130:40">
+            <StateMachineLayer name="Layer" id="721130:41">
+                <AnyState x="400" y="-120" id="721130:42"/>
+                <ExitState x="600" y="-120" id="721130:43"/>
+                <EntryState x="0" y="0" id="721130:44">
+                    <StateTransition stateToId="721130:46" id="721130:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="721130:30" id="721130:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="180" name="main" id="721130:30"/>
+    </Artboard>
+    <ComponentAsset artboardId="721130:1" name="end" id="721130:5"/>
+</Rive>

@@ -11,22 +11,17 @@ import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>) =>
   Result.match(r, { onSuccess: () => 'ok', onFailure: (e) => e._tag });
 
-const draw = () => {};
 const placed = layout(
   [
-    {
-      id: 'a',
-      say: 'Look {live}and live.',
-      lead: 0.5,
-      tail: 1,
-      timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
-      draw,
-    },
-    { id: 'b', min: 4, draw },
-    { id: 'c', min: 5, draw },
+    { id: 'a', say: 'Look {live}and live.', lead: 0.5, tail: 1 },
+    { id: 'b', min: 4 },
+    { id: 'c', min: 5 },
   ],
   noTakes,
 );
+
+/** Scene `a`'s timeline fires `lift` 1.7 s into the scene, as its warp plays it. */
+const events = new Map([['a', new Map([['lift', 1.7]])]]);
 
 const music: Music = {
   model: 'music_v2_5',
@@ -44,29 +39,31 @@ describe('sound', () => {
     const a = placed[0];
     const live = a?.voice.marks.get('live') ?? NaN;
     expect(
-      Result.getOrThrow(cueTime({ scene: 'a', mark: 'live', offset: 0.25 }, placed)),
+      Result.getOrThrow(cueTime({ scene: 'a', mark: 'live', offset: 0.25 }, placed, events)),
     ).toBeCloseTo(0.5 + live + 0.25);
-    expect(Result.getOrThrow(cueTime({ scene: 'c' }, placed))).toBe(placed[2]?.start ?? NaN);
+    expect(Result.getOrThrow(cueTime({ scene: 'c' }, placed, events))).toBe(
+      placed[2]?.start ?? NaN,
+    );
   });
 
-  test('a named cue lands on the start or end of the cue the picture reads', () => {
-    const lift = placed[0]?.cues.get('lift');
-    const start = lift?.start ?? NaN;
-    expect(Result.getOrThrow(cueTime({ scene: 'a', cue: 'lift' }, placed))).toBe(start);
+  test('an event cue lands where the scene plays the Event, plus its offset', () => {
+    const start = placed[0]?.start ?? NaN;
+    expect(Result.getOrThrow(cueTime({ scene: 'a', event: 'lift' }, placed, events))).toBe(
+      start + 1.7,
+    );
     expect(
-      Result.getOrThrow(cueTime({ scene: 'a', cue: 'lift', edge: 'end' }, placed)),
-    ).toBeCloseTo(start + 0.6);
-    expect(
-      Result.getOrThrow(cueTime({ scene: 'a', cue: 'lift', offset: 0.1 }, placed)),
-    ).toBeCloseTo(start + 0.1);
+      Result.getOrThrow(cueTime({ scene: 'a', event: 'lift', offset: 0.1 }, placed, events)),
+    ).toBeCloseTo(start + 1.8);
   });
 
-  test('an unknown scene, mark or cue is an authoring error', () => {
-    expect(outcome(cueTime({ scene: 'z' }, placed))).toBe('UnknownScene');
-    expect(outcome(cueTime({ scene: 'a', mark: 'nope' }, placed))).toBe('UnknownMark');
-    expect(outcome(cueTime({ scene: 'a', cue: 'nope' }, placed))).toBe('UnknownCue');
-    expect(outcome(cueTime({ scene: 'a', cue: 'lift', mark: 'live' }, placed))).toBe('CueInvalid');
-    expect(outcome(cueTime({ scene: 'a', mark: 'live', edge: 'end' }, placed))).toBe('CueInvalid');
+  test('an unknown scene, mark or Event is an authoring error', () => {
+    expect(outcome(cueTime({ scene: 'z' }, placed, events))).toBe('UnknownScene');
+    expect(outcome(cueTime({ scene: 'a', mark: 'nope' }, placed, events))).toBe('UnknownMark');
+    expect(outcome(cueTime({ scene: 'a', event: 'nope' }, placed, events))).toBe('UnknownEvent');
+    expect(outcome(cueTime({ scene: 'b', event: 'lift' }, placed, events))).toBe('UnknownEvent');
+    expect(outcome(cueTime({ scene: 'a', event: 'lift', mark: 'live' }, placed, events))).toBe(
+      'CueInvalid',
+    );
   });
 
   test('acts cover the whole film, split at their scenes', () => {

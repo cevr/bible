@@ -7,10 +7,10 @@
 import { Option, Record as Rec, Result } from 'effect';
 import { type Pcm, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
-import type { ActTooShort, CueInvalid, UnknownCue, UnknownMark, UnknownScene } from './errors.ts';
+import type { ActTooShort, CueInvalid, UnknownEvent, UnknownMark, UnknownScene } from './errors.ts';
 import type { Placed } from './layout.ts';
 import type { Sound, SoundManifest } from './schema.ts';
-import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
+import { type EventTimes, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and effects are generated at it. */
 export const MIX_RATE = 44100;
@@ -60,9 +60,11 @@ export interface MixInput {
   readonly narration: string;
   /** Directory of the generated music and effects. */
   readonly soundDir: string;
+  /** Where each scene's Events play, for the effects placed on them. */
+  readonly events: EventTimes;
 }
 
-export type MixPlanError = UnknownScene | UnknownCue | UnknownMark | CueInvalid | ActTooShort;
+export type MixPlanError = UnknownScene | UnknownEvent | UnknownMark | CueInvalid | ActTooShort;
 
 /** What plays where, by file. Pure. */
 export const mixPlan = (input: MixInput): Result.Result<MixPlan<string>, MixPlanError> =>
@@ -111,7 +113,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<string>, MixPlan
       for (const cue of fx.at)
         effects.push({
           sound: `${input.soundDir}/${asset.value.file}`,
-          at: yield* cueTime(cue, placed),
+          at: yield* cueTime(cue, placed, input.events),
           gain,
         });
     }

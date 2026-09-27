@@ -95,3 +95,18 @@ export const levels = (pcm: Pcm): Levels => {
     peak: 20 * Math.log10(peak),
   };
 };
+
+/**
+ * A lighter copy to preview with: mono (the channels averaged) at half the
+ * rate (each pair of frames averaged). The editor and the page play it under
+ * the Film; the render encodes from the master, never from this.
+ */
+export const preview = (pcm: Pcm): Pcm => {
+  const frames = Math.floor(pcm.frames / 2);
+  const out = new Float32Array(frames);
+  const n = Math.max(1, pcm.channels.length);
+  for (const channel of pcm.channels)
+    for (let i = 0; i < frames; i++)
+      out[i] = (out[i] ?? 0) + ((channel[2 * i] ?? 0) + (channel[2 * i + 1] ?? 0)) / (2 * n);
+  return { rate: pcm.rate / 2, frames, channels: [out] };
+};

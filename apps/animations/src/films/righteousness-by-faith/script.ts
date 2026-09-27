@@ -33,14 +33,7 @@
 // at the open and the landing, peach to explain, one black moment at the cross,
 // dawn at the answer.
 
-export interface Beat {
-  readonly id: string;
-  readonly say?: string;
-  /** Sources, in the order they are used; they feed the end card and sources.md. */
-  readonly cite?: ReadonlyArray<string>;
-  /** What the picture does: the brief for the scene's drawing. */
-  readonly picture: string;
-}
+import type { Beat } from '@bible/film/core';
 
 export const script: ReadonlyArray<Beat> = [
   {

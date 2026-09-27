@@ -139,8 +139,12 @@ export class Rive extends Context.Service<Rive, RiveService>()('@bible/film/tool
       });
 
       const inspect = Effect.fn('Rive.inspect')(function* (dir: string) {
-        const raw = yield* exec('inspect', ['inspect', dir, '--json']);
-        const inspected = yield* decode('inspect', Schema.fromJsonString(Inspected), raw);
+        // A project with errors exits 1 and still prints its report: the report
+        // is the answer, and only a run that prints none has failed.
+        const done = yield* run('inspect', ['inspect', dir, '--json']);
+        const inspected = yield* Schema.decodeEffect(Schema.fromJsonString(Inspected))(
+          done.stdout,
+        ).pipe(Effect.mapError(() => refuse('inspect', done)));
         return riveDocument(inspected);
       });
 

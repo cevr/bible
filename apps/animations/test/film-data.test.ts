@@ -1,6 +1,6 @@
-// The committed film data is the contract the Schemas must keep: paid takes and
-// the score are keyed by these files and hashes, so a codec or key change that
-// moved a single byte would orphan them.
+// The first cut's committed data (kept as a fixture) is the contract the
+// Schemas must keep: paid takes and the score are keyed by these files and
+// hashes, so a codec or key change that moved a single byte would orphan them.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -17,15 +17,15 @@ import {
 } from '@bible/film/core';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
-import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
-import { voice } from '../src/films/righteousness-by-faith-v1/voice.ts';
+import { script as scenes } from './fixtures/films/righteousness-by-faith-v1/script.ts';
+import { sound } from './fixtures/films/righteousness-by-faith-v1/sound.ts';
+import { voice } from './fixtures/films/righteousness-by-faith-v1/voice.ts';
 
 const readFilmFile = Effect.fn('test.readFilmFile')(function* (file: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   return yield* fs.readFileString(
-    path.join(import.meta.dir, '..', 'src', 'films', 'righteousness-by-faith-v1', file),
+    path.join(import.meta.dir, 'fixtures', 'films', 'righteousness-by-faith-v1', file),
   );
 });
 

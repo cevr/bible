@@ -180,49 +180,11 @@
       }
     },
     {
-      // The film draw path: the Canvas 2D kit, each film's scenes and props, and
-      // the easing and seeded-noise helpers they call. A frame is a pure
-      // function of time drawn thousands of times per render, so it keeps plain
-      // arithmetic: ternaries and `?? default` for optional geometry, short
-      // shape names (`pts`, `rim`), and a thrown Error for a programming
-      // mistake (a missing cue, an unknown mark) that must stop the render.
-      // Every other rule applies. The tools and the Schema/data modules of
-      // packages/film are not listed here and get the full rule set.
-      "files": [
-        "**/packages/film/src/canvas/**/*.ts",
-        "**/packages/film/src/core/time.ts",
-        "**/packages/film/src/core/random.ts",
-        "**/apps/animations/src/films/**/*.ts"
-      ],
-      "rules": {
-        "effect/noNewError": "off",
-        "effect/noNullish": "off",
-        "effect/noShapeInSymbolNames": "off",
-        "effect/noTernary": "off",
-        "effect/noThrowStatement": "off"
-      }
-    },
-    {
-      // The check's probe, on the draw path: it attaches to a canvas context
-      // for one synchronous draw, and must come off even when the draw throws
-      // (else the next frame records into a failed frame's list). The draw
-      // path runs no Effect, so a plain try/finally is the release.
-      "files": ["**/packages/film/src/canvas/probe.ts"],
-      "rules": {
-        "effect/noTryCatch": "off"
-      }
-    },
-    {
-      // The film clock, read by the draw path every frame and by the tools:
-      // `layout` places scenes, `narration` times words, `timeline` resolves
-      // named cues. Optional scene fields stay plain optionals, and a layout
-      // mistake throws so the player and renderer stop; the tools lift that
-      // throw into LayoutInvalid at their boundary (tools/film-repo.ts).
-      "files": [
-        "**/packages/film/src/core/layout.ts",
-        "**/packages/film/src/core/narration.ts",
-        "**/packages/film/src/core/timeline.ts"
-      ],
+      // The film clock: `layout` places scenes and `narration` times words.
+      // Optional scene fields stay plain optionals, and a layout mistake
+      // throws; the tools lift that throw into LayoutInvalid at their
+      // boundary (tools/film-repo.ts).
+      "files": ["**/packages/film/src/core/layout.ts", "**/packages/film/src/core/narration.ts"],
       "rules": {
         "effect/noNewError": "off",
         "effect/noNullish": "off",
@@ -242,24 +204,9 @@
       }
     },
     {
-      // A film's scene registry builds each SceneSpec with its optional `say`.
-      "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
-      "rules": {
-        "effect/noConditionalEmptyObjectSpread": "off"
-      }
-    },
-    {
-      // A film's browser loader: fetches its timings and builds the film.
-      "files": ["**/apps/animations/src/films/*/film.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      // The browser player: DOM, audio element and requestAnimationFrame, plus
-      // the `?export` handle the renderer drives through page.evaluate.
-      "files": ["**/packages/film/src/player/**/*.ts"],
+      // The film's page: the Rive runtime and the DOM in headless Chromium,
+      // and the handle the renderer drives through page.evaluate.
+      "files": ["**/packages/film/src/page/**/*.ts"],
       "rules": {
         "effect/noAsyncFunction": "off",
         "effect/noGlobals": "off",
@@ -272,12 +219,10 @@
       }
     },
     {
-      // The dev server: Bun.serve over the app's files.
-      "files": ["**/apps/animations/server.ts"],
+      // The page server: Bun.serve over the film's page, its runtime and its .riv.
+      "files": ["**/packages/film/src/tools/page-server.ts"],
       "rules": {
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noTernary": "off"
+        "effect/noGlobals": "off"
       }
     },
     {

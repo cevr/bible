@@ -1,0 +1,290 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="439827:40" clip="true" x="14700" y="0" width="1920" height="1080" styleId="439827:2" name="declared" id="439827:1">
+        <Fill name="Background" id="439827:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="439827:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="439827:2"/>
+        <Node x="0" y="0" name="storyboard" id="439827:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="439827:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="439827:12">
+                    <Fill name="Fill" id="439827:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="439827:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:12" text="declared" name="beat" id="439827:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="439827:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="439827:17">
+                    <Fill name="Fill" id="439827:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="439827:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:17" text="IDEA: the parchment page, the act's one word card: JUSTIFY, δικαιόω, declared righteous (`justified` to `declared`). The grey figure in their scarlet-stained garment looks down at it, doubtful (`still`); pull back to the three icons from `message`, the gold word-bubble lit (`cover`). On `subst` the word-bubble's gold becomes solid, heavy, a real thing. On `voice` the dawn sky from `spoke` returns in a panel behind the figure; the same gold word of light arcs from it and lands on the figure's chest, and gold blooms there, spreading (`made`)." name="brief" id="439827:20"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark now" id="439827:1000">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark now style" id="439827:1001">
+                    <Fill name="Fill" id="439827:1002">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1003"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1001" text="{now}" name="mark now" id="439827:1004"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark paul" id="439827:1010">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark paul style" id="439827:1011">
+                    <Fill name="Fill" id="439827:1012">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1013"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1011" text="{paul}" name="mark paul" id="439827:1014"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark justified" id="439827:1020">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark justified style" id="439827:1021">
+                    <Fill name="Fill" id="439827:1022">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1023"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1021" text="{justified}" name="mark justified" id="439827:1024"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark declared" id="439827:1030">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark declared style" id="439827:1031">
+                    <Fill name="Fill" id="439827:1032">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1033"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1031" text="{declared}" name="mark declared" id="439827:1034"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark still" id="439827:1040">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark still style" id="439827:1041">
+                    <Fill name="Fill" id="439827:1042">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1043"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1041" text="{still}" name="mark still" id="439827:1044"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark cover" id="439827:1050">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark cover style" id="439827:1051">
+                    <Fill name="Fill" id="439827:1052">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1053"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1051" text="{cover}" name="mark cover" id="439827:1054"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark would" id="439827:1060">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark would style" id="439827:1061">
+                    <Fill name="Fill" id="439827:1062">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1063"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1061" text="{would}" name="mark would" id="439827:1064"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark subst" id="439827:1070">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark subst style" id="439827:1071">
+                    <Fill name="Fill" id="439827:1072">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1073"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1071" text="{subst}" name="mark subst" id="439827:1074"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark w" id="439827:1080">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark w style" id="439827:1081">
+                    <Fill name="Fill" id="439827:1082">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1083"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1081" text="{w}" name="mark w" id="439827:1084"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark voice" id="439827:1090">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark voice style" id="439827:1091">
+                    <Fill name="Fill" id="439827:1092">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1093"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1091" text="{voice}" name="mark voice" id="439827:1094"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark speaks" id="439827:1100">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark speaks style" id="439827:1101">
+                    <Fill name="Fill" id="439827:1102">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1103"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1101" text="{speaks}" name="mark speaks" id="439827:1104"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark made" id="439827:1110">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark made style" id="439827:1111">
+                    <Fill name="Fill" id="439827:1112">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="439827:1113"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="439827:1111" text="{made}" name="mark made" id="439827:1114"/>
+            </Text>
+        </Node>
+        <Event name="now" id="439827:1005"/>
+        <Event name="paul" id="439827:1015"/>
+        <Event name="justified" id="439827:1025"/>
+        <Event name="declared" id="439827:1035"/>
+        <Event name="still" id="439827:1045"/>
+        <Event name="cover" id="439827:1055"/>
+        <Event name="would" id="439827:1065"/>
+        <Event name="subst" id="439827:1075"/>
+        <Event name="w" id="439827:1085"/>
+        <Event name="voice" id="439827:1095"/>
+        <Event name="speaks" id="439827:1105"/>
+        <Event name="made" id="439827:1115"/>
+        <StateMachine name="Play" id="439827:40">
+            <StateMachineLayer name="Layer" id="439827:41">
+                <AnyState x="400" y="-120" id="439827:42"/>
+                <ExitState x="600" y="-120" id="439827:43"/>
+                <EntryState x="0" y="0" id="439827:44">
+                    <StateTransition stateToId="439827:46" id="439827:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="439827:30" id="439827:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="2098" name="main" id="439827:30">
+            <KeyedObject objectId="439827:1005" id="439827:3000">
+                <KeyedProperty propertyKey="395" id="439827:3001">
+                    <KeyFrameCallback frame="30" id="439827:3002"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1015" id="439827:3010">
+                <KeyedProperty propertyKey="395" id="439827:3011">
+                    <KeyFrameCallback frame="221" id="439827:3012"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1025" id="439827:3020">
+                <KeyedProperty propertyKey="395" id="439827:3021">
+                    <KeyFrameCallback frame="306" id="439827:3022"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1035" id="439827:3030">
+                <KeyedProperty propertyKey="395" id="439827:3031">
+                    <KeyFrameCallback frame="356" id="439827:3032"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1045" id="439827:3040">
+                <KeyedProperty propertyKey="395" id="439827:3041">
+                    <KeyFrameCallback frame="455" id="439827:3042"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1055" id="439827:3050">
+                <KeyedProperty propertyKey="395" id="439827:3051">
+                    <KeyFrameCallback frame="652" id="439827:3052"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1065" id="439827:3060">
+                <KeyedProperty propertyKey="395" id="439827:3061">
+                    <KeyFrameCallback frame="833" id="439827:3062"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1075" id="439827:3070">
+                <KeyedProperty propertyKey="395" id="439827:3071">
+                    <KeyFrameCallback frame="1070" id="439827:3072"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1085" id="439827:3080">
+                <KeyedProperty propertyKey="395" id="439827:3081">
+                    <KeyFrameCallback frame="1195" id="439827:3082"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1095" id="439827:3090">
+                <KeyedProperty propertyKey="395" id="439827:3091">
+                    <KeyFrameCallback frame="1547" id="439827:3092"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1105" id="439827:3100">
+                <KeyedProperty propertyKey="395" id="439827:3101">
+                    <KeyFrameCallback frame="1758" id="439827:3102"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1115" id="439827:3110">
+                <KeyedProperty propertyKey="395" id="439827:3111">
+                    <KeyFrameCallback frame="1924" id="439827:3112"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1000" id="439827:2000">
+                <KeyedProperty propertyKey="18" id="439827:2001">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2002"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="hold" id="439827:2003"/>
+                    <KeyFrameDouble value="0" frame="221" interpolationType="hold" id="439827:2004"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1010" id="439827:2010">
+                <KeyedProperty propertyKey="18" id="439827:2011">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2012"/>
+                    <KeyFrameDouble value="1" frame="221" interpolationType="hold" id="439827:2013"/>
+                    <KeyFrameDouble value="0" frame="306" interpolationType="hold" id="439827:2014"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1020" id="439827:2020">
+                <KeyedProperty propertyKey="18" id="439827:2021">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2022"/>
+                    <KeyFrameDouble value="1" frame="306" interpolationType="hold" id="439827:2023"/>
+                    <KeyFrameDouble value="0" frame="356" interpolationType="hold" id="439827:2024"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1030" id="439827:2030">
+                <KeyedProperty propertyKey="18" id="439827:2031">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2032"/>
+                    <KeyFrameDouble value="1" frame="356" interpolationType="hold" id="439827:2033"/>
+                    <KeyFrameDouble value="0" frame="455" interpolationType="hold" id="439827:2034"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1040" id="439827:2040">
+                <KeyedProperty propertyKey="18" id="439827:2041">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2042"/>
+                    <KeyFrameDouble value="1" frame="455" interpolationType="hold" id="439827:2043"/>
+                    <KeyFrameDouble value="0" frame="652" interpolationType="hold" id="439827:2044"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1050" id="439827:2050">
+                <KeyedProperty propertyKey="18" id="439827:2051">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2052"/>
+                    <KeyFrameDouble value="1" frame="652" interpolationType="hold" id="439827:2053"/>
+                    <KeyFrameDouble value="0" frame="833" interpolationType="hold" id="439827:2054"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1060" id="439827:2060">
+                <KeyedProperty propertyKey="18" id="439827:2061">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2062"/>
+                    <KeyFrameDouble value="1" frame="833" interpolationType="hold" id="439827:2063"/>
+                    <KeyFrameDouble value="0" frame="1070" interpolationType="hold" id="439827:2064"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1070" id="439827:2070">
+                <KeyedProperty propertyKey="18" id="439827:2071">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2072"/>
+                    <KeyFrameDouble value="1" frame="1070" interpolationType="hold" id="439827:2073"/>
+                    <KeyFrameDouble value="0" frame="1195" interpolationType="hold" id="439827:2074"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1080" id="439827:2080">
+                <KeyedProperty propertyKey="18" id="439827:2081">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2082"/>
+                    <KeyFrameDouble value="1" frame="1195" interpolationType="hold" id="439827:2083"/>
+                    <KeyFrameDouble value="0" frame="1547" interpolationType="hold" id="439827:2084"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1090" id="439827:2090">
+                <KeyedProperty propertyKey="18" id="439827:2091">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2092"/>
+                    <KeyFrameDouble value="1" frame="1547" interpolationType="hold" id="439827:2093"/>
+                    <KeyFrameDouble value="0" frame="1758" interpolationType="hold" id="439827:2094"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1100" id="439827:2100">
+                <KeyedProperty propertyKey="18" id="439827:2101">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2102"/>
+                    <KeyFrameDouble value="1" frame="1758" interpolationType="hold" id="439827:2103"/>
+                    <KeyFrameDouble value="0" frame="1924" interpolationType="hold" id="439827:2104"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="439827:1110" id="439827:2110">
+                <KeyedProperty propertyKey="18" id="439827:2111">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="439827:2112"/>
+                    <KeyFrameDouble value="1" frame="1924" interpolationType="hold" id="439827:2113"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+    <ComponentAsset artboardId="439827:1" name="declared" id="439827:5"/>
+</Rive>

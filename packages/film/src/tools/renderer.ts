@@ -1,26 +1,19 @@
-// Render a film frame by frame in headless Chromium. Every frame is a pure
-// function of time, so pages render any chunk in any order: a video splits
+// Render a film frame by frame in headless Chromium: the film's Rive project
+// built to a .riv, and the Film drawn by the Rive runtime in the film's page.
+// Every frame is a pure function of time, so pages render any chunk in any order: a video splits
 // into chunks on a queue that idle pages pull from, each page drawing and
 // encoding its chunk to its own H.264 segment, then the segments join in
 // order (copied, not re-encoded) with the audio cut from the lossless master
 // and encoded to AAC. The server, the browser and every page live in one
 // scope: a failure, or Ctrl-C, closes them all.
 
-import {
-  Array as Arr,
-  Clock,
-  Context,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Pool,
-  Ref,
-} from 'effect';
+import { Clock, Context, Effect, FileSystem, Layer, Option, Path, Pool, Ref } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { slice } from '../core/audio.ts';
 import { filmCaptions, webVtt } from '../core/captions.ts';
+import { FILM_FPS } from '../core/film-board.ts';
+import { type Placed, everyTakeRecorded } from '../core/layout.ts';
+import { filmEnd } from '../core/sound.ts';
 import type { ExportInfo } from '../core/schema.ts';
 import { Browser, type FramePage, type PageOpenError } from './browser.ts';
 import {
@@ -31,22 +24,22 @@ import {
   type EncoderMissing,
   type FrameFailed,
   type LayoutInvalid,
-  type LookbookFailed,
   type MediaFailed,
   type PageCrashed,
   type PageError,
   RangeEmpty,
+  type ServeFailed,
 } from './errors.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
-import { masterFile, masterFinding, measureMaster } from './mixer.ts';
-import { PreviewServer } from './preview-server.ts';
+import { masterFile, masterFinding, measureMaster } from './master.ts';
+import { PageServer } from './page-server.ts';
+import { type BuildError, FilmProject } from './project.ts';
 import {
   type AudioCut,
   type Chunk,
   RenderJob,
   contactSheetName,
-  lookbookName,
   contactTimes,
   frameAt,
   frameSpan,
@@ -56,12 +49,15 @@ import {
   stillName,
 } from './render-plan.ts';
 
+/** The Film's length, as its timeline holds it: the film's end, to Rive's frame. */
+const filmSeconds = (placed: ReadonlyArray<Placed>): number =>
+  Math.round(filmEnd(placed) * FILM_FPS) / FILM_FPS;
+
 export type RenderError =
   | PageOpenError
   | PageError
   | PageCrashed
   | FrameFailed
-  | LookbookFailed
   | ContactFailed
   | EncoderMissing
   | EncodeFailed
@@ -70,6 +66,8 @@ export type RenderError =
   | AudioStale
   | RangeEmpty
   | LayoutInvalid
+  | BuildError
+  | ServeFailed
   | PlatformError;
 
 export interface RendererService {
@@ -86,7 +84,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const path = yield* Path.Path;
       const media = yield* Media;
       const browser = yield* Browser;
-      const server = yield* PreviewServer;
+      const server = yield* PageServer;
+      const project = yield* FilmProject;
 
       const fresh = (dir: string) =>
         fs
@@ -99,6 +98,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         pool: Pool.Pool<FramePage, PageOpenError>,
         info: ExportInfo,
         dir: string,
+        placed: ReadonlyArray<Placed>,
       ) {
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
@@ -106,14 +106,13 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const total = end - start;
         const target = Option.getOrElse(job.out, () => `${film.paths.out}.mp4`);
 
-        // The film declares its track only once every take is recorded. Before
-        // a frame is drawn, its master must be there and cover the whole film
-        // to within a frame: a mix cut short would otherwise mux silence.
-        const audio: Option.Option<AudioCut> = Option.map(Option.fromNullishOr(info.audio), () => ({
-          file: masterFile(film.paths),
-          start: start / info.fps,
-          duration: total / info.fps,
-        }));
+        // The film has a track once every take is recorded. Before a frame is
+        // drawn, its master must be there and cover the whole film to within a
+        // frame: a mix cut short would otherwise mux silence.
+        const audio: Option.Option<AudioCut> = Option.liftPredicate(
+          { file: masterFile(film.paths), start: start / info.fps, duration: total / info.fps },
+          () => everyTakeRecorded(placed),
+        );
         if (Option.isSome(audio)) {
           const length = yield* measureMaster(fs, media, audio.value.file);
           const finding = masterFinding(audio.value.file, length, info.duration, 1 / info.fps);
@@ -199,7 +198,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             }),
         });
 
-        const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
         const range = { from: start / info.fps, to: end / info.fps };
         yield* fs.writeFileString(captions, webVtt(filmCaptions(placed, range)));
@@ -250,23 +248,9 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         );
       }, Effect.scoped);
 
-      const lookbook = Effect.fnUntraced(function* (
-        pool: Pool.Pool<FramePage, PageOpenError>,
-        dir: string,
-      ) {
-        const page = yield* Pool.get(pool);
-        const file = path.join(dir, lookbookName);
-        yield* fs.writeFile(file, yield* page.lookbook);
-        yield* Effect.log(`render.lookbook file=${file}`);
-      }, Effect.scoped);
-
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
-        const query = [
-          `film=${encodeURIComponent(film.paths.name)}`,
-          'export',
-          ...Arr.filter(['captions=0'], () => !job.captions),
-        ];
-        const url = `${server.url}?${query.join('&')}`;
+        const placed = yield* placeFilm(film);
+        const built = yield* project.build(film, placed);
         const dir = path.join(film.paths.out, job.tag);
         yield* fs.makeDirectory(dir, { recursive: true });
         const pages = RenderJob.$match(job, {
@@ -274,17 +258,16 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           Stills: (s) => Math.min(s.workers, s.times.length),
           // One page composes the whole sheet.
           Contact: () => 1,
-          LookBook: () => 1,
         });
         yield* Effect.scoped(
           Effect.gen(function* () {
+            const url = `${yield* server.serve(built.riv)}?fps=${job.fps}&duration=${filmSeconds(placed)}`;
             const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, pages) });
             const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
             yield* RenderJob.$match(job, {
-              Video: (v) => video(film, v, pool, info, dir),
+              Video: (v) => video(film, v, pool, info, dir, placed),
               Stills: (s) => stills(s, pool, info, dir),
               Contact: (c) => contact(c, pool, info, dir),
-              LookBook: () => lookbook(pool, dir),
             });
           }),
         );

@@ -1,0 +1,332 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="441764:40" clip="true" x="4200" y="0" width="1920" height="1080" styleId="441764:2" name="message" id="441764:1">
+        <Fill name="Background" id="441764:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="441764:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="441764:2"/>
+        <Node x="0" y="0" name="storyboard" id="441764:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="441764:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="441764:12">
+                    <Fill name="Fill" id="441764:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="441764:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:12" text="message" name="beat" id="441764:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="441764:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="441764:17">
+                    <Fill name="Fill" id="441764:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="441764:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:17" text="STORY: a cardboard meeting hall in 1888, warm peach light through tall windows. Two young men at the front, one with a Bible open, faces toward a crowd of grey figures. On `rep` the crowd splits: half hold small stone tablets up, half look for something missing; the tablets have no one with them. On `lost` every grey face turns toward a warm gold light rising behind the pulpit. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet and a cross come together into one gold emblem. On `three` push through into the parchment page: three simple icons appear left to right, a gold word-bubble (`declares`), a white robe (`clothes`), a heart with two small tablets inside (`changes`)." name="brief" id="441764:20"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark year" id="441764:1000">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark year style" id="441764:1001">
+                    <Fill name="Fill" id="441764:1002">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1003"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1001" text="{year}" name="mark year" id="441764:1004"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark two" id="441764:1010">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark two style" id="441764:1011">
+                    <Fill name="Fill" id="441764:1012">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1013"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1011" text="{two}" name="mark two" id="441764:1014"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark rep" id="441764:1020">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark rep style" id="441764:1021">
+                    <Fill name="Fill" id="441764:1022">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1023"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1021" text="{rep}" name="mark rep" id="441764:1024"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark ew" id="441764:1030">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark ew style" id="441764:1031">
+                    <Fill name="Fill" id="441764:1032">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1033"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1031" text="{ew}" name="mark ew" id="441764:1034"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark precious" id="441764:1040">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark precious style" id="441764:1041">
+                    <Fill name="Fill" id="441764:1042">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1043"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1041" text="{precious}" name="mark precious" id="441764:1044"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark what" id="441764:1050">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark what style" id="441764:1051">
+                    <Fill name="Fill" id="441764:1052">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1053"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1051" text="{what}" name="mark what" id="441764:1054"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark lost" id="441764:1060">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark lost style" id="441764:1061">
+                    <Fill name="Fill" id="441764:1062">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1063"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1061" text="{lost}" name="mark lost" id="441764:1064"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark angel" id="441764:1070">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark angel style" id="441764:1071">
+                    <Fill name="Fill" id="441764:1072">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1073"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1071" text="{angel}" name="mark angel" id="441764:1074"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark banner" id="441764:1080">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark banner style" id="441764:1081">
+                    <Fill name="Fill" id="441764:1082">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1083"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1081" text="{banner}" name="mark banner" id="441764:1084"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark hand" id="441764:1090">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark hand style" id="441764:1091">
+                    <Fill name="Fill" id="441764:1092">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1093"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1091" text="{hand}" name="mark hand" id="441764:1094"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark three" id="441764:1100">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark three style" id="441764:1101">
+                    <Fill name="Fill" id="441764:1102">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1103"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1101" text="{three}" name="mark three" id="441764:1104"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark declares" id="441764:1110">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark declares style" id="441764:1111">
+                    <Fill name="Fill" id="441764:1112">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1113"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1111" text="{declares}" name="mark declares" id="441764:1114"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark clothes" id="441764:1120">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark clothes style" id="441764:1121">
+                    <Fill name="Fill" id="441764:1122">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1123"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1121" text="{clothes}" name="mark clothes" id="441764:1124"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark changes" id="441764:1130">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark changes style" id="441764:1131">
+                    <Fill name="Fill" id="441764:1132">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="441764:1133"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="441764:1131" text="{changes}" name="mark changes" id="441764:1134"/>
+            </Text>
+        </Node>
+        <Event name="year" id="441764:1005"/>
+        <Event name="two" id="441764:1015"/>
+        <Event name="rep" id="441764:1025"/>
+        <Event name="ew" id="441764:1035"/>
+        <Event name="precious" id="441764:1045"/>
+        <Event name="what" id="441764:1055"/>
+        <Event name="lost" id="441764:1065"/>
+        <Event name="angel" id="441764:1075"/>
+        <Event name="banner" id="441764:1085"/>
+        <Event name="hand" id="441764:1095"/>
+        <Event name="three" id="441764:1105"/>
+        <Event name="declares" id="441764:1115"/>
+        <Event name="clothes" id="441764:1125"/>
+        <Event name="changes" id="441764:1135"/>
+        <StateMachine name="Play" id="441764:40">
+            <StateMachineLayer name="Layer" id="441764:41">
+                <AnyState x="400" y="-120" id="441764:42"/>
+                <ExitState x="600" y="-120" id="441764:43"/>
+                <EntryState x="0" y="0" id="441764:44">
+                    <StateTransition stateToId="441764:46" id="441764:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="441764:30" id="441764:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="2830" name="main" id="441764:30">
+            <KeyedObject objectId="441764:1005" id="441764:3000">
+                <KeyedProperty propertyKey="395" id="441764:3001">
+                    <KeyFrameCallback frame="30" id="441764:3002"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1015" id="441764:3010">
+                <KeyedProperty propertyKey="395" id="441764:3011">
+                    <KeyFrameCallback frame="260" id="441764:3012"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1025" id="441764:3020">
+                <KeyedProperty propertyKey="395" id="441764:3021">
+                    <KeyFrameCallback frame="655" id="441764:3022"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1035" id="441764:3030">
+                <KeyedProperty propertyKey="395" id="441764:3031">
+                    <KeyFrameCallback frame="1115" id="441764:3032"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1045" id="441764:3040">
+                <KeyedProperty propertyKey="395" id="441764:3041">
+                    <KeyFrameCallback frame="1235" id="441764:3042"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1055" id="441764:3050">
+                <KeyedProperty propertyKey="395" id="441764:3051">
+                    <KeyFrameCallback frame="1445" id="441764:3052"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1065" id="441764:3060">
+                <KeyedProperty propertyKey="395" id="441764:3061">
+                    <KeyFrameCallback frame="1586" id="441764:3062"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1075" id="441764:3070">
+                <KeyedProperty propertyKey="395" id="441764:3071">
+                    <KeyFrameCallback frame="1834" id="441764:3072"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1085" id="441764:3080">
+                <KeyedProperty propertyKey="395" id="441764:3081">
+                    <KeyFrameCallback frame="1993" id="441764:3082"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1095" id="441764:3090">
+                <KeyedProperty propertyKey="395" id="441764:3091">
+                    <KeyFrameCallback frame="2249" id="441764:3092"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1105" id="441764:3100">
+                <KeyedProperty propertyKey="395" id="441764:3101">
+                    <KeyFrameCallback frame="2466" id="441764:3102"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1115" id="441764:3110">
+                <KeyedProperty propertyKey="395" id="441764:3111">
+                    <KeyFrameCallback frame="2544" id="441764:3112"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1125" id="441764:3120">
+                <KeyedProperty propertyKey="395" id="441764:3121">
+                    <KeyFrameCallback frame="2646" id="441764:3122"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1135" id="441764:3130">
+                <KeyedProperty propertyKey="395" id="441764:3131">
+                    <KeyFrameCallback frame="2709" id="441764:3132"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1000" id="441764:2000">
+                <KeyedProperty propertyKey="18" id="441764:2001">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2002"/>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="hold" id="441764:2003"/>
+                    <KeyFrameDouble value="0" frame="260" interpolationType="hold" id="441764:2004"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1010" id="441764:2010">
+                <KeyedProperty propertyKey="18" id="441764:2011">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2012"/>
+                    <KeyFrameDouble value="1" frame="260" interpolationType="hold" id="441764:2013"/>
+                    <KeyFrameDouble value="0" frame="655" interpolationType="hold" id="441764:2014"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1020" id="441764:2020">
+                <KeyedProperty propertyKey="18" id="441764:2021">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2022"/>
+                    <KeyFrameDouble value="1" frame="655" interpolationType="hold" id="441764:2023"/>
+                    <KeyFrameDouble value="0" frame="1115" interpolationType="hold" id="441764:2024"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1030" id="441764:2030">
+                <KeyedProperty propertyKey="18" id="441764:2031">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2032"/>
+                    <KeyFrameDouble value="1" frame="1115" interpolationType="hold" id="441764:2033"/>
+                    <KeyFrameDouble value="0" frame="1235" interpolationType="hold" id="441764:2034"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1040" id="441764:2040">
+                <KeyedProperty propertyKey="18" id="441764:2041">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2042"/>
+                    <KeyFrameDouble value="1" frame="1235" interpolationType="hold" id="441764:2043"/>
+                    <KeyFrameDouble value="0" frame="1445" interpolationType="hold" id="441764:2044"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1050" id="441764:2050">
+                <KeyedProperty propertyKey="18" id="441764:2051">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2052"/>
+                    <KeyFrameDouble value="1" frame="1445" interpolationType="hold" id="441764:2053"/>
+                    <KeyFrameDouble value="0" frame="1586" interpolationType="hold" id="441764:2054"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1060" id="441764:2060">
+                <KeyedProperty propertyKey="18" id="441764:2061">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2062"/>
+                    <KeyFrameDouble value="1" frame="1586" interpolationType="hold" id="441764:2063"/>
+                    <KeyFrameDouble value="0" frame="1834" interpolationType="hold" id="441764:2064"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1070" id="441764:2070">
+                <KeyedProperty propertyKey="18" id="441764:2071">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2072"/>
+                    <KeyFrameDouble value="1" frame="1834" interpolationType="hold" id="441764:2073"/>
+                    <KeyFrameDouble value="0" frame="1993" interpolationType="hold" id="441764:2074"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1080" id="441764:2080">
+                <KeyedProperty propertyKey="18" id="441764:2081">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2082"/>
+                    <KeyFrameDouble value="1" frame="1993" interpolationType="hold" id="441764:2083"/>
+                    <KeyFrameDouble value="0" frame="2249" interpolationType="hold" id="441764:2084"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1090" id="441764:2090">
+                <KeyedProperty propertyKey="18" id="441764:2091">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2092"/>
+                    <KeyFrameDouble value="1" frame="2249" interpolationType="hold" id="441764:2093"/>
+                    <KeyFrameDouble value="0" frame="2466" interpolationType="hold" id="441764:2094"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1100" id="441764:2100">
+                <KeyedProperty propertyKey="18" id="441764:2101">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2102"/>
+                    <KeyFrameDouble value="1" frame="2466" interpolationType="hold" id="441764:2103"/>
+                    <KeyFrameDouble value="0" frame="2544" interpolationType="hold" id="441764:2104"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1110" id="441764:2110">
+                <KeyedProperty propertyKey="18" id="441764:2111">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2112"/>
+                    <KeyFrameDouble value="1" frame="2544" interpolationType="hold" id="441764:2113"/>
+                    <KeyFrameDouble value="0" frame="2646" interpolationType="hold" id="441764:2114"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1120" id="441764:2120">
+                <KeyedProperty propertyKey="18" id="441764:2121">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2122"/>
+                    <KeyFrameDouble value="1" frame="2646" interpolationType="hold" id="441764:2123"/>
+                    <KeyFrameDouble value="0" frame="2709" interpolationType="hold" id="441764:2124"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="441764:1130" id="441764:2130">
+                <KeyedProperty propertyKey="18" id="441764:2131">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="441764:2132"/>
+                    <KeyFrameDouble value="1" frame="2709" interpolationType="hold" id="441764:2133"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+    <ComponentAsset artboardId="441764:1" name="message" id="441764:5"/>
+</Rive>

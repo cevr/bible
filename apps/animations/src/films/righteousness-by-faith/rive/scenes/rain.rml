@@ -1,0 +1,122 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="707507:40" clip="true" x="27300" y="0" width="1920" height="1080" styleId="707507:2" name="rain" id="707507:1">
+        <Fill name="Background" id="707507:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="707507:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="707507:2"/>
+        <Node x="0" y="0" name="storyboard" id="707507:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="707507:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="707507:12">
+                    <Fill name="Fill" id="707507:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="707507:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:12" text="rain" name="beat" id="707507:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="707507:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="707507:17">
+                    <Fill name="Fill" id="707507:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="707507:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:17" text="STORY: wide cardboard fields under a teal sky. Rain begins, silver-gold, and the fields green as it falls (`spirit`). Far above, the gold sanctuary from `exchange`: its light brightens and the last scarlet specks over the land wink out (`blot`). On `loud` the angel with the banner from `message` flies across again, and figures on rooftops across the city turn to look and wave to one another." name="brief" id="707507:20"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark big" id="707507:1000">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark big style" id="707507:1001">
+                    <Fill name="Fill" id="707507:1002">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="707507:1003"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:1001" text="{big}" name="mark big" id="707507:1004"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark spirit" id="707507:1010">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark spirit style" id="707507:1011">
+                    <Fill name="Fill" id="707507:1012">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="707507:1013"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:1011" text="{spirit}" name="mark spirit" id="707507:1014"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark blot" id="707507:1020">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark blot style" id="707507:1021">
+                    <Fill name="Fill" id="707507:1022">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="707507:1023"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:1021" text="{blot}" name="mark blot" id="707507:1024"/>
+            </Text>
+            <Text x="960" y="960" originX="0.5" originY="0.5" sizingValue="autoWidth" opacity="0" name="Mark loud" id="707507:1030">
+                <TextStylePaint fontSize="64" fontAssetId="881888:30" name="Mark loud style" id="707507:1031">
+                    <Fill name="Fill" id="707507:1032">
+                        <SolidColor colorValue="FFB0533C" name="Color" id="707507:1033"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="707507:1031" text="{loud}" name="mark loud" id="707507:1034"/>
+            </Text>
+        </Node>
+        <Event name="big" id="707507:1005"/>
+        <Event name="spirit" id="707507:1015"/>
+        <Event name="blot" id="707507:1025"/>
+        <Event name="loud" id="707507:1035"/>
+        <StateMachine name="Play" id="707507:40">
+            <StateMachineLayer name="Layer" id="707507:41">
+                <AnyState x="400" y="-120" id="707507:42"/>
+                <ExitState x="600" y="-120" id="707507:43"/>
+                <EntryState x="0" y="0" id="707507:44">
+                    <StateTransition stateToId="707507:46" id="707507:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="707507:30" id="707507:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="1286" name="main" id="707507:30">
+            <KeyedObject objectId="707507:1005" id="707507:3000">
+                <KeyedProperty propertyKey="395" id="707507:3001">
+                    <KeyFrameCallback frame="200" id="707507:3002"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1015" id="707507:3010">
+                <KeyedProperty propertyKey="395" id="707507:3011">
+                    <KeyFrameCallback frame="285" id="707507:3012"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1025" id="707507:3020">
+                <KeyedProperty propertyKey="395" id="707507:3021">
+                    <KeyFrameCallback frame="600" id="707507:3022"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1035" id="707507:3030">
+                <KeyedProperty propertyKey="395" id="707507:3031">
+                    <KeyFrameCallback frame="934" id="707507:3032"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1000" id="707507:2000">
+                <KeyedProperty propertyKey="18" id="707507:2001">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="707507:2002"/>
+                    <KeyFrameDouble value="1" frame="200" interpolationType="hold" id="707507:2003"/>
+                    <KeyFrameDouble value="0" frame="285" interpolationType="hold" id="707507:2004"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1010" id="707507:2010">
+                <KeyedProperty propertyKey="18" id="707507:2011">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="707507:2012"/>
+                    <KeyFrameDouble value="1" frame="285" interpolationType="hold" id="707507:2013"/>
+                    <KeyFrameDouble value="0" frame="600" interpolationType="hold" id="707507:2014"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1020" id="707507:2020">
+                <KeyedProperty propertyKey="18" id="707507:2021">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="707507:2022"/>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="hold" id="707507:2023"/>
+                    <KeyFrameDouble value="0" frame="934" interpolationType="hold" id="707507:2024"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="707507:1030" id="707507:2030">
+                <KeyedProperty propertyKey="18" id="707507:2031">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="hold" id="707507:2032"/>
+                    <KeyFrameDouble value="1" frame="934" interpolationType="hold" id="707507:2033"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+    <ComponentAsset artboardId="707507:1" name="rain" id="707507:5"/>
+</Rive>

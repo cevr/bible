@@ -1,0 +1,38 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="502313:40" clip="true" x="2100" y="0" width="1920" height="1080" styleId="502313:2" name="title" id="502313:1">
+        <Fill name="Background" id="502313:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="502313:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="502313:2"/>
+        <Node x="0" y="0" name="storyboard" id="502313:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="502313:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="502313:12">
+                    <Fill name="Fill" id="502313:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="502313:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="502313:12" text="title" name="beat" id="502313:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="502313:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="502313:17">
+                    <Fill name="Fill" id="502313:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="502313:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="502313:17" text="Title over a teal-to-mint sky above a cardboard city: Righteousness by Faith, in a rounded heavy sans, cream. A small grey figure on a rooftop looks up at it." name="brief" id="502313:20"/>
+            </Text>
+        </Node>
+        <StateMachine name="Play" id="502313:40">
+            <StateMachineLayer name="Layer" id="502313:41">
+                <AnyState x="400" y="-120" id="502313:42"/>
+                <ExitState x="600" y="-120" id="502313:43"/>
+                <EntryState x="0" y="0" id="502313:44">
+                    <StateTransition stateToId="502313:46" id="502313:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="502313:30" id="502313:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="180" name="main" id="502313:30"/>
+    </Artboard>
+    <ComponentAsset artboardId="502313:1" name="title" id="502313:5"/>
+</Rive>

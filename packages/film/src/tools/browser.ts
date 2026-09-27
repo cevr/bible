@@ -17,7 +17,8 @@ import {
   type Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
-import { ExportInfo, Probed } from '../core/schema.ts';
+import { ExportInfo } from '../core/schema.ts';
+import type { FilmHandle } from '../page/page.ts';
 import {
   BrowserFailed,
   BrowserMissing,
@@ -25,7 +26,6 @@ import {
   EncodeFailed,
   EncoderMissing,
   FrameFailed,
-  LookbookFailed,
   PageCrashed,
   PageError,
   PageLoadFailed,
@@ -33,7 +33,10 @@ import {
 
 export type FrameFormat = 'image/png' | 'image/jpeg';
 
-/** One player page in export mode. */
+/** What the page puts on `window.__film` (and, importing it, declares there). */
+export type PageHandle = FilmHandle;
+
+/** One film page: the Film drawn frame by frame (`page/page.ts`). */
 export interface FramePage {
   readonly info: ExportInfo;
   /** Draw frame `i` and return it encoded. */
@@ -41,10 +44,6 @@ export interface FramePage {
     i: number,
     format: FrameFormat,
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | FrameFailed>;
-  /** Draw frame `i` with the probe on and return every line of text and mark of ink it drew. */
-  readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
-  /** Compose the film's look-book and return it as a JPEG. */
-  readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
   /** Fail unless the page can encode the film at `scale`. */
   readonly encoder: (
     scale: number,
@@ -67,15 +66,15 @@ export interface FramePage {
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
 
 export interface BrowserService {
-  /** Open the player at `url` and wait for its export handle; the page closes with the scope. */
+  /** Open the film's page at `url` and wait for its handle; the page closes with the scope. */
   readonly open: (url: string) => Effect.Effect<FramePage, PageOpenError, Scope.Scope>;
 }
 
-/** How long the player may take to load its fonts and film. */
+/** How long the page may take to load the runtime and the film. */
 const LOAD_TIMEOUT_MS = 60_000;
 /** A frame that takes longer than this has hung. */
 const FRAME_TIMEOUT = Duration.minutes(2);
-/** The look-book and the contact sheet draw many frames in one call. */
+/** The contact sheet draws many frames in one call. */
 const SHEET_TIMEOUT = Duration.minutes(5);
 /** A chunk draws and encodes a few hundred frames in one call. */
 const ENCODE_TIMEOUT = Duration.minutes(5);
@@ -101,7 +100,8 @@ const launch = Effect.gen(function* () {
           '--disable-gpu-vsync',
           '--disable-frame-rate-limit',
           // The GPU process holds the hardware H.264 encoder a render encodes
-          // with; the 2D canvas stays in software, so frames draw as before.
+          // with; the 2D canvas stays in software, so a frame draws the same
+          // on every machine.
           '--enable-gpu',
           '--use-angle=metal',
           '--disable-accelerated-2d-canvas',
@@ -124,14 +124,14 @@ const launch = Effect.gen(function* () {
   });
 });
 
-/** A chunk from the page (`player/encode.ts`): the master, and the share copy if asked for. */
+/** A chunk from the page (`page/encode.ts`): the master, and the share copy if asked for. */
 const EncodedChunk = Schema.Struct({
   master: Schema.Uint8ArrayFromBase64,
   share: Schema.OptionFromOptionalKey(Schema.Uint8ArrayFromBase64),
 });
 export type EncodedChunk = typeof EncodedChunk.Type;
 
-/** What the page says of its encoder (`player/encode.ts`, `EncoderCheck`). */
+/** What the page says of its encoder (`page/encode.ts`, `EncoderCheck`). */
 const EncoderCheck = Schema.Union([
   Schema.TaggedStruct('Ready', {}),
   Schema.TaggedStruct('Missing', { reason: Schema.String }),
@@ -185,7 +185,6 @@ const openPage = (page: Page, url: string) =>
                 fps: film.fps,
                 duration: film.duration,
                 frames: film.frames,
-                audio: film.audio,
               }
             );
           }),
@@ -239,31 +238,6 @@ const openPage = (page: Page, url: string) =>
         (reason) => FrameFailed.make({ frame: i, reason }),
       );
 
-    const probe = (i: number) =>
-      guarded(
-        Effect.tryPromise({
-          try: () => page.evaluate((n) => window.__film?.probe(n), i),
-          catch: (cause) => FrameFailed.make({ frame: i, reason: String(cause) }),
-        }).pipe(
-          Effect.timeoutOrElse({
-            duration: FRAME_TIMEOUT,
-            orElse: () => Effect.fail(FrameFailed.make({ frame: i, reason: 'timed out' })),
-          }),
-        ),
-      ).pipe(
-        Effect.flatMap((boxes) =>
-          Schema.decodeUnknownEffect(Probed)(boxes).pipe(
-            Effect.mapError((error) => FrameFailed.make({ frame: i, reason: error.message })),
-          ),
-        ),
-      );
-
-    const lookbook = bytes(
-      () => page.evaluate(() => window.__film?.lookbook('image/jpeg')),
-      SHEET_TIMEOUT,
-      (reason) => LookbookFailed.make({ reason }),
-    );
-
     const encoder = (scale: number) =>
       guarded(
         Effect.tryPromise({
@@ -309,7 +283,7 @@ const openPage = (page: Page, url: string) =>
         (reason) => ContactFailed.make({ reason }),
       );
 
-    return { info, frame, probe, lookbook, encoder, encode, contact } satisfies FramePage;
+    return { info, frame, encoder, encode, contact } satisfies FramePage;
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

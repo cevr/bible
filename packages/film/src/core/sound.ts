@@ -1,15 +1,15 @@
 // Sound: a film's music and effects, declared as data and placed on the same
-// clock as the pictures. A music act starts at a scene; an effect fires at one
-// of a scene's named cues (the same cue its picture reads), or at a mark, so
-// re-recording a line moves its sounds with it. Pure — the score and mix
-// scripts read it without a DOM.
+// clock as the pictures. A music act starts at a scene; an effect fires at an
+// Event its scene's timeline fires (the moment the drawing names), or at a
+// mark, so re-recording a line or redrawing a scene moves its sounds with it.
+// Pure — the score and mix scripts read it without a DOM.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
   ActTooShort,
   CueInvalid,
   type SoundCueError,
-  UnknownCue,
+  UnknownEvent,
   UnknownMark,
   type UnknownScene,
 } from './errors.ts';
@@ -26,6 +26,12 @@ import {
   type SoundEffect,
 } from './schema.ts';
 
+/**
+ * Each scene's Events by name, in scene seconds: where the film plays each
+ * Event's first key (`eventTimes`). A film with no Rive project has none.
+ */
+export type EventTimes = ReadonlyMap<string, ReadonlyMap<string, number>>;
+
 /** The API refuses chunks shorter than this. */
 export const MIN_CHUNK_MS = 3000;
 
@@ -33,26 +39,20 @@ export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
   Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
 
 /** Where in its scene a cue lands, from the scene's start, before its offset. */
-const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => {
+const anchorOf = (
+  cue: Cue,
+  p: Placed,
+  events: EventTimes,
+): Result.Result<number, SoundCueError> => {
   const { scene } = cue;
-  const named = Option.fromNullishOr(cue.cue);
+  const event = Option.fromNullishOr(cue.event);
   const mark = Option.fromNullishOr(cue.mark);
-  const edge = Option.fromNullishOr(cue.edge);
-  if (Option.isSome(named) && Option.isSome(mark))
-    return Result.fail(CueInvalid.make({ scene, reason: 'names both cue and mark' }));
-  if (Option.isSome(edge) && Option.isNone(named))
-    return Result.fail(CueInvalid.make({ scene, reason: 'has an edge but names no cue' }));
-  if (Option.isSome(named)) {
-    const name = named.value;
-    const end = Option.contains(edge, 'end');
-    return Result.fromOption(
-      Option.map(Option.fromNullishOr(p.cues.get(name)), (c) => {
-        if (end) return c.end;
-        return c.start;
-      }),
-      () => UnknownCue.make({ scene, cue: name }),
+  if (Option.isSome(event) && Option.isSome(mark))
+    return Result.fail(CueInvalid.make({ scene, reason: 'names both an event and a mark' }));
+  if (Option.isSome(event))
+    return Result.fromOption(Option.fromNullishOr(events.get(scene)?.get(event.value)), () =>
+      UnknownEvent.make({ scene, event: event.value }),
     );
-  }
   if (Option.isSome(mark))
     return Result.fromOption(
       Option.map(Option.fromNullishOr(p.voice.marks.get(mark.value)), (m) => p.speechStart + m),
@@ -65,10 +65,11 @@ const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => 
 export const cueTime = (
   cue: Cue,
   placed: ReadonlyArray<Placed>,
+  events: EventTimes,
 ): Result.Result<number, SoundCueError> =>
   Result.gen(function* () {
     const p = yield* sceneOf(placed, cue.scene);
-    const anchor = yield* anchorOf(cue, p);
+    const anchor = yield* anchorOf(cue, p, events);
     return p.start + Option.getOrElse(Option.fromNullishOr(cue.offset), () => 0) + anchor;
   });
 

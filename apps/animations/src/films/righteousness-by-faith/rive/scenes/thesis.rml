@@ -1,0 +1,38 @@
+<Rive version="1" kind="fragment">
+    <Artboard isComponent="true" defaultStateMachineId="481213:40" clip="true" x="31500" y="0" width="1920" height="1080" styleId="481213:2" name="thesis" id="481213:1">
+        <Fill name="Background" id="481213:3">
+            <SolidColor colorValue="FFEFE6D2" name="Color" id="481213:4"/>
+        </Fill>
+        <LayoutComponentStyle name="Artboard Style" id="481213:2"/>
+        <Node x="0" y="0" name="storyboard" id="481213:10">
+            <Text x="96" y="72" sizingValue="autoWidth" name="Beat" id="481213:11">
+                <TextStylePaint fontSize="56" fontAssetId="881888:30" name="Beat style" id="481213:12">
+                    <Fill name="Fill" id="481213:13">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="481213:14"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="481213:12" text="thesis" name="beat" id="481213:15"/>
+            </Text>
+            <Text x="96" y="180" width="1728" sizingValue="autoHeight" wrapValue="wrap" name="Brief" id="481213:16">
+                <TextStylePaint fontSize="34" fontAssetId="881888:30" name="Brief style" id="481213:17">
+                    <Fill name="Fill" id="481213:18">
+                        <SolidColor colorValue="FF2A3440" name="Color" id="481213:19"/>
+                    </Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="481213:17" text="The held pause, then the answer writes itself under the question, the only other text: THE LORD OUR RIGHTEOUSNESS. Hold the whole courtroom in the light; the music rises alone for about thirty seconds while the camera eases back to the city and the two figures sit together on a rooftop under the landing sky." name="brief" id="481213:20"/>
+            </Text>
+        </Node>
+        <StateMachine name="Play" id="481213:40">
+            <StateMachineLayer name="Layer" id="481213:41">
+                <AnyState x="400" y="-120" id="481213:42"/>
+                <ExitState x="600" y="-120" id="481213:43"/>
+                <EntryState x="0" y="0" id="481213:44">
+                    <StateTransition stateToId="481213:46" id="481213:45"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="481213:30" id="481213:46"/>
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation fps="60" duration="194" name="main" id="481213:30"/>
+    </Artboard>
+    <ComponentAsset artboardId="481213:1" name="thesis" id="481213:5"/>
+</Rive>
