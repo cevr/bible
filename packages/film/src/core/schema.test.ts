@@ -97,6 +97,12 @@ describe('Timed', () => {
     expect(decodes('{"id":"a","timeline":{"walk":{"mark":"m","dur":1,"until":"n"}}}')).toBe(false);
   });
 
+  test('a stagger is a share of the cue, 0 to 1', () => {
+    expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","dur":1,"stagger":0.5}}}')).toBe(true);
+    expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","stagger":1.2}}}')).toBe(false);
+    expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","stagger":-0.1}}}')).toBe(false);
+  });
+
   test('knobs are numbers or points, nothing else', () => {
     expect(decodes('{"id":"a","knobs":{"handY":800,"quoteAt":[960,170]}}')).toBe(true);
     expect(decodes('{"id":"a","knobs":{"handY":"800"}}')).toBe(false);

@@ -12,6 +12,18 @@ export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
 
 /**
+ * 0→1 for item `i` of `n` across a staggered cue at scene time `t`, eased by
+ * the cue's ease. The items' starts spread evenly over the cue's `stagger`
+ * share, the first at its start, and each lasts the rest, the last ending
+ * with the cue; so a `dur` edit scales every item. One item is the whole cue.
+ */
+export const staggerProgress = (cue: ResolvedCue, t: number, i: number, n: number): number => {
+  if (n <= 1) return cueProgress(cue, t);
+  const lead = (cue.stagger * i) / (n - 1);
+  return progress(t, cue.start + cue.dur * lead, cue.dur * (1 - cue.stagger), ease[cue.ease]);
+};
+
+/**
  * Keyframes across a cue at scene time `t`. Each key's time is a fraction of
  * the cue (0 its start, 1 its end), so a `dur` edit stretches the motion; a
  * key that names no ease takes the cue's, so an `ease` edit reshapes it.
@@ -47,6 +59,7 @@ export const patchSpan = (span: Span, patch: CuePatch): Span => ({
   offset: patch.offset ?? span.offset,
   ...endField(span, patch),
   ease: patch.ease ?? span.ease,
+  stagger: patch.stagger ?? span.stagger,
 });
 
 /** What a timeline resolves against. `marks` are speech-relative, as narration gives them. */
@@ -82,7 +95,13 @@ export const resolveTimeline = (
     const start = anchor(name, span) + (span.offset ?? 0);
     visiting.delete(name);
     const dur = length(name, span, start);
-    const cue = { start, end: start + dur, dur, ease: span.ease ?? DEFAULT_EASE };
+    const cue = {
+      start,
+      end: start + dur,
+      dur,
+      ease: span.ease ?? DEFAULT_EASE,
+      stagger: span.stagger ?? 0,
+    };
     out.set(name, cue);
     return cue;
   };

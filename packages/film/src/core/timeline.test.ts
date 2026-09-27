@@ -5,7 +5,14 @@ import type { Timings } from './schema.ts';
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
 import { DEFAULT_EASE, ease } from './time.ts';
-import { type SceneClock, cueKeys, cueProgress, patchSpan, resolveTimeline } from './timeline.ts';
+import {
+  type SceneClock,
+  cueKeys,
+  cueProgress,
+  patchSpan,
+  resolveTimeline,
+  staggerProgress,
+} from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
@@ -26,6 +33,7 @@ describe('timeline', () => {
       end: 0.5 + 2 + 0.9 + 0.35,
       dur: 0.35,
       ease: DEFAULT_EASE,
+      stagger: 0,
     });
   });
 
@@ -45,7 +53,7 @@ describe('timeline', () => {
       [0.8, 1.5, 'inOutCubic'],
       [1, 1.45],
     ] as const;
-    const short = { start: 2, end: 2.5, dur: 0.5, ease: DEFAULT_EASE } as const;
+    const short = { start: 2, end: 2.5, dur: 0.5, ease: DEFAULT_EASE, stagger: 0 } as const;
     const long = { ...short, end: 3, dur: 1 };
     // The same fraction of each cue reads the same value; the same second does not.
     expect(cueKeys(long, 2.8, swing)).toBe(cueKeys(short, 2.4, swing));
@@ -59,7 +67,7 @@ describe('timeline', () => {
       [0, 0],
       [1, 1],
     ] as const;
-    const cue = { start: 0, end: 2, dur: 2, ease: 'inQuad' } as const;
+    const cue = { start: 0, end: 2, dur: 2, ease: 'inQuad', stagger: 0 } as const;
     expect(cueKeys(cue, 1, rise)).toBe(0.25);
     expect(cueKeys({ ...cue, ease: 'linear' }, 1, rise)).toBe(0.5);
     expect(
@@ -71,7 +79,7 @@ describe('timeline', () => {
   });
 
   test('cueKeys on an instant cue jumps to its last value at the cue', () => {
-    const cue = { start: 1, end: 1, dur: 0, ease: DEFAULT_EASE } as const;
+    const cue = { start: 1, end: 1, dur: 0, ease: DEFAULT_EASE, stagger: 0 } as const;
     const step = [
       [0, 3],
       [1, 7],
@@ -79,8 +87,38 @@ describe('timeline', () => {
     expect([cueKeys(cue, 0.99, step), cueKeys(cue, 1, step)]).toEqual([3, 7]);
   });
 
+  test('a staggered cue spreads n items over its stagger share; each lasts the rest', () => {
+    const drop = { start: 2, end: 3.4, dur: 1.4, ease: 'linear', stagger: 0.5 } as const;
+    // Three items start at 0, 0.25 and 0.5 of the cue (2, 2.35, 2.7 s), each lasting 0.7 s.
+    expect(staggerProgress(drop, 2.35, 0, 3)).toBeCloseTo(0.5);
+    expect(staggerProgress(drop, 2.35, 1, 3)).toBe(0);
+    expect(staggerProgress(drop, 2.7, 1, 3)).toBeCloseTo(0.5);
+    expect(staggerProgress(drop, 3.05, 1, 3)).toBeCloseTo(1);
+    expect(staggerProgress(drop, 3.4, 2, 3)).toBeCloseTo(1);
+    expect(staggerProgress(drop, 3.5, 2, 3)).toBe(1);
+    // A dur edit scales every item: item 1 now starts at 2.7 and lasts 1.4 s.
+    const longer = { ...drop, end: 4.8, dur: 2.8 };
+    expect(staggerProgress(longer, 3.4, 1, 3)).toBeCloseTo(0.5);
+    // Each item eases by the cue's ease.
+    expect(staggerProgress({ ...drop, ease: 'inQuad' }, 2.35, 0, 3)).toBeCloseTo(0.25);
+  });
+
+  test('with no stagger, or one item, every item is the whole cue', () => {
+    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad', stagger: 0 } as const;
+    expect(staggerProgress(cue, 2, 4, 9)).toBe(cueProgress(cue, 2));
+    expect(staggerProgress({ ...cue, stagger: 0.6 }, 2, 0, 1)).toBe(cueProgress(cue, 2));
+  });
+
+  test('a span’s stagger resolves onto its cue, 0 when it declares none', () => {
+    const cues = resolveTimeline(
+      { drop: { mark: 'fiction', dur: 1.4, stagger: 0.5 }, lift: { after: 'drop' } },
+      clock,
+    );
+    expect([cues.get('drop')?.stagger, cues.get('lift')?.stagger]).toEqual([0.5, 0]);
+  });
+
   test('cueProgress eases by the cue’s own ease', () => {
-    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad' } as const;
+    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad', stagger: 0 } as const;
     // Halfway through: inQuad gives 0.25.
     expect(cueProgress(cue, 2)).toBeCloseTo(0.25);
     expect(cueProgress({ ...cue, ease: DEFAULT_EASE }, 2.5)).toBeCloseTo(ease.inOutCubic(0.75));
@@ -116,7 +154,13 @@ describe('timeline', () => {
       },
       clock,
     );
-    expect(cues.get('open')).toEqual({ start: 0.1, end: 0.1, dur: 0, ease: DEFAULT_EASE });
+    expect(cues.get('open')).toEqual({
+      start: 0.1,
+      end: 0.1,
+      dur: 0,
+      ease: DEFAULT_EASE,
+      stagger: 0,
+    });
     expect(cues.get('voice')?.start).toBe(0.5);
     expect(cues.get('hush')?.start).toBeCloseTo(8.7);
     expect(cues.get('close')?.end).toBeCloseTo(9.4);

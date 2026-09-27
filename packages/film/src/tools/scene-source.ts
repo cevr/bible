@@ -8,7 +8,7 @@
 // (`0.4`, `-0.2`), a string (`'inQuad'`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
 // the lab could not say what it would be changing. A missing `offset`, `dur`,
-// `until` or `ease` is added after the span's anchor, in that order; a span
+// `until`, `ease` or `stagger` is added after the span's anchor, in that order; a span
 // ends one way, so a `dur` written replaces its `until`, and an `until` its `dur`.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
@@ -49,6 +49,7 @@ export interface EditableCue {
   readonly dur: FieldState;
   readonly until: FieldState;
   readonly ease: FieldState;
+  readonly stagger: FieldState;
 }
 
 export interface EditableKnob {
@@ -70,7 +71,9 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'after', 'with', 'scene'];
-const TIMING = ['offset', 'dur', 'until', 'ease'] satisfies ReadonlyArray<keyof CuePatch>;
+const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
+  keyof CuePatch
+>;
 type TimingKey = (typeof TIMING)[number];
 
 /** Seconds and pixels to the thousandth: what the lab writes (and never `-0`). */
@@ -388,6 +391,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     dur: state('dur', isNumberLiteral),
     until: state('until', isStringLiteral),
     ease: state('ease', isStringLiteral),
+    stagger: state('stagger', isNumberLiteral),
   };
 };
 
@@ -447,6 +451,8 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
       return Option.map(Option.fromUndefinedOr(patch.until), stringText);
     case 'ease':
       return Option.map(Option.fromUndefinedOr(patch.ease), stringText);
+    case 'stagger':
+      return Option.map(Option.fromUndefinedOr(patch.stagger), numberText);
   }
 };
 
@@ -508,7 +514,7 @@ const replaceEnd = (
   });
 
 /**
- * Set a cue's `offset`, `dur`, `until` or `ease` in the drawing exported as `name`: the
+ * Set a cue's `offset`, `dur`, `until`, `ease` or `stagger` in the drawing exported as `name`: the
  * value's text replaced where it is a literal, or the field added after the
  * span's anchor. The result is the whole new source.
  */
@@ -605,6 +611,7 @@ export const readCue = (
         dur: read('dur'),
         until: read('until'),
         ease: read('ease'),
+        stagger: read('stagger'),
       }),
       (f): CuePatch => ({
         ...Option.match(Option.flatMap(f.offset, numberOf), {
@@ -622,6 +629,10 @@ export const readCue = (
         ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
           onNone: () => ({}),
           onSome: (ease) => ({ ease }),
+        }),
+        ...Option.match(Option.flatMap(f.stagger, numberOf), {
+          onNone: () => ({}),
+          onSome: (stagger) => ({ stagger }),
         }),
       }),
     );

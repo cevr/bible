@@ -19,7 +19,7 @@ import {
   stroke,
   write,
 } from '@bible/film/canvas';
-import { keys, lerp, rng } from '@bible/film/core';
+import { lerp, rng } from '@bible/film/core';
 import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
 import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
 
@@ -39,7 +39,7 @@ const SHEETS = (() => {
 
 export const cold = drawing({
   timeline: {
-    drop: { mark: 'evidence', dur: 1.55 },
+    drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
     bow: { mark: 'did', dur: 0.35 },
     lean: { mark: 'judge', dur: 0.4 },
     gavel: { mark: 'righteous', offset: -0.37, dur: 0.59 },
@@ -204,16 +204,13 @@ export const cold = drawing({
           lift: 1.3,
           draw: () => {
             contact(ctx, ACCUSED[0], ACCUSED[1] + 4, 170);
-            const drop = f.cue('drop');
-            const landed = SHEETS.filter((_, i) => f.t >= drop.start + i * 0.15).length;
+            // The sheets fall one after another across `drop`, each eased by its ease.
+            const landed = SHEETS.filter((_, i) => f.stagger('drop', i, SHEETS.length) > 0).length;
             if (landed > 0) contact(ctx, 765, 864, 150 + 10 * landed);
             SHEETS.forEach((s, i) => {
-              const t0 = drop.start + i * 0.15;
-              if (f.t < t0) return;
-              const fall = keys(f.t - t0, [
-                [0, -300],
-                [0.2, 0, 'inCubic'],
-              ]);
+              const k = f.stagger('drop', i, SHEETS.length);
+              if (k <= 0) return;
+              const fall = lerp(-300, 0, k);
               at(ctx, { x: s.x, y: s.y + fall, rot: s.rot }, () =>
                 piece(ctx, rectShape(-75, -5.5, 150, 11), C.paper, sub(f.hand('sheet'), i), {
                   line: 2,

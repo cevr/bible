@@ -132,9 +132,13 @@ other, and a lab `dur` write replaces its `until`. Read it in
 `f.at(name)` (0→1 across it, eased by the span's `ease`), or keyframe a
 motion across it with `f.keys(name, [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`:
 each key's time is a fraction of the cue, so a `dur` edit stretches the motion,
-and a key that names no ease takes the span's. Plain `keys(t, …)` is for
-ornament. Wrap the drawing in `drawing({ timeline,
-draw })` so an undeclared name fails to compile, in `f.cue`/`f.at`/`f.keys` and in the
+and a key that names no ease takes the span's. Items that follow one another
+across a cue (sheets falling, stains spreading) read `f.stagger(name, i, n)`:
+the span's `stagger` (0 to 1) is the share of the cue their starts spread over,
+and each item lasts the rest, eased by the span's `ease`, so a `dur` edit
+scales every item (`drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 }`).
+Plain `keys(t, …)` is for ornament. Wrap the drawing in `drawing({ timeline,
+draw })` so an undeclared name fails to compile, in `f.cue`/`f.at`/`f.keys`/`f.stagger` and in the
 timeline's own `after`/`with`. `layout()` resolves every cue
 once; `cues` prints them and fails when one ends after its scene. A span's
 easing is data too (`{ mark: 'fiction', dur: 0.35, ease: 'inQuad' }`), and
@@ -184,24 +188,24 @@ first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
 with the registry in `src/films/index.ts`. Scenes import from three entry
 points:
 
-| Entry point          | Module          | What it gives a scene                                                                                                           |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`                   |
-|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                        |
-|                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                                    |
-|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                          |
-|                      | `random.ts`     | seeded hash and noise                                                                                                           |
-|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                   |
-| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, keys, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
-|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                           |
-|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                          |
-|                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                        |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                             |
-|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                         |
-|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                        |
-|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)               |
-|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                                 |
-| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                        |
+| Entry point          | Module          | What it gives a scene                                                                                                                    |
+| -------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`                            |
+|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                                 |
+|                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                                             |
+|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                                   |
+|                      | `random.ts`     | seeded hash and noise                                                                                                                    |
+|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                            |
+| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, keys, stagger, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
+|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                                    |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                                   |
+|                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                 |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                                      |
+|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                  |
+|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                                 |
+|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                        |
+|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                                          |
+| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                                 |
 
 `core` is pure and DOM-free, so the scripts and tests read it without a
 browser.

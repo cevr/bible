@@ -170,10 +170,18 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
 export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
+/** A share of a cue, from none of it to all of it. */
+const Share = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }));
+
 const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
   /** How `f.at(name)` eases across the cue. Defaults to `DEFAULT_EASE` (`time.ts`). */
   ease: Schema.optionalKey(EaseName),
+  /**
+   * The share of the cue over which `f.stagger(name, i, n)` spreads its items'
+   * starts; each item lasts the rest. Defaults to 0: every item is the whole cue.
+   */
+  stagger: Schema.optionalKey(Share),
 };
 
 /** A span that ends by its length. */
@@ -568,10 +576,11 @@ export const CuePatch = Schema.Struct({
   /** End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`. */
   until: Schema.optionalKey(Schema.String),
   ease: Schema.optionalKey(EaseName),
+  stagger: Schema.optionalKey(Share),
 })
   .check(
     Schema.makeFilter(
-      (p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, until, ease',
+      (p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, until, ease, stagger',
     ),
   )
   .check(
@@ -590,6 +599,8 @@ export const ResolvedCue = Schema.Struct({
   end: Schema.Finite,
   dur: Schema.Finite,
   ease: EaseName,
+  /** The span's `stagger`, 0 when it declares none. */
+  stagger: Share,
 });
 export type ResolvedCue = typeof ResolvedCue.Type;
 
@@ -628,6 +639,7 @@ export const SceneSource = Schema.Struct({
       dur: FieldState,
       until: FieldState,
       ease: FieldState,
+      stagger: FieldState,
     }),
   ),
   knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),

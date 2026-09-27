@@ -25,7 +25,7 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { cueKeys, cueProgress, resolveTimeline } from '../core/timeline.ts';
+import { cueKeys, cueProgress, resolveTimeline, staggerProgress } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
@@ -70,6 +70,12 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * motion: `f.keys('gavel', [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`.
    */
   keys(name: C, frames: ReadonlyArray<Key>): number;
+  /**
+   * 0→1 for item `i` of `n` across a named cue (`staggerProgress`), eased by
+   * the cue's `ease`: the items' starts spread over the span's `stagger` share
+   * and each lasts the rest, so a `dur` edit scales every item.
+   */
+  stagger(name: C, i: number, n: number): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
@@ -333,6 +339,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       },
       at: (name) => cueProgress(frame.cue(name), t),
       keys: (name, frames) => cueKeys(frame.cue(name), t, frames),
+      stagger: (name, i, n) => staggerProgress(frame.cue(name), t, i, n),
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
