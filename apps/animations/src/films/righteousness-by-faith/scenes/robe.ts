@@ -18,7 +18,22 @@ import {
   stroke,
 } from '@bible/film/canvas';
 import { clamp, ease, keys, lerp } from '@bible/film/core';
-import { C, blob, glow, person, piece, rounded, sky, sub } from '../kit.ts';
+import {
+  C,
+  ROBE,
+  accuser,
+  blob,
+  christ,
+  court,
+  courtWall,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  sub,
+} from '../kit.ts';
 
 const JOSHUA: Pt = [760, 950];
 const LOOM: Pt = [1045, 560];
@@ -43,7 +58,6 @@ const TUNIC_STAINS = [
 const CHEEK: Pt = [-19, -160];
 const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
 
-/** The court's pillars: where each stands, and its seed. */
 /** Where the flakes that lifted from him hang in the air. */
 const FLAKES: ReadonlyArray<Pt> = [
   [440, 330],
@@ -53,73 +67,6 @@ const FLAKES: ReadonlyArray<Pt> = [
   [1400, 460],
   [1520, 530],
 ];
-
-/** The shape of a robe, for the loom's cloth and the icon, centred on (0, 0) at size 1. */
-const ROBE: Pt[] = [
-  [-120, -330],
-  [120, -330],
-  [330, -210],
-  [330, -80],
-  [200, -110],
-  [240, 330],
-  [-240, 330],
-  [-200, -110],
-  [-330, -80],
-  [-330, -210],
-];
-
-const courtWall = (ctx: CanvasRenderingContext2D, w: number, h: number) =>
-  sky(ctx, w, h, [
-    [0, C.glow],
-    [0.55, C.peachLow],
-    [1, C.boardLight],
-  ]);
-
-const accuser = (
-  ctx: CanvasRenderingContext2D,
-  f: { hand: (k: string) => { boil: number; seed: number } },
-) => {
-  glow(ctx, 20, -300, 380, C.boardDeep, 0.4);
-  const shadow = '#5f5a55';
-  piece(
-    ctx,
-    [
-      [-40, -370],
-      [40, -370],
-      [74, -6],
-      [-74, -6],
-    ],
-    shadow,
-    f.hand('accuserBody'),
-    { line: 4 },
-  );
-  at(ctx, { x: -62, y: -250, rot: 0.12 }, () =>
-    piece(ctx, rounded(0, 0, 26, 190, 12), shadow, f.hand('accuserArm'), { line: 3.5 }),
-  );
-  at(ctx, { x: 0, y: -420 }, () => {
-    piece(
-      ctx,
-      [
-        [0, -70],
-        [46, -10],
-        [30, 50],
-        [-30, 50],
-        [-46, -10],
-      ],
-      shadow,
-      f.hand('accuserHead'),
-      {
-        line: 4,
-      },
-    );
-    ctx.fillStyle = C.outline;
-    for (const x of [-14, 16]) {
-      ctx.beginPath();
-      ctx.ellipse(x, 6, 3.5, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-};
 
 /** A little loom, as a shape of light. */
 const loomFrame = (
@@ -132,17 +79,6 @@ const loomFrame = (
   for (const y of [-86, 86])
     piece(ctx, rounded(0, y * s, 170 * s, 16 * s, 4 * s), C.gold, hand(`beam${y}`), { line: 2.5 });
 };
-
-const iconDisc = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  hand: { boil: number; seed: number },
-  inner: () => void,
-) =>
-  at(ctx, { x, y: 0 }, () => {
-    piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand, { line: 6 });
-    inner();
-  });
 
 export const robe = drawing({
   timeline: {
@@ -186,58 +122,25 @@ export const robe = drawing({
       };
       courtWall(ctx, w, h);
       camera(ctx, cam, w, h, () => {
-        // The high window with a peach sky and a low sun, and its light.
-        piece(ctx, rounded(LOOM[0], 220, 230, 260, 20), C.peachTop, hand('window'), { line: 5 });
-        piece(ctx, ellipseShape(LOOM[0], 272, 39, 39), C.gold, hand('sun'), { line: 0 });
-        ctx.save();
-        ctx.globalAlpha *= 0.33;
-        ctx.fillStyle = C.glow;
-        ctx.beginPath();
-        ctx.moveTo(LOOM[0] - 100, 352);
-        ctx.lineTo(LOOM[0] + 100, 352);
-        ctx.lineTo(LOOM[0] + 330, 960);
-        ctx.lineTo(LOOM[0] - 330, 960);
-        ctx.fill();
-        ctx.restore();
-        for (const [x, k] of [
-          [150, 34],
-          [1790, 35],
-        ] as const)
-          piece(ctx, rectShape(x - 65, 60, 130, 1000), C.board, sub(hand('pillar'), k), {
-            line: 0,
-            torn: 3,
-          });
-        piece(ctx, rectShape(-40, 935, 2000, 160), C.boardShade, hand('floor'), {
-          line: 0,
-          torn: 4,
-        });
-        piece(ctx, rectShape(1360, 750, 480, 200), C.board, hand('bench'), { line: 4 });
-        piece(ctx, rectShape(1340, 723, 520, 34), C.boardDeep, hand('benchTop'), { line: 4 });
-
-        at(ctx, { x: 300, y: 950, scale: 0.9 }, () => accuser(ctx, f));
+        court(ctx, hand);
+        at(ctx, { x: 300, y: 950, scale: 0.9 }, () => accuser(ctx, hand));
 
         // Christ, in white and gold, reaching out on "clothe".
         const reachOut = f.at('reachOut');
         glow(ctx, 1330, 950 - 250, 310, C.glow, 0.8);
-        at(ctx, { x: 1330, y: 950, scale: 2.1 }, () => {
-          person(
+        at(ctx, { x: 1330, y: 950, scale: 2.1 }, () =>
+          christ(
             ctx,
             {
-              body: C.robe,
-              shade: C.robe,
-              garment: 'robe',
               tilt: -0.06 * reachOut,
               look: [-3, 1],
               browTilt: 0.15,
               handL: [lerp(-30, -110, reachOut), lerp(-58, -118, reachOut)],
               handR: [30, -58],
             },
-            hand('christ'),
-          );
-          at(ctx, { x: 0, y: -90, rot: -0.45 }, () =>
-            piece(ctx, rounded(0, 0, 92, 12, 3), C.gold, hand('sash'), { line: 2 }),
-          );
-        });
+            hand,
+          ),
+        );
 
         // Joshua, the specks going from his skin.
         at(ctx, { x: JOSHUA[0], y: JOSHUA[1], scale: JS }, () => {
@@ -527,60 +430,7 @@ export const robe = drawing({
         [1, C.peachLow],
       ]);
       at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
-        iconDisc(ctx, -440, hand('iconWord'), () => {
-          piece(
-            ctx,
-            [
-              [-80, -48],
-              [80, -48],
-              [80, 40],
-              [-20, 40],
-              [-54, 76],
-              [-46, 40],
-              [-80, 40],
-            ],
-            C.gold,
-            hand('bubble'),
-            { line: 5 },
-          );
-          for (let i = 0; i < 3; i++)
-            piece(
-              ctx,
-              rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-              C.ink,
-              sub(hand('lines'), i),
-              {
-                line: 0,
-                shadow: 0,
-              },
-            );
-        });
-        iconDisc(ctx, 0, hand('iconRobe'), () => {
-          glow(ctx, 0, 0, 260, C.glow, 0.4 + 0.6 * f.at('iconGlow'));
-          at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
-            piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { line: 18 }),
-          );
-        });
-        iconDisc(ctx, 440, hand('iconHeart'), () => {
-          piece(
-            ctx,
-            [
-              [0, -54],
-              [40, -94],
-              [96, -60],
-              [84, 4],
-              [0, 96],
-              [-84, 4],
-              [-96, -60],
-              [-40, -94],
-            ],
-            C.boardLight,
-            hand('heart'),
-            { line: 5 },
-          );
-          for (const x of [-24, 24])
-            piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
-        });
+        icons(ctx, hand, [0, 0.4 + 0.6 * f.at('iconGlow'), 0]);
       });
       ctx.restore();
     }
