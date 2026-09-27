@@ -1,8 +1,10 @@
-// The lab's locator against the real film: every scene that declares a
+// The lab's locator against the real films: every scene that declares a
 // timeline or knobs resolves to exactly one `drawing({...})` literal in its
 // scene file, found by the identity of the object the scene reads, and the
 // scene files are exactly as oxfmt leaves them (so a lab write, which runs
-// oxfmt on the file, changes nothing but the value it writes).
+// oxfmt on the file, changes nothing but the value it writes). The films are
+// the registry's (`src/films/index.ts`): a film added there is covered here
+// without a line of this file changing.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -12,22 +14,41 @@ import {
   type Slot,
   StaticCheck,
   drawingSites,
+  importFilmModule,
   parseModule,
 } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Layer, Option, Path, Predicate, Result } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FILMS } from '../server.ts';
-import { scenes as v1Scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
-import { scenes as rbfScenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
+import { films } from '../src/films/index.ts';
 
+/** Every film the player and the renderer know: the registry's keys, never a list kept here. */
+const FILM_NAMES = Object.keys(films);
+/** The film the checks of one service (not of every film) run on. */
 const FILM = 'righteousness-by-faith-v1';
-/** Every film, so a scene the lab cannot locate fails here and not in a review. */
-const ALL = [
-  [FILM, v1Scenes],
-  ['righteousness-by-faith', rbfScenes],
-] as const;
 const CLI = new URL('../cli.ts', import.meta.url).pathname;
+
+/** A film's `scenes/index.ts`: each scene's id, and its timeline and knobs where it declares them. */
+const ScenesModule = Schema.Struct({
+  scenes: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      timeline: Schema.optionalKey(Schema.Unknown),
+      knobs: Schema.optionalKey(Schema.Unknown),
+    }),
+  ),
+});
+type Scene = (typeof ScenesModule.Type)['scenes'][number];
+
+/** The film's scenes, from its `scenes/index.ts` in the films folder the tools read. */
+const scenesOf = Effect.fn('test.scenesOf')(function* (film: string) {
+  const path = yield* Path.Path;
+  const module = yield* Effect.promise(() =>
+    importFilmModule(path.join(FILMS, film, 'scenes', 'index.ts')),
+  );
+  return (yield* Schema.decodeUnknownEffect(ScenesModule)(module)).scenes;
+});
 
 const Sources = SceneSources.layer.pipe(
   Layer.provide(FilmRepo.layer(FILMS)),
@@ -36,7 +57,14 @@ const Sources = SceneSources.layer.pipe(
 );
 
 describe('scene sources', () => {
-  for (const [film, scenes] of ALL)
+  it.effect('the registry names the films these tests cover', () =>
+    Effect.sync(() => {
+      expect(FILM_NAMES).toContain(FILM);
+      expect(FILM_NAMES.length).toBeGreaterThan(1);
+    }),
+  );
+
+  for (const film of FILM_NAMES)
     it.effect.layer(Sources)(
       `${film}: every scene with a timeline or knobs resolves to one literal`,
       () =>
@@ -44,10 +72,10 @@ describe('scene sources', () => {
           const sources = yield* SceneSources;
           const fs = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
+          const scenes = yield* scenesOf(film);
           const located = yield* sources.locate(film);
           expect(located.unlocated.map((u) => u.message)).toEqual([]);
-          const declares = (s: (typeof scenes)[number], key: 'timeline' | 'knobs') =>
-            Predicate.hasProperty(s, key);
+          const declares = (s: Scene, key: 'timeline' | 'knobs') => Predicate.hasProperty(s, key);
           const editable = scenes.filter((s) => declares(s, 'timeline') || declares(s, 'knobs'));
           expect([...located.sites.keys()].sort()).toEqual(editable.map((s) => s.id).sort());
           for (const scene of editable) {
@@ -77,6 +105,18 @@ describe('scene sources', () => {
         }),
     );
 
+  for (const film of FILM_NAMES)
+    it.effect.layer(Sources)(`${film}: oxfmt leaves every scene file as it is`, () =>
+      Effect.gen(function* () {
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const path = yield* Path.Path;
+        const exit = yield* spawner.exitCode(
+          ChildProcess.make('bunx', ['oxfmt', '--check', path.join(FILMS, film, 'scenes')]),
+        );
+        expect(Number(exit)).toBe(0);
+      }),
+    );
+
   it.effect.layer(Sources)('a scene with nothing to edit is refused by name', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip((yield* SceneSources).site(FILM, 'no-such-scene'));
@@ -94,16 +134,5 @@ describe('scene sources', () => {
       expect(findings.filter((f) => f.level === 'error')).toEqual([]);
       expect(path.basename(CLI)).toBe('cli.ts');
     }).pipe(Effect.provide(StaticCheck.layer(['bun', CLI]))),
-  );
-
-  it.effect.layer(Sources)('oxfmt leaves every scene file as it is', () =>
-    Effect.gen(function* () {
-      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const path = yield* Path.Path;
-      const exit = yield* spawner.exitCode(
-        ChildProcess.make('bunx', ['oxfmt', '--check', path.join(FILMS, FILM, 'scenes')]),
-      );
-      expect(Number(exit)).toBe(0);
-    }),
   );
 });
