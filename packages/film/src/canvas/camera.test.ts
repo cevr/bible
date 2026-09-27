@@ -138,6 +138,16 @@ describe('multiplane', () => {
     expect(r.veils).toHaveLength(2);
   });
 
+  test('hazes the nearest plane too when it stands beyond the focal plane', () => {
+    const r = recorder();
+    shoot(r, { x: 960, y: 540 }, { a: 3, b: 2 }, [0, 0], { haze: '#fff', thickness: 0.5 });
+    // Nothing stands at z 1, yet the air from z 3 to 1 still lies over a,
+    // and the air from z 2 to 1 over b: one unit past the focal plane shows 1 - e^-0.5.
+    const through = r.veils.reduce((t, v) => t * (1 - v), 1);
+    expect(through).toBeCloseTo(Math.exp(-1));
+    expect(r.veils.at(-1)).toBeCloseTo(1 - Math.exp(-0.5));
+  });
+
   test('softens planes off the focal plane only', () => {
     const r = recorder();
     shoot(r, { x: 960, y: 540 }, { focal: 1, far: 3 }, [0, 0], { blur: 2 });
