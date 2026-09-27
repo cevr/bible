@@ -150,6 +150,48 @@ describe('film notes', () => {
   );
 
   it.live(
+    'a reply prints what the user said since the agent last replied: new notes and user replies',
+    () =>
+      Effect.gen(function* () {
+        const notes = yield* NotesStore;
+        const lab = yield* labDir;
+        yield* handNote('the hand sits too low');
+        // The agent's first reply: its cursor is 0, and the only note is the one it answers,
+        // whose line it already printed.
+        const first = yield* cli(lab, 'notes', 'reply', film, 'n1', 'raised it');
+        expect(first.exitCode).toBe(0);
+        expect(first.stdout.trim().split('\n').map(head3)).toEqual([
+          'note id=n1 seq=2',
+          'cursor seq=2',
+        ]);
+        // While the agent worked: a user reply on the first note, and two new notes (a note's
+        // id is its change number: n4, n5).
+        yield* notes.reply(film, 'n1', { by: 'user', text: 'lower still', still: Option.none() });
+        yield* handNote('and the cup');
+        yield* handNote('and the saucer');
+        const second = yield* cli(lab, 'notes', 'reply', film, 'n4', 'moved the cup');
+        const lines = second.stdout.trim().split('\n');
+        // The note it answered, then what came past its last reply (seq 2) but that one, then
+        // the cursor.
+        expect(lines.map(head3)).toEqual([
+          'note id=n4 seq=6',
+          'reply id=n1 seq=3',
+          'note id=n5 seq=5',
+          'cursor seq=6',
+        ]);
+        expect(lines[1]).toContain('by=user');
+        expect(lines[1]).toContain('text="lower still"');
+        // --since picks the cursor instead: past 6, nothing new.
+        const since = yield* cli(lab, 'notes', 'reply', film, 'n1', 'ok', '--since', '6');
+        expect(since.stdout.trim().split('\n').map(head3)).toEqual([
+          'note id=n1 seq=7',
+          'cursor seq=7',
+        ]);
+      }).pipe(Effect.provide(LabStore)),
+    spawnBudget(3),
+  );
+
+  it.live(
     '--watch prints each new note and user reply once, and not the agent’s',
     () =>
       Effect.gen(function* () {

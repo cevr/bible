@@ -11,7 +11,7 @@
 //   film doctor
 //   film lab <film>
 //   film notes <film> [--watch] [--since n]
-//   film notes reply <film> <id> <text> [--still file.png]
+//   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
@@ -37,6 +37,7 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { scenesOf } from '../core/layout.ts';
+import { eventsSince } from '../core/notes.ts';
 import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
@@ -58,7 +59,7 @@ import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
-import { cursorLine, noteLine, replyLine, watchLine } from './notes-lines.ts';
+import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { RenderJob, sceneSpan } from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
@@ -463,21 +464,41 @@ const notesReply = Command.make(
       Flag.optional,
       Flag.withDescription('a PNG to show with the reply: the frame after the change'),
     ),
+    since: Flag.Int('since').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "print what came past this cursor instead of past the agent's previous reply",
+      ),
+    ),
   },
   Effect.fn('film.notes.reply')(function* (input) {
     const fs = yield* FileSystem.FileSystem;
+    const store = yield* NotesStore;
+    const at = store.paths(input.film);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
       onSome: (file) => Effect.map(fs.readFile(file), Option.some),
     });
-    const note = yield* (yield* NotesStore).reply(input.film, input.id, {
-      by: 'agent',
-      text: input.text,
-      still,
+    // Where the agent left off, read before its reply moves it.
+    const cursor = yield* Option.match(input.since, {
+      onNone: () => Effect.map(store.read(input.film), agentCursor),
+      onSome: (since) => Effect.succeed(since),
     });
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
+    const note = yield* store.reply(input.film, input.id, { by: 'agent', text: input.text, still });
+    yield* Console.log(noteLine(at, note, note.changed));
+    // What the user said while the agent worked: new notes and user replies past its cursor,
+    // but the note it just answered, whose line is above.
+    const news = eventsSince(yield* store.read(input.film), cursor);
+    for (const event of news.events)
+      if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
+        yield* Effect.forEach(Option.toArray(eventLine(at, event)), Console.log);
+    yield* Console.log(cursorLine(news.cursor));
   }),
-).pipe(Command.withDescription("Reply to a note as the agent; it shows in the lab's thread"));
+).pipe(
+  Command.withDescription(
+    "Reply to a note as the agent (it shows in the lab's thread); then print the new notes and user replies since the agent's previous reply, and the cursor",
+  ),
+);
 
 const notesResolve = Command.make(
   'resolve',
@@ -527,12 +548,9 @@ const notes = Command.make(
     const watch = (since: number): Effect.Effect<never, StoreError> =>
       store.wait(input.film, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
-          Effect.forEach(waited.events, (event) => {
-            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note, event.seq));
-            if (event._tag === 'NoteReplied' && event.reply.by === 'user')
-              return Console.log(replyLine(at, event.note, event.reply));
-            return Effect.void;
-          }),
+          Effect.forEach(waited.events, (event) =>
+            Effect.forEach(Option.toArray(eventLine(at, event)), Console.log),
+          ),
         ),
         Effect.flatMap((waited) => watch(waited.cursor)),
       );

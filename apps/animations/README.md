@@ -25,7 +25,7 @@ bun run render <film> --scene id[,id] ...      # any render, over those scenes
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
-bun run notes reply <film> <id> "text" [--still file.png]
+bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
 ```
 
