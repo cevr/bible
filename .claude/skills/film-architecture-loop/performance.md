@@ -1,6 +1,6 @@
 # Performance sweep
 
-The framework renders a film as pure frames: every frame is `draw(frame)` at a time `T`, thousands of times per render, and again on every scrub and every lab tweak. The **objective** is less time per frame (render and lab) and less memory churn. The **constraint** is identical pixels: a change is proved by stills compared with `cmp`, never by eye alone. Pure frames win over speed: no cache that carries state from one frame to the next.
+The framework renders a film as pure frames: every frame is `draw(frame)` at a time `T`, thousands of times per render, and again on every scrub and every lab tweak. The **objective** is less time per frame (render and lab) and less memory churn. The **constraint** is the look: art direction is never traded for speed (owner, 2026-09-27). By default a change keeps pixels identical, proved by stills compared with `cmp`; a change that moves pixels (an owner-approved look change) must be indistinguishable to the eye in side-by-side stills and is reverted if a still shows it. Pure frames win over speed: no cache that carries state from one frame to the next.
 
 ## Measure first
 
