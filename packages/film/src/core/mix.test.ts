@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import type { Pcm } from './audio.ts';
-import { MIX_RATE, type MixPlan, renderMix } from './mix.ts';
+import { layout } from './layout.ts';
+import { MIX_RATE, type MixPlan, mixPlan, renderMix } from './mix.ts';
+import type { Music } from './schema.ts';
 
 const RATE = MIX_RATE;
 
@@ -79,5 +81,36 @@ describe('renderMix', () => {
       Math.fround(SIDE * 0.5),
       0,
     ]);
+  });
+});
+
+describe('mixPlan', () => {
+  const placed = layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} });
+  const score: Music = {
+    model: 'music_v2',
+    styles: [],
+    avoid: [],
+    acts: [{ from: 'a', name: 'Open', styles: [] }],
+    gain: 0.5,
+  };
+  const input = { placed, narration: 'n', soundDir: 's' };
+
+  test('a declared score with no asset plays no music, and says so', () => {
+    const planned = Result.getOrThrow(
+      mixPlan({
+        ...input,
+        sound: Option.some({ music: score, effects: {} }),
+        manifest: { effects: {} },
+      }),
+    );
+    expect(Option.isNone(planned.music)).toBe(true);
+    expect(planned.warnings).toEqual(['mix.missing asset=music hint="run score to generate it"']);
+  });
+
+  test('no score declared, no warning', () => {
+    const planned = Result.getOrThrow(
+      mixPlan({ ...input, sound: Option.some({ effects: {} }), manifest: { effects: {} } }),
+    );
+    expect(planned.warnings).toEqual([]);
   });
 });
