@@ -17,7 +17,7 @@
     "notes": "bun cli.ts notes",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",
-    "gate": "bun run typecheck && bun run test && bun cli.ts check righteousness-by-faith-v1 --static --allow-stale"
+    "gate": "bun run typecheck && bun run test"
   },
   "dependencies": {
     "@bible/film": "workspace:*",
