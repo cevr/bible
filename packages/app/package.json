@@ -15,8 +15,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun --conditions=browser test",
-    "gate": "bun run typecheck && bun run test"
+    "test": "bun --conditions=browser test"
   },
   "dependencies": {
     "@bible/atom-solid": "workspace:*",

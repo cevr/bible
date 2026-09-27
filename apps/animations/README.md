@@ -16,7 +16,7 @@ bun run cues <film> [scene]                    # scene times, {mark} times, name
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
-bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
+bun run check <film> --static --allow-stale    # the no-browser leg
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
@@ -49,9 +49,8 @@ scenes' layout), `--workers n`. A scene id the film lacks (`--scene`, or
 `cues <film> <scene>`) fails with `UnknownScene`, listing the film's scenes.
 Once every take is recorded, the static leg also measures `narration/full.wav`:
 missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
-(a mix cut short, or made before a re-timing); `mix` fixes both. The app's `gate` runs the static leg with `--allow-stale`: it
-is instant and needs no browser, and a script edit or a re-timing waiting on
-a paid re-record must not block a commit; the layout leg is a review step.
+(a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
+review step, run by hand: the app's `gate` runs typecheck and tests only.
 
 Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
 (default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
