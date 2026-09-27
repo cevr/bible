@@ -18,8 +18,11 @@ const drawings = new Map<string, Drawing>(
   Object.entries({ question, title, measure, ...group1, ...group2, ...group3 }),
 );
 
+// The first cut was timed under a 0.9 s default tail; it keeps that timing
+// (its takes, score and mix are recorded against it) unless a drawing sets its own.
 export const scenes: SceneSpec[] = script.map((beat) => ({
   id: beat.id,
   ...(beat.say === undefined ? {} : { say: beat.say }),
+  tail: 0.9,
   ...(drawings.get(beat.id) ?? storyboard(beat.id, beat.picture)),
 }));

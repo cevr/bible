@@ -462,7 +462,13 @@ describe('mergeFindings', () => {
 
 describe('layoutSamples', () => {
   const scenes: ReadonlyArray<Timed> = [
-    { id: 'one', say: 'Hello {go}there friend', timeline: { pop: { mark: 'go', dur: 0.5 } } },
+    // Its own tail, so the 60% point falls after the cue whatever the default.
+    {
+      id: 'one',
+      say: 'Hello {go}there friend',
+      tail: 1,
+      timeline: { pop: { mark: 'go', dur: 0.5 } },
+    },
     { id: 'two', say: 'And {late}then', enter: { kind: 'fade', dur: 1 }, lead: 0.2, tail: 0.3 },
   ];
   const placed = layout(scenes, noTakes);
