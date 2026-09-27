@@ -535,3 +535,32 @@ export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOff
     return `${where(this)}: the plate under "${this.text}" leaves the frame, ${past.join(', ')} (${this.frames} sampled frame(s))`;
   }
 }
+
+/** The `rive` CLI is not installed. */
+export class RiveMissing extends Schema.TaggedError<RiveMissing>()('RiveMissing', {
+  install: Schema.String,
+}) {
+  override get message() {
+    return `the rive CLI is not installed; install it with: ${this.install}`;
+  }
+}
+
+/** A `rive` command failed: a compile error, no login, a file it cannot reach. */
+export class RiveFailed extends Schema.TaggedError<RiveFailed>()('RiveFailed', {
+  op: Schema.String,
+  exitCode: Schema.Int,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `rive ${this.op} failed (exit ${this.exitCode}): ${this.reason}`;
+  }
+}
+
+/** A first push with nowhere to go: the project is linked to no Rive file and names no project. */
+export class RiveUnlinked extends Schema.TaggedError<RiveUnlinked>()('RiveUnlinked', {
+  dir: Schema.String,
+}) {
+  override get message() {
+    return `${this.dir} is linked to no Rive file yet; push once with --project <id> (\`rive push --list\` prints them)`;
+  }
+}

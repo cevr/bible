@@ -1,0 +1,1257 @@
+{
+  "schema": 1,
+  "problems": [],
+  "backboard": {
+    "type": "Backboard",
+    "line": 0
+  },
+  "defaultArtboard": { "id": "5:1", "name": "seed" },
+  "artboards": [
+    {
+      "type": "Artboard",
+      "id": "42:1",
+      "line": 2,
+      "originX": 0,
+      "originY": 0,
+      "clip": true,
+      "width": 1920,
+      "height": 1080,
+      "styleId": "42:2",
+      "fractionalWidth": 1,
+      "fractionalHeight": 1,
+      "blendModeValue": 3,
+      "additiveAmount": 255,
+      "drawableFlags": 0,
+      "x": 2100,
+      "y": 0,
+      "computedLocalX": 0,
+      "computedLocalY": 0,
+      "computedWorldX": 0,
+      "computedWorldY": 0,
+      "computedRootX": 0,
+      "computedRootY": 0,
+      "computedWidth": 0,
+      "computedHeight": 0,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "opacity": 1,
+      "name": "drawn",
+      "enums": { "blendModeValue": "srcOver" },
+      "children": [
+        {
+          "type": "LayoutComponentStyle",
+          "id": "42:2",
+          "line": 3,
+          "gapHorizontal": 0,
+          "gapVertical": 0,
+          "borderLeft": 0,
+          "borderRight": 0,
+          "borderTop": 0,
+          "borderBottom": 0,
+          "marginLeft": 0,
+          "marginRight": 0,
+          "marginTop": 0,
+          "marginBottom": 0,
+          "paddingLeft": 0,
+          "paddingRight": 0,
+          "paddingTop": 0,
+          "paddingBottom": 0,
+          "positionLeft": 0,
+          "positionRight": 0,
+          "positionTop": 0,
+          "positionBottom": 0,
+          "positionLeftUnitsValue": 0,
+          "positionRightUnitsValue": 0,
+          "positionTopUnitsValue": 0,
+          "positionBottomUnitsValue": 0,
+          "flexBasis": 0,
+          "aspectRatio": 0,
+          "interpolationTime": 0,
+          "flexBasisUnitsValue": 3,
+          "layoutAlignmentType": 0,
+          "animationStyleType": 0,
+          "interpolationType": 0,
+          "positionTypeValue": 1,
+          "flexDirectionValue": 2,
+          "directionValue": 0,
+          "flexWrapValue": 0,
+          "overflowValue": 0,
+          "intrinsicallySizedValue": false,
+          "borderLeftUnitsValue": 0,
+          "borderRightUnitsValue": 0,
+          "borderTopUnitsValue": 0,
+          "borderBottomUnitsValue": 0,
+          "marginLeftUnitsValue": 1,
+          "marginRightUnitsValue": 1,
+          "marginTopUnitsValue": 1,
+          "marginBottomUnitsValue": 1,
+          "paddingLeftUnitsValue": 1,
+          "paddingRightUnitsValue": 1,
+          "paddingTopUnitsValue": 1,
+          "paddingBottomUnitsValue": 1,
+          "gapHorizontalUnitsValue": 1,
+          "gapVerticalUnitsValue": 1,
+          "justifyItemsValue": 7,
+          "layoutTypeValue": 0,
+          "linkCornerRadius": true,
+          "cornerRadiusTL": 0,
+          "cornerRadiusTR": 0,
+          "cornerRadiusBL": 0,
+          "cornerRadiusBR": 0,
+          "minWidth": 0,
+          "maxWidth": 0,
+          "minHeight": 0,
+          "maxHeight": 0,
+          "minWidthUnitsValue": 0,
+          "maxWidthUnitsValue": 0,
+          "minHeightUnitsValue": 0,
+          "maxHeightUnitsValue": 0,
+          "layoutWidthScaleType": 0,
+          "layoutHeightScaleType": 0,
+          "hugUnbounded": false,
+          "widthUnitsValue": 1,
+          "heightUnitsValue": 1,
+          "justifySelfValue": 6,
+          "displayValue": 0,
+          "name": "Artboard Style",
+          "enums": {
+            "positionLeftUnitsValue": "undefined",
+            "positionRightUnitsValue": "undefined",
+            "positionTopUnitsValue": "undefined",
+            "positionBottomUnitsValue": "undefined",
+            "flexBasisUnitsValue": "auto",
+            "layoutAlignmentType": "topLeft",
+            "animationStyleType": "none",
+            "interpolationType": "hold",
+            "positionTypeValue": "relative",
+            "flexDirectionValue": "row",
+            "directionValue": "inherit",
+            "flexWrapValue": "noWrap",
+            "overflowValue": "visible",
+            "borderLeftUnitsValue": "undefined",
+            "borderRightUnitsValue": "undefined",
+            "borderTopUnitsValue": "undefined",
+            "borderBottomUnitsValue": "undefined",
+            "marginLeftUnitsValue": "points",
+            "marginRightUnitsValue": "points",
+            "marginTopUnitsValue": "points",
+            "marginBottomUnitsValue": "points",
+            "paddingLeftUnitsValue": "points",
+            "paddingRightUnitsValue": "points",
+            "paddingTopUnitsValue": "points",
+            "paddingBottomUnitsValue": "points",
+            "gapHorizontalUnitsValue": "points",
+            "gapVerticalUnitsValue": "points",
+            "justifyItemsValue": "stretch",
+            "layoutTypeValue": "flex",
+            "minWidthUnitsValue": "undefined",
+            "maxWidthUnitsValue": "undefined",
+            "minHeightUnitsValue": "undefined",
+            "maxHeightUnitsValue": "undefined",
+            "layoutWidthScaleType": "fixed",
+            "layoutHeightScaleType": "fixed",
+            "widthUnitsValue": "points",
+            "heightUnitsValue": "points",
+            "justifySelfValue": "auto",
+            "displayValue": "flex"
+          }
+        },
+        {
+          "type": "Shape",
+          "id": "42:3",
+          "line": 4,
+          "length": 0,
+          "blendModeValue": 3,
+          "additiveAmount": 255,
+          "drawableFlags": 0,
+          "x": 960,
+          "y": 540,
+          "computedLocalX": 0,
+          "computedLocalY": 0,
+          "computedWorldX": 0,
+          "computedWorldY": 0,
+          "computedRootX": 0,
+          "computedRootY": 0,
+          "computedWidth": 0,
+          "computedHeight": 0,
+          "rotation": 0,
+          "scaleX": 1,
+          "scaleY": 1,
+          "opacity": 1,
+          "name": "Box",
+          "enums": { "blendModeValue": "srcOver" },
+          "children": [
+            {
+              "type": "Rectangle",
+              "id": "42:4",
+              "line": 5,
+              "linkCornerRadius": true,
+              "cornerRadiusTL": 0,
+              "cornerRadiusTR": 0,
+              "cornerRadiusBL": 0,
+              "cornerRadiusBR": 0,
+              "width": 200,
+              "height": 200,
+              "originX": 0.5,
+              "originY": 0.5,
+              "pathFlags": 0,
+              "isHole": false,
+              "x": 0,
+              "y": 0,
+              "computedLocalX": 0,
+              "computedLocalY": 0,
+              "computedWorldX": 0,
+              "computedWorldY": 0,
+              "computedRootX": 0,
+              "computedRootY": 0,
+              "computedWidth": 0,
+              "computedHeight": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1,
+              "name": "Path"
+            },
+            {
+              "type": "Fill",
+              "id": "42:5",
+              "line": 6,
+              "fillRule": 0,
+              "isVisible": true,
+              "blendModeValue": 127,
+              "additiveAmount": 255,
+              "name": "Fill",
+              "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+              "children": [
+                {
+                  "type": "SolidColor",
+                  "id": "42:6",
+                  "line": 7,
+                  "colorValue": "FFB0533C",
+                  "colorRed": 0,
+                  "colorGreen": 0,
+                  "colorBlue": 0,
+                  "colorAlpha": 0,
+                  "name": "Color"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Text",
+          "id": "42:10",
+          "line": 10,
+          "alignValue": 0,
+          "sizingValue": 0,
+          "overflowValue": 0,
+          "width": 0,
+          "height": 0,
+          "originX": 0,
+          "originY": 0,
+          "paragraphSpacing": 0,
+          "originValue": 0,
+          "wrapValue": 0,
+          "wordBreakValue": 0,
+          "verticalAlignValue": 0,
+          "fitFromBaseline": true,
+          "fitFontSizeResizesBox": true,
+          "verticalTrimValue": 0,
+          "verticalTrimTopValue": 0,
+          "verticalTrimBottomValue": 0,
+          "blendModeValue": 3,
+          "additiveAmount": 255,
+          "drawableFlags": 0,
+          "x": 96,
+          "y": 72,
+          "computedLocalX": 0,
+          "computedLocalY": 0,
+          "computedWorldX": 0,
+          "computedWorldY": 0,
+          "computedRootX": 0,
+          "computedRootY": 0,
+          "computedWidth": 0,
+          "computedHeight": 0,
+          "rotation": 0,
+          "scaleX": 1,
+          "scaleY": 1,
+          "opacity": 1,
+          "name": "Caption",
+          "enums": {
+            "alignValue": "left",
+            "sizingValue": "autoWidth",
+            "overflowValue": "visible",
+            "originValue": "top",
+            "wrapValue": "wrap",
+            "wordBreakValue": "breakWord",
+            "verticalAlignValue": "top",
+            "verticalTrimTopValue": "none",
+            "verticalTrimBottomValue": "none",
+            "blendModeValue": "srcOver"
+          },
+          "children": [
+            {
+              "type": "TextStylePaint",
+              "id": "42:11",
+              "line": 11,
+              "fontSize": 40,
+              "lineHeight": -1,
+              "letterSpacing": 0,
+              "fontAssetId": "7:1",
+              "name": "Caption style",
+              "children": [
+                {
+                  "type": "Fill",
+                  "id": "42:12",
+                  "line": 12,
+                  "fillRule": 0,
+                  "isVisible": true,
+                  "blendModeValue": 127,
+                  "additiveAmount": 255,
+                  "name": "Fill",
+                  "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+                  "children": [
+                    {
+                      "type": "SolidColor",
+                      "id": "42:13",
+                      "line": 13,
+                      "colorValue": "FF2A3440",
+                      "colorRed": 0,
+                      "colorGreen": 0,
+                      "colorBlue": 0,
+                      "colorAlpha": 0,
+                      "name": "Color"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "TextValueRun",
+              "id": "42:14",
+              "line": 16,
+              "styleId": "42:11",
+              "text": "Hello",
+              "name": "caption"
+            }
+          ]
+        },
+        {
+          "type": "Event",
+          "id": "42:20",
+          "line": 18,
+          "name": "a"
+        },
+        {
+          "type": "Event",
+          "id": "42:21",
+          "line": 19,
+          "name": "b"
+        },
+        {
+          "type": "LinearAnimation",
+          "id": "42:30",
+          "line": 20,
+          "fps": 60,
+          "duration": 120,
+          "speed": 1,
+          "loopValue": 0,
+          "workStart": 4294967295,
+          "workEnd": 4294967295,
+          "enableWorkArea": false,
+          "quantize": false,
+          "name": "main",
+          "enums": { "loopValue": "oneShot" },
+          "children": [
+            {
+              "type": "KeyedObject",
+              "id": "42:31",
+              "line": 21,
+              "objectId": "42:20",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "42:32",
+                  "line": 22,
+                  "propertyKey": 395,
+                  "children": [
+                    {
+                      "type": "KeyFrameCallback",
+                      "id": "42:33",
+                      "line": 23,
+                      "frame": 30
+                    },
+                    {
+                      "type": "KeyFrameCallback",
+                      "id": "42:34",
+                      "line": 24,
+                      "frame": 90
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "LinearAnimation",
+          "id": "42:40",
+          "line": 28,
+          "fps": 60,
+          "duration": 60,
+          "speed": 1,
+          "loopValue": 0,
+          "workStart": 4294967295,
+          "workEnd": 4294967295,
+          "enableWorkArea": false,
+          "quantize": false,
+          "name": "idle",
+          "enums": { "loopValue": "oneShot" },
+          "children": [
+            {
+              "type": "KeyedObject",
+              "id": "42:41",
+              "line": 29,
+              "objectId": "42:21",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "42:42",
+                  "line": 30,
+                  "propertyKey": 395,
+                  "children": [
+                    {
+                      "type": "KeyFrameCallback",
+                      "id": "42:43",
+                      "line": 31,
+                      "frame": 10
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Artboard",
+      "id": "5:1",
+      "line": 2,
+      "originX": 0,
+      "originY": 0,
+      "defaultStateMachineId": "5:40",
+      "clip": true,
+      "width": 1920,
+      "height": 1080,
+      "styleId": "5:2",
+      "fractionalWidth": 1,
+      "fractionalHeight": 1,
+      "blendModeValue": 3,
+      "additiveAmount": 255,
+      "drawableFlags": 0,
+      "x": 0,
+      "y": 0,
+      "computedLocalX": 0,
+      "computedLocalY": 0,
+      "computedWorldX": 0,
+      "computedWorldY": 0,
+      "computedRootX": 0,
+      "computedRootY": 0,
+      "computedWidth": 0,
+      "computedHeight": 0,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "opacity": 1,
+      "name": "seed",
+      "enums": { "blendModeValue": "srcOver" },
+      "children": [
+        {
+          "type": "Fill",
+          "id": "5:3",
+          "line": 3,
+          "fillRule": 0,
+          "isVisible": true,
+          "blendModeValue": 127,
+          "additiveAmount": 255,
+          "name": "Background",
+          "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+          "children": [
+            {
+              "type": "SolidColor",
+              "id": "5:4",
+              "line": 4,
+              "colorValue": "FFEFE6D2",
+              "colorRed": 0,
+              "colorGreen": 0,
+              "colorBlue": 0,
+              "colorAlpha": 0,
+              "name": "Color"
+            }
+          ]
+        },
+        {
+          "type": "LayoutComponentStyle",
+          "id": "5:2",
+          "line": 6,
+          "gapHorizontal": 0,
+          "gapVertical": 0,
+          "borderLeft": 0,
+          "borderRight": 0,
+          "borderTop": 0,
+          "borderBottom": 0,
+          "marginLeft": 0,
+          "marginRight": 0,
+          "marginTop": 0,
+          "marginBottom": 0,
+          "paddingLeft": 0,
+          "paddingRight": 0,
+          "paddingTop": 0,
+          "paddingBottom": 0,
+          "positionLeft": 0,
+          "positionRight": 0,
+          "positionTop": 0,
+          "positionBottom": 0,
+          "positionLeftUnitsValue": 0,
+          "positionRightUnitsValue": 0,
+          "positionTopUnitsValue": 0,
+          "positionBottomUnitsValue": 0,
+          "flexBasis": 0,
+          "aspectRatio": 0,
+          "interpolationTime": 0,
+          "flexBasisUnitsValue": 3,
+          "layoutAlignmentType": 0,
+          "animationStyleType": 0,
+          "interpolationType": 0,
+          "positionTypeValue": 1,
+          "flexDirectionValue": 2,
+          "directionValue": 0,
+          "flexWrapValue": 0,
+          "overflowValue": 0,
+          "intrinsicallySizedValue": false,
+          "borderLeftUnitsValue": 0,
+          "borderRightUnitsValue": 0,
+          "borderTopUnitsValue": 0,
+          "borderBottomUnitsValue": 0,
+          "marginLeftUnitsValue": 1,
+          "marginRightUnitsValue": 1,
+          "marginTopUnitsValue": 1,
+          "marginBottomUnitsValue": 1,
+          "paddingLeftUnitsValue": 1,
+          "paddingRightUnitsValue": 1,
+          "paddingTopUnitsValue": 1,
+          "paddingBottomUnitsValue": 1,
+          "gapHorizontalUnitsValue": 1,
+          "gapVerticalUnitsValue": 1,
+          "justifyItemsValue": 7,
+          "layoutTypeValue": 0,
+          "linkCornerRadius": true,
+          "cornerRadiusTL": 0,
+          "cornerRadiusTR": 0,
+          "cornerRadiusBL": 0,
+          "cornerRadiusBR": 0,
+          "minWidth": 0,
+          "maxWidth": 0,
+          "minHeight": 0,
+          "maxHeight": 0,
+          "minWidthUnitsValue": 0,
+          "maxWidthUnitsValue": 0,
+          "minHeightUnitsValue": 0,
+          "maxHeightUnitsValue": 0,
+          "layoutWidthScaleType": 0,
+          "layoutHeightScaleType": 0,
+          "hugUnbounded": false,
+          "widthUnitsValue": 1,
+          "heightUnitsValue": 1,
+          "justifySelfValue": 6,
+          "displayValue": 0,
+          "name": "Artboard Style",
+          "enums": {
+            "positionLeftUnitsValue": "undefined",
+            "positionRightUnitsValue": "undefined",
+            "positionTopUnitsValue": "undefined",
+            "positionBottomUnitsValue": "undefined",
+            "flexBasisUnitsValue": "auto",
+            "layoutAlignmentType": "topLeft",
+            "animationStyleType": "none",
+            "interpolationType": "hold",
+            "positionTypeValue": "relative",
+            "flexDirectionValue": "row",
+            "directionValue": "inherit",
+            "flexWrapValue": "noWrap",
+            "overflowValue": "visible",
+            "borderLeftUnitsValue": "undefined",
+            "borderRightUnitsValue": "undefined",
+            "borderTopUnitsValue": "undefined",
+            "borderBottomUnitsValue": "undefined",
+            "marginLeftUnitsValue": "points",
+            "marginRightUnitsValue": "points",
+            "marginTopUnitsValue": "points",
+            "marginBottomUnitsValue": "points",
+            "paddingLeftUnitsValue": "points",
+            "paddingRightUnitsValue": "points",
+            "paddingTopUnitsValue": "points",
+            "paddingBottomUnitsValue": "points",
+            "gapHorizontalUnitsValue": "points",
+            "gapVerticalUnitsValue": "points",
+            "justifyItemsValue": "stretch",
+            "layoutTypeValue": "flex",
+            "minWidthUnitsValue": "undefined",
+            "maxWidthUnitsValue": "undefined",
+            "minHeightUnitsValue": "undefined",
+            "maxHeightUnitsValue": "undefined",
+            "layoutWidthScaleType": "fixed",
+            "layoutHeightScaleType": "fixed",
+            "widthUnitsValue": "points",
+            "heightUnitsValue": "points",
+            "justifySelfValue": "auto",
+            "displayValue": "flex"
+          }
+        },
+        {
+          "type": "Node",
+          "id": "5:10",
+          "line": 7,
+          "x": 0,
+          "y": 0,
+          "computedLocalX": 0,
+          "computedLocalY": 0,
+          "computedWorldX": 0,
+          "computedWorldY": 0,
+          "computedRootX": 0,
+          "computedRootY": 0,
+          "computedWidth": 0,
+          "computedHeight": 0,
+          "rotation": 0,
+          "scaleX": 1,
+          "scaleY": 1,
+          "opacity": 1,
+          "name": "storyboard",
+          "children": [
+            {
+              "type": "Text",
+              "id": "5:11",
+              "line": 8,
+              "alignValue": 0,
+              "sizingValue": 0,
+              "overflowValue": 0,
+              "width": 0,
+              "height": 0,
+              "originX": 0,
+              "originY": 0,
+              "paragraphSpacing": 0,
+              "originValue": 0,
+              "wrapValue": 0,
+              "wordBreakValue": 0,
+              "verticalAlignValue": 0,
+              "fitFromBaseline": true,
+              "fitFontSizeResizesBox": true,
+              "verticalTrimValue": 0,
+              "verticalTrimTopValue": 0,
+              "verticalTrimBottomValue": 0,
+              "blendModeValue": 3,
+              "additiveAmount": 255,
+              "drawableFlags": 0,
+              "x": 96,
+              "y": 72,
+              "computedLocalX": 0,
+              "computedLocalY": 0,
+              "computedWorldX": 0,
+              "computedWorldY": 0,
+              "computedRootX": 0,
+              "computedRootY": 0,
+              "computedWidth": 0,
+              "computedHeight": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1,
+              "name": "Beat",
+              "enums": {
+                "alignValue": "left",
+                "sizingValue": "autoWidth",
+                "overflowValue": "visible",
+                "originValue": "top",
+                "wrapValue": "wrap",
+                "wordBreakValue": "breakWord",
+                "verticalAlignValue": "top",
+                "verticalTrimTopValue": "none",
+                "verticalTrimBottomValue": "none",
+                "blendModeValue": "srcOver"
+              },
+              "children": [
+                {
+                  "type": "TextStylePaint",
+                  "id": "5:12",
+                  "line": 9,
+                  "fontSize": 56,
+                  "lineHeight": -1,
+                  "letterSpacing": 0,
+                  "fontAssetId": "7:1",
+                  "name": "Beat style",
+                  "children": [
+                    {
+                      "type": "Fill",
+                      "id": "5:13",
+                      "line": 10,
+                      "fillRule": 0,
+                      "isVisible": true,
+                      "blendModeValue": 127,
+                      "additiveAmount": 255,
+                      "name": "Fill",
+                      "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+                      "children": [
+                        {
+                          "type": "SolidColor",
+                          "id": "5:14",
+                          "line": 11,
+                          "colorValue": "FF2A3440",
+                          "colorRed": 0,
+                          "colorGreen": 0,
+                          "colorBlue": 0,
+                          "colorAlpha": 0,
+                          "name": "Color"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "TextValueRun",
+                  "id": "5:15",
+                  "line": 14,
+                  "styleId": "5:12",
+                  "text": "seed",
+                  "name": "beat"
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "id": "5:16",
+              "line": 16,
+              "alignValue": 0,
+              "sizingValue": 1,
+              "overflowValue": 0,
+              "width": 1728,
+              "height": 0,
+              "originX": 0,
+              "originY": 0,
+              "paragraphSpacing": 0,
+              "originValue": 0,
+              "wrapValue": 0,
+              "wordBreakValue": 0,
+              "verticalAlignValue": 0,
+              "fitFromBaseline": true,
+              "fitFontSizeResizesBox": true,
+              "verticalTrimValue": 0,
+              "verticalTrimTopValue": 0,
+              "verticalTrimBottomValue": 0,
+              "blendModeValue": 3,
+              "additiveAmount": 255,
+              "drawableFlags": 0,
+              "x": 96,
+              "y": 180,
+              "computedLocalX": 0,
+              "computedLocalY": 0,
+              "computedWorldX": 0,
+              "computedWorldY": 0,
+              "computedRootX": 0,
+              "computedRootY": 0,
+              "computedWidth": 0,
+              "computedHeight": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1,
+              "name": "Brief",
+              "enums": {
+                "alignValue": "left",
+                "sizingValue": "autoHeight",
+                "overflowValue": "visible",
+                "originValue": "top",
+                "wrapValue": "wrap",
+                "wordBreakValue": "breakWord",
+                "verticalAlignValue": "top",
+                "verticalTrimTopValue": "none",
+                "verticalTrimBottomValue": "none",
+                "blendModeValue": "srcOver"
+              },
+              "children": [
+                {
+                  "type": "TextStylePaint",
+                  "id": "5:17",
+                  "line": 17,
+                  "fontSize": 34,
+                  "lineHeight": -1,
+                  "letterSpacing": 0,
+                  "fontAssetId": "7:1",
+                  "name": "Brief style",
+                  "children": [
+                    {
+                      "type": "Fill",
+                      "id": "5:18",
+                      "line": 18,
+                      "fillRule": 0,
+                      "isVisible": true,
+                      "blendModeValue": 127,
+                      "additiveAmount": 255,
+                      "name": "Fill",
+                      "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+                      "children": [
+                        {
+                          "type": "SolidColor",
+                          "id": "5:19",
+                          "line": 19,
+                          "colorValue": "FF2A3440",
+                          "colorRed": 0,
+                          "colorGreen": 0,
+                          "colorBlue": 0,
+                          "colorAlpha": 0,
+                          "name": "Color"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "TextValueRun",
+                  "id": "5:20",
+                  "line": 22,
+                  "styleId": "5:17",
+                  "text": "A seed falls into the ground.",
+                  "name": "brief"
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "id": "5:1000",
+              "line": 24,
+              "alignValue": 0,
+              "sizingValue": 0,
+              "overflowValue": 0,
+              "width": 0,
+              "height": 0,
+              "originX": 0.5,
+              "originY": 0.5,
+              "paragraphSpacing": 0,
+              "originValue": 0,
+              "wrapValue": 0,
+              "wordBreakValue": 0,
+              "verticalAlignValue": 0,
+              "fitFromBaseline": true,
+              "fitFontSizeResizesBox": true,
+              "verticalTrimValue": 0,
+              "verticalTrimTopValue": 0,
+              "verticalTrimBottomValue": 0,
+              "blendModeValue": 3,
+              "additiveAmount": 255,
+              "drawableFlags": 0,
+              "x": 960,
+              "y": 960,
+              "computedLocalX": 0,
+              "computedLocalY": 0,
+              "computedWorldX": 0,
+              "computedWorldY": 0,
+              "computedRootX": 0,
+              "computedRootY": 0,
+              "computedWidth": 0,
+              "computedHeight": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 0,
+              "name": "Mark fall",
+              "enums": {
+                "alignValue": "left",
+                "sizingValue": "autoWidth",
+                "overflowValue": "visible",
+                "originValue": "top",
+                "wrapValue": "wrap",
+                "wordBreakValue": "breakWord",
+                "verticalAlignValue": "top",
+                "verticalTrimTopValue": "none",
+                "verticalTrimBottomValue": "none",
+                "blendModeValue": "srcOver"
+              },
+              "children": [
+                {
+                  "type": "TextStylePaint",
+                  "id": "5:1001",
+                  "line": 25,
+                  "fontSize": 64,
+                  "lineHeight": -1,
+                  "letterSpacing": 0,
+                  "fontAssetId": "7:1",
+                  "name": "Mark fall style",
+                  "children": [
+                    {
+                      "type": "Fill",
+                      "id": "5:1002",
+                      "line": 26,
+                      "fillRule": 0,
+                      "isVisible": true,
+                      "blendModeValue": 127,
+                      "additiveAmount": 255,
+                      "name": "Fill",
+                      "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+                      "children": [
+                        {
+                          "type": "SolidColor",
+                          "id": "5:1003",
+                          "line": 27,
+                          "colorValue": "FFB0533C",
+                          "colorRed": 0,
+                          "colorGreen": 0,
+                          "colorBlue": 0,
+                          "colorAlpha": 0,
+                          "name": "Color"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "TextValueRun",
+                  "id": "5:1004",
+                  "line": 30,
+                  "styleId": "5:1001",
+                  "text": "{fall}",
+                  "name": "mark fall"
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "id": "5:1010",
+              "line": 32,
+              "alignValue": 0,
+              "sizingValue": 0,
+              "overflowValue": 0,
+              "width": 0,
+              "height": 0,
+              "originX": 0.5,
+              "originY": 0.5,
+              "paragraphSpacing": 0,
+              "originValue": 0,
+              "wrapValue": 0,
+              "wordBreakValue": 0,
+              "verticalAlignValue": 0,
+              "fitFromBaseline": true,
+              "fitFontSizeResizesBox": true,
+              "verticalTrimValue": 0,
+              "verticalTrimTopValue": 0,
+              "verticalTrimBottomValue": 0,
+              "blendModeValue": 3,
+              "additiveAmount": 255,
+              "drawableFlags": 0,
+              "x": 960,
+              "y": 960,
+              "computedLocalX": 0,
+              "computedLocalY": 0,
+              "computedWorldX": 0,
+              "computedWorldY": 0,
+              "computedRootX": 0,
+              "computedRootY": 0,
+              "computedWidth": 0,
+              "computedHeight": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 0,
+              "name": "Mark grow",
+              "enums": {
+                "alignValue": "left",
+                "sizingValue": "autoWidth",
+                "overflowValue": "visible",
+                "originValue": "top",
+                "wrapValue": "wrap",
+                "wordBreakValue": "breakWord",
+                "verticalAlignValue": "top",
+                "verticalTrimTopValue": "none",
+                "verticalTrimBottomValue": "none",
+                "blendModeValue": "srcOver"
+              },
+              "children": [
+                {
+                  "type": "TextStylePaint",
+                  "id": "5:1011",
+                  "line": 33,
+                  "fontSize": 64,
+                  "lineHeight": -1,
+                  "letterSpacing": 0,
+                  "fontAssetId": "7:1",
+                  "name": "Mark grow style",
+                  "children": [
+                    {
+                      "type": "Fill",
+                      "id": "5:1012",
+                      "line": 34,
+                      "fillRule": 0,
+                      "isVisible": true,
+                      "blendModeValue": 127,
+                      "additiveAmount": 255,
+                      "name": "Fill",
+                      "enums": { "fillRule": "nonZero", "blendModeValue": "inherit" },
+                      "children": [
+                        {
+                          "type": "SolidColor",
+                          "id": "5:1013",
+                          "line": 35,
+                          "colorValue": "FFB0533C",
+                          "colorRed": 0,
+                          "colorGreen": 0,
+                          "colorBlue": 0,
+                          "colorAlpha": 0,
+                          "name": "Color"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "TextValueRun",
+                  "id": "5:1014",
+                  "line": 38,
+                  "styleId": "5:1011",
+                  "text": "{grow}",
+                  "name": "mark grow"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Event",
+          "id": "5:1005",
+          "line": 41,
+          "name": "fall"
+        },
+        {
+          "type": "Event",
+          "id": "5:1015",
+          "line": 42,
+          "name": "grow"
+        },
+        {
+          "type": "StateMachine",
+          "id": "5:40",
+          "line": 43,
+          "name": "Play",
+          "children": [
+            {
+              "type": "StateMachineLayer",
+              "id": "5:41",
+              "line": 44,
+              "name": "Layer",
+              "children": [
+                {
+                  "type": "AnyState",
+                  "id": "5:42",
+                  "line": 45,
+                  "flags": 0
+                },
+                {
+                  "type": "ExitState",
+                  "id": "5:43",
+                  "line": 46,
+                  "flags": 0
+                },
+                {
+                  "type": "EntryState",
+                  "id": "5:44",
+                  "line": 47,
+                  "flags": 0,
+                  "children": [
+                    {
+                      "type": "StateTransition",
+                      "id": "5:45",
+                      "line": 48,
+                      "stateToId": "5:46",
+                      "flags": 0,
+                      "duration": 0,
+                      "exitTime": 0,
+                      "interpolationType": 1,
+                      "randomWeight": 1,
+                      "enums": { "interpolationType": "linear" }
+                    }
+                  ]
+                },
+                {
+                  "type": "AnimationState",
+                  "id": "5:46",
+                  "line": 50,
+                  "animationId": "5:30",
+                  "speed": 1,
+                  "flags": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "LinearAnimation",
+          "id": "5:30",
+          "line": 53,
+          "fps": 60,
+          "duration": 242,
+          "speed": 1,
+          "loopValue": 0,
+          "workStart": 4294967295,
+          "workEnd": 4294967295,
+          "enableWorkArea": false,
+          "quantize": false,
+          "name": "main",
+          "enums": { "loopValue": "oneShot" },
+          "children": [
+            {
+              "type": "KeyedObject",
+              "id": "5:3000",
+              "line": 54,
+              "objectId": "5:1005",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "5:3001",
+                  "line": 55,
+                  "propertyKey": 395,
+                  "children": [
+                    {
+                      "type": "KeyFrameCallback",
+                      "id": "5:3002",
+                      "line": 56,
+                      "frame": 75
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "KeyedObject",
+              "id": "5:3010",
+              "line": 59,
+              "objectId": "5:1015",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "5:3011",
+                  "line": 60,
+                  "propertyKey": 395,
+                  "children": [
+                    {
+                      "type": "KeyFrameCallback",
+                      "id": "5:3012",
+                      "line": 61,
+                      "frame": 159
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "KeyedObject",
+              "id": "5:2000",
+              "line": 64,
+              "objectId": "5:1000",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "5:2001",
+                  "line": 65,
+                  "propertyKey": 18,
+                  "children": [
+                    {
+                      "type": "KeyFrameDouble",
+                      "id": "5:2002",
+                      "line": 66,
+                      "value": 0,
+                      "interpolationType": 0,
+                      "frame": 0,
+                      "enums": { "interpolationType": "hold" }
+                    },
+                    {
+                      "type": "KeyFrameDouble",
+                      "id": "5:2003",
+                      "line": 67,
+                      "value": 1,
+                      "interpolationType": 0,
+                      "frame": 75,
+                      "enums": { "interpolationType": "hold" }
+                    },
+                    {
+                      "type": "KeyFrameDouble",
+                      "id": "5:2004",
+                      "line": 68,
+                      "value": 0,
+                      "interpolationType": 0,
+                      "frame": 159,
+                      "enums": { "interpolationType": "hold" }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "KeyedObject",
+              "id": "5:2010",
+              "line": 71,
+              "objectId": "5:1010",
+              "children": [
+                {
+                  "type": "KeyedProperty",
+                  "id": "5:2011",
+                  "line": 72,
+                  "propertyKey": 18,
+                  "children": [
+                    {
+                      "type": "KeyFrameDouble",
+                      "id": "5:2012",
+                      "line": 73,
+                      "value": 0,
+                      "interpolationType": 0,
+                      "frame": 0,
+                      "enums": { "interpolationType": "hold" }
+                    },
+                    {
+                      "type": "KeyFrameDouble",
+                      "id": "5:2013",
+                      "line": 74,
+                      "value": 1,
+                      "interpolationType": 0,
+                      "frame": 159,
+                      "enums": { "interpolationType": "hold" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "roots": [
+    {
+      "type": "FontAsset",
+      "id": "7:1",
+      "line": 2,
+      "assetId": 0,
+      "cdnBaseUrl": "https://public.rive.app/cdn/uuid",
+      "name": "Geist"
+    },
+    {
+      "type": "Backboard",
+      "line": 0
+    },
+    {
+      "type": "ComponentAsset",
+      "id": "5:5",
+      "line": 79,
+      "artboardId": "5:1",
+      "name": "seed"
+    }
+  ]
+}
