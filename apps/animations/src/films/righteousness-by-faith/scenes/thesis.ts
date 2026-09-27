@@ -1,0 +1,153 @@
+// The name. The landing courtroom holds in its gold light; Job's question
+// stands above the bench and the answer writes itself under it, the only
+// other words: THE LORD OUR RIGHTEOUSNESS. Then, while the music rises alone,
+// the camera eases back out of the court to the title's cardboard city, where
+// the figure in the robe and Christ sit together on the same rooftop the
+// title's figure stood on, under the landing sky.
+
+import {
+  type Camera,
+  at,
+  drawing,
+  multiplane,
+  probePlate,
+  rectShape,
+  write,
+} from '@bible/film/canvas';
+import { clamp, lerp } from '@bible/film/core';
+import { C, F, christ, glow, person, piece, between } from '../kit.ts';
+import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
+import { QUESTION, WIDE, landingCourt, questionStyle } from '../court.ts';
+
+/** Where the camera ends: the title's city, near enough to see the two of them. */
+const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
+/** Where it enters the city: close on the rooftop. */
+const ROOFTOP: Camera = { x: ROOF.x - 20, y: ROOF.top - 70, zoom: 3.4 };
+/** The court framed lower than the cold open's wide, for two lines above the bench. */
+const TEXT: Camera = { x: 930, y: 380, zoom: 1.1 };
+/** The court's last framing, pulled back. */
+const COURT_BACK: Camera = { x: 930, y: 400, zoom: 0.92 };
+
+const ANSWER = 'THE LORD OUR RIGHTEOUSNESS';
+const answerStyle = {
+  family: F.display,
+  size: 84,
+  weight: 700,
+  color: C.ink,
+  align: 'center',
+  tracking: 0.04,
+} as const;
+
+export const thesis = drawing({
+  timeline: {
+    question: { scene: 'start', dur: 0.4 },
+    frame: { scene: 'start', dur: 0.5 },
+    answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
+    textOut: { scene: 'start', offset: 10, dur: 1.2 },
+    away: { scene: 'start', offset: 10.6, dur: 4.5, ease: 'inOutSine' },
+    city: { scene: 'start', offset: 13.2, dur: 11, ease: 'inOutSine' },
+    turn: { scene: 'start', offset: 25.5, dur: 1.2 },
+  },
+  draw: (f) => {
+    const { ctx, w, h } = f;
+    landingSky(ctx, w, h);
+    glow(ctx, 960, 380, 750, C.glow, 0.55);
+
+    const away = f.at('away');
+    const city = f.at('city');
+    const turn = f.at('turn');
+    // The court lets go to the sky, then the city comes in: no double image.
+    const courtOut = clamp((away - 0.3) / 0.3);
+    const cityIn = clamp((away - 0.55) / 0.45);
+
+    // The rooftop and the two of them, sitting on its edge.
+    if (cityIn > 0) {
+      ctx.save();
+      ctx.globalAlpha *= cityIn;
+      const cam = between(ROOFTOP, CITY, city);
+      multiplane(ctx, cam, w, h, [
+        { z: 1.6, draw: () => cityBack(ctx, (k) => f.hand(k)) },
+        {
+          z: 1,
+          lift: 1.4,
+          draw: () => {
+            cityFront(ctx, (k) => f.hand(k));
+            // Sitting: the garment's hem on the roof line, legs over the edge.
+            at(ctx, { x: ROOF.x + 34, y: ROOF.top + 12, scale: 0.68 }, () =>
+              christ(
+                ctx,
+                { tilt: lerp(-0.08, -0.16, turn), look: [lerp(1, -3, turn), -3], browTilt: 0.2 },
+                (k) => f.hand(k),
+              ),
+            );
+            at(ctx, { x: ROOF.x - 44, y: ROOF.top + 11, scale: 0.62 }, () =>
+              person(
+                ctx,
+                {
+                  body: C.robe,
+                  shade: C.robe,
+                  garment: 'robe',
+                  tilt: lerp(-0.08, 0.12, turn),
+                  look: [lerp(1.5, 3, turn), lerp(-3.5, -1, turn)],
+                  browL: 2,
+                  browR: 3,
+                  browTilt: 0.3,
+                },
+                f.hand('figure'),
+              ),
+            );
+          },
+        },
+      ]);
+      ctx.restore();
+    }
+
+    // The court in its gold light, pulled back and let go.
+    if (courtOut < 1) {
+      ctx.save();
+      ctx.globalAlpha *= 1 - courtOut;
+      landingCourt(ctx, w, h, (k) => f.hand(k), {
+        cam: between(between(WIDE, TEXT, f.at('frame')), COURT_BACK, away),
+        swing: 1.45 - 1.1 * clamp(f.t / 2),
+        stamp: 0,
+        pop: 1,
+        gold: 1,
+        shine: 0.9,
+        figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1 },
+        advocate: {
+          tilt: -0.06,
+          look: [3, 1],
+          browTilt: 0.15,
+          handL: [-86, -104],
+          handR: [30, -58],
+        },
+      });
+      ctx.restore();
+    }
+
+    // The question, and the answer under it: the film's last words.
+    const out = f.at('textOut');
+    if (out < 1) {
+      const alpha = f.at('question') * (1 - out);
+      write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), { alpha, boil: 0.4 });
+      const answer = f.at('answer');
+      if (answer > 0) {
+        ctx.save();
+        ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
+        piece(ctx, rectShape(210, 262, 1500, 116), C.cream, f.hand('plate'), {
+          line: 5,
+          outline: C.gold,
+          torn: 2,
+          shadow: 0.4,
+        });
+        probePlate(ctx, ANSWER, 210, 262, 1500, 116);
+        write(ctx, ANSWER, 960, 350, answerStyle, f.hand('answer'), {
+          progress: answer,
+          reveal: 'write',
+          boil: 0.4,
+        });
+        ctx.restore();
+      }
+    }
+  },
+});

@@ -18,45 +18,21 @@ import {
   stroke,
 } from '@bible/film/canvas';
 import { clamp, ease, keys, lerp } from '@bible/film/core';
+import { C, ROBE, blob, christ, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
 import {
-  C,
-  ROBE,
+  AS,
+  CHEEK,
+  JOSHUA,
+  JS,
+  SPECKS,
+  TUNIC,
+  TUNIC_STAINS,
   accuser,
-  blob,
-  christ,
   court,
   courtWall,
-  glow,
-  icons,
-  person,
-  piece,
-  rounded,
-  sky,
-  sub,
-} from '../kit.ts';
+} from '../court.ts';
 
-const JOSHUA: Pt = [760, 950];
 const LOOM: Pt = [1045, 560];
-
-/** Joshua's scale in the court, and his helpers'. */
-const JS = 2;
-const AS = 1.7;
-
-const TUNIC: Pt[] = [
-  [-39, -134],
-  [39, -134],
-  [48, -18],
-  [-48, -18],
-];
-const TUNIC_STAINS = [
-  blob(-15, -105, 23, 19, 21),
-  blob(18, -65, 29, 22, 22),
-  blob(-20, -40, 20, 15, 23),
-  blob(15, -118, 13, 11, 24),
-];
-/** The specks on his skin: the cheek's is the last to go. */
-const CHEEK: Pt = [-19, -160];
-const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
 
 /** Where the flakes that lifted from him hang in the air. */
 const FLAKES: ReadonlyArray<Pt> = [

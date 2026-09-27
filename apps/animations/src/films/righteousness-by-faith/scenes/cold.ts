@@ -20,20 +20,12 @@ import {
   write,
 } from '@bible/film/canvas';
 import { ease, keys, lerp, rng } from '@bible/film/core';
-import { C, F, blob, contact, person, piece, rounded, sub } from '../kit.ts';
+import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
+import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
 
-/** Where the camera rests, and the two places it goes. */
-const REST: Camera = { x: 930, y: 560, zoom: 1.35 };
-/** Close on the accused's face: the front sheet's parallax is folded in. */
+/** Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in. */
 const FACE: Camera = { x: 669, y: 682, zoom: 4, rot: 0.06 };
-/** Wide, with paper above the bench for the question. */
-const WIDE: Camera = { x: 930, y: 480, zoom: 1.3 };
 
-const ACCUSED: Pt = [640, 860];
-const JUDGE: Pt = [1180, 350];
-const GAVEL: Pt = [1330, 445];
-
-/** The wall's two tall sheets: where each stands, and its seed. */
 const STAINS = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 
 const SHEETS = (() => {
@@ -44,13 +36,6 @@ const SHEETS = (() => {
     rot: (r() - 0.5) * 0.1,
   }));
 })();
-
-const between = (a: Camera, b: Camera, t: number): Camera => ({
-  x: lerp(a.x, b.x, t),
-  y: lerp(a.y, b.y, t),
-  zoom: lerp(a.zoom ?? 1, b.zoom ?? 1, t),
-  rot: lerp(a.rot ?? 0, b.rot ?? 0, t),
-});
 
 export const cold = drawing({
   timeline: {
@@ -246,14 +231,10 @@ export const cold = drawing({
     );
 
     // Job's question, the only words on screen.
-    write(
-      ctx,
-      'How should man be just with God?',
-      960,
-      205,
-      { family: F.display, size: 84, weight: 600, color: C.ink, align: 'center' },
-      f.hand('question'),
-      { progress: f.spoken('job'), reveal: 'write', boil: 0.4 },
-    );
+    write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), {
+      progress: f.spoken('job'),
+      reveal: 'write',
+      boil: 0.4,
+    });
   },
 });

@@ -7,13 +7,47 @@
 
 import { type SceneSpec, storyboard } from '@bible/film/canvas';
 import { script } from '../script.ts';
+import { accuser } from './accuser.ts';
+import { centurion } from './centurion.ts';
 import { cold } from './cold.ts';
+import { declared } from './declared.ts';
+import { end } from './end.ts';
+import { exchange } from './exchange.ts';
+import { look } from './look.ts';
+import { message } from './message.ts';
+import { mirror } from './mirror.ts';
+import { name } from './name.ts';
+import { rain } from './rain.ts';
 import { robe } from './robe.ts';
+import { spoke } from './spoke.ts';
+import { thesis } from './thesis.ts';
 import { title } from './title.ts';
+import { within } from './within.ts';
+import { word } from './word.ts';
 
 export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs'>;
 
-const drawings = new Map<string, Drawing>(Object.entries({ cold, robe, title }));
+const drawings = new Map<string, Drawing>(
+  Object.entries({
+    accuser,
+    centurion,
+    cold,
+    declared,
+    end,
+    exchange,
+    look,
+    message,
+    mirror,
+    name,
+    rain,
+    robe,
+    spoke,
+    thesis,
+    title,
+    within,
+    word,
+  }),
+);
 
 // The script's timing is spread last, so a storyboard card's own entrance
 // holds only where the script names none.

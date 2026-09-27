@@ -3,6 +3,7 @@
 // glows, the stains. Scenes place them; nothing here reads the clock.
 
 import {
+  type Camera,
   type Hand,
   type Pt,
   at,
@@ -14,7 +15,7 @@ import {
   spline,
   stroke,
 } from '@bible/film/canvas';
-import { hash2 } from '@bible/film/core';
+import { hash2, lerp } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
@@ -22,6 +23,43 @@ export const F = fonts;
 
 /** A sub-hand, so each piece of a drawing boils on its own seed. */
 export const sub = (hand: Hand, k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+/** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
+export const BUBBLE: Pt[] = [
+  [-80, -48],
+  [80, -48],
+  [80, 40],
+  [-20, 40],
+  [-54, 76],
+  [-46, 40],
+  [-80, 40],
+];
+
+/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, whose box `probePlate` declares. */
+export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
+  rectShape(x - w / 2, y - h / 2, w, h);
+
+/** A colour between two hex colours. */
+export const mix = (a: string, b: string, t: number): string => {
+  const ch = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const k = Math.min(1, Math.max(0, t));
+  const out = [0, 1, 2].map((i) =>
+    Math.round(lerp(ch(a, i), ch(b, i), k))
+      .toString(16)
+      .padStart(2, '0'),
+  );
+  return `#${out.join('')}`;
+};
+
+/** A camera part way from `a` to `b`. */
+export const between = (a: Camera, b: Camera, t: number): Camera => ({
+  x: lerp(a.x, b.x, t),
+  y: lerp(a.y, b.y, t),
+  zoom: lerp(a.zoom ?? 1, b.zoom ?? 1, t),
+  rot: lerp(a.rot ?? 0, b.rot ?? 0, t),
+});
 
 // ─── shapes ──────────────────────────────────────────────────────────────────
 
@@ -308,105 +346,13 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
 /** Where a person's face is, for a camera to find it. */
 export const faceOf = (p: Person): Pt => onHead(p, HEAD[0], HEAD[1]);
 
-// ─── the film's sets and recurring figures ───────────────────────────────────
-// Pieces more than one scene draws, so a callback lands in the same layout
-// (CRAFT rule 8). Each takes a `hand` for its keys, so boil seeds stay the
-// scene's own.
+// ─── recurring figures and the icon row ──────────────────────────────────────
+// Figures and the icon row more than one scene draws, so a callback lands in
+// the same layout (CRAFT rule 8). Each takes a `hand` for its keys, so boil
+// seeds stay the scene's own. Sets live in their own modules: court.ts,
+// heaven.ts, city.ts, law.ts, garden.ts, spoken.ts.
 
-type Hands = (k: string) => Hand;
-
-/** The heavenly court's wall: a warm glow falling to board. */
-export const courtWall = (ctx: CanvasRenderingContext2D, w: number, h: number) =>
-  sky(ctx, w, h, [
-    [0, C.glow],
-    [0.55, C.peachLow],
-    [1, C.boardLight],
-  ]);
-
-/** Where the court's high window stands, and the bench's centre. */
-export const COURT_WINDOW: Pt = [1045, 220];
-export const COURT_BENCH: Pt = [1600, 750];
-
-/**
- * The heavenly court's set in 1920×1080 frame units (`accuser`, `robe`,
- * `name`): the high window with a low sun and its light, two pillars, the
- * floor and the bench at centre right. `sun` 0..1 lowers the sun toward the
- * sill (a great day closing).
- */
-export const court = (ctx: CanvasRenderingContext2D, hand: Hands, sun = 0) => {
-  const [wx, wy] = COURT_WINDOW;
-  piece(ctx, rounded(wx, wy, 230, 260, 20), C.peachTop, hand('window'), { line: 5 });
-  piece(ctx, ellipseShape(wx, wy + 52 + 150 * sun, 39, 39), C.gold, hand('sun'), { line: 0 });
-  ctx.save();
-  ctx.globalAlpha *= 0.33;
-  ctx.fillStyle = C.glow;
-  ctx.beginPath();
-  ctx.moveTo(wx - 100, wy + 132);
-  ctx.lineTo(wx + 100, wy + 132);
-  ctx.lineTo(wx + 330, 960);
-  ctx.lineTo(wx - 330, 960);
-  ctx.fill();
-  ctx.restore();
-  for (const [x, k] of [
-    [150, 34],
-    [1790, 35],
-  ] as const)
-    piece(ctx, rectShape(x - 65, 60, 130, 1000), C.board, sub(hand('pillar'), k), {
-      line: 0,
-      torn: 3,
-    });
-  piece(ctx, rectShape(-40, 935, 2000, 160), C.boardShade, hand('floor'), { line: 0, torn: 4 });
-  const [bx, by] = COURT_BENCH;
-  piece(ctx, rectShape(bx - 240, by, 480, 200), C.board, hand('bench'), { line: 4 });
-  piece(ctx, rectShape(bx - 260, by - 27, 520, 34), C.boardDeep, hand('benchTop'), { line: 4 });
-};
-
-/**
- * The accuser, feet at the origin, about 490 units tall: a tall angular
- * shadow-grey figure. `point` 0..1 swings his arm from his side to point
- * ahead (+x).
- */
-export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) => {
-  glow(ctx, 20, -300, 380, C.boardDeep, 0.4);
-  const shadow = '#5f5a55';
-  piece(
-    ctx,
-    [
-      [-40, -370],
-      [40, -370],
-      [74, -6],
-      [-74, -6],
-    ],
-    shadow,
-    hand('accuserBody'),
-    { line: 4 },
-  );
-  // Hanging at his left side, or swung from the near shoulder to point ahead.
-  at(ctx, { x: -62 + 102 * point, y: -345, rot: 0.12 - 1.72 * point }, () =>
-    piece(ctx, rounded(0, 95, 26, 190, 12), shadow, hand('accuserArm'), { line: 3.5 }),
-  );
-  at(ctx, { x: 0, y: -420 }, () => {
-    piece(
-      ctx,
-      [
-        [0, -70],
-        [46, -10],
-        [30, 50],
-        [-30, 50],
-        [-46, -10],
-      ],
-      shadow,
-      hand('accuserHead'),
-      { line: 4 },
-    );
-    ctx.fillStyle = C.outline;
-    for (const x of [-14, 16]) {
-      ctx.beginPath();
-      ctx.ellipse(x, 6, 3.5, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-};
+export type Hands = (k: string) => Hand;
 
 /**
  * Christ, feet at the origin, as a `person` in the white robe with a gold
@@ -440,35 +386,25 @@ export const ICON_X = [-440, 0, 440] as const;
  * The film's three icons in a row centred on the origin, the answer's shape
  * (`message`): a gold word-bubble (God declares), a white robe (clothes) and
  * a heart with two tablets (changes). `lit` is each icon's glow alpha 0..1
- * (0 draws none): the turn the film is on.
+ * (0 draws none): the turn the film is on. `shown` scales each icon about its
+ * centre as it pops in (0 draws none).
  */
 export const icons = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
   lit: readonly [number, number, number],
+  shown: readonly [number, number, number] = [1, 1, 1],
 ) => {
-  const disc = (i: 0 | 1 | 2, key: string, inner: () => void) =>
-    at(ctx, { x: ICON_X[i], y: 0 }, () => {
+  const disc = (i: 0 | 1 | 2, key: string, inner: () => void) => {
+    if (shown[i] <= 0) return;
+    at(ctx, { x: ICON_X[i], y: 0, scale: shown[i] }, () => {
       piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand(key), { line: 6 });
       if (lit[i] > 0) glow(ctx, 0, 0, 260, C.glow, lit[i]);
       inner();
     });
+  };
   disc(0, 'iconWord', () => {
-    piece(
-      ctx,
-      [
-        [-80, -48],
-        [80, -48],
-        [80, 40],
-        [-20, 40],
-        [-54, 76],
-        [-46, 40],
-        [-80, 40],
-      ],
-      C.gold,
-      hand('bubble'),
-      { line: 5 },
-    );
+    piece(ctx, BUBBLE, C.gold, hand('bubble'), { line: 5 });
     for (let i = 0; i < 3; i++)
       piece(
         ctx,

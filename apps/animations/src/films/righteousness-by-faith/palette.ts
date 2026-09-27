@@ -25,6 +25,13 @@ export const palette = {
   cream: '#fdf3dc',
   gold: '#e6b347',
   glow: '#fbefc8',
+  // What grows (only what the word makes grow, and the fig leaves we sew),
+  // the stone of the law, and water under the dawn.
+  leaf: '#86b86a',
+  leafShade: '#5f9451',
+  leafDry: '#9a7b52',
+  stone: '#c9c1b2',
+  water: '#48b39d',
   // Skies, top to bottom.
   tealTop: '#5dccb5',
   tealMid: '#a4f0b7',
