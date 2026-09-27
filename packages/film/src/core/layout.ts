@@ -33,7 +33,9 @@ export const layout = <S extends Timed>(
     ids.add(spec.id);
     const voice = voiceFor(spec.id, spec.say ?? '', timings);
     const lead = spec.lead ?? Math.max(0.5, transitionDur(spec.enter) * 0.7);
-    const tail = spec.tail ?? 0.9;
+    // With the minimum lead, the default seam between two scenes' words is
+    // 0.6 s (the film skill's CRAFT rule 9); a meant pause sets `tail`.
+    const tail = spec.tail ?? 0.1;
     const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
     const speechStart = voice.duration > 0 ? lead : 0;
     out.push({ spec, index, start, dur, voice, speechStart });

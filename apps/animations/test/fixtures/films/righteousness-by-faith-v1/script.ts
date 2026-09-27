@@ -1,6 +1,7 @@
 // The first cut of righteousness-by-faith, kept as data: its beats as they
 // were laid out when its takes and score were made (ink transitions read as
-// fades, which time the same). The tests hold the Schemas, the take and score
+// fades, which time the same, and each beat's tail pinned at the 0.9 s default
+// it was timed under). The tests hold the Schemas, the take and score
 // keys and the mix to it. Its canvas scenes were retired with the canvas engine.
 
 import type { Beat } from '@bible/film/core';
@@ -8,6 +9,7 @@ import type { Beat } from '@bible/film/core';
 export const script: ReadonlyArray<Beat> = [
   {
     id: 'question',
+    tail: 0.9,
     say: "There's a question in the book of Job that every one of us eventually asks. {q}“How should man be just with God?” {after}How can someone who has {wrong}done wrong be {right}made right with the One who is perfectly right?",
     cite: ['Job 9:2'],
     picture:
@@ -15,6 +17,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'title',
+    tail: 0.9,
     picture:
       "Title card. 'Righteousness by Faith' pasted in, letter by letter, over a torn gold sun. Small caption: 'A. T. Jones · E. J. Waggoner · Ellen G. White'.",
     min: 4.6,
@@ -25,6 +28,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'measure',
+    tail: 0.9,
     say: "Start with the word itself. {word}Righteousness means right-doing. {whose}But right by whose measure? {psalm}“All thy commandments are righteousness,” says the psalmist. {char}The law is God's own character, written out in words. {circle}E. J. Waggoner put it like this: “the decalogue is a circle having a circumference as great as the universe.”",
     cite: ['Psalm 119:172', 'E. J. Waggoner, Christ and His Righteousness, 50'],
     picture:
@@ -36,6 +40,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'rags',
+    tail: 0.9,
     say: "And that's the problem. Measured by that circle, {short}we all come short. So we do what Adam and Eve did: we {sew}sew together fig leaves. {try}We try harder. {promise}We make promises. {isaiah}But Isaiah says {rags}“all our righteousnesses are as filthy rags.” {why}Waggoner saw why: {math}“multiplied evil cannot make one good deed.”",
     cite: ['Romans 3:23', 'Isaiah 64:6', 'E. J. Waggoner, Christ and His Righteousness, 55'],
     picture:
@@ -47,6 +52,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'witness',
+    tail: 0.9,
     say: "The law can't fix this. {standard}It's a perfect standard, which is exactly why it will not {call}call a guilty person innocent. {must}As Waggoner wrote, “We must have the righteousness of the law or we cannot enter heaven, and yet {none}the law has no righteousness for one of us.”",
     cite: ['E. J. Waggoner, Christ and His Righteousness, 55'],
     picture:
@@ -57,6 +63,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'void',
+    tail: 0.9,
     say: 'So where does righteousness come from? {back}Go back to the beginning. {dark}Darkness. Emptiness. Nothing at all. And then God {spoke}spoke. {spake}“He spake, and it was done.” {atj}A. T. Jones noticed something simple here: {jones}“He spoke the word only, and it was so. {produced}The word spoken, itself produced the thing.”',
     cite: ['Psalm 33:9', 'A. T. Jones, Lessons on Faith, 16'],
     picture:
@@ -68,6 +75,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'centurion',
+    tail: 0.9,
     say: "A Roman centurion understood this. {servant}His servant was dying. {jesus}When Jesus offered to come, he said, {only}“Speak the word only, and my servant shall be healed.” {house}He didn't need Jesus at his house. {alone}The word alone would do it. {healed}And it did. {story}From this story Jones drew one of the clearest definitions of faith ever written: {faith}“Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.”",
     cite: ['Matthew 8:8', 'A. T. Jones, Lessons on Faith, 15'],
     picture:
@@ -79,6 +87,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'justified',
+    tail: 0.9,
     say: "Here's the heart of it. The Bible says we are {justified}justified: {declared}declared righteous. {fiction}And when God declares something, it is no legal fiction. {as}As Waggoner wrote, {subst}“His word is substantial; it carries with it the thing which it names.” {voice}The same voice that said, {light}“Let there be light,” {speaks}speaks over a human life. {spoken}Jones again: “Christ has spoken the word only, and in the {void}darkened void of man's life there is {right}righteousness to everyone who will receive it.”",
     cite: [
       'Romans 3:24',
@@ -94,6 +103,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'exchange',
+    tail: 0.9,
     say: 'But how can God declare the guilty righteous and still be just? {came}Because Christ came all the way down to us, {flesh}“in the likeness of sinful flesh.” {took}He took our place, {gave}and gave us his. {line}Ellen White said it in one line: {treated}“Christ was treated as we deserve, that we might be treated as He deserves.”',
     cite: ['Romans 8:3', 'Ellen G. White, The Desire of Ages, 25'],
     picture:
@@ -121,6 +131,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'hand',
+    tail: 0.9,
     say: "So what is faith? It isn't the thing that saves us. {saviour}“Faith is not our Saviour,” Ellen White wrote. {earns}“It earns nothing. {hand}It is the hand by which we lay hold upon Christ.” {open}An empty hand, held open to {receive}receive a {gift}gift.",
     cite: ['Ellen G. White, The Desire of Ages, 175'],
     picture:
@@ -133,6 +144,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'serpent',
+    tail: 0.9,
     say: "Remember Israel in the wilderness? {bitten}Bitten by serpents, dying. {moses}God told Moses to lift up a serpent of brass on a pole, and {look}whoever looked, lived. Jesus said, {lifted}“As Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up.” {harder}It's tempting to make it harder than that. {climb}But Ellen White's counsel is almost playful: {dnc}“Do not climb the pole, but only look. {present}I present Christ to you. Look and live.”",
     cite: ['Numbers 21:8', 'John 3:14', 'Ellen G. White, Manuscript Releases, vol. 13, 150'],
     picture:
@@ -144,6 +156,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'within',
+    tail: 0.9,
     say: "And the word that declares us righteous doesn't stop there. {heart}It moves in. {changes}“Christ changes the heart,” Ellen White wrote. “He abides in your heart by faith.” {write}God promised to write His law in our hearts. {title}Imputed, then imparted. {first}“The first is our title to heaven, the second is our fitness for heaven.” {adopt}Or as Waggoner put it: {god}“God does not adopt us as His children because we are good, but in order that He may make us good.”",
     cite: [
       'Ellen G. White, Steps to Christ, 62',
@@ -160,6 +173,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: '1888',
+    tail: 0.9,
     say: "In {year}1888, two young editors, {names}Alonzo Jones and Ellet Waggoner, brought this message to a church {lost}where many had lost sight of Jesus. Ellen White called it {precious}“a most precious message.” {asked}And when she was asked whether it was the third angel's message of Revelation 14, she answered: {verity}“It is the third angel's message in verity.”",
     cite: [
       'Ellen G. White, Testimonies to Ministers, 91',
@@ -187,6 +201,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'end',
+    tail: 0.9,
     picture: "End card on paper: 'Righteousness by Faith' and the source list.",
     min: 7,
     enter: {

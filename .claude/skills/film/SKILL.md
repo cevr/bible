@@ -74,6 +74,6 @@ The user reviews in the Rive editor or in the preview window, and the agent answ
 - **Playwright browser missing:** `render` fails with `BrowserMissing`, whose message is the exact install command. Run it with `dangerouslyDisableSandbox: true`.
 - **Sound effects return 401** under the CLI's OAuth login, which covers speech, speech-to-text and music only. Effects need `ELEVENLABS_API_KEY` in the environment or in the Keychain under that service name; `score` skips them without one.
 - **Music plans:** `music_v2` and `music_v2_5` take `{ chunks: [...] }`; a v1 `sections` plan fails with "Invalid type of composition_plan".
-- **Timing changes:** changing a scene's `lead`, `tail` or `min` moves every later scene. `sync` and remix with `bun run mix <film>` (no API cost); the score goes stale and `score` regenerates it.
+- **Timing changes:** changing a scene's `lead`, `tail` or `min` moves every later scene. Remix with `bun run mix <film>` (no API cost), then `sync`: a sync before the remix finds no master of the film's length, leaves the soundtrack out, and `check` reports `FilmStale`. The score goes stale and `score` regenerates it.
 - **Shell loops:** zsh does not word-split `$var`; run loops over time windows with `bash -c`.
 - **Commits:** the pre-commit hook runs the whole repo gate (about 20 s).
