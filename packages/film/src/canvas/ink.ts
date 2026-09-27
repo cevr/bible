@@ -2,6 +2,7 @@
 // wobble with noise keyed to `boil` — a counter that ticks at 12 fps, so lines
 // "boil" like hand-inked animation on twos while motion stays smooth at 30 fps.
 
+import { type Vec2, vec2 } from 'math';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
 import { clamp, lerp } from '../core/time.ts';
@@ -166,6 +167,9 @@ export const rectShape = (x: number, y: number, w: number, h: number): Pt[] => [
 
 // ─── wobble ──────────────────────────────────────────────────────────────────
 
+/** Scratch for the unit normal at each point, written and read within one step. */
+const normal: Vec2 = [0, 0];
+
 export interface Hand {
   /** 12 fps tick; lines re-jitter every tick. */
   readonly boil: number;
@@ -183,11 +187,11 @@ const wobble = (pts: ReadonlyArray<Pt>, amp: number, freq: number, hand: Hand): 
     const prev = pts[i - 1] ?? p;
     const next = pts[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    let nx = -(next[1] - prev[1]);
-    let ny = next[0] - prev[0];
-    const nl = Math.hypot(nx, ny) || 1;
-    nx /= nl;
-    ny /= nl;
+    normal[0] = -(next[1] - prev[1]);
+    normal[1] = next[0] - prev[0];
+    vec2.normalize(normal, normal);
+    const nx = normal[0];
+    const ny = normal[1];
     const d = amp * noise1(s * freq + phase, hand.seed);
     out.push([p[0] + nx * d, p[1] + ny * d]);
   }
@@ -247,11 +251,11 @@ export const stroke = (
     const prev = drawn[i - 1] ?? p;
     const next = drawn[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    let nx = -(next[1] - prev[1]);
-    let ny = next[0] - prev[0];
-    const nl = Math.hypot(nx, ny) || 1;
-    nx /= nl;
-    ny /= nl;
+    normal[0] = -(next[1] - prev[1]);
+    normal[1] = next[0] - prev[0];
+    vec2.normalize(normal, normal);
+    const nx = normal[0];
+    const ny = normal[1];
     // Taper the tail against the full stroke, and the head against what has
     // been drawn so far — a growing stroke always has a pointed brush tip.
     const tail = taperCurve(s / (total * taper || 1));

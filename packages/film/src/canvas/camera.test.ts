@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
+import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
 import { type Plane, multiplane } from './camera.ts';
 
@@ -17,14 +18,8 @@ interface Recorder {
   readonly filters: Map<string, string>;
 }
 
-const times = (m: Affine, n: Affine): Affine => [
-  m[0] * n[0] + m[2] * n[1],
-  m[1] * n[0] + m[3] * n[1],
-  m[0] * n[2] + m[2] * n[3],
-  m[1] * n[2] + m[3] * n[3],
-  m[0] * n[4] + m[2] * n[5] + m[4],
-  m[1] * n[4] + m[3] * n[5] + m[5],
-];
+/** `m` then `n`, as the canvas composes a transform onto the current one. */
+const times = (m: Affine, n: Mat2d): Mat2d => mat2d.multiply(mat2d.create(), [...m], n);
 
 const recorder = (): Recorder => {
   let state = { m: IDENTITY, alpha: 1, filter: 'none' };
