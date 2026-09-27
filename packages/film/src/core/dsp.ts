@@ -131,6 +131,108 @@ export interface Limit {
 }
 
 /**
+ * The limiter's running state, as alimiter's context keeps it: one interleaved
+ * ring of `bufferSize` samples (the attack window), the gain now (`att`) and
+ * its step per frame (`delta`), and the queue of gain steps still to take
+ * (`nextpos`/`nextdelta`, `nextlen` of them from `nextiter`).
+ */
+interface Limiter {
+  readonly channels: number;
+  readonly bufferSize: number;
+  readonly ceiling: number;
+  /** Frames the release takes to recover from full attenuation. */
+  readonly releaseFrames: number;
+  readonly buffer: Float64Array;
+  readonly nextdelta: Float64Array;
+  readonly nextpos: Int32Array;
+  pos: number;
+  att: number;
+  delta: number;
+  nextiter: number;
+  nextlen: number;
+}
+
+/** The loudest channel of the frame at ring index `at`. */
+const peakAt = (l: Limiter, at: number): number => {
+  let peak = 0;
+  for (let c = 0; c < l.channels; c++) peak = Math.max(peak, Math.abs(l.buffer[at + c] ?? 0));
+  return peak;
+};
+
+/**
+ * The first queued step, from `nextiter`, that the frame just in (`peak` over
+ * the ceiling) makes steeper: lowered to reach it, and its index; -1 when none.
+ */
+const steepenQueued = (l: Limiter, peak: number): number => {
+  for (let i = l.nextiter; i < l.nextiter + l.nextlen; i++) {
+    const j = i % l.bufferSize;
+    const at = l.nextpos[j] ?? -1;
+    const ppeak = at >= 0 ? peakAt(l, at) : 0;
+    const span = Math.trunc(((l.bufferSize - at + l.pos) % l.bufferSize) / l.channels);
+    const pdelta = (l.ceiling / peak - l.ceiling / ppeak) / span;
+    if (pdelta < (l.nextdelta[j] ?? 0)) {
+      l.nextdelta[j] = pdelta;
+      return i;
+    }
+  }
+  return -1;
+};
+
+/**
+ * Queue the gain steps a frame over the ceiling needs: a steeper fall than
+ * the one under way restarts the queue at it; otherwise it steepens a queued
+ * step and queues its own release after it.
+ */
+const queuePeak = (l: Limiter, peak: number): void => {
+  const patt = Math.min(l.ceiling / peak, 1);
+  const rdelta = (1 - patt) / l.releaseFrames;
+  const next = ((l.ceiling / peak - l.att) / l.bufferSize) * l.channels;
+  if (next < l.delta) {
+    l.delta = next;
+    l.nextpos[0] = l.pos;
+    l.nextpos[1] = -1;
+    l.nextdelta[0] = rdelta;
+    l.nextlen = 1;
+    l.nextiter = 0;
+    return;
+  }
+  const i = steepenQueued(l, peak);
+  if (i < 0) return;
+  l.nextlen = i - l.nextiter + 1;
+  l.nextpos[(l.nextiter + l.nextlen) % l.bufferSize] = l.pos;
+  l.nextdelta[(l.nextiter + l.nextlen) % l.bufferSize] = rdelta;
+  l.nextpos[(l.nextiter + l.nextlen + 1) % l.bufferSize] = -1;
+  l.nextlen++;
+};
+
+/**
+ * Past the frame leaving the ring at `oldest`: take the queued step due there,
+ * then hold the gain inside (0, 1] and snap what is within rounding of 1 or 0.
+ */
+const advance = (l: Limiter, oldest: number): void => {
+  if (oldest === l.nextpos[l.nextiter]) {
+    l.delta = l.nextdelta[l.nextiter] ?? 0;
+    l.att = l.ceiling / peakAt(l, oldest);
+    l.nextlen -= 1;
+    l.nextpos[l.nextiter] = -1;
+    l.nextiter = (l.nextiter + 1) % l.bufferSize;
+  }
+  if (l.att > 1) {
+    l.att = 1;
+    l.delta = 0;
+    l.nextiter = 0;
+    l.nextlen = 0;
+    l.nextpos[0] = -1;
+  }
+  if (l.att <= 0) {
+    l.att = 0.0000000000001;
+    l.delta = (1 - l.att) / l.releaseFrames;
+  }
+  if (l.att !== 1 && 1 - l.att < 0.0000000000001) l.att = 1;
+  if (l.delta !== 0 && Math.abs(l.delta) < 0.00000000000001) l.delta = 0;
+};
+
+/**
  * `input` through af_alimiter.c `filter_frame` with `level=false`, no
  * auto-release and no latency compensation: the output runs one attack
  * window (less a frame) behind the input, as it did in the ffmpeg graph.
@@ -145,94 +247,38 @@ export const limit = (
   const frames = Math.max(0, ...input.map((channel) => channel.length));
   const ceiling = spec.limit;
   const release = spec.release / 1000;
-  // One interleaved ring of `bufferSize` samples (the attack window), and the
-  // queue of gain steps still to take (`nextpos`/`nextdelta`), as alimiter keeps them.
   const ringSize = Math.trunc((rate * channels * 100) / 1000 + channels);
   let bufferSize = Math.trunc(rate * (spec.attack / 1000) * channels);
   bufferSize -= bufferSize % channels;
-  const buffer = new Float64Array(ringSize);
-  const nextdelta = new Float64Array(ringSize);
-  const nextpos = new Int32Array(ringSize).fill(-1);
-  const out = input.map(() => new Float32Array(frames));
-  const peakAt = (at: number) => {
-    let peak = 0;
-    for (let c = 0; c < channels; c++) peak = Math.max(peak, Math.abs(buffer[at + c] ?? 0));
-    return peak;
+  const l: Limiter = {
+    channels,
+    bufferSize,
+    ceiling,
+    releaseFrames: rate * release,
+    buffer: new Float64Array(ringSize),
+    nextdelta: new Float64Array(ringSize),
+    nextpos: new Int32Array(ringSize).fill(-1),
+    pos: 0,
+    att: 1,
+    delta: 0,
+    nextiter: 0,
+    nextlen: 0,
   };
-  let pos = 0;
-  let att = 1;
-  let delta = 0;
-  let nextiter = 0;
-  let nextlen = 0;
+  const out = input.map(() => new Float32Array(frames));
 
   for (let n = 0; n < frames; n++) {
-    for (const [c, channel] of input.entries()) buffer[pos + c] = channel[n] ?? 0;
-    const peak = peakAt(pos);
+    for (const [c, channel] of input.entries()) l.buffer[l.pos + c] = channel[n] ?? 0;
+    const peak = peakAt(l, l.pos);
+    if (peak > ceiling) queuePeak(l, peak);
 
-    if (peak > ceiling) {
-      const patt = Math.min(ceiling / peak, 1);
-      const rdelta = (1 - patt) / (rate * release);
-      const next = ((ceiling / peak - att) / bufferSize) * channels;
-      if (next < delta) {
-        delta = next;
-        nextpos[0] = pos;
-        nextpos[1] = -1;
-        nextdelta[0] = rdelta;
-        nextlen = 1;
-        nextiter = 0;
-      } else {
-        let i = nextiter;
-        let found = false;
-        for (; i < nextiter + nextlen; i++) {
-          const j = i % bufferSize;
-          const at = nextpos[j] ?? -1;
-          const ppeak = at >= 0 ? peakAt(at) : 0;
-          const span = Math.trunc(((bufferSize - at + pos) % bufferSize) / channels);
-          const pdelta = (ceiling / peak - ceiling / ppeak) / span;
-          if (pdelta < (nextdelta[j] ?? 0)) {
-            nextdelta[j] = pdelta;
-            found = true;
-            break;
-          }
-        }
-        if (found) {
-          nextlen = i - nextiter + 1;
-          nextpos[(nextiter + nextlen) % bufferSize] = pos;
-          nextdelta[(nextiter + nextlen) % bufferSize] = rdelta;
-          nextpos[(nextiter + nextlen + 1) % bufferSize] = -1;
-          nextlen++;
-        }
-      }
-    }
-
-    const oldest = (pos + channels) % bufferSize;
-    att += delta;
-    const gain = att;
-
-    if (oldest === nextpos[nextiter]) {
-      delta = nextdelta[nextiter] ?? 0;
-      att = ceiling / peakAt(oldest);
-      nextlen -= 1;
-      nextpos[nextiter] = -1;
-      nextiter = (nextiter + 1) % bufferSize;
-    }
-    if (att > 1) {
-      att = 1;
-      delta = 0;
-      nextiter = 0;
-      nextlen = 0;
-      nextpos[0] = -1;
-    }
-    if (att <= 0) {
-      att = 0.0000000000001;
-      delta = (1 - att) / (rate * release);
-    }
-    if (att !== 1 && 1 - att < 0.0000000000001) att = 1;
-    if (delta !== 0 && Math.abs(delta) < 0.00000000000001) delta = 0;
+    const oldest = (l.pos + channels) % bufferSize;
+    l.att += l.delta;
+    const gain = l.att;
+    advance(l, oldest);
 
     for (const [c, channel] of out.entries())
-      channel[n] = Math.min(ceiling, Math.max(-ceiling, (buffer[oldest + c] ?? 0) * gain));
-    pos = (pos + channels) % bufferSize;
+      channel[n] = Math.min(ceiling, Math.max(-ceiling, (l.buffer[oldest + c] ?? 0) * gain));
+    l.pos = (l.pos + channels) % bufferSize;
   }
   return out;
 };

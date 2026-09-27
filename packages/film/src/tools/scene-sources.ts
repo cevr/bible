@@ -40,7 +40,13 @@ import {
   SourceShared,
 } from './errors.ts';
 import { FilmRepo, importFilmModule } from './film-repo.ts';
-import { type Editable, drawingSites, editable, parseModule } from './scene-source.ts';
+import {
+  type DrawingSite,
+  type Editable,
+  drawingSites,
+  editable,
+  parseModule,
+} from './scene-source.ts';
 
 /** A drawing's field the lab writes: `timeline` for cues, `knobs` for knobs. */
 export type Field = 'timeline' | 'knobs';
@@ -134,6 +140,30 @@ const identity = (owner: typeof Owner.Type, field: Field): Option.Option<object>
 
 const WRITABLE: FieldAccess = { _tag: 'Writable' };
 
+/** Per field, the drawing calls that declare each object, keyed by the object itself. */
+type Owners = Record<Field, Map<object, Array<Owned>>>;
+
+/** Record under `owners` each drawing `file` exports: its calls, as `exports` evaluates them. */
+const addOwners = (
+  owners: Owners,
+  file: string,
+  sites: ReadonlyArray<DrawingSite>,
+  exports: Option.Option<typeof ModuleExports.Type>,
+): void => {
+  for (const site of sites)
+    for (const exportName of site.exports) {
+      const drawing = Option.flatMap(exports, (m) =>
+        Option.flatMap(Option.fromUndefinedOr(m[exportName]), decodeOwner),
+      );
+      for (const field of FIELDS)
+        for (const obj of Option.toArray(Option.flatMap(drawing, (d) => identity(d, field)))) {
+          const list = owners[field].get(obj) ?? [];
+          list.push({ file, exportName, at: site.at });
+          owners[field].set(obj, list);
+        }
+    }
+};
+
 export class SceneSources extends Context.Service<SceneSources, SceneSourcesService>()(
   '@bible/film/tools/SceneSources',
 ) {
@@ -176,24 +206,9 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
         const owners = {
           timeline: new Map<object, Array<Owned>>(),
           knobs: new Map<object, Array<Owned>>(),
-        } satisfies Record<Field, Map<object, Array<Owned>>>;
-        for (const { file, sites } of withSites) {
-          const exports = decodeExports(yield* importModule(film, file));
-          for (const site of sites)
-            for (const exportName of site.exports) {
-              const drawing = Option.flatMap(exports, (m) =>
-                Option.flatMap(Option.fromUndefinedOr(m[exportName]), decodeOwner),
-              );
-              for (const field of FIELDS)
-                for (const obj of Option.toArray(
-                  Option.flatMap(drawing, (d) => identity(d, field)),
-                )) {
-                  const list = owners[field].get(obj) ?? [];
-                  list.push({ file, exportName, at: site.at });
-                  owners[field].set(obj, list);
-                }
-            }
-        }
+        } satisfies Owners;
+        for (const { file, sites } of withSites)
+          addOwners(owners, file, sites, decodeExports(yield* importModule(film, file)));
         const registry = yield* Schema.decodeUnknownEffect(Registry)(
           yield* importModule(film, path.join(dir, 'scenes', 'index.ts')),
         ).pipe(

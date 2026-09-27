@@ -69,6 +69,46 @@ const RTL = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 export const measure = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) =>
   glyphs(ctx, text, style).width;
 
+/** Where a line `width` wide aligned at `x` starts. */
+const leftEdge = (align: NonNullable<TextStyle['align']>, x: number, width: number) =>
+  align === 'center' ? x - width / 2 : align === 'right' ? x - width : x;
+
+/** A popped glyph's own tilt, gone once it lands; other reveals hold level. */
+const popTilt = (reveal: Reveal, i: number, seed: number, local: number) =>
+  reveal === 'pop' ? (hash2(i, seed) - 0.5) * 0.12 * (1 - local) : 0;
+
+/** How opaque a glyph `local` of the way through its reveal shows. */
+const shownOpacity = (reveal: Reveal, local: number) =>
+  reveal === 'rise' ? ease.outCubic(local) : reveal === 'pop' ? clamp(local * 3) : 1;
+
+/**
+ * A glyph `local` of the way through its reveal, set on `ctx` about its
+ * centre: a pen's clip across it, a rise and fade, or a pop.
+ */
+const revealGlyph = (
+  ctx: CanvasRenderingContext2D,
+  reveal: Reveal,
+  local: number,
+  gw: number,
+  size: number,
+  baseAlpha: number,
+) => {
+  if (reveal === 'write') {
+    ctx.globalAlpha = baseAlpha;
+    ctx.beginPath();
+    ctx.rect(-gw / 2 - 4, -size * 1.2, (gw + 8) * local, size * 1.6);
+    ctx.clip();
+  } else if (reveal === 'rise') {
+    const e = ease.outCubic(local);
+    ctx.globalAlpha = baseAlpha * e;
+    ctx.translate(0, (1 - e) * size * 0.25);
+  } else {
+    const e = ease.outBack(local);
+    ctx.globalAlpha = baseAlpha * clamp(local * 3);
+    ctx.scale(e, e);
+  }
+};
+
 /** One line of text at (x, y) — y is the alphabetic baseline. */
 export const write = (
   ctx: CanvasRenderingContext2D,
@@ -81,8 +121,7 @@ export const write = (
 ) => {
   if (RTL.test(text)) return writeWhole(ctx, text, x, y, style, hand, opts);
   const { chars, xs, ws, width } = glyphs(ctx, text, style);
-  const align = style.align ?? 'left';
-  const x0 = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x;
+  const x0 = leftEdge(style.align ?? 'left', x, width);
   const progress = clamp(opts.progress ?? 1);
   const reveal = opts.reveal ?? 'rise';
   const n = chars.length;
@@ -110,30 +149,15 @@ export const write = (
     if (probe !== undefined) {
       shownFrom = Math.min(shownFrom, gx);
       shownTo = Math.max(shownTo, gx + gw);
-      const shown =
-        reveal === 'rise' ? ease.outCubic(local) : reveal === 'pop' ? clamp(local * 3) : 1;
-      shownAlpha = Math.max(shownAlpha, shown);
+      shownAlpha = Math.max(shownAlpha, shownOpacity(reveal, local));
     }
     const jx = boil * noise1(hand.boil * 1.3 + i * 7.1, hand.seed);
     const jy = boil * noise1(hand.boil * 1.7 + i * 3.3, hand.seed + 1);
     const rot = boil * 0.006 * noise1(hand.boil + i * 5.3, hand.seed + 2);
     ctx.save();
     ctx.translate(gx + gw / 2 + jx, y + jy);
-    ctx.rotate(rot + (reveal === 'pop' ? (hash2(i, hand.seed) - 0.5) * 0.12 * (1 - local) : 0));
-    if (reveal === 'write') {
-      ctx.globalAlpha = baseAlpha;
-      ctx.beginPath();
-      ctx.rect(-gw / 2 - 4, -style.size * 1.2, (gw + 8) * local, style.size * 1.6);
-      ctx.clip();
-    } else if (reveal === 'rise') {
-      const e = ease.outCubic(local);
-      ctx.globalAlpha = baseAlpha * e;
-      ctx.translate(0, (1 - e) * style.size * 0.25);
-    } else {
-      const e = ease.outBack(local);
-      ctx.globalAlpha = baseAlpha * clamp(local * 3);
-      ctx.scale(e, e);
-    }
+    ctx.rotate(rot + popTilt(reveal, i, hand.seed, local));
+    revealGlyph(ctx, reveal, local, gw, style.size, baseAlpha);
     ctx.fillText(ch, -gw / 2, 0);
     ctx.restore();
   }

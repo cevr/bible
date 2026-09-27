@@ -315,6 +315,17 @@ export const stroke = (
     right.push([p[0] - nx * w, p[1] - ny * w]);
   }
 
+  inkOutline(ctx, left, right, drawn, style);
+};
+
+/** Fill the stroke's outline: down its `left` edge and back up its `right`. */
+const inkOutline = (
+  ctx: CanvasRenderingContext2D,
+  left: Path,
+  right: Path,
+  drawn: Path,
+  style: StrokeStyle,
+) => {
   ctx.save();
   ctx.globalAlpha *= style.alpha ?? 1;
   ctx.fillStyle = style.color;

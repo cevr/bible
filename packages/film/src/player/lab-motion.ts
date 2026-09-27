@@ -51,6 +51,42 @@ const canvas2d = (w: number, h: number, className = '') => {
 const brightness = (d: Uint8ClampedArray, i: number) =>
   0.299 * (d[i] ?? 0) + 0.587 * (d[i + 1] ?? 0) + 0.114 * (d[i + 2] ?? 0);
 
+/** A whole-number field from 1 to `max`, `fallback` when it is empty or not a number. */
+const whole = (value: string, fallback: number, max: number) =>
+  Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
+
+/** Ink is darker than the page on paper (1), lighter on a night sky (-1). */
+const inkSign = (now: Uint8ClampedArray) => {
+  let sum = 0;
+  for (let i = 0; i < now.length; i += 4 * 97) sum += brightness(now, i);
+  return sum / Math.ceil(now.length / (4 * 97)) > 110 ? 1 : -1;
+};
+
+/**
+ * Paint into `o`, in `color`, the ink `px` has where `now` has none, at
+ * `strength`; a pixel an earlier, stronger ghost holds keeps it.
+ */
+const ghostInto = (
+  o: Uint8ClampedArray,
+  now: Uint8ClampedArray,
+  px: Uint8ClampedArray,
+  light: number,
+  strength: number,
+  color: readonly [number, number, number],
+) => {
+  const [r, g, bl] = color;
+  for (let i = 0; i < o.length; i += 4) {
+    const moved = light * (brightness(now, i) - brightness(px, i));
+    if (moved < MOVED) continue;
+    const alpha = Math.round(255 * strength * Math.min(1, (moved - MOVED) / 60 + 0.35));
+    if (alpha <= (o[i + 3] ?? 0)) continue;
+    o[i] = r;
+    o[i + 1] = g;
+    o[i + 2] = bl;
+    o[i + 3] = alpha;
+  }
+};
+
 /**
  * Mount the motion tools: a section in the lab panel and the onion layer,
  * which `pin` keeps over the film canvas.
@@ -194,34 +230,19 @@ export const mountMotion = (
       onion.c.hidden = true;
       return;
     }
-    const count = Math.max(1, Math.min(4, Math.round(Number(countIn.value) || 2)));
-    const spacing = Math.max(1, Math.min(15, Math.round(Number(spacingIn.value) || 3)));
+    const count = whole(countIn.value, 2, 4);
+    const spacing = whole(spacingIn.value, 3, 15);
     const T = player.now();
     const now = pixelsAt(undefined);
-    // Ink is darker than the page on paper, lighter on a night sky.
-    let sum = 0;
-    for (let i = 0; i < now.length; i += 4 * 97) sum += brightness(now, i);
-    const light = sum / Math.ceil(now.length / (4 * 97)) > 110 ? 1 : -1;
+    const light = inkSign(now);
     const out = onion.ctx.createImageData(w, h);
-    const o = out.data;
     // Farthest first, so the nearest ghost ends on top.
     for (let k = count; k >= 1; k--) {
       const strength = 0.9 * (1 - (k - 1) / (count + 1));
       for (const dir of [-1, 1]) {
         const at = T + (dir * k * spacing) / film.fps;
         if (at < 0 || at > film.duration) continue;
-        const px = pixelsAt(at);
-        const [r, g, bl] = dir < 0 ? BEFORE : AFTER;
-        for (let i = 0; i < o.length; i += 4) {
-          const moved = light * (brightness(now, i) - brightness(px, i));
-          if (moved < MOVED) continue;
-          const alpha = Math.round(255 * strength * Math.min(1, (moved - MOVED) / 60 + 0.35));
-          if (alpha <= (o[i + 3] ?? 0)) continue;
-          o[i] = r;
-          o[i + 1] = g;
-          o[i + 2] = bl;
-          o[i + 3] = alpha;
-        }
+        ghostInto(out.data, now, pixelsAt(at), light, strength, dir < 0 ? BEFORE : AFTER);
       }
     }
     onion.ctx.putImageData(out, 0, 0);
