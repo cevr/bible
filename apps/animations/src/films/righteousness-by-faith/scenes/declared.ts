@@ -17,7 +17,7 @@ import {
   rectShape,
   write,
 } from '@bible/film/canvas';
-import { clamp, ease, keys, lerp } from '@bible/film/core';
+import { clamp, keys, lerp } from '@bible/film/core';
 import { C, F, ICON_X, blob, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
@@ -255,13 +255,13 @@ export const declared = drawing({
           const since = t - f.cue('heavy').start;
           const fall = keys(since, [
             [0, 0],
-            [0.45, -70, ease.outCubic],
-            [0.75, 0, ease.inCubic],
+            [0.45, -70, 'outCubic'],
+            [0.75, 0, 'inCubic'],
           ]);
           const squash = keys(since, [
             [0.72, 1],
-            [0.8, 1.14, ease.outCubic],
-            [1.1, 1, ease.outBack],
+            [0.8, 1.14, 'outCubic'],
+            [1.1, 1, 'outBack'],
           ]);
           const depth = clamp(since / 0.45);
           at(ctx, { x: wordX, y: 540 + fall, sx: squash, sy: 2 - squash }, () => {

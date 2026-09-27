@@ -1,6 +1,8 @@
 // Time is the only input to a frame. These helpers turn "seconds since the
 // scene began" into eased 0→1 progress values and keyframed numbers.
 
+import type { EaseName } from './schema.ts';
+
 export type Ease = (t: number) => number;
 
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
@@ -50,10 +52,18 @@ export const envelope = (
   e: Ease = ease[DEFAULT_EASE],
 ) => Math.min(progress(t, start, inDur, e), 1 - progress(t, end - outDur, outDur, e));
 
-export type Key = readonly [time: number, value: number, ease?: Ease];
+/** A keyframe: its time, its value, and the ease (by name, as data) of the segment arriving at it. */
+export type Key = readonly [time: number, value: number, ease?: EaseName];
 
-/** Piecewise keyframes. Each key's ease shapes the segment arriving at it. */
-export const keys = (t: number, frames: ReadonlyArray<Key>): number => {
+/**
+ * Piecewise keyframes. Each key's ease shapes the segment arriving at it; a
+ * key that names none takes `fallback`.
+ */
+export const keys = (
+  t: number,
+  frames: ReadonlyArray<Key>,
+  fallback: EaseName = DEFAULT_EASE,
+): number => {
   const first = frames[0];
   if (first === undefined) return 0;
   if (t <= first[0]) return first[1];
@@ -62,7 +72,7 @@ export const keys = (t: number, frames: ReadonlyArray<Key>): number => {
     const next = frames[i];
     if (prev === undefined || next === undefined) break;
     if (t <= next[0]) {
-      const e = next[2] ?? ease[DEFAULT_EASE];
+      const e = ease[next[2] ?? fallback];
       return lerp(prev[1], next[1], e(invLerp(prev[0], next[0], t)));
     }
   }

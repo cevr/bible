@@ -7,7 +7,7 @@
 // flies across again, and figures on the rooftops turn to look and wave.
 
 import { type Camera, type Pt, at, drawing, multiplane } from '@bible/film/canvas';
-import { clamp, ease, keys, lerp, rng } from '@bible/film/core';
+import { clamp, keys, lerp, rng } from '@bible/film/core';
 import { C, blob, glow, person, piece, sky, sub, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, sanctuary } from '../heaven.ts';
@@ -153,8 +153,8 @@ export const rain = drawing({
               if (gone >= 1) return;
               const pop = keys(gone, [
                 [0, 1],
-                [0.4, 1.35, ease.outCubic],
-                [1, 0, ease.inCubic],
+                [0.4, 1.35, 'outCubic'],
+                [1, 0, 'inCubic'],
               ]);
               const bob = Math.sin(t * 1.4 + i) * 6;
               glow(ctx, s.x, s.y + bob, 60 * s.s, C.glow, gone * 0.8);
@@ -197,9 +197,9 @@ export const rain = drawing({
       // In fast, a slow glide while the words can be read, out fast.
       const x = keys(k, [
         [0, -200],
-        [0.25, 1150, ease.outCubic],
-        [0.8, 1600, ease.linear],
-        [1, 3400, ease.inCubic],
+        [0.25, 1150, 'outCubic'],
+        [0.8, 1600, 'linear'],
+        [1, 3400, 'inCubic'],
       ]);
       const written = clamp((k - 0.2) / 0.12);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>

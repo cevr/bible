@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { clamp, ease, envelope, invLerp, keys, lerp, progress } from './time.ts';
+import { DEFAULT_EASE, clamp, ease, envelope, invLerp, keys, lerp, progress } from './time.ts';
 
 describe('time', () => {
   test('eases are exactly 0 before their start and 1 after', () => {
@@ -44,9 +44,28 @@ describe('time', () => {
         keys(t, [
           [0, 1],
           [0.2, 2],
-          [0.6, 0, ease.outCubic],
+          [0.6, 0, 'outCubic'],
         ]),
       ),
     ).toEqual([1.5, 0.84375, 0.03125]);
+  });
+
+  test('a key that names no ease takes the fallback, the default ease unless given', () => {
+    const frames = [
+      [0, 0],
+      [1, 1],
+    ] as const;
+    expect(keys(0.25, frames)).toBe(ease[DEFAULT_EASE](0.25));
+    expect(keys(0.25, frames, 'outCubic')).toBe(ease.outCubic(0.25));
+    expect(
+      keys(
+        0.25,
+        [
+          [0, 0],
+          [1, 1, 'linear'],
+        ],
+        'outCubic',
+      ),
+    ).toBe(0.25);
   });
 });

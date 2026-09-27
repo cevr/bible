@@ -251,7 +251,7 @@ export const justified = drawing({
     if (pIn > 0) {
       const zoom = keys(t, [
         [spoken - 0.2, 1],
-        [voidAt - 0.3, 2.1, ease.inOutCubic],
+        [voidAt - 0.3, 2.1, 'inOutCubic'],
       ]);
       const chestY = 1000 - 0.8 * 220;
       const camY = lerp(540, chestY - (770 - 540) / 2.1, clamp((zoom - 1) / 1.1));

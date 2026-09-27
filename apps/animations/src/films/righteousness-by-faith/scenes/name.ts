@@ -8,7 +8,7 @@
 // bench itself goes gold, and the word gives way to the name in `thesis`.
 
 import { type Camera, drawing, write } from '@bible/film/canvas';
-import { ease, keys, lerp } from '@bible/film/core';
+import { keys, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import { QUESTION, REST, WIDE, landingCourt, questionStyle } from '../court.ts';
 import { between } from '../kit.ts';
@@ -45,13 +45,13 @@ export const name = drawing({
     const swing = keys(f.t - g.start, [
       [0, 0.35],
       [0.22, -0.2],
-      [0.45, 1.5, ease.inOutCubic],
+      [0.45, 1.5, 'inOutCubic'],
       [0.59, 1.45],
     ]);
     const s = f.cue('stamp');
     const pop = keys(f.t - s.start, [
       [0, 1.2],
-      [0.12, 0.97, ease.outCubic],
+      [0.12, 0.97, 'outCubic'],
       [0.2, 1],
     ]);
     const smile = f.at('smile');

@@ -276,7 +276,7 @@ const robed = (f: RobeFrame) => {
   // The robe comes up onto him from below, clear of his face.
   const drop = keys(t - settle.start, [
     [0, 560],
-    [settle.dur, 0, ease.outSoft],
+    [settle.dur, 0, 'outSoft'],
   ]);
   courtWall(ctx, w, h);
   at(ctx, { x: 960, y: 430 + 165 * 6, scale: 6 }, () =>

@@ -19,7 +19,7 @@ import {
   stroke,
   write,
 } from '@bible/film/canvas';
-import { ease, keys, lerp, rng } from '@bible/film/core';
+import { keys, lerp, rng } from '@bible/film/core';
 import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
 import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
 
@@ -84,7 +84,7 @@ export const cold = drawing({
     const pop = f.cue('stamp');
     const popScale = keys(f.t - pop.start, [
       [0, 1.2],
-      [0.12, 0.97, ease.outCubic],
+      [0.12, 0.97, 'outCubic'],
       [0.2, 1],
     ]);
     const g = f.cue('gavel');
@@ -92,8 +92,8 @@ export const cold = drawing({
       keys(f.t - g.start, [
         [0, 0.35],
         [0.22, -0.3],
-        [0.37, 1.62, ease.inCubic],
-        [0.47, 1.4, ease.outQuad],
+        [0.37, 1.62, 'inCubic'],
+        [0.47, 1.4, 'outQuad'],
         [0.59, 1.58],
       ]) *
         (1 - f.at('rest')) +
@@ -214,7 +214,7 @@ export const cold = drawing({
               if (f.t < t0) return;
               const fall = keys(f.t - t0, [
                 [0, -300],
-                [0.2, 0, ease.inCubic],
+                [0.2, 0, 'inCubic'],
               ]);
               at(ctx, { x: s.x, y: s.y + fall, rot: s.rot }, () =>
                 piece(ctx, rectShape(-75, -5.5, 150, 11), C.paper, sub(f.hand('sheet'), i), {

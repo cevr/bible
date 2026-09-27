@@ -41,7 +41,7 @@ export const measure: Drawing = {
     // Act 2 — the tablets, then the circle that swallows the universe.
     const zoom = keys(t, [
       [circle + 1.2, 1],
-      [circle + 6.4, 0.3, ease.inOutCubic],
+      [circle + 6.4, 0.3, 'inOutCubic'],
     ]);
     const cx = 960;
     const cy = 640;
@@ -51,7 +51,7 @@ export const measure: Drawing = {
     const R = keys(t, [
       [circle, 262],
       [circle + 1.2, 262],
-      [circle + 6.4, 4200, ease.inOutCubic],
+      [circle + 6.4, 4200, 'inOutCubic'],
     ]);
     const camY = lerp(cy, cy - 10, 1 - zoom);
     const ring = progress(t, circle - 0.2, 1.4, ease.inOutCubic);
