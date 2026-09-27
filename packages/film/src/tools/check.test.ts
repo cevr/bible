@@ -12,6 +12,7 @@ import {
   frameFindings,
   lateCues,
   layoutSamples,
+  longSeams,
   mergeFindings,
   musicFindings,
   overlapArea,
@@ -645,6 +646,51 @@ describe('lateCues', () => {
       noTakes,
     );
     expect(lateCues(late).map((c) => [c.scene, c.cue, c.end])).toEqual([['s', 'over', 4.5]]);
+  });
+});
+
+describe('longSeams', () => {
+  const said = (id: string, extra: Partial<Timed> = {}): Timed => ({
+    id,
+    say: 'One two three four.',
+    ...extra,
+  });
+
+  test('a default lead stretched by a long entrance makes a seam over 0.6 s', () => {
+    const placed = layout([said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })], noTakes);
+    const found = longSeams(placed);
+    expect(found.map((f) => [f._tag, f.from, f.to])).toEqual([['SeamLong', 'a', 'b']]);
+    expect(found[0]?.seam).toBeCloseTo(0.94);
+  });
+
+  test('a declared lead or tail is a meant pause; the default seam is 0.6 s', () => {
+    const fade = { kind: 'fade', dur: 1.2 } as const;
+    expect(longSeams(layout([said('a'), said('b', { enter: fade, lead: 1 })], noTakes))).toEqual(
+      [],
+    );
+    expect(
+      longSeams(layout([said('a', { tail: 1 }), said('b', { enter: fade })], noTakes)),
+    ).toEqual([]);
+    expect(longSeams(layout([said('a'), said('b')], noTakes))).toEqual([]);
+  });
+
+  test('a scene with no words between two voices is a pause of its own', () => {
+    const placed = layout([said('a'), { id: 'title', min: 3 }, said('b')], noTakes);
+    expect(longSeams(placed)).toEqual([]);
+  });
+
+  test('is a warning in the static check', () => {
+    const scenes = [said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })];
+    const film = testFilm(scenes, noTakes);
+    const found = staticFindings(
+      film,
+      layout(scenes, noTakes),
+      { allowStale: true },
+      Option.none(),
+    );
+    expect(found.filter((r) => r.finding._tag === 'SeamLong').map((r) => r.level)).toEqual([
+      'warning',
+    ]);
   });
 });
 

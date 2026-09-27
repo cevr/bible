@@ -5,7 +5,7 @@
 // text, text off the frame, brush strokes across text, and a plate carrying
 // text cut off by the frame. Every finding is collected; none stops the others.
 
-import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effect';
+import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
 import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
@@ -31,6 +31,7 @@ import {
   type CueInvalid,
   InkOverText,
   PlateOffFrame,
+  SeamLong,
   TakeStale,
   TextOffFrame,
   TextOffPlate,
@@ -45,6 +46,7 @@ import { masterFile, masterFinding } from './mixer.ts';
 
 export type StaticFinding =
   | CueLate
+  | SeamLong
   | TakeStale
   | AssetStale
   | AssetMissing
@@ -81,6 +83,41 @@ export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> 
       .filter(([, c]) => c.end > p.dur + 1e-9)
       .map(([cue, c]) => CueLate.make({ scene: p.spec.id, cue, end: c.end, dur: p.dur })),
   );
+
+/**
+ * The longest pause between two voices a film makes without saying so: the
+ * default lead (0.5 s) plus the default tail (0.1 s), the film skill's CRAFT
+ * rule 9.
+ */
+export const MAX_SEAM = 0.6;
+
+/** The pause from `p`'s last word to `q`'s first, when both speak and `q` follows `p`. */
+export const seamAfter = (p: Placed, q: Placed): Option.Option<number> => {
+  if (p.voice.duration <= 0 || q.voice.duration <= 0) return Option.none();
+  return Option.some(p.dur - (p.speechStart + p.voice.duration) + q.speechStart);
+};
+
+/** Whether a scene declares the time after its words: a `tail`, or a `min` that can stretch it. */
+const declaresEnd = (p: Placed) =>
+  Predicate.isNotUndefined(p.spec.tail) || Predicate.isNotUndefined(p.spec.min);
+
+/**
+ * Seams over `MAX_SEAM` between two speaking scenes, where neither scene
+ * declares the pause: a long entrance stretching the default lead, not a pause
+ * the script means.
+ */
+export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong> =>
+  placed.slice(1).flatMap((q, i) => {
+    const p = Arr.getUnsafe(placed, i);
+    if (declaresEnd(p) || Predicate.isNotUndefined(q.spec.lead)) return [];
+    return Option.match(seamAfter(p, q), {
+      onNone: () => [],
+      onSome: (seam) => {
+        if (seam <= MAX_SEAM + 1e-9) return [];
+        return [SeamLong.make({ from: p.spec.id, to: q.spec.id, seam, max: MAX_SEAM })];
+      },
+    });
+  });
 
 const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
 
@@ -190,6 +227,7 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
       if (options.allowStale) return 'warning';
       return 'error';
     case 'AssetMissing':
+    case 'SeamLong':
       return 'warning';
     default:
       return 'error';
@@ -234,10 +272,12 @@ export const staticFindings = (
   ]);
   const audio = masterFindings(film, placed, master);
   const takes = [...unknownVoices(film), ...staleTakes(film)];
-  return [...lateCues(placed), ...takes, ...sound, ...audio].map((finding) => ({
-    level: levelOf(finding, options),
-    finding,
-  }));
+  return [...lateCues(placed), ...longSeams(placed), ...takes, ...sound, ...audio].map(
+    (finding) => ({
+      level: levelOf(finding, options),
+      finding,
+    }),
+  );
 };
 
 // ---------------------------------------------------------------------------

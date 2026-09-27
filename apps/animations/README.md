@@ -12,7 +12,7 @@ bun run dev                                    # player at http://127.0.0.1:4400
 bun run narrate <film>                         # record stale beats, verify, remix full.wav
 bun run score <film>                           # generate stale music + effects, remix full.wav
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
-bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
+bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
@@ -103,7 +103,10 @@ src/films/<film>/
 **Narration drives the clock.** A scene lasts `lead + speech + tail`: `lead`
 defaults to 70% of its entrance (at least 0.5 s) and `tail` to 0.1 s, so the
 seam between two voices is about 0.6 s; set a longer `tail` only for a pause
-the script means (rule 9 of the film skill's CRAFT.md). Put
+the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
+seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
+with neither scene declaring it (no `tail` or `min` before it, no `lead` after
+it): a long entrance stretching the default lead. Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
