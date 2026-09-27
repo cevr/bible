@@ -5,6 +5,7 @@
 
 import { Array as Arr, Option, Order, Record as Rec, Schema } from 'effect';
 import type { Placed } from '../core/layout.ts';
+import type { FlagRule } from './render-plan.ts';
 
 /** A sampled frame and the scene playing at it. */
 export interface BenchFrame {
@@ -221,6 +222,23 @@ export const judge = (now: BenchReport, baseline: BenchReport): BudgetVerdict =>
   const film = Arr.filter(slower('film', now.drawSec, baseline.drawSec), () => same);
   return { _tag: 'Compared', slower: [...film, ...scenes], moved: movedFrames(now, baseline) };
 };
+
+const DRAW = 'the draw leg times frames; --workers times renders';
+const RANGE = 'only --workers renders a range';
+
+/** `film bench` flags that one leg or the other would ignore. */
+export const BENCH_RULES: ReadonlyArray<FlagRule> = [
+  ['every', 'excludes', 'workers', DRAW],
+  ['hash', 'excludes', 'workers', DRAW],
+  ['baseline', 'excludes', 'workers', DRAW],
+  ['budget', 'excludes', 'workers', DRAW],
+  ['baseline', 'excludes', 'budget', '--baseline keeps this run; --budget holds a run against it'],
+  ['from', 'needs', 'workers', RANGE],
+  ['to', 'needs', 'workers', RANGE],
+  ['share', 'needs', 'workers', 'only --workers encodes'],
+  ['scene', 'excludes', 'from', '--scene sets the range from the layout'],
+  ['scene', 'excludes', 'to', '--scene sets the range from the layout'],
+];
 
 /** A worker count timed rendering the same range: its runs and its median. */
 export const WorkersRow = Schema.Struct({

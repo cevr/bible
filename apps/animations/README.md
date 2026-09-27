@@ -37,7 +37,9 @@ routes at `/lab/*` (`LAB_PORT`, default 4401). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
-`--only music,<effect>` and `--dry-run`. The films are always `src/films`, the
+`--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
+anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
+film's sounds) for score. The films are always `src/films`, the
 folder the player imports (`cli.ts` hands it to the tools); `FILMS_OUT`
 overrides `out`.
 
@@ -63,7 +65,14 @@ on disk and logs what it finds, and only `--budget` fails. A baseline is per
 machine: on another machine it warns and compares nothing. The budget is opt-in,
 never in the gate. `--workers n,n` instead renders the range (`--scene`, or
 `--from/--to`) at each page count `--runs` times, as `render` would (share copy
-on unless `--no-share`), and reports the median fps.
+on unless `--no-share`), and reports the median fps. A flag the chosen leg
+would ignore (`--hash` with `--workers`, `--from` without it) fails with
+`FlagsConflict`.
+
+Render flags that would be ignored fail with `FlagsConflict` before a browser
+opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
+`--scale`, `--out`, `--no-share`; `--contact` takes a range but no video flag;
+`--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
 (pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output

@@ -236,6 +236,34 @@ export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
   }
 }
 
+const FLAG_RULE = { excludes: 'does not go with', needs: 'needs' } as const;
+
+/**
+ * A flag that would be ignored: given with one it `excludes`, or without the
+ * one it `needs`.
+ */
+export class FlagsConflict extends Schema.TaggedError<FlagsConflict>()('FlagsConflict', {
+  flag: Schema.String,
+  rule: Schema.Literals(['excludes', 'needs']),
+  other: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `--${this.flag} ${FLAG_RULE[this.rule]} --${this.other}: ${this.reason}`;
+  }
+}
+
+/** `score --only` names a sound the film does not have. */
+export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownEffect', {
+  id: Schema.String,
+  /** The sounds the film has: `music`, if it has a score, and its effect ids. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the film has no sound "${this.id}"; its sounds are ${this.known.join(', ')}`;
+  }
+}
+
 /** `film bench --budget` with no baseline to hold the run against. */
 export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
   file: Schema.String,

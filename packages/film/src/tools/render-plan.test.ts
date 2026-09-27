@@ -5,12 +5,81 @@ import {
   MAX_CHUNK_FRAMES,
   MIN_CHUNK_FRAMES,
   contactTimes,
+  flagConflicts,
+  jobOf,
   frameSpan,
   planChunks,
   sceneSpan,
   stillName,
 } from './render-plan.ts';
 import { testExportInfo } from './testing.ts';
+
+const flags = {
+  tag: 't',
+  captions: true,
+  workers: 4,
+  stills: Option.none(),
+  contact: Option.none(),
+  span: Option.none(),
+  from: Option.none(),
+  to: Option.none(),
+  scale: Option.none(),
+  out: Option.none(),
+  share: Option.none(),
+} as const;
+
+const conflict = (over: Partial<Parameters<typeof jobOf>[0]>) =>
+  Result.match(jobOf({ ...flags, ...over }), {
+    onSuccess: () => 'none',
+    onFailure: (e) => `${e.flag} ${e.rule} ${e.other}`,
+  });
+
+describe('jobOf', () => {
+  test('a flag the job would ignore fails as FlagsConflict', () => {
+    expect(conflict({ stills: Option.some([3]), span: Option.some({ from: 0, to: 9 }) })).toBe(
+      'stills excludes scene',
+    );
+    expect(conflict({ stills: Option.some([3]), contact: Option.some(5) })).toBe(
+      'stills excludes contact',
+    );
+    expect(conflict({ span: Option.some({ from: 0, to: 9 }), from: Option.some(2) })).toBe(
+      'scene excludes from',
+    );
+    expect(conflict({ contact: Option.some(5), share: Option.some(false) })).toBe(
+      'contact excludes share',
+    );
+    expect(conflict({ stills: Option.some([3]), scale: Option.some(0.5) })).toBe(
+      'stills excludes scale',
+    );
+  });
+
+  test('a video takes its range, scale and share; defaults when not given', () => {
+    const job = Result.getOrThrow(
+      jobOf({ ...flags, from: Option.some(2), to: Option.some(4), share: Option.some(false) }),
+    );
+    expect(job._tag).toBe('Video');
+    expect(job).toMatchObject({ scale: 1, share: false, from: Option.some(2) });
+    expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ _tag: 'Video', share: true });
+  });
+
+  test('--scene sets the range of a contact sheet', () => {
+    const job = Result.getOrThrow(
+      jobOf({ ...flags, contact: Option.some(5), span: Option.some({ from: 3, to: 7 }) }),
+    );
+    expect(job).toMatchObject({
+      _tag: 'Contact',
+      every: 5,
+      from: Option.some(3),
+      to: Option.some(7),
+    });
+  });
+
+  test('a needs rule fails only without its partner', () => {
+    const rule = ['share', 'needs', 'workers', 'r'] as const;
+    expect(Result.isFailure(flagConflicts(new Set(['share']), [rule]))).toBe(true);
+    expect(Result.isSuccess(flagConflicts(new Set(['share', 'workers']), [rule]))).toBe(true);
+  });
+});
 
 describe('planChunks', () => {
   test('covers the range once, in order, with no gaps', () => {
