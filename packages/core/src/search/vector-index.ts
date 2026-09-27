@@ -375,12 +375,7 @@ export const scanVectorIndex = (
      *  end to end, so they cannot disagree about scores either. Absent on any
      *  host that has no built artifact, which is the supported case rather than
      *  a degraded one. */
-    readonly scoreRange?: (
-      query: Int8Array,
-      offset: number,
-      count: number,
-      out: Int32Array,
-    ) => number;
+    readonly scoreRange?: ScoreRange;
   },
 ): VectorScan => {
   // A query of any other length cannot be dotted against this index. The old
@@ -391,134 +386,208 @@ export const scanVectorIndex = (
   // nothing.
   if (query.length !== index.dimensions) return { neighbors: [], scanned: 0 };
   const ranges = rangesFor(index, Option.fromNullishOr(options.allow));
-  const dimensions = index.dimensions;
-  const vectors = index.vectors;
-  const ids = index.manifest.paragraphIds;
-  const best: VectorNeighbor[] = [];
-  let floor = Number.NEGATIVE_INFINITY;
-  let scanned = 0;
+  const selection: Selection = {
+    best: [],
+    topK: options.topK,
+    floor: Number.NEGATIVE_INFINITY,
+    scanned: 0,
+  };
 
   // The accelerated path, when a host built one.
   //
-  // It replaces the arithmetic and nothing else: the selection below is the
-  // same code reading the same scores, so ranking is decided in exactly one
+  // It replaces the arithmetic and nothing else: the selection is the same
+  // `admit` reading the same scores, so ranking is decided in exactly one
   // place regardless of which tier computed the dot products. Scores are
   // integers throughout — int8 inputs, int16 products, int32 sums — so the
   // tiers agree exactly rather than approximately, which is what lets the
   // tests assert equality instead of a tolerance.
   const accelerate = Option.fromNullishOr(options.scoreRange);
   if (Option.isSome(accelerate)) {
-    const scoreRange = accelerate.value;
-    // One buffer for the largest range, reused across ranges.
-    const widest = ranges.reduce((most, range) => Math.max(most, range.count), 0);
-    const scores = new Int32Array(widest);
-    for (const range of ranges) {
-      const wrote = scoreRange(query, range.offset, range.count, scores);
-      // An accelerator that scored a different number of rows than it was
-      // asked for has a bug, and ranking its buffer would silently mis-align
-      // scores against ids. Falling through to the pure loop is the safe
-      // answer, and it is the same answer as having no accelerator at all.
-      if (wrote !== range.count) break;
-      for (let offset = 0; offset < range.count; offset += 1) {
-        scanned += 1;
-        const sum = scores[offset] ?? 0;
-        if (best.length === options.topK && sum <= floor) continue;
-        const paragraphId = Arr.get(ids, range.offset + offset);
-        if (Option.isNone(paragraphId)) continue;
-        insert(best, { paragraphId: paragraphId.value, similarity: sum }, options.topK);
-        if (best.length === options.topK) {
-          floor = Option.match(Arr.last(best), {
-            onNone: () => floor,
-            onSome: (worst) => worst.similarity,
-          });
-        }
-      }
-    }
-    if (scanned > 0) return { neighbors: best, scanned };
+    scanAccelerated(index, query, ranges, accelerate.value, selection);
+    if (selection.scanned > 0) return { neighbors: selection.best, scanned: selection.scanned };
   }
 
+  scanPure(index, query, ranges, selection);
+  return { neighbors: selection.best, scanned: selection.scanned };
+};
+
+/** A stretch of rows the scan touches. */
+interface ScanRange {
+  readonly offset: number;
+  readonly count: number;
+}
+
+/** The SIMD scorer `scanVectorIndex` may be handed — see `vector-accel.ts`. */
+type ScoreRange = (query: Int8Array, offset: number, count: number, out: Int32Array) => number;
+
+/** The running top-K of one scan, shared by both tiers.
+ *
+ *  One object per scan, never touched per row: each tier copies `floor` and
+ *  `scanned` into locals for its loops and writes them back once at the end, so
+ *  the per-row work is exactly what it was when the loops lived inline. */
+interface Selection {
+  readonly best: VectorNeighbor[];
+  readonly topK: number;
+  floor: number;
+  scanned: number;
+}
+
+/** Admits a row whose score cleared the floor (or arrived while `best` was
+ *  still short of `topK`), and returns the floor after it.
+ *
+ *  Only reached on the rare row that can enter the top-K, so it sits outside
+ *  the per-row cost; the floor test that rejects almost every row stays inline
+ *  in the loops. */
+const admit = (
+  best: VectorNeighbor[],
+  ids: readonly string[],
+  row: number,
+  similarity: number,
+  topK: number,
+  floor: number,
+): number => {
+  const paragraphId = Arr.get(ids, row);
+  if (Option.isNone(paragraphId)) return floor;
+  insert(best, { paragraphId: paragraphId.value, similarity }, topK);
+  if (best.length !== topK) return floor;
+  return Option.match(Arr.last(best), {
+    onNone: () => floor,
+    onSome: (worst) => worst.similarity,
+  });
+};
+
+/** Ranks the accelerator's scores. Leaves `selection.scanned` at 0 when the
+ *  accelerator miscounted its first range, which is the caller's cue to fall
+ *  back to the pure loop. */
+const scanAccelerated = (
+  index: VectorIndex,
+  query: Int8Array,
+  ranges: readonly ScanRange[],
+  scoreRange: ScoreRange,
+  selection: Selection,
+): void => {
+  const ids = index.manifest.paragraphIds;
+  const { best, topK } = selection;
+  let floor = selection.floor;
+  let scanned = selection.scanned;
+  // One buffer for the largest range, reused across ranges.
+  const widest = ranges.reduce((most, range) => Math.max(most, range.count), 0);
+  const scores = new Int32Array(widest);
   for (const range of ranges) {
-    const end = range.offset + range.count;
-    for (let row = range.offset; row < end; row += 1) {
+    const wrote = scoreRange(query, range.offset, range.count, scores);
+    // An accelerator that scored a different number of rows than it was
+    // asked for has a bug, and ranking its buffer would silently mis-align
+    // scores against ids. Falling through to the pure loop is the safe
+    // answer, and it is the same answer as having no accelerator at all.
+    if (wrote !== range.count) break;
+    for (let offset = 0; offset < range.count; offset += 1) {
       scanned += 1;
-      const base = row * dimensions;
-      // Four accumulators, unrolled by four.
-      //
-      // This loop is the whole cost of a semantic query: 961,253 vectors ×
-      // 256 dimensions is ~246 million multiply-adds, and it ran at ~170 ms in
-      // production. One serial `sum` makes every iteration wait for the
-      // previous add, so the pipeline stalls on the dependency chain rather
-      // than on the arithmetic; four independent accumulators let four
-      // multiply-adds be in flight at once. Measured over 300,000 vectors and
-      // scaled to the deployed index: 133 ms serial, 83 ms unrolled, a 38%
-      // cut for the same values in the same order.
-      //
-      // Four, not more: 8× measured 83 ms and an Int32 copy of the query
-      // 81 ms, both inside the noise of 4×. The gain is from breaking the
-      // dependency chain, and four accumulators already break it.
-      //
-      // **It does not help the deployment, and it was kept anyway.** On the
-      // Railway container `scanMs` stayed at 121–128 ms across this change,
-      // the same as the serial loop, while `bodiesMs` from the same deploy
-      // dropped to 2 ms — so the build is live and this loop simply does not
-      // get faster there. Both hosts are arm64, so it is not an instruction
-      // set difference, and it is not DRAM bandwidth either: streaming one
-      // byte per cache line over the whole 246 MB costs 2.7 ms, so the memory
-      // system delivers the data easily. What costs is touching every element
-      // — reading all 246 MB and only *adding* the values, no multiply, is
-      // 56 ms of the 85 ms. The dot product is therefore ~2/3 per-element
-      // load-and-widen overhead and ~1/3 arithmetic, which is exactly the
-      // shape that unrolling cannot fix beyond the dependency chain it
-      // already broke, and which a slower or shared core has less headroom to
-      // hide.
-      //
-      // Kept because it is a 40% win on the developer machine, costs nothing
-      // where it does not help, and returns bit-identical scores either way.
-      //
-      // The consequence for anyone optimizing further: the floor is *elements
-      // touched*, not instructions issued. The next real win reads fewer of
-      // them — an ANN index that scores a fraction of the 961,253 vectors, or
-      // fewer dimensions per vector — not faster arithmetic over the same
-      // 246 MB. A SIMD path (WASM or native) would attack the same
-      // load-and-widen cost and is the one arithmetic-side option left, but
-      // it is a portability decision this file's header deliberately made
-      // once already.
-      //
-      // The parser guarantees `count * dimensions` int8 values and ranges
-      // inside `count`, so every read below is in bounds; the `?? 0` is
-      // TypeScript satisfying `noUncheckedIndexedAccess`, not a shape check.
-      let sum0 = 0;
-      let sum1 = 0;
-      let sum2 = 0;
-      let sum3 = 0;
-      // `dimensions` is 256 for every index this format describes, so the
-      // unrolled loop consumes all of it; the remainder loop below is for a
-      // future dimension count that is not a multiple of four, and costs one
-      // predictable branch per row when it has nothing to do.
-      const unrolled = dimensions - (dimensions % 4);
-      for (let axis = 0; axis < unrolled; axis += 4) {
-        sum0 += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
-        sum1 += (vectors[base + axis + 1] ?? 0) * (query[axis + 1] ?? 0);
-        sum2 += (vectors[base + axis + 2] ?? 0) * (query[axis + 2] ?? 0);
-        sum3 += (vectors[base + axis + 3] ?? 0) * (query[axis + 3] ?? 0);
-      }
-      let sum = sum0 + sum1 + sum2 + sum3;
-      for (let axis = unrolled; axis < dimensions; axis += 1) {
-        sum += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
-      }
-      if (best.length === options.topK && sum <= floor) continue;
-      const paragraphId = Arr.get(ids, row);
-      if (Option.isNone(paragraphId)) continue;
-      insert(best, { paragraphId: paragraphId.value, similarity: sum }, options.topK);
-      if (best.length === options.topK) {
-        floor = Option.match(Arr.last(best), {
-          onNone: () => floor,
-          onSome: (worst) => worst.similarity,
-        });
-      }
+      const sum = scores[offset] ?? 0;
+      if (best.length === topK && sum <= floor) continue;
+      floor = admit(best, ids, range.offset + offset, sum, topK, floor);
     }
   }
-  return { neighbors: best, scanned };
+  selection.floor = floor;
+  selection.scanned = scanned;
+};
+
+/** The portable dot-product loop over every row of `ranges`. */
+const scanPure = (
+  index: VectorIndex,
+  query: Int8Array,
+  ranges: readonly ScanRange[],
+  selection: Selection,
+): void => {
+  for (const range of ranges) scanPureRange(index, query, range, selection);
+};
+
+/** The portable dot-product loop over one range's rows. Called once per range,
+ *  never per row, so the row loop below is the whole per-row cost. */
+const scanPureRange = (
+  index: VectorIndex,
+  query: Int8Array,
+  range: ScanRange,
+  selection: Selection,
+): void => {
+  const dimensions = index.dimensions;
+  const vectors = index.vectors;
+  const ids = index.manifest.paragraphIds;
+  const { best, topK } = selection;
+  let floor = selection.floor;
+  let scanned = selection.scanned;
+  const end = range.offset + range.count;
+  for (let row = range.offset; row < end; row += 1) {
+    scanned += 1;
+    const base = row * dimensions;
+    // Four accumulators, unrolled by four.
+    //
+    // This loop is the whole cost of a semantic query: 961,253 vectors ×
+    // 256 dimensions is ~246 million multiply-adds, and it ran at ~170 ms in
+    // production. One serial `sum` makes every iteration wait for the
+    // previous add, so the pipeline stalls on the dependency chain rather
+    // than on the arithmetic; four independent accumulators let four
+    // multiply-adds be in flight at once. Measured over 300,000 vectors and
+    // scaled to the deployed index: 133 ms serial, 83 ms unrolled, a 38%
+    // cut for the same values in the same order.
+    //
+    // Four, not more: 8× measured 83 ms and an Int32 copy of the query
+    // 81 ms, both inside the noise of 4×. The gain is from breaking the
+    // dependency chain, and four accumulators already break it.
+    //
+    // **It does not help the deployment, and it was kept anyway.** On the
+    // Railway container `scanMs` stayed at 121–128 ms across this change,
+    // the same as the serial loop, while `bodiesMs` from the same deploy
+    // dropped to 2 ms — so the build is live and this loop simply does not
+    // get faster there. Both hosts are arm64, so it is not an instruction
+    // set difference, and it is not DRAM bandwidth either: streaming one
+    // byte per cache line over the whole 246 MB costs 2.7 ms, so the memory
+    // system delivers the data easily. What costs is touching every element
+    // — reading all 246 MB and only *adding* the values, no multiply, is
+    // 56 ms of the 85 ms. The dot product is therefore ~2/3 per-element
+    // load-and-widen overhead and ~1/3 arithmetic, which is exactly the
+    // shape that unrolling cannot fix beyond the dependency chain it
+    // already broke, and which a slower or shared core has less headroom to
+    // hide.
+    //
+    // Kept because it is a 40% win on the developer machine, costs nothing
+    // where it does not help, and returns bit-identical scores either way.
+    //
+    // The consequence for anyone optimizing further: the floor is *elements
+    // touched*, not instructions issued. The next real win reads fewer of
+    // them — an ANN index that scores a fraction of the 961,253 vectors, or
+    // fewer dimensions per vector — not faster arithmetic over the same
+    // 246 MB. A SIMD path (WASM or native) would attack the same
+    // load-and-widen cost and is the one arithmetic-side option left, but
+    // it is a portability decision this file's header deliberately made
+    // once already.
+    //
+    // The parser guarantees `count * dimensions` int8 values and ranges
+    // inside `count`, so every read below is in bounds; the `?? 0` is
+    // TypeScript satisfying `noUncheckedIndexedAccess`, not a shape check.
+    let sum0 = 0;
+    let sum1 = 0;
+    let sum2 = 0;
+    let sum3 = 0;
+    // `dimensions` is 256 for every index this format describes, so the
+    // unrolled loop consumes all of it; the remainder loop below is for a
+    // future dimension count that is not a multiple of four, and costs one
+    // predictable branch per row when it has nothing to do.
+    const unrolled = dimensions - (dimensions % 4);
+    for (let axis = 0; axis < unrolled; axis += 4) {
+      sum0 += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
+      sum1 += (vectors[base + axis + 1] ?? 0) * (query[axis + 1] ?? 0);
+      sum2 += (vectors[base + axis + 2] ?? 0) * (query[axis + 2] ?? 0);
+      sum3 += (vectors[base + axis + 3] ?? 0) * (query[axis + 3] ?? 0);
+    }
+    let sum = sum0 + sum1 + sum2 + sum3;
+    for (let axis = unrolled; axis < dimensions; axis += 1) {
+      sum += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
+    }
+    if (best.length === topK && sum <= floor) continue;
+    floor = admit(best, ids, row, sum, topK, floor);
+  }
+  selection.floor = floor;
+  selection.scanned = scanned;
 };
 
 /** Which stretches of the buffer the scan touches.
@@ -530,7 +599,7 @@ export const scanVectorIndex = (
 const rangesFor = (
   index: VectorIndex,
   allow: Option.Option<ReadonlySet<string>>,
-): readonly { readonly offset: number; readonly count: number }[] =>
+): readonly ScanRange[] =>
   Option.match(allow, {
     onNone: () => [{ offset: 0, count: index.count }],
     onSome: (codes) => index.manifest.books.filter((book) => codes.has(book.bookCode)),

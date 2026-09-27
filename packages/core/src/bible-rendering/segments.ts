@@ -14,7 +14,7 @@
  * the caller's renderer never has to re-tokenize the verse.
  */
 
-import { Predicate } from 'effect';
+import { Option, Predicate } from 'effect';
 
 /** A single styled chunk of verse text. The renderer maps each variant to
  *  its own UI primitive (e.g. `<em>`, `<mark>`, popover anchor, …). */
@@ -102,41 +102,64 @@ export const applyRedLetterSegments = (segments: readonly TextSegment[]): TextSe
       result.push(segment);
       continue;
     }
-
-    let text = segment.text;
-    while (text.length > 0) {
-      if (inRedLetter) {
-        const closeIdx = text.indexOf('›');
-        if (closeIdx === -1) {
-          result.push({ type: 'redLetter', text });
-          text = '';
-        } else {
-          if (closeIdx > 0) {
-            result.push({ type: 'redLetter', text: text.slice(0, closeIdx) });
-          }
-          result.push({ type: 'redLetterQuote', text: '”' });
-          inRedLetter = false;
-          text = text.slice(closeIdx + 1);
-        }
-      } else {
-        const openIdx = text.indexOf('‹');
-        if (openIdx === -1) {
-          if (text.length > 0) {
-            result.push({ type: 'text', text });
-          }
-          text = '';
-        } else {
-          if (openIdx > 0) {
-            result.push({ type: 'text', text: text.slice(0, openIdx) });
-          }
-          result.push({ type: 'redLetterQuote', text: '“' });
-          inRedLetter = true;
-          text = text.slice(openIdx + 1);
-        }
-      }
-    }
+    inRedLetter = splitRedLetterRun(segment.text, inRedLetter, result);
   }
   return result;
+};
+
+/** Split one `text` run on angle quotes into `result`, starting inside or
+ *  outside a quote. Returns whether the run ends inside a quote, so the state
+ *  carries into the next segment. */
+const splitRedLetterRun = (
+  text: string,
+  startsInRedLetter: boolean,
+  result: TextSegment[],
+): boolean => {
+  let inRedLetter = startsInRedLetter;
+  let rest = text;
+  while (rest.length > 0) {
+    let afterQuote: Option.Option<string>;
+    if (inRedLetter) afterQuote = closeRedLetter(rest, result);
+    else afterQuote = openRedLetter(rest, result);
+    if (Option.isNone(afterQuote)) break;
+    inRedLetter = !inRedLetter;
+    rest = afterQuote.value;
+  }
+  return inRedLetter;
+};
+
+/** Inside a quote: push the quoted words up to the closing `›` and the closing
+ *  typographic quote. Returns the text after the quote, or none when the quote
+ *  runs past the end of `text`. */
+const closeRedLetter = (text: string, result: TextSegment[]): Option.Option<string> => {
+  const closeIdx = text.indexOf('›');
+  if (closeIdx === -1) {
+    result.push({ type: 'redLetter', text });
+    return Option.none();
+  }
+  if (closeIdx > 0) {
+    result.push({ type: 'redLetter', text: text.slice(0, closeIdx) });
+  }
+  result.push({ type: 'redLetterQuote', text: '”' });
+  return Option.some(text.slice(closeIdx + 1));
+};
+
+/** Outside a quote: push the plain words up to the opening `‹` and the opening
+ *  typographic quote. Returns the text after the quote, or none when `text`
+ *  opens no quote. */
+const openRedLetter = (text: string, result: TextSegment[]): Option.Option<string> => {
+  const openIdx = text.indexOf('‹');
+  if (openIdx === -1) {
+    if (text.length > 0) {
+      result.push({ type: 'text', text });
+    }
+    return Option.none();
+  }
+  if (openIdx > 0) {
+    result.push({ type: 'text', text: text.slice(0, openIdx) });
+  }
+  result.push({ type: 'redLetterQuote', text: '“' });
+  return Option.some(text.slice(openIdx + 1));
 };
 
 /** Insert margin-note anchors after the end of each annotated phrase, over an
@@ -188,31 +211,42 @@ export const applyMarginAnchors = (
       result.push(original);
       continue;
     }
-    /** Rebinding the narrowed segment keeps `{ ...segment, text }` a member of
-     *  the union rather than a widened object literal, so re-splitting a
-     *  `redLetterItalic` run needs no assertion to stay `redLetterItalic`. */
-    const segment: TextBearingSegment = original;
-    const start = starts[index] ?? 0;
-    const end = start + segment.text.length;
-    let local = 0;
-    for (const anchor of byEnd) {
-      // Anchors land after the *last* character of the phrase, so an anchor at
-      // exactly this segment's start belongs to the previous segment.
-      if (anchor.end <= start || anchor.end > end) continue;
-      const offset = anchor.end - start;
-      if (offset > local) {
-        result.push({ ...segment, text: segment.text.slice(local, offset) });
-      }
-      result.push({ type: 'margin', noteIndex: anchor.noteIndex });
-      local = offset;
-    }
-    if (local < segment.text.length) {
-      result.push({ ...segment, text: segment.text.slice(local) });
-    }
-    cursor = end;
+    cursor = splitAtAnchors(original, starts[index] ?? 0, byEnd, result);
   }
   if (cursor < whole.length) result.push({ type: 'text', text: whole.slice(cursor) });
   return result;
+};
+
+/** Push one text-bearing segment into `result`, split after every anchor whose
+ *  end lands inside it. `start` is the segment's offset in the whole verse;
+ *  returns the offset where the segment ends.
+ *
+ *  Taking the narrowed segment keeps `{ ...segment, text }` a member of the
+ *  union rather than a widened object literal, so re-splitting a
+ *  `redLetterItalic` run needs no assertion to stay `redLetterItalic`. */
+const splitAtAnchors = (
+  segment: TextBearingSegment,
+  start: number,
+  byEnd: readonly { readonly end: number; readonly noteIndex: number }[],
+  result: TextSegment[],
+): number => {
+  const end = start + segment.text.length;
+  let local = 0;
+  for (const anchor of byEnd) {
+    // Anchors land after the *last* character of the phrase, so an anchor at
+    // exactly this segment's start belongs to the previous segment.
+    if (anchor.end <= start || anchor.end > end) continue;
+    const offset = anchor.end - start;
+    if (offset > local) {
+      result.push({ ...segment, text: segment.text.slice(local, offset) });
+    }
+    result.push({ type: 'margin', noteIndex: anchor.noteIndex });
+    local = offset;
+  }
+  if (local < segment.text.length) {
+    result.push({ ...segment, text: segment.text.slice(local) });
+  }
+  return end;
 };
 
 /** Apply case-insensitive search highlighting to `text` segments only —

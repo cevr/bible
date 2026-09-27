@@ -174,70 +174,8 @@ export class PhraseAutomaton {
    *  word would be a second, divergent copy of the exclusion list. */
   static make = (dictionary: PhraseDictionary): PhraseAutomaton => {
     const nodes: AutomatonNode[] = [emptyNode()];
-    const at = (index: number): AutomatonNode => nodes[index] ?? nodes[ROOT] ?? emptyNode();
-
-    for (const entry of dictionary.entries) {
-      // The alias is already normalized in the artifact; normalizing again is
-      // idempotent and makes the automaton correct for any dictionary, not only
-      // one this repo's compiler produced. It is the *same* scan the match loop
-      // runs over the text, so the two consume one unit stream.
-      const alias = normalizeScan(entry.alias).text;
-      if (alias.length === 0) continue;
-      let node = ROOT;
-      // By UTF-16 unit, not by code point. `for…of` over a string yields code
-      // points, and an astral character would then be one trie edge while the
-      // match loop below — which walks units, because that is what an offset
-      // table indexes — would look for two. The alphabet is the unit, on both
-      // sides, and a surrogate pair is simply two edges. `length` at the
-      // terminal node counts the same units, so an end position minus a length
-      // is a real start position.
-      for (let unit = 0; unit < alias.length; unit += 1) {
-        const character = alias.charAt(unit);
-        const next = at(node).next.get(character) ?? NO_NODE;
-        if (next === NO_NODE) {
-          nodes.push(emptyNode());
-          const created = nodes.length - 1;
-          at(node).next.set(character, created);
-          node = created;
-          continue;
-        }
-        node = next;
-      }
-      at(node).outputs.push({ entry, length: alias.length });
-    }
-
-    // BFS over the trie: a node's failure link is resolved before any of its
-    // children need it, which is what makes the construction linear.
-    const queue: number[] = [];
-    for (const child of at(ROOT).next.values()) queue.push(child);
-
-    for (let head = 0; head < queue.length; head += 1) {
-      const index = queue[head] ?? ROOT;
-      const node = at(index);
-      for (const [character, child] of node.next) {
-        let fallback = node.failure;
-        for (;;) {
-          const candidate = at(fallback).next.get(character) ?? NO_NODE;
-          if (candidate !== NO_NODE) {
-            at(child).failure = candidate;
-            break;
-          }
-          if (fallback === ROOT) break;
-          fallback = at(fallback).failure;
-        }
-        queue.push(child);
-      }
-      // Output links, flattened into the node itself: a node's outputs are its
-      // own patterns plus everything reachable through failure links, merged
-      // here so the per-position chain walk becomes one array read.
-      node.outputs.push(...at(node.failure).outputs);
-      // Longest first, so §4.4's tie-break at one end position needs no sort in
-      // the match loop. Length is the comparison because it is what the span
-      // covers; ties between equal-length aliases cannot happen — the compiler
-      // rejects one alias claimed by two topics (§4.3).
-      node.outputs.sort((left, right) => right.length - left.length);
-    }
-
+    for (const entry of dictionary.entries) insertPattern(nodes, entry);
+    linkFailures(nodes);
     return new PhraseAutomaton(nodes);
   };
 
@@ -264,20 +202,107 @@ export class PhraseAutomaton {
       // One end position is a boundary or it is not, so the test that does not
       // depend on the pattern is hoisted out of the pattern loop.
       if (!isBoundaryAt(run.text, index + 1)) continue;
-      for (const pattern of outputs) {
-        const startNormalized = index + 1 - pattern.length;
-        if (startNormalized < 0) continue;
-        if (!isBoundaryAt(run.text, startNormalized - 1)) continue;
-        found.push({
-          normalizedStart: startNormalized,
-          normalizedEnd: index + 1,
-          entry: pattern.entry,
-        });
-      }
+      pushHits(run, index + 1, outputs, found);
     }
     return found;
   }
 }
+
+/** Total node access during the build, on the same terms as
+ *  `PhraseAutomaton.at`: every index comes from a transition the builder
+ *  created or from `ROOT`. */
+const nodeAt = (nodes: readonly AutomatonNode[], index: number): AutomatonNode =>
+  nodes[index] ?? nodes[ROOT] ?? emptyNode();
+
+/** Adds one dictionary entry's alias to the trie. */
+const insertPattern = (nodes: AutomatonNode[], entry: PhraseDictionaryEntry): void => {
+  // The alias is already normalized in the artifact; normalizing again is
+  // idempotent and makes the automaton correct for any dictionary, not only
+  // one this repo's compiler produced. It is the *same* scan the match loop
+  // runs over the text, so the two consume one unit stream.
+  const alias = normalizeScan(entry.alias).text;
+  if (alias.length === 0) return;
+  let node = ROOT;
+  // By UTF-16 unit, not by code point. `for…of` over a string yields code
+  // points, and an astral character would then be one trie edge while the
+  // match loop below — which walks units, because that is what an offset
+  // table indexes — would look for two. The alphabet is the unit, on both
+  // sides, and a surrogate pair is simply two edges. `length` at the
+  // terminal node counts the same units, so an end position minus a length
+  // is a real start position.
+  for (let unit = 0; unit < alias.length; unit += 1) {
+    const character = alias.charAt(unit);
+    const next = nodeAt(nodes, node).next.get(character) ?? NO_NODE;
+    if (next === NO_NODE) {
+      nodes.push(emptyNode());
+      const created = nodes.length - 1;
+      nodeAt(nodes, node).next.set(character, created);
+      node = created;
+      continue;
+    }
+    node = next;
+  }
+  nodeAt(nodes, node).outputs.push({ entry, length: alias.length });
+};
+
+/** The failure target for `character` out of a node whose own failure link is
+ *  `fallback`: the deepest proper suffix state with an edge for it, or `ROOT`. */
+const failureTarget = (
+  nodes: readonly AutomatonNode[],
+  fallback: number,
+  character: string,
+): number => {
+  let from = fallback;
+  for (;;) {
+    const candidate = nodeAt(nodes, from).next.get(character) ?? NO_NODE;
+    if (candidate !== NO_NODE) return candidate;
+    if (from === ROOT) return ROOT;
+    from = nodeAt(nodes, from).failure;
+  }
+};
+
+/** Resolves every failure link and flattens output links into each node. */
+const linkFailures = (nodes: readonly AutomatonNode[]): void => {
+  // BFS over the trie: a node's failure link is resolved before any of its
+  // children need it, which is what makes the construction linear.
+  const queue: number[] = [];
+  for (const child of nodeAt(nodes, ROOT).next.values()) queue.push(child);
+
+  for (let head = 0; head < queue.length; head += 1) {
+    const index = queue[head] ?? ROOT;
+    const node = nodeAt(nodes, index);
+    for (const [character, child] of node.next) {
+      nodeAt(nodes, child).failure = failureTarget(nodes, node.failure, character);
+      queue.push(child);
+    }
+    // Output links, flattened into the node itself: a node's outputs are its
+    // own patterns plus everything reachable through failure links, merged
+    // here so the per-position chain walk becomes one array read.
+    node.outputs.push(...nodeAt(nodes, node.failure).outputs);
+    // Longest first, so §4.4's tie-break at one end position needs no sort in
+    // the match loop. Length is the comparison because it is what the span
+    // covers; ties between equal-length aliases cannot happen — the compiler
+    // rejects one alias claimed by two topics (§4.3).
+    node.outputs.sort((left, right) => right.length - left.length);
+  }
+};
+
+/** Pushes every pattern ending at `normalizedEnd` whose start is a word
+ *  boundary. Only reached on the rare position that ends a pattern at a
+ *  boundary, so it sits outside the per-character loop. */
+const pushHits = (
+  run: NormalizedText,
+  normalizedEnd: number,
+  outputs: readonly Pattern[],
+  found: Candidate[],
+): void => {
+  for (const pattern of outputs) {
+    const startNormalized = normalizedEnd - pattern.length;
+    if (startNormalized < 0) continue;
+    if (!isBoundaryAt(run.text, startNormalized - 1)) continue;
+    found.push({ normalizedStart: startNormalized, normalizedEnd, entry: pattern.entry });
+  }
+};
 
 interface Candidate {
   readonly normalizedStart: number;

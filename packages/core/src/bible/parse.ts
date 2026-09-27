@@ -117,6 +117,112 @@ function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): Option
   return Option.none();
 }
 
+type QueryParser = (
+  input: string,
+  options?: ParseBibleQueryOptions,
+) => Option.Option<ParsedBibleQuery>;
+
+const VERSE_RANGE_QUERY = /^(.+?)\s*(\d+)\s*:\s*(\d+)\s*-\s*(\d+)$/i;
+const CHAPTER_RANGE_QUERY = /^(.+?)\s*(\d+)\s*-\s*(\d+)$/i;
+const SINGLE_VERSE_QUERY = /^(.+?)\s*(\d+)\s*:\s*(\d+)$/i;
+const SINGLE_CHAPTER_QUERY = /^(.+?)\s*(\d+)$/i;
+const BOOK_ONLY_QUERY = /^([a-z\s]+)$/i;
+
+const toInt = (value: string): number => parseInt(value, 10);
+
+/** The number of chapters in a canonical book, if the book exists. */
+const chapterCount = (bookNum: number): Option.Option<number> =>
+  Option.map(getBibleBook(bookNum), (book) => book.chapters);
+
+/** Whether `chapter` is a real chapter of the book. */
+const hasChapter = (bookNum: number, chapter: number): boolean =>
+  Option.exists(chapterCount(bookNum), (chapters) => chapter >= 1 && chapter <= chapters);
+
+/** "john 3:16-18" - verse range */
+function parseVerseRange(
+  input: string,
+  options?: ParseBibleQueryOptions,
+): Option.Option<ParsedBibleQuery> {
+  const [, bookPart, chapterStr, startVerseStr, endVerseStr] = input.match(VERSE_RANGE_QUERY) ?? [];
+  if (!bookPart || !chapterStr || !startVerseStr || !endVerseStr) return Option.none();
+  return Option.flatMap(resolveBook(bookPart, options), (bookNum) => {
+    const chapter = toInt(chapterStr);
+    const startVerse = toInt(startVerseStr);
+    const endVerse = toInt(endVerseStr);
+    if (!hasChapter(bookNum, chapter) || startVerse < 1 || startVerse > endVerse) {
+      return Option.none();
+    }
+    return Option.some(ParsedBibleQuery.verseRange(bookNum, chapter, startVerse, endVerse));
+  });
+}
+
+/** "john 3-5" - chapter range */
+function parseChapterRange(
+  input: string,
+  options?: ParseBibleQueryOptions,
+): Option.Option<ParsedBibleQuery> {
+  const [, bookPart, startChapterStr, endChapterStr] = input.match(CHAPTER_RANGE_QUERY) ?? [];
+  if (!bookPart || !startChapterStr || !endChapterStr) return Option.none();
+  return Option.flatMap(resolveBook(bookPart, options), (bookNum) => {
+    const startChapter = toInt(startChapterStr);
+    const endChapter = toInt(endChapterStr);
+    const fits = Option.exists(
+      chapterCount(bookNum),
+      (chapters) => startChapter >= 1 && endChapter <= chapters,
+    );
+    if (!fits) return Option.none();
+    return Option.some(ParsedBibleQuery.chapterRange(bookNum, startChapter, endChapter));
+  });
+}
+
+/** "john 3:16" - single verse */
+function parseSingleVerse(
+  input: string,
+  options?: ParseBibleQueryOptions,
+): Option.Option<ParsedBibleQuery> {
+  const [, bookPart, chapterStr, verseStr] = input.match(SINGLE_VERSE_QUERY) ?? [];
+  if (!bookPart || !chapterStr || !verseStr) return Option.none();
+  return Option.flatMap(resolveBook(bookPart, options), (bookNum) => {
+    const chapter = toInt(chapterStr);
+    const verse = toInt(verseStr);
+    if (!hasChapter(bookNum, chapter) || verse < 1) return Option.none();
+    return Option.some(ParsedBibleQuery.single(bookNum, chapter, verse));
+  });
+}
+
+/** "john 3" - single chapter */
+function parseSingleChapter(
+  input: string,
+  options?: ParseBibleQueryOptions,
+): Option.Option<ParsedBibleQuery> {
+  const [, bookPart, chapterStr] = input.match(SINGLE_CHAPTER_QUERY) ?? [];
+  if (!bookPart || !chapterStr) return Option.none();
+  return Option.flatMap(resolveBook(bookPart, options), (bookNum) => {
+    const chapter = toInt(chapterStr);
+    if (!hasChapter(bookNum, chapter)) return Option.none();
+    return Option.some(ParsedBibleQuery.chapter(bookNum, chapter));
+  });
+}
+
+/** "ruth" - full book (just a book name with no numbers) */
+function parseFullBook(
+  input: string,
+  options?: ParseBibleQueryOptions,
+): Option.Option<ParsedBibleQuery> {
+  const [, bookPart] = input.match(BOOK_ONLY_QUERY) ?? [];
+  if (!bookPart) return Option.none();
+  return Option.map(resolveBook(bookPart, options), ParsedBibleQuery.fullBook);
+}
+
+/** Tried in order; the first shape that resolves wins. */
+const QUERY_PARSERS: ReadonlyArray<QueryParser> = [
+  parseVerseRange,
+  parseChapterRange,
+  parseSingleVerse,
+  parseSingleChapter,
+  parseFullBook,
+];
+
 /**
  * Parse a Bible reference string
  *
@@ -135,103 +241,9 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
   const input = query.trim();
   if (!input) return ParsedBibleQuery.search(query);
 
-  // "john 3:16-18" - verse range
-  const verseRangeMatch = input.match(/^(.+?)\s*(\d+)\s*:\s*(\d+)\s*-\s*(\d+)$/i);
-  if (verseRangeMatch) {
-    const bookPart = verseRangeMatch[1];
-    const chapterStr = verseRangeMatch[2];
-    const startVerseStr = verseRangeMatch[3];
-    const endVerseStr = verseRangeMatch[4];
-    if (bookPart && chapterStr && startVerseStr && endVerseStr) {
-      const bookOption = resolveBook(bookPart, options);
-      if (Option.isSome(bookOption)) {
-        const bookNum = bookOption.value;
-        const chapter = parseInt(chapterStr, 10);
-        const startVerse = parseInt(startVerseStr, 10);
-        const endVerse = parseInt(endVerseStr, 10);
-        const book = getBibleBook(bookNum);
-        if (
-          Option.isSome(book) &&
-          chapter >= 1 &&
-          chapter <= book.value.chapters &&
-          startVerse >= 1 &&
-          startVerse <= endVerse
-        ) {
-          return ParsedBibleQuery.verseRange(bookNum, chapter, startVerse, endVerse);
-        }
-      }
-    }
-  }
-
-  // "john 3-5" - chapter range
-  const chapterRangeMatch = input.match(/^(.+?)\s*(\d+)\s*-\s*(\d+)$/i);
-  if (chapterRangeMatch) {
-    const bookPart = chapterRangeMatch[1];
-    const startChapterStr = chapterRangeMatch[2];
-    const endChapterStr = chapterRangeMatch[3];
-    if (bookPart && startChapterStr && endChapterStr) {
-      const bookOption = resolveBook(bookPart, options);
-      if (Option.isSome(bookOption)) {
-        const bookNum = bookOption.value;
-        const startChapter = parseInt(startChapterStr, 10);
-        const endChapter = parseInt(endChapterStr, 10);
-        const book = getBibleBook(bookNum);
-        if (Option.isSome(book) && startChapter >= 1 && endChapter <= book.value.chapters) {
-          return ParsedBibleQuery.chapterRange(bookNum, startChapter, endChapter);
-        }
-      }
-    }
-  }
-
-  // "john 3:16" - single verse
-  const singleVerseMatch = input.match(/^(.+?)\s*(\d+)\s*:\s*(\d+)$/i);
-  if (singleVerseMatch) {
-    const bookPart = singleVerseMatch[1];
-    const chapterStr = singleVerseMatch[2];
-    const verseStr = singleVerseMatch[3];
-    if (bookPart && chapterStr && verseStr) {
-      const bookOption = resolveBook(bookPart, options);
-      if (Option.isSome(bookOption)) {
-        const bookNum = bookOption.value;
-        const chapter = parseInt(chapterStr, 10);
-        const verse = parseInt(verseStr, 10);
-        const book = getBibleBook(bookNum);
-        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters && verse >= 1) {
-          return ParsedBibleQuery.single(bookNum, chapter, verse);
-        }
-      }
-    }
-  }
-
-  // "john 3" - single chapter
-  const singleChapterMatch = input.match(/^(.+?)\s*(\d+)$/i);
-  if (singleChapterMatch) {
-    const bookPart = singleChapterMatch[1];
-    const chapterStr = singleChapterMatch[2];
-    if (bookPart && chapterStr) {
-      const bookOption = resolveBook(bookPart, options);
-      if (Option.isSome(bookOption)) {
-        const bookNum = bookOption.value;
-        const chapter = parseInt(chapterStr, 10);
-        const book = getBibleBook(bookNum);
-        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
-          return ParsedBibleQuery.chapter(bookNum, chapter);
-        }
-      }
-    }
-  }
-
-  // "ruth" - full book (just a book name with no numbers)
-  const bookOnlyMatch = input.match(/^([a-z\s]+)$/i);
-  if (bookOnlyMatch) {
-    const bookPart = bookOnlyMatch[1];
-    if (bookPart) {
-      const bookOption = resolveBook(bookPart, options);
-      if (Option.isSome(bookOption)) {
-        const bookNum = bookOption.value;
-        return ParsedBibleQuery.fullBook(bookNum);
-      }
-    }
+  for (const parse of QUERY_PARSERS) {
+    const parsed = parse(input, options);
+    if (Option.isSome(parsed)) return parsed.value;
   }
 
   // Fallback: search
@@ -302,6 +314,102 @@ const CONTINUATION_PATTERN = /^,\s*(\d+)(?:\s*[-–]\s*(\d+))?(?![\s]*:)/;
 // "verse 3" or "verses 3-5" pattern — carries forward book+chapter from previous reference
 const VERSE_KEYWORD_PATTERN = /\bverses?\s+(\d+)(?:\s*[-–]\s*(\d+))?\b/gi;
 
+/** Parse an optional verse-end capture group ("-18"). */
+function optionalVerse(match: RegExpMatchArray, group: number): Option.Option<number> {
+  const verseStr = match[group];
+  if (!verseStr) return Option.none();
+  return Option.some(parseInt(verseStr, 10));
+}
+
+/** A single verse, or a range within the same chapter when an end verse is given. */
+function verseOrRange(
+  book: number,
+  chapter: number,
+  verse: number,
+  verseEnd: Option.Option<number>,
+): VerseReference | VerseRangeReference {
+  const start = Reference.verse(book, chapter, verse);
+  if (Option.isNone(verseEnd)) return start;
+  return Reference.range(start, Reference.verse(book, chapter, verseEnd.value));
+}
+
+/** The verse a reference starts at (itself for a single verse). */
+function startVerseOf(ref: VerseReference | VerseRangeReference): VerseReference {
+  if (ref._tag === 'range') return ref.start;
+  return ref;
+}
+
+/** Validate one CANDIDATE_PATTERN match into a reference with a known book and chapter. */
+function extractCandidate(match: RegExpExecArray): Option.Option<ExtractedReference> {
+  const [fullMatch, bookPart, chapterStr, verseStr] = match;
+  const matchIndex = match.index;
+
+  if (!fullMatch || !bookPart || !chapterStr || !verseStr || Predicate.isUndefined(matchIndex)) {
+    return Option.none();
+  }
+
+  return Option.flatMap(resolveBook(bookPart), (bookNum) => {
+    const chapter = parseInt(chapterStr, 10);
+    const verse = parseInt(verseStr, 10);
+    if (!hasChapter(bookNum, chapter)) return Option.none();
+    return Option.some({
+      text: fullMatch,
+      start: matchIndex,
+      end: matchIndex + fullMatch.length,
+      ref: verseOrRange(bookNum, chapter, verse, optionalVerse(match, 4)),
+    });
+  });
+}
+
+/** Scan for comma-separated continuations after a reference: "Eph 4:10, 15, 17-20". */
+function extractContinuations(text: string, anchor: ExtractedReference): ExtractedReference[] {
+  const { book, chapter } = startVerseOf(anchor.ref);
+  const continuations: ExtractedReference[] = [];
+  let pos = anchor.end;
+  while (pos < text.length) {
+    const cont = text.slice(pos).match(CONTINUATION_PATTERN);
+    if (!cont) break;
+
+    const contText = cont[0] ?? '';
+    const contVerse = parseInt(cont[1] ?? '', 10);
+    continuations.push({
+      text: contText,
+      start: pos,
+      end: pos + contText.length,
+      ref: verseOrRange(book, chapter, contVerse, optionalVerse(cont, 2)),
+    });
+
+    pos += contText.length;
+  }
+  return continuations;
+}
+
+/** Resolve "verse 3" / "verses 3-5" using context from the nearest preceding reference. */
+function extractVerseKeyword(
+  match: RegExpExecArray,
+  results: readonly ExtractedReference[],
+): Option.Option<ExtractedReference> {
+  const matchIndex = match.index;
+  if (Predicate.isUndefined(matchIndex)) return Option.none();
+
+  // Skip if this position already overlaps with an existing reference
+  if (results.some((r) => matchIndex >= r.start && matchIndex < r.end)) return Option.none();
+
+  // Find the nearest preceding reference for book+chapter context
+  const context = results.filter((r) => r.end <= matchIndex).at(-1);
+  if (!context) return Option.none();
+
+  const verse = parseInt(match[1] ?? '', 10);
+  const fullMatch = match[0];
+  const { book, chapter } = startVerseOf(context.ref);
+  return Option.some({
+    text: fullMatch,
+    start: matchIndex,
+    end: matchIndex + fullMatch.length,
+    ref: verseOrRange(book, chapter, verse, optionalVerse(match, 2)),
+  });
+}
+
 export function extractBibleReferences(text: string): ExtractedReference[] {
   const results: ExtractedReference[] = [];
 
@@ -309,113 +417,16 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
   CANDIDATE_PATTERN.lastIndex = 0;
 
   for (const match of text.matchAll(CANDIDATE_PATTERN)) {
-    const fullMatch = match[0];
-    const bookPart = match[1];
-    const chapterStr = match[2];
-    const verseStr = match[3];
-    const verseEndStr = match[4];
-    const matchIndex = match.index;
-
-    if (!fullMatch || !bookPart || !chapterStr || !verseStr || Predicate.isUndefined(matchIndex)) {
-      continue;
-    }
-
-    const bookOption = resolveBook(bookPart);
-    if (Option.isNone(bookOption)) continue;
-    const bookNum = bookOption.value;
-
-    const chapter = parseInt(chapterStr, 10);
-    const verse = parseInt(verseStr, 10);
-    const book = getBibleBook(bookNum);
-
-    if (Option.isNone(book) || chapter < 1 || chapter > book.value.chapters) continue;
-
-    const startReference = Reference.verse(bookNum, chapter, verse);
-    let parsedReference: VerseReference | VerseRangeReference = startReference;
-    if (verseEndStr) {
-      parsedReference = Reference.range(
-        startReference,
-        Reference.verse(bookNum, chapter, parseInt(verseEndStr, 10)),
-      );
-    }
-
-    results.push({
-      text: fullMatch,
-      start: matchIndex,
-      end: matchIndex + fullMatch.length,
-      ref: parsedReference,
-    });
-
-    // Scan for comma-separated continuations: "Eph 4:10, 15, 17-20"
-    let pos = matchIndex + fullMatch.length;
-    while (pos < text.length) {
-      const remaining = text.slice(pos);
-      const cont = remaining.match(CONTINUATION_PATTERN);
-      if (!cont) break;
-
-      const contVerse = parseInt(cont[1] ?? '', 10);
-      let contVerseEnd = Option.none<number>();
-      if (cont[2]) contVerseEnd = Option.some(parseInt(cont[2], 10));
-      const contText = cont[0] ?? '';
-      const continuationStart = Reference.verse(bookNum, chapter, contVerse);
-      let continuationReference: VerseReference | VerseRangeReference = continuationStart;
-      if (Option.isSome(contVerseEnd)) {
-        continuationReference = Reference.range(
-          continuationStart,
-          Reference.verse(bookNum, chapter, contVerseEnd.value),
-        );
-      }
-
-      results.push({
-        text: contText,
-        start: pos,
-        end: pos + contText.length,
-        ref: continuationReference,
-      });
-
-      pos += contText.length;
-    }
+    const candidate = extractCandidate(match);
+    if (Option.isNone(candidate)) continue;
+    results.push(candidate.value, ...extractContinuations(text, candidate.value));
   }
 
   // Second pass: resolve "verse 3" / "verses 3-5" using context from nearest preceding reference
   VERSE_KEYWORD_PATTERN.lastIndex = 0;
   for (const match of text.matchAll(VERSE_KEYWORD_PATTERN)) {
-    const matchIndex = match.index;
-    if (Predicate.isUndefined(matchIndex)) continue;
-
-    // Skip if this position already overlaps with an existing reference
-    if (results.some((r) => matchIndex >= r.start && matchIndex < r.end)) continue;
-
-    // Find the nearest preceding reference for book+chapter context
-    const context = results.filter((r) => r.end <= matchIndex).at(-1);
-    if (!context) continue;
-
-    const verse = parseInt(match[1] ?? '', 10);
-    let verseEnd = Option.none<number>();
-    if (match[2]) verseEnd = Option.some(parseInt(match[2], 10));
-    const fullMatch = match[0];
-
-    let contextReference: VerseReference;
-    if (context.ref._tag === 'range') {
-      contextReference = context.ref.start;
-    } else {
-      contextReference = context.ref;
-    }
-    const startReference = Reference.verse(contextReference.book, contextReference.chapter, verse);
-    let keywordReference: VerseReference | VerseRangeReference = startReference;
-    if (Option.isSome(verseEnd)) {
-      keywordReference = Reference.range(
-        startReference,
-        Reference.verse(contextReference.book, contextReference.chapter, verseEnd.value),
-      );
-    }
-
-    results.push({
-      text: fullMatch,
-      start: matchIndex,
-      end: matchIndex + fullMatch.length,
-      ref: keywordReference,
-    });
+    const keyword = extractVerseKeyword(match, results);
+    if (Option.isSome(keyword)) results.push(keyword.value);
   }
 
   // Sort by position since the second pass may have inserted out of order
