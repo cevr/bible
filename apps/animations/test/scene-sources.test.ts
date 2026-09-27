@@ -22,6 +22,7 @@ import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } fr
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FILMS } from '../server.ts';
 import { films } from '../src/films/index.ts';
+import { spawnBudget } from './cli-run.ts';
 
 /** Every film the player and the renderer know: the registry's keys, never a list kept here. */
 const FILM_NAMES = Object.keys(films);
@@ -106,15 +107,18 @@ describe('scene sources', () => {
     );
 
   for (const film of FILM_NAMES)
-    it.effect.layer(Sources)(`${film}: oxfmt leaves every scene file as it is`, () =>
-      Effect.gen(function* () {
-        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-        const path = yield* Path.Path;
-        const exit = yield* spawner.exitCode(
-          ChildProcess.make('bunx', ['oxfmt', '--check', path.join(FILMS, film, 'scenes')]),
-        );
-        expect(Number(exit)).toBe(0);
-      }),
+    it.effect.layer(Sources)(
+      `${film}: oxfmt leaves every scene file as it is`,
+      () =>
+        Effect.gen(function* () {
+          const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+          const path = yield* Path.Path;
+          const exit = yield* spawner.exitCode(
+            ChildProcess.make('bunx', ['oxfmt', '--check', path.join(FILMS, film, 'scenes')]),
+          );
+          expect(Number(exit)).toBe(0);
+        }),
+      spawnBudget(1),
     );
 
   it.effect.layer(Sources)('a scene with nothing to edit is refused by name', () =>
@@ -124,15 +128,18 @@ describe('scene sources', () => {
     }),
   );
 
-  it.effect.layer(Sources)("the lab's check runs this CLI fresh and reads its findings", () =>
-    Effect.gen(function* () {
-      const path = yield* Path.Path;
-      const check = yield* StaticCheck;
-      const findings = yield* check.run(FILM);
-      // The gate holds the film at no static errors; its unmade sounds are warnings.
-      expect(findings.length).toBeGreaterThan(0);
-      expect(findings.filter((f) => f.level === 'error')).toEqual([]);
-      expect(path.basename(CLI)).toBe('cli.ts');
-    }).pipe(Effect.provide(StaticCheck.layer(['bun', CLI]))),
+  it.effect.layer(Sources)(
+    "the lab's check runs this CLI fresh and reads its findings",
+    () =>
+      Effect.gen(function* () {
+        const path = yield* Path.Path;
+        const check = yield* StaticCheck;
+        const findings = yield* check.run(FILM);
+        // The gate holds the film at no static errors; its unmade sounds are warnings.
+        expect(findings.length).toBeGreaterThan(0);
+        expect(findings.filter((f) => f.level === 'error')).toEqual([]);
+        expect(path.basename(CLI)).toBe('cli.ts');
+      }).pipe(Effect.provide(StaticCheck.layer(['bun', CLI]))),
+    spawnBudget(1),
   );
 });
