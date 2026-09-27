@@ -17,6 +17,7 @@ bun run cues <film> [scene] --sound            # every effect placement's film t
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg, as the gate runs it
+bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...

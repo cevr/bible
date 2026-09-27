@@ -7,7 +7,7 @@
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
-//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
+//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
 //   film notes <film> [--watch] [--since n]
@@ -64,7 +64,7 @@ import { RenderJob, sceneSpan } from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import { StaticCheck } from './static-check.ts';
+import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
 const film = Argument.String('film').pipe(
@@ -230,6 +230,8 @@ const cues = Command.make(
   ),
 );
 
+const encodeCheckLine = Schema.encodeSync(CheckLineJson);
+
 const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   /** The browser leg: the server and the browser start only when it runs. */
   const layoutLeg = Effect.fn('film.check.layout')(function* (
@@ -252,6 +254,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
       ),
       scene: scenes.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
+      json: Flag.Boolean('json').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('print each finding as one line of JSON (level, tag, message)'),
+      ),
       workers: Flag.Int('workers').pipe(
         Flag.withDefault(4),
         Flag.withDescription('pages probing at once'),
@@ -280,8 +286,13 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         const layout = yield* layoutLeg(loaded, input.workers, only);
         for (const finding of layout) found.push({ level: 'error', finding });
       }
-      for (const { level, finding } of found)
-        yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+      for (const { level, finding } of found) {
+        if (input.json)
+          yield* Console.log(
+            encodeCheckLine({ level, tag: finding._tag, message: finding.message }),
+          );
+        else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+      }
       const errors = found.filter((r) => r.level === 'error').length;
       const warnings = found.length - errors;
       yield* Effect.log(
