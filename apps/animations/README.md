@@ -100,7 +100,10 @@ src/films/<film>/
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
 
-**Narration drives the clock.** A scene lasts `lead + speech + tail`. Put
+**Narration drives the clock.** A scene lasts `lead + speech + tail`: `lead`
+defaults to 70% of its entrance (at least 0.5 s) and `tail` to 0.1 s, so the
+seam between two voices is about 0.6 s; set a longer `tail` only for a pause
+the script means (rule 9 of the film skill's CRAFT.md). Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
@@ -184,11 +187,12 @@ points:
 |                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                             |
 | `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
 |                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                     |
-|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow) and `at` placement                                                               |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`)                                                                                |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                    |
+|                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                  |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                       |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                   |
 |                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                  |
-|                      | `camera.ts`     | pan/zoom over a scene's world                                                                                             |
+|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)         |
 |                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                           |
 | `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                  |
 

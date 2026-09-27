@@ -9,14 +9,15 @@ recorded words, and every frame is a pure function of that film and a time.
 | Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                   |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, figure, camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                    |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                               |
 | `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                              |
 | `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
 ## Data
 
 `core/schema.ts` holds the Schemas for everything a film reads or writes:
-`Timed` scenes, `Voice`, `Timings` (`narration/timings.json`), `Sound`, and
+`Timed` scenes, `Beat` (a script's beat: `Timed` plus `cite` and a `picture`
+brief), `Voice`, `Timings` (`narration/timings.json`), `Sound`, and
 `SoundManifest` (`sound/manifest.json`). The TypeScript types derive from them.
 `TimingsJson` and `SoundManifestJson` decode a file's text and encode it back
 byte for byte; the request hashes (`voiceKey`, `musicKey`, `effectKey`) are
@@ -44,6 +45,9 @@ Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command) and the `elevenlabs` CLI and its
 login (`auth status`, free), reports each, and fails if any is missing.
 `narrate` and `score` run the ElevenLabs check before their first paid call,
+and the `ElevenLabs` service uses `ELEVENLABS_API_KEY` when the environment
+or the Keychain holds one (effects need it) and the CLI's OAuth login
+otherwise, one OAuth call at a time (concurrent refreshes race and fail);
 and a video `render` asks a page whether it can encode H.264 at the film's size
 (`EncoderMissing`) before it draws a frame.
 
