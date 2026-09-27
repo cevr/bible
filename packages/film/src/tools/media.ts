@@ -3,7 +3,8 @@
 // track. mediabunny reads and writes the containers (pure TypeScript); MP3
 // decodes through mpg123 (WASM), gapless, sample for sample as ffmpeg decoded
 // it; AAC encodes through ffmpeg's encoder built to WASM
-// (@mediabunny/aac-encoder). Every byte moves through the FileSystem service.
+// (@mediabunny/aac-encoder). Every byte moves through the FileSystem service
+// but a joined film's, which mediabunny writes by position itself.
 // H.264 is a browser's codec: a page encodes it (player/encode.ts), and
 // joining only copies its packets.
 
@@ -18,13 +19,12 @@ import {
   BufferTarget,
   EncodedPacketSink,
   EncodedVideoPacketSource,
+  FilePathTarget,
   Input,
   type InputAudioTrack,
   MP3,
   Mp4OutputFormat,
   Output,
-  StreamTarget,
-  type StreamTargetChunk,
   WavOutputFormat,
 } from 'mediabunny';
 import { MPEGDecoder } from 'mpg123-decoder';
@@ -222,32 +222,18 @@ const present = <A>(file: string, what: string, value: A) =>
   });
 
 /**
- * `film` written to its file through `fs`, which stays open while the scope
- * does. mediabunny writes the index into the space reserved at the head
- * (fast start) once the last packet is in, so the file is written by position.
+ * `film` written to its file. mediabunny writes the index into the space
+ * reserved at the head (fast start) once the last packet is in, so the file is
+ * written by position: `FilePathTarget` holds its own handle on Bun's file
+ * system and writes each chunk at its offset, closing the handle when the
+ * output finalizes or cancels. (Effect's file handle cannot: under Bun, its
+ * `fs.write(fd, data, undefined, undefined, position)` appends.) Segments
+ * still come in through `fs`.
  */
 const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
   Effect.gen(function* () {
     const { out } = film;
-    const file = yield* fs
-      .open(out, { flag: 'w' })
-      .pipe(
-        Effect.mapError((error) =>
-          MediaFailed.make({ op: 'write', file: out, reason: error.message }),
-        ),
-      );
-    const run = Effect.runPromiseWith(yield* Effect.context<never>());
-    const target = new StreamTarget(
-      new WritableStream<StreamTargetChunk>({
-        write: (chunk) =>
-          run(
-            file
-              .seek(BigInt(chunk.position), 'start')
-              .pipe(Effect.andThen(file.writeAll(chunk.data))),
-          ),
-      }),
-      { chunked: true },
-    );
+    const target = new FilePathTarget(out);
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'reserve' }), target });
     const video = new EncodedVideoPacketSource('avc');
     output.addVideoTrack(video, { maximumPacketCount: film.frames });
@@ -436,7 +422,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       });
 
       const join = Effect.fn('Media.join')(function* (film: JoinedFilm) {
-        yield* Effect.scoped(joinInto(fs, film));
+        yield* joinInto(fs, film);
       });
 
       return Media.of({ duration, decode, writeWav, join });

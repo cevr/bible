@@ -1,5 +1,5 @@
-// Media over the in-memory file system, with the real mediabunny, mpg123 and
-// AAC encoder: a WAV written reads back as the same 16-bit samples, an MP3
+// Media with the real mediabunny, mpg123 and AAC encoder, reading over the
+// in-memory file system and joining films on the real disk: a WAV written reads back as the same 16-bit samples, an MP3
 // decodes gapless (its encoder padding trimmed, a mono file one channel), a
 // film joins from its segments with its track, and a file that is missing or
 // not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
@@ -42,21 +42,30 @@ const second = () => {
   return { rate: 44100, frames: 44100, channels: [wave, wave.slice()] };
 };
 
+const fixture = (name: string) => `${import.meta.dir}/fixtures/${name}`;
+
 /** Media over an in-memory disk holding the fixtures and a file that is not media; the disk is there to read back. */
 const MediaOnFixtures = Layer.unwrap(
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const fixture = (name: string) => fs.readFile(`${import.meta.dir}/fixtures/${name}`);
     const files = new Map<string, Uint8Array>([
-      ['/tone.mp3', yield* fixture('tone.mp3')],
+      ['/tone.mp3', yield* fs.readFile(fixture('tone.mp3'))],
       ['/noise.wav', text('not a sound')],
-      ['/a.mp4', yield* fixture('segment-a.mp4')],
-      ['/b.mp4', yield* fixture('segment-b.mp4')],
-      ['/wide.mp4', yield* fixture('segment-wide.mp4')],
     ]);
     return Media.layer.pipe(Layer.provideMerge(memoryFileSystem(files)));
   }),
 ).pipe(Layer.provide(BunServices.layer));
+
+/**
+ * Media over the real disk: a joined film is written by position, straight
+ * through Bun's file system, so it joins into a temporary directory.
+ */
+const MediaOnDisk = Layer.provideMerge(Media.layer, BunServices.layer);
+
+/** A directory that is gone once the scope closes. */
+const tempDir = Effect.gen(function* () {
+  return yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
+});
 
 describe('Media', () => {
   it.effect.layer(MediaOnFixtures)(
@@ -101,76 +110,14 @@ describe('Media', () => {
     }),
   );
 
-  it.effect.layer(MediaOnFixtures)(
+  it.effect.layer(MediaOnDisk)(
     'a film joins its segments in order, with the track encoded beside them from its first frame',
-    () =>
-      Effect.gen(function* () {
-        const media = yield* Media;
-        yield* media.join({
-          out: '/film.mp4',
-          segments: [
-            { file: '/a.mp4', at: 0 },
-            { file: '/b.mp4', at: 0.5 },
-          ],
-          frames: 30,
-          audio: Option.some(second()),
-        });
-        const [video, audio] = yield* readBack('/film.mp4');
-        expect([video?.type, video?.codec, audio?.type, audio?.codec]).toEqual([
-          'video',
-          'avc',
-          'audio',
-          'aac',
-        ]);
-        expect(video?.times.length).toBe(30);
-        for (const [k, t] of (video?.times ?? []).entries()) expect(t).toBeCloseTo(k / 30, 6);
-        // The priming plays before zero, where the edit list skips it: the track starts on the first frame.
-        expect(audio?.times[0]).toBeCloseTo(-1024 / 44100, 6);
-        expect(audio?.duration).toBeCloseTo(1, 1);
-      }),
-  );
-
-  it.effect.layer(MediaOnFixtures)('a film with no track has video only', () =>
-    Effect.gen(function* () {
-      const media = yield* Media;
-      yield* media.join({
-        out: '/silent.mp4',
-        segments: [{ file: '/a.mp4', at: 0 }],
-        frames: 15,
-        audio: Option.none(),
-      });
-      expect((yield* readBack('/silent.mp4')).map((t) => t.type)).toEqual(['video']);
-    }),
-  );
-
-  it.effect.layer(MediaOnFixtures)('a segment encoded unlike the first fails the join', () =>
-    Effect.gen(function* () {
-      const media = yield* Media;
-      const error = yield* Effect.flip(
-        media.join({
-          out: '/mixed.mp4',
-          segments: [
-            { file: '/a.mp4', at: 0 },
-            { file: '/wide.mp4', at: 0.5 },
-          ],
-          frames: 30,
-          audio: Option.none(),
-        }),
-      );
-      expect([error._tag, error.op, error.file]).toEqual(['MediaFailed', 'join', '/wide.mp4']);
-    }),
-  );
-
-  it.effect.layer(Layer.provideMerge(Media.layer, BunServices.layer))(
-    'on a real disk, the index lands in the space reserved at the head of the file',
     () =>
       Effect.scoped(
         Effect.gen(function* () {
-          const media = yield* Media;
-          const dir = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
-          const fixture = (name: string) => `${import.meta.dir}/fixtures/${name}`;
-          yield* media.join({
-            out: `${dir}/film.mp4`,
+          const out = `${yield* tempDir}/film.mp4`;
+          yield* (yield* Media).join({
+            out,
             segments: [
               { file: fixture('segment-a.mp4'), at: 0 },
               { file: fixture('segment-b.mp4'), at: 0.5 },
@@ -178,32 +125,56 @@ describe('Media', () => {
             frames: 30,
             audio: Option.some(second()),
           });
-          const [video, audio] = yield* readBack(`${dir}/film.mp4`);
-          expect([video?.times.length, audio?.codec]).toEqual([30, 'aac']);
+          const [video, audio] = yield* readBack(out);
+          expect([video?.type, video?.codec, audio?.type, audio?.codec]).toEqual([
+            'video',
+            'avc',
+            'audio',
+            'aac',
+          ]);
+          expect(video?.times.length).toBe(30);
+          for (const [k, t] of (video?.times ?? []).entries()) expect(t).toBeCloseTo(k / 30, 6);
+          // The priming plays before zero, where the edit list skips it: the track starts on the first frame.
+          expect(audio?.times[0]).toBeCloseTo(-1024 / 44100, 6);
+          expect(audio?.duration).toBeCloseTo(1, 1);
         }),
       ),
   );
 
-  // `join` writes the index back at the head of a film once its media is out.
-  // Under Bun, Effect's file handle wrote by `fs.write(fd, data, undefined,
-  // undefined, position)`, whose position Bun ignored: every write appended.
-  // The handle is patched (patches/) to pass the offset and length.
-  it.effect.layer(BunServices.layer)('on a real disk, a file writes where it seeks', () =>
+  it.effect.layer(MediaOnDisk)('a film with no track has video only', () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const file = `${yield* fs.makeTempDirectoryScoped()}/seek.bin`;
-        yield* Effect.scoped(
-          Effect.gen(function* () {
-            const handle = yield* fs.open(file, { flag: 'w' });
-            yield* handle.writeAll(text('AAAAAAAA'));
-            yield* handle.seek(2n, 'start');
-            yield* handle.writeAll(text('BB'));
-            yield* handle.seek(6n, 'start');
-            yield* handle.write(text('C'));
+        const out = `${yield* tempDir}/silent.mp4`;
+        yield* (yield* Media).join({
+          out,
+          segments: [{ file: fixture('segment-a.mp4'), at: 0 }],
+          frames: 15,
+          audio: Option.none(),
+        });
+        expect((yield* readBack(out)).map((t) => t.type)).toEqual(['video']);
+      }),
+    ),
+  );
+
+  it.effect.layer(MediaOnDisk)('a segment encoded unlike the first fails the join', () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const error = yield* Effect.flip(
+          (yield* Media).join({
+            out: `${yield* tempDir}/mixed.mp4`,
+            segments: [
+              { file: fixture('segment-a.mp4'), at: 0 },
+              { file: fixture('segment-wide.mp4'), at: 0.5 },
+            ],
+            frames: 30,
+            audio: Option.none(),
           }),
         );
-        expect(yield* fs.readFileString(file)).toBe('AABBAACA');
+        expect([error._tag, error.op, error.file]).toEqual([
+          'MediaFailed',
+          'join',
+          fixture('segment-wide.mp4'),
+        ]);
       }),
     ),
   );

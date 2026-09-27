@@ -54,10 +54,10 @@ segments' packets copied in order (never re-encoded; segments encoded unlike
 the first fail), and its track encoded to AAC beside them through
 `@mediabunny/aac-encoder` (ffmpeg's encoder built to WASM), one frame of
 priming early so the MP4's edit list starts it on the first frame. Every byte
-moves through the FileSystem service; failures are `MediaFailed`. No ffmpeg
-binary is involved anywhere. Two dependencies are patched (`patches/`): the
-AAC encoder's worker hung under Bun, and Effect's file handle wrote through a
-Bun `fs.write` that ignored its position.
+moves through the FileSystem service but the joined film's, which mediabunny's
+`FilePathTarget` writes by position on Bun's file system (Effect's file handle
+appends under Bun: its `fs.write` passes no offset, and Bun then ignores the
+position). Failures are `MediaFailed`. No ffmpeg binary is involved anywhere.
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
 and ducked under it, the effects on their cues, summed and limited: ported
