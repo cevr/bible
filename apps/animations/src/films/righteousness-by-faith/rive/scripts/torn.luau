@@ -20,11 +20,13 @@ local function hash(i: number): number
     return x - math.floor(x)
 end
 
-local function noise(d: number): number
+-- Value noise over `cells` cells that wrap, so a closed outline's tear meets
+-- itself where it starts.
+local function noise(d: number, cells: number, seed: number): number
     local i = math.floor(d)
     local f = d - i
     local u = f * f * (3 - 2 * f)
-    return hash(i) * (1 - u) + hash(i + 1) * u
+    return hash(i % cells + seed) * (1 - u) + hash((i + 1) % cells + seed) * u
 end
 
 local function update(self: Torn, path: PathData, node: NodeReadData): PathData
@@ -37,14 +39,23 @@ local function update(self: Torn, path: PathData, node: NodeReadData): PathData
     local seed = self.seed * 131
     while contour do
         local len = contour.length
+        local closed = contour.isClosed
         local n = math.max(3, math.floor(len / step))
-        for k = 0, n - 1 do
+        local cells = math.max(2, math.floor(len / 18 + 0.5))
+        local last = n
+        if closed then last = n - 1 end
+        for k = 0, last do
             local d = len * k / n
-            local tear = (noise(d / 18 + seed) - 0.5) * 2 * amp + (hash(k + seed) - 0.5) * amp * 0.4
-            local p = contour:warp(Vector.xy(d, tear))
+            local jitter = hash(k % n + seed) - 0.5
+            if not closed and (k == 0 or k == n) then jitter = 0 end
+            local tear = (noise(d / len * cells, cells, seed) - 0.5) * 2 * amp + jitter * amp * 0.4
+            local pos, raw = contour:positionAndTangent(d)
+            -- The tangent is not unit length at a curve's segment joins.
+            local tan = Vector.normalized(raw)
+            local p = Vector.xy(pos.x - tan.y * tear, pos.y + tan.x * tear)
             if k == 0 then out:moveTo(p) else out:lineTo(p) end
         end
-        out:close()
+        if closed then out:close() end
         seed += 97
         contour = contour.next
     end

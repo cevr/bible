@@ -40,13 +40,13 @@ const unknownTypo = (out: string) => {
 describe('film cli', () => {
   it.effect.layer(BunServices.layer)('check --scene id,id parses and reads the project', () =>
     Effect.gen(function* () {
-      const run = yield* cli('check', film, '--allow-stale', '--scene', 'cold,robe');
+      const run = yield* cli('check', film, '--allow-stale', '--scene', 'title,cold');
       expect(run.out).not.toContain('Unrecognized flag');
-      // The project reads: only the two scenes asked for are probed.
+      // The project reads, and only the scenes asked for are probed: no
+      // finding names another scene, however many are drawn yet.
       expect(run.exitCode).toBe(0);
-      expect(run.out).toContain('scene "cold" is still its storyboard');
-      expect(run.out).toContain('scene "robe" is still its storyboard');
-      expect(run.out).not.toContain('scene "title" is still its storyboard');
+      const named = [...run.out.matchAll(/scene "([^"]+)"/g)].map((m) => m[1]);
+      expect(named.filter((id) => id !== 'title' && id !== 'cold')).toEqual([]);
     }),
   );
 
