@@ -511,6 +511,31 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
   }
 }
 
+/** A line of text running off the plate under it (a card, a tag), past the plate's edge. */
+export class TextOffPlate extends Schema.TaggedError<TextOffPlate>()('TextOffPlate', {
+  ...sampled,
+  text: Schema.String,
+  /** How far the line's box reaches past each side of the plate's box, in canvas pixels. */
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: "${this.text}" runs off the plate under it, ${past.join(', ')} (${this.frames} sampled frame(s))`;
+  }
+}
+
 /** A plate (a cutout smaller than the frame) carrying text, cut off by the frame's edge. */
 export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOffFrame', {
   ...sampled,

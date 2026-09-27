@@ -471,6 +471,35 @@ describe('plates off the frame', () => {
   });
 });
 
+describe('text off its plate', () => {
+  // A storyboard card declared as a plate, and its brief's line on it.
+  const card = textBox('(the card)', 360, 250, 1200, 520, { order: 1 });
+  const brief = (w: number, on = 1) =>
+    textBox('a brief too long for its card', 420, 700, w, 40, { order: 2, on });
+
+  test('a line running off the plate it is drawn on is a finding', () => {
+    const found = frameFindings(sample, { texts: [card, brief(1300)], inks: [] }, frame);
+    expect(found).toMatchObject([{ _tag: 'TextOffPlate', text: 'a brief too long for its card' }]);
+    expect(found[0]).toMatchObject({ right: 160, left: 0, top: 0, bottom: 0 });
+  });
+
+  test('a line inside its plate, or past it by no more than the tolerance, is not', () => {
+    expect(frameFindings(sample, { texts: [card, brief(1080)], inks: [] }, frame)).toEqual([]);
+    expect(frameFindings(sample, { texts: [card, brief(1143)], inks: [] }, frame)).toEqual([]);
+  });
+
+  test('text over scenery (a fill it was not drawn on) has no plate to run off', () => {
+    const sky = inkMark('fill', [
+      [0, 0],
+      [1920, 0],
+      [1920, 400],
+      [0, 400],
+    ]);
+    const quote = textBox('over the horizon', 800, 370, 400, 60, { order: 1 });
+    expect(frameFindings(sample, { texts: [quote], inks: [sky] }, frame)).toEqual([]);
+  });
+});
+
 describe('mergeFindings', () => {
   test('one finding per pair and scene: the worst sample, counting every frame that shows it', () => {
     const at = (time: number, dy: number): LayoutFinding => {

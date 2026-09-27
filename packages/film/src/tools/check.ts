@@ -33,6 +33,7 @@ import {
   PlateOffFrame,
   TakeStale,
   TextOffFrame,
+  TextOffPlate,
   TextOverlap,
   type UnknownCue,
   type UnknownMark,
@@ -55,7 +56,7 @@ export type StaticFinding =
   | CueInvalid
   | ActTooShort
   | UnknownVoice;
-export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame;
+export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type Finding = StaticFinding | LayoutFinding;
 
 export type Level = 'error' | 'warning';
@@ -637,6 +638,47 @@ export const platesOffFrame = (
   });
 };
 
+/** How far box `a` reaches past each side of box `b` (0 where it does not). */
+const pastBox = (
+  a: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  b: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+) => ({
+  left: Math.max(0, b.x - a.x),
+  top: Math.max(0, b.y - a.y),
+  right: Math.max(0, a.x + a.w - (b.x + b.w)),
+  bottom: Math.max(0, a.y + a.h - (b.y + b.h)),
+});
+
+/**
+ * Text running off its plate: a visible line drawn on a declared plate
+ * (`probePlate`, so it carries the plate's `order` as `on`) whose box, pulled
+ * in by the tolerance, leaves the plate's box, as a brief overrunning its card
+ * would. Only a declared plate counts: text over scenery (a sky, a pillar, a
+ * coin) has no plate to run off.
+ */
+export const textsOffPlate = (sample: Sample, probed: Probed): ReadonlyArray<TextOffPlate> => {
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const plates = new Map(probed.texts.map((t) => [t.order, t] as const));
+  return probed.texts.filter(visible).flatMap((text) =>
+    Option.match(
+      Option.flatMap(Option.fromUndefinedOr(text.on), (on) =>
+        Option.fromUndefinedOr(plates.get(on)),
+      ),
+      {
+        onNone: () => [],
+        onSome: (plate) => {
+          const inner = Option.getOrElse(
+            inset(text.corners, OVERLAP_TOLERANCE),
+            () => text.corners,
+          );
+          if (inner.every((corner) => insidePolygon(plate.corners, corner))) return [];
+          return [TextOffPlate.make({ ...where, text: text.text, ...pastBox(text, plate) })];
+        },
+      },
+    ),
+  );
+};
+
 /** Whether one box is the plate the other line sits on (`probePlate`): they never collide. */
 const carries = (a: TextBox, b: TextBox) => a.on === b.order || b.on === a.order;
 
@@ -672,6 +714,7 @@ export const frameFindings = (
     ...off,
     ...inkOverText(sample, probed),
     ...platesOffFrame(sample, probed, size, next),
+    ...textsOffPlate(sample, probed),
   ];
 };
 
@@ -683,6 +726,7 @@ const keyOf = matchFinding.pipe(
     TextOffFrame: (f) => `off\u0000${f.scene}\u0000${f.text}`,
     InkOverText: (f) => `ink\u0000${f.scene}\u0000${f.text}`,
     PlateOffFrame: (f) => `plate\u0000${f.scene}\u0000${f.text}`,
+    TextOffPlate: (f) => `offplate\u0000${f.scene}\u0000${f.text}`,
   }),
 );
 
@@ -695,6 +739,7 @@ const size = matchFinding.pipe(
     InkOverText: (f) => f.length,
     TextOffFrame: edges,
     PlateOffFrame: edges,
+    TextOffPlate: edges,
   }),
 );
 
@@ -726,6 +771,15 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
         }),
       PlateOffFrame: (o): LayoutFinding =>
         PlateOffFrame.make({
+          ...where,
+          text: o.text,
+          left: o.left,
+          top: o.top,
+          right: o.right,
+          bottom: o.bottom,
+        }),
+      TextOffPlate: (o): LayoutFinding =>
+        TextOffPlate.make({
           ...where,
           text: o.text,
           left: o.left,

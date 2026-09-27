@@ -286,8 +286,10 @@ what a review used to find by eye:
   more than 4 px, where no opaque plate drawn after the stroke covers it, is
   an `InkOverText`, measured along the crossing (a segment-versus-box
   clip, not the bounds). A line on a plate that the frame cuts off, and that
-  sits still there, is a `PlateOffFrame`. Findings merge per scene and text
-  (or pair), at the worst sampled frame.
+  sits still there, is a `PlateOffFrame`. A line drawn on a declared plate
+  (`probePlate`) whose box leaves the plate's box by more than 4 px is a
+  `TextOffPlate` (a brief overrunning its card). Findings merge per scene and
+  text (or pair), at the worst sampled frame.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
