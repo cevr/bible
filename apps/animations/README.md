@@ -186,7 +186,7 @@ points:
 |                      | `random.ts`     | seeded hash and noise                                                                                                     |
 |                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                             |
 | `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
-|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                     |
+|                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse) and the variable-width brush `stroke`                                  |
 |                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                    |
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                  |
 |                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                       |
