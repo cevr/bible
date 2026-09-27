@@ -5,7 +5,7 @@ import type { Music, Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
+import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 /** The failure's tag, or `ok`. */
 const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>) =>
@@ -86,6 +86,30 @@ describe('sound', () => {
   test('an act naming no scene is refused, the first one too', () => {
     const lost = { ...music, acts: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
     expect(outcome(musicPlan(lost, placed))).toBe('UnknownScene');
+  });
+
+  test('actSpans gives every act its length or its refusal, and every act naming no scene', () => {
+    const spans = Result.getOrThrow(
+      actSpans({ ...music, acts: [...music.acts].reverse() }, placed),
+    );
+    // Reversed, the first act runs from the film's start to `a`, which also starts it.
+    expect(
+      spans.map((r) => Result.match(r, { onSuccess: (a) => a.ms, onFailure: (e) => e._tag })),
+    ).toEqual(['ActTooShort', Math.round(filmEnd(placed) * 1000)]);
+    const lost = actSpans(
+      {
+        ...music,
+        acts: [
+          { from: 'x', name: 'X', styles: [] },
+          { from: 'a', name: 'A', styles: [] },
+          { from: 'y', name: 'Y', styles: [] },
+        ],
+      },
+      placed,
+    );
+    expect(
+      Result.match(lost, { onSuccess: () => [], onFailure: (u) => u.map((e) => e.scene) }),
+    ).toEqual(['x', 'y']);
   });
 
   test('acts out of film order are refused', () => {

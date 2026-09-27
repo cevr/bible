@@ -7,7 +7,7 @@
 
 import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
+import { everyTakeRecorded } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type {
@@ -20,9 +20,9 @@ import type {
   TextBox,
   Timed,
 } from '../core/schema.ts';
-import { MIN_CHUNK_MS, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
-  ActTooShort,
+  type ActTooShort,
   AssetMissing,
   AssetStale,
   type AudioMissing,
@@ -126,42 +126,30 @@ const assetFinding = (
 
 /**
  * The score's acts: each names a scene, and each runs in film order for at
- * least the API's shortest chunk. Only a plan that holds is checked for a
- * stale score.
+ * least the API's shortest chunk (`actSpans`, every failure rather than the
+ * first). Only a plan that holds is checked for a stale score.
  */
 export const musicFindings = (
   music: Music,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> => {
-  const unknown = music.acts.flatMap((act) =>
-    Result.match(sceneOf(placed, act.from), { onFailure: (e) => [e], onSuccess: () => [] }),
-  );
-  if (unknown.length > 0) return unknown;
-  const starts = music.acts.map((act, i) => {
-    if (i === 0) return 0;
-    return Option.match(
-      Arr.findFirst(placed, (p) => p.spec.id === act.from),
-      { onNone: () => 0, onSome: (p) => p.start },
-    );
+): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> =>
+  Result.match(actSpans(music, placed), {
+    onFailure: (unknown) => unknown,
+    onSuccess: (spans) => {
+      const short = Arr.getFailures(spans);
+      if (short.length > 0) return short;
+      return Result.match(musicPlan(music, placed), {
+        onFailure: (error) => [error],
+        onSuccess: (plan) =>
+          assetFinding(
+            'music',
+            Option.map(Option.fromNullishOr(manifest.music), (a) => a.hash),
+            musicKey(music, plan),
+          ),
+      });
+    },
   });
-  const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
-  const short = music.acts.flatMap((act, i) => {
-    const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
-    if (ms >= MIN_CHUNK_MS) return [];
-    return [ActTooShort.make({ act: act.name, ms })];
-  });
-  if (short.length > 0) return short;
-  return Result.match(musicPlan(music, placed), {
-    onFailure: (error) => [error],
-    onSuccess: (plan) =>
-      assetFinding(
-        'music',
-        Option.map(Option.fromNullishOr(manifest.music), (a) => a.hash),
-        musicKey(music, plan),
-      ),
-  });
-};
 
 /** Every effect placement names a real scene, cue or mark; every effect's asset is current. */
 export const effectFindings = (

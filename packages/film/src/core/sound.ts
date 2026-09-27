@@ -83,23 +83,50 @@ const actStart = (
     return p.start;
   });
 
+/** How long one act of the score lasts, in whole milliseconds, as its plan sends it. */
+export interface ActSpan {
+  readonly act: Act;
+  readonly ms: number;
+}
+
+/**
+ * Each act's length, from its scene to the next act's (the last to the film's
+ * end), with `ActTooShort` in place of an act under the API's shortest chunk;
+ * or, when any act names no scene, every such act.
+ */
+export const actSpans = (
+  music: Music,
+  placed: ReadonlyArray<Placed>,
+): Result.Result<
+  ReadonlyArray<Result.Result<ActSpan, ActTooShort>>,
+  Arr.NonEmptyReadonlyArray<UnknownScene>
+> => {
+  const [unknown, starts] = Arr.partition(music.acts, (act, i) => actStart(act, i, placed));
+  if (Arr.isReadonlyArrayNonEmpty(unknown)) return Result.fail(unknown);
+  const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
+  return Result.succeed(
+    music.acts.map((act, i) => {
+      const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
+      if (ms < MIN_CHUNK_MS) return Result.fail(ActTooShort.make({ act: act.name, ms }));
+      return Result.succeed({ act, ms });
+    }),
+  );
+};
+
 /**
  * The score's plan: each act lasts from its scene to the next act's scene, and
  * carries the film-wide styles ahead of its own. The act name is a structure
- * tag, never a lyric.
+ * tag, never a lyric. Fails with the first act `actSpans` refuses.
  */
 export const musicPlan = (
   music: Music,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<Plan, UnknownScene | ActTooShort> =>
   Result.gen(function* () {
-    const starts: number[] = [];
-    for (const [i, act] of music.acts.entries()) starts.push(yield* actStart(act, i, placed));
-    const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
+    const spans = yield* Result.mapError(actSpans(music, placed), Arr.headNonEmpty);
     const chunks: PlanChunk[] = [];
-    for (const [i, act] of music.acts.entries()) {
-      const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
-      if (ms < MIN_CHUNK_MS) return yield* Result.fail(ActTooShort.make({ act: act.name, ms }));
+    for (const span of spans) {
+      const { act, ms } = yield* span;
       chunks.push({
         text: `[${act.name}]`,
         duration_ms: ms,
