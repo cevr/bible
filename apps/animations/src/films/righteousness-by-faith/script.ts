@@ -93,6 +93,8 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'centurion',
+    // A pause after the key quotation (CRAFT rule 9).
+    tail: 1,
     say: "{same}He saw the same thing in a Roman soldier. {servant}The soldier's servant was dying, {offer}and Jesus offered to come to his house. {only}The soldier said, you do not need to come. Just speak the word. {healed}And his servant was healed. {@ask}{room}So he did not need Jesus in the room. {word}Just his word. {@lead}{exactly}Exactly. {def}And from that story Jones defined faith: {faith}“Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.”",
     cite: ['Matthew 8:5–13', 'A. T. Jones, Lessons on Faith, 14–15'],
     picture:
@@ -175,6 +177,8 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'name',
+    // The held pause before the landing's last words.
+    tail: 1.2,
     say: '{@ask}Okay, so let me see if I have got it. {how}How should man be just with God? {not}Not by sewing a better garment. {receive}By receiving one. {@lead}{taking}By taking God at his word. {verdict}So when God says righteous, it is not a cover-up. {true}It is true. {jer}And Jeremiah gave the coming King a name that says it all.',
     cite: ['Job 9:2'],
     picture:
@@ -182,6 +186,8 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'thesis',
+    // The landing: the music rises alone for about 30 s (CRAFT rule 10).
+    min: 32,
     say: 'The Lord our righteousness.',
     cite: ['Jeremiah 23:6'],
     picture:
