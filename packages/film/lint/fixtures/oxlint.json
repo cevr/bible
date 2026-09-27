@@ -4,6 +4,7 @@
   "plugins": [],
   "jsPlugins": ["../plugin.ts"],
   "rules": {
-    "film/drawing-literal": "error"
+    "film/drawing-literal": "error",
+    "film/no-unprobed-ink": "error"
   }
 }

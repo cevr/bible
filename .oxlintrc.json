@@ -257,7 +257,8 @@
       "files": ["**/apps/animations/src/films/**/*.ts"],
       "excludeFiles": ["**/apps/animations/src/films/righteousness-by-faith-v1/**"],
       "rules": {
-        "film/drawing-literal": "error"
+        "film/drawing-literal": "error",
+        "film/no-unprobed-ink": "error"
       }
     },
     {

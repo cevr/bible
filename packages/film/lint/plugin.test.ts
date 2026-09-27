@@ -10,6 +10,7 @@ import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { Testing } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
+import { noUnprobedInk } from './no-unprobed-ink.ts';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));
@@ -81,6 +82,38 @@ describe('film oxlint plugin', () => {
       expect(run.exitCode).not.toBe(0);
     }),
   );
+});
+
+/** `ctx.<method>()` whose parent is `parent`. */
+const contextCall = (method: string, parent: { readonly type: string }) => ({
+  ...Testing.callOfMember('ctx', method),
+  parent,
+});
+
+describe('film/no-unprobed-ink', () => {
+  test('reports a raw ctx.stroke()', () => {
+    const found = Testing.runRule(
+      noUnprobedInk,
+      'CallExpression',
+      contextCall('stroke', Testing.program()),
+    );
+    expect(found).toHaveLength(1);
+  });
+
+  test('lets a stroke inside unprobed(ctx, () => …) through', () => {
+    const wrapper = { ...Testing.callExpr('unprobed'), parent: Testing.program() };
+    const found = Testing.runRule(noUnprobedInk, 'CallExpression', contextCall('stroke', wrapper));
+    Testing.expectNoDiagnostics(found);
+  });
+
+  test('leaves a fill alone', () => {
+    const found = Testing.runRule(
+      noUnprobedInk,
+      'CallExpression',
+      contextCall('fill', Testing.program()),
+    );
+    Testing.expectNoDiagnostics(found);
+  });
 });
 
 describe('film/drawing-literal', () => {

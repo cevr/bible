@@ -5,10 +5,12 @@
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
+import { noUnprobedInk } from './no-unprobed-ink.ts';
 
 export default Plugin.define({
   name: 'film',
   rules: {
     'drawing-literal': drawingLiteral,
+    'no-unprobed-ink': noUnprobedInk,
   },
 });
