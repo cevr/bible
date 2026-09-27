@@ -65,6 +65,18 @@ describe('Timed', () => {
     expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"bouncy"}}}')).toBe(false);
   });
 
+  test('refuses negative time: a lead, tail, min, span dur or transition dur below 0', () => {
+    expect(decodes('{"id":"a","lead":0,"tail":0.6,"min":3}')).toBe(true);
+    expect(decodes('{"id":"a","lead":-1}')).toBe(false);
+    expect(decodes('{"id":"a","tail":-0.1}')).toBe(false);
+    expect(decodes('{"id":"a","min":-3}')).toBe(false);
+    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","dur":-0.2}}}')).toBe(false);
+    for (const kind of ['fade', 'pan', 'ink'])
+      expect(decodes(`{"id":"a","enter":{"kind":"${kind}","dur":-1}}`)).toBe(false);
+    // An offset moves a cue either way from its anchor.
+    expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","offset":-0.4}}}')).toBe(true);
+  });
+
   test('knobs are numbers or points, nothing else', () => {
     expect(decodes('{"id":"a","knobs":{"handY":800,"quoteAt":[960,170]}}')).toBe(true);
     expect(decodes('{"id":"a","knobs":{"handY":"800"}}')).toBe(false);

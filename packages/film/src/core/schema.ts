@@ -130,17 +130,17 @@ export const isCast = (voice: Voice): voice is Cast => 'voices' in voice;
 /** How a scene arrives from the previous one. */
 export const Transition = Schema.Union([
   Schema.Struct({ kind: Schema.Literal('cut') }),
-  Schema.Struct({ kind: Schema.Literal('fade'), dur: Schema.Finite }),
+  Schema.Struct({ kind: Schema.Literal('fade'), dur: Seconds }),
   /** Slide across one long sheet, like a camera panning a mural. */
   Schema.Struct({
     kind: Schema.Literal('pan'),
-    dur: Schema.Finite,
+    dur: Seconds,
     dir: Schema.optionalKey(Schema.Literals([1, -1])),
   }),
   /** A broad brush stroke sweeps across and leaves the new scene behind it. */
   Schema.Struct({
     kind: Schema.Literal('ink'),
-    dur: Schema.Finite,
+    dur: Seconds,
     color: Schema.optionalKey(Schema.String),
   }),
 ]);
@@ -173,7 +173,7 @@ export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
   /** Defaults to 0, an instant. */
-  dur: Schema.optionalKey(Schema.Finite),
+  dur: Schema.optionalKey(Seconds),
   /** How `f.at(name)` eases across the cue. Defaults to `DEFAULT_EASE` (`time.ts`). */
   ease: Schema.optionalKey(EaseName),
 };
@@ -216,11 +216,11 @@ export const Timed = Schema.Struct({
   /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
   say: Schema.optionalKey(Schema.String),
   /** Silence before the voice starts. */
-  lead: Schema.optionalKey(Schema.Finite),
+  lead: Schema.optionalKey(Seconds),
   /** Silence after the voice ends. */
-  tail: Schema.optionalKey(Schema.Finite),
+  tail: Schema.optionalKey(Seconds),
   /** Minimum scene length. */
-  min: Schema.optionalKey(Schema.Finite),
+  min: Schema.optionalKey(Seconds),
   /** How this scene arrives from the previous one. */
   enter: Schema.optionalKey(Transition),
   /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
