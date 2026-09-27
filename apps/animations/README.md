@@ -81,7 +81,8 @@ subfolder, so parallel renders don't collide), `--out file`, `--no-share`
 Each page runs one hardware encoder, two with the share copy; past 14 at once
 the encoder hangs, so a render that would need more fails with
 `TooManyEncoders` before a page opens (at most 7 pages with the share copy,
-14 without). A video's audio
+14 without). Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
+until the film is joined, then the folders go; a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or

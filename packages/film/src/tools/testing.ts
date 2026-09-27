@@ -27,6 +27,7 @@ import {
   type FrameFailed,
   type PageCrashed,
   type PageError,
+  type MediaFailed,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media } from './media.ts';
@@ -284,6 +285,8 @@ export interface FakeRenderHost {
   readonly master?: number;
   /** What a page's encoder check finds (ready by default). */
   readonly encoder?: Effect.Effect<void, EncoderMissing>;
+  /** What a join does once it is recorded (nothing by default). */
+  readonly join?: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
   /** How many milliseconds frame `i` takes to draw, as `time` reports it (default 10). */
   readonly drawMs?: (i: number) => number;
   /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
@@ -418,7 +421,15 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
           ledger.aac.push(pcm.frames);
           return { packets: [], meta: {} };
         }),
-      join: (film) => Effect.sync(() => void ledger.joins.push(film)),
+      join: (film) =>
+        Effect.sync(() => void ledger.joins.push(film)).pipe(
+          Effect.andThen(
+            Option.match(Option.fromNullishOr(host.join), {
+              onNone: () => Effect.void,
+              onSome: (join) => join(film),
+            }),
+          ),
+        ),
     }),
   );
   return Layer.mergeAll(server, browser, media);

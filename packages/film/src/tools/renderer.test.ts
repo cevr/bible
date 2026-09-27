@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
-import { EncoderMissing, PageCrashed, PageError } from './errors.ts';
+import { EncoderMissing, MediaFailed, PageCrashed, PageError } from './errors.ts';
 import { RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
 import {
@@ -32,9 +32,8 @@ const video = RenderJob.Video({
   share: false,
 });
 
-const setup = (host: FakeRenderHost = {}) => {
+const setup = (host: FakeRenderHost = {}, files = new Map<string, Uint8Array>()) => {
   const ledger = emptyLedger();
-  const files = new Map<string, Uint8Array>();
   const layer = Renderer.layer.pipe(
     Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files), Path.layer]),
   );
@@ -43,6 +42,25 @@ const setup = (host: FakeRenderHost = {}) => {
       yield* (yield* Renderer).render(film, job);
     }).pipe(Effect.provide(layer));
   return { ledger, files, render };
+};
+
+/** A render whose joins keep, by file, the bytes each segment held when it was joined. */
+const joinedBytes = () => {
+  const files = new Map<string, Uint8Array>();
+  const joined = new Map<string, Uint8Array>();
+  const run = setup(
+    {
+      join: (film) =>
+        Effect.sync(() => {
+          for (const s of film.segments)
+            Option.map(Option.fromNullishOr(files.get(s.file)), (bytes) =>
+              joined.set(s.file, bytes),
+            );
+        }),
+    },
+    files,
+  );
+  return { ...run, joined };
 };
 
 /** Every resource the render opened was closed, and every chunk's encode ended. */
@@ -57,7 +75,7 @@ const expectAllClosed = (ledger: RenderLedger) => {
 describe('Renderer', () => {
   it.live('renders every frame once, joins the segments in order, and closes everything', () =>
     Effect.gen(function* () {
-      const { ledger, files, render } = setup();
+      const { ledger, files, joined, render } = joinedBytes();
       yield* render(video);
       expect([...ledger.frames].sort((a, b) => a - b)).toEqual(
         Array.from({ length: 600 }, (_, i) => i),
@@ -71,7 +89,7 @@ describe('Renderer', () => {
       expect(join?.segments.map((s) => s.at)).toEqual(
         Array.from({ length: 16 }, (_, k) => (k * 38) / 30),
       );
-      expect(files.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
+      expect(joined.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
       expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test.vtt')).toBe(true);
       expectAllClosed(ledger);
@@ -80,13 +98,31 @@ describe('Renderer', () => {
 
   it.live('a share copy encodes in the same pass and joins beside the film', () =>
     Effect.gen(function* () {
-      const { ledger, files, render } = setup();
+      const { ledger, joined, render } = joinedBytes();
       yield* render({ ...video, share: true });
       expect(ledger.encoders.spawned).toBe(16);
       expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
       const [, share] = ledger.joins;
-      expect(files.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
+      expect(joined.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
       expect(share?.segments.map((s) => s.at)).toEqual(ledger.joins[0]?.segments.map((s) => s.at));
+    }),
+  );
+
+  it.live('the segments go once the film is joined, and stay when the join fails', () =>
+    Effect.gen(function* () {
+      const segments = (files: Map<string, Uint8Array>) =>
+        [...files.keys()].filter((f) => f.includes('/segments/') || f.includes('/share/'));
+      const done = setup();
+      yield* done.render({ ...video, share: true });
+      expect(done.ledger.joins.length).toBe(2);
+      expect(segments(done.files)).toEqual([]);
+
+      const failed = setup({
+        join: () => Effect.fail(MediaFailed.make({ op: 'join', file: 'x', reason: 'no' })),
+      });
+      const exit = yield* Effect.exit(failed.render({ ...video, share: true }));
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(segments(failed.files).length).toBe(32);
     }),
   );
 

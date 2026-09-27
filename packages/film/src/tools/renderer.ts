@@ -210,6 +210,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             }),
         });
 
+        // Joined: the segments are copied into the film and nothing reads them
+        // again. A failed join leaves them for the error that names one.
+        yield* fs.remove(segDir, { recursive: true, force: true });
+        yield* fs.remove(shareDir, { recursive: true, force: true });
+
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
         const range = { from: start / info.fps, to: end / info.fps };
