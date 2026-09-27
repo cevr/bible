@@ -1,8 +1,9 @@
 // A cut-paper person. Feet stand at the origin; the figure is ~440 units tall
 // at scale 1. A pose is a handful of angles, so figures can be keyframed like
-// any other number.
+// any other number; a hand that must land on something reaches for it instead.
 
 import { type CutoutStyle, cutout } from './cutout.ts';
+import { reach } from './ik.ts';
 import { type Hand, type Pt, ellipseShape, quad, spline, stroke } from './ink.ts';
 import { hash2 } from '../core/random.ts';
 
@@ -18,6 +19,12 @@ export interface Pose {
   headTilt?: number;
   /** Vertical squash for breathing/landing, 1 = rest. */
   squash?: number;
+  /**
+   * Where a hand lands, in the figure's own units (feet at the origin): the
+   * arm reaches for it, elbow out, and its angles are ignored.
+   */
+  reachL?: Pt;
+  reachR?: Pt;
 }
 
 export type Face = 'calm' | 'sad' | 'joy' | 'shut' | 'none';
@@ -34,7 +41,7 @@ export interface Look {
   grain?: number;
 }
 
-export const STAND: Required<Pose> = {
+export const STAND: Required<Omit<Pose, 'reachL' | 'reachR'>> = {
   lean: 0,
   armL: 0.15,
   armR: 0.15,
@@ -71,12 +78,18 @@ export const robeShape = (rags: boolean, seed: number): Pt[] => {
   return [...spline(top, 8), ...hem, ...spline([[112, HEM_Y], ...side], 8)];
 };
 
-const armPath = (side: -1 | 1, shoulder: number, elbow: number): Pt[] => {
-  const sx = side * 74;
-  const sy = NECK_Y + 44;
+const UPPER_ARM = 120;
+const FOREARM = 110;
+
+const shoulderOf = (side: -1 | 1): Pt => [side * 74, NECK_Y + 44];
+
+const armPath = (side: -1 | 1, shoulder: number, elbow: number, target: Pt | undefined): Pt[] => {
+  if (target !== undefined)
+    return spline(reach(shoulderOf(side), target, [UPPER_ARM, FOREARM], side), 10);
+  const [sx, sy] = shoulderOf(side);
   const a = side * shoulder;
-  const upper = 120;
-  const lower = 110;
+  const upper = UPPER_ARM;
+  const lower = FOREARM;
   const ex = sx + Math.sin(a) * upper;
   const ey = sy + Math.cos(a) * upper;
   const b = a + side * elbow;
@@ -111,8 +124,8 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
   cutout(ctx, ellipseShape(40, -14, 30, 14), { ...paper, color: look.ink, rim: 2 }, sub(2));
 
   // Back arm, robe, front arm — the far arm tucks behind the body.
-  const armL = armPath(-1, p.armL, p.elbowL);
-  const armR = armPath(1, p.armR, p.elbowR);
+  const armL = armPath(-1, p.armL, p.elbowL, pose.reachL);
+  const armR = armPath(1, p.armR, p.elbowR, pose.reachR);
   const sleeve = (path: Pt[], k: number) => {
     stroke(
       ctx,

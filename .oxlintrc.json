@@ -203,11 +203,12 @@
       }
     },
     {
-      // The check's probe, on the draw path: it attaches to a canvas context
-      // for one synchronous draw, and must come off even when the draw throws
-      // (else the next frame records into a failed frame's list). The draw
-      // path runs no Effect, so a plain try/finally is the release.
-      "files": ["**/packages/film/src/canvas/probe.ts"],
+      // Context-scoped draw state (the check's probe, a cutout's shadow
+      // height): each attaches to a canvas context for one synchronous draw,
+      // and must come off even when the draw throws (else the next frame
+      // inherits a failed frame's state). The draw path runs no Effect, so a
+      // plain try/finally is the release.
+      "files": ["**/packages/film/src/canvas/probe.ts", "**/packages/film/src/canvas/cutout.ts"],
       "rules": {
         "effect/noTryCatch": "off"
       }

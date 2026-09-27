@@ -22,6 +22,24 @@ export interface CutoutStyle {
 
 const PAPER_CORE = '#fbf6ea';
 
+const heights = new WeakMap<CanvasRenderingContext2D, number>();
+
+/**
+ * Draw with every cutout's shadow cast from `height` times its usual height
+ * above the sheet beneath: a longer, softer, fainter shadow, as a layer
+ * nearer the camera casts on the one behind it. Heights nest by multiplying.
+ */
+export const raised = (ctx: CanvasRenderingContext2D, height: number, draw: () => void) => {
+  const before = heights.get(ctx);
+  heights.set(ctx, (before ?? 1) * height);
+  try {
+    draw();
+  } finally {
+    if (before === undefined) heights.delete(ctx);
+    else heights.set(ctx, before);
+  }
+};
+
 /** Push a closed outline outward by `amount` plus torn noise. */
 const tear = (shape: Path, amount: number, rough: number, seed: number, boil: number): Pt[] => {
   const closed = [...shape, shape[0] ?? [0, 0]];
@@ -112,11 +130,12 @@ export const cutout = (
   const lift = style.shadow ?? 0.5;
   const under = rim > 0 ? tear(shape, rim, torn * 1.3, hand.seed + 17, hand.boil) : face;
   if (lift > 0) {
+    const height = heights.get(ctx) ?? 1;
     ctx.save();
-    ctx.shadowColor = `rgba(40, 28, 16, ${0.28 * lift})`;
-    ctx.shadowBlur = 10 * lift;
-    ctx.shadowOffsetX = 2 * lift;
-    ctx.shadowOffsetY = 5 * lift;
+    ctx.shadowColor = `rgba(40, 28, 16, ${(0.28 * lift) / Math.sqrt(height)})`;
+    ctx.shadowBlur = 10 * lift * height;
+    ctx.shadowOffsetX = 2 * lift * height;
+    ctx.shadowOffsetY = 5 * lift * height;
     ctx.fillStyle = rim > 0 ? (style.rimColor ?? PAPER_CORE) : style.color;
     trace(ctx, under);
     ctx.fill();

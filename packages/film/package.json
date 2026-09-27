@@ -19,6 +19,7 @@
     "@effect/platform-bun": "catalog:",
     "@mediabunny/aac-encoder": "1.60.0",
     "effect": "catalog:",
+    "math": "0.1.0",
     "mediabunny": "1.60.0",
     "mpg123-decoder": "1.0.3",
     "oxc-parser": "0.151.0",
