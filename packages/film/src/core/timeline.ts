@@ -5,11 +5,21 @@
 // Pure and DOM-free.
 
 import type { ResolvedCue, Span, Timeline } from './schema.ts';
-import { DEFAULT_EASE, ease, progress } from './time.ts';
+import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
+
+/**
+ * Keyframes across a cue at scene time `t`. Each key's time is a fraction of
+ * the cue (0 its start, 1 its end), so a `dur` edit stretches the motion; a
+ * key that names no ease takes the cue's, so an `ease` edit reshapes it.
+ */
+export const cueKeys = (cue: ResolvedCue, t: number, frames: ReadonlyArray<Key>): number => {
+  if (cue.dur <= 0) return keys(t >= cue.start ? 1 : 0, frames, cue.ease);
+  return keys((t - cue.start) / cue.dur, frames, cue.ease);
+};
 
 /** What a timeline resolves against. `marks` are speech-relative, as narration gives them. */
 export interface SceneClock {

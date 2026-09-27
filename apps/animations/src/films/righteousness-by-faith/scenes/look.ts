@@ -18,7 +18,7 @@ import {
   spline,
   stroke,
 } from '@bible/film/canvas';
-import { clamp, keys, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import { C, blob, glow, person, piece, rounded, sky, sub, between } from '../kit.ts';
 
 /** The desert wide, and close on the face looking up at the serpent. */
@@ -67,7 +67,7 @@ export const look = drawing({
     toDesert: { mark: 'desert', offset: -0.4, dur: 0.6 },
     rise: { mark: 'pole', offset: -0.2, dur: 1.2, ease: 'outBack' },
     approach: { mark: 'harder', offset: -0.6, dur: 0.7, ease: 'inOutSine' },
-    climb: { mark: 'harder', offset: 0.2, dur: 2.2, ease: 'linear' },
+    climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
     slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
     stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
     lookUp: { mark: 'climb', offset: 1.4, dur: 0.6 },
@@ -199,13 +199,13 @@ export const look = drawing({
       const lookUp = f.at('lookUp');
       const heal = f.at('heal');
       const climbing = f.cue('climb');
-      const tries = keys(t - climbing.start, [
+      const tries = f.keys('climb', [
         [0, 0],
-        [0.5, 110],
-        [0.8, 55],
-        [1.3, 160],
-        [1.6, 95],
-        [2.2, 190],
+        [0.227, 110],
+        [0.364, 55],
+        [0.591, 160],
+        [0.727, 95],
+        [1, 190],
       ]);
       const height = t > climbing.start ? tries * (1 - slideDown) : 0;
       const onPole = approach * (1 - stepBack);

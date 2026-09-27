@@ -18,7 +18,7 @@ import {
   rectShape,
   stroke,
 } from '@bible/film/canvas';
-import { clamp, ease, keys, lerp } from '@bible/film/core';
+import { clamp, ease, lerp } from '@bible/film/core';
 import { C, ROBE, blob, christ, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
 import {
   AS,
@@ -274,10 +274,7 @@ const robed = (f: RobeFrame) => {
   const settle = f.cue('settle');
   const down = f.at('lookDown');
   // The robe comes up onto him from below, clear of his face.
-  const drop = keys(t - settle.start, [
-    [0, 560],
-    [settle.dur, 0, 'outSoft'],
-  ]);
+  const drop = lerp(560, 0, f.at('settle'));
   courtWall(ctx, w, h);
   at(ctx, { x: 960, y: 430 + 165 * 6, scale: 6 }, () =>
     person(

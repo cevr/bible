@@ -5,7 +5,7 @@ import type { Timings } from './schema.ts';
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
 import { DEFAULT_EASE, ease } from './time.ts';
-import { type SceneClock, cueProgress, resolveTimeline } from './timeline.ts';
+import { type SceneClock, cueKeys, cueProgress, resolveTimeline } from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
@@ -36,6 +36,47 @@ describe('timeline', () => {
     );
     expect(cues.get('slam')?.ease).toBe('inQuad');
     expect(cues.get('lift')?.ease).toBe('inOutCubic');
+  });
+
+  test('cueKeys reads keyframes in fractions of the cue, so a longer dur stretches the motion', () => {
+    const swing = [
+      [0, 0.35],
+      [0.4, -0.2],
+      [0.8, 1.5, 'inOutCubic'],
+      [1, 1.45],
+    ] as const;
+    const short = { start: 2, end: 2.5, dur: 0.5, ease: DEFAULT_EASE } as const;
+    const long = { ...short, end: 3, dur: 1 };
+    // The same fraction of each cue reads the same value; the same second does not.
+    expect(cueKeys(long, 2.8, swing)).toBe(cueKeys(short, 2.4, swing));
+    expect(cueKeys(long, 2.4, swing)).not.toBe(cueKeys(short, 2.4, swing));
+    expect(cueKeys(short, 2.5, swing)).toBe(1.45);
+    expect(cueKeys(short, 1, swing)).toBe(0.35);
+  });
+
+  test('cueKeys eases a key that names none by the cue’s ease, so the lab’s ease picker moves it', () => {
+    const rise = [
+      [0, 0],
+      [1, 1],
+    ] as const;
+    const cue = { start: 0, end: 2, dur: 2, ease: 'inQuad' } as const;
+    expect(cueKeys(cue, 1, rise)).toBe(0.25);
+    expect(cueKeys({ ...cue, ease: 'linear' }, 1, rise)).toBe(0.5);
+    expect(
+      cueKeys(cue, 1, [
+        [0, 0],
+        [1, 1, 'linear'],
+      ]),
+    ).toBe(0.5);
+  });
+
+  test('cueKeys on an instant cue jumps to its last value at the cue', () => {
+    const cue = { start: 1, end: 1, dur: 0, ease: DEFAULT_EASE } as const;
+    const step = [
+      [0, 3],
+      [1, 7],
+    ] as const;
+    expect([cueKeys(cue, 0.99, step), cueKeys(cue, 1, step)]).toEqual([3, 7]);
   });
 
   test('cueProgress eases by the cue’s own ease', () => {

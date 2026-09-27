@@ -81,20 +81,18 @@ export const cold = drawing({
 
     const stamp =
       f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('stampGone'));
-    const pop = f.cue('stamp');
-    const popScale = keys(f.t - pop.start, [
+    const popScale = f.keys('stamp', [
       [0, 1.2],
-      [0.12, 0.97, 'outCubic'],
-      [0.2, 1],
+      [0.6, 0.97, 'outCubic'],
+      [1, 1, 'inOutCubic'],
     ]);
-    const g = f.cue('gavel');
     const swing =
-      keys(f.t - g.start, [
+      f.keys('gavel', [
         [0, 0.35],
-        [0.22, -0.3],
-        [0.37, 1.62, 'inCubic'],
-        [0.47, 1.4, 'outQuad'],
-        [0.59, 1.58],
+        [0.373, -0.3],
+        [0.627, 1.62, 'inCubic'],
+        [0.797, 1.4, 'outQuad'],
+        [1, 1.58],
       ]) *
         (1 - f.at('rest')) +
       0.35 * f.at('rest');

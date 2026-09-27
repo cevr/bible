@@ -17,7 +17,7 @@ import {
   rectShape,
   write,
 } from '@bible/film/canvas';
-import { clamp, keys, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import { C, F, ICON_X, blob, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
@@ -100,7 +100,7 @@ export const declared = drawing({
     bloom: { mark: 'made', offset: -0.6, dur: 1.6, ease: 'outCubic' },
   },
   draw: (f) => {
-    const { ctx, w, h, t } = f;
+    const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
     const toIcons = f.at('toIcons');
     const back = f.at('back');
@@ -252,18 +252,20 @@ export const declared = drawing({
         );
         if (heavy > 0) {
           // It lifts out of the icon, gains depth, and lands with weight.
-          const since = t - f.cue('heavy').start;
-          const fall = keys(since, [
+          const fall = f.keys('heavy', [
             [0, 0],
-            [0.45, -70, 'outCubic'],
-            [0.75, 0, 'inCubic'],
+            [0.375, -70, 'outCubic'],
+            [0.625, 0, 'inCubic'],
           ]);
-          const squash = keys(since, [
-            [0.72, 1],
-            [0.8, 1.14, 'outCubic'],
-            [1.1, 1, 'outBack'],
+          const squash = f.keys('heavy', [
+            [0.6, 1],
+            [0.667, 1.14, 'outCubic'],
+            [0.917, 1, 'outBack'],
           ]);
-          const depth = clamp(since / 0.45);
+          const depth = f.keys('heavy', [
+            [0, 0],
+            [0.375, 1, 'linear'],
+          ]);
           at(ctx, { x: wordX, y: 540 + fall, sx: squash, sy: 2 - squash }, () => {
             // The slab's depth, then its face and its lines.
             for (let i = 8; i > 0; i--)
