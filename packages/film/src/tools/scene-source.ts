@@ -7,8 +7,9 @@
 // An edit rewrites only a value the parser proves is a literal: a number
 // (`0.4`, `-0.2`), a string (`'inQuad'`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
-// the lab could not say what it would be changing. A missing `offset`, `dur`
-// or `ease` is added after the span's anchor, in that order.
+// the lab could not say what it would be changing. A missing `offset`, `dur`,
+// `until` or `ease` is added after the span's anchor, in that order; a span
+// ends one way, so a `dur` written replaces its `until`, and an `until` its `dur`.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -46,6 +47,7 @@ export interface EditableCue {
   readonly name: string;
   readonly offset: FieldState;
   readonly dur: FieldState;
+  readonly until: FieldState;
   readonly ease: FieldState;
 }
 
@@ -68,13 +70,16 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'after', 'with', 'scene'];
-const TIMING = ['offset', 'dur', 'ease'] satisfies ReadonlyArray<keyof CuePatch>;
+const TIMING = ['offset', 'dur', 'until', 'ease'] satisfies ReadonlyArray<keyof CuePatch>;
 type TimingKey = (typeof TIMING)[number];
 
 /** Seconds and pixels to the thousandth: what the lab writes (and never `-0`). */
 export const roundValue = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 const numberText = (v: number) => String(roundValue(v));
+
+/** A single-quoted string literal. */
+const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
 
 const refuse = <A>(file: string, target: string, reason: string): Result.Result<A, SourceRefused> =>
   Result.fail(SourceRefused.make({ file, target, reason }));
@@ -381,6 +386,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     name: cue,
     offset: state('offset', isNumberLiteral),
     dur: state('dur', isNumberLiteral),
+    until: state('until', isStringLiteral),
     ease: state('ease', isStringLiteral),
   };
 };
@@ -437,14 +443,23 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
       return Option.map(Option.fromUndefinedOr(patch.offset), numberText);
     case 'dur':
       return Option.map(Option.fromUndefinedOr(patch.dur), numberText);
+    case 'until':
+      return Option.map(Option.fromUndefinedOr(patch.until), stringText);
     case 'ease':
-      return Option.map(Option.fromUndefinedOr(patch.ease), (e) => `'${e}'`);
+      return Option.map(Option.fromUndefinedOr(patch.ease), stringText);
   }
 };
 
 const isLiteralFor = (key: TimingKey) => {
-  if (key === 'ease') return isStringLiteral;
+  if (key === 'ease' || key === 'until') return isStringLiteral;
   return isNumberLiteral;
+};
+
+/** The field a span's other end is: a `dur` written replaces `until`, and the reverse. */
+const otherEnd = (key: TimingKey): Option.Option<TimingKey> => {
+  if (key === 'dur') return Option.some('until');
+  if (key === 'until') return Option.some('dur');
+  return Option.none();
 };
 
 /** Where a new field goes: after the last present field that comes before it. */
@@ -460,7 +475,40 @@ const insertAt = (span: ObjectExpression, key: TimingKey): Option.Option<number>
 };
 
 /**
- * Set a cue's `offset`, `dur` or `ease` in the drawing exported as `name`: the
+ * The splice that writes `key` over the span's other end (`until` for a `dur`,
+ * `dur` for an `until`), when it has one: the whole property is replaced.
+ */
+const replaceEnd = (
+  file: string,
+  source: string,
+  span: ObjectExpression,
+  cue: string,
+  key: TimingKey,
+  text: string,
+): Result.Result<Option.Option<Splice>, SourceRefused> =>
+  Option.match(otherEnd(key), {
+    onNone: () => Result.succeed(Option.none()),
+    onSome: (other) =>
+      Result.flatMap(propertyOf(file, `cue ${cue} ${other}`, span, other), (prop) =>
+        Option.match(prop, {
+          onNone: () => Result.succeed(Option.none<Splice>()),
+          onSome: (p) => {
+            if (!Option.exists(valueOf(p), isLiteralFor(other)))
+              return refuse<Option.Option<Splice>>(
+                file,
+                `cue ${cue} ${other}`,
+                `it is \`${textOf(source, p.value)}\`, not a literal, so ${key} cannot replace it`,
+              );
+            return Result.succeed(
+              Option.some({ start: p.start, end: p.end, text: `${key}: ${text}` }),
+            );
+          },
+        }),
+      ),
+  });
+
+/**
+ * Set a cue's `offset`, `dur`, `until` or `ease` in the drawing exported as `name`: the
  * value's text replaced where it is a literal, or the field added after the
  * span's anchor. The result is the whole new source.
  */
@@ -485,6 +533,12 @@ export const editCue = (
         if (!Option.exists(valueOf(p), isLiteralFor(key)))
           return refuse(file, target, `it is \`${textOf(source, p.value)}\`, not a literal`);
         splices.push({ start: p.value.start, end: p.value.end, text: text.value });
+        continue;
+      }
+      const replaced = replaceEnd(file, source, span, cue, key, text.value);
+      if (Result.isFailure(replaced)) return Result.fail(replaced.failure);
+      if (Option.isSome(replaced.success)) {
+        splices.push(replaced.success.value);
         continue;
       }
       const at = insertAt(span, key);
@@ -546,7 +600,12 @@ export const readCue = (
         Option.flatMap(prop, valueOf),
       );
     return Result.map(
-      Result.all({ offset: read('offset'), dur: read('dur'), ease: read('ease') }),
+      Result.all({
+        offset: read('offset'),
+        dur: read('dur'),
+        until: read('until'),
+        ease: read('ease'),
+      }),
       (f): CuePatch => ({
         ...Option.match(Option.flatMap(f.offset, numberOf), {
           onNone: () => ({}),
@@ -555,6 +614,10 @@ export const readCue = (
         ...Option.match(Option.flatMap(f.dur, numberOf), {
           onNone: () => ({}),
           onSome: (dur) => ({ dur }),
+        }),
+        ...Option.match(Option.flatMap(f.until, stringOf), {
+          onNone: () => ({}),
+          onSome: (until) => ({ until }),
         }),
         ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
           onNone: () => ({}),

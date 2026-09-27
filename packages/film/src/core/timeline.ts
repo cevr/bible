@@ -4,7 +4,7 @@
 // it. Resolved once per layout; the picture and the sound both read the result.
 // Pure and DOM-free.
 
-import type { ResolvedCue, Span, Timeline } from './schema.ts';
+import type { CuePatch, ResolvedCue, Span, Timeline } from './schema.ts';
 import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
@@ -20,6 +20,34 @@ export const cueKeys = (cue: ResolvedCue, t: number, frames: ReadonlyArray<Key>)
   if (cue.dur <= 0) return keys(t >= cue.start ? 1 : 0, frames, cue.ease);
   return keys((t - cue.start) / cue.dur, frames, cue.ease);
 };
+
+/** A span's anchor alone: the field that says where it starts. */
+const anchorField = (span: Span) => {
+  if ('mark' in span) return { mark: span.mark };
+  if ('after' in span) return { after: span.after };
+  if ('with' in span) return { with: span.with };
+  return { scene: span.scene };
+};
+
+/** A span's end: its `dur`, or the mark it runs `until`. */
+const endField = (span: Span, patch: CuePatch) => {
+  if (patch.until !== undefined) return { until: patch.until };
+  if (patch.dur !== undefined) return { dur: patch.dur };
+  if (span.until !== undefined) return { until: span.until };
+  if (span.dur !== undefined) return { dur: span.dur };
+  return {};
+};
+
+/**
+ * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
+ * its `until` and an `until` its `dur`.
+ */
+export const patchSpan = (span: Span, patch: CuePatch): Span => ({
+  ...anchorField(span),
+  offset: patch.offset ?? span.offset,
+  ...endField(span, patch),
+  ease: patch.ease ?? span.ease,
+});
 
 /** What a timeline resolves against. `marks` are speech-relative, as narration gives them. */
 export interface SceneClock {
@@ -53,10 +81,24 @@ export const resolveTimeline = (
     visiting.add(name);
     const start = anchor(name, span) + (span.offset ?? 0);
     visiting.delete(name);
-    const dur = span.dur ?? 0;
+    const dur = length(name, span, start);
     const cue = { start, end: start + dur, dur, ease: span.ease ?? DEFAULT_EASE };
     out.set(name, cue);
     return cue;
+  };
+
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark. */
+  const length = (name: string, span: Span, start: number): number => {
+    if (span.until === undefined) return span.dur ?? 0;
+    const m = clock.marks.get(span.until);
+    if (m === undefined)
+      throw new Error(`scene ${clock.scene}: cue "${name}" ends at unknown mark {${span.until}}`);
+    const dur = clock.speechStart + m - start;
+    if (dur < 0)
+      throw new Error(
+        `scene ${clock.scene}: cue "${name}" ends at {${span.until}}, before it starts`,
+      );
+    return dur;
   };
 
   const anchor = (name: string, span: Span): number => {

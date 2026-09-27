@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { Result, Schema } from 'effect';
-import { Timed, Timings, TimingsJson, type VoiceTiming, type Word } from './schema.ts';
+import {
+  CuePatch,
+  type Span,
+  Timed,
+  Timings,
+  TimingsJson,
+  type VoiceTiming,
+  type Word,
+} from './schema.ts';
 
 const take: VoiceTiming = {
   hash: 'h',
@@ -77,10 +85,35 @@ describe('Timed', () => {
     expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","offset":-0.4}}}')).toBe(true);
   });
 
+  test('a span ends by its dur or on a mark (`until`), never both', () => {
+    const spans: ReadonlyArray<Span> = [
+      { mark: 'm', dur: 1 },
+      { after: 'a', until: 'n' },
+      // @ts-expect-error: a span that ends both ways does not type
+      { mark: 'm', dur: 1, until: 'n' },
+    ];
+    expect(spans).toHaveLength(3);
+    expect(decodes('{"id":"a","timeline":{"walk":{"mark":"m","until":"n"}}}')).toBe(true);
+    expect(decodes('{"id":"a","timeline":{"walk":{"mark":"m","dur":1,"until":"n"}}}')).toBe(false);
+  });
+
   test('knobs are numbers or points, nothing else', () => {
     expect(decodes('{"id":"a","knobs":{"handY":800,"quoteAt":[960,170]}}')).toBe(true);
     expect(decodes('{"id":"a","knobs":{"handY":"800"}}')).toBe(false);
     expect(decodes('{"id":"a","knobs":{"quoteAt":[960]}}')).toBe(false);
     expect(decodes('{"id":"a","knobs":{"handY":null}}')).toBe(false);
+  });
+});
+
+describe('CuePatch', () => {
+  const decodes = (json: string) =>
+    Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(CuePatch))(json));
+
+  test('sets an until, or a dur, but not both; never a negative dur', () => {
+    expect(decodes('{"until":"gift"}')).toBe(true);
+    expect(decodes('{"dur":1,"offset":-0.2}')).toBe(true);
+    expect(decodes('{"dur":1,"until":"gift"}')).toBe(false);
+    expect(decodes('{"dur":-1}')).toBe(false);
+    expect(decodes('{}')).toBe(false);
   });
 });

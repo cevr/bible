@@ -172,25 +172,41 @@ export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
 const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
-  /** Defaults to 0, an instant. */
-  dur: Schema.optionalKey(Seconds),
   /** How `f.at(name)` eases across the cue. Defaults to `DEFAULT_EASE` (`time.ts`). */
   ease: Schema.optionalKey(EaseName),
 };
 
-/** Where a named cue starts, plus how long it lasts. */
+/** A span that ends by its length. */
+const byDur = {
+  /** Defaults to 0, an instant. */
+  dur: Schema.optionalKey(Seconds),
+  until: Schema.optionalKey(Schema.Never),
+};
+
+/** A span that ends on a `{mark}` in the scene's narration, so a re-take moves the end with it. */
+const untilMark = {
+  until: Schema.String,
+  dur: Schema.optionalKey(Schema.Never),
+};
+
+/** One anchor's two spans: ended by `dur`, or `until` a mark; never both. */
+const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
+  [
+    Schema.Struct({ ...anchor, ...spanTiming, ...byDur }),
+    Schema.Struct({ ...anchor, ...spanTiming, ...untilMark }),
+  ] as const;
+
+/**
+ * Where a named cue starts, plus how long it lasts: at a `{mark}` in the
+ * scene's narration, at the end of another cue (`after`), at its start
+ * (`with`), or at a scene landmark (its start, where the voice starts or
+ * ends, or its end).
+ */
 export const Span = Schema.Union([
-  /** At a `{mark}` in the scene's narration. */
-  Schema.Struct({ mark: Schema.String, ...spanTiming }),
-  /** At the end of another cue. */
-  Schema.Struct({ after: Schema.String, ...spanTiming }),
-  /** At the start of another cue. */
-  Schema.Struct({ with: Schema.String, ...spanTiming }),
-  /** At a scene landmark: its start, where the voice starts or ends, or its end. */
-  Schema.Struct({
-    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
-    ...spanTiming,
-  }),
+  ...anchored({ mark: Schema.String }),
+  ...anchored({ after: Schema.String }),
+  ...anchored({ with: Schema.String }),
+  ...anchored({ scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']) }),
 ]);
 export type Span = typeof Span.Type;
 
@@ -548,11 +564,21 @@ export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonE
 /** `POST /lab/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct({
   offset: Schema.optionalKey(Schema.Finite),
-  dur: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+  dur: Schema.optionalKey(Seconds),
+  /** End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`. */
+  until: Schema.optionalKey(Schema.String),
   ease: Schema.optionalKey(EaseName),
-}).check(
-  Schema.makeFilter((p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, ease'),
-);
+})
+  .check(
+    Schema.makeFilter(
+      (p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, until, ease',
+    ),
+  )
+  .check(
+    Schema.makeFilter(
+      (p) => !('dur' in p && 'until' in p) || 'a span ends by its dur or on a mark, not both',
+    ),
+  );
 export type CuePatch = typeof CuePatch.Type;
 
 /** `POST /lab/knobs/:scene/:knob`: the knob's new value. */
@@ -596,7 +622,13 @@ export const SceneSource = Schema.Struct({
   /** The scene file, relative to the film's folder. */
   file: Schema.String,
   cues: Schema.Array(
-    Schema.Struct({ name: Schema.String, offset: FieldState, dur: FieldState, ease: FieldState }),
+    Schema.Struct({
+      name: Schema.String,
+      offset: FieldState,
+      dur: FieldState,
+      until: FieldState,
+      ease: FieldState,
+    }),
   ),
   knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
   /**

@@ -87,6 +87,28 @@ describe('scene source', () => {
     expect(ok(readCue(FILE, timed, 'hand', 'bare'))).toEqual({ offset: 0.25, dur: 1 });
   });
 
+  it('writes an until in place of a dur, and a dur in place of an until', () => {
+    const marked = ok(editCue(FILE, scene, 'hand', 'topple', { until: 'gift' }));
+    expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
+    expect(ok(readCue(FILE, marked, 'hand', 'topple'))).toEqual({ offset: 0.1, until: 'gift' });
+    expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
+      name: 'topple',
+      offset: 'literal',
+      dur: 'absent',
+      until: 'literal',
+      ease: 'absent',
+    });
+    const sized = ok(editCue(FILE, marked, 'hand', 'topple', { dur: 1.2 }));
+    expect(sized).toBe(scene.replace('dur: 1.8', 'dur: 1.2'));
+    const bare = ok(editCue(FILE, scene, 'hand', 'bare', { until: 'gift', ease: 'linear' }));
+    expect(bare).toContain("bare: { scene: 'speech', until: 'gift', ease: 'linear' }");
+    expect(readSpans(FILE, marked, 'hand')['topple']).toEqual({
+      mark: 'earns',
+      offset: 0.1,
+      until: 'gift',
+    });
+  });
+
   it('sets a point knob coordinate by coordinate, and a number knob', () => {
     const moved = ok(editKnob(FILE, scene, 'hand', 'palm', [1010.4, 760]));
     expect(moved).toBe(scene.replace('palm: [960, 800]', 'palm: [1010.4, 760]'));
@@ -145,10 +167,10 @@ export const hand = drawing({
   it('says which fields are literals, missing or computed', () => {
     const found = ok(editable(FILE, scene, 'hand'));
     expect(found.cues).toEqual([
-      { name: 'topple', offset: 'literal', dur: 'literal', ease: 'absent' },
-      { name: 'shine', offset: 'literal', dur: 'literal', ease: 'literal' },
-      { name: 'late', offset: 'computed', dur: 'absent', ease: 'absent' },
-      { name: 'bare', offset: 'absent', dur: 'absent', ease: 'absent' },
+      { name: 'topple', offset: 'literal', dur: 'literal', until: 'absent', ease: 'absent' },
+      { name: 'shine', offset: 'literal', dur: 'literal', until: 'absent', ease: 'literal' },
+      { name: 'late', offset: 'computed', dur: 'absent', until: 'absent', ease: 'absent' },
+      { name: 'bare', offset: 'absent', dur: 'absent', until: 'absent', ease: 'absent' },
     ]);
     expect(found.knobs).toEqual([
       { name: 'palm', state: 'literal' },

@@ -124,7 +124,10 @@ first line opens with a dash.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
-a mark, another cue (`after` / `with`) or a scene landmark, and read it in
+a mark, another cue (`after` / `with`) or a scene landmark. It lasts its `dur`,
+or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
+a re-take moves its end as well as its start; a span declares one or the
+other, and a lab `dur` write replaces its `until`. Read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
 `f.at(name)` (0→1 across it, eased by the span's `ease`), or keyframe a
 motion across it with `f.keys(name, [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`:

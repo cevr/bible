@@ -5,7 +5,7 @@ import type { Timings } from './schema.ts';
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
 import { DEFAULT_EASE, ease } from './time.ts';
-import { type SceneClock, cueKeys, cueProgress, resolveTimeline } from './timeline.ts';
+import { type SceneClock, cueKeys, cueProgress, patchSpan, resolveTimeline } from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
@@ -120,6 +120,47 @@ describe('timeline', () => {
     expect(cues.get('voice')?.start).toBe(0.5);
     expect(cues.get('hush')?.start).toBeCloseTo(8.7);
     expect(cues.get('close')?.end).toBeCloseTo(9.4);
+  });
+
+  test('`until` ends a cue on a mark: its dur is whatever reaches it', () => {
+    const cues = resolveTimeline(
+      { walk: { mark: 'fiction', offset: 0.3, until: 'as' }, sit: { after: 'walk', dur: 1 } },
+      clock,
+    );
+    expect(cues.get('walk')?.start).toBeCloseTo(2.8);
+    expect(cues.get('walk')?.end).toBe(0.5 + 5);
+    expect(cues.get('walk')?.dur).toBeCloseTo(2.7);
+    expect(cues.get('sit')?.start).toBe(0.5 + 5);
+    // A re-take that moves the mark moves the end with it.
+    const later = { ...clock, marks: new Map([...clock.marks, ['as', 6]]) };
+    expect(
+      resolveTimeline({ walk: { mark: 'fiction', until: 'as' } }, later).get('walk')?.dur,
+    ).toBe(4);
+  });
+
+  test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
+    expect(() => resolveTimeline({ walk: { scene: 'start', until: 'nope' } }, clock)).toThrow(
+      'scene justified: cue "walk" ends at unknown mark {nope}',
+    );
+    expect(() => resolveTimeline({ walk: { mark: 'as', until: 'fiction' } }, clock)).toThrow(
+      'scene justified: cue "walk" ends at {fiction}, before it starts',
+    );
+  });
+
+  test('patchSpan: a span ends one way, so a dur replaces an until and an until a dur', () => {
+    const walk = { mark: 'fiction', offset: 0.3, until: 'as', ease: 'linear' } as const;
+    expect(patchSpan(walk, { dur: 2 })).toEqual({
+      mark: 'fiction',
+      offset: 0.3,
+      dur: 2,
+      ease: 'linear',
+    });
+    expect(patchSpan({ after: 'slam', dur: 1 }, { until: 'as', offset: -0.1 })).toEqual({
+      after: 'slam',
+      offset: -0.1,
+      until: 'as',
+    });
+    expect(patchSpan(walk, { ease: 'inQuad' })).toEqual({ ...walk, ease: 'inQuad' });
   });
 
   test('an unknown mark names the scene and the cue', () => {

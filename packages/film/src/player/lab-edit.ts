@@ -32,6 +32,7 @@ import {
   type Timeline,
 } from '../core/schema.ts';
 import { DEFAULT_EASE, ease } from '../core/time.ts';
+import { patchSpan } from '../core/timeline.ts';
 import type { Player } from './main.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -336,7 +337,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       } else if (mode === 'start') start = Math.min(snap(c0.start, dt, ev.shiftKey), c0.end);
       else end = Math.max(snap(c0.end, dt, ev.shiftKey), c0.start);
       next = { offset: round(start - anchor), dur: round(end - start) };
-      const edited: Span = { ...span, ...patchFor(mode, next) };
+      const edited = patchSpan(span, patchFor(mode, next));
       preview(p.spec.id, { ...edits.get(p.spec.id), timeline: { ...declared, [cue]: edited } });
       renderStrip();
       renderInspector();
@@ -563,7 +564,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const dur = numberInput(span.dur ?? 0, writable(name, 'dur'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
-        timeline: { ...declaredTimeline(p), [name]: { ...span, dur: Math.max(0, v) } },
+        timeline: { ...declaredTimeline(p), [name]: patchSpan(span, { dur: Math.max(0, v) }) },
       });
       renderStrip();
       writeCue(p.spec.id, name, { dur: round(Math.max(0, v)) });
