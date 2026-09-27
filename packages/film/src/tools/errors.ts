@@ -1,6 +1,6 @@
-// The tools' typed failures. The core's authoring errors (unknown scene, cue
-// or mark, a short act, a misaligned take) are re-exported so one import names
-// every way a run can fail.
+// The tools' typed failures. The core's authoring errors (unknown scene, cue,
+// mark or voice, a short act, a misaligned take) are re-exported so one import
+// names every way a run can fail.
 
 import { Schema } from 'effect';
 
@@ -11,6 +11,7 @@ export {
   UnknownCue,
   UnknownMark,
   UnknownScene,
+  UnknownVoice,
 } from '../core/errors.ts';
 
 export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {

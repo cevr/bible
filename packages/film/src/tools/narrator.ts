@@ -1,8 +1,10 @@
 // Record a film's narration, one take per beat. A take is current while the
-// hash of its spoken text (and the voice that read it) matches, so editing a
-// line re-records only that line. Every new take is transcribed back and
-// compared with the script; a take that says something else fails the run
-// unless it is accepted, and is never recorded as current.
+// hash of its script (its words, and who says which) and the voice that read
+// it match, so editing a line re-records only that line. A film read by one
+// voice records through text-to-speech; a cast records each beat as one
+// dialogue, so a question and its answer share a take. Every new take is
+// transcribed back and compared with the script; a take that says something
+// else fails the run unless it is accepted, and is never recorded as current.
 //
 // A crash at any point leaves the takes and their timings in agreement. A new
 // take is written under a name of its own (its beat and a hash of its audio),
@@ -12,9 +14,28 @@
 // name nowhere, and the next run removes it.
 
 import { createHash } from 'node:crypto';
-import { Array as Arr, Context, Effect, Encoding, FileSystem, Layer, Option, Path } from 'effect';
-import { hashText, parse, voiceKey, wordsFromAlignment } from '../core/narration.ts';
-import type { Timings, VoiceTiming } from '../core/schema.ts';
+import {
+  Array as Arr,
+  Context,
+  Effect,
+  Encoding,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Result,
+} from 'effect';
+import type { UnknownVoice } from '../core/errors.ts';
+import {
+  type Line,
+  hashText,
+  linesOf,
+  parse,
+  takeScript,
+  voiceKey,
+  wordsFromAlignment,
+} from '../core/narration.ts';
+import { type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
 import { ContentStore, isStale, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -33,7 +54,12 @@ export const MAX_WORD_ERROR = 0.08;
 /** One beat's spoken line, in film order. */
 export interface Beat {
   readonly id: string;
+  /** What is said. */
   readonly text: string;
+  /** What is said and who says it: a take is kept under this text's hash. */
+  readonly script: string;
+  /** Who reads what: the whole beat for a film with one voice, a line per turn for a cast. */
+  readonly lines: ReadonlyArray<Line>;
 }
 
 export interface NarrateOptions {
@@ -66,28 +92,43 @@ const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
   return {};
 };
 
+/** One beat's lines, or the voice a turn names that the film does not have. */
+const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) => {
+  const parsed = parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
+  return Result.map(linesOf(scene.id, parsed, film.voice), (lines): Beat => ({
+    id: scene.id,
+    text: parsed.spoken,
+    script: takeScript(parsed),
+    lines,
+  }));
+};
+
 /** What to record, from the film and its timings. Pure. */
-export const planNarration = (film: LoadedFilm, options: NarrateOptions): NarrationPlan => {
+export const planNarration = (
+  film: LoadedFilm,
+  options: NarrateOptions,
+): Result.Result<NarrationPlan, UnknownVoice> => {
   const voice = voiceKey(film.voice);
   const takes = currentTakes(film.timings, voice);
-  const beats = film.scenes.map((s) => ({
-    id: s.id,
-    text: parse(Option.getOrElse(Option.fromNullishOr(s.say), () => '')).spoken,
-  }));
-  const stale = beats
-    .filter((b) => b.text.length > 0)
-    .filter((b) =>
-      Option.match(options.only, {
-        onSome: (only) => only.has(b.id),
-        onNone: () =>
-          isStale(
-            Option.map(Option.fromNullishOr(takes[b.id]), (t) => t.hash),
-            hashText(b.text),
-            options.force,
-          ),
-      }),
-    );
-  return { beats, stale, voice };
+  return Result.map(
+    Result.all(film.scenes.map((scene) => beatOf(film, scene))),
+    (beats): NarrationPlan => {
+      const stale = beats
+        .filter((b) => b.text.length > 0)
+        .filter((b) =>
+          Option.match(options.only, {
+            onSome: (only) => only.has(b.id),
+            onNone: () =>
+              isStale(
+                Option.map(Option.fromNullishOr(takes[b.id]), (t) => t.hash),
+                hashText(b.script),
+                options.force,
+              ),
+          }),
+        );
+      return { beats, stale, voice };
+    },
+  );
 };
 
 /** Words only, lowercased: punctuation and casing never fail a take. */
@@ -155,24 +196,41 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
       const elevenLabs = yield* ElevenLabs;
       const media = yield* Media;
 
-      const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
-        film: LoadedFilm,
-        plan: NarrationPlan,
-        options: NarrateOptions,
-        beat: Beat,
-      ) {
+      /**
+       * The beat read aloud: one voice through text-to-speech, a cast as one
+       * dialogue. `breaks` is where each line starts in the alignment.
+       */
+      const read = (film: LoadedFilm, plan: NarrationPlan, beat: Beat) => {
+        const { voice } = film;
+        if (isCast(voice))
+          return Effect.map(elevenLabs.dialogue({ lines: beat.lines, cast: voice }), (reply) => ({
+            ...reply,
+            breaks: reply.voice_segments.map((s) => s.character_start_index),
+          }));
         const index = plan.beats.findIndex((b) => b.id === beat.id);
         const neighbour = (at: number) =>
           Option.getOrElse(
             Option.map(Arr.get(plan.beats, at), (b) => b.text),
             () => '',
           );
-        const reply = yield* elevenLabs.tts({
-          text: beat.text,
-          voice: film.voice,
-          previousText: neighbour(index - 1),
-          nextText: neighbour(index + 1),
-        });
+        return Effect.map(
+          elevenLabs.tts({
+            text: beat.text,
+            voice,
+            previousText: neighbour(index - 1),
+            nextText: neighbour(index + 1),
+          }),
+          (reply) => ({ ...reply, breaks: [] }),
+        );
+      };
+
+      const recordBeat = Effect.fn('Narrator.recordBeat')(function* (
+        film: LoadedFilm,
+        plan: NarrationPlan,
+        options: NarrateOptions,
+        beat: Beat,
+      ) {
+        const reply = yield* read(film, plan, beat);
         const { alignment } = reply;
         const words = yield* Effect.fromResult(
           wordsFromAlignment(
@@ -180,6 +238,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             alignment.characters,
             alignment.character_start_times_seconds,
             alignment.character_end_times_seconds,
+            reply.breaks,
           ),
         );
         const audio = yield* Effect.fromResult(Encoding.decodeBase64(reply.audio_base64)).pipe(
@@ -196,7 +255,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
         const duration = yield* media.duration(take);
         yield* Effect.log(
-          `narrate.take id=${beat.id} words=${words.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
+          `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
         );
         if (wer > MAX_WORD_ERROR) {
           const mismatch = TakeMismatch.make({
@@ -212,7 +271,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         // The commit: timings.json is replaced whole, naming the new take.
         yield* store.update(
           film.paths.timings,
-          withTake(plan.voice, beat.id, { hash: hashText(beat.text), file, duration, words }),
+          withTake(plan.voice, beat.id, { hash: hashText(beat.script), file, duration, words }),
         );
       });
 

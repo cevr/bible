@@ -1,7 +1,7 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
 // of order, stale takes and sounds, an audio master missing or not as long as
-// the film) and the layout findings in what a probed frame reports: text over
+// the film, a line handed to a voice the cast lacks) and the layout findings in what a probed frame reports: text over
 // text, text off the frame, brush strokes across text, and a plate carrying
 // text cut off by the frame. Every finding is collected; none stops the others.
 
@@ -9,7 +9,7 @@ import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effec
 import type { Placed } from '../core/layout.ts';
 import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
-import { hashText, parse, voiceKey } from '../core/narration.ts';
+import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type {
   InkMark,
   Music,
@@ -18,6 +18,7 @@ import type {
   Sound,
   SoundManifest,
   TextBox,
+  Timed,
 } from '../core/schema.ts';
 import { MIN_CHUNK_MS, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
@@ -36,6 +37,7 @@ import {
   type UnknownCue,
   type UnknownMark,
   type UnknownScene,
+  type UnknownVoice,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { masterFile, masterFinding } from './mixer.ts';
@@ -51,7 +53,8 @@ export type StaticFinding =
   | UnknownCue
   | UnknownMark
   | CueInvalid
-  | ActTooShort;
+  | ActTooShort
+  | UnknownVoice;
 export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame;
 export type Finding = StaticFinding | LayoutFinding;
 
@@ -78,20 +81,34 @@ export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> 
       .map(([cue, c]) => CueLate.make({ scene: p.spec.id, cue, end: c.end, dur: p.dur })),
   );
 
-/** Beats with words whose take is missing or was recorded for other text or another voice. */
+const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
+
+/**
+ * Beats with words whose take is missing or was recorded for other text,
+ * other turns or another voice.
+ */
 export const staleTakes = (film: LoadedFilm): ReadonlyArray<TakeStale> => {
   const voiceChanged = film.timings.voice !== voiceKey(film.voice);
   return film.scenes.flatMap((scene) => {
-    const spoken = parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => '')).spoken;
-    if (spoken.length === 0) return [];
+    const parsed = said(scene);
+    if (parsed.spoken.length === 0) return [];
     const take = Rec.get(film.timings.scenes, scene.id);
     if (Option.isNone(take)) return [TakeStale.make({ scene: scene.id, reason: 'missing' })];
     if (voiceChanged) return [TakeStale.make({ scene: scene.id, reason: 'voice changed' })];
-    if (take.value.hash !== hashText(spoken))
+    if (take.value.hash !== hashText(takeScript(parsed)))
       return [TakeStale.make({ scene: scene.id, reason: 'text changed' })];
     return [];
   });
 };
+
+/** Lines handed to a voice the film's cast does not have: `narrate` would refuse them. */
+export const unknownVoices = (film: LoadedFilm): ReadonlyArray<UnknownVoice> =>
+  film.scenes.flatMap((scene) =>
+    Result.match(linesOf(scene.id, said(scene), film.voice), {
+      onFailure: (error) => [error],
+      onSuccess: () => [],
+    }),
+  );
 
 /** A generated asset against the hash its request has now. */
 const assetFinding = (
@@ -215,7 +232,8 @@ export const staticFindings = (
     ...effectFindings(s, placed, film.manifest),
   ]);
   const audio = masterFindings(film, placed, master);
-  return [...lateCues(placed), ...staleTakes(film), ...sound, ...audio].map((finding) => ({
+  const takes = [...unknownVoices(film), ...staleTakes(film)];
+  return [...lateCues(placed), ...takes, ...sound, ...audio].map((finding) => ({
     level: levelOf(finding, options),
     finding,
   }));

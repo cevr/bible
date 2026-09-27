@@ -3,8 +3,8 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { hashText, voiceKey } from '../core/narration.ts';
-import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
+import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
+import { type Cast, type Timed, type Timings, TimingsJson, type Voice } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { type NarrateOptions, Narrator, planNarration } from './narrator.ts';
 import {
@@ -63,15 +63,16 @@ const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map())
 /** Plan from what is stored, record, and return the timings written. */
 const narrate = (
   layer: Layer.Layer<Narrator | ContentStore>,
-  voice = testVoice,
+  voice: Voice = testVoice,
   options: NarrateOptions = defaults,
+  beats: ReadonlyArray<Timed> = scenes,
 ) =>
   Effect.gen(function* () {
     const store = yield* ContentStore;
-    const film = testFilm(scenes, recorded, voice);
+    const film = testFilm(beats, recorded, voice);
     const timings = yield* store.read(film.paths.timings);
     const loaded = { ...film, timings };
-    const plan = planNarration(loaded, options);
+    const plan = yield* Effect.fromResult(planNarration(loaded, options));
     yield* (yield* Narrator).record(loaded, plan, options);
     return yield* store.read(film.paths.timings);
   }).pipe(Effect.provide(layer));
@@ -143,6 +144,62 @@ describe('Narrator', () => {
       expect(after.scenes['b']?.hash).toBe(hashText('The second line.'));
     }),
   );
+
+  describe('a cast', () => {
+    const cast: Cast = {
+      model: 'eleven_v3',
+      settings: { stability: 0.5 },
+      voices: [
+        { name: 'lead', voiceId: 'L' },
+        { name: 'ask', voiceId: 'A' },
+      ],
+    };
+    const said = "That's the law. {@ask}So where does that {stuck}leave us? {@lead}Stuck.";
+    const dialogue: ReadonlyArray<Timed> = [{ id: 'd', say: said }];
+    const none: Timings = { voice: voiceKey(cast), scenes: {} };
+
+    it.effect('reads a beat as one dialogue, a line per turn', () =>
+      Effect.gen(function* () {
+        const { calls, layer } = setup(none);
+        const after = yield* narrate(layer, cast, defaults, dialogue);
+        expect(calls.tts).toEqual([]);
+        expect(calls.dialogue.map((r) => r.lines.map((l) => [l.voiceId, l.text]))).toEqual([
+          [
+            ['L', "That's the law."],
+            ['A', 'So where does that leave us?'],
+            ['L', 'Stuck.'],
+          ],
+        ]);
+        const take = after.scenes['d'];
+        expect(take?.hash).toBe(hashText(takeScript(parse(said))));
+        // Every word is its own, across the joins between lines.
+        expect(take?.words.map((w) => w.text)).toEqual(parse(said).spoken.split(' '));
+        expect(after.voice).toBe(voiceKey(cast));
+      }),
+    );
+
+    it.effect('re-records a beat whose turn moved, and not one whose mark moved', () =>
+      Effect.gen(function* () {
+        const { calls, layer } = setup(none);
+        yield* narrate(layer, cast, defaults, dialogue);
+        yield* narrate(layer, cast, defaults, [{ id: 'd', say: said.replace('{stuck}', '') }]);
+        expect(calls.dialogue).toHaveLength(1);
+        const moved = said.replace('{@ask}So where', 'So {@ask}where');
+        yield* narrate(layer, cast, defaults, [{ id: 'd', say: moved }]);
+        expect(calls.dialogue).toHaveLength(2);
+      }),
+    );
+
+    it.effect('refuses a turn to a voice the cast does not have, before any call', () =>
+      Effect.gen(function* () {
+        const { calls, layer } = setup(none);
+        const beats = [{ id: 'd', say: 'One. {@narrator}Two.' }];
+        const error = yield* Effect.flip(narrate(layer, cast, defaults, beats));
+        expect(error).toMatchObject({ _tag: 'UnknownVoice', voice: 'narrator' });
+        expect([calls.tts, calls.dialogue]).toEqual([[], []]);
+      }),
+    );
+  });
 
   describe('crash safety', () => {
     const DIR = '/films/test/narration';

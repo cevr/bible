@@ -508,7 +508,7 @@ const caption = (
   style: CaptionStyle,
 ) => {
   const t = local - p.speechStart;
-  const line = captionCues(p.voice.words).find((c) => t >= c.start && t < c.end);
+  const line = captionCues(p.voice.words, p.voice.turns).find((c) => t >= c.start && t < c.end);
   if (line === undefined) return;
   const text = line.text;
   ctx.save();

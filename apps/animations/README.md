@@ -91,7 +91,7 @@ along the top) and every music act's start (a line through it), from the film's
 ```
 src/films/<film>/
   script.ts        the screenplay: ordered beats — narration, citations, picture brief
-  voice.ts         ElevenLabs voice + model (changing it re-records everything)
+  voice.ts         who reads it: one voice, or a cast in conversation (changing it re-records everything)
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props and type treatments
@@ -106,6 +106,18 @@ src/films/<film>/
 (or an estimate before recording). Marks are stripped before speech, so adding
 one never re-records. `f.spoken(from, to)` is 0→1 in step with the words
 between two marks — quotes reveal as they are read.
+
+**A cast reads a film as a conversation.** `voice.ts` exports either one
+reader (`{ voiceId, model, settings }`, recorded through text-to-speech) or a
+cast (`{ model: 'eleven_v3', settings: { stability }, voices: [{ name, voiceId }, …] }`).
+A cast records each beat as one text-to-dialogue take, so the viewer's
+question and the answer share a take and the gap between them is performed,
+not spliced. The cast's first voice reads until a line hands over with
+`{@name}` before a word: `"That's the law. {@ask}So where does that leave us?
+{@lead}Stuck."`. Like a mark, a turn is not spoken, but moving one re-records
+the beat. A turn to a voice the cast lacks fails `narrate` and `check` with
+`UnknownVoice`. Captions never run a line across two voices, and each voice's
+first line opens with a dash.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
@@ -125,8 +137,8 @@ move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
 constant.
 
-**Takes are content-addressed.** `narrate` hashes each beat's spoken text and
-re-records only beats whose text changed, transcribes every new take back with
+**Takes are content-addressed.** `narrate` hashes each beat's spoken text,
+with its turns, and re-records only beats whose text or turns changed, transcribes every new take back with
 speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
 what the script says (over 8% word error). A failed take never replaces the
 current one; `--accept-mismatch` keeps it with a warning. A new take is saved
@@ -166,7 +178,7 @@ points:
 | -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`             |
 |                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                  |
-|                      | `narration.ts`  | `{mark}` parsing, take timings, word estimates                                                                            |
+|                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                              |
 |                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                    |
 |                      | `random.ts`     | seeded hash and noise                                                                                                     |
 |                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                             |

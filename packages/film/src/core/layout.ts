@@ -70,11 +70,22 @@ export const layout = <S extends Timed>(
   return out;
 };
 
-/** Group words into short caption lines, breaking at punctuation. */
-export const captionLines = (words: ReadonlyArray<Word>, max = 7): Word[][] => {
+/**
+ * Group words into short caption lines, breaking at punctuation and before
+ * each word in `turns`, where another voice takes over.
+ */
+export const captionLines = (
+  words: ReadonlyArray<Word>,
+  turns: ReadonlySet<number> = new Set(),
+  max = 7,
+): Word[][] => {
   const out: Word[][] = [];
   let cur: Word[] = [];
-  for (const w of words) {
+  for (const [i, w] of words.entries()) {
+    if (turns.has(i) && cur.length > 0) {
+      out.push(cur);
+      cur = [];
+    }
     cur.push(w);
     if (cur.length >= max || /[.!?;:,—]["”’)]*$/.test(w.text)) {
       out.push(cur);

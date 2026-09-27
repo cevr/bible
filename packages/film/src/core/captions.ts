@@ -4,6 +4,7 @@
 
 import { Array as Arr, Option } from 'effect';
 import { type Placed, captionLines } from './layout.ts';
+import type { Turn } from './narration.ts';
 import type { Word } from './schema.ts';
 
 /** A line shows this long before its first word, so the eye is there first. */
@@ -20,10 +21,19 @@ export interface CaptionCue {
 
 /**
  * A take's caption lines, take-local. The first leads its first word; each
- * shows until the next line's first word, so no two lines overlap.
+ * shows until the next line's first word, so no two lines overlap. In a take
+ * with turns, a line never spans two voices, and each voice's first line
+ * opens with a dash, as spoken dialogue is captioned.
  */
-export const captionCues = (words: ReadonlyArray<Word>): Array<CaptionCue> => {
-  const lines = captionLines(words);
+export const captionCues = (
+  words: ReadonlyArray<Word>,
+  turns: ReadonlyArray<Turn> = [],
+): Array<CaptionCue> => {
+  const turnAt = new Set(turns.map((t) => t.word));
+  const lines = captionLines(words, turnAt);
+  const firstWords = lines.map((_, i) => lines.slice(0, i).reduce((n, l) => n + l.length, 0));
+  const opensVoice = (i: number) =>
+    turns.length > 0 && Option.exists(Arr.get(firstWords, i), (w) => w === 0 || turnAt.has(w));
   return lines.flatMap((line, i) => {
     const first = Arr.head(line);
     const last = Arr.last(line);
@@ -34,8 +44,10 @@ export const captionCues = (words: ReadonlyArray<Word>): Array<CaptionCue> => {
     });
     // Only the first line leads: a later one starts where the line before it ends.
     const lead = Arr.match(lines.slice(0, i), { onEmpty: () => CAPTION_LEAD, onNonEmpty: () => 0 });
-    const text = line.map((w) => w.text).join(' ');
-    return [{ start: first.value.start - lead, end, text }];
+    const start = first.value.start - lead;
+    const said = line.map((w) => w.text).join(' ');
+    if (opensVoice(i)) return [{ start, end, text: `- ${said}` }];
+    return [{ start, end, text: said }];
   });
 };
 
@@ -49,7 +61,7 @@ export const filmCaptions = (
 ): Array<CaptionCue> =>
   placed.flatMap((p) => {
     const at = p.start + p.speechStart;
-    return captionCues(p.voice.words).flatMap((cue) => {
+    return captionCues(p.voice.words, p.voice.turns).flatMap((cue) => {
       const start = Math.max(p.start, range.from, at + cue.start);
       const end = Math.min(p.start + p.dur, range.to, at + cue.end);
       if (end <= start) return [];

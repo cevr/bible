@@ -20,6 +20,36 @@ describe('captionCues', () => {
   test('no words, no cues', () => {
     expect(captionCues([])).toEqual([]);
   });
+
+  test('a line never spans two voices, and each voice opens with a dash', () => {
+    const dialogue = [
+      word('Declared', 0, 0.4),
+      word('righteous', 0.5, 0.9),
+      word('But', 1.2, 1.4),
+      word('he', 1.5, 1.6),
+      word('is', 1.7, 1.8),
+      word('guilty.', 1.9, 2.4),
+      word('Exactly.', 2.8, 3.3),
+    ];
+    const turns = [
+      { voice: 'ask', word: 2 },
+      { voice: 'lead', word: 6 },
+    ];
+    expect(captionCues(dialogue, turns).map((c) => c.text)).toEqual([
+      '- Declared righteous',
+      '- But he is guilty.',
+      '- Exactly.',
+    ]);
+  });
+
+  test("a voice's later lines carry no dash", () => {
+    const long = [word('One,', 0, 0.2), word('two.', 0.3, 0.5), word('Three.', 0.8, 1)];
+    expect(captionCues(long, [{ voice: 'ask', word: 2 }]).map((c) => c.text)).toEqual([
+      '- One,',
+      'two.',
+      '- Three.',
+    ]);
+  });
 });
 
 const timings: Timings = {

@@ -54,7 +54,9 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 ## 6. The viewer's question
 
 - BibleProject gives the viewer a second voice that asks at every turn, in 2 to 15 words, and gets a wrap line of 12 words or fewer.
-- `voice.ts` takes one voice, so the narrator asks the question, in the viewer's own words ("Declared? But he's guilty."), and answers it with the wrap line.
+- **Give the question its own voice.** Cast the film in `voice.ts`, and hand the line over with `{@ask}` and back with `{@lead}`: "…and God calls him righteous. {@ask}Declared? But he's guilty. {@lead}Exactly. And that's the point." The question is the viewer's own words, not a setup line.
+- Keep the second voice a companion who is curious, never a skeptic to be beaten. BibleProject's co-host thinks aloud beside the narrator.
+- With one reader, the narrator asks the question in the viewer's words and answers it with the wrap line.
 - **Check:** every register switch in the script comes with a question.
 
 ## 7. The shape in time

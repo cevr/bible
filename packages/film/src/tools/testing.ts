@@ -18,7 +18,7 @@ import {
   type Voice,
 } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
-import { ElevenLabs, type TtsRequest } from './elevenlabs.ts';
+import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser } from './browser.ts';
 import {
   ApiKeyMissing,
@@ -118,16 +118,26 @@ export const text = (s: string) => new TextEncoder().encode(s);
 /** What the fake ElevenLabs was asked to do. */
 export interface ElevenLabsCalls {
   readonly tts: Array<TtsRequest>;
+  readonly dialogue: Array<DialogueRequest>;
   readonly stt: Array<string>;
   readonly music: Array<string>;
   readonly effects: Array<string>;
 }
 
+/** Characters aligned one per 0.05 s. */
+const aligned = (characters: ReadonlyArray<string>) => ({
+  characters: [...characters],
+  character_start_times_seconds: characters.map((_, i) => i * 0.05),
+  character_end_times_seconds: characters.map((_, i) => i * 0.05 + 0.05),
+});
+
 /**
  * Speech comes back aligned one character per 0.05 s, and its "audio" is the
  * text itself, padded with one space per take so no two takes are the same
- * bytes. The transcript of a take file is what was spoken into it, unless
- * `heard` maps that text to something else.
+ * bytes. A dialogue aligns its lines joined with nothing between them, as the
+ * API does, and its audio is the lines read one after another. The transcript
+ * of a take file is what was spoken into it, unless `heard` maps that text to
+ * something else.
  */
 export const fakeElevenLabs = (
   files: Map<string, Uint8Array>,
@@ -140,14 +150,25 @@ export const fakeElevenLabs = (
       tts: (request) =>
         Effect.sync(() => {
           calls.tts.push(request);
-          const characters = [...request.text];
           return {
             audio_base64: Encoding.encodeBase64(request.text + ' '.repeat(calls.tts.length)),
-            alignment: {
-              characters,
-              character_start_times_seconds: characters.map((_, i) => i * 0.05),
-              character_end_times_seconds: characters.map((_, i) => i * 0.05 + 0.05),
-            },
+            alignment: aligned([...request.text]),
+          };
+        }),
+      dialogue: (request) =>
+        Effect.sync(() => {
+          calls.dialogue.push(request);
+          const said = request.lines.map((line) => line.text).join(' ');
+          const starts = request.lines.map((_, i) =>
+            request.lines.slice(0, i).reduce((n, line) => n + [...line.text].length, 0),
+          );
+          return {
+            audio_base64: Encoding.encodeBase64(said + ' '.repeat(calls.dialogue.length)),
+            alignment: aligned(request.lines.flatMap((line) => [...line.text])),
+            voice_segments: request.lines.map((line, i) => ({
+              character_start_index: starts[i] ?? 0,
+              voice_id: line.voiceId,
+            })),
           };
         }),
       stt: (file) =>
@@ -167,7 +188,13 @@ export const fakeElevenLabs = (
     }),
   );
 
-export const emptyCalls = (): ElevenLabsCalls => ({ tts: [], stt: [], music: [], effects: [] });
+export const emptyCalls = (): ElevenLabsCalls => ({
+  tts: [],
+  dialogue: [],
+  stt: [],
+  music: [],
+  effects: [],
+});
 
 /** A take's length as the fake media measures it: a tenth of a second per byte. */
 export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;

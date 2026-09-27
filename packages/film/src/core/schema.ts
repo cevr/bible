@@ -77,8 +77,11 @@ export const TimingsJson = Schema.String.pipe(
   Schema.decodeTo(Schema.fromJsonString(Timings, { space: 2 }), fileText),
 );
 
-/** Who reads a film, and how (`voice.ts`). Changing any of it re-records every beat. */
-export const Voice = Schema.Struct({
+/** Voice settings as the API takes them: named numbers. */
+const VoiceSettings = Schema.Record(Schema.String, Schema.Finite);
+
+/** One voice reads every line, through text-to-speech. */
+export const Reader = Schema.Struct({
   voiceId: Schema.String,
   model: Schema.Literals([
     'eleven_v3',
@@ -86,9 +89,39 @@ export const Voice = Schema.Struct({
     'eleven_flash_v2_5',
     'eleven_turbo_v2_5',
   ]),
-  settings: Schema.Record(Schema.String, Schema.Finite),
+  settings: VoiceSettings,
 });
+export type Reader = typeof Reader.Type;
+
+/** One voice of a cast: the name a line hands over to with `{@name}`. */
+export const CastVoice = Schema.Struct({ name: Schema.String, voiceId: Schema.String });
+export type CastVoice = typeof CastVoice.Type;
+
+/**
+ * Voices in conversation, every take read through text-to-dialogue, so a
+ * question and its answer share one take. The first voice reads until a line
+ * hands over to another. The endpoint takes one setting, `stability`, for the
+ * whole take.
+ */
+export const Cast = Schema.Struct({
+  model: Schema.Literal('eleven_v3'),
+  settings: Schema.Struct({ stability: Schema.Finite }),
+  voices: Schema.NonEmptyArray(CastVoice),
+}).check(
+  Schema.makeFilter((cast) => {
+    const names = cast.voices.map((v) => v.name);
+    const twice = names.filter((name, i) => names.indexOf(name) !== i);
+    return twice.length === 0 || `the cast names ${twice.join(', ')} more than once`;
+  }),
+);
+export type Cast = typeof Cast.Type;
+
+/** Who reads a film, and how (`voice.ts`). Changing any of it re-records every beat. */
+export const Voice = Schema.Union([Reader, Cast]);
 export type Voice = typeof Voice.Type;
+
+/** Whether a film is read by a cast in conversation rather than by one voice. */
+export const isCast = (voice: Voice): voice is Cast => 'voices' in voice;
 
 // ---------------------------------------------------------------------------
 // Scenes: the part of a scene the clock reads. A drawing adds `draw`, which is
@@ -292,8 +325,8 @@ export type Plan = typeof Plan.Type;
 // generated audio, so a gain or a comment never makes an asset stale. The
 // encoded field order is the key: never reorder these structs.
 
-/** What a voice take depends on besides its text. */
-export const VoiceKey = Schema.fromJsonString(Voice.fields.settings);
+/** What a voice take depends on besides its text and its voices. */
+export const VoiceKey = Schema.fromJsonString(VoiceSettings);
 
 /** What the score depends on. */
 export const MusicRequestKey = Schema.fromJsonString(

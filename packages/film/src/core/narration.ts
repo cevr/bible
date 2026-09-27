@@ -5,38 +5,126 @@
 //
 // `{speak}` resolves to the moment the next word is spoken — measured from the
 // recorded voice when timings exist, estimated from the text when they don't.
+// A film read by a cast hands a line to another voice the same way:
+//
+//   "That's the law. {@ask}So where does that leave us? {@lead}Stuck."
+//
 // Pure: runs in the browser, in scripts, and in tests.
 
-import { Result, Schema } from 'effect';
-import { AlignmentMismatch } from './errors.ts';
-import { type Timings, type Voice, VoiceKey, type Word } from './schema.ts';
+import { Array as Arr, Option, Result, Schema } from 'effect';
+import { AlignmentMismatch, UnknownVoice } from './errors.ts';
+import { type Timings, type Voice, VoiceKey, type Word, isCast } from './schema.ts';
+
+/** Another voice takes the line: `{@name}` before a word. */
+export interface Turn {
+  /** The voice's name in the cast. */
+  readonly voice: string;
+  /** Index of the first word it reads. */
+  readonly word: number;
+}
 
 export interface Parsed {
-  /** Text as spoken, marks removed. */
+  /** Text as spoken, marks and turns removed. */
   readonly spoken: string;
   /** Mark name → index of the word it precedes. */
   readonly marks: ReadonlyMap<string, number>;
+  /** Where the line changes voice, in order. */
+  readonly turns: ReadonlyArray<Turn>;
 }
 
-const MARK = /\{([a-zA-Z0-9_-]+)\}/g;
+/** `{name}` is a mark, `{@name}` a turn. */
+const TOKEN = /\{(@?)([a-zA-Z0-9_-]+)\}/g;
 
 export const parse = (text: string): Parsed => {
   const marks = new Map<string, number>();
+  const turns: Turn[] = [];
   const words: string[] = [];
   for (const token of text.trim().split(/\s+/)) {
-    let rest = token;
-    let m: RegExpExecArray | null;
-    MARK.lastIndex = 0;
-    while ((m = MARK.exec(token)) !== null) {
-      const name = m[1];
+    for (const [, at, name] of token.matchAll(TOKEN)) {
       if (name === undefined) continue;
+      if (at === '@') {
+        if (Arr.last(turns).pipe(Option.exists((t) => t.word === words.length)))
+          throw new Error(`two turns before one word in: ${text}`);
+        turns.push({ voice: name, word: words.length });
+        continue;
+      }
       if (marks.has(name)) throw new Error(`duplicate mark {${name}} in: ${text}`);
       marks.set(name, words.length);
     }
-    rest = rest.replace(MARK, '');
+    const rest = token.replace(TOKEN, '');
     if (rest.length > 0) words.push(rest);
   }
-  return { spoken: words.join(' '), marks };
+  if (Arr.last(turns).pipe(Option.exists((t) => t.word >= words.length)))
+    throw new Error(`a turn with no words after it in: ${text}`);
+  return { spoken: words.join(' '), marks, turns };
+};
+
+/**
+ * What a take says and who says it: the spoken words, with each turn written
+ * `{@name}` before its first word. A take is kept under this text's hash, so
+ * moving a turn re-records the take; with no turns it is the spoken text.
+ */
+export const takeScript = (parsed: Parsed): string => {
+  const turns = new Map(parsed.turns.map((t) => [t.word, t.voice]));
+  if (turns.size === 0) return parsed.spoken;
+  return parsed.spoken
+    .split(' ')
+    .map((word, i) => {
+      const voice = turns.get(i);
+      return voice === undefined ? word : `{@${voice}}${word}`;
+    })
+    .join(' ');
+};
+
+/** One voice's stretch of a take. */
+export interface Line {
+  /** Its voice's name in the cast; empty when one voice reads the film. */
+  readonly name: string;
+  readonly voiceId: string;
+  readonly text: string;
+}
+
+/**
+ * The lines a take is read in: the whole take for a film with one voice, and
+ * for a cast, a line per turn, the first read by the cast's first voice. A
+ * turn to a voice the film does not have fails with the voices it does.
+ */
+export const linesOf = (
+  scene: string,
+  parsed: Parsed,
+  voice: Voice,
+): Result.Result<ReadonlyArray<Line>, UnknownVoice> => {
+  if (parsed.spoken.length === 0) return Result.succeed([]);
+  if (!isCast(voice))
+    return Arr.match(parsed.turns, {
+      onEmpty: () => Result.succeed([{ name: '', voiceId: voice.voiceId, text: parsed.spoken }]),
+      onNonEmpty: ([turn]) =>
+        Result.fail(UnknownVoice.make({ scene, voice: turn.voice, known: [] })),
+    });
+  const known = voice.voices.map((v) => v.name);
+  const words = parsed.spoken.split(' ');
+  const lines: Array<Line> = [];
+  let reader = Arr.headNonEmpty(voice.voices);
+  let from = 0;
+  const readTo = (to: number) => {
+    if (to <= from) return;
+    const text = words.slice(from, to).join(' ');
+    const before = lines.at(-1);
+    // A turn to the voice already reading continues its line.
+    if (before !== undefined && before.name === reader.name)
+      lines[lines.length - 1] = { ...before, text: `${before.text} ${text}` };
+    else lines.push({ name: reader.name, voiceId: reader.voiceId, text });
+    from = to;
+  };
+  for (const turn of parsed.turns) {
+    const next = voice.voices.find((v) => v.name === turn.voice);
+    if (next === undefined)
+      return Result.fail(UnknownVoice.make({ scene, voice: turn.voice, known }));
+    readTo(turn.word);
+    reader = next;
+  }
+  readTo(words.length);
+  return Result.succeed(lines);
 };
 
 export const hashText = (s: string): string => {
@@ -46,8 +134,12 @@ export const hashText = (s: string): string => {
 };
 
 /** The voice part of `timings.json`: a take recorded under another key is stale. */
-export const voiceKey = (voice: Voice): string =>
-  `${voice.voiceId}/${voice.model}/${Schema.encodeSync(VoiceKey)(voice.settings)}`;
+export const voiceKey = (voice: Voice): string => {
+  const settings = Schema.encodeSync(VoiceKey)(voice.settings);
+  if (!isCast(voice)) return `${voice.voiceId}/${voice.model}/${settings}`;
+  const voices = voice.voices.map((v) => `${v.name}=${v.voiceId}`).join(',');
+  return `${voices}/${voice.model}/${settings}`;
+};
 
 /**
  * Words with estimated times: ~2.7 words/s, longer words take longer, and
@@ -69,15 +161,18 @@ export const estimate = (spoken: string): Word[] => {
 
 /**
  * Words as spoken in a recorded take. ElevenLabs aligns characters; group them
- * back into the words of `spoken`.
+ * back into the words of `spoken`. A dialogue joins its lines with nothing
+ * between them, so each line's first character (`breaks`) starts a word too.
  */
 export const wordsFromAlignment = (
   spoken: string,
   chars: ReadonlyArray<string>,
   starts: ReadonlyArray<number>,
   ends: ReadonlyArray<number>,
+  breaks: ReadonlyArray<number> = [],
 ): Result.Result<Word[], AlignmentMismatch> => {
   const out: Word[] = [];
+  const lineStarts = new Set(breaks);
   let start = -1;
   let end = 0;
   let text = '';
@@ -88,6 +183,7 @@ export const wordsFromAlignment = (
   };
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i] ?? '';
+    if (lineStarts.has(i)) flush();
     if (/\s/.test(c)) {
       flush();
       continue;
@@ -109,6 +205,8 @@ export interface SceneVoice {
   /** Seconds of speech (0 for a silent scene). */
   readonly duration: number;
   readonly marks: ReadonlyMap<string, number>;
+  /** Where another voice takes the line. */
+  readonly turns: ReadonlyArray<Turn>;
   /** Audio file, when a current recording exists. */
   readonly file: string | undefined;
   readonly recorded: boolean;
@@ -116,11 +214,20 @@ export interface SceneVoice {
 
 /** The voice for one scene: recorded when the take matches the text, estimated otherwise. */
 export const voiceFor = (id: string, text: string, timings: Timings | undefined): SceneVoice => {
-  const { spoken, marks } = parse(text);
+  const parsed = parse(text);
+  const { spoken, marks, turns } = parsed;
   if (spoken.length === 0)
-    return { spoken, words: [], duration: 0, marks: new Map(), file: undefined, recorded: false };
+    return {
+      spoken,
+      words: [],
+      duration: 0,
+      marks: new Map(),
+      turns: [],
+      file: undefined,
+      recorded: false,
+    };
   const take = timings?.scenes[id];
-  const recorded = take !== undefined && take.hash === hashText(spoken);
+  const recorded = take !== undefined && take.hash === hashText(takeScript(parsed));
   const words = recorded ? take.words : estimate(spoken);
   const duration = recorded ? take.duration : (words[words.length - 1]?.end ?? 0);
   const times = new Map<string, number>();
@@ -133,6 +240,7 @@ export const voiceFor = (id: string, text: string, timings: Timings | undefined)
     words,
     duration,
     marks: times,
+    turns,
     file: recorded ? take.file : undefined,
     recorded,
   };

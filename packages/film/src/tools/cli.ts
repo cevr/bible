@@ -146,7 +146,7 @@ const narrate = Command.make(
     const narrator = yield* Narrator;
     const loaded = yield* repo.load(input.film);
     const options = { only: input.only, force: input.force, acceptMismatch: input.acceptMismatch };
-    const plan = planNarration(loaded, options);
+    const plan = yield* Effect.fromResult(planNarration(loaded, options));
     const stale = plan.stale.map((b) => b.id).join(',') || 'none';
     yield* Effect.log(
       `narrate.plan film=${input.film} beats=${plan.beats.length} to_record=${stale}`,

@@ -1,5 +1,5 @@
 // ElevenLabs through its CLI, whose OAuth login already sits in the Keychain:
-// speech with timestamps, speech-to-text, music and sound effects. Every
+// speech and dialogue with timestamps, speech-to-text, music and sound effects. Every
 // request body is encoded and every response decoded with Schema. Sound
 // effects are the exception to the login: they need an API key, from
 // ELEVENLABS_API_KEY or the Keychain entry of that name.
@@ -7,7 +7,8 @@
 import { Config, Context, Effect, Layer, Option, Redacted, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { MusicModel, Plan, type Voice } from '../core/schema.ts';
+import type { Line } from '../core/narration.ts';
+import { type Cast, MusicModel, Plan, type Reader } from '../core/schema.ts';
 import { ApiKeyMissing, ElevenLabsFailed } from './errors.ts';
 import { type Finished, collect, isNotFound } from './process.ts';
 
@@ -28,6 +29,14 @@ const TtsBody = Schema.fromJsonString(
     voice_settings: Schema.Record(Schema.String, Schema.Finite),
     previous_text: Schema.optionalKey(Schema.String),
     next_text: Schema.optionalKey(Schema.String),
+  }),
+);
+
+const DialogueBody = Schema.fromJsonString(
+  Schema.Struct({
+    inputs: Schema.Array(Schema.Struct({ text: Schema.String, voice_id: Schema.String })),
+    model_id: Schema.String,
+    settings: Schema.Struct({ stability: Schema.Finite }),
   }),
 );
 
@@ -64,16 +73,34 @@ export const TtsResponse = Schema.Struct({
 });
 export type TtsResponse = typeof TtsResponse.Type;
 
+/**
+ * `text-to-dialogue convert_with_timestamps`: as for speech, over the lines
+ * joined with nothing between them, and where each voice's stretch starts.
+ */
+export const DialogueResponse = Schema.Struct({
+  ...TtsResponse.fields,
+  voice_segments: Schema.Array(
+    Schema.Struct({ character_start_index: Schema.Int, voice_id: Schema.String }),
+  ),
+});
+export type DialogueResponse = typeof DialogueResponse.Type;
+
 /** `speech-to-text convert`: what a take actually says. */
 export const SttResponse = Schema.Struct({ text: Schema.String });
 export type SttResponse = typeof SttResponse.Type;
 
 export interface TtsRequest {
   readonly text: string;
-  readonly voice: Voice;
+  readonly voice: Reader;
   /** The neighbouring lines, so a take continues the read (models before v3 only). */
   readonly previousText: string;
   readonly nextText: string;
+}
+
+export interface DialogueRequest {
+  /** The take's lines in order, each with its voice. */
+  readonly lines: ReadonlyArray<Line>;
+  readonly cast: Cast;
 }
 
 export interface SoundEffectRequest {
@@ -83,6 +110,9 @@ export interface SoundEffectRequest {
 
 export interface ElevenLabsService {
   readonly tts: (request: TtsRequest) => Effect.Effect<TtsResponse, ElevenLabsFailed>;
+  readonly dialogue: (
+    request: DialogueRequest,
+  ) => Effect.Effect<DialogueResponse, ElevenLabsFailed>;
   readonly stt: (file: string) => Effect.Effect<SttResponse, ElevenLabsFailed>;
   /** Compose the score from its plan into `out`. */
   readonly composeMusic: (
@@ -169,6 +199,31 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           ]),
         );
         return yield* decodeReply('tts', Schema.fromJsonString(TtsResponse), raw);
+      });
+
+      const dialogue = Effect.fn('ElevenLabs.dialogue')(function* (request: DialogueRequest) {
+        const params = yield* encodeBody('dialogue', OutputParams, {
+          output_format: OUTPUT_FORMAT,
+        });
+        const body = yield* encodeBody('dialogue', DialogueBody, {
+          inputs: request.lines.map((line) => ({ text: line.text, voice_id: line.voiceId })),
+          model_id: request.cast.model,
+          settings: request.cast.settings,
+        });
+        const raw = yield* exec(
+          'dialogue',
+          ChildProcess.make('elevenlabs', [
+            'text-to-dialogue',
+            'convert_with_timestamps',
+            '--params',
+            params,
+            '--json',
+            body,
+            '--format',
+            'json',
+          ]),
+        );
+        return yield* decodeReply('dialogue', Schema.fromJsonString(DialogueResponse), raw);
       });
 
       const stt = Effect.fn('ElevenLabs.stt')(function* (file: string) {
@@ -298,7 +353,7 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         );
       });
 
-      return ElevenLabs.of({ tts, stt, composeMusic, ready, apiKey, soundEffect });
+      return ElevenLabs.of({ tts, dialogue, stt, composeMusic, ready, apiKey, soundEffect });
     }),
   );
 }

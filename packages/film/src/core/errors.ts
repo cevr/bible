@@ -62,3 +62,17 @@ export class AlignmentMismatch extends Schema.TaggedError<AlignmentMismatch>()(
 }
 
 export type SoundCueError = UnknownScene | UnknownCue | UnknownMark | CueInvalid;
+
+/** A line hands over to a voice the film's cast does not have. */
+export class UnknownVoice extends Schema.TaggedError<UnknownVoice>()('UnknownVoice', {
+  scene: Schema.String,
+  voice: Schema.String,
+  /** The cast's voices; empty when one voice reads the film. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0)
+      return `scene "${this.scene}" hands a line to "${this.voice}", but one voice reads this film; declare a cast in voice.ts`;
+    return `scene "${this.scene}" hands a line to "${this.voice}"; the cast is ${this.known.join(', ')}`;
+  }
+}

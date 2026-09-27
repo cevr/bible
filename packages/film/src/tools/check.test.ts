@@ -2,8 +2,8 @@ import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
-import { hashText, voiceKey } from '../core/narration.ts';
-import type { Music, Sound, Timed, Timings } from '../core/schema.ts';
+import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
+import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type LayoutFinding,
@@ -18,6 +18,7 @@ import {
   pastFrame,
   staleTakes,
   staticFindings,
+  unknownVoices,
 } from './check.ts';
 import { inkMark, testFilm, testVoice, textBox } from './testing.ts';
 
@@ -489,6 +490,14 @@ describe('layoutSamples', () => {
 // Static
 
 const take = (text: string) => ({ hash: hashText(text), file: 'x.mp3', duration: 2, words: [] });
+const cast: Cast = {
+  model: 'eleven_v3',
+  settings: { stability: 0.5 },
+  voices: [
+    { name: 'lead', voiceId: 'L' },
+    { name: 'ask', voiceId: 'A' },
+  ],
+};
 
 describe('staleTakes', () => {
   const scenes: ReadonlyArray<Timed> = [
@@ -515,6 +524,49 @@ describe('staleTakes', () => {
       'voice changed',
       'voice changed',
       'missing',
+    ]);
+  });
+
+  test('a take read by a cast goes stale when a turn moves', () => {
+    const said = 'Declared? {@ask}But he is guilty.';
+    const recorded: Timings = {
+      voice: voiceKey(cast),
+      scenes: { d: take(takeScript(parse(said))) },
+    };
+    const film = (say: string) => testFilm([{ id: 'd', say }], recorded, cast);
+    expect(staleTakes(film(said))).toEqual([]);
+    expect(staleTakes(film('Declared? But {@ask}he is guilty.')).map((s) => s.reason)).toEqual([
+      'text changed',
+    ]);
+  });
+});
+
+describe('unknownVoices', () => {
+  test('a line handed to a voice the film does not have', () => {
+    const scenes: ReadonlyArray<Timed> = [
+      { id: 'ok', say: 'One. {@ask}Two.' },
+      { id: 'lost', say: 'One. {@narrator}Two.' },
+      { id: 'quiet' },
+    ];
+    const found = unknownVoices(testFilm(scenes, noTakes, cast));
+    expect(found.map((f) => [f.scene, f.voice, f.known])).toEqual([
+      ['lost', 'narrator', ['lead', 'ask']],
+    ]);
+    expect(unknownVoices(testFilm(scenes, noTakes)).map((f) => f.scene)).toEqual(['ok', 'lost']);
+  });
+
+  test('is an error in the static check, beside the take it cannot record', () => {
+    const scenes: ReadonlyArray<Timed> = [{ id: 'lost', say: 'One. {@narrator}Two.' }];
+    const film = testFilm(scenes, noTakes, cast);
+    const found = staticFindings(
+      film,
+      layout(scenes, noTakes),
+      { allowStale: true },
+      Option.none(),
+    );
+    expect(found.map((r) => [r.level, r.finding._tag])).toEqual([
+      ['error', 'UnknownVoice'],
+      ['warning', 'TakeStale'],
     ]);
   });
 });
