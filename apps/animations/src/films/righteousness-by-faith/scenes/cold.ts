@@ -181,20 +181,18 @@ export const cold = drawing({
               at(ctx, { x: 1180, y: 672, rot: -0.07, scale: popScale }, () => {
                 ctx.save();
                 ctx.globalAlpha *= Math.min(1, stamp);
-                piece(ctx, rectShape(-250, -78, 500, 118), C.cream, f.hand('label'), {
-                  line: 0,
-                  torn: 3,
-                  shadow: 0.4,
-                });
-                probePlate(ctx, 'Righteous', -250, -78, 500, 118);
-                write(
-                  ctx,
-                  'Righteous',
-                  0,
-                  12,
-                  { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
-                  f.hand('stamp'),
-                  { boil: 0.4 },
+                const label = rectShape(-250, -78, 500, 118);
+                piece(ctx, label, C.cream, f.hand('label'), { line: 0, torn: 3, shadow: 0.4 });
+                probePlate(ctx, label, () =>
+                  write(
+                    ctx,
+                    'Righteous',
+                    0,
+                    12,
+                    { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
+                    f.hand('stamp'),
+                    { boil: 0.4 },
+                  ),
                 );
                 ctx.restore();
               });

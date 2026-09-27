@@ -292,8 +292,12 @@ what a review used to find by eye:
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
 centre line, `fill` and `cutout` their outlines (a `hatch` is texture and
-does not record). A drawing declares the plate its text sits on (a torn tag)
-with `probePlate`, because a plate hides what is under it as the text does.
+does not record). A drawing declares the plate its text sits on (a torn tag,
+a word card) with `probePlate(ctx, shape, () => write(…))`: the shape it drew
+the plate with, and the lines on it drawn inside. A plate hides what is under
+it as the text does, so it is measured as text too; the lines drawn inside
+carry the plate's `order` (`on`), so a card never collides with its own
+lines, while any other text over it does.
 With no probe attached a draw costs one WeakMap lookup, and a probed frame
 is pixel for pixel the same (it only reads the transform, `measureText` and
 the path it was going to draw). The export handle exposes it as `probe(i)`.

@@ -394,6 +394,11 @@ export const TextBox = Schema.Struct({
    * when two say the same words. A stroke's `marks` names it.
    */
   hand: Schema.optionalKey(Schema.Finite),
+  /**
+   * The `order` of the plate this line sits on (`probePlate`): the plate
+   * carries it, so the two never collide; any other text over the plate does.
+   */
+  on: Schema.optionalKey(Schema.Int),
 });
 export type TextBox = typeof TextBox.Type;
 

@@ -117,6 +117,33 @@ describe('frameFindings', () => {
   });
 });
 
+describe('a plate and the lines it carries', () => {
+  // The declared card: one plate, three lines on it, and a line from elsewhere.
+  const card = 'Justify / δικαιόω / declared righteous';
+  const plate = inkMark('plate', [
+    [650, 375],
+    [1270, 375],
+    [1270, 705],
+    [650, 705],
+  ]);
+  const lines = [
+    textBox(card, 650, 375, 620, 330, { order: 1 }),
+    textBox('Justify', 800, 420, 320, 70, { order: 2, on: 1 }),
+    textBox('δικαιόω', 820, 510, 280, 60, { order: 3, on: 1 }),
+    textBox('declared righteous', 700, 600, 520, 60, { order: 4, on: 1 }),
+  ];
+
+  test('a plate carrying three lines does not collide with them', () => {
+    expect(frameFindings(sample, { texts: lines, inks: [plate] }, frame)).toEqual([]);
+  });
+
+  test('a line from elsewhere over the plate does', () => {
+    const stray = textBox('Let there be light', 1130, 505, 130, 60, { order: 5 });
+    const found = frameFindings(sample, { texts: [...lines, stray], inks: [plate] }, frame);
+    expect(found).toMatchObject([{ _tag: 'TextOverlap', a: card, b: 'Let there be light' }]);
+  });
+});
+
 describe('ink over text', () => {
   // MINNEAPOLIS under a masthead: its box, and a rule drawn through it.
   const city = textBox('MINNEAPOLIS', 700, 190, 520, 28, { order: 5 });

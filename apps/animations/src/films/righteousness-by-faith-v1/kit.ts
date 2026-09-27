@@ -92,20 +92,22 @@ export const cite = (f: Frame, text: string, start: number, end: number, slot = 
   ctx.save();
   ctx.globalAlpha *= clamp(a * 1.4);
   at(ctx, { x: x + slide, y, rot: -0.015 + hash2(slot, 3) * 0.02 }, () => {
+    const tag = rectShape(0, 0, w, 54);
     cutout(
       ctx,
-      rectShape(0, 0, w, 54),
+      tag,
       { color: C.robe, torn: 2.5, rim: 0, shadow: 0.5, grain: 0.3 },
       f.hand(`cite${slot}`),
     );
-    probePlate(ctx, text, 0, 0, w, 54);
-    cutout(
-      ctx,
-      rectShape(-10, 12, 18, 30),
-      { color: C.gold, torn: 1.5, rim: 0, shadow: 0.3 },
-      f.hand(`cite-tab${slot}`),
-    );
-    write(ctx, text, 26, 38, style, f.hand(`cite-text${slot}`), { boil: 0.3 });
+    probePlate(ctx, tag, () => {
+      cutout(
+        ctx,
+        rectShape(-10, 12, 18, 30),
+        { color: C.gold, torn: 1.5, rim: 0, shadow: 0.3 },
+        f.hand(`cite-tab${slot}`),
+      );
+      write(ctx, text, 26, 38, style, f.hand(`cite-text${slot}`), { boil: 0.3 });
+    });
   });
   ctx.restore();
 };

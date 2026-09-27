@@ -455,6 +455,8 @@ export const textBox = (
     readonly order?: number;
     /** The seed of the hand that wrote it: what a stroke's `marks` names. */
     readonly hand?: number;
+    /** The `order` of the plate it sits on. */
+    readonly on?: number;
   } = {},
 ): TextBox => {
   const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
@@ -485,6 +487,10 @@ export const textBox = (
     ...Option.match(Option.fromNullishOr(options.hand), {
       onNone: () => ({}),
       onSome: (hand) => ({ hand }),
+    }),
+    ...Option.match(Option.fromNullishOr(options.on), {
+      onNone: () => ({}),
+      onSome: (on) => ({ on }),
     }),
   };
 };

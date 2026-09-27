@@ -637,6 +637,9 @@ export const platesOffFrame = (
   });
 };
 
+/** Whether one box is the plate the other line sits on (`probePlate`): they never collide. */
+const carries = (a: TextBox, b: TextBox) => a.on === b.order || b.on === a.order;
+
 /**
  * The layout findings in one probed frame; `next` is the frame after it, which
  * tells a plate at rest from one on its way in or out (the frame itself when
@@ -652,7 +655,7 @@ export const frameFindings = (
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const overlaps = shown.flatMap((a, i) =>
     shown.slice(i + 1).flatMap((b) => {
-      if (a.text === b.text) return [];
+      if (a.text === b.text || carries(a, b)) return [];
       const area = overlapArea(a, b);
       if (area <= 0) return [];
       const [first, second] = Arr.sort([a.text, b.text], Order.String);
