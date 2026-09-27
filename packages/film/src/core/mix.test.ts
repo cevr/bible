@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import type { Pcm } from './audio.ts';
-import { MIX_RATE, type MixPlan, planSounds, renderMix } from './mix.ts';
+import { MIX_RATE, type MixPlan, renderMix } from './mix.ts';
 
 const RATE = MIX_RATE;
 
@@ -79,21 +79,5 @@ describe('renderMix', () => {
       Math.fround(SIDE * 0.5),
       0,
     ]);
-  });
-});
-
-describe('planSounds', () => {
-  test('each sound once, voice then score then effects', () => {
-    const sounds = planSounds<string>({
-      seconds: 1,
-      voice: [{ sound: 'a.mp3', at: 0, gain: 1 }],
-      music: Option.some({ sound: 'score.mp3', gain: 1 }),
-      effects: [
-        { sound: 'tick.mp3', at: 0, gain: 1 },
-        { sound: 'tick.mp3', at: 1, gain: 1 },
-      ],
-      warnings: [],
-    });
-    expect(sounds).toEqual(['a.mp3', 'score.mp3', 'tick.mp3']);
   });
 });

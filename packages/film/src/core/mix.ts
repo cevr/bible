@@ -119,15 +119,6 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<string>, MixPlan
     return { seconds: filmEnd(placed), voice, music, effects, warnings };
   });
 
-/** Each sound a plan plays, once. */
-export const planSounds = <A>(plan: MixPlan<A>): ReadonlyArray<A> => [
-  ...new Set([
-    ...plan.voice.map((p) => p.sound),
-    ...Option.toArray(plan.music).map((bed) => bed.sound),
-    ...plan.effects.map((p) => p.sound),
-  ]),
-];
-
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
 export interface Mixed {
   readonly master: Pcm;

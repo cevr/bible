@@ -6,8 +6,6 @@ export type Ease = (t: number) => number;
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));
-export const remap = (v: number, a: number, b: number, c: number, d: number) =>
-  lerp(c, d, clamp(invLerp(a, b, v)));
 
 export const ease = {
   linear: (t) => t,
@@ -67,6 +65,3 @@ export const keys = (t: number, frames: ReadonlyArray<Key>): number => {
   }
   return frames[frames.length - 1]?.[1] ?? 0;
 };
-
-/** Start time of item `i` of `n` staggered across `span` seconds. */
-export const stagger = (start: number, i: number, step: number) => start + i * step;
