@@ -151,6 +151,13 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
 };
 
 /**
+ * Pages a render runs by default. `film bench --workers` over frames 0–3600
+ * with the share copy: 4 pages 69 fps, 5 79, 6 81, 7 81. Six is the knee, and
+ * its 12 encoders stay under `MAX_ENCODERS`.
+ */
+export const DEFAULT_WORKERS = 6;
+
+/**
  * Hardware encoders a render may run at once. Measured on the M-series Mac the
  * films render on: 14 (7 pages with a share copy) ran, and at 16 every page
  * stalled with its first chunk unfinished until the encode timed out.

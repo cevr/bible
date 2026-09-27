@@ -65,7 +65,14 @@ import { NotesStore } from './notes-store.ts';
 import { cursorLine, noteLine, replyLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { BENCH_RULES } from './bench.ts';
-import { RenderJob, flagConflicts, givenFlags, jobOf, sceneSpan } from './render-plan.ts';
+import {
+  DEFAULT_WORKERS,
+  RenderJob,
+  flagConflicts,
+  givenFlags,
+  jobOf,
+  sceneSpan,
+} from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
@@ -354,7 +361,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
       workers: Flag.Int('workers').pipe(
-        Flag.withDefault(4),
+        Flag.withDefault(DEFAULT_WORKERS),
         Flag.withDescription('pages rendering at once'),
       ),
       scale: Flag.Finite('scale').pipe(

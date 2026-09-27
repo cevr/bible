@@ -75,7 +75,7 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 `--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
+(pages, default 6: the knee of `bench --workers`), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
 (skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
 Each page runs one hardware encoder, two with the share copy; past 14 at once

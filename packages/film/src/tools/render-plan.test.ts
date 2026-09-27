@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import {
+  DEFAULT_WORKERS,
   MAX_CHUNK_FRAMES,
   MIN_CHUNK_FRAMES,
   MAX_ENCODERS,
@@ -191,6 +192,8 @@ describe('encoderBudget', () => {
     expect(tag(video(8, true))).toBe('TooManyEncoders');
     expect(tag(video(14, false))).toBe('14');
     expect(tag(video(15, false))).toBe('TooManyEncoders');
+    // The default render, with its share copy, fits.
+    expect(tag(video(DEFAULT_WORKERS, true))).toBe(String(DEFAULT_WORKERS * 2));
   });
 
   test('stills encode no video', () => {
