@@ -610,15 +610,25 @@ export const mountEditor = (
           numberInput(value[0], ok, (v) => commit([v, value[1]])),
           numberInput(value[1], ok, (v) => commit([value[0], v])),
         );
-        const at = handleOf(p.spec.id, name);
-        const where = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
-        row.append(el('span', 'lab-edit-note', where));
+        // Filled, and kept current frame by frame, by `placeWhere`.
+        row.append(el('span', 'lab-edit-note lab-knob-where'));
       }
       if (!ok)
         row.append(el('span', 'lab-edit-note', refusal('knobs') ?? 'computed in the source'));
       box.append(row);
     }
     return box;
+  };
+
+  /** Each point knob row's note: whether this frame has its handle, and if not, why. */
+  const placeWhere = () => {
+    const scene = selection?.scene ?? film.sceneAt(player.now()).spec.id;
+    for (const note of body.querySelectorAll<HTMLElement>('.lab-knob-where')) {
+      const name = note.closest<HTMLElement>('.lab-knob')?.dataset['knob'];
+      if (name === undefined) continue;
+      const at = handleOf(scene, name);
+      note.textContent = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
+    }
   };
 
   const renderInspector = () => {
@@ -640,6 +650,7 @@ export const mountEditor = (
       }),
     );
     statusEl.textContent = status;
+    placeWhere();
   };
 
   const select = (sel: Selection) => {
@@ -705,8 +716,9 @@ export const mountEditor = (
       loadSource(scene);
       if (!dragging) renderInspector();
     } else placePlayhead();
-    // Handles follow the frame, a dragged knob's included.
+    // Handles follow the frame, a dragged knob's included, and so do the rows' notes on them.
     renderHandles();
+    placeWhere();
   });
 
   // On load: the selection from the URL, and the film's findings as they stand.
