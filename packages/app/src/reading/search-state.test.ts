@@ -71,6 +71,7 @@ const hit = (input: {
     author: 'Ellen Gould White',
     snippet: 'the sanctuary in heaven',
     isHeading: input.isHeading ?? false,
+    backMatter: false,
     score: 0.5,
     lexicalRank: Option.fromNullishOr(input.lexicalRank),
     vectorRank: Option.fromNullishOr(input.vectorRank),

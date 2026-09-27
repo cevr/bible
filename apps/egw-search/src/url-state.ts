@@ -12,16 +12,13 @@
  * them, and the app reads them back out. That ordering is what makes every
  * state the app can be in reachable by pasting a link, and it is why the back
  * button works without any code that knows what "back" means: a history entry
- * restores a previous URL, the router publishes the decoded search into the
- * page's `Source`, and the query re-runs.
+ * restores a previous URL, the location signal changes (`./history.ts`), and
+ * each pane's query re-runs.
  *
- * This module is pure. The router owns the location and `UrlState` owns the
- * mutations; this file owns the two inverse functions between a query string
- * and a workspace, and the codec (`Workspace`) for the view-owned URL state.
+ * This module is pure: the two inverse functions between a query string and
+ * a workspace, and the operations on one pane's state. `./history.ts` owns
+ * the browser's location and the writes to it.
  */
-
-import { Route } from 'effect-frame/router';
-import { Schema as S, SchemaGetter } from 'effect';
 
 import {
   type BookSubtype,
@@ -34,8 +31,8 @@ import {
   isCorpusScope,
   isCorpusSection,
   NO_SELECTION,
+  type SearchRequest,
 } from '../server/api.js';
-import { SearchRequest } from './contract.js';
 
 /** One axis as the client holds it: the same `{ include, exclude }` the server
  *  decodes to, so a chip's three states map onto membership of one list, the
@@ -270,11 +267,6 @@ const PANE_FIELDS = [
   'limit',
 ] satisfies readonly string[];
 
-/** Every finite wire key the URL-owned workspace may encode. */
-export const WORKSPACE_KEYS: readonly string[] = Array.from({ length: MAX_PANES }, (_, pane) =>
-  PANE_FIELDS.map((field) => paneKey(field, pane)),
-).flat();
-
 const countPanes = (url: URLSearchParams): number => {
   const present = (pane: number): boolean =>
     PANE_FIELDS.some((field) => url.has(paneKey(field, pane)));
@@ -299,35 +291,3 @@ export const toWorkspaceString = (panes: readonly SearchParams[]): string => {
   const query = url.toString();
   return query === '' ? '/' : `/?${query}`;
 };
-
-// ---------------------------------------------------------------------------
-// The view-owned URL-state codec
-// ---------------------------------------------------------------------------
-
-/** One pane, as a Schema, so UrlState can carry the workspace as URL data. */
-const SearchParamsSchema = S.Struct({
-  q: S.String,
-  scope: SearchRequest.fields.scope,
-  section: SearchRequest.fields.section,
-  type: SearchRequest.fields.type,
-  subtype: SearchRequest.fields.subtype,
-  excludeApparatus: S.Boolean,
-  limit: S.Finite,
-});
-
-/** UrlState hands the query string over as a keyed multimap; the two functions
- *  above turn it into panes and back. Going through `URLSearchParams` in both
- *  directions keeps this file's parser the only parser: the codec is a thin
- *  adapter, not a second reading of the URL. */
-const fromRecord = (record: Route.SearchRecord): readonly SearchParams[] =>
-  parseWorkspace(Route.printSearch(record));
-
-const toRecord = (panes: readonly SearchParams[]): Route.SearchRecord =>
-  Route.readSearch(new URL(toWorkspaceString(panes), 'http://workspace.invalid').searchParams);
-
-export const Workspace = Route.SearchRecord.pipe(
-  S.decodeTo(S.Array(SearchParamsSchema), {
-    decode: SchemaGetter.transform(fromRecord),
-    encode: SchemaGetter.transform(toRecord),
-  }),
-);

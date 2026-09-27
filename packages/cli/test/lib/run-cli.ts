@@ -70,6 +70,7 @@ const runProvided = (
   recordingConsole: Console.Console,
   layer: Layer.Layer<never, never, never>,
 ): Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }> =>
+  // The CLI's requirements are erased by `layer`, which the type cannot prove.
   // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
   Effect.gen(function* () {
     const cliExit = yield* Effect.exit(

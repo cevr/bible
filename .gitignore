@@ -200,3 +200,6 @@ apps/egw-search/.deploy/
 # The film lab's notes and stills (apps/animations/lab/<film>/), written by `bun run lab`
 # and `bun run notes`: review state, not source.
 apps/animations/lab/
+
+# Written by the CLI tests (a local .bible home).
+packages/cli/.bible/

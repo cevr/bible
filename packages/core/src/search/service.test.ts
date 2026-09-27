@@ -534,6 +534,87 @@ describe('§6.5 the legs degrade on corpus faults and not on defects', () => {
   );
 });
 
+describe('headings and back matter rank after prose', () => {
+  /** One book whose outline has a chapter, an appendix, and a chapter after
+   *  it. The ranks put the heading and the index line above the prose, which
+   *  is what BM25's length normalization does to them in production. */
+  const row = (input: {
+    readonly order: number;
+    readonly text: string;
+    readonly ftsRank: number;
+    readonly element: 'h2' | 'p';
+  }) => ({
+    para_id: Option.some(`GC-outline-${String(input.order)}`),
+    refcode_short: Option.some(`GC 9${String(input.order)}.1`),
+    refcode_long: `GC 9${String(input.order)}.1`,
+    nodes: [Node.make({ _tag: 'Text', text: input.text })],
+    puborder: 90_000 + input.order,
+    element_type: input.element,
+    bookCode: 'GC',
+    ftsRank: input.ftsRank,
+  });
+  const outline = [
+    row({ order: 1, text: 'The Latter Rain', ftsRank: -40, element: 'h2' }),
+    row({ order: 2, text: 'the latter rain ripens the harvest', ftsRank: -10, element: 'p' }),
+    row({ order: 3, text: 'Appendix', ftsRank: -1, element: 'h2' }),
+    row({ order: 4, text: 'Latter rain, 178, 300, 306', ftsRank: -35, element: 'p' }),
+    row({ order: 5, text: 'The Loud Cry', ftsRank: -1, element: 'h2' }),
+    row({
+      order: 6,
+      text: 'the latter rain and the loud cry come together',
+      ftsRank: -8,
+      element: 'p',
+    }),
+  ];
+  const layer = SearchService.Live.pipe(
+    Layer.provide(
+      Layer.unwrap(
+        Effect.gen(function* () {
+          const paragraphs = yield* EGWParagraphDatabase;
+          return SearchCorpusSources.wired({ paragraphs });
+        }),
+      ).pipe(
+        Layer.provide(EGWParagraphDatabase.Test({ books: GOLDEN_BOOKS, paragraphs: outline })),
+      ),
+    ),
+    Layer.provide(VectorIndexBytes.None),
+  );
+  const ask = (limit: Option.Option<number>) =>
+    queryWith(
+      SearchQuery.make({
+        text: 'latter rain',
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit,
+      }),
+      layer,
+    );
+
+  it.effect('orders prose, then headings, then back matter', () =>
+    Effect.gen(function* () {
+      const result = yield* ask(Option.none());
+      expect(
+        result.paragraphs.map((hit) => [hit.paragraphId, hit.isHeading, hit.backMatter]),
+      ).toEqual([
+        ['GC:GC-outline-2', false, false],
+        ['GC:GC-outline-6', false, false],
+        ['GC:GC-outline-1', true, false],
+        ['GC:GC-outline-4', false, true],
+      ]);
+    }),
+  );
+
+  it.effect('gives a demoted row no page slot a prose row could fill', () =>
+    Effect.gen(function* () {
+      const result = yield* ask(Option.some(2));
+      expect(result.paragraphs.map((hit) => hit.paragraphId)).toEqual([
+        'GC:GC-outline-2',
+        'GC:GC-outline-6',
+      ]);
+    }),
+  );
+});
+
 describe('§9.2 scope', () => {
   it.effect('a pioneer-scoped query reaches pioneer paragraphs and has no vectors', () =>
     Effect.gen(function* () {

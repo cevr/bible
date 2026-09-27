@@ -23,6 +23,7 @@ import {
   isCorpusSection,
   NO_SELECTION,
   SELECTABLE_SUBTYPES,
+  Signed,
   SignedFromStrings,
 } from '@bible/core/writings';
 
@@ -99,6 +100,10 @@ export const SearchHitSchema = S.Struct({
    *  same shape on the wire, so without this the client cannot tell the chapter
    *  title "The Loud Cry" from the phrase written mid-paragraph. */
   isHeading: S.Boolean,
+  /** Whether this hit sits in its book's back matter — an appendix, a table of
+   *  contents, a bibliography or an index. See `SearchParagraphHit.backMatter`.
+   *  The server already orders these last; this lets the client say why. */
+  backMatter: S.Boolean,
   lexicalRank: S.NullOr(S.Finite),
   vectorRank: S.NullOr(S.Finite),
   /** The egwwritings.org deep link, null for a paragraph the corpus stores
@@ -124,6 +129,39 @@ export const SearchResponseSchema = S.Struct({
   nonSelective: S.Boolean,
 });
 export type SearchResponse = S.Schema.Type<typeof SearchResponseSchema>;
+
+/** Everything the server needs to answer one pane, already split by sign.
+ *
+ *  The batch endpoint's input. The single `GET /api/search` spells the same
+ *  fields as query parameters; this is the JSON form, so a batch carries each
+ *  pane's selection as `{ include, exclude }` rather than re-encoding it into
+ *  signed strings. */
+export const SearchRequest = S.Struct({
+  q: S.String,
+  scope: CorpusScope,
+  section: Signed(CorpusSection),
+  type: Signed(BookType),
+  subtype: Signed(BookSubtype),
+  excludeApparatus: S.Boolean,
+  limit: S.Finite,
+  /** Paragraphs fetched on each side of a hit. A rendering choice the caller
+   *  supplies, not search state; see `CONTEXT` in `../src/app.tsx`. */
+  context: S.Finite,
+});
+export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
+
+/** One input's answer in a batch: the response, or why that input failed.
+ *
+ *  Per slot rather than one failure for the batch, so a pane whose search
+ *  fails does not take its neighbours' results down with it. */
+export const SearchSlot = S.Union([
+  S.TaggedStruct('Answered', { response: SearchResponseSchema }),
+  S.TaggedStruct('Failed', { message: S.String }),
+]);
+export type SearchSlot = S.Schema.Type<typeof SearchSlot>;
+
+/** At most one request per pane; the client never sends more (`MAX_PANES`). */
+export const MAX_BATCH = 8;
 
 export class SearchFailed extends S.TaggedError<SearchFailed>()(
   'SearchFailed',
@@ -167,6 +205,19 @@ export const SearchGroup = HttpApiGroup.make('search')
       },
       success: SearchResponseSchema,
       error: [SearchFailed],
+    }),
+  )
+  .add(
+    /** Several searches in one round trip, answered slot for slot.
+     *
+     *  The page sends every pane's search that starts in the same moment —
+     *  a workspace link with three panes, or a filter toggled while another
+     *  pane is still loading — as one request. The server then reads the
+     *  surrounding paragraphs once per radius for the whole batch rather
+     *  than once per pane (`runSearchBatch` in `./search.ts`). */
+    HttpApiEndpoint.post('batch', '/api/search/batch', {
+      payload: S.Struct({ requests: S.Array(SearchRequest).check(S.isMaxLength(MAX_BATCH)) }),
+      success: S.Struct({ results: S.Array(SearchSlot) }),
     }),
   )
   .add(

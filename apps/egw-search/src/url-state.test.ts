@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
 
 import {
+  cycle,
   DEFAULT_LIMIT,
   EMPTY_PARAMS,
   MAX_PANES,
@@ -9,15 +9,11 @@ import {
   parseWorkspace,
   toRequest,
   toWorkspaceString,
-  Workspace,
 } from './url-state.js';
 
-const decode = Schema.decodeUnknownSync(Workspace);
-const encode = Schema.encodeUnknownSync(Workspace);
-
-describe('Workspace codec', () => {
-  test('a one-pane link decodes as the URLs this app always produced', () => {
-    const panes = decode({ q: ['latter rain'], subtype: ['-devotional'] });
+describe('workspace URL', () => {
+  test('a one-pane link reads as the URLs this app always produced', () => {
+    const panes = parseWorkspace('?q=latter+rain&subtype=-devotional');
     expect(panes).toHaveLength(1);
     expect(panes[0]?.q).toBe('latter rain');
     expect(panes[0]?.subtype).toEqual({ include: [], exclude: ['devotional'] });
@@ -25,27 +21,30 @@ describe('Workspace codec', () => {
   });
 
   test('a second pane reads its suffixed keys', () => {
-    const panes = decode({ q: ['latter rain'], q2: ['loud cry'], section2: ['bible'] });
+    const panes = parseWorkspace('?q=latter+rain&q2=loud+cry&section2=bible');
     expect(panes.map((pane) => pane.q)).toEqual(['latter rain', 'loud cry']);
     expect(panes[1]?.section).toEqual({ include: ['bible'], exclude: [] });
   });
 
-  test('encoding then decoding gives the same workspace back', () => {
-    const panes = decode({
-      q: ['latter rain'],
-      scope: ['egw'],
-      type: ['book', '-periodical'],
-      noref: ['1'],
-      q2: [''],
-      section2: ['bible'],
-    });
-    expect(decode(encode(panes))).toEqual(panes);
+  test('writing then reading gives the same workspace back', () => {
+    const panes = parseWorkspace(
+      '?q=latter+rain&scope=egw&type=book&type=-periodical&noref=1&q2=&section2=bible',
+    );
+    expect(parseWorkspace(toWorkspaceString(panes).slice(1))).toEqual(panes);
   });
 
   test('an added, empty pane survives the round trip as a pane', () => {
     const panes = [{ ...EMPTY_PARAMS, q: 'latter rain' }, EMPTY_PARAMS];
     expect(toWorkspaceString(panes)).toBe('/?q=latter+rain&q2=');
-    expect(decode(encode(panes))).toHaveLength(2);
+    expect(parseWorkspace(toWorkspaceString(panes).slice(1))).toHaveLength(2);
+  });
+
+  test('a pane present only through a filter key is still a pane', () => {
+    expect(parseWorkspace('?q=a&subtype2=commentary')).toHaveLength(2);
+  });
+
+  test('an empty workspace is the root path', () => {
+    expect(toWorkspaceString([EMPTY_PARAMS])).toBe('/');
   });
 
   test('the walk stops at the first gap and at MAX_PANES', () => {
@@ -57,9 +56,20 @@ describe('Workspace codec', () => {
   });
 
   test('a broken value degrades to the default rather than failing the page', () => {
-    const panes = decode({ q: ['x'], scope: ['banana'], type: ['book', 'nonsense'] });
+    const panes = parseWorkspace('?q=x&scope=banana&type=book&type=nonsense&limit=-3');
     expect(panes[0]?.scope).toBe('all');
     expect(panes[0]?.type).toEqual({ include: ['book'], exclude: [] });
+    expect(panes[0]?.limit).toBe(DEFAULT_LIMIT);
+  });
+});
+
+describe('cycle', () => {
+  test('off → include → exclude → off', () => {
+    const include = cycle({ include: [], exclude: [] }, 'a');
+    expect(include).toEqual({ include: ['a'], exclude: [] });
+    const exclude = cycle(include, 'a');
+    expect(exclude).toEqual({ include: [], exclude: ['a'] });
+    expect(cycle(exclude, 'a')).toEqual({ include: [], exclude: [] });
   });
 });
 

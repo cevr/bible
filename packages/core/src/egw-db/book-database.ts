@@ -15,7 +15,17 @@
  * - sync_status: incremental sync bookkeeping
  */
 
-import { Context, DateTime, Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
+import {
+  Array as Arr,
+  Context,
+  DateTime,
+  Effect,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Stream,
+} from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 import type * as Statement from 'effect/unstable/sql/Statement';
@@ -37,7 +47,7 @@ import {
 } from '../db/schema-version.js';
 import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
-import { isChapterHeading } from '../egw/parse.js';
+import { headingLevel, isChapterHeading } from '../egw/parse.js';
 import type { PublicationArchive } from '../writings/archive.js';
 import type { CorpusProvenance } from '../corpus-supply/model.js';
 
@@ -469,6 +479,25 @@ const seekableParaIds = (identities: readonly string[]): Option.Option<readonly 
  *  expensive half of the query for information the ranking never reads. The
  *  columns here are what the ranking and the rendered hit need, and nothing
  *  else. */
+/** One `h1`–`h3` heading of a book's outline, in the order the book prints it.
+ *
+ *  What `backMatterClassifier` walks to decide whether a paragraph sits under
+ *  an appendix, an index or a table of contents. */
+export interface SectionHeading {
+  readonly publicationId: number;
+  readonly puborder: number;
+  /** 1–6, from the `h1`–`h6` element type. */
+  readonly level: number;
+  readonly title: string;
+}
+
+/** A paragraph's position, and the heading of any level closest above it. */
+export interface NearestHeading {
+  readonly publicationId: number;
+  readonly puborder: number;
+  readonly heading: SectionHeading;
+}
+
 export interface ScoredParagraphRow {
   readonly bookCode: string;
   readonly bookTitle: string;
@@ -489,6 +518,9 @@ export interface ScoredParagraphRow {
    *  `bookCode` is not a publication id and no amount of formatting turns it
    *  into one. */
   readonly publicationId: number;
+  /** The paragraph's position in its book (`paragraphs.puborder`), which is
+   *  what places it under a heading of the book's outline. */
+  readonly puborder: number;
   /** Whether this row is a chapter or section heading rather than prose.
    *
    *  `paragraphs.is_chapter_heading`, written at ingest from `isChapterHeading`
@@ -582,6 +614,29 @@ export interface EGWParagraphDatabaseService {
   readonly getChapterHeadings: (
     bookId: number,
   ) => Effect.Effect<readonly EGWSchemas.Paragraph[], ParagraphDatabaseError>;
+  /**
+   * The `h1`–`h3` outline of each named book, in one statement.
+   *
+   * Search reads it to demote back matter: whether a hit sits under an
+   * appendix or an index is a property of the headings above it, not of the
+   * row. Only the three outline levels, because deeper headings (the `A`, `B`,
+   * `C` letters of an index) never open a new part of a book.
+   */
+  readonly getSectionHeadings: (
+    publicationIds: readonly number[],
+  ) => Effect.Effect<readonly SectionHeading[], ParagraphDatabaseError>;
+  /**
+   * For each paragraph position, the closest heading of any level at or
+   * before it, in one statement. A position before its book's first heading
+   * has none and is left out.
+   *
+   * The outline alone cannot say whether a deeper heading intervenes between
+   * a section heading and a paragraph, and every level of a dictionary's
+   * outline is tens of thousands of rows; one seek per position is not.
+   */
+  readonly getNearestHeadings: (
+    positions: readonly { readonly publicationId: number; readonly puborder: number }[],
+  ) => Effect.Effect<readonly NearestHeading[], ParagraphDatabaseError>;
   /**
    * Full-text search over `paragraphs_fts`, in FTS5 relevance order.
    *
@@ -831,6 +886,10 @@ type FullParagraphRow = ParagraphRow & {
 const NodesJson = Schema.fromJsonString(Schema.Array(Node));
 const decodeNodes = Schema.decodeUnknownSync(NodesJson);
 const encodeNodes = Schema.encodeSync(NodesJson);
+/** `getNearestHeadings`'s positions as one JSON parameter: `[book_id, puborder]` pairs. */
+const encodePositions = Schema.encodeSync(
+  Schema.fromJsonString(Schema.Array(Schema.Tuple([Schema.Finite, Schema.Finite]))),
+);
 
 const paragraphToRow = (
   paragraph: EGWSchemas.Paragraph,
@@ -1442,6 +1501,79 @@ export class EGWParagraphDatabase extends Context.Service<
           ORDER BY puborder
         `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
+      /** Served by `idx_paragraphs_chapter`, the partial index over headings:
+       *  60 books' outlines read in ~8 ms against the 4.5 GB corpus. */
+      const getSectionHeadings = (publicationIds: readonly number[]) => {
+        if (publicationIds.length === 0) return Effect.succeed<readonly SectionHeading[]>([]);
+        return sql<{
+          readonly book_id: number;
+          readonly puborder: number;
+          readonly element_type: string;
+          readonly content_text: string;
+        }>`
+          SELECT book_id, puborder, element_type, content_text FROM paragraphs
+          WHERE book_id IN ${sql.in([...publicationIds])}
+            AND is_chapter_heading = 1
+            AND element_type IN ('h1', 'h2', 'h3')
+        `.pipe(
+          Effect.map((rows) =>
+            rows.map((row): SectionHeading => ({
+              publicationId: row.book_id,
+              puborder: row.puborder,
+              level: headingLevel(Option.some(row.element_type)),
+              title: row.content_text,
+            })),
+          ),
+        );
+      };
+
+      /** One backward seek per position on `idx_paragraphs_puborder`: 120
+       *  positions read in ~5 ms against the 4.5 GB corpus. The positions go
+       *  in as one JSON parameter rather than a `VALUES` list per call. */
+      const getNearestHeadings = (
+        positions: readonly { readonly publicationId: number; readonly puborder: number }[],
+      ) => {
+        if (positions.length === 0) return Effect.succeed<readonly NearestHeading[]>([]);
+        const encoded = encodePositions(
+          positions.map((position) => [position.publicationId, position.puborder] as const),
+        );
+        return sql<{
+          readonly book_id: number;
+          readonly puborder: number;
+          readonly heading_puborder: number;
+          readonly element_type: string;
+          readonly content_text: string;
+        }>`
+          WITH pos AS (
+            SELECT json_extract(value, '$[0]') AS book_id, json_extract(value, '$[1]') AS puborder
+            FROM json_each(${encoded})
+          )
+          SELECT pos.book_id, pos.puborder, h.puborder AS heading_puborder,
+                 h.element_type, h.content_text
+          FROM pos
+          JOIN paragraphs h ON h.rowid = (
+            SELECT p.rowid FROM paragraphs p
+            WHERE p.book_id = pos.book_id AND p.puborder <= pos.puborder
+              AND p.is_chapter_heading = 1
+            ORDER BY p.puborder DESC
+            LIMIT 1
+          )
+        `.pipe(
+          Effect.map((rows) =>
+            rows.map((row): NearestHeading => ({
+              publicationId: row.book_id,
+              puborder: row.puborder,
+              heading: {
+                publicationId: row.book_id,
+                puborder: row.heading_puborder,
+                level: headingLevel(Option.some(row.element_type)),
+                title: row.content_text,
+              },
+            })),
+          ),
+        );
+      };
+
       /** One statement with a composed `WHERE`, rather than one hand-written
        *  statement per combination of filters — three optional filters would
        *  otherwise mean eight near-identical copies of the same join, and the
@@ -1701,6 +1833,7 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly nodes_json: string;
           readonly rank: number;
           readonly book_id: number;
+          readonly puborder: number;
           /** SQLite has no boolean; `is_chapter_heading` is the 0/1 integer the
            *  ingest wrote from `isChapterHeading`. Translated at this boundary
            *  like every other storage-shaped column here. */
@@ -1708,7 +1841,7 @@ export class EGWParagraphDatabase extends Context.Service<
         }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.is_chapter_heading, fts.rank
+                     p.puborder, p.is_chapter_heading, fts.rank
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
@@ -1722,6 +1855,7 @@ export class EGWParagraphDatabase extends Context.Service<
               bookTitle: row.book_title,
               bookAuthor: row.book_author,
               publicationId: row.book_id,
+              puborder: row.puborder,
               rawParaId: Option.fromNullishOr(row.para_id),
               para_id: paragraphIdentity(
                 row.book_code,
@@ -1815,11 +1949,12 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly para_id: string | null;
           readonly nodes_json: string;
           readonly book_id: number;
+          readonly puborder: number;
           readonly is_chapter_heading: number;
         }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.is_chapter_heading
+                     p.puborder, p.is_chapter_heading
               FROM paragraphs p
               CROSS JOIN books b ON p.book_id = b.book_id
               WHERE ${prefilter}
@@ -1832,6 +1967,7 @@ export class EGWParagraphDatabase extends Context.Service<
               bookTitle: row.book_title,
               bookAuthor: row.book_author,
               publicationId: row.book_id,
+              puborder: row.puborder,
               rawParaId: Option.fromNullishOr(row.para_id),
               para_id: paragraphIdentity(
                 row.book_code,
@@ -2128,6 +2264,8 @@ export class EGWParagraphDatabase extends Context.Service<
         getParagraphsByAuthor,
         getParagraphsByPage,
         getChapterHeadings,
+        getSectionHeadings,
+        getNearestHeadings,
         searchParagraphs,
         searchScoredParagraphs,
         findParagraphsByIdentity,
@@ -2236,6 +2374,62 @@ export class EGWParagraphDatabase extends Context.Service<
             }) ?? [],
           );
         },
+        // The same outline rule the live statement applies: `h1`–`h3` only.
+        getSectionHeadings: (publicationIds) => {
+          const wanted = new Set(publicationIds);
+          return Effect.succeed(
+            (config.books ?? [])
+              .filter((book) => wanted.has(book.book_id))
+              .flatMap((book) =>
+                (config.paragraphs ?? []).flatMap((paragraph): readonly SectionHeading[] => {
+                  const level = headingLevel(Option.fromNullishOr(paragraph.element_type));
+                  if (paragraph.bookCode !== book.book_code || level < 1 || level > 3) return [];
+                  return [
+                    {
+                      publicationId: book.book_id,
+                      puborder: paragraph.puborder,
+                      level,
+                      title: nodesToText(paragraph.nodes),
+                    },
+                  ];
+                }),
+              ),
+          );
+        },
+        // The live statement's rule over the configured rows: the last
+        // heading row of the same book at or before each position.
+        getNearestHeadings: (positions) =>
+          Effect.succeed(
+            positions.flatMap((position): readonly NearestHeading[] => {
+              const bookCode = config.books?.find(
+                (book) => book.book_id === position.publicationId,
+              )?.book_code;
+              const above = (config.paragraphs ?? []).filter(
+                (paragraph) =>
+                  paragraph.bookCode === bookCode &&
+                  paragraph.puborder <= position.puborder &&
+                  isChapterHeading(Option.fromNullishOr(paragraph.element_type)),
+              );
+              return Arr.match(
+                above.toSorted((a, b) => b.puborder - a.puborder),
+                {
+                  onEmpty: () => [],
+                  onNonEmpty: ([closest]) => [
+                    {
+                      publicationId: position.publicationId,
+                      puborder: position.puborder,
+                      heading: {
+                        publicationId: position.publicationId,
+                        puborder: closest.puborder,
+                        level: headingLevel(Option.fromNullishOr(closest.element_type)),
+                        title: nodesToText(closest.nodes),
+                      },
+                    },
+                  ],
+                },
+              );
+            }),
+          ),
         getChapterHeadings: (bookId) => {
           const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
           return Effect.succeed(
@@ -2273,6 +2467,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 bookTitle: row.bookTitle,
                 bookAuthor: row.book.book_author,
                 publicationId: row.book.book_id,
+                puborder: row.puborder,
                 rawParaId: row.para_id,
                 para_id: paragraphIdentity(
                   row.bookCode,
@@ -2322,6 +2517,7 @@ export class EGWParagraphDatabase extends Context.Service<
                   bookTitle: book.book_title,
                   bookAuthor: book.book_author,
                   publicationId: book.book_id,
+                  puborder: paragraph.puborder,
                   rawParaId: paragraph.para_id,
                   para_id: identity,
                   ref_code: refCode,

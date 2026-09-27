@@ -1,7 +1,10 @@
-/** The production browser entry: the page and nothing else. */
+/** The browser entry: mount the page into the element `index.html` names. */
 
-import { Effect } from 'effect';
+import { render } from '@solidjs/web';
+import { Option } from 'effect';
 
-import { boot } from './boot.js';
+import { App } from './app.js';
+import './styles.css';
 
-boot(Effect.void);
+const root = Option.fromNullishOr(document.getElementById('root'));
+if (Option.isSome(root)) render(() => <App />, root.value);
