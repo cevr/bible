@@ -13,6 +13,7 @@
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import { AlignmentMismatch, UnknownVoice } from './errors.ts';
+import { fnv1a } from './random.ts';
 import { type Timings, type Voice, VoiceKey, type Word, isCast } from './schema.ts';
 
 /** Another voice takes the line: `{@name}` before a word. */
@@ -127,11 +128,8 @@ export const linesOf = (
   return Result.succeed(lines);
 };
 
-export const hashText = (s: string): string => {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return (h >>> 0).toString(16).padStart(8, '0');
-};
+/** A text's key for content-addressed assets: its FNV-1a as eight hex digits. */
+export const hashText = (s: string): string => fnv1a(s).toString(16).padStart(8, '0');
 
 /** The voice part of `timings.json`: a take recorded under another key is stale. */
 export const voiceKey = (voice: Voice): string => {

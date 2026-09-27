@@ -13,12 +13,15 @@ export const hash = (n: number): number => {
 export const hash2 = (a: number, b: number): number =>
   hash(Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263));
 
-/** Hash a string to a seed, so seeds can be named ("sheep", "robe"). */
-export const seedOf = (s: string): number => {
+/** FNV-1a over a string's UTF-16 code units, as an unsigned 32-bit integer. */
+export const fnv1a = (s: string): number => {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 };
+
+/** Hash a string to a seed, so seeds can be named ("sheep", "robe"). */
+export const seedOf = fnv1a;
 
 /** A seeded generator of floats in [0, 1). */
 export const rng = (seed: number) => {
