@@ -44,7 +44,7 @@
                     </Shape>
                     <Shape x="0.0" y="-94.0" name="head" id="502313:2536">
                         <Ellipse width="40" height="44" name="Path" id="502313:2542"/>
-                        <Stroke thickness="3" name="Stroke" id="502313:2537">
+                        <Stroke thickness="3" cap="round" join="round" name="Stroke" id="502313:2537">
                             <ScriptedPathEffect scriptAssetId="881888:42" name="boil" id="502313:2539">
                                 <ScriptInputNumber propertyValue="0" name="clock" id="502313:2538"/>
                                 <ScriptInputNumber propertyValue="1.6" name="amp" id="502313:2540"/>
