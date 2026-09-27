@@ -21,8 +21,9 @@
 //   GET  /lab/<film>/scenes/:scene/head              its timeline and knobs at HEAD, and whether its code changed
 //   POST /lab/<film>/cues/:scene/:cue                set a cue's offset, dur or ease: CuePatch
 //   POST /lab/<film>/knobs/:scene/:knob              set a knob: KnobPatch
-//   POST /lab/<film>/undo                            put the last write's file back, byte for byte
-//   GET  /lab/<film>/check                           `film check --static` now, and the write Undo reverts
+//   POST /lab/<film>/undo                            put the newest write's file back, byte for byte
+//   POST /lab/<film>/redo                            make the newest undone write again
+//   GET  /lab/<film>/check                           `film check --static` now, the latest change, and what Undo and Redo would do
 //
 // The API rewrites source, so it answers only the lab's own page (`admit`):
 // the server listens on the loopback interface, every request must name the
@@ -176,7 +177,7 @@ const statusOf = (tag: string) => {
   if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
   if (tag === 'SourceRefused' || tag === 'SourceShared') return 422;
-  if (tag === 'UndoUnavailable' || tag === 'SourceChanged') return 409;
+  if (tag === 'UndoUnavailable' || tag === 'RedoUnavailable' || tag === 'SourceChanged') return 409;
   return 500;
 };
 
@@ -425,21 +426,35 @@ export const labRoutes = (film: string) => {
       ),
     ),
     HttpRouter.route(
+      'POST',
+      `${base}/redo`,
+      handled(
+        Effect.gen(function* () {
+          const written = yield* (yield* SceneWriter).redo;
+          return yield* answer(film, written, Effect.succeed({}));
+        }),
+      ),
+    ),
+    HttpRouter.route(
       'GET',
       `${base}/check`,
       handled(
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const dir = (yield* FilmRepo).paths(film).dir;
-          const last = yield* (yield* SceneWriter).last;
-          return yield* checkJson({
-            findings: yield* findings(film),
-            ...Option.match(last, {
+          const history = yield* (yield* SceneWriter).history;
+          const step = (key: 'latest' | 'undo' | 'redo') =>
+            Option.match(history[key], {
               onNone: () => ({}),
               onSome: (w) => ({
-                last: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
+                [key]: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
               }),
-            }),
+            });
+          return yield* checkJson({
+            findings: yield* findings(film),
+            ...step('latest'),
+            ...step('undo'),
+            ...step('redo'),
           });
         }),
       ),

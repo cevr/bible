@@ -75,8 +75,9 @@ the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
 under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
-runs after each write and its findings show in the panel; Undo write puts the
-last write back. Review with `git diff`. The panel's Motion section ghosts the frames
+runs after each write and its findings show in the panel; Undo (⌘Z) puts the
+newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
+over a change made since. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
 0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
 Compare draws the same frame as HEAD declared the scene's timeline and

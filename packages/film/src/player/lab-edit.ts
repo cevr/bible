@@ -490,7 +490,8 @@ export const mountEditor = (
     <header>
       <strong>Edit</strong>
       <span class="lab-edit-file"></span>
-      <button data-act="undo" title="put the scene file back as it was before the last write">Undo write</button>
+      <button data-act="undo" title="put the scene file back as it was before the newest write (⌘Z)" disabled>Undo</button>
+      <button data-act="redo" title="make the newest undone write again (⇧⌘Z)" disabled>Redo</button>
     </header>
     <div class="lab-edit-body"></div>
     <ul class="lab-findings"></ul>
@@ -649,15 +650,30 @@ export const mountEditor = (
     renderHandles();
   };
 
-  q<HTMLButtonElement>('[data-act="undo"]').addEventListener('click', () => {
-    setStatus('undoing…');
-    post(`${api}/undo`, {})
+  // ── Undo and Redo: the server's bounded stack of the lab's writes. Each
+  // changes a scene file, so the page reloads and learns what it did from
+  // `check` (`latest`), and whether there is more to undo or redo. ──
+  const undoBtn = q<HTMLButtonElement>('[data-act="undo"]');
+  const redoBtn = q<HTMLButtonElement>('[data-act="redo"]');
+  const step = (verb: 'undo' | 'redo') => {
+    setStatus(`${verb === 'undo' ? 'undoing' : 'redoing'}…`);
+    post(`${api}/${verb}`, {})
       .then((w) => {
         findings = w.findings;
-        setStatus(`undid ${w.target.replace(/^undo /, '')} in ${w.file}`);
+        setStatus(
+          `${verb === 'undo' ? 'undid' : 'redid'} ${w.target.replace(/^(undo|redo) /, '')} in ${w.file}`,
+        );
         renderInspector();
       })
       .catch((err: unknown) => setStatus(String(err instanceof Error ? err.message : err)));
+  };
+  undoBtn.addEventListener('click', () => step('undo'));
+  redoBtn.addEventListener('click', () => step('redo'));
+  window.addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+    e.preventDefault();
+    step(e.shiftKey ? 'redo' : 'undo');
   });
 
   // ── Following the frame: the strip follows the scene shown. ──
@@ -704,9 +720,12 @@ export const mountEditor = (
       if (!res.ok) throw new Error(await res.text());
       const report = decodeCheck(await res.json());
       findings = report.findings;
-      // A write reloads the page before its answer lands: say what it was here.
-      if (report.last !== undefined)
-        status = `wrote ${report.last.file}: ${report.last.target} (Undo write puts it back)`;
+      // A write, undo or redo reloads the page before its answer lands: say what it was here.
+      if (report.latest !== undefined) status = `${report.latest.file}: ${report.latest.target}`;
+      undoBtn.disabled = report.undo === undefined;
+      redoBtn.disabled = report.redo === undefined;
+      undoBtn.title = `undo ${report.undo?.target ?? '(nothing to undo)'} (⌘Z)`;
+      redoBtn.title = `redo ${report.redo?.target ?? '(nothing to redo)'} (⇧⌘Z)`;
       renderInspector();
     })
     .catch((err: unknown) => setStatus(`check: ${String(err)}`));

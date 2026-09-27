@@ -84,6 +84,8 @@ const post = (path: string, body: string) =>
     body,
   });
 
+const get = (path: string) => new Request(at(path));
+
 const read = Effect.fn('test.read')(function* () {
   return yield* (yield* FileSystem.FileSystem).readFileString(yield* HandFile);
 });
@@ -144,21 +146,36 @@ describe('lab source routes', () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
-  it.effect('undo puts the file back byte for byte, once', () =>
+  it.effect('undo and redo walk the writes back and forth; check answers the last of them', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
+      const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
+      const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       const before = yield* read();
       yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"ease":"inQuad"}'), bound));
-      expect(yield* read()).not.toBe(before);
-      const undone = yield* Effect.promise(() =>
-        lab(post('/lab/f/undo', '{}'), bound).then((r) => r.json()),
-      );
-      expect(undone).toMatchObject({ target: 'undo cue topple ease' });
+      const written = yield* read();
+      expect(written).not.toBe(before);
+      expect(yield* json(post('/lab/f/undo', '{}'))).toMatchObject({
+        target: 'undo cue topple ease',
+      });
       expect(yield* read()).toBe(before);
-      const again = yield* Effect.promise(() =>
-        lab(post('/lab/f/undo', '{}'), bound).then((r) => r.status),
-      );
-      expect(again).toBe(409);
+      expect(yield* status(post('/lab/f/undo', '{}'))).toBe(409);
+      // The page the undo reloaded asks what happened, and what Redo would do.
+      expect(yield* json(get('/lab/f/check'))).toMatchObject({
+        latest: { target: 'undo cue topple ease', file: 'scenes/hand.ts' },
+        redo: { target: 'cue topple ease' },
+      });
+      expect(yield* json(post('/lab/f/redo', '{}'))).toMatchObject({
+        target: 'redo cue topple ease',
+      });
+      expect(yield* read()).toBe(written);
+      expect(yield* status(post('/lab/f/redo', '{}'))).toBe(409);
+      const report = yield* json(get('/lab/f/check'));
+      expect(report).toMatchObject({
+        latest: { target: 'redo cue topple ease' },
+        undo: { target: 'cue topple ease' },
+      });
+      expect(report).not.toHaveProperty('redo');
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
