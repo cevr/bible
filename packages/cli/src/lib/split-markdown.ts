@@ -79,95 +79,123 @@ const headingText = (line: string): string =>
     .replace(/\s+#*\s*$/, '')
     .trim();
 
+/** The section block currently being accumulated. */
+interface OpenSection {
+  title: string;
+  lines: string[];
+}
+
+/** Everything the line-by-line split carries between lines. */
+interface SplitState {
+  folderTitle: string;
+  /** The most recent "# Part" divider, prefixed onto numbered sections. */
+  currentPart: Option.Option<string>;
+  blocks: MarkdownBlock[];
+  /** Preface accumulates everything after the H1 until the first "## ". */
+  prefaceLines: string[];
+  /** None until the first "## " opens a section; always Some after. */
+  section: Option.Option<OpenSection>;
+}
+
+/**
+ * Title for a section opened by `line`. Prefix the current Part onto numbered
+ * sections. Use just the Part label (e.g. "Part I"), not its full descriptive
+ * heading, so note titles stay readable: "Part I — 1. The Casket...".
+ */
+const sectionTitle = (line: string, currentPart: Option.Option<string>): string => {
+  const text = headingText(line);
+  const isNumbered = /^\d+\./.test(text);
+  const partLabel = Option.map(currentPart, partShortLabel);
+  if (Option.isSome(partLabel) && isNumbered) return `${partLabel.value} — ${text}`;
+  return text;
+};
+
+/** Emit the preface as an "Overview" block (only once, when the first section opens). */
+const closePreface = (state: SplitState): void => {
+  const preface = state.prefaceLines.join('\n').trim();
+  if (preface.length > 0) {
+    state.blocks.push({
+      slug: 'overview',
+      title: 'Overview',
+      markdown: preface,
+    });
+  }
+  state.prefaceLines = [];
+};
+
+/** Emit the open section, if any, as a block. */
+const closeSection = (state: SplitState): void => {
+  if (Option.isNone(state.section)) return;
+  const { title, lines } = state.section.value;
+  state.blocks.push({
+    slug: slugify(title),
+    title,
+    markdown: lines.join('\n').trim(),
+  });
+  state.section = Option.none();
+};
+
+/** A "## " heading closes whatever came before and opens a new block. */
+const openSection = (state: SplitState, line: string): void => {
+  if (Option.isNone(state.section)) {
+    closePreface(state);
+  } else {
+    closeSection(state);
+  }
+  state.section = Option.some({ title: sectionTitle(line, state.currentPart), lines: [line] });
+};
+
+/** Ordinary content goes to the open section, or to the preface before the first one. */
+const appendLine = (state: SplitState, line: string): void => {
+  if (Option.isSome(state.section)) {
+    state.section.value.lines.push(line);
+  } else {
+    state.prefaceLines.push(line);
+  }
+};
+
 /**
  * Split markdown (already free of YAML frontmatter) into a folder title and
  * ordered blocks. Throws nothing — a document with no "## " headings yields a
  * single preface block.
  */
 export function splitMarkdownIntoSections(content: string): SplitMarkdown {
-  const lines = content.split('\n');
-
-  let folderTitle = 'Untitled';
-  let currentPart: Option.Option<string> = Option.none();
-
-  const blocks: MarkdownBlock[] = [];
-  // Preface accumulates everything after the H1 until the first "## ".
-  let prefaceLines: string[] = [];
-  let started = false; // have we hit the first "## " yet?
-
-  // Current open section block.
-  let curTitle: Option.Option<string> = Option.none();
-  let curLines: string[] = [];
-
-  const flush = (): void => {
-    if (Option.isNone(curTitle)) return;
-    const body = curLines.join('\n').trim();
-    blocks.push({
-      slug: slugify(curTitle.value),
-      title: curTitle.value,
-      markdown: body,
-    });
-    curTitle = Option.none();
-    curLines = [];
+  const state: SplitState = {
+    folderTitle: 'Untitled',
+    currentPart: Option.none(),
+    blocks: [],
+    prefaceLines: [],
+    section: Option.none(),
   };
 
-  for (const line of lines) {
-    if (!started && isH1(line) && folderTitle === 'Untitled') {
-      folderTitle = headingText(line);
+  for (const line of content.split('\n')) {
+    if (Option.isNone(state.section) && isH1(line) && state.folderTitle === 'Untitled') {
+      state.folderTitle = headingText(line);
       continue;
     }
 
     if (isSectionHeading(line)) {
-      // Close out preface (only once, when the first section opens).
-      if (!started) {
-        const preface = prefaceLines.join('\n').trim();
-        if (preface.length > 0) {
-          blocks.push({
-            slug: 'overview',
-            title: 'Overview',
-            markdown: preface,
-          });
-        }
-        prefaceLines = [];
-        started = true;
-      } else {
-        flush();
-      }
-      // Open a new block. Prefix the current Part onto numbered sections.
-      // Use just the Part label (e.g. "Part I"), not its full descriptive
-      // heading, so note titles stay readable: "Part I — 1. The Casket...".
-      const text = headingText(line);
-      const isNumbered = /^\d+\./.test(text);
-      const partLabel = Option.map(currentPart, partShortLabel);
-      curTitle = Option.some(text);
-      if (Option.isSome(partLabel) && isNumbered) {
-        curTitle = Option.some(`${partLabel.value} — ${text}`);
-      }
-      curLines = [line];
+      openSection(state, line);
       continue;
     }
 
     if (isPartHeading(line)) {
       // A divider: remember it for the next numbered section; don't emit a block.
-      currentPart = Option.some(headingText(line));
       // If a section is open, the Part header belongs to the NEXT section, so
       // we simply don't append it to the current block.
+      state.currentPart = Option.some(headingText(line));
       continue;
     }
 
-    // Ordinary content line.
-    if (!started) {
-      prefaceLines.push(line);
-    } else {
-      curLines.push(line);
-    }
+    appendLine(state, line);
   }
 
-  flush();
+  closeSection(state);
 
+  const { folderTitle, blocks } = state;
   // Edge case: a document with no "## " headings at all — emit the preface.
   if (blocks.length === 0) {
-    const preface = prefaceLines.join('\n').trim();
+    const preface = state.prefaceLines.join('\n').trim();
     let markdown = content.trim();
     if (preface.length > 0) markdown = preface;
     blocks.push({

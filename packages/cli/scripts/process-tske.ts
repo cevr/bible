@@ -157,6 +157,31 @@ function parseTskeRef(raw: string): Option.Option<Reference> {
   return Option.some(ref);
 }
 
+/** Every parseable <u>-tagged ref on a TSKe line. */
+function extractRefs(line: string): Reference[] {
+  const refs: Reference[] = [];
+  for (const uMatch of line.matchAll(U_TAG_RE)) {
+    const rawRef = Option.fromNullishOr(uMatch[1]);
+    if (Option.isNone(rawRef)) continue;
+    const ref = parseTskeRef(rawRef.value);
+    if (Option.isSome(ref)) {
+      refs.push(ref.value);
+    }
+  }
+  return refs;
+}
+
+/** Record a verse's refs, merging into an existing entry for the same verse. */
+function addRefs(crossRefs: Record<string, CrossRefEntry>, key: string, refs: Reference[]): void {
+  if (refs.length === 0) return;
+  if (crossRefs[key]) {
+    // Merge refs for the same verse (shouldn't happen but be safe)
+    crossRefs[key].refs.push(...refs);
+  } else {
+    crossRefs[key] = { refs };
+  }
+}
+
 const processTske = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -206,26 +231,9 @@ const processTske = Effect.gen(function* () {
     const sourceVerse = parseInt(sourceVerseText.value, 10);
     const key = `${sourceBookNum.value}.${sourceChapter}.${sourceVerse}`;
 
-    // Extract all <u> tag contents
-    const refs: Reference[] = [];
-    for (const uMatch of line.matchAll(U_TAG_RE)) {
-      const rawRef = Option.fromNullishOr(uMatch[1]);
-      if (Option.isNone(rawRef)) continue;
-      const ref = parseTskeRef(rawRef.value);
-      if (Option.isSome(ref)) {
-        refs.push(ref.value);
-      }
-    }
-
-    if (refs.length > 0) {
-      if (crossRefs[key]) {
-        // Merge refs for the same verse (shouldn't happen but be safe)
-        crossRefs[key].refs.push(...refs);
-      } else {
-        crossRefs[key] = { refs };
-      }
-      refsExtracted += refs.length;
-    }
+    const refs = extractRefs(line);
+    addRefs(crossRefs, key, refs);
+    refsExtracted += refs.length;
 
     versesProcessed++;
   }

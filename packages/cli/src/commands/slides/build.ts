@@ -29,6 +29,87 @@ interface BuildRecord {
   file: string;
 }
 
+/** Resolve one beat's image against the beat-sheet directory and check it exists. */
+const beatRecord = (dir: string, b: typeof Beat.Type) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const file = Option.getOrElse(Option.fromNullishOr(b.image), () => '');
+    const isNew = file === '' || file.toUpperCase() === 'NEW';
+    let abs = '';
+    if (!isNew) abs = path.resolve(dir, file);
+    let exists = false;
+    if (abs !== '') exists = yield* fs.exists(abs);
+    let imgPath = '';
+    if (exists) imgPath = abs;
+    const record: BuildRecord = {
+      line: b.line ?? '',
+      note: b.note ?? '',
+      imgPath,
+      hasImg: exists,
+      file: file || '(none)',
+    };
+    return record;
+  });
+
+/** The AppleScript that builds, saves and (unless --open) closes the deck. */
+const keynoteBuildScript = (
+  records: ReadonlyArray<BuildRecord>,
+  outPath: string,
+  args: { readonly theme: string; readonly master: string; readonly open: boolean },
+) => {
+  const beatList = records
+    .map(
+      (r) =>
+        `{imgPath:${asText(r.imgPath)}, hasImg:${r.hasImg}, theLine:${asText(r.line)}, theNote:${asText(r.note)}, theFile:${asText(r.file)}}`,
+    )
+    .join(', ¬\n\t\t');
+
+  // When !open, close the just-saved deck by basename after the build so we
+  // don't leave it open. (The Untitled sweep can't catch it — Keynote renames
+  // the doc in place on save-as.)
+  let closeNamed = `\tclose (every document whose name is ${asText(basename(outPath))}) saving no\n`;
+  if (args.open) closeNamed = '';
+
+  return `tell application "Keynote"
+\tactivate
+\tset theDoc to make new document with properties {document theme:theme ${asText(args.theme)}, width:1920, height:1080}
+\tset beats to {${beatList}}
+\ttell theDoc
+\t\tset isFirst to true
+\t\trepeat with b in beats
+\t\t\tif isFirst then
+\t\t\t\tset theSlide to slide 1
+\t\t\t\tset base slide of theSlide to master slide ${asText(args.master)}
+\t\t\t\tset isFirst to false
+\t\t\telse
+\t\t\t\tset theSlide to make new slide at end with properties {base slide:master slide ${asText(args.master)}}
+\t\t\tend if
+\t\t\tset imgP to imgPath of b
+\t\t\tset showImg to (hasImg of b)
+\t\t\tif showImg then
+\t\t\t\ttell application "System Events" to set showImg to (exists disk item imgP)
+\t\t\tend if
+\t\t\ttell theSlide
+\t\t\t\tif showImg then
+\t\t\t\t\tmake new image with properties {file:(POSIX file imgP), position:{0, 0}, width:1920, height:1080}
+\t\t\t\telse
+\t\t\t\t\tmake new text item with properties {object text:("[MISSING IMAGE: " & (theFile of b) & "]"), position:{160, 480}, width:1600, height:120}
+\t\t\t\tend if
+\t\t\t\tmake new text item with properties {object text:(theLine of b), position:{160, 870}, width:1600, height:150}
+\t\t\t\tset presenter notes to (theNote of b)
+\t\t\tend tell
+\t\tend repeat
+\tend tell
+\tset slideCount to (count of slides of theDoc)
+\tsave theDoc in POSIX file ${asText(outPath)}
+\trepeat with d in (every document whose name starts with "Untitled")
+\t\tclose d saving no
+\tend repeat
+${closeNamed}\treturn "BUILD DONE — slides: " & slideCount
+end tell`;
+};
+
 const buildBeatSheet = Argument.File('beat-sheet', { mustExist: true }).pipe(
   Argument.withDescription(
     "beat-sheet.json — { deck, beats:[{ line, image, scene, note? }] }. Image paths resolve relative to this file's directory.",
@@ -87,85 +168,16 @@ export const slidesBuild = Command.make(
 
       const dir = path.dirname(sheetPath);
 
-      const records: BuildRecord[] = [];
-      let missing = 0;
-      let noteless = 0;
-      for (const b of sheet.beats) {
-        const file = Option.getOrElse(Option.fromNullishOr(b.image), () => '');
-        const isNew = file === '' || file.toUpperCase() === 'NEW';
-        let abs = '';
-        if (!isNew) abs = path.resolve(dir, file);
-        let exists = false;
-        if (abs !== '') exists = yield* fs.exists(abs);
-        if (!exists) missing++;
-        const note = b.note ?? '';
-        if ((b.note ?? '') === '') noteless++;
-        let imgPath = '';
-        if (exists) imgPath = abs;
-        records.push({
-          line: b.line ?? '',
-          note,
-          imgPath,
-          hasImg: exists,
-          file: file || '(none)',
-        });
-      }
+      const records = yield* Effect.forEach(sheet.beats, (b) => beatRecord(dir, b));
+      const missing = records.filter((r) => !r.hasImg).length;
+      const noteless = records.filter((r) => r.note === '').length;
 
       let outPath = path.resolve(dir, args.out + '.key');
       if (args.out.endsWith('.key')) outPath = path.resolve(args.out);
 
       yield* fs.makeDirectory(path.dirname(outPath), { recursive: true }).pipe(Effect.ignore);
 
-      const beatList = records
-        .map(
-          (r) =>
-            `{imgPath:${asText(r.imgPath)}, hasImg:${r.hasImg}, theLine:${asText(r.line)}, theNote:${asText(r.note)}, theFile:${asText(r.file)}}`,
-        )
-        .join(', ¬\n\t\t');
-
-      // When !open, close the just-saved deck by basename after the build so we
-      // don't leave it open. (The Untitled sweep can't catch it — Keynote renames
-      // the doc in place on save-as.)
-      let closeNamed = `\tclose (every document whose name is ${asText(basename(outPath))}) saving no\n`;
-      if (args.open) closeNamed = '';
-
-      const script = `tell application "Keynote"
-\tactivate
-\tset theDoc to make new document with properties {document theme:theme ${asText(args.theme)}, width:1920, height:1080}
-\tset beats to {${beatList}}
-\ttell theDoc
-\t\tset isFirst to true
-\t\trepeat with b in beats
-\t\t\tif isFirst then
-\t\t\t\tset theSlide to slide 1
-\t\t\t\tset base slide of theSlide to master slide ${asText(args.master)}
-\t\t\t\tset isFirst to false
-\t\t\telse
-\t\t\t\tset theSlide to make new slide at end with properties {base slide:master slide ${asText(args.master)}}
-\t\t\tend if
-\t\t\tset imgP to imgPath of b
-\t\t\tset showImg to (hasImg of b)
-\t\t\tif showImg then
-\t\t\t\ttell application "System Events" to set showImg to (exists disk item imgP)
-\t\t\tend if
-\t\t\ttell theSlide
-\t\t\t\tif showImg then
-\t\t\t\t\tmake new image with properties {file:(POSIX file imgP), position:{0, 0}, width:1920, height:1080}
-\t\t\t\telse
-\t\t\t\t\tmake new text item with properties {object text:("[MISSING IMAGE: " & (theFile of b) & "]"), position:{160, 480}, width:1600, height:120}
-\t\t\t\tend if
-\t\t\t\tmake new text item with properties {object text:(theLine of b), position:{160, 870}, width:1600, height:150}
-\t\t\t\tset presenter notes to (theNote of b)
-\t\t\tend tell
-\t\tend repeat
-\tend tell
-\tset slideCount to (count of slides of theDoc)
-\tsave theDoc in POSIX file ${asText(outPath)}
-\trepeat with d in (every document whose name starts with "Untitled")
-\t\tclose d saving no
-\tend repeat
-${closeNamed}\treturn "BUILD DONE — slides: " & slideCount
-end tell`;
+      const script = keynoteBuildScript(records, outPath, args);
 
       const out = (yield* svc.exec(script)).trim();
       yield* Console.log(out);

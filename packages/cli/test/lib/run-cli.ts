@@ -164,6 +164,22 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
     };
   });
 
+/** Does a recorded call partially match an expected one? Only the expected
+ *  call's own properties are checked. */
+const callMatches = (actualCall: ServiceCall, expectedCall: Partial<ServiceCall>): boolean =>
+  actualCall._tag === expectedCall._tag &&
+  Object.entries(expectedCall).every(([key, value]) => {
+    if (key === '_tag') return true;
+
+    const actualValue: unknown = Reflect.get(actualCall, key);
+
+    // Handle expect.stringContaining and other matchers
+    if (Predicate.hasProperty(value, 'asymmetricMatch')) {
+      return (value as { asymmetricMatch: (v: any) => boolean }).asymmetricMatch(actualValue);
+    }
+    return actualValue === value;
+  });
+
 /**
  * Assertion helper for verifying call sequences.
  *
@@ -183,33 +199,9 @@ export const expectSequence = (actual: ServiceCall[], expected: Array<Partial<Se
       const actualCallOpt = Option.fromNullishOr(actual[actualIndex]);
       actualIndex++;
 
-      if (Option.isNone(actualCallOpt)) continue;
-      const actualCall = actualCallOpt.value;
-
-      if (actualCall._tag === expectedCall._tag) {
-        // Check additional properties
-        let matches = true;
-        for (const [key, value] of Object.entries(expectedCall)) {
-          if (key === '_tag') continue;
-
-          const actualValue: unknown = Reflect.get(actualCall, key);
-
-          // Handle expect.stringContaining and other matchers
-          if (Predicate.hasProperty(value, 'asymmetricMatch')) {
-            if (!(value as { asymmetricMatch: (v: any) => boolean }).asymmetricMatch(actualValue)) {
-              matches = false;
-              break;
-            }
-          } else if (actualValue !== value) {
-            matches = false;
-            break;
-          }
-        }
-
-        if (matches) {
-          found = true;
-          break;
-        }
+      if (Option.isSome(actualCallOpt) && callMatches(actualCallOpt.value, expectedCall)) {
+        found = true;
+        break;
       }
     }
 
@@ -241,27 +233,7 @@ export const expectNoCalls = (calls: ServiceCall[], tag: ServiceCall['_tag']) =>
  */
 export const expectContains = (actual: ServiceCall[], expected: Array<Partial<ServiceCall>>) => {
   for (const expectedCall of expected) {
-    const found = actual.some((actualCall) => {
-      if (actualCall._tag !== expectedCall._tag) return false;
-
-      // Check additional properties
-      for (const [key, value] of Object.entries(expectedCall)) {
-        if (key === '_tag') continue;
-
-        const actualValue: unknown = Reflect.get(actualCall, key);
-
-        // Handle expect.stringContaining and other matchers
-        if (Predicate.hasProperty(value, 'asymmetricMatch')) {
-          if (!(value as { asymmetricMatch: (v: any) => boolean }).asymmetricMatch(actualValue)) {
-            return false;
-          }
-        } else if (actualValue !== value) {
-          return false;
-        }
-      }
-      return true;
-    });
-
+    const found = actual.some((actualCall) => callMatches(actualCall, expectedCall));
     expect(found).toBe(true);
   }
 };

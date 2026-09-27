@@ -345,115 +345,163 @@ const processCrossRefs = Effect.fn('processCrossRefs')(function* (dataRaw: strin
   return crossRefs;
 });
 
+const optionalClean = (value?: string) =>
+  Option.getOrUndefined(Option.map(Option.fromNullishOr(value), cleanHtmlEntities));
+
 /**
- * Process Strong's dictionaries from multiple sources
+ * Load the lexicon.json (kaiserlik/kjv) - has Greek and Hebrew
  */
-const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
+const loadLexicon = Effect.fn('loadLexicon')(function* (
+  dataRaw: string,
+  strongs: Record<string, StrongsEntry>,
+) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  yield* Effect.log("Processing Strong's dictionaries...");
-
-  const strongs: Record<string, StrongsEntry> = {};
-  const optionalClean = (value?: string) =>
-    Option.getOrUndefined(Option.map(Option.fromNullishOr(value), cleanHtmlEntities));
-
-  // First, try loading from the lexicon.json (kaiserlik/kjv) - has Greek and Hebrew
   const lexiconPath = path.join(dataRaw, 'kjv-strongs/lexicon.json');
   const lexiconData = yield* fs.readFileString(lexiconPath).pipe(
     Effect.flatMap((source) => decodeJson(LexiconData, source)),
     Effect.option,
   );
-  if (Option.isSome(lexiconData)) {
-    for (const [key, value] of Object.entries(lexiconData.value)) {
-      const v = value;
-      strongs[key] = {
-        lemma: v.Gk_word || v.Heb_word || '',
-        xlit: v.transliteration || '',
-        def: cleanHtmlEntities(v.strongs_def || v.outline_usage || ''),
-      };
-    }
-    yield* Effect.log(
-      `  Loaded ${Object.keys(lexiconData.value).length} entries from lexicon.json`,
-    );
-  } else {
+  if (Option.isNone(lexiconData)) {
     yield* Effect.logWarning('  Could not load lexicon.json');
+    return;
   }
+  for (const [key, value] of Object.entries(lexiconData.value)) {
+    const v = value;
+    strongs[key] = {
+      lemma: v.Gk_word || v.Heb_word || '',
+      xlit: v.transliteration || '',
+      def: cleanHtmlEntities(v.strongs_def || v.outline_usage || ''),
+    };
+  }
+  yield* Effect.log(`  Loaded ${Object.keys(lexiconData.value).length} entries from lexicon.json`);
+});
 
-  // Then supplement with OpenScriptures Hebrew data (has more detail)
-  const hebrewPath = path.join(dataRaw, 'strongs/hebrew/strongs-hebrew-dictionary.js');
-  const hebrewContent = yield* fs.readFileString(hebrewPath).pipe(Effect.option);
-  if (Option.isSome(hebrewContent)) {
-    const hebrewSource = Option.fromNullishOr(
-      hebrewContent.value.match(/var strongsHebrewDictionary = (\{[\s\S]*?\n\});/)?.[1],
-    );
+/**
+ * The JSON object an OpenScriptures dictionary file assigns to its `var`.
+ * None when the file is unreadable (warned) or the assignment isn't found.
+ */
+const readDictionarySource = Effect.fn('readDictionarySource')(function* (
+  filePath: string,
+  assignment: RegExp,
+  language: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const content = yield* fs.readFileString(filePath).pipe(Effect.option);
+  if (Option.isNone(content)) {
+    yield* Effect.logWarning(`  Could not parse ${language} dictionary`);
+    return Option.none<string>();
+  }
+  return Option.fromNullishOr(content.value.match(assignment)?.[1]);
+});
 
-    if (Option.isSome(hebrewSource)) {
-      const hebrewData = yield* decodeJson(HebrewData, hebrewSource.value).pipe(Effect.option);
-      if (Option.isSome(hebrewData)) {
-        let added = 0;
-        for (const [key, value] of Object.entries(hebrewData.value)) {
-          const v = value;
-          // Only add if we don't have it or if OpenScriptures has more detail
-          if (!strongs[key] || !strongs[key].def) {
-            strongs[key] = {
-              lemma: v.lemma,
-              xlit: v.xlit,
-              pron: v.pron,
-              def: cleanHtmlEntities(v.strongs_def),
-              kjvDef: optionalClean(v.kjv_def),
-            };
-            added++;
-          } else if (v.pron && !strongs[key].pron) {
-            // Add pronunciation if missing
-            strongs[key].pron = v.pron;
-            strongs[key].kjvDef = optionalClean(v.kjv_def);
-          }
-        }
-        yield* Effect.log(`  Added/updated ${added} Hebrew entries from OpenScriptures`);
-      } else {
-        yield* Effect.logWarning('  Could not parse Hebrew dictionary');
-      }
+/**
+ * Merge OpenScriptures entries into the lexicon: add an entry if we don't
+ * have it or ours has no definition; otherwise only fill a missing
+ * pronunciation. Returns how many entries were added/replaced.
+ */
+function mergeOpenScriptures(
+  strongs: Record<string, StrongsEntry>,
+  entries: ReadonlyArray<readonly [string, StrongsEntry]>,
+): number {
+  let added = 0;
+  for (const [key, entry] of entries) {
+    const existing = strongs[key];
+    if (!existing || !existing.def) {
+      strongs[key] = entry;
+      added++;
+    } else if (entry.pron && !existing.pron) {
+      // Add pronunciation if missing
+      existing.pron = entry.pron;
+      existing.kjvDef = entry.kjvDef;
     }
-  } else {
+  }
+  return added;
+}
+
+/**
+ * Supplement with OpenScriptures Hebrew data (has more detail)
+ */
+const mergeHebrew = Effect.fn('mergeHebrew')(function* (
+  dataRaw: string,
+  strongs: Record<string, StrongsEntry>,
+) {
+  const path = yield* Path.Path;
+  const hebrewSource = yield* readDictionarySource(
+    path.join(dataRaw, 'strongs/hebrew/strongs-hebrew-dictionary.js'),
+    /var strongsHebrewDictionary = (\{[\s\S]*?\n\});/,
+    'Hebrew',
+  );
+  if (Option.isNone(hebrewSource)) return;
+
+  const hebrewData = yield* decodeJson(HebrewData, hebrewSource.value).pipe(Effect.option);
+  if (Option.isNone(hebrewData)) {
     yield* Effect.logWarning('  Could not parse Hebrew dictionary');
+    return;
   }
+  const added = mergeOpenScriptures(
+    strongs,
+    Object.entries(hebrewData.value).map(([key, v]) => [
+      key,
+      {
+        lemma: v.lemma,
+        xlit: v.xlit,
+        pron: v.pron,
+        def: cleanHtmlEntities(v.strongs_def),
+        kjvDef: optionalClean(v.kjv_def),
+      },
+    ]),
+  );
+  yield* Effect.log(`  Added/updated ${added} Hebrew entries from OpenScriptures`);
+});
 
-  // Supplement with OpenScriptures Greek data
-  const greekPath = path.join(dataRaw, 'strongs/greek/strongs-greek-dictionary.js');
-  const greekContent = yield* fs.readFileString(greekPath).pipe(Effect.option);
-  if (Option.isSome(greekContent)) {
-    const greekSource = Option.fromNullishOr(
-      greekContent.value.match(/var strongsGreekDictionary = (\{.*\});/)?.[1],
-    );
+/**
+ * Supplement with OpenScriptures Greek data
+ */
+const mergeGreek = Effect.fn('mergeGreek')(function* (
+  dataRaw: string,
+  strongs: Record<string, StrongsEntry>,
+) {
+  const path = yield* Path.Path;
+  const greekSource = yield* readDictionarySource(
+    path.join(dataRaw, 'strongs/greek/strongs-greek-dictionary.js'),
+    /var strongsGreekDictionary = (\{.*\});/,
+    'Greek',
+  );
+  if (Option.isNone(greekSource)) return;
 
-    if (Option.isSome(greekSource)) {
-      const greekData = yield* decodeJson(GreekData, greekSource.value).pipe(Effect.option);
-      if (Option.isSome(greekData)) {
-        let added = 0;
-        for (const [key, value] of Object.entries(greekData.value)) {
-          const v = value;
-          if (!strongs[key] || !strongs[key].def) {
-            strongs[key] = {
-              lemma: v.lemma,
-              xlit: v.translit || v.xlit || '',
-              pron: v.pron,
-              def: cleanHtmlEntities(v.strongs_def || v.derivation || ''),
-              kjvDef: optionalClean(v.kjv_def),
-            };
-            added++;
-          } else if (v.pron && !strongs[key].pron) {
-            strongs[key].pron = v.pron;
-            strongs[key].kjvDef = optionalClean(v.kjv_def);
-          }
-        }
-        yield* Effect.log(`  Added/updated ${added} Greek entries from OpenScriptures`);
-      } else {
-        yield* Effect.logWarning('  Could not parse Greek dictionary');
-      }
-    }
-  } else {
+  const greekData = yield* decodeJson(GreekData, greekSource.value).pipe(Effect.option);
+  if (Option.isNone(greekData)) {
     yield* Effect.logWarning('  Could not parse Greek dictionary');
+    return;
   }
+  const added = mergeOpenScriptures(
+    strongs,
+    Object.entries(greekData.value).map(([key, v]) => [
+      key,
+      {
+        lemma: v.lemma,
+        xlit: v.translit || v.xlit || '',
+        pron: v.pron,
+        def: cleanHtmlEntities(v.strongs_def || v.derivation || ''),
+        kjvDef: optionalClean(v.kjv_def),
+      },
+    ]),
+  );
+  yield* Effect.log(`  Added/updated ${added} Greek entries from OpenScriptures`);
+});
+
+/**
+ * Process Strong's dictionaries from multiple sources
+ */
+const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
+  yield* Effect.log("Processing Strong's dictionaries...");
+
+  const strongs: Record<string, StrongsEntry> = {};
+  // First the lexicon, then supplement with the more detailed OpenScriptures data
+  yield* loadLexicon(dataRaw, strongs);
+  yield* mergeHebrew(dataRaw, strongs);
+  yield* mergeGreek(dataRaw, strongs);
 
   return strongs;
 });
@@ -487,6 +535,83 @@ function parseWordWithStrongs(text: string): WordWithStrongs {
 }
 
 /**
+ * Split a verse into words and parse Strong's numbers.
+ * Words are separated by spaces, but punctuation sticks to words.
+ */
+function parseVerseWords(englishText: string): WordWithStrongs[] {
+  const words: WordWithStrongs[] = [];
+  for (const rawWord of englishText.split(/\s+/)) {
+    if (!rawWord) continue;
+    const parsed = parseWordWithStrongs(rawWord);
+    if (parsed.text) {
+      words.push(parsed);
+    }
+  }
+  return words;
+}
+
+/**
+ * Flatten one book's nested chapters into verses:
+ * { "Gen|1": { "Gen|1|1": { "en": "..." } } }
+ */
+function bookVerses(
+  bookNum: number,
+  bookContent: Record<string, Record<string, { readonly en: string }>>,
+): VerseWithStrongs[] {
+  const verses: VerseWithStrongs[] = [];
+  for (const [chapterKey, chapterContent] of Object.entries(bookContent)) {
+    const chapterText = Option.fromNullishOr(chapterKey.split('|')[1]);
+    if (Option.isNone(chapterText)) continue;
+    const chapterNum = parseInt(chapterText.value, 10);
+
+    for (const [verseKey, verseContent] of Object.entries(chapterContent)) {
+      const verseText = Option.fromNullishOr(verseKey.split('|')[2]);
+      if (Option.isNone(verseText)) continue;
+      const englishText = verseContent.en;
+      if (!englishText) continue;
+
+      verses.push({
+        book: bookNum,
+        chapter: chapterNum,
+        verse: parseInt(verseText.value, 10),
+        words: parseVerseWords(englishText),
+      });
+    }
+  }
+  return verses;
+}
+
+/**
+ * Read one KJV-with-Strong's book file into verses (none if unknown or unparseable).
+ */
+const processKjvBook = Effect.fn('processKjvBook')(function* (kjvDir: string, file: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const bookAbbr = file.replace('.json', '');
+  const bookNum = Option.fromNullishOr(KJV_STRONGS_BOOK_MAP.get(bookAbbr));
+
+  if (Option.isNone(bookNum)) {
+    yield* Effect.logWarning(`  Skipping unknown book: ${bookAbbr}`);
+    return [];
+  }
+
+  const bookPath = path.join(kjvDir, file);
+  const bookData = yield* fs.readFileString(bookPath).pipe(
+    Effect.flatMap((source) => decodeJson(KjvBookData, source)),
+    Effect.option,
+  );
+  if (Option.isNone(bookData)) {
+    yield* Effect.logError(`  ERROR parsing ${file}`);
+    return [];
+  }
+
+  // Navigate the nested structure: { "Gen": { "Gen|1": { "Gen|1|1": { "en": "..." } } } }
+  const bookContent = bookData.value[bookAbbr];
+  if (!bookContent) return [];
+  return bookVerses(bookNum.value, bookContent);
+});
+
+/**
  * Process KJV with Strong's numbers
  */
 const processKjvStrongs = Effect.fn('processKjvStrongs')(function* (dataRaw: string) {
@@ -504,62 +629,7 @@ const processKjvStrongs = Effect.fn('processKjvStrongs')(function* (dataRaw: str
   );
 
   for (const file of files) {
-    const bookAbbr = file.replace('.json', '');
-    const bookNum = Option.fromNullishOr(KJV_STRONGS_BOOK_MAP.get(bookAbbr));
-
-    if (Option.isNone(bookNum)) {
-      yield* Effect.logWarning(`  Skipping unknown book: ${bookAbbr}`);
-      continue;
-    }
-
-    const bookPath = path.join(kjvDir, file);
-    const bookData = yield* fs.readFileString(bookPath).pipe(
-      Effect.flatMap((source) => decodeJson(KjvBookData, source)),
-      Effect.option,
-    );
-    if (Option.isNone(bookData)) {
-      yield* Effect.logError(`  ERROR parsing ${file}`);
-      continue;
-    }
-
-    // Navigate the nested structure: { "Gen": { "Gen|1": { "Gen|1|1": { "en": "..." } } } }
-    const bookContent = bookData.value[bookAbbr];
-    if (!bookContent) continue;
-
-    for (const [chapterKey, chapterContent] of Object.entries(bookContent)) {
-      const chapterText = Option.fromNullishOr(chapterKey.split('|')[1]);
-      if (Option.isNone(chapterText)) continue;
-      const chapterNum = parseInt(chapterText.value, 10);
-
-      for (const [verseKey, verseContent] of Object.entries(chapterContent)) {
-        const verseText = Option.fromNullishOr(verseKey.split('|')[2]);
-        if (Option.isNone(verseText)) continue;
-        const verseNum = parseInt(verseText.value, 10);
-        const englishText = verseContent.en;
-
-        if (!englishText) continue;
-
-        // Split into words and parse Strong's numbers
-        // Words are separated by spaces, but punctuation sticks to words
-        const rawWords = englishText.split(/\s+/);
-        const words: WordWithStrongs[] = [];
-
-        for (const rawWord of rawWords) {
-          if (!rawWord) continue;
-          const parsed = parseWordWithStrongs(rawWord);
-          if (parsed.text) {
-            words.push(parsed);
-          }
-        }
-
-        verses.push({
-          book: bookNum.value,
-          chapter: chapterNum,
-          verse: verseNum,
-          words,
-        });
-      }
-    }
+    verses.push(...(yield* processKjvBook(kjvDir, file)));
   }
 
   // Sort by book, chapter, verse

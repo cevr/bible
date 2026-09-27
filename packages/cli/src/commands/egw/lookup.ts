@@ -3,10 +3,15 @@ import {
   isSearchQuery,
   nodesToText,
   parseEGWRef,
+  type EGWBookRef,
+  type EGWPageRangeRef,
+  type EGWPageRef,
+  type EGWParagraphRangeRef,
+  type EGWParagraphRef,
   type EGWParsedRef,
   type EGWSearchQuery,
 } from '@bible/core/egw';
-import { Reference } from '@bible/core/writings';
+import { Reference, type Paragraph, type Publication } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Array as Arr, Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
@@ -17,10 +22,104 @@ import { ServiceLayer } from './layers.js';
 
 type LookupReference = Exclude<EGWParsedRef, EGWSearchQuery>;
 
+type PageLookup = EGWParagraphRef | EGWParagraphRangeRef | EGWPageRef;
+
+/** Narrow a page's paragraphs to the ones a paragraph or paragraph-range ref names. */
+const selectParagraphs = (parsed: PageLookup, paragraphs: ReadonlyArray<Paragraph>) => {
+  if (parsed._tag === 'paragraph') {
+    return paragraphs.filter(
+      (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
+    );
+  }
+  if (parsed._tag === 'paragraph-range') {
+    return paragraphs.filter((paragraph) =>
+      Option.exists(
+        paragraph.number,
+        (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
+      ),
+    );
+  }
+  return paragraphs;
+};
+
+const printParagraphs = (paragraphs: ReadonlyArray<Paragraph>) =>
+  Effect.forEach(
+    paragraphs,
+    (paragraph) =>
+      Effect.gen(function* () {
+        const ref = Option.getOrElse(paragraph.refcode, () => '');
+        yield* Console.log(`  ${ref}`);
+        yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
+      }),
+    { discard: true },
+  );
+
+const findPage = (book: Publication, page: number) =>
+  Effect.gen(function* () {
+    const service = yield* WritingsService;
+    return yield* service.page(Reference.page(book.id, page)).pipe(
+      Effect.map(Option.some),
+      Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
+    );
+  });
+
+const printPage = (book: Publication, parsed: PageLookup) =>
+  Effect.gen(function* () {
+    const page = parsed.page;
+    const maybePage = yield* findPage(book, page);
+    if (Option.isNone(maybePage)) {
+      yield* Console.log(`Page ${page} not found in ${book.title} (${parsed.bookCode}).`);
+      return;
+    }
+    const pageResponse = maybePage.value;
+
+    yield* Console.log(`${book.title} (${parsed.bookCode}) — Page ${page}\n`);
+    if (Option.isSome(pageResponse.heading)) {
+      yield* Console.log(`  ${pageResponse.heading.value}\n`);
+    }
+
+    const paragraphs = selectParagraphs(parsed, pageResponse.paragraphs);
+    if (paragraphs.length === 0) {
+      yield* Console.log(`No paragraphs found for ${formatEGWRef(parsed)}.`);
+      return;
+    }
+
+    yield* printParagraphs(paragraphs);
+  });
+
+const printPageRange = (book: Publication, parsed: EGWPageRangeRef) =>
+  Effect.gen(function* () {
+    yield* Console.log(
+      `${book.title} (${parsed.bookCode}) — Pages ${parsed.pageStart}-${parsed.pageEnd}\n`,
+    );
+    for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
+      const maybePage = yield* findPage(book, page);
+      if (Option.isNone(maybePage)) continue;
+      yield* printParagraphs(maybePage.value.paragraphs);
+    }
+  });
+
+const printBook = (book: Publication, parsed: EGWBookRef) =>
+  Effect.gen(function* () {
+    const service = yield* WritingsService;
+    yield* Console.log(`${book.title} (${parsed.bookCode}) — ${book.author}`);
+    yield* Console.log(
+      `Paragraphs: ${Option.getOrElse(book.paragraphCount, () => 'unknown' as const)}`,
+    );
+
+    const chapters = yield* service.headings(Reference.publication(book.id));
+    if (chapters.length > 0) {
+      yield* Console.log('\nTable of Contents:');
+      for (const chapter of chapters) {
+        const ref = Option.getOrElse(chapter.refcode, () => '');
+        yield* Console.log(`  ${ref}  ${chapter.title}`);
+      }
+    }
+  });
+
 export const lookupReference = (parsed: LookupReference) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
-    const refStr = formatEGWRef(parsed);
 
     const book = yield* service.publicationByCode(parsed.bookCode).pipe(
       Effect.map(Option.some),
@@ -35,86 +134,12 @@ export const lookupReference = (parsed: LookupReference) =>
     switch (parsed._tag) {
       case 'paragraph':
       case 'paragraph-range':
-      case 'page': {
-        const page = parsed.page;
-        const maybePage = yield* service.page(Reference.page(book.value.id, page)).pipe(
-          Effect.map(Option.some),
-          Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
-        );
-        if (Option.isNone(maybePage)) {
-          yield* Console.log(`Page ${page} not found in ${book.value.title} (${parsed.bookCode}).`);
-          return;
-        }
-        const pageResponse = maybePage.value;
-
-        yield* Console.log(`${book.value.title} (${parsed.bookCode}) — Page ${page}\n`);
-        if (Option.isSome(pageResponse.heading)) {
-          yield* Console.log(`  ${pageResponse.heading.value}\n`);
-        }
-
-        let paragraphs: ReadonlyArray<(typeof pageResponse.paragraphs)[number]> =
-          pageResponse.paragraphs;
-        if (parsed._tag === 'paragraph') {
-          paragraphs = pageResponse.paragraphs.filter(
-            (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
-          );
-        }
-        if (parsed._tag === 'paragraph-range') {
-          paragraphs = pageResponse.paragraphs.filter((paragraph) =>
-            Option.exists(
-              paragraph.number,
-              (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
-            ),
-          );
-        }
-
-        if (paragraphs.length === 0) {
-          yield* Console.log(`No paragraphs found for ${refStr}.`);
-          return;
-        }
-
-        for (const paragraph of paragraphs) {
-          const ref = Option.getOrElse(paragraph.refcode, () => '');
-          yield* Console.log(`  ${ref}`);
-          yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
-        }
-        break;
-      }
-      case 'page-range': {
-        yield* Console.log(
-          `${book.value.title} (${parsed.bookCode}) — Pages ${parsed.pageStart}-${parsed.pageEnd}\n`,
-        );
-        for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
-          const maybePage = yield* service.page(Reference.page(book.value.id, page)).pipe(
-            Effect.map(Option.some),
-            Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
-          );
-          if (Option.isNone(maybePage)) continue;
-
-          for (const paragraph of maybePage.value.paragraphs) {
-            const ref = Option.getOrElse(paragraph.refcode, () => '');
-            yield* Console.log(`  ${ref}`);
-            yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
-          }
-        }
-        break;
-      }
-      case 'book': {
-        yield* Console.log(`${book.value.title} (${parsed.bookCode}) — ${book.value.author}`);
-        yield* Console.log(
-          `Paragraphs: ${Option.getOrElse(book.value.paragraphCount, () => 'unknown' as const)}`,
-        );
-
-        const chapters = yield* service.headings(Reference.publication(book.value.id));
-        if (chapters.length > 0) {
-          yield* Console.log('\nTable of Contents:');
-          for (const chapter of chapters) {
-            const ref = Option.getOrElse(chapter.refcode, () => '');
-            yield* Console.log(`  ${ref}  ${chapter.title}`);
-          }
-        }
-        break;
-      }
+      case 'page':
+        return yield* printPage(book.value, parsed);
+      case 'page-range':
+        return yield* printPageRange(book.value, parsed);
+      case 'book':
+        return yield* printBook(book.value, parsed);
     }
   });
 
@@ -149,21 +174,7 @@ const collectLookupData = (parsed: LookupReference) =>
         }
         const pageResponse = maybePage.value;
 
-        let paragraphs: ReadonlyArray<(typeof pageResponse.paragraphs)[number]> =
-          pageResponse.paragraphs;
-        if (parsed._tag === 'paragraph') {
-          paragraphs = pageResponse.paragraphs.filter(
-            (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
-          );
-        }
-        if (parsed._tag === 'paragraph-range') {
-          paragraphs = pageResponse.paragraphs.filter((paragraph) =>
-            Option.exists(
-              paragraph.number,
-              (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
-            ),
-          );
-        }
+        const paragraphs = selectParagraphs(parsed, pageResponse.paragraphs);
 
         return {
           ref: refStr,
