@@ -1,9 +1,20 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Sink,
+  Stream,
+} from 'effect';
+import { ChildProcessSpawner } from 'effect/unstable/process';
 import { Inspected, riveDocument } from '../core/rive.ts';
-import { linked } from './rive.ts';
+import { Rive, linked } from './rive.ts';
 
 /**
  * `rive inspect --json` (rive 1.2.0) of a two-scene project: `seed`, a
@@ -69,4 +80,56 @@ describe('linked', () => {
     expect(linked('name: film\npush:\n  projectId: 9\n  fileId: 512\n')).toBe(true);
     expect(linked('name: film\npush:\n  projectId: 9\n')).toBe(false);
   });
+});
+
+/** A `rive` that records each command line and prints a successful build report. */
+const recordingRive = (calls: Array<ReadonlyArray<string>>) =>
+  Layer.succeed(
+    ChildProcessSpawner.ChildProcessSpawner,
+    ChildProcessSpawner.make((command) =>
+      Effect.sync(() => {
+        if (Predicate.hasProperty(command, 'args') && Arr.isArray(command.args))
+          calls.push(command.args.filter(Predicate.isString));
+        const report =
+          '{"success":true,"data":{"riv":"/p/build/p.riv","bytes":1},"errors":[],"warnings":[]}';
+        return ChildProcessSpawner.makeHandle({
+          pid: ChildProcessSpawner.ProcessId(1),
+          exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
+          isRunning: Effect.succeed(false),
+          kill: () => Effect.void,
+          stdin: Sink.drain,
+          stdout: Stream.make(new TextEncoder().encode(report)),
+          stderr: Stream.empty,
+          all: Stream.empty,
+          getInputFd: () => Sink.drain,
+          getOutputFd: () => Stream.empty,
+          unref: Effect.succeed(Effect.void),
+        });
+      }),
+    ),
+  );
+
+describe('Rive.build', () => {
+  const calls: Array<ReadonlyArray<string>> = [];
+  const layer = Rive.layer.pipe(
+    Layer.provide(recordingRive(calls)),
+    Layer.provideMerge(BunServices.layer),
+  );
+
+  it.effect.layer(layer)(
+    'builds offline, and signed once the project holds a script, since the web runtime drops unsigned ones',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* fs.makeTempDirectoryScoped();
+          const rive = yield* Rive;
+          yield* rive.build(dir);
+          yield* fs.makeDirectory(`${dir}/scripts`);
+          yield* fs.writeFileString(`${dir}/scripts/torn.luau`, 'return nil');
+          yield* rive.build(dir);
+          expect(calls.map((args) => args[1])).toEqual(['--once', '--publish']);
+        }),
+      ),
+  );
 });

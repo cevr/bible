@@ -1,9 +1,9 @@
 // Rive through its CLI (`rive`, a Homebrew cask): build a film's project to a
 // .riv, read what it builds to, and move it to and from the Rive file the
-// editor opens. A build and an inspect run offline; push, pull and whoami use
-// the login `rive login` keeps. Every reply is decoded with Schema.
+// editor opens. A build without scripts and an inspect run offline; a signed
+// build, push, pull and whoami use the login `rive login` keeps. Every reply is decoded with Schema.
 
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Boolean as Bool, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { Inspected, type RiveDocument, riveDocument } from '../core/rive.ts';
@@ -44,7 +44,11 @@ export interface RiveService {
   readonly version: Effect.Effect<string, RiveMissing | RiveFailed>;
   /** Who is signed in, if anyone. Reaches the network. */
   readonly whoami: Effect.Effect<Option.Option<string>, RiveMissing | RiveFailed>;
-  /** Compile the project in `dir` to its .riv; fails on the first compile error, listing them all. */
+  /**
+   * Compile the project in `dir` to its .riv; fails on the first compile error,
+   * listing them all. A project with Luau scripts is built signed, which needs
+   * `rive login`.
+   */
   readonly build: (dir: string) => Effect.Effect<Built, RiveMissing | RiveFailed>;
   /** What the project in `dir` builds to, problems included: it fails only when the CLI does. */
   readonly inspect: (dir: string) => Effect.Effect<RiveDocument, RiveMissing | RiveFailed>;
@@ -94,13 +98,6 @@ export class Rive extends Context.Service<Rive, RiveService>()('@bible/film/tool
           Effect.map((done) => done.stdout),
         );
 
-      const decode = <A>(op: string, schema: Schema.Codec<A, string>, raw: string) =>
-        Schema.decodeEffect(schema)(raw).pipe(
-          Effect.mapError((error) =>
-            RiveFailed.make({ op, exitCode: 0, reason: `${error.message}\n${raw.slice(0, 400)}` }),
-          ),
-        );
-
       const isLinked = (dir: string) =>
         fs.readFileString(path.join(dir, 'rive.yaml')).pipe(
           Effect.map(linked),
@@ -122,9 +119,27 @@ export class Rive extends Context.Service<Rive, RiveService>()('@bible/film/tool
         }),
       );
 
+      /** Whether the project holds a Luau script (its build output aside). */
+      const scripted = (dir: string) =>
+        fs.readDirectory(dir, { recursive: true }).pipe(
+          Effect.map((files) =>
+            files.some((f) => f.endsWith('.luau') && !f.startsWith(`build${path.sep}`)),
+          ),
+          Effect.mapError(classify('build')),
+        );
+
       const build = Effect.fn('Rive.build')(function* (dir: string) {
-        const done = yield* run('build', [dir, '--once', '--quiet', '--format=json']);
-        const report = yield* decode('build', BuildReport, done.stdout.trim());
+        // The web runtime drops every scripted element of an unsigned file,
+        // silently, so a project with scripts builds signed (`--publish`, which
+        // needs `rive login`); one without builds offline.
+        const mode = Bool.match(yield* scripted(dir), {
+          onTrue: () => '--publish',
+          onFalse: () => '--once',
+        });
+        const done = yield* run('build', [dir, mode, '--quiet', '--format=json']);
+        const report = yield* Schema.decodeEffect(BuildReport)(done.stdout.trim()).pipe(
+          Effect.mapError(() => refuse('build', done)),
+        );
         if (!report.success || Option.isNone(report.data.riv))
           return yield* RiveFailed.make({
             op: 'build',

@@ -20,7 +20,7 @@ Every ElevenLabs call, every `rive` call and every render needs `dangerouslyDisa
 
 ## Steps
 
-0. **Tools.** `bun run doctor` says whether headless Chromium, the logged-in `elevenlabs` CLI and the `rive` CLI are there, and how to fix each that is not. Only `sync --push`/`--pull` need `rive login`. `narrate` and `score` check the `elevenlabs` login before spending a credit.
+0. **Tools.** `bun run doctor` says whether headless Chromium, the logged-in `elevenlabs` CLI and the `rive` CLI are there, and how to fix each that is not. `rive login` is needed for `sync --push`/`--pull`, and for any build once the project holds a script. `narrate` and `score` check the `elevenlabs` login before spending a credit.
 
 1. **Frame and sources.**
    - Find the film's topic in [frame/README.md](frame/README.md). Read its 1889 principle and the topic file whole.
@@ -39,6 +39,7 @@ Every ElevenLabs call, every `rive` call and every render needs `dangerouslyDisa
 4. **Scenes.** Draw each beat's artboard in `rive/scenes/<beat>.rml` to the film's `art.md` and [CRAFT.md](CRAFT.md) rules 1, 3, 5 and 8: one text element at a time and never the narration, the beat's register, a face at human scale, and a callback built from its earlier scene's components.
    - **Keep the contract** the storyboard set up: the artboard keeps the beat's name and stays a component; its `main` timeline keeps one Event per `{mark}`, named after it and in the marks' order. Replace the node named `storyboard` and its keys; keep the Events. Key every motion relative to its Event on `main`, at whatever pace looks right: the warp lands each Event on its word.
    - **A moment a sound plays on** is an Event on `main` too, with its own name; `sound.ts` names it with `{ scene, event }`.
+   - **Computed looks are Luau scripts** (torn paper edges, grain, particles), one scripted piece inside markup, never a scripted scene. The kit ships them in `packages/film/assets/scripts/` (`torn.luau`: a torn edge as a path effect); each file's header says how to wire it. A script reads its inputs, never an accumulated clock: the render jumps to any time, so a script that counts `advance` seconds draws differently per page. Text stays RML (scripts cannot draw text).
    - **Look things up, don't guess:** `rive schema <Type>` gives an element's properties, `rive docs` the concepts; `rive <dir>` previews as you write. A drawing may also be done in the editor: `sync --push`, draw, commit, `sync --pull`, then read the RML diff.
    - For many scenes, fork agents in parallel, each owning its own `scenes/<beat>.rml` files; none edits `film.rml`, `assets.rml` or `packages/film/`. Each reports tool bugs rather than working around them. Settle the look on two or three scenes, with a contact sheet over them, before the rest.
    - Done when `check` reports no `SceneUndrawn`.
@@ -66,6 +67,8 @@ The user reviews in the Rive editor or in the preview window, and the agent answ
 ## Gotchas
 
 - **Rive's markup:** every `.rml` file is wrapped in `<Rive version="1" kind="fragment">`; never write a `<Backboard>` (a project with no artboards reports `missing-backboard` for that reason alone). A `FontAsset` is a root element of `assets.rml`, and a font file sits in `rive/fonts/`.
+- **Scripts need a signed build.** The web runtime our renders use drops every scripted element of an unsigned `.riv`, silently (the whole shape vanishes). So once a project holds a `.luau` file, `build` runs `rive --publish`, which needs `rive login` and sends the scripts to Rive to sign. A signed build stays watermarked until `sync --push` binds the project to a Rive file. `rive <dir>` and `--screenshot` play unsigned scripts, so they prove nothing about a render: check a render still.
+- **`ScriptedPathEffect` goes inside the shape's `Fill` or `Stroke`.** Placed directly on the `Shape` (as Rive's own docs show) the build fails with "the built riv could not be re-imported".
 - **`film.rml` is generated.** `sync` rewrites it from the layout; an edit to it is lost. Change the script's `lead`, `tail`, `min` or `enter`, or the scene, instead.
 - **A storyboard's file is its beat's.** `sync` never writes over a scene file; renaming the artboard inside `open.rml` fails the next sync with `SceneFileTaken`. Keep one artboard per file, named after the beat.
 - **Playwright browser missing:** `render` fails with `BrowserMissing`, whose message is the exact install command. Run it with `dangerouslyDisableSandbox: true`.

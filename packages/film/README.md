@@ -54,6 +54,12 @@ Events that are not marks are cues a sound can play on (`sound.ts`,
 (`ProjectMissing`) and a Film out of date with the layout (`FilmStale`)
 rather than render the old cut.
 
+Computed looks are Luau scripts inside markup; the kit ships them in
+`assets/scripts/` (`torn.luau`, a torn paper edge as a path effect). The web
+runtime drops the scripted elements of an unsigned file, so `Rive.build` signs
+a project that holds any `.luau` file (`rive --publish`, which needs
+`rive login`) and builds one without scripts offline (`--once`).
+
 The `rive` CLI answers the questions these docs do not: `rive schema <Type>`
 for an element's properties, `rive docs`, `rive inspect --json`, and
 `rive <dir>` for a live preview window. `rive inspect` exits 1 when the
