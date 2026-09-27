@@ -12,7 +12,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "bun test src lint",
     "gate": "bun run typecheck && bun run test"
   },
   "dependencies": {

@@ -1,0 +1,9 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "categories": {},
+  "plugins": [],
+  "jsPlugins": ["../plugin.ts"],
+  "rules": {
+    "film/drawing-literal": "error"
+  }
+}

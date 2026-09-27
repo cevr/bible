@@ -6,7 +6,7 @@
     "perf": "error"
   },
   "plugins": ["typescript", "import", "node"],
-  "jsPlugins": ["oxlint-plugin-effect/plugin"],
+  "jsPlugins": ["oxlint-plugin-effect/plugin", "./packages/film/lint/plugin.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-type-assertion": "error",
@@ -69,7 +69,13 @@
     "effect/noWidenThenAssert": "error",
     "effect/preferEffectFn": "error"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "**/outputs/**",
+    "**/lint/fixtures/**"
+  ],
   "overrides": [
     {
       "files": ["**/packages/core/src/**/*.ts", "**/packages/core/src/**/*.tsx"],
@@ -242,6 +248,16 @@
       "rules": {
         "effect/noNullish": "off",
         "effect/noTernary": "off"
+      }
+    },
+    {
+      // The `film` plugin's guardrails (packages/film/lint/), on every film
+      // but the frozen first cut: righteousness-by-faith-v1 is kept as it was
+      // made and gets no new rules (ledger 2026-09-27, Pass 1 decisions).
+      "files": ["**/apps/animations/src/films/**/*.ts"],
+      "excludeFiles": ["**/apps/animations/src/films/righteousness-by-faith-v1/**"],
+      "rules": {
+        "film/drawing-literal": "error"
       }
     },
     {

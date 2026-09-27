@@ -202,3 +202,11 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`.
+
+**Lint.** The repo's `film` oxlint plugin (`packages/film/lint/`, rules read
+as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,
+for every film but the frozen `righteousness-by-faith-v1`:
+
+| Rule                   | What it refuses                                                                                                                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `film/drawing-literal` | a `drawing(…)` whose `timeline` or `knobs` is not an object literal (inline, or a same-file module `const`) or that spreads, and a scene with a timeline built without `drawing()`: the lab cannot locate what it would write |
