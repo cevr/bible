@@ -63,6 +63,13 @@ describe('ranges', () => {
     });
   });
 
+  test('a range from before the film starts at its first frame', () => {
+    expect(frameSpan(testExportInfo, Option.some(-1), Option.some(2))).toEqual({
+      start: 0,
+      end: 60,
+    });
+  });
+
   test('--scene spans its scenes, from the layout', () => {
     const placed = layout(
       [

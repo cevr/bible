@@ -54,13 +54,13 @@ export interface FrameSpan {
   readonly end: number;
 }
 
-/** Frames `[start, end)` of a video job's seconds `[from, to)`. */
+/** Frames `[start, end)` of a video job's seconds `[from, to)`, clipped to the film at both ends. */
 export const frameSpan = (
   info: ExportInfo,
   from: Option.Option<number>,
   to: Option.Option<number>,
 ): FrameSpan => ({
-  start: Math.round(Option.getOrElse(from, () => 0) * info.fps),
+  start: Math.max(0, Math.round(Option.getOrElse(from, () => 0) * info.fps)),
   end: Math.min(info.frames, Math.round(Option.getOrElse(to, () => info.duration) * info.fps)),
 });
 
