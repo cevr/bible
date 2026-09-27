@@ -2,15 +2,19 @@
 
 Fetch a repo with `okra repo fetch <slug>`, then read it at `okra repo path <slug>`. A comparison below is settled: it comes back only with a new receipt.
 
-| Slug                          | Read it for                                                                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `motion-canvas/motion-canvas` | named time events (`waitUntil`), span combinators, and the audio-master player                                                                 |
-| `theatre-js/theatre`          | a data-driven keyframe store, and why ours stays in code                                                                                       |
-| `remotion-dev/remotion`       | the renderer: browser and ffmpeg lifecycle, chunked scheduling, frame transport, audio muxing. `okra repo fetch` is slow; a sparse clone works |
-| `pmndrs/react-three-fiber`    | `frameloop:'never'` + `advance`, `invalidate`, portals                                                                                         |
-| `pmndrs/drei`                 | how a prop kit is packaged: one file per prop, a barrel, a DOM-free core                                                                       |
-| `motiondivision/motion`       | the sequence `at` grammar, `stagger`, springs baked into easing                                                                                |
-| ocarina watercolour example   | the watercolour look. The source is a raw string in `https://examples.motion.dev/assets/index-*.js`, not a repo                                |
+| Slug                          | Read it for                                                                                                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `motion-canvas/motion-canvas` | named time events (`waitUntil`), span combinators, and the audio-master player                                                                                                                        |
+| `theatre-js/theatre`          | a data-driven keyframe store, and why ours stays in code                                                                                                                                              |
+| `remotion-dev/remotion`       | the renderer: browser and ffmpeg lifecycle, chunked scheduling, frame transport, audio muxing. `okra repo fetch` is slow; a sparse clone works                                                        |
+| `pmndrs/react-three-fiber`    | `frameloop:'never'` + `advance`, `invalidate`, portals                                                                                                                                                |
+| `pmndrs/drei`                 | how a prop kit is packaged: one file per prop, a barrel, a DOM-free core                                                                                                                              |
+| `motiondivision/motion`       | the sequence `at` grammar, `stagger`, springs baked into easing                                                                                                                                       |
+| ocarina watercolour example   | the watercolour look. The source is a raw string in `https://examples.motion.dev/assets/index-*.js`, not a repo                                                                                       |
+| `pmndrs/math`                 | the hot-path style: plain arrays, out-params, no allocation, benchmarked; easing, springs, seeded random, noise, polygon and IK already written (installed at 0.1.0; it ships `skills/math/SKILL.md`) |
+| `mrdoob/three.js`             | object reuse in the render loop (scratch `Vector3`s, `.set` over `new`), `Clock`, and what a retained scene graph costs us                                                                            |
+| `pmndrs/react-three-fiber`    | performance: `frameloop="demand"` + `invalidate`, `performance.regress`, `<PerformanceMonitor>`, instancing                                                                                           |
+| `pmndrs/leva`                 | typed controls declared from a schema, for the lab's inspector                                                                                                                                        |
 
 ## Settled
 
@@ -41,9 +45,18 @@ Most of Remotion exists to make an async React page render the same frame every 
 
 The watercolour look is mostly pre-painted raster, not a simulation. Cheap Canvas 2D wins, in order: edge darkening inside cutouts (`paint*(1-paint)`), a deckled page edge baked once, and a brush-nib wash transition that re-stamps its mask from zero each frame. A WebGL post pass stays opt-in until headless GL throughput is measured. Rejected: Kuwahara per frame (too heavy, smears the boil) and global graphite hatching (it duplicates the drawn ink).
 
+## To survey (performance and lab)
+
+Open questions for pass 1; each settles into a row above or below with a receipt.
+
+- `pmndrs/math`: which of `packages/film/src/core` (ease, rng, `hash2`, noise, lerp, clamp) and the kit's point helpers it replaces with an allocation-free equivalent; benchmark ours against it on the bench.
+- three.js and R3F: which render-loop habits (scratch objects, `invalidate`, adaptive resolution while scrubbing) fit a pure-frame canvas; which need retained state (rejected).
+- Remotion: `remotion benchmark` (concurrency sweep) against our render plan; Studio's props-to-source save against the lab's write-back.
+- leva and Theatre's studio: what a typed inspector declared from the scene's `knobs` would need.
+
 ## Effect tooling
 
-The repo pins one `effect@4.0.0-rc.115`. Copy the CLI shape of `packages/cli/src/main.ts:18-41` (`effect/unstable/cli`, `BunServices.layer`, `BunRuntime.runMain`). Run child processes through `effect/unstable/process`: its `stdin` takes a `Stream<Uint8Array>`, so frames pipe into ffmpeg with backpressure. Where the effect-solutions guides disagree with this version, the version wins: errors are `Schema.TaggedError`, and CLI flags are PascalCase (`Flag.String`).
+The repo pins one `effect` in the root `package.json` catalog; read the version there and in `node_modules/effect` before trusting a guide. Copy the CLI shape of `packages/film/src/tools` (`effect/unstable/cli`, `BunServices.layer`, `BunRuntime.runMain`). Child processes run through `effect/unstable/process`. Where the effect-solutions guides disagree with the installed version, the version wins.
 
 - **Adopt:** `effect-bun-test` (`it.effect`, `it.scoped`) for the tool services against fake layers. Re-enable the 17 effect lint rules everywhere outside the draw path.
 - **Adapt:** `effect-frame` for the player controls and a live studio page, not for the canvas or the export handle (it has its own JSX runtime).

@@ -1,39 +1,66 @@
 ---
 name: film-architecture-loop
-description: Run the film-framework reduction loop — sweep apps/animations and its framework against prior art and the north stars, apply, counsel, live-render, until a pass finds polish only.
+description: Run the film-framework loop — sweep packages/film and apps/animations against prior art, the north stars, measured performance, the lab and the open review items; apply, counsel, live-check, until a pass finds polish only.
 disable-model-invocation: true
 ---
 
 # Film architecture loop
 
-A **pass** is: coverage audit → read-only sweeps → triage → apply in a rift → one counsel round → live render → ledger rows. Repeat passes until the close rule holds. The vocabulary comes from the `codebase-design` skill; invoke it once at the start. Read [`north-stars.md`](north-stars.md) before the first sweep: every candidate names the north star it serves. Invoke the `film` skill too: it holds the review loop the live render uses.
+A **pass** is: coverage audit → review intake → measure → read-only sweeps → triage into batches → per batch: apply in a worktree, one counsel round, merge → live check. Repeat passes until the close rule holds. The vocabulary comes from the `codebase-design` skill; invoke it once at the start, and the `film` skill, whose review loop the live check uses. Read [`north-stars.md`](north-stars.md) before the first sweep: every candidate names the north star it serves.
 
-The ledger is `apps/animations/plans/architecture-loop-<date>.md`, the single source of truth for what is done and what is rejected. Every sweep and apply prompt names it. Decide by the principles in `~/Developer/personal/dotfiles/principles/` and write "decided by <principle>" in the ledger; the loop runs without owner check-ins, except for paid API runs (see [`rejected.md`](rejected.md)).
+The ledger is `apps/animations/plans/architecture-loop-<date>.md`: the single source of truth for what is done, rejected and open. Every sweep and apply prompt names it. Pass files (briefs, reports, logs, stills) live in `<scratchpad>/film-pass<N>/`. Decide by the principles in `~/Developer/personal/dotfiles/principles/` and write "decided by <principle>" in the ledger. The loop runs without owner check-ins, except for paid API runs and publishing (see [`rejected.md`](rejected.md)).
 
 ## Steps
 
-1. **Open the ledger.** Copy the section layout of the newest `apps/animations/plans/architecture-loop-*.md`, or [`ledger-template.md`](ledger-template.md) when none exists. Record the HEAD hash and the baseline: `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)packages/film/**/*.ts' | xargs wc -l | tail -1`. Read [`rejected.md`](rejected.md). Done when the ledger file exists with a baseline.
+1. **Open the ledger.** Copy the section layout of the newest `apps/animations/plans/architecture-loop-*.md`, or [`ledger-template.md`](ledger-template.md) when none exists. Record the HEAD hash and the source baseline: `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)packages/film/**/*.ts' | xargs wc -l | tail -1`. Read [`rejected.md`](rejected.md). Done when the ledger file exists with a baseline.
 
 2. **Coverage audit.** List every source directory with its file count:
    `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)packages/film/**/*.ts' | xargs -n1 dirname | sort | uniq -c`.
    Mark each directory that no earlier ledger names. Those go first. Done when every directory is marked swept-before or unswept.
 
-3. **Prior art, first pass only.** Read [`prior-art.md`](prior-art.md). Survey only what it does not already answer; add each settled comparison to its list. Done when each new idea is a ledger row: adopt, or rejected with the north star it fails.
+3. **Review intake.** Gather every open review item from the sources in [`review.md`](review.md) into the ledger's review table, one row each, with where it came from. Review items are a standing batch: a pass never closes with one open. Done when every source is read and every item has a row.
 
-4. **Sweep.** Launch read-only agents from [`prompts/sweep.md`](prompts/sweep.md), one per area, in one message. Areas: engine (draw path), timeline and narration, sound, tooling scripts, player and preview, one film's scenes as the framework's first user. Done when every area has a report, including those with no findings.
+4. **Measure.** Take the performance baseline in [`performance.md`](performance.md) before any sweep reads code. A number that cannot be measured yet (no instrument exists) is itself the first performance finding. Done when the ledger's performance table has every row, measured or marked as a missing instrument.
 
-5. **Triage.** Group findings into batches by the files they touch. Write the pass section of the ledger with a triage table. Done when every finding is in a batch or rejected with a receipt.
+5. **Prior art, first pass only.** Read [`prior-art.md`](prior-art.md). Survey only what it leaves open (its "to survey" rows); settle each into the list. Done when each new idea is a ledger row: adopt, or rejected with the north star it fails.
 
-6. **Apply.** One rift per pass: `rift create --name film-pass<N> --copy-all .` from the repo root, then work inside it. Launch apply agents from [`prompts/apply.md`](prompts/apply.md). Agents sharing a rift run one after the other, because the pre-commit hook gates the whole tree. Done when the rift is clean and its last gate log ends `GATE EXIT 0`.
+6. **Sweep.** Fill [`prompts/sweep.md`](prompts/sweep.md) into `<scratchpad>/film-pass<N>/sweep-brief.md` and launch one read-only agent per area in one message. Areas: engine (`packages/film/src/canvas`), core (`packages/film/src/core`), tools (`packages/film/src/tools`), player and lab (`packages/film/src/player`, the lab server, with [`lab.md`](lab.md)), performance (with [`performance.md`](performance.md) and the baseline), films as the framework's first user (`apps/animations/src/films`), and guardrails (what can `film check`, the effect-oxlint rules and the types not see). Done when every area has a report, including those with no findings.
 
-7. **Counsel.** One round per pass from [`prompts/counsel.md`](prompts/counsel.md), with the `counsel-review` skill or a fresh read-only agent. Fix each defect with a test that is red first, in one commit. Done when every defect has a commit or a written rejection.
+7. **Triage.** Group findings and review items into batches by the files they touch. Write the pass section of the ledger: verdict, decisions, and a triage table (batch, worktree, items). Done when every finding is in a batch or rejected with a receipt.
 
-8. **Live render.** Prove the film still looks and sounds the same, without paid calls: `bun run mix <film> --stems` and compare levels with the ledger baseline, then contact sheets of every scene the pass touched and stills at their marks. After a pass that changes the draw path or timeline, render the whole film and compare its frame sheet with the previous one. Done when the sheets match intent and every process you started is stopped.
+8. **Apply.** Each batch gets its own worktree from main: `git worktree add ../bible-tools-p<N>-<batch> -b p<N>-<batch>` (rift cannot clone this repo). Launch one apply agent per batch from [`prompts/apply.md`](prompts/apply.md). Batches with disjoint files run in parallel; a batch that needs another's files starts from main after that one merges. At most about eight agents at once. Done per batch when its tree is clean and its last commit passed the hook.
 
-9. **Ledger rows.** Every finding gets `done <hash>` or `rejected: <receipt>`. Add a rejection a later pass could re-propose to `rejected.md`. Update the `film` skill and `apps/animations/README.md` wherever the pass changed the workflow or the API. Done when both describe the code as it is.
+9. **Counsel.** One round per batch from [`prompts/counsel.md`](prompts/counsel.md), with the `counsel-review` skill (outside any Workflow: the Codex leg is denied inside one) or a fresh read-only agent. The apply agent fixes each defect with a test that is red first, in one fixup round. Done when every defect has a commit or a written rejection.
 
-10. **Merge.** From the repo root: `git fetch <rift path> HEAD:refs/heads/film-pass<N>`, `git merge --ff-only film-pass<N>` (bible-tools commits to main), `bun run gate`, delete the branch. Bundle the rift with `git bundle create <scratchpad>/film-pass<N>.bundle --all`, then `rift remove film-pass<N>`. Push only when asked.
+10. **Merge.** In the worktree: merge main, resolve there, `bun run gate > <log> 2>&1; echo "GATE EXIT $?" >> <log>`. From the repo root: `git merge --ff-only p<N>-<batch>` (bible-tools commits to main; rebase in the worktree when main moved), gate into a log, read `GATE EXIT`. Bundle the branch (`git bundle create <scratchpad>/film-pass<N>/p<N>-<batch>.bundle p<N>-<batch>`), then `git worktree remove` it by full path and delete the branch. Write the batch's ledger rows. Push only when asked. Done when the gate on main is green, the rows are written and the worktree is gone.
+
+11. **Live check.** After each merge, or a small group of merges, drive what the batch changed:
+    - Picture: `bun run check <film>`, stills at the marks the batch touched (`bun run render <film> --stills <t,…> --tag p<N>`), compared with `cmp` against the stills from before the batch; read any that differ.
+    - Timing and sound: `bun run cues <film>` diffed against the baseline; `bun run mix <film> --stems` levels against the ledger.
+    - Lab: `bun run lab <film>` in the background, then drive the changed controls with `agent-browser` (load the `agent-browser` skill); a write-back must leave a clean `git diff` after undo.
+    - Performance: rerun the rows in [`performance.md`](performance.md) the batch claimed to move.
+
+    A defect found here becomes a live-fix batch (step 8). Done when the results match intent, the ledger has a live-check row, and every process you started is stopped.
+
+12. **Docs.** Update `apps/animations/README.md`, the `film` skill and this skill's reference files wherever the pass changed the API, the workflow or a settled decision; add re-proposable rejections to [`rejected.md`](rejected.md). Done when each describes the code as it is.
+
+## Guardrails
+
+A defect class found twice gets a check, placed by what can see it. Build the check in the batch that fixes the defect.
+
+| The defect is                                                                       | The check lives in                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A syntactic pattern (a banned call, an import shape, a literal where a cue belongs) | A rule in `~/Developer/personal/effect-oxlint` (we own it): a unit test and an integration fixture, a changeset, the Version PR merged at its exact head, then the bump in bible-tools. Releasing it needs an owner ask. |
+| A wrong program the types could reject (an unknown cue, a knob of the wrong kind)   | The types in `packages/film`, proved by an `@ts-expect-error` line in a `*.types.ts` test.                                                                                                                               |
+| Something visible only in a rendered frame or the resolved timeline                 | A detector in `film check` (`packages/film/src/tools/check.ts`), with a test that goes red on a fixture scene.                                                                                                           |
+| A performance regression                                                            | A budget in the bench (see [`performance.md`](performance.md)) that fails the run.                                                                                                                                       |
+
+The film gate (`apps/animations` `gate`) takes no new film checks: run `film check --static` by hand and propose a gate change in the ledger instead.
 
 ## Close rule
 
-Close when one pass holds all three: no unswept directory, the sweeps report polish only (under about 5 lines of value each), and the loop reader names no structural change. Then write the report and the final message. A pass that finds a check blind spot (a defect class `bun run check` or the lint rules cannot see) is never the last: close it, run the check, sweep what it reveals.
+Close when one pass holds all five: no unswept directory, no open review item, the sweeps report polish only (under about 5 lines of value each), the performance sweep has no measured saving left over its threshold, and the loop reader names no structural change. Then write the report and the final message, ending with the ledger path. A pass that finds a guard blind spot is never the last: close the blind spot, run the guard, and sweep what it reveals.
+
+## What pays late
+
+After pass two, more reading finds little. These found the rest: the coverage audit, guard blind spots, the review intake, and the live check (stills compared byte for byte, the lab driven with agent-browser, the bench rerun).
