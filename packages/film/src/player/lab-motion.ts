@@ -50,28 +50,34 @@ const brightness = (d: Uint8ClampedArray, i: number) =>
 const whole = (value: string, fallback: number, max: number) =>
   Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
 
+/** Each pixel's brightness in `d`, written into `into` (one entry per pixel). */
+const brightnessInto = (into: Float64Array, d: Uint8ClampedArray) => {
+  for (let p = 0, i = 0; p < into.length; p++, i += 4) into[p] = brightness(d, i);
+};
+
 /** Ink is darker than the page on paper (1), lighter on a night sky (-1). */
-const inkSign = (now: Uint8ClampedArray) => {
+const inkSign = (now: Float64Array) => {
   let sum = 0;
-  for (let i = 0; i < now.length; i += 4 * 97) sum += brightness(now, i);
-  return sum / Math.ceil(now.length / (4 * 97)) > 110 ? 1 : -1;
+  for (let p = 0; p < now.length; p += 97) sum += now[p] ?? 0;
+  return sum / Math.ceil(now.length / 97) > 110 ? 1 : -1;
 };
 
 /**
- * Paint into `o`, in `color`, the ink `px` has where `now` has none, at
- * `strength`; a pixel an earlier, stronger ghost holds keeps it.
+ * Paint into `o`, in `color`, the ink `px` has where `now` (the frame shown,
+ * as brightness per pixel) has none, at `strength`; a pixel an earlier,
+ * stronger ghost holds keeps it.
  */
 const ghostInto = (
   o: Uint8ClampedArray,
-  now: Uint8ClampedArray,
+  now: Float64Array,
   px: Uint8ClampedArray,
   light: number,
   strength: number,
   color: readonly [number, number, number],
 ) => {
   const [r, g, bl] = color;
-  for (let i = 0; i < o.length; i += 4) {
-    const moved = light * (brightness(now, i) - brightness(px, i));
+  for (let p = 0, i = 0; i < o.length; p++, i += 4) {
+    const moved = light * ((now[p] ?? 0) - brightness(px, i));
     if (moved < MOVED) continue;
     const alpha = Math.round(255 * strength * Math.min(1, (moved - MOVED) / 60 + 0.35));
     if (alpha <= (o[i + 3] ?? 0)) continue;
@@ -214,6 +220,12 @@ export const mountMotion = (
   pin(onion.c);
   const ghost = canvas2d(film.width, film.height);
   const small = canvas2d(w, h);
+  /**
+   * The frame shown, as brightness per pixel: computed once per paint rather
+   * than again for every ghost. The buffer is reused; its values are this
+   * paint's only.
+   */
+  const nowBrightness = new Float64Array(w * h);
   let onionOn = false;
   let pending = false;
 
@@ -234,7 +246,8 @@ export const mountMotion = (
     const count = whole(countIn.value, 2, 4);
     const spacing = whole(spacingIn.value, 3, 15);
     const T = player.now();
-    const now = pixelsAt(undefined);
+    brightnessInto(nowBrightness, pixelsAt(undefined));
+    const now = nowBrightness;
     const light = inkSign(now);
     const out = onion.ctx.createImageData(w, h);
     // Farthest first, so the nearest ghost ends on top.
