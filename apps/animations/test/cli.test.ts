@@ -1,13 +1,13 @@
 // The film CLI as it is run: the flags the README documents parse, and a
 // misspelt scene fails naming the scenes the film has instead of checking or
-// printing nothing. No browser, no Rive CLI, no paid call.
+// printing nothing. Static legs only: no browser, no server, no paid call.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 
-const film = 'righteousness-by-faith';
+const film = 'righteousness-by-faith-v1';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));
@@ -33,26 +33,29 @@ const unknownTypo = (out: string) => {
   expect(out).toContain('UnknownScene');
   expect(out).toContain('no scene "typo"');
   // The message lists what the film does have.
-  expect(out).toContain('cold');
-  expect(out).toContain('robe');
+  expect(out).toContain('1888');
+  expect(out).toContain('justified');
 };
 
 describe('film cli', () => {
-  it.effect.layer(BunServices.layer)('check --scene id,id parses and reads the project', () =>
+  it.effect.layer(BunServices.layer)('check --scene id,id parses', () =>
     Effect.gen(function* () {
-      const run = yield* cli('check', film, '--allow-stale', '--scene', 'title,cold');
+      const run = yield* cli(
+        'check',
+        film,
+        '--static',
+        '--allow-stale',
+        '--scene',
+        '1888,justified',
+      );
       expect(run.out).not.toContain('Unrecognized flag');
-      // The project reads, and only the scenes asked for are probed: no
-      // finding names another scene, however many are drawn yet.
       expect(run.exitCode).toBe(0);
-      const named = [...run.out.matchAll(/scene "([^"]+)"/g)].map((m) => m[1]);
-      expect(named.filter((id) => id !== 'title' && id !== 'cold')).toEqual([]);
     }),
   );
 
   it.effect.layer(BunServices.layer)('check --scene with a misspelt id fails', () =>
     Effect.gen(function* () {
-      const run = yield* cli('check', film, '--allow-stale', '--scene', 'cold,typo');
+      const run = yield* cli('check', film, '--static', '--allow-stale', '--scene', '1888,typo');
       expect(run.exitCode).not.toBe(0);
       unknownTypo(run.out);
     }),
@@ -66,11 +69,11 @@ describe('film cli', () => {
     }),
   );
 
-  it.effect.layer(BunServices.layer)('cues --sound on a film with no sound.ts says so', () =>
+  it.effect.layer(BunServices.layer)('cues --sound with a misspelt scene fails', () =>
     Effect.gen(function* () {
-      const run = yield* cli('cues', film, '--sound');
+      const run = yield* cli('cues', film, 'typo', '--sound');
       expect(run.exitCode).not.toBe(0);
-      expect(run.out).toContain('SoundMissing');
+      unknownTypo(run.out);
     }),
   );
 });

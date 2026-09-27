@@ -1,25 +1,490 @@
+import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
-import { Option, Predicate, Result } from 'effect';
+import { Array as Arr, Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
-import type { RiveDocument, RiveProblem, SceneBoard } from '../core/rive.ts';
 import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
-import { type EventTimes, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
-  type CheckOptions,
-  type Finding,
+  type LayoutFinding,
+  type Sample,
   effectFindings,
+  frameFindings,
+  lateCues,
+  layoutSamples,
+  mergeFindings,
   musicFindings,
-  projectFindings,
+  overlapArea,
+  pastFrame,
   staleTakes,
   staticFindings,
   unknownVoices,
 } from './check.ts';
-import type { ProjectState } from './project.ts';
-import { testFilm, testVoice } from './testing.ts';
+import { inkMark, testFilm, testVoice, textBox } from './testing.ts';
 
+const frame = { width: 1920, height: 1080 };
 const noTakes: Timings = { voice: '', scenes: {} };
+const sample: Sample = { scene: 'a', frame: 30, time: 1, at: 'mark go' };
 const tags = (fs: ReadonlyArray<{ readonly _tag: string }>) => fs.map((f) => f._tag);
+
+describe('overlapArea', () => {
+  test('two lines drawn over each other share their common box', () => {
+    expect(overlapArea(textBox('a', 0, 0, 100, 40), textBox('b', 50, 20, 100, 40))).toBeCloseTo(
+      50 * 20,
+    );
+  });
+
+  test('lines that meet by no more than the tolerance do not overlap', () => {
+    expect(overlapArea(textBox('a', 0, 0, 100, 40), textBox('b', 0, 37, 100, 40))).toBe(0);
+    expect(overlapArea(textBox('a', 0, 0, 100, 40), textBox('b', 97, 0, 100, 40))).toBe(0);
+    expect(overlapArea(textBox('a', 0, 0, 100, 40), textBox('b', 0, 60, 100, 40))).toBe(0);
+  });
+
+  test('two stacked lines of a turned stamp stay apart, though their upright boxes overlap', () => {
+    // "A MOST PRECIOUS" over "MESSAGE", both turned -0.2 rad about the stamp's middle.
+    const turn = -0.2;
+    const top = textBox('A MOST PRECIOUS', 560, 400, 800, 70, { rot: turn });
+    const under = textBox('MESSAGE', 760, 480, 400, 70, { rot: turn });
+    expect(top.y + top.h).toBeGreaterThan(under.y);
+    expect(overlapArea(top, under)).toBe(0);
+  });
+
+  test('turned boxes that do cross still collide', () => {
+    const a = textBox('a', 0, 0, 200, 50, { rot: 0.3 });
+    const b = textBox('b', 20, 10, 200, 50, { rot: 0.3 });
+    expect(overlapArea(a, b)).toBeGreaterThan(1000);
+  });
+});
+
+describe('pastFrame', () => {
+  test('a line cut off by an edge reaches past it', () => {
+    expect(pastFrame(textBox('far', 1850, 500, 200, 40), 1920, 1080)).toEqual({
+      left: 0,
+      top: 0,
+      right: 130,
+      bottom: 0,
+    });
+  });
+
+  test('a line wholly outside the frame is gone, not cut off', () => {
+    const none = { left: 0, top: 0, right: 0, bottom: 0 };
+    expect(pastFrame(textBox('far away', -740, 400, 170, 40), 1920, 1080)).toEqual(none);
+    expect(pastFrame(textBox('merit', 1900, 1380, 150, 60), 1920, 1080)).toEqual(none);
+  });
+});
+
+describe('frameFindings', () => {
+  test('reports text over text and text off the frame, with where it was sampled', () => {
+    const found = frameFindings(
+      sample,
+      {
+        texts: [
+          textBox('light', 960, 200, 200, 80),
+          textBox('“Let there be light”', 200, 170, 850, 90),
+          textBox('edge', -30, 900, 120, 40),
+        ],
+        inks: [],
+      },
+      frame,
+    );
+    expect(tags(found)).toEqual(['TextOverlap', 'TextOffFrame']);
+    const [overlap] = found;
+    expect(overlap).toMatchObject({
+      scene: 'a',
+      time: 1,
+      at: 'mark go',
+      a: 'light',
+      b: '“Let there be light”',
+      frames: 1,
+    });
+  });
+
+  test('a fading line, or the same text twice, is not a collision', () => {
+    const found = frameFindings(
+      sample,
+      {
+        texts: [
+          textBox('empty', 1400, 600, 150, 60, { alpha: 0.25 }),
+          textBox('a gift', 1400, 600, 170, 70),
+          textBox('a gift', 1402, 601, 170, 70),
+          textBox('gone', -30, 900, 120, 40, { alpha: 0.1 }),
+        ],
+        inks: [],
+      },
+      frame,
+    );
+    expect(found).toEqual([]);
+  });
+});
+
+describe('ink over text', () => {
+  // MINNEAPOLIS under a masthead: its box, and a rule drawn through it.
+  const city = textBox('MINNEAPOLIS', 700, 190, 520, 28, { order: 5 });
+  const rule = (y: number, options: Parameters<typeof inkMark>[2] = {}) =>
+    inkMark(
+      'stroke',
+      [
+        [340, y],
+        [800, y + 1],
+        [1580, y],
+      ],
+      { order: 3, ...options },
+    );
+
+  test('a stroke through a line of text is a finding, measured along the crossing', () => {
+    const found = frameFindings(sample, { texts: [city], inks: [rule(200), rule(212)] }, frame);
+    expect(tags(found)).toEqual(['InkOverText']);
+    expect(found[0]).toMatchObject({ text: 'MINNEAPOLIS', strokes: 2 });
+    // Each rule runs the box's full width, 520 px: 2 × ~520.
+    expect(found[0]).toMatchObject({ length: expect.closeTo(1040, -2) });
+  });
+
+  test('the segment test, not the bounds: a stroke whose box overlaps but whose line passes by is fine', () => {
+    // A bend round the box's top-left corner: its bounds reach into the box, its line never does.
+    const past = inkMark(
+      'stroke',
+      [
+        [600, 100],
+        [705, 170],
+        [660, 240],
+      ],
+      { order: 3 },
+    );
+    expect(frameFindings(sample, { texts: [city], inks: [past] }, frame)).toEqual([]);
+  });
+
+  test('a stroke that grazes the box by no more than the tolerance, or is faint, is fine', () => {
+    const grazing = rule(190 - 1, { width: 4 });
+    const faint = rule(200, { alpha: 0.2 });
+    expect(frameFindings(sample, { texts: [city], inks: [grazing, faint] }, frame)).toEqual([]);
+  });
+
+  test('light ink under the text is page texture; the same ink over it strikes it', () => {
+    const greeked = rule(204, { alpha: 0.35 });
+    expect(frameFindings(sample, { texts: [city], inks: [greeked] }, frame)).toEqual([]);
+    const over = rule(204, { alpha: 0.35, order: 6 });
+    expect(tags(frameFindings(sample, { texts: [city], inks: [over] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('a stroke that marks the text on purpose may cross it; another text it crosses is still found', () => {
+    const marked = { ...city, hand: 11 };
+    const strike = rule(204, { marks: [11] });
+    expect(frameFindings(sample, { texts: [marked], inks: [strike] }, frame)).toEqual([]);
+    const other = textBox('1888', 1300, 196, 120, 30, { order: 6, hand: 12 });
+    expect(tags(frameFindings(sample, { texts: [marked, other], inks: [strike] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('marks binds to the one line it names, not to every line with the same words', () => {
+    // Two GUILTY stamps; the strike is declared for the first and runs through the second.
+    const first = textBox('GUILTY', 300, 400, 300, 60, { order: 5, hand: 21 });
+    const second = textBox('GUILTY', 1200, 400, 300, 60, { order: 5, hand: 22 });
+    const strike = inkMark(
+      'stroke',
+      [
+        [1150, 430],
+        [1550, 432],
+      ],
+      { order: 6, width: 12, marks: [21] },
+    );
+    const found = frameFindings(sample, { texts: [first, second], inks: [strike] }, frame);
+    expect(tags(found)).toEqual(['InkOverText']);
+    expect(found[0]).toMatchObject({ text: 'GUILTY', x: 1150 });
+  });
+
+  test('a wide stroke counts its width: 40 px of ink whose centre passes above 12 px text covers it', () => {
+    const small = textBox('small print', 800, 500, 200, 12, { order: 5 });
+    // Centre line 10 px above the text's top: the stroke's lower half covers 10 of its 12 px.
+    const band = (width: number) =>
+      inkMark(
+        'stroke',
+        [
+          [700, 490],
+          [1100, 490],
+        ],
+        { order: 6, width },
+      );
+    expect(tags(frameFindings(sample, { texts: [small], inks: [band(40)] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+    // A thin one on the same line stays clear of it.
+    expect(frameFindings(sample, { texts: [small], inks: [band(8)] }, frame)).toEqual([]);
+  });
+
+  test('page texture is light AND thin: a light bar as wide as the letters under them is found', () => {
+    // 0.5 opacity, drawn before the text, but 70 px wide across 28 px letters.
+    const bar = rule(204, { alpha: 0.5, width: 70 });
+    expect(tags(frameFindings(sample, { texts: [city], inks: [bar] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+    // The same light ink as a rule a third of the letters' height or less is texture.
+    const greeked = rule(204, { alpha: 0.5, width: 9 });
+    expect(frameFindings(sample, { texts: [city], inks: [greeked] }, frame)).toEqual([]);
+  });
+
+  test('ink at 0.3 opacity or less does not read over text and is not checked; above it is', () => {
+    const over = (alpha: number) => rule(204, { alpha, order: 6 });
+    expect(frameFindings(sample, { texts: [city], inks: [over(0.3)] }, frame)).toEqual([]);
+    expect(tags(frameFindings(sample, { texts: [city], inks: [over(0.31)] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('a plate drawn over the stroke hides it; a plate drawn under it does not', () => {
+    const plate = (order: number) =>
+      inkMark(
+        'plate',
+        [
+          [680, 180],
+          [1240, 180],
+          [1240, 230],
+          [680, 230],
+        ],
+        { order },
+      );
+    expect(frameFindings(sample, { texts: [city], inks: [rule(200), plate(4)] }, frame)).toEqual(
+      [],
+    );
+    expect(
+      tags(frameFindings(sample, { texts: [city], inks: [plate(2), rule(200)] }, frame)),
+    ).toEqual(['InkOverText']);
+  });
+
+  test('a plate over the text hides the edge of a wide stroke whose centre runs beside it', () => {
+    // A caption on its plate, and a 60 px arm drawn before it whose centre
+    // line runs 20 px below the plate: only the arm's edge reaches the words,
+    // and the plate covers exactly that edge.
+    const caption = textBox('and in the darkened void', 700, 960, 520, 60, { order: 5 });
+    const plate = inkMark(
+      'plate',
+      [
+        [700, 960],
+        [1220, 960],
+        [1220, 1020],
+        [700, 1020],
+      ],
+      { order: 4 },
+    );
+    const arm = inkMark(
+      'stroke',
+      [
+        [600, 1040],
+        [1300, 1040],
+      ],
+      { order: 2, width: 60 },
+    );
+    expect(frameFindings(sample, { texts: [caption], inks: [arm, plate] }, frame)).toEqual([]);
+    // Without the plate, its edge is over the words.
+    expect(tags(frameFindings(sample, { texts: [caption], inks: [arm] }, frame))).toEqual([
+      'InkOverText',
+    ]);
+  });
+
+  test('fills over a stroke fade it by their opacity: hidden once what shows is 0.3 or less', () => {
+    // A blanket fading out over an arm: at 0.74 the arm shows at 0.26 and
+    // does not read; at 0.5 it shows at 0.5 and does; two 0.5 layers leave 0.25.
+    const blanket = (alpha: number, order: number) =>
+      inkMark(
+        'fill',
+        [
+          [680, 180],
+          [1240, 180],
+          [1240, 230],
+          [680, 230],
+        ],
+        { order, alpha },
+      );
+    const shown = (inks: ReadonlyArray<ReturnType<typeof inkMark>>) =>
+      tags(frameFindings(sample, { texts: [city], inks: [rule(200), ...inks] }, frame));
+    expect(shown([blanket(0.74, 4)])).toEqual([]);
+    expect(shown([blanket(0.5, 4)])).toEqual(['InkOverText']);
+    expect(shown([blanket(0.5, 4), blanket(0.5, 4.5)])).toEqual([]);
+  });
+});
+
+describe('plates off the frame', () => {
+  const tag = (x: number, order = 1) =>
+    inkMark(
+      'fill',
+      [
+        [x, 500],
+        [x + 300, 500],
+        [x + 300, 580],
+        [x, 580],
+      ],
+      { order },
+    );
+
+  test('a plate carrying text, cut by the edge, is a finding', () => {
+    const found = frameFindings(
+      sample,
+      { texts: [textBox('merit', 1700, 520, 120, 40, { order: 2 })], inks: [tag(1680)] },
+      frame,
+    );
+    expect(found).toMatchObject([{ _tag: 'PlateOffFrame', text: 'merit' }]);
+    expect(found[0]).toMatchObject({ right: 60 });
+  });
+
+  test('a banner half the frame high but narrow is not a backdrop: cut by the edge, it is found', () => {
+    // 300 × 600, 100 px past the right edge.
+    const banner = inkMark(
+      'fill',
+      [
+        [1720, 200],
+        [2020, 200],
+        [2020, 800],
+        [1720, 800],
+      ],
+      { order: 1 },
+    );
+    const found = frameFindings(
+      sample,
+      { texts: [textBox('VERDICT', 1740, 480, 150, 40, { order: 2 })], inks: [banner] },
+      frame,
+    );
+    expect(found).toMatchObject([{ _tag: 'PlateOffFrame', text: 'VERDICT', right: 100 }]);
+  });
+
+  test('a plate with no text on it, a backdrop, a panel half the frame wide and high, or text drawn before it, is not', () => {
+    // One half of a split page: 960 wide, the frame's height and more.
+    const panel = inkMark(
+      'fill',
+      [
+        [1000, 340],
+        [2010, 340],
+        [2010, 1120],
+        [1000, 1120],
+      ],
+      { order: 1 },
+    );
+    expect(
+      frameFindings(
+        sample,
+        { texts: [textBox('far away', 1420, 400, 170, 40, { order: 2 })], inks: [panel] },
+        frame,
+      ),
+    ).toEqual([]);
+    const sheet = inkMark(
+      'fill',
+      [
+        [-50, -40],
+        [1980, -40],
+        [1980, 1100],
+        [-50, 1100],
+      ],
+      { order: 1 },
+    );
+    const found = frameFindings(
+      sample,
+      {
+        texts: [
+          textBox('sky', 900, 500, 120, 40, { order: 2 }),
+          textBox('under', 1700, 520, 90, 40),
+        ],
+        inks: [tag(1680), sheet],
+      },
+      frame,
+    );
+    expect(found).toEqual([]);
+  });
+
+  test('a plate on its way in or out is not: it moves by the next frame, or its text is past the edge too', () => {
+    const merit = textBox('merit', 1700, 520, 120, 40, { order: 2 });
+    const moving = frameFindings(sample, { texts: [merit], inks: [tag(1680)] }, frame, {
+      texts: [{ ...merit, x: 1680 }],
+      inks: [tag(1660)],
+    });
+    expect(moving).toEqual([]);
+    const leaving = frameFindings(
+      sample,
+      { texts: [textBox('merit', 1880, 520, 120, 40, { order: 2 })], inks: [tag(1860)] },
+      frame,
+    );
+    expect(tags(leaving)).toEqual(['TextOffFrame']);
+  });
+
+  test('text wholly off the frame shows nothing, so the plate under it is not cut off', () => {
+    // A room slid away left: its sheet still shows 10 px at the edge, its words are gone.
+    const sheet = inkMark(
+      'fill',
+      [
+        [-890, 340],
+        [10, 340],
+        [10, 1120],
+        [-890, 1120],
+      ],
+      { order: 0 },
+    );
+    const gone = textBox('far away', -574, 402, 169, 39, { order: 2 });
+    expect(frameFindings(sample, { texts: [gone], inks: [sheet] }, frame)).toEqual([]);
+  });
+
+  test('a band that runs past both opposite edges spans the frame: it may bleed', () => {
+    // A stripe of sky the frame's width and 60 px more each side, a quote on it.
+    const band = (left: number) =>
+      inkMark(
+        'fill',
+        [
+          [left, 170],
+          [1980, 170],
+          [1980, 430],
+          [left, 430],
+        ],
+        { order: 1 },
+      );
+    const quote = textBox('must the Son of man be lifted up.', 549, 220, 822, 58, { order: 2 });
+    expect(frameFindings(sample, { texts: [quote], inks: [band(-60)] }, frame)).toEqual([]);
+    // Past one edge only, the same band is cut off.
+    expect(tags(frameFindings(sample, { texts: [quote], inks: [band(40)] }, frame))).toEqual([
+      'PlateOffFrame',
+    ]);
+  });
+});
+
+describe('mergeFindings', () => {
+  test('one finding per pair and scene: the worst sample, counting every frame that shows it', () => {
+    const at = (time: number, dy: number): LayoutFinding => {
+      const found = frameFindings(
+        { ...sample, time },
+        { texts: [textBox('a', 0, 0, 100, 40), textBox('b', 0, dy, 100, 40)], inks: [] },
+        frame,
+      );
+      return Option.getOrThrow(Arr.head(found));
+    };
+    const merged = mergeFindings([at(1, 30), at(2, 10), at(3, 20)]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ _tag: 'TextOverlap', time: 2, frames: 3 });
+  });
+});
+
+describe('layoutSamples', () => {
+  const scenes: ReadonlyArray<Timed> = [
+    { id: 'one', say: 'Hello {go}there friend', timeline: { pop: { mark: 'go', dur: 0.5 } } },
+    { id: 'two', say: 'And {late}then', enter: { kind: 'fade', dur: 1 }, lead: 0.2, tail: 0.3 },
+  ];
+  const placed = layout(scenes, noTakes);
+
+  test('every mark, cue edge and the 60% point, as frames inside the scene', () => {
+    const one = layoutSamples(placed, 30).filter((s) => s.scene === 'one');
+    expect(one.map((s) => s.at)).toEqual(['mark go, cue pop start', 'cue pop end', '60%']);
+    for (const s of one) expect(s.time).toBeCloseTo(s.frame / 30);
+  });
+
+  test('without marks, as the look-book takes them: cue edges and the 60% point', () => {
+    const one = sceneMoments(placed, 30, { marks: false }).filter((s) => s.scene === 'one');
+    expect(one.map((s) => s.at)).toEqual(['cue pop start', 'cue pop end', '60%']);
+  });
+
+  test('a moment inside the entering transition waits for it to settle', () => {
+    const [two] = placed.slice(1);
+    const late = layoutSamples(placed, 30).find((s) => s.at.includes('mark late'));
+    // {late} falls 0.2 s into a 1 s fade: sampled on the first settled frame.
+    expect(late?.frame).toBe(Math.ceil(((two?.start ?? 0) + 1) * 30 - 1e-6));
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Static
@@ -98,7 +563,6 @@ describe('unknownVoices', () => {
       layout(scenes, noTakes),
       { allowStale: true },
       Option.none(),
-      events,
     );
     expect(found.map((r) => [r.level, r.finding._tag])).toEqual([
       ['error', 'UnknownVoice'],
@@ -107,8 +571,23 @@ describe('unknownVoices', () => {
   });
 });
 
+describe('lateCues', () => {
+  test('a cue that ends after its scene', () => {
+    const placed = layout(
+      [{ id: 's', min: 4, timeline: { ok: { scene: 'start', dur: 4 }, over: { scene: 'end' } } }],
+      noTakes,
+    );
+    expect(lateCues(placed)).toEqual([]);
+    const late = layout(
+      [{ id: 's', min: 4, timeline: { over: { scene: 'end', offset: -0.5, dur: 1 } } }],
+      noTakes,
+    );
+    expect(lateCues(late).map((c) => [c.scene, c.cue, c.end])).toEqual([['s', 'over', 4.5]]);
+  });
+});
+
 const soundScenes: ReadonlyArray<Timed> = [
-  { id: 'open', min: 8 },
+  { id: 'open', min: 8, timeline: { hit: { scene: 'start', offset: 1 } } },
   { id: 'middle', min: 2 },
   { id: 'close', min: 8 },
 ];
@@ -173,12 +652,9 @@ describe('musicFindings', () => {
   });
 });
 
-/** `open` fires its Event `hit` a second in. */
-const events: EventTimes = new Map([['open', new Map([['hit', 1]])]]);
-
 describe('effectFindings', () => {
-  test('every placement naming an unknown scene, Event or mark, and every stale effect', () => {
-    const hit = { prompt: 'a hit', secs: 1, at: [{ scene: 'open', event: 'hit' }] };
+  test('every placement naming an unknown scene, cue or mark, and every stale effect', () => {
+    const hit = { prompt: 'a hit', secs: 1, at: [{ scene: 'open', cue: 'hit' }] };
     const sound: Sound = {
       effects: {
         hit,
@@ -187,40 +663,32 @@ describe('effectFindings', () => {
           secs: 1,
           at: [
             { scene: 'nowhere' },
-            { scene: 'open', event: 'nope' },
+            { scene: 'open', cue: 'nope' },
             { scene: 'open', mark: 'nope' },
           ],
         },
       },
     };
-    const found = effectFindings(
-      sound,
-      placedSound,
-      {
-        effects: {
-          hit: { hash: effectKey(hit), file: 'h.mp3' },
-          lost: { hash: 'x', file: 'l.mp3' },
-        },
-      },
-      events,
-    );
-    expect(tags(found)).toEqual(['UnknownScene', 'UnknownEvent', 'UnknownMark', 'AssetStale']);
+    const found = effectFindings(sound, placedSound, {
+      effects: { hit: { hash: effectKey(hit), file: 'h.mp3' }, lost: { hash: 'x', file: 'l.mp3' } },
+    });
+    expect(tags(found)).toEqual(['UnknownScene', 'UnknownCue', 'UnknownMark', 'AssetStale']);
   });
 });
 
 describe('staticFindings', () => {
   const film = {
     ...testFilm(soundScenes, { voice: '', scenes: {} }),
-    scenes: [...soundScenes, { id: 'said', say: 'Words' }].map((b) => ({ picture: '', ...b })),
+    scenes: [...soundScenes, { id: 'said', say: 'Words' }],
     sound: Option.some<Sound>({
-      effects: { hit: { prompt: 'a hit', secs: 1, at: [{ scene: 'open', event: 'hit' }] } },
+      effects: { hit: { prompt: 'a hit', secs: 1, at: [{ scene: 'open', cue: 'hit' }] } },
     }),
   };
   const placed = layout(film.scenes, film.timings);
 
   test('stale work is an error, an unmade sound a warning', () => {
     expect(
-      staticFindings(film, placed, { allowStale: false }, Option.none(), events).map((r) => [
+      staticFindings(film, placed, { allowStale: false }, Option.none()).map((r) => [
         r.level,
         r.finding._tag,
       ]),
@@ -232,7 +700,7 @@ describe('staticFindings', () => {
 
   test('--allow-stale turns stale work into warnings', () => {
     expect(
-      staticFindings(film, placed, { allowStale: true }, Option.none(), events).map((r) => r.level),
+      staticFindings(film, placed, { allowStale: true }, Option.none()).map((r) => r.level),
     ).toEqual(['warning', 'warning']);
   });
 });
@@ -247,10 +715,7 @@ describe('the audio master', () => {
   const placed = layout(scenes, recorded);
   const end = filmEnd(placed);
   const found = (master: Option.Option<number>, allowStale = false) =>
-    staticFindings(film, placed, { allowStale }, master, events).map((r) => [
-      r.level,
-      r.finding._tag,
-    ]);
+    staticFindings(film, placed, { allowStale }, master).map((r) => [r.level, r.finding._tag]);
 
   test('a master as long as the film, within a frame, passes', () => {
     expect(found(Option.some(end))).toEqual([]);
@@ -274,141 +739,9 @@ describe('the audio master', () => {
   test('a film with a take still to record has no master to check', () => {
     const unrecorded = testFilm(scenes, noTakes);
     const laid = layout(scenes, noTakes);
-    const tagsOf = staticFindings(
-      unrecorded,
-      laid,
-      { allowStale: true },
-      Option.none(),
-      events,
-    ).map((r) => r.finding._tag);
-    expect(tagsOf).toEqual(['TakeStale']);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Project
-
-/** The scene a finding names, if it names one. */
-const sceneOf = (finding: Finding): string => {
-  if (Predicate.hasProperty(finding, 'scene') && Predicate.isString(finding.scene))
-    return finding.scene;
-  return '';
-};
-
-describe('projectFindings', () => {
-  const scenes: ReadonlyArray<Timed> = [
-    { id: 'drawn', say: 'One {x}two {y}three.' },
-    { id: 'seeded', say: 'Four {z}five.' },
-    { id: 'loose' },
-    { id: 'still', say: 'Six {w}seven.' },
-    { id: 'gone' },
-  ];
-  const film = testFilm(scenes, noTakes);
-  const placed = layout(scenes, noTakes);
-  const strict: CheckOptions = { allowStale: false };
-
-  /** A 4 s board firing `events` on its main timeline, or holding one frame with no timeline. */
-  const board = (
-    name: string,
-    events: ReadonlyArray<readonly [string, number]>,
-    over: Partial<SceneBoard> = {},
-  ): SceneBoard => ({
-    name,
-    id: `${name}:1`,
-    width: 1920,
-    height: 1080,
-    x: 0,
-    y: 0,
-    main: Option.some({ id: `${name}:2`, fps: 60, frames: 240, seconds: 4 }),
-    events: events.map(([event, at]) => ({ name: event, id: `${name}:${event}`, at })),
-    unkeyed: [],
-    runs: [],
-    storyboard: false,
-    component: true,
-    ...over,
-  });
-
-  const doc = (problems: ReadonlyArray<RiveProblem> = []): RiveDocument => ({
-    boards: new Map(
-      [
-        // `y` is keyed before `x`: the warp cannot pass back through it.
-        board('drawn', [
-          ['x', 2],
-          ['y', 1],
-        ]),
-        board('seeded', [['z', 1]], { storyboard: true }),
-        board('loose', [], { component: false }),
-        board('still', [], { main: Option.none() }),
-      ].map((b): readonly [string, SceneBoard] => [b.name, b]),
-    ),
-    fonts: [],
-    problems,
-  });
-
-  const state = (current = true, problems: ReadonlyArray<RiveProblem> = []) =>
-    Option.some<ProjectState>({ doc: doc(problems), current });
-
-  const found = (
-    project: Option.Option<ProjectState>,
-    only: Option.Option<ReadonlySet<string>> = Option.none(),
-    options: CheckOptions = strict,
-  ) =>
-    projectFindings(film, placed, project, only, options).map((r) => [
-      r.level,
-      r.finding._tag,
-      sceneOf(r.finding),
-    ]);
-
-  test('a film never synced has no project', () => {
-    expect(found(Option.none())).toEqual([['error', 'ProjectMissing', '']]);
-  });
-
-  test("each beat's scene: there, nestable, drawn, and every mark on an Event it can land on", () => {
-    expect(found(state())).toEqual([
-      ['error', 'MarkOrder', 'drawn'],
-      ['warning', 'SceneUndrawn', 'seeded'],
-      ['error', 'SceneNotComponent', 'loose'],
-      ['error', 'TimelineMissing', 'still'],
-      ['error', 'SceneMissing', 'gone'],
-    ]);
-  });
-
-  test('--scene checks just those beats; the project as a whole is still checked', () => {
-    const problem: RiveProblem = {
-      severity: 'warning',
-      kind: 'unused',
-      file: 'scenes/drawn.rml',
-      line: 4,
-      message: 'never drawn',
-    };
-    const picked = projectFindings(
-      film,
-      placed,
-      state(false, [problem]),
-      Option.some(new Set(['gone'])),
-      strict,
+    const tagsOf = staticFindings(unrecorded, laid, { allowStale: true }, Option.none()).map(
+      (r) => r.finding._tag,
     );
-    expect(picked.map((r) => [r.level, r.finding._tag])).toEqual([
-      ['warning', 'ProjectProblem'],
-      ['error', 'SceneMissing'],
-      ['error', 'FilmStale'],
-    ]);
-    expect(picked[0]?.finding.message).toBe('scenes/drawn.rml:4: never drawn (unused)');
-  });
-
-  test('a Film out of date is an error, or with --allow-stale a warning', () => {
-    const stale = (options: CheckOptions) =>
-      found(state(false), Option.some(new Set<string>()), options);
-    expect(stale(strict)).toEqual([['error', 'FilmStale', '']]);
-    expect(stale({ allowStale: true })).toEqual([['warning', 'FilmStale', '']]);
-  });
-
-  test('a mark with no Event of its name is unpinned', () => {
-    const unpinned = testFilm([{ id: 'drawn', say: 'One {x}two {q}three.' }], noTakes);
-    const laid = layout(unpinned.scenes, noTakes);
-    const reported = projectFindings(unpinned, laid, state(), Option.none(), strict);
-    expect(reported.map((r) => r.finding.message)).toEqual([
-      'scene "drawn": no Event "q" on the main timeline for the mark {q}; key one where the picture hits the word',
-    ]);
+    expect(tagsOf).toEqual(['TakeStale']);
   });
 });

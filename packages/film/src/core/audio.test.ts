@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { concat, levels, preview, silence, slice, toInt16, toStereo } from './audio.ts';
+import { concat, levels, silence, slice, toInt16, toStereo } from './audio.ts';
 
 const pcm = (...channels: ReadonlyArray<ReadonlyArray<number>>) => ({
   rate: 44100,
@@ -65,19 +65,5 @@ describe('slice', () => {
       [2, 3, 0],
       [5, 6, 0],
     ]);
-  });
-});
-
-describe('preview', () => {
-  test('averages the channels and each pair of frames: mono at half the rate', () => {
-    const stereo = {
-      rate: 44100,
-      frames: 5,
-      channels: [new Float32Array([1, 1, 0, 0, 1]), new Float32Array([0, 0, 1, 1, 1])],
-    };
-    const out = preview(stereo);
-    expect(out.rate).toBe(22050);
-    expect(out.frames).toBe(2);
-    expect([...(out.channels[0] ?? [])]).toEqual([0.5, 0.5]);
   });
 });

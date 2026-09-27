@@ -8,7 +8,7 @@ export {
   ActTooShort,
   AlignmentMismatch,
   CueInvalid,
-  UnknownEvent,
+  UnknownCue,
   UnknownMark,
   UnknownScene,
   UnknownVoice,
@@ -23,7 +23,7 @@ export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFou
   }
 }
 
-/** A film module (script, voice, sound) that fails to import or has the wrong shape. */
+/** A film module (scenes, voice, sound) that fails to import or has the wrong shape. */
 export class FilmModuleInvalid extends Schema.TaggedError<FilmModuleInvalid>()(
   'FilmModuleInvalid',
   { film: Schema.String, module: Schema.String, reason: Schema.String },
@@ -43,7 +43,7 @@ export class FileInvalid extends Schema.TaggedError<FileInvalid>()('FileInvalid'
   }
 }
 
-/** `layout()` refused the film: two beats share an id. */
+/** `layout()` refused the film: a duplicate scene, an unknown mark or cue in a timeline, a cycle. */
 export class LayoutInvalid extends Schema.TaggedError<LayoutInvalid>()('LayoutInvalid', {
   film: Schema.String,
   reason: Schema.String,
@@ -111,6 +111,15 @@ export class SampleRateMismatch extends Schema.TaggedError<SampleRateMismatch>()
   }
 }
 
+/** Some named cue ends after its scene does. */
+export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
+  count: Schema.Int,
+}) {
+  override get message() {
+    return `${this.count} cue(s) end after their scene`;
+  }
+}
+
 /** No headless Chromium to render with: Playwright ships without one. */
 export class BrowserMissing extends Schema.TaggedError<BrowserMissing>()('BrowserMissing', {
   executable: Schema.String,
@@ -129,13 +138,13 @@ export class BrowserFailed extends Schema.TaggedError<BrowserFailed>()('BrowserF
   }
 }
 
-/** The film's page did not load, or loaded without its export handle. */
+/** The player page did not load, or loaded without an export handle. */
 export class PageLoadFailed extends Schema.TaggedError<PageLoadFailed>()('PageLoadFailed', {
   url: Schema.String,
   reason: Schema.String,
 }) {
   override get message() {
-    return `the film's page did not load at ${this.url}: ${this.reason}`;
+    return `the player did not load at ${this.url}: ${this.reason}`;
   }
 }
 
@@ -164,6 +173,15 @@ export class FrameFailed extends Schema.TaggedError<FrameFailed>()('FrameFailed'
 }) {
   override get message() {
     return `frame ${this.frame} failed: ${this.reason}`;
+  }
+}
+
+/** The page could not compose the film's look-book. */
+export class LookbookFailed extends Schema.TaggedError<LookbookFailed>()('LookbookFailed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the look-book failed: ${this.reason}`;
   }
 }
 
@@ -232,6 +250,18 @@ export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
 // `film check` findings. Each is a value the check collects, never the first
 // failure only; the run fails with `CheckFailed` once every one is reported.
 
+/** A named cue that ends after its scene does. */
+export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
+  scene: Schema.String,
+  cue: Schema.String,
+  end: Schema.Finite,
+  dur: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" ends at ${this.end.toFixed(2)}s, after the scene (${this.dur.toFixed(2)}s)`;
+  }
+}
+
 /** A beat whose take is missing, or was recorded for other text or another voice. */
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,
@@ -262,82 +292,53 @@ export class AssetMissing extends Schema.TaggedError<AssetMissing>()('AssetMissi
   }
 }
 
-/** A beat with no artboard of its name in the film's Rive project. */
-export class SceneMissing extends Schema.TaggedError<SceneMissing>()('SceneMissing', {
+/** Where a layout sample was taken: a scene, a film time, and what the time is. */
+const sampled = {
   scene: Schema.String,
-}) {
-  override get message() {
-    return `beat "${this.scene}" has no artboard in the Rive project; run sync to seed its storyboard`;
-  }
-}
-
-/** A scene still showing the storyboard `film sync` seeded: nobody has drawn it yet. */
-export class SceneUndrawn extends Schema.TaggedError<SceneUndrawn>()('SceneUndrawn', {
-  scene: Schema.String,
-}) {
-  override get message() {
-    return `scene "${this.scene}" is still its storyboard`;
-  }
-}
-
-/** A scene the Film cannot nest: its artboard is not a component. */
-export class SceneNotComponent extends Schema.TaggedError<SceneNotComponent>()(
-  'SceneNotComponent',
-  { scene: Schema.String },
-) {
-  override get message() {
-    return `scene "${this.scene}" is not a component, so the Film cannot nest it; make its artboard a component`;
-  }
-}
-
-/** A mark with no Event of its name on its scene's main timeline: the picture cannot hit the word. */
-export class MarkUnpinned extends Schema.TaggedError<MarkUnpinned>()('MarkUnpinned', {
-  scene: Schema.String,
-  mark: Schema.String,
-}) {
-  override get message() {
-    return `scene "${this.scene}": no Event "${this.mark}" on the main timeline for the mark {${this.mark}}; key one where the picture hits the word`;
-  }
-}
-
-/** A mark whose Event is keyed before an earlier mark's, or at the timeline's end: the warp leaves it out. */
-export class MarkOrder extends Schema.TaggedError<MarkOrder>()('MarkOrder', {
-  scene: Schema.String,
-  mark: Schema.String,
-}) {
-  override get message() {
-    return `scene "${this.scene}": Event "${this.mark}" is keyed before an earlier mark's Event, or at the end of the timeline, so the voice cannot land on it`;
-  }
-}
-
-/** A scene with marks and no `main` timeline: it holds one frame, so no word lands. */
-export class TimelineMissing extends Schema.TaggedError<TimelineMissing>()('TimelineMissing', {
-  scene: Schema.String,
-  marks: Schema.Int,
-}) {
-  override get message() {
-    return `scene "${this.scene}" has ${this.marks} mark(s) and no timeline named main to land them on`;
-  }
-}
-
-/** `film.rml` is not what `film sync` would write now: a take, the script or a scene changed since. */
-export class FilmStale extends Schema.TaggedError<FilmStale>()('FilmStale', {
-  file: Schema.String,
-}) {
-  override get message() {
-    return `${this.file} is out of date with the takes, the script or the scenes; run sync`;
-  }
-}
-
-/** A problem the Rive compiler finds in the project. */
-export class ProjectProblem extends Schema.TaggedError<ProjectProblem>()('ProjectProblem', {
-  kind: Schema.String,
-  /** Where it is: `file:line`, or the project. */
+  time: Schema.Finite,
   at: Schema.String,
-  reason: Schema.String,
+};
+
+const where = (f: { readonly scene: string; readonly time: number; readonly at: string }) =>
+  `scene "${f.scene}" at ${f.time.toFixed(2)}s (${f.at})`;
+
+/** Two different lines of text on screen over each other. */
+export class TextOverlap extends Schema.TaggedError<TextOverlap>()('TextOverlap', {
+  ...sampled,
+  a: Schema.String,
+  b: Schema.String,
+  /** Overlap in square canvas pixels. */
+  area: Schema.Finite,
+  /** How many sampled frames show this pair overlapping. */
+  frames: Schema.Int,
 }) {
   override get message() {
-    return `${this.at}: ${this.reason} (${this.kind})`;
+    return `${where(this)}: "${this.a}" overlaps "${this.b}" by ${Math.round(this.area)} px² (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A line of text reaching past the edge of the frame. */
+export class TextOffFrame extends Schema.TaggedError<TextOffFrame>()('TextOffFrame', {
+  ...sampled,
+  text: Schema.String,
+  /** How far past the frame's edges it reaches, in canvas pixels. */
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: "${this.text}" leaves the frame, ${past.join(', ')} (${this.frames} sampled frame(s))`;
   }
 }
 
@@ -351,89 +352,186 @@ export class CheckFailed extends Schema.TaggedError<CheckFailed>()('CheckFailed'
   }
 }
 
-/** A pull would overwrite changes to the film's Rive project that git does not have yet. */
-export class ProjectDirty extends Schema.TaggedError<ProjectDirty>()('ProjectDirty', {
-  dir: Schema.String,
-  /** What git reports changed, a file a line. */
-  changed: Schema.Array(Schema.String),
+/** `film notes reply|resolve` named a note the film's lab does not have. */
+export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()('NoteNotFound', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The ids the film's notes do have. */
+  known: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `${this.dir} has changes git does not have (${this.changed.join(', ')}); commit them first, since a pull overwrites them`;
+    if (this.known.length === 0) return `film "${this.film}" has no note "${this.id}"; it has none`;
+    return `film "${this.film}" has no note "${this.id}"; its notes are ${this.known.join(', ')}`;
   }
 }
 
-/** The film has no Rive project yet. */
-export class ProjectMissing extends Schema.TaggedError<ProjectMissing>()('ProjectMissing', {
-  dir: Schema.String,
+/** Another process held the notes lock for too long: a crashed writer left it behind. */
+export class NotesLocked extends Schema.TaggedError<NotesLocked>()('NotesLocked', {
+  lock: Schema.String,
 }) {
   override get message() {
-    return `no Rive project at ${this.dir}; run sync to create it`;
+    return `${this.lock} is held by a running writer; it is broken once that writer exits or the lock is 30 s old`;
   }
 }
 
-/** The film's Rive project has no font to set a storyboard in. */
-export class FontMissing extends Schema.TaggedError<FontMissing>()('FontMissing', {
-  dir: Schema.String,
+// ---------------------------------------------------------------------------
+// Lab write-back: the scene source the lab edits.
+
+/** A scene whose drawing the lab cannot find in the film's source files. */
+export class SceneNotLocated extends Schema.TaggedError<SceneNotLocated>()('SceneNotLocated', {
+  film: Schema.String,
+  scene: Schema.String,
+  reason: Schema.String,
 }) {
   override get message() {
-    return `the Rive project at ${this.dir} has no font for the storyboards; add a FontAsset`;
+    return `film "${this.film}": scene "${this.scene}" has no editable drawing in source: ${this.reason}`;
   }
 }
 
-/** A beat with no artboard of its name, whose storyboard's file already holds something else. */
-export class SceneFileTaken extends Schema.TaggedError<SceneFileTaken>()('SceneFileTaken', {
-  beat: Schema.String,
+/**
+ * A literal more than one scene reads (each spreads one drawing): a write for
+ * one scene would move the others too, so the lab does not make it.
+ */
+export class SourceShared extends Schema.TaggedError<SourceShared>()('SourceShared', {
+  film: Schema.String,
+  field: Schema.Literals(['timeline', 'knobs']),
   file: Schema.String,
+  scenes: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `beat "${this.beat}" has no artboard of its name, but ${this.file} exists; name its artboard "${this.beat}" (sync never overwrites a scene)`;
+    return `film "${this.film}": the ${this.field} in ${this.file} is read by scenes ${this.scenes.join(', ')}; the lab will not write a literal they share (give each scene its own drawing)`;
   }
 }
 
-/** `git` failed where sync asked it whether the project has changes it lacks. */
-export class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
-  exitCode: Schema.Int,
+/**
+ * An edit the lab will not make: the target is not a literal it can prove it
+ * rewrites (a computed value, a spread, a shorthand), or it does not exist.
+ */
+export class SourceRefused extends Schema.TaggedError<SourceRefused>()('SourceRefused', {
+  file: Schema.String,
+  target: Schema.String,
   reason: Schema.String,
 }) {
   override get message() {
-    return `git status failed (exit ${this.exitCode}): ${this.reason}`;
+    return `${this.file}: will not edit ${this.target}: ${this.reason}`;
   }
 }
 
-/** The film's page could not be served. */
-export class ServeFailed extends Schema.TaggedError<ServeFailed>()('ServeFailed', {
+/** oxfmt failed on a file the lab wrote; the file was put back as it was. */
+export class FormatFailed extends Schema.TaggedError<FormatFailed>()('FormatFailed', {
+  file: Schema.String,
   reason: Schema.String,
 }) {
   override get message() {
-    return `the film's page could not be served: ${this.reason}`;
+    return `${this.file}: oxfmt failed, the file was left as it was: ${this.reason}`;
   }
 }
 
-/** The `rive` CLI is not installed. */
-export class RiveMissing extends Schema.TaggedError<RiveMissing>()('RiveMissing', {
-  install: Schema.String,
-}) {
-  override get message() {
-    return `the rive CLI is not installed; install it with: ${this.install}`;
-  }
-}
-
-/** A `rive` command failed: a compile error, no login, a file it cannot reach. */
-export class RiveFailed extends Schema.TaggedError<RiveFailed>()('RiveFailed', {
-  op: Schema.String,
-  exitCode: Schema.Int,
+/** A written value did not read back from the formatted file; the file was put back as it was. */
+export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('WriteUnverified', {
+  file: Schema.String,
+  target: Schema.String,
   reason: Schema.String,
 }) {
   override get message() {
-    return `rive ${this.op} failed (exit ${this.exitCode}): ${this.reason}`;
+    return `${this.file}: ${this.target} did not read back once formatted (${this.reason}); the file was left as it was`;
   }
 }
 
-/** A first push with nowhere to go: the project is linked to no Rive file and names no project. */
-export class RiveUnlinked extends Schema.TaggedError<RiveUnlinked>()('RiveUnlinked', {
-  dir: Schema.String,
+/**
+ * The scene file changed on disk (an editor saved it) between the lab reading
+ * it and writing it back: the lab writes nothing over it, and the change stays.
+ */
+export class SourceChanged extends Schema.TaggedError<SourceChanged>()('SourceChanged', {
+  file: Schema.String,
+  target: Schema.String,
 }) {
   override get message() {
-    return `${this.dir} is linked to no Rive file yet; push once with --project <id> (\`rive push --list\` prints them)`;
+    return `${this.file} changed on disk while the lab was writing ${this.target}; it was left as it is now: reload and write again`;
+  }
+}
+
+/** A child process that ran past its time limit, and was stopped. */
+export class ProcessTimedOut extends Schema.TaggedError<ProcessTimedOut>()('ProcessTimedOut', {
+  command: Schema.String,
+  seconds: Schema.Finite,
+}) {
+  override get message() {
+    return `${this.command} did not finish within ${this.seconds} s and was stopped`;
+  }
+}
+
+/** An undo with no write to undo, or one whose file has changed since the write. */
+export class UndoUnavailable extends Schema.TaggedError<UndoUnavailable>()('UndoUnavailable', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `nothing to undo: ${this.reason}`;
+  }
+}
+
+/** `film check --static`, run for the lab after a write, did not run to a report. */
+export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
+  'StaticCheckFailed',
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `the static check did not run: ${this.reason}`;
+  }
+}
+
+/** A scene file with no version at HEAD the lab can compare with: new, or not in a git repository. */
+export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('HeadUnavailable', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: no HEAD version to compare with: ${this.reason}`;
+  }
+}
+
+/** Brush strokes drawn across a line of text, where the check can see them. */
+export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText', {
+  ...sampled,
+  text: Schema.String,
+  /** How many strokes cross it. */
+  strokes: Schema.Int,
+  /** How much of their length runs visibly through the text's box, in canvas pixels. */
+  length: Schema.Finite,
+  /** The box around the crossing strokes, in canvas pixels. */
+  x: Schema.Finite,
+  y: Schema.Finite,
+  w: Schema.Finite,
+  h: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const box = `${Math.round(this.x)},${Math.round(this.y)} ${Math.round(this.w)}×${Math.round(this.h)}`;
+    return `${where(this)}: ${this.strokes} stroke(s) at ${box} cross "${this.text}" for ${Math.round(this.length)} px (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A plate (a cutout smaller than the frame) carrying text, cut off by the frame's edge. */
+export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOffFrame', {
+  ...sampled,
+  /** A line of text the plate carries. */
+  text: Schema.String,
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: the plate under "${this.text}" leaves the frame, ${past.join(', ')} (${this.frames} sampled frame(s))`;
   }
 }

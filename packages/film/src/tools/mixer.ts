@@ -1,12 +1,11 @@
 // Lay a film's sound on one track: the voice takes where the film places them,
-// the score ducked under the voice, and each effect on its cue: a mark, or an
-// Event its scene's timeline fires, read from the film's Rive project. What
-// plays where, and the signal processing, are core (core/mix.ts); `Mixer.mix`
-// loads the film, decodes what its plan plays, renders it and writes the
-// track: one WAV the renderer encodes a video's audio from, and `sync` makes
-// the Film's preview soundtrack from. Remixing never calls a paid API.
+// the score ducked under the voice, and each effect on its cue. What plays
+// where, and the signal processing, are core (core/mix.ts); `Mixer.mix` loads
+// the film, decodes what its plan plays, renders it and writes the track: one
+// WAV that the player streams and the renderer encodes a video's audio from.
+// Remixing never calls a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option, Predicate } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels } from '../core/audio.ts';
 import {
@@ -18,25 +17,55 @@ import {
   mixPlan,
   renderMix,
 } from '../core/mix.ts';
-import type { Sound } from '../core/schema.ts';
-import type { EventTimes } from '../core/sound.ts';
 import type { StoreError } from './content-store.ts';
 import {
+  AudioMissing,
+  AudioStale,
   type FilmModuleInvalid,
   type FilmNotFound,
   type LayoutInvalid,
   type MediaFailed,
-  type RiveFailed,
-  type RiveMissing,
   SampleRateMismatch,
 } from './errors.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import { type FilmPaths, FilmRepo, placeFilm } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
-import { masterFile } from './master.ts';
-import { FilmProject } from './project.ts';
+
+/** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
+export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full.wav`;
 
 /** Where a file is written until it is whole: `full.wav` → `full.partial.wav`. */
 const partialFile = (file: string): string => file.replace(/(\.[^./]+)$/, '.partial$1');
+
+/** The track's measured length in seconds, or none when there is no track. */
+export const measureMaster = (
+  fs: FileSystem.FileSystem,
+  media: MediaService,
+  file: string,
+): Effect.Effect<Option.Option<number>, MediaFailed | PlatformError> =>
+  Effect.gen(function* () {
+    if (!(yield* fs.exists(file))) return Option.none();
+    return Option.some(yield* media.duration(file));
+  });
+
+/**
+ * The track against the film it must cover: missing, or longer or shorter
+ * than `seconds` by more than `tolerance` (a frame), it is not this film's
+ * track. A mix is exactly the film's length, so a current one always passes.
+ */
+export const masterFinding = (
+  file: string,
+  length: Option.Option<number>,
+  seconds: number,
+  tolerance: number,
+): Option.Option<AudioMissing | AudioStale> =>
+  Option.match(length, {
+    onNone: () => Option.some(AudioMissing.make({ file })),
+    onSome: (measured) =>
+      Option.liftPredicate(
+        AudioStale.make({ file, length: measured, film: seconds }),
+        () => Math.abs(measured - seconds) > tolerance,
+      ),
+  });
 
 export interface MixOptions {
   /** Also write each bus to `<out>/<film>/stems/<bus>.wav`. */
@@ -50,16 +79,7 @@ export type MixError =
   | FilmModuleInvalid
   | StoreError
   | MediaFailed
-  | SampleRateMismatch
-  | RiveMissing
-  | RiveFailed
-  | PlatformError;
-
-/** Whether any effect plays on an Event: only then does the mix read the Rive project. */
-export const namesEvents = (sound: Option.Option<Sound>): boolean =>
-  Option.exists(sound, (s) =>
-    Object.values(s.effects).some((e) => e.at.some((cue) => Predicate.isNotUndefined(cue.event))),
-  );
+  | SampleRateMismatch;
 
 export interface MixerService {
   /**
@@ -116,7 +136,6 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const fs = yield* FileSystem.FileSystem;
       const repo = yield* FilmRepo;
       const media = yield* Media;
-      const project = yield* FilmProject;
 
       /** `pcm` written to `file` whole: beside it first, renamed over it once written. */
       const writeWhole = (file: string, pcm: Pcm) =>
@@ -131,12 +150,9 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
-        let events: EventTimes = new Map();
-        if (namesEvents(film.sound)) events = yield* project.events(film, placed);
         const plan = yield* Effect.fromResult(
           mixPlan({
             placed,
-            events,
             sound: film.sound,
             manifest: film.manifest,
             narration: film.paths.narration,

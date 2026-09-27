@@ -1,11 +1,10 @@
-// ElevenLabs through its CLI: speech and dialogue with timestamps,
-// speech-to-text, music and sound effects. Every request body is encoded and
-// every response decoded with Schema. Calls authenticate with an API key, from
-// ELEVENLABS_API_KEY or the Keychain entry of that name, when there is one,
-// and fall back to the CLI's OAuth login, which covers everything but sound
-// effects.
+// ElevenLabs through its CLI, whose OAuth login already sits in the Keychain:
+// speech and dialogue with timestamps, speech-to-text, music and sound effects. Every
+// request body is encoded and every response decoded with Schema. Sound
+// effects are the exception to the login: they need an API key, from
+// ELEVENLABS_API_KEY or the Keychain entry of that name.
 
-import { Config, Context, Effect, Layer, Option, Redacted, Schema, Semaphore } from 'effect';
+import { Config, Context, Effect, Layer, Option, Redacted, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import type { Line } from '../core/narration.ts';
@@ -166,53 +165,6 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           }),
         );
 
-      /** The environment first, then the Keychain; an empty value counts as none. */
-      const lookupKey = Effect.gen(function* () {
-        const env = yield* Config.option(Config.Redacted('ELEVENLABS_API_KEY')).pipe(
-          Effect.orElseSucceed(() => Option.none<Redacted.Redacted<string>>()),
-        );
-        const fromEnv = Option.filter(env, (key) => Redacted.value(key).length > 0);
-        if (Option.isSome(fromEnv)) return fromEnv.value;
-        const keychain = yield* collect(
-          spawner,
-          ChildProcess.make('security', [
-            'find-generic-password',
-            '-s',
-            'ELEVENLABS_API_KEY',
-            '-w',
-          ]),
-        ).pipe(Effect.orElseSucceed((): Finished => ({ exitCode: 1, stdout: '', stderr: '' })));
-        const key = keychain.stdout.trim();
-        if (keychain.exitCode === 0 && key.length > 0) return Redacted.make(key);
-        return yield* ApiKeyMissing.make({});
-      });
-      const apiKey = yield* Effect.cached(lookupKey);
-
-      /**
-       * `elevenlabs <args>`, authenticated by the API key when there is one. The
-       * CLI's OAuth login refreshes its token on use, and concurrent calls race
-       * that refresh: the losers present a spent refresh token and the login is
-       * revoked mid-run. A key has no refresh, so calls with one run in
-       * parallel; calls on the login run one at a time.
-       */
-      const oauth = yield* Semaphore.make(1);
-      const elevenlabs = (op: string, args: ReadonlyArray<string>) =>
-        Effect.gen(function* () {
-          const key = yield* Effect.option(apiKey);
-          return yield* Option.match(key, {
-            onNone: () =>
-              oauth.withPermits(1)(exec(op, ChildProcess.make('elevenlabs', [...args]))),
-            onSome: (k) =>
-              exec(
-                op,
-                ChildProcess.make('elevenlabs', [...args], {
-                  env: { ELEVENLABS_API_KEY: Redacted.value(k) },
-                  extendEnv: true,
-                }),
-              ),
-          });
-        });
-
       const encodeBody = <A>(op: string, schema: Schema.Codec<A, string>, value: A) =>
         Schema.encodeEffect(schema)(value).pipe(Effect.mapError(failed(op)));
 
@@ -233,16 +185,19 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           output_format: OUTPUT_FORMAT,
         });
         const body = yield* encodeBody('tts', TtsBody, ttsBody(request));
-        const raw = yield* elevenlabs('tts', [
-          'text-to-speech',
-          'convert_with_timestamps',
-          '--params',
-          params,
-          '--json',
-          body,
-          '--format',
-          'json',
-        ]);
+        const raw = yield* exec(
+          'tts',
+          ChildProcess.make('elevenlabs', [
+            'text-to-speech',
+            'convert_with_timestamps',
+            '--params',
+            params,
+            '--json',
+            body,
+            '--format',
+            'json',
+          ]),
+        );
         return yield* decodeReply('tts', Schema.fromJsonString(TtsResponse), raw);
       });
 
@@ -255,30 +210,36 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           model_id: request.cast.model,
           settings: request.cast.settings,
         });
-        const raw = yield* elevenlabs('dialogue', [
-          'text-to-dialogue',
-          'convert_with_timestamps',
-          '--params',
-          params,
-          '--json',
-          body,
-          '--format',
-          'json',
-        ]);
+        const raw = yield* exec(
+          'dialogue',
+          ChildProcess.make('elevenlabs', [
+            'text-to-dialogue',
+            'convert_with_timestamps',
+            '--params',
+            params,
+            '--json',
+            body,
+            '--format',
+            'json',
+          ]),
+        );
         return yield* decodeReply('dialogue', Schema.fromJsonString(DialogueResponse), raw);
       });
 
       const stt = Effect.fn('ElevenLabs.stt')(function* (file: string) {
-        const raw = yield* elevenlabs('stt', [
-          'speech-to-text',
-          'convert',
-          '--model-id',
-          'scribe_v1',
-          '--file',
-          file,
-          '--format',
-          'json',
-        ]);
+        const raw = yield* exec(
+          'stt',
+          ChildProcess.make('elevenlabs', [
+            'speech-to-text',
+            'convert',
+            '--model-id',
+            'scribe_v1',
+            '--file',
+            file,
+            '--format',
+            'json',
+          ]),
+        );
         return yield* decodeReply('stt', Schema.fromJsonString(SttResponse), raw);
       });
 
@@ -292,20 +253,22 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           composition_plan: plan,
           model_id: model,
         });
-        yield* elevenlabs('music', [
+        yield* exec(
           'music',
-          'compose',
-          '--params',
-          params,
-          '--json',
-          body,
-          '--output',
-          out,
-        ]);
+          ChildProcess.make('elevenlabs', [
+            'music',
+            'compose',
+            '--params',
+            params,
+            '--json',
+            body,
+            '--output',
+            out,
+          ]),
+        );
       });
 
       const checkReady = Effect.fn('ElevenLabs.ready')(function* () {
-        if (Option.isSome(yield* Effect.option(apiKey))) return;
         const done = yield* collect(
           spawner,
           ChildProcess.make('elevenlabs', ['auth', 'status', '--format', 'json']),
@@ -337,11 +300,33 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
       });
       const ready = checkReady();
 
+      /** The environment first, then the Keychain; an empty value counts as none. */
+      const lookupKey = Effect.gen(function* () {
+        const env = yield* Config.option(Config.Redacted('ELEVENLABS_API_KEY')).pipe(
+          Effect.orElseSucceed(() => Option.none<Redacted.Redacted<string>>()),
+        );
+        const fromEnv = Option.filter(env, (key) => Redacted.value(key).length > 0);
+        if (Option.isSome(fromEnv)) return fromEnv.value;
+        const keychain = yield* collect(
+          spawner,
+          ChildProcess.make('security', [
+            'find-generic-password',
+            '-s',
+            'ELEVENLABS_API_KEY',
+            '-w',
+          ]),
+        ).pipe(Effect.orElseSucceed((): Finished => ({ exitCode: 1, stdout: '', stderr: '' })));
+        const key = keychain.stdout.trim();
+        if (keychain.exitCode === 0 && key.length > 0) return Redacted.make(key);
+        return yield* ApiKeyMissing.make({});
+      });
+      const apiKey = yield* Effect.cached(lookupKey);
+
       const soundEffect = Effect.fn('ElevenLabs.soundEffect')(function* (
         request: SoundEffectRequest,
         out: string,
       ) {
-        yield* apiKey;
+        const key = yield* apiKey;
         const params = yield* encodeBody('sfx', OutputParams, { output_format: OUTPUT_FORMAT });
         const body = yield* encodeBody('sfx', SoundEffectBody, {
           text: request.prompt,
@@ -349,16 +334,23 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           prompt_influence: 0.5,
           model_id: 'eleven_text_to_sound_v2',
         });
-        yield* elevenlabs('sfx', [
-          'text-to-sound-effects',
-          'convert',
-          '--params',
-          params,
-          '--json',
-          body,
-          '--output',
-          out,
-        ]);
+        yield* exec(
+          'sfx',
+          ChildProcess.make(
+            'elevenlabs',
+            [
+              'text-to-sound-effects',
+              'convert',
+              '--params',
+              params,
+              '--json',
+              body,
+              '--output',
+              out,
+            ],
+            { env: { ELEVENLABS_API_KEY: Redacted.value(key) }, extendEnv: true },
+          ),
+        );
       });
 
       return ElevenLabs.of({ tts, dialogue, stt, composeMusic, ready, apiKey, soundEffect });

@@ -197,3 +197,6 @@ packages/core/dist-native/*
 # apps/egw-search/infra/context.ts before every plan and deploy.
 apps/egw-search/.deploy/
 
+# The film lab's notes and stills (apps/animations/lab/<film>/), written by `bun run lab`
+# and `bun run notes`: review state, not source.
+apps/animations/lab/

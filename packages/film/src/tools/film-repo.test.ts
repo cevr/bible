@@ -1,5 +1,5 @@
-// FilmRepo reads films from the one root the app hands it; no environment
-// variable can point the tools elsewhere.
+// FilmRepo reads films from the one root the app hands it, the same folder its
+// player page imports; no environment variable can point the tools elsewhere.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { ConfigProvider, Effect, Layer, Path } from 'effect';
@@ -17,7 +17,6 @@ describe('FilmRepo', () => {
     Effect.gen(function* () {
       const paths = (yield* FilmRepo).paths('test');
       expect(paths.dir).toBe('/app/src/films/test');
-      expect(paths.rive).toBe('/app/src/films/test/rive');
     }).pipe(Effect.provide(repo)),
   );
 });

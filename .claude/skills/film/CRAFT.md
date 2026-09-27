@@ -15,7 +15,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - a quotation of 10 words or fewer, and only when the words are an object in the world: written in dust, carved, stamped;
   - the sources, on the end card.
 - **One text element at a time.** The title and the end card are the only exceptions.
-- **Narration is never typeset.** The captions ship as the `.vtt` that `render` writes beside the MP4; no scene draws them.
+- **Narration is never typeset.** The captions ship as the `.vtt` beside the MP4, so render the master with `--no-captions`.
 - **`cite` feeds the end card and `sources.md`.** It is never an on-screen tag.
 - **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title and end card.
 
@@ -34,7 +34,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - **IDEA** is the argument: 1 to 4 flat paper figures and one gold prop on a plain page. The page follows the colour script (rule 11): parchment in a bright film, the night page for one IDEA stretch at most.
 - **Switch only at a turn in the argument.** Use one of three moves: a white flash; a push-through, zooming through a panel into a scene; or a dip to black.
 - **The landing merges the two.** The IDEA figure stands inside the STORY frame.
-- **Check:** in a `--contact` sheet, the register sequence lines up with the turns in the script.
+- **Check:** the look-book's register sequence lines up with the turns in the script.
 
 ## 4. One picture per abstraction, and motifs paid off
 
@@ -49,7 +49,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **Faces:** every beat has a shot where a face fills a third of the frame's height or more.
 - **Close-ups and reactions:** a quotation lands on its speaker's close-up, and a reaction follows an idea.
 - **Hold and move:** hold a shot 5 to 10 s and move the picture inside it. Cut only to change place.
-- **Check:** the contact sheet shows a face at that scale in every scene.
+- **Check:** the look-book stills show a face at that scale in every scene row.
 
 ## 6. The viewer's question
 
@@ -77,7 +77,7 @@ The shape as a share of the runtime:
 
 ## 8. Repetition as layout
 
-- **A callback keeps the earlier scene's layout:** the same positions, scale and framing, with a new picture in them. Reuse the earlier scene's components (nested artboards) rather than redrawing a lookalike.
+- **A callback keeps the earlier scene's layout:** the same positions, scale and framing, with a new picture in them. Knobs stay literals, so the Lab can still write them.
 - **Show the answer's shape once, early,** for example declared, clothed, changed. Pull back to it at each turn.
 - **Check:** the callback's stills, beside the earlier scene's, show the same layout.
 

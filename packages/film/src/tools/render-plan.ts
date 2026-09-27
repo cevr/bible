@@ -10,13 +10,13 @@ import type { ExportInfo } from '../core/schema.ts';
 interface JobBase {
   /** Output subfolder under `out/<film>`, so parallel renders do not collide. */
   readonly tag: string;
-  /** The rate the Film's timeline is sampled at. */
-  readonly fps: number;
+  /** Burn the captions in. */
+  readonly captions: boolean;
   /** Pages rendering at once. */
   readonly workers: number;
 }
 
-/** A render: the film as video, a few stills, or a contact sheet. */
+/** A render: the film as video, a few stills, a contact sheet, or its look-book. */
 export type RenderJob = Data.TaggedEnum<{
   Video: JobBase & {
     readonly from: Option.Option<number>;
@@ -33,6 +33,8 @@ export type RenderJob = Data.TaggedEnum<{
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
   };
+  /** Every scene's stills at its cue edges and 60% point, with the palette: `lookbook.jpg`. */
+  LookBook: JobBase;
 }>;
 export const RenderJob = Data.taggedEnum<RenderJob>();
 
@@ -120,6 +122,9 @@ export const shareName = (video: string): string => `${video.replace(/\.[^./]+$/
 
 /** The contact sheet's file name, in the job's folder. */
 export const contactSheetName = 'contact.jpg';
+
+/** The look-book's file name, in the job's folder. */
+export const lookbookName = 'lookbook.jpg';
 
 /** The part of the lossless master under a range: from `start`, `duration` long. */
 export interface AudioCut {

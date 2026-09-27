@@ -1,4 +1,4 @@
-// The first cut's mix (its data kept as a fixture). The plan is pinned to the decisions the pre-Effect ffmpeg
+// This film's mix. The plan is pinned to the decisions the pre-Effect ffmpeg
 // graph made (fixtures/mix-plan.json, converted from its argv; `<app>` stands
 // for this app's directory): voice and score as committed, and with every
 // effect generated so each cue's placement is checked too. The track is
@@ -21,8 +21,8 @@ import {
 import { Media, decodePlan } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
-import { script as scenes } from './fixtures/films/righteousness-by-faith-v1/script.ts';
-import { sound } from './fixtures/films/righteousness-by-faith-v1/sound.ts';
+import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
+import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
 
 const Placed = Schema.Struct({ sound: Schema.String, ms: Schema.Int, gain: Schema.Finite });
 const Plan = Schema.Struct({
@@ -40,7 +40,7 @@ const Levels = Schema.fromJsonString(
   }),
 );
 
-const FILM = 'test/fixtures/films/righteousness-by-faith-v1';
+const FILM = 'src/films/righteousness-by-faith-v1';
 
 /** The ffmpeg master's levels hold to this, in dB: far above an LSB, far below anything audible. */
 const LEVEL_TOLERANCE = 0.01;
@@ -68,7 +68,6 @@ const plan = (placed: ReturnType<typeof layout>, manifest: SoundManifest, dir: s
       placed,
       sound: Option.some(sound),
       manifest,
-      events: new Map(),
       narration: `${dir}/${FILM}/narration`,
       soundDir: `${dir}/${FILM}/sound`,
     }),

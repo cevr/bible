@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bun --hot server.ts",
     "narrate": "bun cli.ts narrate",
     "score": "bun cli.ts score",
     "mix": "bun cli.ts mix",
-    "sync": "bun cli.ts sync",
     "cues": "bun cli.ts cues",
     "check": "bun cli.ts check",
     "doctor": "bun cli.ts doctor",
     "render": "bun cli.ts render",
+    "lookbook": "bun cli.ts lookbook",
+    "lab": "bun cli.ts lab",
+    "notes": "bun cli.ts notes",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",
-    "gate": "bun run typecheck && bun run test"
+    "gate": "bun run typecheck && bun run test && bun cli.ts check righteousness-by-faith-v1 --static --allow-stale"
   },
   "dependencies": {
     "@bible/film": "workspace:*",

@@ -1,11 +1,9 @@
 // Renderer with fakes: a failure in one page, an interrupt, or a crash closes
-// or recovers every resource the render opened. No Chromium, no encoder, no
-// Rive CLI.
+// or recovers every resource the render opened. No Chromium, no encoder.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
-import { hashText, voiceKey } from '../core/narration.ts';
-import type { Timings } from '../core/schema.ts';
+import type { ExportInfo } from '../core/schema.ts';
 import { EncoderMissing, PageCrashed, PageError } from './errors.ts';
 import { RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
@@ -15,18 +13,17 @@ import {
   emptyLedger,
   fakeRenderHost,
   memoryFileSystem,
+  testExportInfo,
   testFilm,
-  testVoice,
   text,
 } from './testing.ts';
 
-/** A 20 s film whose one take is still to record: it renders silent. */
-const film = testFilm([{ id: 'a', say: 'Hello.', min: 20 }], { voice: '', scenes: {} });
+const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
 
 /** The whole 20 s test film on four pages: 600 frames in 16 chunks. */
 const video = RenderJob.Video({
   tag: '',
-  fps: 30,
+  captions: true,
   workers: 4,
   from: Option.none(),
   to: Option.none(),
@@ -35,7 +32,7 @@ const video = RenderJob.Video({
   share: false,
 });
 
-const setup = (host: FakeRenderHost = {}, rendered = film) => {
+const setup = (host: FakeRenderHost = {}) => {
   const ledger = emptyLedger();
   const files = new Map<string, Uint8Array>();
   const layer = Renderer.layer.pipe(
@@ -43,7 +40,7 @@ const setup = (host: FakeRenderHost = {}, rendered = film) => {
   );
   const render = (job: RenderJob) =>
     Effect.gen(function* () {
-      yield* (yield* Renderer).render(rendered, job);
+      yield* (yield* Renderer).render(film, job);
     }).pipe(Effect.provide(layer));
   return { ledger, files, render };
 };
@@ -77,7 +74,6 @@ describe('Renderer', () => {
       expect(files.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
       expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test.vtt')).toBe(true);
-      expect(ledger.builds.count).toBe(1);
       expectAllClosed(ledger);
     }),
   );
@@ -188,13 +184,13 @@ describe('Renderer', () => {
   it.live('stills and a contact sheet go through the same pages', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
-      yield* render(RenderJob.Stills({ tag: 'g', fps: 30, workers: 4, times: [1, 2.5] }));
+      yield* render(RenderJob.Stills({ tag: 'g', captions: true, workers: 4, times: [1, 2.5] }));
       expect(files.has('/out/test/g/stills/t0002.50.png')).toBe(true);
       expect(ledger.pages.opened).toBe(2);
       yield* render(
         RenderJob.Contact({
           tag: 'g',
-          fps: 30,
+          captions: false,
           workers: 2,
           every: 5,
           from: Option.none(),
@@ -207,19 +203,26 @@ describe('Renderer', () => {
     }),
   );
 
-  describe('once every take is recorded', () => {
-    const recorded: Timings = {
-      voice: voiceKey(testVoice),
-      scenes: { a: { hash: hashText('Hello.'), file: 'a.mp3', duration: 1, words: [] } },
-    };
-    const said = testFilm([{ id: 'a', say: 'Hello.', min: 20 }], recorded);
+  it.live('a look-book is one page composing one sheet, written beside the stills', () =>
+    Effect.gen(function* () {
+      const { ledger, files, render } = setup();
+      yield* render(RenderJob.LookBook({ tag: '', captions: false, workers: 4 }));
+      expect(files.has('/out/test/lookbook.jpg')).toBe(true);
+      expect(ledger.pages.opened).toBe(1);
+      expect(ledger.lookbooks.composed).toBe(1);
+      expectAllClosed(ledger);
+    }),
+  );
+
+  describe('with the mixed track', () => {
+    const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.wav' };
     const MASTER = '/films/test/narration/full.wav';
     const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
       Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));
 
     it.live('joins the master under the film when it covers it', () =>
       Effect.gen(function* () {
-        const { ledger, files, render } = setup({}, said);
+        const { ledger, files, render } = setup({ info });
         files.set(MASTER, text('pcm'));
         yield* render(video);
         const audio = ledger.joins[0]?.audio ?? Option.none();
@@ -230,7 +233,7 @@ describe('Renderer', () => {
 
     it.live('a range takes the master under that range only', () =>
       Effect.gen(function* () {
-        const { ledger, files, render } = setup({}, said);
+        const { ledger, files, render } = setup({ info });
         files.set(MASTER, text('pcm'));
         yield* render({ ...video, from: Option.some(2), to: Option.some(5) });
         const [join] = ledger.joins;
@@ -244,7 +247,7 @@ describe('Renderer', () => {
     it.live('a master shorter than the film fails before a frame is drawn', () =>
       Effect.gen(function* () {
         // An interrupted mix left 12 s of a 20 s film.
-        const { ledger, files, render } = setup({ master: 12 }, said);
+        const { ledger, files, render } = setup({ info, master: 12 });
         files.set(MASTER, text('pcm'));
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
@@ -255,7 +258,7 @@ describe('Renderer', () => {
 
     it.live('no master fails before a frame is drawn', () =>
       Effect.gen(function* () {
-        const { ledger, render } = setup({}, said);
+        const { ledger, render } = setup({ info });
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioMissing'));
         expect(ledger.frames).toEqual([]);

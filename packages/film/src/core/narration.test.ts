@@ -189,3 +189,14 @@ describe('turns', () => {
     expect(voiceFor('s', line, { voice: 'v', scenes: { s: old } }).recorded).toBe(false);
   });
 });
+
+import { ease, progress } from './time.ts';
+
+describe('time', () => {
+  test('eases are exactly 0 before their start and 1 after', () => {
+    for (const e of Object.values(ease)) {
+      expect(progress(0, 1, 1, e)).toBe(0);
+      expect(progress(3, 1, 1, e)).toBe(1);
+    }
+  });
+});
