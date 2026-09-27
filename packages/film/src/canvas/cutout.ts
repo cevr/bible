@@ -3,6 +3,7 @@
 // shadow where it lifts off the sheet beneath.
 
 import { type Hand, type Path, type Pt, resample } from './ink.ts';
+import { offscreen } from './paper.ts';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
 
@@ -88,11 +89,7 @@ let pastel: HTMLCanvasElement | undefined;
 /** Directional crayon streaks, light and dark, on a transparent tile. */
 const pastelTile = (): HTMLCanvasElement => {
   if (pastel !== undefined) return pastel;
-  const c = document.createElement('canvas');
-  c.width = 320;
-  c.height = 320;
-  const ctx = c.getContext('2d');
-  if (ctx === null) throw new Error('2d context unavailable');
+  const { c, ctx } = offscreen(320, 320);
   const r = rng(4242);
   ctx.lineCap = 'round';
   for (let i = 0; i < 2600; i++) {

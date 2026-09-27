@@ -11,7 +11,14 @@ export interface PaperStyle {
   seed: number;
 }
 
-const canvas = (w: number, h: number) => {
+/** A canvas off the page and its 2D context. */
+export interface Offscreen {
+  readonly c: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+}
+
+/** A `w` × `h` canvas off the page, for a tile, a sheet or a transition's layer. */
+export const offscreen = (w: number, h: number): Offscreen => {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -22,14 +29,14 @@ const canvas = (w: number, h: number) => {
 
 /** A full-frame sheet: base colour, soft mottling, fibres, and flecks. */
 export const makePaper = (w: number, h: number, style: PaperStyle): HTMLCanvasElement => {
-  const { c, ctx } = canvas(w, h);
+  const { c, ctx } = offscreen(w, h);
   ctx.fillStyle = style.base;
   ctx.fillRect(0, 0, w, h);
 
   // Mottling: low-resolution fractal noise, upscaled smoothly.
   const lw = Math.ceil(w / 8);
   const lh = Math.ceil(h / 8);
-  const low = canvas(lw, lh);
+  const low = offscreen(lw, lh);
   const img = low.ctx.createImageData(lw, lh);
   for (let y = 0; y < lh; y++) {
     for (let x = 0; x < lw; x++) {
@@ -89,7 +96,7 @@ export const makePaper = (w: number, h: number, style: PaperStyle): HTMLCanvasEl
 /** Tileable-enough grain tiles; the film cycles them on the boil tick. */
 export const makeGrain = (size: number, count: number, seed: number): HTMLCanvasElement[] =>
   Array.from({ length: count }, (_, k) => {
-    const { c, ctx } = canvas(size, size);
+    const { c, ctx } = offscreen(size, size);
     const img = ctx.createImageData(size, size);
     for (let i = 0; i < size * size; i++) {
       const v = hash2(i, seed + k * 977) * 255;

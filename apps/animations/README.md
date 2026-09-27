@@ -191,7 +191,7 @@ points:
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                  |
 |                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                       |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                   |
-|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                  |
+|                      | `paper.ts`      | the sheet under everything, the grain over everything, `offscreen` canvases                                               |
 |                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)         |
 |                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                           |
 | `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                  |

@@ -25,7 +25,15 @@ import type {
   Word,
 } from '../core/schema.ts';
 import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
-import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
+import {
+  type Offscreen,
+  type PaperStyle,
+  grain,
+  makeGrain,
+  makePaper,
+  offscreen,
+  vignette,
+} from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { clamp, ease } from '../core/time.ts';
@@ -203,15 +211,6 @@ export interface Film {
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
 
-const offscreen = (w: number, h: number) => {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d');
-  if (ctx === null) throw new Error('2d context unavailable');
-  return { c, ctx };
-};
-
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
@@ -226,8 +225,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     | {
         paper: HTMLCanvasElement;
         grain: HTMLCanvasElement[];
-        a: ReturnType<typeof offscreen>;
-        b: ReturnType<typeof offscreen>;
+        a: Offscreen;
+        b: Offscreen;
       }
     | undefined;
   const getAssets = () =>
@@ -358,7 +357,7 @@ export const createFilm = (spec: FilmSpec): Film => {
 
   /** Paper plus one scene, into a layer. */
   const layer = (
-    target: ReturnType<typeof offscreen>,
+    target: Offscreen,
     p: Placed<SceneSpec>,
     T: number,
     boil: number,
