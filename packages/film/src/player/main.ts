@@ -12,6 +12,10 @@ import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { throttled } from './throttle.ts';
+
+/** The longest `#T` in the URL trails the frame shown while it plays. */
+const HASH_MS = 250;
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -249,6 +253,17 @@ const preview = (
   const audible = () => audio !== undefined && rate === 1;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
+  /**
+   * `#T` in the URL, so a reload lands on this frame: written at most every
+   * HASH_MS while T moves, and at once when it settles (pause, the end of a
+   * seek, pagehide). A frame loop that wrote it every frame cost a history
+   * call per frame.
+   */
+  const hash = throttled(
+    () => history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`),
+    HASH_MS,
+  );
+  window.addEventListener('pagehide', () => hash.flush());
 
   const draw = () => {
     reads = [];
@@ -263,7 +278,7 @@ const preview = (
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
-    history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`);
+    hash.request();
   };
 
   const seek = (t: number) => {
@@ -289,6 +304,7 @@ const preview = (
     rebase();
     if (playing) requestAnimationFrame(tick);
     draw();
+    if (!playing) hash.flush();
   };
 
   const tick = () => {
@@ -306,6 +322,7 @@ const preview = (
       audio?.pause();
     }
     draw();
+    if (!playing) hash.flush();
     if (playing) requestAnimationFrame(tick);
   };
 
@@ -314,9 +331,14 @@ const preview = (
     const move = (ev: PointerEvent) => seek(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
     window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', () => window.removeEventListener('pointermove', move), {
-      once: true,
-    });
+    window.addEventListener(
+      'pointerup',
+      () => {
+        window.removeEventListener('pointermove', move);
+        hash.flush();
+      },
+      { once: true },
+    );
   });
   playBtn.addEventListener('click', toggle);
   q<HTMLButtonElement>('[data-act="captions"]').addEventListener('click', () => {
