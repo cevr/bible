@@ -1,6 +1,6 @@
 # Craft
 
-How a film carries its argument. These rules come from measuring sixteen BibleProject films against the first cut of our first film, now `righteousness-by-faith-v1`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most.
+How a film carries its argument. Rules 1 to 10 come from measuring sixteen BibleProject films against the first cut of our first film, now `righteousness-by-faith-v1`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most. Rule 11, the tone, comes from ten more films measured for voice and colour, in [reference/bibleproject-tone-art.md](reference/bibleproject-tone-art.md).
 
 Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphrase stays inside its quote's words, and a picture shows nothing the topic's MUST NOT SAY-OR-SHOW forbids.
 
@@ -31,7 +31,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 
 - **Every beat is STORY or IDEA.** Start its `picture` with `STORY:` or `IDEA:`.
   - **STORY** is the Bible's own scene, taken literally: warm, with depth and faces, and cut like film.
-  - **IDEA** is the argument: the night page, 1 to 4 flat, glowing paper figures, and one gold prop.
+  - **IDEA** is the argument: 1 to 4 flat paper figures and one gold prop on a plain page. The page follows the colour script (rule 11): parchment in a bright film, the night page for one IDEA stretch at most.
 - **Switch only at a turn in the argument.** Use one of three moves: a white flash; a push-through, zooming through a panel into a scene; or a dip to black.
 - **The landing merges the two.** The IDEA figure stands inside the STORY frame.
 - **Check:** the look-book's register sequence lines up with the turns in the script.
@@ -96,3 +96,18 @@ The shape as a share of the runtime:
 - **Effects:** put them on the story's concrete nouns: serpents, the loom, coins, cloth, chains. Page and slide sounds go only at register switches.
 - **Levels:** the voice sits near −17 dBFS at its 70th percentile, and the master near −18 LUFS.
 - **Check:** `bun run mix <film>` logs `mix.levels`, each bus's mean and peak dBFS. `--stems` writes each bus the film's length, to measure a stretch or hear it alone.
+
+## 11. Tone
+
+BibleProject is informative, curious and hopeful. The weight sits on explanation, the problem comes in small doses, and the colours stay bright.
+
+- **Explain most:** the word, the story and the pattern take 40–60% of the speech. That is where the curiosity lives.
+- **Dose the problem:** 20% of the speech or less, in 2 to 4 doses of 5 to 40 s. Answer each within seconds, and give hope at least 1.5 times the problem's share.
+- **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line: "How is that going?"
+- **Say wonder out loud, once per act,** about the text: "Jones noticed something kind of amazing".
+- **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
+- **Keep the colour script bright:**
+  - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
+  - one black moment, at the cross;
+  - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer.
+- **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. In the contact sheet, only the cross's tiles read dark.

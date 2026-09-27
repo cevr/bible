@@ -15,7 +15,7 @@ description: >
 A film lives in `apps/animations/src/films/<film>/`. The engine is the `@bible/film` package (`packages/film`). Its API, the film folder layout and every command are in `apps/animations/README.md`: read it before the first edit. This skill is the workflow and the gotchas the README cannot show. Two references sit beside it:
 
 - **[frame/README.md](frame/README.md)** is the doctrine: the 1889 Fundamental Principles verbatim, and a source-checked topic file for each doctrine, with what a film must show and must not say or show. A film's doctrine comes from these texts, never from memory.
-- **[CRAFT.md](CRAFT.md)** is how a film carries its argument: text on screen, quoting, the STORY and IDEA registers, human scale, the shape in time, pauses and sound. It was measured from sixteen BibleProject films.
+- **[CRAFT.md](CRAFT.md)** is how a film carries its argument: text on screen, quoting, the STORY and IDEA registers, human scale, the shape in time, pauses and sound. It was measured from BibleProject films, and it sets the tone too: informative, curious, hopeful.
 
 Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (the CLI's login sits in the Keychain; Chromium sits in `~/Library/Caches/ms-playwright`).
 
@@ -30,7 +30,7 @@ Every ElevenLabs call and every render needs `dangerouslyDisableSandbox: true` (
    - Done when every quote the script will speak or show verifies, and you can name, for the topic, what the film must show and what it must not say or show.
 
 2. **Script.** Write `script.ts`: ordered beats `{ id, say, cite, picture }`. Put a `{mark}` before each word a picture must hit. Marks are stripped before speech, so adding one never re-records.
-   - Write to [CRAFT.md](CRAFT.md) rules 2–4, 6 and 7: one quotation per beat at most, each `picture` opening with its register, the motifs listed with their payoffs, the viewer's question at each turn, and the landing at 70–84%.
+   - Write to [CRAFT.md](CRAFT.md) rules 2–4, 6, 7 and 11: one quotation per beat at most, each `picture` opening with its register, the motifs listed with their payoffs, the viewer's question at each turn, the landing at 70–84%, and the problem in small doses.
    - Hold every line against the topic's Film direction.
    - `bun run dev` plays undrawn beats as storyboard cards at estimated timing.
    - Done when the storyboard reads as the argument, start to finish, and quoted words make up 20% of the script or less.
