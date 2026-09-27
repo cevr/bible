@@ -23,6 +23,7 @@ import { canvasBase64, el, postJson, required, svg } from './dom.ts';
 import { mountCompare } from './lab-compare.ts';
 import { mountEditor } from './lab-edit.ts';
 import { mountMotion } from './lab-motion.ts';
+import { sessionStore, viewStore } from './view-state.ts';
 import type { Player } from './main.ts';
 
 /** A pointer that moves less than this many screen pixels clicked; more, it dragged a box. */
@@ -49,6 +50,8 @@ export const mountLab = (player: Player, filmName: string): void => {
   const { film, canvas } = player;
   /** Every call names this film (`/lab/<film>/…`): the lab refuses a page for another. */
   const api = labBase(filmName);
+  /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
+  const view = viewStore(filmName, sessionStore());
   document.body.classList.add('lab');
 
   // ── The layer over the canvas: every lab mark draws here, never on the film. ──
@@ -114,9 +117,12 @@ export const mountLab = (player: Player, filmName: string): void => {
   // The editor: drag cues and knobs, written back to the scene files.
   const editor = mountEditor(player, panel, overlay, api);
   // Onion skin, speed and loops.
-  mountMotion(player, panel, pin, editor.selectedCue);
+  mountMotion(player, panel, pin, editor.selectedCue, view);
   // The frame beside HEAD's timeline and knobs.
-  mountCompare(player, panel, overlay, pin, api);
+  mountCompare(player, panel, overlay, pin, api, view);
+  // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
+  window.addEventListener('pagehide', () => view.patch({ playing: player.playing() }));
+  if (view.get().playing) player.play();
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');

@@ -13,6 +13,7 @@ import { sceneOf } from '../core/layout.ts';
 import { HeadSource } from '../core/schema.ts';
 import { el, svg } from './dom.ts';
 import type { Player } from './main.ts';
+import type { ViewStore } from './view-state.ts';
 
 const decodeHead = Schema.decodeUnknownSync(HeadSource);
 /** How long each side of a blink shows. */
@@ -35,6 +36,7 @@ export const mountCompare = (
   overlay: SVGSVGElement,
   pin: (layer: HTMLElement) => void,
   api: string,
+  view: ViewStore,
 ): void => {
   const { film } = player;
   const section = el('section', 'lab-compare-tools');
@@ -74,7 +76,7 @@ export const mountCompare = (
 
   let mode: Mode = 'off';
   /** Where the divider sits, 0–1 across the frame. */
-  let split = 0.5;
+  let split = view.get().compare.split;
   let blinkShowsHead = true;
   let blinker: ReturnType<typeof setInterval> | undefined;
   const loaded = new Map<string, Loaded>();
@@ -158,6 +160,7 @@ export const mountCompare = (
 
   const setMode = (next: Mode) => {
     mode = next;
+    view.patch({ compare: { mode: next, split } });
     for (const b of buttons) b.classList.toggle('on', b.dataset['mode'] === next);
     if (blinker !== undefined) clearInterval(blinker);
     blinker = undefined;
@@ -188,6 +191,7 @@ export const mountCompare = (
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      view.patch({ compare: { mode, split } });
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -196,4 +200,6 @@ export const mountCompare = (
   player.onDraw(() => {
     if (mode !== 'off') schedule();
   });
+  // The mode the page was in before a write reloaded it.
+  if (view.get().compare.mode !== 'off') setMode(view.get().compare.mode);
 };

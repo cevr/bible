@@ -80,7 +80,9 @@ last write back. Review with `git diff`. The panel's Motion section ghosts the f
 around a paused one (Onion: warm before, cool after), slows the clock to
 0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
 Compare draws the same frame as HEAD declared the scene's timeline and
-knobs: wipe (HEAD left of a divider you drag) or blink. The panel's
+knobs: wipe (HEAD left of a divider you drag) or blink. Speed, loop, onion,
+compare and play are kept through the reload a write causes (the tab's
+sessionStorage, per film). The panel's
 Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
 sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its

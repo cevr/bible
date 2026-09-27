@@ -13,6 +13,7 @@ import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Editor } from './lab-edit.ts';
 import { el, required } from './dom.ts';
 import type { LoopRange, Player } from './main.ts';
+import type { LabView, ViewStore } from './view-state.ts';
 
 /** The rates the lab plays at. */
 const RATES: ReadonlyArray<number> = [0.25, 0.5, 1];
@@ -29,6 +30,9 @@ const AFTER: readonly [number, number, number] = [60, 150, 230];
 type LoopSource =
   | { readonly kind: 'cue'; readonly scene: string; readonly name: string }
   | { readonly kind: 'ab' };
+
+/** Speed, loop and onion as the page left them, kept through the reload a write causes. */
+type MotionView = Pick<LabView, 'rate' | 'loop' | 'onion'>;
 
 const canvas2d = (w: number, h: number, className = '') => {
   const c = el('canvas', className);
@@ -87,6 +91,7 @@ export const mountMotion = (
   panel: HTMLElement,
   pin: (layer: HTMLElement) => void,
   selectedCue: Editor['selectedCue'],
+  view: ViewStore,
 ): void => {
   const { film } = player;
   const section = el('section', 'lab-motion');
@@ -121,15 +126,17 @@ export const mountMotion = (
 
   // ── Speed. ──
   const rates = q<HTMLDivElement>('[data-role="rates"]');
+  const setRate = (r: number) => {
+    player.setRate(r);
+    for (const other of rateBtns) other.classList.toggle('on', other.dataset['rate'] === String(r));
+    say(r === 1 ? '' : `${r}×: narration muted`);
+    view.patch({ rate: r });
+  };
   const rateBtns = RATES.map((r) => {
     const b = el('button', r === 1 ? 'on' : '', `${r}×`);
     b.type = 'button';
     b.dataset['rate'] = String(r);
-    b.addEventListener('click', () => {
-      player.setRate(r);
-      for (const other of rateBtns) other.classList.toggle('on', other === b);
-      say(r === 1 ? '' : `${r}×: narration muted`);
-    });
+    b.addEventListener('click', () => setRate(r));
     rates.append(b);
     return b;
   });
@@ -160,9 +167,17 @@ export const mountMotion = (
     looping = next;
     player.setLoop(next);
   };
-  const startLoop = (s: LoopSource) => {
+  /** Loop `s` from now on, and keep it through a reload. */
+  const setSource = (s: LoopSource | undefined) => {
     source = s;
     applyLoop();
+    if (s?.kind === 'ab' && a !== undefined && b !== undefined)
+      view.patch({ loop: { kind: 'ab', from: a, to: b } });
+    else if (s?.kind === 'cue') view.patch({ loop: s });
+    else view.patch({ loop: undefined });
+  };
+  const startLoop = (s: LoopSource) => {
+    setSource(s);
     if (looping === undefined) return;
     player.seek(looping.from);
     player.play();
@@ -185,10 +200,9 @@ export const mountMotion = (
     startLoop({ kind: 'ab' });
   });
   q<HTMLButtonElement>('[data-act="loop-off"]').addEventListener('click', () => {
-    source = undefined;
     a = undefined;
     b = undefined;
-    applyLoop();
+    setSource(undefined);
     say('');
   });
 
@@ -240,16 +254,42 @@ export const mountMotion = (
     pending = true;
     requestAnimationFrame(paintOnion);
   };
-  onionBtn.addEventListener('click', () => {
-    onionOn = !onionOn;
+  const keepOnion = () =>
+    view.patch({
+      onion: {
+        on: onionOn,
+        count: whole(countIn.value, 2, 4),
+        spacing: whole(spacingIn.value, 3, 15),
+      },
+    });
+  const setOnion = (on: boolean) => {
+    onionOn = on;
     onionBtn.classList.toggle('on', onionOn);
+    keepOnion();
     scheduleOnion();
-  });
-  countIn.addEventListener('change', scheduleOnion);
-  spacingIn.addEventListener('change', scheduleOnion);
+  };
+  onionBtn.addEventListener('click', () => setOnion(!onionOn));
+  for (const input of [countIn, spacingIn])
+    input.addEventListener('change', () => {
+      keepOnion();
+      scheduleOnion();
+    });
 
   player.onDraw(() => {
     if (source !== undefined) applyLoop();
     if (onionOn) scheduleOnion();
   });
+
+  // ── The view the page was in before a write reloaded it. ──
+  const kept: MotionView = view.get();
+  countIn.value = String(kept.onion.count);
+  spacingIn.value = String(kept.onion.spacing);
+  if (kept.onion.on) setOnion(true);
+  if (kept.rate !== 1) setRate(kept.rate);
+  if (kept.loop?.kind === 'ab') {
+    a = kept.loop.from;
+    b = kept.loop.to;
+    setSource({ kind: 'ab' });
+  } else if (kept.loop?.kind === 'cue') setSource(kept.loop);
+  if (looping !== undefined) say(`looping ${looping.from.toFixed(2)} – ${looping.to.toFixed(2)}`);
 };
