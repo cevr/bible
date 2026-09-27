@@ -55,7 +55,8 @@ Events that are not marks are cues a sound can play on (`sound.ts`,
 rather than render the old cut.
 
 Computed looks are Luau scripts inside markup; the kit ships them in
-`assets/scripts/` (`torn.luau`, a torn paper edge as a path effect). The web
+`assets/scripts/`: `torn.luau` (a torn paper edge), `boil.luau` (outlines
+redrawn at 12 fps from a keyed clock input) and `grain.luau` (paper flecks). The web
 runtime drops the scripted elements of an unsigned file, so `Rive.build` signs
 a project that holds any `.luau` file (`rive --publish`, which needs
 `rive login`) and builds one without scripts offline (`--once`).

@@ -1,3 +1,7 @@
 <Rive version="1" kind="fragment">
     <FontAsset file="fonts/Inter-400.ttf" name="Inter" id="881888:30"/>
+    <FontAsset file="fonts/Fraunces-700.ttf" name="Fraunces Bold" id="881888:31"/>
+    <ScriptAsset file="scripts/torn.luau" name="torn" id="881888:40"/>
+    <ScriptAsset file="scripts/grain.luau" name="grain" id="881888:41"/>
+    <ScriptAsset file="scripts/boil.luau" name="boil" id="881888:42"/>
 </Rive>
