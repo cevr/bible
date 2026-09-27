@@ -92,7 +92,7 @@ export class ApiKeyMissing extends Schema.TaggedError<ApiKeyMissing>()('ApiKeyMi
 
 /** A media file that could not be read, decoded, written or joined into a film. */
 export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
-  op: Schema.Literals(['read', 'decode', 'write', 'join']),
+  op: Schema.Literals(['read', 'decode', 'encode', 'write', 'join']),
   file: Schema.String,
   reason: Schema.String,
 }) {

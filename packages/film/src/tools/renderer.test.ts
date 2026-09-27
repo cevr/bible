@@ -239,8 +239,8 @@ describe('Renderer', () => {
         const { ledger, files, render } = setup({ info });
         files.set(MASTER, text('pcm'));
         yield* render(video);
-        const audio = ledger.joins[0]?.audio ?? Option.none();
-        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(20 * 44100));
+        expect(ledger.aac).toEqual([20 * 44100]);
+        expect(Option.isSome(ledger.joins[0]?.audio ?? Option.none())).toBe(true);
         expectAllClosed(ledger);
       }),
     );
@@ -253,8 +253,18 @@ describe('Renderer', () => {
         const [join] = ledger.joins;
         expect(join?.frames).toBe(90);
         expect(join?.segments[0]?.at).toBe(0);
-        const audio = join?.audio ?? Option.none();
-        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(3 * 44100));
+        expect(ledger.aac).toEqual([3 * 44100]);
+      }),
+    );
+
+    it.live('a share copy joins the same track: it is encoded once', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({ info });
+        files.set(MASTER, text('pcm'));
+        yield* render({ ...video, share: true });
+        expect(ledger.aac).toEqual([20 * 44100]);
+        const [master, share] = ledger.joins.map((j) => Option.getOrThrow(j.audio));
+        expect(share).toBe(master);
       }),
     );
 

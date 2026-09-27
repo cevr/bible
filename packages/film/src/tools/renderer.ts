@@ -10,6 +10,7 @@ import {
   Array as Arr,
   Clock,
   Context,
+  Fiber,
   Effect,
   FileSystem,
   Layer,
@@ -126,6 +127,21 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         // Before a frame is drawn: a browser that cannot encode the film fails here.
         yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
 
+        // The track is cut and encoded once, beside the pages; both joins copy its packets.
+        const aac = yield* Effect.forkChild(
+          Option.match(audio, {
+            onNone: () => Effect.succeedNone,
+            onSome: (cut) =>
+              media.decode(cut.file).pipe(
+                Effect.map((pcm) =>
+                  slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
+                ),
+                Effect.flatMap(media.encodeAac),
+                Effect.map(Option.some),
+              ),
+          }),
+        );
+
         const segDir = path.join(dir, 'segments');
         const shareDir = path.join(dir, 'share');
         yield* fresh(segDir);
@@ -175,15 +191,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           );
 
         const encoded = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
-        const track = yield* Option.match(audio, {
-          onNone: () => Effect.succeedNone,
-          onSome: (cut) =>
-            Effect.map(media.decode(cut.file), (pcm) =>
-              Option.some(
-                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
-              ),
-            ),
-        });
+        const track = yield* Fiber.join(aac);
         yield* media.join({
           out: target,
           segments: encoded.map((chunk) => chunk.master),

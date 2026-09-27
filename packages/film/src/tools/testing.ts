@@ -223,6 +223,7 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
         ),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
+      encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
     }),
   );
@@ -242,6 +243,8 @@ export interface RenderLedger {
   readonly contacts: Array<ReadonlyArray<number>>;
   /** Every film joined. */
   readonly joins: Array<JoinedFilm>;
+  /** The frames of every track encoded to AAC. */
+  readonly aac: Array<number>;
 }
 
 export const emptyLedger = (): RenderLedger => ({
@@ -253,6 +256,7 @@ export const emptyLedger = (): RenderLedger => ({
   lookbooks: { composed: 0 },
   contacts: [],
   joins: [],
+  aac: [],
 });
 
 export const testExportInfo: ExportInfo = {
@@ -409,6 +413,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
       writeWav: () => Effect.void,
+      encodeAac: (pcm) =>
+        Effect.sync(() => {
+          ledger.aac.push(pcm.frames);
+          return { packets: [], meta: {} };
+        }),
       join: (film) => Effect.sync(() => void ledger.joins.push(film)),
     }),
   );
