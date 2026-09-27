@@ -1,7 +1,8 @@
 // A scene file as the lab reads and edits it: the `drawing({...})` calls a
-// module exports, the `timeline` and `knobs` object literals inside them, and
-// the splices that change one value there. Parsed with oxc-parser, so every
-// position is the parser's, never a regex's guess. Pure: text in, text out.
+// module exports, the `timeline` and `knobs` object literals inside them (or
+// the module-level `const` literal they name), and the splices that change one
+// value there. Parsed with oxc-parser, so every position is the parser's,
+// never a regex's guess. Pure: text in, text out.
 //
 // An edit rewrites only a value the parser proves is a literal: a number
 // (`0.4`, `-0.2`), a string (`'inQuad'`) or a two-number array (`[960, 800]`).
@@ -214,12 +215,52 @@ const exportedAs = (program: Program): ReadonlyMap<string, ReadonlyArray<string>
   return out;
 };
 
-const slotOf = (source: string, obj: ObjectExpression, name: string): Slot => {
+/** An object literal, seen through `as const` and `satisfies`. */
+const objectOf = (e: Expression): Option.Option<ObjectExpression> => {
+  if (e.type === 'ObjectExpression') return Option.some(e);
+  if (e.type === 'TSAsExpression' || e.type === 'TSSatisfiesExpression')
+    return objectOf(e.expression);
+  return Option.none();
+};
+
+/** Module-level `const name = {...}` bindings: a scene lifts its timeline to type its shots. */
+const constObjects = (program: Program): ReadonlyMap<string, ObjectExpression> =>
+  new Map(
+    declarations(program)
+      .filter(({ decl }) => decl.kind === 'const')
+      .flatMap(({ decl }) =>
+        decl.declarations.flatMap((d) => {
+          if (d.id.type !== 'Identifier' || !Predicate.isNotNullish(d.init)) return [];
+          const name = d.id.name;
+          return Option.match(objectOf(d.init), {
+            onNone: () => [],
+            onSome: (node) => [[name, node] as const],
+          });
+        }),
+      ),
+  );
+
+/** A slot's value: an object literal inline, or the const literal a name refers to. */
+const literalValue = (
+  consts: ReadonlyMap<string, ObjectExpression>,
+  value: Expression,
+): Option.Option<ObjectExpression> => {
+  if (value.type === 'Identifier') return Option.fromUndefinedOr(consts.get(value.name));
+  return objectOf(value);
+};
+
+const slotOf = (
+  source: string,
+  consts: ReadonlyMap<string, ObjectExpression>,
+  obj: ObjectExpression,
+  name: string,
+): Slot => {
   for (const p of obj.properties) {
     if (p.type === 'SpreadElement' || !Option.contains(keyName(p), name)) continue;
-    if (p.shorthand || p.value.type !== 'ObjectExpression')
-      return { _tag: 'Computed', text: textOf(source, p.value) };
-    return { _tag: 'Literal', node: p.value };
+    return Option.match(literalValue(consts, p.value), {
+      onNone: (): Slot => ({ _tag: 'Computed', text: textOf(source, p.value) }),
+      onSome: (node): Slot => ({ _tag: 'Literal', node }),
+    });
   }
   return { _tag: 'Absent' };
 };
@@ -241,6 +282,7 @@ const drawingCall = (
 export const drawingSites = (source: string, program: Program): ReadonlyArray<DrawingSite> => {
   const names = drawingNames(program);
   const renamed = exportedAs(program);
+  const consts = constObjects(program);
   return declarations(program).flatMap(({ exported, decl }) =>
     decl.declarations.flatMap((d): ReadonlyArray<DrawingSite> => {
       if (d.id.type !== 'Identifier') return [];
@@ -253,8 +295,8 @@ export const drawingSites = (source: string, program: Program): ReadonlyArray<Dr
           {
             exports,
             at,
-            timeline: slotOf(source, arg, 'timeline'),
-            knobs: slotOf(source, arg, 'knobs'),
+            timeline: slotOf(source, consts, arg, 'timeline'),
+            knobs: slotOf(source, consts, arg, 'knobs'),
           },
         ],
       });

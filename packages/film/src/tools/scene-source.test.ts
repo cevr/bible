@@ -117,6 +117,31 @@ describe('scene source', () => {
     );
   });
 
+  it('follows a timeline or knobs name to its module-level const literal', () => {
+    const lifted = `import { drawing } from '@bible/film/canvas';
+
+const timeline = {
+  topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
+} as const;
+
+const knobs = { tilt: 0.12 } satisfies Record<string, number>;
+
+export const hand = drawing({
+  timeline,
+  knobs: knobs,
+  draw: () => {},
+});
+`;
+    expect(ok(editCue(FILE, lifted, 'hand', 'topple', { dur: 2 }))).toBe(
+      lifted.replace('dur: 1.8', 'dur: 2'),
+    );
+    expect(ok(editKnob(FILE, lifted, 'hand', 'tilt', 0.3))).toBe(
+      lifted.replace('tilt: 0.12', 'tilt: 0.3'),
+    );
+    const mutable = lifted.replace('const timeline', 'let timeline');
+    expect(Result.isFailure(editCue(FILE, mutable, 'hand', 'topple', { dur: 2 }))).toBe(true);
+  });
+
   it('says which fields are literals, missing or computed', () => {
     const found = ok(editable(FILE, scene, 'hand'));
     expect(found.cues).toEqual([
