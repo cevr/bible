@@ -22,6 +22,7 @@ export const palette = {
   scarlet: '#ce0914',
   scarletShade: '#a4070e',
   robe: '#fcfefc',
+  cream: '#fdf3dc',
   gold: '#e6b347',
   glow: '#fbefc8',
   // Skies, top to bottom.

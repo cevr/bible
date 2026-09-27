@@ -7,10 +7,13 @@
 
 import { type SceneSpec, storyboard } from '@bible/film/canvas';
 import { script } from '../script.ts';
+import { cold } from './cold.ts';
+import { robe } from './robe.ts';
+import { title } from './title.ts';
 
 export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs'>;
 
-const drawings = new Map<string, Drawing>(Object.entries({}));
+const drawings = new Map<string, Drawing>(Object.entries({ cold, robe, title }));
 
 // The script's timing is spread last, so a storyboard card's own entrance
 // holds only where the script names none.
