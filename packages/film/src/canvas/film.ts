@@ -16,6 +16,7 @@ import {
 import type {
   Knob,
   Knobs,
+  ResolvedCue,
   Point,
   Sound,
   Span,
@@ -24,7 +25,7 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
+import { cueProgress, resolveTimeline } from '../core/timeline.ts';
 import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';

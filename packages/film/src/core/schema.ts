@@ -558,14 +558,14 @@ export type CuePatch = typeof CuePatch.Type;
 /** `POST /lab/knobs/:scene/:knob`: the knob's new value. */
 export const KnobPatch = Schema.Struct({ value: Knob });
 
-/** A resolved cue, scene-local seconds. */
-export const CueTiming = Schema.Struct({
+/** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
+export const ResolvedCue = Schema.Struct({
   start: Schema.Finite,
   end: Schema.Finite,
   dur: Schema.Finite,
   ease: EaseName,
 });
-export type CueTiming = typeof CueTiming.Type;
+export type ResolvedCue = typeof ResolvedCue.Type;
 
 /** One finding of `film check --static`, as it prints it. */
 export const CheckLine = Schema.Struct({
@@ -639,7 +639,7 @@ export const LabWrite = Schema.Struct({
   /** The cue's span as the file now declares it, when every field of it is a literal. */
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */
-  resolved: Schema.optionalKey(CueTiming),
+  resolved: Schema.optionalKey(ResolvedCue),
   /** Why the written cue could not be resolved (the film did not load or lay out), when it could not. */
   unresolved: Schema.optionalKey(Schema.String),
   /** The knob's value as the file now declares it. */

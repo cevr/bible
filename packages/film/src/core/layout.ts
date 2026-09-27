@@ -5,8 +5,8 @@
 import { Array as Arr, Result } from 'effect';
 import { UnknownScene } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Knob, Timed, Timings, Transition, Word } from './schema.ts';
-import { type ResolvedCue, type SceneClock, resolveTimeline } from './timeline.ts';
+import type { Knob, ResolvedCue, Timed, Timings, Transition, Word } from './schema.ts';
+import { type SceneClock, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
   readonly spec: S;
