@@ -9,11 +9,12 @@
 // the robed figure asking again. On "will" the camera pushes through their
 // glowing heart into STORY: a cardboard room at dawn, the same figure at the
 // window, face at a third of the frame. On "choose" the open hand from `look`
-// rises palm up and the three small icons are laid in it. On "matter" six
-// quick suns arc over the window: each dusk the hand's fingers curl, each
+// rises palm up and the three small icons are laid in it. From "matter" six
+// suns arc over the window, the six working days: each dusk the hand's fingers curl, each
 // dawn it opens again, and a flower springs up on the path outside each day
-// (the path from `within`). On "sab" the seventh sun sets gold and the shot
-// dissolves to the Sabbath field (garden.ts `restingField`): tools set down,
+// (the path from `within`). On "sab" the sixth sun sets gold, and as it sets
+// the Sabbath begins: the shot dissolves on that sunset to the Sabbath field
+// (garden.ts `restingField`), the seventh day the rest itself: tools set down,
 // the robed figure resting against the tree, heart still glowing, face calm
 // on "rest", held through "rest in his", the scene's last words. Nothing
 // here is earned: the hand only receives.
@@ -149,7 +150,7 @@ const HAND_SCALE = 1.05;
 const ICONS_IN_HAND = 0.24;
 const PALM_Y = -20;
 
-/** The working days, each a sun's arc; the seventh is the Sabbath. */
+/** The working days, each a sun's arc; the Sabbath begins as the last one sets. */
 const DAYS = 6;
 
 /** The robe, as `robe` gives it. */
@@ -170,9 +171,9 @@ const timeline = {
   dawn: { mark: 'will', until: 'matter', ease: 'outQuad' },
   handUp: { mark: 'choose', dur: 0.7, ease: 'outCubic' },
   lay: { mark: 'choose', offset: 0.6, dur: 1.2, ease: 'outBack', stagger: 0.6 },
-  days: { mark: 'matter', until: 'sab', ease: 'linear', stagger: 0.83 },
-  seventh: { mark: 'sab', dur: 1.3, ease: 'inOutSine' },
-  field: { after: 'seventh', offset: -0.2, dur: 0.6 },
+  days: { mark: 'matter', until: 'sab', ease: 'linear', stagger: 0.8 },
+  sixth: { mark: 'sab', dur: 1.3, ease: 'inOutSine' },
+  field: { after: 'sixth', offset: -0.2, dur: 0.6 },
   settle: { after: 'field', dur: 2.5, ease: 'outCubic' },
   rest: { mark: 'rest', dur: 1.5 },
 } as const;
@@ -331,16 +332,17 @@ const robedOnPage = (f: DailyFrame, toGate: number) => {
   ctx.restore();
 };
 
+/** Working day `i`'s sun, 0..1 across its arc: the first five over `days`, the sixth on "sab". */
+const dayArc = (f: DailyFrame, i: number): number =>
+  i < DAYS - 1 ? f.stagger('days', i, DAYS - 1) : f.at('sixth');
+
 /**
  * Where the sun is in its arc 0..1 over the window: the first morning risen
- * a little by "choose", each working day one arc over `days`, and the
- * seventh arc setting gold.
+ * a little by "choose", then each working day's arc, the sixth setting gold.
  */
 const sunArc = (f: DailyFrame): number => {
-  const seventh = f.at('seventh');
-  if (seventh > 0) return seventh;
   for (let i = DAYS - 1; i >= 0; i--) {
-    const d = f.stagger('days', i, DAYS);
+    const d = dayArc(f, i);
     if (d <= 0) continue;
     return i === 0 ? lerp(0.15, 1, d) : d;
   }
@@ -354,7 +356,7 @@ const room = (f: DailyFrame, alpha: number) => {
   const [wx, wy] = f.knob('window');
   const arc = sunArc(f);
   const day = Math.sin(Math.PI * arc);
-  const gold = f.at('seventh');
+  const gold = f.at('sixth');
   ctx.save();
   ctx.globalAlpha *= alpha;
   // The chipboard wall, lit from the window.
@@ -405,7 +407,7 @@ const flowers = (f: DailyFrame) => {
   const { ctx } = f;
   const hand = (k: string) => f.hand(k);
   for (let i = 0; i < DAYS; i++) {
-    const grown = clamp((f.stagger('days', i, DAYS) - 0.55) / 0.35);
+    const grown = clamp((dayArc(f, i) - 0.55) / 0.35);
     if (grown <= 0) continue;
     const k = (i + 0.5) / DAYS;
     const seg = k * (PATH.length - 1);
@@ -449,7 +451,7 @@ const inHand = (f: DailyFrame, arc: number) => {
   const { ctx } = f;
   const up = f.at('handUp');
   if (up <= 0) return;
-  const working = f.at('days') > 0 && f.at('seventh') < 1;
+  const working = f.at('days') > 0;
   const night = 1 - Math.sin(Math.PI * arc);
   const open = working ? 1 - 0.55 * night * night : 1;
   ctx.save();
