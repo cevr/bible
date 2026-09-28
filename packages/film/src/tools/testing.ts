@@ -242,7 +242,7 @@ export const heardAt = (said: string) =>
  * bytes. A dialogue aligns its lines joined with nothing between them, as the
  * API does, and its audio is the lines read one after another. The transcript
  * of a take file is what was spoken into it, unless `heard` maps that text to
- * something else; a person's take (fake MP3 bytes, `fakeMedia.encodeMp3`)
+ * something else; a person's take (fake FLAC bytes, `fakeMedia.encodeFlac`)
  * says what `recorded` has for its beat. Every transcript's words are timed
  * by `heardAt`.
  */
@@ -289,7 +289,7 @@ export const fakeElevenLabs = (
           // A person's take is fake MP3 bytes: what was said is the recording's, by beat.
           const person = Option.filter(
             Option.fromNullishOr(options.recorded?.get(beatOfTake(file))),
-            () => bytes.startsWith('mp3 '),
+            () => bytes.startsWith('flac '),
           );
           const said = Option.getOrElse(person, () => bytes);
           const heard = Option.getOrElse(
@@ -339,15 +339,15 @@ export const fakeRecording = (said: string, rate: number): Pcm => {
 export const noRecording = {
   load: (file: string) =>
     Effect.fail(MediaFailed.make({ op: 'decode', file, reason: 'no recordings here' })),
-  encodeMp3: () => Effect.succeed(new Uint8Array()),
-} satisfies Pick<MediaService, 'load' | 'encodeMp3'>;
+  encodeFlac: () => Effect.succeed(new Uint8Array()),
+} satisfies Pick<MediaService, 'load' | 'encodeFlac'>;
 
-/** What `fakeMedia.encodeMp3` writes: its frames and rate, so the fake measures it. */
-const fakeMp3 = (pcm: Pcm) => text(`mp3 ${pcm.frames}/${pcm.rate}`);
+/** What `fakeMedia.encodeFlac` writes: its frames and rate, so the fake measures it. */
+const fakeFlac = (pcm: Pcm) => text(`flac ${pcm.frames}/${pcm.rate}`);
 
-/** A fake MP3's length from its bytes; any other file's is `fakeLength`. */
+/** A fake FLAC's length from its bytes; any other file's is `fakeLength`. */
 const fakeDuration = (bytes: Uint8Array) =>
-  Option.match(Option.fromNullishOr(new TextDecoder().decode(bytes).match(/^mp3 (\d+)\/(\d+)$/)), {
+  Option.match(Option.fromNullishOr(new TextDecoder().decode(bytes).match(/^flac (\d+)\/(\d+)$/)), {
     onNone: () => fakeLength(bytes),
     onSome: (said) => Number(said[1]) / Number(said[2]),
   });
@@ -357,7 +357,7 @@ const fakeDuration = (bytes: Uint8Array) =>
  * is not there), decodes to a second of mono silence at the mix's rate, and a
  * WAV written lands as `wav <frames>`, and a joined film as `mp4 <frames>`. A
  * recording loads as `fakeRecording` of its bytes, and a take encodes to
- * `mp3 <frames>/<rate>`, which measures its own length.
+ * `flac <frames>/<rate>`, which measures its own length.
  */
 export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
   Layer.succeed(
@@ -381,7 +381,7 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
           onSome: (bytes) =>
             Effect.succeed(fakeRecording(new TextDecoder().decode(bytes).trim(), rate)),
         }),
-      encodeMp3: (pcm) => Effect.succeed(fakeMp3(pcm)),
+      encodeFlac: (pcm) => Effect.succeed(fakeFlac(pcm)),
     }),
   );
 

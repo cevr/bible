@@ -130,18 +130,26 @@ describe('Media', () => {
 
   it.effect.layer(MediaOnDisk)('doctor finds ffmpeg', () => ffmpegReady());
 
-  it.effect.layer(MediaOnDisk)('a take encodes to an MP3 that decodes gapless to its length', () =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const media = yield* Media;
-        const dir = yield* tempDir;
-        const wave = Float32Array.from({ length: 30000 }, (_, i) => Math.sin(i / 9) * 0.3);
-        const bytes = yield* media.encodeMp3({ rate: 44100, frames: 30000, channels: [wave] });
-        yield* (yield* FileSystem.FileSystem).writeFile(`${dir}/take.mp3`, bytes);
-        const back = yield* media.decode(`${dir}/take.mp3`);
-        expect([back.rate, back.frames, back.channels.length]).toEqual([44100, 30000, 1]);
-      }),
-    ),
+  it.effect.layer(MediaOnDisk)(
+    "a person's take is a 24-bit FLAC master: it decodes to its samples, and measures its length",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const dir = yield* tempDir;
+          const wave = Float32Array.from({ length: 30000 }, (_, i) => Math.sin(i / 9) * 0.3);
+          const bytes = yield* media.encodeFlac({ rate: 44100, frames: 30000, channels: [wave] });
+          expect(new TextDecoder().decode(bytes.subarray(0, 4))).toBe('fLaC');
+          yield* (yield* FileSystem.FileSystem).writeFile(`${dir}/take.flac`, bytes);
+          const back = yield* media.decode(`${dir}/take.flac`);
+          expect([back.rate, back.frames, back.channels.length]).toEqual([44100, 30000, 1]);
+          // 24 bits: every sample within two 24-bit steps (16 bits would be off by ~1.5e-5).
+          const plane = back.channels[0] ?? new Float32Array();
+          const worst = wave.reduce((m, s, i) => Math.max(m, Math.abs(s - (plane[i] ?? 0))), 0);
+          expect(worst).toBeLessThan(2 ** -22);
+          expect(yield* media.duration(`${dir}/take.flac`)).toBeCloseTo(30000 / 44100, 6);
+        }),
+      ),
   );
 
   it.effect.layer(MediaOnDisk)(

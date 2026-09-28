@@ -1,15 +1,19 @@
 // A person's takes: recordings of the script made into takes the film uses as
 // it uses a staging take. Each recording is loaded (any format ffmpeg reads),
-// trimmed and levelled as the staging takes are (`prepareTake`), encoded to
-// the takes' MP3, transcribed through the same speech-to-text narrate uses,
-// and timed by what was heard, lined up with the script's words. A take that
-// says something else fails as TakeMismatch unless accepted, as narrate's do.
+// trimmed and levelled as the staging takes are (`prepareTake`), encoded to a
+// 24-bit FLAC master (the owner's voice is the final voiceover, so nothing
+// after the recorder is lossy), transcribed through the same speech-to-text
+// narrate uses, and timed by what was heard, lined up with the script's words.
+// A take that says something else fails as TakeMismatch unless accepted, as
+// narrate's do.
 //
 // Every recording lands first as an attempt, under `narration/attempts/<beat>/`
-// (git-ignored), with what was heard and when; keeping one copies it beside
-// the other takes and rewrites `timings.json` whole to name it, source
-// `recorded`. The take it replaces is removed. An earlier attempt can be kept
-// again at any time. Staging never replaces a recorded take (see narrator.ts).
+// (git-ignored): the recording itself, untouched (`<beat>.<hash>.orig.<ext>`),
+// its prepared FLAC, and in `attempts.json` what was heard and when. Keeping
+// one copies its FLAC beside the other takes and rewrites `timings.json` whole
+// to name it, source `recorded`. The take it replaces is removed from
+// `narration/` (its attempt stays). An earlier attempt can be kept again at
+// any time. Staging never replaces a recorded take (see narrator.ts).
 
 import {
   Array as Arr,
@@ -41,16 +45,27 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { Media } from './media.ts';
-import { type Beat, MAX_WORD_ERROR, beatsOf, takeFile } from './narrator.ts';
+import { type Beat, MAX_WORD_ERROR, beatsOf, contentHash, takeFile } from './narrator.ts';
 
 /** The files a recording may be: what the owner's recorder saves. */
 export const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
 
+/** The recordings that lose nothing: a take made from any other carries its codec's loss. */
+export const LOSSLESS_EXTENSIONS = ['.wav', '.aif', '.aiff', '.flac'] as const;
+
 /** One recording of a beat, kept or not. */
 export const Attempt = Schema.Struct({
   beat: Schema.String,
-  /** The take's file name, in `narration/attempts/<beat>/` and, once kept, `narration/`. */
+  /** The take's file name (a FLAC master), in `narration/attempts/<beat>/` and, once kept, `narration/`. */
   file: Schema.String,
+  /**
+   * The recording as it came, untouched, relative to `narration/attempts/`:
+   * `<beat>/<beat>.<hash>.orig.<ext>`; for one reading of the whole script,
+   * that reading (`whole/whole.<hash>.orig.<ext>`), with `cut` the seconds of
+   * it this beat was cut from.
+   */
+  original: Schema.optionalKey(Schema.String),
+  cut: Schema.optionalKey(Schema.Struct({ from: Schema.Finite, to: Schema.Finite })),
   /** The take as the timings would hold it, `source: 'recorded'`. */
   take: VoiceTiming,
   /** What the transcriber heard. */
@@ -120,6 +135,13 @@ const withRecorded =
     if (timings.voice.length === 0) return { voice: voiceKey(film.voice), scenes };
     return { voice: timings.voice, scenes };
   };
+
+/** Where an attempt's audio came from: the file named in messages, its kept original, and the stretch cut from it. */
+interface Source {
+  readonly file: string;
+  readonly original: string;
+  readonly cut: Option.Option<{ readonly from: number; readonly to: number }>;
+}
 
 /** A take that was kept. */
 export interface Imported {
@@ -198,23 +220,42 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           }),
         );
 
+      /**
+       * The recording at `file` copied, untouched, into `narration/attempts/<dir>/`
+       * as `<stem>.<hash>.orig.<ext>`; its path relative to `attempts/`.
+       */
+      const keepOriginal = Effect.fn('Takes.keepOriginal')(function* (
+        film: LoadedFilm,
+        dir: string,
+        file: string,
+      ) {
+        const bytes = yield* fs.readFile(file);
+        const name = `${dir}.${contentHash(bytes)}.orig${path.extname(file).toLowerCase()}`;
+        yield* store.writeFile(path.join(attemptsDir(film, dir), name), bytes);
+        if (!LOSSLESS_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)))
+          yield* Effect.logWarning(
+            `takes.lossy file=${file} (the master is lossless from here, but this recording already lost what its codec drops; record WAV or FLAC for the final voice)`,
+          );
+        return `${dir}/${name}`;
+      });
+
       /** A recording, already loaded, made into an attempt at `beat`'s take. */
       const attempt = Effect.fn('Takes.attempt')(function* (
         film: LoadedFilm,
         beat: Beat,
-        source: string,
+        source: Source,
         recording: Pcm,
       ) {
         const prepared = yield* Effect.fromOption(prepareTake(recording)).pipe(
           Effect.mapError(() =>
             RecordingInvalid.make({
-              file: source,
+              file: source.file,
               reason: 'nothing in it is louder than the room; check the input level',
             }),
           ),
         );
-        const audio = yield* media.encodeMp3(prepared);
-        const file = takeFile(beat.id, audio);
+        const audio = yield* media.encodeFlac(prepared);
+        const file = takeFile(beat.id, audio, '.flac');
         const at = path.join(attemptsDir(film, beat.id), file);
         yield* store.writeFile(at, audio);
         const reply = yield* elevenLabs.stt(at);
@@ -223,6 +264,8 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         const made: Attempt = {
           beat: beat.id,
           file,
+          original: source.original,
+          ...Option.match(source.cut, { onNone: () => ({}), onSome: (cut) => ({ cut }) }),
           take: {
             hash: hashText(beat.script),
             file,
@@ -295,7 +338,13 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       ) =>
         Effect.gen(function* () {
           const recording = yield* media.load(file, MIX_RATE);
-          const made = yield* attempt(film, beat, file, recording);
+          const original = yield* keepOriginal(film, beat.id, file);
+          const made = yield* attempt(
+            film,
+            beat,
+            { file, original, cut: Option.none() },
+            recording,
+          );
           return yield* keep(film, beat, made, options);
         });
 
@@ -373,13 +422,18 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         const heard = heardWords(yield* elevenLabs.stt(file));
         const spans: ReadonlyArray<BeatSpan> = yield* Effect.fromResult(placeBeats(beats, heard));
         const cuts = cutsBetween(spans, recording.frames / recording.rate);
+        const original = yield* keepOriginal(film, 'whole', file);
         const at = (seconds: number) =>
           Math.min(recording.frames, Math.max(0, Math.round(seconds * recording.rate)));
         const made = yield* Effect.forEach(Arr.zip(beats, cuts), ([beat, cut]) =>
           attempt(
             film,
             beat,
-            `${file}#${beat.id}`,
+            {
+              file: `${file}#${beat.id}`,
+              original,
+              cut: Option.some({ from: cut.from, to: cut.to }),
+            },
             slice(recording, at(cut.from), at(cut.to) - at(cut.from)),
           ).pipe(Effect.map((a) => ({ beat, made: a }))),
         );

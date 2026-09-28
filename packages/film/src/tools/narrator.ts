@@ -192,9 +192,17 @@ export const stateLine = (take: BeatTake): string =>
     }),
   )(take.state);
 
-/** A new take's file name: `<beat>.<hash of its audio>.mp3`, never the name of another take. */
-export const takeFile = (id: string, audio: Uint8Array): string =>
-  `${id}.${createHash('sha256').update(audio).digest('hex').slice(0, 12)}.mp3`;
+/** A take's audio: a staging take is ElevenLabs' MP3, a person's a FLAC master. */
+export const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
+export type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
+
+/** Twelve hex digits of the SHA-256 of `bytes`: a file named by what it holds. */
+export const contentHash = (bytes: Uint8Array): string =>
+  createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+
+/** A new take's file name: `<beat>.<hash of its audio><ext>`, never the name of another take. */
+export const takeFile = (id: string, audio: Uint8Array, ext: TakeExtension = '.mp3'): string =>
+  `${id}.${contentHash(audio)}${ext}`;
 
 /** Put one take into the timings, dropping any recorded under another voice. */
 const withTake =
@@ -322,6 +330,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
       /**
        * Remove every take file the timings do not name, and every partial
        * write: what a crashed or failed run left, or a take since replaced.
+       * A person's replaced take goes too: its master stays in `attempts/`.
        */
       const sweep = Effect.fn('Narrator.sweep')(function* (film: LoadedFilm) {
         const dir = film.paths.narration;
@@ -329,7 +338,9 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const timings = yield* store.read(film.paths.timings);
         const named = new Set(Object.values(timings.scenes).map((t) => t.file));
         const stray = (yield* fs.readDirectory(dir)).filter(
-          (name) => name.endsWith('.partial') || (name.endsWith('.mp3') && !named.has(name)),
+          (name) =>
+            name.endsWith('.partial') ||
+            (TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name)),
         );
         yield* Effect.forEach(stray, (name) => fs.remove(path.join(dir, name)), { discard: true });
         if (stray.length > 0) yield* Effect.log(`narrate.sweep removed=${stray.join(',')}`);

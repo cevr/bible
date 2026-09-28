@@ -96,6 +96,20 @@ export class AudioInvalid extends Schema.TaggedError<AudioInvalid>()('AudioInval
   }
 }
 
+/**
+ * A recording sent to the studio in a lossy codec (Opus, AAC, MP3). A
+ * person's take is the film's final voice and its master is lossless, so the
+ * studio takes PCM (WAV) or FLAC only: a lossy upload would bake its codec's
+ * loss into the master.
+ */
+export class RecordingLossy extends Schema.TaggedError<RecordingLossy>()('RecordingLossy', {
+  type: Schema.String,
+}) {
+  override get message() {
+    return `a recording of type "${this.type}" is lossy; send the take as audio/wav (PCM) or audio/flac`;
+  }
+}
+
 export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('ElevenLabsFailed', {
   op: Schema.String,
   exitCode: Schema.Int,

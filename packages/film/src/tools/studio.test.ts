@@ -99,7 +99,7 @@ const get = (path: string) => new Request(at(path), { method: 'GET' });
 
 /** A recording as the page posts it: what it says is its bytes, as the fake media reads them. */
 const recording = (said: string, extra = '') =>
-  `{"audio":"${Encoding.encodeBase64(said)}","type":"audio/webm;codecs=opus"${extra}}`;
+  `{"audio":"${Encoding.encodeBase64(said)}","type":"audio/wav"${extra}}`;
 
 const said = new Map([
   ['a', 'Hello world.'],
@@ -194,7 +194,7 @@ describe('studio routes', () => {
           [attempt, false, true],
         ]);
         const audio = yield* call(get(`/lab/test/studio/takes/b/attempts/${attempt}`));
-        expect([audio.status, audio.type]).toEqual([200, 'audio/mpeg']);
+        expect([audio.status, audio.type]).toEqual([200, 'audio/flac']);
         const kept = yield* call(
           post('/lab/test/studio/takes/b/keep', `{"file":"${attempt}","acceptMismatch":true}`),
         );
@@ -227,6 +227,27 @@ describe('studio routes', () => {
         expect((yield* call(post('/lab/test/studio/takes/a', '{"type":"audio/wav"}'))).status).toBe(
           400,
         );
+        // The owner's take is the final voice: a lossy upload is refused, not made a master.
+        for (const lossy of ['audio/webm;codecs=opus', 'audio/mp4', 'audio/mpeg', 'audio/ogg']) {
+          const refused = yield* call(
+            post(
+              '/lab/test/studio/takes/a',
+              `{"audio":"${Encoding.encodeBase64('Hello world.')}","type":"${lossy}"}`,
+            ),
+          );
+          expect([refused.status, (refused.body as { _tag: string })._tag]).toEqual([
+            415,
+            'RecordingLossy',
+          ]);
+        }
+        expect(
+          (yield* call(
+            post(
+              '/lab/test/studio/takes/a',
+              `{"audio":"${Encoding.encodeBase64('Hello world.')}","type":"audio/flac"}`,
+            ),
+          )).status,
+        ).toBe(200);
         expect(
           (yield* call(get('/lab/test/studio/takes/a/attempts/..%2F..%2Ftimings.json'))).status,
         ).toBe(404);

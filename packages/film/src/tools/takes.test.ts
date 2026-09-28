@@ -102,7 +102,8 @@ describe('Takes', () => {
         const take = after.scenes[id];
         expect(take?.source).toBe('recorded');
         expect(take?.hash).toBe(hashText(spoken));
-        expect(take?.file).toMatch(new RegExp(`^${id}\\.[0-9a-f]{12}\\.mp3$`));
+        // The owner's take is the final voice: a lossless FLAC master, not a staging MP3.
+        expect(take?.file).toMatch(new RegExp(`^${id}\\.[0-9a-f]{12}\\.flac$`));
         expect(files.has(`${NARRATION}/${take?.file}`)).toBe(true);
         // Timed by what was heard, in the script's words.
         expect(take?.words.map((w) => w.text)).toEqual(spoken.split(' '));
@@ -113,6 +114,19 @@ describe('Takes', () => {
       // The staging take it replaced is gone; the timings name the new one.
       expect(files.has(`${NARRATION}/a.mp3`)).toBe(false);
       expect(after.voice).toBe(staged.voice);
+      // The recording itself is kept untouched beside its attempt, byte for byte.
+      const takes = yield* Takes;
+      for (const [id, source] of [
+        ['a', '/rec/a.wav'],
+        ['b', '/rec/b.m4a'],
+      ] as const) {
+        const [made] = yield* takes.attempts(yield* loaded, id);
+        const original = Option.getOrThrow(Option.fromNullishOr(made?.original));
+        expect(original).toMatch(
+          new RegExp(`^${id}/${id}\\.[0-9a-f]{12}\\.orig${source.slice(source.lastIndexOf('.'))}$`),
+        );
+        expect(files.get(`${NARRATION}/attempts/${original}`)).toEqual(files.get(source));
+      }
     }).pipe(Effect.provide(layer));
   });
 

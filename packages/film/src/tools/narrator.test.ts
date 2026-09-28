@@ -397,6 +397,8 @@ describe('Narrator', () => {
         const files = agreed();
         files.set(`${DIR}/b.take.mp3`, text('stray'));
         files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
+        // A replaced recorded take's committed FLAC goes the same way (its master stays in attempts/).
+        files.set(`${DIR}/b.0123456789ab.flac`, text('replaced master'));
         files.set(`${TIMINGS}.partial`, text('{'));
         const layer = Narrator.layer.pipe(
           Layer.provideMerge(storeLayer(files)),

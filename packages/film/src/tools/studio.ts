@@ -10,7 +10,7 @@
 //   GET  /lab/<film>/studio/beats                       StudioBeats: each beat's sheet text and take state
 //   POST /lab/<film>/studio/takes/:beat                 TakePost → StudioTake, or StudioRefusal (422 TakeMismatch …)
 //   GET  /lab/<film>/studio/takes/:beat/attempts        StudioAttempts, newest first
-//   GET  /lab/<film>/studio/takes/:beat/attempts/:file  the attempt's MP3, to hear it again
+//   GET  /lab/<film>/studio/takes/:beat/attempts/:file  the attempt's FLAC, to hear it again
 //   POST /lab/<film>/studio/takes/:beat/keep            KeepPost → StudioTake, or StudioRefusal
 
 import {
@@ -38,7 +38,7 @@ import {
   StudioTake,
   TakePost,
 } from '../core/studio.ts';
-import { AudioInvalid } from './errors.ts';
+import { AudioInvalid, RecordingLossy } from './errors.ts';
 import { FilmRepo, type LoadedFilm } from './film-repo.ts';
 import { type LabHandler, admit, forFilm } from './lab.ts';
 import { Mixer } from './mixer.ts';
@@ -46,26 +46,35 @@ import { type Beat, beatsOf } from './narrator.ts';
 import { quotesOf } from './script-sheet.ts';
 import { type Imported, Takes } from './takes.ts';
 
-/** The file a browser's recording is written to, by its media type: ffmpeg reads it by name. */
-const EXTENSIONS = new Map([
-  ['audio/webm', '.webm'],
-  ['audio/ogg', '.ogg'],
-  ['audio/mp4', '.m4a'],
-  ['audio/x-m4a', '.m4a'],
-  ['audio/aac', '.aac'],
-  ['audio/mpeg', '.mp3'],
+/**
+ * The file a recording is written to, by its media type (ffmpeg reads it by
+ * name): lossless only, since the take made from it is the film's master.
+ */
+const LOSSLESS = new Map([
   ['audio/wav', '.wav'],
   ['audio/x-wav', '.wav'],
   ['audio/wave', '.wav'],
+  ['audio/vnd.wave', '.wav'],
   ['audio/flac', '.flac'],
+  ['audio/x-flac', '.flac'],
 ]);
 
-const extensionOf = (type: string): Result.Result<string, AudioInvalid> => {
+/** What a browser's MediaRecorder makes: every one lossy. */
+const LOSSY = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/mpeg'];
+
+const extensionOf = (type: string): Result.Result<string, AudioInvalid | RecordingLossy> => {
   const bare = Arr.headNonEmpty(Str.split(type, ';')).trim().toLowerCase();
-  return Result.fromOption(Option.fromNullishOr(EXTENSIONS.get(bare)), () =>
+  if (LOSSY.includes(bare)) return Result.fail(RecordingLossy.make({ type }));
+  return Result.fromOption(Option.fromNullishOr(LOSSLESS.get(bare)), () =>
     AudioInvalid.make({ reason: `a recording of type "${type}"` }),
   );
 };
+
+/** An attempt's audio as the page plays it back. */
+const AUDIO_TYPES = new Map([
+  ['.flac', 'audio/flac'],
+  ['.mp3', 'audio/mpeg'],
+]);
 
 const BeatParams = Schema.Struct({ beat: Schema.String });
 const AttemptParams = Schema.Struct({ beat: Schema.String, file: Schema.String });
@@ -128,6 +137,7 @@ const beatRow = (
 const statusOf = (tag: string) => {
   if (tag === 'SchemaError' || tag === 'HttpServerError' || tag === 'AudioInvalid') return 400;
   if (tag === 'FilmNotFound') return 404;
+  if (tag === 'RecordingLossy') return 415;
   const refused = ['TakeMismatch', 'RecordingInvalid', 'UnknownVoice', 'MediaFailed'];
   if (refused.includes(tag)) return 422;
   if (tag === 'ElevenLabsFailed') return 502;
@@ -311,7 +321,11 @@ export const studioRoutes = (film: string) => {
           if (Option.isNone(found))
             return HttpServerResponse.text('no such attempt', { status: 404 });
           const bytes = yield* (yield* FileSystem.FileSystem).readFile(found.value);
-          return HttpServerResponse.uint8Array(bytes, { contentType: 'audio/mpeg' });
+          const contentType = Option.getOrElse(
+            Option.fromNullishOr(AUDIO_TYPES.get((yield* Path.Path).extname(found.value))),
+            () => 'application/octet-stream',
+          );
+          return HttpServerResponse.uint8Array(bytes, { contentType });
         }),
       ),
     ),

@@ -234,7 +234,7 @@ with its turns, and re-records only beats whose text or turns changed, transcrib
 speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
 what the script says (over 8% word error). A failed take never replaces the
 current one; `--accept-mismatch` keeps it with a warning. A new take is saved
-as `<id>.<audio hash>.mp3`, beside the take it replaces, and becomes current
+as `<id>.<audio hash>.mp3` (a person's, `.flac`), beside the take it replaces, and becomes current
 only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next
 `narrate` removes what a crash or a failed take left (takes the timings no
@@ -249,14 +249,17 @@ ElevenLabs (`narrate`), then read by a person beat by beat:
 1. `bun run script <film> --sheet`, and print `out/<film>/script-sheet.html`:
    each beat's line with its marks stripped, the file to save it as
    (`<beat>.wav`), quotations set apart with their source, `/` for a breath.
-2. Record each beat into its own file (WAV, M4A, MP3, AIFF or FLAC, any rate,
-   any room noise), or the whole script in one file.
+2. Record each beat into its own file (WAV or FLAC for the final voice; M4A
+   or MP3 import with a warning; any rate, any room noise), or the whole
+   script in one file.
 3. `bun run takes import <film> <folder>` (or `<file> --whole`). Each
    recording is trimmed to the staging takes' padding and levelled to their
-   loudness (numbers in `packages/film/README.md`), encoded as they are,
-   transcribed and timed by the words heard; `TakeMismatch` and
-   `--accept-mismatch` work as for `narrate`. Every recording stays in
-   `narration/attempts/<beat>/` (git-ignored); the kept one is committed, with
+   loudness (numbers in `packages/film/README.md`), kept as a 24-bit FLAC
+   master (`<beat>.<hash>.flac`: the owner's voice is the final voiceover,
+   never lossy after the recorder), transcribed and timed by the words heard;
+   `TakeMismatch` and `--accept-mismatch` work as for `narrate`. Every
+   recording stays in `narration/attempts/<beat>/` (git-ignored), the original
+   file byte for byte beside its FLAC; the kept FLAC is committed, with
    `source: "recorded"` in `timings.json`.
 4. `bun run check`, `bun run cues` and `bun run mix` as for any take, then
    tighten each scene's `lead` and `tail` at the seams.

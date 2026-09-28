@@ -64,9 +64,13 @@ appends under Bun: its `fs.write` passes no offset, and Bun then ignores the
 position). Failures are `MediaFailed`. The ffmpeg binary is involved only
 for a person's recordings, which arrive in whatever format a recorder saves
 (M4A/AAC, Opus, WAV at any rate): `load` decodes any of them to one channel
-at the rate asked for, and `encodeMp3` writes a take as the staging takes
-arrive (LAME, 192 kb/s, 44.1 kHz mono), each through a scoped temporary
-directory.
+of 32-bit float at the rate asked for, and `encodeFlac` writes a take as a
+24-bit FLAC master (float in, one quantisation 144 dB down, no dither
+needed), each through a scoped temporary directory. A person's take is the
+film's final voice, so it is never lossy after the recorder: FLAC decodes back
+in-process through libFLAC (`@wasm-audio-decoders/flac`, WASM; Bun has no
+WebCodecs decoder for mediabunny), and the mix reads it as it reads a staging
+MP3. Staging takes stay the MP3s ElevenLabs sends.
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
 and ducked under it, the effects on their cues, summed and limited: ported
@@ -83,8 +87,10 @@ leg.
 
 `narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
 only by rewriting `timings.json`, so no crash leaves a take and its timings
-disagreeing; it removes the takes the timings no longer name, and partial
-writes, at the start and end of every run.
+disagreeing; it removes the takes (`.mp3` or a person's `.flac`) the timings
+no longer name, and partial writes, at the start and end of every run. A
+replaced person's take loses only its copy in `narration/`: its master and
+its original stay in `narration/attempts/`.
 
 Each take in `timings.json` carries its `source`: `elevenlabs` (staged by
 `narrate`; written as no `source` key, so a file from before sources reads
@@ -100,14 +106,19 @@ of staging voice, since no staging voice made it; `check` fails a stale one
 `takes import` (`Takes`, `tools/takes.ts`) makes a person's recording a take:
 `Media.load` at the mix rate, `prepareTake` (`core/recording.ts`: one
 channel, trimmed, levelled, held under the ceiling; `RecordingInvalid` when
-nothing in it reaches −60 dBFS), `Media.encodeMp3`, then the same
-speech-to-text as `narrate`, whose words time the script's words through an
-edit-distance line-up (`core/align.ts` `timeScript`: a misheard word keeps its
-place, an unheard one shares the gap its neighbours leave). The recording
-lands as an attempt in `narration/attempts/<beat>/` with its `attempts.json`
-ledger (what was heard, the word error, when), and keeping one copies it
-beside the other takes and rewrites `timings.json` to name it; the take it
-replaced is removed. `--whole` transcribes one recording of the script,
+nothing in it reaches −60 dBFS), `Media.encodeFlac` (the take,
+`<beat>.<hash>.flac`), then the same speech-to-text as `narrate`, whose words
+time the script's words through an edit-distance line-up (`core/align.ts`
+`timeScript`: a misheard word keeps its place, an unheard one shares the gap
+its neighbours leave). The recording lands as an attempt in
+`narration/attempts/<beat>/`: the recording itself, byte for byte
+(`<beat>.<hash>.orig.<ext>`; a whole reading once, under `whole/`, each beat's
+attempt naming the stretch it was cut from), its FLAC, and its
+`attempts.json` ledger (what was heard, the word error, when). Keeping one
+copies the FLAC beside the other takes and rewrites `timings.json` to name
+it; the take it replaced is removed from `narration/`. A lossy recording (M4A,
+MP3) still imports, with a `takes.lossy` warning: the master is lossless from
+there on, but record WAV or FLAC for the final voice. `--whole` transcribes one recording of the script,
 places each beat by the same line-up (`placeBeats`: a beat with under half
 its words heard fails `BeatUnplaced`, naming it) and cuts halfway through the
 silence between beats (`cutsBetween`).
@@ -175,19 +186,22 @@ rest to the lab) with the same admission: same-origin JSON, and the film the
 lab serves (another film is a 409). Every body and answer is a Schema in
 `core/studio.ts`:
 
-| Route                                    | Body → answer                                                                                                                                                |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts |
-| `POST /studio/takes/:beat`               | `TakePost` (`audio` base64, `type` its media type, `acceptMismatch?`) → `StudioTake` (the take, what was heard, the word error, the new `timings`, `mixed`)  |
-| `GET /studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: what each heard, its word error, when, whether it is the take and whether it reads the line as it is now                     |
-| `GET /studio/takes/:beat/attempts/:file` | the attempt's MP3, to hear it again; a name the ledger does not hold is a 404                                                                                |
-| `POST /studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                      |
+| Route                                    | Body → answer                                                                                                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts             |
+| `POST /studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, what was heard, the word error, the new `timings`, `mixed`) |
+| `GET /studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: what each heard, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
+| `GET /studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404                                                                            |
+| `POST /studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                  |
 
 A take not kept answers `StudioRefusal` (`_tag`, `message`, and for a
 `TakeMismatch` the `script`, what was `heard`, the `wer` and the `attempt` it
 saved, which `keep` with `acceptMismatch` makes the take: "accept anyway").
 A body that is not a recording, or of a media type ffmpeg is not told how to
-read (`AudioInvalid`), is a 400; `TakeMismatch`, `RecordingInvalid` (a beat
+read (`AudioInvalid`), is a 400; a lossy one (`audio/webm`, `ogg`, `mp4`,
+`aac`, `mpeg`: what MediaRecorder makes) a 415 `RecordingLossy`, since the
+take is the film's master; the panel records PCM (an AudioWorklet) and posts
+WAV. `TakeMismatch`, `RecordingInvalid` (a beat
 with no line, silence, an attempt never recorded) a 422; a failed
 speech-to-text a 502. The upload is written to a scoped temp file, removed
 when the request ends. After a take is kept the film remixes; `mixed: false`
