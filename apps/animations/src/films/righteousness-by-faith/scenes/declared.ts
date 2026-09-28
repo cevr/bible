@@ -9,8 +9,9 @@
 // quotation ends it drops, heavy, into the chest and leaves a glow there.
 // On `voice` the camera eases back and the dawn from `spoke` opens in a panel
 // behind the figure; the same word of light arcs out of its sun and lands on
-// the chest (`speaks`), and gold blooms there as the stains shrink away
-// (`made`): made righteous, not covered.
+// the chest (`speaks`). On `made` its light spreads through the garment from
+// inside: the stains wash out, the nearest first, and the grey paper of the
+// cloth warms toward cream: made righteous, not covered.
 
 import {
   type Camera,
@@ -32,6 +33,7 @@ import {
   blob,
   clipToGarment,
   glow,
+  mix,
   person,
   piece,
 } from '../kit.ts';
@@ -86,6 +88,16 @@ const LINES = [
 
 /** The stains on the garment, in the figure's units: the cold open's two and one more (centre, size, seed). */
 const STAINS = [...FIGURE_STAIN_SPOTS, [-16, -100, 18, 14, 13]] as const;
+const STAIN_SHAPES = STAINS.map(([x, y, sw, sh, seed]) => blob(x, y, sw, sh, seed));
+/** Where the light in the chest spreads from, in the figure's units. */
+const BLOOM_AT: Pt = [-4, -82];
+/** How fast the wash runs out from the light, and each stain's distance along it (its reach, 0..). */
+const WASH_RATE = 2.2;
+const STAIN_REACH = STAINS.map(([x, y]) => Math.hypot(x - BLOOM_AT[0], y - BLOOM_AT[1]) / 40);
+/** One scratch list of the stains' wash, reused every frame. */
+const WASH: number[] = STAINS.map(() => 0);
+/** The cloth's colour from grey paper to warm cream, in steps. */
+const CLOTH_WARMS = Array.from({ length: 17 }, (_, i) => mix(C.figure, C.cream, (0.7 * i) / 16));
 
 /** The dawn panel behind the figure, in frame units, and its scale on the dawn world. */
 const PANEL = { x: 1010, y: 150, w: 780, h: 440 };
@@ -156,27 +168,37 @@ const panel = (ctx: CanvasRenderingContext2D, hand: Hands, shown: number) =>
     }),
   );
 
-/** Gold in the chest: the glow the sunk verdict leaves (`warm`), and the bloom through the garment. */
-const chest = (
-  ctx: CanvasRenderingContext2D,
-  hand: Hands,
-  figure: Person,
-  warm: number,
-  bloom: number,
-) => {
+/**
+ * Gold in the chest: the glow the sunk verdict leaves (`warm`), and on
+ * `made` the light spreading through the garment from inside, a glow held to
+ * the cloth, never a patch laid on it.
+ */
+const chest = (ctx: CanvasRenderingContext2D, figure: Person, warm: number, bloom: number) => {
   const lit = Math.max(0.8 * warm, bloom);
   if (lit > 0) glow(ctx, 0, -80, 50, C.glow, 0.5 * lit);
   if (warm > 0) glow(ctx, 0, -80, 20, C.gold, 0.7 * warm * (1 - bloom));
   if (bloom <= 0) return;
   ctx.save();
   clipToGarment(ctx, figure);
-  piece(ctx, blob(-4, -82, 56 * bloom, 76 * bloom, 5), C.gold, hand('bloom'), {
-    line: 0,
-    shadow: 0,
-    alpha: 0.6,
-  });
+  glow(ctx, BLOOM_AT[0], BLOOM_AT[1], lerp(20, 130, bloom), C.glow, 0.65 * bloom);
+  glow(ctx, BLOOM_AT[0], BLOOM_AT[1], lerp(10, 70, bloom), C.gold, 0.45 * bloom);
   ctx.restore();
 };
+
+/**
+ * How far each stain is washed out at `bloom`, into `out`: from the light in
+ * the chest outward, the nearest first, every one gone before the light has
+ * fully spread.
+ */
+const washStains = (out: number[], bloom: number) => {
+  for (let i = 0; i < STAIN_REACH.length; i++)
+    out[i] = clamp(WASH_RATE * bloom - (STAIN_REACH[i] ?? 0));
+  return out;
+};
+
+/** The garment's colour as the light spreads through it: grey paper warming to cream, in steps. */
+const clothAt = (bloom: number) =>
+  CLOTH_WARMS[Math.round(clamp(bloom) * (CLOTH_WARMS.length - 1))] ?? C.figure;
 
 export const declared = drawing({
   timeline: {
@@ -247,12 +269,10 @@ export const declared = drawing({
       const shown = f.at('panel');
       if (shown > 0) panel(ctx, hand, shown);
 
-      // The figure, their stains shrinking as the gold blooms.
+      // The figure, their stains washed out from the light inside as it spreads.
       at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
-        const k = 1 - clamp(bloom * 1.3);
-        const stains =
-          k > 0.05 ? STAINS.map(([x, y, sw, sh, seed]) => blob(x, y, sw * k, sh * k, seed)) : [];
         const figure: Person = {
+          body: clothAt(bloom),
           tilt: 0.1 * doubt - 0.08 * up + 0.08 * landed,
           nod: 4 * doubt + 3 * Math.max(cover, landed),
           look,
@@ -262,10 +282,11 @@ export const declared = drawing({
           mouth: 0.35 * doubt + 0.5 * bloom,
           handL: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)],
           handR: [36, -40],
-          stains,
+          stains: STAIN_SHAPES,
+          washed: washStains(WASH, bloom),
         };
         person(ctx, figure, hand('figure'));
-        chest(ctx, hand, figure, sink, bloom);
+        chest(ctx, figure, sink, bloom);
       });
 
       verdictAt(ctx, hand, verdict);

@@ -280,6 +280,11 @@ export interface Person {
   /** Stains on the garment: blob outlines in the person's units. */
   stains?: ReadonlyArray<ReadonlyArray<Pt>>;
   /**
+   * How far each stain is washed out, in `stains`' order: 0 scarlet, toward 1
+   * the garment's own colour, and at 1 gone. None given, every stain is scarlet.
+   */
+  washed?: ReadonlyArray<number>;
+  /**
    * 0 stands, 1 sits: the origin becomes the seat's front edge, the body
    * drops onto it by the legs' height, the lap comes forward over the edge
    * with its two knees, and the shins hang down its face.
@@ -639,8 +644,22 @@ const garment = (
   toFold(ctx, robe, sit);
   piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
   let i = 0;
-  for (const stain of p.stains ?? NO_STAINS)
-    cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i++));
+  for (const stain of p.stains ?? NO_STAINS) {
+    const wash = p.washed?.[i] ?? 0;
+    if (wash < 1)
+      cutout(
+        ctx,
+        stain,
+        {
+          color: wash > 0 ? mix(C.scarlet, body, wash) : C.scarlet,
+          torn: 2.5,
+          rim: 0,
+          shadow: 0.1,
+        },
+        sub(hand, 60 + i),
+      );
+    i++;
+  }
   ctx.restore();
   if (sit <= 0) return;
   // The lap: the thighs come toward us over the seat's edge, the cloth
