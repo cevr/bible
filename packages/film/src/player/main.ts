@@ -11,6 +11,7 @@ import { mountLab } from './lab.ts';
 import { composeContact } from './contact.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { hashFrames, timeFrames } from './timing.ts';
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -26,12 +27,7 @@ const FONTS = [
 ];
 
 /** Bytes as base64: what the export handle hands back across `page.evaluate`. */
-const base64 = (bytes: Uint8Array) => {
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
+const base64 = (bytes: Uint8Array) => bytes.toBase64();
 
 /** A canvas as base64 PNG or JPEG. */
 const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
@@ -67,6 +63,10 @@ export interface ExportHandle {
   ): Promise<{ readonly master: string; readonly share?: string }>;
   /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
   contact(frames: ReadonlyArray<number>): Promise<string>;
+  /** Milliseconds each of `frames` takes to draw, raster included (`timeFrames`). */
+  time(frames: ReadonlyArray<number>): ReadonlyArray<number>;
+  /** A hash of each of `frames`' pixels (`hashFrames`). */
+  hash(frames: ReadonlyArray<number>): ReadonlyArray<string>;
 }
 
 declare global {
@@ -170,6 +170,8 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
           return chunk.share === undefined ? { master } : { master, share: base64(chunk.share) };
         },
         contact: (frames) => encode(composeContact(draw, canvas, frames), 'image/jpeg'),
+        time: (frames) => timeFrames(draw, ctx, frames),
+        hash: (frames) => hashFrames(draw, ctx, frames),
       };
       return;
     }

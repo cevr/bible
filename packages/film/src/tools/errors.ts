@@ -92,7 +92,7 @@ export class ApiKeyMissing extends Schema.TaggedError<ApiKeyMissing>()('ApiKeyMi
 
 /** A media file that could not be read, decoded, written or joined into a film. */
 export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
-  op: Schema.Literals(['read', 'decode', 'write', 'join']),
+  op: Schema.Literals(['read', 'decode', 'encode', 'write', 'join']),
   file: Schema.String,
   reason: Schema.String,
 }) {
@@ -233,6 +233,101 @@ export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
 }) {
   override get message() {
     return `the audio master ${this.file} runs ${this.length.toFixed(3)}s, the film ${this.film.toFixed(3)}s; run mix to rebuild it (no API calls)`;
+  }
+}
+
+const FLAG_RULE = { excludes: 'does not go with', needs: 'needs' } as const;
+
+/**
+ * A flag that would be ignored: given with one it `excludes`, or without the
+ * one it `needs`.
+ */
+export class FlagsConflict extends Schema.TaggedError<FlagsConflict>()('FlagsConflict', {
+  flag: Schema.String,
+  rule: Schema.Literals(['excludes', 'needs']),
+  other: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `--${this.flag} ${FLAG_RULE[this.rule]} --${this.other}: ${this.reason}`;
+  }
+}
+
+/** `score --only` names a sound the film does not have. */
+export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownEffect', {
+  id: Schema.String,
+  /** The sounds the film has: `music`, if it has a score, and its effect ids. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the film has no sound "${this.id}"; its sounds are ${this.known.join(', ')}`;
+  }
+}
+
+/** `film bench --budget` with no baseline to hold the run against. */
+export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `no bench baseline at ${this.file}; run bench --baseline first`;
+  }
+}
+
+/** A bench run that cannot be held against its baseline: another machine, or the other captions setting. */
+export class BaselineIncomparable extends Schema.TaggedError<BaselineIncomparable>()(
+  'BaselineIncomparable',
+  { file: Schema.String, reason: Schema.String },
+) {
+  override get message() {
+    return `the bench baseline at ${this.file} does not compare with this run: ${this.reason}; run bench --baseline on this setup first`;
+  }
+}
+
+/** A `--hash` bench run against a baseline that kept no hashes: its pixels would pass unchecked. */
+export class BaselineUnhashed extends Schema.TaggedError<BaselineUnhashed>()('BaselineUnhashed', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `the bench baseline at ${this.file} has no pixel hashes to compare; run bench --hash --baseline first`;
+  }
+}
+
+/** A bench run more than the budget slower than its baseline, on the same machine. */
+export class BenchOverBudget extends Schema.TaggedError<BenchOverBudget>()('BenchOverBudget', {
+  /** Each measure over: a scene's median ms, or the film's summed draw seconds. */
+  slower: Schema.Array(
+    Schema.Struct({ what: Schema.String, now: Schema.Finite, before: Schema.Finite }),
+  ),
+}) {
+  override get message() {
+    const lines = this.slower.map(
+      (s) =>
+        `${s.what} ${s.now.toFixed(1)} against ${s.before.toFixed(1)} (+${((s.now / s.before - 1) * 100).toFixed(0)}%)`,
+    );
+    return `slower than the baseline by more than the budget: ${lines.join('; ')}`;
+  }
+}
+
+/** A bench run whose frames' pixels differ from the baseline's. */
+export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved', {
+  frames: Schema.Array(Schema.Int),
+}) {
+  override get message() {
+    return `${this.frames.length} hashed frames differ from the baseline: ${this.frames.join(', ')}`;
+  }
+}
+
+/** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
+export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
+  workers: Schema.Int,
+  share: Schema.Boolean,
+  max: Schema.Int,
+}) {
+  override get message() {
+    const perPage = 1 + Number(this.share);
+    const copy = ' with a share copy'.repeat(Number(this.share));
+    const orNoShare = ', or --no-share'.repeat(Number(this.share));
+    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
   }
 }
 

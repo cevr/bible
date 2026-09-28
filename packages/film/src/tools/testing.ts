@@ -27,6 +27,7 @@ import {
   type FrameFailed,
   type PageCrashed,
   type PageError,
+  type MediaFailed,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media } from './media.ts';
@@ -67,7 +68,13 @@ const memoryOps = (files: Map<string, Uint8Array>) =>
             files.set(to, bytes);
           }),
       }),
-    remove: (path) => Effect.sync(() => void files.delete(path)),
+    // A folder goes with everything under it, as `recursive` asks.
+    remove: (path) =>
+      Effect.sync(() => {
+        for (const file of [...files.keys()])
+          if (file === path || file.startsWith(`${path}/`)) files.delete(file);
+      }),
+    makeTempDirectoryScoped: () => Effect.succeed('/tmp/film-test'),
     readDirectory: (path) =>
       Effect.sync(() =>
         [...files.keys()]
@@ -217,6 +224,7 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
         ),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
+      encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
     }),
   );
@@ -236,6 +244,12 @@ export interface RenderLedger {
   readonly contacts: Array<ReadonlyArray<number>>;
   /** Every film joined. */
   readonly joins: Array<JoinedFilm>;
+  /** The frames of every track encoded to AAC. */
+  readonly aac: Array<number>;
+  /** The URL of every page opened. */
+  readonly urls: Array<string>;
+  /** AAC encodes cut off before they ended. */
+  readonly aacInterrupted: { count: number };
 }
 
 export const emptyLedger = (): RenderLedger => ({
@@ -247,6 +261,9 @@ export const emptyLedger = (): RenderLedger => ({
   lookbooks: { composed: 0 },
   contacts: [],
   joins: [],
+  aac: [],
+  aacInterrupted: { count: 0 },
+  urls: [],
 });
 
 export const testExportInfo: ExportInfo = {
@@ -274,6 +291,14 @@ export interface FakeRenderHost {
   readonly master?: number;
   /** What a page's encoder check finds (ready by default). */
   readonly encoder?: Effect.Effect<void, EncoderMissing>;
+  /** What an AAC encode does once it is recorded (nothing by default). */
+  readonly aac?: Effect.Effect<void, MediaFailed>;
+  /** What a join does once it is recorded (nothing by default). */
+  readonly join?: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
+  /** How many milliseconds frame `i` takes to draw, as `time` reports it (default 10). */
+  readonly drawMs?: (i: number) => number;
+  /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
+  readonly pixels?: (i: number) => string;
 }
 
 /**
@@ -285,6 +310,8 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
   const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
+  const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
+  const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -305,9 +332,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       Effect.sync(() => {
         ledger.browser.launched += 1;
         return Browser.of({
-          open: () =>
+          open: (url: string) =>
             Effect.acquireRelease(
               Effect.sync(() => {
+                ledger.urls.push(url);
                 ledger.pages.opened += 1;
                 return ledger.pages.opened;
               }),
@@ -378,6 +406,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                       ledger.contacts.push(frames);
                       return new Uint8Array([0xff, 0xd8]);
                     }),
+                  time: (frames: ReadonlyArray<number>) =>
+                    Effect.forEach(frames, (i) => Effect.as(frame(i), drawMs(i))),
+                  hash: (frames: ReadonlyArray<number>) =>
+                    Effect.forEach(frames, (i) => Effect.as(frame(i), pixels(i))),
                 };
               }),
             ),
@@ -393,7 +425,21 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
       writeWav: () => Effect.void,
-      join: (film) => Effect.sync(() => void ledger.joins.push(film)),
+      encodeAac: (pcm) =>
+        Effect.sync(() => void ledger.aac.push(pcm.frames)).pipe(
+          Effect.andThen(Option.getOrElse(Option.fromNullishOr(host.aac), () => Effect.void)),
+          Effect.onInterrupt(() => Effect.sync(() => void (ledger.aacInterrupted.count += 1))),
+          Effect.as({ packets: [], meta: {} }),
+        ),
+      join: (film) =>
+        Effect.sync(() => void ledger.joins.push(film)).pipe(
+          Effect.andThen(
+            Option.match(Option.fromNullishOr(host.join), {
+              onNone: () => Effect.void,
+              onSome: (join) => join(film),
+            }),
+          ),
+        ),
     }),
   );
   return Layer.mergeAll(server, browser, media);

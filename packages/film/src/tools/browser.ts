@@ -62,6 +62,14 @@ export interface FramePage {
   readonly contact: (
     frames: ReadonlyArray<number>,
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | ContactFailed>;
+  /** Draw `frames` and return how many milliseconds each took, raster included. */
+  readonly time: (
+    frames: ReadonlyArray<number>,
+  ) => Effect.Effect<ReadonlyArray<number>, PageError | PageCrashed | FrameFailed>;
+  /** Draw `frames` and return a hash of each one's pixels. */
+  readonly hash: (
+    frames: ReadonlyArray<number>,
+  ) => Effect.Effect<ReadonlyArray<string>, PageError | PageCrashed | FrameFailed>;
 }
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
@@ -198,7 +206,8 @@ const openPage = (page: Page, url: string) =>
 
     /**
      * A handle call, its answer decoded by `schema`; `fail` says what failed,
-     * and it fails too if the call outlasts `timeout` or the handle is gone.
+     * and it fails too if the call outlasts `timeout`, or the answer does not
+     * decode (the handle is gone, or answered something else), saying why.
      */
     const handle = <A, E>(
       call: () => Promise<unknown>,
@@ -216,7 +225,7 @@ const openPage = (page: Page, url: string) =>
       ).pipe(
         Effect.flatMap((answer) =>
           Schema.decodeUnknownEffect(schema)(answer).pipe(
-            Effect.mapError(() => fail('the export handle is gone')),
+            Effect.mapError((error) => fail(`the export handle answered: ${error.message}`)),
           ),
         ),
       );
@@ -240,22 +249,11 @@ const openPage = (page: Page, url: string) =>
       );
 
     const probe = (i: number) =>
-      guarded(
-        Effect.tryPromise({
-          try: () => page.evaluate((n) => window.__film?.probe(n), i),
-          catch: (cause) => FrameFailed.make({ frame: i, reason: String(cause) }),
-        }).pipe(
-          Effect.timeoutOrElse({
-            duration: FRAME_TIMEOUT,
-            orElse: () => Effect.fail(FrameFailed.make({ frame: i, reason: 'timed out' })),
-          }),
-        ),
-      ).pipe(
-        Effect.flatMap((boxes) =>
-          Schema.decodeUnknownEffect(Probed)(boxes).pipe(
-            Effect.mapError((error) => FrameFailed.make({ frame: i, reason: error.message })),
-          ),
-        ),
+      handle(
+        () => page.evaluate((n) => window.__film?.probe(n), i),
+        Probed,
+        FRAME_TIMEOUT,
+        (reason) => FrameFailed.make({ frame: i, reason }),
       );
 
     const lookbook = bytes(
@@ -265,17 +263,12 @@ const openPage = (page: Page, url: string) =>
     );
 
     const encoder = (scale: number) =>
-      guarded(
-        Effect.tryPromise({
-          try: () => page.evaluate((k) => window.__film?.encoder(k), scale),
-          catch: (cause) => EncoderMissing.make({ reason: String(cause) }),
-        }),
+      handle(
+        () => page.evaluate((k) => window.__film?.encoder(k), scale),
+        EncoderCheck,
+        FRAME_TIMEOUT,
+        (reason) => EncoderMissing.make({ reason }),
       ).pipe(
-        Effect.flatMap((reported) =>
-          Schema.decodeUnknownEffect(EncoderCheck)(reported).pipe(
-            Effect.mapError((error) => EncoderMissing.make({ reason: error.message })),
-          ),
-        ),
         Effect.flatMap((check) =>
           EncoderCheck.match(check, {
             Ready: () => Effect.void,
@@ -309,7 +302,37 @@ const openPage = (page: Page, url: string) =>
         (reason) => ContactFailed.make({ reason }),
       );
 
-    return { info, frame, probe, lookbook, encoder, encode, contact } satisfies FramePage;
+    /** A failed batch of frames names its first. */
+    const batchFailed = (frames: ReadonlyArray<number>) => (reason: string) =>
+      FrameFailed.make({ frame: frames[0] ?? 0, reason });
+
+    const time = (frames: ReadonlyArray<number>) =>
+      handle(
+        () => page.evaluate((all) => window.__film?.time(all), [...frames]),
+        Schema.Array(Schema.Finite),
+        SHEET_TIMEOUT,
+        batchFailed(frames),
+      );
+
+    const hash = (frames: ReadonlyArray<number>) =>
+      handle(
+        () => page.evaluate((all) => window.__film?.hash(all), [...frames]),
+        Schema.Array(Schema.String),
+        SHEET_TIMEOUT,
+        batchFailed(frames),
+      );
+
+    return {
+      info,
+      frame,
+      probe,
+      lookbook,
+      encoder,
+      encode,
+      contact,
+      time,
+      hash,
+    } satisfies FramePage;
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

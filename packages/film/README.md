@@ -293,15 +293,14 @@ what a review used to find by eye:
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
-centre line, `fill` and `cutout` their outlines (a `hatch` is texture and
-does not record). A drawing declares the plate its text sits on (a torn tag,
-a word card) with `probePlate(ctx, shape, () => write(…))`: the shape it drew
-the plate with, and the lines on it drawn inside. A plate hides what is under
-it as the text does, so it is measured as text too; the lines drawn inside
-carry the plate's `order` (`on`), so a card never collides with its own
-lines, while any other text over it does. The kit declares one plate itself:
-a storyboard scene's card (`canvas/storyboard.ts`), so its id and brief are
-checked against the card (`TextOffPlate`) and against each other
+centre line and `cutout` its outline. A drawing declares the plate its text
+sits on (a torn tag, a word card) with `probePlate(ctx, shape, () => write(…))`:
+the shape it drew the plate with, and the lines on it drawn inside. A plate
+hides what is under it as the text does, so it is measured as text too; the
+lines drawn inside carry the plate's `order` (`on`), so a card never collides
+with its own lines, while any other text over it does. The kit declares one
+plate itself: a storyboard scene's card (`canvas/storyboard.ts`), so its id and
+brief are checked against the card (`TextOffPlate`) and against each other
 (`TextOverlap`). The films declare the rest (righteousness-by-faith: heaven's
 banner, the court and cold labels, the thesis, message and word boards, the
 declared card; v1: the cite tab and the justified strip).

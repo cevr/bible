@@ -1,5 +1,5 @@
 // `film/no-unprobed-ink`: `film check` sees ink only where the kit records it
-// (`stroke`, `fill` and `cutout` in ink.ts and cutout.ts, `write` and `block`
+// (`stroke` and `cutout` in ink.ts and cutout.ts, `write` and `block`
 // in type.ts). A stroke or a line of text drawn straight on the context is
 // invisible to it, so it can run through a line of text and pass. A film draws
 // ink through the kit, or wraps a deliberate exception (texture that never

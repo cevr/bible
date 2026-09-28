@@ -49,12 +49,14 @@ const glyphs = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) =
   const ws: number[] = [];
   let x = 0;
   let prefix = '';
+  let before = 0;
   for (const ch of chars) {
     xs.push(x);
-    const before = ctx.measureText(prefix).width;
     prefix += ch;
     // Advance by the kerned prefix, not the lone glyph.
-    const w = ctx.measureText(prefix).width - before;
+    const after = ctx.measureText(prefix).width;
+    const w = after - before;
+    before = after;
     ws.push(w);
     x += w + track;
   }
@@ -63,11 +65,25 @@ const glyphs = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) =
 
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
+/** How many grapheme clusters `text` holds: the glyphs `write` sets one by one. */
+const graphemeCount = (text: string) => {
+  let n = 0;
+  for (const _ of graphemes.segment(text)) n++;
+  return n;
+};
+
 /** Hebrew, Arabic and friends: shaped and ordered by the browser, never glyph by glyph. */
 const RTL = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 
-export const measure = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) =>
-  glyphs(ctx, text, style).width;
+/**
+ * How wide `write` sets `text`: the kerned line in one measurement, plus the
+ * tracking between its glyphs. The glyph advances `write` sums telescope to it.
+ */
+export const measure = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) => {
+  ctx.font = font(style);
+  const track = (style.tracking ?? 0) * style.size;
+  return Math.max(0, ctx.measureText(text).width + track * (graphemeCount(text) - 1));
+};
 
 /** Where a line `width` wide aligned at `x` starts. */
 const leftEdge = (align: NonNullable<TextStyle['align']>, x: number, width: number) =>

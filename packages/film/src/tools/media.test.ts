@@ -123,7 +123,7 @@ describe('Media', () => {
               { file: fixture('segment-b.mp4'), at: 0.5 },
             ],
             frames: 30,
-            audio: Option.some(second()),
+            audio: Option.some(yield* (yield* Media).encodeAac(second())),
           });
           const [video, audio] = yield* readBack(out);
           expect([video?.type, video?.codec, audio?.type, audio?.codec]).toEqual([
