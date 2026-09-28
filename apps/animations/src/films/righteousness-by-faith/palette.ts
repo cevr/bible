@@ -28,6 +28,7 @@ export const palette = {
   // What grows (only what the word makes grow, and the fig leaves we sew),
   // the stone of the law, and water under the dawn.
   leaf: '#86b86a',
+  leafPale: '#8fb06a',
   leafShade: '#5f9451',
   leafDry: '#9a7b52',
   stone: '#c9c1b2',
