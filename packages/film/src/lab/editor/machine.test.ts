@@ -7,6 +7,7 @@
 // refusal lets `#T` go and puts the preview back.
 
 import { Effect, Layer, Option, Predicate, SubscriptionRef } from 'effect';
+import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import type { SceneEdit } from '../../canvas/film.ts';
@@ -14,7 +15,7 @@ import type { LabWrite } from '../../core/schema.ts';
 import { LabApi, type LabCalls, LabRefused } from '../api.ts';
 import { NotPreviewed, Stage, type StageOps } from '../stage.ts';
 import { type CueGrip, CueWrite, type KnobGrip, KnobWrite, StepWrite } from './grip.ts';
-import { EditEvent, EditState, editMachine } from './machine.ts';
+import { EditEvent, EditState, WRITE_TIMEOUT_S, editMachine } from './machine.ts';
 
 const grip: CueGrip = {
   _tag: 'CueGrip',
@@ -324,5 +325,29 @@ describe('the write task, through an actor', () => {
       const state = yield* settled(Effect.fail(refused));
       expect(state).toEqual(EditState.Refused({ message: 'SourceRefused: stale' }));
     }).pipe(Effect.scoped),
+  );
+
+  it.effect(
+    `a write the server never answers is refused after ${WRITE_TIMEOUT_S} s, and the editor takes the next`,
+    () => {
+      const { log, layer } = fakes(Effect.never);
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(EditEvent.Commit({ write: cueWrite, edit: {} }));
+        yield* TestClock.adjust('10 millis');
+        expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Writing');
+        yield* TestClock.adjust(`${WRITE_TIMEOUT_S} seconds`);
+        expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+          EditState.Refused({
+            message: `the write had no answer in ${WRITE_TIMEOUT_S} s; see whether it changed the scene file (git diff) before writing again`,
+          }),
+        );
+        expect(log).toEqual(['preview one ', 'holdT', 'settle', 'unpreview one']);
+        yield* actor.send(EditEvent.Press({ grip }));
+        yield* TestClock.adjust('10 millis');
+        expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Pressed');
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
   );
 });

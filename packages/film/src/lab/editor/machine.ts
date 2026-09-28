@@ -6,18 +6,26 @@
 // two writes never race for one file.
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
-//                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed→ Refused
+//                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
 //
 // A write holds `#T` at the frame it is asked at (the file change reloads the
-// page there); a refused one lets it go and puts the preview back. Nothing
-// here touches the DOM: the stage and the API are services, faked in tests.
+// page there); a refused one, or one with no answer in WRITE_TIMEOUT_S, lets
+// it go and puts the preview back. Nothing here touches the DOM: the stage
+// and the API are services, faked in tests.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { CheckLine, LabWrite } from '../../core/schema.ts';
 import { LabApi, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
 import { Edit, Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
+
+/**
+ * How long a write may be out before the editor gives up on it: a server that
+ * never answers (a hung formatter or check) must not leave every drag, field
+ * and Undo refused until the page reloads.
+ */
+export const WRITE_TIMEOUT_S = 20;
 
 export const EditState = State({
   /** At rest: `note` is what the last thing done said, if anything. */
@@ -47,6 +55,8 @@ export const EditEvent = Event({
   Step: { verb: StepVerb },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
+  /** The write was out WRITE_TIMEOUT_S with no answer. */
+  TimedOut: {},
 });
 export type EditEvent = typeof EditEvent.Type;
 
@@ -85,6 +95,20 @@ const letGo = (scene: string, note: string) =>
 /** Send `write`, holding `#T` for the reload it causes. */
 const writing = (write: Write) =>
   Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write })));
+
+/** A write that did not land: let `#T` go, put the preview back, and say `message`. */
+const refuse = (write: Write, message: string) =>
+  Stage.use((stage) =>
+    stage.settle.pipe(
+      Effect.andThen(
+        Option.match(sceneOfWrite(write), {
+          onNone: () => Effect.void,
+          onSome: stage.unpreview,
+        }),
+      ),
+      Effect.as(EditState.Refused({ message })),
+    ),
+  );
 
 export const editMachine = Machine.make({
   state: EditState,
@@ -142,17 +166,15 @@ export const editMachine = Machine.make({
       findings: event.result.findings,
     }),
   )
-  .on(EditState.Writing, EditEvent.Failed, ({ state, event }) =>
-    Stage.use((stage) =>
-      stage.settle.pipe(
-        Effect.andThen(
-          Option.match(sceneOfWrite(state.write), {
-            onNone: () => Effect.void,
-            onSome: stage.unpreview,
-          }),
-        ),
-        Effect.as(EditState.Refused({ message: event.message })),
-      ),
+  .on(EditState.Writing, EditEvent.Failed, ({ state, event }) => refuse(state.write, event.message))
+  .timeout(EditState.Writing, {
+    duration: Duration.seconds(WRITE_TIMEOUT_S),
+    event: EditEvent.TimedOut,
+  })
+  .on(EditState.Writing, EditEvent.TimedOut, ({ state }) =>
+    refuse(
+      state.write,
+      `the write had no answer in ${WRITE_TIMEOUT_S} s; see whether it changed the scene file (git diff) before writing again`,
     ),
   );
 

@@ -409,7 +409,9 @@ disabled. Undo write reverts the last write. Every write, a drag's, a
 field's, a knob's, Undo's and Redo's, goes through one effect-machine
 (`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Written`,
 `Refused`), so a press or another write while one is out is not taken and
-two writes never race for a file; Escape during a drag puts the cue back.
+two writes never race for a file; a write with no answer in 20 s
+(`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
+the editor; Escape during a drag puts the cue back.
 The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
 patch a drag makes, why a cue cannot be dragged) are shared by the machine
 and its tests, which run every transition with no DOM. The knobs' rows
