@@ -104,8 +104,8 @@ defaults to 70% of its entrance (at least 0.5 s) and `tail` to 0.1 s, so the
 seam between two voices is about 0.6 s; set a longer `tail` only for a pause
 the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
 seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
-with neither scene declaring it (no `tail` or `min` before it, no `lead` after
-it): a long entrance stretching the default lead. Put
+with neither scene declaring it (no `tail` before it, and no `min` that
+stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding

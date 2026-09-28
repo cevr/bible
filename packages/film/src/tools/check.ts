@@ -7,7 +7,7 @@
 
 import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, sceneOf } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type {
@@ -86,10 +86,10 @@ export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> 
 
 /**
  * The longest pause between two voices a film makes without saying so: the
- * default lead (0.5 s) plus the default tail (0.1 s), the film skill's CRAFT
+ * layout's shortest lead plus its default tail (0.6 s), the film skill's CRAFT
  * rule 9.
  */
-export const MAX_SEAM = 0.6;
+export const MAX_SEAM = MIN_LEAD + DEFAULT_TAIL;
 
 /** The pause from `p`'s last word to `q`'s first, when both speak and `q` follows `p`. */
 export const seamAfter = (p: Placed, q: Placed): Option.Option<number> => {
@@ -97,9 +97,17 @@ export const seamAfter = (p: Placed, q: Placed): Option.Option<number> => {
   return Option.some(p.dur - (p.speechStart + p.voice.duration) + q.speechStart);
 };
 
-/** Whether a scene declares the time after its words: a `tail`, or a `min` that can stretch it. */
+/**
+ * Whether a scene declares the time after its words: a `tail`, or a `min`
+ * that stretches the scene past its words and default tail. A `min` its words
+ * outrun declares nothing.
+ */
 const declaresEnd = (p: Placed) =>
-  Predicate.isNotUndefined(p.spec.tail) || Predicate.isNotUndefined(p.spec.min);
+  Predicate.isNotUndefined(p.spec.tail) ||
+  Option.exists(
+    Option.fromUndefinedOr(p.spec.min),
+    (min) => min > p.speechStart + p.voice.duration + DEFAULT_TAIL + 1e-9,
+  );
 
 /**
  * Seams over `MAX_SEAM` between two speaking scenes, where neither scene

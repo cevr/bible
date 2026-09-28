@@ -1,7 +1,7 @@
 import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
-import { layout } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
@@ -13,6 +13,8 @@ import {
   lateCues,
   layoutSamples,
   longSeams,
+  MAX_SEAM,
+  seamAfter,
   mergeFindings,
   musicFindings,
   overlapArea,
@@ -672,6 +674,21 @@ describe('longSeams', () => {
       longSeams(layout([said('a', { tail: 1 }), said('b', { enter: fade })], noTakes)),
     ).toEqual([]);
     expect(longSeams(layout([said('a'), said('b')], noTakes))).toEqual([]);
+  });
+
+  test('a min the words outrun declares nothing; a min that stretches the scene does', () => {
+    const fade = { kind: 'fade', dur: 1.2 } as const;
+    const short = longSeams(layout([said('a', { min: 1 }), said('b', { enter: fade })], noTakes));
+    expect(short.map((f) => [f.from, f.to])).toEqual([['a', 'b']]);
+    expect(
+      longSeams(layout([said('a', { min: 30 }), said('b', { enter: fade })], noTakes)),
+    ).toEqual([]);
+  });
+
+  test('the default seam is the layout default lead plus its default tail', () => {
+    expect(MAX_SEAM).toBe(MIN_LEAD + DEFAULT_TAIL);
+    const [a, b] = layout([said('a'), said('b')], noTakes);
+    expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM);
   });
 
   test('a scene with no words between two voices is a pause of its own', () => {
