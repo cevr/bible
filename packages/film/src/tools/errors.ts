@@ -581,6 +581,15 @@ export class UndoUnavailable extends Schema.TaggedError<UndoUnavailable>()('Undo
   }
 }
 
+/** The lab's Redo has no undone write to write again, or its file changed since the undo. */
+export class RedoUnavailable extends Schema.TaggedError<RedoUnavailable>()('RedoUnavailable', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `nothing to redo: ${this.reason}`;
+  }
+}
+
 /** `film check --static`, run for the lab after a write, did not run to a report. */
 export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
   'StaticCheckFailed',
