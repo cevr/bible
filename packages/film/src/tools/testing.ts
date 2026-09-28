@@ -246,6 +246,8 @@ export interface RenderLedger {
   readonly joins: Array<JoinedFilm>;
   /** The frames of every track encoded to AAC. */
   readonly aac: Array<number>;
+  /** AAC encodes cut off before they ended. */
+  readonly aacInterrupted: { count: number };
 }
 
 export const emptyLedger = (): RenderLedger => ({
@@ -258,6 +260,7 @@ export const emptyLedger = (): RenderLedger => ({
   contacts: [],
   joins: [],
   aac: [],
+  aacInterrupted: { count: 0 },
 });
 
 export const testExportInfo: ExportInfo = {
@@ -285,6 +288,8 @@ export interface FakeRenderHost {
   readonly master?: number;
   /** What a page's encoder check finds (ready by default). */
   readonly encoder?: Effect.Effect<void, EncoderMissing>;
+  /** What an AAC encode does once it is recorded (nothing by default). */
+  readonly aac?: Effect.Effect<void, MediaFailed>;
   /** What a join does once it is recorded (nothing by default). */
   readonly join?: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
   /** How many milliseconds frame `i` takes to draw, as `time` reports it (default 10). */
@@ -417,10 +422,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
       writeWav: () => Effect.void,
       encodeAac: (pcm) =>
-        Effect.sync(() => {
-          ledger.aac.push(pcm.frames);
-          return { packets: [], meta: {} };
-        }),
+        Effect.sync(() => void ledger.aac.push(pcm.frames)).pipe(
+          Effect.andThen(Option.getOrElse(Option.fromNullishOr(host.aac), () => Effect.void)),
+          Effect.onInterrupt(() => Effect.sync(() => void (ledger.aacInterrupted.count += 1))),
+          Effect.as({ packets: [], meta: {} }),
+        ),
       join: (film) =>
         Effect.sync(() => void ledger.joins.push(film)).pipe(
           Effect.andThen(

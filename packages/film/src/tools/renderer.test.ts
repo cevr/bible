@@ -293,6 +293,39 @@ describe('Renderer', () => {
       }),
     );
 
+    it.live('a page failure stops the track encode with the render', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({
+          info,
+          aac: Effect.sleep('10 seconds'),
+          frame: (i) =>
+            Effect.when(
+              Effect.fail(PageError.make({ reason: 'boom' })),
+              Effect.sync(() => i === 100),
+            ),
+        });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('PageError'));
+        expect(ledger.aacInterrupted.count).toBe(1);
+      }),
+    );
+
+    it.live('a failed track encode fails the render before every frame is drawn', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({
+          info,
+          aac: Effect.fail(MediaFailed.make({ op: 'encode', file: 'the track', reason: 'no' })),
+          frame: () => Effect.sleep('5 millis'),
+        });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('MediaFailed'));
+        expect(ledger.frames.length).toBeLessThan(600);
+        expectAllClosed(ledger);
+      }),
+    );
+
     it.live('a share copy joins the same track: it is encoded once', () =>
       Effect.gen(function* () {
         const { ledger, files, render } = setup({ info });

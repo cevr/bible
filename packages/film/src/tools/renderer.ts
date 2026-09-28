@@ -10,7 +10,6 @@ import {
   Array as Arr,
   Clock,
   Context,
-  Fiber,
   Effect,
   FileSystem,
   Layer,
@@ -127,20 +126,18 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         // Before a frame is drawn: a browser that cannot encode the film fails here.
         yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
 
-        // The track is cut and encoded once, beside the pages; both joins copy its packets.
-        const aac = yield* Effect.forkChild(
-          Option.match(audio, {
-            onNone: () => Effect.succeedNone,
-            onSome: (cut) =>
-              media.decode(cut.file).pipe(
-                Effect.map((pcm) =>
-                  slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
-                ),
-                Effect.flatMap(media.encodeAac),
-                Effect.map(Option.some),
+        // The track, cut and encoded once beside the pages; both joins copy its packets.
+        const aac = Option.match(audio, {
+          onNone: () => Effect.succeedNone,
+          onSome: (cut) =>
+            media.decode(cut.file).pipe(
+              Effect.map((pcm) =>
+                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
               ),
-          }),
-        );
+              Effect.flatMap(media.encodeAac),
+              Effect.map(Option.some),
+            ),
+        });
 
         const segDir = path.join(dir, 'segments');
         const shareDir = path.join(dir, 'share');
@@ -190,8 +187,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
           );
 
-        const encoded = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
-        const track = yield* Fiber.join(aac);
+        // One structured run: the first failure, a page's or the track's, stops the other.
+        const [encoded, track] = yield* Effect.all(
+          [Effect.forEach(chunks, encode, { concurrency: job.workers }), aac],
+          { concurrency: 'unbounded' },
+        );
         yield* media.join({
           out: target,
           segments: encoded.map((chunk) => chunk.master),
