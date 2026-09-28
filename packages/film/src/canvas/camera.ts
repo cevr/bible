@@ -335,6 +335,9 @@ export interface Depth {
   drift?: number;
 }
 
+/** The drifted camera of the multiplane shot drawing now, rewritten by each (a plane may hold a shot of its own). */
+const planing: Camera = { x: 0, y: 0 };
+
 /** How much of a plane at `z` shows through the haze in front of it. */
 const clearance = (z: number, thickness: number) => Math.exp(-thickness * Math.max(0, z - 1));
 
@@ -353,21 +356,25 @@ export const multiplane = (
   planes: ReadonlyArray<Plane>,
   depth: Depth = {},
 ) => {
-  // The shot as it breathes now: its own camera, since a plane may hold a shot of its own.
-  const cam = drifted(ctx, { x: 0, y: 0 }, framed, depth.drift ?? 1);
+  // The shot as it breathes now, in the module's scratch camera, read out
+  // before any plane draws: a plane may hold a shot of its own, which rewrites it.
+  const cam = drifted(ctx, planing, framed, depth.drift ?? 1);
+  const camX = cam.x;
+  const camY = cam.y;
+  const zoom = cam.zoom ?? 1;
+  const rot = cam.rot ?? 0;
   const [rx, ry] = depth.rest ?? [w / 2, h / 2];
   const thickness = depth.thickness ?? 0;
-  const zoom = cam.zoom ?? 1;
   const ordered = [...planes].sort((a, b) => b.z - a.z);
   // The shot, as a listener hears it: the focal plane's camera, once.
   tell(ctx, cam, framed, w, h);
   ordered.forEach((plane, i) => {
     const z = Math.max(plane.z, 1e-3);
     const view: Camera = {
-      x: rx + (cam.x - rx) / z,
-      y: ry + (cam.y - ry) / z,
+      x: rx + (camX - rx) / z,
+      y: ry + (camY - ry) / z,
       zoom: zoom ** (1 / z),
-      rot: cam.rot ?? 0,
+      rot,
     };
     const soft = (depth.blur ?? 0) * Math.abs(z - 1);
     ctx.save();

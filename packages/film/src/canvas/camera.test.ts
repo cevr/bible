@@ -231,6 +231,28 @@ const shoot = (
 };
 
 describe('multiplane', () => {
+  test('a shot nested in a plane leaves the planes after it framed by the outer shot', () => {
+    const p: readonly [number, number] = [1000, 500];
+    const alone = shoot(recorder(), { x: 1160, y: 540, zoom: 1.5 }, { far: 2, focal: 1 }, p).seen;
+    const r = recorder();
+    const seen = new Map<string, readonly [number, number]>();
+    const inner: Plane = { z: 1, draw: () => undefined };
+    withDom(() =>
+      multiplane(r.ctx, { x: 1160, y: 540, zoom: 1.5 }, 1920, 1080, [
+        {
+          z: 2,
+          draw: () => {
+            multiplane(r.ctx, { x: 200, y: 900, zoom: 3 }, 1920, 1080, [inner]);
+            seen.set('far', applyAffine(r.now(), p));
+          },
+        },
+        { z: 1, draw: () => seen.set('focal', applyAffine(r.now(), p)) },
+      ]),
+    );
+    expect(seen.get('far')).toEqual(alone.get('far'));
+    expect(seen.get('focal')).toEqual(alone.get('focal'));
+  });
+
   test('draws the farthest plane first', () => {
     const { order } = shoot(
       recorder(),
