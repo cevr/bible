@@ -28,7 +28,7 @@ export const shorts = [
       // Fig leaves, trying harder, "How is that going?", the rags, the law as a
       // mirror: "you cannot wash your face with a mirror".
       { scene: 'mirror', from: { mark: 'fig' }, to: { scene: 'speechEnd' } },
-      // The turn's answer: "What does faith do? … the hand that takes hold of Christ."
+      // The turn's answer: "So what does faith do? … the hand that takes hold of Christ."
       { scene: 'look', from: { scene: 'speech' }, to: { mark: 'desert' } },
     ],
   },

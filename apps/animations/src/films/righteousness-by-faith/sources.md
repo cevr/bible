@@ -119,11 +119,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > And the earth was without form, and void; and darkness was upon the face of the deep. … And God said, Let there be light: and there was light.
 
-- **Psalm 33:9** (KJV). Quoted.
+- **Psalm 33:9** (KJV). Quoted, its writer named: “The psalm says”.
 
   > For he spake, and it was done; he commanded, and it stood fast.
 
-- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). “God spoke the word only, and the word itself produced the thing.”
+- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). “God spoke the word only, and the word itself produced the thing.” The answer “From God’s word” is LOF_ATJ 22.9, quoted under `declared`.
 
   > He spoke the word only, and it was so. The word spoken, itself produced the thing.
 
@@ -141,11 +141,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.
 
-- **Ephesians 2:8** (KJV). “And even that faith is God’s gift”.
+- **Ephesians 2:8** (KJV). “Even that faith is God’s gift”.
 
   > For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:
 
-- **ST May 19, 1898, par. 14** · Ellen G. White, _Signs of the Times, May 19, 1898 (reprinted 6BC 1080.9)_ (1898). “And even that faith is God’s gift, the first of three.”
+- **ST May 19, 1898, par. 14** · Ellen G. White, _Signs of the Times, May 19, 1898 (reprinted 6BC 1080.9)_ (1898). “Even that faith is God’s gift, the first of three.”
 
   > Faith earns nothing for us; it is the gift of God, which we may receive and cherish by making Christ our personal Saviour.
 
@@ -185,7 +185,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > What constitutes the faith of Jesus that belongs to the third angel’s message? Jesus becoming our sin-bearer that He might become our sin-pardoning Saviour. He was treated as we deserve to be treated. He came to our world and took our sins that we might take His righteousness.
 
-- **1 Peter 2:24** (KJV). The cross.
+- **1 Peter 2:24** (KJV). “He bore them on the cross.”
 
   > Who his own self bare our sins in his own body on the tree, that we, being dead to sins, should live unto righteousness: by whose stripes ye were healed.
 
@@ -193,7 +193,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > We have such an high priest, who is set on the right hand of the throne of the Majesty in the heavens; a minister of the sanctuary, and of the true tabernacle, which the Lord pitched, and not man.
 
-- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). “Christ is pleading for his people in the courts of heaven.”
+- **10LtMs, Lt 57, 1895, par. 44** · Ellen G. White, _Letter 57, 1895 (printed as TM 92.1, where “preach” reads “teach”)_ (1895). “Right now, she wrote, he pleads for us there”: “there” is heaven, named in the sentence before.
 
   > Christ is pleading for the church in the heavenly courts above … that the world should no longer say, Seventh-day Adventists talk the law, the law, but do not preach or believe Christ.
 
@@ -225,11 +225,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > the command is given, “Take away the filthy garments” from them, and the encouraging words are spoken, “Behold, I have caused thine iniquity to pass from thee, and I will clothe thee with change of raiment.”
 
-- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: “A robe from heaven’s loom, Ellen White said, with not one thread of our own.”
+- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: “A robe from heaven’s loom, Ellen White said, not one thread of it ours.”
 
   > This robe, woven in the loom of heaven, has in it not one thread of human devising.
 
-- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “Christ does not give a cloak for sin… He takes it away.” (The corpus prints the page number 66 inside “And so we find”; the ellipsis marks that omission.)
+- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “Christ gives no cloak for sin… He takes it away.” (The corpus prints the page number 66 inside “And so we find”; the ellipsis marks that omission.)
 
   > Notice in the above account that the taking away of the filthy garments is the same as causing the iniquity to pass from the person. … when Christ covers us with the robe of His own righteousness, He does not furnish a cloak for sin but takes the sin away.
 
@@ -241,7 +241,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > It is true that God will by no means clear the guilty. He could not do that and still be a just God. But He does something which is far better. He removes the guilt, so that the one formerly guilty does not need to be cleared—he is justified and counted as though he never had sinned.
 
-- **MB 114.1** · Ellen G. White, _Thoughts From the Mount of Blessing_ (1896). “God’s forgiveness is more than a judge’s ruling, she wrote” paraphrases the first sentence; the second is quoted.
+- **MB 114.1** · Ellen G. White, _Thoughts From the Mount of Blessing_ (1896). “More than a ruling, she wrote” paraphrases the first sentence (“not merely a judicial act”); the second is quoted.
 
   > God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart.
 
@@ -265,11 +265,11 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > … I will put my laws into their mind, and write them in their hearts: and I will be to them a God, and they shall be to me a people:
 
-- **John 1:12** (KJV). “the power actually to become them”.
+- **John 1:12** (KJV). “the power to become them”.
 
   > But as many as received him, to them gave he power to become the sons of God, even to them that believe on his name:
 
-- **PTUK May 9, 1895, page 290.12** · E. J. Waggoner, _“Our Inheritance”, The Present Truth 11, 19 (byline E. J. Waggoner)_ (1895). “Not just the right to be called God’s children, Waggoner said, but the power actually to become them.”
+- **PTUK May 9, 1895, page 290.12** · E. J. Waggoner, _“Our Inheritance”, The Present Truth 11, 19 (byline E. J. Waggoner)_ (1895). “Not just the right to be called God’s children, Waggoner said, but the power to become them.” (His “actually” is not spoken.)
 
   > Those who believe on the name of Christ have the privilege to become the sons of God. It is not simply the right to be called the sons, but the power actually to become sons.
 
@@ -291,7 +291,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
 ## `daily`
 
-- **Revelation 21:27** (KJV). “God will not take a sinner at heart into his kingdom.”
+- **Revelation 21:27** (KJV). “No sinner at heart enters his kingdom.”
 
   > And there shall in no wise enter into it any thing that defileth, neither whatsoever worketh abomination, or maketh a lie: but they which are written in the Lamb’s book of life.
 
@@ -303,7 +303,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > The sinner could not be happy in God’s presence; he would shrink from the companionship of holy beings. Could he be permitted to enter heaven, it would have no joy for him. … It is no arbitrary decree on the part of God that excludes the wicked from heaven; they are shut out by their own unfitness for its companionship.
 
-- **RH November 4, 1890, par. 4** · Ellen G. White, _Review and Herald, November 4, 1890 (reprinted 1SM 366.1, FW 100.1)_ (1890). Supporting “So how do I stay changed?”
+- **RH November 4, 1890, par. 4** · Ellen G. White, _Review and Herald, November 4, 1890 (reprinted 1SM 366.1, FW 100.1)_ (1890). Supporting “So how do we stay changed?”
 
   > God requires the entire surrender of the heart, before justification can take place; and in order for man to retain justification, there must be continual obedience, through active, living faith that works by love and purifies the soul.
 
@@ -311,7 +311,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > And if it seem evil unto you to serve the LORD, choose you this day whom ye will serve; whether the gods which your fathers served that were on the other side of the flood, or the gods of the Amorites, in whose land ye dwell: but as for me and my house, we will serve the LORD.
 
-- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). “We cannot change our own hearts, Ellen White said, but we can choose to give God our will.”
+- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). “We cannot change our hearts, Ellen White said, but we can choose to give God our will.”
 
   > You cannot change your heart, you cannot of yourself give to God its affections; but you can choose to serve Him. You can give Him your will; He will then work in you to will and to do according to His good pleasure.
 
@@ -349,7 +349,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Repent ye therefore, and be converted, that your sins may be blotted out, when the times of refreshing shall come from the presence of the Lord;
 
-- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “given with a loud voice”.
+- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “A message for a loud voice, Ellen White said” (“to be proclaimed with a loud voice”).
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
 

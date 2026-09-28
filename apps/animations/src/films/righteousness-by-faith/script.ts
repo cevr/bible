@@ -13,11 +13,12 @@
 // faith (`spoke` to `centurion`), forgiveness (`exchange` to `robe`) and power
 // (`look` to `within`), and sanctification is the daily choice to keep
 // receiving them (`daily`). The hinge is `declared`: justified means made
-// righteous, not merely counted so.
+// righteous, not merely counted so. `robe` (at about 60 %) is the deepest turn
+// and callback: "A cover-up, just a nicer one? No." answers the cold open.
 //
 // Motifs (CRAFT rule 4):
 // - The verdict. `cold` opens on a judge calling a guilty person righteous
-//   ("That's a cover-up."), and the gold stamp drains hollow; `declared` fills
+//   ("That is a cover-up."), and the gold stamp drains hollow; `declared` fills
 //   it ("not simply counted righteous, but actually made righteous"); `robe`
 //   pays it off (not a cloak, not merely a judicial act: reclaiming from sin);
 //   `name` returns to the same courtroom, where the stamp lands solid and the
@@ -56,7 +57,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'message',
-    say: "{year}In 1888, at a church conference in Minneapolis, {two}two preachers, Ellet Waggoner and Alonzo Jones, took that question head on. {rep}Their church had a reputation: Adventists talk the law, the law, but do not preach Christ. {ew}Ellen White said God sent {precious}“a most precious message” through those two. {what}So what was the message? {answer}It was {angel}the third angel's message: {banner}the commandments of God, and the faith of Jesus. {hand}The law and the gospel, hand in hand. {three}In short, God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
+    say: "{year}In Minneapolis in 1888, {two}two preachers, Ellet Waggoner and Alonzo Jones, took that question head on. {rep}Their church had a reputation: Adventists talk the law, the law, but do not preach Christ. {ew}Ellen White said God sent {precious}“a most precious message” through those two. {what}So what was the message? {answer}It was {angel}the third angel's message: {banner}the commandments of God, and the faith of Jesus. {hand}The law and the gospel, hand in hand. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
     cite: [
       'Ellen G. White, Letter 57, 1895 (TM 91–92)',
       'Ellen G. White, Ms 24, 1888',
@@ -76,14 +77,14 @@ export const script: ReadonlyArray<Beat> = [
     // each receive faith, then forgiveness, then power. The owner's handbook
     // study reads them as the court's gate, altar and laver.
     id: 'roof',
-    say: '{see}So what do these gifts look like in a life? {roof}Four friends let a paralysed man down through a roof. {saw}Jesus saw their faith. {son}Son, he said, your sins are forgiven. {arise}Arise, take up your bed, and go home. {went}And he did. {woman}Later, a woman taken in adultery stood alone before him. {none}Has no man condemned you? he asked. {lord}No man, Lord, she said. {told}And Jesus said: “Neither do I condemn thee: go, and sin no more.” {order}Faith, then forgiveness, then power.',
+    say: '{see}What do these gifts look like? {roof}Four friends lower a paralysed man through a roof. {saw}Jesus saw their faith. {son}Son, he said, your sins are forgiven. {arise}Arise, take up your bed, and go home. {went}And he did. {woman}A woman taken in adultery stood alone before him. {none}Has no man condemned you? he asked. {lord}No man, Lord. {told}And Jesus said: “Neither do I condemn thee: go, and sin no more.” {order}Notice the order: faith, then forgiveness, then power.',
     cite: ['Mark 2:3–12', 'John 8:3–11'],
     picture:
       "STORY: the question on `see` pushes through the faith icon of `message`'s row into the scene. A cardboard house in Capernaum, packed with grey figures (varied heights and headcloths, never cloned), under a peach sky; 3–5 planes, the crowd near, the house wall far. Screen direction holds the film's: the one receiving stands screen-left, Jesus screen-right. On `roof` four friends on the flat roof lift tiles away and lower a man on his bed on ropes into the room. On `saw` Jesus (white robe, gold sash) looks up at the four faces in the hole, and the gold word-bubble, faith, lights in a small row of the three icons along the band. On `son` close on the man's face as the scarlet specks lift off him, and the robe icon lights. On `arise` he stands, rolls up his bed and carries it out through the crowd (`went`); the heart icon lights. Cut on `woman` to a temple court in the same light: a woman in a scarlet-stained garment stands alone, stones dropped in the dust around her, Jesus stooped beside words written in the dust. On `lord` her face at a third of the frame, looking up: the faith icon lights again. On `told` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); `Neither` lights the robe and `go` lights the heart (word pins), and on `go` cut back wide as she turns and walks out of frame, screen-left, upright. On `order` pull back to IDEA, the three icons in the `message` layout, lit left to right.",
   },
   {
     id: 'word',
-    say: "Righteousness. {church}A word most of us only hear in church. {fair}But it is simple. {right}It just means right doing. {whose}The question is, right by whose measure? {psalm}The psalmist answers, {all}“All thy commandments are righteousness.” {char}Waggoner called God's law a transcript of his character, {circle}a circle as big as the universe.",
+    say: "Righteousness. {church}A word most of us only hear in church. {fair}But it is simple. {right}It just means right doing. {whose}Right by whose measure? {psalm}The psalmist answers, {all}“All thy commandments are righteousness.” {char}Waggoner called God's law a transcript of his character, {circle}a circle as big as the universe.",
     cite: [
       "Ellen G. White, Christ's Object Lessons, 312",
       'Psalm 119:172',
@@ -94,7 +95,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'mirror',
-    say: "{short}And measured by that circle, every one of us comes up short. {fig}So we do what Adam and Eve did. We sew fig leaves. {harder}We try harder. {promise}We make promises. {going}How is that going? {rags}Isaiah's verdict: “All our righteousnesses are as filthy rags.” {mirror}And the law cannot fix that. It is a mirror. {stain}It shows the stain perfectly, {wash}but you cannot wash your face with a mirror.",
+    say: "{short}How do we measure up? Every one of us comes up short. {fig}So we do what Adam and Eve did. We sew fig leaves. {harder}We try harder. {promise}We make promises. {going}How is that going? {rags}Isaiah's verdict: “All our righteousnesses are as filthy rags.” {mirror}And the law? It is a mirror. {stain}It shows every stain, {wash}but you cannot wash your face with a mirror.",
     cite: [
       'Romans 3:23',
       "Ellen G. White, Christ's Object Lessons, 311",
@@ -107,7 +108,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'spoke',
-    say: 'So if righteousness cannot come from us, {where}where does it come from? {back}Jones went back to the beginning for that. {dark}In Genesis, the world starts dark and empty. {then}Then God speaks. {spake}“He spake, and it was done.” {only}Jones noticed something kind of amazing: God spoke the word only, {itself}and the word itself produced the thing.',
+    say: "So if not from us, {where}where does righteousness come from? From God's word. {back}Jones went back to the beginning. {dark}The world starts dark and empty. {then}The psalm says, {spake}“He spake, and it was done.” {only}Jones noticed something amazing: God spoke the word only, {itself}and the word itself produced the thing.",
     cite: ['Genesis 1:2–3', 'Psalm 33:9', 'A. T. Jones, Lessons on Faith, 16'],
     picture:
       'STORY: the dip to black on `dark`: an empty dark cardboard world, no sky. On `then` a single gold word of light arcs across the dark and bursts into a sun; the sky floods dawn to teal, and land and water tear in beneath it, flat cardboard shapes rising into place (`spake`). On `only` the word of light hangs in the air and a tree grows up under it, as if drawn out of the word (`itself`).',
@@ -117,7 +118,7 @@ export const script: ReadonlyArray<Beat> = [
     // A pause after the key quotation (CRAFT rule 9) falls in the take, before
     // `gift`; the tail holds the turn to the first gift.
     tail: 1,
-    say: "{same}He saw the same thing in a Roman soldier. {servant}The soldier's servant was dying, {offer}and Jesus offered to come to his house. {only}The soldier said, you do not need to come. Just speak the word. {healed}And his servant was healed. {room}So he did not need Jesus in the room. {word}Just his word. {exactly}That was enough. {def}And from that story Jones defined faith: {faith}“Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.” {gift}And even that faith is God's gift, the first of three.",
+    say: "{same}He saw it again in a Roman soldier, {servant}whose servant was dying. {offer}Jesus offered to come. {only}You need not come, said the soldier. Just speak the word. {healed}The servant was healed, {room}with Jesus nowhere in the room. {exactly}His word was enough. {def}From that, Jones defined faith: {faith}“Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.” {gift}Even that faith is God's gift, the first of three.",
     cite: [
       'Matthew 8:5–13',
       'A. T. Jones, Lessons on Faith, 14–15',
@@ -129,7 +130,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'declared',
-    say: '{now}Now bring that back to our problem. {paul}Paul says we are {justified}justified. {still}Justified? But we are still guilty. {cover}Is that the cover-up again? {would}It would be, if God only said the words. {subst}But Waggoner saw it: {w}“People are not simply counted righteous, but actually made righteous.” {voice}The voice that said, let there be light, {speaks}speaks righteousness into a life {made}where there was none before.',
+    say: '{now}Back to our problem. {paul}Paul says we are {justified}justified. {still}Justified? But we are still guilty. {cover}Is that the cover-up again? {would}It would be, if God only said the words. {subst}But Waggoner saw it: {w}“People are not simply counted righteous, but actually made righteous.” {voice}The voice that said, let there be light, {speaks}speaks righteousness into a life {made}where there was none before.',
     cite: [
       'Romans 3:24',
       'E. J. Waggoner, The Present Truth, October 18, 1894, 659',
@@ -141,7 +142,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'exchange',
-    say: 'But how can God make guilty people righteous {fair}and still be fair? {right}That is the real question. {notes}Ellen White answered it in her account of that 1888 conference: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}Our sins went onto him at the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {plead}And {now}right now, she wrote, Christ is pleading for his people in the courts of heaven.',
+    say: "But how can God make the guilty righteous {fair}and still be fair? {right}That is the question. {notes}Ellen White's answer, in 1888: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}He bore them on the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {now}Right now, she wrote, he pleads for us there.",
     cite: [
       'Ellen G. White, Ms 24, 1888',
       '1 Peter 2:24',
@@ -149,11 +150,11 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Letter 57, 1895 (TM 92)',
     ],
     picture:
-      "STORY: sunset over a cardboard hill. Jesus walks up to the grey figure; close on both faces (`treated`). The scarlet stain lifts off the figure's garment as a scarlet cloth and goes onto Jesus' shoulders; he carries it up the hill (`took`). On `cross` the film's one black moment: the hill, the cross and the figures go to silhouette against the last red of the sky. On `rose` dawn relights the world: the empty tomb, the rolled stone, the white grave cloths folded. On `up` the camera tilts up with him into a teal sky, to a gold sanctuary in heaven; he stands there as high priest, robe and breastplate, hands raised in plea (`plead`). Pull back to the three icons: the robe lights.",
+      "STORY: sunset over a cardboard hill. Jesus walks up to the grey figure; close on both faces (`treated`). The scarlet stain lifts off the figure's garment as a scarlet cloth and goes onto Jesus' shoulders; he carries it up the hill (`took`). On `cross` the film's one black moment: the hill, the cross and the figures go to silhouette against the last red of the sky. On `rose` dawn relights the world: the empty tomb, the rolled stone, the white grave cloths folded. On `up` the camera tilts up with him into a teal sky, to a gold sanctuary in heaven; he stands there as high priest, robe and breastplate, hands raised in plea (`now`). Pull back to the three icons: the robe lights.",
   },
   {
     id: 'accuser',
-    say: "{zech}That is the very scene the prophet Zechariah saw. {joshua}Joshua the high priest stands before the Angel of the Lord {filthy}in filthy clothes, {satan}and Satan stands at his right hand to accuse him. {room}So the accuser is right there in the room. {points}And he is not wrong about the clothes. {ew}Ellen White said this vision applies to God's people {day}“in the closing up of the great day of atonement.” {angel}But the Angel, Christ himself, {silence}silences the accuser.",
+    say: "{zech}The prophet Zechariah saw that very court. {joshua}Joshua the high priest, {filthy}in filthy clothes, stands before the Angel, {satan}and Satan stands at his right hand to accuse him. {room}The accuser is right there. {points}He is not wrong about the clothes. {ew}Ellen White applied it to God's people {day}“in the closing up of the great day of atonement.” {angel}But the Angel, Christ himself, {silence}silences the accuser.",
     cite: ['Zechariah 3:1–2', 'Ellen G. White, Testimonies for the Church, vol. 5, 468–472'],
     picture:
       "STORY: the heavenly court in the same gold sanctuary, laid out like the cold open's courtroom (same positions, bench at centre right). Joshua, a grey figure in a priest's turban, stands head bowed in scarlet-stained clothes (`filthy`), face at a third of the frame. On `satan` a tall angular shadow-grey figure steps up at his right and points at the stains; each stain flares as he points (`points`). The Angel, Christ in white and gold, stands before them at the bench. On `day` the court's high window shows a low gold sun: a great day closing. On `angel` Christ raises a hand; on `silence` the accuser's pointing arm drops and he shrinks back into shadow.",
@@ -163,7 +164,7 @@ export const script: ReadonlyArray<Beat> = [
     // The pull back to the three icons, forgiveness lit, comes after the
     // quotation's last word; the tail holds it.
     tail: 1.4,
-    say: "{take}Then he says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you in new clothes. {loom}A robe from heaven's loom, Ellen White said, {woven}with not one thread of our own. {nicer}So is it a cover-up? {just}Just a nicer one? {no}No. {cloak}Christ does not give a cloak for sin, Waggoner said. {away}He takes it away. {judicial}God's forgiveness is more than a judge's ruling, she wrote. {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
+    say: "{take}He says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you anew. {loom}A robe from heaven's loom, Ellen White said, {woven}not one thread of it ours. {nicer}A cover-up, {just}just a nicer one? {no}No. {cloak}Christ gives no cloak for sin, Waggoner said. {away}He takes it away. {judicial}More than a ruling, she wrote: {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
     cite: [
       'Zechariah 3:4',
       "Ellen G. White, Christ's Object Lessons, 311",
@@ -175,7 +176,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'look',
-    say: 'Then what is our part? {faith}What does faith do? {saviour}Faith is not our Saviour, Ellen White said. It earns nothing. {hand}It is the hand that takes hold of Christ. {desert}Remember Israel in the desert, bitten by snakes? {pole}Whoever looked up at the serpent on the pole lived. {harder}We still try to make it harder than that. {climb}Her counsel: “Do not climb the pole, but only look. I present Christ to you. Look and live.”',
+    say: '{faith}So what does faith do? {saviour}Faith is not our Saviour, Ellen White said. It earns nothing. {hand}It is the hand that takes hold of Christ. {desert}Remember Israel, bitten by snakes? {pole}Whoever looked at the serpent on the pole lived. {harder}We still make it harder. {climb}She put it so simply: “Do not climb the pole, but only look. I present Christ to you. Look and live.”',
     cite: [
       'Ellen G. White, The Desire of Ages, 175',
       'Numbers 21:8–9',
@@ -186,7 +187,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'within',
-    say: "So if it is all a gift, {out}is the law out of the picture? {never}No, it moves in. {write}God writes it on the heart. {power}And that is the third gift: power. {not}Not just the right to be called God's children, Waggoner said, {become}but the power actually to become them. {plain}The church's 1889 statement put it this way: {first}we depend on Christ first to be justified from our past sins, {second}then for grace to obey his law from now on.",
+    say: "{out}So is the law out of the picture? {never}No, it moves in. {write}God writes it on the heart. {power}The third gift: power. {not}Not just the right to be called God's children, Waggoner said, {become}but the power to become them. {plain}The church's 1889 statement: {first}we depend on Christ first to be justified from our past sins, {second}then for grace to obey his law from now on.",
     cite: [
       'Hebrews 8:10',
       'John 1:12',
@@ -199,7 +200,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'daily',
-    say: 'Once God makes us righteous, {done}are we done? {kingdom}Well, God will not take a sinner at heart into his kingdom. {joy}Heaven would be no joy to a heart that still loves sin. {keep}So how do we stay changed? {will}We cannot change our own hearts, Ellen White said, {choose}but we can choose to give God our will. {matter}“This is a daily matter.” {sab}And every seventh day, Waggoner said, the Sabbath is righteousness by faith: {rest}we stop our own works, and rest in his.',
+    say: 'Once made righteous, {done}are we done? {kingdom}No sinner at heart enters his kingdom. {joy}Heaven would be no joy to a heart that still loves sin. {keep}So how do we stay changed? {will}We cannot change our hearts, Ellen White said, {choose}but we can choose to give God our will. {matter}“This is a daily matter.” {sab}And the Sabbath, Waggoner said, is righteousness by faith: {rest}we stop our own works, and rest in his.',
     cite: [
       'Revelation 21:27',
       'Ellen G. White, Steps to Christ, 17',
@@ -215,7 +216,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'rain',
-    say: "And where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain, the outpouring of God's Spirit, {blot}and to the blotting out of sins in the cleansing of the sanctuary. {loud}Ellen White said this message was to be given with a loud voice.",
+    say: "Where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain, the Spirit's outpouring, {blot}and to the blotting out of sins in the cleansing of the sanctuary. {loud}A message for a loud voice, Ellen White said.",
     cite: [
       'A. T. Jones, The Consecrated Way to Christian Perfection, 124',
       'Acts 3:19',
@@ -226,9 +227,10 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'name',
-    // The held pause before the landing's last words.
-    tail: 1.2,
-    say: "So, back to Job's question. {how}How should man be just with God? {not}Not by sewing a better garment. {receive}By receiving one, {heart}and a new heart with it. {taking}By taking God at his word, {every}every day. {verdict}So when God says righteous, it is not a cover-up. {real}God never deals in make-believe. {true}He makes it true. {jer}And Jeremiah gave the coming King a name that says it all.",
+    // The held pause before the landing's last words (CRAFT 7: about 3 s,
+    // with `thesis`'s lead).
+    tail: 2.5,
+    say: "So, back to Job's question. {how}How should man be just with God? {not}Not by sewing a better garment. {receive}By receiving one, {heart}and a new heart with it. {taking}By taking God at his word, {every}every day. {verdict}When God says righteous, it is not a cover-up. {real}God never deals in make-believe. {true}He makes it true. {jer}And Jeremiah gave the coming King his name.",
     cite: [
       'Job 9:2',
       'Ezekiel 36:26',
