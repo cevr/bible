@@ -253,6 +253,32 @@ describe('Renderer', () => {
     }),
   );
 
+  it.live('a contact sheet over a range past the film shows each frame once', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      const sheet = (from: number, to: number) =>
+        render(
+          RenderJob.Contact({
+            tag: 'g',
+            captions: false,
+            workers: 1,
+            every: 1,
+            from: Option.some(from),
+            to: Option.some(to),
+          }),
+        );
+      yield* sheet(-5, 2);
+      yield* sheet(18, 25);
+      expect(ledger.contacts).toEqual([
+        [0, 30],
+        [540, 570],
+      ]);
+      // Wholly past the film: nothing to show, as with a video.
+      const error = yield* Effect.flip(sheet(25, 30));
+      expect(error._tag).toBe('RangeEmpty');
+    }),
+  );
+
   it.live('a look-book is one page composing one sheet, written beside the stills', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();

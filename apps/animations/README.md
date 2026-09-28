@@ -20,7 +20,7 @@ bun run check <film> --static --allow-stale    # the no-browser leg
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # any render, over those scenes
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
@@ -75,7 +75,9 @@ would ignore (`--hash` with `--workers`, `--from` without it) fails with
 
 Render flags that would be ignored fail with `FlagsConflict` before a browser
 opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
-`--scale`, `--out`, `--no-share`; `--contact` takes a range but no video flag;
+`--scale`, `--out`, `--no-share`; `--contact` takes a range (clipped to the
+film like a video's, so no frame repeats; a range wholly outside it is
+`RangeEmpty`) but no video flag;
 `--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`

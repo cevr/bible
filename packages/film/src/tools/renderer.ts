@@ -255,9 +255,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         info: ExportInfo,
         dir: string,
       ) {
-        const from = Option.getOrElse(job.from, () => 0);
-        const to = Option.getOrElse(job.to, () => info.duration);
-        const times = contactTimes(from, to, job.every);
+        // Clipped to the film as a video's range is, so no frame repeats at either end.
+        const { start, end } = frameSpan(info, job.from, job.to);
+        if (end <= start)
+          return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
+        const times = contactTimes(start / info.fps, end / info.fps, job.every);
         const page = yield* Pool.get(pool);
         const sheet = path.join(dir, contactSheetName);
         yield* fs.writeFile(sheet, yield* page.contact(times.map((t) => frameAt(info, t))));
