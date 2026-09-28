@@ -102,6 +102,7 @@ export const rain = drawing({
             at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: 0.42 }, () => {
               ministry(ctx, hand, f.at('bright'));
               piece(ctx, blob(0, 40, 1400, 190, 88), C.cream, hand('cloud'), {
+                role: 'scenery',
                 line: 0,
                 shadow: 0.2,
               });
@@ -146,7 +147,7 @@ export const rain = drawing({
                 blob(p.x, p.y, p.w, p.h, p.seed),
                 mix(i % 2 === 0 ? C.boardLight : C.board, i % 2 === 0 ? C.leaf : C.leafShade, g),
                 hand(`field${i}`),
-                { line: 0, torn: 3, shadow: 0.35 },
+                { role: 'scenery', line: 0, torn: 3, shadow: 0.35 },
               );
             }),
         },
@@ -170,7 +171,7 @@ export const rain = drawing({
                 blob(s.x, s.y + bob, 26 * s.s * pop, 22 * s.s * pop, s.seed),
                 C.scarlet,
                 sub(hand('speck'), i),
-                { line: 0, shadow: 0.15 },
+                { role: 'scenery', line: 0, shadow: 0.15 },
               );
             }),
         },

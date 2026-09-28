@@ -58,6 +58,8 @@ export const cityBack = (ctx: CanvasRenderingContext2D, hand: Hands, up = 0) =>
       C.boardShade,
       hand(`back${i}`),
       {
+        role: 'scenery',
+        kind: 'cut',
         line: 0,
         torn: 3,
         shadow: 0.5,
@@ -74,6 +76,8 @@ export const cityFront = (ctx: CanvasRenderingContext2D, hand: Hands, up = 0) =>
       C.board,
       hand(`front${i}`),
       {
+        role: 'scenery',
+        kind: 'cut',
         line: 0,
         torn: 3,
         shadow: 0.6,
@@ -86,8 +90,12 @@ export const cityFront = (ctx: CanvasRenderingContext2D, hand: Hands, up = 0) =>
       rectShape(win.at[0] - 13, win.at[1] - 17 + up, 26, 34),
       win.lit ? C.glow : C.boardDeep,
       hand(`window${i}`),
-      { line: 0, torn: 1.4, shadow: 0.2 },
+      { role: 'scenery', kind: 'cut', line: 0, torn: 1.4, shadow: 0.2 },
     ),
   );
-  piece(ctx, rectShape(-30, 1040, 1980, 60), C.boardDeep, hand('ground'), { line: 0, torn: 3 });
+  piece(ctx, rectShape(-30, 1040, 1980, 60), C.boardDeep, hand('ground'), {
+    role: 'scenery',
+    line: 0,
+    torn: 3,
+  });
 };

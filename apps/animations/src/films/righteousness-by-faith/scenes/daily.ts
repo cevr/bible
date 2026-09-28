@@ -251,17 +251,26 @@ const gate = (f: DailyFrame) => {
   ctx.save();
   ctx.translate(gx, gy);
   glow(ctx, 0, -300, 620, C.glow, 0.9);
-  piece(ctx, WALL_L, C.boardLight, hand('wallL'), { line: 3 });
-  piece(ctx, WALL_R, C.boardLight, hand('wallR'), { line: 3 });
-  piece(ctx, OPENING, C.cream, hand('opening'), { line: 3, shadow: 0 });
+  piece(ctx, WALL_L, C.boardLight, hand('wallL'), { role: 'scenery', kind: 'cut', line: 3 });
+  piece(ctx, WALL_R, C.boardLight, hand('wallR'), { role: 'scenery', kind: 'cut', line: 3 });
+  piece(ctx, OPENING, C.cream, hand('opening'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 3,
+    shadow: 0,
+  });
   glow(ctx, 0, -260, 260, C.glow, 1);
   for (const px of PILLAR_X) {
     ctx.save();
     ctx.translate(px, 0);
-    piece(ctx, PILLAR, C.gold, sub(hand('pillar'), px), { line: 4 });
+    piece(ctx, PILLAR, C.gold, sub(hand('pillar'), px), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 4,
+    });
     ctx.restore();
   }
-  piece(ctx, ARCH, C.gold, hand('arch'), { line: 4 });
+  piece(ctx, ARCH, C.gold, hand('arch'), { role: 'scenery', kind: 'cut', line: 4 });
   const notes = f.at('notes');
   // The notes going right, toward the one at the gate, jangle when their ears are covered.
   const jangle = f.at('ears') * (1 - f.at('toFig'));
@@ -276,7 +285,12 @@ const gate = (f: DailyFrame) => {
       ctx.globalAlpha *= notes * Math.sin(Math.PI * drift);
       ctx.translate(nx, ny);
       ctx.rotate(0.15 * Math.sin(t * 1.5 + i) + shake * 0.6 * Math.sin(t * 23 + i * 1.7));
-      piece(ctx, NOTE_HEAD, C.gold, sub(hand('note'), i), { line: 2.5, shadow: 0.1 });
+      piece(ctx, NOTE_HEAD, C.gold, sub(hand('note'), i), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 2.5,
+        shadow: 0.1,
+      });
       stroke(ctx, NOTE_STEM, { color: C.ink, width: 3, jitter: 0.3 }, sub(hand('stem'), i));
       if (i % 3 !== 0)
         stroke(ctx, NOTE_FLAG, { color: C.ink, width: 3, jitter: 0.3 }, sub(hand('flag'), i));
@@ -383,11 +397,11 @@ const room = (f: DailyFrame, alpha: number) => {
   const sy = wy + HORIZON - SUN_ARC * day;
   glow(ctx, sx, sy, 200, C.glow, 0.9);
   // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
-  piece(ctx, ellipseShape(sx, sy, 44, 44, 24), C.gold, hand('sun'), { line: 0 });
+  piece(ctx, ellipseShape(sx, sy, 44, 44, 24), C.gold, hand('sun'), { role: 'scenery', line: 0 });
   ctx.save();
   ctx.translate(wx, wy + VIEW_DROP);
   ctx.scale(VIEW_SCALE, VIEW_SCALE);
-  piece(ctx, PATH_HILL, C.leaf, hand('hill'), { line: 0, shadow: 0.2 });
+  piece(ctx, PATH_HILL, C.leaf, hand('hill'), { role: 'scenery', line: 0, shadow: 0.2 });
   stroke(
     ctx,
     PATH_AHEAD,
@@ -402,10 +416,14 @@ const room = (f: DailyFrame, alpha: number) => {
   ctx.save();
   ctx.translate(wx, wy);
   for (let i = 0; i < WIN_FRAME.length; i++)
-    piece(ctx, WIN_FRAME[i] ?? WIN_BAR_V, C.boardDeep, sub(hand('frame'), i), { line: 3 });
-  piece(ctx, WIN_BAR_V, C.boardDeep, hand('barV'), { line: 3 });
-  piece(ctx, WIN_BAR_H, C.boardDeep, hand('barH'), { line: 3 });
-  piece(ctx, SILL, C.boardShade, hand('sill'), { line: 3 });
+    piece(ctx, WIN_FRAME[i] ?? WIN_BAR_V, C.boardDeep, sub(hand('frame'), i), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+    });
+  piece(ctx, WIN_BAR_V, C.boardDeep, hand('barV'), { role: 'scenery', kind: 'cut', line: 3 });
+  piece(ctx, WIN_BAR_H, C.boardDeep, hand('barH'), { role: 'scenery', kind: 'cut', line: 3 });
+  piece(ctx, SILL, C.boardShade, hand('sill'), { role: 'scenery', kind: 'cut', line: 3 });
   ctx.restore();
 
   robedAtWindow(f, day);
@@ -428,7 +446,10 @@ const flowers = (f: DailyFrame) => {
     const s = grown * (2.2 - 0.8 * k);
     ctx.scale(s, s);
     stroke(ctx, FLOWER_STEM, { color: C.leafShade, width: 4, jitter: 0.3 }, sub(hand('stem'), i));
-    piece(ctx, FLOWER_HEAD, i % 3 === 0 ? C.gold : C.robe, sub(hand('flower'), i), { line: 2 });
+    piece(ctx, FLOWER_HEAD, i % 3 === 0 ? C.gold : C.robe, sub(hand('flower'), i), {
+      role: 'scenery',
+      line: 2,
+    });
     ctx.restore();
   }
 };

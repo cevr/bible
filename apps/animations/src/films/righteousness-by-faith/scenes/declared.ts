@@ -196,7 +196,13 @@ const card = (
 ) =>
   at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: shown }, () => {
     const board = rectShape(-310, -165, 620, 330);
-    piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
+    piece(ctx, board, C.cream, hand('card'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 0,
+      torn: 3,
+      shadow: 0.4,
+    });
     probePlate(ctx, board, () =>
       LINES.forEach((l, i) =>
         write(
@@ -224,6 +230,8 @@ const panel = (ctx: CanvasRenderingContext2D, hand: Hands, shown: number) =>
   at(ctx, { x: PANEL.x + PANEL.w / 2, y: PANEL.y + PANEL.h / 2, scale: shown }, () =>
     at(ctx, { x: -PANEL.w / 2, y: -PANEL.h / 2 }, () => {
       piece(ctx, rectShape(-14, -14, PANEL.w + 28, PANEL.h + 28), C.cream, hand('frame'), {
+        role: 'scenery',
+        kind: 'cut',
         line: 3,
         torn: 3,
       });

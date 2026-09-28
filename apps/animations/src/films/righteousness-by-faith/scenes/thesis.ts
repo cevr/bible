@@ -160,6 +160,8 @@ export const thesis = drawing({
       ctx.save();
       ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
       piece(ctx, PLATE, C.cream, f.hand('plate'), {
+        role: 'scenery',
+        kind: 'cut',
         line: 5,
         outline: C.gold,
         torn: 2,

@@ -105,6 +105,7 @@ export const look = drawing({
         const sheepish = f.at('armsDown');
         at(ctx, { x: 820, y: 960, scale: 2.1 }, () => {
           piece(ctx, ellipseShape(0, 2, 70, 8), `${C.paperTone}40`, hand('shadow'), {
+            role: 'scenery',
             line: 0,
             shadow: 0,
           });
@@ -131,12 +132,15 @@ export const look = drawing({
               at(ctx, { x, y, rot: 1.2 * fall * (i % 2 === 0 ? 1 : -1) }, () => {
                 const k = sub(hand('item'), i);
                 if (kind === 'coin') {
-                  piece(ctx, ellipseShape(0, 0, 26, 9), C.gold, k, { line: 2 });
+                  piece(ctx, ellipseShape(0, 0, 26, 9), C.gold, k, { role: 'figure', line: 2 });
                 } else if (kind === 'medal') {
-                  piece(ctx, rounded(0, -18, 16, 22, 3), C.scarlet, sub(k, 1), { line: 2 });
-                  piece(ctx, ellipseShape(0, 2, 16, 16), C.gold, k, { line: 2 });
+                  piece(ctx, rounded(0, -18, 16, 22, 3), C.scarlet, sub(k, 1), {
+                    role: 'figure',
+                    line: 2,
+                  });
+                  piece(ctx, ellipseShape(0, 2, 16, 16), C.gold, k, { role: 'figure', line: 2 });
                 } else {
-                  piece(ctx, rounded(0, 0, 70, 20, 3), C.cream, k, { line: 2 });
+                  piece(ctx, rounded(0, 0, 70, 20, 3), C.cream, k, { role: 'figure', line: 2 });
                   stroke(
                     ctx,
                     [
@@ -165,7 +169,11 @@ export const look = drawing({
             const y = lerp(-620, 0, light);
             glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
             glow(ctx, 0, y, 110, C.gold, 0.6);
-            piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), { line: 0, shadow: 0.2 });
+            piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), {
+              role: 'scenery',
+              line: 0,
+              shadow: 0.2,
+            });
           }
         });
         ctx.restore();
@@ -215,9 +223,11 @@ export const look = drawing({
             z: 1.5,
             draw: () => {
               piece(ctx, blob(500, 900, 1500, 260, 51), C.boardLight, hand('dune1'), {
+                role: 'scenery',
                 line: 3,
               });
               piece(ctx, blob(1500, 910, 1400, 240, 52), C.boardLight, hand('dune2'), {
+                role: 'scenery',
                 line: 3,
               });
               for (const [tx, k] of TENTS) {
@@ -230,7 +240,7 @@ export const look = drawing({
                   ],
                   k % 2 === 0 ? C.board : C.boardShade,
                   sub(hand('tent'), k),
-                  { line: 3.5 },
+                  { role: 'scenery', kind: 'cut', line: 3.5 },
                 );
                 piece(
                   ctx,
@@ -241,7 +251,7 @@ export const look = drawing({
                   ],
                   C.boardDeep,
                   sub(hand('flap'), k),
-                  { line: 2 },
+                  { role: 'scenery', kind: 'cut', line: 2 },
                 );
               }
             },
@@ -252,6 +262,7 @@ export const look = drawing({
             lift: 1.2,
             draw: () => {
               piece(ctx, rectShape(-300, py - 20, 2500, 500), C.peachLow, hand('sand'), {
+                role: 'scenery',
                 line: 3,
                 torn: 3,
               });
@@ -275,6 +286,7 @@ export const look = drawing({
                 );
                 const [hx, hy] = path.at(-1) ?? [sx, sy];
                 piece(ctx, ellipseShape(hx + 6, hy, 12, 8), C.scarlet, sub(hand('snakeHead'), k), {
+                  role: 'figure',
                   line: 2,
                 });
               }
@@ -284,9 +296,13 @@ export const look = drawing({
                 const top = py - POLE_H * rise;
                 glow(ctx, px, top + 40, 320, C.glow, 0.5 * rise + 0.5 * heal);
                 piece(ctx, rectShape(px - 11, top, 22, py - top + 10), C.board, hand('pole'), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 3,
                 });
                 piece(ctx, rectShape(px - 70, top + 16, 140, 18), C.board, hand('bar'), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 3,
                 });
                 stroke(
@@ -314,6 +330,7 @@ export const look = drawing({
                   hand('serpent'),
                 );
                 piece(ctx, ellipseShape(px - 70, top + 26, 16, 12), C.gold, hand('serpentHead'), {
+                  role: 'figure',
                   line: 2.5,
                 });
               }

@@ -112,8 +112,12 @@ const CREST_UNDER: Pt[] = Array.from({ length: 13 }, (_, i): Pt => {
  */
 const helmet: HeadPiece = (ctx, [cx, cy], _r, hand, hands) => {
   const crest = [...shifted(CREST_TOP, cx, cy - 46), ...shifted(CREST_UNDER, cx, cy - 44)];
-  piece(ctx, crest, C.sunsetLow, hands?.('crest') ?? sub(hand, 30), { line: 2.5 });
+  piece(ctx, crest, C.sunsetLow, hands?.('crest') ?? sub(hand, 30), {
+    role: 'figure',
+    line: 2.5,
+  });
   piece(ctx, shifted(DOME, cx, cy - 33), C.boardDeep, hands?.('helmet') ?? sub(hand, 31), {
+    role: 'figure',
     line: 3,
   });
 };
@@ -233,6 +237,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
               C.boardShade,
               sub(hand('far'), i),
               {
+                role: 'scenery',
+                kind: 'cut',
                 line: 0,
                 torn: 3,
                 shadow: 0.4,
@@ -251,6 +257,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
               C.boardLight,
               sub(hand('near'), i),
               {
+                role: 'scenery',
+                kind: 'cut',
                 line: 0,
                 torn: 3,
                 shadow: 0.5,
@@ -262,6 +270,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
               b.lit ? C.glow : C.boardDeep,
               sub(hand('nw'), i),
               {
+                role: 'scenery',
+                kind: 'cut',
                 line: 0,
                 torn: 1.4,
                 shadow: 0.2,
@@ -279,28 +289,44 @@ const street = (f: CenturionFrame, hand: Hands) => {
           const flyPath = arc([JESUS[0] - 40, 600], [ROOM.x - 120, ROOM.y - 30], 520);
           // The street.
           piece(ctx, rectShape(-2600, 950, 5400, 600), C.board, hand('street'), {
+            role: 'scenery',
             line: 0,
             torn: 4,
           });
 
           // The servant's house, open to show the room.
           piece(ctx, rectShape(HOUSE_X - 330, 520, 660, 440), C.boardLight, hand('house'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3,
             torn: 2,
           });
           piece(ctx, rectShape(HOUSE_X - 360, 500, 720, 40), C.boardDeep, hand('roof'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3,
           });
           const room = rounded(ROOM.x, ROOM.y, ROOM.w, ROOM.h, 16);
-          piece(ctx, room, C.peachLow, hand('room'), { line: 4, shadow: 0 });
+          piece(ctx, room, C.peachLow, hand('room'), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 4,
+            shadow: 0,
+          });
           ctx.save();
           ctx.beginPath();
           room.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
           ctx.closePath();
           ctx.clip();
           glow(ctx, ROOM.x - 100, ROOM.y - 40, 300, C.glow, sit);
-          piece(ctx, rounded(HOUSE_X, 905, 340, 44, 10), C.boardDeep, hand('bed'), { line: 3 });
+          piece(ctx, rounded(HOUSE_X, 905, 340, 44, 10), C.boardDeep, hand('bed'), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 3,
+          });
           piece(ctx, rounded(HOUSE_X - 140, 868, 80, 30, 12), C.cream, hand('pillow'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 2.5,
           });
           at(ctx, { x: HIP[0], y: HIP[1], rot: lerp(-Math.PI / 2 + 0.05, -0.06, sit) }, () =>
@@ -323,6 +349,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
             ),
           );
           piece(ctx, rounded(HOUSE_X + 60, 890, 240, 44, 14), C.cream, hand('blanket'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3,
           });
           ctx.restore();
@@ -340,7 +368,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
               ],
               C.sunsetLow,
               hand('cape'),
-              { line: 3 },
+              { role: 'figure', line: 3 },
             );
             person(
               ctx,
@@ -361,7 +389,10 @@ const street = (f: CenturionFrame, hand: Hands) => {
               },
               hand('soldier'),
             );
-            piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), { line: 2 });
+            piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), {
+              role: 'figure',
+              line: 2,
+            });
           });
 
           // Jesus, offering to go.

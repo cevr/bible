@@ -135,11 +135,14 @@ export const cold = drawing({
               [1580, 2],
             ] as const)
               piece(ctx, rectShape(x, 80, 200, 800), `${C.paperTone}30`, f.hand(`pillar${k}`), {
+                role: 'scenery',
+                kind: 'cut',
                 line: 0,
                 torn: 3,
                 shadow: 0.2,
               });
             piece(ctx, rectShape(-400, 868, 2700, 400), `${C.paperTone}38`, f.hand('floor'), {
+              role: 'scenery',
               line: 0,
               torn: 5,
               shadow: 0.25,
@@ -152,10 +155,17 @@ export const cold = drawing({
           draw: () => {
             contact(ctx, 1180, 860, 820);
             at(ctx, { x: JUDGE[0], y: JUDGE[1] + 10 * lean }, () => {
-              piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, f.hand('judgeRobe'));
+              piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, f.hand('judgeRobe'), {
+                role: 'figure',
+              });
               for (const x of [-9, 9])
-                piece(ctx, rounded(x, 88, 14, 30, 3), C.paper, f.hand(`band${x}`), { line: 2 });
-              piece(ctx, ellipseShape(0, 0, 60, 65), C.figure, f.hand('judgeHead'));
+                piece(ctx, rounded(x, 88, 14, 30, 3), C.paper, f.hand(`band${x}`), {
+                  role: 'figure',
+                  line: 2,
+                });
+              piece(ctx, ellipseShape(0, 0, 60, 65), C.figure, f.hand('judgeHead'), {
+                role: 'figure',
+              });
               const [ex, ey] = [-12 * lean, 5 * lean];
               ctx.fillStyle = C.outline;
               for (const x of [-22, 22]) {
@@ -177,7 +187,11 @@ export const cold = drawing({
                 f.hand('judgeMouth'),
               );
             });
-            piece(ctx, rectShape(860, 475, 640, 380), C.paperTone, f.hand('bench'), { torn: 2 });
+            piece(ctx, rectShape(860, 475, 640, 380), C.paperTone, f.hand('bench'), {
+              role: 'scenery',
+              kind: 'cut',
+              torn: 2,
+            });
             [980, 1180, 1380].forEach((x, i) => {
               const panel = rounded(x, 680, 170, 280, 10);
               stroke(
@@ -187,8 +201,15 @@ export const cold = drawing({
                 f.hand(`panel${i}`),
               );
             });
-            piece(ctx, rounded(1180, 472, 690, 34, 6), C.inkSoft, f.hand('rim'));
-            piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, f.hand('block'), { line: 2 });
+            piece(ctx, rounded(1180, 472, 690, 34, 6), C.inkSoft, f.hand('rim'), {
+              role: 'scenery',
+              kind: 'cut',
+            });
+            piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, f.hand('block'), {
+              role: 'scenery',
+              kind: 'cut',
+              line: 2,
+            });
             gavel(ctx, f.hand, { x: GAVEL[0], y: GAVEL[1], rot: swing }, true);
             // The verdict, stamped on a torn label across the bench.
             benchStamp(ctx, f.hand, verdict, popScale);
@@ -209,6 +230,8 @@ export const cold = drawing({
               const fall = lerp(-300, 0, k);
               at(ctx, { x: s.x, y: s.y + fall, rot: s.rot }, () =>
                 piece(ctx, rectShape(-75, -5.5, 150, 11), C.paper, sub(f.hand('sheet'), i), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 2,
                   outline: C.ink,
                 }),

@@ -5,8 +5,10 @@
 import {
   type Camera,
   type Hand,
+  type PieceStyle,
   type Pt,
   at,
+  piece as paperPiece,
   cutout,
   ellipseShape,
   probeFace,
@@ -150,31 +152,20 @@ export const contact = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 
 // ─── paper pieces ────────────────────────────────────────────────────────────
 
-/** Cut paper with a boiling ink outline: the look of every drawn thing here. */
+/** How one piece of this film's paper is made: its role, and whatever it names over the role's. */
+export type PieceOpts = Omit<PieceStyle, 'color' | 'outline'> & { readonly outline?: string };
+
+/**
+ * One piece of the film's paper in `color` (the engine's `piece`): a figure's
+ * piece is cut and outlined in the film's ink, scenery is torn with no ink.
+ */
 export const piece = (
   ctx: CanvasRenderingContext2D,
   shape: ReadonlyArray<Pt>,
   color: string,
   hand: Hand,
-  opts: { line?: number; torn?: number; shadow?: number; outline?: string; alpha?: number } = {},
-) => {
-  const alpha = opts.alpha ?? 1;
-  if (alpha <= 0) return;
-  cutout(
-    ctx,
-    shape,
-    { color, torn: opts.torn ?? 1.4, rim: 0, shadow: opts.shadow ?? 0.35, grain: 0.5, alpha },
-    hand,
-  );
-  const width = opts.line ?? 3;
-  if (width > 0)
-    stroke(
-      ctx,
-      [...shape, shape[0] ?? [0, 0]],
-      { color: opts.outline ?? C.outline, width, jitter: 0.7, taper: 0, pressure: 0.15, alpha },
-      sub(hand, 7),
-    );
-};
+  opts: PieceOpts,
+) => paperPiece(ctx, shape, { ...opts, color, outline: opts.outline ?? C.outline }, hand);
 
 /** The bubble's three lines of writing, centred like it. */
 const BUBBLE_LINES = [0, 1, 2].map((i) =>
@@ -192,8 +183,10 @@ export const bubble = (
   lines: (i: number) => Hand,
   s: { readonly fill: string; readonly ink: string; readonly shadow: number },
 ) => {
-  piece(ctx, BUBBLE, s.fill, hand, { line: 5, shadow: s.shadow });
-  BUBBLE_LINES.forEach((l, i) => piece(ctx, l, s.ink, lines(i), { line: 0, shadow: 0 }));
+  piece(ctx, BUBBLE, s.fill, hand, { role: 'scenery', kind: 'cut', line: 5, shadow: s.shadow });
+  BUBBLE_LINES.forEach((l, i) =>
+    piece(ctx, l, s.ink, lines(i), { role: 'scenery', kind: 'ink', line: 0, shadow: 0 }),
+  );
 };
 
 /** The icon's heart, centred on (0, 0), about 190 units wide. */
@@ -218,12 +211,18 @@ export const heart = (
   fill: string,
   law: boolean,
 ) => {
-  piece(ctx, HEART, fill, hand('heart'), { line: 5 });
+  piece(ctx, HEART, fill, hand('heart'), { role: 'scenery', kind: 'cut', line: 5 });
   for (const x of [-24, 24] as const) {
-    piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
+    piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3.5,
+    });
     if (law)
       for (let i = 0; i < 4; i++)
         piece(ctx, rounded(x, -10 + i * 12, 24, 3, 1), C.ink, sub(hand('law'), x * 10 + i), {
+          role: 'scenery',
+          kind: 'ink',
           line: 0,
           shadow: 0,
         });
@@ -350,7 +349,7 @@ export type HeadPiece = (
 
 /** A priest's wrapped linen turban, as a person's `onHead`. */
 export const turban: HeadPiece = (ctx, [cx, cy], [rx, ry], hand) => {
-  piece(ctx, shifted(turbanShape(rx, ry), cx, cy), C.paper, sub(hand, 5));
+  piece(ctx, shifted(turbanShape(rx, ry), cx, cy), C.paper, sub(hand, 5), { role: 'figure' });
   for (const [y, w] of TURBAN_WRAPS)
     stroke(
       ctx,
@@ -485,19 +484,22 @@ const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: H
   for (const x of LEG_X) {
     const k = sub(hand, 1 + x);
     if (sit <= 0) {
-      piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { line: 2.5 });
+      piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { role: 'figure', line: 2.5 });
       continue;
     }
     const lx = x * (1 + 0.35 * sit);
     const top = lerp(-21, KNEE_Y, sit);
     const heel = lerp(1, KNEE_Y + SHIN, sit);
-    piece(ctx, rounded(lx, (top + heel) / 2, 15, heel - top, 5), shade, k, { line: 2.5 });
+    piece(ctx, rounded(lx, (top + heel) / 2, 15, heel - top, 5), shade, k, {
+      role: 'figure',
+      line: 2.5,
+    });
     piece(
       ctx,
       ellipseShape(lx + Math.sign(x) * 4 * sit, heel - 1, 8 + 3 * sit, 6, 24),
       shade,
       sub(k, 40),
-      { line: 2.5 },
+      { role: 'figure', line: 2.5 },
     );
   }
 };
@@ -646,7 +648,7 @@ const garment = (
   const robe = p.garment === 'robe';
   ctx.save();
   toFold(ctx, robe, sit);
-  piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
+  piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3), { role: 'figure' });
   let i = 0;
   for (const stain of p.stains ?? NO_STAINS) {
     const wash = p.washed?.[i] ?? 0;
@@ -670,7 +672,7 @@ const garment = (
   // draped across them and broken by the two knees; it grows in with `sit`.
   ctx.save();
   ctx.scale(robe ? 1 : 0.8, sit);
-  piece(ctx, LAP, body, sub(hand, 6), { shadow: 0.25 });
+  piece(ctx, LAP, body, sub(hand, 6), { role: 'figure', shadow: 0.25 });
   stroke(ctx, LAP_CREASE, LAP_FOLD, sub(hand, 14));
   ctx.restore();
 };
@@ -690,7 +692,10 @@ const arm = (
   stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
   stroke(ctx, path, { color: colours[0], width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
   const [hx, hy] = path.at(-1) ?? target;
-  piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), { line: 2.5 });
+  piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), {
+    role: 'figure',
+    line: 2.5,
+  });
 };
 
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
@@ -754,7 +759,7 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
   ctx.rotate(p.tilt ?? 0);
   ctx.translate(-NECK[0], -NECK[1]);
   const [cx, cy] = HEAD;
-  piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
+  piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4), { role: 'figure' });
   probeFace(ctx, cx, cy, 2 * HEAD_RY);
   const [lx, ly] = p.look ?? HEAD_STILL;
   const smile = clamp(p.smile ?? 0, -1, 1);
@@ -773,6 +778,7 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
         p.hair ?? C.outline,
         sub(hand, 12 + side),
         {
+          role: 'figure',
           line: 2,
           shadow: 0,
         },
@@ -809,7 +815,7 @@ export const christ = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands)
   ctx.translate(0, y);
   ctx.rotate(-0.45);
   ctx.scale(sx, 1);
-  piece(ctx, SASH, C.gold, hand('sash'), { line: 2 });
+  piece(ctx, SASH, C.gold, hand('sash'), { role: 'figure', line: 2 });
   ctx.restore();
 };
 const SASH = rounded(0, 0, 92, 12, 3);
@@ -850,7 +856,11 @@ export const icons = (
   const disc = (i: 0 | 1 | 2, key: string, inner: () => void) => {
     if (shown[i] <= 0) return;
     at(ctx, { x: ICON_X[i], y: 0, scale: shown[i] }, () => {
-      piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand(key), { line: 6 });
+      piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand(key), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 6,
+      });
       if (lit[i] > 0) glow(ctx, 0, 0, 260, C.glow, lit[i]);
       inner();
     });
@@ -864,7 +874,7 @@ export const icons = (
   );
   disc(1, 'iconRobe', () =>
     at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
-      piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { line: 18 }),
+      piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { role: 'scenery', kind: 'cut', line: 18 }),
     ),
   );
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
@@ -894,21 +904,21 @@ const CREASE = spline([
  * down toward the palm, as a hand closes.
  */
 export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {
-  piece(ctx, WRIST, C.figure, hand('wrist'), { line: 4 });
+  piece(ctx, WRIST, C.figure, hand('wrist'), { role: 'figure', line: 4 });
   const curl = lerp(0.45, 1, clamp(open));
   for (const [x, k] of FINGERS) {
     ctx.save();
     ctx.translate(x, lerp(-10, -80, curl));
     ctx.rotate(x * 0.0012);
     ctx.scale(1, curl);
-    piece(ctx, FINGER, C.figure, sub(hand('finger'), k), { line: 4 });
+    piece(ctx, FINGER, C.figure, sub(hand('finger'), k), { role: 'figure', line: 4 });
     ctx.restore();
   }
-  piece(ctx, PALM, C.figure, hand('palm'), { line: 4 });
+  piece(ctx, PALM, C.figure, hand('palm'), { role: 'figure', line: 4 });
   ctx.save();
   ctx.translate(-165, 10);
   ctx.rotate(-0.9);
-  piece(ctx, THUMB, C.figure, hand('thumb'), { line: 4 });
+  piece(ctx, THUMB, C.figure, hand('thumb'), { role: 'figure', line: 4 });
   ctx.restore();
   stroke(ctx, CREASE, { color: C.figureShade, width: 4, jitter: 0.4 }, hand('crease'));
 };

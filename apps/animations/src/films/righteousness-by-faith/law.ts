@@ -24,7 +24,11 @@ export const tablets = (ctx: CanvasRenderingContext2D, hand: Hands, lit = 0) => 
   for (const side of [-1, 1] as const) {
     const x = side * 62;
     at(ctx, { x, y: 0 }, () =>
-      piece(ctx, tabletShape(116, 176), C.stone, sub(hand('tablet'), side), { line: 4 }),
+      piece(ctx, tabletShape(116, 176), C.stone, sub(hand('tablet'), side), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 4,
+      }),
     );
     for (let i = 0; i < 5; i++) {
       const n = side < 0 ? i : i + 5;
@@ -33,6 +37,8 @@ export const tablets = (ctx: CanvasRenderingContext2D, hand: Hands, lit = 0) => 
       const w = 70 - (i === 0 ? 0 : (i % 2) * 14);
       if (on > 0) glow(ctx, x, y, 44, C.glow, on * 0.8);
       piece(ctx, rounded(x, y, w, 7, 3), on > 0.5 ? C.gold : C.inkSoft, sub(hand('law'), n), {
+        role: 'scenery',
+        kind: 'ink',
         line: 0,
         shadow: 0,
       });
@@ -69,7 +75,7 @@ export const planet = (
   r: number,
   color: string,
 ) => {
-  piece(ctx, ellipseShape(x, y, r, r), color, hand, { line: 3 });
+  piece(ctx, ellipseShape(x, y, r, r), color, hand, { role: 'scenery', line: 3 });
   stroke(
     ctx,
     line([x - r * 1.5, y + r * 0.3], [x + r * 1.5, y - r * 0.3]),
@@ -89,7 +95,7 @@ export const star = (ctx: CanvasRenderingContext2D, hand: Hand, x: number, y: nu
     }),
     C.gold,
     hand,
-    { line: 2, shadow: 0.15 },
+    { role: 'scenery', kind: 'cut', line: 2, shadow: 0.15 },
   );
 
 /** A cross of `s` scale, centred on (0, 0): about 120 by 190 at 1. */

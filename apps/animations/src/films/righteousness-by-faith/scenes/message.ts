@@ -132,7 +132,7 @@ type MessageFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 /** A tall arched window of the hall, centred on (x, y), with peach light in it. */
 const hallWindow = (ctx: CanvasRenderingContext2D, hand: Hand, x: number, y: number) => {
   at(ctx, { x, y }, () => {
-    piece(ctx, tabletShape(130, 300), C.peachTop, hand, { line: 5 });
+    piece(ctx, tabletShape(130, 300), C.peachTop, hand, { role: 'scenery', kind: 'cut', line: 5 });
     glow(ctx, 0, 40, 160, C.glow, 0.5);
     stroke(
       ctx,
@@ -299,7 +299,7 @@ const sun = (
   const x = lerp(DAWN_X, DUSK_X, k);
   const y = lerp(HORIZON_Y, NOON_Y, noon);
   glow(ctx, x, y, 160, C.glow, 0.8);
-  piece(ctx, ellipseShape(x, y, 44, 44), C.gold, hand, { line: 0, shadow: 0.2 });
+  piece(ctx, ellipseShape(x, y, 44, 44), C.gold, hand, { role: 'scenery', line: 0, shadow: 0.2 });
 };
 
 /**
@@ -365,12 +365,16 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
           if (roof >= 1) return;
           at(ctx, { x: 0, y: lift }, () => {
             piece(ctx, rectShape(-500, -300, 2920, 1080), C.boardLight, f.hand('wall'), {
+              role: 'scenery',
+              kind: 'cut',
               line: 0,
               torn: 3,
             });
             glow(ctx, 960, 300, 900, C.peachLow, 0.5);
             WINDOWS.forEach((x, i) => hallWindow(ctx, sub(f.hand('window'), i), x, 330));
             piece(ctx, rectShape(-500, -320, 2920, 70), C.boardShade, f.hand('beam'), {
+              role: 'scenery',
+              kind: 'cut',
               line: 0,
               torn: 3,
             });
@@ -384,19 +388,26 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
           // The light that turns every face, rising behind the pulpit.
           const light = f.at('light');
           piece(ctx, rectShape(-500, 770, 2920, 500), C.board, f.hand('floor'), {
+            role: 'scenery',
             line: 0,
             torn: 3,
           });
           glow(ctx, 960, 520, lerp(80, 560, light), C.glow, light);
           glow(ctx, 960, 540, lerp(40, 260, light), C.gold, 0.55 * light);
           piece(ctx, rectShape(500, STAGE_Y, 920, 90), C.boardShade, f.hand('stage'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3,
             torn: 2,
           });
           piece(ctx, rounded(960, STAGE_Y - 100, 150, 200, 12), C.board, f.hand('pulpit'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3.5,
           });
           piece(ctx, rounded(960, STAGE_Y - 200, 190, 22, 6), C.boardDeep, f.hand('pulpitTop'), {
+            role: 'scenery',
+            kind: 'cut',
             line: 3,
           });
           preachers(f);
@@ -486,7 +497,11 @@ const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
       hair: C.boardShade,
       moustache: 0.35,
       onHead: (ctx, c, r, hand) => {
-        piece(ctx, hairShape(c, r, 0), C.boardShade, sub(hand, 85), { line: 2.5, shadow: 0.1 });
+        piece(ctx, hairShape(c, r, 0), C.boardShade, sub(hand, 85), {
+          role: 'figure',
+          line: 2.5,
+          shadow: 0.1,
+        });
         for (const [i, x] of [-12, 13].entries())
           stroke(
             ctx,
@@ -512,7 +527,11 @@ const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
       hair: C.boardDeep,
       moustache: 1,
       onHead: (ctx, c, r, hand) =>
-        piece(ctx, hairShape(c, r, 1), C.boardDeep, sub(hand, 85), { line: 2.5, shadow: 0.1 }),
+        piece(ctx, hairShape(c, r, 1), C.boardDeep, sub(hand, 85), {
+          role: 'figure',
+          line: 2.5,
+          shadow: 0.1,
+        }),
     },
   ],
 ];
@@ -542,8 +561,16 @@ const preachers = (f: MessageFrame) => {
       );
       if (k === 0) {
         glow(ctx, 10, -92, 90, C.gold, 0.6 * precious);
-        piece(ctx, rounded(-4, -88, 44, 30, 3), C.cream, f.hand('bible'), { line: 2.5 });
-        piece(ctx, rounded(-4, -88, 3, 30, 1), C.inkSoft, f.hand('spine'), { line: 0, shadow: 0 });
+        piece(ctx, rounded(-4, -88, 44, 30, 3), C.cream, f.hand('bible'), {
+          role: 'figure',
+          line: 2.5,
+        });
+        piece(ctx, rounded(-4, -88, 3, 30, 1), C.inkSoft, f.hand('spine'), {
+          role: 'figure',
+          kind: 'ink',
+          line: 0,
+          shadow: 0,
+        });
       }
     });
   }
@@ -556,7 +583,12 @@ const placard = (f: MessageFrame) => {
   if (show <= 0.01) return;
   at(ctx, { x: 960, y: 190, scale: show, rot: -0.02 }, () => {
     const board = plate(0, 0, 620, 110);
-    piece(ctx, board, C.cream, f.hand('placard'), { line: 3, torn: 2 });
+    piece(ctx, board, C.cream, f.hand('placard'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+      torn: 2,
+    });
     probePlate(ctx, board, () =>
       write(
         ctx,
@@ -584,6 +616,8 @@ const emblem = (f: MessageFrame, meet: number, golden: number) => {
   );
   at(ctx, { x: lerp(1300, 70, meet), y: 0, rot: lerp(0.4, 0, meet) }, () =>
     piece(ctx, crossShape(1.35), golden > 0.5 ? C.gold : C.boardLight, f.hand('cross'), {
+      role: 'scenery',
+      kind: 'cut',
       line: 4.5,
       shadow: 0.5,
     }),

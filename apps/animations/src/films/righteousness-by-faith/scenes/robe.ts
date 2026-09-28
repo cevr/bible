@@ -81,9 +81,17 @@ const loomFrame = (
   hand: (k: string) => { boil: number; seed: number },
 ) => {
   for (const x of [-70, 70])
-    piece(ctx, rounded(x * s, 0, 14 * s, 190 * s, 4 * s), C.gold, hand(`post${x}`), { line: 2.5 });
+    piece(ctx, rounded(x * s, 0, 14 * s, 190 * s, 4 * s), C.gold, hand(`post${x}`), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
   for (const y of [-86, 86])
-    piece(ctx, rounded(0, y * s, 170 * s, 16 * s, 4 * s), C.gold, hand(`beam${y}`), { line: 2.5 });
+    piece(ctx, rounded(0, y * s, 170 * s, 16 * s, 4 * s), C.gold, hand(`beam${y}`), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
 };
 
 const timeline = {
@@ -188,6 +196,8 @@ const courtWide = (f: RobeFrame) => {
         loomFrame(ctx, 1, hand);
         for (let x = -54; x <= 54; x += 12)
           piece(ctx, rectShape(x - 1, -80, 2.5, 160), C.robe, sub(hand('warpS'), x), {
+            role: 'scenery',
+            kind: 'cut',
             line: 0,
             torn: 0,
             shadow: 0,
@@ -213,6 +223,8 @@ const weaving = (f: RobeFrame) => {
   ctx.save();
   ctx.globalAlpha *= 1 - robeUp;
   piece(ctx, rectShape(600, 190, 720, bottom - 190), C.robe, hand('cloth'), {
+    role: 'scenery',
+    kind: 'cut',
     line: 0,
     torn: 0,
     shadow: 0.3,
@@ -224,6 +236,8 @@ const weaving = (f: RobeFrame) => {
   ctx.restore();
   for (let x = 612; x < 1320; x += 24)
     piece(ctx, rectShape(x, 180, 3, 760), `${C.robe}b0`, sub(hand('warp'), x), {
+      role: 'scenery',
+      kind: 'cut',
       line: 0,
       torn: 0,
       shadow: 0,
@@ -234,13 +248,17 @@ const weaving = (f: RobeFrame) => {
     const along = ease.inOutSine(pass % 1);
     const x = Math.floor(pass) % 2 === 0 ? lerp(600, 1320, along) : lerp(1320, 600, along);
     glow(ctx, x, bottom, 110, C.robe, 1);
-    piece(ctx, ellipseShape(x, bottom, 17, 17), C.robe, hand('spark'), { line: 0, shadow: 0 });
+    piece(ctx, ellipseShape(x, bottom, 17, 17), C.robe, hand('spark'), {
+      role: 'scenery',
+      line: 0,
+      shadow: 0,
+    });
   }
   if (robeUp > 0)
     at(ctx, { x: 960, y: 540 - 70 * robeUp }, () => {
       ctx.save();
       ctx.globalAlpha *= robeUp;
-      piece(ctx, ROBE, C.robe, hand('bigRobe'), { line: 6 });
+      piece(ctx, ROBE, C.robe, hand('bigRobe'), { role: 'scenery', kind: 'cut', line: 6 });
       ctx.restore();
     });
 };
@@ -274,7 +292,7 @@ const robed = (f: RobeFrame) => {
       ],
       C.robe,
       hand('robeOn'),
-      { line: 7 },
+      { role: 'figure', line: 7 },
     ),
   );
 };
@@ -285,7 +303,11 @@ const cloaked = (f: RobeFrame) => {
   const { hand } = f;
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
-  piece(ctx, blob(960, 700, 330, 210, 41), C.scarlet, hand('stainC'), { line: 0, torn: 4 });
+  piece(ctx, blob(960, 700, 330, 210, 41), C.scarlet, hand('stainC'), {
+    role: 'scenery',
+    line: 0,
+    torn: 4,
+  });
   const cover = f.at('cover');
   const flick = f.at('flick');
   const hover = f.at('hover');
@@ -314,9 +336,13 @@ const cloaked = (f: RobeFrame) => {
         ],
         C.inkSoft,
         hand('cloak'),
-        { line: 5, outline: C.ink },
+        { role: 'scenery', kind: 'cut', line: 5, outline: C.ink },
       );
-      piece(ctx, ellipseShape(0, -70, 11, 11), C.gold, hand('clasp'), { line: 3 });
+      piece(ctx, ellipseShape(0, -70, 11, 11), C.gold, hand('clasp'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 3,
+      });
       ctx.restore();
     },
   );
@@ -331,7 +357,7 @@ const closeOnJoshua = (f: RobeFrame, pose: Person) => {
   ctx.scale(FACE_SCALE, FACE_SCALE);
   person(ctx, pose, hand('faceD'));
   ctx.restore();
-  piece(ctx, ROBE_D, C.robe, hand('robeD'), { line: 7 });
+  piece(ctx, ROBE_D, C.robe, hand('robeD'), { role: 'figure', line: 7 });
 };
 /** Joshua's scale close on his face. */
 const FACE_SCALE = 4.6;
@@ -361,6 +387,7 @@ const beneath = (f: RobeFrame) => {
   if (open > 0.01)
     at(ctx, { x: 960, y: 850, scale: open }, () => {
       piece(ctx, ellipseShape(0, 0, 190, 190), C.figure, hand('lensBody'), {
+        role: 'figure',
         line: 0,
         torn: 0,
       });
@@ -395,6 +422,7 @@ const beneath = (f: RobeFrame) => {
       },
       () =>
         piece(ctx, blob(0, 0, s, s * 0.8, 70 + i), C.scarlet, hand(`flake${i}`), {
+          role: 'figure',
           line: 0,
           shadow: 0.15,
         }),

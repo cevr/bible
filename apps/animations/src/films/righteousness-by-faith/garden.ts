@@ -73,7 +73,12 @@ export const apron = (
         rot: rot + droop * (0.5 - hash2(i, 5)) * 1.4,
         scale: shown * (1 - 0.15 * droop),
       },
-      () => piece(ctx, leafShape(0.8, i), color, sub(hand, 90 + i), { line: 2.5, shadow: 0.25 }),
+      () =>
+        piece(ctx, leafShape(0.8, i), color, sub(hand, 90 + i), {
+          role: 'figure',
+          line: 2.5,
+          shadow: 0.25,
+        }),
     );
     // The seams, stained where they are sewn.
     if (i > 0 && shown >= 1 && stitch > 0)
@@ -118,7 +123,7 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
     rounded(0, -height / 2, t.trunk, height, t.trunk * 0.3),
     t.bark ?? C.boardShade,
     sub(hand, seed),
-    { line: 3, torn: 2, shadow: 0.4 },
+    { role: 'scenery', line: 3, torn: 2, shadow: 0.4 },
   );
   const crown = ease.outBack(clamp((grow - 0.4) / 0.6));
   if (crown <= 0) return;
@@ -131,7 +136,7 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
         blob(Math.cos(a) * s, Math.sin(a) * 0.64 * s, 2.15 * s, 1.7 * s, seed * 10 + i),
         t.leaves[i % 2] ?? C.leaf,
         sub(hand, seed * 10 + i + 1),
-        { line: 3, torn: 2 },
+        { role: 'scenery', line: 3, torn: 2 },
       );
     }
   });
@@ -195,21 +200,38 @@ export const restingField = (
   at(ctx, { x: 960, y: 540, scale: lerp(1.12, 1, settle) }, () => {
     at(ctx, { x: -960, y: -540 }, () => {
       glow(ctx, 1500, 700, 520 + 80 * rest, C.glow, 0.9);
-      piece(ctx, ellipseShape(1500, 700, 70, 70), C.gold, hand('sun'), { line: 0 });
+      piece(ctx, ellipseShape(1500, 700, 70, 70), C.gold, hand('sun'), {
+        role: 'scenery',
+        line: 0,
+      });
       piece(ctx, blob(1300, 900, 2200, 420, 51), C.boardLight, hand('hillFar'), {
+        role: 'scenery',
         line: 0,
         shadow: 0.3,
       });
       piece(ctx, blob(700, 1000, 2000, 360, 52), C.leaf, hand('field'), {
+        role: 'scenery',
         line: 0,
         shadow: 0.4,
       });
       // Tools set down: a hoe on the ground, a basket beside it.
       at(ctx, { x: 1060, y: 915, rot: -0.12 }, () =>
-        piece(ctx, rounded(0, 0, 300, 12, 5), C.boardDeep, hand('hoe'), { line: 2 }),
+        piece(ctx, rounded(0, 0, 300, 12, 5), C.boardDeep, hand('hoe'), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 2,
+        }),
       );
-      piece(ctx, rounded(918, 902, 26, 44, 4), C.inkSoft, hand('hoeBlade'), { line: 2 });
-      piece(ctx, rounded(1230, 880, 130, 80, 30), C.board, hand('basket'), { line: 3 });
+      piece(ctx, rounded(918, 902, 26, 44, 4), C.inkSoft, hand('hoeBlade'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 2,
+      });
+      piece(ctx, rounded(1230, 880, 130, 80, 30), C.board, hand('basket'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 3,
+      });
       at(ctx, { x: 640, y: 935, scale: 1.6 }, () =>
         tree(ctx, hand('tree'), {
           height: 300,

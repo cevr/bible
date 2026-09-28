@@ -127,6 +127,7 @@ const garden = (f: MirrorFrame) => {
               }),
             );
           piece(ctx, rectShape(-600, 880, 3120, 500), C.boardLight, f.hand('ground'), {
+            role: 'scenery',
             line: 0,
             torn: 3,
           });
@@ -192,6 +193,7 @@ const garden = (f: MirrorFrame) => {
               },
               () =>
                 piece(ctx, blob(0, 0, 40, 28, 50 + k), C.boardShade, sub(f.hand('fallen'), k), {
+                  role: 'scenery',
                   line: 2,
                   alpha: 1 - 0.3 * fall,
                 }),
@@ -238,9 +240,18 @@ const glass = (f: MirrorFrame) => {
       at(ctx, { x: mx, y: my, scale: lerp(0.7, 1, become) }, () => {
         ctx.save();
         ctx.globalAlpha *= become;
-        piece(ctx, tabletShape(520, 780), C.stone, f.hand('frame'), { line: 5 });
+        piece(ctx, tabletShape(520, 780), C.stone, f.hand('frame'), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 5,
+        });
         const pane = tabletShape(440, 700);
-        piece(ctx, pane, C.dawnTop, f.hand('glass'), { line: 3, shadow: 0 });
+        piece(ctx, pane, C.dawnTop, f.hand('glass'), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 3,
+          shadow: 0,
+        });
         // The reflection: the same person, with nothing hiding the stains.
         ctx.save();
         ctx.beginPath();
@@ -311,6 +322,7 @@ const glass = (f: MirrorFrame) => {
       apron(ctx, f.hand('apron'), 4, 1, 0);
       if (scrub > 0.05)
         piece(ctx, blob(handR[0] + 6, handR[1], 26, 20, 90), C.cream, f.hand('cloth'), {
+          role: 'figure',
           line: 2.5,
         });
     });

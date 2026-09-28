@@ -135,7 +135,11 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
         hand('burst'),
       );
     at(ctx, { x: sx, y: sy, scale: ease.outBack(clamp(d.sun)) }, () =>
-      piece(ctx, ellipseShape(0, 0, 92, 92), C.gold, hand('sun'), { line: 0, shadow: 0.2 }),
+      piece(ctx, ellipseShape(0, 0, 92, 92), C.gold, hand('sun'), {
+        role: 'scenery',
+        line: 0,
+        shadow: 0.2,
+      }),
     );
   }
 
@@ -157,7 +161,7 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
       ],
       C.boardShade,
       hand('hills'),
-      { line: 0, torn: 4, shadow: 0.5 },
+      { role: 'scenery', line: 0, torn: 4, shadow: 0.5 },
     );
     const sea = (1 - risen(d.land, 0.5)) * 460;
     piece(
@@ -170,7 +174,7 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
       ],
       C.water,
       hand('water'),
-      { line: 0, torn: 3, shadow: 0.35 },
+      { role: 'scenery', line: 0, torn: 3, shadow: 0.35 },
     );
     const near = (1 - risen(d.land, 1)) * 420;
     piece(
@@ -185,9 +189,10 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
       ],
       C.board,
       hand('shore'),
-      { line: 0, torn: 4, shadow: 0.6 },
+      { role: 'scenery', line: 0, torn: 4, shadow: 0.6 },
     );
     piece(ctx, blob(260, 950 + near, 320, 110, 3), C.boardLight, hand('isle'), {
+      role: 'scenery',
       line: 0,
       torn: 3,
       shadow: 0.5,

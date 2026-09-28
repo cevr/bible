@@ -182,11 +182,13 @@ const hill = (f: ExchangeFrame) => {
     glow(ctx, sx, sunY, 200, C.glow, 0.8 - 0.3 * sun);
     // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
     piece(ctx, ellipseShape(sx, sunY, 62, 62), mix(C.gold, C.sunsetTop, sun), hand('sun'), {
+      role: 'scenery',
       line: 0,
       shadow: 0,
     });
-    piece(ctx, HILL, C.board, hand('hill'), { line: 4, torn: 2 });
+    piece(ctx, HILL, C.board, hand('hill'), { role: 'scenery', line: 4, torn: 2 });
     piece(ctx, GROUND, C.boardShade, hand('ground'), {
+      role: 'scenery',
       line: 0,
       torn: 4,
     });
@@ -238,7 +240,7 @@ const hill = (f: ExchangeFrame) => {
           blob(0, 0, lerp(70, 120, lift), lerp(70, 34, lift), 31),
           C.scarlet,
           hand('cloth'),
-          { line: 2.5, torn: 2.5 },
+          { role: 'figure', line: 2.5, torn: 2.5 },
         ),
       );
     }
@@ -261,13 +263,24 @@ const blackMoment = (f: ExchangeFrame) => {
   // The last of the light, low behind the hill.
   glow(ctx, TOP, 420, 520, C.sunsetTop, 0.7);
   camera(ctx, WIDE, w, h, () => {
-    piece(ctx, HILL, C.night, hand('hillDark'), { line: 0, torn: 2, shadow: 0 });
+    piece(ctx, HILL, C.night, hand('hillDark'), {
+      role: 'scenery',
+      line: 0,
+      torn: 2,
+      shadow: 0,
+    });
     piece(ctx, GROUND, C.night, hand('groundDark'), {
+      role: 'scenery',
       line: 0,
       shadow: 0,
     });
-    piece(ctx, UPRIGHT, C.night, hand('upright'), { line: 0, shadow: 0 });
-    piece(ctx, BEAM, C.night, hand('beam'), { line: 0, shadow: 0 });
+    piece(ctx, UPRIGHT, C.night, hand('upright'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 0,
+      shadow: 0,
+    });
+    piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
     ctx.save();
     ctx.translate(TOP, NAILED);
     ctx.scale(1.2, 1.2);
@@ -285,29 +298,44 @@ const blackMoment = (f: ExchangeFrame) => {
 /** The garden tomb, open, the stone rolled back, and the clouds above it. */
 const tomb = (ctx: CanvasRenderingContext2D, hand: Hands) => {
   glow(ctx, 380, 900, 600, C.glow, 0.9);
-  piece(ctx, blob(1220, 900, 1250, 980, 7), C.boardLight, hand('rock'), { line: 4 });
+  piece(ctx, blob(1220, 900, 1250, 980, 7), C.boardLight, hand('rock'), {
+    role: 'scenery',
+    line: 4,
+  });
   piece(ctx, GROUND, C.board, hand('garden'), {
+    role: 'scenery',
     line: 0,
     torn: 4,
   });
-  piece(ctx, rounded(1090, 810, 250, 300, 110), C.boardDeep, hand('door'), { line: 4 });
+  piece(ctx, rounded(1090, 810, 250, 300, 110), C.boardDeep, hand('door'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 4,
+  });
   glow(ctx, 1090, 860, 220, C.glow, 0.55);
   for (const [x, y, wd, k] of CLOTHS)
-    piece(ctx, rounded(x, y, wd, 26, 10), C.robe, sub(hand('cloths'), k), { line: 2.5 });
+    piece(ctx, rounded(x, y, wd, 26, 10), C.robe, sub(hand('cloths'), k), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
   at(ctx, { x: 1440, y: 830, rot: 0.4 }, () => {
-    piece(ctx, STONE, C.board, hand('stone'), { line: 4 });
+    piece(ctx, STONE, C.board, hand('stone'), { role: 'scenery', line: 4 });
     piece(ctx, STONE_CORE, C.boardShade, hand('stoneCore'), {
+      role: 'scenery',
       line: 2,
       shadow: 0,
     });
   });
   for (const [x, k] of TUFTS)
     piece(ctx, blob(x, 950, 70, 40, 90 + k), C.tealMid, sub(hand('tuft'), k), {
+      role: 'scenery',
       line: 2.5,
     });
   // Clouds between earth and heaven.
   for (const [x, y, k] of CLOUDS)
     piece(ctx, blob(x, y, 260, 70, 120 + k), C.robe, sub(hand('cloud'), k), {
+      role: 'scenery',
       line: 3,
       alpha: 0.95,
     });

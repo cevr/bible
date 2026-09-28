@@ -126,6 +126,8 @@ export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
   ctx.save();
   ctx.globalAlpha *= plate;
   piece(ctx, STAMP_LABEL, mix(C.paper, C.cream, fill), hand('label'), {
+    role: 'scenery',
+    kind: 'cut',
     line: 0,
     torn: 3,
     shadow: 0.4,
@@ -256,11 +258,14 @@ export const landingCourt = (
             [1580, 2],
           ] as const)
             piece(ctx, rectShape(x, 80, 200, 800), C.boardLight, hand(`pillar${k}`), {
+              role: 'scenery',
+              kind: 'cut',
               line: 0,
               torn: 3,
               shadow: 0.3,
             });
           piece(ctx, rectShape(-400, 868, 2700, 400), C.boardShade, hand('floor'), {
+            role: 'scenery',
             line: 0,
             torn: 5,
             shadow: 0.25,
@@ -274,10 +279,13 @@ export const landingCourt = (
           contact(ctx, 1180, 860, 820);
           glow(ctx, 1180, 560, 700, C.glow, 0.9 * s.gold);
           at(ctx, { x: JUDGE[0], y: JUDGE[1] }, () => {
-            piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, hand('judgeRobe'));
+            piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, hand('judgeRobe'), { role: 'figure' });
             for (const x of [-9, 9])
-              piece(ctx, rounded(x, 88, 14, 30, 3), C.paper, hand(`band${x}`), { line: 2 });
-            piece(ctx, ellipseShape(0, 0, 60, 65), C.figure, hand('judgeHead'));
+              piece(ctx, rounded(x, 88, 14, 30, 3), C.paper, hand(`band${x}`), {
+                role: 'figure',
+                line: 2,
+              });
+            piece(ctx, ellipseShape(0, 0, 60, 65), C.figure, hand('judgeHead'), { role: 'figure' });
             ctx.fillStyle = C.outline;
             for (const x of [-22, 22]) {
               ctx.beginPath();
@@ -304,6 +312,8 @@ export const landingCourt = (
             );
           });
           piece(ctx, rectShape(860, 475, 640, 380), mix(C.board, C.gold, s.gold), hand('bench'), {
+            role: 'scenery',
+            kind: 'cut',
             torn: 2,
           });
           [980, 1180, 1380].forEach((x, i) => {
@@ -315,8 +325,15 @@ export const landingCourt = (
               hand(`panel${i}`),
             );
           });
-          piece(ctx, rounded(1180, 472, 690, 34, 6), C.boardDeep, hand('rim'));
-          piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, hand('block'), { line: 2 });
+          piece(ctx, rounded(1180, 472, 690, 34, 6), C.boardDeep, hand('rim'), {
+            role: 'scenery',
+            kind: 'cut',
+          });
+          piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, hand('block'), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 2,
+          });
           gavel(ctx, hand, { x: GAVEL[0], y: GAVEL[1], rot: s.swing }, true);
           if (s.stamp > 0.01) {
             BENCH_STAMP.fill = s.fill ?? 1;
@@ -386,7 +403,11 @@ const courtSun = (ctx: CanvasRenderingContext2D, hand: Hands, day: number | unde
   const x = lerp(SUN_FROM[0], SUN_TO[0], day);
   const y = lerp(SUN_FROM[1], SUN_TO[1], day) - SUN_RISE * Math.sin(Math.PI * day);
   glow(ctx, x, y, 120, C.glow, 0.8);
-  piece(ctx, ellipseShape(x, y, 34, 34), C.gold, hand('sun'), { line: 0, shadow: 0 });
+  piece(ctx, ellipseShape(x, y, 34, 34), C.gold, hand('sun'), {
+    role: 'scenery',
+    line: 0,
+    shadow: 0,
+  });
 };
 
 // ─── the heavenly court of Zech 3 ────────────────────────────────────────────
@@ -411,8 +432,15 @@ export const COURT_BENCH: Pt = [1600, 750];
  */
 export const court = (ctx: CanvasRenderingContext2D, hand: Hands, sun = 0) => {
   const [wx, wy] = COURT_WINDOW;
-  piece(ctx, rounded(wx, wy, 230, 260, 20), C.peachTop, hand('window'), { line: 5 });
-  piece(ctx, ellipseShape(wx, wy + 52 + 150 * sun, 39, 39), C.gold, hand('sun'), { line: 0 });
+  piece(ctx, rounded(wx, wy, 230, 260, 20), C.peachTop, hand('window'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 5,
+  });
+  piece(ctx, ellipseShape(wx, wy + 52 + 150 * sun, 39, 39), C.gold, hand('sun'), {
+    role: 'scenery',
+    line: 0,
+  });
   ctx.save();
   ctx.globalAlpha *= 0.33;
   ctx.fillStyle = C.glow;
@@ -428,13 +456,27 @@ export const court = (ctx: CanvasRenderingContext2D, hand: Hands, sun = 0) => {
     [1790, 35],
   ] as const)
     piece(ctx, rectShape(x - 65, 60, 130, 1000), C.board, sub(hand('pillar'), k), {
+      role: 'scenery',
+      kind: 'cut',
       line: 0,
       torn: 3,
     });
-  piece(ctx, rectShape(-40, 935, 2000, 160), C.boardShade, hand('floor'), { line: 0, torn: 4 });
+  piece(ctx, rectShape(-40, 935, 2000, 160), C.boardShade, hand('floor'), {
+    role: 'scenery',
+    line: 0,
+    torn: 4,
+  });
   const [bx, by] = COURT_BENCH;
-  piece(ctx, rectShape(bx - 240, by, 480, 200), C.board, hand('bench'), { line: 4 });
-  piece(ctx, rectShape(bx - 260, by - 27, 520, 34), C.boardDeep, hand('benchTop'), { line: 4 });
+  piece(ctx, rectShape(bx - 240, by, 480, 200), C.board, hand('bench'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 4,
+  });
+  piece(ctx, rectShape(bx - 260, by - 27, 520, 34), C.boardDeep, hand('benchTop'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 4,
+  });
 };
 
 /**
@@ -455,11 +497,14 @@ export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) =
     ],
     shadow,
     hand('accuserBody'),
-    { line: 4 },
+    { role: 'figure', line: 4 },
   );
   // Hanging at his left side, or swung from the near shoulder to point ahead.
   at(ctx, { x: -62 + 102 * point, y: -345, rot: 0.12 - 1.72 * point }, () =>
-    piece(ctx, rounded(0, 95, 26, 190, 12), shadow, hand('accuserArm'), { line: 3.5 }),
+    piece(ctx, rounded(0, 95, 26, 190, 12), shadow, hand('accuserArm'), {
+      role: 'figure',
+      line: 3.5,
+    }),
   );
   at(ctx, { x: 0, y: -420 }, () => {
     piece(
@@ -473,7 +518,7 @@ export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) =
       ],
       shadow,
       hand('accuserHead'),
-      { line: 4 },
+      { role: 'figure', line: 4 },
     );
     ctx.fillStyle = C.outline;
     for (const x of [-14, 16]) {
@@ -595,6 +640,7 @@ const zechJoshua = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) =>
     person(ctx, { ...s.joshua, onHead: turban }, hand('joshua'));
     SPECKS.forEach((speck, i) =>
       piece(ctx, speck, C.scarlet, sub(hand('speck'), i), {
+        role: 'figure',
         line: 0,
         shadow: 0.1,
         alpha: s.specks,
@@ -602,6 +648,7 @@ const zechJoshua = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) =>
     );
     const [cx, cy] = CHEEK;
     piece(ctx, blob(cx, cy + s.cheek.dy, 6, 5, 11), C.scarlet, hand('cheek'), {
+      role: 'figure',
       line: 0,
       shadow: 0.1,
       alpha: s.cheek.alpha,
@@ -639,7 +686,7 @@ const zechHelper = (
 
 /** The filthy tunic in Joshua's units; `flare` 0..1 per stain lights it scarlet. */
 export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: number) => number) => {
-  piece(ctx, TUNIC, C.boardShade, hand('tunic'), { torn: 2.5, line: 2 });
+  piece(ctx, TUNIC, C.boardShade, hand('tunic'), { role: 'figure', torn: 2.5, line: 2 });
   TUNIC_STAINS.forEach((stain, i) => {
     const lit = flare(i);
     if (lit > 0) {
@@ -647,6 +694,7 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
       glow(ctx, sx + 10, sy, 36, C.scarlet, 0.6 * lit);
     }
     piece(ctx, stain, i % 2 === 0 ? C.scarlet : C.scarletShade, sub(hand('stain'), i), {
+      role: 'figure',
       line: 0,
       torn: 3,
       shadow: 0.1,
@@ -662,9 +710,9 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
  */
 export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, place: Place, held = false) =>
   at(ctx, place, () => {
-    piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { line: 2 });
-    piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { line: 2.5 });
-    if (held) piece(ctx, GAVEL_HAND, C.figure, hand('gavelHand'), { line: 2.5 });
+    piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { role: 'figure', line: 2 });
+    piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { role: 'figure', line: 2.5 });
+    if (held) piece(ctx, GAVEL_HAND, C.figure, hand('gavelHand'), { role: 'figure', line: 2.5 });
   });
 const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
 const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);

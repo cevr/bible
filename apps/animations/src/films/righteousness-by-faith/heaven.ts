@@ -33,6 +33,7 @@ export const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Ha
   christ(ctx, pose, hand);
   if (plate <= 0) return;
   piece(ctx, rounded(0, -88, 40, 44, 5), C.gold, hand('breastplate'), {
+    role: 'figure',
     line: 2.5,
     alpha: plate,
   });
@@ -77,17 +78,44 @@ export const sanctuary = (
 ) => {
   glow(ctx, 0, -280, 900, C.glow, 0.55 + 0.45 * light);
   // The walls and roof, and the rooms' warm insides.
-  piece(ctx, rounded(0, -300, 1160, 600, 24), C.gold, hand('walls'), { line: 5, shadow: 0.4 });
-  piece(ctx, rounded(0, -620, 1220, 60, 16), C.gold, hand('roof'), { line: 5 });
-  piece(ctx, rounded(-200, -265, 620, 510, 10), C.cream, hand('holy'), { line: 4, shadow: 0 });
-  piece(ctx, rounded(345, -265, 390, 510, 10), C.glow, hand('mostHoly'), { line: 4, shadow: 0 });
+  piece(ctx, rounded(0, -300, 1160, 600, 24), C.gold, hand('walls'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 5,
+    shadow: 0.4,
+  });
+  piece(ctx, rounded(0, -620, 1220, 60, 16), C.gold, hand('roof'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 5,
+  });
+  piece(ctx, rounded(-200, -265, 620, 510, 10), C.cream, hand('holy'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 4,
+    shadow: 0,
+  });
+  piece(ctx, rounded(345, -265, 390, 510, 10), C.glow, hand('mostHoly'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 4,
+    shadow: 0,
+  });
   // The glory between the cherubim.
   glow(ctx, 400, -250, 260, C.robe, 0.5 + 0.5 * light);
 
   // The holy place: the lampstand, the table with its bread.
   at(ctx, { x: -420, y: 0 }, () => {
-    piece(ctx, rounded(0, -130, 12, 260, 4), C.gold, hand('stem'), { line: 2.5 });
-    piece(ctx, rounded(0, -4, 70, 12, 4), C.gold, hand('foot'), { line: 2.5 });
+    piece(ctx, rounded(0, -130, 12, 260, 4), C.gold, hand('stem'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
+    piece(ctx, rounded(0, -4, 70, 12, 4), C.gold, hand('foot'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
     for (const [i, r] of [
       [1, 30],
       [2, 58],
@@ -101,13 +129,24 @@ export const sanctuary = (
       );
     for (const x of [-86, -58, -30, 0, 30, 58, 86]) {
       glow(ctx, x, -268, 26, C.glow, 0.9);
-      piece(ctx, ellipseShape(x, -264, 6, 10, 14), C.glow, sub(hand('flame'), x), { line: 1.5 });
+      piece(ctx, ellipseShape(x, -264, 6, 10, 14), C.glow, sub(hand('flame'), x), {
+        role: 'scenery',
+        line: 1.5,
+      });
     }
   });
   at(ctx, { x: -230, y: 0 }, () => {
-    piece(ctx, rounded(0, -110, 150, 16, 4), C.gold, hand('table'), { line: 2.5 });
+    piece(ctx, rounded(0, -110, 150, 16, 4), C.gold, hand('table'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
     for (const x of [-60, 60])
-      piece(ctx, rounded(x, -52, 12, 104, 3), C.gold, sub(hand('leg'), x), { line: 2 });
+      piece(ctx, rounded(x, -52, 12, 104, 3), C.gold, sub(hand('leg'), x), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 2,
+      });
     for (const [x, k] of [
       [-36, 1],
       [36, 2],
@@ -119,6 +158,8 @@ export const sanctuary = (
           C.boardLight,
           sub(hand('bread'), k * 10 + i),
           {
+            role: 'scenery',
+            kind: 'cut',
             line: 2,
             shadow: 0.1,
           },
@@ -129,8 +170,16 @@ export const sanctuary = (
 
   // The altar of incense, before the veil, and its smoke.
   at(ctx, { x: 40, y: 0 }, () => {
-    piece(ctx, rounded(0, -60, 64, 120, 6), C.gold, hand('altar'), { line: 2.5 });
-    piece(ctx, rounded(0, -124, 80, 12, 4), C.gold, hand('altarTop'), { line: 2.5 });
+    piece(ctx, rounded(0, -60, 64, 120, 6), C.gold, hand('altar'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
+    piece(ctx, rounded(0, -124, 80, 12, 4), C.gold, hand('altarTop'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 2.5,
+    });
     stroke(
       ctx,
       quad([0, -134], [-30, -190], [8, -240]),
@@ -141,8 +190,16 @@ export const sanctuary = (
 
   // The ark, and the two cherubim over it.
   at(ctx, { x: 420, y: 0 }, () => {
-    piece(ctx, rounded(0, -45, 150, 90, 8), C.gold, hand('ark'), { line: 3 });
-    piece(ctx, rounded(0, -96, 170, 14, 4), C.gold, hand('mercySeat'), { line: 3 });
+    piece(ctx, rounded(0, -45, 150, 90, 8), C.gold, hand('ark'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+    });
+    piece(ctx, rounded(0, -96, 170, 14, 4), C.gold, hand('mercySeat'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+    });
     for (const side of [-1, 1] as const)
       piece(
         ctx,
@@ -153,14 +210,18 @@ export const sanctuary = (
         ],
         C.gold,
         sub(hand('wing'), side),
-        { line: 2.5 },
+        { role: 'scenery', kind: 'cut', line: 2.5 },
       );
   });
 
   // The veil: a hanging of fine linen, drawn up into its folds as it opens.
   const drop = 510 * (1 - 0.88 * veil);
   const top = -520;
-  piece(ctx, rounded(VEIL_X, top + drop / 2, 46, drop, 6), C.robe, hand('veil'), { line: 3 });
+  piece(ctx, rounded(VEIL_X, top + drop / 2, 46, drop, 6), C.robe, hand('veil'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 3,
+  });
   for (const x of [-10, 8])
     stroke(
       ctx,
@@ -168,7 +229,11 @@ export const sanctuary = (
       { color: C.paperTone, width: 2, jitter: 0.4 },
       sub(hand('fold'), x),
     );
-  piece(ctx, rounded(VEIL_X, top, 60, 14, 4), C.gold, hand('rod'), { line: 2.5 });
+  piece(ctx, rounded(VEIL_X, top, 60, 14, 4), C.gold, hand('rod'), {
+    role: 'scenery',
+    kind: 'cut',
+    line: 2.5,
+  });
 };
 
 /**
@@ -231,7 +296,7 @@ export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number) 
         ),
         C.cream,
         sub(hand('wing'), side),
-        { line: 3.5 },
+        { role: 'figure', line: 3.5 },
       ),
     );
   wing(-1);
@@ -263,9 +328,16 @@ export const BANNER = 'the commandments of God, and the faith of Jesus';
 export const herald = (ctx: CanvasRenderingContext2D, hand: Hands, t: number, written: number) => {
   at(ctx, { x: -800, y: -150 + Math.sin(t * 3) * 6, rot: 0.01 * Math.sin(t * 2) }, () => {
     const banner = plate(0, 0, 1220, 110);
-    piece(ctx, banner, C.cream, hand('banner'), { line: 3.5, torn: 2 });
+    piece(ctx, banner, C.cream, hand('banner'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3.5,
+      torn: 2,
+    });
     for (const side of [-1, 1] as const)
       piece(ctx, rounded(side * 628, 0, 36, 96, 6), C.gold, sub(hand('bannerEnd'), side), {
+        role: 'scenery',
+        kind: 'cut',
         line: 3,
       });
     if (written <= 0) return;

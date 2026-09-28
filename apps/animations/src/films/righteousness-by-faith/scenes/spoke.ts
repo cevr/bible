@@ -85,19 +85,27 @@ export const spoke = drawing({
             () => {
               // Closed: a cover. Open: two pages, the right one the dark of the beginning.
               piece(ctx, rounded(0, 0, lerp(230, 460, open), 300, 12), C.boardDeep, hand('cover'), {
+                role: 'scenery',
+                kind: 'cut',
                 line: 4,
               });
               if (open < 0.5)
                 piece(ctx, rounded(0, 0, 150, 200, 8), C.gold, hand('clasp'), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 3,
                   alpha: 1 - open * 2,
                 });
               else {
                 const k = (open - 0.5) * 2;
                 piece(ctx, rectShape(-210, -135, 200 * k, 270), C.cream, hand('left'), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 2.5,
                 });
                 piece(ctx, rectShape(10, -135, 200 * k, 270), C.night, hand('right'), {
+                  role: 'scenery',
+                  kind: 'cut',
                   line: 2.5,
                 });
                 for (let i = 0; i < 5; i++)
@@ -107,6 +115,8 @@ export const spoke = drawing({
                     C.inkSoft,
                     sub(hand('text'), i),
                     {
+                      role: 'scenery',
+                      kind: 'ink',
                       line: 0,
                       shadow: 0,
                     },

@@ -138,7 +138,12 @@ const card = (f: WordFrame) => {
     ctx.save();
     ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(flip * Math.PI))));
     const board = plate(0, 0, 820, 210);
-    piece(ctx, board, C.cream, f.hand('card'), { line: 4, torn: 2 });
+    piece(ctx, board, C.cream, f.hand('card'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 4,
+      torn: 2,
+    });
     probePlate(ctx, board, () =>
       write(
         ctx,
@@ -168,7 +173,12 @@ const tape = (f: WordFrame) => {
   if (len <= 4) return;
   const sway = Math.sin(f.t * 1.6) * 0.02;
   at(ctx, { x, y: -30, rot: sway }, () => {
-    piece(ctx, rounded(0, len / 2, 70, len, 4), C.gold, f.hand('tape'), { line: 3, shadow: 0.3 });
+    piece(ctx, rounded(0, len / 2, 70, len, 4), C.gold, f.hand('tape'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+      shadow: 0.3,
+    });
     for (let yy = 30; yy < len - 10; yy += 30) {
       const long = yy % 150 === 0;
       stroke(
@@ -178,7 +188,11 @@ const tape = (f: WordFrame) => {
         sub(f.hand('tick'), yy),
       );
     }
-    piece(ctx, rounded(0, len + 8, 84, 22, 4), C.boardDeep, f.hand('tapeEnd'), { line: 3 });
+    piece(ctx, rounded(0, len + 8, 84, 22, 4), C.boardDeep, f.hand('tapeEnd'), {
+      role: 'scenery',
+      kind: 'cut',
+      line: 3,
+    });
   });
 };
 

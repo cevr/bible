@@ -153,7 +153,7 @@ const circle = (f: WithinFrame, chest: Pt) => {
       ellipseShape(cx + sx * r, cy + sy * r, sr, sr),
       i % 2 === 0 ? C.gold : C.inkSoft,
       sub(hand('world'), i),
-      { line: 2, alpha: 1 - shrink },
+      { role: 'scenery', line: 2, alpha: 1 - shrink },
     ),
   );
   ctx.restore();
@@ -262,6 +262,8 @@ const panel = (f: WithinFrame, aside: number) => {
   const swap = f.at('swap');
   at(ctx, { x: PANEL[0] + (1 - aside) * 900, y: PANEL[1] }, () => {
     piece(ctx, rounded(0, 0, PANEL_W, PANEL_H, 24), C.cream, hand('panel'), {
+      role: 'scenery',
+      kind: 'cut',
       line: 4,
       torn: 1,
     });
@@ -272,13 +274,23 @@ const panel = (f: WithinFrame, aside: number) => {
     if (swap < 1) {
       const book = f.at('book');
       at(ctx, { x: -swap * 900, y: 20, scale: book, rot: -0.06 }, () => {
-        piece(ctx, rounded(0, 0, 420, 300, 14), C.boardDeep, hand('cover'), { line: 4 });
+        piece(ctx, rounded(0, 0, 420, 300, 14), C.boardDeep, hand('cover'), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 4,
+        });
         piece(ctx, rounded(8, 0, 380, 264, 8), C.inkSoft, hand('coverInset'), {
+          role: 'scenery',
+          kind: 'cut',
           line: 0,
         });
         // The ribbon tied across it.
-        piece(ctx, RIBBON, C.gold, hand('ribbon'), { line: 3 });
-        piece(ctx, blob(-20, -8, 90, 60, 9), C.gold, hand('bow'), { line: 3 });
+        piece(ctx, RIBBON, C.gold, hand('ribbon'), { role: 'scenery', kind: 'cut', line: 3 });
+        piece(ctx, blob(-20, -8, 90, 60, 9), C.gold, hand('bow'), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 3,
+        });
       });
     }
     if (swap > 0) at(ctx, { x: (1 - swap) * 900, y: 0 }, () => path(f));
@@ -291,6 +303,7 @@ const path = (f: WithinFrame) => {
   const { ctx } = f;
   const { hand } = f;
   piece(ctx, PATH_HILL, C.leaf, hand('hill'), {
+    role: 'scenery',
     line: 0,
     shadow: 0.2,
   });
@@ -316,7 +329,7 @@ const path = (f: WithinFrame) => {
         ellipseShape(0, -34, 14, 14),
         i % 3 === 0 ? C.gold : C.robe,
         sub(hand('flower'), i),
-        { line: 2 },
+        { role: 'scenery', line: 2 },
       );
     });
   }
