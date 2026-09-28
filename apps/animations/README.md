@@ -140,7 +140,7 @@ newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, ne
 over a change made since. One write is out at a time: a drag or a field set while one
 is in flight is not taken. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
-0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range (setting B after A plays from A; a B before A waits for a new one).
+0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range (setting B after A plays from A; a B before A waits for a new one). A film with no mixed `full.wav` yet plays on its own clock and the time line says `no narration`; a browser that holds the narration until a click says `narration waits for a click`, and the next play tries again.
 Compare draws the same frame as HEAD declared the scene's timeline and
 knobs: wipe (HEAD left of a divider you drag) or blink; when HEAD cannot give the scene, the section says the server's reason. Speed, loop, onion,
 compare and play are kept through the reload a write causes (the tab's

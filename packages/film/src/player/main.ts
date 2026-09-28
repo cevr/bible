@@ -13,6 +13,7 @@ import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { narration, narrationNote } from './narration.ts';
 import { labUrl } from './pages.ts';
 import { tInUrl } from './t-in-url.ts';
 import { hashFrames, timeFrames } from './timing.ts';
@@ -295,7 +296,9 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     tip.hidden = true;
   });
 
-  const audio = film.audio === undefined ? undefined : new Audio(film.audio);
+  // The narration says what it can play once it knows (a missing master, a
+  // play refused until a click), and the time line says it.
+  const voice = narration(film.audio, undefined, () => draw());
   const fromHash = Number.parseFloat(location.hash.slice(1));
   let T = Number.isFinite(fromHash) ? Math.min(fromHash, film.duration) : 0;
   let playing = false;
@@ -303,8 +306,6 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
   let tStart = 0;
   let rate = 1;
   let loop: LoopRange | undefined;
-  /** The narration follows the clock only at 1×. */
-  const audible = () => audio !== undefined && rate === 1;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
   /**
@@ -328,7 +329,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
     const shownLoop =
       loop === undefined ? '' : ` · loop ${loop.from.toFixed(2)}–${loop.to.toFixed(2)}`;
-    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}${shownRate}${shownLoop}`;
+    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
@@ -340,7 +341,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     T = Math.max(0, Math.min(film.duration, t));
     tStart = T;
     wallStart = performance.now();
-    if (audio !== undefined) audio.currentTime = T;
+    voice.seek(T);
     draw();
   };
 
@@ -350,14 +351,17 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     url.settled();
   };
 
-  /** Restart the clock at `T`, and the narration with it when it is audible. */
+  /**
+   * Restart the clock at `T`, and the narration with it at 1× (it follows the
+   * clock only there; any other rate mutes it). A narration that cannot play
+   * is not asked to (`narration.ts`).
+   */
   const rebase = () => {
     tStart = T;
     wallStart = performance.now();
-    if (audio === undefined) return;
-    audio.currentTime = T;
-    if (playing && audible()) void audio.play();
-    else audio.pause();
+    voice.seek(T);
+    if (playing && rate === 1) voice.play();
+    else voice.pause();
   };
 
   const toggle = () => {
@@ -371,16 +375,15 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
   const tick = () => {
     if (!playing) return;
     T =
-      audible() && audio !== undefined && !audio.paused
-        ? audio.currentTime
-        : tStart + ((performance.now() - wallStart) / 1000) * rate;
+      (rate === 1 ? voice.playingAt() : undefined) ??
+      tStart + ((performance.now() - wallStart) / 1000) * rate;
     if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
       T = loop.from;
       rebase();
     } else if (T >= film.duration) {
       T = film.duration;
       playing = false;
-      audio?.pause();
+      voice.pause();
     }
     draw();
     if (!playing) url.settled();
