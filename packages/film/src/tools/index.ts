@@ -27,3 +27,5 @@ export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
 export * from './static-check.ts';
+export * from './takes.ts';
+export * from './studio.ts';

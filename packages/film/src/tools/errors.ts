@@ -67,7 +67,11 @@ export class SoundMissing extends Schema.TaggedError<SoundMissing>()('SoundMissi
   }
 }
 
-/** A take that does not say its script: the transcript is too far from the text. */
+/**
+ * A take that does not say its script: the transcript is too far from the
+ * text. Its message says what was heard, not how to accept it: the command
+ * line and the studio's panel each add their own way.
+ */
 export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismatch', {
   id: Schema.String,
   script: Schema.String,
@@ -75,7 +79,7 @@ export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismat
   wer: Schema.Finite,
 }) {
   override get message() {
-    return `take ${this.id} says something else (wer ${(this.wer * 100).toFixed(1)}%)\n  script: ${this.script}\n  heard:  ${this.heard}\nre-record it with --only ${this.id}, or keep it with --accept-mismatch`;
+    return `take ${this.id} says something else (wer ${(this.wer * 100).toFixed(1)}%)\n  script: ${this.script}\n  heard:  ${this.heard}`;
   }
 }
 

@@ -7,6 +7,29 @@
 import { Schema } from 'effect';
 import { TakeSource, Timings, VoiceTiming } from './schema.ts';
 
+/**
+ * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
+ * about six minutes of 48 kHz 24-bit mono (a beat's line runs seconds). The
+ * page derives the longest take it may record from it.
+ */
+export const STUDIO_MAX_BODY = 64 * 1024 * 1024;
+
+/**
+ * How long the page waits for an import (a take made, heard, kept and the
+ * track remixed) before it stops waiting and reads the beat's attempts to
+ * learn what became of it. Measured through the studio harness, an import
+ * with its speech-to-text faked takes 5 to 7 s (a 2 s and a 60 s take); the
+ * real transcriber adds its own time, longest for the longest take.
+ */
+export const STUDIO_IMPORT_WAIT_S = 210;
+
+/**
+ * How long the server keeps a take's connection open with nothing sent: past
+ * the page's wait, so the page is the one that stops waiting, never the
+ * socket (Bun's idle limit is 255 s at most).
+ */
+export const STUDIO_IMPORT_IDLE_S = 240;
+
 /** A stretch of a beat on the sheet: words to read (and who reads them), or a quotation. */
 export const StudioPart = Schema.Union([
   Schema.Struct({

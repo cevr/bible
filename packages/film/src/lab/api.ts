@@ -131,7 +131,7 @@ const Empty = {};
  * `HttpClient`, every answer decoded by its schema. Writes are same-origin
  * JSON, as the server admits them.
  */
-const labClient = Effect.fn('lab.api.client')(function* (origin: string, base: string) {
+export const labClient = Effect.fn('lab.api.client')(function* (origin: string, base: string) {
   const client = (yield* HttpClient.HttpClient).pipe(
     HttpClient.mapRequest(HttpClientRequest.prependUrl(`${origin}${base}`)),
   );

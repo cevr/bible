@@ -3,8 +3,9 @@
 // stays bare.
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
-import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
+import { Cause, Option, Result } from 'effect';
+import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
+import { TakeMismatch, UnknownScene } from './errors.ts';
 
 const known = ['a', 'b', 'c'];
 const only = (...ids: ReadonlyArray<string>) => Option.some(new Set(ids));
@@ -62,5 +63,33 @@ describe('bareAcceptMismatch', () => {
     expect(bareAcceptMismatch(named)).toEqual(named);
     const inline = ['narrate', 'f', '--accept-mismatch=a'];
     expect(bareAcceptMismatch(inline)).toEqual(inline);
+  });
+});
+
+describe('a mismatch on the command line', () => {
+  const mismatch = TakeMismatch.make({
+    id: 'b',
+    script: 'The second line.',
+    heard: 'The second lie of the night.',
+    wer: 0.5,
+  });
+  const said =
+    'take b says something else (wer 50.0%)\n  script: The second line.\n  heard:  The second lie of the night.';
+
+  test('the failure says what was heard, and not how the command line accepts it (the panel says its own)', () => {
+    expect(mismatch.message).toBe(said);
+  });
+
+  test('the command line adds its own way to accept it, and prints as it always has', () => {
+    const shown = atTheCommandLine(mismatch);
+    expect(shown._tag).toBe('TakeMismatch');
+    expect(shown.message).toBe(
+      `${said}\nre-record it with --only b, or keep it with --accept-mismatch`,
+    );
+    expect(Cause.pretty(Cause.fail(shown))).toContain(
+      'TakeMismatch: take b says something else (wer 50.0%)',
+    );
+    const other = UnknownScene.make({ scene: 'x', known: ['a'] });
+    expect(atTheCommandLine(other)).toBe(other);
   });
 });
