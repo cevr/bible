@@ -14,6 +14,7 @@ import {
   write,
   sub,
 } from '@bible/film/canvas';
+import { lerp } from '@bible/film/core';
 import {
   C,
   F,
@@ -169,6 +170,39 @@ export const sanctuary = (
     );
   piece(ctx, rounded(VEIL_X, top, 60, 14, 4), C.gold, hand('rod'), { line: 2.5 });
 };
+
+/**
+ * Christ as high priest standing at `spot` in the sanctuary's units: `raised`
+ * 0..1 lifts his hands in pleading, `plate` 0..1 shows the breastplate.
+ */
+export const priestAt = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  spot: Pt,
+  raised: number,
+  plate: number,
+) =>
+  at(ctx, { x: spot[0], y: spot[1], scale: IN_SANCTUARY }, () =>
+    highPriest(
+      ctx,
+      {
+        look: [3, -1 - 2 * raised],
+        browTilt: 0.3 + 0.2 * raised,
+        handL: [lerp(-30, -72, raised), lerp(-58, -196, raised)],
+        handR: [lerp(30, 72, raised), lerp(-58, -196, raised)],
+      },
+      hand,
+      plate,
+    ),
+  );
+
+/**
+ * The ministry now: the sanctuary with the veil drawn up and Christ pleading
+ * before the ark in the most holy place, where `exchange` leaves him and
+ * `rain` looks up to him. `light` 0..1 brightens its glory.
+ */
+export const ministry = (ctx: CanvasRenderingContext2D, hand: Hands, light: number) =>
+  sanctuary(ctx, hand, 1, light, () => priestAt(ctx, hand, MOST_HOLY, 1, 1));
 
 // ─── the angel of Rev 14 ─────────────────────────────────────────────────────
 

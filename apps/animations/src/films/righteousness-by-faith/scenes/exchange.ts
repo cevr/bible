@@ -35,7 +35,7 @@ import {
   between,
 } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
-import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, highPriest, sanctuary } from '../heaven.ts';
+import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, priestAt, sanctuary } from '../heaven.ts';
 
 /** The whole hill; close on both faces; up in heaven at the sanctuary. */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
@@ -299,19 +299,7 @@ export const exchange = drawing({
             if (alpha <= 0) return;
             ctx.save();
             ctx.globalAlpha *= alpha;
-            at(ctx, { x: spot[0], y: spot[1], scale: IN_SANCTUARY }, () =>
-              highPriest(
-                ctx,
-                {
-                  look: [3, -1 - 2 * raised],
-                  browTilt: 0.3 + 0.2 * raised,
-                  handL: [lerp(-30, -72, raised), lerp(-58, -196, raised)],
-                  handR: [lerp(30, 72, raised), lerp(-58, -196, raised)],
-                },
-                hand,
-                f.at('robed'),
-              ),
-            );
+            priestAt(ctx, hand, spot, raised, f.at('robed'));
             ctx.restore();
           };
           const arrived = ascend >= 1;
