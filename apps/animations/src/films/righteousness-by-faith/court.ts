@@ -18,7 +18,7 @@ import {
   write,
   sub,
 } from '@bible/film/canvas';
-import { type Key, lerp } from '@bible/film/core';
+import { type Key, clamp, lerp } from '@bible/film/core';
 import {
   C,
   F,
@@ -65,6 +65,92 @@ export const STAMP_POP: ReadonlyArray<Key> = [
   [1, 1, 'inOutCubic'],
 ];
 
+// ─── the verdict stamp ──────────────────────────────────────────────────────
+// One motif across three scenes, the same shape and scale each time: stamped
+// solid across the bench in `cold` and drained there to a hollow outline (a
+// verdict with nothing behind it); filled solid and sunk into the figure's
+// chest in `declared`; hung hollow above the bench and landed solid in `name`.
+
+/** Where the verdict stamps across the cold open's bench, and its tilt there (`cold`, `name`). */
+export const STAMP_AT: Pt = [1180, 672];
+export const STAMP_TILT = -0.07;
+/** Where it hangs hollow above the bench before it lands (`name`). */
+export const STAMP_HUNG: Pt = [1180, 212];
+/** The torn label about its centre, and the gold edge a hollow one keeps, drawn just outside it. */
+const STAMP_LABEL = rectShape(-250, -78, 500, 118);
+const STAMP_EDGE: Pt[] = [...rectShape(-262, -90, 524, 142), [-262, -90]];
+const STAMP_WORD = {
+  family: F.display,
+  size: 100,
+  weight: 700,
+  color: C.gold,
+  align: 'center',
+} as const;
+/** The hollow label's opacity: pale paper that lets what is behind it faintly through. */
+const HOLLOW_PLATE = 0.75;
+
+export interface Stamp {
+  /** How far the gold stands in the letters from their foot: 0 hollow (outlines on pale paper), 1 solid (gold on cream). */
+  readonly fill: number;
+  /** 0 gone to 1 shown: the label comes first and goes last, so the letters only ever sit on a whole label. */
+  readonly shown: number;
+}
+
+/**
+ * The verdict, centred on the origin at the court's scale: a torn label with
+ * "Righteous" on it. Solid, gold letters on cream; hollow, gold outlines on
+ * pale paper inside a gold edge; between, the gold stands in the letters up to
+ * `fill`. The caller places it (`STAMP_AT`, `STAMP_HUNG`, or on the figure).
+ */
+export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
+  const fill = clamp(s.fill);
+  const plate = clamp(2 * s.shown) * lerp(HOLLOW_PLATE, 1, fill);
+  if (plate <= 0.01) return;
+  const hollow = 1 - fill;
+  ctx.save();
+  ctx.globalAlpha *= plate;
+  piece(ctx, STAMP_LABEL, mix(C.paper, C.cream, fill), hand('label'), {
+    line: 0,
+    torn: 3,
+    shadow: 0.4,
+  });
+  if (hollow > 0.01)
+    stroke(
+      ctx,
+      STAMP_EDGE,
+      { color: C.gold, width: 4, jitter: 0.5, taper: 0, alpha: hollow },
+      hand('labelEdge'),
+    );
+  probePlate(ctx, STAMP_LABEL, () =>
+    write(ctx, 'Righteous', 0, 12, STAMP_WORD, hand('stamp'), {
+      boil: 0.4,
+      alpha: clamp(2 * s.shown - 1),
+      fill,
+      outline: hollow > 0 ? 3 : 0,
+    }),
+  );
+  ctx.restore();
+};
+
+/** The stamp across the bench at `pop` scale, or hung above it as `hung` goes to 1 (the court's layer). */
+export const benchStamp = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  s: Stamp,
+  pop: number,
+  hung = 0,
+) =>
+  at(
+    ctx,
+    {
+      x: lerp(STAMP_AT[0], STAMP_HUNG[0], hung),
+      y: lerp(STAMP_AT[1], STAMP_HUNG[1], hung),
+      rot: STAMP_TILT * (1 - hung),
+      scale: pop,
+    },
+    () => stamp(ctx, hand, s),
+  );
+
 /** Job's question, where the cold open wrote it: the only words on screen (`cold`, `name`, `thesis`). */
 const QUESTION = 'How should man be just with God?';
 const QUESTION_AT: Pt = [960, 205];
@@ -86,7 +172,8 @@ export const question = (ctx: CanvasRenderingContext2D, hand: Hand, opts: WriteO
 // beside them as Advocate.
 
 /** Christ as Advocate at the landing (`name`, `thesis`): his brows and hands; the scene gives his turn and look. */
-export const ADVOCATE_POSE: Person = { browTilt: 0.15, handL: [-86, -104], handR: [30, -58] };
+export const ADVOCATE_HAND: Pt = [-86, -104];
+export const ADVOCATE_POSE: Person = { browTilt: 0.15, handL: ADVOCATE_HAND, handR: [30, -58] };
 
 /**
  * The figure as the verdict lands: turned to the Advocate, smiling. `name`
@@ -107,6 +194,13 @@ export interface Court {
   /** The verdict label: 0 gone, 1 stamped; `pop` its scale. */
   readonly stamp: number;
   readonly pop: number;
+  /** The stamp's gold (`Stamp.fill`; solid unless given), and 0 on the bench to 1 hung above it. */
+  readonly fill?: number;
+  readonly hung?: number;
+  /** A warm light in the figure's chest, through the robe (the robe's `shine` lights it too). */
+  readonly heart?: number;
+  /** A sun's pass over the court, 0 rising behind the left pillar to 1 set behind the bench; none outside 0..1. */
+  readonly sun?: number;
   /** The bench's gold: 0 cardboard, 1 glowing. */
   readonly gold: number;
   /** The robe's own glow. */
@@ -129,9 +223,10 @@ export const landingCourt = (
     h,
     [
       {
-        // The court's pillars and floor, in chipboard.
+        // A sun passing behind the court, then its pillars and floor, in chipboard.
         z: 1.35,
         draw: () => {
+          courtSun(ctx, hand, s.sun);
           for (const [x, k] of [
             [300, 1],
             [1580, 2],
@@ -206,24 +301,7 @@ export const landingCourt = (
             piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, hand('gavelHand'), { line: 2.5 });
           });
           if (s.stamp > 0.01)
-            at(ctx, { x: 1180, y: 672, rot: -0.07, scale: s.pop }, () => {
-              ctx.save();
-              ctx.globalAlpha *= Math.min(1, s.stamp);
-              const label = rectShape(-250, -78, 500, 118);
-              piece(ctx, label, C.cream, hand('label'), { line: 0, torn: 3, shadow: 0.4 });
-              probePlate(ctx, label, () =>
-                write(
-                  ctx,
-                  'Righteous',
-                  0,
-                  12,
-                  { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
-                  hand('stamp'),
-                  { boil: 0.4 },
-                ),
-              );
-              ctx.restore();
-            });
+            benchStamp(ctx, hand, { fill: s.fill ?? 1, shown: s.stamp }, s.pop, s.hung ?? 0);
         },
       },
       {
@@ -245,11 +323,34 @@ export const landingCourt = (
               hand('figure'),
             ),
           );
+          // The light inside answers through the robe, not only on it.
+          const inner = Math.max(s.heart ?? 0, s.shine);
+          if (inner > 0) {
+            const [cx, cy] = HEART_IN;
+            glow(ctx, cx, cy, 70, C.glow, 0.9 * inner);
+            glow(ctx, cx, cy, 30, C.gold, 0.7 * inner);
+          }
         },
       },
     ],
     { rest: [REST.x, REST.y], haze: C.tealLow, thickness: 0.4 },
   );
+
+/** Where the figure's heart glows through the robe at the landing, in frame units. */
+const HEART_IN: Pt = [ACCUSED[0] + 4, ACCUSED[1] - 84];
+/** The sun's pass behind the court, on the pillars' plane: rising behind the left pillar, its height, set behind the bench. */
+const SUN_FROM: Pt = [470, 600];
+const SUN_TO: Pt = [990, 600];
+const SUN_RISE = 150;
+
+/** A low sun's day over the court: `day` 0..1 along its arc, none outside it. */
+const courtSun = (ctx: CanvasRenderingContext2D, hand: Hands, day: number | undefined) => {
+  if (day === undefined || day <= 0 || day >= 1) return;
+  const x = lerp(SUN_FROM[0], SUN_TO[0], day);
+  const y = lerp(SUN_FROM[1], SUN_TO[1], day) - SUN_RISE * Math.sin(Math.PI * day);
+  glow(ctx, x, y, 120, C.glow, 0.8);
+  piece(ctx, ellipseShape(x, y, 34, 34), C.gold, hand('sun'), { line: 0, shadow: 0 });
+};
 
 // ─── the heavenly court of Zech 3 ────────────────────────────────────────────
 

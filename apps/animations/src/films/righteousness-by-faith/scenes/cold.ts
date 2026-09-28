@@ -3,8 +3,11 @@
 // up beside them), the bench and the judge on the sheet behind, a faint wall
 // behind that. The gavel falls on "righteous" and the verdict stamps across
 // the bench; on "wait" the camera pushes in to the accused's face, curious
-// rather than cross; on "job" it pulls back wide and Job's question writes
-// itself above the bench, the only words on screen.
+// rather than cross. On "oldest" the verdict drains to a hollow gold outline
+// and hangs there, a verdict with nothing behind it (`declared` fills it,
+// `name` lands it solid); the camera pulls back wide, and on "job" the hollow
+// verdict gives way as Job's question writes itself above the bench, the only
+// words on screen.
 
 import {
   type Camera,
@@ -14,15 +17,14 @@ import {
   ellipseShape,
   line,
   multiplane,
-  probePlate,
   rectShape,
   stroke,
-  write,
   sub,
 } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { C, F, contact, person, piece, rounded, between } from '../kit.ts';
+import { C, contact, person, piece, rounded, between } from '../kit.ts';
 import {
+  type Stamp,
   ACCUSED,
   FIGURE_STAINS,
   GAVEL,
@@ -31,6 +33,7 @@ import {
   REST,
   STAMP_POP,
   WIDE,
+  benchStamp,
   question,
 } from '../court.ts';
 
@@ -60,7 +63,8 @@ export const cold = drawing({
     back: { mark: 'bible', dur: 1 },
     stampBack: { after: 'back', dur: 0.25 },
     rest: { mark: 'oldest', dur: 0.57 },
-    stampGone: { mark: 'oldest', dur: 0.33 },
+    drain: { mark: 'oldest', dur: 1.1, ease: 'inOutSine' },
+    hollowOut: { mark: 'job', offset: -0.5, dur: 0.5 },
     wide: { mark: 'oldest', offset: 1.2, dur: 1.6 },
     lookUp: { mark: 'job', dur: 0.6 },
   },
@@ -88,8 +92,15 @@ export const cold = drawing({
       stains: FIGURE_STAINS,
     };
 
-    const stamp =
-      f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('stampGone'));
+    // The verdict: stamped, away while the camera is on the face, back, then
+    // drained hollow on "oldest" until the question takes the screen.
+    const verdict: Stamp = {
+      fill: 1 - f.at('drain'),
+      shown: Math.min(
+        1,
+        f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('hollowOut')),
+      ),
+    };
     const popScale = f.keys('stamp', STAMP_POP);
     const swing =
       f.keys('gavel', [
@@ -180,25 +191,7 @@ export const cold = drawing({
               piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, f.hand('gavelHand'), { line: 2.5 });
             });
             // The verdict, stamped on a torn label across the bench.
-            if (stamp > 0.01)
-              at(ctx, { x: 1180, y: 672, rot: -0.07, scale: popScale }, () => {
-                ctx.save();
-                ctx.globalAlpha *= Math.min(1, stamp);
-                const label = rectShape(-250, -78, 500, 118);
-                piece(ctx, label, C.cream, f.hand('label'), { line: 0, torn: 3, shadow: 0.4 });
-                probePlate(ctx, label, () =>
-                  write(
-                    ctx,
-                    'Righteous',
-                    0,
-                    12,
-                    { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
-                    f.hand('stamp'),
-                    { boil: 0.4 },
-                  ),
-                );
-                ctx.restore();
-              });
+            benchStamp(ctx, f.hand, verdict, popScale);
           },
         },
         {
