@@ -274,8 +274,9 @@ left for the owner since it moves burned-in pixels. `render --short --no-caption
   left out, as `heldStill` does for holds); or the first frame showing the
   film's title (the film's page title, read from the film's own page). A logo
   drawn as ink is not told from other ink.
-- `ShortLoop` (warning): the band's mean luma on a 64×36 grid differs by more
-  than 0.08 between the last frame and the first (`FramePage.luma`, which
+- `ShortLoop` (warning): the mean absolute per-cell luma difference on a
+  64×36 grid (`SHORT_RULES.loopGrid`) of the band is over 0.08 between the
+  last frame and the first (`FramePage.luma`, which
   decodes the export handle's PNG in the page, so the player is untouched),
   or more than 0.6 s of silence from the last word's voice round to the
   first's. The band is `bandOf` (`core/shorts.ts`) of the film's own page,
@@ -290,7 +291,9 @@ declares, read from the page's `info.fps`, as the renderer does), so
 `--static` runs only what the words tell (length, first word, the loop's
 silence), probing no frames: it opens the page once, for its rate.
 `film cues --short` prints `shortReport` at that rate; `film bench --workers n --short <id>` times the same
-render.
+render. A short draws at about parity with the film per frame (~0.92× of the
+same frames as a 16:9 render, measured against one contiguous range): the
+9:16 page costs nothing extra, and saves nothing either.
 
 ## Lab
 

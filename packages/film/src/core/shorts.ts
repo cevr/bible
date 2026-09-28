@@ -101,6 +101,8 @@ export const SHORT_RULES = {
   motionBy: 0.5,
   loopGap: 0.6,
   loopDiff: 0.08,
+  /** The grid the band's luma is sampled down to for `loopDiff`: coarse, so grain and boil wash out. */
+  loopGrid: { cols: 64, rows: 36 },
   length: { max: 90, from: 45, to: 75 },
 } as const;
 

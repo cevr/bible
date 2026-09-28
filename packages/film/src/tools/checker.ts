@@ -166,9 +166,6 @@ export interface ShortCheckOptions {
 
 export type ShortCheckError = LayoutCheckError | ShortError;
 
-/** The luma grid a loop's first and last frames are compared on: coarse, so grain and boil wash out. */
-const LOOP_GRID = { cols: 64, rows: 36 } as const;
-
 export interface CheckerService {
   /**
    * Probe every sampled frame and return what collides, one finding per pair
@@ -310,7 +307,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
               y: band.top,
               w: band.width,
               h: band.height,
-              ...LOOP_GRID,
+              ...SHORT_RULES.loopGrid,
             };
             const lumaAt = (i: number) =>
               Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.luma(i, frame)));

@@ -159,7 +159,7 @@ describe('loopGap', () => {
 });
 
 describe('lumaDiff and loopPicture', () => {
-  test('the mean luma difference, 0 to 1', () => {
+  test('the mean absolute per-cell luma difference, 0 to 1', () => {
     expect(lumaDiff([0, 255], [0, 255])).toBe(0);
     expect(lumaDiff([0, 0], [255, 0])).toBeCloseTo(0.5);
   });
@@ -169,6 +169,8 @@ describe('lumaDiff and loopPicture', () => {
     const cut = Option.getOrThrow(loopPicture('probe', [0, 0], [255, 0]));
     expect(cut.reason).toBe('picture');
     expect(shortLevel(cut)).toBe('warning');
+    // It says what it measured: cell by cell, not two frames' means.
+    expect(cut.message).toContain('mean absolute per-cell luma difference on a 64×36 grid');
   });
 });
 

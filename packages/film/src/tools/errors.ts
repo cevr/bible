@@ -3,6 +3,7 @@
 // names every way a run can fail.
 
 import { Schema } from 'effect';
+import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
   ActTooShort,
@@ -542,7 +543,8 @@ export class ShortHook extends Schema.TaggedError<ShortHook>()('ShortHook', {
 
 /**
  * A short that will not loop cleanly: its last frame's picture is far from
- * its first (`picture`, mean luma difference 0–1), or the silence from its
+ * its first (`picture`, the mean absolute per-cell luma difference on
+ * `SHORT_RULES.loopGrid`, 0–1), or the silence from its
  * last word round to its first is long (`gap`, seconds).
  */
 export class ShortLoop extends Schema.TaggedError<ShortLoop>()('ShortLoop', {
@@ -553,7 +555,7 @@ export class ShortLoop extends Schema.TaggedError<ShortLoop>()('ShortLoop', {
 }) {
   override get message() {
     if (this.reason === 'picture')
-      return `short "${this.short}": its last frame differs from its first by ${this.value.toFixed(3)} (mean luma), over ${this.max.toFixed(3)}; the loop shows a cut`;
+      return `short "${this.short}": its last frame differs from its first by ${this.value.toFixed(3)} (mean absolute per-cell luma difference on a ${SHORT_RULES.loopGrid.cols}×${SHORT_RULES.loopGrid.rows} grid), over ${this.max.toFixed(3)}; the loop shows a cut`;
     return `short "${this.short}": ${this.value.toFixed(2)}s of silence from the last word round to the first, over ${this.max.toFixed(1)}s; the loop stalls`;
   }
 }

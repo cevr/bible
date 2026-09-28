@@ -99,7 +99,7 @@ export const shortStaticFindings = (
   ...Option.toArray(loopGap(short, phrases)),
 ];
 
-/** The mean absolute difference of two luma samples of one size, 0 to 1. */
+/** The mean absolute per-cell difference of two luma grids of one size, 0 to 1. */
 export const lumaDiff = (a: ReadonlyArray<number>, b: ReadonlyArray<number>): number => {
   const n = Math.min(a.length, b.length);
   if (n === 0) return 0;
