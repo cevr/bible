@@ -33,8 +33,12 @@ describe('voicedSpan', () => {
     expect(voicedSpan(pcm, 0.5, 1.4)).toEqual({ start: 1.2, end: 1.4 });
   });
 
-  test('a word no window of which passes the gate is heard over its whole span', () => {
-    expect(voicedSpan(take(1, []), 0.2, 0.6)).toEqual({ start: 0.2, end: 0.6 });
+  test('a word no window of which passes the gate is heard no sooner than its span ends', () => {
+    // The mirror take: "How" aligned 9.48–10.08 s over silence, its voice from 10.1 s,
+    // inside the next word's span. It cannot be heard before 10.08.
+    const pcm = take(1.5, [[1.1, 1.4]]);
+    expect(voicedSpan(pcm, 0.48, 1.08)).toEqual({ start: 1.08, end: 1.08 });
+    expect(voicedSpan(take(1, []), 0.2, 0.6)).toEqual({ start: 0.6, end: 0.6 });
   });
 
   test('a voice under −40 dBFS is silence', () => {

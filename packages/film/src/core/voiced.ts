@@ -38,7 +38,8 @@ const meanSquare = (pcm: Pcm, from: number, to: number): number => {
  * Where the voice is heard inside the take's seconds `[start, end]`: from the
  * first `VOICE_WINDOW` window over the gate to the end of the last, windows
  * counted from `start` and the last cut at `end`. A span no window of which
- * passes the gate (a word said under the room) is heard over all of it.
+ * passes the gate holds no voice: the aligner has put the word's voice past
+ * it (in the next word's span), so the word is heard no sooner than `end`.
  */
 export const voicedSpan = (pcm: Pcm, start: number, end: number): Voiced => {
   const step = Math.max(1, Math.round(VOICE_WINDOW * pcm.rate));
@@ -52,7 +53,7 @@ export const voicedSpan = (pcm: Pcm, start: number, end: number): Voiced => {
     if (first < 0) first = a;
     last = b;
   }
-  if (first < 0) return { start, end };
+  if (first < 0) return { start: end, end };
   // On the timings' millisecond grid, and never outside the span it was read in.
   const on = Math.min(end, Math.max(start, ms(first / pcm.rate)));
   return { start: on, end: Math.min(end, Math.max(on, ms(last / pcm.rate))) };

@@ -95,8 +95,9 @@ aligner puts the pause before a word into that word's start, so each word
 also carries where it is heard (`voiced`, a `TakeWord`): the first and last
 10 ms window inside its aligned span over a −40 dBFS gate, read from the take
 itself when it is timed (`core/voiced.ts` `voicedWords`; `narrate`,
-`takes import` and the studio alike; a span no window passes is heard over
-all of it). A mark and the long film's captions read the aligned start;
+`takes import` and the studio alike; a span no window passes holds no
+voice, since the aligner put it past the span, so it is heard from the span's
+end, never sooner). A mark and the long film's captions read the aligned start;
 what must meet the ear (a short's captions, its hook and its loop) reads the
 voice (`heard`). It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
