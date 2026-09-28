@@ -61,7 +61,7 @@ export const ring = (
   stroke(
     ctx,
     [...pts, pts[0] ?? [x + r, y]],
-    { color: C.gold, width: 12, jitter: 0.6, taper: 0, alpha },
+    { color: C.gold, width: 12, jitter: 0.6, taper: 0, alpha, closed: true },
     hand,
   );
 };

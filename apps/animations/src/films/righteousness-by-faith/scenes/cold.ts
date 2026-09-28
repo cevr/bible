@@ -197,7 +197,7 @@ export const cold = drawing({
               stroke(
                 ctx,
                 [...panel, panel[0] ?? [x, 540]],
-                { color: C.inkSoft, width: 3, jitter: 0.5, taper: 0, boil: 'none' },
+                { color: C.inkSoft, width: 3, jitter: 0.5, taper: 0, boil: 'none', closed: true },
                 f.hand(`panel${i}`),
               );
             });

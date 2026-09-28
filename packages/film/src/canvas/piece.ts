@@ -90,7 +90,16 @@ export const piece = (
     stroke(
       ctx,
       [...shape, shape[0] ?? [0, 0]],
-      { color: style.outline, width, jitter: 0.7, taper: 0, pressure: 0.15, alpha, boil },
+      {
+        color: style.outline,
+        width,
+        jitter: 0.7,
+        taper: 0,
+        pressure: 0.15,
+        alpha,
+        boil,
+        closed: true,
+      },
       sub(hand, 7),
     );
 };

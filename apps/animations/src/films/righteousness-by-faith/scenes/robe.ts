@@ -394,7 +394,7 @@ const beneath = (f: RobeFrame) => {
       stroke(
         ctx,
         [...ellipseShape(0, 0, 190, 190), [190, 0]],
-        { color: C.outline, width: 8, jitter: 0.8, taper: 0, boil: 'crawl' },
+        { color: C.outline, width: 8, jitter: 0.8, taper: 0, boil: 'crawl', closed: true },
         hand('lensRing'),
       );
       stroke(

@@ -211,6 +211,41 @@ export const boilPhase = (boil: Boil, tick: number, perTick = TICK_PHASE): numbe
   return tick * (CRAWL_MAX / (STROKE_JITTER * NOISE_SLOPE));
 };
 
+/**
+ * Write into `normal` the unit normal at point `i` of `pts`. On a ring (whose
+ * last point is its first) the ends take their neighbours across the seam,
+ * so the two ends of the ring face the same way.
+ */
+const normalAt = (pts: ReadonlyArray<Pt>, i: number, ring: boolean) => {
+  const last = pts.length - 1;
+  const p = pts[i] ?? [0, 0];
+  const before = ring && i === 0 ? last - 1 : i - 1;
+  const after = ring && i === last ? 1 : i + 1;
+  const prev = pts[before] ?? p;
+  const next = pts[after] ?? p;
+  normal[0] = -(next[1] - prev[1]);
+  normal[1] = next[0] - prev[0];
+  vec2.normalize(normal, normal);
+};
+
+/**
+ * Noise along a line at arc length `s` of `len`, as `noise1(s * freq + phase)`;
+ * on a ring, blended with the lap before it so the end joins the start.
+ */
+const alongNoise = (
+  s: number,
+  len: number,
+  freq: number,
+  phase: number,
+  seed: number,
+  ring: boolean,
+) => {
+  const here = noise1(s * freq + phase, seed);
+  if (!ring || len <= 0) return here;
+  const u = s / len;
+  return here * (1 - u) + noise1((s - len) * freq + phase, seed) * u;
+};
+
 /** Push each point along its normal by boiling noise at `phase`. */
 const wobble = (
   pts: ReadonlyArray<Pt>,
@@ -218,22 +253,19 @@ const wobble = (
   freq: number,
   hand: Hand,
   phase: number,
+  ring: boolean,
 ): Pt[] => {
   if (amp === 0 || pts.length < 2) return [...pts];
+  const len = ring ? length(pts) : 0;
   const out: Pt[] = [];
   let s = 0;
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i] ?? [0, 0];
     const prev = pts[i - 1] ?? p;
-    const next = pts[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    normal[0] = -(next[1] - prev[1]);
-    normal[1] = next[0] - prev[0];
-    vec2.normalize(normal, normal);
-    const nx = normal[0];
-    const ny = normal[1];
-    const d = amp * noise1(s * freq + phase, hand.seed);
-    out.push([p[0] + nx * d, p[1] + ny * d]);
+    normalAt(pts, i, ring);
+    const d = amp * alongNoise(s, len, freq, phase, hand.seed, ring);
+    out.push([p[0] + normal[0] * d, p[1] + normal[1] * d]);
   }
   return out;
 };
@@ -258,6 +290,12 @@ export interface StrokeStyle {
   boil?: Boil;
   /** Fraction of the length over which each end tapers. */
   taper?: number;
+  /**
+   * The path returns to its start (an outline, a ring): once drawn whole, it
+   * has no ends, so nothing tapers and its wobble and swell run on round the
+   * seam with no notch.
+   */
+  closed?: boolean;
   /** Width variation along the stroke, 0..1. */
   pressure?: number;
   alpha?: number;
@@ -284,12 +322,15 @@ export const stroke = (
   const progress = style.progress ?? 1;
   if (progress <= 0 || path.length < 2) return;
   const base = resample(path, Math.max(2, style.width * 0.6));
+  // A ring only once it is drawn whole: while it draws on, it has a tip.
+  const ring = style.closed === true && progress >= 1;
   const pts = wobble(
     base,
     style.jitter ?? STROKE_JITTER,
     0.012,
     hand,
     boilPhase(style.boil ?? 'tick', hand.boil),
+    ring,
   );
   const total = length(pts);
   const drawn = trim(pts, total * clamp(progress));
@@ -304,18 +345,16 @@ export const stroke = (
   for (let i = 0; i < drawn.length; i++) {
     const p = drawn[i] ?? [0, 0];
     const prev = drawn[i - 1] ?? p;
-    const next = drawn[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    normal[0] = -(next[1] - prev[1]);
-    normal[1] = next[0] - prev[0];
-    vec2.normalize(normal, normal);
+    normalAt(drawn, i, ring);
     const nx = normal[0];
     const ny = normal[1];
     // Taper the tail against the full stroke, and the head against what has
     // been drawn so far — a growing stroke always has a pointed brush tip.
-    const tail = taperCurve(s / (total * taper || 1));
-    const head = taperCurve((drawnLen - s) / (total * taper || 1));
-    const swell = 1 + pressure * noise1(s * 0.01, hand.seed + 11);
+    // A ring has no ends to taper.
+    const tail = ring ? 1 : taperCurve(s / (total * taper || 1));
+    const head = ring ? 1 : taperCurve((drawnLen - s) / (total * taper || 1));
+    const swell = 1 + pressure * alongNoise(s, drawnLen, 0.01, 0, hand.seed + 11, ring);
     const w = (style.width / 2) * Math.min(tail, head) * swell;
     left.push([p[0] + nx * w, p[1] + ny * w]);
     right.push([p[0] - nx * w, p[1] - ny * w]);

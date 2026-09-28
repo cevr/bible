@@ -321,7 +321,7 @@ export const landingCourt = (
             stroke(
               ctx,
               [...panel, panel[0] ?? [x, 540]],
-              { color: C.boardShade, width: 3, jitter: 0.5, taper: 0, boil: 'none' },
+              { color: C.boardShade, width: 3, jitter: 0.5, taper: 0, boil: 'none', closed: true },
               hand(`panel${i}`),
             );
           });

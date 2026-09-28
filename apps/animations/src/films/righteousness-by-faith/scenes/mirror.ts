@@ -281,7 +281,7 @@ const glass = (f: MirrorFrame) => {
                   cx + (x - cx) * k,
                   cy + (y - cy) * k,
                 ]),
-                { color: C.scarlet, width: 3, jitter: 0.4, alpha: 1 - flare },
+                { color: C.scarlet, width: 3, jitter: 0.4, alpha: 1 - flare, closed: true },
                 sub(f.hand('flare'), i),
               );
             });

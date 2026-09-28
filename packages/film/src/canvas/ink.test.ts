@@ -5,7 +5,15 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
-import { type Boil, CRAWL_MAX, type Pt, STROKE_JITTER, type StrokeStyle, stroke } from './ink.ts';
+import {
+  type Boil,
+  CRAWL_MAX,
+  type Pt,
+  STROKE_JITTER,
+  type StrokeStyle,
+  ellipseShape,
+  stroke,
+} from './ink.ts';
 
 /** A stand-in context that records every point the stroke's outline passes through. */
 const outline = (boil: Boil | undefined, tick: number): Pt[] => {
@@ -65,6 +73,52 @@ describe('boil', () => {
     expect(step).toBeLessThanOrEqual(CRAWL_MAX + 1e-9);
     // Over two seconds it has wandered well past one tick's step.
     expect(moved('crawl', 0, 24)).toBeGreaterThan(step * 3);
+  });
+
+  test('a closed outline meets itself with no notch: no pinch, no step at the seam', () => {
+    const ring = (closed: boolean) => {
+      const pts: Pt[] = [];
+      const at = (x: number, y: number) => pts.push([x, y]);
+      const ctx: CanvasRenderingContext2D = Schema.decodeSync(Schema.Any)({
+        globalAlpha: 1,
+        fillStyle: '#000',
+        save: () => {},
+        restore: () => {},
+        beginPath: () => {},
+        moveTo: at,
+        lineTo: at,
+        closePath: () => {},
+        fill: () => {},
+      });
+      const circle = ellipseShape(0, 0, 60, 60, 48);
+      stroke(
+        ctx,
+        [...circle, circle[0] ?? [60, 0]],
+        { color: '#000', width: 6, jitter: 0.7, taper: 0, pressure: 0.15, closed },
+        { boil: 4, seed: 11 },
+      );
+      // moveTo the first left point, then the left edge, then the right edge back.
+      const n = (pts.length - 1) / 2;
+      const left = pts.slice(1, n + 1);
+      const right = pts.slice(n + 1).reverse();
+      const widths = left.map(([x, y], i) => {
+        const [u, v] = right[i] ?? [x, y];
+        return Math.hypot(u - x, v - y);
+      });
+      const sorted = widths.toSorted((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)] ?? 1;
+      const [fx, fy] = left[0] ?? [0, 0];
+      const [lx, ly] = left.at(-1) ?? [0, 0];
+      return {
+        pinch: Math.min(widths[0] ?? 0, widths.at(-1) ?? 0) / median,
+        step: Math.hypot(lx - fx, ly - fy),
+      };
+    };
+    const open = ring(false);
+    expect(open.pinch).toBeLessThan(0.5);
+    const shut = ring(true);
+    expect(shut.pinch).toBeGreaterThan(0.85);
+    expect(shut.step).toBeLessThan(0.05);
   });
 
   test('a held line is still drawn by hand: its wobble stays', () => {
