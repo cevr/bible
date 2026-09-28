@@ -20,6 +20,7 @@ import { mirror } from './mirror.ts';
 import { name } from './name.ts';
 import { rain } from './rain.ts';
 import { robe } from './robe.ts';
+import { roof } from './roof.ts';
 import { spoke } from './spoke.ts';
 import { thesis } from './thesis.ts';
 import { title } from './title.ts';
@@ -43,6 +44,7 @@ const drawings = new Map<string, Drawing>(
     name,
     rain,
     robe,
+    roof,
     spoke,
     thesis,
     title,
