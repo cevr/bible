@@ -140,6 +140,28 @@ describe('shortPhrases', () => {
     for (const p of phrases) if (p.start < joinAt) expect(p.end).toBeLessThanOrEqual(joinAt + 1e-9);
   });
 
+  test("a span's first phrase shows on its first frame, however the word's time rounds", () => {
+    // `three` sits between frames: the span starts on the frame nearest it.
+    const short = Result.getOrThrow(
+      resolveShort(
+        placed,
+        {
+          id: 'cut',
+          title: 'Cut',
+          spans: [{ scene: 'a', from: { mark: 'three' }, to: { scene: 'speechEnd' } }],
+        },
+        7,
+      ),
+    );
+    const phrases = shortPhrases(placed, short);
+    expect(phrases[0]?.words[0]?.text).toBe('three');
+    expect(phrases[0]?.start).toBe(0);
+    // Each phrase shows by the frame its first word falls in, and none overlaps the next.
+    for (const p of phrases) expect(p.start).toBeLessThanOrEqual(p.words[0]?.start ?? 0);
+    for (let i = 1; i < phrases.length; i++)
+      expect(phrases[i - 1]?.end ?? 0).toBeLessThanOrEqual(phrases[i]?.start ?? 0);
+  });
+
   test('the sidecar is the phrases, as shown', () => {
     const cues = phraseCues(phrasesOf(said('One two three four five six')));
     expect(cues.map((c) => c.text)).toEqual(['One two three', 'four five six']);

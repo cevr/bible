@@ -9,12 +9,26 @@ export const shorts = [
     title: "Is God's verdict a cover-up?",
     hook: "Is God's verdict a cover-up?",
     spans: [
-      // The courtroom, "righteous", "That is a cover-up", "God justifies the ungodly".
-      { scene: 'cold', from: { scene: 'speech' }, to: { mark: 'oldest' } },
+      // The evidence dropping (the first motion, so the open moves), "righteous",
+      // "That is a cover-up", "God justifies the ungodly".
+      { scene: 'cold', from: { mark: 'evidence' }, to: { mark: 'oldest' } },
       // Paul's answer: not only counted righteous, made righteous.
       { scene: 'declared', from: { mark: 'paul' }, to: { scene: 'speechEnd' } },
-      // "He makes it true": the stamp lands solid.
-      { scene: 'name', from: { mark: 'verdict' }, to: { mark: 'jer' } },
+      // "By taking God at his word … it is not a cover-up. He makes it true":
+      // the stamp lands solid.
+      { scene: 'name', from: { mark: 'taking' }, to: { mark: 'jer' } },
+    ],
+  },
+  {
+    id: 'mirror',
+    title: "You can't wash your face with a mirror",
+    hook: "You can't wash your face with a mirror.",
+    spans: [
+      // Fig leaves, trying harder, "How is that going?", the rags, the law as a
+      // mirror: "you cannot wash your face with a mirror".
+      { scene: 'mirror', from: { mark: 'fig' }, to: { scene: 'speechEnd' } },
+      // The turn's answer: "What does faith do? … the hand that takes hold of Christ."
+      { scene: 'look', from: { scene: 'speech' }, to: { mark: 'desert' } },
     ],
   },
 ] as const satisfies Shorts;

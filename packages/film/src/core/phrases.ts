@@ -200,8 +200,11 @@ export const shortPhrases = (
             inside.map((i) => quoted[i] === true),
           ).map((phrase) => ({
             ...phrase,
-            start: Math.max(phrase.start, span.at),
-            end: Math.min(phrase.end, spanEnd),
+            // Shown from the frame nearest its first word, so a span cut on
+            // that word's mark shows it on its first frame; ends move with
+            // starts, so no phrase overlaps the next.
+            start: Math.max(phrase.start - slack, span.at),
+            end: Math.min(phrase.end - slack, spanEnd),
           }));
         },
       },

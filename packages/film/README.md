@@ -136,7 +136,9 @@ A short's captions are phrases, not the film's lines (`core/phrases.ts`):
 voice turn, then at clauses, and cuts each clause evenly into two to four
 words (`PHRASE_MAX`); a one-word sentence joins its voice's next one, and no
 phrase crosses a join. A phrase shows from its first word to the next
-phrase's, or `PHRASE_HOLD` (0.6 s) after its last word. A word between the
+phrase's, or `PHRASE_HOLD` (0.6 s) after its last word, each moved half a
+frame earlier so it shows from the frame nearest its first word (a span cut
+on a word's mark shows that word's phrase on its first frame). A word between the
 script's “ and ” (which the take's words carry; `quotedWords`) is quoted.
 `canvas/short-captions.ts` (`burnedCaptions`) draws them centred on y 1318 in
 the style's caption font, no plate, each phrase broken into as few lines of
