@@ -259,9 +259,13 @@ export interface Person {
   /**
    * What sits on the head (a turban, a helmet, hair, spectacles): drawn in
    * head space, turned with it, over the eyes and under the brows. `c` is the
-   * head's centre and `r` its radii, in the person's units.
+   * head's centre and `r` its radii, in the person's units. A module-level
+   * function, so no closure is made per frame: what it needs beyond the
+   * person's hand comes through `headHands`.
    */
-  onHead?: (ctx: CanvasRenderingContext2D, c: Pt, r: Pt, hand: Hand) => void;
+  onHead?: HeadPiece;
+  /** Keyed hands `onHead` draws with, so its pieces keep the scene's own seeds. */
+  headHands?: Hands;
   /** The body's width and height as multiples (garment, legs, shoulders); the head keeps the size that reads. */
   build?: readonly [number, number];
   /** A moustache, 0 none to 1 a full handlebar, in `hair` (the outline ink unless given). */
@@ -305,16 +309,36 @@ const turbanShape = (rx: number, ry: number): Pt[] =>
     true,
   );
 
+/** Each turban wrap: its height on the head and half its width, in head radii. */
+const TURBAN_WRAPS = [
+  [-0.82, 0.92],
+  [-1.02, 0.8],
+  [-1.22, 0.5],
+] as const;
+
+/** `pts` moved by (dx, dy), without a per-point closure. */
+export const shifted = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] => {
+  const out: Pt[] = [];
+  for (const [x, y] of pts) out.push([dx + x, dy + y]);
+  return out;
+};
+
+/**
+ * What sits on a head, drawn in head space: `c` the head's centre, `r` its
+ * radii, `hand` the person's, `hands` the person's `headHands` when given.
+ */
+export type HeadPiece = (
+  ctx: CanvasRenderingContext2D,
+  c: Pt,
+  r: Pt,
+  hand: Hand,
+  hands: Hands | undefined,
+) => void;
+
 /** A priest's wrapped linen turban, as a person's `onHead`. */
-export const turban = (ctx: CanvasRenderingContext2D, [cx, cy]: Pt, [rx, ry]: Pt, hand: Hand) => {
-  const dome = turbanShape(rx, ry).map(([x, y]): Pt => [cx + x, cy + y]);
-  piece(ctx, dome, C.paper, sub(hand, 5));
-  // Each wrap: its height on the head and half its width, in head radii.
-  for (const [y, w] of [
-    [-0.82, 0.92],
-    [-1.02, 0.8],
-    [-1.22, 0.5],
-  ] as const)
+export const turban: HeadPiece = (ctx, [cx, cy], [rx, ry], hand) => {
+  piece(ctx, shifted(turbanShape(rx, ry), cx, cy), C.paper, sub(hand, 5));
+  for (const [y, w] of TURBAN_WRAPS)
     stroke(
       ctx,
       quad(
@@ -348,6 +372,11 @@ const moustacheSide = (x: number, y: number, side: -1 | 1, m: number): Pt[] => {
   );
 };
 
+/** Each eye's, leg's and moustache side's offset or side: fixed, so a frame allocates none. */
+const EYE_DX = [-12, 13] as const;
+const LEG_X = [-13, 13] as const;
+const SIDES = [-1, 1] as const;
+
 /**
  * The two eyes about (x, y), the midpoint between them: filled ovals that
  * narrow as `open` falls, and below 0.3 an arc each, bowed down when shut,
@@ -361,7 +390,7 @@ const eyePair = (
   smile: number,
   hand: Hand,
 ) => {
-  for (const dx of [-12, 13]) {
+  for (const dx of EYE_DX) {
     if (open < 0.3) {
       const bow = smile > 0.5 ? -4 : 4;
       stroke(
@@ -419,21 +448,32 @@ const mouthOf = (
 };
 
 /**
+ * Opens a frame dropped `dy` and scaled (sx, sy) about the origin, skipping
+ * the identity; the caller restores it. The person's layers use it in place
+ * of a closure per layer.
+ */
+const frameOf = (ctx: CanvasRenderingContext2D, dy: number, sx = 1, sy = 1) => {
+  ctx.save();
+  if (dy !== 0) ctx.translate(0, dy);
+  if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+};
+
+/**
  * The two legs: under the body standing, and as `sit` goes to 1 hanging
  * below the seat, their feet splayed a little.
  */
 const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: Hand) => {
-  for (const x of [-13, 13]) {
+  for (const x of LEG_X) {
     const k = sub(hand, 1 + x);
     if (sit <= 0) {
       piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { line: 2.5 });
       continue;
     }
-    at(
-      ctx,
-      { x: x * (1 + 0.1 * sit), y: lerp(-10, 14, sit), rot: -Math.sign(x) * 0.08 * sit },
-      () => piece(ctx, rounded(0, 0, 16, 22, 5), shade, k, { line: 2.5 }),
-    );
+    ctx.save();
+    ctx.translate(x * (1 + 0.1 * sit), lerp(-10, 14, sit));
+    ctx.rotate(-Math.sign(x) * 0.08 * sit);
+    piece(ctx, rounded(0, 0, 16, 22, 5), shade, k, { line: 2.5 });
+    ctx.restore();
   }
 };
 
@@ -455,59 +495,105 @@ const ROBE_SPAN = [-126, -2] as const;
 const TUNIC_SPAN = [-128, -16] as const;
 /** Where the hem rests once seated: just over the seat's edge. */
 const SEAT_HEM = 3;
+const UNBUILT = [1, 1] as const;
+/** Pupils looking straight ahead. */
+const HEAD_STILL: Pt = [0, 0];
+const NO_STAINS: ReadonlyArray<ReadonlyArray<Pt>> = [];
 
 /**
- * Draws the garment's layer: standing as it is; seated, its top dropped onto
- * the seat and its length folded into the lap, the hem at the seat's edge.
+ * The garment and its stains: standing as it is; seated, its top dropped
+ * onto the seat and its length folded into the lap, the hem at the seat's
+ * edge.
  */
-const garmentLayer = (
+const garment = (
   ctx: CanvasRenderingContext2D,
-  span: readonly [number, number],
+  p: Person,
   sit: number,
-  draw: () => void,
+  body: string,
+  hand: Hand,
 ) => {
-  if (sit <= 0) return draw();
-  const [top, hem] = span;
-  const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
-  at(ctx, { x: 0, y: top + SEAT * sit - top * k, sy: k }, draw);
+  const robe = p.garment === 'robe';
+  ctx.save();
+  if (sit > 0) {
+    const [top, hem] = robe ? ROBE_SPAN : TUNIC_SPAN;
+    const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
+    ctx.translate(0, top + SEAT * sit - top * k);
+    ctx.scale(1, k);
+  }
+  piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
+  let i = 0;
+  for (const stain of p.stains ?? NO_STAINS)
+    cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i++));
+  ctx.restore();
+};
+
+/** One arm from its shoulder on a body of build (bw, bh) to `target`, when it reaches. */
+const arm = (
+  ctx: CanvasRenderingContext2D,
+  side: -1 | 1,
+  target: Pt | undefined,
+  [bw, bh]: readonly [number, number],
+  colours: readonly [body: string, skin: string],
+  hand: Hand,
+  k: number,
+) => {
+  if (target === undefined) return;
+  const path = spline(reach([side * 26 * bw, SHOULDER_Y * bh], target, ARM, side), 8);
+  stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
+  stroke(ctx, path, { color: colours[0], width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
+  const [hx, hy] = path.at(-1) ?? target;
+  piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), { line: 2.5 });
 };
 
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
-  const body = p.body ?? C.figure;
-  const skin = p.skin ?? C.figure;
-  const [bw, bh] = p.build ?? [1, 1];
-  const arm = (side: -1 | 1, target: Pt | undefined, k: number) => {
-    if (target === undefined) return;
-    const path = spline(reach([side * 26 * bw, SHOULDER_Y * bh], target, ARM, side), 8);
-    stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
-    stroke(ctx, path, { color: body, width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
-    const [hx, hy] = path.at(-1) ?? target;
-    piece(ctx, ellipseShape(hx, hy, 8, 8, 20), skin, sub(hand, k + 2), { line: 2.5 });
-  };
-  // Seated, everything but the legs drops onto the seat.
+  const colours = [p.body ?? C.figure, p.skin ?? C.figure] as const;
+  const build = p.build ?? UNBUILT;
+  const [bw, bh] = build;
   const sit = clamp(p.sit ?? 0);
-  const upper = (draw: () => void) =>
-    sit > 0 ? at(ctx, { x: 0, y: SEAT * sit * bh }, draw) : draw();
-  // A build stretches the body from the feet; the head rides its neck.
-  const built = (draw: () => void) =>
-    p.build === undefined ? draw() : at(ctx, { x: 0, y: 0, sx: bw, sy: bh }, draw);
+  // Seated, everything but the legs drops onto the seat.
+  const drop = sit > 0 ? SEAT * sit * bh : 0;
 
   // The far arm behind the body, the near one over it.
-  upper(() => arm(-1, p.handL, 40));
-  built(() => legs(ctx, sit, p.shade ?? C.figureShade, hand));
-  const robe = p.garment === 'robe';
-  built(() =>
-    garmentLayer(ctx, robe ? ROBE_SPAN : TUNIC_SPAN, sit, () => {
-      piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
-      (p.stains ?? []).forEach((stain, i) =>
-        cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i)),
-      );
-    }),
+  frameOf(ctx, drop);
+  arm(ctx, -1, p.handL, build, colours, hand, 40);
+  ctx.restore();
+  // A build stretches the body from the feet; the head rides its neck.
+  frameOf(ctx, 0, bw, bh);
+  legs(ctx, sit, p.shade ?? C.figureShade, hand);
+  ctx.restore();
+  frameOf(ctx, 0, bw, bh);
+  garment(ctx, p, sit, colours[0], hand);
+  ctx.restore();
+  frameOf(ctx, drop);
+  head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
+  arm(ctx, 1, p.handR, build, colours, hand, 50);
+  ctx.restore();
+};
+
+/**
+ * One brow over the eye on `side` of a head centred on (cx, cy), raised
+ * `rise`; a `tilt` past 0 lifts the end nearer the nose: the left brow's
+ * inner end is its right one, and the other way round.
+ */
+const browOf = (
+  ctx: CanvasRenderingContext2D,
+  [cx, cy]: Pt,
+  side: -1 | 1,
+  rise: number,
+  tilt: number,
+  hand: Hand,
+) => {
+  const bx = cx + side * 13;
+  const by = cy - 21 - rise;
+  stroke(
+    ctx,
+    [
+      [bx - 8, by - side * tilt * 6],
+      [bx + 8, by + side * tilt * 6],
+    ],
+    { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2 },
+    hand,
   );
-  upper(() => {
-    head(ctx, p, skin, hand, NECK[1] * (bh - 1));
-    arm(1, p.handR, 50);
-  });
 };
 
 /**
@@ -521,32 +607,17 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
   ctx.translate(-NECK[0], -NECK[1]);
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
-  const [lx, ly] = p.look ?? [0, 0];
+  const [lx, ly] = p.look ?? HEAD_STILL;
   const smile = p.smile ?? 0;
   eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);
-  p.onHead?.(ctx, HEAD, HEAD_R, hand);
+  p.onHead?.(ctx, HEAD, HEAD_R, hand, p.headHands);
   const tilt = p.browTilt ?? 0;
-  const brow = (side: -1 | 1, rise: number, k: number) => {
-    const bx = cx + side * 13;
-    const by = cy - 21 - rise;
-    // A raised inner end lifts the end nearer the nose: the left brow's inner
-    // end is its right one, and the other way round.
-    stroke(
-      ctx,
-      [
-        [bx - 8, by - side * tilt * 6],
-        [bx + 8, by + side * tilt * 6],
-      ],
-      { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2 },
-      sub(hand, k),
-    );
-  };
-  brow(-1, p.browL ?? 0, 8);
-  brow(1, p.browR ?? 0, 9);
+  browOf(ctx, HEAD, -1, p.browL ?? 0, tilt, sub(hand, 8));
+  browOf(ctx, HEAD, 1, p.browR ?? 0, tilt, sub(hand, 9));
   mouthOf(ctx, cx, cy, p.mouth ?? 0, smile, hand);
   const m = p.moustache ?? 0;
   if (m > 0)
-    for (const side of [-1, 1] as const)
+    for (const side of SIDES)
       piece(
         ctx,
         moustacheSide(cx + 2, cy + 10, side, m),

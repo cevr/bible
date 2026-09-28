@@ -9,7 +9,19 @@
 
 import { type Camera, type Pt, at, drawing, multiplane, rectShape, sub } from '@bible/film/canvas';
 import { clamp, ease, lerp, rng } from '@bible/film/core';
-import { C, christ, contact, glow, person, piece, rounded, sky, between } from '../kit.ts';
+import {
+  type HeadPiece,
+  C,
+  christ,
+  contact,
+  glow,
+  person,
+  piece,
+  rounded,
+  shifted,
+  sky,
+  between,
+} from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';
 
 const SOLDIER: Pt = [820, 960];
@@ -52,28 +64,35 @@ const FAR = roofs(8, -2400, 2600, 420, 600);
 /** The street's own houses, clear of the servant's. */
 const NEAR = roofs(33, -800, 2400, 480, 640);
 
-/** The soldier's helmet and crest, as his person's `onHead`. */
-const helmet =
-  (hand: (k: string) => { boil: number; seed: number }) =>
-  (ctx: CanvasRenderingContext2D, [cx, cy]: Pt) => {
-    const dome: Pt[] = Array.from({ length: 17 }, (_, i): Pt => {
-      const a = Math.PI + (Math.PI * i) / 16;
-      return [cx + Math.cos(a) * 40, cy - 33 + Math.sin(a) * 22];
-    });
-    // The crest: a plume arched front to back over the helmet.
-    const plume: Pt[] = [
-      ...Array.from({ length: 13 }, (_, i): Pt => {
-        const a = Math.PI + (Math.PI * i) / 12;
-        return [cx + Math.cos(a) * 44, cy - 46 + Math.sin(a) * 32];
-      }),
-      ...Array.from({ length: 13 }, (_, i): Pt => {
-        const a = 2 * Math.PI - (Math.PI * i) / 12;
-        return [cx + Math.cos(a) * 32, cy - 44 + Math.sin(a) * 18];
-      }),
-    ];
-    piece(ctx, plume, C.sunsetLow, hand('crest'), { line: 2.5 });
-    piece(ctx, dome, C.boardDeep, hand('helmet'), { line: 3 });
-  };
+/**
+ * The helmet's dome, and the crest's two edges (a plume arched front to back
+ * over it), each about its own centre: `helmet` places them over the head's
+ * centre, the dome 33 units up, the crest's edges 46 and 44.
+ */
+const DOME: Pt[] = Array.from({ length: 17 }, (_, i): Pt => {
+  const a = Math.PI + (Math.PI * i) / 16;
+  return [Math.cos(a) * 40, Math.sin(a) * 22];
+});
+const CREST_TOP: Pt[] = Array.from({ length: 13 }, (_, i): Pt => {
+  const a = Math.PI + (Math.PI * i) / 12;
+  return [Math.cos(a) * 44, Math.sin(a) * 32];
+});
+const CREST_UNDER: Pt[] = Array.from({ length: 13 }, (_, i): Pt => {
+  const a = 2 * Math.PI - (Math.PI * i) / 12;
+  return [Math.cos(a) * 32, Math.sin(a) * 18];
+});
+
+/**
+ * The soldier's helmet and crest, as his person's `onHead`: seeded from the
+ * scene's `headHands` (`crest`, `helmet`), or the person's own hand without.
+ */
+const helmet: HeadPiece = (ctx, [cx, cy], _r, hand, hands) => {
+  const crest = [...shifted(CREST_TOP, cx, cy - 46), ...shifted(CREST_UNDER, cx, cy - 44)];
+  piece(ctx, crest, C.sunsetLow, hands?.('crest') ?? sub(hand, 30), { line: 2.5 });
+  piece(ctx, shifted(DOME, cx, cy - 33), C.boardDeep, hands?.('helmet') ?? sub(hand, 31), {
+    line: 3,
+  });
+};
 
 export const centurion = drawing({
   timeline: {
@@ -249,7 +268,8 @@ export const centurion = drawing({
                 {
                   tilt: 0.06 * worry - 0.05 * stop + 0.12 * open,
                   nod: 4 * worry + 5 * open,
-                  onHead: helmet(hand),
+                  onHead: helmet,
+                  headHands: hand,
                   look: inHand ? [2, lerp(0, 4, open)] : [lerp(3, -2, worry), worry],
                   browL: 3 * stop + 2 * worry,
                   browR: 2 * stop + 2 * worry,
