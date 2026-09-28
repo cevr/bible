@@ -181,15 +181,20 @@
       "name": "@bible/film",
       "version": "0.1.0",
       "dependencies": {
+        "@bible/atom-solid": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "@mediabunny/aac-encoder": "1.60.0",
+        "@solidjs/compiler": "catalog:",
+        "@solidjs/web": "catalog:",
         "@wasm-audio-decoders/flac": "0.2.11",
         "effect": "catalog:",
+        "effect-machine": "catalog:",
         "math": "0.1.0",
         "mediabunny": "1.60.0",
         "mpg123-decoder": "1.0.3",
         "oxc-parser": "0.151.0",
         "playwright-core": "1.63.0",
+        "solid-js": "catalog:",
       },
       "devDependencies": {
         "effect-bun-test": "catalog:",
@@ -242,12 +247,14 @@
     "@effect/sql-sqlite-bun": "4.0.0-rc.115",
     "@effect/sql-sqlite-node": "4.0.0-rc.115",
     "@effect/vitest": "4.0.0-rc.115",
+    "@solidjs/compiler": "2.0.0-rc.9",
     "@solidjs/router": "2.0.0-next.17",
     "@solidjs/web": "2.0.0-rc.9",
     "@types/bun": "1.4.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.0-rc.115",
     "effect-bun-test": "0.3.0",
+    "effect-machine": "0.27.0",
     "solid-js": "2.0.0-rc.9",
     "vite-plugin-solid": "3.0.0-next.27",
   },
@@ -1291,6 +1298,8 @@
     "effect": ["effect@4.0.0-rc.115", "", {}, "sha512-ogYulZ5ffeOzrJqQrG0XOkDO5lKn2s9KNHhoxJy/6wKUkF0i12dlVXWA9TgsgQ+zV/JzizyG0+XMPepZEQX6vw=="],
 
     "effect-bun-test": ["effect-bun-test@0.3.0", "", { "peerDependencies": { "bun": "*", "effect": ">=3.19.0" } }, "sha512-P2xZ4HBZg4bFw2ePY4E5UB6EZ2d1L/HO13+KdoprTYFuc8B1uTpdn7V4UU6qyYiYsqTY9DZ1TFB94Ekx2YLA4g=="],
+
+    "effect-machine": ["effect-machine@0.27.0", "", { "peerDependencies": { "effect": ">=4.0.0-rc.112 <5" } }, "sha512-gBZq1P+qUZxvPFRkU/4oylypGgmfuPyPLlPmaPa1R0YA6dAzZDID8POYMWIjmpgks7srFFPBVelyYbvpUlR9FA=="],
 
     "ejs": ["ejs@3.1.10", "", { "dependencies": { "jake": "^10.8.5" }, "bin": { "ejs": "bin/cli.js" } }, "sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA=="],
 

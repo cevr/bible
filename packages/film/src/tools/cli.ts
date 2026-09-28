@@ -874,7 +874,7 @@ const lab = <E>(labServer: LabServer<E>) =>
         yield* studioHandler(input.film),
       );
       const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
-      const url = `${server.url}?film=${encodeURIComponent(input.film)}&lab`;
+      const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
       const notes = (yield* NotesStore).paths(input.film).notes.file;
       yield* Console.log(url);
       yield* Effect.log(`lab.ready film=${input.film} url=${url} notes=${notes}`);

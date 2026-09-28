@@ -1,0 +1,80 @@
+// A note's draft and where it sits, pure: the scene, time and frame of the
+// moment noted, with the cue edge and mark nearest it; the draft carries
+// the box and the ink only when there are any; and a pointer's place on the
+// frame in film pixels.
+
+import { Option } from 'effect';
+import { describe, expect, test } from 'effect-bun-test';
+import { probeFilm } from '../fixtures/probe-film.ts';
+import { boxOf, draftOf, filmPixel, whereText } from './draft.ts';
+
+const film = probeFilm();
+
+describe('where a note sits', () => {
+  test('names the scene, the time and the frame, with the nearest cue edge', () => {
+    const where = whereText(film.placed, film.fps, 1);
+    expect(where.startsWith('one · 1.00s · f30')).toBe(true);
+    expect(where).toContain('cue ');
+  });
+
+  test('names the mark nearest it', () => {
+    expect(whereText(film.placed, film.fps, 1)).toMatch(/ · \{\w+\}$/);
+  });
+});
+
+describe('the draft', () => {
+  test('a point or a box goes with the draft; no ink leaves ink out', () => {
+    const draft = draftOf(film.placed, film.fps, {
+      T: 1,
+      box: Option.some({ x: 5, y: 6, w: 0, h: 0 }),
+      ink: [],
+      text: '  too early ',
+    });
+    expect(Option.map(draft, (d) => [d.scene, d.T, d.frame, d.text, d.box, 'ink' in d])).toEqual(
+      Option.some(['one', 1, 30, 'too early', { x: 5, y: 6, w: 0, h: 0 }, false]),
+    );
+  });
+
+  test('ink goes with the draft; no box leaves the box out', () => {
+    const draft = draftOf(film.placed, film.fps, {
+      T: 1,
+      box: Option.none(),
+      ink: [
+        [
+          [1, 2],
+          [3, 4],
+        ],
+      ],
+      text: 'this arc',
+    });
+    expect(Option.map(draft, (d) => ['box' in d, d.ink])).toEqual(
+      Option.some([
+        false,
+        [
+          [
+            [1, 2],
+            [3, 4],
+          ],
+        ],
+      ]),
+    );
+  });
+
+  test('an empty note is no draft', () => {
+    expect(
+      draftOf(film.placed, film.fps, { T: 1, box: Option.none(), ink: [], text: '   ' }),
+    ).toEqual(Option.none());
+  });
+});
+
+describe('pixels', () => {
+  test("a pointer's place on the frame, in film pixels", () => {
+    const frame = { left: 100, top: 50, width: 320, height: 180 };
+    expect(filmPixel(frame, { width: 640, height: 360 }, 260, 140)).toEqual([320, 180]);
+  });
+
+  test('a box from where a drag began to where it is, either way', () => {
+    expect(boxOf([300, 200], [100, 120])).toEqual({ x: 100, y: 120, w: 200, h: 80 });
+    expect(boxOf([10, 10], [10, 10])).toEqual({ x: 10, y: 10, w: 0, h: 0 });
+  });
+});

@@ -6,7 +6,24 @@ import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
 import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
-import { type Camera, type Plane, lerpCamera, multiplane, shotPath } from './camera.ts';
+import {
+  type Camera,
+  type Plane,
+  camera,
+  hearingCameras,
+  insideCamera,
+  knobCamera,
+  lerpCamera,
+  multiplane,
+  shotPath,
+} from './camera.ts';
+
+describe('knobCamera', () => {
+  test('a framing from its knobs: where it looks, how close, and a turn only when given', () => {
+    expect(knobCamera([800, 610], 1.22)).toEqual({ x: 800, y: 610, zoom: 1.22 });
+    expect(knobCamera([800, 610], 1.22, 0.05)).toEqual({ x: 800, y: 610, zoom: 1.22, rot: 0.05 });
+  });
+});
 
 describe('shotPath', () => {
   const REST: Camera = { x: 960, y: 540 };
@@ -93,6 +110,10 @@ const recorder = (): Recorder => {
       state.filter = v;
     },
     fillStyle: '',
+    getTransform: () => {
+      const [a, b, c, d, e, f] = state.m;
+      return { a, b, c, d, e, f };
+    },
   };
   return {
     ctx: Schema.decodeSync(Schema.Any)(fake),
@@ -188,5 +209,59 @@ describe('multiplane', () => {
     shoot(r, { x: 960, y: 540 }, { focal: 1, far: 3 }, [0, 0], { blur: 2 });
     expect(r.filters.get('focal')).toBe('none');
     expect(r.filters.get('far')).toBe('blur(4.00px)');
+  });
+});
+
+// The lab places a knob read before a camera where the camera draws it: a
+// frame hearing its cameras is told the transform inside each outermost one.
+describe('the cameras a frame applies', () => {
+  const inside = (m: { a: number; b: number; c: number; d: number; e: number; f: number }) =>
+    applyAffine([m.a, m.b, m.c, m.d, m.e, m.f], [1000, 500]);
+
+  test('hears the outermost camera, not one nested in it', () => {
+    const r = recorder();
+    const heard: Array<readonly [number, number]> = [];
+    hearingCameras(
+      r.ctx,
+      (m) => heard.push(inside(m)),
+      () =>
+        camera(r.ctx, { x: 1000, y: 500, zoom: 2 }, 1920, 1080, () =>
+          camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined),
+        ),
+    );
+    expect(heard).toEqual([[960, 540]]);
+  });
+
+  test('knows when it draws inside a camera', () => {
+    const r = recorder();
+    const seen: boolean[] = [insideCamera(r.ctx)];
+    camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => seen.push(insideCamera(r.ctx)));
+    seen.push(insideCamera(r.ctx));
+    expect(seen).toEqual([false, true, false]);
+  });
+
+  test('hears a multiplane shot once, as its focal plane', () => {
+    const r = recorder();
+    const heard: Array<readonly [number, number]> = [];
+    hearingCameras(
+      r.ctx,
+      (m) => heard.push(inside(m)),
+      () => shoot(r, { x: 1000, y: 500, zoom: 2 }, { far: 3, focal: 1, near: 0.5 }, [0, 0]),
+    );
+    expect(heard).toHaveLength(1);
+    expect(heard[0]?.[0]).toBeCloseTo(960);
+    expect(heard[0]?.[1]).toBeCloseTo(540);
+  });
+
+  test('hears nothing once the draw is done', () => {
+    const r = recorder();
+    const heard: number[] = [];
+    hearingCameras(
+      r.ctx,
+      () => heard.push(1),
+      () => undefined,
+    );
+    camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined);
+    expect(heard).toEqual([]);
   });
 });

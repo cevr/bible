@@ -8,22 +8,29 @@
     "./canvas": "./src/canvas/index.ts",
     "./player": "./src/player/index.ts",
     "./player.css": "./src/player/player.css",
-    "./tools": "./src/tools/index.ts"
+    "./tools": "./src/tools/index.ts",
+    "./lab": "./src/lab/index.ts",
+    "./solid-plugin": "./src/tools/solid-plugin.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test src lint"
   },
   "dependencies": {
+    "@bible/atom-solid": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@mediabunny/aac-encoder": "1.60.0",
+    "@solidjs/compiler": "catalog:",
+    "@solidjs/web": "catalog:",
     "@wasm-audio-decoders/flac": "0.2.11",
     "effect": "catalog:",
+    "effect-machine": "catalog:",
     "math": "0.1.0",
     "mediabunny": "1.60.0",
     "mpg123-decoder": "1.0.3",
     "oxc-parser": "0.151.0",
-    "playwright-core": "1.63.0"
+    "playwright-core": "1.63.0",
+    "solid-js": "catalog:"
   },
   "devDependencies": {
     "effect-bun-test": "catalog:"

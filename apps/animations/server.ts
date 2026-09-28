@@ -1,11 +1,13 @@
 // Serves the player and each film's recorded narration. `render` starts this
 // in-process as the film CLI's PreviewServer (cli.ts); `bun run dev` runs it
 // with hot reload; `bun run lab` runs it in development mode with the lab's
-// routes (the film framework's handler) at /lab/*.
+// page at /lab and its routes (the film framework's handler) at /lab/*.
 
 import type { LabBound } from '@bible/film/tools';
+import { Option } from 'effect';
 import { join, normalize } from 'node:path';
 import index from './index.html';
+import labPage from './lab.html';
 
 /** The films folder: the player imports its registry, and the film CLI reads each film here. */
 export const FILMS = join(import.meta.dir, 'src/films');
@@ -23,8 +25,18 @@ type Handler = (req: Request, server: LabBound) => Response | Promise<Response>;
 
 const notFound: Handler = () => new Response('not found', { status: 404 });
 
-/** The player on `HOST`:`port`; `lab` answers `/lab/*` (the film lab's API) when the lab runs. */
-export const serve = (port: number, development: boolean, lab: Handler = notFound) =>
+/**
+ * The lab's page (`/lab?film=…`, its Solid panels) and its API (`/lab/<film>/…`)
+ * when the lab runs; otherwise neither, so the render's server never bundles
+ * the lab page.
+ */
+const labRoutes = (lab: Option.Option<Handler>) => ({
+  '/lab': Option.match(lab, { onNone: () => notFound, onSome: () => labPage }),
+  '/lab/*': Option.getOrElse(lab, () => notFound),
+});
+
+/** The player on `HOST`:`port`; with `lab` (the film lab's API), the lab's page and routes too. */
+export const serve = (port: number, development: boolean, lab?: Handler) =>
   Bun.serve({
     hostname: HOST,
     port,
@@ -32,7 +44,7 @@ export const serve = (port: number, development: boolean, lab: Handler = notFoun
     idleTimeout: IDLE_SECONDS,
     routes: {
       '/': index,
-      '/lab/*': lab,
+      ...labRoutes(Option.fromUndefinedOr(lab)),
       // Narration takes: /films/<film>/narration/<file>
       '/films/*': (req) => {
         const rel = normalize(
