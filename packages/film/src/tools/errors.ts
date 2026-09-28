@@ -8,6 +8,10 @@ export {
   ActTooShort,
   AlignmentMismatch,
   CueInvalid,
+  ShortSpanEmpty,
+  ShortUnknownCue,
+  ShortUnknownMark,
+  ShortUnknownScene,
   UnknownCue,
   UnknownMark,
   UnknownScene,
@@ -261,6 +265,20 @@ export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownE
 }) {
   override get message() {
     return `the film has no sound "${this.id}"; its sounds are ${this.known.join(', ')}`;
+  }
+}
+
+/** `--short` names a short the film's `shorts.ts` does not declare. */
+export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The shorts the film declares, in order; empty when it has no `shorts.ts`. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0)
+      return `film "${this.film}" has no short "${this.id}": it declares none (a shorts.ts beside its script)`;
+    return `film "${this.film}" has no short "${this.id}"; its shorts are ${this.known.join(', ')}`;
   }
 }
 

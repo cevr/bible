@@ -1,13 +1,15 @@
 // The film's clock as text: each scene's placement, its marks, its resolved
-// named cues and the seam to the next voice, or each sound effect's film time.
-// Pure; `film cues` prints it.
+// named cues and the seam to the next voice, each sound effect's film time, or
+// a short's spans. Pure; `film cues` prints it.
 
 import { Array as Arr, Option, Result } from 'effect';
-import type { SoundCueError, UnknownScene } from '../core/errors.ts';
+import type { ShortError, SoundCueError, UnknownScene } from '../core/errors.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
-import type { Cue, Sound } from '../core/schema.ts';
+import type { Cue, Short, Sound } from '../core/schema.ts';
+import { resolveShort } from '../core/shorts.ts';
 import { cueTime } from '../core/sound.ts';
 import { longSeams, seamAfter } from './check.ts';
+import type { FlagRule } from './render-plan.ts';
 
 export interface CueReport {
   readonly lines: ReadonlyArray<string>;
@@ -108,3 +110,26 @@ export const soundReport = (
       }
     return lines;
   });
+
+/** `film cues` flags that would each print a different report. */
+export const CUES_RULES: ReadonlyArray<FlagRule> = [
+  ['short', 'excludes', 'sound', '--short prints the short, --sound the effects'],
+  ['short', 'excludes', 'scene', "a short's spans are its scenes"],
+];
+
+const range = (from: number, to: number) => `${from.toFixed(3).padStart(8)}–${to.toFixed(3)}`;
+
+/** A short's spans: each one's film time and its time in the short, then the short's length. */
+export const shortReport = (
+  placed: ReadonlyArray<Placed>,
+  short: Short,
+  fps: number,
+): Result.Result<ReadonlyArray<string>, ShortError> =>
+  Result.map(resolveShort(placed, short, fps), (cut) => [
+    `short ${cut.id} "${cut.title}" at ${fps} fps`,
+    ...cut.spans.map((span, i) => {
+      const len = span.to - span.from;
+      return `  ${i + 1} ${span.scene.padEnd(11)} film ${range(span.from, span.to)}  short ${range(span.at, span.at + len)}  (${len.toFixed(2)}s)`;
+    }),
+    `length ${cut.duration.toFixed(2)}s`,
+  ]);

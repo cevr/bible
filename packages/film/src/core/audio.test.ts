@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { concat, levels, silence, slice, toInt16, toStereo } from './audio.ts';
+import { concat, levels, silence, slice, splice, toInt16, toStereo } from './audio.ts';
 
 const pcm = (...channels: ReadonlyArray<ReadonlyArray<number>>) => ({
   rate: 44100,
@@ -65,5 +65,49 @@ describe('slice', () => {
       [2, 3, 0],
       [5, 6, 0],
     ]);
+  });
+});
+
+describe('splice', () => {
+  test('joins pieces end to end, one piece as it was', () => {
+    const src = pcm([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const one = splice(src, [{ from: 2, frames: 5 }], 2);
+    expect([...(one.channels[0] ?? [])]).toEqual([2, 3, 4, 5, 6]);
+    const two = splice(
+      src,
+      [
+        { from: 6, frames: 3 },
+        { from: 0, frames: 4 },
+      ],
+      0,
+    );
+    expect(two.frames).toBe(7);
+    expect([...(two.channels[0] ?? [])]).toEqual([6, 7, 8, 0, 1, 2, 3]);
+  });
+
+  test('fades out and in across each join, never at the outer edges', () => {
+    const ones = pcm(Array.from({ length: 20 }, () => 1));
+    const out = [
+      ...(splice(
+        ones,
+        [
+          { from: 0, frames: 10 },
+          { from: 10, frames: 10 },
+        ],
+        4,
+      ).channels[0] ?? []),
+    ];
+    // Untouched away from the join, and at both ends.
+    expect(out.slice(0, 6)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(out.slice(14)).toEqual([1, 1, 1, 1, 1, 1]);
+    // Down to silence into the join, and up out of it.
+    expect(out.slice(6, 10).every((x, i, all) => x < 1 && (i === 0 || x < (all[i - 1] ?? 1)))).toBe(
+      true,
+    );
+    expect(
+      out.slice(10, 14).every((x, i, all) => x < 1 && (i === 0 || x > (all[i - 1] ?? 0))),
+    ).toBe(true);
+    expect(out[9]).toBeLessThan(0.3);
+    expect(out[10]).toBeLessThan(0.3);
   });
 });

@@ -2,12 +2,15 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import {
+  Cut,
   DEFAULT_WORKERS,
   MAX_CHUNK_FRAMES,
   MIN_CHUNK_FRAMES,
   MAX_ENCODERS,
   RenderJob,
   contactTimes,
+  cutBase,
+  cutPage,
   encoderBudget,
   flagConflicts,
   jobOf,
@@ -30,6 +33,7 @@ const flags = {
   scale: Option.none(),
   out: Option.none(),
   share: Option.none(),
+  short: Option.none(),
 } as const;
 
 const conflict = (over: Partial<Parameters<typeof jobOf>[0]>) =>
@@ -76,6 +80,34 @@ describe('jobOf', () => {
       from: Option.some(3),
       to: Option.some(7),
     });
+  });
+
+  test('--short cuts the job to that short, and excludes --scene', () => {
+    const short = {
+      id: 'cut',
+      title: 'A cut',
+      spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+    } as const;
+    const job = Result.getOrThrow(jobOf({ ...flags, short: Option.some(short) }));
+    expect(job).toMatchObject({ _tag: 'Video', cut: Cut.Short({ short }) });
+    expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ cut: Cut.Whole() });
+    expect(conflict({ short: Option.some(short), span: Option.some({ from: 0, to: 9 }) })).toBe(
+      'short excludes scene',
+    );
+  });
+
+  test('a short draws on its own page and writes under out/<film>/shorts', () => {
+    const short = Cut.Short({
+      short: {
+        id: 'cut',
+        title: 'A cut',
+        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+      },
+    });
+    expect(cutPage('film', Cut.Whole())).toBe('film');
+    expect(cutPage('film', short)).toBe('film/shorts/cut');
+    expect(cutBase('/out/film', Cut.Whole())).toBe('/out/film');
+    expect(cutBase('/out/film', short)).toBe('/out/film/shorts/cut');
   });
 
   test('a needs rule fails only without its partner', () => {
@@ -182,6 +214,7 @@ describe('encoderBudget', () => {
       scale: 1,
       out: Option.none(),
       share,
+      cut: Cut.Whole(),
     });
   const tag = (job: RenderJob) =>
     Result.match(encoderBudget(job), { onSuccess: String, onFailure: (e) => e._tag });
@@ -197,6 +230,10 @@ describe('encoderBudget', () => {
   });
 
   test('stills encode no video', () => {
-    expect(tag(RenderJob.Stills({ tag: 't', captions: true, workers: 32, times: [1] }))).toBe('0');
+    expect(
+      tag(
+        RenderJob.Stills({ tag: 't', captions: true, workers: 32, times: [1], cut: Cut.Whole() }),
+      ),
+    ).toBe('0');
   });
 });

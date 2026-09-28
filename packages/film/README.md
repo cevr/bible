@@ -97,6 +97,33 @@ use. A contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
 
+## Shorts
+
+A film's `shorts.ts` (optional; `Shorts` in `core/schema.ts`, decoded by
+`FilmRepo`) declares vertical cuts: `{ id, title, spans: [{ scene, from, to }] }`,
+each point a `{ mark }`, a named `{ cue, edge? }` or a scene landmark, never a
+second. `core/shorts.ts` resolves a short against the layout on whole frames
+(`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
+and short seconds), or fails with `ShortUnknownScene`, `ShortUnknownMark`,
+`ShortUnknownCue` or `ShortSpanEmpty` naming what the film has; `--short`
+naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
+the film stretches under it.
+
+The page is a `Film` of its own (`canvas/short.ts`, `createShort`), so the
+player, the export handle and the worker pool serve it unchanged: the app
+spreads `shortPages(name, load, shorts)` into its registry, one page per
+short under `<film>/shorts/<id>` (`shortKey`). Each frame is the film's own
+frame at the film time under it, drawn full size into a band and copied onto
+a 9:16 page at the film's density (`shortPage(1920)`: 1920×3414), which the
+encoder scales to 1080×1920 through the same `--scale` path; so a crop of the
+band is, pixel for pixel, a `render --stills` still at that film time. The
+renderer resolves the short again on the page's fps, cuts `full.wav` to its
+pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
+writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
+film's caption cues under each span, moved to short time). `film cues --short`
+prints `shortReport`; `film bench --workers n --short <id>` times the same
+render.
+
 ## Lab
 
 `film lab <film>` serves the player in development mode (the bundle rebuilds

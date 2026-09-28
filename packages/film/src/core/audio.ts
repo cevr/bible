@@ -39,6 +39,41 @@ export const slice = (pcm: Pcm, from: number, frames: number): Pcm => ({
   }),
 });
 
+/** A stretch of a sound: `frames` frames from frame `from`. */
+export interface Piece {
+  readonly from: number;
+  readonly frames: number;
+}
+
+/**
+ * `pieces` of `pcm`, joined end to end in order (a short's spans), each join
+ * crossed by a fade: the last `fade` frames before it ramp down to silence and
+ * the first `fade` after it ramp up, so a cut between two takes never clicks.
+ * The outer edges are left as they are; one piece is a plain slice.
+ */
+export const splice = (pcm: Pcm, pieces: ReadonlyArray<Piece>, fade: number): Pcm => {
+  const out = concat(
+    pcm.rate,
+    pcm.channels.length,
+    pieces.map((p) => slice(pcm, p.from, p.frames)),
+  );
+  let at = 0;
+  for (const [k, piece] of pieces.entries()) {
+    const n = Math.min(fade, piece.frames);
+    for (const plane of out.channels)
+      for (let i = 0; i < n; i++) {
+        const gain = (i + 0.5) / n;
+        if (k > 0) plane[at + i] = (plane[at + i] ?? 0) * gain;
+        if (k < pieces.length - 1) {
+          const j = at + piece.frames - 1 - i;
+          plane[j] = (plane[j] ?? 0) * gain;
+        }
+      }
+    at += piece.frames;
+  }
+  return out;
+};
+
 /**
  * Two channels. Mono spreads to both sides at −3 dB, as ffmpeg's rematrix did
  * in the graph the mix was balanced with (libswresample/rematrix.c,

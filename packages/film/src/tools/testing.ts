@@ -479,6 +479,7 @@ export const testFilm = (
   scenes,
   voice,
   sound: Option.none(),
+  shorts: [],
   timings,
   manifest: { effects: {} },
 });

@@ -76,3 +76,63 @@ export class UnknownVoice extends Schema.TaggedError<UnknownVoice>()('UnknownVoi
     return `scene "${this.scene}" hands a line to "${this.voice}"; the cast is ${this.known.join(', ')}`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shorts: a span of a short (`shorts.ts`) that names what its film lacks.
+
+/** A short's span names a scene the film does not have. */
+export class ShortUnknownScene extends Schema.TaggedError<ShortUnknownScene>()(
+  'ShortUnknownScene',
+  {
+    short: Schema.String,
+    scene: Schema.String,
+    /** The film's scenes, in film order. */
+    known: Schema.Array(Schema.String),
+  },
+) {
+  override get message() {
+    return `short "${this.short}": the film has no scene "${this.scene}"; its scenes are ${this.known.join(', ')}`;
+  }
+}
+
+/** A short's span starts or ends on a `{mark}` its scene's narration does not have. */
+export class ShortUnknownMark extends Schema.TaggedError<ShortUnknownMark>()('ShortUnknownMark', {
+  short: Schema.String,
+  scene: Schema.String,
+  mark: Schema.String,
+  /** The scene's marks, in narration order. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const marks = this.known.map((m) => `{${m}}`).join(' ') || 'none';
+    return `short "${this.short}": scene "${this.scene}" has no mark {${this.mark}}; its marks are ${marks}`;
+  }
+}
+
+/** A short's span starts or ends on a named cue its scene's timeline does not have. */
+export class ShortUnknownCue extends Schema.TaggedError<ShortUnknownCue>()('ShortUnknownCue', {
+  short: Schema.String,
+  scene: Schema.String,
+  cue: Schema.String,
+  /** The scene's cues. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `short "${this.short}": scene "${this.scene}" has no cue "${this.cue}"; its cues are ${this.known.join(', ') || 'none'}`;
+  }
+}
+
+/** A short's span that ends where it starts, or before. */
+export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortSpanEmpty', {
+  short: Schema.String,
+  scene: Schema.String,
+  /** Film seconds, each on its frame. */
+  from: Schema.Finite,
+  to: Schema.Finite,
+}) {
+  override get message() {
+    return `short "${this.short}": the span in scene "${this.scene}" runs from ${this.from.toFixed(2)}s to ${this.to.toFixed(2)}s (film time), which holds no frame`;
+  }
+}
+
+export type ShortError = ShortUnknownScene | ShortUnknownMark | ShortUnknownCue | ShortSpanEmpty;

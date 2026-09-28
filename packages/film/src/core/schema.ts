@@ -280,6 +280,65 @@ export const Beat = Schema.Struct({
 export type Beat = typeof Beat.Type;
 
 // ---------------------------------------------------------------------------
+// Shorts
+
+/** A key a point must not name beside its own anchor. */
+const none = Schema.optionalKey(Schema.Never);
+
+/**
+ * Where a short's span starts or ends inside its scene, never at a second: a
+ * `{mark}` (the word it precedes starts), a named cue (its start, or its end
+ * with `edge: 'end'`; a span's `to` takes the end when no edge is named), or
+ * a scene landmark (its start, where the voice starts or ends, or its end).
+ * A point names one anchor.
+ */
+export const ShortPoint = Schema.Union([
+  Schema.Struct({ mark: Schema.String, cue: none, edge: none, scene: none }),
+  Schema.Struct({
+    cue: Schema.String,
+    edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
+    mark: none,
+    scene: none,
+  }),
+  Schema.Struct({
+    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
+    mark: none,
+    cue: none,
+    edge: none,
+  }),
+]);
+export type ShortPoint = typeof ShortPoint.Type;
+
+/** One stretch of one scene a short plays: `from` a point `to` a later one. */
+export const ShortSpan = Schema.Struct({
+  scene: Schema.String,
+  from: ShortPoint,
+  to: ShortPoint,
+});
+export type ShortSpan = typeof ShortSpan.Type;
+
+/** A short's id names its files (`out/<film>/shorts/<id>.mp4`): lower case, digits and dashes. */
+const ShortId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/));
+
+/** A vertical short cut from a film (`shorts.ts`): its spans, played back to back. */
+export const Short = Schema.Struct({
+  id: ShortId,
+  title: Schema.String,
+  spans: Schema.NonEmptyArray(ShortSpan),
+});
+export type Short = typeof Short.Type;
+
+/** A film's `shorts.ts`: its shorts, each id once. */
+export const Shorts = Schema.Array(Short).check(
+  Schema.makeFilter((shorts) => {
+    const ids = shorts.map((s) => s.id);
+    const twice = ids.filter((id, i) => ids.indexOf(id) !== i);
+    return twice.length === 0 || `short ids must be unique: ${[...new Set(twice)].join(', ')}`;
+  }),
+);
+export type Shorts = typeof Shorts.Type;
+
+// ---------------------------------------------------------------------------
 // Sound
 
 /**

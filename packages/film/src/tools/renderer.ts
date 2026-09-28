@@ -19,9 +19,13 @@ import {
   Ref,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { slice } from '../core/audio.ts';
-import { filmCaptions, webVtt } from '../core/captions.ts';
+import { splice } from '../core/audio.ts';
+import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
+import type { ShortError } from '../core/errors.ts';
+import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import type { ExportInfo } from '../core/schema.ts';
+import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
+import { filmEnd } from '../core/sound.ts';
 import { Browser, type FramePage, type PageOpenError } from './browser.ts';
 import {
   type AudioMissing,
@@ -45,8 +49,12 @@ import { PreviewServer } from './preview-server.ts';
 import {
   type AudioCut,
   type Chunk,
+  Cut,
+  JOIN_FADE,
   RenderJob,
   contactSheetName,
+  cutBase,
+  cutPage,
   lookbookName,
   contactTimes,
   frameAt,
@@ -73,7 +81,19 @@ export type RenderError =
   | RangeEmpty
   | TooManyEncoders
   | LayoutInvalid
+  | ShortError
   | PlatformError;
+
+/** Where a render's outputs go, and the film and short it draws. */
+interface Where {
+  /** `out/<film>`, or a short's `out/<film>/shorts/<id>` (`cutBase`). */
+  readonly base: string;
+  /** `<base>/<tag>`: stills, sheets and a video's segments. */
+  readonly dir: string;
+  readonly placed: ReadonlyArray<Placed>;
+  /** The short, resolved on the page's frames, when the render is one. */
+  readonly short: Option.Option<ResolvedShort>;
+}
 
 export interface RendererService {
   readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<void, RenderError>;
@@ -101,30 +121,51 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         job: Extract<RenderJob, { _tag: 'Video' }>,
         pool: Pool.Pool<FramePage, PageOpenError>,
         info: ExportInfo,
-        dir: string,
+        where: Where,
       ) {
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const total = end - start;
-        const target = Option.getOrElse(job.out, () => `${film.paths.out}.mp4`);
+        const target = Option.getOrElse(job.out, () => `${where.base}.mp4`);
+        const range = { from: start / info.fps, to: end / info.fps };
+        // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
+        const scale = Option.match(where.short, {
+          onNone: () => job.scale,
+          onSome: () => shortPage(info.width).scale * job.scale,
+        });
 
-        // The film declares its track only once every take is recorded. Before
-        // a frame is drawn, its master must be there and cover the whole film
-        // to within a frame: a mix cut short would otherwise mux silence.
-        const audio: Option.Option<AudioCut> = Option.map(Option.fromNullishOr(info.audio), () => ({
-          file: masterFile(film.paths),
-          start: start / info.fps,
-          duration: total / info.fps,
-        }));
+        // The film declares its track only once every take is recorded (a
+        // short's page declares none: it plays the film's under its spans).
+        // Before a frame is drawn, its master must be there and cover the
+        // whole film to within a frame: a mix cut short would otherwise mux
+        // silence.
+        const recorded = Option.match(where.short, {
+          onNone: () => Option.isSome(Option.fromNullishOr(info.audio)),
+          onSome: () => everyTakeRecorded(where.placed),
+        });
+        const audio: Option.Option<AudioCut> = Option.map(
+          Option.liftPredicate(recorded, Boolean),
+          () => ({
+            file: masterFile(film.paths),
+            pieces: Option.match(where.short, {
+              onNone: () => [{ start: range.from, duration: range.to - range.from }],
+              onSome: (short) => shortPieces(short, range.from, range.to),
+            }),
+          }),
+        );
         if (Option.isSome(audio)) {
           const length = yield* measureMaster(fs, media, audio.value.file);
-          const finding = masterFinding(audio.value.file, length, info.duration, 1 / info.fps);
+          const filmLength = Option.match(where.short, {
+            onNone: () => info.duration,
+            onSome: () => filmEnd(where.placed),
+          });
+          const finding = masterFinding(audio.value.file, length, filmLength, 1 / info.fps);
           if (Option.isSome(finding)) return yield* finding.value;
         }
 
         // Before a frame is drawn: a browser that cannot encode the film fails here.
-        yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
+        yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(scale)));
 
         // The track, cut and encoded once beside the pages; both joins copy its packets.
         const aac = Option.match(audio, {
@@ -132,15 +173,22 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           onSome: (cut) =>
             media.decode(cut.file).pipe(
               Effect.map((pcm) =>
-                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
+                splice(
+                  pcm,
+                  cut.pieces.map((piece) => ({
+                    from: Math.round(piece.start * pcm.rate),
+                    frames: Math.round(piece.duration * pcm.rate),
+                  })),
+                  Math.round(JOIN_FADE * pcm.rate),
+                ),
               ),
               Effect.flatMap(media.encodeAac),
               Effect.map(Option.some),
             ),
         });
 
-        const segDir = path.join(dir, 'segments');
-        const shareDir = path.join(dir, 'share');
+        const segDir = path.join(where.dir, 'segments');
+        const shareDir = path.join(where.dir, 'share');
         yield* fresh(segDir);
         if (job.share) yield* fresh(shareDir);
         const chunks = planChunks(start, end, job.workers);
@@ -166,7 +214,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.gen(function* () {
               const page = yield* Pool.get(pool);
               const encoded = yield* page
-                .encode(chunk, job.scale, job.share)
+                .encode(chunk, scale, job.share)
                 .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page)));
               const at = (chunk.from - start) / info.fps;
               const file = path.join(segDir, segmentName(chunk));
@@ -215,10 +263,12 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* fs.remove(segDir, { recursive: true, force: true });
         yield* fs.remove(shareDir, { recursive: true, force: true });
 
-        const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
-        const range = { from: start / info.fps, to: end / info.fps };
-        yield* fs.writeFileString(captions, webVtt(filmCaptions(placed, range)));
+        const cues = Option.match(where.short, {
+          onNone: () => filmCaptions(where.placed, range),
+          onSome: (short) => shortCaptions(where.placed, short, range),
+        });
+        yield* fs.writeFileString(captions, webVtt(cues));
 
         const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
         yield* Effect.log(
@@ -279,15 +329,23 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       }, Effect.scoped);
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
+        const cut = RenderJob.$match(job, {
+          Video: (v) => v.cut,
+          Stills: (st) => st.cut,
+          Contact: (c) => c.cut,
+          LookBook: () => Cut.Whole(),
+        });
+        const placed = yield* placeFilm(film);
         const query = [
-          `film=${encodeURIComponent(film.paths.name)}`,
+          `film=${encodeURIComponent(cutPage(film.paths.name, cut))}`,
           'export',
           ...Arr.filter(['captions=0'], () => !job.captions),
         ];
         // Before a page opens: a video past the encoders the hardware runs would hang.
         yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
-        const dir = path.join(film.paths.out, job.tag);
+        const base = cutBase(film.paths.out, cut);
+        const dir = path.join(base, job.tag);
         yield* fs.makeDirectory(dir, { recursive: true });
         const pages = RenderJob.$match(job, {
           Video: (v) => v.workers,
@@ -300,8 +358,15 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           Effect.gen(function* () {
             const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, pages) });
             const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+            // The short on the page's clock: the same spans, on the same frames, it draws.
+            const short = yield* Cut.$match(cut, {
+              Whole: () => Effect.succeedNone,
+              Short: ({ short }) =>
+                Effect.map(Effect.fromResult(resolveShort(placed, short, info.fps)), Option.some),
+            });
+            const where: Where = { base, dir, placed, short };
             yield* RenderJob.$match(job, {
-              Video: (v) => video(film, v, pool, info, dir),
+              Video: (v) => video(film, v, pool, info, where),
               Stills: (s) => stills(s, pool, info, dir),
               Contact: (c) => contact(c, pool, info, dir),
               LookBook: () => lookbook(pool, dir),

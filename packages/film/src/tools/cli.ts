@@ -6,7 +6,7 @@
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
-//   film cues <film> [scene] [--sound]
+//   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
@@ -15,11 +15,11 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
-//                      [--no-share]
+//                      [--no-share] [--short id]
 //   film lookbook <film> [--captions] [--tag name]
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
 //                     [--no-captions]
-//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
+//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--short id] [--runs n] [--no-share]
 //                     [--no-captions]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
@@ -40,15 +40,18 @@ import {
   Schema,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
-import { scenesOf } from '../core/layout.ts';
+import { type Placed, scenesOf } from '../core/layout.ts';
 import { eventsSince } from '../core/notes.ts';
+import type { Short } from '../core/schema.ts';
+import { resolveShort } from '../core/shorts.ts';
+import { FILM_FPS } from '../core/time.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
-import { sceneReport, soundReport } from './cues.ts';
+import { CUES_RULES, sceneReport, shortReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type BrowserFailed,
@@ -58,6 +61,7 @@ import {
   type ElevenLabsFailed,
   SoundMissing,
   UnknownEffect,
+  UnknownShort,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
@@ -69,6 +73,7 @@ import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { BENCH_RULES } from './bench.ts';
 import {
+  Cut,
   DEFAULT_WORKERS,
   RenderJob,
   flagConflicts,
@@ -96,6 +101,36 @@ const scenes = Flag.String('scene').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => ids.split(','))),
 );
+/** `--short <id>`: one of the film's shorts (`shorts.ts`). */
+const short = Flag.String('short').pipe(Flag.optional);
+
+/**
+ * The short `--short` names, its spans checked against the film's layout, so
+ * a misspelt short, scene, mark or cue fails before a page or a browser starts.
+ */
+const pickShort = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, id: Option.Option<string>) =>
+  Option.match(id, {
+    onNone: () => Effect.succeed(Option.none<Short>()),
+    onSome: (want) =>
+      Option.match(
+        Arr.findFirst(loaded.shorts, (s) => s.id === want),
+        {
+          onNone: () =>
+            Effect.fail(
+              UnknownShort.make({
+                film: loaded.paths.name,
+                id: want,
+                known: loaded.shorts.map((s) => s.id),
+              }),
+            ),
+          onSome: (found) =>
+            Effect.fromResult(resolveShort(placed, found, FILM_FPS)).pipe(
+              Effect.as(Option.some(found)),
+            ),
+        },
+      ),
+  });
+
 const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
   Flag.withDescription('print what would be generated, then stop'),
@@ -253,10 +288,29 @@ const cues = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("print each effect placement's film time instead"),
     ),
+    short: short.pipe(
+      Flag.withDescription("print this short's spans in film time, and its length, instead"),
+    ),
   },
   Effect.fn('film.cues')(function* (input) {
+    yield* Effect.fromResult(
+      flagConflicts(
+        givenFlags({
+          short: input.short,
+          sound: Option.liftPredicate(input.sound, Boolean),
+          scene: input.scene,
+        }),
+        CUES_RULES,
+      ),
+    );
     const loaded = yield* (yield* FilmRepo).load(input.film);
     const placed = yield* placeFilm(loaded);
+    const cut = yield* pickShort(loaded, placed, input.short);
+    if (Option.isSome(cut)) {
+      const lines = yield* Effect.fromResult(shortReport(placed, cut.value, FILM_FPS));
+      for (const line of lines) yield* Console.log(line);
+      return;
+    }
     if (input.sound) {
       const sound = yield* Option.match(loaded.sound, {
         onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
@@ -404,18 +458,21 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           'also write a smaller copy to send, <out>.share.mp4 (default; --no-share to skip it)',
         ),
       ),
+      short: short.pipe(
+        Flag.withDescription(
+          'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>.mp4 (--from/--to in its seconds)',
+        ),
+      ),
     },
     Effect.fn('film.render')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
       // `--scene` sets the range from the film's own layout.
       const span = yield* Option.match(input.scene, {
         onNone: () => Effect.succeedNone,
-        onSome: (ids) =>
-          placeFilm(loaded).pipe(
-            Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids))),
-            Effect.map(Option.some),
-          ),
+        onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
       });
+      const cut = yield* pickShort(loaded, placed, input.short);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
         onSome: (list) =>
@@ -434,13 +491,14 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           scale: input.scale,
           out: input.out,
           share: input.share,
+          short: cut,
         }),
       );
       yield* (yield* Renderer).render(loaded, job);
     }, Effect.provide(renderLayer)),
   ).pipe(
     Command.withDescription(
-      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet',
+      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short)',
     ),
   );
 
@@ -532,6 +590,9 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
           'with --workers: encode the share copy too, as a render does (default; --no-share to skip it)',
         ),
       ),
+      short: short.pipe(
+        Flag.withDescription('with --workers: render this short (--from/--to in its seconds)'),
+      ),
     },
     Effect.fn('film.bench')(function* (input) {
       const on = (flag: boolean) => Option.liftPredicate(flag, Boolean);
@@ -547,12 +608,14 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
             from: input.from,
             to: input.to,
             share: input.share,
+            short: input.short,
           }),
           BENCH_RULES,
         ),
       );
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
+      const cut = yield* pickShort(loaded, placed, input.short);
       const bencher = yield* Bencher;
       if (Option.isSome(input.workers)) {
         const counts = yield* Schema.decodeEffect(WorkerCounts)(input.workers.value.split(','));
@@ -573,6 +636,10 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
             Option.map(span, (s) => s.to),
             () => input.to,
           ),
+          cut: Option.match(cut, {
+            onNone: () => Cut.Whole(),
+            onSome: (picked) => Cut.Short({ short: picked }),
+          }),
         });
         return;
       }

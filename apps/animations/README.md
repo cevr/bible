@@ -14,6 +14,7 @@ bun run score <film>                           # generate stale music + effects,
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
+bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
@@ -22,9 +23,11 @@ bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
+bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
+bun run bench <film> --workers 6 --short <id>          # the same, rendering a short
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
@@ -140,6 +143,7 @@ src/films/<film>/
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props, its people and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
+  shorts.ts        vertical shorts: spans of scenes, from a mark or cue to a later one (optional)
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
@@ -234,11 +238,26 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `mix --stems` against the levels in rule 10 of the film skill's
 [CRAFT.md](../../.claude/skills/film/CRAFT.md).
 
+**Shorts are cut from the film, not drawn again.** `shorts.ts` exports
+`shorts`, each `{ id, title, spans }`, a span being `{ scene, from, to }`
+where a point is a `{ mark }`, a named `{ cue }` (its start, or its end as a
+span's `to`, or `edge` to say which) or a scene landmark
+(`{ scene: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
+re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
+back to back at 1080×1920 with the track cut from `full.wav` under the same
+spans (a 10 ms fade either side of each join, so no join clicks), and writes
+`out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
+lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
+scene has). `cues <film> --short <id>` prints each span's film time and the
+short's length. `src/films/index.ts` keeps `films` (a key per film folder)
+apart from `pages`, what the player mounts: the films plus each short's page
+from `shortPages`, under `<film>/shorts/<id>`.
+
 ## Engine (`@bible/film`)
 
 The engine lives in [`packages/film`](../../packages/film); this app is its
-first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
-with the registry in `src/films/index.ts`. Scenes import from three entry
+first user. `src/main.ts` is the browser entry: it calls `mountPlayer(pages)`
+with the registry in `src/films/index.ts` (the films and their shorts). Scenes import from three entry
 points:
 
 | Entry point          | Module          | What it gives a scene                                                                                                                                                                                                                                                                                    |

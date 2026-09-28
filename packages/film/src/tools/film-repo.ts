@@ -11,6 +11,7 @@ import {
   Sound,
   type SoundManifest,
   SoundManifestJson,
+  Shorts,
   Timed,
   type Timings,
   TimingsJson,
@@ -37,6 +38,8 @@ export interface LoadedFilm {
   readonly scenes: ReadonlyArray<Timed>;
   readonly voice: Voice;
   readonly sound: Option.Option<Sound>;
+  /** The vertical shorts its `shorts.ts` declares; empty when it has none. */
+  readonly shorts: Shorts;
   /** Empty (no takes, no voice) until the first take is recorded. */
   readonly timings: Timings;
   readonly manifest: SoundManifest;
@@ -52,6 +55,7 @@ export interface FilmRepoService {
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
+const ShortsModule = Schema.Struct({ shorts: Shorts });
 
 /**
  * The one place a film module is imported by path. The process keeps the
@@ -136,9 +140,13 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           let sound = Option.none<Sound>();
           if (yield* fs.exists(soundFile))
             sound = Option.some((yield* loadModule(name, soundFile, SoundModule)).sound);
+          const shortsFile = path.join(at.dir, 'shorts.ts');
+          let shorts: Shorts = [];
+          if (yield* fs.exists(shortsFile))
+            shorts = (yield* loadModule(name, shortsFile, ShortsModule)).shorts;
           const timings = yield* store.read(at.timings);
           const manifest = yield* store.read(at.manifest);
-          return { paths: at, scenes, voice, sound, timings, manifest };
+          return { paths: at, scenes, voice, sound, shorts, timings, manifest };
         });
 
         return FilmRepo.of({ paths, load });

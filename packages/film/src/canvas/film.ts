@@ -39,7 +39,7 @@ import {
 } from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
-import { type Key, clamp, ease } from '../core/time.ts';
+import { FILM_FPS, type Key, clamp, ease } from '../core/time.ts';
 
 /** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
 export type KnobValue<V extends Knob> = V extends number ? number : Point;
@@ -252,6 +252,8 @@ export interface Film {
   /** Named colours, as declared (none when the film declares none). */
   readonly palette: Readonly<Record<string, string>>;
   readonly allRecorded: boolean;
+  /** The sheet it is drawn on, as made: what a page cut from it (a short) is drawn on too. */
+  readonly look: FilmLook;
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
   /**
@@ -263,6 +265,13 @@ export interface Film {
   preview(scene: string, edit: SceneEdit | undefined): ReadonlyMap<string, ResolvedCue>;
   /** A scene's cues as the frame draws them: previewed, or as laid out. */
   cuesOf(scene: string): ReadonlyMap<string, ResolvedCue>;
+}
+
+/** A film's paper, shade and finish, every finish value at its default where it declares none. */
+export interface FilmLook {
+  readonly paper: PaperStyle;
+  readonly shade: string;
+  readonly finish: Required<FinishStyle>;
 }
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
@@ -302,7 +311,7 @@ const captionOf = (declared: CaptionStyle): Required<CaptionStyle> => {
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
-  const fps = spec.fps ?? 30;
+  const fps = spec.fps ?? FILM_FPS;
   const placed = layout(spec.scenes, spec.timings);
   const last = placed[placed.length - 1];
   const duration = last === undefined ? 0 : last.start + last.dur;
@@ -551,6 +560,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     sound: spec.sound,
     palette: spec.palette ?? {},
     allRecorded,
+    look: { paper: spec.paper, shade: spec.shade, finish },
     sceneAt,
     render,
     preview,
