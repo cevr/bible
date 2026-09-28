@@ -202,7 +202,9 @@ describe('Bencher', () => {
       const error = yield* Effect.flip(workers([2, 15]));
       expect(error._tag).toBe('TooManyEncoders');
       expect(ledger.joins).toEqual([]);
-      expect(ledger.pages.opened).toBe(0);
+      // Only the page that chose the encoder (hardware, whose limit is 14) opened.
+      expect(ledger.pages.opened).toBe(1);
+      expect(ledger.frames).toEqual([]);
     }),
   );
 });

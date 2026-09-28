@@ -17,6 +17,7 @@ import {
   type Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
+import { type Encoder, EncoderChoice } from '../core/encoder.ts';
 import { ExportInfo, Probed } from '../core/schema.ts';
 import {
   BrowserFailed,
@@ -47,18 +48,20 @@ export interface FramePage {
   readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** Compose the film's look-book and return it as a JPEG. */
   readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
-  /** Fail unless the page can encode the film at `scale`. */
+  /** The encoder the page encodes the film with at `scale`: hardware where it has it, else software; `EncoderMissing` when neither. */
   readonly encoder: (
     scale: number,
-  ) => Effect.Effect<void, PageError | PageCrashed | EncoderMissing>;
+  ) => Effect.Effect<Encoder, PageError | PageCrashed | EncoderMissing>;
   /**
-   * Draw frames `[from, to)` and return them as an H.264 MP4 at `scale`, its
-   * first frame at 0, and with `share` a small copy encoded in the same pass.
+   * Draw frames `[from, to)` and return them encoded by `encoder` as an H.264
+   * MP4 at `scale`, its first frame at 0, and with `share` a small copy
+   * encoded in the same pass.
    */
   readonly encode: (
     chunk: { readonly from: number; readonly to: number },
     scale: number,
     share: boolean,
+    encoder: Encoder,
   ) => Effect.Effect<EncodedChunk, PageError | PageCrashed | EncodeFailed>;
   /** Draw `frames` and return them tiled into the contact sheet, as a JPEG. */
   readonly contact: (
@@ -179,20 +182,27 @@ const installCommand = Effect.gen(function* () {
 /** Playwright reports a missing browser only in its message; this is the one place it is read. */
 const MISSING = /Executable doesn't exist at (\S+)/;
 
+/**
+ * Chromium's flags on `platform` (`process.platform`). On every platform the
+ * 2D canvas draws in software, so a frame's pixels are the same wherever it
+ * is drawn. On macOS the GPU process runs too, through Metal (a macOS-only
+ * ANGLE backend): it holds the hardware H.264 encoder a render encodes with.
+ * Elsewhere the page encodes in software when it finds no hardware encoder
+ * (`chooseEncoder`, player/encode.ts).
+ */
+export const launchArgs = (platform: string): ReadonlyArray<string> => [
+  '--disable-gpu-vsync',
+  '--disable-frame-rate-limit',
+  ...Arr.filter(['--enable-gpu', '--use-angle=metal'], () => platform === 'darwin'),
+  '--disable-accelerated-2d-canvas',
+];
+
 const launch = Effect.gen(function* () {
   const install = yield* installCommand;
   return yield* Effect.tryPromise({
     try: () =>
       chromium.launch({
-        args: [
-          '--disable-gpu-vsync',
-          '--disable-frame-rate-limit',
-          // The GPU process holds the hardware H.264 encoder a render encodes
-          // with; the 2D canvas stays in software, so frames draw as before.
-          '--enable-gpu',
-          '--use-angle=metal',
-          '--disable-accelerated-2d-canvas',
-        ],
+        args: [...launchArgs(process.platform)],
         // The scope closes the browser; Playwright must not race it on a signal.
         handleSIGINT: false,
         handleSIGTERM: false,
@@ -217,12 +227,6 @@ const EncodedChunk = Schema.Struct({
   share: Schema.OptionFromOptionalKey(Schema.Uint8ArrayFromBase64),
 });
 export type EncodedChunk = typeof EncodedChunk.Type;
-
-/** What the page says of its encoder (`player/encode.ts`, `EncoderCheck`). */
-const EncoderCheck = Schema.Union([
-  Schema.TaggedStruct('Ready', {}),
-  Schema.TaggedStruct('Missing', { reason: Schema.String }),
-]).pipe(Schema.toTaggedUnion('_tag'));
 
 const openPage = (page: Page, url: string) =>
   Effect.gen(function* () {
@@ -346,13 +350,14 @@ const openPage = (page: Page, url: string) =>
     const encoder = (scale: number) =>
       handle(
         () => page.evaluate((k) => window.__film?.encoder(k), scale),
-        EncoderCheck,
+        EncoderChoice,
         FRAME_TIMEOUT,
         (reason) => EncoderMissing.make({ reason }),
       ).pipe(
-        Effect.flatMap((check) =>
-          EncoderCheck.match(check, {
-            Ready: () => Effect.void,
+        Effect.flatMap((choice) =>
+          EncoderChoice.match(choice, {
+            Hardware: (found) => Effect.succeed<Encoder>(found),
+            Software: (found) => Effect.succeed<Encoder>(found),
             Missing: ({ reason }) => Effect.fail(EncoderMissing.make({ reason })),
           }),
         ),
@@ -362,15 +367,17 @@ const openPage = (page: Page, url: string) =>
       chunk: { readonly from: number; readonly to: number },
       scale: number,
       share: boolean,
+      encoder: Encoder,
     ) =>
       handle(
         () =>
-          page.evaluate(([from, to, k, copy]) => window.__film?.encode(from, to, k, copy), [
+          page.evaluate(([from, to, k, copy, by]) => window.__film?.encode(from, to, k, copy, by), [
             chunk.from,
             chunk.to,
             scale,
             share,
-          ] satisfies [number, number, number, boolean]),
+            encoder,
+          ] satisfies [number, number, number, boolean, Encoder]),
         EncodedChunk,
         ENCODE_TIMEOUT,
         (reason) => EncodeFailed.make({ from: chunk.from, to: chunk.to, reason }),
@@ -440,22 +447,29 @@ export class Browser extends Context.Service<Browser, BrowserService>()(
   /** Headless Chromium through Playwright, closed when the layer's scope closes. */
   static readonly layer = Layer.effect(
     Browser,
-    Effect.gen(function* () {
-      const browser = yield* Effect.acquireRelease(launch, (b) =>
-        Effect.ignore(Effect.tryPromise(() => b.close())),
-      );
-      const open = Effect.fn('Browser.open')(function* (url: string) {
-        const page = yield* Effect.acquireRelease(
-          Effect.tryPromise({
-            try: () =>
-              browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 }),
-            catch: (cause) => BrowserFailed.make({ reason: String(cause) }),
-          }),
-          (p) => Effect.ignore(Effect.tryPromise(() => p.close())),
-        );
-        return yield* openPage(page, url);
-      });
-      return Browser.of({ open });
-    }),
+    Effect.suspend(() => makeBrowser),
   );
 }
+
+/** Headless Chromium launched in the current scope, and closed with it. */
+export const makeBrowser: Effect.Effect<
+  BrowserService,
+  BrowserMissing | BrowserFailed,
+  Scope.Scope | Path.Path
+> = Effect.gen(function* () {
+  const browser = yield* Effect.acquireRelease(launch, (b) =>
+    Effect.ignore(Effect.tryPromise(() => b.close())),
+  );
+  const open = Effect.fn('Browser.open')(function* (url: string) {
+    const page = yield* Effect.acquireRelease(
+      Effect.tryPromise({
+        try: () =>
+          browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 }),
+        catch: (cause) => BrowserFailed.make({ reason: String(cause) }),
+      }),
+      (p) => Effect.ignore(Effect.tryPromise(() => p.close())),
+    );
+    return yield* openPage(page, url);
+  });
+  return Browser.of({ open });
+});

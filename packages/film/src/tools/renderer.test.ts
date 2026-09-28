@@ -6,8 +6,8 @@ import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
 import { EncoderMissing, MediaFailed, PageCrashed, PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { Cut, RenderJob } from './render-plan.ts';
-import { Renderer } from './renderer.ts';
+import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
+import { Cores, Renderer } from './renderer.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
@@ -25,7 +25,7 @@ const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
 const video = RenderJob.Video({
   tag: '',
   captions: true,
-  workers: 4,
+  workers: Option.some(4),
   from: Option.none(),
   to: Option.none(),
   scale: 1,
@@ -88,7 +88,8 @@ describe('Renderer', () => {
         Array.from({ length: 600 }, (_, i) => i),
       );
       expect(ledger.encoders).toEqual({ spawned: 16, finished: 16, killed: 0 });
-      expect(ledger.pages.opened).toBe(4);
+      // The page that chose the encoder, then the four the chunks are drawn on.
+      expect(ledger.pages.opened).toBe(5);
       const [join] = ledger.joins;
       expect(join?.out).toBe('/out/test.mp4');
       expect(join?.frames).toBe(600);
@@ -153,18 +154,62 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('a video needing more encoders than the machine runs fails before a page opens', () =>
+  it.live('a video needing more encoders than its encoder runs fails before the pool opens', () =>
     Effect.gen(function* () {
       const { ledger, render } = setup();
       // Eight pages with a share copy are sixteen encoders: the hardware encoder hangs at sixteen.
-      const exit = yield* Effect.exit(render({ ...video, workers: 8, share: true }));
-      expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e.message))).toEqual(
-        Option.some(
-          '8 pages with a share copy need 16 encoders at once, over the 14 a render may run; use --workers 7 or fewer, or --no-share',
+      const exit = yield* Effect.exit(
+        render({ ...video, workers: Option.some(8), share: true }).pipe(
+          Effect.provideService(Cores, 64),
         ),
       );
-      expect(ledger.pages.opened).toBe(0);
+      expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e.message))).toEqual(
+        Option.some(
+          '8 pages with a share copy need 16 encoders at once, over the 14 hardware encoders a render may run; use --workers 7 or fewer, or --no-share',
+        ),
+      );
+      // Only the page that chose the encoder opened, and nothing was drawn.
+      expect(ledger.pages.opened).toBe(1);
+      expect(ledger.frames).toEqual([]);
+      expectAllClosed(ledger);
     }),
+  );
+
+  it.live('on the hardware encoder a render left to the default opens its six pages', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      yield* render({ ...video, workers: Option.none(), share: true }).pipe(
+        Effect.provideService(Cores, 16),
+      );
+      expect(ledger.pages.opened).toBe(1 + HARDWARE_WORKERS);
+      expect(new Set(ledger.encodedBy)).toEqual(new Set(['Hardware']));
+    }),
+  );
+
+  it.live(
+    'with no hardware encoder every chunk is encoded in software, on the software default pages',
+    () =>
+      Effect.gen(function* () {
+        const { ledger, render } = setup({ encoder: Effect.succeed({ _tag: 'Software' }) });
+        yield* render({ ...video, workers: Option.none(), share: true }).pipe(
+          Effect.provideService(Cores, 16),
+        );
+        expect(ledger.pages.opened).toBe(1 + SOFTWARE_WORKERS);
+        expect(ledger.encodedBy.length).toBe(ledger.encoders.spawned);
+        expect(new Set(ledger.encodedBy)).toEqual(new Set(['Software']));
+        expectAllClosed(ledger);
+
+        // One a core: nine pages with share copies are too many for 16 cores.
+        const over = setup({ encoder: Effect.succeed({ _tag: 'Software' }) });
+        const error = yield* Effect.flip(
+          over
+            .render({ ...video, workers: Option.some(9), share: true })
+            .pipe(Effect.provideService(Cores, 16)),
+        );
+        expect(error.message).toBe(
+          '9 pages with a share copy need 18 encoders at once, over the 16 software encoders a render may run; use --workers 8 or fewer, or --no-share',
+        );
+      }),
   );
 
   it.live('a browser that cannot encode the film fails before a frame is drawn', () =>
@@ -234,7 +279,7 @@ describe('Renderer', () => {
       });
       yield* render(video);
       expect(crashed.size).toBe(1);
-      expect(ledger.pages.opened).toBe(5);
+      expect(ledger.pages.opened).toBe(6);
       expect(new Set(ledger.frames).size).toBe(600);
       expect(ledger.encoders.finished).toBe(16);
       expectAllClosed(ledger);
@@ -276,7 +321,6 @@ describe('Renderer', () => {
         RenderJob.Contact({
           tag: 'g',
           captions: false,
-          workers: 2,
           every: 5,
           from: Option.none(),
           to: Option.none(),
@@ -297,7 +341,6 @@ describe('Renderer', () => {
           RenderJob.Contact({
             tag: 'g',
             captions: false,
-            workers: 1,
             every: 1,
             from: Option.some(from),
             to: Option.some(to),
@@ -319,7 +362,7 @@ describe('Renderer', () => {
   it.live('a look-book is one page composing one sheet, written beside the stills', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
-      yield* render(RenderJob.LookBook({ tag: '', captions: false, workers: 4 }));
+      yield* render(RenderJob.LookBook({ tag: '', captions: false }));
       expect(files.has('/out/test/lookbook.jpg')).toBe(true);
       expect(ledger.pages.opened).toBe(1);
       expect(ledger.lookbooks.composed).toBe(1);

@@ -1,7 +1,9 @@
 // The film encoded in the page: a chunk of frames drawn one by one onto the
 // canvas and handed to the browser's H.264 encoder through mediabunny, into
 // an MP4 of its own. Bun joins the chunks without re-encoding them
-// (tools/media.ts, `join`), so every chunk is encoded alike.
+// (tools/media.ts, `join`), so every chunk is encoded alike: the page picks
+// its encoder once (`encoderChoice`), and the renderer hands that one to
+// every chunk.
 
 import {
   BufferTarget,
@@ -12,19 +14,67 @@ import {
   type VideoEncodingConfig,
   canEncodeVideo,
 } from 'mediabunny';
+import type { Encoder, EncoderChoice } from '../core/encoder.ts';
+
+/** How one encoder encodes the master and the share copy. */
+interface Settings {
+  readonly hardwareAcceleration: 'prefer-hardware' | 'prefer-software';
+  readonly master: Quality;
+  readonly share: Quality;
+}
+
+const SETTINGS = {
+  Hardware: {
+    hardwareAcceleration: 'prefer-hardware',
+    /**
+     * The master: quantizer 16, about 37 Mbps at 1080p30 on this film, beside
+     * x264's CRF 15 at `slow` in the ffmpeg master it replaces.
+     */
+    master: new Quality({ quantizer: 16 }),
+    /**
+     * The share copy: quantizer 26, the smallest that keeps the paper's
+     * grain. A 4 Mbps target smoothed the grain away entirely.
+     */
+    share: new Quality({ quantizer: 26 }),
+  },
+  Software: {
+    hardwareAcceleration: 'prefer-software',
+    /**
+     * Chromium's software H.264 encoder refuses quantizer rate control
+     * ("Unsupported bitrate mode"), so it takes a bitrate. The master asks
+     * for the rate the hardware master's quantizer 16 comes to: 31 Mbps over
+     * righteousness-by-faith, keeping 82–87% of the paper's fine grain
+     * (packages/film/README.md, "Encoders").
+     */
+    master: new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' }),
+    /**
+     * The share copy: 24 Mbps, the lowest measured that keeps the grain
+     * beside the master's (68–80%). This encoder spends bits far less well
+     * than the hardware one: at 8 Mbps it kept 36–50% and the cutouts'
+     * grain went flat, at 16 Mbps 60–75% and visibly softer.
+     */
+    share: new Quality({ bitrate: 24_000_000, bitrateMode: 'variable' }),
+  },
+} satisfies Readonly<Record<Encoder['_tag'], Settings>>;
+
+/** The encoders in the order they are tried: hardware first, so a machine that has it never renders in software. */
+const PREFERENCE: ReadonlyArray<Encoder> = [{ _tag: 'Hardware' }, { _tag: 'Software' }];
 
 /**
- * The master: H.264 at quantizer 16 on the hardware encoder, about 37 Mbps
- * at 1080p30 on this film, beside x264's CRF 15 at `slow` in the ffmpeg
- * master it replaces.
+ * The first encoder `can` encode with, tried in `PREFERENCE` order and no
+ * further once one says yes; `Missing` with `reason` when none does.
  */
-const QUALITY = new Quality({ quantizer: 16 });
-
-/**
- * The share copy: quantizer 26, the smallest that keeps the paper's grain. A
- * 4 Mbps target on the hardware encoder smoothed the grain away entirely.
- */
-const SHARE_QUALITY = new Quality({ quantizer: 26 });
+export const chooseEncoder = (
+  can: (encoder: Encoder) => Promise<boolean>,
+  reason: string,
+): Promise<EncoderChoice> =>
+  PREFERENCE.reduce<Promise<EncoderChoice>>(
+    (before, encoder) =>
+      before.then((found) =>
+        found._tag === 'Missing' ? can(encoder).then((yes) => (yes ? encoder : found)) : found,
+      ),
+    Promise.resolve({ _tag: 'Missing', reason }),
+  );
 
 /** A key frame every this many seconds, and at the start of every chunk. */
 const KEY_FRAME_EVERY = 2;
@@ -42,12 +92,13 @@ const config = (
   width: number,
   height: number,
   scale: number,
-  quality: Quality = QUALITY,
+  encoder: Encoder,
+  quality: Quality,
 ): VideoEncodingConfig => {
   const base: VideoEncodingConfig = {
     codec: 'avc',
     quality,
-    hardwareAcceleration: 'prefer-hardware',
+    hardwareAcceleration: SETTINGS[encoder._tag].hardwareAcceleration,
     keyFrameInterval: KEY_FRAME_EVERY,
     latencyMode: 'quality',
   };
@@ -55,36 +106,32 @@ const config = (
   return { ...base, transform: { ...encodedSize(width, height, scale), fit: 'fill' } };
 };
 
-/** Whether this browser can encode the film, and if not, why. */
-export type EncoderCheck =
-  | { readonly _tag: 'Ready' }
-  | { readonly _tag: 'Missing'; readonly reason: string };
-
-/** Can this browser encode the film at `scale`? The renderer asks before drawing a frame. */
-export const encoderCheck = async (
+/**
+ * The encoder this browser encodes the film with at `scale`: the first that
+ * takes both the master's and the share copy's settings. The renderer asks
+ * once, before drawing a frame.
+ */
+export const encoderChoice = (
   canvas: HTMLCanvasElement,
   fps: number,
   scale: number,
-): Promise<EncoderCheck> => {
+): Promise<EncoderChoice> => {
   const size = encodedSize(canvas.width, canvas.height, scale);
-  const { codec, quality, hardwareAcceleration, latencyMode } = config(
-    canvas.width,
-    canvas.height,
-    scale,
-  );
-  const can = await canEncodeVideo(codec, {
-    ...size,
-    quality,
-    hardwareAcceleration,
-    latencyMode,
-    frameRate: fps,
-  });
-  return can
-    ? { _tag: 'Ready' }
-    : {
-        _tag: 'Missing',
-        reason: `no H.264 encoder for ${size.width}×${size.height} at ${fps} fps`,
-      };
+  const can = (encoder: Encoder) => {
+    const settings = SETTINGS[encoder._tag];
+    return Promise.all(
+      [settings.master, settings.share].map((quality) =>
+        canEncodeVideo('avc', {
+          ...size,
+          quality,
+          hardwareAcceleration: settings.hardwareAcceleration,
+          latencyMode: 'quality',
+          frameRate: fps,
+        }),
+      ),
+    ).then((each) => each.every(Boolean));
+  };
+  return chooseEncoder(can, `no H.264 encoder for ${size.width}×${size.height} at ${fps} fps`);
 };
 
 /** A chunk encoded: the master, and the share copy when one was asked for. */
@@ -107,9 +154,9 @@ const rendition = (canvas: HTMLCanvasElement, fps: number, video: VideoEncodingC
 };
 
 /**
- * Frames `[from, to)` drawn by `draw` onto `canvas` and encoded as an MP4 whose
- * first frame plays at 0, and with `share`, a small copy encoded in the same
- * pass.
+ * Frames `[from, to)` drawn by `draw` onto `canvas` and encoded by `encoder`
+ * as an MP4 whose first frame plays at 0, and with `share`, a small copy
+ * encoded in the same pass.
  */
 export const encodeChunk = async (
   draw: (i: number) => void,
@@ -119,10 +166,14 @@ export const encodeChunk = async (
   to: number,
   scale: number,
   share: boolean,
+  encoder: Encoder,
 ): Promise<EncodedChunk> => {
   const { width, height } = canvas;
-  const master = rendition(canvas, fps, config(width, height, scale));
-  const copies = share ? [rendition(canvas, fps, config(width, height, scale, SHARE_QUALITY))] : [];
+  const settings = SETTINGS[encoder._tag];
+  const master = rendition(canvas, fps, config(width, height, scale, encoder, settings.master));
+  const copies = share
+    ? [rendition(canvas, fps, config(width, height, scale, encoder, settings.share))]
+    : [];
   const all = [master, ...copies];
   // One frame at a time: the canvas is drawn again only once every encoder has taken it.
   const frames = async () => {

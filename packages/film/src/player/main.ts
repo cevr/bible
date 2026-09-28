@@ -11,7 +11,8 @@ import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, required } from './dom.ts';
-import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
+import type { Encoder, EncoderChoice } from '../core/encoder.ts';
+import { encodeChunk, encoderChoice } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
 import { labUrl } from './pages.ts';
@@ -47,17 +48,18 @@ export interface ExportHandle {
   probe(i: number): Probed;
   /** Compose the film's look-book (`composeLookbook`) and return it encoded. */
   lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
-  /** Whether the film can be encoded here at `scale` (`encoderCheck`). */
-  encoder(scale: number): Promise<EncoderCheck>;
+  /** The encoder the film is encoded with here at `scale`, or none (`encoderChoice`). */
+  encoder(scale: number): Promise<EncoderChoice>;
   /**
-   * Frames `[from, to)` encoded as an H.264 MP4 at `scale` (`encodeChunk`), and
-   * with `share` a small copy beside it, each as base64.
+   * Frames `[from, to)` encoded by `encoder` as an H.264 MP4 at `scale`
+   * (`encodeChunk`), and with `share` a small copy beside it, each as base64.
    */
   encode(
     from: number,
     to: number,
     scale: number,
     share: boolean,
+    encoder: Encoder,
   ): Promise<{ readonly master: string; readonly share?: string }>;
   /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
   contact(frames: ReadonlyArray<number>): Promise<string>;
@@ -211,9 +213,9 @@ export const mountPlayer = (films: Films): void => {
         },
         lookbook: async (type = 'image/jpeg') =>
           canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
-        encoder: (scale) => encoderCheck(canvas, film.fps, scale),
-        encode: async (from, to, scale, share) => {
-          const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share);
+        encoder: (scale) => encoderChoice(canvas, film.fps, scale),
+        encode: async (from, to, scale, share, encoder) => {
+          const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share, encoder);
           const master = bytesBase64(chunk.master);
           return chunk.share === undefined
             ? { master }

@@ -83,21 +83,13 @@ import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { BENCH_RULES } from './bench.ts';
-import {
-  Cut,
-  DEFAULT_WORKERS,
-  RenderJob,
-  flagConflicts,
-  givenFlags,
-  jobOf,
-  sceneSpan,
-} from './render-plan.ts';
+import { Cut, RenderJob, flagConflicts, givenFlags, jobOf, sceneSpan } from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
-import { Renderer } from './renderer.ts';
+import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -166,45 +158,64 @@ const paidPreflight = Effect.gen(function* () {
   yield* (yield* ElevenLabs).ready;
 });
 
-interface ToolCheck {
+/** How a doctor check can fail: a tool missing or broken. */
+type ToolError =
+  | BrowserMissing
+  | BrowserFailed
+  | ElevenLabsFailed
+  | MediaFailed
+  | EncoderReadyError;
+/** What a doctor check needs from the platform. */
+type ToolNeeds = Path.Path | ChildProcessSpawner.ChildProcessSpawner;
+
+interface ToolCheck<E, R> {
   readonly tool: string;
   /** The commands that need it. */
   readonly needed: string;
-  readonly run: Effect.Effect<
-    void,
-    BrowserMissing | BrowserFailed | ElevenLabsFailed | MediaFailed,
-    Path.Path | ChildProcessSpawner.ChildProcessSpawner
-  >;
+  /** What it found, said after `ok` (empty when there is nothing to add). */
+  readonly run: Effect.Effect<string, E, R>;
 }
 
-const doctor = Command.make(
-  'doctor',
-  {},
-  Effect.fn('film.doctor')(function* () {
-    const elevenLabs = yield* ElevenLabs;
-    const checks: ReadonlyArray<ToolCheck> = [
-      { tool: 'chromium', needed: 'render, check', run: browserReady },
-      { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
-      { tool: 'ffmpeg', needed: 'takes import, the studio', run: ffmpegReady() },
-    ];
-    const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
-      concurrency: checks.length,
-    });
-    for (const [{ tool, needed }, result] of Arr.zip(checks, results))
-      yield* Console.log(
-        Result.match(result, {
-          onSuccess: () => `ok      ${tool.padEnd(11)} (${needed})`,
-          onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
-        }),
-      );
-    const failure = Arr.head(Arr.getFailures(results));
-    if (Option.isSome(failure)) return yield* failure.value;
-  }),
-).pipe(
-  Command.withDescription(
-    'Check the tools the film commands need: headless Chromium, the elevenlabs CLI and its login, and ffmpeg',
-  ),
-);
+/** A doctor line: `ok` and what was found, or `missing` and why. */
+const toolLine = (
+  { tool, needed }: { readonly tool: string; readonly needed: string },
+  result: Result.Result<string, { readonly message: string }>,
+) =>
+  Result.match(result, {
+    onSuccess: (found) =>
+      `ok      ${tool.padEnd(11)} (${needed})${Arr.map(
+        Arr.filter([found], (f) => f !== ''),
+        (f) => `: ${f}`,
+      ).join('')}`,
+    onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
+  });
+
+/** The player served for the encoder check: the app's own, as `render` serves it. */
+const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) =>
+  Command.make(
+    'doctor',
+    {},
+    Effect.fn('film.doctor')(function* () {
+      const elevenLabs = yield* ElevenLabs;
+      const checks: ReadonlyArray<ToolCheck<ToolError, ToolNeeds | PreviewServer>> = [
+        { tool: 'chromium', needed: 'render, check', run: Effect.as(browserReady, '') },
+        { tool: 'encoder', needed: 'render', run: encoderReady },
+        { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
+        { tool: 'ffmpeg', needed: 'takes import, the studio', run: Effect.as(ffmpegReady(), '') },
+      ];
+      const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
+        concurrency: checks.length,
+      });
+      for (const [check, result] of Arr.zip(checks, results))
+        yield* Console.log(toolLine(check, result));
+      const failure = Arr.head(Arr.getFailures(results));
+      if (Option.isSome(failure)) return yield* failure.value;
+    }, Effect.provide(previewServer)),
+  ).pipe(
+    Command.withDescription(
+      'Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg',
+    ),
+  );
 
 const narrate = Command.make(
   'narrate',
@@ -625,8 +636,10 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
       workers: Flag.Int('workers').pipe(
-        Flag.withDefault(DEFAULT_WORKERS),
-        Flag.withDescription('pages rendering at once'),
+        Flag.optional,
+        Flag.withDescription(
+          'pages rendering at once (default: a video, 6 on the hardware encoder and 6 on the software one, within one a core; stills, 6)',
+        ),
       ),
       scale: Flag.Finite('scale').pipe(
         Flag.optional,
@@ -714,7 +727,7 @@ const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       const loaded = yield* (yield* FilmRepo).load(input.film);
       yield* (yield* Renderer).render(
         loaded,
-        RenderJob.LookBook({ tag: input.tag, captions: input.captions, workers: 1 }),
+        RenderJob.LookBook({ tag: input.tag, captions: input.captions }),
       );
     }, Effect.provide(renderLayer)),
   ).pipe(
@@ -1053,7 +1066,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       render(renderLayer),
       lookbook(renderLayer),
       bench(benchLayer),
-      doctor,
+      doctor(previewServer),
       lab(labServer),
       notes,
     ]),

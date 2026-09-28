@@ -404,17 +404,24 @@ export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved'
   }
 }
 
-/** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
+/**
+ * A video render that would open more encoders than its encoder allows at
+ * once (tools/render-plan.ts, `encoderLimits`): past 14 the hardware encoder
+ * hangs rather than failing; a software encoder past one a core only fights
+ * for the cores.
+ */
 export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
   workers: Schema.Int,
   share: Schema.Boolean,
   max: Schema.Int,
+  /** The encoder's name: `hardware` or `software`. */
+  encoder: Schema.String,
 }) {
   override get message() {
     const perPage = 1 + Number(this.share);
     const copy = ' with a share copy'.repeat(Number(this.share));
     const orNoShare = ', or --no-share'.repeat(Number(this.share));
-    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
+    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} ${this.encoder} encoders a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
   }
 }
 

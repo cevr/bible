@@ -3,6 +3,7 @@
 // the scheduling is checked without Chromium; `Renderer` only runs it.
 
 import { Array as Arr, Data, Option, Result } from 'effect';
+import { Encoder, encoderName } from '../core/encoder.ts';
 import type { UnknownScene } from '../core/errors.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
@@ -14,7 +15,10 @@ interface JobBase {
   readonly tag: string;
   /** Burn the captions in. */
   readonly captions: boolean;
-  /** Pages rendering at once. */
+}
+
+/** A job drawn on pages that encode nothing: how many draw at once. */
+interface DrawJob extends JobBase {
   readonly workers: number;
 }
 
@@ -46,6 +50,8 @@ export const cutBase = (out: string, cut: Cut): string =>
 /** A render: the film as video, a few stills, a contact sheet, or its look-book. */
 export type RenderJob = Data.TaggedEnum<{
   Video: JobBase & {
+    /** Pages rendering at once: `--workers`, else the default of the encoder the page chose (`videoWorkers`). */
+    readonly workers: Option.Option<number>;
     readonly cut: Cut;
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
@@ -55,14 +61,15 @@ export type RenderJob = Data.TaggedEnum<{
     /** Also a small copy to send, encoded in the same pass: `shareName(out)`. */
     readonly share: boolean;
   };
-  Stills: JobBase & { readonly cut: Cut; readonly times: ReadonlyArray<number> };
+  Stills: DrawJob & { readonly cut: Cut; readonly times: ReadonlyArray<number> };
+  /** One page composes the whole sheet. */
   Contact: JobBase & {
     readonly cut: Cut;
     readonly every: number;
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
   };
-  /** Every scene's stills at its cue edges and 60% point, with the palette: `lookbook.jpg`. */
+  /** Every scene's stills at its cue edges and 60% point, with the palette: `lookbook.jpg`. One page composes it. */
   LookBook: JobBase;
 }>;
 export const RenderJob = Data.taggedEnum<RenderJob>();
@@ -117,6 +124,7 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['contact', 'excludes', 'scale', VIDEO],
   ['contact', 'excludes', 'out', VIDEO],
   ['contact', 'excludes', 'share', VIDEO],
+  ['contact', 'excludes', 'workers', 'one page composes the whole sheet'],
   ['short', 'excludes', 'scene', "a short's spans are its scenes"],
 ];
 
@@ -124,7 +132,8 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
 export interface RenderFlags {
   readonly tag: string;
   readonly captions: boolean;
-  readonly workers: number;
+  /** `--workers`; none takes the job's default (`DRAW_WORKERS`, or the encoder's). */
+  readonly workers: Option.Option<number>;
   readonly stills: Option.Option<ReadonlyArray<number>>;
   readonly contact: Option.Option<number>;
   readonly span: Option.Option<{ readonly from: number; readonly to: number }>;
@@ -153,11 +162,12 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
     out: flags.out,
     share: flags.share,
     short: flags.short,
+    workers: flags.workers,
   });
+  const workers = Option.map(flags.workers, (n) => Math.max(1, n));
   const base = {
     tag: flags.tag,
     captions: flags.captions,
-    workers: Math.max(1, flags.workers),
     cut: Option.match(flags.short, {
       onNone: () => Cut.Whole(),
       onSome: (short) => Cut.Short({ short }),
@@ -172,13 +182,19 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
     () => flags.to,
   );
   const job = Option.match(flags.stills, {
-    onSome: (times) => RenderJob.Stills({ ...base, times }),
+    onSome: (times) =>
+      RenderJob.Stills({
+        ...base,
+        workers: Option.getOrElse(workers, () => DRAW_WORKERS),
+        times,
+      }),
     onNone: () =>
       Option.match(flags.contact, {
         onSome: (every) => RenderJob.Contact({ ...base, every, from, to }),
         onNone: () =>
           RenderJob.Video({
             ...base,
+            workers,
             from,
             to,
             scale: Option.getOrElse(flags.scale, () => 1),
@@ -190,39 +206,74 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
   return Result.map(flagConflicts(given, RENDER_RULES), () => job);
 };
 
+/** Pages drawing stills at once when `--workers` is not given: they encode nothing. */
+export const DRAW_WORKERS = 6;
+
 /**
- * Pages a render runs by default. `film bench --workers` over frames 0–3600
- * with the share copy: 4 pages 69 fps, 5 79, 6 81, 7 81. Six is the knee, and
- * its 12 encoders stay under `MAX_ENCODERS`.
+ * Pages a render on the hardware encoder runs by default. `film bench
+ * --workers` over frames 0–3600 with the share copy, on the M-series Mac: 4
+ * pages 69 fps, 5 79, 6 81, 7 81. Six is the knee, and its 12 encoders stay
+ * under `MAX_HARDWARE_ENCODERS`.
  */
-export const DEFAULT_WORKERS = 6;
+export const HARDWARE_WORKERS = 6;
 
 /**
  * Hardware encoders a render may run at once. Measured on the M-series Mac the
  * films render on: 14 (7 pages with a share copy) ran, and at 16 every page
  * stalled with its first chunk unfinished until the encode timed out.
  */
-export const MAX_ENCODERS = 14;
+export const MAX_HARDWARE_ENCODERS = 14;
 
-/** The hardware encoders `workers` pages run (two each with a share copy), within `MAX_ENCODERS`. */
+/**
+ * Pages a render on the software encoder runs by default, measured on the
+ * Linux Workbox (16 cores, no GPU encoder) with `film bench
+ * righteousness-by-faith --workers 2,4,6,8 --scene word`, the share copy on:
+ * the sweep is in packages/film/README.md.
+ */
+export const SOFTWARE_WORKERS = 6;
+
+/** What an encoder allows a render: the encoders it may run at once, and the pages it opens by default. */
+export interface EncoderLimits {
+  readonly max: number;
+  readonly workers: number;
+}
+
+/**
+ * `encoder`'s limits on a machine with `cores`. The hardware encoder hangs
+ * past `MAX_HARDWARE_ENCODERS`, whatever the cores. A software encoder does
+ * not hang, it takes a core: a render runs at most one a core, and its
+ * default pages keep their share copies within that.
+ */
+export const encoderLimits = (encoder: Encoder, cores: number): EncoderLimits =>
+  Encoder.match(encoder, {
+    Hardware: () => ({ max: MAX_HARDWARE_ENCODERS, workers: HARDWARE_WORKERS }),
+    Software: () => ({
+      max: cores,
+      workers: Math.max(1, Math.min(SOFTWARE_WORKERS, Math.floor(cores / 2))),
+    }),
+  });
+
+/** The pages a video renders on: `--workers`, else `encoder`'s default. */
+export const videoWorkers = (
+  workers: Option.Option<number>,
+  encoder: Encoder,
+  cores: number,
+): number => Option.getOrElse(workers, () => encoderLimits(encoder, cores).workers);
+
+/** The encoders `workers` pages run (two each with a share copy), within `encoder`'s limit. */
 export const videoEncoders = (
   workers: number,
   share: boolean,
-): Result.Result<number, TooManyEncoders> =>
-  Result.liftPredicate(
+  encoder: Encoder,
+  cores: number,
+): Result.Result<number, TooManyEncoders> => {
+  const { max } = encoderLimits(encoder, cores);
+  return Result.liftPredicate(
     workers * (1 + Number(share)),
-    (n) => n <= MAX_ENCODERS,
-    () => TooManyEncoders.make({ workers, share, max: MAX_ENCODERS }),
+    (n) => n <= max,
+    () => TooManyEncoders.make({ workers, share, max, encoder: encoderName(encoder) }),
   );
-
-/** A job's hardware encoders: a video's `videoEncoders`; stills and sheets encode none. */
-export const encoderBudget = (job: RenderJob): Result.Result<number, TooManyEncoders> =>
-  RenderJob.$match(job, {
-    Video: ({ workers, share }) => videoEncoders(workers, share),
-    Stills: () => Result.succeed(0),
-    Contact: () => Result.succeed(0),
-    LookBook: () => Result.succeed(0),
-  });
+};
 
 /** `--scene a,b`: the seconds from the first scene's start to the last one's end. */
 export const sceneSpan = (
