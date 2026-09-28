@@ -344,6 +344,17 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
 /** Where a person's face is, for a camera to find it. */
 export const faceOf = (p: Person): Pt => onHead(p, HEAD[0], HEAD[1]);
 
+/**
+ * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
+ * it: a step every π/7 s counted from `phase` (scene seconds; the cue's
+ * start unless given), each rising up to 5 units.
+ */
+export const gait = (
+  t: number,
+  walk: { readonly start: number; readonly end: number },
+  phase = walk.start,
+): number => (t > walk.start && t < walk.end ? Math.abs(Math.sin((t - phase) * 7)) * 5 : 0);
+
 // ─── recurring figures and the icon row ──────────────────────────────────────
 // Figures and the icon row more than one scene draws, so a callback lands in
 // the same layout (CRAFT rule 8). Each takes a `hand` for its keys, so boil

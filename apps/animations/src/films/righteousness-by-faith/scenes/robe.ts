@@ -20,7 +20,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, ROBE, blob, christ, glow, icons, person, piece, rounded, sky } from '../kit.ts';
+import { C, ROBE, blob, christ, gait, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 import {
   AS,
   CHEEK,
@@ -105,8 +105,7 @@ const courtWide = (f: RobeFrame) => {
   const hand = (k: string) => f.hand(k);
   const lift = f.at('lift');
   const carry = f.at('carry');
-  const walk = f.cue('carry');
-  const bob = t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
+  const bob = gait(t, f.cue('carry'));
   const away = -1250 * carry;
   const push = f.at('pushLoom');
   const cam: Camera = {

@@ -21,7 +21,19 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, christ, glow, icons, person, piece, rounded, sky, between } from '../kit.ts';
+import {
+  C,
+  blob,
+  christ,
+  gait,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  between,
+} from '../kit.ts';
 import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, highPriest, sanctuary } from '../heaven.ts';
 
 /** The whole hill; close on both faces; up in heaven at the sanctuary. */
@@ -88,8 +100,8 @@ export const exchange = drawing({
     const cx = walkUp > 0 ? lerp(BESIDE, TOP - 50, walkUp) : lerp(2120, BESIDE, walkIn);
     const cy = walkUp > 0 ? ridge(cx) : fy;
     const cs = lerp(SCALE, 1.15, walkUp);
-    const walking =
-      (walkIn > 0 && walkIn < 1) || (walkUp > 0 && walkUp < 1) ? Math.abs(Math.sin(t * 7)) * 5 : 0;
+    // His steps keep the scene clock (phase 0) across both walks.
+    const walking = gait(t, f.cue('walkIn'), 0) + gait(t, f.cue('walkUp'), 0);
     const shoulders: Pt = [cx, cy - walking - 118 * cs];
 
     // ── A–B: the hill at sunset, until dawn has fully come ──────────────────
