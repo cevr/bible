@@ -21,7 +21,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { lerp, rng } from '@bible/film/core';
+import { type Key, lerp, rng } from '@bible/film/core';
 import { C, contact, person, piece, rounded, between } from '../kit.ts';
 import {
   type Stamp,
@@ -48,6 +48,17 @@ const SHEETS = (() => {
     rot: (r() - 0.5) * 0.1,
   }));
 })();
+
+/** The gavel's fall across its cue: raised, down hard, a bounce, at rest on the block. */
+const SWING: ReadonlyArray<Key> = [
+  [0, GAVEL_REST],
+  [0.373, -0.3],
+  [0.627, 1.62, 'inCubic'],
+  [0.797, 1.4, 'outQuad'],
+  [1, 1.58],
+];
+/** The verdict, rewritten each frame (scratch, so the draw allocates none). */
+const VERDICT = { fill: 1, shown: 0 } satisfies Stamp;
 
 export const cold = drawing({
   timeline: {
@@ -94,24 +105,14 @@ export const cold = drawing({
 
     // The verdict: stamped, away while the camera is on the face, back, then
     // drained hollow on "oldest" until the question takes the screen.
-    const verdict: Stamp = {
-      fill: 1 - f.at('drain'),
-      shown: Math.min(
-        1,
-        f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('hollowOut')),
-      ),
-    };
+    const verdict = VERDICT;
+    verdict.fill = 1 - f.at('drain');
+    verdict.shown = Math.min(
+      1,
+      f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('hollowOut')),
+    );
     const popScale = f.keys('stamp', STAMP_POP);
-    const swing =
-      f.keys('gavel', [
-        [0, GAVEL_REST],
-        [0.373, -0.3],
-        [0.627, 1.62, 'inCubic'],
-        [0.797, 1.4, 'outQuad'],
-        [1, 1.58],
-      ]) *
-        (1 - f.at('rest')) +
-      GAVEL_REST * f.at('rest');
+    const swing = f.keys('gavel', SWING) * (1 - f.at('rest')) + GAVEL_REST * f.at('rest');
     const lean = f.at('lean') * (1 - f.at('rest'));
 
     multiplane(

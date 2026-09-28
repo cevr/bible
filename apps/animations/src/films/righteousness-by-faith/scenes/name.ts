@@ -16,7 +16,7 @@
 // gives way to the name in `thesis`.
 
 import { type Camera, drawing } from '@bible/film/canvas';
-import { lerp } from '@bible/film/core';
+import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import {
   ADVOCATE_HAND,
@@ -33,6 +33,14 @@ import {
 } from '../court.ts';
 import { between } from '../kit.ts';
 import { onWord } from '../spoken.ts';
+
+/** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
+const SWING: ReadonlyArray<Key> = [
+  [0, GAVEL_REST],
+  [0.373, -0.2],
+  [0.763, 1.5, 'inOutCubic'],
+  [1, GAVEL_DOWN],
+];
 
 /** Close on the two of them as the figure touches the robe. */
 const CLOSE: Camera = { x: 720, y: 700, zoom: 2.6, rot: 0.03 };
@@ -77,12 +85,7 @@ export const name = drawing({
     const touch = f.at('touch') * (1 - f.at('release'));
     const turn = f.at('turn');
     // A soft fall: the same arc as the cold open, landing without the bounce.
-    const swing = f.keys('gavel', [
-      [0, GAVEL_REST],
-      [0.373, -0.2],
-      [0.763, 1.5, 'inOutCubic'],
-      [1, GAVEL_DOWN],
-    ]);
+    const swing = f.keys('gavel', SWING);
     // The cold open's size throughout: hung, falling and landed, with a small thud on landing.
     const pop = STAMP_WIDE * f.keys('stamp', STAMP_LANDS);
     const smile = f.at('smile');

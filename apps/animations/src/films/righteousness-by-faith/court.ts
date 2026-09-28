@@ -6,6 +6,7 @@
 import {
   type Camera,
   type Hand,
+  type Place,
   type Pt,
   type WriteOptions,
   at,
@@ -147,6 +148,10 @@ export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
   ctx.restore();
 };
 
+/** The bench stamp's placement and the landing court's stamp, rewritten each frame (scratch, so the draw allocates none). */
+const BENCH_AT: Place = { x: 0, y: 0, rot: 0, scale: 1 };
+const BENCH_STAMP = { fill: 1, shown: 0 } satisfies Stamp;
+
 /** The stamp across the bench at `pop` scale, or hung at `STAMP_HUNG` as `hung` goes to 1 (the court's layer). */
 export const benchStamp = (
   ctx: CanvasRenderingContext2D,
@@ -154,17 +159,13 @@ export const benchStamp = (
   s: Stamp,
   pop: number,
   hung = 0,
-) =>
-  at(
-    ctx,
-    {
-      x: lerp(STAMP_AT[0], STAMP_HUNG[0], hung),
-      y: lerp(STAMP_AT[1], STAMP_HUNG[1], hung),
-      rot: STAMP_TILT * (1 - hung),
-      scale: pop,
-    },
-    () => stamp(ctx, hand, s),
-  );
+) => {
+  BENCH_AT.x = lerp(STAMP_AT[0], STAMP_HUNG[0], hung);
+  BENCH_AT.y = lerp(STAMP_AT[1], STAMP_HUNG[1], hung);
+  BENCH_AT.rot = STAMP_TILT * (1 - hung);
+  BENCH_AT.scale = pop;
+  at(ctx, BENCH_AT, () => stamp(ctx, hand, s));
+};
 
 /** Job's question, where the cold open wrote it: the only words on screen (`cold`, `name`, `thesis`). */
 const QUESTION = 'How should man be just with God?';
@@ -322,8 +323,11 @@ export const landingCourt = (
             });
             piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, hand('gavelHand'), { line: 2.5 });
           });
-          if (s.stamp > 0.01)
-            benchStamp(ctx, hand, { fill: s.fill ?? 1, shown: s.stamp }, s.pop, s.hung ?? 0);
+          if (s.stamp > 0.01) {
+            BENCH_STAMP.fill = s.fill ?? 1;
+            BENCH_STAMP.shown = s.stamp;
+            benchStamp(ctx, hand, BENCH_STAMP, s.pop, s.hung ?? 0);
+          }
         },
       },
       {

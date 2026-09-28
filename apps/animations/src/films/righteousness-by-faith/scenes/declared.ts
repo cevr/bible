@@ -16,6 +16,7 @@
 
 import {
   type Camera,
+  type Place,
   type Pt,
   at,
   camera,
@@ -165,11 +166,24 @@ interface Verdict extends Stamp {
   readonly squash: number;
 }
 
+/** The verdict and its placement, rewritten each frame (scratch, so the draw allocates none). */
+const VERDICT = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  squash: 1,
+  fill: 0,
+  shown: 0,
+} satisfies Verdict;
+const VERDICT_AT: Place = { x: 0, y: 0, sx: 1, sy: 1 };
+
 const verdictAt = (ctx: CanvasRenderingContext2D, hand: Hands, v: Verdict) => {
   if (v.shown <= 0.01) return;
-  at(ctx, { x: v.x, y: v.y, sx: v.scale * v.squash, sy: v.scale * (2 - v.squash) }, () =>
-    stamp(ctx, hand, v),
-  );
+  VERDICT_AT.x = v.x;
+  VERDICT_AT.y = v.y;
+  VERDICT_AT.sx = v.scale * v.squash;
+  VERDICT_AT.sy = v.scale * (2 - v.squash);
+  at(ctx, VERDICT_AT, () => stamp(ctx, hand, v));
 };
 
 /** The word card, its three lines written in as they are spoken. */
@@ -296,14 +310,13 @@ export const declared = drawing({
       AT[0] = lerp(STAMP_FROM_X, hang[0], drift);
       AT[1] = hang[1];
     }
-    const verdict: Verdict = {
-      x: AT[0],
-      y: AT[1] + f.keys('sink', SINK_RISE),
-      scale: STAMP_SCALE * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3),
-      squash: f.keys('sink', SINK_SQUASH),
-      fill: f.spoken('w', 'voice'),
-      shown: drift * (1 - f.keys('sink', SINK_OUT)),
-    };
+    const verdict = VERDICT;
+    verdict.x = AT[0];
+    verdict.y = AT[1] + f.keys('sink', SINK_RISE);
+    verdict.scale = STAMP_SCALE * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3);
+    verdict.squash = f.keys('sink', SINK_SQUASH);
+    verdict.fill = f.spoken('w', 'voice');
+    verdict.shown = drift * (1 - f.keys('sink', SINK_OUT));
 
     // The figure's eyes follow the verdict: up at it, down at the chest under it, and down as it sinks in.
     const landed = f.at('landed');
