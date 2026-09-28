@@ -56,7 +56,11 @@ export type StudioBeats = typeof StudioBeats.Type;
 export const TakePost = Schema.Struct({
   /** The recording's bytes, base64. */
   audio: Schema.String,
-  /** Its media type (`audio/webm;codecs=opus`, `audio/mp4`, `audio/wav`): names the file ffmpeg reads. */
+  /**
+   * Its media type: `audio/wav` or `audio/flac` (and their `x-` spellings),
+   * since the take is the film's master; a lossy type (`audio/webm`,
+   * `audio/mp4`, `audio/mpeg`…) is refused 415 `RecordingLossy`.
+   */
   type: Schema.String,
   /** Keep it even when its transcript does not match the line. */
   acceptMismatch: Schema.optionalKey(Schema.Boolean),
