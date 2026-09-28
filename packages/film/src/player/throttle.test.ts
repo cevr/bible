@@ -1,6 +1,6 @@
-// The player writes `#T` to the URL through `throttled`: at most once per
-// period while it plays, the last request always lands (trailing), and a
-// flush (pause, the end of a seek, pagehide) lands it at once.
+// `throttled`, which `#T` is written through while T moves: at most once per
+// period, the last request always lands (trailing), and a flush lands a
+// waiting write at once.
 
 import { describe, expect, test } from 'bun:test';
 import { type Timers, throttled } from './throttle.ts';

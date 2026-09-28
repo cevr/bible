@@ -1,8 +1,8 @@
 // A write the player may ask for every frame but makes at most once per
 // period: the first request runs at once, later ones within the period wait
-// for one trailing run that carries the latest state, and `flush` runs a
-// waiting write now (the player flushes when T settles: pause, the end of a
-// seek, pagehide). The timers are injectable so the policy is tested on a
+// for one trailing run that carries the latest state; `flush` runs a waiting
+// write now, and `ran` drops it after a write made outside (`tInUrl` writes
+// `#T` through this). The timers are injectable so the policy is tested on a
 // clock the test moves.
 
 /** The clock and timer calls `throttled` uses. */
