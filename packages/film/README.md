@@ -87,7 +87,10 @@ leg.
 
 `narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
 only by rewriting `timings.json`, so no crash leaves a take and its timings
-disagreeing; it removes the takes (`.mp3` or a person's `.flac`) the timings
+disagreeing. A take's words come from the speech model's alignment and its
+length from the encoded file; a word the alignment puts past the end is held
+inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
+warning past `TAKE_TOLERANCE`), so the timings always fit their audio. It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
 replaced person's take loses only its copy in `narration/`: its master and
 its original stay in `narration/attempts/`.

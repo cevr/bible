@@ -276,6 +276,19 @@ export const wordsFromAlignment = (
   return Result.succeed(out);
 };
 
+/**
+ * Words held inside a take `duration` seconds long. The alignment runs on the
+ * speech model's clock and the take is measured from its encoded file; the
+ * two can disagree by a frame or, at the end of a long line, by more. A word
+ * past the end ends at it (and starts there at the latest), so the timings
+ * always fit the audio they time.
+ */
+export const heldInside = (words: ReadonlyArray<Word>, duration: number): Word[] =>
+  words.map((w) => {
+    const start = Math.min(Math.max(0, w.start), duration);
+    return { text: w.text, start, end: Math.min(Math.max(start, w.end), duration) };
+  });
+
 export interface SceneVoice {
   readonly spoken: string;
   readonly words: ReadonlyArray<Word>;

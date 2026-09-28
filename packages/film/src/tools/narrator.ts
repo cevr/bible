@@ -31,6 +31,7 @@ import type { UnknownVoice } from '../core/errors.ts';
 import {
   type Line,
   hashText,
+  heldInside,
   linesOf,
   parse,
   type TakeState,
@@ -39,7 +40,7 @@ import {
   voiceKey,
   wordsFromAlignment,
 } from '../core/narration.ts';
-import { type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
+import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
@@ -326,6 +327,11 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const heard = yield* elevenLabs.stt(take);
         const wer = lineError(beat.text, heard.text, film.heardAs);
         const duration = yield* media.duration(take);
+        const overrun = Math.max(0, ...words.map((w) => w.end)) - duration;
+        if (overrun > TAKE_TOLERANCE)
+          yield* Effect.logWarning(
+            `narrate.overrun id=${beat.id} secs=${overrun.toFixed(2)} (the alignment runs past the take; its words are held inside it)`,
+          );
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
         );
@@ -347,7 +353,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             hash: hashText(beat.script),
             file,
             duration,
-            words,
+            words: heldInside(words, duration),
             source: 'elevenlabs',
           }),
         );

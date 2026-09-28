@@ -111,6 +111,24 @@ describe('Narrator', () => {
     }),
   );
 
+  it.effect("a word timed past the take's end is held inside it, not refused by the timings", () =>
+    Effect.gen(function* () {
+      // The fake take measures 2.5 s; its alignment runs one character per 0.05 s, to 4 s.
+      const long = 'This line runs on and on, far past the end of the audio it was made from.';
+      const { layer } = setup(recorded);
+      const after = yield* narrate(layer, testVoice, defaults, [{ id: 'b', say: long }]);
+      const take = after.scenes['b'];
+      expect(take?.duration).toBe(2.5);
+      expect(take?.words.map((w) => w.text).join(' ')).toBe(long);
+      for (const w of take?.words ?? []) {
+        expect(w.start).toBeLessThanOrEqual(2.5);
+        expect(w.end).toBeLessThanOrEqual(2.5);
+        expect(w.start).toBeLessThanOrEqual(w.end);
+      }
+      expect(take?.words.at(-1)?.end).toBe(2.5);
+    }),
+  );
+
   it.effect('skips every beat whose hash is unchanged', () =>
     Effect.gen(function* () {
       const current: Timings = {
