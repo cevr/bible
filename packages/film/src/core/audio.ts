@@ -95,3 +95,31 @@ export const levels = (pcm: Pcm): Levels => {
     peak: 20 * Math.log10(peak),
   };
 };
+
+/** One channel: the mean of `pcm`'s channels, sample by sample. */
+export const toMono = (pcm: Pcm): Pcm => {
+  const out = new Float32Array(pcm.frames);
+  const n = Math.max(1, pcm.channels.length);
+  for (const channel of pcm.channels)
+    for (let i = 0; i < pcm.frames; i++) out[i] = (out[i] ?? 0) + (channel[i] ?? 0) / n;
+  return { rate: pcm.rate, frames: pcm.frames, channels: [out] };
+};
+
+/** The RMS level in dBFS of each `window` frames of `plane`, in order; the last may be short. */
+export const windowLevels = (plane: Float32Array, window: number): Float64Array => {
+  const out = new Float64Array(Math.ceil(plane.length / window));
+  for (let w = 0; w < out.length; w++) {
+    const from = w * window;
+    const to = Math.min(plane.length, from + window);
+    let power = 0;
+    for (let i = from; i < to; i++) power += (plane[i] ?? 0) ** 2;
+    out[w] = 10 * Math.log10(power / Math.max(1, to - from));
+  }
+  return out;
+};
+
+/** `pcm` made `db` decibels louder (quieter when negative). */
+export const gain = (pcm: Pcm, db: number): Pcm => {
+  const k = 10 ** (db / 20);
+  return { ...pcm, channels: pcm.channels.map((channel) => channel.map((x) => x * k)) };
+};

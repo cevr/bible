@@ -12,7 +12,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Stream } from 'effect';
 import { ALL_FORMATS, BufferSource, EncodedPacketSink, Input } from 'mediabunny';
 import { toInt16 } from '../core/audio.ts';
-import { Media } from './media.ts';
+import { Media, ffmpegReady } from './media.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 /** What a joined film holds: each track's kind and codec, every packet's time, and its length. */
@@ -108,6 +108,40 @@ describe('Media', () => {
       const noise = yield* Effect.flip(media.decode('/noise.wav'));
       expect([noise._tag, noise.file]).toEqual(['MediaFailed', '/noise.wav']);
     }),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    'any recording loads through ffmpeg as one channel at the rate asked for',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const dir = yield* tempDir;
+          const stereo = { ...second(), rate: 48000, frames: 48000 };
+          yield* media.writeWav(`${dir}/in.wav`, stereo);
+          const loaded = yield* media.load(`${dir}/in.wav`, 44100);
+          expect([loaded.rate, loaded.channels.length]).toEqual([44100, 1]);
+          expect(Math.abs(loaded.frames - 44100)).toBeLessThanOrEqual(2);
+          const missing = yield* Effect.flip(media.load(`${dir}/nowhere.m4a`, 44100));
+          expect([missing._tag, missing.op]).toEqual(['MediaFailed', 'decode']);
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)('doctor finds ffmpeg', () => ffmpegReady());
+
+  it.effect.layer(MediaOnDisk)('a take encodes to an MP3 that decodes gapless to its length', () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const media = yield* Media;
+        const dir = yield* tempDir;
+        const wave = Float32Array.from({ length: 30000 }, (_, i) => Math.sin(i / 9) * 0.3);
+        const bytes = yield* media.encodeMp3({ rate: 44100, frames: 30000, channels: [wave] });
+        yield* (yield* FileSystem.FileSystem).writeFile(`${dir}/take.mp3`, bytes);
+        const back = yield* media.decode(`${dir}/take.mp3`);
+        expect([back.rate, back.frames, back.channels.length]).toEqual([44100, 30000, 1]);
+      }),
+    ),
   );
 
   it.effect.layer(MediaOnDisk)(

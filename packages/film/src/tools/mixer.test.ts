@@ -14,12 +14,14 @@ import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
-import { memoryFileSystem, testFilm, testVoice, text } from './testing.ts';
+import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello.', min: 5 }];
 const timings: Timings = {
   voice: voiceKey(testVoice),
-  scenes: { a: { hash: hashText('Hello.'), file: 'a.mp3', duration: 1, words: [] } },
+  scenes: {
+    a: { hash: hashText('Hello.'), file: 'a.mp3', duration: 1, words: [], source: 'elevenlabs' },
+  },
 };
 const film = testFilm(scenes, timings);
 const TRACK = '/films/test/narration/full.wav';
@@ -32,6 +34,7 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
   Layer.succeed(
     Media,
     Media.of({
+      ...noRecording,
       duration: () => Effect.succeed(5),
       decode: () => Effect.succeed(silence(rate, rate, 1)),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
@@ -51,7 +54,11 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
   const decoded: Array<string> = [];
   const repo = Layer.succeed(
     FilmRepo,
-    FilmRepo.of({ paths: () => film.paths, load: () => Effect.succeed(film) }),
+    FilmRepo.of({
+      paths: () => film.paths,
+      load: () => Effect.succeed(film),
+      script: () => Effect.succeedNone,
+    }),
   );
   const media = Layer.effect(
     Media,

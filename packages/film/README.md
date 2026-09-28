@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                   |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                               |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                              |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                           |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                     |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                                                                    |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
 ## Data
 
@@ -25,7 +25,7 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|score|mix|cues|check|render|lab|notes <film>` (and `film doctor`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lab|notes <film>` (and `film doctor`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, previewServer, labServer })`
 with its films folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
@@ -42,9 +42,9 @@ tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
 `tools/testing.ts` has the in-memory doubles the tool tests use.
 
 Preflights: `film doctor` checks headless Chromium (launched and closed;
-`BrowserMissing` carries the install command) and the `elevenlabs` CLI and its
-login (`auth status`, free), reports each, and fails if any is missing.
-`narrate` and `score` run the ElevenLabs check before their first paid call,
+`BrowserMissing` carries the install command), the `elevenlabs` CLI and its
+login (`auth status`, free) and `ffmpeg` (`-version`), reports each, and fails
+if any is missing. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
 and the `ElevenLabs` service uses `ELEVENLABS_API_KEY` when the environment
 or the Keychain holds one (effects need it) and the CLI's OAuth login
 otherwise, one OAuth call at a time (concurrent refreshes race and fail);
@@ -61,7 +61,12 @@ priming early so the MP4's edit list starts it on the first frame. Every byte
 moves through the FileSystem service but the joined film's, which mediabunny's
 `FilePathTarget` writes by position on Bun's file system (Effect's file handle
 appends under Bun: its `fs.write` passes no offset, and Bun then ignores the
-position). Failures are `MediaFailed`. No ffmpeg binary is involved anywhere.
+position). Failures are `MediaFailed`. The ffmpeg binary is involved only
+for a person's recordings, which arrive in whatever format a recorder saves
+(M4A/AAC, Opus, WAV at any rate): `load` decodes any of them to one channel
+at the rate asked for, and `encodeMp3` writes a take as the staging takes
+arrive (LAME, 192 kb/s, 44.1 kHz mono), each through a scoped temporary
+directory.
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
 and ducked under it, the effects on their cues, summed and limited: ported
@@ -80,6 +85,51 @@ leg.
 only by rewriting `timings.json`, so no crash leaves a take and its timings
 disagreeing; it removes the takes the timings no longer name, and partial
 writes, at the start and end of every run.
+
+Each take in `timings.json` carries its `source`: `elevenlabs` (staged by
+`narrate`; written as no `source` key, so a file from before sources reads
+as this and a staged take never churns the committed file) or `recorded` (a
+person's, by `takes import` or the lab's studio). `core/narration.ts`
+`takeState` says where a beat's take stands: `Recorded`, `Staging`, or
+`Stale` (missing, text changed, voice changed) with whether a person read it.
+`narrate` never stages over a current recorded take and refuses a stale one
+without `--replace-recorded`; a recorded take stays current across a change
+of staging voice, since no staging voice made it; `check` fails a stale one
+(`TakeStale`, `recorded: true`).
+
+`takes import` (`Takes`, `tools/takes.ts`) makes a person's recording a take:
+`Media.load` at the mix rate, `prepareTake` (`core/recording.ts`: one
+channel, trimmed, levelled, held under the ceiling; `RecordingInvalid` when
+nothing in it reaches −60 dBFS), `Media.encodeMp3`, then the same
+speech-to-text as `narrate`, whose words time the script's words through an
+edit-distance line-up (`core/align.ts` `timeScript`: a misheard word keeps its
+place, an unheard one shares the gap its neighbours leave). The recording
+lands as an attempt in `narration/attempts/<beat>/` with its `attempts.json`
+ledger (what was heard, the word error, when), and keeping one copies it
+beside the other takes and rewrites `timings.json` to name it; the take it
+replaced is removed. `--whole` transcribes one recording of the script,
+places each beat by the same line-up (`placeBeats`: a beat with under half
+its words heard fails `BeatUnplaced`, naming it) and cuts halfway through the
+silence between beats (`cutsBetween`).
+
+The padding and loudness a recorded take gets are measured, not chosen: over
+the 30 committed staging takes (both films, 2026-09-28; mpg123 decode, 10 ms
+RMS windows), the median mean power is −19.69 dBFS (as volumedetect reports
+it), the median peak −1.38 dBFS (−0.4 to −3.0), integrated loudness about
+−18.5 to −20.2 LUFS, and the median silence 0.07 s before the first window
+within 40 dB of the take's loudest (the loudest sits near −9.5 dBFS, so that
+is a −50 dBFS gate) and 0.00 s after the last. So `TAKE_LEVEL` is −19.7 dBFS
+mean under a −1 dBFS ceiling (a 5 ms look-ahead limiter, its delay read back
+out), and `TAKE_PAD` is 0.07 s lead and no tail; a recording that starts on
+its first word gets the lead in silence.
+
+`film script <film>` prints the reading sheet (`core/sheet.ts`), and
+`--sheet` writes it to `out/<film>/script-sheet.md` and a page to print,
+`script-sheet.html`: each beat with a line (from `script.ts` when the film
+has one, with its `cite` sources; from its scenes when not), the file to save
+its take as, marks stripped, each turn's reader named, each “quotation” set
+apart with the `quotes.jsonl` record whose words hold it, and `/` at each
+sentence end for a breath.
 
 `render` opens the app's server, headless Chromium (`Browser`, the only
 Playwright code) and a pool of player pages in one scope; a failure in any

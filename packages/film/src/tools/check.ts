@@ -11,7 +11,7 @@ import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
-import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
+import { linesOf, parse, takeScript, takeState, voiceKey } from '../core/narration.ts';
 import type {
   InkMark,
   Music,
@@ -136,19 +136,16 @@ const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene
 
 /**
  * Beats with words whose take is missing or was recorded for other text,
- * other turns or another voice.
+ * other turns or another voice (a person's take is read by no staging voice).
  */
 export const staleTakes = (film: LoadedFilm): ReadonlyArray<TakeStale> => {
-  const voiceChanged = film.timings.voice !== voiceKey(film.voice);
+  const voice = voiceKey(film.voice);
   return film.scenes.flatMap((scene) => {
     const parsed = said(scene);
     if (parsed.spoken.length === 0) return [];
-    const take = Rec.get(film.timings.scenes, scene.id);
-    if (Option.isNone(take)) return [TakeStale.make({ scene: scene.id, reason: 'missing' })];
-    if (voiceChanged) return [TakeStale.make({ scene: scene.id, reason: 'voice changed' })];
-    if (take.value.hash !== hashText(takeScript(parsed)))
-      return [TakeStale.make({ scene: scene.id, reason: 'text changed' })];
-    return [];
+    const state = takeState(scene.id, takeScript(parsed), film.timings, voice);
+    if (state._tag !== 'Stale') return [];
+    return [TakeStale.make({ scene: scene.id, reason: state.reason, recorded: state.recorded })];
   });
 };
 

@@ -47,9 +47,24 @@ export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
 export interface FilmRepoService {
   readonly paths: (film: string) => FilmPaths;
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
+  /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
+  readonly script: (
+    film: string,
+  ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
+/** The part of `script.ts` the tools read: each beat's line and its sources. */
+const ScriptModule = Schema.Struct({
+  script: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      say: Schema.optionalKey(Schema.String),
+      cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+    }),
+  ),
+});
+type ScriptModule = typeof ScriptModule.Type;
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
 
@@ -141,7 +156,16 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           return { paths: at, scenes, voice, sound, timings, manifest };
         });
 
-        return FilmRepo.of({ paths, load });
+        const script = Effect.fn('FilmRepo.script')(function* (name: string) {
+          const at = paths(name);
+          if (!(yield* fs.exists(at.dir)))
+            return yield* FilmNotFound.make({ film: name, dir: at.dir });
+          const file = path.join(at.dir, 'script.ts');
+          if (!(yield* fs.exists(file))) return Option.none<ScriptModule['script']>();
+          return Option.some((yield* loadModule(name, file, ScriptModule)).script);
+        });
+
+        return FilmRepo.of({ paths, load, script });
       }),
     );
 }

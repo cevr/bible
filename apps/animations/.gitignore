@@ -9,3 +9,6 @@ src/films/*/narration/full.wav
 src/films/**/*.partial
 src/films/*/narration/full.partial.*
 src/films/*/narration/*.take.mp3
+# Every recording of a person's take (`takes import`, the lab's studio), kept to
+# hear again or keep instead: only the take the timings name is committed.
+src/films/*/narration/attempts/

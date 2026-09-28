@@ -2,9 +2,20 @@
 // a browser and its pages that answer from memory and count their calls. No
 // network, no Chromium, no credits.
 
-import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted, Schema } from 'effect';
+import {
+  Array as Arr,
+  Effect,
+  Encoding,
+  Exit,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Redacted,
+  Schema,
+} from 'effect';
 import * as PlatformError from 'effect/PlatformError';
-import { silence } from '../core/audio.ts';
+import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import {
@@ -29,10 +40,10 @@ import {
   type FrameFailed,
   type PageCrashed,
   type PageError,
-  type MediaFailed,
+  MediaFailed,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { type JoinedFilm, Media } from './media.ts';
+import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { PreviewServer } from './preview-server.ts';
 
 const notFound = (method: string, path: string) =>
@@ -140,18 +151,35 @@ const aligned = (characters: ReadonlyArray<string>) => ({
   character_end_times_seconds: characters.map((_, i) => i * 0.05 + 0.05),
 });
 
+/** The beat a take file belongs to: its name up to the first dot. */
+const beatOfTake = (file: string) =>
+  Option.getOrElse(Arr.head(file.slice(file.lastIndexOf('/') + 1).split('.')), () => '');
+
+/** A transcript's words, one every half second, each 0.4 s long. */
+export const heardAt = (said: string) =>
+  said
+    .split(/\s+/)
+    .filter((w) => w.length > 0)
+    .map((w, i) => ({ text: w, start: i * 0.5, end: i * 0.5 + 0.4, type: 'word' }));
+
 /**
  * Speech comes back aligned one character per 0.05 s, and its "audio" is the
  * text itself, padded with one space per take so no two takes are the same
  * bytes. A dialogue aligns its lines joined with nothing between them, as the
  * API does, and its audio is the lines read one after another. The transcript
  * of a take file is what was spoken into it, unless `heard` maps that text to
- * something else.
+ * something else; a person's take (fake MP3 bytes, `fakeMedia.encodeMp3`)
+ * says what `recorded` has for its beat. Every transcript's words are timed
+ * by `heardAt`.
  */
 export const fakeElevenLabs = (
   files: Map<string, Uint8Array>,
   calls: ElevenLabsCalls,
-  options: { readonly heard?: ReadonlyMap<string, string>; readonly apiKey?: string } = {},
+  options: {
+    readonly heard?: ReadonlyMap<string, string>;
+    readonly recorded?: ReadonlyMap<string, string>;
+    readonly apiKey?: string;
+  } = {},
 ) =>
   Layer.succeed(
     ElevenLabs,
@@ -183,9 +211,18 @@ export const fakeElevenLabs = (
       stt: (file) =>
         Effect.sync(() => {
           calls.stt.push(file);
-          const said = new TextDecoder().decode(files.get(file)).trim();
-          const heard = Option.fromNullishOr(options.heard?.get(said));
-          return { text: Option.getOrElse(heard, () => said) };
+          const bytes = new TextDecoder().decode(files.get(file)).trim();
+          // A person's take is fake MP3 bytes: what was said is the recording's, by beat.
+          const person = Option.filter(
+            Option.fromNullishOr(options.recorded?.get(beatOfTake(file))),
+            () => bytes.startsWith('mp3 '),
+          );
+          const said = Option.getOrElse(person, () => bytes);
+          const heard = Option.getOrElse(
+            Option.fromNullishOr(options.heard?.get(said)),
+            () => said,
+          );
+          return { text: heard, words: heardAt(heard) };
         }),
       composeMusic: (_plan, _model, out) => Effect.sync(() => void calls.music.push(out)),
       ready: Effect.void,
@@ -209,9 +246,44 @@ export const emptyCalls = (): ElevenLabsCalls => ({
 export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;
 
 /**
+ * A person's recording as the fake media loads it: half a second of room
+ * noise, 0.4 s of tone for each word of what the file says (its bytes are the
+ * words, as a staging take's are), then half a second of room noise.
+ */
+export const fakeRecording = (said: string, rate: number): Pcm => {
+  const words = said.split(/\s+/).filter((w) => w.length > 0).length;
+  const frames = Math.round((1 + words * 0.4) * rate);
+  const plane = Float32Array.from({ length: frames }, (_, i) => {
+    const t = i / rate;
+    const voiced = Number(t >= 0.5 && t < 0.5 + words * 0.4);
+    return voiced * 0.1 * Math.sin((2 * Math.PI * 220 * i) / rate) + ((i % 7) - 3) * 1e-5;
+  });
+  return { rate, frames, channels: [plane] };
+};
+
+/** Recording for a fake media that never loads one: loading fails, encoding writes nothing. */
+export const noRecording = {
+  load: (file: string) =>
+    Effect.fail(MediaFailed.make({ op: 'decode', file, reason: 'no recordings here' })),
+  encodeMp3: () => Effect.succeed(new Uint8Array()),
+} satisfies Pick<MediaService, 'load' | 'encodeMp3'>;
+
+/** What `fakeMedia.encodeMp3` writes: its frames and rate, so the fake measures it. */
+const fakeMp3 = (pcm: Pcm) => text(`mp3 ${pcm.frames}/${pcm.rate}`);
+
+/** A fake MP3's length from its bytes; any other file's is `fakeLength`. */
+const fakeDuration = (bytes: Uint8Array) =>
+  Option.match(Option.fromNullishOr(new TextDecoder().decode(bytes).match(/^mp3 (\d+)\/(\d+)$/)), {
+    onNone: () => fakeLength(bytes),
+    onSome: (said) => Number(said[1]) / Number(said[2]),
+  });
+
+/**
  * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
  * is not there), decodes to a second of mono silence at the mix's rate, and a
- * WAV written lands as `wav <frames>`, and a joined film as `mp4 <frames>`.
+ * WAV written lands as `wav <frames>`, and a joined film as `mp4 <frames>`. A
+ * recording loads as `fakeRecording` of its bytes, and a take encodes to
+ * `mp3 <frames>/<rate>`, which measures its own length.
  */
 export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
   Layer.succeed(
@@ -221,13 +293,21 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
         Effect.succeed(
           Option.match(Option.fromNullishOr(files.get(file)), {
             onNone: () => 2.5,
-            onSome: fakeLength,
+            onSome: fakeDuration,
           }),
         ),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
+      load: (file, rate) =>
+        Option.match(Option.fromNullishOr(files.get(file)), {
+          onNone: () =>
+            Effect.fail(MediaFailed.make({ op: 'decode', file, reason: 'no such file' })),
+          onSome: (bytes) =>
+            Effect.succeed(fakeRecording(new TextDecoder().decode(bytes).trim(), rate)),
+        }),
+      encodeMp3: (pcm) => Effect.succeed(fakeMp3(pcm)),
     }),
   );
 
@@ -423,6 +503,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const media = Layer.succeed(
     Media,
     Media.of({
+      ...noRecording,
       duration: () =>
         Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
       decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
@@ -497,6 +578,7 @@ export const spokenTake = (say: string): VoiceTiming => {
     file: 'take.mp3',
     duration: Math.max(0, ...words.map((w) => w.end)),
     words,
+    source: 'elevenlabs',
   };
 };
 

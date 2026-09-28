@@ -9,12 +9,14 @@ scrubbable preview and a frame-exact MP4 export.
 
 ```sh
 bun run dev                                    # player at http://127.0.0.1:4400
-bun run narrate <film>                         # record stale beats, verify, remix full.wav
+bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
+bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
+bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
 bun run score <film>                           # generate stale music + effects, remix full.wav
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
-bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
+bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
@@ -37,8 +39,13 @@ loads and, for `lab`, the same server in development mode with the lab's
 routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
 is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
-`--force` (every beat), `--dry-run` (print what is stale, record nothing),
-`--accept-mismatch` (keep a take whose transcript differs). Score flags:
+`--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
+`stale` with why, record nothing), `--accept-mismatch` (keep a take whose
+transcript differs), `--replace-recorded` (stage over a person's take whose
+line changed). Takes import flags: `--only id,id` (just these beats; one file
+not named for its beat imports as the one beat named), `--accept-mismatch`,
+`--whole` (the file is one reading of the whole script, cut at the silence
+between beats). Score flags:
 `--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
 anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
 film's sounds) for score. The films are always `src/films`, the
@@ -217,6 +224,29 @@ longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
 one writer at a time, so takes finishing together never lose entries.
+
+**ElevenLabs stages; the owner's voice replaces it.** A film is staged with
+ElevenLabs (`narrate`), then read by a person beat by beat:
+
+1. `bun run script <film> --sheet`, and print `out/<film>/script-sheet.html`:
+   each beat's line with its marks stripped, the file to save it as
+   (`<beat>.wav`), quotations set apart with their source, `/` for a breath.
+2. Record each beat into its own file (WAV, M4A, MP3, AIFF or FLAC, any rate,
+   any room noise), or the whole script in one file.
+3. `bun run takes import <film> <folder>` (or `<file> --whole`). Each
+   recording is trimmed to the staging takes' padding and levelled to their
+   loudness (numbers in `packages/film/README.md`), encoded as they are,
+   transcribed and timed by the words heard; `TakeMismatch` and
+   `--accept-mismatch` work as for `narrate`. Every recording stays in
+   `narration/attempts/<beat>/` (git-ignored); the kept one is committed, with
+   `source: "recorded"` in `timings.json`.
+4. `bun run check`, `bun run cues` and `bun run mix` as for any take, then
+   tighten each scene's `lead` and `tail` at the seams.
+
+Staging never overwrites a recorded take: `narrate` skips it (even under
+`--force` and `--only`); when its line changes the take is stale, `check`
+fails it, and `narrate` refuses to stage over it without `--replace-recorded`.
+A change of staging voice leaves recorded takes current.
 
 **Sound follows the same clock.** `sound.ts` declares the score as acts, each
 starting at a scene, and effects as prompts placed at a scene's named cue —

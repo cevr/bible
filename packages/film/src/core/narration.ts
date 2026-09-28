@@ -139,6 +139,38 @@ export const voiceKey = (voice: Voice): string => {
   return `${voices}/${voice.model}/${settings}`;
 };
 
+/** Why a beat's take no longer fits it. */
+export type StaleReason = 'missing' | 'text changed' | 'voice changed';
+
+/**
+ * Where a beat's take stands: current and read by a person (`Recorded`),
+ * current and read by the staging voice (`Staging`), or `Stale`. A person's
+ * take is read by no voice in the film, so a change of staging voice never
+ * stales it; only a change of its words does. `recorded` says whether the
+ * stale take was a person's, which staging must not replace unasked.
+ */
+export type TakeState =
+  | { readonly _tag: 'Recorded' }
+  | { readonly _tag: 'Staging' }
+  | { readonly _tag: 'Stale'; readonly reason: StaleReason; readonly recorded: boolean };
+
+/** The state of the take `timings` keep for beat `id`, whose take script is `script`, under `voice` (`voiceKey`). */
+export const takeState = (
+  id: string,
+  script: string,
+  timings: Timings,
+  voice: string,
+): TakeState => {
+  const take = timings.scenes[id];
+  if (take === undefined) return { _tag: 'Stale', reason: 'missing', recorded: false };
+  const recorded = take.source === 'recorded';
+  if (!recorded && timings.voice !== voice)
+    return { _tag: 'Stale', reason: 'voice changed', recorded };
+  if (take.hash !== hashText(script)) return { _tag: 'Stale', reason: 'text changed', recorded };
+  if (recorded) return { _tag: 'Recorded' };
+  return { _tag: 'Staging' };
+};
+
 /**
  * Words with estimated times: ~2.7 words/s, longer words take longer, and
  * punctuation adds a pause. Close enough to lay out a cut before recording.

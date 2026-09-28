@@ -36,6 +36,13 @@ export const Word = Schema.Struct({
 }).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
+/**
+ * Who read a take: the ElevenLabs staging voice (`narrate`), or a person
+ * (`takes import`, the lab's studio). Staging never replaces a recorded take.
+ */
+export const TakeSource = Schema.Literals(['elevenlabs', 'recorded']);
+export type TakeSource = typeof TakeSource.Type;
+
 /** What narrate records for one scene: its words in order, all inside the take. */
 export const VoiceTiming = Schema.Struct({
   /** Hash of the spoken text; a mismatch means the take is stale. */
@@ -43,6 +50,19 @@ export const VoiceTiming = Schema.Struct({
   file: Schema.String,
   duration: Seconds,
   words: Schema.Array(Word),
+  /**
+   * A take stored with no source was staged: it reads as `elevenlabs`, and a
+   * staged take is written with none, so the committed timings never churn.
+   */
+  source: Schema.optionalKey(TakeSource).pipe(
+    Schema.decodeTo(
+      TakeSource,
+      SchemaTransformation.transformOptional({
+        decode: (source) => Option.orElseSome(source, (): TakeSource => 'elevenlabs'),
+        encode: (source) => Option.filter(source, (s) => s !== 'elevenlabs'),
+      }),
+    ),
+  ),
 }).check(
   Schema.makeFilter((take) => {
     const issues: Array<Schema.FilterIssue> = [];

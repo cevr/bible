@@ -9,7 +9,7 @@ import { Config, Context, Effect, Layer, Option, Redacted, Schema, Semaphore } f
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import type { Line } from '../core/narration.ts';
-import { type Cast, MusicModel, Plan, type Reader } from '../core/schema.ts';
+import { type Cast, MusicModel, Plan, type Reader, type Word } from '../core/schema.ts';
 import { ApiKeyMissing, ElevenLabsFailed } from './errors.ts';
 import { type Finished, collect, isNotFound } from './process.ts';
 
@@ -86,9 +86,29 @@ export const DialogueResponse = Schema.Struct({
 });
 export type DialogueResponse = typeof DialogueResponse.Type;
 
-/** `speech-to-text convert`: what a take actually says. */
-export const SttResponse = Schema.Struct({ text: Schema.String });
+/** One stretch of a transcript: a word, the spacing after it, or a sound (`(breath)`). */
+const SttWord = Schema.Struct({
+  text: Schema.String,
+  start: Schema.Finite,
+  end: Schema.Finite,
+  type: Schema.String,
+});
+
+/**
+ * `speech-to-text convert`: what a take actually says, and when each word of
+ * it was heard (a person's take is timed by these).
+ */
+export const SttResponse = Schema.Struct({
+  text: Schema.String,
+  words: Schema.Array(SttWord).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+});
 export type SttResponse = typeof SttResponse.Type;
+
+/** The words a transcript heard, in order, with their times: spacing and sound events left out. */
+export const heardWords = (reply: SttResponse): ReadonlyArray<Word> =>
+  reply.words
+    .filter((w) => w.type === 'word')
+    .map((w) => ({ text: w.text, start: w.start, end: Math.max(w.start, w.end) }));
 
 export interface TtsRequest {
   readonly text: string;

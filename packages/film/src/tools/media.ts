@@ -7,9 +7,17 @@
 // but a joined film's, which mediabunny writes by position itself.
 // H.264 is a browser's codec: a page encodes it (player/encode.ts), and
 // joining only copies its packets.
+//
+// A person's recording comes in whatever a recorder wrote (WAV, M4A, MP3, a
+// browser's WebM/Opus) at whatever rate its microphone ran: ffmpeg reads
+// every one of them and resamples, into a WAV in a scoped temporary
+// directory that mediabunny then decodes; and a recorded take leaves as an
+// MP3 made by ffmpeg's LAME, as the staging takes arrive (192 kb/s, 44.1 kHz,
+// gapless header), so every take in `narration/` is read one way.
 
 import { registerAacEncoder } from '@mediabunny/aac-encoder';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import {
   ALL_FORMATS,
   AudioSample,
@@ -33,8 +41,19 @@ import {
 import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
 import { MediaFailed } from './errors.ts';
+import { collect, isNotFound } from './process.ts';
+
+/** A recorded take's MP3: what the staging takes arrive as (`mp3_44100_192`). */
+const TAKE_BITRATE = '192k';
 
 export interface MediaService {
+  /**
+   * Any sound ffmpeg reads (WAV, M4A, MP3, WebM), mixed down to one channel
+   * and resampled to `rate`.
+   */
+  readonly load: (file: string, rate: number) => Effect.Effect<Pcm, MediaFailed>;
+  /** `pcm` as MP3 bytes, 192 kb/s with a gapless header, as the staging takes arrive. */
+  readonly encodeMp3: (pcm: Pcm) => Effect.Effect<Uint8Array, MediaFailed>;
   /**
    * How long `file` plays, in seconds: an MP3 as decoded (its encoder
    * padding trimmed), anything else by its container.
@@ -391,11 +410,44 @@ const encodeTrack = (pcm: Pcm) =>
     return track;
   });
 
+/** `ffmpeg <args>` run to its end, failing as `op` on `file`. */
+const runFfmpeg = (
+  spawner: ChildProcessSpawner.ChildProcessSpawner['Service'],
+  op: MediaFailed['op'],
+  file: string,
+  args: ReadonlyArray<string>,
+) =>
+  collect(
+    spawner,
+    ChildProcess.make('ffmpeg', ['-hide_banner', '-v', 'error', '-nostdin', '-y', ...args]),
+  ).pipe(
+    Effect.mapError((error) => {
+      if (isNotFound(error))
+        return MediaFailed.make({
+          op,
+          file,
+          reason: 'ffmpeg is not on PATH; install it (brew install ffmpeg)',
+        });
+      return MediaFailed.make({ op, file, reason: error.message });
+    }),
+    Effect.flatMap((done) => {
+      if (done.exitCode === 0) return Effect.void;
+      return Effect.fail(MediaFailed.make({ op, file, reason: done.stderr.trim() }));
+    }),
+  );
+
+/** Whether ffmpeg runs, for `film doctor`: a person's takes load and encode through it. */
+export const ffmpegReady = Effect.fn('Media.ffmpegReady')(function* () {
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  yield* runFfmpeg(spawner, 'decode', 'ffmpeg', ['-version']);
+});
+
 export class Media extends Context.Service<Media, MediaService>()('@bible/film/tools/Media') {
   static readonly layer = Layer.effect(
     Media,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       // Bun has no AAC of its own; this one is mediabunny's to use from here on.
       // Its worker is patched (patches/): under Bun it listened on `self`,
       // where no message ever arrives, and hung.
@@ -490,7 +542,62 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         return yield* encodeTrack(pcm);
       });
 
-      return Media.of({ duration, decode, writeWav, encodeAac, join });
+      const ffmpeg = (op: MediaFailed['op'], file: string, args: ReadonlyArray<string>) =>
+        runFfmpeg(spawner, op, file, args);
+
+      /** A temporary directory, gone when the scope closes. */
+      const scratch = (op: MediaFailed['op'], file: string) =>
+        fs
+          .makeTempDirectoryScoped({ prefix: 'film-media-' })
+          .pipe(Effect.mapError((error) => MediaFailed.make({ op, file, reason: error.message })));
+
+      const load = Effect.fn('Media.load')(function* (file: string, rate: number) {
+        return yield* Effect.scoped(
+          Effect.gen(function* () {
+            const wav = `${yield* scratch('decode', file)}/load.wav`;
+            yield* ffmpeg('decode', file, [
+              '-i',
+              file,
+              '-vn',
+              '-ac',
+              '1',
+              '-ar',
+              String(rate),
+              '-c:a',
+              'pcm_f32le',
+              wav,
+            ]);
+            return yield* decode(wav);
+          }),
+        );
+      });
+
+      const encodeMp3 = Effect.fn('Media.encodeMp3')(function* (pcm: Pcm) {
+        return yield* Effect.scoped(
+          Effect.gen(function* () {
+            const dir = yield* scratch('encode', 'take.mp3');
+            yield* writeWav(`${dir}/take.wav`, pcm);
+            yield* ffmpeg('encode', 'take.mp3', [
+              '-i',
+              `${dir}/take.wav`,
+              '-c:a',
+              'libmp3lame',
+              '-b:a',
+              TAKE_BITRATE,
+              `${dir}/take.mp3`,
+            ]);
+            return yield* fs
+              .readFile(`${dir}/take.mp3`)
+              .pipe(
+                Effect.mapError((error) =>
+                  MediaFailed.make({ op: 'encode', file: 'take.mp3', reason: error.message }),
+                ),
+              );
+          }),
+        );
+      });
+
+      return Media.of({ duration, decode, writeWav, encodeAac, join, load, encodeMp3 });
     }),
   );
 }

@@ -574,7 +574,13 @@ describe('layoutSamples', () => {
 // ---------------------------------------------------------------------------
 // Static
 
-const take = (text: string) => ({ hash: hashText(text), file: 'x.mp3', duration: 2, words: [] });
+const take = (text: string) => ({
+  hash: hashText(text),
+  file: 'x.mp3',
+  duration: 2,
+  words: [],
+  source: 'elevenlabs' as const,
+});
 const cast: Cast = {
   model: 'eleven_v3',
   settings: { stability: 0.5 },
@@ -609,6 +615,16 @@ describe('staleTakes', () => {
       'voice changed',
       'voice changed',
       'missing',
+    ]);
+  });
+
+  test("a person's take outlives a change of staging voice, and goes stale with its text", () => {
+    const read = { ...take('Still the same'), source: 'recorded' as const };
+    const edited = { ...take('Now it says'), source: 'recorded' as const };
+    const film = testFilm(scenes, { voice: 'someone-else', scenes: { kept: read, edited } });
+    expect(staleTakes(film).map((s) => [s.scene, s.reason, s.recorded])).toEqual([
+      ['edited', 'text changed', true],
+      ['new', 'missing', false],
     ]);
   });
 

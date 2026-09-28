@@ -73,6 +73,19 @@ export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismat
   }
 }
 
+/**
+ * A person's recording that cannot become a take: named for no beat, with
+ * nothing in it louder than the room, or one file with no beat to be.
+ */
+export class RecordingInvalid extends Schema.TaggedError<RecordingInvalid>()('RecordingInvalid', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: ${this.reason}`;
+  }
+}
+
 export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('ElevenLabsFailed', {
   op: Schema.String,
   exitCode: Schema.Int,
@@ -393,8 +406,12 @@ export class StaticHold extends Schema.TaggedError<StaticHold>()('StaticHold', {
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,
   reason: Schema.Literals(['missing', 'text changed', 'voice changed']),
+  /** The stale take was read by a person: staging does not replace it unasked. */
+  recorded: Schema.Boolean,
 }) {
   override get message() {
+    if (this.recorded)
+      return `scene "${this.scene}": recorded take is stale (${this.reason}); record it again and run takes import, or stage it with narrate --only ${this.scene} --replace-recorded`;
     return `scene "${this.scene}": take is stale (${this.reason}); run narrate`;
   }
 }

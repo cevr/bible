@@ -1,0 +1,449 @@
+// A person's takes: recordings of the script made into takes the film uses as
+// it uses a staging take. Each recording is loaded (any format ffmpeg reads),
+// trimmed and levelled as the staging takes are (`prepareTake`), encoded to
+// the takes' MP3, transcribed through the same speech-to-text narrate uses,
+// and timed by what was heard, lined up with the script's words. A take that
+// says something else fails as TakeMismatch unless accepted, as narrate's do.
+//
+// Every recording lands first as an attempt, under `narration/attempts/<beat>/`
+// (git-ignored), with what was heard and when; keeping one copies it beside
+// the other takes and rewrites `timings.json` whole to name it, source
+// `recorded`. The take it replaces is removed. An earlier attempt can be kept
+// again at any time. Staging never replaces a recorded take (see narrator.ts).
+
+import {
+  Array as Arr,
+  Clock,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
+import type { PlatformError } from 'effect/PlatformError';
+import {
+  type BeatSpan,
+  cutsBetween,
+  normalizeWords,
+  placeBeats,
+  timeScript,
+  wordError,
+} from '../core/align.ts';
+import { slice } from '../core/audio.ts';
+import type { BeatUnplaced, UnknownVoice } from '../core/errors.ts';
+import type { Pcm } from '../core/audio.ts';
+import { MIX_RATE } from '../core/mix.ts';
+import { hashText, voiceKey } from '../core/narration.ts';
+import { prepareTake } from '../core/recording.ts';
+import { type Timings, VoiceTiming } from '../core/schema.ts';
+import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
+import { ElevenLabs, heardWords } from './elevenlabs.ts';
+import {
+  type ElevenLabsFailed,
+  type MediaFailed,
+  RecordingInvalid,
+  TakeMismatch,
+} from './errors.ts';
+import type { LoadedFilm } from './film-repo.ts';
+import { Media } from './media.ts';
+import { type Beat, MAX_WORD_ERROR, beatsOf, takeFile } from './narrator.ts';
+
+/** The files a recording may be: what the owner's recorder saves. */
+export const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
+
+/** One recording of a beat, kept or not. */
+export const Attempt = Schema.Struct({
+  beat: Schema.String,
+  /** The take's file name, in `narration/attempts/<beat>/` and, once kept, `narration/`. */
+  file: Schema.String,
+  /** The take as the timings would hold it, `source: 'recorded'`. */
+  take: VoiceTiming,
+  /** What the transcriber heard. */
+  heard: Schema.String,
+  /** Word error against the script when it was recorded, 0 to 1. */
+  wer: Schema.Finite,
+  /** When it was recorded, in epoch milliseconds. */
+  at: Schema.Finite,
+});
+export type Attempt = typeof Attempt.Type;
+
+/** `narration/attempts/<beat>/attempts.json`: a beat's attempts, oldest first. */
+const Attempts = Schema.Struct({ attempts: Schema.Array(Attempt) });
+type Attempts = typeof Attempts.Type;
+const AttemptsJson = Schema.fromJsonString(Attempts, { space: 2 });
+
+export interface ImportOptions {
+  /** Import just these beats. One file with no beat's name imports as the one beat named here. */
+  readonly only: Option.Option<ReadonlySet<string>>;
+  /** Keep a take whose transcript does not match its line. */
+  readonly acceptMismatch: boolean;
+  /** The file is one recording of the whole script, to be cut into its beats. */
+  readonly whole: boolean;
+}
+
+export type TakesError =
+  | RecordingInvalid
+  | TakeMismatch
+  | BeatUnplaced
+  | UnknownVoice
+  | ElevenLabsFailed
+  | MediaFailed
+  | StoreError
+  | PlatformError;
+
+/** Whether a file name is a recording's. */
+export const isRecording = (name: string): boolean =>
+  RECORDING_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
+
+/** A recording's beat: its file name without the extension. */
+const beatNamed = (file: string): string => {
+  const name = file.slice(file.lastIndexOf('/') + 1);
+  return name.slice(0, Math.max(0, name.lastIndexOf('.')));
+};
+
+/** The beats with lines, by id. */
+const spokenBeats = (beats: ReadonlyArray<Beat>) =>
+  new Map(beats.filter((b) => b.text.length > 0).map((b) => [b.id, b]));
+
+/** The one beat named by `--only`, when it names exactly one. */
+const onlyOne = (only: Option.Option<ReadonlySet<string>>): Option.Option<string> =>
+  Option.flatMap(
+    Option.filter(only, (ids) => ids.size === 1),
+    (ids) => Arr.head([...ids]),
+  );
+
+/** Whether `--only` lets this beat through. */
+const allowed = (only: Option.Option<ReadonlySet<string>>, id: string): boolean =>
+  Option.match(only, { onNone: () => true, onSome: (ids) => ids.has(id) });
+
+/** Put a person's take into the timings; every other take stays as it was. */
+const withRecorded =
+  (film: LoadedFilm, id: string, take: VoiceTiming) =>
+  (timings: Timings): Timings => {
+    // A film with no takes yet records under its staging voice, as narrate would.
+    const scenes = { ...timings.scenes, [id]: take };
+    if (timings.voice.length === 0) return { voice: voiceKey(film.voice), scenes };
+    return { voice: timings.voice, scenes };
+  };
+
+/** A take that was kept. */
+export interface Imported {
+  readonly id: string;
+  readonly take: VoiceTiming;
+  readonly heard: string;
+  readonly wer: number;
+}
+
+export interface TakesService {
+  /** Import the recordings at `path`: a folder of `<beat>.<ext>`, one file, or with `whole`, one reading of the script. */
+  readonly importPath: (
+    film: LoadedFilm,
+    path: string,
+    options: ImportOptions,
+  ) => Effect.Effect<ReadonlyArray<Imported>, TakesError>;
+  /** Import one recording as the take of `beat`. */
+  readonly importBeat: (
+    film: LoadedFilm,
+    beat: string,
+    file: string,
+    options: Pick<ImportOptions, 'acceptMismatch'>,
+  ) => Effect.Effect<Imported, TakesError>;
+  /** A beat's attempts, newest first. */
+  readonly attempts: (
+    film: LoadedFilm,
+    beat: string,
+  ) => Effect.Effect<ReadonlyArray<Attempt>, StoreError>;
+  /** Keep an earlier attempt as the beat's take. */
+  readonly keepAttempt: (
+    film: LoadedFilm,
+    beat: string,
+    file: string,
+    options: Pick<ImportOptions, 'acceptMismatch'>,
+  ) => Effect.Effect<Imported, TakesError>;
+}
+
+export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/tools/Takes') {
+  static readonly layer = Layer.effect(
+    Takes,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const store = yield* ContentStore;
+      const elevenLabs = yield* ElevenLabs;
+      const media = yield* Media;
+
+      const attemptsDir = (film: LoadedFilm, beat: string) =>
+        path.join(film.paths.narration, 'attempts', beat);
+      const ledger = (film: LoadedFilm, beat: string): Manifest<Attempts> => ({
+        file: path.join(attemptsDir(film, beat), 'attempts.json'),
+        codec: AttemptsJson,
+        empty: { attempts: [] },
+      });
+
+      const beatsById = (film: LoadedFilm) =>
+        Effect.map(Effect.fromResult(beatsOf(film)), spokenBeats);
+
+      const beatFor = (film: LoadedFilm, id: string, file: string) =>
+        Effect.flatMap(beatsById(film), (beats) =>
+          Option.match(Option.fromNullishOr(beats.get(id)), {
+            onSome: Effect.succeed,
+            onNone: () =>
+              Effect.fail(
+                RecordingInvalid.make({
+                  file,
+                  reason: `the film has no beat "${id}" with a line; its beats are ${[...beats.keys()].join(', ')}`,
+                }),
+              ),
+          }),
+        );
+
+      /** A recording, already loaded, made into an attempt at `beat`'s take. */
+      const attempt = Effect.fn('Takes.attempt')(function* (
+        film: LoadedFilm,
+        beat: Beat,
+        source: string,
+        recording: Pcm,
+      ) {
+        const prepared = yield* Effect.fromOption(prepareTake(recording)).pipe(
+          Effect.mapError(() =>
+            RecordingInvalid.make({
+              file: source,
+              reason: 'nothing in it is louder than the room; check the input level',
+            }),
+          ),
+        );
+        const audio = yield* media.encodeMp3(prepared);
+        const file = takeFile(beat.id, audio);
+        const at = path.join(attemptsDir(film, beat.id), file);
+        yield* store.writeFile(at, audio);
+        const reply = yield* elevenLabs.stt(at);
+        const duration = yield* media.duration(at);
+        const wer = wordError(normalizeWords(beat.text), normalizeWords(reply.text));
+        const made: Attempt = {
+          beat: beat.id,
+          file,
+          take: {
+            hash: hashText(beat.script),
+            file,
+            duration,
+            words: timeScript(beat.text, heardWords(reply), duration),
+            source: 'recorded',
+          },
+          heard: reply.text,
+          wer,
+          at: yield* Clock.currentTimeMillis,
+        };
+        yield* store.update(ledger(film, beat.id), (kept) => ({
+          attempts: [...kept.attempts.filter((a) => a.file !== file), made],
+        }));
+        yield* Effect.log(
+          `takes.attempt id=${beat.id} file=${file} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
+        );
+        return made;
+      });
+
+      /** Make an attempt the beat's take: beside the others, named by the timings. */
+      const keep = Effect.fn('Takes.keep')(function* (
+        film: LoadedFilm,
+        beat: Beat,
+        made: Attempt,
+        options: Pick<ImportOptions, 'acceptMismatch'>,
+      ) {
+        if (made.wer > MAX_WORD_ERROR) {
+          const mismatch = TakeMismatch.make({
+            id: beat.id,
+            script: beat.text,
+            heard: made.heard,
+            wer: made.wer,
+          });
+          if (!options.acceptMismatch) return yield* mismatch;
+          yield* Effect.logWarning(`takes.mismatch accepted=true ${mismatch.message}`);
+        }
+        const bytes = yield* fs.readFile(path.join(attemptsDir(film, beat.id), made.file));
+        yield* store.writeFile(path.join(film.paths.narration, made.file), bytes);
+        const before = yield* store.read(film.paths.timings);
+        // The commit: timings.json names the person's take.
+        const after = yield* store.update(
+          film.paths.timings,
+          withRecorded(film, beat.id, made.take),
+        );
+        // The take it replaced, unless another beat still names it.
+        const named = new Set(Object.values(after.scenes).map((t) => t.file));
+        const replaced = Option.filter(
+          Option.fromNullishOr(before.scenes[beat.id]),
+          (old) => !named.has(old.file),
+        );
+        if (Option.isSome(replaced)) {
+          const old = path.join(film.paths.narration, replaced.value.file);
+          if (yield* fs.exists(old)) yield* fs.remove(old);
+        }
+        yield* Effect.log(`takes.kept id=${beat.id} file=${made.file} source=recorded`);
+        return {
+          id: beat.id,
+          take: made.take,
+          heard: made.heard,
+          wer: made.wer,
+        } satisfies Imported;
+      });
+
+      const importOne = (
+        film: LoadedFilm,
+        beat: Beat,
+        file: string,
+        options: Pick<ImportOptions, 'acceptMismatch'>,
+      ) =>
+        Effect.gen(function* () {
+          const recording = yield* media.load(file, MIX_RATE);
+          const made = yield* attempt(film, beat, file, recording);
+          return yield* keep(film, beat, made, options);
+        });
+
+      const importBeat = Effect.fn('Takes.importBeat')(function* (
+        film: LoadedFilm,
+        id: string,
+        file: string,
+        options: Pick<ImportOptions, 'acceptMismatch'>,
+      ) {
+        return yield* importOne(film, yield* beatFor(film, id, file), file, options);
+      });
+
+      /** The recordings in a folder, each with its beat, in film order. */
+      const folder = Effect.fn('Takes.folder')(function* (
+        film: LoadedFilm,
+        dir: string,
+        options: ImportOptions,
+      ) {
+        const beats = yield* beatsById(film);
+        const files = (yield* fs.readDirectory(dir))
+          .filter(isRecording)
+          .map((name) => path.join(dir, name));
+        const unknown = Arr.head(files.filter((f) => !beats.has(beatNamed(f))));
+        if (Option.isSome(unknown))
+          return yield* RecordingInvalid.make({
+            file: unknown.value,
+            reason: `named for no beat with a line; name it <beat>${path.extname(unknown.value)}, one of ${[...beats.keys()].join(', ')}`,
+          });
+        const twice = Arr.head(
+          files.filter((f, i) => files.findIndex((g) => beatNamed(g) === beatNamed(f)) !== i),
+        );
+        if (Option.isSome(twice))
+          return yield* RecordingInvalid.make({
+            file: twice.value,
+            reason: `a second recording of beat "${beatNamed(twice.value)}"; keep one`,
+          });
+        const wanted = [...beats.values()].flatMap((beat) =>
+          files
+            .filter((f) => beatNamed(f) === beat.id && allowed(options.only, beat.id))
+            .map((file) => ({ beat, file })),
+        );
+        if (wanted.length === 0)
+          return yield* RecordingInvalid.make({
+            file: dir,
+            reason: `no recordings named for a beat to import (${RECORDING_EXTENSIONS.join(' ')})`,
+          });
+        return wanted;
+      });
+
+      /** One file: the beat `--only` names, or the one it is named for. */
+      const single = Effect.fn('Takes.single')(function* (
+        film: LoadedFilm,
+        file: string,
+        options: ImportOptions,
+      ) {
+        const id = Option.getOrElse(onlyOne(options.only), () => beatNamed(file));
+        if (!allowed(options.only, id))
+          return yield* RecordingInvalid.make({
+            file,
+            reason: 'one recording is one beat: give --only just the beat it is',
+          });
+        return [{ beat: yield* beatFor(film, id, file), file }];
+      });
+
+      /** One reading of the whole script, cut at the silence between its beats. */
+      const whole = Effect.fn('Takes.whole')(function* (
+        film: LoadedFilm,
+        file: string,
+        options: ImportOptions,
+      ) {
+        const beats = [...(yield* beatsById(film)).values()].filter((b) =>
+          allowed(options.only, b.id),
+        );
+        const recording = yield* media.load(file, MIX_RATE);
+        const heard = heardWords(yield* elevenLabs.stt(file));
+        const spans: ReadonlyArray<BeatSpan> = yield* Effect.fromResult(placeBeats(beats, heard));
+        const cuts = cutsBetween(spans, recording.frames / recording.rate);
+        const at = (seconds: number) =>
+          Math.min(recording.frames, Math.max(0, Math.round(seconds * recording.rate)));
+        const made = yield* Effect.forEach(Arr.zip(beats, cuts), ([beat, cut]) =>
+          attempt(
+            film,
+            beat,
+            `${file}#${beat.id}`,
+            slice(recording, at(cut.from), at(cut.to) - at(cut.from)),
+          ).pipe(Effect.map((a) => ({ beat, made: a }))),
+        );
+        yield* Effect.log(`takes.whole file=${file} beats=${cuts.length}`);
+        return made;
+      });
+
+      const importPath = Effect.fn('Takes.importPath')(function* (
+        film: LoadedFilm,
+        at: string,
+        options: ImportOptions,
+      ) {
+        if (options.whole) {
+          const made = yield* whole(film, at, options);
+          return yield* Effect.forEach(made, ({ beat, made: m }) => keep(film, beat, m, options));
+        }
+        // A path named as a recording is one; anything else is a folder of them.
+        const recordings = yield* Effect.suspend(() => {
+          if (isRecording(at)) return single(film, at, options);
+          return folder(film, at, options);
+        });
+        return yield* Effect.forEach(recordings, ({ beat, file }) =>
+          importOne(film, beat, file, options).pipe(
+            Effect.tapError((error) =>
+              Effect.logError(`takes.failed id=${beat.id} error=${error._tag}`),
+            ),
+          ),
+        );
+      });
+
+      const attempts = Effect.fn('Takes.attempts')(function* (film: LoadedFilm, beat: string) {
+        const stored = yield* store.read(ledger(film, beat));
+        return [...stored.attempts].reverse();
+      });
+
+      const keepAttempt = Effect.fn('Takes.keepAttempt')(function* (
+        film: LoadedFilm,
+        id: string,
+        file: string,
+        options: Pick<ImportOptions, 'acceptMismatch'>,
+      ) {
+        const beat = yield* beatFor(film, id, file);
+        const made = Arr.findFirst(yield* attempts(film, id), (a) => a.file === file);
+        if (Option.isNone(made))
+          return yield* RecordingInvalid.make({
+            file,
+            reason: `no attempt of beat "${id}" by that name`,
+          });
+        // An attempt recorded for other words is not this line's take.
+        if (made.value.take.hash !== hashText(beat.script))
+          return yield* RecordingInvalid.make({
+            file,
+            reason: `recorded for an earlier line of beat "${id}"; record it again`,
+          });
+        return yield* keep(film, beat, made.value, options);
+      });
+
+      return Takes.of({
+        importPath,
+        importBeat,
+        attempts,
+        keepAttempt,
+      });
+    }),
+  );
+}

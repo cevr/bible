@@ -55,8 +55,20 @@ describe('captionCues', () => {
 const timings: Timings = {
   voice: 'v',
   scenes: {
-    a: { hash: hashText('Grace, freely given.'), file: 'a.mp3', duration: 2, words },
-    b: { hash: hashText('Amen.'), file: 'b.mp3', duration: 1, words: [word('Amen.', 0, 0.5)] },
+    a: {
+      hash: hashText('Grace, freely given.'),
+      file: 'a.mp3',
+      duration: 2,
+      words,
+      source: 'elevenlabs',
+    },
+    b: {
+      hash: hashText('Amen.'),
+      file: 'b.mp3',
+      duration: 1,
+      words: [word('Amen.', 0, 0.5)],
+      source: 'elevenlabs',
+    },
   },
 };
 const placed = layout(
