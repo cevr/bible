@@ -55,8 +55,8 @@ export interface CaptureOps {
    * nothing is kept yet. A microphone already open is closed first.
    */
   readonly open: (device: Option.Option<string>) => Effect.Effect<void, MicDenied | CaptureFailed>;
-  /** Keep what the open microphone hears from now on. */
-  readonly start: Effect.Effect<void, CaptureFailed>;
+  /** Keep what the open microphone hears from now on: the rate it keeps it at, per second. */
+  readonly start: Effect.Effect<number, CaptureFailed>;
   /** What was kept since `start`, at the capture's own rate; the microphone is closed. */
   readonly stop: Effect.Effect<Pcm, CaptureFailed>;
   /** Close the microphone, keeping nothing; nothing happens when none is open. */

@@ -7,6 +7,13 @@
 import { Schema } from 'effect';
 import { TakeSource, Timings, VoiceTiming } from './schema.ts';
 
+/**
+ * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
+ * about six minutes of 48 kHz 24-bit mono (a beat's line runs seconds). The
+ * page derives the longest take it may record from it.
+ */
+export const STUDIO_MAX_BODY = 64 * 1024 * 1024;
+
 /** A stretch of a beat on the sheet: words to read (and who reads them), or a quotation. */
 export const StudioPart = Schema.Union([
   Schema.Struct({

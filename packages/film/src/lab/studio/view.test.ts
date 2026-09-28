@@ -15,6 +15,7 @@ import {
   eventOf,
   keyOf,
   meterOf,
+  nearLimit,
   neighbour,
   reviewWav,
   statusOf,
@@ -39,7 +40,10 @@ describe('controlsOf', () => {
   test('each state offers only what the recorder takes there', () => {
     expect(acts(idle)).toEqual(['arm']);
     expect(acts(RecorderState.CountIn({ beat: 'a', n: 2 }))).toEqual(['cancel']);
-    expect(acts(RecorderState.Recording({ beat: 'a', startedAt: 0 }))).toEqual(['stop', 'cancel']);
+    expect(acts(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }))).toEqual([
+      'stop',
+      'cancel',
+    ]);
     expect(acts(RecorderState.Review({ beat: 'a', wav }))).toEqual(['submit', 'retake', 'discard']);
     expect(acts(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } }))).toEqual([]);
     expect(acts(failed(mismatch))).toEqual(['acceptAnyway', 'arm', 'retry']);
@@ -63,7 +67,7 @@ describe('keyOf', () => {
 
   test('R records, Space stops, K submits or accepts, Esc cancels, discards or backs out', () => {
     expect(key(idle, 'r')).toEqual(Option.some({ _tag: 'Act', act: 'arm' }));
-    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0 }), ' ')).toEqual(
+    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), ' ')).toEqual(
       Option.some({ _tag: 'Act', act: 'stop' }),
     );
     expect(key(RecorderState.Review({ beat: 'a', wav }), 'k')).toEqual(
@@ -81,7 +85,7 @@ describe('keyOf', () => {
 
   test('a studio key with nothing to do now is still the studio’s: it does nothing', () => {
     expect(key(idle, ' ')).toEqual(Option.some({ _tag: 'None' }));
-    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0 }), 'k')).toEqual(
+    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), 'k')).toEqual(
       Option.some({ _tag: 'None' }),
     );
   });
@@ -89,9 +93,9 @@ describe('keyOf', () => {
   test('←/→ step through the beats at rest or after a refusal, never while recording', () => {
     expect(key(idle, 'ArrowRight')).toEqual(Option.some({ _tag: 'Beat', step: 1 }));
     expect(key(failed(mismatch), 'ArrowLeft')).toEqual(Option.some({ _tag: 'Beat', step: -1 }));
-    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0 }), 'ArrowRight')).toEqual(
-      Option.some({ _tag: 'None' }),
-    );
+    expect(
+      key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), 'ArrowRight'),
+    ).toEqual(Option.some({ _tag: 'None' }));
     expect(key(RecorderState.Review({ beat: 'a', wav }), 'ArrowLeft')).toEqual(
       Option.some({ _tag: 'None' }),
     );
@@ -118,10 +122,16 @@ describe('statusOf', () => {
     );
     expect(
       statusOf(
-        RecorderState.Recording({ beat: 'a', startedAt: 0 }),
+        RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }),
         Option.some({ peak: 0.5, rms: 0.1, kept: 3.25 }),
       ),
-    ).toBe('recording · 3.3 s');
+    ).toBe('recording · 3.3 s of at most 5 min');
+    expect(
+      statusOf(
+        RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 379.4 }),
+        Option.some({ peak: 0.5, rms: 0.1, kept: 61.25 }),
+      ),
+    ).toBe('recording · 61.3 s of at most 6 min 19 s');
     expect(statusOf(RecorderState.Review({ beat: 'a', wav }), Option.none())).toBe(
       'review 2.5 s: hear it, then submit',
     );
@@ -131,6 +141,17 @@ describe('statusOf', () => {
         Option.none(),
       ),
     ).toBe('importing: trimming, levelling and transcribing the take…');
+  });
+
+  test('near the take limit the recording warns how long is left, in the warning tone', () => {
+    const recording = RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 });
+    const at = (kept: number) => Option.some({ peak: 0.5, rms: 0.1, kept });
+    expect(nearLimit(recording, at(269))).toBe(false);
+    expect(nearLimit(recording, at(275))).toBe(true);
+    expect(nearLimit(idle, at(275))).toBe(false);
+    expect(statusOf(recording, at(275.2))).toBe(
+      'recording · 25 s left: the take stops itself at 5 min',
+    );
   });
 
   test('a take kept says what was heard; a refusal is the server’s words', () => {

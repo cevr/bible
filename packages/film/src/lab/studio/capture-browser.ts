@@ -281,6 +281,7 @@ export const makeBrowserCapture = Effect.gen(function* () {
       m.kept = [];
       m.frames = 0;
       m.keeping = true;
+      return m.rate;
     }),
   );
 

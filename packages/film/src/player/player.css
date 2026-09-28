@@ -882,6 +882,10 @@ body.lookbook {
 .studio-status[data-tone='kept'] {
   color: #7fc4a0;
 }
+.studio-status[data-tone='warn'] {
+  color: #e8c46f;
+  font-weight: 600;
+}
 .studio-status[data-tone='refused'] {
   color: #e8836f;
 }

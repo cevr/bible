@@ -7,7 +7,17 @@
 // a take is importing. Whatever path is taken, the microphone is closed once
 // the machine leaves the count-in and the recording.
 
-import { Deferred, Effect, Exit, Layer, Option, Predicate, Stream, SubscriptionRef } from 'effect';
+import {
+  Deferred,
+  Duration,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  Predicate,
+  Stream,
+  SubscriptionRef,
+} from 'effect';
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
@@ -15,7 +25,7 @@ import type { StudioRefusal, StudioTake } from '../../core/studio.ts';
 import { Stage, type StageOps } from '../stage.ts';
 import { StudioApi, type StudioCalls, StudioRefused } from './api.ts';
 import { Capture, type CaptureOps, MicDenied } from './capture.ts';
-import { COUNT_IN, RecorderEvent, RecorderState, recorderMachine } from './machine.ts';
+import { COUNT_IN, RecorderEvent, RecorderState, limitAt, recorderMachine } from './machine.ts';
 import { type Pcm, encodeWav } from './wav.ts';
 
 const pcm: Pcm = { rate: 48000, samples: Float32Array.of(0, 0.25, -0.25, 0.5) };
@@ -71,7 +81,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
         log.open = true;
         return say(`open ${id}`);
       }),
-    start: say('start'),
+    start: say('start').pipe(Effect.as(pcm.rate)),
     stop: Effect.sync(() => {
       log.open = false;
       log.calls.push('stop');
@@ -198,7 +208,7 @@ describe('the count-in, through an actor', () => {
         ...Array.from({ length: COUNT_IN }, (_, i) =>
           RecorderState.CountIn({ beat: 'a', n: COUNT_IN - i }),
         ),
-        RecorderState.Recording({ beat: 'a', startedAt: COUNT_IN * 1000 }),
+        RecorderState.Recording({ beat: 'a', startedAt: COUNT_IN * 1000, limit: limitAt(48000) }),
       ]);
       expect(log.calls).toEqual(['pause', 'open default', 'start']);
     }).pipe(Effect.scoped, Effect.provide(layer));
@@ -215,6 +225,32 @@ describe('the count-in, through an actor', () => {
       yield* TestClock.adjust(`${COUNT_IN} seconds`);
       expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Idle');
       expect(log.calls).toEqual(['pause', 'open default', 'close']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+});
+
+describe('the take limit', () => {
+  it.effect('is a second under the longest take the studio reads at the capture rate', () =>
+    Effect.sync(() => {
+      expect(limitAt(48000)).toBeCloseTo(348.5, 1);
+      expect(limitAt(44100)).toBeCloseTo(379.4, 1);
+    }),
+  );
+
+  it.effect('a recording that reaches it stops itself, to review', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      const actor = yield* Machine.spawn(machine);
+      yield* actor.start;
+      yield* actor.sendAndWait(arm, RecorderState.CountIn);
+      yield* TestClock.adjust(`${COUNT_IN} seconds`);
+      yield* TestClock.adjust(Duration.seconds(limitAt(48000) - 1));
+      expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Recording');
+      yield* TestClock.adjust('1 second');
+      expect(yield* actor.waitFor(RecorderState.Review)).toEqual(
+        RecorderState.Review({ beat: 'a', wav }),
+      );
+      expect(log.calls).toEqual(['pause', 'open default', 'start', 'stop']);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
 });

@@ -6,6 +6,7 @@
 
 import { Match, Option, Predicate } from 'effect';
 import type { StudioAttempt, StudioBeat } from '../../core/studio.ts';
+import { minutes } from './api.ts';
 import { clipping, dbfs, type Level } from './capture.ts';
 import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts';
 import { wavSeconds } from './wav.ts';
@@ -138,6 +139,27 @@ const percent = (wer: number) => `${(wer * 100).toFixed(1)}%`;
 
 const seconds = (s: number) => `${s.toFixed(1)} s`;
 
+/** Within this many seconds of the take limit, the recording warns. */
+export const NEAR_LIMIT_S = 30;
+
+/** The seconds kept so far, by the meter's count; 0 before any. */
+const keptOf = (level: Option.Option<Level>) =>
+  Option.getOrElse(
+    Option.map(level, (l) => l.kept),
+    () => 0,
+  );
+
+/** The seconds left before a recording stops itself; none unless recording. */
+const leftOf = (state: RecorderState, level: Option.Option<Level>): Option.Option<number> =>
+  Match.value(state).pipe(
+    Match.tag('Recording', (s) => Option.some(s.limit - keptOf(level))),
+    Match.orElse(() => Option.none()),
+  );
+
+/** Whether a recording is within NEAR_LIMIT_S of stopping itself. */
+export const nearLimit = (state: RecorderState, level: Option.Option<Level>): boolean =>
+  Option.exists(leftOf(state, level), (left) => left <= NEAR_LIMIT_S);
+
 /** The status line: where the recorder stands, a take's result, or the refusal in the server's words. */
 export const statusOf = (state: RecorderState, level: Option.Option<Level>): string =>
   Match.value(state).pipe(
@@ -155,13 +177,15 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
             ].join(' · '),
         }),
       CountIn: (s) => `recording in ${s.n}…`,
-      Recording: () =>
-        `recording · ${seconds(
-          Option.getOrElse(
-            Option.map(level, (l) => l.kept),
-            () => 0,
-          ),
-        )}`,
+      Recording: (s) =>
+        Option.match(
+          Option.filter(leftOf(s, level), (left) => left <= NEAR_LIMIT_S),
+          {
+            onNone: () => `recording · ${seconds(keptOf(level))} of at most ${minutes(s.limit)}`,
+            onSome: (left) =>
+              `recording · ${Math.max(0, Math.ceil(left))} s left: the take stops itself at ${minutes(s.limit)}`,
+          },
+        ),
       Review: (s) => `review ${seconds(wavSeconds(s.wav))}: hear it, then submit`,
       Importing: (s) =>
         Match.value(s.work).pipe(

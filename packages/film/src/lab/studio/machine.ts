@@ -6,7 +6,7 @@
 // earlier attempt can be kept too.
 //
 //   Idle | Review | Failed ─Arm→ CountIn(n) ─Tick (each second)→ CountIn(n−1)
-//   CountIn(1) ─CountDone→ Recording ─Stop→ Review ─Submit→ Importing
+//   CountIn(1) ─CountDone→ Recording ─Stop (or the take limit)→ Review ─Submit→ Importing
 //   Recording ─MicLost (the device went)→ Failed (what was kept, to review)
 //   Importing ─Imported→ Idle (kept; the page reloads when the track was
 //     remixed) | ─Refused→ Failed ─Retry→ Review | Idle
@@ -25,12 +25,19 @@ import { Clock, Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { StudioRefusal, type StudioTake } from '../../core/studio.ts';
 import { Stage } from '../stage.ts';
-import { StudioApi } from './api.ts';
+import { StudioApi, takeLimit } from './api.ts';
 import { Capture, MicLost } from './capture.ts';
 import { encodeWav } from './wav.ts';
 
 /** The count-in: this many seconds, one shown each second, before the recording starts. */
 export const COUNT_IN = 3;
+
+/**
+ * How long a take may run at the capture's `rate`: a second under the
+ * longest the studio reads, so the part-block the stop flushes and the one
+ * before the start still fit.
+ */
+export const limitAt = (rate: number): number => takeLimit(rate).seconds - 1;
 
 /** A recording as it is posted: a 24-bit mono WAV. */
 const Wav = Schema.Uint8Array;
@@ -62,7 +69,12 @@ export const RecorderState = State({
   /** The microphone is open; the recording starts `n` seconds from now. */
   CountIn: { beat: Schema.String, n: Schema.Int },
   /** Everything the microphone hears is kept, from `startedAt` (epoch ms). */
-  Recording: { beat: Schema.String, startedAt: Schema.Finite },
+  Recording: {
+    beat: Schema.String,
+    startedAt: Schema.Finite,
+    /** The seconds after which the take stops itself (`limitAt` the capture's rate). */
+    limit: Schema.Finite,
+  },
   /** The recording, to hear before it is submitted. */
   Review: { beat: Schema.String, wav: Wav },
   /** The server is making a take. */
@@ -215,8 +227,11 @@ export const recorderMachine = (beat: string) =>
       Effect.gen(function* () {
         const capture = yield* Capture;
         return yield* capture.start.pipe(
-          Effect.andThen(Clock.currentTimeMillis),
-          Effect.map((startedAt) => RecorderState.Recording({ beat: state.beat, startedAt })),
+          Effect.flatMap((rate) =>
+            Effect.map(Clock.currentTimeMillis, (startedAt) =>
+              RecorderState.Recording({ beat: state.beat, startedAt, limit: limitAt(rate) }),
+            ),
+          ),
           Effect.catchTag('CaptureFailed', (e) =>
             capture.close.pipe(
               Effect.as(
@@ -234,6 +249,11 @@ export const recorderMachine = (beat: string) =>
     .on([RecorderState.CountIn, RecorderState.Recording], RecorderEvent.Cancel, ({ state }) =>
       rest(state.beat),
     )
+    // A take stops itself at the limit, before the studio would refuse it.
+    .timeout(RecorderState.Recording, {
+      duration: (state) => Duration.seconds(state.limit),
+      event: RecorderEvent.Stop,
+    })
     .on(RecorderState.Recording, RecorderEvent.Stop, ({ state }) =>
       stopped(state.beat, (wav) => RecorderState.Review({ beat: state.beat, wav })),
     )

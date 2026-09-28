@@ -31,6 +31,7 @@ import { labBase, type VoiceTiming } from '../core/schema.ts';
 import { type Part, type SheetBeat, sheetBeats } from '../core/sheet.ts';
 import {
   KeepPost,
+  STUDIO_MAX_BODY,
   StudioAttempts,
   type StudioBeat,
   StudioBeats,
@@ -77,11 +78,7 @@ const extensionOf = (type: string): Result.Result<string, AudioInvalid | Recordi
   );
 };
 
-/**
- * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
- * about six minutes of 48 kHz 24-bit mono (a beat's line runs seconds).
- */
-export const STUDIO_MAX_BODY = 64 * 1024 * 1024;
+export { STUDIO_MAX_BODY };
 
 /** An attempt's audio as the page plays it back. */
 const AUDIO_TYPES = new Map([

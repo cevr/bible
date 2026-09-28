@@ -74,10 +74,14 @@ export const encodeWav = (pcm: Pcm): Uint8Array => {
   return bytes;
 };
 
+/** The rate a WAV `encodeWav` made was captured at, per second. */
+export const wavRate = (wav: Uint8Array): number =>
+  new DataView(wav.buffer, wav.byteOffset, wav.byteLength).getUint32(24, true);
+
 /** How long a WAV `encodeWav` made plays, in seconds. */
 export const wavSeconds = (wav: Uint8Array): number => {
   const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
-  const rate = view.getUint32(24, true);
+  const rate = wavRate(wav);
   if (rate === 0) return 0;
   return view.getUint32(40, true) / BYTES_PER_SAMPLE / rate;
 };

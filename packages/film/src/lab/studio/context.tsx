@@ -34,6 +34,7 @@ import {
   eventOf,
   keyOf,
   meterOf,
+  nearLimit,
   neighbour,
   reviewWav,
   statusOf,
@@ -54,8 +55,8 @@ export interface AttemptRow {
   readonly keepable: boolean;
 }
 
-/** How the status line reads: at rest, working, a take kept, or refused. */
-export type StudioTone = 'rest' | 'busy' | 'kept' | 'refused';
+/** How the status line reads: at rest, working, near the take limit, a take kept, or refused. */
+export type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 
 export interface StudioStateValue {
   /** Every beat with a line, in the film's order. */
@@ -211,6 +212,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     if (s._tag === 'Failed') return 'refused';
     if (s._tag === 'Idle' && Option.isSome(s.kept)) return 'kept';
     if (s._tag === 'Idle') return 'rest';
+    if (nearLimit(s, level())) return 'warn';
     return 'busy';
   });
 
