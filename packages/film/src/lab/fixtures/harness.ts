@@ -125,6 +125,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
     });
   }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
+  route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
   route('POST', /^\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
@@ -175,21 +176,58 @@ export interface OpenLab {
 }
 
 /**
+ * A microphone for the page: the browser's fake device playing `wav`, and
+ * the permissions the page has (`['microphone']`, or none to be refused).
+ * The full Chromium runs it (the headless shell has no getUserMedia), and
+ * the fake origin counts as secure, as localhost does.
+ */
+export interface FakeMic {
+  readonly wav: string;
+  readonly permissions: ReadonlyArray<string>;
+}
+
+const micLaunch = (mic: FakeMic) => ({
+  channel: 'chromium',
+  args: [
+    '--disable-accelerated-2d-canvas',
+    '--use-fake-device-for-media-stream',
+    `--use-file-for-fake-audio-capture=${mic.wav}`,
+    `--unsafely-treat-insecure-origin-as-secure=${ORIGIN}`,
+    '--autoplay-policy=no-user-gesture-required',
+  ],
+});
+
+/**
  * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
- * `routes` answering the API before the defaults. The browser closes with the
- * scope.
+ * `routes` answering the API before the defaults, and `mic` as its
+ * microphone when given. The browser closes with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
-  at: { readonly query?: string; readonly hash?: string } = {},
+  at: { readonly query?: string; readonly hash?: string; readonly mic?: FakeMic } = {},
 ) {
   const [script, style] = yield* Effect.all([bundle, css], { concurrency: 2 });
+  const mic = Option.fromUndefinedOr(at.mic);
   const browser = yield* Effect.acquireRelease(
-    Effect.promise(() => chromium.launch({ args: ['--disable-accelerated-2d-canvas'] })),
+    Effect.promise(() =>
+      chromium.launch(
+        Option.getOrElse(Option.map(mic, micLaunch), () => ({
+          args: ['--disable-accelerated-2d-canvas'],
+        })),
+      ),
+    ),
     (b) => Effect.promise(() => b.close()),
   );
   const tab = yield* Effect.promise(() =>
-    browser.newPage({ viewport: { width: 1400, height: 900 } }),
+    browser.newPage({
+      viewport: { width: 1400, height: 900 },
+      permissions: [
+        ...Option.getOrElse(
+          Option.map(mic, (m) => m.permissions),
+          () => [],
+        ),
+      ],
+    }),
   );
   const asked: Array<Asked> = [];
   const errors: Array<string> = [];

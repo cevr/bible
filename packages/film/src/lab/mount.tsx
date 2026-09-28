@@ -9,6 +9,7 @@ import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
 import { Notes } from './notes/index.ts';
+import { Studio } from './studio/index.ts';
 import { Lab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
@@ -44,6 +45,9 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
               <Motion.Section />
               <Compare.Section />
               <Notes.Section />
+              <Studio.Provider>
+                <Studio.Section />
+              </Studio.Provider>
             </Lab.Panel>
           </Notes.Provider>
         </Compare.Provider>

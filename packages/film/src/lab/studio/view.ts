@@ -1,0 +1,234 @@
+// What the studio's panel shows of its recorder, derived: the controls each
+// state offers (with the key that presses each), what a key does in a state,
+// the status line, the recording under review, the beat list's counts and
+// badges, the meter's reading, and each attempt's line. The provider hands
+// these to the components, so none of them reads the machine's states. Pure.
+
+import { Match, Option, Predicate } from 'effect';
+import type { StudioAttempt, StudioBeat } from '../../core/studio.ts';
+import { clipping, dbfs, type Level } from './capture.ts';
+import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts';
+import { wavSeconds } from './wav.ts';
+
+/** What a control does. */
+export type Act =
+  | 'arm'
+  | 'retake'
+  | 'stop'
+  | 'cancel'
+  | 'submit'
+  | 'discard'
+  | 'acceptAnyway'
+  | 'retry';
+
+/** The studio's keys, as the panel names them. */
+export type StudioKey = 'R' | 'Space' | 'K' | 'Esc';
+
+/** One button: what it does, what it says, and its key. */
+export interface Control {
+  readonly act: Act;
+  readonly label: string;
+  readonly key: StudioKey;
+}
+
+const control = (act: Act, name: string, key: StudioKey): Control => ({
+  act,
+  label: `${name} (${key})`,
+  key,
+});
+
+const ARM = control('arm', 'Record', 'R');
+const CANCEL = control('cancel', 'Cancel', 'Esc');
+
+/** What the owner can do in `state`, in the order the panel shows it. */
+export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
+  Match.value(state).pipe(
+    Match.tagsExhaustive({
+      Idle: () => [ARM],
+      CountIn: () => [CANCEL],
+      Recording: () => [control('stop', 'Stop', 'Space'), CANCEL],
+      Review: () => [
+        control('submit', 'Submit', 'K'),
+        control('retake', 'Retake', 'R'),
+        control('discard', 'Discard', 'Esc'),
+      ],
+      Importing: () => [],
+      Failed: (s) => [
+        ...Option.match(mismatchAttempt(s.refusal), {
+          onNone: () => [],
+          onSome: () => [control('acceptAnyway', 'Accept anyway', 'K')],
+        }),
+        ARM,
+        control('retry', 'Back', 'Esc'),
+      ],
+    }),
+  );
+
+/** What a studio key does now: a control, a step through the beats, or nothing yet. */
+export type KeyAct =
+  | { readonly _tag: 'Act'; readonly act: Act }
+  | { readonly _tag: 'Beat'; readonly step: 1 | -1 }
+  | { readonly _tag: 'None' };
+
+/** The studio's key a `KeyboardEvent.key` is, if it is one. */
+const PRESSED = new Map<string, StudioKey>([
+  ['r', 'R'],
+  ['R', 'R'],
+  [' ', 'Space'],
+  ['k', 'K'],
+  ['K', 'K'],
+  ['Escape', 'Esc'],
+]);
+
+const STEPS = new Map<string, 1 | -1>([
+  ['ArrowRight', 1],
+  ['ArrowLeft', -1],
+]);
+
+const NOTHING: KeyAct = { _tag: 'None' };
+
+/** ←/→ move between beats only at rest or after a refusal, never mid-take. */
+const steps = Predicate.or(Predicate.isTagged('Idle'), Predicate.isTagged('Failed'));
+
+/**
+ * What `key` does in `state`: none when it is not one of the studio's keys
+ * (the lab's keys pass through); `None` when it is, but has nothing to do now
+ * (it is still the studio's, so the lab does not take it either).
+ */
+export const keyOf = (state: RecorderState, key: string): Option.Option<KeyAct> =>
+  Option.orElse(
+    Option.map(Option.fromUndefinedOr(PRESSED.get(key)), (pressed): KeyAct =>
+      Option.getOrElse(
+        Option.map(
+          Option.fromUndefinedOr(controlsOf(state).find((c) => c.key === pressed)),
+          (c): KeyAct => ({ _tag: 'Act', act: c.act }),
+        ),
+        () => NOTHING,
+      ),
+    ),
+    () =>
+      Option.map(Option.fromUndefinedOr(STEPS.get(key)), (step): KeyAct =>
+        Option.getOrElse(
+          Option.map(Option.some(step).pipe(Option.filter(() => steps(state))), (s): KeyAct => ({
+            _tag: 'Beat',
+            step: s,
+          })),
+          () => NOTHING,
+        ),
+      ),
+  );
+
+/** The recorder event `act` sends, with the microphone picked for a recording. */
+export const eventOf = (act: Act, device: Option.Option<string>): RecorderEvent =>
+  Match.value(act).pipe(
+    Match.withReturnType<RecorderEvent>(),
+    Match.when('arm', () => RecorderEvent.Arm({ device })),
+    Match.when('retake', () => RecorderEvent.Retake({ device })),
+    Match.when('stop', () => RecorderEvent.Stop),
+    Match.when('cancel', () => RecorderEvent.Cancel),
+    Match.when('submit', () => RecorderEvent.Submit),
+    Match.when('discard', () => RecorderEvent.Discard),
+    Match.when('acceptAnyway', () => RecorderEvent.AcceptAnyway),
+    Match.when('retry', () => RecorderEvent.Retry),
+    Match.exhaustive,
+  );
+
+/** A word error rate as the panel prints it. */
+const percent = (wer: number) => `${(wer * 100).toFixed(1)}%`;
+
+const seconds = (s: number) => `${s.toFixed(1)} s`;
+
+/** The status line: where the recorder stands, a take's result, or the refusal in the server's words. */
+export const statusOf = (state: RecorderState, level: Option.Option<Level>): string =>
+  Match.value(state).pipe(
+    Match.tagsExhaustive({
+      Idle: (s) =>
+        Option.match(s.kept, {
+          onNone: () => 'ready: R records this beat',
+          onSome: (k) =>
+            [
+              `kept ${k.file}: heard “${k.heard}” · ${percent(k.wer)} words differ`,
+              ...Option.match(Option.some(k.mixed).pipe(Option.filter((m) => !m)), {
+                onNone: () => [],
+                onSome: () => ['the mix failed; the lab log says why'],
+              }),
+            ].join(' · '),
+        }),
+      CountIn: (s) => `recording in ${s.n}…`,
+      Recording: () =>
+        `recording · ${seconds(
+          Option.getOrElse(
+            Option.map(level, (l) => l.kept),
+            () => 0,
+          ),
+        )}`,
+      Review: (s) => `review ${seconds(wavSeconds(s.wav))}: hear it, then submit`,
+      Importing: (s) =>
+        Match.value(s.work).pipe(
+          Match.tagsExhaustive({
+            Upload: () => 'importing: trimming, levelling and transcribing the take…',
+            Keep: (w) => `keeping ${w.file}…`,
+          }),
+        ),
+      Failed: (s) => s.refusal.message,
+    }),
+  );
+
+/** The recording to hear before it is submitted: only while reviewing. */
+export const reviewWav = (state: RecorderState): Option.Option<Uint8Array> =>
+  Match.value(state).pipe(
+    Match.tag('Review', (s) => Option.some(s.wav)),
+    Match.orElse(() => Option.none()),
+  );
+
+/** How many beats stand where: `1 recorded · 2 staging · 1 stale`. */
+export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>
+  (['recorded', 'staging', 'stale'] as const)
+    .map((state) => `${beats.filter((b) => b.state === state).length} ${state}`)
+    .join(' · ');
+
+/** A beat's badge: its state, and why it is stale. */
+export const beatBadge = (beat: StudioBeat): string =>
+  Option.match(
+    Option.fromUndefinedOr(beat.staleReason).pipe(Option.filter(() => beat.state === 'stale')),
+    { onNone: () => beat.state, onSome: (reason) => `stale: ${reason}` },
+  );
+
+/** The beat `step` away from `id` in the list, if there is one. */
+export const neighbour = (
+  beats: ReadonlyArray<StudioBeat>,
+  id: string,
+  step: 1 | -1,
+): Option.Option<string> =>
+  Option.map(
+    Option.fromUndefinedOr(beats[beats.findIndex((b) => b.id === id) + step]),
+    (b) => b.id,
+  );
+
+/** The meter's reading: peak and RMS in dBFS, the bar's share of −60…0 dBFS, and the clip warning. */
+export interface Meter {
+  readonly peak: string;
+  readonly rms: string;
+  readonly fill: number;
+  readonly clip: boolean;
+}
+
+/** The quietest level the meter reads; silence reads this. */
+const FLOOR_DB = -60;
+
+const decibels = (linear: number) => Math.max(FLOOR_DB, dbfs(linear));
+
+const dbText = (linear: number) => `${decibels(linear).toFixed(1).replace('-', '−')} dBFS`;
+
+/** The meter for the microphone's latest level; none while it is closed. */
+export const meterOf = (level: Option.Option<Level>): Option.Option<Meter> =>
+  Option.map(level, (l) => ({
+    peak: dbText(l.peak),
+    rms: dbText(l.rms),
+    fill: Math.min(1, (decibels(l.peak) - FLOOR_DB) / -FLOOR_DB),
+    clip: clipping(level),
+  }));
+
+/** An attempt as its row reads: what was heard, how far off the line, how long. */
+export const attemptLine = (attempt: StudioAttempt): string =>
+  `“${attempt.heard}” · ${percent(attempt.wer)} · ${seconds(attempt.duration)}`;
