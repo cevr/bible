@@ -54,6 +54,56 @@ export const SHORT_LAYOUT = {
   caption: { y: 1318, width: 800 },
 } as const;
 
+/**
+ * What a platform's buttons, names and progress bar cover on a vertical
+ * short: a margin from each edge, in 1080 × 1920 px. Text past one is under
+ * the platform's own furniture. Data, so `film check --short` and the lab
+ * read one set of zones.
+ */
+export interface SafeZone {
+  readonly top: number;
+  readonly bottom: number;
+  readonly left: number;
+  readonly right: number;
+}
+
+/**
+ * The zones `film check --short --zone` knows: `default` the organic feed's
+ * (the like, comment and share buttons on the right, the name and caption
+ * above the bottom), `ads` a paid placement's, whose call to action covers
+ * the bottom 35%.
+ */
+export const SAFE_ZONES = {
+  default: { top: 270, bottom: 520, left: 65, right: 140 },
+  ads: { top: 270, bottom: Math.round(0.35 * SHORT_HEIGHT), left: 65, right: 140 },
+} as const satisfies Record<string, SafeZone>;
+export type SafeZoneName = keyof typeof SAFE_ZONES;
+export const SAFE_ZONE_NAMES = ['default', 'ads'] as const satisfies ReadonlyArray<SafeZoneName>;
+
+/** The rectangle inside `zone`'s margins, in 1080 × 1920 px: where text is safe. */
+export const safeRect = (zone: SafeZone) => ({
+  left: zone.left,
+  top: zone.top,
+  right: SHORT_WIDTH - zone.right,
+  bottom: SHORT_HEIGHT - zone.bottom,
+});
+
+/**
+ * The numbers `film check --short` holds a short to: the first word by
+ * `firstWord` s and something moving by `motionBy` s (the hook), at most
+ * `loopGap` s of silence from the last word round to the first and a last
+ * frame within `loopDiff` of the first (mean luma, 0–1, of the film's band)
+ * so it loops, and a length at most `length.max` s, best `length.from` to
+ * `length.to` s.
+ */
+export const SHORT_RULES = {
+  firstWord: 0.3,
+  motionBy: 0.5,
+  loopGap: 0.6,
+  loopDiff: 0.08,
+  length: { max: 90, from: 45, to: 75 },
+} as const;
+
 /** How opaque the hook is at short second `s`: set at once, held, then faded out. */
 export const hookAlpha = (s: number): number => {
   const { hold, fade } = SHORT_LAYOUT.hook;

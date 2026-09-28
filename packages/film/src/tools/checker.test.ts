@@ -6,6 +6,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, Exit, Layer, Option } from 'effect';
 import { layout } from '../core/layout.ts';
 import type { Timed } from '../core/schema.ts';
+import type { ResolvedShort } from '../core/shorts.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
 import { Checker } from './checker.ts';
 import { PageError } from './errors.ts';
@@ -169,5 +170,69 @@ describe('Checker', () => {
       );
       expectAllClosed(ledger);
     }),
+  );
+});
+
+describe('Checker.short', () => {
+  /** A 2 s short of scene a, drawn 1080 px wide so page px are short px. */
+  const short: ResolvedShort = {
+    id: 'cut',
+    title: 'Cut',
+    spans: [{ scene: 'a', from: 0, to: 2, at: 0 }],
+    duration: 2,
+    fps: 30,
+  };
+  const info = { width: 1080, height: 1920, fps: 30, duration: 2, frames: 60 };
+
+  const setupShort = (host: FakeRenderHost) => {
+    const ledger = emptyLedger();
+    const layer = Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)));
+    const check = Effect.gen(function* () {
+      return yield* (yield* Checker).short(film, short, { workers: 2, zone: 'default' });
+    }).pipe(Effect.provide(layer));
+    return { ledger, check };
+  };
+
+  it.live(
+    "probes the short's page for text past the zone, a still or titled open and a loop's seam",
+    () =>
+      Effect.gen(function* () {
+        const { ledger, check } = setupShort({
+          info,
+          // The film's title, still, and a label under the right-hand buttons.
+          probe: () =>
+            Effect.succeed({
+              texts: [
+                textBox('Test film', 200, 700, 600, 100),
+                textBox('Justify', 900, 900, 100, 60),
+              ],
+              inks: [],
+            }),
+          luma: (i) => Math.min(255, i * 8),
+        });
+        const findings = yield* check;
+        expect(findings.map((f) => f._tag).sort()).toEqual([
+          'ShortHook',
+          'ShortHook',
+          'ShortLoop',
+          'ShortUnsafeText',
+        ]);
+        expect(findings).toContainEqual(
+          expect.objectContaining({ _tag: 'ShortUnsafeText', text: 'Justify', side: 'right' }),
+        );
+        expect(findings).toContainEqual(
+          expect.objectContaining({ _tag: 'ShortHook', reason: 'title card' }),
+        );
+        expect(findings).toContainEqual(
+          expect.objectContaining({ _tag: 'ShortHook', reason: 'still open' }),
+        );
+        expect(findings).toContainEqual(
+          expect.objectContaining({ _tag: 'ShortLoop', reason: 'picture' }),
+        );
+        // The short's own page, and the film's for its title.
+        expect(ledger.urls.some((u) => u.includes(encodeURIComponent('/shorts/cut')))).toBe(true);
+        expect(ledger.urls.some((u) => u.includes(`film=${film.paths.name}&`))).toBe(true);
+        expectAllClosed(ledger);
+      }),
   );
 });

@@ -19,6 +19,7 @@ bun run doctor                                 # headless Chromium, elevenlabs C
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
+bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no browser)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
@@ -256,7 +257,15 @@ above it the short's `hook` (the narrator's question or claim, set from the
 first frame, held 2.4 s, faded by 2.8 s); round it the film's paper, vignette
 and grain made at the page's size; below it the captions, burned in two to
 four words at a time as they are said, with no plate, and each quoted word
-(between the script's “ and ”) marked gold as it is read. The film's `short` style sets the hook's
+(between the script's “ and ”) marked gold as it is read. `check <film>
+--short <id>` checks the short, not the film: `ShortUnsafeText` (text under
+the platform's buttons: the `default` zone keeps 270 px top, 520 bottom, 140
+right and 65 left clear, `--zone ads` the bottom 35%; the short's own lines
+are errors, the film's a warning), `ShortHook` (a first word after 0.3 s,
+nothing moving by 0.5 s, or the film's title card first), `ShortLoop`
+(warning: the last frame far from the first, or over 0.6 s of silence round
+the loop) and `ShortLength` (over 90 s an error, outside 45–75 s a warning).
+The film's `short` style sets the hook's
 and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`).
 `src/films/index.ts` keeps `films` (a key per film folder)
 apart from `pages`, what the player mounts: the films plus each short's page

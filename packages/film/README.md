@@ -144,7 +144,33 @@ at most 800 px as it needs and balanced (`breakLines`, so no word is left
 alone); a quoted word gets a gold marker (`caption.highlight`) swept behind
 it as it is read, so a quotation lights word by word. The phrases are set
 once; a frame looks one up and draws it. The long film's captions are
-untouched. `render --short --no-captions` leaves them out. `film cues --short`
+untouched. `render --short --no-captions` leaves them out.
+
+`film check <film> --short <id> [--zone default|ads]` holds a short to
+`SHORT_RULES` (`core/shorts.ts`) instead of checking the film
+(`tools/short-check.ts`, pure; `Checker.short` probes the page):
+
+- `ShortUnsafeText`: a line of text past the safe zone, probed every half
+  second and at each phrase's first frame. `SAFE_ZONES` (exported from
+  `@bible/film/core` with `safeRect`, so the lab draws the same zones) holds
+  the margins in 1080×1920 px: `default` top 270, bottom 520, right 140,
+  left 65; `ads` the same with the bottom 35% (672). The short's own lines
+  (hook, captions; probed with the `caption` tag) are an error and fold into
+  one finding per side; the film's lines in the band are a warning each,
+  since the band is the film's frame and only another span moves them.
+- `ShortHook` (error): the first word after 0.3 s; nothing in the picture
+  moving by 0.5 s (probes of the open that hold still, the hook and captions
+  left out, as `heldStill` does for holds); or the first frame showing the
+  film's title (the film's page title, read from the film's own page). A logo
+  drawn as ink is not told from other ink.
+- `ShortLoop` (warning): the band's mean luma on a 64×36 grid differs by more
+  than 0.08 between the last frame and the first (`FramePage.luma`, which
+  decodes the export handle's PNG in the page, so the player is untouched),
+  or more than 0.6 s of silence from the last word round to the first.
+- `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
+
+`--static` runs only what the words tell (length, first word, the loop's
+silence), with no browser. `film cues --short`
 prints `shortReport`; `film bench --workers n --short <id>` times the same
 render.
 

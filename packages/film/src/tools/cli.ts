@@ -8,6 +8,7 @@
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
+//   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
 //   film notes <film> [--watch] [--since n]
@@ -43,11 +44,12 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
-import { resolveShort } from '../core/shorts.ts';
+import { shortPhrases } from '../core/phrases.ts';
+import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName, resolveShort } from '../core/shorts.ts';
 import { FILM_FPS } from '../core/time.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
-import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
+import { HOLD, type Level, type Reported, layoutLevel, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -84,6 +86,7 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { type ShortFinding, shortLevel, shortStaticFindings } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
@@ -341,6 +344,33 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   ) {
     return yield* (yield* Checker).layout(loaded, { workers, scenes });
   }, Effect.provide(checkLayer));
+  /**
+   * `check --short`: the short's words (its length, its first word, its
+   * loop's silence), then, unless `--static`, its page's frames.
+   */
+  const shortLeg = Effect.fn('film.check.short')(function* (
+    loaded: LoadedFilm,
+    placed: ReadonlyArray<Placed>,
+    declared: Short,
+    input: {
+      readonly static: boolean;
+      readonly workers: number;
+      readonly zone: SafeZoneName;
+      readonly json: boolean;
+    },
+  ) {
+    const cut = yield* Effect.fromResult(resolveShort(placed, declared, FILM_FPS));
+    const found: Array<ShortFinding> = [...shortStaticFindings(cut, shortPhrases(placed, cut))];
+    if (!input.static)
+      found.push(
+        ...(yield* (yield* Checker).short(loaded, cut, {
+          workers: input.workers,
+          zone: input.zone,
+        })),
+      );
+    const leveled = found.map((finding) => ({ level: shortLevel(finding), finding }));
+    yield* reportFindings(cut.id, 'short', !input.static, leveled, input.json);
+  }, Effect.provide(checkLayer));
   return Command.make(
     'check',
     {
@@ -364,10 +394,19 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         Flag.withDefault(4),
         Flag.withDescription('pages probing at once'),
       ),
+      short: short.pipe(Flag.withDescription('check this short (shorts.ts), not the film')),
+      zone: Flag.Literals('zone', SAFE_ZONE_NAMES).pipe(
+        Flag.withDefault('default'),
+        Flag.withDescription(
+          "the platform's safe zone a short's text is held to: default (the feed) or ads (the bottom 35% covered)",
+        ),
+      ),
     },
     Effect.fn('film.check')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
+      const picked = yield* pickShort(loaded, placed, input.short);
+      if (Option.isSome(picked)) return yield* shortLeg(loaded, placed, picked.value, input);
       // A misspelt scene fails here, in either leg, rather than probing nothing.
       const only = yield* Option.match(input.scene, {
         onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
@@ -388,26 +427,41 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         const layout = yield* layoutLeg(loaded, input.workers, only);
         for (const finding of layout) found.push({ level: layoutLevel(finding), finding });
       }
-      for (const { level, finding } of found) {
-        if (input.json)
-          yield* Console.log(
-            encodeCheckLine({ level, tag: finding._tag, message: finding.message }),
-          );
-        else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
-      }
-      const errors = found.filter((r) => r.level === 'error').length;
-      const warnings = found.length - errors;
-      yield* Effect.log(
-        `check.done film=${input.film} layout=${!input.static} errors=${errors} warnings=${warnings}`,
-      );
-      if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+      yield* reportFindings(input.film, 'film', !input.static, found, input.json);
     }),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
     ),
   );
 };
+
+/** One finding and how bad it is, whichever leg found it. */
+interface Leveled {
+  readonly level: Level;
+  readonly finding: { readonly _tag: string; readonly message: string };
+}
+
+/** Print each finding (a line, or a line of JSON), log the count, and fail on any error. */
+const reportFindings = Effect.fn('film.check.report')(function* (
+  name: string,
+  what: 'film' | 'short',
+  layout: boolean,
+  found: ReadonlyArray<Leveled>,
+  json: boolean,
+) {
+  for (const { level, finding } of found) {
+    if (json)
+      yield* Console.log(encodeCheckLine({ level, tag: finding._tag, message: finding.message }));
+    else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+  }
+  const errors = found.filter((r) => r.level === 'error').length;
+  const warnings = found.length - errors;
+  yield* Effect.log(
+    `check.done ${what}=${name} layout=${layout} errors=${errors} warnings=${warnings}`,
+  );
+  if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+});
 
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);

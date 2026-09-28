@@ -21,7 +21,7 @@ import {
 } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
-import { Browser } from './browser.ts';
+import { Browser, type LumaArea } from './browser.ts';
 import {
   ApiKeyMissing,
   EncodeFailed,
@@ -301,6 +301,8 @@ export interface FakeRenderHost {
   readonly drawMs?: (i: number) => number;
   /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
   readonly pixels?: (i: number) => string;
+  /** The luma every sample of frame `i` reads, as `luma` reports it (default 128). */
+  readonly luma?: (i: number) => number;
 }
 
 /**
@@ -314,6 +316,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
   const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
   const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
+  const luma = Option.getOrElse(Option.fromNullishOr(host.luma), () => () => 128);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -354,6 +357,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                   );
                 return {
                   info,
+                  title: 'Test film',
                   frame,
                   probe: (i: number) =>
                     Effect.sleep('1 millis').pipe(
@@ -412,6 +416,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     Effect.forEach(frames, (i) => Effect.as(frame(i), drawMs(i))),
                   hash: (frames: ReadonlyArray<number>) =>
                     Effect.forEach(frames, (i) => Effect.as(frame(i), pixels(i))),
+                  luma: (i: number, area: LumaArea) =>
+                    Effect.as(
+                      frame(i),
+                      Array.from({ length: area.cols * area.rows }, () => luma(i)),
+                    ),
                 };
               }),
             ),
