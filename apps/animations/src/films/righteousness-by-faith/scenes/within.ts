@@ -2,7 +2,9 @@
 // gold circle from `word`, as big as the universe, comes back around the grey
 // figure; on "never" it shrinks and settles into their chest, and on "write"
 // it is a warm heart with the two tablets inside it, still legible. On
-// "power" the pull back to the three icons, and the heart lights. On "not"
+// "power" the pull back to the three icons, and the heart lights, calling back
+// `roof`'s house inside it: the man forgiven, walking out with his bed as on
+// "went". On "not"
 // the figure again, their arms coming out, and the glow runs from the heart
 // along the arms to the open hands. On "become" close on the face, and the
 // grey paper of the figure warms toward cream and gold, the gold of the word
@@ -29,10 +31,13 @@ import { clamp, lerp } from '@bible/film/core';
 import {
   C,
   CHEST,
+  HEART,
+  ICON_X,
   type Person,
   blob,
   gait,
   glow,
+  handsOf,
   knobCamera,
   heart as drawHeart,
   icons,
@@ -43,6 +48,7 @@ import {
   sky,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
+import { house, recall, went } from '../gospel.ts';
 
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
@@ -69,6 +75,9 @@ const timeline = {
   toIcons: { mark: 'power', dur: 0.3 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   heartLit: { after: 'pullBack', dur: 0.4 },
+  // The callback to `roof`'s house in the heart, as it lights: he walks on until the figure comes back.
+  wentIn: { with: 'heartLit', dur: 0.3 },
+  going: { after: 'pullBack', until: 'not', ease: 'linear' },
   backIn: { mark: 'not', offset: -0.3, dur: 0.3 },
   arms: { mark: 'not', dur: 0.8, ease: 'inOutSine' },
   run: { mark: 'not', offset: 0.4, until: 'become', ease: 'inOutSine' },
@@ -367,14 +376,39 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   const { ctx, w, h } = f;
   const { hand } = f;
   const pull = f.at('pullBack');
-  ctx.save();
-  ctx.globalAlpha *= alpha;
-  sky(ctx, w, h, [
-    [0, C.glow],
-    [1, C.peachLow],
-  ]);
-  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () =>
-    icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]),
-  );
-  ctx.restore();
+  const wentIn = f.at('wentIn');
+  const shot = () => {
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    sky(ctx, w, h, [
+      [0, C.glow],
+      [1, C.peachLow],
+    ]);
+    at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
+      icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]);
+      at(ctx, { x: ICON_X[2], y: 0 }, () =>
+        recall(ctx, w, h, HEART_WINDOW, CALLBACK_K, wentIn, () =>
+          house(
+            ctx,
+            w,
+            h,
+            handsOf(f, 'roof'),
+            went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
+          ),
+        ),
+      );
+    });
+    ctx.restore();
+  };
+  // Under the callback the icons are framed as the unmoved frame, so they
+  // breathe as they did around the whole draw and the house's own shot,
+  // nested in it, holds still.
+  if (wentIn > 0) camera(ctx, PAGE, w, h, shot);
+  else shot();
 };
+
+/** The heart, just inside its edge, that the callback shows in; and the frame's scale in it. */
+const HEART_WINDOW: ReadonlyArray<Pt> = HEART.map(([x, y]) => [0.9 * x, 0.9 * y]);
+const CALLBACK_K = 0.2;
+/** How far out he has walked as the heart lights, and by the time the figure comes back. */
+const WALKED = [0.35, 0.85] as const;
