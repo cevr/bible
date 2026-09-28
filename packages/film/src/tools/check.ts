@@ -3,11 +3,13 @@
 // of order, stale takes and sounds, an audio master missing or not as long as
 // the film, a line handed to a voice the cast lacks) and the layout findings in what a probed frame reports: text over
 // text, text off the frame, brush strokes across text, and a plate carrying
-// text cut off by the frame. Every finding is collected; none stops the others.
+// text cut off by the frame; and static holds, where the voice speaks over a
+// picture that does not move. Every finding is collected; none stops the others.
 
 import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
+import { captionCues } from '../core/captions.ts';
 import type { Placed } from '../core/layout.ts';
-import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type {
@@ -32,6 +34,7 @@ import {
   InkOverText,
   PlateOffFrame,
   SeamLong,
+  type StaticHold,
   TakeStale,
   TextOffFrame,
   TextOffPlate,
@@ -58,7 +61,9 @@ export type StaticFinding =
   | CueInvalid
   | ActTooShort
   | UnknownVoice;
-export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
+/** What one probed frame shows wrong. */
+export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
+export type LayoutFinding = FrameFinding | StaticHold;
 export type Finding = StaticFinding | LayoutFinding;
 
 export type Level = 'error' | 'warning';
@@ -728,7 +733,7 @@ export const frameFindings = (
   probed: Probed,
   size: { readonly width: number; readonly height: number },
   next: Probed = probed,
-): ReadonlyArray<LayoutFinding> => {
+): ReadonlyArray<FrameFinding> => {
   const shown = probed.texts.filter(visible);
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const overlaps = shown.flatMap((a, i) =>
@@ -754,7 +759,7 @@ export const frameFindings = (
   ];
 };
 
-const matchFinding = Match.type<LayoutFinding>();
+const matchFinding = Match.type<FrameFinding>();
 
 const keyOf = matchFinding.pipe(
   Match.tagsExhaustive({
@@ -779,13 +784,13 @@ const size = matchFinding.pipe(
   }),
 );
 
-const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
+const withFrames = (f: FrameFinding, frames: number): FrameFinding => {
   const where = { scene: f.scene, time: f.time, at: f.at, frames };
   return matchFinding.pipe(
     Match.tagsExhaustive({
-      TextOverlap: (o): LayoutFinding =>
+      TextOverlap: (o): FrameFinding =>
         TextOverlap.make({ ...where, a: o.a, b: o.b, area: o.area }),
-      InkOverText: (o): LayoutFinding =>
+      InkOverText: (o): FrameFinding =>
         InkOverText.make({
           ...where,
           text: o.text,
@@ -796,7 +801,7 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
           w: o.w,
           h: o.h,
         }),
-      TextOffFrame: (o): LayoutFinding =>
+      TextOffFrame: (o): FrameFinding =>
         TextOffFrame.make({
           ...where,
           text: o.text,
@@ -805,7 +810,7 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
           right: o.right,
           bottom: o.bottom,
         }),
-      PlateOffFrame: (o): LayoutFinding =>
+      PlateOffFrame: (o): FrameFinding =>
         PlateOffFrame.make({
           ...where,
           text: o.text,
@@ -814,7 +819,7 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
           right: o.right,
           bottom: o.bottom,
         }),
-      TextOffPlate: (o): LayoutFinding =>
+      TextOffPlate: (o): FrameFinding =>
         TextOffPlate.make({
           ...where,
           text: o.text,
@@ -832,9 +837,9 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
  * sampled frame where it is worst, with how many sampled frames show it.
  */
 export const mergeFindings = (
-  findings: ReadonlyArray<LayoutFinding>,
-): ReadonlyArray<LayoutFinding> => {
-  const merged = new Map<string, LayoutFinding>();
+  findings: ReadonlyArray<FrameFinding>,
+): ReadonlyArray<FrameFinding> => {
+  const merged = new Map<string, FrameFinding>();
   for (const f of findings) {
     const key = keyOf(f);
     const seen = Option.fromNullishOr(merged.get(key));
@@ -849,4 +854,167 @@ export const mergeFindings = (
     merged.set(key, withFrames(worst, frames));
   }
   return [...merged.values()];
+};
+
+/** Every layout finding is an error but a static hold, which asks for a look (the owner, 2026-09-27). */
+export const layoutLevel = (finding: LayoutFinding): Level => {
+  if (finding._tag === 'StaticHold') return 'warning';
+  return 'error';
+};
+
+// ---------------------------------------------------------------------------
+// Holds
+
+/**
+ * The longest a drawn scene may hold still while its voice speaks: past it
+ * the viewer waits on the picture (the `exchange` opening held about 6 s).
+ */
+export const HOLD = 4;
+/** Across a candidate stretch, the layout leg probes a frame every this many seconds. */
+export const HOLD_STEP = 0.5;
+/**
+ * How far a mark's box may move between two probed frames and still be at
+ * rest: more than boil moves it (a stroke's default jitter is 1.1 px, a
+ * glyph's 0.6 px, a torn edge's 0.4 px), less than any motion a viewer sees.
+ */
+export const STILL_DRIFT = 3;
+/** How far a mark's opacity may change and still be at rest. */
+export const STILL_FADE = 0.02;
+
+/**
+ * A stretch where the voice speaks and nothing is declared to move: no cue
+ * of the scene starts, ends or runs, and the scene is not arriving. `from`
+ * and `to` are film seconds. `captions` are the scene's caption lines, which
+ * change with the words over a still picture.
+ */
+export interface HoldCandidate {
+  readonly scene: string;
+  readonly from: number;
+  readonly to: number;
+  readonly captions: ReadonlySet<string>;
+}
+
+type Span = readonly [from: number, to: number];
+
+/** Scene-local spans in which the scene declares motion: each cue, and its entering transition. */
+const busySpans = (p: Placed): ReadonlyArray<Span> => {
+  const cues = [...p.cues.values()].map((c): Span => [c.start, c.end]);
+  // The first scene has nothing to arrive from.
+  const arriving = Math.min(p.index, 1) * transitionDur(p.spec.enter);
+  if (arriving <= 0) return cues;
+  return [[0, arriving], ...cues];
+};
+
+/** Scene-local: from the first word's start to the last word's end. */
+const spokenSpan = (p: Placed): Option.Option<Span> =>
+  Option.zipWith(Arr.head(p.voice.words), Arr.last(p.voice.words), (first, last): Span => [
+    p.speechStart + first.start,
+    p.speechStart + last.end,
+  ]);
+
+/** The parts of `within` that no span of `busy` covers. */
+const gapsIn = (within: Span, busy: ReadonlyArray<Span>): ReadonlyArray<Span> => {
+  const [from, to] = within;
+  const sorted = Arr.sort(
+    busy,
+    Order.mapInput(Order.Number, (s: Span) => s[0]),
+  );
+  const swept = sorted.reduce<{ readonly gaps: ReadonlyArray<Span>; readonly at: number }>(
+    ({ gaps, at }, [start, end]) => {
+      const until = Math.min(start, to);
+      const next = Math.max(at, end);
+      if (until > at) return { gaps: [...gaps, [at, until]], at: next };
+      return { gaps, at: next };
+    },
+    { gaps: [], at: from },
+  );
+  if (swept.at >= to) return swept.gaps;
+  return [...swept.gaps, [swept.at, to]];
+};
+
+/**
+ * The static leg of `StaticHold`: in each drawn scene (a storyboard card holds
+ * still by design), the stretches over `HOLD` inside the voice's spoken span
+ * that no cue and no entrance covers. The layout leg probes each one to tell
+ * a still picture from motion no cue declares (a walk loop, drifting snow).
+ */
+export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<HoldCandidate> =>
+  placed.flatMap((p) => {
+    if (p.spec.storyboard === true) return [];
+    return Option.match(spokenSpan(p), {
+      onNone: () => [],
+      onSome: (spoken) => {
+        const gaps = gapsIn(spoken, busySpans(p)).filter(([a, b]) => b - a > HOLD + 1e-9);
+        if (gaps.length === 0) return [];
+        const captions = new Set(captionCues(p.voice.words, p.voice.turns).map((c) => c.text));
+        return gaps.map(([a, b]) => ({
+          scene: p.spec.id,
+          from: p.start + a,
+          to: p.start + b,
+          captions,
+        }));
+      },
+    });
+  });
+
+/**
+ * The frames the layout leg probes across a candidate: its first frame, the
+ * one after it (motion faster than the step, a sway whose period divides the
+ * step), then one every `HOLD_STEP`, and its last frame.
+ */
+export const holdFrames = (
+  hold: Pick<HoldCandidate, 'from' | 'to'>,
+  fps: number,
+): ReadonlyArray<number> => {
+  const first = Math.ceil(hold.from * fps - 1e-6);
+  const last = Math.ceil(hold.to * fps - 1e-6) - 1;
+  const step = Math.max(1, Math.round(HOLD_STEP * fps));
+  const stepped = Arr.range(0, Math.floor((last - first) / step)).map((k) => first + k * step);
+  return Arr.dedupe(Arr.sort([...stepped, first + 1, last], Order.Number)).filter(
+    (f) => f >= first && f <= last,
+  );
+};
+
+type Box = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
+
+const boxAtRest = (a: Box & { readonly alpha: number }, b: Box & { readonly alpha: number }) =>
+  Math.max(
+    Math.abs(a.x - b.x),
+    Math.abs(a.y - b.y),
+    Math.abs(a.x + a.w - (b.x + b.w)),
+    Math.abs(a.y + a.h - (b.y + b.h)),
+  ) <= STILL_DRIFT && Math.abs(a.alpha - b.alpha) <= STILL_FADE;
+
+/** The picture in a probed frame: everything but the caption lines and the plates under them. */
+const pictureOf = (probed: Probed, captions: ReadonlySet<string>): Probed => {
+  const lines = probed.texts.filter((t) => captions.has(t.text));
+  const underLine = (m: InkMark) =>
+    m.kind === 'plate' && lines.some((t) => boxAtRest({ ...t, alpha: m.alpha }, m));
+  return {
+    texts: probed.texts.filter((t) => !captions.has(t.text)),
+    inks: probed.inks.filter((m) => !underLine(m)),
+  };
+};
+
+/** Two pictures draw the same marks, in the same order, each where and as strong as it was. */
+const atRest = (a: Probed, b: Probed) =>
+  a.texts.length === b.texts.length &&
+  a.inks.length === b.inks.length &&
+  Arr.zip(a.texts, b.texts).every(([s, t]) => s.text === t.text && boxAtRest(s, t)) &&
+  Arr.zip(a.inks, b.inks).every(([m, n]) => m.kind === n.kind && boxAtRest(m, n));
+
+/**
+ * Whether probed frames across a stretch hold still: each frame's picture
+ * (the captions left out: they are the voice, not the picture) at rest
+ * against the first's, so a slow drift adds up and is seen.
+ */
+export const heldStill = (
+  frames: ReadonlyArray<Probed>,
+  captions: ReadonlySet<string>,
+): boolean => {
+  const pictures = frames.map((f) => pictureOf(f, captions));
+  return Option.match(Arr.head(pictures), {
+    onNone: () => true,
+    onSome: (first) => pictures.slice(1).every((p) => atRest(first, p)),
+  });
 };

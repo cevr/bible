@@ -6,8 +6,10 @@ import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted } fro
 import * as PlatformError from 'effect/PlatformError';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
+import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import {
   type ExportInfo,
+  type VoiceTiming,
   SoundManifestJson,
   type InkMark,
   type Probed,
@@ -480,6 +482,42 @@ export const testFilm = (
   timings,
   manifest: { effects: {} },
 });
+
+/**
+ * A current take of `say`: one word every half second, each 0.4 s long, so
+ * twelve words speak from 0 to 5.9 s.
+ */
+export const spokenTake = (say: string): VoiceTiming => {
+  const parsed = parse(say);
+  const words = parsed.spoken
+    .split(' ')
+    .map((text, i) => ({ text, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  return {
+    hash: hashText(takeScript(parsed)),
+    file: 'take.mp3',
+    duration: Math.max(0, ...words.map((w) => w.end)),
+    words,
+  };
+};
+
+const TWELVE = 'one two three four five six seven eight nine ten eleven twelve';
+
+/**
+ * Three recorded scenes of twelve words each (spoken 0.5–6.4 s, scene-local,
+ * 6.5 s long): `held` has no cue after 1.4 s (5 s of speech with none),
+ * `brief` none after 3.4 s (3 s), and `ambient` is laid out as `held` is, for
+ * a page that draws it moving.
+ */
+export const holdScenes: ReadonlyArray<Timed> = [
+  { id: 'held', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+  { id: 'brief', say: TWELVE, timeline: { intro: { scene: 'start', dur: 3.4 } } },
+  { id: 'ambient', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+];
+
+export const holdTimings: Timings = {
+  voice: voiceKey(testVoice),
+  scenes: Object.fromEntries(holdScenes.map((s) => [s.id, spokenTake(TWELVE)])),
+};
 
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));
