@@ -93,8 +93,8 @@ quantizer 26 from a second encoder in the same pass), and a chunk whose page
 crashes is retried once on a new page. `Media.join` joins the segments in order with the track cut from
 `full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
-use. The joined segments are removed, and their `<tag>` folder when nothing
-else is in it; a video never makes that folder before its segments do. A
+use. Segments are written to a temp folder of the render's own (`makeTempDirectory`), removed once joined;
+a video writes nothing under `out/<film>/`, whatever its tag. A
 contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
@@ -392,7 +392,7 @@ export const justified = drawing({
 the scene and the cue. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
-`core/narration.ts`: letters and digits, any case). A line that never says it
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. A line that never says it
 there throws `WordMissing` (`core/errors.ts`) at layout, which the tools'
 `placeFilm` fails with as itself (`PlaceError = WordMissing | LayoutInvalid`),
 so `film check` and every tool refuse the film by name; there is no fall back
@@ -408,10 +408,14 @@ sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
 The lint rule `film/no-hand-timed-seconds` (`lint/no-hand-timed-seconds.ts`)
 holds a film to it: it refuses a literal second in a draw (`clamp(t / 2)`,
 `(t - cue.end) / 1.5`, `progress(t, 1.2, 0.5)`, `keys(t, …)`,
-`cue.end + 0.5`, `f.mark('x') - 0.4`) and a span offset over 1 s from its
-`mark` or the scene's `start`/`speech`, which stands in for a word (pin the
-word) or for a pause (anchor it to `speechEnd` or another cue and say why).
-A rate (`Math.sin(t * 7)`) is not a time.
+`cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5`, `t - 4.2`, `t > 3.5`,
+`t - cue.start > 0.5`, and the same second held in a module `const`) and a
+span offset over 1 s from its `mark` or the scene's `start`/`speech`, which
+stands in for a word (pin the word) or for a pause (anchor it to `speechEnd`
+or another cue and say why). A rate (`Math.sin(t * 7)`) is not a time. The
+rule reads syntax only, so a product is taken for a rate and a local alias of
+the clock or a helper hiding the subtraction pass; its doc comment lists the
+limits.
 
 ## Knobs
 

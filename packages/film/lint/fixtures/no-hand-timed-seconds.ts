@@ -7,6 +7,11 @@ const RISE = [
   [0, 0],
   [1, 1],
 ] as const;
+/** A second, and an offset, hidden in module consts. */
+const HOLD = 0.5;
+const LATE = 1.4;
+/** A share of the frame, not a second: never compared with the clock. */
+const SCALE = 3.8;
 
 export const scene = drawing({
   timeline: {
@@ -20,6 +25,7 @@ export const scene = drawing({
     open: { scene: 'start', offset: 0.2, dur: 1 },
     after: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
     chained: { after: 'held', offset: 0.6, dur: 4.5 },
+    farConst: { mark: 'go', offset: LATE, dur: 0.4 }, // RED film/no-hand-timed-seconds
   },
   draw: (f) => {
     const { t } = f;
@@ -36,6 +42,20 @@ export const scene = drawing({
       t > f.cue('near').end + 0.5, // RED film/no-hand-timed-seconds
       f.mark('go') - 0.4, // RED film/no-hand-timed-seconds
       t - drift.start - 0.8 - 0.1, // RED film/no-hand-timed-seconds
+      t > 3.5, // RED film/no-hand-timed-seconds
+      12 <= f.t, // RED film/no-hand-timed-seconds
+      t - drift.start > 0.5, // RED film/no-hand-timed-seconds
+      (t - 3) / 2, // RED film/no-hand-timed-seconds
+      clamp(t - 4.2), // RED film/no-hand-timed-seconds
+      clamp((t - drift.start) / HOLD), // RED film/no-hand-timed-seconds
+      f.T - 12.3, // RED film/no-hand-timed-seconds
+      f.dur - 1.5, // RED film/no-hand-timed-seconds
+      t > 0,
+      t - drift.start >= 0,
+      Math.sin(t * 2 + 1.3),
+      f.dur * 0.6,
+      drift.dur * SCALE,
+      SCALE - 1,
       f.at('far'),
       f.keys('far', RISE),
       keys(t - drift.start, RISE),

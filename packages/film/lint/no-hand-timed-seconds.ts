@@ -7,14 +7,16 @@
 //
 // 1. `clamp(x / 0.3)` or `clamp(x * 4)` over the scene clock: a progress
 //    rolled by hand;
-// 2. `(t - cue.start) / 0.5` anywhere: the same, unclamped (a product is a
-//    rate, not a length);
+// 2. `(t - cue.start) / 0.5` or `(t - 3) / 2` anywhere: the same, unclamped;
 // 3. `progress(t, …)` or `envelope(t, …)` with a literal start, length or
 //    `± literal` among its times;
 // 4. `keys(t, …)`: keyframes on the scene clock (`keys(t - cue.start, …)`,
 //    a motion's shape inside a cue, is fine; `f.keys(cue, …)` is better);
-// 5. `cue.end + 0.5`, `f.mark('x') - 0.4`: a literal offset from a cue edge
-//    or a mark (the outermost sum, once, and not inside a call 1-4 reported);
+// 5. `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5`, `t - 4.2`: a
+//    literal offset from a cue edge, a length, a mark or the clock itself (the
+//    outermost sum, once, and not inside a call 1-4 reported);
+// 7. `t > 3.5`, `t - cue.start > 0.5`: the clock, or a time on it, compared
+//    with a literal second (`t > 0`, "has it started", is not a second);
 //
 // and, in a timeline, the spans whose offset stands in for a word or a pause:
 //
@@ -23,8 +25,21 @@
 //    to the word (`{ mark, word }`), to a nearer mark, to a named cue
 //    (`after`/`with`) or to the voice's end (`scene: 'speechEnd'`).
 //
-// A rate (`Math.sin(t * 7)`), an item's stagger across a cue (`f.stagger`) and
-// a small lead-in before a word (`offset: -0.3`) are not times.
+// The clock is `t` or `T` (`f.t`, `f.T`). A literal is a number written out,
+// or a module `const` holding one (`const HOLD = 0.5`).
+//
+// A rate (`Math.sin(t * 7)`, a phase `t * 2 + 1.3`), an item's stagger across
+// a cue (`f.stagger`) and a small lead-in before a word (`offset: -0.3`) are
+// not times.
+//
+// Limits, read by syntax alone: a product is taken for a rate, so
+// `Math.min(1, (t - c.start) * 2)` (a 0.5 s length as its reciprocal) passes
+// unless `clamp` wraps it alone; and these need scope or type information the
+// rule does not use, so pass: a local alias of the clock (`const now = f.t`),
+// a const declared inside a function, an offset spread in (`{ mark, ...LATE }`),
+// a helper that hides the subtraction (`since(t, c.start) / 0.5`), and any
+// member named `start`, `end` or `dur` read as a time (geometry such as
+// `seg.end + 20` is flagged, though none is in a film today).
 
 import { Effect, Option, Predicate } from 'effect';
 import {
@@ -39,31 +54,92 @@ import { ancestors, memberName } from './nodes.ts';
 /** The most a span may sit off its mark or scene landmark before it skips words: 1 s. */
 const MAX_OFFSET = 1;
 
-/** A number written as a literal: `0.3`, `-0.3`. */
-const isNumber = (n: ESTree.Node): boolean =>
-  (n.type === 'Literal' && Predicate.isNumber(n.value)) ||
-  (n.type === 'UnaryExpression' && n.operator === '-' && isNumber(n.argument));
+/** The file a node is in. */
+const programOf = (n: ESTree.Node): ESTree.Node => {
+  let at = n;
+  while (at.type !== 'Program') at = at.parent;
+  return at;
+};
 
-/** The literal's value, when `n` is a number written as a literal. */
+/** A top-level statement's declaration: itself, or what an `export` declares. */
+const declared = (statement: ESTree.Node) => {
+  if (statement.type === 'ExportNamedDeclaration') return statement.declaration;
+  return statement;
+};
+
+/** The numbers a file names at its top level: `const HOLD = 0.5`, exported or not. */
+const moduleNumbers = (program: ESTree.Node): ReadonlyMap<string, number> => {
+  const out = new Map<string, number>();
+  if (program.type !== 'Program') return out;
+  for (const statement of program.body) {
+    const declaration = declared(statement);
+    if (declaration?.type !== 'VariableDeclaration' || declaration.kind !== 'const') continue;
+    for (const d of declaration.declarations)
+      if (
+        d.id.type === 'Identifier' &&
+        d.init?.type === 'Literal' &&
+        Predicate.isNumber(d.init.value)
+      )
+        out.set(d.id.name, d.init.value);
+  }
+  return out;
+};
+
+/** `moduleNumbers`, read once per file. */
+const numbersByFile = new WeakMap<ESTree.Node, ReadonlyMap<string, number>>();
+const namedNumber = (n: ESTree.Node, name: string): Option.Option<number> => {
+  const program = programOf(n);
+  const known = Option.getOrElse(Option.fromUndefinedOr(numbersByFile.get(program)), () => {
+    const found = moduleNumbers(program);
+    numbersByFile.set(program, found);
+    return found;
+  });
+  return Option.fromUndefinedOr(known.get(name));
+};
+
+/**
+ * The value of a number written as a literal (`0.3`, `-0.3`), or named by a
+ * module const holding one (`HOLD` for `const HOLD = 0.5`).
+ */
 const numberOf = (n: ESTree.Node): Option.Option<number> => {
   if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
+  if (n.type === 'Identifier') return namedNumber(n, n.name);
   if (n.type === 'UnaryExpression' && n.operator === '-')
     return Option.map(numberOf(n.argument), (v) => -v);
   return Option.none();
 };
 
-/** The scene clock: `t`, `f.t`, `frame.t`. */
-const isTime = (n: ESTree.Node): boolean =>
-  (n.type === 'Identifier' && n.name === 't') ||
-  (n.type === 'MemberExpression' && Option.contains(memberName(n), 't'));
+/** A number written as a literal, or a module const naming one. */
+const isNumber = (n: ESTree.Node): boolean => Option.isSome(numberOf(n));
 
-/** A cue edge or a mark: `x.start`, `x.end`, `f.cue('c').end`, `f.mark('m')`. */
+/** The clocks: the scene's `t` (`t`, `f.t`) and the film's `T` (`f.T`). */
+const CLOCKS: ReadonlySet<string> = new Set(['t', 'T']);
+
+const isTime = (n: ESTree.Node): boolean =>
+  (n.type === 'Identifier' && CLOCKS.has(n.name)) ||
+  (n.type === 'MemberExpression' && Option.exists(memberName(n), (name) => CLOCKS.has(name)));
+
+/** A cue edge, a length or a mark: `x.start`, `x.end`, `f.dur`, `f.cue('c').end`, `f.mark('m')`. */
 const isAnchor = (n: ESTree.Node): boolean =>
   (n.type === 'MemberExpression' &&
-    Option.exists(memberName(n), (name) => name === 'start' || name === 'end')) ||
+    Option.exists(memberName(n), (name) => name === 'start' || name === 'end' || name === 'dur')) ||
   (n.type === 'CallExpression' &&
     n.callee.type === 'MemberExpression' &&
     Option.contains(memberName(n.callee), 'mark'));
+
+/** The terms of a sum or difference, through parentheses: `t - 3 + x` is `t`, `3`, `x`. */
+const terms = (n: ESTree.Node): ReadonlyArray<ESTree.Node> => {
+  if (n.type === 'ParenthesizedExpression') return terms(n.expression);
+  if (n.type === 'BinaryExpression' && (n.operator === '+' || n.operator === '-'))
+    return [...terms(n.left), ...terms(n.right)];
+  return [n];
+};
+
+/** `t - 3`: the clock itself, a term of a sum with a literal (`t * 2 + 1.3`, a phase, is not). */
+const clockOffset = (n: ESTree.Node): boolean => {
+  const all = terms(n);
+  return all.some(isTime) && all.some(isNumber);
+};
 
 /** Whether `n` or an operand inside its arithmetic satisfies `p`. */
 const within = (n: ESTree.Node, p: (x: ESTree.Node) => boolean): boolean => {
@@ -131,7 +207,21 @@ const handTimedArgs = (n: ESTree.CallExpression, first: ESTree.Node): Option.Opt
 const handTimedRate = (n: ESTree.Node): boolean =>
   n.type === 'BinaryExpression' &&
   n.operator === '/' &&
-  Option.exists(scaledByLiteral(n), (x) => within(x, isTime) && within(x, isAnchor));
+  Option.exists(
+    scaledByLiteral(n),
+    (x) => within(x, isTime) && (within(x, isAnchor) || clockOffset(x)),
+  );
+
+/** The comparisons: `<`, `<=`, `>`, `>=`. */
+const COMPARE: ReadonlySet<string> = new Set(['<', '<=', '>', '>=']);
+
+/** A number other than 0: `t > 0` asks whether the clock has started, not when. */
+const isSecond = (n: ESTree.Node): boolean => Option.exists(numberOf(n), (v) => v !== 0);
+
+/** Shape 7: `t > 3.5`, `t - cue.start > 0.5`: the clock, or a time on it, compared with a literal second. */
+const comparedToSecond = (n: ESTree.BinaryExpression): boolean =>
+  COMPARE.has(n.operator) &&
+  ((within(n.left, isTime) && isSecond(n.right)) || (within(n.right, isTime) && isSecond(n.left)));
 
 /** Whether an ancestor already reports this time (shapes 1-4), so shape 5 stays quiet. */
 const reportedAbove = (n: ESTree.Node): boolean =>
@@ -193,6 +283,7 @@ export const noHandTimedSeconds = Rule.define({
         }),
       ),
       Visitor.on('BinaryExpression', (node) => {
+        if (comparedToSecond(node)) return report(node, 'the clock compared with a literal second');
         if (handTimedRate(node) && !reportedAbove(node))
           return report(node, 'a progress over a literal length');
         if (node.operator !== '+' && node.operator !== '-') return Effect.void;
@@ -202,7 +293,11 @@ export const noHandTimedSeconds = Rule.define({
           (node.parent.operator === '+' || node.parent.operator === '-')
         )
           return Effect.void;
-        if (!literalOffset(node) || !within(node, isAnchor) || reportedAbove(node))
+        if (
+          !literalOffset(node) ||
+          !(within(node, isAnchor) || clockOffset(node)) ||
+          reportedAbove(node)
+        )
           return Effect.void;
         return report(node, 'a literal offset from a cue edge or mark');
       }),

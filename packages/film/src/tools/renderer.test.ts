@@ -130,11 +130,16 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('a tagged video leaves no empty folder, and keeps one that holds other outputs', () =>
+  it.live('a video makes nothing under out/<film>, tagged or not, and keeps what is there', () =>
     Effect.gen(function* () {
       const bare = setup();
       yield* bare.render({ ...video, tag: 'bench', share: true });
-      expect([...bare.folders].filter((f) => f.startsWith('/out/test/'))).toEqual([]);
+      const under = (p: string) => p === '/out/test' || p.startsWith('/out/test/');
+      expect([...bare.folders, ...bare.files.keys()].filter(under)).toEqual([]);
+      // Its own segments folder goes too, once joined.
+      expect([...bare.folders].filter((f) => f.startsWith('/tmp/film-segments-'))).toEqual([]);
+      expect(bare.ledger.joins[0]?.out).toBe('/out/test.mp4');
+      expect(bare.files.has('/out/test.vtt')).toBe(true);
 
       const files = new Map([['/out/test/look/stills/t0001.00.png', text('png')]]);
       const kept = setup({}, files);
