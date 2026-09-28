@@ -50,3 +50,42 @@ describe('measure', () => {
     expect(measure(ctx, text, style)).toBeCloseTo(write(ctx, text, 0, 0, style, hand), 9);
   });
 });
+
+/** A stand-in context that counts the glyphs filled and outlined, and the clips set. */
+const counting = () => {
+  const drawn = { fill: 0, outline: 0, clips: 0 };
+  const state = { font: '10px x', globalAlpha: 1 };
+  const ctx = new Proxy(state, {
+    get: (target, key) => {
+      if (key === 'measureText') return (text: string) => ({ width: kerned(target.font, text) });
+      if (key === 'fillText') return () => drawn.fill++;
+      if (key === 'strokeText') return () => drawn.outline++;
+      if (key === 'clip') return () => drawn.clips++;
+      return key in target ? target[key as keyof typeof target] : () => undefined;
+    },
+    set: (target, key, value) => Reflect.set(target, key, value),
+  });
+  return { ctx: Schema.decodeSync(Schema.Any)(ctx), drawn };
+};
+
+describe('write: hollow letters', () => {
+  const style = { family: 'x', size: 40, color: '#000' };
+
+  test('solid by default: every glyph filled, none outlined', () => {
+    const { ctx, drawn } = counting();
+    write(ctx, 'Just', 0, 0, style, hand, { reveal: 'rise' });
+    expect(drawn).toEqual({ fill: 4, outline: 0, clips: 0 });
+  });
+
+  test('an outline with no fill draws each glyph hollow', () => {
+    const { ctx, drawn } = counting();
+    write(ctx, 'Just', 0, 0, style, hand, { reveal: 'rise', outline: 3, fill: 0 });
+    expect(drawn).toEqual({ fill: 0, outline: 4, clips: 0 });
+  });
+
+  test('part filled: each glyph filled below its level and outlined', () => {
+    const { ctx, drawn } = counting();
+    write(ctx, 'Just', 0, 0, style, hand, { reveal: 'rise', outline: 3, fill: 0.4 });
+    expect(drawn).toEqual({ fill: 4, outline: 4, clips: 4 });
+  });
+});

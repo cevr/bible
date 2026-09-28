@@ -38,6 +38,10 @@ export interface WriteOptions {
   /** Per-glyph boil in px; 0 holds type still. */
   boil?: number;
   alpha?: number;
+  /** Outline each glyph in the text's colour, this many px wide: hollow letters. */
+  outline?: number;
+  /** 0→1, how far up each glyph its colour fills, from the foot (default 1, solid; 0 with an `outline` leaves it hollow). */
+  fill?: number;
 }
 
 const glyphs = (ctx: CanvasRenderingContext2D, text: string, style: TextStyle) => {
@@ -125,6 +129,41 @@ const revealGlyph = (
   }
 };
 
+/** A glyph's foot and top about its baseline, in em: where a `fill` level runs between. */
+const GLYPH_FOOT = 0.3;
+const GLYPH_TOP = -1;
+
+/**
+ * One glyph at its origin: filled up to `fill` of its height from the foot
+ * (clipped there when part filled), and outlined `outline` px wide in the
+ * same colour when given, so it reads hollow above its level.
+ */
+const inkGlyph = (
+  ctx: CanvasRenderingContext2D,
+  ch: string,
+  gw: number,
+  style: TextStyle,
+  fill: number,
+  outline: number,
+) => {
+  if (fill >= 1) ctx.fillText(ch, -gw / 2, 0);
+  else if (fill > 0) {
+    const foot = GLYPH_FOOT * style.size;
+    const level = foot + (GLYPH_TOP * style.size - foot) * fill;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-gw / 2 - style.size, level, gw + 2 * style.size, foot - level);
+    ctx.clip();
+    ctx.fillText(ch, -gw / 2, 0);
+    ctx.restore();
+  }
+  if (outline <= 0) return;
+  ctx.lineWidth = outline;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = style.color;
+  ctx.strokeText(ch, -gw / 2, 0);
+};
+
 /** One line of text at (x, y) — y is the alphabetic baseline. */
 export const write = (
   ctx: CanvasRenderingContext2D,
@@ -142,6 +181,8 @@ export const write = (
   const reveal = opts.reveal ?? 'rise';
   const n = chars.length;
   const boil = opts.boil ?? 0.6;
+  const fill = clamp(opts.fill ?? 1);
+  const outline = opts.outline ?? 0;
   ctx.save();
   ctx.font = font(style);
   ctx.textBaseline = 'alphabetic';
@@ -174,7 +215,7 @@ export const write = (
     ctx.translate(gx + gw / 2 + jx, y + jy);
     ctx.rotate(rot + popTilt(reveal, i, hand.seed, local));
     revealGlyph(ctx, reveal, local, gw, style.size, baseAlpha);
-    ctx.fillText(ch, -gw / 2, 0);
+    inkGlyph(ctx, ch, gw, style, fill, outline);
     ctx.restore();
   }
   if (probe !== undefined && shownTo > shownFrom) {
