@@ -44,7 +44,7 @@ const staged: Timings = {
 
 const TIMINGS = '/films/test/narration/timings.json';
 const NARRATION = '/films/test/narration';
-const defaults: ImportOptions = { only: Option.none(), acceptMismatch: false, whole: false };
+const defaults: ImportOptions = { only: Option.none(), acceptMismatch: new Set(), whole: false };
 
 /** What the owner said into each recording, by beat. */
 const said = new Map([
@@ -168,8 +168,33 @@ describe('Takes', () => {
       expect((yield* (yield* Takes).attempts(yield* loaded, 'b')).map((a) => a.wer)).toHaveLength(
         1,
       );
-      const accepted = yield* importing('/rec/b.m4a', { ...defaults, acceptMismatch: true });
+      // --accept-mismatch names the beats it accepts: another beat's does not cover b.
+      const other = yield* Effect.flip(
+        importing('/rec/b.m4a', { ...defaults, acceptMismatch: new Set(['a']) }),
+      );
+      expect(other).toMatchObject({ _tag: 'TakeMismatch', id: 'b' });
+      const accepted = yield* importing('/rec/b.m4a', {
+        ...defaults,
+        acceptMismatch: new Set(['b']),
+      });
       expect(accepted.after.scenes['b']?.source).toBe('recorded');
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect("a name heard as the script's heardAs lists it is no mismatch", () => {
+    const { files, layer } = setup(new Map([...said, ['b', 'The second Elliot line.']]));
+    files.set('/rec/b.wav', text('The second Elliot line.'));
+    return Effect.gen(function* () {
+      const film = { ...(yield* loaded), scenes: [{ id: 'b', say: 'The second Ellet line.' }] };
+      const takes = yield* Takes;
+      const strict = yield* Effect.flip(takes.importPath(film, '/rec/b.wav', defaults));
+      expect(strict).toMatchObject({ _tag: 'TakeMismatch', id: 'b' });
+      const imported = yield* takes.importPath(
+        { ...film, heardAs: { Ellet: ['Elliot'] } },
+        '/rec/b.wav',
+        defaults,
+      );
+      expect(imported.map((i) => [i.id, i.wer])).toEqual([['b', 0]]);
     }).pipe(Effect.provide(layer));
   });
 

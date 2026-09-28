@@ -32,7 +32,6 @@ import {
   type Line,
   hashText,
   linesOf,
-  normalizeWords,
   parse,
   type TakeState,
   takeScript,
@@ -41,7 +40,7 @@ import {
   wordsFromAlignment,
 } from '../core/narration.ts';
 import { type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
-import { wordError } from '../core/align.ts';
+import { lineError } from '../core/spoken.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -73,8 +72,8 @@ export interface NarrateOptions {
   readonly only: Option.Option<ReadonlySet<string>>;
   /** Record every beat (but those a person read). */
   readonly force: boolean;
-  /** Keep a take whose transcript does not match, with a warning. */
-  readonly acceptMismatch: boolean;
+  /** The beats that may keep a take whose transcript does not match, with a warning (`--accept-mismatch`). */
+  readonly acceptMismatch: ReadonlySet<string>;
   /** Let staging replace a person's take whose line has changed. */
   readonly replaceRecorded: boolean;
 }
@@ -298,7 +297,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const take = path.join(film.paths.narration, file);
         yield* store.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
-        const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
+        const wer = lineError(beat.text, heard.text, film.heardAs);
         const duration = yield* media.duration(take);
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
@@ -311,7 +310,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             wer,
           });
           // Never made current, the take is removed with the run's leftovers.
-          if (!options.acceptMismatch) return yield* mismatch;
+          if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
         // The commit: timings.json is replaced whole, naming the new take.

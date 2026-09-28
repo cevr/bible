@@ -3,8 +3,8 @@
 // names its films folder and serves its player page, which imports the same
 // folder, so the tools and the page always read one film.
 //
-//   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch] [--replace-recorded]
-//   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch] [--whole]
+//   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
+//   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
 //   film script <film> [--sheet]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
@@ -40,12 +40,14 @@ import {
   Path,
   Result,
   Schema,
+  Stdio,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import type { ChildProcessSpawner } from 'effect/unstable/process';
 import { scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
+import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
@@ -104,6 +106,17 @@ const scenes = Flag.String('scene').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => ids.split(','))),
 );
+/**
+ * `--accept-mismatch a,b`: the beats that may keep a take whose transcript
+ * does not match; bare, the `--only` beats (`accept.ts`).
+ */
+const acceptMismatch = (what: string) =>
+  Flag.String('accept-mismatch').pipe(
+    Flag.optional,
+    Flag.withDescription(
+      `keep a ${what} whose transcript does not match, for these beats (id,id); bare, for the --only beats`,
+    ),
+  );
 const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
   Flag.withDescription('print what would be generated, then stop'),
@@ -164,10 +177,7 @@ const narrate = Command.make(
       Flag.withDescription('record every beat'),
     ),
     dryRun,
-    acceptMismatch: Flag.Boolean('accept-mismatch').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription('keep a take whose transcript does not match its script'),
-    ),
+    acceptMismatch: acceptMismatch('staging take'),
     replaceRecorded: Flag.Boolean('replace-recorded').pipe(
       Flag.withDefault(false),
       Flag.withDescription(
@@ -190,7 +200,13 @@ const narrate = Command.make(
     const options = {
       only: input.only,
       force: input.force,
-      acceptMismatch: input.acceptMismatch,
+      acceptMismatch: yield* Effect.fromResult(
+        acceptedBeats(
+          input.acceptMismatch,
+          input.only,
+          loaded.scenes.map((s) => s.id),
+        ),
+      ),
       replaceRecorded: input.replaceRecorded,
     };
     const plan = yield* Effect.fromResult(planNarration(loaded, options));
@@ -282,25 +298,30 @@ const takesImport = Command.make(
         'import just these beats; one recording named otherwise imports as the one beat named',
       ),
     ),
-    acceptMismatch: Flag.Boolean('accept-mismatch').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription('keep a take whose transcript does not match its line'),
-    ),
+    acceptMismatch: acceptMismatch('take'),
     whole: Flag.Boolean('whole').pipe(
       Flag.withDefault(false),
       Flag.withDescription(
-        'the file is one reading of the whole script: find each beat in it and cut at the silence between',
+        'the file is one reading of the whole script: find each beat in it and cut at the quietest silence around it',
       ),
     ),
   },
   Effect.fn('film.takes.import')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
     const at = (yield* Path.Path).resolve(input.path);
+    // A misspelt or bare-without---only flag fails before a credit is spent.
+    const accepted = yield* Effect.fromResult(
+      acceptedBeats(
+        input.acceptMismatch,
+        input.only,
+        loaded.scenes.map((s) => s.id),
+      ),
+    );
     // Every take is transcribed back: the CLI must be logged in.
     yield* paidPreflight;
     const imported = yield* (yield* Takes).importPath(loaded, at, {
       only: input.only,
-      acceptMismatch: input.acceptMismatch,
+      acceptMismatch: accepted,
       whole: input.whole,
     });
     for (const beat of imported)
@@ -910,8 +931,10 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
   // Logs go to stderr, so stdout carries only what a command prints: the lines
   // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
   const Logs = Layer.succeed(Logger.LogToStderr, true);
-  Command.run(root, { version: '0.1.0' }).pipe(
-    Effect.provide(Layer.mergeAll(Services, Logs)),
-    BunRuntime.runMain,
-  );
+  // A bare `--accept-mismatch` stays bare: the parser would take the next word as its beats.
+  Stdio.Stdio.use(({ args }) =>
+    Effect.flatMap(args, (given) =>
+      Command.runWith(root, { version: '0.1.0' })(bareAcceptMismatch(given)),
+    ),
+  ).pipe(Effect.provide(Layer.mergeAll(Services, Logs)), BunRuntime.runMain);
 };

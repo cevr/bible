@@ -9,6 +9,7 @@ export * from './errors.ts';
 export * from './narration.ts';
 export * from './align.ts';
 export * from './recording.ts';
+export * from './spoken.ts';
 export * from './studio.ts';
 export * from './sound.ts';
 export * from './timeline.ts';

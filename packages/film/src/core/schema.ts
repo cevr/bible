@@ -305,6 +305,14 @@ export const Beat = Schema.Struct({
 });
 export type Beat = typeof Beat.Type;
 
+/**
+ * `script.ts`'s optional `heardAs`: a word of the script (a name, mostly) and
+ * the ways speech-to-text writes it, so a take that reads it right is not a
+ * mismatch: `{ Ellet: ['Elliot', 'Elliott'] }`.
+ */
+export const HeardAs = Schema.Record(Schema.String, Schema.Array(Schema.String));
+export type HeardAs = typeof HeardAs.Type;
+
 // ---------------------------------------------------------------------------
 // Sound
 

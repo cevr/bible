@@ -41,6 +41,8 @@ describe('FilmRepo', () => {
       expect(cold?.cite).toEqual(['Romans 4:5', 'Job 9:2']);
       expect(cold?.say).toContain('How should man be just with God?');
       expect(script.find((beat) => beat.id === 'title')?.say).toBeUndefined();
+      // It lists no heardAs names, so the take check has none.
+      expect((yield* (yield* FilmRepo).load('righteousness-by-faith')).heardAs).toEqual({});
     }),
   );
 });

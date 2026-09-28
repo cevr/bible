@@ -636,6 +636,7 @@ export const testFilm = (
   sound: Option.none(),
   timings,
   manifest: { effects: {} },
+  heardAs: {},
 });
 
 /**

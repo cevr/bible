@@ -27,18 +27,12 @@ import {
   Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import {
-  type BeatSpan,
-  cutPcm,
-  cutsAround,
-  placeBeats,
-  timeScript,
-  wordError,
-} from '../core/align.ts';
+import { type BeatSpan, cutPcm, cutsAround, placeBeats, timeScript } from '../core/align.ts';
 import type { BeatUnplaced, UnknownVoice } from '../core/errors.ts';
 import type { Pcm } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
-import { hashText, normalizeWords, voiceKey } from '../core/narration.ts';
+import { hashText, voiceKey } from '../core/narration.ts';
+import { lineError } from '../core/spoken.ts';
 import { prepareTake } from '../core/recording.ts';
 import { type Timings, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
@@ -91,11 +85,22 @@ const AttemptsJson = Schema.fromJsonString(Attempts, { space: 2 });
 export interface ImportOptions {
   /** Import just these beats. One file with no beat's name imports as the one beat named here. */
   readonly only: Option.Option<ReadonlySet<string>>;
-  /** Keep a take whose transcript does not match its line. */
-  readonly acceptMismatch: boolean;
+  /** The beats that may keep a take whose transcript does not match its line (`--accept-mismatch`). */
+  readonly acceptMismatch: ReadonlySet<string>;
   /** The file is one recording of the whole script, to be cut into its beats. */
   readonly whole: boolean;
 }
+
+/** What keeping one beat's take allows. */
+export interface BeatOptions {
+  /** Keep it even when its transcript does not match its line ("accept anyway"). */
+  readonly acceptMismatch: boolean;
+}
+
+/** One beat's part of an import's options. */
+const forBeat = (options: ImportOptions, id: string): BeatOptions => ({
+  acceptMismatch: options.acceptMismatch.has(id),
+});
 
 export type TakesError =
   | RecordingInvalid
@@ -169,7 +174,7 @@ export interface TakesService {
     film: LoadedFilm,
     beat: string,
     file: string,
-    options: Pick<ImportOptions, 'acceptMismatch'>,
+    options: BeatOptions,
   ) => Effect.Effect<Imported, TakesError>;
   /** A beat's attempts, newest first. */
   readonly attempts: (
@@ -187,7 +192,7 @@ export interface TakesService {
     film: LoadedFilm,
     beat: string,
     file: string,
-    options: Pick<ImportOptions, 'acceptMismatch'>,
+    options: BeatOptions,
   ) => Effect.Effect<Imported, TakesError>;
 }
 
@@ -266,7 +271,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         yield* store.writeFile(at, audio);
         const reply = yield* elevenLabs.stt(at);
         const duration = yield* media.duration(at);
-        const wer = wordError(normalizeWords(beat.text), normalizeWords(reply.text));
+        const wer = lineError(beat.text, reply.text, film.heardAs);
         const made: Attempt = {
           beat: beat.id,
           file,
@@ -297,14 +302,17 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         film: LoadedFilm,
         beat: Beat,
         made: Attempt,
-        options: Pick<ImportOptions, 'acceptMismatch'>,
+        options: BeatOptions,
       ) {
-        if (made.wer > MAX_WORD_ERROR) {
+        // Checked now, as the take check reads today: an attempt heard before
+        // a `heardAs` name or a better reading of numbers is judged by them.
+        const wer = lineError(beat.text, made.heard, film.heardAs);
+        if (wer > MAX_WORD_ERROR) {
           const mismatch = TakeMismatch.make({
             id: beat.id,
             script: beat.text,
             heard: made.heard,
-            wer: made.wer,
+            wer,
           });
           if (!options.acceptMismatch) return yield* mismatch;
           yield* Effect.logWarning(`takes.mismatch accepted=true ${mismatch.message}`);
@@ -332,16 +340,11 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           id: beat.id,
           take: made.take,
           heard: made.heard,
-          wer: made.wer,
+          wer,
         } satisfies Imported;
       });
 
-      const importOne = (
-        film: LoadedFilm,
-        beat: Beat,
-        file: string,
-        options: Pick<ImportOptions, 'acceptMismatch'>,
-      ) =>
+      const importOne = (film: LoadedFilm, beat: Beat, file: string, options: BeatOptions) =>
         Effect.gen(function* () {
           const recording = yield* media.load(file, MIX_RATE);
           const original = yield* keepOriginal(film, beat.id, file);
@@ -358,7 +361,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         film: LoadedFilm,
         id: string,
         file: string,
-        options: Pick<ImportOptions, 'acceptMismatch'>,
+        options: BeatOptions,
       ) {
         return yield* importOne(film, yield* beatFor(film, id, file), file, options);
       });
@@ -458,7 +461,9 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       ) {
         if (options.whole) {
           const made = yield* whole(film, at, options);
-          return yield* Effect.forEach(made, ({ beat, made: m }) => keep(film, beat, m, options));
+          return yield* Effect.forEach(made, ({ beat, made: m }) =>
+            keep(film, beat, m, forBeat(options, beat.id)),
+          );
         }
         // A path named as a recording is one; anything else is a folder of them.
         const recordings = yield* Effect.suspend(() => {
@@ -466,7 +471,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           return folder(film, at, options);
         });
         return yield* Effect.forEach(recordings, ({ beat, file }) =>
-          importOne(film, beat, file, options).pipe(
+          importOne(film, beat, file, forBeat(options, beat.id)).pipe(
             Effect.tapError((error) =>
               Effect.logError(`takes.failed id=${beat.id} error=${error._tag}`),
             ),
@@ -483,7 +488,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         film: LoadedFilm,
         id: string,
         file: string,
-        options: Pick<ImportOptions, 'acceptMismatch'>,
+        options: BeatOptions,
       ) {
         const beat = yield* beatFor(film, id, file);
         const made = Arr.findFirst(yield* attempts(film, id), (a) => a.file === file);

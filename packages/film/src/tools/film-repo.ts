@@ -8,6 +8,7 @@
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { type Placed, layout } from '../core/layout.ts';
 import {
+  HeardAs,
   Sound,
   type SoundManifest,
   SoundManifestJson,
@@ -40,6 +41,8 @@ export interface LoadedFilm {
   /** Empty (no takes, no voice) until the first take is recorded. */
   readonly timings: Timings;
   readonly manifest: SoundManifest;
+  /** How speech-to-text writes the script's names (`script.ts`'s `heardAs`); none when it lists none. */
+  readonly heardAs: HeardAs;
 }
 
 export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
@@ -63,6 +66,7 @@ const ScriptModule = Schema.Struct({
       cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
     }),
   ),
+  heardAs: HeardAs.pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
 });
 type ScriptModule = typeof ScriptModule.Type;
 const VoiceModule = Schema.Struct({ voice: Voice });
@@ -164,7 +168,11 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             sound = Option.some((yield* loadModule(name, soundFile, SoundModule)).sound);
           const timings = yield* store.read(at.timings);
           const manifest = yield* store.read(at.manifest);
-          return { paths: at, scenes, voice, sound, timings, manifest };
+          const scriptFile = path.join(at.dir, 'script.ts');
+          let heardAs: HeardAs = {};
+          if (yield* fs.exists(scriptFile))
+            heardAs = (yield* loadModule(name, scriptFile, ScriptModule)).heardAs;
+          return { paths: at, scenes, voice, sound, timings, manifest, heardAs };
         });
 
         const script = Effect.fn('FilmRepo.script')(function* (name: string) {

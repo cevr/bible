@@ -110,6 +110,16 @@ export class RecordingLossy extends Schema.TaggedError<RecordingLossy>()('Record
   }
 }
 
+/** `--accept-mismatch` bare with no `--only`: it would accept every beat's mismatch unseen. */
+export class AcceptMismatchUnnamed extends Schema.TaggedError<AcceptMismatchUnnamed>()(
+  'AcceptMismatchUnnamed',
+  {},
+) {
+  override get message() {
+    return '--accept-mismatch names the beats it accepts (--accept-mismatch a,b); bare, it needs --only';
+  }
+}
+
 /** A request body over what the studio reads, refused before it is read whole. */
 export class BodyTooLarge extends Schema.TaggedError<BodyTooLarge>()('BodyTooLarge', {
   /** The most the route reads, in bytes. */

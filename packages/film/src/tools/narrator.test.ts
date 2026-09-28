@@ -53,7 +53,7 @@ const recorded: Timings = {
 const defaults: NarrateOptions = {
   only: Option.none(),
   force: false,
-  acceptMismatch: false,
+  acceptMismatch: new Set(),
   replaceRecorded: false,
 };
 
@@ -151,11 +151,18 @@ describe('Narrator', () => {
     }),
   );
 
-  it.effect('keeps a mismatched take with --accept-mismatch', () =>
+  it.effect('keeps a mismatched take for the beats --accept-mismatch names, and no other', () =>
     Effect.gen(function* () {
       const heard = new Map([['The second line.', 'The second lie of the night.']]);
       const { layer } = setup(recorded, heard);
-      const after = yield* narrate(layer, testVoice, { ...defaults, acceptMismatch: true });
+      const other = yield* Effect.flip(
+        narrate(layer, testVoice, { ...defaults, acceptMismatch: new Set(['a']) }),
+      );
+      expect(other).toMatchObject({ _tag: 'TakeMismatch', id: 'b' });
+      const after = yield* narrate(layer, testVoice, {
+        ...defaults,
+        acceptMismatch: new Set(['b']),
+      });
       expect(after.scenes['b']?.hash).toBe(hashText('The second line.'));
     }),
   );

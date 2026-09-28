@@ -40,10 +40,11 @@ routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
 is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
-`stale` with why, record nothing), `--accept-mismatch` (keep a take whose
-transcript differs), `--replace-recorded` (stage over a person's take whose
+`stale` with why, record nothing), `--accept-mismatch id,id` (keep these
+beats' takes though their transcripts differ; bare, the `--only` beats, and
+bare without `--only` fails), `--replace-recorded` (stage over a person's take whose
 line changed). Takes import flags: `--only id,id` (just these beats; one file
-not named for its beat imports as the one beat named), `--accept-mismatch`,
+not named for its beat imports as the one beat named), `--accept-mismatch id,id`,
 `--whole` (the file is one reading of the whole script, cut at the quietest
 point of the silence around each beat; a flubbed line read again keeps the
 reading that finished it). Score flags:
@@ -233,8 +234,13 @@ its handle lands on it.
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text,
 with its turns, and re-records only beats whose text or turns changed, transcribes every new take back with
 speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
-what the script says (over 8% word error). A failed take never replaces the
-current one; `--accept-mismatch` keeps it with a warning. A new take is saved
+what the script says (over 8% word error, both read as said: numbers however
+written or spoken, `144,000` and "one hundred forty-four thousand", a year in
+pairs, "Zechariah 3:1-4" as "chapter three verses one through four", `Mrs.`
+as "Missus", and a name spelt as `script.ts`'s `heardAs` lists it, e.g.
+`export const heardAs = { Ellet: ['Elliot'] }`). A failed take never replaces
+the current one; `--accept-mismatch <id,…>` keeps the named beats' takes
+with a warning. A new take is saved
 as `<id>.<audio hash>.mp3` (a person's, `.flac`), beside the take it replaces, and becomes current
 only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next

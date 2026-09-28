@@ -115,8 +115,19 @@ its neighbours leave). The recording lands as an attempt in
 (`<beat>.<hash>.orig.<ext>`; a whole reading once, under `whole/`, each beat's
 attempt naming the stretch it was cut from), its FLAC, and its
 `attempts.json` ledger (what was heard, the word error, when). Keeping one
-copies the FLAC beside the other takes and rewrites `timings.json` to name
-it; the take it replaced is removed from `narration/`. A lossy recording (M4A,
+checks its word error again as the check reads now, then copies the FLAC
+beside the other takes and rewrites `timings.json` to name it; the take it
+replaced is removed from `narration/`. The check (`core/spoken.ts`
+`lineError`, for narrate and takes alike) reads both sides as said
+(`spokenWords`): a run of numbers is one token of digits however written or
+spoken (`144,000`, "one hundred and forty-four thousand", a year in pairs),
+"chapter" and "verses" before a number and "to" or "through" between two are
+dropped (so "Zechariah 3:1-4" is read aloud either way), `Mrs.`, `Dr.`,
+`St.` are the words they stand for, and a name spelt as `script.ts`'s
+optional `heardAs` export lists it (`{ Ellet: ['Elliot'] }`, `HeardAs`,
+loaded onto the film as `heardAs`) is the script's. `--accept-mismatch id,id`
+keeps those beats' mismatched takes (`accept.ts`); bare, it means the
+`--only` beats, and bare without `--only` fails `AcceptMismatchUnnamed`. A lossy recording (M4A,
 MP3) still imports, with a `takes.lossy` warning: the master is lossless from
 there on, but record WAV or FLAC for the final voice. `--whole` transcribes one recording of the script and
 places every beat by the same line-up (`placeBeats`), with affine gap costs
