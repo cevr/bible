@@ -5,8 +5,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, Exit, Layer, Option } from 'effect';
 import { layout } from '../core/layout.ts';
-import type { Timed } from '../core/schema.ts';
-import type { ResolvedShort } from '../core/shorts.ts';
+import type { Short, Timed } from '../core/schema.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
 import { Checker } from './checker.ts';
 import { PageError } from './errors.ts';
@@ -174,24 +173,47 @@ describe('Checker', () => {
 });
 
 describe('Checker.short', () => {
-  /** A 2 s short of scene a, drawn 1080 px wide so page px are short px. */
-  const short: ResolvedShort = {
+  /** A 2 s short of scene a (to its cue), drawn 1080 px wide so page px are short px. */
+  const short: Short = {
     id: 'cut',
     title: 'Cut',
-    spans: [{ scene: 'a', from: 0, to: 2, at: 0 }],
-    duration: 2,
-    fps: 30,
+    spans: [{ scene: 'a', from: { scene: 'start' }, to: { cue: 'hit' } }],
   };
   const info = { width: 1080, height: 1920, fps: 30, duration: 2, frames: 60 };
 
-  const setupShort = (host: FakeRenderHost) => {
+  const setupShort = (host: FakeRenderHost, declared: Short = short, only = false) => {
     const ledger = emptyLedger();
     const layer = Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)));
     const check = Effect.gen(function* () {
-      return yield* (yield* Checker).short(film, short, { workers: 2, zone: 'default' });
+      return yield* (yield* Checker).short(film, declared, {
+        workers: 2,
+        zone: 'default',
+        static: only,
+      });
     }).pipe(Effect.provide(layer));
     return { ledger, check };
   };
+
+  it.live("resolves the short on its page's frame rate, as the renderer does", () =>
+    Effect.gen(function* () {
+      // Scene a whole, on a 24 fps page: 10 s is 240 frames, not 300.
+      const whole: Short = {
+        id: 'cut',
+        title: 'Cut',
+        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+      };
+      const page = { width: 1080, height: 1920, fps: 24, duration: 10, frames: 240 };
+      const { ledger, check } = setupShort({ info: page }, whole);
+      const findings = yield* check;
+      expect(Math.max(...ledger.frames)).toBe(239);
+      expect(findings).toContainEqual(expect.objectContaining({ _tag: 'ShortLength', length: 10 }));
+      // --static probes no frame, but reads the page's rate all the same.
+      const words = setupShort({ info: page }, whole, true);
+      const only = yield* words.check;
+      expect(words.ledger.frames).toEqual([]);
+      expect(only.map((f) => f._tag)).toEqual(['ShortLength', 'ShortHook', 'ShortLoop']);
+    }),
+  );
 
   it.live(
     "probes the short's page for text past the zone, a still or titled open and a loop's seam",
@@ -211,9 +233,13 @@ describe('Checker.short', () => {
           luma: (i) => Math.min(255, i * 8),
         });
         const findings = yield* check;
+        // The silent two-second fixture's words first (too short, no word heard, no gap), then its frames.
         expect(findings.map((f) => f._tag).sort()).toEqual([
           'ShortHook',
           'ShortHook',
+          'ShortHook',
+          'ShortLength',
+          'ShortLoop',
           'ShortLoop',
           'ShortUnsafeText',
         ]);

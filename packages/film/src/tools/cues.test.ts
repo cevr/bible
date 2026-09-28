@@ -1,9 +1,11 @@
 // `film cues --short <id>`: each span's film time and its time in the short,
-// then the short's length, on whole frames at the film's rate.
+// then the short's length, on whole frames at the rate its page declares.
 
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { layout } from '../core/layout.ts';
+import type { Short } from '../core/schema.ts';
+import { resolveShort } from '../core/shorts.ts';
 import { shortReport } from './cues.ts';
 
 const draw = () => {};
@@ -15,22 +17,18 @@ const placed = layout(
   { voice: '', scenes: {} },
 );
 
+const cut: Short = {
+  id: 'cut',
+  title: 'A cut',
+  spans: [
+    { scene: 'b', from: { mark: 'eight' }, to: { scene: 'speechEnd' } },
+    { scene: 'a', from: { scene: 'start' }, to: { mark: 'three' } },
+  ],
+};
+
 describe('shortReport', () => {
   test("prints each span's film time, its time in the short, and the length", () => {
-    const lines = Result.getOrThrow(
-      shortReport(
-        placed,
-        {
-          id: 'cut',
-          title: 'A cut',
-          spans: [
-            { scene: 'b', from: { mark: 'eight' }, to: { scene: 'speechEnd' } },
-            { scene: 'a', from: { scene: 'start' }, to: { mark: 'three' } },
-          ],
-        },
-        30,
-      ),
-    );
+    const lines = shortReport(Result.getOrThrow(resolveShort(placed, cut, 30)));
     expect(lines[0]).toBe('short cut "A cut" at 30 fps');
     expect(lines[1]).toMatch(
       /^ {2}1 b {11}film +\d+\.\d{3}–\d+\.\d{3} {2}short +0\.000–\d+\.\d{3} {2}\(\d+\.\d{2}s\)$/,
@@ -39,16 +37,10 @@ describe('shortReport', () => {
     expect(lines[3]).toMatch(/^length \d+\.\d{2}s$/);
   });
 
-  test('fails naming a mark the scene lacks', () => {
-    const r = shortReport(
-      placed,
-      {
-        id: 'cut',
-        title: 'A cut',
-        spans: [{ scene: 'a', from: { mark: 'x' }, to: { scene: 'end' } }],
-      },
-      30,
-    );
-    expect(Result.isFailure(r) && r.failure._tag).toBe('ShortUnknownMark');
+  test('prints the short on the frames it was resolved on', () => {
+    const at24 = Result.getOrThrow(resolveShort(placed, cut, 24));
+    const lines = shortReport(at24);
+    expect(lines[0]).toBe('short cut "A cut" at 24 fps');
+    expect(lines[3]).toBe(`length ${at24.duration.toFixed(2)}s`);
   });
 });

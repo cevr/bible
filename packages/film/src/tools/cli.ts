@@ -49,7 +49,6 @@ import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
-import { shortPhrases } from '../core/phrases.ts';
 import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName, resolveShort } from '../core/shorts.ts';
 import { FILM_FPS } from '../core/time.ts';
 import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
@@ -96,7 +95,7 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import { type ShortFinding, shortLevel, shortStaticFindings } from './short-check.ts';
+import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
@@ -120,6 +119,8 @@ const short = Flag.String('short').pipe(Flag.optional);
 /**
  * The short `--short` names, its spans checked against the film's layout, so
  * a misspelt short, scene, mark or cue fails before a page or a browser starts.
+ * Only a check of names: the short is resolved for use on its page's frame rate
+ * (`Checker.cut`, the renderer), not at `FILM_FPS`.
  */
 const pickShort = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, id: Option.Option<string>) =>
   Option.match(id, {
@@ -417,59 +418,64 @@ const script = Command.make(
   ),
 );
 
-const cues = Command.make(
-  'cues',
-  {
-    film,
-    scene: Argument.String('scene').pipe(
-      Argument.optional,
-      Argument.withDescription('only this scene'),
-    ),
-    sound: Flag.Boolean('sound').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription("print each effect placement's film time instead"),
-    ),
-    short: short.pipe(
-      Flag.withDescription("print this short's spans in film time, and its length, instead"),
-    ),
-  },
-  Effect.fn('film.cues')(function* (input) {
-    yield* Effect.fromResult(
-      flagConflicts(
-        givenFlags({
-          short: input.short,
-          sound: Option.liftPredicate(input.sound, Boolean),
-          scene: input.scene,
-        }),
-        CUES_RULES,
+const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
+  /** The short on its page's frames: the rate the film declares, read from its page. */
+  const onPage = Effect.fn('film.cues.short')(function* (loaded: LoadedFilm, declared: Short) {
+    return yield* (yield* Checker).cut(loaded, declared);
+  }, Effect.provide(checkLayer));
+  return Command.make(
+    'cues',
+    {
+      film,
+      scene: Argument.String('scene').pipe(
+        Argument.optional,
+        Argument.withDescription('only this scene'),
       ),
-    );
-    const loaded = yield* (yield* FilmRepo).load(input.film);
-    const placed = yield* placeFilm(loaded);
-    const cut = yield* pickShort(loaded, placed, input.short);
-    if (Option.isSome(cut)) {
-      const lines = yield* Effect.fromResult(shortReport(placed, cut.value, FILM_FPS));
-      for (const line of lines) yield* Console.log(line);
-      return;
-    }
-    if (input.sound) {
-      const sound = yield* Option.match(loaded.sound, {
-        onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
-        onSome: Effect.succeed,
-      });
-      const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
-      for (const line of lines) yield* Console.log(line);
-      return;
-    }
-    const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
-    for (const line of report.lines) yield* Console.log(line);
-    if (report.late > 0) return yield* CuesLate.make({ count: report.late });
-  }),
-).pipe(
-  Command.withDescription(
-    "Print each scene's placement, marks and named cues; fails when a cue ends after its scene",
-  ),
-);
+      sound: Flag.Boolean('sound').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription("print each effect placement's film time instead"),
+      ),
+      short: short.pipe(
+        Flag.withDescription("print this short's spans in film time, and its length, instead"),
+      ),
+    },
+    Effect.fn('film.cues')(function* (input) {
+      yield* Effect.fromResult(
+        flagConflicts(
+          givenFlags({
+            short: input.short,
+            sound: Option.liftPredicate(input.sound, Boolean),
+            scene: input.scene,
+          }),
+          CUES_RULES,
+        ),
+      );
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
+      const cut = yield* pickShort(loaded, placed, input.short);
+      if (Option.isSome(cut)) {
+        for (const line of shortReport(yield* onPage(loaded, cut.value))) yield* Console.log(line);
+        return;
+      }
+      if (input.sound) {
+        const sound = yield* Option.match(loaded.sound, {
+          onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
+          onSome: Effect.succeed,
+        });
+        const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
+        for (const line of lines) yield* Console.log(line);
+        return;
+      }
+      const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
+      for (const line of report.lines) yield* Console.log(line);
+      if (report.late > 0) return yield* CuesLate.make({ count: report.late });
+    }),
+  ).pipe(
+    Command.withDescription(
+      "Print each scene's placement, marks and named cues; fails when a cue ends after its scene",
+    ),
+  );
+};
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 
@@ -483,12 +489,12 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
     return yield* (yield* Checker).layout(loaded, { workers, scenes });
   }, Effect.provide(checkLayer));
   /**
-   * `check --short`: the short's words (its length, its first word, its
-   * loop's silence), then, unless `--static`, its page's frames.
+   * `check --short`: the short resolved on its page's frame rate, its words
+   * (its length, its first word, its loop's silence), then, unless
+   * `--static`, its page's frames. `--static` still opens the page, for its rate.
    */
   const shortLeg = Effect.fn('film.check.short')(function* (
     loaded: LoadedFilm,
-    placed: ReadonlyArray<Placed>,
     declared: Short,
     input: {
       readonly static: boolean;
@@ -497,17 +503,13 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       readonly json: boolean;
     },
   ) {
-    const cut = yield* Effect.fromResult(resolveShort(placed, declared, FILM_FPS));
-    const found: Array<ShortFinding> = [...shortStaticFindings(cut, shortPhrases(placed, cut))];
-    if (!input.static)
-      found.push(
-        ...(yield* (yield* Checker).short(loaded, cut, {
-          workers: input.workers,
-          zone: input.zone,
-        })),
-      );
+    const found = yield* (yield* Checker).short(loaded, declared, {
+      workers: input.workers,
+      zone: input.zone,
+      static: input.static,
+    });
     const leveled = found.map((finding) => ({ level: shortLevel(finding), finding }));
-    yield* reportFindings(cut.id, 'short', !input.static, leveled, input.json);
+    yield* reportFindings(declared.id, 'short', !input.static, leveled, input.json);
   }, Effect.provide(checkLayer));
   return Command.make(
     'check',
@@ -544,7 +546,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
       const picked = yield* pickShort(loaded, placed, input.short);
-      if (Option.isSome(picked)) return yield* shortLeg(loaded, placed, picked.value, input);
+      if (Option.isSome(picked)) return yield* shortLeg(loaded, picked.value, input);
       // A misspelt scene fails here, in either leg, rather than probing nothing.
       const only = yield* Option.match(input.scene, {
         onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
@@ -1046,7 +1048,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       script,
       score,
       mix,
-      cues,
+      cues(checkLayer),
       check(checkLayer),
       render(renderLayer),
       lookbook(renderLayer),

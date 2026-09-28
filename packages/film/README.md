@@ -281,9 +281,12 @@ left for the owner since it moves burned-in pixels. `render --short --no-caption
   first's.
 - `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
 
+A short resolves on its page's frame rate (`Checker.cut`: the rate the film
+declares, read from the page's `info.fps`, as the renderer does), so
+`check --short`, `cues --short` and the render cut the same frames.
 `--static` runs only what the words tell (length, first word, the loop's
-silence), with no browser. `film cues --short`
-prints `shortReport`; `film bench --workers n --short <id>` times the same
+silence), probing no frames: it opens the page once, for its rate.
+`film cues --short` prints `shortReport` at that rate; `film bench --workers n --short <id>` times the same
 render.
 
 ## Lab

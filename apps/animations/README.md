@@ -21,7 +21,7 @@ bun run doctor                                 # headless Chromium, elevenlabs C
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
-bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no browser)
+bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
@@ -308,7 +308,8 @@ spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
 lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
 scene has). `cues <film> --short <id>` prints each span's film time and the
-short's length. The page is stacked: the film's 16:9 frame in a band 620 px
+short's length, on the frames at the rate the film declares (read from its page,
+as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px
 down, byte for byte the film's own frame at that time (a band crop of
 `render --short <id> --stills T` equals `render --stills <film time> --no-captions`);
 above it the short's `hook` (the narrator's question or claim, set from the
