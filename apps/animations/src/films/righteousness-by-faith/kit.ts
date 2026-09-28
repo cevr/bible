@@ -845,3 +845,42 @@ export const icons = (
   );
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
+
+/** The open hand's four fingers: each one's x across the palm, and its sub-key. */
+const FINGERS = [
+  [-105, 1],
+  [-37, 2],
+  [33, 3],
+  [100, 4],
+] as const;
+/** A finger's length when the hand is fully open. */
+const FINGER_LEN = 120;
+
+/**
+ * A hand held open, palm toward us and fingers up, centred on the palm (the
+ * hand from `look`, which a gift is laid in): wrist, four fingers, palm,
+ * thumb and the palm's crease. `open` 1 is fully open; toward 0 the fingers
+ * shorten and the thumb comes in, a hand closing.
+ */
+export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {
+  piece(ctx, rounded(20, 190, 170, 260, 50), C.figure, hand('wrist'), { line: 4 });
+  const len = FINGER_LEN * lerp(0.6, 1, open);
+  for (const [x, k] of FINGERS)
+    at(ctx, { x, y: -20 - len / 2, rot: x * 0.0012 }, () =>
+      piece(ctx, rounded(0, 0, 58, len, 28), C.figure, sub(hand('finger'), k), { line: 4 }),
+    );
+  piece(ctx, rounded(0, 20, 310, 170, 80), C.figure, hand('palm'), { line: 4 });
+  at(ctx, { x: -165, y: 10, rot: lerp(-0.4, -0.9, open) }, () =>
+    piece(ctx, rounded(0, 0, 56, 130, 28), C.figure, hand('thumb'), { line: 4 }),
+  );
+  stroke(
+    ctx,
+    spline([
+      [-90, 50],
+      [0, 30],
+      [90, 55],
+    ]),
+    { color: C.figureShade, width: 4, jitter: 0.4 },
+    hand('crease'),
+  );
+};
