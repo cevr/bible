@@ -22,6 +22,9 @@ const ORIGIN = 'http://localhost';
 /** The reviewer's microphone: 44.1 kHz, one channel. */
 const MONO_44K: ToneLayout = { rate: 44100, channels: 'mono' };
 
+/** A two-input interface: the voice on input 1, silence on input 2. */
+const LEFT_ONLY_44K: ToneLayout = { rate: 44100, channels: 'left-only' };
+
 const script = Effect.promise(() =>
   Bun.build({
     entrypoints: [`${import.meta.dir}/../fixtures/capture-page.ts`],
@@ -121,6 +124,20 @@ describe('the AudioWorklet capture', () => {
         expect(probed.rate).toBe(44100);
         expect(probed.frames).toBeGreaterThan(44100 * 0.9);
         expect(probed.frames).toBeLessThan(44100 * 1.3);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    30_000,
+  );
+
+  it.live(
+    'a two-input interface records input 1 as it came: not mixed with input 2, not 6 dB down',
+    () =>
+      Effect.gen(function* () {
+        const probed = yield* allowed(LEFT_ONLY_44K, { seconds: 1 });
+        expect(probed.refused).toBe('');
+        expect(probed.peak).toBeGreaterThan(0.45);
+        expect(probed.peak).toBeLessThan(0.55);
+        expect(probed.rms).toBeGreaterThan(0.3);
+        expect(probed.rms).toBeLessThan(0.4);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     30_000,
   );

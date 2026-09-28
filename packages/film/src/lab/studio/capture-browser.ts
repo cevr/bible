@@ -1,7 +1,7 @@
 // The capture in the browser: the microphone through getUserMedia with every
 // processing stage off (no echo cancelling, noise suppression or gain
-// control), one channel, into an AudioWorklet on an AudioContext at the
-// device's native rate. The worklet hands each block of float PCM to the
+// control), one channel (input 1 of an interface, unmixed), into an
+// AudioWorklet on an AudioContext at the microphone's own rate. The worklet hands each block of float PCM to the
 // page untouched; the page keeps the blocks from `start` and, on `stop`,
 // flushes the worklet's last part-block and joins them: nothing resampled,
 // nothing compressed, never MediaRecorder. Each block's peak and RMS feed
@@ -202,12 +202,16 @@ export const makeBrowserCapture = Effect.gen(function* () {
         try: () => context.createMediaStreamSource(stream),
         catch: (error) => failed(`the microphone could not reach the audio: ${String(error)}`),
       });
+      // One channel, taken as it is: a browser gives a two-input interface
+      // as two channels whatever `channelCount` asked, and the `speakers`
+      // down-mix would halve input 1 and add input 2's noise to it. The
+      // `discrete` one keeps channel 0, input 1, untouched.
       const node = new AudioWorkletNode(context, PROCESSOR, {
         numberOfInputs: 1,
         numberOfOutputs: 0,
         channelCount: 1,
         channelCountMode: 'explicit',
-        channelInterpretation: 'speakers',
+        channelInterpretation: 'discrete',
       });
       const open: OpenMic = {
         scope,

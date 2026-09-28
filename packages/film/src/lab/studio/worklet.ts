@@ -2,7 +2,7 @@
 // worklet's own global scope, so it cannot import anything: `captureModule`
 // is written self-contained and its source (`workletSource`) is the module
 // the page loads, from a Blob URL (the lab's bundle carries it, and nothing
-// else serves it). Every block of BLOCK samples of the input's one channel
+// else serves it). Every block of BLOCK samples of the input's one channel (channel 0, as the node takes it)
 // goes to the page untouched, as float PCM at the context's own rate, with
 // the block's peak and RMS for the meter; a message from the page flushes
 // the part-block it holds, marked `last`, so a stop keeps every sample.
