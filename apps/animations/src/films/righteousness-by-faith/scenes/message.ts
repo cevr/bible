@@ -1,5 +1,5 @@
 // The message: Minneapolis, 1888. A cardboard meeting hall in warm peach
-// light, two young preachers at the front, the congregation in rows before
+// light, two preachers at the front, the congregation in rows before
 // them. On "reputation" the crowd splits: half hold small stone tablets up,
 // half look about for something missing. On the answer ("It was") every face
 // turns to a gold light rising behind the pulpit; the tablets stay up, the law

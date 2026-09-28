@@ -2,7 +2,7 @@
 // lift the filthy clothes off Joshua and carry them out left (Zech 3:4); the
 // last speck lifts from his cheek; Christ reaches out to him. Then a push
 // into the light, where a loom weaves a robe with no hand at it but light,
-// and the robe settles on Joshua. The ask's doubt is a tiny cloak dropped
+// and the robe settles on Joshua. The doubt is a tiny cloak dropped
 // over a stain and flicked away; the answer is a look beneath the robe: the
 // stain is there on the grey paper, and on "away" it breaks up and is carried
 // out of the frame the way the clothes went, leaving clean paper (never a
