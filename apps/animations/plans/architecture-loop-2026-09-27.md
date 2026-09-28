@@ -158,6 +158,13 @@ Counsel defects:
 
 Open from counsel: `bench --workers` leaves an empty `out/<film>/bench/` (pass 2).
 
+Wave 2 merged: hold e6825c9a (StaticHold; counsel D1–D5 fixed 84d4630c), films-a 990aa747 (E7, E6, F5, R9, R9d, R7, R4, R2, R5; counsel D1 seated pose, D2 ranges, D3 sash, D4 closures fixed), look b2f2f0a6 (PF3 grain sheets, PF2 vignette once, PF1 pastel pre-blend: draw 421.0 s → 333.5 s, −21%; counsel found 10–11/255 under magnification, so a face under a transform stretching more than 1.05 keeps the two-pass draw, pixel test `cutout.pixel.test.ts`). Main fix 4f46add3: `declared` read a mark the script revision removed (layout check and renders threw); guardrail: a test that draws every scene of every film (pass 2).
+
+Pass 2 performance candidates (framework, pixel-exact or not at all):
+
+- A pre-magnified blended tile for faces under zoom (for example 320·zoom a whole number), to win back the ~64 s the magnification guard costs; needs its own pixel proof.
+- Grain as one (w+size)×size strip per tile: pixel-exact (436 frame hashes match), grain memory 69.8 → 13.4 MB per page, draw +1.5%. Measure render fps at the default workers before adopting (memory per page bounds the worker count).
+
 Merged to main: engine bf868773, render 0f361f18, lab d8dcb2da, guard 92ce9d80, script revision c7385458 (73e1c49b script, ecaeb114 takes: 10 beats, WER ≤ 2.7%, runtime 435.6 s, landing 86.2%, quotes 11.6%).
 
 Live check: —
