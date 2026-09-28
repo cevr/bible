@@ -59,6 +59,6 @@ Open questions for pass 1; each settles into a row above or below with a receipt
 The repo pins one `effect` in the root `package.json` catalog; read the version there and in `node_modules/effect` before trusting a guide. Copy the CLI shape of `packages/film/src/tools` (`effect/unstable/cli`, `BunServices.layer`, `BunRuntime.runMain`). Child processes run through `effect/unstable/process`. Where the effect-solutions guides disagree with the installed version, the version wins.
 
 - **Adopt:** `effect-bun-test` (`it.effect`, `it.scoped`) for the tool services against fake layers. Re-enable the 17 effect lint rules everywhere outside the draw path.
-- **Adapt:** `effect-frame` for the player controls and a live studio page, not for the canvas or the export handle (it has its own JSX runtime).
+- **Adapt:** Solid 2 (the repo's UI framework: `apps/web`, and `egw-search` since it dropped effect-frame on 2026-09-25) for the lab's controls and the Studio page, never for the canvas or the export handle.
 - **Rejected:** `effect-encore` durable workflows, unless the pipeline becomes a long-running studio server.
 - **Draw-path lint exceptions**, measured: noTernary, noNullish, noShapeInSymbolNames (a shape is a drawing word here), noThrowStatement, noNewError. The player tick and export also keep noGlobals, noAsyncFunction and noNewPromise off (`performance.now`, rAF).
