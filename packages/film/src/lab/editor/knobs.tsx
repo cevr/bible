@@ -115,19 +115,14 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
 export const Rows = () => {
   const { state } = useEditor();
   const knobs = useKnobs();
-  const names = () => Object.keys(knobs());
+  // Every declared knob, 0 and all: a row per entry, kept by its name.
+  const entries = () => Object.entries(knobs());
   return (
-    <Show when={names().length > 0}>
+    <Show when={entries().length > 0}>
       <div class="lab-edit-knobs">
         <div class="lab-edit-title">{`${state.inspected()} · knobs`}</div>
-        <For each={names()}>
-          {(name) => (
-            <Show when={knobs()[name]}>
-              {(value: Accessor<Knob>) => (
-                <Row scene={state.inspected()} name={name} value={value()} />
-              )}
-            </Show>
-          )}
+        <For each={entries()} keyed={([name]) => name}>
+          {(entry) => <Row scene={state.inspected()} name={entry()[0]} value={entry()[1]} />}
         </For>
       </div>
     </Show>

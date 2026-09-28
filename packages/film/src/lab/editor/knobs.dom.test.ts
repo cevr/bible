@@ -80,6 +80,21 @@ describe('the knob rows', () => {
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
+
+  it.live('a knob whose value is 0 has its row, and its field writes', () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([], { query: '&sel=knob:one:tilt', hash: '#1' });
+      const field = '.lab-knob[data-knob="tilt"] input';
+      yield* Effect.promise(() => page.waitForSelector(`${field}:not([disabled])`));
+      expect(yield* Effect.promise(() => page.inputValue(field))).toBe('0');
+      yield* Effect.promise(() => page.fill(field, '0.2'));
+      yield* Effect.promise(() => page.press(field, 'Enter'));
+      yield* statusSays(page, 'wrote');
+      expect(posted(asked)).toEqual([
+        { path: '/knobs/one/tilt', body: Option.some({ value: 0.2 }) },
+      ]);
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('the handles on the frame', () => {

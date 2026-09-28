@@ -79,6 +79,7 @@ export const sourceOne = {
   knobs: [
     { name: 'spot', state: literal },
     { name: 'size', state: literal },
+    { name: 'tilt', state: literal },
   ],
   refused: [],
 };

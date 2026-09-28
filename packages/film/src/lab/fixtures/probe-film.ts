@@ -13,12 +13,20 @@ const ball = drawing({
     rise: { mark: 'rise', dur: 0.6 },
     fall: { mark: 'fall', dur: 0.4 },
   },
-  knobs: { spot: [320, 200], size: 24 },
+  // `tilt` is 0, as a knob at rest often is: it still gets its row.
+  knobs: { spot: [320, 200], size: 24, tilt: 0 },
   draw: (f) => {
     const [x, y] = f.knob('spot');
+    const tilt = f.knob('tilt');
     f.ctx.fillStyle = '#2a2520';
     f.ctx.beginPath();
-    f.ctx.arc(x, y - 80 * f.at('rise') + 80 * f.at('fall'), f.knob('size'), 0, Math.PI * 2);
+    f.ctx.arc(
+      x,
+      y - 80 * f.at('rise') + 80 * f.at('fall'),
+      f.knob('size'),
+      tilt,
+      tilt + Math.PI * 2,
+    );
     f.ctx.fill();
   },
 });
