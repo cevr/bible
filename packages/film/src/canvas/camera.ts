@@ -72,11 +72,21 @@ export interface Plane {
   z: number;
   /**
    * How far this plane stands above the one behind it, as a multiple of a
-   * cutout's usual lift: its cutouts cast shadows that long. Defaults to 1.
+   * cutout's usual lift: its cutouts cast shadows that long. Defaults to
+   * its nearness, `planeLift(z)`: a near plane casts long soft shadows, a far
+   * one short crisp ones.
    */
   lift?: number;
   draw: () => void;
 }
+
+/** The lowest and highest a plane stands by default, so no shadow shrinks to a hairline or floods the frame. */
+export const PLANE_LIFT_MIN = 0.4;
+export const PLANE_LIFT_MAX = 2.5;
+
+/** How high a plane at `z` stands over the sheet behind it: its nearness, 1 / z, within bounds. */
+export const planeLift = (z: number) =>
+  Math.min(PLANE_LIFT_MAX, Math.max(PLANE_LIFT_MIN, 1 / Math.max(z, 1e-3)));
 
 export interface Depth {
   /**
@@ -125,7 +135,7 @@ export const multiplane = (
     const soft = (depth.blur ?? 0) * Math.abs(z - 1);
     ctx.save();
     if (soft > 0.05) ctx.filter = `blur(${soft.toFixed(2)}px)`;
-    raised(ctx, plane.lift ?? 1, () => camera(ctx, view, w, h, plane.draw));
+    raised(ctx, plane.lift ?? planeLift(z), () => camera(ctx, view, w, h, plane.draw));
     ctx.restore();
     // Haze over everything so far, as thick as the air between this plane
     // and the next nearer one, or the focal plane after the nearest.

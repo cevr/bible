@@ -42,6 +42,9 @@ export const raised = (ctx: CanvasRenderingContext2D, height: number, draw: () =
   }
 };
 
+/** The height every cutout drawn now casts its shadow from, as `raised` set it: 1 on the sheet itself. */
+export const heightOf = (ctx: CanvasRenderingContext2D) => heights.get(ctx) ?? 1;
+
 /** Scratch for the outward normal at each point, written and read within one step. */
 const normal: Vec2 = [0, 0];
 
@@ -279,7 +282,7 @@ export const cutout = (
   const lift = style.shadow ?? 0.5;
   const under = rim > 0 ? tear(shape, rim, torn * 1.3, hand.seed + 17, hand.boil) : face;
   if (lift > 0) {
-    const height = heights.get(ctx) ?? 1;
+    const height = heightOf(ctx);
     ctx.save();
     ctx.shadowColor = `rgba(40, 28, 16, ${(0.28 * lift) / Math.sqrt(height)})`;
     ctx.shadowBlur = 10 * lift * height;

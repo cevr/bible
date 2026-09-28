@@ -6,7 +6,16 @@ import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
 import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
-import { type Camera, type Plane, lerpCamera, multiplane, shotPath } from './camera.ts';
+import {
+  type Camera,
+  PLANE_LIFT_MAX,
+  PLANE_LIFT_MIN,
+  type Plane,
+  lerpCamera,
+  multiplane,
+  shotPath,
+} from './camera.ts';
+import { heightOf } from './cutout.ts';
 
 describe('shotPath', () => {
   const REST: Camera = { x: 960, y: 540 };
@@ -181,6 +190,31 @@ describe('multiplane', () => {
     const through = r.veils.reduce((t, v) => t * (1 - v), 1);
     expect(through).toBeCloseTo(Math.exp(-1));
     expect(r.veils.at(-1)).toBeCloseTo(1 - Math.exp(-0.5));
+  });
+
+  test('raises each plane by its nearness, 1 / z, unless it names its lift', () => {
+    const r = recorder();
+    const heights = new Map<string, number>();
+    const at = (name: string, z: number): Plane => ({
+      z,
+      draw: () => heights.set(name, heightOf(r.ctx)),
+    });
+    multiplane(r.ctx, { x: 960, y: 540 }, 1920, 1080, [
+      at('far', 2),
+      at('focal', 1),
+      at('near', 0.8),
+      { ...at('named', 2), lift: 1.5 },
+      at('horizon', 40),
+      at('lens', 0.05),
+    ]);
+    expect(heights.get('focal')).toBeCloseTo(1);
+    expect(heights.get('far')).toBeCloseTo(0.5);
+    expect(heights.get('near')).toBeCloseTo(1.25);
+    expect(heights.get('named')).toBeCloseTo(1.5);
+    // A shadow never shrinks to a crisp hairline nor floods the frame.
+    expect(heights.get('horizon')).toBeCloseTo(PLANE_LIFT_MIN);
+    expect(heights.get('lens')).toBeCloseTo(PLANE_LIFT_MAX);
+    expect(heightOf(r.ctx)).toBe(1);
   });
 
   test('softens planes off the focal plane only', () => {
