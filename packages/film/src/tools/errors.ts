@@ -12,6 +12,7 @@ export {
   UnknownMark,
   UnknownScene,
   UnknownVoice,
+  WordMissing,
 } from '../core/errors.ts';
 
 export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {

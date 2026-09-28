@@ -36,7 +36,7 @@ import {
   sky,
   between,
 } from '../kit.ts';
-import { arc, flight, onWord, wordLight } from '../spoken.ts';
+import { arc, flight, wordLight } from '../spoken.ts';
 
 const SOLDIER: Pt = [820, 960];
 const JESUS: Pt = [1330, 960];
@@ -123,6 +123,8 @@ const timeline = {
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
   toIcons: { mark: 'gift', offset: -0.1, dur: 0.3 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
+  // The word-bubble lights on "faith", a word with no mark of its own.
+  faithLit: { mark: 'gift', word: 'faith', dur: 0.6 },
 } as const;
 
 type CenturionFrame = Frame<keyof typeof timeline & string>;
@@ -158,8 +160,7 @@ export const centurion = drawing({
           scale: lerp(ICONS_CLOSE, 1, pull),
         },
         () => {
-          // The word-bubble lights on "faith", pinned to the word (it has no mark).
-          LIT[0] = onWord(f, 'gift', 'faith', 0, 0.6);
+          LIT[0] = f.at('faithLit');
           icons(ctx, hand, LIT);
         },
       );

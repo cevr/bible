@@ -32,6 +32,22 @@ export class UnknownMark extends Schema.TaggedError<UnknownMark>()('UnknownMark'
   }
 }
 
+/**
+ * A cue pinned to a word (`{ mark, word }`) whose line never says that word
+ * at or after its mark: the pin has nothing to land on, so the film does not
+ * lay out (never a silent fall back to the mark).
+ */
+export class WordMissing extends Schema.TaggedError<WordMissing>()('WordMissing', {
+  scene: Schema.String,
+  cue: Schema.String,
+  mark: Schema.String,
+  word: Schema.String,
+}) {
+  override get message() {
+    return `scene ${this.scene}: cue "${this.cue}" is pinned to the word "${this.word}", which the line never says at or after {${this.mark}}`;
+  }
+}
+
 /** A sound cue that names both a cue and a mark, or an edge without a cue. */
 export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   scene: Schema.String,

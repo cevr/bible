@@ -32,7 +32,6 @@ import {
   question,
 } from '../court.ts';
 import { between } from '../kit.ts';
-import { onWord } from '../spoken.ts';
 
 /** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
 const SWING: ReadonlyArray<Key> = [
@@ -63,6 +62,8 @@ export const name = drawing({
     withdraw: { mark: 'taking', offset: 0.2, dur: 0.6 },
     sun: { mark: 'every', offset: -0.3, until: 'verdict', ease: 'inOutSine' },
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
+    // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
+    show: { mark: 'verdict', word: 'not', offset: -0.3, dur: 0.6 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
     toPair: { mark: 'verdict', offset: 1.3, dur: 0.9 },
     toBench: { mark: 'real', offset: -0.3, dur: 0.8 },
@@ -90,8 +91,7 @@ export const name = drawing({
     const pop = STAMP_WIDE * f.keys('stamp', STAMP_LANDS);
     const smile = f.at('smile');
     // The Advocate's hand open to the figure's chest, from "not a cover-up" until the verdict lands.
-    // On "not" (a cover-up): pinned to the word, which has no mark of its own.
-    const shown = onWord(f, 'verdict', 'not', -0.3, 0.6);
+    const shown = f.at('show');
     const present = shown * (1 - f.at('lower'));
     // The figure looks down at the light in them, then up at the hollow verdict until it drops.
     const down = Math.max(f.at('pass') * (1 - f.at('withdraw')), shown) * (1 - f.at('hollow'));

@@ -33,6 +33,7 @@ const clockOf = (
 ): SceneClock => ({
   scene,
   marks: voice.marks,
+  words: voice.words,
   speechStart,
   speechEnd: speechStart + voice.duration,
   dur,

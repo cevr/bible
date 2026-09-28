@@ -387,7 +387,14 @@ export const justified = drawing({
 
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
 `{ start, end, dur, ease }`); an unknown mark or cue, or a cycle, is an error naming
-the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name)`
+the scene and the cue. A mark anchor may pin to a word instead of the mark:
+`{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
+or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
+`core/narration.ts`: letters and digits, any case). A line that never says it
+there throws `WordMissing` (`core/errors.ts`) at layout, which the tools'
+`placeFilm` fails with as itself (`PlaceError = WordMissing | LayoutInvalid`),
+so `film check` and every tool refuse the film by name; there is no fall back
+to the mark. `f.cue(name)` reads a resolved cue and `f.at(name)`
 its eased progress. A span declares its easing as data, `ease: 'inQuad'` (one
 of the names in `ease`, `EaseName`), and a span without one eases
 `inOutCubic`, as `progress` does. `f.at` takes no ease of its own: the ease

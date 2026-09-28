@@ -182,7 +182,12 @@ first line opens with a dash.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
-a mark, another cue (`after` / `with`) or a scene landmark. It lasts its `dur`,
+a mark, another cue (`after` / `with`) or a scene landmark. A beat on a word
+that has no mark is a word pin: `{ mark: 'gift', word: 'faith', dur: 0.6 }`
+starts on the first word said at or after `{gift}` that reads `faith` (any
+case, punctuation ignored), so a re-take carries it; a line that never says
+the word there fails the layout with `WordMissing` (`film check`, the player,
+the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
 a re-take moves its end as well as its start; a span declares one or the
 other, and a lab `dur` write replaces its `until`. Read it in

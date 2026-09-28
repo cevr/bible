@@ -30,7 +30,6 @@ import {
   type EncodeFailed,
   type EncoderMissing,
   type FrameFailed,
-  type LayoutInvalid,
   type LookbookFailed,
   type MediaFailed,
   type PageCrashed,
@@ -38,7 +37,7 @@ import {
   RangeEmpty,
   type TooManyEncoders,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -72,7 +71,7 @@ export type RenderError =
   | AudioStale
   | RangeEmpty
   | TooManyEncoders
-  | LayoutInvalid
+  | PlaceError
   | PlatformError;
 
 export interface RendererService {

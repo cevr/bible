@@ -41,12 +41,11 @@ import {
   BenchOverBudget,
   FileInvalid,
   type FrameFailed,
-  type LayoutInvalid,
   type PageCrashed,
   type PageError,
   PixelsMoved,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
 import { RenderJob, frameSpan, videoEncoders } from './render-plan.ts';
 import { type RenderError, Renderer } from './renderer.ts';
@@ -85,7 +84,7 @@ export type BenchError =
   | PageError
   | PageCrashed
   | FrameFailed
-  | LayoutInvalid
+  | PlaceError
   | FileInvalid
   | BaselineIncomparable
   | BaselineMissing

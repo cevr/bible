@@ -157,6 +157,45 @@ export const estimate = (spoken: string): Word[] => {
   return out;
 };
 
+/** A letter or digit's code, upper case folded to lower; -1 for anything else (punctuation, quotes, space). */
+const letterCode = (c: number) =>
+  c >= 65 && c <= 90
+    ? c + 32
+    : (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c > 0x2e7f
+      ? c
+      : -1;
+
+/**
+ * Whether a spoken word reads `word`: the same letters and digits, any case,
+ * punctuation and quotes ignored (`“Not,` reads `not`). `word` is written in
+ * lower case.
+ */
+export const readsWord = (text: string, word: string): boolean => {
+  let j = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = letterCode(text.charCodeAt(i));
+    if (c < 0) continue;
+    if (j >= word.length || c !== word.charCodeAt(j)) return false;
+    j++;
+  }
+  return j === word.length;
+};
+
+/**
+ * When the first word said at or after `from` (seconds, on the words' clock)
+ * that reads `word` starts; none when the line never says it there. A word
+ * pin (`{ mark, word }`) lands here.
+ */
+export const wordAfter = (
+  words: ReadonlyArray<Word>,
+  from: number,
+  word: string,
+): Option.Option<number> =>
+  Option.map(
+    Arr.findFirst(words, (w) => w.start >= from - 1e-3 && readsWord(w.text, word)),
+    (w) => w.start,
+  );
+
 /**
  * Words as spoken in a recorded take. ElevenLabs aligns characters; group them
  * back into the words of `spoken`. A dialogue joins its lines with nothing
