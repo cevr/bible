@@ -32,6 +32,7 @@ import {
   question,
 } from '../court.ts';
 import { between } from '../kit.ts';
+import { onWord } from '../spoken.ts';
 
 /** Close on the two of them as the figure touches the robe. */
 const CLOSE: Camera = { x: 720, y: 700, zoom: 2.6, rot: 0.03 };
@@ -55,7 +56,6 @@ export const name = drawing({
     sun: { mark: 'every', offset: -0.3, until: 'verdict', ease: 'inOutSine' },
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
-    present: { mark: 'verdict', offset: 1.5, dur: 0.6 },
     toPair: { mark: 'verdict', offset: 1.3, dur: 0.9 },
     toBench: { mark: 'real', offset: -0.3, dur: 0.8 },
     hollow: { mark: 'real', dur: 0.5 },
@@ -87,10 +87,11 @@ export const name = drawing({
     const pop = STAMP_WIDE * f.keys('stamp', STAMP_LANDS);
     const smile = f.at('smile');
     // The Advocate's hand open to the figure's chest, from "not a cover-up" until the verdict lands.
-    const present = f.at('present') * (1 - f.at('lower'));
+    // On "not" (a cover-up): pinned to the word, which has no mark of its own.
+    const shown = onWord(f, 'verdict', 'not', -0.3, 0.6);
+    const present = shown * (1 - f.at('lower'));
     // The figure looks down at the light in them, then up at the hollow verdict until it drops.
-    const down =
-      Math.max(f.at('pass') * (1 - f.at('withdraw')), f.at('present')) * (1 - f.at('hollow'));
+    const down = Math.max(f.at('pass') * (1 - f.at('withdraw')), shown) * (1 - f.at('hollow'));
     // His open hand at the figure's chest: giving the heart on "heart", then showing it on "not a cover-up".
     const reach = Math.max(f.at('give') * (1 - f.at('withdraw')), present);
     const hung = f.at('hollow') * (1 - f.at('land'));

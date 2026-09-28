@@ -1,9 +1,11 @@
 // The spoken word, shared by `spoke`, `centurion` and `declared`: the word of
 // light (the three icons' gold word-bubble, lit), the arc it flies on, and
-// the dawn world it speaks into being. `declared` calls the dawn back in a
+// the dawn world it speaks into being; and `onWord`, which times a beat to an
+// unmarked word of the narration. `declared` calls the dawn back in a
 // panel, so both draw this one layout in 1920×1080 frame units.
 
 import {
+  type Frame,
   type Hand,
   type Pt,
   at,
@@ -212,3 +214,51 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
 
 /** Linear blend, for a camera or a place on its way between two. */
 export const toward = (a: Pt, b: Pt, t: number): Pt => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+
+/** A letter or digit's code, upper case folded to lower; -1 for anything else (punctuation, quotes, space). */
+const letter = (c: number) =>
+  c >= 65 && c <= 90
+    ? c + 32
+    : (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c > 0x2e7f
+      ? c
+      : -1;
+
+/** Whether a spoken word reads `word` (lower case): its letters and digits, any case, punctuation ignored. */
+const reads = (text: string, word: string) => {
+  let j = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = letter(text.charCodeAt(i));
+    if (c < 0) continue;
+    if (j >= word.length || c !== word.charCodeAt(j)) return false;
+    j++;
+  }
+  return j === word.length;
+};
+
+/** The frame as `onWord` reads it. */
+type Heard = Pick<Frame, 't' | 'words' | 'mark'>;
+
+/**
+ * When the first word said at or after the mark `from` reads `word` (lower
+ * case) starts, scene-local; the mark itself if the line never says it (the
+ * pins are held to the script by `test/word-pins.test.ts`).
+ */
+export const wordStart = (f: Heard, from: string, word: string): number => {
+  const a = f.mark(from);
+  for (const w of f.words) if (w.start >= a - 1e-3 && reads(w.text, word)) return w.start;
+  return a;
+};
+
+/**
+ * 0→1 over `dur` seconds from `offset` after that word starts, eased like a
+ * cue (`inOutCubic` unless given): a beat pinned to a word that has no mark,
+ * so it moves with the word if the line is re-recorded.
+ */
+export const onWord = (
+  f: Heard,
+  from: string,
+  word: string,
+  offset: number,
+  dur: number,
+  curve: (t: number) => number = ease.inOutCubic,
+) => curve(clamp((f.t - wordStart(f, from, word) - offset) / dur));
