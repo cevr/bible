@@ -67,7 +67,8 @@ export const STAMP_POP: ReadonlyArray<Key> = [
 
 /** Job's question, where the cold open wrote it: the only words on screen (`cold`, `name`, `thesis`). */
 const QUESTION = 'How should man be just with God?';
-const QUESTION_AT: Pt = [960, 205];
+/** Where Job's question stands above the bench, in screen space: its baseline centre. `thesis` writes the answer there. */
+export const QUESTION_AT: Pt = [960, 205];
 const questionStyle = {
   family: F.display,
   size: 84,

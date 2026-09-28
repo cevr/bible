@@ -231,7 +231,7 @@ export const script: ReadonlyArray<Beat> = [
     say: 'The Lord our righteousness.',
     cite: ['Jeremiah 23:6'],
     picture:
-      'The held pause, then the answer writes itself under the question, the only other text: THE LORD OUR RIGHTEOUSNESS. Hold the whole courtroom in the light; the music rises alone for about thirty seconds while the camera eases back to the city and the two figures sit together on a rooftop under the landing sky.',
+      'The held pause, then the answer writes itself where the question stood, the only text on screen: THE LORD OUR RIGHTEOUSNESS. Hold the whole courtroom in the light; the music rises alone for about thirty seconds while the camera eases back to the city and the two figures sit together on a rooftop under the landing sky.',
   },
   {
     id: 'end',
