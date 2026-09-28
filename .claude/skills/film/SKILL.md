@@ -86,6 +86,7 @@ A change to the draw path or the render claims its speed with `bun run bench <fi
 
 ## Gotchas
 
+- **Parallel renders share the encoder.** `TooManyEncoders` counts one render's pages only (one encoder a page, two with the share copy, at most 14). Two renders at once can pass it and still hang together: keep their pages within 14 in sum, or run them one after the other.
 - **Playwright browser missing**: `render` fails with `BrowserMissing`, whose message is the exact install command for the installed playwright-core (the cache in `~/Library/Caches/ms-playwright` was wiped). Run it with `dangerouslyDisableSandbox: true`.
 - **Sound effects return 401** under the CLI's OAuth login, which covers speech, speech-to-text and music only. Effects need `ELEVENLABS_API_KEY` in the environment or in the Keychain under that service name; `score` skips them without one. The OAuth token also cannot create keys.
 - **Music plans:** `music_v2` and `music_v2_5` take `{ chunks: [...] }`; a v1 `sections` plan fails with "Invalid type of composition_plan".
