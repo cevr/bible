@@ -170,8 +170,11 @@ export const rectShape = (x: number, y: number, w: number, h: number): Pt[] => [
 /** Scratch for the unit normal at each point, written and read within one step. */
 const normal: Vec2 = [0, 0];
 
+/** How many times a second the ink boils: every line re-jitters on each tick. */
+export const BOIL_FPS = 12;
+
 export interface Hand {
-  /** 12 fps tick; lines re-jitter every tick. */
+  /** The boil tick (`BOIL_FPS` a second); lines re-jitter every tick. */
   readonly boil: number;
   readonly seed: number;
 }
@@ -199,6 +202,13 @@ const wobble = (pts: ReadonlyArray<Pt>, amp: number, freq: number, hand: Hand): 
 };
 
 // ─── stroke ──────────────────────────────────────────────────────────────────
+
+/**
+ * A stroke's normal wobble, in its own px, unless its style sets `jitter`:
+ * each point sits up to this far off the path, so between two boil ticks it
+ * moves up to twice this.
+ */
+export const STROKE_JITTER = 1.1;
 
 export interface StrokeStyle {
   color: string;
@@ -235,7 +245,7 @@ export const stroke = (
   const progress = style.progress ?? 1;
   if (progress <= 0 || path.length < 2) return;
   const base = resample(path, Math.max(2, style.width * 0.6));
-  const pts = wobble(base, style.jitter ?? 1.1, 0.012, hand);
+  const pts = wobble(base, style.jitter ?? STROKE_JITTER, 0.012, hand);
   const total = length(pts);
   const drawn = trim(pts, total * clamp(progress));
   if (drawn.length < 2) return;

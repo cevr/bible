@@ -7,7 +7,7 @@
 // picture that does not move. Every finding is collected; none stops the others.
 
 import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
-import { captionCues } from '../core/captions.ts';
+import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
@@ -870,28 +870,26 @@ export const layoutLevel = (finding: LayoutFinding): Level => {
  * the viewer waits on the picture (the `exchange` opening held about 6 s).
  */
 export const HOLD = 4;
-/** Across a candidate stretch, the layout leg probes a frame every this many seconds. */
-export const HOLD_STEP = 0.5;
 /**
- * How far a mark's box may move between two probed frames and still be at
- * rest: more than boil moves it (a stroke's default jitter is 1.1 px, a
- * glyph's 0.6 px, a torn edge's 0.4 px), less than any motion a viewer sees.
+ * How far a mark's box may move between two probed frames, in the units of
+ * the space it was drawn in (its screen drift over its `scale`), and still be
+ * at rest: what one boil tick moves a default stroke's box edge at most, twice
+ * its jitter. It is the only boil the probe sees: type records its box from the
+ * unjittered glyphs, and a cutout the shape it was given, not its torn edge.
  */
-export const STILL_DRIFT = 3;
+export const STILL_DRIFT = 2 * STROKE_JITTER;
 /** How far a mark's opacity may change and still be at rest. */
 export const STILL_FADE = 0.02;
 
 /**
  * A stretch where the voice speaks and nothing is declared to move: no cue
  * of the scene starts, ends or runs, and the scene is not arriving. `from`
- * and `to` are film seconds. `captions` are the scene's caption lines, which
- * change with the words over a still picture.
+ * and `to` are film seconds.
  */
 export interface HoldCandidate {
   readonly scene: string;
   readonly from: number;
   readonly to: number;
-  readonly captions: ReadonlySet<string>;
 }
 
 type Span = readonly [from: number, to: number];
@@ -945,56 +943,85 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
       onNone: () => [],
       onSome: (spoken) => {
         const gaps = gapsIn(spoken, busySpans(p)).filter(([a, b]) => b - a > HOLD + 1e-9);
-        if (gaps.length === 0) return [];
-        const captions = new Set(captionCues(p.voice.words, p.voice.turns).map((c) => c.text));
-        return gaps.map(([a, b]) => ({
-          scene: p.spec.id,
-          from: p.start + a,
-          to: p.start + b,
-          captions,
-        }));
+        return gaps.map(([a, b]) => ({ scene: p.spec.id, from: p.start + a, to: p.start + b }));
       },
     });
   });
 
 /**
- * The frames the layout leg probes across a candidate: its first frame, the
- * one after it (motion faster than the step, a sway whose period divides the
- * step), then one every `HOLD_STEP`, and its last frame.
+ * The frames across a candidate the layout leg may probe: one per boil tick,
+ * from its first frame to its last. Nothing faster than the boil can be told
+ * from it, and a sway slower than it is sampled at more than one phase.
  */
-export const holdFrames = (
+export const holdTicks = (
   hold: Pick<HoldCandidate, 'from' | 'to'>,
   fps: number,
 ): ReadonlyArray<number> => {
   const first = Math.ceil(hold.from * fps - 1e-6);
   const last = Math.ceil(hold.to * fps - 1e-6) - 1;
-  const step = Math.max(1, Math.round(HOLD_STEP * fps));
-  const stepped = Arr.range(0, Math.floor((last - first) / step)).map((k) => first + k * step);
-  return Arr.dedupe(Arr.sort([...stepped, first + 1, last], Order.Number)).filter(
-    (f) => f >= first && f <= last,
+  const per = fps / BOIL_FPS;
+  const ticks = Arr.range(0, Math.floor((last - first) / per)).map(
+    (k) => first + Math.round(k * per),
   );
+  return Arr.dedupe([...ticks, last]).filter((f) => f >= first && f <= last);
 };
 
-type Box = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
+/**
+ * The ticks the layout leg probes first: one every `HOLD / 2`, and the last.
+ * A still run over `HOLD` spans two of them in a row, so only where two in a
+ * row hold still does it probe the ticks around them.
+ */
+export const holdGrid = (ticks: ReadonlyArray<number>): ReadonlyArray<number> => {
+  const step = Math.round((HOLD / 2) * BOIL_FPS);
+  return Arr.dedupe([
+    ...ticks.filter((_, i) => i % step === 0),
+    ...Option.toArray(Arr.last(ticks)),
+  ]);
+};
 
-const boxAtRest = (a: Box & { readonly alpha: number }, b: Box & { readonly alpha: number }) =>
+/**
+ * The film seconds a still run covers, from its first still tick `lo` to its
+ * last `hi`: a run that reaches the candidate's first or last tick covers it
+ * to its edge.
+ */
+export const stillSpan = (
+  hold: Pick<HoldCandidate, 'from' | 'to'>,
+  ticks: ReadonlyArray<number>,
+  lo: number,
+  hi: number,
+  fps: number,
+): Span => {
+  const edge = (end: Option.Option<number>, tick: number, whole: number) => {
+    if (Option.exists(end, (f) => f === tick)) return whole;
+    return tick / fps;
+  };
+  return [edge(Arr.head(ticks), lo, hold.from), edge(Arr.last(ticks), hi, hold.to)];
+};
+
+type Mark = {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly alpha: number;
+  readonly scale: number;
+};
+
+/** A mark's box moved no more than `STILL_DRIFT` of its own units, and it faded no more than `STILL_FADE`. */
+const boxAtRest = (a: Mark, b: Mark) =>
   Math.max(
     Math.abs(a.x - b.x),
     Math.abs(a.y - b.y),
     Math.abs(a.x + a.w - (b.x + b.w)),
     Math.abs(a.y + a.h - (b.y + b.h)),
-  ) <= STILL_DRIFT && Math.abs(a.alpha - b.alpha) <= STILL_FADE;
+  ) <=
+    STILL_DRIFT * Math.min(a.scale, b.scale) + 1e-9 && Math.abs(a.alpha - b.alpha) <= STILL_FADE;
 
-/** The picture in a probed frame: everything but the caption lines and the plates under them. */
-const pictureOf = (probed: Probed, captions: ReadonlySet<string>): Probed => {
-  const lines = probed.texts.filter((t) => captions.has(t.text));
-  const underLine = (m: InkMark) =>
-    m.kind === 'plate' && lines.some((t) => boxAtRest({ ...t, alpha: m.alpha }, m));
-  return {
-    texts: probed.texts.filter((t) => !captions.has(t.text)),
-    inks: probed.inks.filter((m) => !underLine(m)),
-  };
-};
+/** The picture in a probed frame: everything but the caption line and its plate, which are the voice. */
+const pictureOf = (probed: Probed): Probed => ({
+  texts: probed.texts.filter((t) => t.caption !== true),
+  inks: probed.inks.filter((m) => m.caption !== true),
+});
 
 /** Two pictures draw the same marks, in the same order, each where and as strong as it was. */
 const atRest = (a: Probed, b: Probed) =>
@@ -1004,15 +1031,11 @@ const atRest = (a: Probed, b: Probed) =>
   Arr.zip(a.inks, b.inks).every(([m, n]) => m.kind === n.kind && boxAtRest(m, n));
 
 /**
- * Whether probed frames across a stretch hold still: each frame's picture
- * (the captions left out: they are the voice, not the picture) at rest
- * against the first's, so a slow drift adds up and is seen.
+ * Whether probed frames hold still: each frame's picture (the caption left
+ * out) at rest against the first's, so a slow drift adds up and is seen.
  */
-export const heldStill = (
-  frames: ReadonlyArray<Probed>,
-  captions: ReadonlySet<string>,
-): boolean => {
-  const pictures = frames.map((f) => pictureOf(f, captions));
+export const heldStill = (frames: ReadonlyArray<Probed>): boolean => {
+  const pictures = frames.map(pictureOf);
   return Option.match(Arr.head(pictures), {
     onNone: () => true,
     onSome: (first) => pictures.slice(1).every((p) => atRest(first, p)),

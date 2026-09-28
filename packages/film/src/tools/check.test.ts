@@ -3,7 +3,9 @@ import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
-import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
+import type { Cast, Music, Probed, Sound, Timed, Timings } from '../core/schema.ts';
+import { stroke } from '../canvas/ink.ts';
+import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type FrameFinding,
@@ -13,7 +15,8 @@ import {
   frameFindings,
   heldStill,
   holdCandidates,
-  holdFrames,
+  holdGrid,
+  holdTicks,
   layoutLevel,
   lateCues,
   layoutSamples,
@@ -25,7 +28,9 @@ import {
   overlapArea,
   pastFrame,
   staleTakes,
+  STILL_DRIFT,
   staticFindings,
+  stillSpan,
   unknownVoices,
 } from './check.ts';
 import { StaticHold } from './errors.ts';
@@ -34,6 +39,7 @@ import {
   holdTimings,
   inkMark,
   spokenTake,
+  stubContext,
   testFilm,
   testVoice,
   textBox,
@@ -929,11 +935,27 @@ describe('static holds', () => {
     expect(holdCandidates(layout([card], holdTimings))).toEqual([]);
   });
 
-  test('the frames probed span the stretch: its first frame, the one after it, then every half second', () => {
-    const frames = holdFrames({ from: 1.4, to: 6.4 }, 30);
-    expect(frames.slice(0, 3)).toEqual([42, 43, 57]);
-    expect(Arr.last(frames)).toEqual(Option.some(191));
-    expect(frames.every((f) => f >= 42 && f <= 191)).toBe(true);
+  test('the ticks span the stretch a boil tick apart, from its first frame to its last', () => {
+    const ticks = holdTicks({ from: 1.4, to: 6.4 }, 30);
+    expect(ticks.slice(0, 5)).toEqual([42, 45, 47, 50, 52]);
+    expect(Arr.last(ticks)).toEqual(Option.some(191));
+    expect(ticks).toHaveLength(61);
+  });
+
+  test('the grid is a tick every HOLD / 2, and the last; any run over HOLD spans two in a row', () => {
+    expect(holdGrid(holdTicks({ from: 1.4, to: 6.4 }, 30))).toEqual([42, 102, 162, 191]);
+    const every = Arr.range(0, 99);
+    const grid = holdGrid(every);
+    for (const lo of Arr.range(0, 51)) {
+      const run = every.slice(lo, lo + 49);
+      expect(grid.filter((g) => run.includes(g)).length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('a still run covers the stretch to an edge it reaches, else its still ticks', () => {
+    const ticks = holdTicks({ from: 1.4, to: 6.4 }, 30);
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 42, 191, 30)).toEqual([1.4, 6.4]);
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 57, 150, 30)).toEqual([1.9, 5]);
   });
 
   const card = textBox('A MOST PRECIOUS MESSAGE', 600, 300, 700, 80);
@@ -947,19 +969,19 @@ describe('static holds', () => {
 
   test('frames that differ only by boil hold still', () => {
     const boiled = { texts: [{ ...card, x: card.x + 0.6 }], inks: [shifted(1.1)] };
-    expect(heldStill([first, boiled], new Set())).toBe(true);
+    expect(heldStill([first, boiled])).toBe(true);
   });
 
   test('a mark that drifts, fades or appears is motion', () => {
-    expect(heldStill([first, { texts: [card], inks: [shifted(6)] }], new Set())).toBe(false);
+    expect(heldStill([first, { texts: [card], inks: [shifted(6)] }])).toBe(false);
     const faded = { texts: [card], inks: [{ ...figure, alpha: 0.5 }] };
-    expect(heldStill([first, faded], new Set())).toBe(false);
-    expect(heldStill([first, { texts: [card], inks: [figure, figure] }], new Set())).toBe(false);
+    expect(heldStill([first, faded])).toBe(false);
+    expect(heldStill([first, { texts: [card], inks: [figure, figure] }])).toBe(false);
   });
 
   test('the captions are the voice, not the picture: a new caption line is not motion', () => {
     const line = (text: string, w: number) => {
-      const box = textBox(text, 960 - w / 2, 960, w, 60, { order: 5 });
+      const box = textBox(text, 960 - w / 2, 960, w, 60, { order: 5, caption: true });
       const plate = inkMark(
         'plate',
         [
@@ -968,18 +990,57 @@ describe('static holds', () => {
           [box.x + box.w, box.y + box.h],
           [box.x, box.y + box.h],
         ],
-        { order: 4 },
+        { order: 4, caption: true },
       );
       return { box, plate };
     };
     const a = line('one two three', 400);
     const b = line('four five six seven', 520);
+    expect(
+      heldStill([
+        { texts: [card, a.box], inks: [figure, a.plate] },
+        { texts: [card, b.box], inks: [figure, b.plate] },
+      ]),
+    ).toBe(true);
+  });
+
+  test('D1: a stroke that only boils holds still at any zoom (drift in its own units)', () => {
+    const drawnAt = (zoom: number, boil: number, dy = 0): Probed => {
+      const sink: ProbeSink = { texts: [], inks: [] };
+      const ctx = stubContext(zoom);
+      probing(ctx, { sink, scene: 'a', dx: 0, alpha: 1 }, () =>
+        stroke(
+          ctx,
+          [
+            [100, 100 + dy],
+            [300, 140 + dy],
+            [500, 120 + dy],
+          ],
+          { color: '#000', width: 6 },
+          { boil, seed: 7 },
+        ),
+      );
+      return sink;
+    };
+    for (const zoom of [1, 1.5, 2.3, 4]) {
+      const moved = Arr.range(1, 23).filter(
+        (b) => !heldStill([drawnAt(zoom, 0), drawnAt(zoom, b)]),
+      );
+      expect({ zoom, moved }).toEqual({ zoom, moved: [] });
+      // Moved a few of its own px further than boil can, it moves, however far the camera is.
+      expect(heldStill([drawnAt(zoom, 0), drawnAt(zoom, 0, 3 * STILL_DRIFT)])).toBe(false);
+    }
+  });
+
+  test('D5: a picture line that reads as a caption line is still the picture', () => {
+    // The card writes the words as they are heard, over the caption line saying the same.
+    const caption = textBox('one two three', 760, 960, 400, 60, { order: 5, caption: true });
+    const growing = (w: number) => textBox('one two three', 600, 300, w, 80);
     const frames = [
-      { texts: [card, a.box], inks: [figure, a.plate] },
-      { texts: [card, b.box], inks: [figure, b.plate] },
+      { texts: [growing(200), caption], inks: [] },
+      { texts: [growing(500), caption], inks: [] },
     ];
-    expect(heldStill(frames, new Set(['one two three', 'four five six seven']))).toBe(true);
-    expect(heldStill(frames, new Set())).toBe(false);
+    expect(heldStill(frames)).toBe(false);
   });
 
   test('a static hold is a warning, every other layout finding an error', () => {

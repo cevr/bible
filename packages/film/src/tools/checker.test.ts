@@ -6,7 +6,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, Exit, Layer, Option } from 'effect';
 import { layout } from '../core/layout.ts';
 import type { Timed } from '../core/schema.ts';
-import { holdFrames, layoutSamples } from './check.ts';
+import { holdGrid, holdTicks, layoutSamples } from './check.ts';
 import { Checker } from './checker.ts';
 import { PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -18,6 +18,8 @@ import {
   holdScenes,
   holdTimings,
   inkMark,
+  longHoldScenes,
+  longHoldTimings,
   testExportInfo,
   testFilm,
   textBox,
@@ -109,11 +111,51 @@ describe('Checker', () => {
         const findings = yield* check();
         expect(findings).toMatchObject([{ _tag: 'StaticHold', scene: 'held', max: 4 }]);
         expect(findings[0]).toMatchObject({ from: expect.closeTo(1.4), to: expect.closeTo(6.4) });
-        // Every frame across `held`; across `ambient` its first three: a pixel a frame adds up by the third.
-        const probedHeld = holdFrames({ from: 1.4, to: 6.4 }, fps).length;
-        expect(ledger.frames).toHaveLength(layoutSamples(placed, fps).length + probedHeld + 3);
+        // Every tick across `held`, each once; across `ambient` its grid, which moves at every step.
+        const probedHeld = holdTicks({ from: 1.4, to: 6.4 }, fps).length;
+        const probedAmbient = holdGrid(
+          holdTicks({ from: ambient.start + 1.4, to: ambient.start + 6.4 }, fps),
+        ).length;
+        expect(ledger.frames).toHaveLength(
+          layoutSamples(placed, fps).length + probedHeld + probedAmbient,
+        );
         expectAllClosed(ledger);
       }),
+  );
+
+  /** Check the 9 s `long` candidate on a page whose figure sits `dx(frame)` px off its place. */
+  const checkLong = (dx: (i: number) => number) => {
+    const figure = inkMark('fill', [
+      [900, 500],
+      [1000, 500],
+      [1000, 800],
+    ]);
+    return setup(
+      { probe: (i) => Effect.succeed({ texts: [], inks: [{ ...figure, x: figure.x + dx(i) }] }) },
+      testFilm(longHoldScenes, longHoldTimings),
+    ).check();
+  };
+
+  it.live('D2: an undeclared 0.5 s move, then 8.5 s still, reports the still run', () =>
+    Effect.gen(function* () {
+      const fps = testExportInfo.fps;
+      // 5 px a frame from 1.4 s to 1.9 s (no cue declares it), then still to the end.
+      const findings = yield* checkLong((i) => 5 * Math.min(Math.max(0, i - 1.4 * fps), 0.5 * fps));
+      expect(findings).toMatchObject([{ _tag: 'StaticHold', scene: 'long', max: 4 }]);
+      expect(findings[0]).toMatchObject({
+        from: expect.closeTo(1.9, 1),
+        to: expect.closeTo(10.4, 1),
+      });
+    }),
+  );
+
+  it.live('D3: a visible sway whose period divides the probe step is motion', () =>
+    Effect.gen(function* () {
+      const fps = testExportInfo.fps;
+      // 12 px peak to peak with a 0.5 s period: a walk bob.
+      const findings = yield* checkLong((i) => 6 * Math.sin((2 * Math.PI * i) / (0.5 * fps)));
+      expect(findings).toEqual([]);
+    }),
   );
 
   it.live('a page error fails the check and closes every page, the browser and the server', () =>
