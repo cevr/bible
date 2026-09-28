@@ -12,7 +12,8 @@
 // ruling. On "reclaim" close on Joshua's face, and under the robe that glow
 // rises where the heart is, a preview
 // of the third gift, and he looks up glad on "reclaiming". The close-up
-// holds through the quotation's last word, which ends the scene.
+// holds through the quotation's last word; then, in the scene's tail, the
+// pull back to the film's three icons, the robe (forgiveness) lit.
 
 import {
   type Camera,
@@ -27,7 +28,20 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, type Person, ROBE, blob, gait, glow, person, piece, rounded, turban } from '../kit.ts';
+import {
+  C,
+  type Person,
+  ROBE,
+  blob,
+  gait,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  turban,
+} from '../kit.ts';
 import {
   ANGEL_HAND,
   COURT_BENCH,
@@ -94,6 +108,9 @@ const timeline = {
   beyond: { mark: 'judicial', until: 'reclaim', ease: 'inOutSine' },
   warm: { mark: 'reclaim', offset: 0.4, dur: 2.2, ease: 'inOutSine' },
   glad: { mark: 'reclaiming', dur: 0.6 },
+  toIcons: { scene: 'speechEnd', dur: 0.27 },
+  pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
+  iconGlow: { after: 'toIcons', dur: 0.6 },
 } as const;
 
 /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
@@ -113,7 +130,11 @@ export const robe = drawing({
     else if (t < f.mark('cloak')) cloaked(f);
     else if (t < f.mark('judicial')) beneath(f);
     else if (t < f.mark('reclaim')) judged(f);
-    else reclaimed(f);
+    else {
+      const toIcons = f.at('toIcons');
+      if (toIcons < 1) reclaimed(f);
+      if (toIcons > 0) iconsBack(f, toIcons);
+    }
   },
 });
 
@@ -449,5 +470,26 @@ const reclaimed = (f: RobeFrame) => {
   const lit = lerp(0.5, 1, warm);
   glow(ctx, 960, y, 360, C.glow, 0.85 * lit);
   glow(ctx, 960, y, 150, C.gold, 0.45 * lit);
+  ctx.restore();
+};
+
+/** The icons' glow: only the robe's, forgiveness; rewritten each frame, never made per frame. */
+const ICONS_LIT: [number, number, number] = [0, 0, 0];
+const ICON_SKY = [
+  [0, C.glow],
+  [1, C.peachLow],
+] as const;
+
+/** E: after the quotation, pull back to the three icons, landing at the frame's centre, the robe lit. */
+const iconsBack = (f: RobeFrame, toIcons: number) => {
+  const { ctx, w, h, hand } = f;
+  const pull = f.at('pullBack');
+  ICONS_LIT[1] = 0.4 + 0.6 * f.at('iconGlow');
+  ctx.save();
+  ctx.globalAlpha *= toIcons;
+  sky(ctx, w, h, ICON_SKY);
+  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () =>
+    icons(ctx, hand, ICONS_LIT),
+  );
   ctx.restore();
 };
