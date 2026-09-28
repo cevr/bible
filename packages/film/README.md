@@ -392,7 +392,7 @@ export const justified = drawing({
 the scene and the cue. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
-`core/narration.ts`: letters and digits, any case). A line that never says it
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. A line that never says it
 there throws `WordMissing` (`core/errors.ts`) at layout, which the tools'
 `placeFilm` fails with as itself (`PlaceError = WordMissing | LayoutInvalid`),
 so `film check` and every tool refuse the film by name; there is no fall back

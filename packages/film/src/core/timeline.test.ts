@@ -270,6 +270,36 @@ describe('timeline', () => {
     expect(cues.get('self')?.start).toBe(0.5 + 2);
   });
 
+  test('a word pin reads a word as the take check does: any case, apostrophes dropped, a hyphen’s parts, accents kept', () => {
+    const said: SceneClock = {
+      ...clock,
+      marks: new Map([['m', 0]]),
+      words: [
+        { text: '“God’s', start: 1, end: 1.2 },
+        { text: 'cover-up,', start: 2, end: 2.4 },
+        { text: 'Christ', start: 3, end: 3.3 },
+        { text: 'Café.', start: 4, end: 4.3 },
+        { text: 'naïve', start: 5, end: 5.3 },
+      ],
+    };
+    const at = (word: string) =>
+      resolveTimeline({ c: { mark: 'm', word, dur: 0.1 } }, said).get('c')?.start;
+    expect(at("god's")).toBe(0.5 + 1);
+    expect(at('God’s')).toBe(0.5 + 1);
+    expect(at('gods')).toBe(0.5 + 1);
+    expect(at('cover')).toBe(0.5 + 2);
+    expect(at('up')).toBe(0.5 + 2);
+    expect(at('cover-up')).toBe(0.5 + 2);
+    expect(at('Christ')).toBe(0.5 + 3);
+    expect(at('café')).toBe(0.5 + 4);
+    expect(at('CAFÉ')).toBe(0.5 + 4);
+    // Composed or decomposed, an accent is the same letter.
+    expect(at('naïve')).toBe(0.5 + 5);
+    // A part is a whole part: "cove" is not "cover", "caf" not "café".
+    expect(() => at('cove')).toThrow(WordMissing);
+    expect(() => at('caf')).toThrow(WordMissing);
+  });
+
   test('a word pin on a word the line never says after its mark is WordMissing, never the mark', () => {
     const pin = (mark: string, word: string) => () =>
       resolveTimeline({ lit: { mark, word, dur: 0.6 } }, clock);

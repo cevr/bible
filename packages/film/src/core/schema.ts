@@ -215,7 +215,7 @@ const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
 export const Span = Schema.Union([
   ...anchored({
     mark: Schema.String,
-    /** Pin to this word (lower case, letters and digits) at or after the mark, not the mark. */
+    /** Pin to this word at or after the mark, not the mark; read as a take is checked (`normalizeWords`). */
     word: Schema.optionalKey(Schema.String),
   }),
   ...anchored({ after: Schema.String }),

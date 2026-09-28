@@ -185,8 +185,8 @@ first line opens with a dash.
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
 a mark, another cue (`after` / `with`) or a scene landmark. A beat on a word
 that has no mark is a word pin: `{ mark: 'gift', word: 'faith', dur: 0.6 }`
-starts on the first word said at or after `{gift}` that reads `faith` (any
-case, punctuation ignored), so a re-take carries it; a line that never says
+starts on the first word said at or after `{gift}` that reads `faith` (read as
+a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
 the word there fails the layout with `WordMissing` (`film check`, the player,
 the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so

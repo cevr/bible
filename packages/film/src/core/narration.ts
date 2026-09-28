@@ -157,29 +157,37 @@ export const estimate = (spoken: string): Word[] => {
   return out;
 };
 
-/** A letter or digit's code, upper case folded to lower; -1 for anything else (punctuation, quotes, space). */
-const letterCode = (c: number) =>
-  c >= 65 && c <= 90
-    ? c + 32
-    : (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c > 0x2e7f
-      ? c
-      : -1;
+/**
+ * Words only, as a take is checked against its script (`narrator`'s word
+ * error): composed (NFC, so an accent is one letter however it was typed),
+ * lower case, apostrophes dropped (`God’s` is `gods`), and every other mark a
+ * break (`cover-up` is `cover`, `up`). Letters are any script's, accents kept.
+ */
+export const normalizeWords = (s: string): ReadonlyArray<string> =>
+  s
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
 
 /**
- * Whether a spoken word reads `word`: the same letters and digits, any case,
- * punctuation and quotes ignored (`“Not,` reads `not`). `word` is written in
- * lower case.
+ * Whether a spoken word reads `word`, both normalised as a take is checked
+ * (`normalizeWords`): `“Not,` reads `not`, `God’s` reads `god's`, and
+ * `cover-up` reads `cover`, `up` and `cover-up`, a whole part at a time.
  */
 export const readsWord = (text: string, word: string): boolean => {
-  let j = 0;
-  for (let i = 0; i < text.length; i++) {
-    const c = letterCode(text.charCodeAt(i));
-    if (c < 0) continue;
-    if (j >= word.length || c !== word.charCodeAt(j)) return false;
-    j++;
-  }
-  return j === word.length;
+  const said = normalizeWords(text);
+  const want = normalizeWords(word);
+  if (want.length === 0) return false;
+  for (let i = 0; i + want.length <= said.length; i++)
+    if (want.every((w, k) => said[i + k] === w)) return true;
+  return false;
 };
+
+/** Whether a spoken word ends a sentence: `.`, `!` or `?`, before any closing quote or bracket. */
+export const endsSentence = (text: string): boolean => /[.!?]["”’)]*$/.test(text);
 
 /**
  * When the first word said at or after `from` (seconds, on the words' clock)

@@ -30,6 +30,7 @@ import {
   type Line,
   hashText,
   linesOf,
+  normalizeWords,
   parse,
   takeScript,
   voiceKey,
@@ -130,15 +131,6 @@ export const planNarration = (
     },
   );
 };
-
-/** Words only, lowercased: punctuation and casing never fail a take. */
-export const normalizeWords = (s: string): ReadonlyArray<string> =>
-  s
-    .toLowerCase()
-    .replace(/[’']/g, '')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 0);
 
 /** Word-level edit distance, as a share of the script's words. */
 export const wordError = (want: ReadonlyArray<string>, got: ReadonlyArray<string>): number => {
