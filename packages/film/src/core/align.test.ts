@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
-import { cutsBetween, placeBeats, timeScript, wordError } from './align.ts';
+import { CUT_FADE, cutPcm, cutsAround, placeBeats, timeScript, wordError } from './align.ts';
 import { normalizeWords } from './narration.ts';
 import type { Word } from './schema.ts';
 
@@ -70,36 +70,129 @@ describe('placeBeats', () => {
   const beats = [
     { id: 'one', text: 'In the beginning was the Word.' },
     { id: 'two', text: 'And the Word was with God.' },
+    { id: 'three', text: 'And the Word was God.' },
   ];
-  const heard = [
-    ...'in the beginning was the word'.split(' ').map((t, i) => w(t, 0.5 + i * 0.3, 0.7 + i * 0.3)),
-    ...'and the word was with god'.split(' ').map((t, i) => w(t, 4 + i * 0.3, 4.2 + i * 0.3)),
-  ];
+  /** `said` heard from `at`, a word every 0.3 s, each 0.2 s long. */
+  const read = (said: string, at: number) =>
+    said.split(' ').map((t, i) => w(t, at + i * 0.3, at + 0.2 + i * 0.3));
+  const one = read('in the beginning was the word', 0.5);
+  const two = read('and the word was with god', 4);
+  const three = read('and the word was god', 7.5);
 
-  test('each beat spans its own words in one reading of the script', () => {
-    const placed = placeBeats(beats, heard);
+  test('each beat spans its own words in one reading, with the silence either side of it', () => {
+    const placed = placeBeats(beats, [...one, ...two, ...three], 10);
     expect(Result.getOrThrow(placed)).toEqual([
-      { id: 'one', start: 0.5, end: 0.7 + 5 * 0.3 },
-      { id: 'two', start: 4, end: 4.2 + 5 * 0.3 },
+      { id: 'one', start: 0.5, end: 0.7 + 5 * 0.3, before: 0, after: 4 },
+      { id: 'two', start: 4, end: 4.2 + 5 * 0.3, before: 0.7 + 5 * 0.3, after: 7.5 },
+      { id: 'three', start: 7.5, end: 7.7 + 4 * 0.3, before: 4.2 + 5 * 0.3, after: 10 },
     ]);
   });
 
-  test('a beat the reading skipped fails, naming the beat', () => {
-    const placed = placeBeats(beats, heard.slice(0, 6));
-    expect(Result.isFailure(placed) && placed.failure).toMatchObject({
-      _tag: 'BeatUnplaced',
-      beat: 'two',
+  test('a beat the reading skipped fails naming that beat, first, middle or last', () => {
+    for (const [heard, skipped] of [
+      [[...two, ...three], 'one'],
+      [[...one, ...three], 'two'],
+      [[...one, ...two], 'three'],
+    ] as const) {
+      const placed = placeBeats(beats, heard, 10);
+      expect(Result.isFailure(placed) && placed.failure).toMatchObject({
+        _tag: 'BeatUnplaced',
+        beat: skipped,
+      });
+    }
+  });
+
+  test('a line flubbed and read again belongs to the reading that finished it, not the beat before', () => {
+    // "In the beginning was the Word. And the Word was— And the Word was with God. …"
+    const flub = read('and the word was', 3);
+    const again = read('and the word was with god', 5);
+    const placed = Result.getOrThrow(
+      placeBeats(beats, [...one, ...flub, ...again, ...read('and the word was god', 8.5)], 11),
+    );
+    const flubEnd = 3.2 + 3 * 0.3;
+    expect(placed[0]).toEqual({ id: 'one', start: 0.5, end: 0.7 + 5 * 0.3, before: 0, after: 3 });
+    expect(placed[1]).toEqual({
+      id: 'two',
+      start: 5,
+      end: 5.2 + 5 * 0.3,
+      before: flubEnd,
+      after: 8.5,
     });
   });
+});
 
-  test('cuts fall in the middle of the silence between beats', () => {
-    const spans = [
-      { id: 'one', start: 0.5, end: 2 },
-      { id: 'two', start: 4, end: 5.7 },
-    ];
-    expect(cutsBetween(spans, 7)).toEqual([
-      { id: 'one', from: 0, to: 3 },
-      { id: 'two', from: 3, to: 7 },
-    ]);
+describe('cutting one reading into beats', () => {
+  const rate = 1000;
+  /** Room tone at `level`, with speech (0.5) over `speech` and a quieter hush (0.001) over `hush`. */
+  const recording = (
+    seconds: number,
+    speech: ReadonlyArray<[number, number]>,
+    hush: ReadonlyArray<[number, number]>,
+  ) => {
+    const plane = Float32Array.from({ length: seconds * rate }, (_, i) => {
+      const t = i / rate;
+      const inside = (spans: ReadonlyArray<[number, number]>) =>
+        spans.some(([a, b]) => t >= a && t < b);
+      if (inside(speech)) return 0.5 * Math.sin(i);
+      if (inside(hush)) return 0.001 * Math.sin(i);
+      return 0.02 * Math.sin(i);
+    });
+    return { rate, frames: plane.length, channels: [plane] };
+  };
+
+  test('the cut between two beats goes at the quietest point of their silence, not its middle', () => {
+    const pcm = recording(
+      10,
+      [
+        [0.5, 2],
+        [4, 5.7],
+      ],
+      [[3.5, 3.6]],
+    );
+    const cuts = cutsAround(
+      [
+        { id: 'one', start: 0.5, end: 2, before: 0, after: 4 },
+        { id: 'two', start: 4, end: 5.7, before: 2, after: 10 },
+      ],
+      pcm,
+    );
+    expect(cuts.map((c) => c.id)).toEqual(['one', 'two']);
+    // The middle of the silence is 3 s; its quietest point is the hush at 3.5–3.6 s.
+    expect(cuts[0]?.to).toBeGreaterThanOrEqual(3.5);
+    expect(cuts[0]?.to).toBeLessThan(3.6);
+    expect(cuts[1]?.from).toBe(cuts[0]?.to ?? -1);
+  });
+
+  test('a flub between two beats is cut out of both', () => {
+    const cuts = cutsAround(
+      [
+        { id: 'one', start: 0.5, end: 2, before: 0, after: 3 },
+        { id: 'two', start: 5, end: 6.7, before: 4.1, after: 10 },
+      ],
+      recording(
+        10,
+        [
+          [0.5, 2],
+          [3, 4.1],
+          [5, 6.7],
+        ],
+        [],
+      ),
+    );
+    expect(cuts[0]?.to).toBeLessThanOrEqual(3);
+    expect(cuts[1]?.from).toBeGreaterThanOrEqual(4.1);
+  });
+
+  test('a beat cut from a reading fades in and out over a few milliseconds, sample-accurate', () => {
+    const pcm = recording(3, [[0, 3]], []);
+    const cut = cutPcm(pcm, { id: 'one', from: 1, to: 2 });
+    const plane = cut.channels[0] ?? new Float32Array();
+    expect(cut.frames).toBe(1000);
+    expect(plane[0]).toBe(0);
+    expect(plane[cut.frames - 1]).toBe(0);
+    const fade = Math.round(CUT_FADE * rate);
+    // Past the fade the samples are the reading's own.
+    expect(plane[fade + 10]).toBe(pcm.channels[0]?.[1000 + fade + 10]);
+    expect(Math.abs(plane[Math.floor(fade / 2)] ?? 1)).toBeLessThan(0.5);
   });
 });

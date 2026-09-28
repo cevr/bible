@@ -9,6 +9,7 @@
 import { Array as Arr, Option, Result } from 'effect';
 import { BeatUnplaced } from './errors.ts';
 import { normalizeWords } from './narration.ts';
+import { type Pcm, fadeEdges, slice } from './audio.ts';
 import type { Word } from './schema.ts';
 
 /** Word-level edit distance, as a share of the script's words. */
@@ -41,49 +42,97 @@ interface Paired {
   readonly exact: boolean;
 }
 
-/** The edit-distance table between two token lists, row by row. */
+/**
+ * How an alignment reaches a cell: a script token paired with a heard one, a
+ * heard token left over, or a script token left unheard. In this order, too:
+ * the order ties are broken in.
+ */
+const PAIR = 0;
+const LEFT_OVER = 1;
+const UNHEARD = 2;
+const MOVES = [PAIR, LEFT_OVER, UNHEARD] as const;
+type Move = (typeof MOVES)[number];
+
+/** Opening a run of left-over or unheard words costs this on top of each word's 1. */
+export const GAP_OPEN = 1;
+
+/**
+ * The least cost of lining up the first `i` script tokens with the first `j`
+ * heard, by the move that ends it (Gotoh's affine-gap alignment): a mismatch
+ * costs 1, and a run of `k` words left over or unheard `GAP_OPEN + k`, so one
+ * long run costs less than the same words in pieces. A beat's words pair with
+ * one reading of it, not a word here and a word there.
+ */
 const costs = (want: ReadonlyArray<string>, got: ReadonlyArray<string>) => {
-  const rows: Array<ReadonlyArray<number>> = [Arr.makeBy(got.length + 1, (j) => j)];
-  for (const [i, w] of want.entries()) {
-    const above = Arr.getUnsafe(rows, i);
-    const row: Array<number> = [i + 1];
-    for (const [j, g] of got.entries())
-      row.push(
-        Math.min(
-          Arr.getUnsafe(above, j + 1) + 1,
-          Arr.getUnsafe(row, j) + 1,
-          Arr.getUnsafe(above, j) + Number(w !== g),
-        ),
-      );
-    rows.push(row);
-  }
-  return rows;
+  const width = got.length + 1;
+  const table = MOVES.map(() => new Float32Array((want.length + 1) * width).fill(Infinity));
+  const cell = (move: Move, i: number, j: number) =>
+    Arr.getUnsafe(table, move)[i * width + j] ?? Infinity;
+  const set = (move: Move, i: number, j: number, v: number) => {
+    Arr.getUnsafe(table, move)[i * width + j] = v;
+  };
+  const best = (i: number, j: number) => Math.min(...MOVES.map((m) => cell(m, i, j)));
+  const opened = (i: number, j: number, run: Move) =>
+    Math.min(...MOVES.map((m) => cell(m, i, j) + Number(m !== run) * GAP_OPEN + 1));
+  set(PAIR, 0, 0, 0);
+  for (let i = 0; i <= want.length; i++)
+    for (let j = 0; j <= got.length; j++) {
+      if (i > 0 && j > 0)
+        set(
+          PAIR,
+          i,
+          j,
+          best(i - 1, j - 1) + Number(Arr.getUnsafe(want, i - 1) !== Arr.getUnsafe(got, j - 1)),
+        );
+      if (j > 0) set(LEFT_OVER, i, j, opened(i, j - 1, LEFT_OVER));
+      if (i > 0) set(UNHEARD, i, j, opened(i - 1, j, UNHEARD));
+    }
+  return cell;
 };
 
 /**
  * Each script token's partner among the heard tokens, if any: the pairs of
- * one least-cost alignment. Where two alignments cost the same, a script
- * token is left unpaired first, so the heard words pair with the earliest
- * script words that fit them.
+ * one least-cost alignment (`costs`), read back from the end. Where two
+ * alignments cost the same, a pair is taken first, then a heard word left
+ * over, and a script word left unheard last: so words heard pair with the
+ * latest script words that fit them (a beat the reader skipped is the one
+ * left unheard, not the beat after it), and script words with the latest
+ * words heard (a line read twice pairs with the reading that finished it; the
+ * false start is left over).
  */
 export const lineUp = (
   want: ReadonlyArray<string>,
   got: ReadonlyArray<string>,
 ): ReadonlyArray<Option.Option<Paired>> => {
-  const rows = costs(want, got);
-  const cost = (i: number, j: number) => Arr.getUnsafe(Arr.getUnsafe(rows, i), j);
+  const cell = costs(want, got);
   const out: Array<Option.Option<Paired>> = Arr.makeBy(want.length, () => Option.none());
+  /** The move with the least cost into (i, j), ties to the earlier move; `run` costs nothing to go on with. */
+  const cheapest = (i: number, j: number, run: Option.Option<Move>): Move => {
+    const extra = (m: Move) =>
+      Option.match(run, {
+        onNone: () => 0,
+        onSome: (r) => Number(r !== PAIR && m !== r) * GAP_OPEN,
+      });
+    let chosen: Move = PAIR;
+    for (const m of MOVES)
+      if (cell(m, i, j) + extra(m) < cell(chosen, i, j) + extra(chosen)) chosen = m;
+    return chosen;
+  };
   let i = want.length;
   let j = got.length;
+  let move = cheapest(i, j, Option.none());
   while (i > 0 && j > 0) {
-    const here = cost(i, j);
-    const exact = Arr.getUnsafe(want, i - 1) === Arr.getUnsafe(got, j - 1);
-    if (here === cost(i - 1, j) + 1) i -= 1;
-    else if (here === cost(i - 1, j - 1) + Number(!exact)) {
-      out[i - 1] = Option.some({ got: j - 1, exact });
+    const from = move;
+    if (from === PAIR) {
+      out[i - 1] = Option.some({
+        got: j - 1,
+        exact: Arr.getUnsafe(want, i - 1) === Arr.getUnsafe(got, j - 1),
+      });
       i -= 1;
       j -= 1;
-    } else j -= 1;
+    } else if (from === LEFT_OVER) j -= 1;
+    else i -= 1;
+    move = cheapest(i, j, Option.some(from));
   }
   return out;
 };
@@ -176,24 +225,35 @@ export interface BeatText {
   readonly text: string;
 }
 
-/** Where a beat was read in one recording of the whole script. */
+/**
+ * Where a beat was read in one recording of the whole script: from its first
+ * to its last word heard, and the silence either side of it, up to the
+ * nearest other word heard (the reading's start or end when there is none).
+ * A false start between two beats is a word heard, so neither beat's silence
+ * reaches into it.
+ */
 export interface BeatSpan {
   readonly id: string;
   readonly start: number;
   readonly end: number;
+  readonly before: number;
+  readonly after: number;
 }
 
 /** A beat is found when at least this share of its words were heard as written. */
 export const MIN_HEARD = 0.5;
 
 /**
- * Each beat's span in one recording of the whole script, read in order:
- * from the first to the last heard word its words line up with. A beat with
- * less than `MIN_HEARD` of its words heard fails, naming it.
+ * Each beat's span in one recording of the whole script, `duration` seconds
+ * long, read in order: from the first to the last heard word its words line
+ * up with (`lineUp`: a skipped beat is the one left unheard, and a line read
+ * twice is the reading that finished it). A beat with less than `MIN_HEARD`
+ * of its words heard fails, naming it.
  */
 export const placeBeats = (
   beats: ReadonlyArray<BeatText>,
   heard: ReadonlyArray<Word>,
+  duration: number,
 ): Result.Result<ReadonlyArray<BeatSpan>, BeatUnplaced> => {
   const want = beats.flatMap((beat, owner) =>
     normalizeWords(beat.text).map((text) => ({ text, owner })),
@@ -212,8 +272,22 @@ export const placeBeats = (
       const last = Arr.last(found);
       if (exact < MIN_HEARD || Option.isNone(first) || Option.isNone(last))
         return Result.fail(BeatUnplaced.make({ beat: beat.id, heard: exact }));
-      const at = (p: Paired) => Arr.getUnsafe(heard, Arr.getUnsafe(got, p.got).owner);
-      return Result.succeed({ id: beat.id, start: at(first.value).start, end: at(last.value).end });
+      const word = (p: Paired) => Arr.getUnsafe(got, p.got).owner;
+      const from = word(first.value);
+      const to = word(last.value);
+      return Result.succeed({
+        id: beat.id,
+        start: Arr.getUnsafe(heard, from).start,
+        end: Arr.getUnsafe(heard, to).end,
+        before: Option.getOrElse(
+          Option.map(Arr.get(heard, from - 1).pipe(Option.filter(() => from > 0)), (w) => w.end),
+          () => 0,
+        ),
+        after: Option.getOrElse(
+          Option.map(Arr.get(heard, to + 1), (w) => w.start),
+          () => duration,
+        ),
+      });
     }),
   );
 };
@@ -225,24 +299,51 @@ export interface Cut {
   readonly to: number;
 }
 
+/** A cut is placed by the sound in windows this long, in seconds. */
+export const CUT_WINDOW = 0.01;
+
+/** A beat cut from a reading fades in and out over this long, in seconds: no click at either edge. */
+export const CUT_FADE = 0.005;
+
 /**
- * Where to cut a recording `duration` seconds long into its beats: halfway
- * through the silence between one beat's last word and the next beat's
- * first, the first beat from the start and the last to the end.
+ * The quietest moment of `pcm` between `from` and `to` seconds: the middle of
+ * its quietest `CUT_WINDOW`, so a cut lands in the silence, not in a breath or
+ * a word's decay. The middle of the stretch when it is shorter than a window.
  */
-export const cutsBetween = (spans: ReadonlyArray<BeatSpan>, duration: number): ReadonlyArray<Cut> =>
-  spans.map((span, i) => {
-    const before = Arr.get(spans, i - 1).pipe(Option.filter(() => i > 0));
-    const after = Arr.get(spans, i + 1);
-    return {
-      id: span.id,
-      from: Option.getOrElse(
-        Option.map(before, (b) => (b.end + span.start) / 2),
-        () => 0,
-      ),
-      to: Option.getOrElse(
-        Option.map(after, (a) => (span.end + a.start) / 2),
-        () => duration,
-      ),
-    };
-  });
+export const quietestAt = (pcm: Pcm, from: number, to: number): number => {
+  const window = Math.max(1, Math.round(CUT_WINDOW * pcm.rate));
+  const first = Math.max(0, Math.ceil(from * pcm.rate));
+  const last = Math.min(pcm.frames, Math.floor(to * pcm.rate)) - window;
+  if (last < first) return (from + to) / 2;
+  const plane = Arr.getUnsafe(pcm.channels, 0);
+  let best = first;
+  let quietest = Number.POSITIVE_INFINITY;
+  for (let at = first; at <= last; at += Math.max(1, Math.floor(window / 2))) {
+    let power = 0;
+    for (let i = at; i < at + window; i++) power += (plane[i] ?? 0) ** 2;
+    if (power < quietest) {
+      quietest = power;
+      best = at;
+    }
+  }
+  return (best + window / 2) / pcm.rate;
+};
+
+/**
+ * Where to cut a reading into its beats: each beat from the quietest moment
+ * of the silence before it to the quietest of the silence after it. Every
+ * beat has its own cuts, so a false start between two beats (heard, and
+ * paired with neither) is cut out of both, and any beat can be cut alone.
+ */
+export const cutsAround = (spans: ReadonlyArray<BeatSpan>, pcm: Pcm): ReadonlyArray<Cut> =>
+  spans.map((span) => ({
+    id: span.id,
+    from: quietestAt(pcm, span.before, span.start),
+    to: quietestAt(pcm, span.end, span.after),
+  }));
+
+/** `pcm` from `cut.from` to `cut.to`, to the sample, fading in and out over `CUT_FADE`. */
+export const cutPcm = (pcm: Pcm, cut: Cut): Pcm => {
+  const at = (seconds: number) => Math.min(pcm.frames, Math.max(0, Math.round(seconds * pcm.rate)));
+  return fadeEdges(slice(pcm, at(cut.from), at(cut.to) - at(cut.from)), CUT_FADE);
+};

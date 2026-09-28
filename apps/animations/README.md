@@ -44,8 +44,9 @@ written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--
 transcript differs), `--replace-recorded` (stage over a person's take whose
 line changed). Takes import flags: `--only id,id` (just these beats; one file
 not named for its beat imports as the one beat named), `--accept-mismatch`,
-`--whole` (the file is one reading of the whole script, cut at the silence
-between beats). Score flags:
+`--whole` (the file is one reading of the whole script, cut at the quietest
+point of the silence around each beat; a flubbed line read again keeps the
+reading that finished it). Score flags:
 `--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
 anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
 film's sounds) for score. The films are always `src/films`, the

@@ -227,6 +227,25 @@ describe('Takes', () => {
       }).pipe(Effect.provide(layer));
     });
 
+    it.effect('with --only, every beat is placed and cut, and only those are imported', () => {
+      const { files, layer } = setup();
+      files.set('/rec/whole.wav', text('Hello world. The second line.'));
+      return Effect.gen(function* () {
+        const { imported, after } = yield* importing('/rec/whole.wav', {
+          ...defaults,
+          whole: true,
+          only: Option.some(new Set(['b'])),
+        });
+        expect(imported.map((i) => i.id)).toEqual(['b']);
+        expect(after.scenes['a']?.source).toBe('elevenlabs');
+        // b's audio starts after a's last word ("world." heard 0.5–0.9 s), not at the reading's start.
+        const [made] = yield* (yield* Takes).attempts(yield* loaded, 'b');
+        const cut = Option.getOrThrow(Option.fromNullishOr(made?.cut));
+        expect(cut.from).toBeGreaterThanOrEqual(0.9);
+        expect(cut.to).toBeGreaterThanOrEqual(2.4);
+      }).pipe(Effect.provide(layer));
+    });
+
     it.effect('fails naming a beat it cannot place', () => {
       const { files, layer } = setup();
       files.set('/rec/whole.wav', text('Hello world. Something else entirely was read.'));

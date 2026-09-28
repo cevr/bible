@@ -40,6 +40,27 @@ export const slice = (pcm: Pcm, from: number, frames: number): Pcm => ({
 });
 
 /**
+ * `pcm` fading in from silence over its first `seconds` and out to silence
+ * over its last (linear, sample by sample: the first and last samples are 0),
+ * every sample between as it was. A copy; `pcm` is left alone.
+ */
+export const fadeEdges = (pcm: Pcm, seconds: number): Pcm => {
+  const n = Math.min(Math.round(seconds * pcm.rate), Math.floor(pcm.frames / 2));
+  return {
+    ...pcm,
+    channels: pcm.channels.map((plane) => {
+      const out = plane.slice(0, pcm.frames);
+      for (let i = 0; i < n; i++) {
+        const k = i / n;
+        out[i] = (out[i] ?? 0) * k;
+        out[pcm.frames - 1 - i] = (out[pcm.frames - 1 - i] ?? 0) * k;
+      }
+      return out;
+    }),
+  };
+};
+
+/**
  * Two channels. Mono spreads to both sides at −3 dB, as ffmpeg's rematrix did
  * in the graph the mix was balanced with (libswresample/rematrix.c,
  * `center_mix_level`); stereo passes through; more channels keep their first two.

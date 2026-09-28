@@ -118,10 +118,15 @@ attempt naming the stretch it was cut from), its FLAC, and its
 copies the FLAC beside the other takes and rewrites `timings.json` to name
 it; the take it replaced is removed from `narration/`. A lossy recording (M4A,
 MP3) still imports, with a `takes.lossy` warning: the master is lossless from
-there on, but record WAV or FLAC for the final voice. `--whole` transcribes one recording of the script,
-places each beat by the same line-up (`placeBeats`: a beat with under half
-its words heard fails `BeatUnplaced`, naming it) and cuts halfway through the
-silence between beats (`cutsBetween`).
+there on, but record WAV or FLAC for the final voice. `--whole` transcribes one recording of the script and
+places every beat by the same line-up (`placeBeats`), with affine gap costs
+(`GAP_OPEN`) so a beat's words pair with one reading of it: a beat the
+reading skipped is the one named (under half its words heard fails
+`BeatUnplaced`), and a line flubbed and read again belongs to the reading
+that finished it, the false start to neither beat. Each beat is cut on its
+own (`cutsAround`), at the quietest 10 ms of the silence before and after it,
+and faded over 5 ms at both cuts (`cutPcm`), so a false start is cut out of
+both beats beside it. Every beat is placed and cut before `--only` picks.
 
 The padding and loudness a recorded take gets are measured, not chosen: over
 the 30 committed staging takes (both films, 2026-09-28; mpg123 decode, 10 ms

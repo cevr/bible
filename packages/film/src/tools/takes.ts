@@ -27,8 +27,14 @@ import {
   Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type BeatSpan, cutsBetween, placeBeats, timeScript, wordError } from '../core/align.ts';
-import { slice } from '../core/audio.ts';
+import {
+  type BeatSpan,
+  cutPcm,
+  cutsAround,
+  placeBeats,
+  timeScript,
+  wordError,
+} from '../core/align.ts';
 import type { BeatUnplaced, UnknownVoice } from '../core/errors.ts';
 import type { Pcm } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -409,23 +415,27 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         return [{ beat: yield* beatFor(film, id, file), file }];
       });
 
-      /** One reading of the whole script, cut at the silence between its beats. */
+      /**
+       * One reading of the whole script, cut beat by beat at the quietest
+       * silence either side of each. Every beat is placed and cut, so `--only`
+       * picks its beats from a reading that is already cut, never from one
+       * placed against only some of the script.
+       */
       const whole = Effect.fn('Takes.whole')(function* (
         film: LoadedFilm,
         file: string,
         options: ImportOptions,
       ) {
-        const beats = [...(yield* beatsById(film)).values()].filter((b) =>
-          allowed(options.only, b.id),
-        );
+        const beats = [...(yield* beatsById(film)).values()];
         const recording = yield* media.load(file, MIX_RATE);
         const heard = heardWords(yield* elevenLabs.stt(file));
-        const spans: ReadonlyArray<BeatSpan> = yield* Effect.fromResult(placeBeats(beats, heard));
-        const cuts = cutsBetween(spans, recording.frames / recording.rate);
+        const spans: ReadonlyArray<BeatSpan> = yield* Effect.fromResult(
+          placeBeats(beats, heard, recording.frames / recording.rate),
+        );
+        const cuts = cutsAround(spans, recording);
         const original = yield* keepOriginal(film, 'whole', file);
-        const at = (seconds: number) =>
-          Math.min(recording.frames, Math.max(0, Math.round(seconds * recording.rate)));
-        const made = yield* Effect.forEach(Arr.zip(beats, cuts), ([beat, cut]) =>
+        const chosen = Arr.zip(beats, cuts).filter(([beat]) => allowed(options.only, beat.id));
+        const made = yield* Effect.forEach(chosen, ([beat, cut]) =>
           attempt(
             film,
             beat,
@@ -434,10 +444,10 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
               original,
               cut: Option.some({ from: cut.from, to: cut.to }),
             },
-            slice(recording, at(cut.from), at(cut.to) - at(cut.from)),
+            cutPcm(recording, cut),
           ).pipe(Effect.map((a) => ({ beat, made: a }))),
         );
-        yield* Effect.log(`takes.whole file=${file} beats=${cuts.length}`);
+        yield* Effect.log(`takes.whole file=${file} beats=${cuts.length} imported=${made.length}`);
         return made;
       });
 
