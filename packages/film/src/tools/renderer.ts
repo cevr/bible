@@ -30,7 +30,6 @@ import {
   type EncodeFailed,
   type EncoderMissing,
   type FrameFailed,
-  type LayoutInvalid,
   type LookbookFailed,
   type MediaFailed,
   type PageCrashed,
@@ -38,7 +37,7 @@ import {
   RangeEmpty,
   type TooManyEncoders,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -72,7 +71,7 @@ export type RenderError =
   | AudioStale
   | RangeEmpty
   | TooManyEncoders
-  | LayoutInvalid
+  | PlaceError
   | PlatformError;
 
 export interface RendererService {
@@ -91,23 +90,18 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const browser = yield* Browser;
       const server = yield* PreviewServer;
 
-      const fresh = (dir: string) =>
-        fs
-          .remove(dir, { recursive: true, force: true })
-          .pipe(Effect.andThen(fs.makeDirectory(dir, { recursive: true })));
-
       const video = Effect.fnUntraced(function* (
         film: LoadedFilm,
         job: Extract<RenderJob, { _tag: 'Video' }>,
         pool: Pool.Pool<FramePage, PageOpenError>,
         info: ExportInfo,
-        dir: string,
       ) {
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const total = end - start;
         const target = Option.getOrElse(job.out, () => `${film.paths.out}.mp4`);
+        yield* fs.makeDirectory(path.dirname(target), { recursive: true });
 
         // The film declares its track only once every take is recorded. Before
         // a frame is drawn, its master must be there and cover the whole film
@@ -139,10 +133,14 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             ),
         });
 
-        const segDir = path.join(dir, 'segments');
-        const shareDir = path.join(dir, 'share');
-        yield* fresh(segDir);
-        if (job.share) yield* fresh(shareDir);
+        // The segments go in a folder of this render's own, made fresh by the
+        // system: never under out/<film>, so two renders at once never share
+        // one, and nothing is left there for this render to clean up.
+        const work = yield* fs.makeTempDirectory({ prefix: 'film-segments-' });
+        const segDir = path.join(work, 'segments');
+        const shareDir = path.join(work, 'share');
+        yield* fs.makeDirectory(segDir);
+        if (job.share) yield* fs.makeDirectory(shareDir);
         const chunks = planChunks(start, end, job.workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
@@ -212,8 +210,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         // Joined: the segments are copied into the film and nothing reads them
         // again. A failed join leaves them for the error that names one.
-        yield* fs.remove(segDir, { recursive: true, force: true });
-        yield* fs.remove(shareDir, { recursive: true, force: true });
+        yield* fs.remove(work, { recursive: true, force: true });
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
@@ -288,7 +285,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
         const dir = path.join(film.paths.out, job.tag);
-        yield* fs.makeDirectory(dir, { recursive: true });
+        // A video writes nothing there: its segments are its own, and its file is `--out`.
+        if (!RenderJob.$is('Video')(job)) yield* fs.makeDirectory(dir, { recursive: true });
         const pages = RenderJob.$match(job, {
           Video: (v) => v.workers,
           Stills: (s) => Math.min(s.workers, s.times.length),
@@ -301,7 +299,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, pages) });
             const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
             yield* RenderJob.$match(job, {
-              Video: (v) => video(film, v, pool, info, dir),
+              Video: (v) => video(film, v, pool, info),
               Stills: (s) => stills(s, pool, info, dir),
               Contact: (c) => contact(c, pool, info, dir),
               LookBook: () => lookbook(pool, dir),

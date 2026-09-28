@@ -12,6 +12,7 @@ import {
   HOLD,
   type Sample,
   effectFindings,
+  farPins,
   frameFindings,
   heldStill,
   holdCandidates,
@@ -668,6 +669,39 @@ describe('unknownVoices', () => {
     expect(found.map((r) => [r.level, r.finding._tag])).toEqual([
       ['error', 'UnknownVoice'],
       ['warning', 'TakeStale'],
+    ]);
+  });
+});
+
+describe('farPins', () => {
+  const scene = (word: string): Timed => ({
+    id: 's',
+    say: 'One {m}two faith. Three four. Five faith six. Seven.',
+    timeline: { lit: { mark: 'm', word, dur: 0.5 } },
+  });
+
+  test('a word pin in its mark’s sentence or the next is quiet', () => {
+    expect(farPins(layout([scene('two')], noTakes))).toEqual([]);
+    expect(farPins(layout([scene('faith')], noTakes))).toEqual([]);
+    expect(farPins(layout([scene('four')], noTakes))).toEqual([]);
+  });
+
+  test('a word pin that lands more than a sentence past its mark warns, naming how far', () => {
+    const found = farPins(layout([scene('six')], noTakes));
+    expect(found.map((f) => [f._tag, f.scene, f.cue, f.word, f.sentences])).toEqual([
+      ['WordPinFar', 's', 'lit', 'six', 2],
+    ]);
+    expect(found[0]?.message).toBe(
+      'scene "s": cue "lit" is pinned to "six", 2 sentences past {m}: a re-take that dropped the word near the mark moves the cue there',
+    );
+    const reported = staticFindings(
+      testFilm([scene('six')], noTakes),
+      layout([scene('six')], noTakes),
+      { allowStale: false },
+      Option.none(),
+    );
+    expect(reported.filter((r) => r.finding._tag === 'WordPinFar').map((r) => r.level)).toEqual([
+      'warning',
     ]);
   });
 });

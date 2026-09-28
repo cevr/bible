@@ -23,19 +23,12 @@ import {
   Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import {
-  type BeatSpan,
-  cutsBetween,
-  normalizeWords,
-  placeBeats,
-  timeScript,
-  wordError,
-} from '../core/align.ts';
+import { type BeatSpan, cutsBetween, placeBeats, timeScript, wordError } from '../core/align.ts';
 import { slice } from '../core/audio.ts';
 import type { BeatUnplaced, UnknownVoice } from '../core/errors.ts';
 import type { Pcm } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
-import { hashText, voiceKey } from '../core/narration.ts';
+import { hashText, normalizeWords, voiceKey } from '../core/narration.ts';
 import { prepareTake } from '../core/recording.ts';
 import { type Timings, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';

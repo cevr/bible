@@ -190,6 +190,53 @@ export const estimate = (spoken: string): Word[] => {
 };
 
 /**
+ * Words only, as a take is checked against its script (`narrator`'s word
+ * error): composed (NFC, so an accent is one letter however it was typed),
+ * lower case, apostrophes dropped (`God’s` is `gods`), and every other mark a
+ * break (`cover-up` is `cover`, `up`). Letters are any script's, accents kept.
+ */
+export const normalizeWords = (s: string): ReadonlyArray<string> =>
+  s
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+
+/**
+ * Whether a spoken word reads `word`, both normalised as a take is checked
+ * (`normalizeWords`): `“Not,` reads `not`, `God’s` reads `god's`, and
+ * `cover-up` reads `cover`, `up` and `cover-up`, a whole part at a time.
+ */
+export const readsWord = (text: string, word: string): boolean => {
+  const said = normalizeWords(text);
+  const want = normalizeWords(word);
+  if (want.length === 0) return false;
+  for (let i = 0; i + want.length <= said.length; i++)
+    if (want.every((w, k) => said[i + k] === w)) return true;
+  return false;
+};
+
+/** Whether a spoken word ends a sentence: `.`, `!` or `?`, before any closing quote or bracket. */
+export const endsSentence = (text: string): boolean => /[.!?]["”’)]*$/.test(text);
+
+/**
+ * When the first word said at or after `from` (seconds, on the words' clock)
+ * that reads `word` starts; none when the line never says it there. A word
+ * pin (`{ mark, word }`) lands here.
+ */
+export const wordAfter = (
+  words: ReadonlyArray<Word>,
+  from: number,
+  word: string,
+): Option.Option<number> =>
+  Option.map(
+    Arr.findFirst(words, (w) => w.start >= from - 1e-3 && readsWord(w.text, word)),
+    (w) => w.start,
+  );
+
+/**
  * Words as spoken in a recorded take. ElevenLabs aligns characters; group them
  * back into the words of `spoken`. A dialogue joins its lines with nothing
  * between them, so each line's first character (`breaks`) starts a word too.

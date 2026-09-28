@@ -23,11 +23,10 @@ import {
   AudioStale,
   type FilmModuleInvalid,
   type FilmNotFound,
-  type LayoutInvalid,
   type MediaFailed,
   SampleRateMismatch,
 } from './errors.ts';
-import { type FilmPaths, FilmRepo, placeFilm } from './film-repo.ts';
+import { type FilmPaths, FilmRepo, type PlaceError, placeFilm } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
 
 /** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
@@ -74,7 +73,7 @@ export interface MixOptions {
 
 export type MixError =
   | MixPlanError
-  | LayoutInvalid
+  | PlaceError
   | FilmNotFound
   | FilmModuleInvalid
   | StoreError

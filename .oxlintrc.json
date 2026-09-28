@@ -275,6 +275,7 @@
       "excludeFiles": ["**/apps/animations/src/films/righteousness-by-faith-v1/**"],
       "rules": {
         "film/drawing-literal": "error",
+        "film/no-hand-timed-seconds": "error",
         "film/no-unprobed-ink": "error"
       }
     },

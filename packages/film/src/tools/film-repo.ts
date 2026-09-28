@@ -17,7 +17,7 @@ import {
   Voice,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmNotFound, LayoutInvalid } from './errors.ts';
+import { FilmModuleInvalid, FilmNotFound, LayoutInvalid, WordMissing } from './errors.ts';
 
 /** Every path a tool touches for one film. */
 export interface FilmPaths {
@@ -75,11 +75,22 @@ const SoundModule = Schema.Struct({ sound: Sound });
  */
 export const importFilmModule = (file: string) => import(file);
 
-/** Lay the film out, turning `layout()`'s authoring errors into a typed failure. */
-export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, LayoutInvalid> =>
+/** Why a film does not lay out: a word pin with no word to land on, or any other authoring error. */
+export type PlaceError = WordMissing | LayoutInvalid;
+
+const isWordMissing = Schema.is(WordMissing);
+
+/**
+ * Lay the film out, turning `layout()`'s authoring errors into a typed
+ * failure: `WordMissing` as itself, every other one as `LayoutInvalid`.
+ */
+export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, PlaceError> =>
   Effect.try({
     try: () => layout(film.scenes, film.timings),
-    catch: (cause) => LayoutInvalid.make({ film: film.paths.name, reason: String(cause) }),
+    catch: (cause) =>
+      Option.getOrElse(Option.liftPredicate(cause, isWordMissing), () =>
+        LayoutInvalid.make({ film: film.paths.name, reason: String(cause) }),
+      ),
   });
 
 export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(

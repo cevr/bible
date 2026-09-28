@@ -5,12 +5,14 @@
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
+import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 
 export default Plugin.define({
   name: 'film',
   rules: {
     'drawing-literal': drawingLiteral,
+    'no-hand-timed-seconds': noHandTimedSeconds,
     'no-unprobed-ink': noUnprobedInk,
   },
 });

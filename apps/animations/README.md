@@ -59,7 +59,13 @@ scenes' layout), `--workers n`. A scene id the film lacks (`--scene`, or
 Once every take is recorded, the static leg also measures `narration/full.wav`:
 missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
-review step, run by hand: the app's `gate` runs typecheck and tests only.
+review step, run by hand: the app's `gate` runs typecheck and tests only. One
+of those tests (`test/every-scene-draws.test.ts`) draws every scene of every
+film in `src/films/index.ts` at its first frame, each cue's edges and midpoint, its 60% point
+and its last frame, through the film's own compositor into a null 2D context,
+so a scene that reads a mark, cue or knob its film no longer has, or draws
+what a real canvas refuses (a negative arc radius), fails the gate, not the
+next render.
 
 Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
 (default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
@@ -98,8 +104,9 @@ the encoder hangs, so a render that would need more fails with
 `TooManyEncoders` before a page opens (at most 7 pages with the share copy,
 14 without). The count is per render: two renders at once (say two `--tag`s)
 share the hardware, so keep their pages together within the same 14 or they
-can hang with no error. Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
-until the film is joined, then the folders go; a failed join leaves them. A video's audio
+can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
+until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
+(so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
@@ -184,7 +191,12 @@ first line opens with a dash.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
-a mark, another cue (`after` / `with`) or a scene landmark. It lasts its `dur`,
+a mark, another cue (`after` / `with`) or a scene landmark. A beat on a word
+that has no mark is a word pin: `{ mark: 'gift', word: 'faith', dur: 0.6 }`
+starts on the first word said at or after `{gift}` that reads `faith` (read as
+a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
+the word there fails the layout with `WordMissing` (`film check`, the player,
+the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
 a re-take moves its end as well as its start; a span declares one or the
 other, and a lab `dur` write replaces its `until`. Read it in
@@ -209,7 +221,13 @@ frame. Ornament
 **A tweakable value is a knob.** A position or an angle a review may ask to
 move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
-constant.
+constant. A framing is knobs too: a point and a zoom (and a tilt),
+`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with a film
+kit's `knobCamera(f.knob('face'), f.knob('faceZoom'))`. Only the unmoved
+frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
+constant and one shared across scenes stay code. Read a position knob
+under the transform it is drawn with (inside the camera or the plane), so
+its handle lands on it.
 
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text,
 with its turns, and re-records only beats whose text or turns changed, transcribes every new take back with
@@ -285,7 +303,7 @@ points:
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                                                                                                                                                                                 |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                                                                                                                                                                                  |
 |                      | `paper.ts`      | the sheet under everything, the grain over everything (`Grain`: pre-drawn sheets copied at the boil tick's shift), the vignette drawn once (`makeVignette`, multiplied in by `shadeBy`), `offscreen` canvases                                                                                            |
-|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                                                                                                                                                                                        |
+|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows); a shot as data, `shotPath(REST, [[f.at('push'), FACE], [f.at('back'), REST]])` (each stop blends from where the earlier ones left the camera), over `lerpCamera(out, a, b, t)`        |
 |                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                                                                                                                                                                                                          |
 | `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                                                                                                                                                                                                 |
 
@@ -300,7 +318,8 @@ state between frames — compute everything from `f.t`.
 as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,
 for every film but the frozen `righteousness-by-faith-v1`:
 
-| Rule                   | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `film/drawing-literal` | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()` |
-| `film/no-unprobed-ink` | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                       |
+| Rule                         | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `film/drawing-literal`       | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()`                                                                                                                                                                                                                                                                                                                                                                                         |
+| `film/no-unprobed-ink`       | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `film/no-hand-timed-seconds` | a second written by hand, which the lab cannot reach, a sound cannot follow and a re-take leaves behind: `clamp(t / 2)` or `clamp((t - cue.end) / 1.5)` over the scene clock, `(t - cue.start) / 0.5`, `progress`/`envelope(t, …)` with a literal start or length, `keys(t, …)` on the scene clock, `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5` or `t - 4.2`, the clock compared with a second (`t > 3.5`, `t - cue.start > 0.5`), a second hidden in a module `const`, and a span whose literal `offset` sits over 1 s from its `mark` or the scene's `start`/`speech`. Declare a cue and read `f.at`/`f.keys`/`f.stagger`, anchored to a word pin, another cue (`after`/`with`) or the voice's end (`scene: 'speechEnd'`); a pause the script means is a named cue with its reason in a comment. A rate (`Math.sin(t * 7)`) and a lead-in under 1 s are not times |

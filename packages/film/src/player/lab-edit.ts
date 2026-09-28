@@ -87,7 +87,10 @@ const selectionToUrl = (sel: Selection | undefined) => {
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
 const anchorText = (span: Span) => {
-  if ('mark' in span) return `mark {${span.mark}}`;
+  if ('mark' in span)
+    return span.word === undefined
+      ? `mark {${span.mark}}`
+      : `word "${span.word}" after mark {${span.mark}}`;
   if ('after' in span) return `after cue ${span.after}`;
   if ('with' in span) return `with cue ${span.with}`;
   return `scene ${span.scene}`;

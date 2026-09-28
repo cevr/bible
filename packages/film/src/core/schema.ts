@@ -226,12 +226,18 @@ const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
 
 /**
  * Where a named cue starts, plus how long it lasts: at a `{mark}` in the
- * scene's narration, at the end of another cue (`after`), at its start
- * (`with`), or at a scene landmark (its start, where the voice starts or
- * ends, or its end).
+ * scene's narration, or at the first `word` said at or after it (a word pin,
+ * for a beat on a word that has no mark: `{ mark: 'gift', word: 'faith' }`;
+ * a line that never says it there is `WordMissing` at layout), at the end of
+ * another cue (`after`), at its start (`with`), or at a scene landmark (its
+ * start, where the voice starts or ends, or its end).
  */
 export const Span = Schema.Union([
-  ...anchored({ mark: Schema.String }),
+  ...anchored({
+    mark: Schema.String,
+    /** Pin to this word at or after the mark, not the mark; read as a take is checked (`normalizeWords`). */
+    word: Schema.optionalKey(Schema.String),
+  }),
   ...anchored({ after: Schema.String }),
   ...anchored({ with: Schema.String }),
   ...anchored({ scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']) }),

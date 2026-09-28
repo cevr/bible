@@ -32,6 +32,7 @@ import {
   type Line,
   hashText,
   linesOf,
+  normalizeWords,
   parse,
   type TakeState,
   takeScript,
@@ -40,7 +41,7 @@ import {
   wordsFromAlignment,
 } from '../core/narration.ts';
 import { type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
-import { normalizeWords, wordError } from '../core/align.ts';
+import { wordError } from '../core/align.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {

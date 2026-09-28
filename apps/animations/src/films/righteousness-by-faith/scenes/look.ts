@@ -15,16 +15,16 @@ import {
   ellipseShape,
   multiplane,
   rectShape,
+  shotPath,
   spline,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, person, piece, rounded, sky, between } from '../kit.ts';
+import { C, blob, glow, knobCamera, openHand, person, piece, rounded, sky } from '../kit.ts';
 
-/** The desert wide, and close on the face looking up at the serpent. */
+/** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
-const FACE: Camera = { x: 1060, y: 600, zoom: 2 };
 
 /** What the figure holds up to pay with, bottom to top: a kind and its offset. */
 const STACK = [
@@ -61,7 +61,7 @@ export const look = drawing({
   timeline: {
     wonder: { mark: 'faith', dur: 0.5 },
     holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
-    slide: { mark: 'saviour', offset: 2.4, dur: 1.3, ease: 'linear' },
+    slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
     armsDown: { after: 'slide', dur: 0.5 },
     handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'outCubic' },
     light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
@@ -71,11 +71,19 @@ export const look = drawing({
     climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
     slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
     stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
-    lookUp: { mark: 'climb', offset: 1.4, dur: 0.6 },
-    push: { mark: 'climb', offset: 1.4, dur: 1.6, ease: 'inOutCubic' },
-    heal: { mark: 'climb', offset: 4.8, dur: 1.5 },
+    // Stepped back, he looks up and the camera pushes in.
+    lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
+    push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
+    // Healed on "I present Christ".
+    heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
   },
-  knobs: { pole: [1180, 930], figure: [760, 930] },
+  knobs: {
+    pole: [1180, 930],
+    figure: [760, 930],
+    // Close on the face looking up at the serpent.
+    face: [1060, 600],
+    faceZoom: 2,
+  },
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
@@ -152,32 +160,7 @@ export const look = drawing({
         ctx.save();
         ctx.globalAlpha *= handIn;
         at(ctx, { x: 960, y: lerp(1000, 760, handIn), scale: 1.25 }, () => {
-          piece(ctx, rounded(20, 190, 170, 260, 50), C.figure, hand('wrist'), { line: 4 });
-          for (const [x, k] of [
-            [-105, 1],
-            [-37, 2],
-            [33, 3],
-            [100, 4],
-          ] as const)
-            at(ctx, { x, y: -80, rot: x * 0.0012 }, () =>
-              piece(ctx, rounded(0, 0, 58, 120, 28), C.figure, sub(hand('finger'), k), {
-                line: 4,
-              }),
-            );
-          piece(ctx, rounded(0, 20, 310, 170, 80), C.figure, hand('palm'), { line: 4 });
-          at(ctx, { x: -165, y: 10, rot: -0.9 }, () =>
-            piece(ctx, rounded(0, 0, 56, 130, 28), C.figure, hand('thumb'), { line: 4 }),
-          );
-          stroke(
-            ctx,
-            spline([
-              [-90, 50],
-              [0, 30],
-              [90, 55],
-            ]),
-            { color: C.figureShade, width: 4, jitter: 0.4 },
-            hand('crease'),
-          );
+          openHand(ctx, hand);
           if (light > 0) {
             const y = lerp(-620, 0, light);
             glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
@@ -223,7 +206,7 @@ export const look = drawing({
       ]);
       multiplane(
         ctx,
-        between(WIDE, FACE, f.at('push')),
+        shotPath(WIDE, [[f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))]]),
         w,
         h,
         [

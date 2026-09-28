@@ -9,7 +9,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`, the studio's wire `studio`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                         |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                                               |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera and `shotPath`/`lerpCamera` shots, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                             |
 | `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                                                                                              |
 | `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
@@ -143,7 +143,9 @@ quantizer 26 from a second encoder in the same pass), and a chunk whose page
 crashes is retried once on a new page. `Media.join` joins the segments in order with the track cut from
 `full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
-use. A contact sheet is composed in one page (`player/contact.ts`). An
+use. Segments are written to a temp folder of the render's own (`makeTempDirectory`), removed once joined;
+a video writes nothing under `out/<film>/`, whatever its tag. A
+contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
 
@@ -463,7 +465,14 @@ export const justified = drawing({
 
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
 `{ start, end, dur, ease }`); an unknown mark or cue, or a cycle, is an error naming
-the scene and the cue. `f.cue(name)` reads a resolved cue and `f.at(name)`
+the scene and the cue. A mark anchor may pin to a word instead of the mark:
+`{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
+or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. A line that never says it
+there throws `WordMissing` (`core/errors.ts`) at layout, which the tools'
+`placeFilm` fails with as itself (`PlaceError = WordMissing | LayoutInvalid`),
+so `film check` and every tool refuse the film by name; there is no fall back
+to the mark. `f.cue(name)` reads a resolved cue and `f.at(name)`
 its eased progress. A span declares its easing as data, `ease: 'inQuad'` (one
 of the names in `ease`, `EaseName`), and a span without one eases
 `inOutCubic`, as `progress` does. `f.at` takes no ease of its own: the ease
@@ -471,6 +480,18 @@ lives in one place, so the lab's picker always changes the frame. With `drawing(
 `f.cue`, `f.at` or a span's `after`/`with`, is a compile error
 (`canvas/drawing.types.ts` holds the checks). The sound plan's `cueTime` reads the same map, so picture and
 sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
+
+The lint rule `film/no-hand-timed-seconds` (`lint/no-hand-timed-seconds.ts`)
+holds a film to it: it refuses a literal second in a draw (`clamp(t / 2)`,
+`(t - cue.end) / 1.5`, `progress(t, 1.2, 0.5)`, `keys(t, …)`,
+`cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5`, `t - 4.2`, `t > 3.5`,
+`t - cue.start > 0.5`, and the same second held in a module `const`) and a
+span offset over 1 s from its `mark` or the scene's `start`/`speech`, which
+stands in for a word (pin the word) or for a pause (anchor it to `speechEnd`
+or another cue and say why). A rate (`Math.sin(t * 7)`) is not a time. The
+rule reads syntax only, so a product is taken for a rate and a local alias of
+the clock or a helper hiding the subtraction pass; its doc comment lists the
+limits.
 
 ## Knobs
 

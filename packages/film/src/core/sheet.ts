@@ -7,8 +7,7 @@
 // Pure: the CLI reads the script and the quotes, and writes what this returns.
 
 import { Array as Arr, Option } from 'effect';
-import { normalizeWords } from './align.ts';
-import { parse } from './narration.ts';
+import { normalizeWords, parse } from './narration.ts';
 
 /** A verified quotation (a film's `quotes.jsonl`): whose words, where they are. */
 export interface Quote {

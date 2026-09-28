@@ -28,6 +28,24 @@ Record each in the ledger's performance table with the HEAD hash. Budgets come f
 5. **Randomness and noise.** `hash2`, `rng` and boil jitter per point: compare with `math/random` (`mulberry32`) and `math/noise`, which are allocation-free and benchmarked.
 6. **Render pipeline.** Pages, chunk size and encoder settings (`packages/film/src/tools/renderer.ts`, `render-plan.ts`): Remotion's concurrency and benchmark command are the prior art.
 
+## Measured and rejected
+
+A candidate the numbers turned down stays here with its numbers, so it is not proposed again without new ones.
+
+**`at(ctx, …)` / `camera(ctx, …)` closures → `atBegin`/`restore` pairs** (p1-framework item 6, 2026-09-28, HEAD `acb1daca`, this Mac; decided by measure-before-optimise):
+
+| Measure                         | Value                                                                      | How                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Closures per frame, whole film  | 8.1 (6.5 `at` + 1.6 `camera`)                                              | `righteousness-by-faith`, 1311 sampled frames drawn into a null context with `at`/`camera` counted |
+| Closures per frame, worst scene | 23.1 (20.9 `at` + 2.2 `camera`), `message`                                 | same run                                                                                           |
+| Cost per call                   | 7.89 ns with the closure, 4.75 ns as `atBegin`/`restore`: 3.14 ns overhead | Bun micro-bench, 10^7 calls, median of runs                                                        |
+| Overhead per frame, worst scene | ~73 ns                                                                     | 23.1 × 3.14 ns                                                                                     |
+| Draw per frame, film median     | 22.9 ms (`message` 57.6, `centurion` 62.8)                                 | `bun run bench righteousness-by-faith` (headless Chromium, raster flushed)                         |
+| Draw logic alone                | 2.53 ms/frame                                                              | the null-context run                                                                               |
+| Saving ÷ frame time             | ~1e-6 (73 ns ÷ 57.6 ms)                                                    |                                                                                                    |
+
+Counsel's cross-check agreed on the scale: 6–7 ns against 1.1–1.4 ns direct, across 105 `at(ctx,` and 11 `camera(ctx,` call sites. A 1e-6 saving is below the bench's noise and would cost every call site its scoped form (a `restore` that can be forgotten), so the closures stay. Revisit only if a scene's closures per frame grow by three orders of magnitude.
+
 ## Change directly, or propose
 
 - **Change directly**, one revertible commit each with its before/after: hoisting a constant shape out of `draw`, out-params and scratch arrays in a hot helper, replacing a local helper with its `math` equivalent, dropping a redundant `save`/`restore`, a chunk-size change the bench proves.

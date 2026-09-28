@@ -12,6 +12,7 @@ export {
   UnknownMark,
   UnknownScene,
   UnknownVoice,
+  WordMissing,
 } from '../core/errors.ts';
 
 export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {
@@ -368,6 +369,23 @@ export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
 // failure only; the run fails with `CheckFailed` once every one is reported.
 
 /** A named cue that ends after its scene does. */
+/**
+ * A word pin that lands more than one sentence past its mark: the line says
+ * the word near the mark no longer (a re-take dropped or moved it), and the
+ * cue has moved to a later saying without an error.
+ */
+export class WordPinFar extends Schema.TaggedError<WordPinFar>()('WordPinFar', {
+  scene: Schema.String,
+  cue: Schema.String,
+  mark: Schema.String,
+  word: Schema.String,
+  sentences: Schema.Int,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" is pinned to "${this.word}", ${this.sentences} sentences past {${this.mark}}: a re-take that dropped the word near the mark moves the cue there`;
+  }
+}
+
 export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
   scene: Schema.String,
   cue: Schema.String,

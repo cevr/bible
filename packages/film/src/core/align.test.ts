@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
-import { cutsBetween, normalizeWords, placeBeats, timeScript, wordError } from './align.ts';
+import { cutsBetween, placeBeats, timeScript, wordError } from './align.ts';
+import { normalizeWords } from './narration.ts';
 import type { Word } from './schema.ts';
 
 const w = (text: string, start: number, end: number): Word => ({ text, start, end });

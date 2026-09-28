@@ -317,13 +317,7 @@ export const landingCourt = (
           });
           piece(ctx, rounded(1180, 472, 690, 34, 6), C.boardDeep, hand('rim'));
           piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, hand('block'), { line: 2 });
-          at(ctx, { x: GAVEL[0], y: GAVEL[1], rot: s.swing }, () => {
-            piece(ctx, rounded(0, -52, 12, 100, 4), C.inkSoft, hand('handle'), { line: 2 });
-            piece(ctx, rounded(0, -104, 64, 34, 8), C.boardDeep, hand('gavelHead'), {
-              line: 2.5,
-            });
-            piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, hand('gavelHand'), { line: 2.5 });
-          });
+          gavel(ctx, hand, { x: GAVEL[0], y: GAVEL[1], rot: s.swing }, true);
           if (s.stamp > 0.01) {
             BENCH_STAMP.fill = s.fill ?? 1;
             BENCH_STAMP.shown = s.stamp;
@@ -661,14 +655,17 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
 };
 
 /**
- * The cold open's gavel, its handle's foot at the origin and its head up the
- * handle (−y); `rot` turns it about the foot. As it lies on the heavenly
- * court's bench in `robe`, set aside.
+ * The gavel, its handle's foot at `place` and its head up the handle (−y);
+ * `place.rot` turns it about the foot. `held` puts the judge's hand on the
+ * foot, as it swings on the cold open's and the landing's bench; `robe` lays
+ * it on the heavenly court's bench unheld, set aside.
  */
-export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, rot: number) =>
-  at(ctx, { x: 0, y: 0, rot }, () => {
+export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, place: Place, held = false) =>
+  at(ctx, place, () => {
     piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { line: 2 });
     piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { line: 2.5 });
+    if (held) piece(ctx, GAVEL_HAND, C.figure, hand('gavelHand'), { line: 2.5 });
   });
 const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
 const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
+const GAVEL_HAND = ellipseShape(0, 0, 15, 13);

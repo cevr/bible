@@ -10,7 +10,6 @@
 // words on screen.
 
 import {
-  type Camera,
   type Pt,
   at,
   drawing,
@@ -18,11 +17,12 @@ import {
   line,
   multiplane,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, contact, person, piece, rounded, between } from '../kit.ts';
+import { C, contact, knobCamera, person, piece, rounded } from '../kit.ts';
 import {
   type Stamp,
   ACCUSED,
@@ -34,11 +34,9 @@ import {
   STAMP_POP,
   WIDE,
   benchStamp,
+  gavel,
   question,
 } from '../court.ts';
-
-/** Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in. */
-const FACE: Camera = { x: 669, y: 682, zoom: 4, rot: 0.06 };
 
 const SHEETS = (() => {
   const r = rng(1889);
@@ -76,15 +74,22 @@ export const cold = drawing({
     rest: { mark: 'oldest', dur: 0.57 },
     drain: { mark: 'oldest', dur: 1.1, ease: 'inOutSine' },
     hollowOut: { mark: 'job', offset: -0.5, dur: 0.5 },
-    wide: { mark: 'oldest', offset: 1.2, dur: 1.6 },
+    // Wide once the verdict has drained.
+    wide: { after: 'drain', offset: 0.1, dur: 1.6 },
     lookUp: { mark: 'job', dur: 0.6 },
   },
+  // Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in.
+  knobs: { face: [669, 682], faceZoom: 4, faceRot: 0.06 },
   draw: (f) => {
     const { ctx, w, h } = f;
 
     const push = f.at('push');
     const back = f.at('back');
-    const cam = between(between(between(REST, FACE, push), REST, back), WIDE, f.at('wide'));
+    const cam = shotPath(REST, [
+      [push, knobCamera(f.knob('face'), f.knob('faceZoom'), f.knob('faceRot'))],
+      [back, REST],
+      [f.at('wide'), WIDE],
+    ]);
 
     // The accused's face: head down on "you did it", up at the verdict,
     // puzzled on "wait", looking up at the question on "job".
@@ -184,13 +189,7 @@ export const cold = drawing({
             });
             piece(ctx, rounded(1180, 472, 690, 34, 6), C.inkSoft, f.hand('rim'));
             piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, f.hand('block'), { line: 2 });
-            at(ctx, { x: GAVEL[0], y: GAVEL[1], rot: swing }, () => {
-              piece(ctx, rounded(0, -52, 12, 100, 4), C.inkSoft, f.hand('handle'), { line: 2 });
-              piece(ctx, rounded(0, -104, 64, 34, 8), C.boardDeep, f.hand('gavelHead'), {
-                line: 2.5,
-              });
-              piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, f.hand('gavelHand'), { line: 2.5 });
-            });
+            gavel(ctx, f.hand, { x: GAVEL[0], y: GAVEL[1], rot: swing }, true);
             // The verdict, stamped on a torn label across the bench.
             benchStamp(ctx, f.hand, verdict, popScale);
           },
