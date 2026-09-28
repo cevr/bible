@@ -8,8 +8,9 @@
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on:
 // both draw the court's `zechCourt`.
 
-import { type Camera, type Pt, camera, drawing, shotPath } from '@bible/film/canvas';
+import { type Pt, camera, drawing, shotPath } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
+import { knobCamera } from '../kit.ts';
 import {
   ANGEL_HAND,
   JOSHUA,
@@ -18,13 +19,6 @@ import {
   courtWall,
   zechCourt,
 } from '../court.ts';
-
-/** Up at the high window, above everyone's heads. */
-const HIGH: Camera = { x: 1045, y: 280, zoom: 2.3 };
-/** Close on Joshua. */
-const JOSH: Camera = { x: 760, y: 660, zoom: 1.9 };
-/** Joshua and the accuser at his right hand. */
-const PAIR: Camera = { x: 560, y: 640, zoom: 1.4 };
 
 /** Christ's near hand raised (at rest it is the court's `ANGEL_HAND`, as `robe` opens). */
 const HAND_UP: Pt = [-78, -205];
@@ -50,10 +44,24 @@ export const accuser = drawing({
     lift: { mark: 'silence', offset: 0.1, dur: 0.6 },
     grip: { mark: 'silence', offset: 0.5, dur: 0.8 },
   },
+  knobs: {
+    // Up at the high window, above everyone's heads.
+    high: [1045, 280],
+    highZoom: 2.3,
+    // Close on Joshua.
+    josh: [760, 660],
+    joshZoom: 1.9,
+    // Joshua and the accuser at his right hand.
+    pair: [560, 640],
+    pairZoom: 1.4,
+  },
   draw: (f) => {
     const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
 
+    const HIGH = knobCamera(f.knob('high'), f.knob('highZoom'));
+    const JOSH = knobCamera(f.knob('josh'), f.knob('joshZoom'));
+    const PAIR = knobCamera(f.knob('pair'), f.knob('pairZoom'));
     const cam = shotPath(HIGH, [
       [f.at('down'), REST],
       [f.at('push'), JOSH],

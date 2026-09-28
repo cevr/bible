@@ -21,11 +21,10 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, openHand, person, piece, rounded, sky } from '../kit.ts';
+import { C, blob, glow, knobCamera, openHand, person, piece, rounded, sky } from '../kit.ts';
 
-/** The desert wide, and close on the face looking up at the serpent. */
+/** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
-const FACE: Camera = { x: 1060, y: 600, zoom: 2 };
 
 /** What the figure holds up to pay with, bottom to top: a kind and its offset. */
 const STACK = [
@@ -78,7 +77,13 @@ export const look = drawing({
     // Healed on "I present Christ".
     heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
   },
-  knobs: { pole: [1180, 930], figure: [760, 930] },
+  knobs: {
+    pole: [1180, 930],
+    figure: [760, 930],
+    // Close on the face looking up at the serpent.
+    face: [1060, 600],
+    faceZoom: 2,
+  },
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
@@ -201,7 +206,7 @@ export const look = drawing({
       ]);
       multiplane(
         ctx,
-        shotPath(WIDE, [[f.at('push'), FACE]]),
+        shotPath(WIDE, [[f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))]]),
         w,
         h,
         [

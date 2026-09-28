@@ -35,6 +35,7 @@ import {
   blob,
   clipToGarment,
   glow,
+  knobCamera,
   mix,
   person,
   piece,
@@ -42,40 +43,40 @@ import {
 import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../court.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
-const FIG: Pt = [520, 1240];
 const FS = 3.8;
-/** The figure's chest, where the verdict sinks and the word lands. */
-const CHEST: Pt = [FIG[0], FIG[1] - 80 * FS];
+/** The figure's chest this frame, where the verdict sinks and the word lands (scratch, set from the `fig` knob). */
+const CHEST: [number, number] = [0, 0];
 
+/** The unmoved frame the scene rests on (the canvas itself, so not a knob). */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
-/** Close on the face, with the word card still whole beside it. */
-const FACE: Camera = { x: 800, y: 610, zoom: 1.22 };
 
-/** The verdict's scale here: the size it stamps at on screen in the court, under the FACE framing. */
-const STAMP_SCALE = (COURT.zoom ?? 1) / (FACE.zoom ?? 1);
 /** Where the verdict drifts in from, level with where it hangs: across from where the card was. */
 const STAMP_FROM_X = 1240;
-/** Half the verdict's label here, across and down (the stamp's gold edge, 262 by 90, at its scale). */
-const STAMP_HALF: Pt = [262 * STAMP_SCALE, 90 * STAMP_SCALE];
 /**
  * The column the verdict passes down, clear of the face: the head's right
- * edge (its 35-unit radius at the figure's scale) plus half the label and a
- * margin, so no part of it crosses the face on the way.
+ * edge (its 35-unit radius at the figure's scale) plus half the label (the
+ * stamp's gold edge, 262 wide, at its scale) and a margin, so no part of it
+ * crosses the face on the way.
  */
-const SIDE_X = FIG[0] + 35 * FS + STAMP_HALF[0] + 40;
+const sideX = (figX: number, stampScale: number) => figX + 35 * FS + 262 * stampScale + 40;
 /** Where the verdict is this frame: one scratch point, reused. */
 const AT: [number, number] = [0, 0];
 
 /**
  * Sets `AT` to the point `p` (0..1) along the way from `a` to `b` round the
- * face: out level to the side column, along it to `b`'s height, then in
+ * face: out level to the `side` column, along it to `b`'s height, then in
  * level to `b`, each leg eased. The label never crosses the face.
  */
-const aroundFace = (a: readonly [number, number], b: readonly [number, number], p: number) => {
+const aroundFace = (
+  a: readonly [number, number],
+  b: readonly [number, number],
+  side: number,
+  p: number,
+) => {
   const out = ease.inOutSine(clamp(p * 3));
   const along = ease.inOutSine(clamp(p * 3 - 1));
   const inward = ease.inOutSine(clamp(p * 3 - 2));
-  AT[0] = lerp(lerp(a[0], SIDE_X, out), b[0], inward);
+  AT[0] = lerp(lerp(a[0], side, out), b[0], inward);
   AT[1] = lerp(a[1], b[1], along);
 };
 
@@ -285,38 +286,58 @@ export const declared = drawing({
     landed: { after: 'speak', dur: 0.5 },
     bloom: { mark: 'made', offset: -0.6, dur: 1.6, ease: 'outCubic' },
   },
-  // Where the hollow verdict hangs over the head, and where it lowers over the stains.
-  knobs: { hang: [540, 360], patch: [515, 880] },
+  knobs: {
+    // Where the hollow verdict hangs over the head, and where it lowers over the stains.
+    hang: [540, 360],
+    patch: [515, 880],
+    // The figure's feet.
+    fig: [520, 1240],
+    // Close on the face, with the word card still whole beside it.
+    face: [800, 610],
+    faceZoom: 1.22,
+  },
   draw: (f) => {
     const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
     const back = f.at('back');
     const bloom = f.at('bloom');
     const doubt = f.at('doubt') * (1 - back);
-
-    // The verdict: drifts in over the head, goes round the face to lie over
-    // the stains and back, fills word by word through the quotation, then,
-    // solid, takes its weight and goes round the face into the chest.
-    const hang = f.knob('hang');
-    const patch = f.knob('patch');
+    const faceZoom = f.knob('faceZoom');
+    const FACE = knobCamera(f.knob('face'), faceZoom);
+    // The verdict's scale here: the size it stamps at on screen in the court, under the FACE framing.
+    const stampScale = (COURT.zoom ?? 1) / faceZoom;
     const drift = f.at('drift');
     const cover = f.at('patch') * (1 - f.at('unpatch'));
     const sink = f.at('sink');
     const into = f.keys('sink', SINK_PATH);
-    if (sink > 0) aroundFace(hang, CHEST, into);
-    else if (f.at('unpatch') > 0) aroundFace(patch, hang, f.at('unpatch'));
-    else if (f.at('patch') > 0) aroundFace(hang, patch, f.at('patch'));
-    else {
-      AT[0] = lerp(STAMP_FROM_X, hang[0], drift);
-      AT[1] = hang[1];
-    }
-    const verdict = VERDICT;
-    verdict.x = AT[0];
-    verdict.y = AT[1] + f.keys('sink', SINK_RISE);
-    verdict.scale = STAMP_SCALE * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3);
-    verdict.squash = f.keys('sink', SINK_SQUASH);
-    verdict.fill = f.spoken('w', 'voice');
-    verdict.shown = drift * (1 - f.keys('sink', SINK_OUT));
+
+    /**
+     * The verdict: drifts in over the head, goes round the face to lie over
+     * the stains and back, fills word by word through the quotation, then,
+     * solid, takes its weight and goes round the face into the chest. Placed
+     * under the camera, where its knobs and the figure's are read, so the
+     * lab's handles land where they are drawn.
+     */
+    const placeVerdict = (fig: readonly [number, number]) => {
+      const hang = f.knob('hang');
+      const patch = f.knob('patch');
+      const side = sideX(fig[0], stampScale);
+      if (sink > 0) aroundFace(hang, CHEST, side, into);
+      else if (f.at('unpatch') > 0) aroundFace(patch, hang, side, f.at('unpatch'));
+      else if (f.at('patch') > 0) aroundFace(hang, patch, side, f.at('patch'));
+      else {
+        AT[0] = lerp(STAMP_FROM_X, hang[0], drift);
+        AT[1] = hang[1];
+      }
+      const verdict = VERDICT;
+      verdict.x = AT[0];
+      verdict.y = AT[1] + f.keys('sink', SINK_RISE);
+      verdict.scale = stampScale * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3);
+      verdict.squash = f.keys('sink', SINK_SQUASH);
+      verdict.fill = f.spoken('w', 'voice');
+      verdict.shown = drift * (1 - f.keys('sink', SINK_OUT));
+      return verdict;
+    };
 
     // The figure's eyes follow the verdict: up at it, down at the chest under it, and down as it sinks in.
     const landed = f.at('landed');
@@ -333,12 +354,17 @@ export const declared = drawing({
       w,
       h,
       () => {
+        const fig = f.knob('fig');
+        CHEST[0] = fig[0];
+        CHEST[1] = fig[1] - 80 * FS;
+        const verdict = placeVerdict(fig);
+
         // The dawn panel, callback to `spoke`.
         const shown = f.at('panel');
         if (shown > 0) panel(ctx, hand, shown);
 
         // The figure, their stains washed out from the light inside as it spreads.
-        at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
+        at(ctx, { x: fig[0], y: fig[1], scale: FS }, () => {
           const figure: Person = {
             body: clothAt(bloom),
             tilt: 0.1 * doubt - 0.08 * up + 0.08 * landed,

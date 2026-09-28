@@ -213,7 +213,13 @@ frame. Ornament
 **A tweakable value is a knob.** A position or an angle a review may ask to
 move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
-constant.
+constant. A framing is knobs too: a point and a zoom (and a tilt),
+`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with a film
+kit's `knobCamera(f.knob('face'), f.knob('faceZoom'))`. Only the unmoved
+frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
+constant and one shared across scenes stay code. Read a position knob
+under the transform it is drawn with (inside the camera or the plane), so
+its handle lands on it.
 
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text,
 with its turns, and re-records only beats whose text or turns changed, transcribes every new take back with

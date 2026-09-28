@@ -10,7 +10,6 @@
 // words on screen.
 
 import {
-  type Camera,
   type Pt,
   at,
   drawing,
@@ -23,7 +22,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, contact, person, piece, rounded } from '../kit.ts';
+import { C, contact, knobCamera, person, piece, rounded } from '../kit.ts';
 import {
   type Stamp,
   ACCUSED,
@@ -38,9 +37,6 @@ import {
   gavel,
   question,
 } from '../court.ts';
-
-/** Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in. */
-const FACE: Camera = { x: 669, y: 682, zoom: 4, rot: 0.06 };
 
 const SHEETS = (() => {
   const r = rng(1889);
@@ -82,13 +78,15 @@ export const cold = drawing({
     wide: { after: 'drain', offset: 0.1, dur: 1.6 },
     lookUp: { mark: 'job', dur: 0.6 },
   },
+  // Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in.
+  knobs: { face: [669, 682], faceZoom: 4, faceRot: 0.06 },
   draw: (f) => {
     const { ctx, w, h } = f;
 
     const push = f.at('push');
     const back = f.at('back');
     const cam = shotPath(REST, [
-      [push, FACE],
+      [push, knobCamera(f.knob('face'), f.knob('faceZoom'), f.knob('faceRot'))],
       [back, REST],
       [f.at('wide'), WIDE],
     ]);

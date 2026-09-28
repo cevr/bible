@@ -41,6 +41,7 @@ import {
   type Person,
   contact,
   glow,
+  knobCamera,
   icons,
   openHand,
   person,
@@ -53,12 +54,6 @@ import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { herald } from '../heaven.ts';
 import { arc, flight } from '../spoken.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
-
-const REST: Camera = { x: 960, y: 560, zoom: 1.1 };
-/** On the two preachers. */
-const PREACH: Camera = { x: 960, y: 520, zoom: 1.5 };
-/** Toward the pulpit's light. */
-const PULPIT: Camera = { x: 960, y: 560, zoom: 1.15 };
 
 /** The platform's front edge: the preachers stand on it. */
 const STAGE_Y = 700;
@@ -114,6 +109,17 @@ const timeline = {
   days: { mark: 'daily' },
 } as const;
 const knobs = {
+  // The hall at rest.
+  rest: [960, 560],
+  restZoom: 1.1,
+  // On the two preachers.
+  preach: [960, 520],
+  preachZoom: 1.5,
+  // Toward the pulpit's light.
+  pulpit: [960, 560],
+  pulpitZoom: 1.15,
+  // Where the figure on the page stands.
+  figureAt: [960, 1010],
   angelAt: [1620, 330],
   emblem: [960, 190],
   // The open hand's palm, and the row of gifts laid across it.
@@ -156,10 +162,11 @@ export const message = drawing({
         [0.6, C.tealMid],
         [1, C.tealLow],
       ]);
+      const REST = knobCamera(f.knob('rest'), f.knob('restZoom'));
       const cam = shotPath(REST, [
-        [f.at('push'), PREACH],
+        [f.at('push'), knobCamera(f.knob('preach'), f.knob('preachZoom'))],
         [f.at('back'), REST],
-        [f.at('toPulpit'), PULPIT],
+        [f.at('toPulpit'), knobCamera(f.knob('pulpit'), f.knob('pulpitZoom'))],
       ]);
       const roof = f.at('roof');
       const up: Camera = { ...cam, y: cam.y - 60 * roof, zoom: lerp(cam.zoom ?? 1, 1, roof) };
@@ -201,9 +208,8 @@ export const message = drawing({
   },
 });
 
-/** The figure on the page: its scale, and where it stands. */
+/** The figure on the page: its scale (where it stands is the `figureAt` knob). */
 const FIGURE_S = 2.6;
-const FIGURE_AT: Pt = [960, 1010];
 /** The open hand's scale, and the gifts' row scale across its palm. */
 const HAND_S = 2.2;
 const GIFTS_S = 0.6;
@@ -219,8 +225,8 @@ const NOON_Y = 130;
 const DAYS = 3;
 /** How much of a day the days take to come in and to go: the dusk dims and the hand's close ease in and out over it. */
 const DAYS_EASE = 0.5;
-/** The word of light that falls into the figure's chest on "makes", from above the page. */
-const MAKES_PATH = arc([1320, -120], [FIGURE_AT[0], FIGURE_AT[1] - 80 * FIGURE_S], 60);
+/** Where the word of light that falls into the figure's chest on "makes" starts, above the page. */
+const MAKES_FROM: Pt = [1320, -120];
 /** Each stain's reach from the light in the chest, and one scratch list of their wash. */
 const STAIN_REACH = FIGURE_STAIN_SPOTS.map(([x, y]) => Math.hypot(x, y + 80) / 40);
 const WASH: number[] = FIGURE_STAIN_SPOTS.map(() => 0);
@@ -309,37 +315,35 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   const hear = f.at('hear');
   for (let i = 0; i < WASH.length; i++) WASH[i] = clamp(2.2 * warm - (STAIN_REACH[i] ?? 0));
   const given = f.at('given');
+  const [fx, fy] = f.knob('figureAt');
   ctx.save();
   ctx.globalAlpha *= 1 - handIn;
-  at(
-    ctx,
-    { x: FIGURE_AT[0], y: FIGURE_AT[1], scale: FIGURE_S * shown * lerp(1, 1.4, handIn) },
-    () => {
-      contact(ctx, 0, 4, 150);
-      person(
-        ctx,
-        {
-          look: [0, lerp(-4 * hear, 3, warm)],
-          tilt: -0.08 * hear * (1 - warm),
-          nod: 4 * warm,
-          browL: 3 * hear + 2 * warm,
-          browR: 4 * hear + 2 * warm,
-          browTilt: 0.35 * hear * (1 - warm),
-          smile: 0.8 * warm,
-          stains: FIGURE_STAINS,
-          washed: WASH,
-        },
-        f.hand('pageFigure'),
-      );
-      if (warm > 0) {
-        glow(ctx, 0, -80, lerp(20, 70, warm), C.glow, 0.9 * warm);
-        glow(ctx, 0, -80, 26, C.gold, 0.7 * warm);
-      }
-    },
-  );
+  at(ctx, { x: fx, y: fy, scale: FIGURE_S * shown * lerp(1, 1.4, handIn) }, () => {
+    contact(ctx, 0, 4, 150);
+    person(
+      ctx,
+      {
+        look: [0, lerp(-4 * hear, 3, warm)],
+        tilt: -0.08 * hear * (1 - warm),
+        nod: 4 * warm,
+        browL: 3 * hear + 2 * warm,
+        browR: 4 * hear + 2 * warm,
+        browTilt: 0.35 * hear * (1 - warm),
+        smile: 0.8 * warm,
+        stains: FIGURE_STAINS,
+        washed: WASH,
+      },
+      f.hand('pageFigure'),
+    );
+    if (warm > 0) {
+      glow(ctx, 0, -80, lerp(20, 70, warm), C.glow, 0.9 * warm);
+      glow(ctx, 0, -80, 26, C.gold, 0.7 * warm);
+    }
+  });
   ctx.restore();
   // The word of light, over the figure as it lands in the chest.
-  if (given < 1) flight(ctx, MAKES_PATH, given, f.hand('given'), 0.4);
+  if (given > 0 && given < 1)
+    flight(ctx, arc(MAKES_FROM, [fx, fy - 80 * FIGURE_S], 60), given, f.hand('given'), 0.4);
 };
 
 /** The hall of 1888: wall and windows (which lift away as the roof), the platform, and the crowd. */

@@ -12,12 +12,12 @@ import { clamp, ease, lerp } from '@bible/film/core';
 import { C, person, piece, rounded } from '../kit.ts';
 import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 
-/** The page: close on the asker, and the book they turn to. */
-const FIGURE: Pt = [600, 1330];
+/** The book the asker turns to (where the asker stands is the `figure` knob). */
 const BOOK: Pt = [1360, 600];
 /** The book's dark page, which the camera pushes through. */
 const PAGE: Pt = [1360 + 150, 600];
 
+/** The unmoved frame (the canvas itself, so not a knob). */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
 
 export const spoke = drawing({
@@ -37,7 +37,12 @@ export const spoke = drawing({
     hang: { mark: 'only', offset: 0.2, dur: 1.5, ease: 'inOutSine' },
     grow: { mark: 'itself', offset: -0.5, dur: 1.6, ease: 'linear' },
   },
-  knobs: { hangAt: [1330, 420], from: [-120, 760] },
+  knobs: {
+    hangAt: [1330, 420],
+    from: [-120, 760],
+    // The page: close on the asker.
+    figure: [600, 1330],
+  },
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
@@ -53,7 +58,8 @@ export const spoke = drawing({
         zoom: lerp(1, 9, ease.inCubic(plunge)),
       };
       camera(ctx, cam, w, h, () => {
-        at(ctx, { x: FIGURE[0], y: FIGURE[1], scale: 4.2 }, () =>
+        const figure = f.knob('figure');
+        at(ctx, { x: figure[0], y: figure[1], scale: 4.2 }, () =>
           person(
             ctx,
             {

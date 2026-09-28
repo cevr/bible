@@ -34,6 +34,7 @@ import {
   contact,
   gait,
   glow,
+  knobCamera,
   heart as drawHeart,
   icons,
   mix,
@@ -44,17 +45,13 @@ import {
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 
-/** The figure on the page: where they stand, and where they stand aside. */
-const CENTRE: Pt = [960, 930];
-const ASIDE: Pt = [420, 930];
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
 const PANEL_W = 900;
 const PANEL_H = 640;
 
-/** The page at rest, and close on the figure's face (a third of the frame) on "become". */
+/** The page at rest: the unmoved frame (the canvas itself, so not a knob). */
 const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
-const FACE: Camera = { x: 960, y: 590, zoom: 2.1 };
 
 /** Each hand held out open at the side, and at rest; and the shoulder the glow runs through. */
 const OPEN_HAND: Pt = [78, -80];
@@ -85,10 +82,20 @@ const timeline = {
   walk: { mark: 'second', offset: 0.3, dur: 2, ease: 'linear' },
 } as const;
 
-type WithinFrame = Frame<keyof typeof timeline & string>;
+const knobs = {
+  // The figure on the page, and where they stand aside for the panel.
+  centre: [960, 930],
+  aside: [420, 930],
+  // Close on the figure's face (a third of the frame) on "become".
+  face: [960, 590],
+  faceZoom: 2.1,
+} as const;
+
+type WithinFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 export const within = drawing({
   timeline,
+  knobs,
   draw: (f) => {
     // The icons cover the page from their pull back until the figure comes back.
     const shown = f.at('toIcons') * (1 - f.at('backIn'));
@@ -105,12 +112,14 @@ const page = (f: WithinFrame) => {
     [1, C.paper],
   ]);
   const cam = shotPath(PAGE, [
-    [f.at('closeUp'), FACE],
+    [f.at('closeUp'), knobCamera(f.knob('face'), f.knob('faceZoom'))],
     [f.at('closeOut'), PAGE],
   ]);
   camera(ctx, cam, w, h, () => {
     const aside = f.at('aside');
-    const [fx, fy] = [lerp(CENTRE[0], ASIDE[0], aside), lerp(CENTRE[1], ASIDE[1], aside)];
+    const centre = f.knob('centre');
+    const side = f.knob('aside');
+    const [fx, fy] = [lerp(centre[0], side[0], aside), lerp(centre[1], side[1], aside)];
     const scale = lerp(2.4, 1.9, aside);
     circle(f, [fx, fy - 92 * scale]);
     contact(ctx, fx, fy + 4, 90 * scale);

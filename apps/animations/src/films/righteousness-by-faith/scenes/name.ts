@@ -15,9 +15,10 @@
 // from inside the figure. On "jer" the bench itself goes gold, and the word
 // gives way to the name in `thesis`.
 
-import { type Camera, drawing, shotPath } from '@bible/film/canvas';
+import { drawing, shotPath } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
+import { knobCamera } from '../kit.ts';
 import {
   ADVOCATE_HAND,
   ADVOCATE_POSE,
@@ -39,11 +40,6 @@ const SWING: ReadonlyArray<Key> = [
   [0.763, 1.5, 'inOutCubic'],
   [1, GAVEL_DOWN],
 ];
-
-/** Close on the two of them as the figure touches the robe. */
-const CLOSE: Camera = { x: 720, y: 700, zoom: 2.6, rot: 0.03 };
-/** On the two of them as the Advocate shows the light in the figure: the evidence. */
-const PAIR: Camera = { x: 760, y: 690, zoom: 2 };
 
 export const name = drawing({
   timeline: {
@@ -78,7 +74,16 @@ export const name = drawing({
     smile: { mark: 'jer', offset: 0.4, dur: 0.6 },
   },
   // Where the Advocate's open hand gives, and later presents, the light in the figure's chest, in his units.
-  knobs: { present: [-104, -80] },
+  knobs: {
+    present: [-104, -80],
+    // Close on the two of them as the figure touches the robe.
+    close: [720, 700],
+    closeZoom: 2.6,
+    closeRot: 0.03,
+    // On the two of them as the Advocate shows the light in the figure: the evidence.
+    pair: [760, 690],
+    pairZoom: 2,
+  },
   draw: (f) => {
     const { ctx, w, h } = f;
     landingSky(ctx, w, h);
@@ -104,9 +109,9 @@ export const name = drawing({
     landingCourt(ctx, w, h, (k) => f.hand(k), {
       cam: shotPath(REST, [
         [f.at('wide'), WIDE],
-        [f.at('close'), CLOSE],
+        [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'), f.knob('closeRot'))],
         [f.at('back'), WIDE],
-        [f.at('toPair'), PAIR],
+        [f.at('toPair'), knobCamera(f.knob('pair'), f.knob('pairZoom'))],
         [f.at('toBench'), WIDE],
       ]),
       swing,
