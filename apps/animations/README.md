@@ -146,7 +146,24 @@ knobs: wipe (HEAD left of a divider you drag) or blink; when HEAD cannot give th
 compare and play are kept through the reload a write causes (the tab's
 sessionStorage, per film). The panel's
 Look-book link (`?film=<film>&lookbook`) composes `bun run lookbook`'s
-sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
+sheet live; a click on a still opens that frame. The panel's **Studio**
+section records the owner's voiceover beat by beat: pick a beat (its line is
+the teleprompter), click into the section, then R records after a 3 s
+count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
+K submits; what was heard and the word error show, or the server's refusal,
+and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
+Esc cancels; those keys are the Studio's only while it has focus. Each beat's
+attempts play again and Keep makes one the take. A kept take reloads the lab
+at the same time, on the same beat, playing the new take (`/films/*` is served
+uncached for that). Use Chrome or Firefox on the Mac and allow the
+microphone for `127.0.0.1:4401`; pick the interface in the Studio's mic list
+(it is remembered in the browser). The capture is raw PCM (no echo cancelling,
+noise suppression or gain control) posted as a 24-bit WAV at the microphone's
+own rate. `bun test/fixtures/studio-harness.ts` runs the same lab over a temp
+copy of a film with a fake speech-to-text (no paid call; `POST
+/lab/harness/mishear/<beat>` makes it mis-hear a beat, `POST
+/lab/harness/stop` stops it and removes the copy), for driving the panel
+without touching the real films. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every music act's start (a line through it), from the film's
