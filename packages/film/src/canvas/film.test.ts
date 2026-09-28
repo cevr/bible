@@ -4,6 +4,7 @@
 // or silently in it. Laying out a film needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
+import { DRIFT } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm } from './film.ts';
 
 const spec = (finish: FinishStyle = {}, plate?: Partial<CaptionStyle>): FilmSpec => ({
@@ -31,6 +32,20 @@ describe('createFilm finish and caption plate', () => {
   test('lays the screen grain as a faint film layer: the paper carries its own grain', () => {
     expect(createFilm(spec()).look.finish.grain).toBe(0.03);
     expect(createFilm(spec({ grain: 0.2 })).look.finish.grain).toBe(0.2);
+  });
+
+  test('breathes by DRIFT unless the film sets its own drift, or none', () => {
+    expect(createFilm(spec()).drift).toEqual(DRIFT);
+    expect(createFilm({ ...spec(), drift: 0 }).drift).toBe(0);
+    expect(createFilm({ ...spec(), drift: { zoom: 0.01, x: 8 } }).drift).toEqual({
+      zoom: 0.01,
+      x: 8,
+    });
+  });
+
+  test('refuses a drift the camera cannot take', () => {
+    expect(() => createFilm({ ...spec(), drift: { zoom: Number.NaN, x: 0 } })).toThrow('zoom');
+    expect(() => createFilm({ ...spec(), drift: { zoom: -1, x: 0 } })).toThrow('zoom');
   });
 
   test.each([

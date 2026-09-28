@@ -363,11 +363,14 @@ describe('multiplane', () => {
 // start, pushed in and slid at its middle, back to the shot as framed at its
 // end, so every cut and callback lands where it was drawn.
 describe('drift', () => {
-  /** The transform inside `camera(cam)` drawn `through` a scene (0..1), with `drift` when named. */
-  const inside = (through: number, cam: Camera, drift?: Drift | 0) => {
+  /**
+   * The transform inside `camera(cam)` drawn `through` a scene (0..1) of a
+   * film that drifts `film`, the shot taking `share` of it when named.
+   */
+  const inside = (through: number, cam: Camera, share?: number, film: Drift | 0 = DRIFT) => {
     const r = recorder();
     let m: Affine = IDENTITY;
-    hearingCameras(r.ctx, undefined, through, () =>
+    hearingCameras(r.ctx, undefined, { through, drift: film }, () =>
       camera(
         r.ctx,
         cam,
@@ -376,7 +379,7 @@ describe('drift', () => {
         () => {
           m = r.now();
         },
-        drift,
+        share,
       ),
     );
     return m;
@@ -408,10 +411,21 @@ describe('drift', () => {
     expect(applyAffine(m, [CAM.x, CAM.y])).toEqual([960, 540]);
   });
 
+  test('a shot takes a share of the film breath: half of it pushes half as far', () => {
+    expect(inside(0.5, CAM, 0.5)[0]).toBeCloseTo(1 + DRIFT.zoom / 2);
+  });
+
+  test("the breath is the film's: one the film sets moves every shot, and none holds them all", () => {
+    expect(inside(0.5, CAM, undefined, { zoom: 0.1, x: 0 })[0]).toBeCloseTo(1.1);
+    const held = inside(0.5, CAM, undefined, 0);
+    expect(held[0]).toBe(1);
+    expect(applyAffine(held, [CAM.x, CAM.y])).toEqual([960, 540]);
+  });
+
   test('a camera inside another drifts no further', () => {
     const r = recorder();
     const seen: Affine[] = [];
-    hearingCameras(r.ctx, undefined, 0.5, () =>
+    hearingCameras(r.ctx, undefined, { through: 0.5, drift: DRIFT }, () =>
       camera(r.ctx, CAM, 1920, 1080, () => {
         seen.push(r.now());
         camera(r.ctx, { x: 960, y: 540 }, 1920, 1080, () => seen.push(r.now()));
@@ -427,7 +441,7 @@ describe('drift', () => {
       z,
       draw: () => zooms.set(name, r.now()[0]),
     });
-    hearingCameras(r.ctx, undefined, 0.5, () =>
+    hearingCameras(r.ctx, undefined, { through: 0.5, drift: DRIFT }, () =>
       withDom(() => multiplane(r.ctx, CAM, 1920, 1080, [at('far', 3), at('focal', 1)])),
     );
     expect(zooms.get('focal')).toBeCloseTo(1 + DRIFT.zoom);
@@ -435,10 +449,9 @@ describe('drift', () => {
   });
 
   test('a drift let go holds still: driftHeld(1) is none, driftHeld(0) the whole breath', () => {
-    expect(driftHeld(0)).toEqual(DRIFT);
+    expect(driftHeld(0)).toBe(1);
     expect(driftHeld(1)).toBe(0);
-    const half = driftHeld(0.5);
-    expect(half === 0 ? 0 : half.zoom).toBeCloseTo(DRIFT.zoom / 2);
+    expect(driftHeld(0.25)).toBe(0.75);
   });
 });
 
@@ -454,7 +467,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       (m) => heard.push(inside(m)),
-      0,
+      { through: 0, drift: DRIFT },
       () =>
         camera(r.ctx, { x: 1000, y: 500, zoom: 2 }, 1920, 1080, () =>
           camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined),
@@ -477,7 +490,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       (m) => heard.push(inside(m)),
-      0,
+      { through: 0, drift: DRIFT },
       () => shoot(r, { x: 1000, y: 500, zoom: 2 }, { far: 3, focal: 1, near: 0.5 }, [0, 0]),
     );
     expect(heard).toHaveLength(1);
@@ -491,7 +504,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       () => heard.push(1),
-      0,
+      { through: 0, drift: DRIFT },
       () => undefined,
     );
     camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined);

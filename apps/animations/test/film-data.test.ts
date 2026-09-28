@@ -17,6 +17,7 @@ import {
 } from '@bible/film/core';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { firstCut } from '../src/films/righteousness-by-faith-v1/film.ts';
 import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
 import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
 import { voice } from '../src/films/righteousness-by-faith-v1/voice.ts';
@@ -71,6 +72,17 @@ describe('righteousness-by-faith-v1 data', () => {
       const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.music));
       const plan = yield* Effect.fromResult(musicPlan(music, layout(scenes, timings)));
       expect(musicKey(music, plan)).toBe('be8be957');
+    }),
+  );
+
+  // The first cut is the frozen A/B reference: an engine default that moves
+  // (the screen grain, the scenes' breath) must not move its pixels, so the
+  // film declares the settings it was drawn with.
+  it.effect('draws with the screen grain and the stillness it was cut with', () =>
+    Effect.sync(() => {
+      const made = firstCut();
+      expect(made.look.finish.grain).toBe(0.09);
+      expect(made.drift).toBe(0);
     }),
   );
 });

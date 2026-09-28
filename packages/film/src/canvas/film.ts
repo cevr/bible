@@ -4,7 +4,7 @@
 
 import { Predicate, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
-import { hearingCameras, insideCamera } from './camera.ts';
+import { DRIFT, type Drift, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
 import { sceneCaptions } from '../core/captions.ts';
 import {
@@ -179,6 +179,19 @@ export const FinishStyle = Schema.Struct({
 });
 export type FinishStyle = typeof FinishStyle.Type;
 
+/**
+ * A film's breath (`Drift`): a push a share of the shot's zoom, over −1 (so
+ * the shot never turns inside out), and a slide in frame px; or `0`, none.
+ * Checked where the film is made (`createFilm`).
+ */
+const FilmDrift = Schema.Union([
+  Schema.Literal(0),
+  Schema.Struct({
+    zoom: Schema.Finite.check(Schema.isGreaterThan(-1)),
+    x: Schema.Finite,
+  }),
+]);
+
 /** A CSS font the canvas sets (`600 60px "Fraunces"`): its size in a short's 1080 × 1920 px. */
 const Font = Schema.NonEmptyString;
 
@@ -216,6 +229,11 @@ export interface FilmSpec {
   readonly shade: string;
   /** The vignette and grain over every frame. */
   readonly finish?: FinishStyle;
+  /**
+   * How every scene breathes (`Drift`), the one place its size is set:
+   * `DRIFT` by default, `0` for none anywhere (a film frozen as it was drawn).
+   */
+  readonly drift?: Drift | 0;
   readonly scenes: ReadonlyArray<SceneSpec>;
   readonly timings?: Timings;
   readonly captions?: CaptionStyle;
@@ -297,6 +315,8 @@ export interface Film {
   /** Named colours, as declared (none when the film declares none). */
   readonly palette: Readonly<Record<string, string>>;
   readonly allRecorded: boolean;
+  /** How every scene breathes: the film's `drift`, `DRIFT` unless it set its own, `0` for none. */
+  readonly drift: Drift | 0;
   /** The sheet it is drawn on, as made: what a page cut from it (a short) is drawn on too. */
   readonly look: FilmLook;
   sceneAt(T: number): Placed<SceneSpec>;
@@ -383,6 +403,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
+  const drift: Drift | 0 = Schema.decodeSync(FilmDrift)(spec.drift ?? DRIFT);
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
   const short = shortOf(spec.short, spec.shade);
 
@@ -536,7 +557,9 @@ export const createFilm = (spec: FilmSpec): Film => {
       reads?.direct === true
         ? (inside: DOMMatrix, aimed: DOMMatrix) => frameReads(reads.list, inside, aimed)
         : undefined;
-    hearingCameras(ctx, heard, p.dur > 0 ? t / p.dur : 0, () => p.spec.draw(frame));
+    hearingCameras(ctx, heard, { through: p.dur > 0 ? t / p.dur : 0, drift }, () =>
+      p.spec.draw(frame),
+    );
     ctx.restore();
   };
 
@@ -642,6 +665,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     sound: spec.sound,
     palette: spec.palette ?? {},
     allRecorded,
+    drift,
     look: { paper: spec.paper, shade: spec.shade, finish, short },
     sceneAt,
     render,
