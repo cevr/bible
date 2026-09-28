@@ -57,10 +57,8 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 
 ## 6. The viewer's question
 
-- BibleProject gives the viewer a second voice that asks at every turn, in 2 to 15 words, and gets a wrap line of 12 words or fewer.
-- **Give the question its own voice.** Cast the film in `voice.ts`, and hand the line over with `{@ask}` and back with `{@lead}`: "…and God calls him righteous. {@ask}Declared? But he's guilty. {@lead}Exactly. And that's the point." The question is the viewer's own words, not a setup line.
-- Keep the second voice a companion who is curious, never a skeptic to be beaten. BibleProject's co-host thinks aloud beside the narrator.
-- With one reader, the narrator asks the question in the viewer's words and answers it with the wrap line.
+- BibleProject asks the viewer's question at every turn, in 2 to 15 words, and answers it with a wrap line of 12 words or fewer.
+- **One narrator asks it.** A film has one reader: the narrator asks the question in the viewer's own words, not a setup line, and answers it with the wrap line: "…and God calls him righteous. Declared? But he's guilty. Exactly. And that's the point."
 - **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film: the act's `chapter` in `film.ts`'s `look`. `bun run chapters <film>` prints them.
 - **Check:** every register switch in the script comes with a question.
 

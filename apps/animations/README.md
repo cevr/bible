@@ -193,7 +193,7 @@ along the top) and every music act's start (a line through it), from the film's
 ```
 src/films/<film>/
   script.ts        the screenplay: ordered beats — narration, citations, picture brief
-  voice.ts         who reads it: one voice, or a cast in conversation (changing it re-records everything)
+  voice.ts         who reads it: the film's one narrator (changing it re-records everything)
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props, its people and type treatments
@@ -222,17 +222,17 @@ flourish no cue declares does not hide the still stretch after it. Pin a
 motion to a mark in that stretch, or cut it. A colour change, or drawing the
 probe cannot see, reads as still: look before pinning.
 
-**A cast reads a film as a conversation.** `voice.ts` exports either one
-reader (`{ voiceId, model, settings }`, recorded through text-to-speech) or a
-cast (`{ model: 'eleven_v3', settings: { stability }, voices: [{ name, voiceId }, …] }`).
-A cast records each beat as one text-to-dialogue take, so the viewer's
-question and the answer share a take and the gap between them is performed,
-not spliced. The cast's first voice reads until a line hands over with
-`{@name}` before a word: `"That's the law. {@ask}So where does that leave us?
-{@lead}Stuck."`. Like a mark, a turn is not spoken, but moving one re-records
-the beat. A turn to a voice the cast lacks fails `narrate` and `check` with
-`UnknownVoice`. Captions never run a line across two voices, and each voice's
-first line opens with a dash.
+**A film has one narrator.** `voice.ts` exports one reader
+(`{ voiceId, model, settings }`, recorded through text-to-speech), and the
+narrator asks the viewer's question too (the film skill's CRAFT.md, rule 6).
+The engine can also read a cast
+(`{ model: 'eleven_v3', settings: { stability }, voices: [{ name, voiceId }, …] }`),
+recording each beat as one text-to-dialogue take in which the first voice
+reads until a line hands over with `{@name}` before a word. Like a mark, a
+turn is not spoken, but moving one re-records the beat; a turn to a voice the
+cast lacks fails `narrate` and `check` with `UnknownVoice`; captions never run
+a line across two voices, and each voice's first line opens with a dash. No
+film uses one.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
