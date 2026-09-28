@@ -299,7 +299,12 @@ a word card) with `probePlate(ctx, shape, () => write(…))`: the shape it drew
 the plate with, and the lines on it drawn inside. A plate hides what is under
 it as the text does, so it is measured as text too; the lines drawn inside
 carry the plate's `order` (`on`), so a card never collides with its own
-lines, while any other text over it does.
+lines, while any other text over it does. The kit declares one plate itself:
+a storyboard scene's card (`canvas/storyboard.ts`), so its id and brief are
+checked against the card (`TextOffPlate`) and against each other
+(`TextOverlap`). The films declare the rest (righteousness-by-faith: heaven's
+banner, the court and cold labels, the thesis, message and word boards, the
+declared card; v1: the cite tab and the justified strip).
 With no probe attached a draw costs one WeakMap lookup, and a probed frame
 is pixel for pixel the same (it only reads the transform, `measureText` and
 the path it was going to draw). The export handle exposes it as `probe(i)`.
