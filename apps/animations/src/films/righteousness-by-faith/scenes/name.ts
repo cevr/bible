@@ -7,8 +7,9 @@
 // passes over the court: every day. The gavel falls softly on "verdict"; on
 // "not a cover-up" the Advocate opens his hand to the light in the figure's
 // chest, the evidence, and the figure looks down at it. On "real" the cold
-// open's hollow verdict hangs above the bench; on "true" it drops, fills solid
-// gold and stamps across the bench as in the cold open, and the light answers
+// open's hollow verdict hangs at the bench's top, under the judge's face, at
+// the cold open's size; on "true" it drops straight down, fills solid gold and
+// lands across the bench as in the cold open, and the light answers
 // from inside the figure. On "jer" the bench itself goes gold, and the word
 // gives way to the name in `thesis`.
 
@@ -22,7 +23,8 @@ import {
   GAVEL_DOWN,
   GAVEL_REST,
   REST,
-  STAMP_POP,
+  STAMP_LANDS,
+  STAMP_WIDE,
   WIDE,
   landingCourt,
   question,
@@ -53,7 +55,7 @@ export const name = drawing({
     hollow: { mark: 'real', dur: 0.5 },
     land: { mark: 'true', offset: -0.5, dur: 0.5, ease: 'inCubic' },
     lower: { mark: 'true', offset: 0.3, dur: 0.6 },
-    stamp: { mark: 'true', offset: -0.03, dur: 0.2, ease: 'outBack' },
+    stamp: { mark: 'true', dur: 0.3 },
     shine: { mark: 'true', dur: 0.6 },
     gold: { mark: 'jer', dur: 1.2 },
     stampOut: { mark: 'jer', offset: 1.4, dur: 0.5 },
@@ -75,7 +77,8 @@ export const name = drawing({
       [0.763, 1.5, 'inOutCubic'],
       [1, GAVEL_DOWN],
     ]);
-    const pop = f.keys('stamp', STAMP_POP);
+    // The cold open's size throughout: hung, falling and landed, with a small thud on landing.
+    const pop = STAMP_WIDE * f.keys('stamp', STAMP_LANDS);
     const smile = f.at('smile');
     // The Advocate's hand open to the figure's chest, from "not a cover-up" until the verdict lands.
     const present = f.at('present') * (1 - f.at('lower'));

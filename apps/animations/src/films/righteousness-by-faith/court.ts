@@ -58,7 +58,7 @@ export const FIGURE_STAINS = FIGURE_STAIN_SPOTS.map(([x, y, w, h, seed]) => blob
 /** The gavel's angle at rest, and where the landing's soft fall leaves it (`name` to `thesis`). */
 export const GAVEL_REST = 0.35;
 export const GAVEL_DOWN = 1.45;
-/** The verdict label's scale across its `stamp` cue: in large, a small give, settled (`cold`, `name`). */
+/** The verdict label's scale across its `stamp` cue in `cold`: in large, a small give, settled. */
 export const STAMP_POP: ReadonlyArray<Key> = [
   [0, 1.2],
   [0.6, 0.97, 'outCubic'],
@@ -69,13 +69,28 @@ export const STAMP_POP: ReadonlyArray<Key> = [
 // One motif across three scenes, the same shape and scale each time: stamped
 // solid across the bench in `cold` and drained there to a hollow outline (a
 // verdict with nothing behind it); filled solid and sunk into the figure's
-// chest in `declared`; hung hollow above the bench and landed solid in `name`.
+// chest in `declared`; hung hollow at the bench's top and landed solid in `name`.
 
 /** Where the verdict stamps across the cold open's bench, and its tilt there (`cold`, `name`). */
 export const STAMP_AT: Pt = [1180, 672];
 export const STAMP_TILT = -0.07;
-/** Where it hangs hollow above the bench before it lands (`name`). */
-export const STAMP_HUNG: Pt = [1180, 212];
+/**
+ * Where it hangs hollow before it lands (`name`): at the bench's top, its
+ * label's upper edge under the judge's chin, so the drop to `STAMP_AT` runs
+ * straight down and never crosses his face.
+ */
+export const STAMP_HUNG: Pt = [1180, 530];
+/**
+ * The verdict's scale in `name`, whose court is framed `WIDE`: the cold open's
+ * size on screen (framed `REST`), hung and landed alike.
+ */
+export const STAMP_WIDE = (REST.zoom ?? 1) / (WIDE.zoom ?? 1);
+/** Its scale across `name`'s `stamp` cue, times `STAMP_WIDE`: the drop lands with a small thud and settles; 1 before and after, so nothing steps. */
+export const STAMP_LANDS: ReadonlyArray<Key> = [
+  [0, 1],
+  [0.3, 1.05, 'outQuad'],
+  [1, 1, 'inOutSine'],
+];
 /** The torn label about its centre, and the gold edge a hollow one keeps, drawn just outside it. */
 const STAMP_LABEL = rectShape(-250, -78, 500, 118);
 const STAMP_EDGE: Pt[] = [...rectShape(-262, -90, 524, 142), [-262, -90]];
@@ -132,7 +147,7 @@ export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
   ctx.restore();
 };
 
-/** The stamp across the bench at `pop` scale, or hung above it as `hung` goes to 1 (the court's layer). */
+/** The stamp across the bench at `pop` scale, or hung at `STAMP_HUNG` as `hung` goes to 1 (the court's layer). */
 export const benchStamp = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
