@@ -130,7 +130,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'exchange',
-    say: '{@ask}Okay, but how can God make guilty people righteous {fair}and still be fair? {@lead}{right}That is the right question. {notes}Ellen White answered it in her account of that 1888 conference: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}Our sins went onto him at the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {plead}And right now, she wrote, Christ is pleading for his people in the courts of heaven.',
+    say: '{@ask}Okay, but how can God make guilty people righteous {fair}and still be fair? {@lead}{right}That is the right question. {notes}Ellen White answered it in her account of that 1888 conference: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}Our sins went onto him at the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {plead}And {now}right now, she wrote, Christ is pleading for his people in the courts of heaven.',
     cite: [
       'Ellen G. White, Ms 24, 1888',
       '1 Peter 2:24',
@@ -149,7 +149,10 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'robe',
-    say: "{take}Then he says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you in new clothes. {loom}A robe from heaven's loom, Ellen White said, {woven}with not one thread of our own. {@ask}{nicer}So it is a cover-up. {just}Just a nicer one. {@lead}{no}No. {cloak}Christ does not give a cloak for sin, Waggoner said. {away}He takes it away. {judicial}God's forgiveness is more than a judge's ruling, she wrote. {reclaim}“It is not only forgiveness for sin, but reclaiming from sin.”",
+    // The pull back to the three icons, forgiveness lit, comes after the
+    // quotation's last word; the tail holds it.
+    tail: 1.4,
+    say: "{take}Then he says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you in new clothes. {loom}A robe from heaven's loom, Ellen White said, {woven}with not one thread of our own. {@ask}{nicer}So it is a cover-up. {just}Just a nicer one. {@lead}{no}No. {cloak}Christ does not give a cloak for sin, Waggoner said. {away}He takes it away. {judicial}God's forgiveness is more than a judge's ruling, she wrote. {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
     cite: [
       'Zechariah 3:4',
       "Ellen G. White, Christ's Object Lessons, 311",
@@ -157,7 +160,7 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Thoughts From the Mount of Blessing, 114',
     ],
     picture:
-      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the ask's doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel lies on the bench; the Angel moves it aside with the back of his hand (a light touch, not a shot of its own). On `reclaim` close on Joshua's face at human scale; under the white robe a warm glow rises where the heart is, a preview of the third gift, not yet lit. Then pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` after `reclaim`): the robe, forgiveness, glows.",
+      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the ask's doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel rests on the bench, the ruling standing, and a warm glow begins to rise in Joshua's chest: more than the ruling. On `reclaim` close on Joshua's face at human scale; under the white robe the glow rises where the heart is, a preview of the third gift, not yet lit, and he looks up glad on `reclaiming`. After the quotation's last word, pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` on the speech's end): the robe, forgiveness, glows.",
   },
   {
     id: 'look',
@@ -197,7 +200,7 @@ export const script: ReadonlyArray<Beat> = [
       'Hebrews 4:10',
     ],
     picture:
-      "IDEA, then STORY. On the parchment: on `kingdom` a gold city gate, light and small music notes drifting out. On `joy` a small grey figure with a scarlet heart stands at the gate with hands over ears: the notes jangle for them, a light moment, not a sad one. Never draw this figure in a white robe: a robe over a scarlet heart would picture a cloak for sin. On `keep` the ask's question. On `will` push through into STORY: a cardboard house at dawn under a peach-to-teal sky, and the robed figure from `robe`, heart glowing, at the window, face at a third of the frame. On `choose` they open their hand palm up (the hand from `look`), and the three small gold icons are laid in it. On `matter` quick sun arcs: day after day the hand opens again at dawn, and on the path outside one flower springs up each day (the path from `within`'s `second` panel). On `sab` the seventh sun sets gold: the field at golden hour, tools set down, the figure resting against a tree, face calm (`rest`), the shot moved from `within`. Pull back to the three icons with the open hand under them, all lit.",
+      "IDEA, then STORY. On the parchment: on `kingdom` a gold city gate, light and small music notes drifting out. On `joy` a small grey figure in the cold open's scarlet stains stands at the gate with hands over ears: the notes jangle for them, a light moment, not a sad one. Never draw this figure in a white robe: a robe over the stains would picture a cloak for sin. On `keep` the ask's question. On `will` push through into STORY: a cardboard house at dawn under a peach-to-teal sky, and the robed figure from `robe`, heart glowing, at the window, face at a third of the frame. On `choose` they open their hand palm up (the hand from `look`), and the three small gold icons are laid in it. On `matter` quick sun arcs: day after day the hand opens again at dawn, and on the path outside one flower springs up each day (the path from `within`'s `second` panel). On `sab` the sixth sun sets gold, and the Sabbath begins at that sunset: the field at golden hour, tools set down, the figure resting against a tree, face calm (`rest`), the shot moved from `within`. Pull back to the three icons with the open hand under them, all lit.",
   },
   {
     id: 'rain',
@@ -231,7 +234,7 @@ export const script: ReadonlyArray<Beat> = [
     say: 'The Lord our righteousness.',
     cite: ['Jeremiah 23:6'],
     picture:
-      'The held pause, then the answer writes itself under the question, the only other text: THE LORD OUR RIGHTEOUSNESS. Hold the whole courtroom in the light; the music rises alone for about thirty seconds while the camera eases back to the city and the two figures sit together on a rooftop under the landing sky.',
+      'The held pause, then the answer writes itself where the question stood, the only text on screen: THE LORD OUR RIGHTEOUSNESS. Hold the whole courtroom in the light; the music rises alone for about thirty seconds while the camera eases back to the city and the two figures sit together on a rooftop under the landing sky.',
   },
   {
     id: 'end',

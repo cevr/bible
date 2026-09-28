@@ -1,6 +1,6 @@
-// The name. The landing courtroom holds in its gold light; Job's question
-// stands above the bench and the answer writes itself under it, the only
-// other words: THE LORD OUR RIGHTEOUSNESS. Then, while the music rises alone,
+// The name. The landing courtroom holds in its gold light; where Job's
+// question stood above the bench in `name`, the answer writes itself, the
+// only words on screen: THE LORD OUR RIGHTEOUSNESS. Then, while the music rises alone,
 // the camera eases back out of the court to the title's cardboard city, where
 // the figure in the robe and Christ sit together on the same rooftop the
 // title's figure stood on, under the landing sky.
@@ -23,20 +23,20 @@ import {
   GAVEL_DOWN,
   GAVEL_REST,
   WIDE,
+  QUESTION_AT,
   landingCourt,
-  question,
 } from '../court.ts';
 
 /** Where the camera ends: the title's city, near enough to see the two of them. */
 const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
 /** Where it enters the city: close on the rooftop. */
 const ROOFTOP: Camera = { x: ROOF.x - 20, y: ROOF.top - 70, zoom: 3.4 };
-/** The court framed lower than the cold open's wide, for two lines above the bench. */
-const TEXT: Camera = { x: 930, y: 380, zoom: 1.1 };
 /** The court's last framing, pulled back. */
 const COURT_BACK: Camera = { x: 930, y: 400, zoom: 0.92 };
 
 const ANSWER = 'THE LORD OUR RIGHTEOUSNESS';
+/** The answer's plate, over the place the question stood. */
+const PLATE = rectShape(210, QUESTION_AT[1] - 88, 1500, 116);
 const answerStyle = {
   family: F.display,
   size: 84,
@@ -48,8 +48,7 @@ const answerStyle = {
 
 export const thesis = drawing({
   timeline: {
-    question: { scene: 'start', dur: 0.4 },
-    frame: { scene: 'start', dur: 0.5 },
+    lookUp: { scene: 'speech', dur: 0.5 },
     answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
     textOut: { scene: 'start', offset: 10, dur: 1.2 },
     away: { scene: 'start', offset: 10.6, dur: 4.5, ease: 'inOutSine' },
@@ -120,18 +119,18 @@ export const thesis = drawing({
 
     // The court in its gold light, pulled back and let go.
     if (courtOut < 1) {
-      const lookUp = f.at('frame');
+      const lookUp = f.at('lookUp');
       ctx.save();
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
-        cam: between(between(WIDE, TEXT, f.at('frame')), COURT_BACK, away),
+        cam: between(WIDE, COURT_BACK, away),
         // The gavel lifts back from where `name` laid it down.
         swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * clamp(f.t / 2),
         stamp: 0,
         pop: 1,
         gold: 1,
         shine: 0.9,
-        // From where `name` left the figure, up to the words as the court reframes.
+        // From where `name` left the figure, up to the answer as it writes.
         figure: {
           look: [lerp(FIGURE_LANDED.look[0], 2, lookUp), lerp(FIGURE_LANDED.look[1], -4, lookUp)],
           browL: lerp(FIGURE_LANDED.browL, 3, lookUp),
@@ -145,31 +144,26 @@ export const thesis = drawing({
       ctx.restore();
     }
 
-    // The question, and the answer under it: the film's last words.
+    // The answer where the question stood: the film's last words.
     const out = f.at('textOut');
-    if (out < 1) {
-      const alpha = f.at('question') * (1 - out);
-      question(ctx, f.hand('question'), { alpha });
-      const answer = f.at('answer');
-      if (answer > 0) {
-        ctx.save();
-        ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
-        const board = rectShape(210, 262, 1500, 116);
-        piece(ctx, board, C.cream, f.hand('plate'), {
-          line: 5,
-          outline: C.gold,
-          torn: 2,
-          shadow: 0.4,
-        });
-        probePlate(ctx, board, () =>
-          write(ctx, ANSWER, 960, 350, answerStyle, f.hand('answer'), {
-            progress: answer,
-            reveal: 'write',
-            boil: 0.4,
-          }),
-        );
-        ctx.restore();
-      }
+    const answer = f.at('answer');
+    if (out < 1 && answer > 0) {
+      ctx.save();
+      ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
+      piece(ctx, PLATE, C.cream, f.hand('plate'), {
+        line: 5,
+        outline: C.gold,
+        torn: 2,
+        shadow: 0.4,
+      });
+      probePlate(ctx, PLATE, () =>
+        write(ctx, ANSWER, QUESTION_AT[0], QUESTION_AT[1], answerStyle, f.hand('answer'), {
+          progress: answer,
+          reveal: 'write',
+          boil: 0.4,
+        }),
+      );
+      ctx.restore();
     }
   },
 });

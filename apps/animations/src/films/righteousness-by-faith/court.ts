@@ -169,7 +169,8 @@ export const benchStamp = (
 
 /** Job's question, where the cold open wrote it: the only words on screen (`cold`, `name`, `thesis`). */
 const QUESTION = 'How should man be just with God?';
-const QUESTION_AT: Pt = [960, 205];
+/** Where Job's question stands above the bench, in screen space: its baseline centre. `thesis` writes the answer there. */
+export const QUESTION_AT: Pt = [960, 205];
 const questionStyle = {
   family: F.display,
   size: 84,
@@ -525,6 +526,8 @@ const ACCUSER_S = 0.9;
 export const ANGEL_AT: Pt = [1330, 950];
 const ANGEL_S = 2.1;
 export const ANGEL_HAND: Pt = [-30, -58];
+/** His near hand at rest, at his side. */
+const ANGEL_NEAR: Pt = [30, -58];
 
 /** The heavenly court's people, as a scene has them this frame; every place is the court's. */
 export interface ZechCourt {
@@ -532,8 +535,15 @@ export interface ZechCourt {
   readonly sun: number;
   /** The accuser: 0..1 stepped up (0 draws none), shrunk back, pointing. */
   readonly accuser: { readonly enter: number; readonly shrink: number; readonly point: number };
-  /** The Angel: his light brightening 0..1, his head's turn, his near hand (from `ANGEL_HAND`). */
-  readonly angel: { readonly lift: number; readonly tilt: number; readonly hand: Pt };
+  /**
+   * The Angel: his light brightening 0..1, his head's turn, and his far hand
+   * (from `ANGEL_HAND`); his near hand rests at his side.
+   */
+  readonly angel: {
+    readonly lift: number;
+    readonly tilt: number;
+    readonly hand: Pt;
+  };
   /** Joshua's pose (the turban is his); his specks' alpha; the cheek's speck, moved `dy` and faded. */
   readonly joshua: Person;
   readonly specks: number;
@@ -580,7 +590,7 @@ const zechAngel = (ctx: CanvasRenderingContext2D, hand: Hands, a: ZechCourt['ang
   at(ctx, { x, y, scale: ANGEL_S }, () =>
     christ(
       ctx,
-      { tilt: a.tilt, look: [-3, 1], browTilt: 0.15, handL: a.hand, handR: [30, -58] },
+      { tilt: a.tilt, look: [-3, 1], browTilt: 0.15, handL: a.hand, handR: ANGEL_NEAR },
       hand,
     ),
   );
@@ -649,3 +659,16 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
     });
   });
 };
+
+/**
+ * The cold open's gavel, its handle's foot at the origin and its head up the
+ * handle (−y); `rot` turns it about the foot. As it lies on the heavenly
+ * court's bench in `robe`, set aside.
+ */
+export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, rot: number) =>
+  at(ctx, { x: 0, y: 0, rot }, () => {
+    piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { line: 2 });
+    piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { line: 2.5 });
+  });
+const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
+const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);

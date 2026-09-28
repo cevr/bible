@@ -13,7 +13,19 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, hash2, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, rounded, sky, type Hands } from './kit.ts';
+import {
+  C,
+  CHEST,
+  type Person,
+  blob,
+  contact,
+  glow,
+  person,
+  piece,
+  rounded,
+  sky,
+  type Hands,
+} from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
 export const leafShape = (s: number, seed: number): Pt[] =>
@@ -125,12 +137,45 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
   });
 };
 
+// ─── the path ahead ──────────────────────────────────────────────────────────
+
+/**
+ * The path ahead, near left to far right, and the hill it climbs, in its
+ * view's units: `within`'s `second` panel, and the view from `daily`'s window.
+ */
+export const PATH_AHEAD: ReadonlyArray<Pt> = [
+  [-360, 250],
+  [-180, 200],
+  [-40, 110],
+  [110, 40],
+  [260, -60],
+  [380, -130],
+];
+export const PATH_HILL = blob(0, 260, 1100, 420, 31);
+
+/** Where the path ahead is at `t` 0..1 along it, written into `out`. */
+export const alongPath = (t: number, out: [number, number]): [number, number] => {
+  const k = clamp(t) * (PATH_AHEAD.length - 1);
+  const i = Math.min(PATH_AHEAD.length - 2, Math.floor(k));
+  const a = PATH_AHEAD[i] ?? PATH_AHEAD[0] ?? out;
+  const b = PATH_AHEAD[i + 1] ?? a;
+  out[0] = lerp(a[0], b[0], k - i);
+  out[1] = lerp(a[1], b[1], k - i);
+  return out;
+};
+
+// ─── the Sabbath field ───────────────────────────────────────────────────────
+
+/** The resting figure's default: plain grey paper. */
+const PAPER: Person = {};
+
 /**
  * The Sabbath rest (Heb 4:10), full frame: a cardboard field at golden hour,
  * tools set down, the figure leaning against a tree with its face to the low
  * sun. `settle` 0..1 eases the push-in back to rest; `rest` 0..1 settles the
- * figure and swells the sun. Drawn in `within` until the script moved the
- * Sabbath to `daily`, which reuses it once drawn.
+ * figure and swells the sun. `dress` is what the figure wears (grey paper
+ * unless given) and `lit` 0..1 glows the heart in their chest: `daily`'s
+ * Sabbath, the robed figure from `robe` at rest.
  */
 export const restingField = (
   ctx: CanvasRenderingContext2D,
@@ -139,6 +184,8 @@ export const restingField = (
   hand: Hands,
   settle: number,
   rest: number,
+  dress: Person = PAPER,
+  lit = 0,
 ) => {
   sky(ctx, w, h, [
     [0, C.peachTop],
@@ -174,7 +221,7 @@ export const restingField = (
       );
       contact(ctx, 700, 938, 220);
       // Leaning back against the trunk, face to the low sun.
-      at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () =>
+      at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () => {
         person(
           ctx,
           {
@@ -184,10 +231,12 @@ export const restingField = (
             browL: lerp(0, 1, rest),
             browR: lerp(0, 1, rest),
             browTilt: 0,
+            ...dress,
           },
           hand('rester'),
-        ),
-      );
+        );
+        if (lit > 0) glow(ctx, CHEST[0], CHEST[1], 90, C.glow, lit);
+      });
     });
   });
 };

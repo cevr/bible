@@ -777,14 +777,11 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
 
 /**
  * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
- * it: a step every π/7 s counted from `phase` (scene seconds; the cue's
- * start unless given), each rising up to 5 units.
+ * it: a step every π/7 s counted from the cue's start, each rising up to 5
+ * units, so the bob starts from rest and never jumps as the walk begins.
  */
-export const gait = (
-  t: number,
-  walk: { readonly start: number; readonly end: number },
-  phase = walk.start,
-): number => (t > walk.start && t < walk.end ? Math.abs(Math.sin((t - phase) * 7)) * 5 : 0);
+export const gait = (t: number, walk: { readonly start: number; readonly end: number }): number =>
+  t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
 
 // ─── recurring figures and the icon row ──────────────────────────────────────
 // Figures and the icon row more than one scene draws, so a callback lands in
@@ -826,6 +823,9 @@ export const ROBE: Pt[] = [
   [-330, -210],
 ];
 
+/** The heart's place on a person's chest, in their units (`within`, `daily`, the Sabbath field). */
+export const CHEST: Pt = [0, -80];
+
 /** The three icons' centres, relative to the row's centre. */
 export const ICON_X = [-440, 0, 440] as const;
 
@@ -865,41 +865,45 @@ export const icons = (
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
 
-/** The open hand's four fingers: each one's x across the palm, and its sub-key. */
+/** The open hand's four fingers: each one's x across the palm and its seed. */
 const FINGERS = [
   [-105, 1],
   [-37, 2],
   [33, 3],
   [100, 4],
 ] as const;
-/** A finger's length when the hand is fully open. */
-const FINGER_LEN = 120;
+const WRIST = rounded(20, 190, 170, 260, 50);
+const FINGER = rounded(0, 0, 58, 120, 28);
+const PALM = rounded(0, 20, 310, 170, 80);
+const THUMB = rounded(0, 0, 56, 130, 28);
+const CREASE = spline([
+  [-90, 50],
+  [0, 30],
+  [90, 55],
+]);
 
 /**
- * A hand held open, palm toward us and fingers up, centred on the palm (the
- * hand from `look`, which a gift is laid in): wrist, four fingers, palm,
- * thumb and the palm's crease. `open` 1 is fully open; toward 0 the fingers
- * shorten and the thumb comes in, a hand closing.
+ * The open hand, palm up, the palm's centre near (0, 0), about 390 units
+ * wide: faith, the hand that takes (`look` draws its own, `daily` lays the
+ * icons in this one). `open` 1 holds the fingers straight; toward 0 they curl
+ * down toward the palm, as a hand closes.
  */
 export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {
-  piece(ctx, rounded(20, 190, 170, 260, 50), C.figure, hand('wrist'), { line: 4 });
-  const len = FINGER_LEN * lerp(0.6, 1, open);
-  for (const [x, k] of FINGERS)
-    at(ctx, { x, y: -20 - len / 2, rot: x * 0.0012 }, () =>
-      piece(ctx, rounded(0, 0, 58, len, 28), C.figure, sub(hand('finger'), k), { line: 4 }),
-    );
-  piece(ctx, rounded(0, 20, 310, 170, 80), C.figure, hand('palm'), { line: 4 });
-  at(ctx, { x: -165, y: 10, rot: lerp(-0.4, -0.9, open) }, () =>
-    piece(ctx, rounded(0, 0, 56, 130, 28), C.figure, hand('thumb'), { line: 4 }),
-  );
-  stroke(
-    ctx,
-    spline([
-      [-90, 50],
-      [0, 30],
-      [90, 55],
-    ]),
-    { color: C.figureShade, width: 4, jitter: 0.4 },
-    hand('crease'),
-  );
+  piece(ctx, WRIST, C.figure, hand('wrist'), { line: 4 });
+  const curl = lerp(0.45, 1, clamp(open));
+  for (const [x, k] of FINGERS) {
+    ctx.save();
+    ctx.translate(x, lerp(-10, -80, curl));
+    ctx.rotate(x * 0.0012);
+    ctx.scale(1, curl);
+    piece(ctx, FINGER, C.figure, sub(hand('finger'), k), { line: 4 });
+    ctx.restore();
+  }
+  piece(ctx, PALM, C.figure, hand('palm'), { line: 4 });
+  ctx.save();
+  ctx.translate(-165, 10);
+  ctx.rotate(-0.9);
+  piece(ctx, THUMB, C.figure, hand('thumb'), { line: 4 });
+  ctx.restore();
+  stroke(ctx, CREASE, { color: C.figureShade, width: 4, jitter: 0.4 }, hand('crease'));
 };
