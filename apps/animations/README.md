@@ -25,7 +25,7 @@ bun run render <film> --scene id[,id] ...      # a video or contact sheet over t
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
-bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
+bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -33,8 +33,10 @@ bun run notes resolve <film> <id>
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
-loads and, for `lab`, the same server in development mode with the lab's
-routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
+loads and, for `lab`, the same server in development mode with the lab's own
+page at `/lab` (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`;
+`bunfig.toml` compiles its Solid JSX; the render's server never serves it) and
+the lab's routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
 is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
@@ -123,7 +125,7 @@ Compare draws the same frame as HEAD declared the scene's timeline and
 knobs: wipe (HEAD left of a divider you drag) or blink. Speed, loop, onion,
 compare and play are kept through the reload a write causes (the tab's
 sessionStorage, per film). The panel's
-Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
+Look-book link (`?film=<film>&lookbook`) composes `bun run lookbook`'s
 sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot

@@ -202,9 +202,15 @@ body.export .stage canvas {
   font-size: 11px;
 }
 
-/* ── The lab (`?lab`): notes on frames. ─────────────────────────────────── */
+/* ── The lab (`/lab?film=…`): notes on frames. ─────────────────────────── */
 body.lab {
   grid-template-columns: minmax(0, 1fr) 360px;
+}
+/* The lab's own wrappers: the Solid root, its pinned layers and its panel sections lay out as their children. */
+.lab-root,
+.lab-layers,
+.lab-notes-box {
+  display: contents;
 }
 body.lab .stage,
 body.lab .bar {

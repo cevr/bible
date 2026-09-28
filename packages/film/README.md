@@ -6,12 +6,14 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                   |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                               |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                              |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
+| Import                     | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`         | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                   |
+| `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                               |
+| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                    |
+| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the panels not yet moved from plain DOM (`player/lab-*.ts`) mount into it through `lab/legacy.ts`.                                                                 |
+| `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                       |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
 ## Data
 
@@ -99,11 +101,14 @@ browser is `BrowserMissing`, whose message is the install command.
 
 ## Lab
 
-`film lab <film>` serves the player in development mode (the bundle rebuilds
-and hot-reloads as scenes change) at `?film=<film>&lab`, prints that URL,
-and runs until Ctrl-C, which stops the server and the routes with the
-command's scope. The framework owns the routes (`lab.ts`, an `HttpRouter` web
-handler over NotesStore); the app mounts them at `/lab/*`:
+`film lab <film>` serves the lab's page in development mode (the bundle
+rebuilds and hot-reloads as scenes change) at `/lab?film=<film>`, prints that
+URL, and runs until Ctrl-C, which stops the server and the routes with the
+command's scope. The page is the app's (`lab.html`, whose entry calls
+`mountLab(films)`, bundled with `@bible/film/solid-plugin`); only the lab's
+server serves it, so the render's server never bundles Solid. The framework
+owns the routes (`lab.ts`, an `HttpRouter` web handler over NotesStore); the
+app mounts them at `/lab/*`:
 
 | Route                                    | What it does                                                         |
 | ---------------------------------------- | -------------------------------------------------------------------- |
@@ -136,7 +141,19 @@ note's still is written before the note that names it.
 it, the nearest named-cue edge and `{mark}`; the page computes it from the
 layout it draws, so a note carries the cue the viewer saw.
 
-**The page** (`player/lab.ts`, plain DOM over the preview): on the canvas a
+**The page** (`lab/`, Solid 2 around the framework-free preview): the shell
+(`lab/shell.tsx`) is compound components. `<Lab.Root>` holds what every panel
+shares (the film, its player, the lab API's base, the view kept through a
+reload, and `T`, the frame drawn last, as a signal); `<Lab.Overlay>` and
+`<Lab.Layer>` are pinned exactly over the film canvas and follow it as it
+resizes; `<Lab.Strip>` is a slot right under the player's timeline;
+`<Lab.Panel>`, `<Lab.Header>` (with the look-book link) and `<Lab.Section>`
+lay out the side panel. Each tool's state lives in its own provider; the
+shell knows none of it. The browser tests (`lab/*.dom.test.ts`) open the real
+page over a probe film in headless Chromium with the lab API faked
+(`lab/fixtures/harness.ts`).
+
+**Notes** (`player/lab-notes.ts`, plain DOM until it moves): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
 ink; `n` notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
@@ -259,7 +276,7 @@ the palette (`createFilm({ palette })`) as swatches, then per scene a row of
 stills at every cue's start and end and its 60% point (`sceneMoments`, the
 moments `film check` samples, less the marks), each labelled with the cue
 and time. The page composes it with `film.render`, so the lab shows it live
-(`?film=<film>&lab&lookbook`, a still opening that frame in the lab) and
+(`?film=<film>&lookbook`, a still opening that frame in the lab) and
 `film lookbook <film> [--captions] [--tag t]` asks one export page for the
 same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`) and writes
 `out/<film>/lookbook.jpg`. It is the first page to read for a new film

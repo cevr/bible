@@ -1,0 +1,4 @@
+# The lab page's panels are Solid 2 components (`@bible/film/lab`): Bun's HTML
+# bundler compiles their JSX with Solid's own compiler.
+[serve.static]
+plugins = ["@bible/film/solid-plugin"]

@@ -129,6 +129,7 @@ export const mountEditor = (
   panel: HTMLElement,
   overlay: SVGSVGElement,
   api: string,
+  stripHost: HTMLElement,
 ): Editor => {
   const { film } = player;
   /**
@@ -195,7 +196,7 @@ export const mountEditor = (
   const stripRows = el('div', 'lab-strip-rows');
   const playhead = el('div', 'lab-strip-playhead');
   strip.append(stripHead, stripRows);
-  player.track.after(strip);
+  stripHost.append(strip);
 
   const at = (p: Placed<SceneSpec>, t: number) => `${(t / p.dur) * 100}%`;
 

@@ -1,11 +1,12 @@
-// The lab: notes on frames, over the preview player (`?film=<film>&lab`, served
-// by `film lab`). On the canvas a click pins a point, a drag draws a box, and
-// the pen draws freehand ink; `n` notes the whole frame. A note saves the exact
-// frame as its still (the film canvas, which the lab never draws on: every
-// mark lives on an SVG layer above it), its scene and the cue edge and mark
-// nearest it. Notes sit as ticks on the timeline and in a side list with their
-// threads; the agent answers from `film notes`, and a long-poll brings each
-// change in as it lands.
+// The lab's notes on frames, still framework-free while the lab's panels move
+// to Solid one at a time (`@bible/film/lab` mounts this into its panel). On
+// the canvas a click pins a point, a drag draws a box, and the pen draws
+// freehand ink; `n` notes the whole frame. A note saves the exact frame as its
+// still (the film canvas, which the lab never draws on: every mark lives on an
+// SVG layer above it), its scene and the cue edge and mark nearest it. Notes
+// sit as ticks on the timeline and in a side list with their threads; the
+// agent answers from `film notes`, and a long-poll brings each change in as it
+// lands.
 
 import { Option, Schema } from 'effect';
 import { nearestMoment } from '../core/notes.ts';
@@ -17,13 +18,8 @@ import {
   NotesFile,
   NotesWait,
   type Point,
-  labBase,
 } from '../core/schema.ts';
 import { canvasBase64, el, postJson, required, svg } from './dom.ts';
-import { mountCompare } from './lab-compare.ts';
-import { mountEditor } from './lab-edit.ts';
-import { mountMotion } from './lab-motion.ts';
-import { sessionStore, viewStore } from './view-state.ts';
 import type { Player } from './main.ts';
 
 /** A pointer that moves less than this many screen pixels clicked; more, it dragged a box. */
@@ -46,42 +42,20 @@ const label = (note: Note) => {
   return `${note.id} · ${note.scene} · ${note.T.toFixed(2)}s${cue}`;
 };
 
-export const mountLab = (player: Player, filmName: string): void => {
+/**
+ * Mount the notes: the pen in the panel's header, the composer and the list at
+ * the panel's foot, and the marks on the lab's overlay. `api` is the film's
+ * lab base (`labBase`).
+ */
+export const mountNotes = (
+  player: Player,
+  panel: HTMLElement,
+  overlay: SVGSVGElement,
+  api: string,
+): void => {
   const { film, canvas } = player;
-  /** Every call names this film (`/lab/<film>/…`): the lab refuses a page for another. */
-  const api = labBase(filmName);
-  /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
-  const view = viewStore(filmName, sessionStore(), film.duration);
-  document.body.classList.add('lab');
-
-  // ── The layer over the canvas: every lab mark draws here, never on the film. ──
-  const overlay = svg('svg', {
-    class: 'lab-overlay',
-    viewBox: `0 0 ${film.width} ${film.height}`,
-    preserveAspectRatio: 'none',
-  });
   const marks = svg('g', { class: 'lab-marks' });
   overlay.append(marks);
-  /** Layers kept exactly over the film canvas: the overlay, and the motion and compare layers under it. */
-  const pinned: Array<HTMLElement | SVGSVGElement> = [];
-  const place = () => {
-    const r = canvas.getBoundingClientRect();
-    for (const layer of pinned)
-      Object.assign(layer.style, {
-        left: `${r.left}px`,
-        top: `${r.top}px`,
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-      });
-  };
-  const pin = (layer: HTMLElement | SVGSVGElement) => {
-    pinned.push(layer);
-    document.body.append(layer);
-    place();
-  };
-  pin(overlay);
-  new ResizeObserver(place).observe(canvas);
-  window.addEventListener('resize', place);
 
   /** A pointer's position in canvas pixels, to the nearest pixel. */
   const toCanvas = (e: PointerEvent): Point => {
@@ -92,15 +66,12 @@ export const mountLab = (player: Player, filmName: string): void => {
     ];
   };
 
-  // ── The side panel: tools, the composer, the notes and their threads. ──
-  const panel = el('aside', 'lab-panel');
-  panel.innerHTML = `
-    <header>
-      <strong>Lab</strong>
-      <span class="lab-hint">click pin · drag box · <kbd>n</kbd> note this frame</span>
-      <button data-act="pen" title="draw freehand ink on the frame">Pen</button>
-      <a class="lab-lookbook" href="?film=${encodeURIComponent(filmName)}&lab&lookbook" title="every scene's stills at its cue edges and 60% point, with the palette">Look-book</a>
-    </header>
+  const penBtn = el('button', '', 'Pen');
+  penBtn.dataset['act'] = 'pen';
+  penBtn.title = 'draw freehand ink on the frame';
+  required<HTMLElement>(panel, '.lab-lookbook').before(penBtn);
+  const box = el('div', 'lab-notes-box');
+  box.innerHTML = `
     <form class="lab-compose" hidden>
       <div class="lab-where"></div>
       <textarea rows="3" placeholder="What should change on this frame?"></textarea>
@@ -111,18 +82,8 @@ export const mountLab = (player: Player, filmName: string): void => {
       </div>
     </form>
     <ol class="lab-notes"></ol>`;
-  document.body.append(panel);
-  const q = <T extends Element>(sel: string) => required<T>(panel, sel);
-  const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
-  // The editor: drag cues and knobs, written back to the scene files.
-  const editor = mountEditor(player, panel, overlay, api);
-  // Onion skin, speed and loops.
-  mountMotion(player, panel, pin, editor.selectedCue, view);
-  // The frame beside HEAD's timeline and knobs.
-  mountCompare(player, panel, overlay, pin, api, view);
-  // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
-  window.addEventListener('pagehide', () => view.patch({ playing: player.playing() }));
-  if (view.get().playing) player.play();
+  panel.append(box);
+  const q = <T extends Element>(sel: string) => required<T>(box, sel);
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');
@@ -398,7 +359,7 @@ export const mountLab = (player: Player, filmName: string): void => {
         cursor = Math.max(cursor, waited.cursor);
       })
       .then(follow, (err: unknown) => {
-        console.warn(`[lab] wait failed film=${filmName} reason=${String(err)}`);
+        console.warn(`[lab] wait failed api=${api} reason=${String(err)}`);
         setTimeout(follow, 2000);
       });
   };

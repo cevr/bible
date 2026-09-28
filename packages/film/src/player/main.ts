@@ -1,17 +1,19 @@
 // The browser player. An app's entry calls `mountPlayer(films)` with its film
 // registry. Preview mode is a scrubbable player; export mode (`?export`) hides
-// the chrome and hands `window.__film` to the renderer.
+// the chrome and hands `window.__film` to the renderer. Framework-free: the
+// lab (`@bible/film/lab`) is its own page, which stages the film and mounts
+// this preview under its Solid panels, so the render page never loads Solid.
 
 import type { Film, KnobRead } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
-import { mountLab } from './lab.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { labUrl } from './pages.ts';
 import { tInUrl } from './t-in-url.ts';
 import { hashFrames, timeFrames } from './timing.ts';
 
@@ -113,40 +115,79 @@ export interface Player {
   redraw(): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
-  /** Called after every frame the preview draws. */
-  onDraw(listener: (T: number) => void): void;
+  /** Called after every frame the preview draws, until the returned function is called. */
+  onDraw(listener: (T: number) => void): () => void;
 }
+
+/** An app's film registry: each film's name and its loader. */
+export type Films = Record<string, () => Promise<Film>>;
+
+/** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
+export interface Staged {
+  readonly name: string;
+  readonly film: Film;
+  readonly canvas: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+  readonly captions: { on: boolean };
+}
+
+/** The film a page names (`?film=<name>`), else the registry's first. */
+export const filmName = (films: Films): string =>
+  new URLSearchParams(location.search).get('film') ?? Object.keys(films)[0] ?? '';
+
+export { labUrl, lookbookUrl } from './pages.ts';
+
+/**
+ * Load the page's film (its fonts first, so text measures true), title the
+ * page, and put the film's canvas on the stage.
+ */
+export const stageFilm = async (films: Films): Promise<Staged> => {
+  const params = new URLSearchParams(location.search);
+  const name = filmName(films);
+  const captions = { on: params.get('captions') !== '0' };
+  const load = films[name];
+  if (load === undefined)
+    throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
+  await Promise.all([
+    ...FONTS.map((f) => document.fonts.load(f, 'Aaα')),
+    document.fonts.load('400 40px "Frank Ruhl Libre"', 'א'),
+  ]);
+  const film = await load();
+  document.title = film.title;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = film.width;
+  canvas.height = film.height;
+  const ctx = canvas.getContext('2d');
+  if (ctx === null) throw new Error('2d context unavailable');
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+  stage.append(canvas);
+  document.body.append(stage);
+  return { name, film, canvas, ctx, captions };
+};
+
+/** A page that could not start: the error, in place of the page. */
+export const showFailure = (e: unknown): void => {
+  document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
+};
 
 /**
  * Mount the player for `films` into the page, choosing a film by
- * `?film=<name>`. `&lab` adds the lab: notes on frames (`film lab`).
+ * `?film=<name>`: the scrubbable preview, `&lookbook` the film's look-book,
+ * `&export` the handle the renderer drives. The lab is its own page
+ * (`labUrl`); an old `&lab` link goes there.
  */
-export const mountPlayer = (films: Record<string, () => Promise<Film>>): void => {
+export const mountPlayer = (films: Films): void => {
   const params = new URLSearchParams(location.search);
-  const name = params.get('film') ?? Object.keys(films)[0] ?? '';
   const exporting = params.has('export');
-  const captions = { on: params.get('captions') !== '0' };
+  if (params.has('lab') && !params.has('lookbook') && !exporting) {
+    location.replace(`${labUrl(filmName(films))}${location.hash}`);
+    return;
+  }
 
   const main = async () => {
-    const load = films[name];
-    if (load === undefined)
-      throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
-    await Promise.all([
-      ...FONTS.map((f) => document.fonts.load(f, 'Aaα')),
-      document.fonts.load('400 40px "Frank Ruhl Libre"', 'א'),
-    ]);
-    const film = await load();
-    document.title = film.title;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = film.width;
-    canvas.height = film.height;
-    const ctx = canvas.getContext('2d');
-    if (ctx === null) throw new Error('2d context unavailable');
-    const stage = document.createElement('div');
-    stage.className = 'stage';
-    stage.append(canvas);
-    document.body.append(stage);
+    const { name, film, canvas, ctx, captions } = await stageFilm(films);
 
     if (exporting) {
       document.body.classList.add('export');
@@ -184,22 +225,17 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
       return;
     }
     if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
-    const player = preview(film, canvas, ctx, captions);
-    if (params.has('lab')) mountLab(player, name);
+    mountPreview({ name, film, canvas, ctx, captions });
   };
 
   main().catch((e: unknown) => {
-    document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
+    showFailure(e);
     throw e;
   });
 };
 
-const preview = (
-  film: Film,
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  captions: { on: boolean },
-): Player => {
+/** The scrubbable preview of a staged film: its bar and timeline, its clock, its keys. */
+export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
   bar.innerHTML = `
@@ -421,6 +457,10 @@ const preview = (
     knobReads: () => reads,
     onDraw: (listener) => {
       listeners.push(listener);
+      return () => {
+        const at = listeners.indexOf(listener);
+        if (at >= 0) listeners.splice(at, 1);
+      };
     },
   };
 };

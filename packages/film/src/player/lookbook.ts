@@ -3,11 +3,12 @@
 // start and end and at its 60% point (`sceneMoments`, the moments `film
 // check` probes, less the marks), each labelled, under the film's palette as
 // swatches. The page composes it with `film.render`, so the lab shows it live
-// (`?film=…&lab&lookbook`) and `film lookbook` asks an export page for the
+// (`?film=…&lookbook`, linked from the lab) and `film lookbook` asks an export page for the
 // same sheet (`ExportHandle.lookbook`) and writes it to `out/<film>/lookbook.jpg`.
 
 import type { Film } from '../canvas/film.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
+import { labUrl } from './pages.ts';
 
 /** Stills across a row. */
 const COLS = 6;
@@ -172,14 +173,14 @@ export const composeLookbook = async (
 };
 
 /**
- * The lab's look-book page (`?film=…&lab&lookbook`): the sheet, composed live
+ * The lab's look-book page (`?film=…&lookbook`): the sheet, composed live
  * from the code as it is now; a still opens that frame in the lab.
  */
 export const mountLookbook = (film: Film, name: string, captions: boolean): void => {
   document.body.classList.add('lookbook');
   const bar = document.createElement('header');
   bar.className = 'lookbook-bar';
-  const lab = `?film=${encodeURIComponent(name)}&lab`;
+  const lab = labUrl(name);
   bar.innerHTML = `<strong>Look-book</strong> <span class="lookbook-status">composing…</span>
     <a href="${lab}">back to the lab</a>`;
   const status = bar.querySelector<HTMLSpanElement>('.lookbook-status');
