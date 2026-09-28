@@ -54,10 +54,11 @@ missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
 review step, run by hand: the app's `gate` runs typecheck and tests only. One
 of those tests (`test/every-scene-draws.test.ts`) draws every scene of every
-film in `src/films/index.ts` at its first frame, each cue edge, its 60% point
+film in `src/films/index.ts` at its first frame, each cue's edges and midpoint, its 60% point
 and its last frame, through the film's own compositor into a null 2D context,
-so a scene that reads a mark, cue or knob its film no longer has fails the
-gate, not the next render.
+so a scene that reads a mark, cue or knob its film no longer has, or draws
+what a real canvas refuses (a negative arc radius), fails the gate, not the
+next render.
 
 Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
 (default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
