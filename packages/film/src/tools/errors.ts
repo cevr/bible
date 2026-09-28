@@ -140,6 +140,17 @@ export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('El
   }
 }
 
+/** Speech-to-text heard words in a take but timed none of them: nothing to time the script by. */
+export class SttUntimed extends Schema.TaggedError<SttUntimed>()('SttUntimed', {
+  file: Schema.String,
+  /** How many words its text holds. */
+  heard: Schema.Int,
+}) {
+  override get message() {
+    return `speech-to-text heard ${this.heard} words in ${this.file} but timed none of them; import it again`;
+  }
+}
+
 /** Sound effects need an API key; the CLI's OAuth login covers speech and music only. */
 export class ApiKeyMissing extends Schema.TaggedError<ApiKeyMissing>()('ApiKeyMissing', {}) {
   override get message() {

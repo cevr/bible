@@ -114,7 +114,8 @@ nothing in it reaches −60 dBFS), `Media.encodeFlac` (the take,
 `<beat>.<hash>.flac`), then the same speech-to-text as `narrate`, whose words
 time the script's words through an edit-distance line-up (`core/align.ts`
 `timeScript`: a misheard word keeps its place, an unheard one shares the gap
-its neighbours leave). The recording lands as an attempt in
+its neighbours leave; a reply that heard words but timed none fails
+`SttUntimed` rather than timing the take by nothing). The recording lands as an attempt in
 `narration/attempts/<beat>/`: the recording itself, byte for byte
 (`<beat>.<hash>.orig.<ext>`; a whole reading once, under `whole/`, each beat's
 attempt naming the stretch it was cut from), its FLAC, and its
@@ -231,7 +232,7 @@ read (`AudioInvalid`), is a 400; a lossy one (`audio/webm`, `ogg`, `mp4`,
 take is the film's master; the panel records PCM (an AudioWorklet) and posts
 WAV. `TakeMismatch`, `RecordingInvalid` (a beat
 with no line, silence, an attempt never recorded) a 422; a failed
-speech-to-text a 502. `:beat` is decoded and must be one of the film's
+speech-to-text (or `SttUntimed`) a 502. `:beat` is decoded and must be one of the film's
 beats before a route reads a body or writes a thing: any other name (an
 encoded `/` or `..` included) is a 404 `UnknownScene`. A body over
 `STUDIO_MAX_BODY` (64 MiB) is a 413 `BodyTooLarge`, counted as it streams (a

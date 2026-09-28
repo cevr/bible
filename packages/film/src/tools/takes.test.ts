@@ -52,7 +52,7 @@ const said = new Map([
   ['b', 'The second line.'],
 ]);
 
-const setup = (recorded: ReadonlyMap<string, string> = said) => {
+const setup = (recorded: ReadonlyMap<string, string> = said, untimed = false) => {
   const files = new Map<string, Uint8Array>([
     [TIMINGS, text(Schema.encodeSync(TimingsJson)(staged))],
     [`${NARRATION}/a.mp3`, text('Hello world.')],
@@ -66,7 +66,7 @@ const setup = (recorded: ReadonlyMap<string, string> = said) => {
     Layer.provide([
       memoryFileSystem(files),
       Path.layer,
-      fakeElevenLabs(files, calls, { recorded }),
+      fakeElevenLabs(files, calls, { recorded, untimed }),
       fakeMedia(files),
     ]),
   );
@@ -204,6 +204,18 @@ describe('Takes', () => {
     return Effect.gen(function* () {
       const error = yield* Effect.flip(importing('/rec'));
       expect(error).toMatchObject({ _tag: 'RecordingInvalid', file: '/rec/c.wav' });
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('a transcript with no word times fails typed; no untimed take is made', () => {
+    const { layer } = setup(said, true);
+    return Effect.gen(function* () {
+      const error = yield* Effect.flip(importing('/rec/b.m4a'));
+      expect(error).toMatchObject({ _tag: 'SttUntimed' });
+      expect((yield* loaded).timings.scenes['b']).toBeUndefined();
+      expect(yield* (yield* Takes).attempts(yield* loaded, 'b')).toEqual([]);
+      const whole = yield* Effect.flip(importing('/rec/a.wav', { ...defaults, whole: true }));
+      expect(whole).toMatchObject({ _tag: 'SttUntimed', file: '/rec/a.wav' });
     }).pipe(Effect.provide(layer));
   });
 

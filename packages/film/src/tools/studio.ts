@@ -145,7 +145,8 @@ const beatRow = (
 /**
  * The status a failure answers with: a request the studio cannot read 400,
  * a take it will not keep 422, a missing film or beat 404, a body over
- * `STUDIO_MAX_BODY` 413, a lossy recording 415, the transcriber failing 502,
+ * `STUDIO_MAX_BODY` 413, a lossy recording 415, the transcriber failing or
+ * timing none of the words it heard 502,
  * the rest 500.
  */
 const statusOf = (tag: string) => {
@@ -155,7 +156,7 @@ const statusOf = (tag: string) => {
   if (tag === 'RecordingLossy') return 415;
   const refused = ['TakeMismatch', 'RecordingInvalid', 'UnknownVoice', 'MediaFailed'];
   if (refused.includes(tag)) return 422;
-  if (tag === 'ElevenLabsFailed') return 502;
+  if (tag === 'ElevenLabsFailed' || tag === 'SttUntimed') return 502;
   return 500;
 };
 

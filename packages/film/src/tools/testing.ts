@@ -244,7 +244,7 @@ export const heardAt = (said: string) =>
  * of a take file is what was spoken into it, unless `heard` maps that text to
  * something else; a person's take (fake FLAC bytes, `fakeMedia.encodeFlac`)
  * says what `recorded` has for its beat. Every transcript's words are timed
- * by `heardAt`.
+ * by `heardAt`, unless `untimed`, when the reply carries its text and no words.
  */
 export const fakeElevenLabs = (
   files: Map<string, Uint8Array>,
@@ -252,6 +252,7 @@ export const fakeElevenLabs = (
   options: {
     readonly heard?: ReadonlyMap<string, string>;
     readonly recorded?: ReadonlyMap<string, string>;
+    readonly untimed?: boolean;
     readonly apiKey?: string;
   } = {},
 ) =>
@@ -296,6 +297,7 @@ export const fakeElevenLabs = (
             Option.fromNullishOr(options.heard?.get(said)),
             () => said,
           );
+          if (options.untimed === true) return { text: heard };
           return { text: heard, words: heardAt(heard) };
         }),
       composeMusic: (_plan, _model, out) => Effect.sync(() => void calls.music.push(out)),

@@ -41,6 +41,7 @@ import {
   type ElevenLabsFailed,
   type MediaFailed,
   RecordingInvalid,
+  type SttUntimed,
   TakeMismatch,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -108,6 +109,7 @@ export type TakesError =
   | BeatUnplaced
   | UnknownVoice
   | ElevenLabsFailed
+  | SttUntimed
   | MediaFailed
   | StoreError
   | PlatformError;
@@ -270,6 +272,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         const at = path.join(attemptsDir(film, beat.id), file);
         yield* store.writeFile(at, audio);
         const reply = yield* elevenLabs.stt(at);
+        const heard = yield* Effect.fromResult(heardWords(reply, source.file));
         const duration = yield* media.duration(at);
         const wer = lineError(beat.text, reply.text, film.heardAs);
         const made: Attempt = {
@@ -281,7 +284,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
             hash: hashText(beat.script),
             file,
             duration,
-            words: timeScript(beat.text, heardWords(reply), duration),
+            words: timeScript(beat.text, heard, duration),
             source: 'recorded',
           },
           heard: reply.text,
@@ -431,7 +434,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       ) {
         const beats = [...(yield* beatsById(film)).values()];
         const recording = yield* media.load(file, MIX_RATE);
-        const heard = heardWords(yield* elevenLabs.stt(file));
+        const heard = yield* Effect.fromResult(heardWords(yield* elevenLabs.stt(file), file));
         const spans: ReadonlyArray<BeatSpan> = yield* Effect.fromResult(
           placeBeats(beats, heard, recording.frames / recording.rate),
         );

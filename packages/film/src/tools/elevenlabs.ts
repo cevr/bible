@@ -5,12 +5,22 @@
 // and fall back to the CLI's OAuth login, which covers everything but sound
 // effects.
 
-import { Config, Context, Effect, Layer, Option, Redacted, Schema, Semaphore } from 'effect';
+import {
+  Config,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Redacted,
+  Result,
+  Schema,
+  Semaphore,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import type { Line } from '../core/narration.ts';
 import { type Cast, MusicModel, Plan, type Reader, type Word } from '../core/schema.ts';
-import { ApiKeyMissing, ElevenLabsFailed } from './errors.ts';
+import { ApiKeyMissing, ElevenLabsFailed, SttUntimed } from './errors.ts';
 import { type Finished, collect, isNotFound } from './process.ts';
 
 const OUTPUT_FORMAT = 'mp3_44100_192';
@@ -100,15 +110,31 @@ const SttWord = Schema.Struct({
  */
 export const SttResponse = Schema.Struct({
   text: Schema.String,
-  words: Schema.Array(SttWord).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /** Absent when the reply carries no timestamps: `heardWords` refuses that for a take. */
+  words: Schema.optionalKey(Schema.Array(SttWord)),
 });
 export type SttResponse = typeof SttResponse.Type;
 
-/** The words a transcript heard, in order, with their times: spacing and sound events left out. */
-export const heardWords = (reply: SttResponse): ReadonlyArray<Word> =>
-  reply.words
+/**
+ * The words a transcript heard, in order, with their times: spacing and sound
+ * events left out. A reply whose text has words but whose timestamps time
+ * none of them fails `SttUntimed`: a take timed by nothing would place every
+ * script word in one guessed gap. A reply that heard nothing has no words.
+ */
+export const heardWords = (
+  reply: SttResponse,
+  file: string,
+): Result.Result<ReadonlyArray<Word>, SttUntimed> => {
+  const timed = Option.getOrElse(
+    Option.fromNullishOr(reply.words),
+    (): (typeof SttWord.Type)[] => [],
+  )
     .filter((w) => w.type === 'word')
     .map((w) => ({ text: w.text, start: w.start, end: Math.max(w.start, w.end) }));
+  const heard = reply.text.split(/\s+/).filter((w) => w.length > 0).length;
+  if (heard > 0 && timed.length === 0) return Result.fail(SttUntimed.make({ file, heard }));
+  return Result.succeed(timed);
+};
 
 export interface TtsRequest {
   readonly text: string;
