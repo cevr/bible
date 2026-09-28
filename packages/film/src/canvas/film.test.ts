@@ -28,6 +28,11 @@ describe('createFilm finish and caption plate', () => {
     ).not.toThrow();
   });
 
+  test('lays the screen grain as a faint film layer: the paper carries its own grain', () => {
+    expect(createFilm(spec()).look.finish.grain).toBe(0.03);
+    expect(createFilm(spec({ grain: 0.2 })).look.finish.grain).toBe(0.2);
+  });
+
   test.each([
     ['grainSize', { grainSize: 0 }],
     ['grainSize', { grainSize: 12.5 }],

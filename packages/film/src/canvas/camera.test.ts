@@ -3,7 +3,7 @@
 // every veil; bun has no canvas.
 
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
 import {
@@ -20,6 +20,7 @@ import {
   shotPath,
 } from './camera.ts';
 import { heightOf } from './cutout.ts';
+import { FIBRE_SIZE, PLANE_FIBRE } from './fibre.ts';
 
 describe('knobCamera', () => {
   test('a framing from its knobs: where it looks, how close, and a turn only when given', () => {
@@ -71,16 +72,45 @@ interface Recorder {
   readonly veils: number[];
   /** The filter in force at each plane's draw, by plane name. */
   readonly filters: Map<string, string>;
+  /** Each pattern fill (the paper's fibre): its alpha, the transform it was laid under and its rect. */
+  readonly fibres: {
+    readonly alpha: number;
+    readonly m: Affine;
+    readonly rect: readonly [number, number, number, number];
+  }[];
+  /** What was drawn, in order: plane names as they draw, `fibre` for each pattern fill. */
+  readonly events: string[];
+}
+
+/** What the stand-in's `createPattern` hands back, so a fill with it is told from a veil. */
+const PATTERN = { pattern: true };
+
+/** The stand-in context's drawing state, saved and restored whole. */
+interface Pen {
+  m: Affine;
+  alpha: number;
+  filter: string;
+  comp: string;
+  /** A colour, or `PATTERN`. */
+  style: string | typeof PATTERN;
 }
 
 /** `m` then `n`, as the canvas composes a transform onto the current one. */
 const times = (m: Affine, n: Mat2d): Mat2d => mat2d.multiply(mat2d.create(), [...m], n);
 
 const recorder = (): Recorder => {
-  let state = { m: IDENTITY, alpha: 1, filter: 'none' };
+  let state: Pen = {
+    m: IDENTITY,
+    alpha: 1,
+    filter: 'none',
+    comp: 'source-over',
+    style: '',
+  };
   const stack: (typeof state)[] = [];
   const veils: number[] = [];
   const filters = new Map<string, string>();
+  const fibres: Recorder['fibres'] = [];
+  const events: string[] = [];
   const fake = {
     canvas: { width: 1920, height: 1080 },
     save: () => stack.push({ ...state }),
@@ -99,7 +129,25 @@ const recorder = (): Recorder => {
     setTransform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
       state.m = [a, b, c, d, e, f];
     },
-    fillRect: () => veils.push(state.alpha),
+    fillRect: (x: number, y: number, w: number, h: number) => {
+      if (state.style !== PATTERN) return veils.push(state.alpha);
+      events.push('fibre');
+      return fibres.push({ alpha: state.alpha, m: state.m, rect: [x, y, w, h] });
+    },
+    createPattern: () => PATTERN,
+    get fillStyle() {
+      return state.style;
+    },
+    set fillStyle(v: Pen['style']) {
+      state.style = v;
+    },
+    imageSmoothingEnabled: true,
+    get globalCompositeOperation() {
+      return state.comp;
+    },
+    set globalCompositeOperation(v: string) {
+      state.comp = v;
+    },
     get globalAlpha() {
       return state.alpha;
     },
@@ -112,7 +160,6 @@ const recorder = (): Recorder => {
     set filter(v: string) {
       state.filter = v;
     },
-    fillStyle: '',
     getTransform: () => {
       const [a, b, c, d, e, f] = state.m;
       return { a, b, c, d, e, f };
@@ -123,13 +170,43 @@ const recorder = (): Recorder => {
     now: () => state.m,
     veils,
     filters,
+    fibres,
+    events,
   };
 };
+
+/** Anything a context could answer: callable (answering itself), every property itself. */
+function none(): void {}
+const nothing: typeof none = new Proxy(none, {
+  get: () => nothing,
+  apply: () => nothing,
+  construct: () => nothing,
+  set: () => true,
+});
+
+/**
+ * Run `draw` with a DOM whose canvases draw nothing, for the fibre tile a
+ * backdrop plane is laid with (bun has no canvas); the DOM is put back after.
+ */
+const withDom = <A>(draw: () => A): A =>
+  Effect.runSync(
+    Effect.acquireUseRelease(
+      Effect.sync(() => {
+        const before = Reflect.get(globalThis, 'document');
+        Reflect.set(globalThis, 'document', {
+          createElement: () => ({ width: 0, height: 0, getContext: () => nothing }),
+        });
+        return before;
+      }),
+      () => Effect.sync(draw),
+      (before) => Effect.sync(() => Reflect.set(globalThis, 'document', before)),
+    ),
+  );
 
 /** Where each plane maps the world point `p`, by plane name. */
 const shoot = (
   r: Recorder,
-  cam: { x: number; y: number; zoom?: number },
+  cam: { x: number; y: number; zoom?: number; rot?: number },
   zs: Record<string, number>,
   p: readonly [number, number],
   depth = {},
@@ -140,11 +217,12 @@ const shoot = (
     z,
     draw: () => {
       order.push(name);
+      r.events.push(name);
       seen.set(name, applyAffine(r.now(), p));
       r.filters.set(name, r.ctx.filter);
     },
   }));
-  multiplane(r.ctx, cam, 1920, 1080, planes, depth);
+  withDom(() => multiplane(r.ctx, cam, 1920, 1080, planes, depth));
   return { seen, order };
 };
 
@@ -214,14 +292,16 @@ describe('multiplane', () => {
       z,
       draw: () => heights.set(name, heightOf(r.ctx)),
     });
-    multiplane(r.ctx, { x: 960, y: 540 }, 1920, 1080, [
-      at('far', 2),
-      at('focal', 1),
-      at('near', 0.8),
-      { ...at('named', 2), lift: 1.5 },
-      at('horizon', 40),
-      at('lens', 0.05),
-    ]);
+    withDom(() =>
+      multiplane(r.ctx, { x: 960, y: 540 }, 1920, 1080, [
+        at('far', 2),
+        at('focal', 1),
+        at('near', 0.8),
+        { ...at('named', 2), lift: 1.5 },
+        at('horizon', 40),
+        at('lens', 0.05),
+      ]),
+    );
     expect(heights.get('focal')).toBeCloseTo(1);
     expect(heights.get('far')).toBeCloseTo(0.5);
     expect(heights.get('near')).toBeCloseTo(1.25);
@@ -230,6 +310,41 @@ describe('multiplane', () => {
     expect(heights.get('horizon')).toBeCloseTo(PLANE_LIFT_MIN);
     expect(heights.get('lens')).toBeCloseTo(PLANE_LIFT_MAX);
     expect(heightOf(r.ctx)).toBe(1);
+  });
+
+  test('lays the paper fibre on the backdrop plane alone, under its own camera', () => {
+    const r = recorder();
+    const { seen } = shoot(r, { x: 1160, y: 540 }, { far: 3, focal: 1, near: 0.5 }, [1000, 500]);
+    expect(r.events).toEqual(['far', 'fibre', 'focal', 'near']);
+    expect(r.fibres).toHaveLength(1);
+    const fibre = r.fibres[0];
+    expect(fibre?.alpha).toBeCloseTo(PLANE_FIBRE);
+    // One blit at a whole-pixel offset over the whole frame.
+    const [, , , , ox = 0, oy = 0] = fibre?.m ?? IDENTITY;
+    expect(fibre?.m).toEqual([1, 0, 0, 1, Math.round(ox), Math.round(oy)]);
+    expect(fibre?.rect).toEqual([0 - ox, 0 - oy, 1920, 1080]);
+    // Laid in the backdrop's world: where the backdrop drew the point, the
+    // tile holds that point's own place in it, to the rounded pixel.
+    const [sx, sy] = seen.get('far') ?? [0, 0];
+    const wrap = (n: number) => ((n % FIBRE_SIZE) + FIBRE_SIZE) % FIBRE_SIZE;
+    expect(Math.abs(wrap(sx - ox) - wrap(1000))).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(wrap(sy - oy) - wrap(500))).toBeLessThanOrEqual(0.5);
+  });
+
+  test('lays the fibre through the backdrop plane itself when the camera turns', () => {
+    const r = recorder();
+    const { seen } = shoot(r, { x: 1160, y: 540, rot: 0.1 }, { far: 3, focal: 1 }, [1000, 500]);
+    const m = r.fibres[0]?.m ?? IDENTITY;
+    const [x, y] = applyAffine(m, [1000, 500]);
+    const [fx, fy] = seen.get('far') ?? [0, 0];
+    expect(x).toBeCloseTo(fx);
+    expect(y).toBeCloseTo(fy);
+  });
+
+  test('lays no fibre when the shot asks for none', () => {
+    const r = recorder();
+    shoot(r, { x: 960, y: 540 }, { far: 3, focal: 1 }, [0, 0], { fibre: 0 });
+    expect(r.fibres).toHaveLength(0);
   });
 
   test('softens planes off the focal plane only', () => {

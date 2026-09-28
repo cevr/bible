@@ -167,7 +167,10 @@ export type CaptionStyle = typeof CaptionStyle.Type;
 export const FinishStyle = Schema.Struct({
   /** How strongly the vignette darkens the edges toward `shade`, 0..1. Defaults to 0.28. */
   vignette: Schema.optionalKey(Unit),
-  /** How strongly the film grain overlays the frame, 0..1. Defaults to 0.09. */
+  /**
+   * How strongly the film grain overlays the frame, 0..1: a faint film layer,
+   * since the paper carries its own grain on its planes (`fibre.ts`). Defaults to 0.03.
+   */
   grain: Schema.optionalKey(Unit),
   /** A grain tile's side in whole px, at least 1. Defaults to 256. */
   grainSize: Schema.optionalKey(Count),
@@ -322,7 +325,7 @@ const finishOf = (declared: FinishStyle = {}): Required<FinishStyle> => {
   const f = Schema.decodeSync(FinishStyle)(declared);
   return {
     vignette: f.vignette ?? 0.28,
-    grain: f.grain ?? 0.09,
+    grain: f.grain ?? 0.03,
     grainSize: f.grainSize ?? 256,
     grainTiles: f.grainTiles ?? 6,
   };

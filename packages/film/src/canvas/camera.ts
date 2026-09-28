@@ -2,6 +2,7 @@
 
 import { lerp } from '../core/time.ts';
 import { raised } from './cutout.ts';
+import { PLANE_FIBRE, planeFibre } from './fibre.ts';
 
 export interface Camera {
   x: number;
@@ -173,6 +174,12 @@ export interface Depth {
   thickness?: number;
   /** Blur in px per unit of z away from the focal plane. Defaults to 0. */
   blur?: number;
+  /**
+   * How strongly the paper's fibre is laid over the backdrop (the farthest
+   * plane and all behind it), in that plane's own space, 0..1. Defaults to
+   * `PLANE_FIBRE`; nearer planes' cutouts carry the fibre in their faces.
+   */
+  fibre?: number;
 }
 
 /** How much of a plane at `z` shows through the haze in front of it. */
@@ -215,6 +222,8 @@ export const multiplane = (
     if (soft > 0.05) ctx.filter = `blur(${soft.toFixed(2)}px)`;
     raised(ctx, plane.lift ?? planeLift(z), () => shoot(ctx, view, w, h, plane.draw, false));
     ctx.restore();
+    // The backdrop's paper grain, fixed to it: it slides with the backdrop's pan.
+    if (i === 0) planeFibre(ctx, view, w, h, depth.fibre ?? PLANE_FIBRE);
     // Haze over everything so far, as thick as the air between this plane
     // and the next nearer one, or the focal plane after the nearest.
     const nearer = ordered[i + 1]?.z ?? 1;
