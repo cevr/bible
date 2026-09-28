@@ -1,7 +1,8 @@
 // The `film` oxlint plugin, run for real: oxlint lints each fixture in
 // `fixtures/` with only this plugin on, and what it reports must be exactly the
-// lines a fixture marks `// RED film/<rule>`. The mock-AST cases below pin a
-// rule's decision on one node, where the parent chain is built by hand.
+// lines a fixture marks `// RED film/<rule>`. no-unprobed-ink resolves names
+// through scope, which only a real oxlint run provides, so its fixture is its
+// test. The mock-AST cases below pin drawing-literal's decision on one node.
 
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
@@ -10,7 +11,6 @@ import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { Testing } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
-import { noUnprobedInk } from './no-unprobed-ink.ts';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));
@@ -82,38 +82,6 @@ describe('film oxlint plugin', () => {
       expect(run.exitCode).not.toBe(0);
     }),
   );
-});
-
-/** `ctx.<method>()` whose parent is `parent`. */
-const contextCall = (method: string, parent: { readonly type: string }) => ({
-  ...Testing.callOfMember('ctx', method),
-  parent,
-});
-
-describe('film/no-unprobed-ink', () => {
-  test('reports a raw ctx.stroke()', () => {
-    const found = Testing.runRule(
-      noUnprobedInk,
-      'CallExpression',
-      contextCall('stroke', Testing.program()),
-    );
-    expect(found).toHaveLength(1);
-  });
-
-  test('lets a stroke inside unprobed(ctx, () => …) through', () => {
-    const wrapper = { ...Testing.callExpr('unprobed'), parent: Testing.program() };
-    const found = Testing.runRule(noUnprobedInk, 'CallExpression', contextCall('stroke', wrapper));
-    Testing.expectNoDiagnostics(found);
-  });
-
-  test('leaves a fill alone', () => {
-    const found = Testing.runRule(
-      noUnprobedInk,
-      'CallExpression',
-      contextCall('fill', Testing.program()),
-    );
-    Testing.expectNoDiagnostics(found);
-  });
 });
 
 describe('film/drawing-literal', () => {
