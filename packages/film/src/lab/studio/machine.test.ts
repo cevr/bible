@@ -7,7 +7,7 @@
 // a take is importing. Whatever path is taken, the microphone is closed once
 // the machine leaves the count-in and the recording.
 
-import { Effect, Layer, Option, Predicate, Stream, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Exit, Layer, Option, Predicate, Stream, SubscriptionRef } from 'effect';
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
@@ -54,6 +54,8 @@ interface Log {
 const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused>>) => {
   const log: Log = { calls: [], open: false };
   const say = (call: string) => Effect.sync(() => void log.calls.push(call));
+  /** Done, the open microphone's track ends (unplugged). */
+  const lose = Deferred.makeUnsafe<void>();
   let posts = 0;
   const next = () =>
     Effect.suspend(() => {
@@ -81,6 +83,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
     }),
     levels: Stream.make(Option.none()),
     devices: Effect.succeed([]),
+    lost: Deferred.await(lose),
   };
   const api: StudioCalls = {
     beats: Effect.die('not asked'),
@@ -108,7 +111,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
     Layer.succeed(StudioApi, api),
     Layer.succeed(Stage, stage),
   );
-  return { log, layer };
+  return { log, layer, lose };
 };
 
 const machine = recorderMachine('a');
@@ -214,6 +217,41 @@ describe('the count-in, through an actor', () => {
       expect(log.calls).toEqual(['pause', 'open default', 'close']);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+});
+
+describe('a microphone lost mid-take', () => {
+  it.effect(
+    'fails the take as MicLost, keeping what was recorded before it to hear; Back reviews it',
+    () => {
+      const { log, layer, lose } = fakes();
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(machine);
+        yield* actor.start;
+        yield* actor.sendAndWait(arm, RecorderState.CountIn);
+        yield* TestClock.adjust(`${COUNT_IN} seconds`);
+        expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Recording');
+        yield* Deferred.done(lose, Exit.void);
+        const failed = yield* actor.waitFor(RecorderState.Failed);
+        expect(failed).toEqual(
+          RecorderState.Failed({
+            beat: 'a',
+            refusal: {
+              _tag: 'MicLost',
+              message:
+                'the microphone went away (unplugged, or another app took it); the recording up to then is kept: Back (Esc) to hear it',
+            },
+            wav: Option.some(wav),
+          }),
+        );
+        expect(log.calls).toEqual(['pause', 'open default', 'start', 'stop']);
+        expect(log.open).toBe(false);
+        yield* actor.send(RecorderEvent.Retry);
+        expect(yield* actor.waitFor(RecorderState.Review)).toEqual(
+          RecorderState.Review({ beat: 'a', wav }),
+        );
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
 });
 
 describe('review', () => {

@@ -143,6 +143,31 @@ describe('the AudioWorklet capture', () => {
   );
 
   it.live(
+    'a microphone unplugged mid-take is noticed, and what was recorded before it is still handed back',
+    () =>
+      Effect.gen(function* () {
+        const probed = yield* allowed(MONO_44K, { seconds: 1, lose: true });
+        expect(probed.refused).toBe('');
+        expect(probed.lost).toBe(true);
+        expect(probed.frames).toBeGreaterThan(44100 * 0.9);
+        expect(probed.peak).toBeGreaterThan(0.45);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    30_000,
+  );
+
+  it.live(
+    'a stop whose last samples never arrive fails the take in words rather than cut it short',
+    () =>
+      Effect.gen(function* () {
+        const probed = yield* allowed(MONO_44K, { seconds: 1, dropFlush: true });
+        expect(probed.refused).toBe(
+          'the recording stopped: its last samples never came from the audio thread, so the take would end short; record it again',
+        );
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    30_000,
+  );
+
+  it.live(
     'a browser that runs the audio at another rate than the microphone’s fails the capture, never resamples',
     () =>
       Effect.gen(function* () {

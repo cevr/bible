@@ -7,6 +7,7 @@
 //
 //   Idle | Review | Failed ─Arm→ CountIn(n) ─Tick (each second)→ CountIn(n−1)
 //   CountIn(1) ─CountDone→ Recording ─Stop→ Review ─Submit→ Importing
+//   Recording ─MicLost (the device went)→ Failed (what was kept, to review)
 //   Importing ─Imported→ Idle (kept; the page reloads when the track was
 //     remixed) | ─Refused→ Failed ─Retry→ Review | Idle
 //   Failed (TakeMismatch with its attempt) ─AcceptAnyway→ Importing
@@ -15,7 +16,8 @@
 // The microphone is the capture's; the machine opens it on Arm, starts it
 // when the count-in ends, and closes it on every way out of the count-in and
 // the recording (Stop takes what was kept and closes it). Side work is the
-// machine's: the count-in is a state timeout, the import a state task.
+// machine's: the count-in is a state timeout, the import a state task, and
+// the recording watches for its microphone going away.
 // Nothing here touches the DOM: the capture, the studio API and the stage
 // are services, faked in tests.
 
@@ -24,7 +26,7 @@ import { Event, Machine, State } from 'effect-machine';
 import { StudioRefusal, type StudioTake } from '../../core/studio.ts';
 import { Stage } from '../stage.ts';
 import { StudioApi } from './api.ts';
-import { Capture } from './capture.ts';
+import { Capture, MicLost } from './capture.ts';
 import { encodeWav } from './wav.ts';
 
 /** The count-in: this many seconds, one shown each second, before the recording starts. */
@@ -80,6 +82,8 @@ export const RecorderEvent = Event({
   CountDone: {},
   Cancel: {},
   Stop: {},
+  /** The microphone went away mid-take. */
+  MicLost: {},
   Retake: { device: Device },
   Submit: {},
   Discard: {},
@@ -135,6 +139,23 @@ const rest = (beat: string) =>
   Effect.gen(function* () {
     yield* (yield* Capture).close;
     return RecorderState.Idle({ beat, kept: Option.none() });
+  });
+
+/**
+ * Stop the capture and go where `then` says with the WAV of what was kept; a
+ * capture that fails (its last samples lost) closes and fails with no take.
+ */
+const stopped = (beat: string, then: (wav: typeof Wav.Type) => RecorderState) =>
+  Effect.gen(function* () {
+    const capture = yield* Capture;
+    return yield* capture.stop.pipe(
+      Effect.map((pcm) => then(encodeWav(pcm))),
+      Effect.catchTag('CaptureFailed', (e) =>
+        capture.close.pipe(
+          Effect.as(RecorderState.Failed({ beat, refusal: localRefusal(e), wav: Option.none() })),
+        ),
+      ),
+    );
   });
 
 /** The call an import makes. */
@@ -214,23 +235,20 @@ export const recorderMachine = (beat: string) =>
       rest(state.beat),
     )
     .on(RecorderState.Recording, RecorderEvent.Stop, ({ state }) =>
-      Effect.gen(function* () {
-        const capture = yield* Capture;
-        return yield* capture.stop.pipe(
-          Effect.map((pcm) => RecorderState.Review({ beat: state.beat, wav: encodeWav(pcm) })),
-          Effect.catchTag('CaptureFailed', (e) =>
-            capture.close.pipe(
-              Effect.as(
-                RecorderState.Failed({
-                  beat: state.beat,
-                  refusal: localRefusal(e),
-                  wav: Option.none(),
-                }),
-              ),
-            ),
-          ),
-        );
-      }),
+      stopped(state.beat, (wav) => RecorderState.Review({ beat: state.beat, wav })),
+    )
+    .task(RecorderState.Recording, () => Capture.use((capture) => capture.lost), {
+      onSuccess: () => RecorderEvent.MicLost,
+    })
+    // What was kept before the device went is the take's to hear: Back reviews it.
+    .on(RecorderState.Recording, RecorderEvent.MicLost, ({ state }) =>
+      stopped(state.beat, (wav) =>
+        RecorderState.Failed({
+          beat: state.beat,
+          refusal: localRefusal(MicLost.make({})),
+          wav: Option.some(wav),
+        }),
+      ),
     )
     .on(RecorderState.Review, RecorderEvent.Submit, ({ state }) =>
       RecorderState.Importing({ beat: state.beat, work: { _tag: 'Upload', wav: state.wav } }),

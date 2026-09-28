@@ -11,7 +11,18 @@
 // (the tracks, the context, the node's connection): `close` and `stop` close
 // it, as does the layer's scope when the page goes. One call at a time.
 
-import { Effect, Exit, Layer, Option, PubSub, Schema, Scope, Semaphore, Stream } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  PubSub,
+  Schema,
+  Scope,
+  Semaphore,
+  Stream,
+} from 'effect';
 import { Capture, type CaptureOps, CaptureFailed, type Level, MicDenied } from './capture.ts';
 import type { Pcm } from './wav.ts';
 import { PROCESSOR, workletSource } from './worklet.ts';
@@ -82,6 +93,8 @@ interface OpenMic {
   kept: Array<Float32Array>;
   frames: number;
   flushed: Option.Option<() => void>;
+  /** Done when the track ends: the microphone went away. */
+  readonly ended: Deferred.Deferred<void>;
 }
 
 /** Every kept block, joined. */
@@ -221,7 +234,15 @@ export const makeBrowserCapture = Effect.gen(function* () {
         kept: [],
         frames: 0,
         flushed: Option.none(),
+        ended: Deferred.makeUnsafe<void>(),
       };
+      // A track ends only when its device goes (unplugged, or another app
+      // took it): the take is told, and keeps what it has.
+      const onEnded = () => void Deferred.doneUnsafe(open.ended, Effect.void);
+      track.addEventListener('ended', onEnded);
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => track.removeEventListener('ended', onEnded)),
+      );
       // Each block is checked as it crosses from the audio thread.
       node.port.onmessage = (e: MessageEvent) =>
         void Option.map(decodeBlock(e.data), (block) => heard(open, block));
@@ -263,12 +284,26 @@ export const makeBrowserCapture = Effect.gen(function* () {
     }),
   );
 
-  /** The worklet's last part-block, or nothing more once FLUSH_WAIT has passed. */
+  /**
+   * The worklet's last part-block, kept. One that has not come by FLUSH_WAIT
+   * fails the take: joined without it, the take would end short and nobody
+   * would know.
+   */
   const flush = (m: OpenMic) =>
     Effect.callback<void>((resume) => {
       m.flushed = Option.some(() => resume(Effect.void));
       m.node.port.postMessage('flush');
-    }).pipe(Effect.timeoutOption(FLUSH_WAIT), Effect.asVoid);
+    }).pipe(
+      Effect.timeoutOrElse({
+        duration: FLUSH_WAIT,
+        orElse: () =>
+          Effect.fail(
+            failed(
+              'its last samples never came from the audio thread, so the take would end short; record it again',
+            ),
+          ),
+      }),
+    );
 
   const stop: CaptureOps['stop'] = lock.withPermits(1)(
     Effect.gen(function* () {
@@ -293,6 +328,13 @@ export const makeBrowserCapture = Effect.gen(function* () {
     Effect.orElseSucceed(() => []),
   );
 
+  const lost: CaptureOps['lost'] = Effect.suspend(() =>
+    Option.match(mic, {
+      onNone: () => Effect.never,
+      onSome: (m) => Deferred.await(m.ended),
+    }),
+  );
+
   yield* Effect.addFinalizer(() =>
     closeMic.pipe(Effect.andThen(Effect.sync(() => URL.revokeObjectURL(moduleUrl)))),
   );
@@ -304,6 +346,7 @@ export const makeBrowserCapture = Effect.gen(function* () {
     close: lock.withPermits(1)(closeMic),
     levels: Stream.fromPubSub(levels),
     devices,
+    lost,
   });
 });
 

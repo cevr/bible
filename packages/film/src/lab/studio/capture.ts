@@ -28,6 +28,13 @@ export class CaptureFailed extends Schema.TaggedError<CaptureFailed>()('CaptureF
   }
 }
 
+/** The microphone went away mid-take: what was recorded up to then is kept to hear. */
+export class MicLost extends Schema.TaggedError<MicLost>()('MicLost', {}) {
+  override get message() {
+    return 'the microphone went away (unplugged, or another app took it); the recording up to then is kept: Back (Esc) to hear it';
+  }
+}
+
 /** What the meter shows: the loudest sample and the RMS of the last block, linear 0–1, and the seconds kept. */
 export const Level = Schema.Struct({
   peak: Schema.Finite,
@@ -58,6 +65,12 @@ export interface CaptureOps {
   readonly levels: Stream.Stream<Option.Option<Level>>;
   /** The microphones the browser lists (their labels once one was allowed). */
   readonly devices: Effect.Effect<ReadonlyArray<MicDevice>>;
+  /**
+   * Done when the open microphone goes away (unplugged, or another app took
+   * it); never while none is open or it stays. What was kept up to then is
+   * still `stop`'s to hand back.
+   */
+  readonly lost: Effect.Effect<void>;
 }
 
 export class Capture extends Context.Service<Capture, CaptureOps>()('@bible/film/lab/Capture') {}
