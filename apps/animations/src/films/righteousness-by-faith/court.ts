@@ -88,6 +88,18 @@ export const question = (ctx: CanvasRenderingContext2D, hand: Hand, opts: WriteO
 /** Christ as Advocate at the landing (`name`, `thesis`): his brows and hands; the scene gives his turn and look. */
 export const ADVOCATE_POSE: Person = { browTilt: 0.15, handL: [-86, -104], handR: [30, -58] };
 
+/**
+ * The figure as the verdict lands: turned to the Advocate, smiling. `name`
+ * ends on it and `thesis` starts from it, so the cut between them holds.
+ */
+export const FIGURE_LANDED = {
+  tilt: -0.05,
+  look: [3, 0],
+  browL: 2,
+  browR: 2,
+  smile: 0.7,
+} as const satisfies Person;
+
 export interface Court {
   readonly cam: Camera;
   /** The gavel's angle, radians: 0.35 at rest, about 1.6 down. */

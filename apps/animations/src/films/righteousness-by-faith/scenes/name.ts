@@ -12,6 +12,7 @@ import { lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import {
   ADVOCATE_POSE,
+  FIGURE_LANDED,
   GAVEL_DOWN,
   GAVEL_REST,
   REST,
@@ -71,13 +72,17 @@ export const name = drawing({
       gold: f.at('gold'),
       shine: 0.9 * f.at('shine'),
       figure: {
-        tilt: -0.12 * up + 0.08 * touch - 0.05 * turn,
+        // Ends on FIGURE_LANDED, where `thesis` picks the figure up.
+        tilt: -0.12 * up + 0.08 * touch + FIGURE_LANDED.tilt * turn,
         nod: 5 * touch,
-        look: [lerp(lerp(0, 3, up), -2, touch) + 3 * turn, lerp(-5 * up, 3, touch)],
-        browL: 3 * up + 2 * smile,
-        browR: 4 * up + 2 * smile,
+        look: [
+          lerp(lerp(0, 3, up), -2, touch) + FIGURE_LANDED.look[0] * turn,
+          lerp(-5 * up, 3, touch),
+        ],
+        browL: 3 * up + FIGURE_LANDED.browL * smile,
+        browR: 4 * up + FIGURE_LANDED.browR * smile,
         browTilt: 0.35 * up,
-        smile: 0.7 * smile,
+        smile: FIGURE_LANDED.smile * smile,
         handR: touch > 0.01 ? [lerp(40, -24, touch), lerp(-60, -76, touch)] : undefined,
       },
       advocate: {

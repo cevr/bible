@@ -17,7 +17,15 @@ import {
 import { clamp, lerp } from '@bible/film/core';
 import { C, F, christ, glow, person, piece, between } from '../kit.ts';
 import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
-import { ADVOCATE_POSE, GAVEL_DOWN, GAVEL_REST, WIDE, landingCourt, question } from '../court.ts';
+import {
+  ADVOCATE_POSE,
+  FIGURE_LANDED,
+  GAVEL_DOWN,
+  GAVEL_REST,
+  WIDE,
+  landingCourt,
+  question,
+} from '../court.ts';
 
 /** Where the camera ends: the title's city, near enough to see the two of them. */
 const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
@@ -112,6 +120,7 @@ export const thesis = drawing({
 
     // The court in its gold light, pulled back and let go.
     if (courtOut < 1) {
+      const lookUp = f.at('frame');
       ctx.save();
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
@@ -122,7 +131,15 @@ export const thesis = drawing({
         pop: 1,
         gold: 1,
         shine: 0.9,
-        figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1, smile: 0.7 },
+        // From where `name` left the figure, up to the words as the court reframes.
+        figure: {
+          look: [lerp(FIGURE_LANDED.look[0], 2, lookUp), lerp(FIGURE_LANDED.look[1], -4, lookUp)],
+          browL: lerp(FIGURE_LANDED.browL, 3, lookUp),
+          browR: lerp(FIGURE_LANDED.browR, 4, lookUp),
+          browTilt: 0.35 * lookUp,
+          tilt: lerp(FIGURE_LANDED.tilt, -0.1, lookUp),
+          smile: FIGURE_LANDED.smile,
+        },
         advocate: { ...ADVOCATE_POSE, tilt: -0.06, look: [3, 1], smile: 0.6 },
       });
       ctx.restore();
