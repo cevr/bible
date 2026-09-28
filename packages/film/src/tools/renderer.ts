@@ -213,6 +213,9 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         // again. A failed join leaves them for the error that names one.
         yield* fs.remove(segDir, { recursive: true, force: true });
         yield* fs.remove(shareDir, { recursive: true, force: true });
+        // And the folder they were made in, when they were all it held (`--tag`,
+        // the bench's): a render leaves its outputs, never an empty folder.
+        if ((yield* fs.readDirectory(dir)).length === 0) yield* fs.remove(dir);
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
@@ -287,7 +290,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
         const dir = path.join(film.paths.out, job.tag);
-        yield* fs.makeDirectory(dir, { recursive: true });
+        // A video writes only its segments there, which make their own folders.
+        if (!RenderJob.$is('Video')(job)) yield* fs.makeDirectory(dir, { recursive: true });
         const pages = RenderJob.$match(job, {
           Video: (v) => v.workers,
           Stills: (s) => Math.min(s.workers, s.times.length),

@@ -43,11 +43,26 @@ const notFound = (method: string, path: string) =>
     pathOrDescriptor: path,
   });
 
-/** File operations over a map of path → bytes. */
-const memoryOps = (files: Map<string, Uint8Array>) =>
+/** The folders `path` and, when `recursive`, every one above it. */
+const folderAndParents = (path: string, recursive: boolean): ReadonlyArray<string> => {
+  if (!recursive) return [path];
+  const parts = path.split('/');
+  return parts.slice(1).map((_, i) => parts.slice(0, i + 2).join('/'));
+};
+
+/**
+ * File operations over a map of path → bytes, and `folders`, the set of
+ * folders made (a folder with files in it exists whether made or not), so a
+ * test can see a folder left empty.
+ */
+const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) =>
   ({
     exists: (path) =>
-      Effect.succeed(files.has(path) || [...files.keys()].some((f) => f.startsWith(`${path}/`))),
+      Effect.succeed(
+        files.has(path) ||
+          folders.has(path) ||
+          [...files.keys()].some((f) => f.startsWith(`${path}/`)),
+      ),
     readFile: (path) =>
       Option.match(Option.fromNullishOr(files.get(path)), {
         onNone: () => Effect.fail(notFound('readFile', path)),
@@ -60,7 +75,11 @@ const memoryOps = (files: Map<string, Uint8Array>) =>
       }),
     writeFile: (path, data) => Effect.sync(() => void files.set(path, data)),
     writeFileString: (path, data) => Effect.sync(() => void files.set(path, text(data))),
-    makeDirectory: () => Effect.void,
+    makeDirectory: (path, options) =>
+      Effect.sync(() => {
+        for (const folder of folderAndParents(path, options?.recursive === true))
+          folders.add(folder);
+      }),
     rename: (from, to) =>
       Option.match(Option.fromNullishOr(files.get(from)), {
         onNone: () => Effect.fail(notFound('rename', from)),
@@ -75,20 +94,26 @@ const memoryOps = (files: Map<string, Uint8Array>) =>
       Effect.sync(() => {
         for (const file of [...files.keys()])
           if (file === path || file.startsWith(`${path}/`)) files.delete(file);
+        for (const folder of [...folders])
+          if (folder === path || folder.startsWith(`${path}/`)) folders.delete(folder);
       }),
     makeTempDirectoryScoped: () => Effect.succeed('/tmp/film-test'),
+    // The files and folders directly in `path`: made, or holding a file.
     readDirectory: (path) =>
-      Effect.sync(() =>
-        [...files.keys()]
-          .filter((f) => f.startsWith(`${path}/`))
-          .map((f) => f.slice(path.length + 1))
-          .filter((name) => !name.includes('/')),
-      ),
+      Effect.sync(() => [
+        ...new Set(
+          [...files.keys(), ...folders]
+            .filter((f) => f.startsWith(`${path}/`))
+            .map((f) => f.slice(path.length + 1).split('/')[0] ?? ''),
+        ),
+      ]),
   }) satisfies Partial<FileSystem.FileSystem>;
 
-/** A file system over a map of path → bytes. */
-export const memoryFileSystem = (files: Map<string, Uint8Array>) =>
-  FileSystem.layerNoop(memoryOps(files));
+/** A file system over a map of path → bytes, and the set of folders made in it. */
+export const memoryFileSystem = (
+  files: Map<string, Uint8Array>,
+  folders: Set<string> = new Set(),
+) => FileSystem.layerNoop(memoryOps(files, folders));
 
 /**
  * `files`, whose `nth` write, rename or remove (counting from 1) fails as a
