@@ -51,7 +51,7 @@ export const mountLab = (player: Player, filmName: string): void => {
   /** Every call names this film (`/lab/<film>/…`): the lab refuses a page for another. */
   const api = labBase(filmName);
   /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
-  const view = viewStore(filmName, sessionStore());
+  const view = viewStore(filmName, sessionStore(), film.duration);
   document.body.classList.add('lab');
 
   // ── The layer over the canvas: every lab mark draws here, never on the film. ──

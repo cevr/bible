@@ -3,12 +3,18 @@
 // from the tab's sessionStorage, under one key per film. Each tool patches its
 // part as it changes. Storage that is missing, throws or holds something that
 // does not decode is the default view: the page still keeps what it was told
-// while it lives, and only then does a reload start from the default.
+// while it lives, and only then does a reload start from the default. A view
+// is read against the film as it is now: the film may have got shorter since
+// it was stored, so an A–B loop is clamped to the film, and dropped when
+// nothing of it is left.
+
+/** The rates the lab plays at: the only ones a stored view may hold. */
+export const RATES = [0.25, 0.5, 1] as const;
 
 import { Option, Result, Schema } from 'effect';
 
 export const LabView = Schema.Struct({
-  rate: Schema.Finite,
+  rate: Schema.Literals(RATES),
   loop: Schema.optionalKey(
     Schema.Union([
       Schema.Struct({ kind: Schema.Literal('cue'), scene: Schema.String, name: Schema.String }),
@@ -54,12 +60,29 @@ const encode = Schema.encodeSync(ViewJson);
 /** `run`'s value, or none when it throws (storage a private window or a full quota refuses). */
 const attempt = <A>(run: () => A): Option.Option<A> => Result.getSuccess(Result.try(run));
 
+/** `view` against a film `duration` seconds long: its A–B loop inside the film, or none. */
+const fitView = (view: LabView, duration: number): LabView => {
+  const { loop, ...rest } = view;
+  if (loop === undefined || loop.kind === 'cue') return view;
+  const from = Math.max(0, loop.from);
+  const to = Math.min(duration, loop.to);
+  if (to <= from) return rest;
+  return { ...rest, loop: { kind: 'ab', from, to } };
+};
+
 /** The session's storage, when the page may use it. */
 export const sessionStore = (): StorageLike | undefined =>
   Option.getOrUndefined(attempt(() => window.sessionStorage));
 
-/** The view of `film` in this tab: read once, kept in memory, written through on each patch. */
-export const viewStore = (film: string, storage: StorageLike | undefined): ViewStore => {
+/**
+ * The view of `film` (`duration` seconds long now) in this tab: read once and
+ * fitted to the film, kept in memory, written through on each patch.
+ */
+export const viewStore = (
+  film: string,
+  storage: StorageLike | undefined,
+  duration: number,
+): ViewStore => {
   const key = `film-lab-view:${film}`;
   let view: LabView = Option.getOrElse(
     Option.flatMap(
@@ -68,6 +91,7 @@ export const viewStore = (film: string, storage: StorageLike | undefined): ViewS
     ),
     () => DEFAULT_VIEW,
   );
+  view = fitView(view, duration);
   return {
     get: () => view,
     patch: (change) => {

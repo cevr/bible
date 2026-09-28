@@ -13,10 +13,8 @@ import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Editor } from './lab-edit.ts';
 import { el, required } from './dom.ts';
 import type { LoopRange, Player } from './main.ts';
-import type { LabView, ViewStore } from './view-state.ts';
+import { type LabView, RATES, type ViewStore } from './view-state.ts';
 
-/** The rates the lab plays at. */
-const RATES: ReadonlyArray<number> = [0.25, 0.5, 1];
 /** A cue shorter than this loops with this much film either side, or there is nothing to watch. */
 const SHORT_CUE = 0.2;
 const CUE_PAD = 0.4;
@@ -132,7 +130,7 @@ export const mountMotion = (
 
   // ── Speed. ──
   const rates = q<HTMLDivElement>('[data-role="rates"]');
-  const setRate = (r: number) => {
+  const setRate = (r: LabView['rate']) => {
     player.setRate(r);
     for (const other of rateBtns) other.classList.toggle('on', other.dataset['rate'] === String(r));
     say(r === 1 ? '' : `${r}×: narration muted`);
