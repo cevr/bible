@@ -130,17 +130,17 @@ export const isCast = (voice: Voice): voice is Cast => 'voices' in voice;
 /** How a scene arrives from the previous one. */
 export const Transition = Schema.Union([
   Schema.Struct({ kind: Schema.Literal('cut') }),
-  Schema.Struct({ kind: Schema.Literal('fade'), dur: Schema.Finite }),
+  Schema.Struct({ kind: Schema.Literal('fade'), dur: Seconds }),
   /** Slide across one long sheet, like a camera panning a mural. */
   Schema.Struct({
     kind: Schema.Literal('pan'),
-    dur: Schema.Finite,
+    dur: Seconds,
     dir: Schema.optionalKey(Schema.Literals([1, -1])),
   }),
   /** A broad brush stroke sweeps across and leaves the new scene behind it. */
   Schema.Struct({
     kind: Schema.Literal('ink'),
-    dur: Schema.Finite,
+    dur: Seconds,
     color: Schema.optionalKey(Schema.String),
   }),
 ]);
@@ -170,27 +170,51 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
 export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
+/** A share of a cue, from none of it to all of it. */
+const Share = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }));
+
 const spanTiming = {
   offset: Schema.optionalKey(Schema.Finite),
-  /** Defaults to 0, an instant. */
-  dur: Schema.optionalKey(Schema.Finite),
-  /** How `f.at(name)` eases across the cue. Defaults to `inOutCubic`. */
+  /** How `f.at(name)` eases across the cue. Defaults to `DEFAULT_EASE` (`time.ts`). */
   ease: Schema.optionalKey(EaseName),
+  /**
+   * The share of the cue over which `f.stagger(name, i, n)` spreads its items'
+   * starts; each item lasts the rest. Defaults to 0: every item is the whole cue.
+   */
+  stagger: Schema.optionalKey(Share),
 };
 
-/** Where a named cue starts, plus how long it lasts. */
+/** A span that ends by its length. */
+const byDur = {
+  /** Defaults to 0, an instant. */
+  dur: Schema.optionalKey(Seconds),
+  until: Schema.optionalKey(Schema.Never),
+};
+
+/** A span that ends on a `{mark}` in the scene's narration, so a re-take moves the end with it. */
+const untilMark = {
+  until: Schema.String,
+  dur: Schema.optionalKey(Schema.Never),
+};
+
+/** One anchor's two spans: ended by `dur`, or `until` a mark; never both. */
+const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
+  [
+    Schema.Struct({ ...anchor, ...spanTiming, ...byDur }),
+    Schema.Struct({ ...anchor, ...spanTiming, ...untilMark }),
+  ] as const;
+
+/**
+ * Where a named cue starts, plus how long it lasts: at a `{mark}` in the
+ * scene's narration, at the end of another cue (`after`), at its start
+ * (`with`), or at a scene landmark (its start, where the voice starts or
+ * ends, or its end).
+ */
 export const Span = Schema.Union([
-  /** At a `{mark}` in the scene's narration. */
-  Schema.Struct({ mark: Schema.String, ...spanTiming }),
-  /** At the end of another cue. */
-  Schema.Struct({ after: Schema.String, ...spanTiming }),
-  /** At the start of another cue. */
-  Schema.Struct({ with: Schema.String, ...spanTiming }),
-  /** At a scene landmark: its start, where the voice starts or ends, or its end. */
-  Schema.Struct({
-    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
-    ...spanTiming,
-  }),
+  ...anchored({ mark: Schema.String }),
+  ...anchored({ after: Schema.String }),
+  ...anchored({ with: Schema.String }),
+  ...anchored({ scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']) }),
 ]);
 export type Span = typeof Span.Type;
 
@@ -216,11 +240,11 @@ export const Timed = Schema.Struct({
   /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
   say: Schema.optionalKey(Schema.String),
   /** Silence before the voice starts. */
-  lead: Schema.optionalKey(Schema.Finite),
+  lead: Schema.optionalKey(Seconds),
   /** Silence after the voice ends. */
-  tail: Schema.optionalKey(Schema.Finite),
+  tail: Schema.optionalKey(Seconds),
   /** Minimum scene length. */
-  min: Schema.optionalKey(Schema.Finite),
+  min: Schema.optionalKey(Seconds),
   /** How this scene arrives from the previous one. */
   enter: Schema.optionalKey(Transition),
   /** Named moments, anchored to marks or to each other; resolved once in `layout()`. */
@@ -394,6 +418,11 @@ export const TextBox = Schema.Struct({
    * when two say the same words. A stroke's `marks` names it.
    */
   hand: Schema.optionalKey(Schema.Finite),
+  /**
+   * The `order` of the plate this line sits on (`probePlate`): the plate
+   * carries it, so the two never collide; any other text over the plate does.
+   */
+  on: Schema.optionalKey(Schema.Int),
 });
 export type TextBox = typeof TextBox.Type;
 
@@ -548,24 +577,37 @@ export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonE
 /** `POST /lab/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct({
   offset: Schema.optionalKey(Schema.Finite),
-  dur: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+  dur: Schema.optionalKey(Seconds),
+  /** End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`. */
+  until: Schema.optionalKey(Schema.String),
   ease: Schema.optionalKey(EaseName),
-}).check(
-  Schema.makeFilter((p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, ease'),
-);
+  stagger: Schema.optionalKey(Share),
+})
+  .check(
+    Schema.makeFilter(
+      (p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, until, ease, stagger',
+    ),
+  )
+  .check(
+    Schema.makeFilter(
+      (p) => !('dur' in p && 'until' in p) || 'a span ends by its dur or on a mark, not both',
+    ),
+  );
 export type CuePatch = typeof CuePatch.Type;
 
 /** `POST /lab/knobs/:scene/:knob`: the knob's new value. */
 export const KnobPatch = Schema.Struct({ value: Knob });
 
-/** A resolved cue, scene-local seconds. */
-export const CueTiming = Schema.Struct({
+/** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
+export const ResolvedCue = Schema.Struct({
   start: Schema.Finite,
   end: Schema.Finite,
   dur: Schema.Finite,
   ease: EaseName,
+  /** The span's `stagger`, 0 when it declares none. */
+  stagger: Share,
 });
-export type CueTiming = typeof CueTiming.Type;
+export type ResolvedCue = typeof ResolvedCue.Type;
 
 /** One finding of `film check --static`, as it prints it. */
 export const CheckLine = Schema.Struct({
@@ -575,16 +617,27 @@ export const CheckLine = Schema.Struct({
 });
 export type CheckLine = typeof CheckLine.Type;
 
-/** `GET /lab/check`. */
 /**
- * `GET /lab/check`: `film check --static` now, and the lab's last write, the
- * one Undo puts back (a page reloaded by that write learns of it here).
+ * The lab API's root for one film: every route is under `/lab/<film>/`, so a
+ * page for another film cannot read or write this one's (the server answers
+ * 409 for a film it does not serve).
+ */
+export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
+
+/** One change the lab made to a scene file, as a page is told of it. */
+const LabStep = Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String });
+
+/**
+ * `GET /lab/<film>/check`: `film check --static` now; the lab's latest change
+ * to a file (a write, `undo …` or `redo …`: a page that change reloaded
+ * learns of it here); and the writes Undo would put back and Redo would make
+ * again.
  */
 export const CheckReport = Schema.Struct({
   findings: Schema.Array(CheckLine),
-  last: Schema.optionalKey(
-    Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String }),
-  ),
+  latest: Schema.optionalKey(LabStep),
+  undo: Schema.optionalKey(LabStep),
+  redo: Schema.optionalKey(LabStep),
 });
 export type CheckReport = typeof CheckReport.Type;
 
@@ -596,7 +649,14 @@ export const SceneSource = Schema.Struct({
   /** The scene file, relative to the film's folder. */
   file: Schema.String,
   cues: Schema.Array(
-    Schema.Struct({ name: Schema.String, offset: FieldState, dur: FieldState, ease: FieldState }),
+    Schema.Struct({
+      name: Schema.String,
+      offset: FieldState,
+      dur: FieldState,
+      until: FieldState,
+      ease: FieldState,
+      stagger: FieldState,
+    }),
   ),
   knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
   /**
@@ -639,7 +699,7 @@ export const LabWrite = Schema.Struct({
   /** The cue's span as the file now declares it, when every field of it is a literal. */
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */
-  resolved: Schema.optionalKey(CueTiming),
+  resolved: Schema.optionalKey(ResolvedCue),
   /** Why the written cue could not be resolved (the film did not load or lay out), when it could not. */
   unresolved: Schema.optionalKey(Schema.String),
   /** The knob's value as the file now declares it. */

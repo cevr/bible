@@ -1,11 +1,20 @@
 import { describe, expect, test } from 'bun:test';
+import { Option } from 'effect';
 import { layout, sceneClock } from './layout.ts';
 import type { Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { ease } from './time.ts';
-import { DEFAULT_EASE, type SceneClock, cueProgress, resolveTimeline } from './timeline.ts';
+import { DEFAULT_EASE, ease } from './time.ts';
+import {
+  type SceneClock,
+  cueKeys,
+  cueProgress,
+  dragPatch,
+  patchSpan,
+  resolveTimeline,
+  staggerProgress,
+} from './timeline.ts';
 
 const clock: SceneClock = {
   scene: 'justified',
@@ -26,6 +35,7 @@ describe('timeline', () => {
       end: 0.5 + 2 + 0.9 + 0.35,
       dur: 0.35,
       ease: DEFAULT_EASE,
+      stagger: 0,
     });
   });
 
@@ -38,8 +48,79 @@ describe('timeline', () => {
     expect(cues.get('lift')?.ease).toBe('inOutCubic');
   });
 
+  test('cueKeys reads keyframes in fractions of the cue, so a longer dur stretches the motion', () => {
+    const swing = [
+      [0, 0.35],
+      [0.4, -0.2],
+      [0.8, 1.5, 'inOutCubic'],
+      [1, 1.45],
+    ] as const;
+    const short = { start: 2, end: 2.5, dur: 0.5, ease: DEFAULT_EASE, stagger: 0 } as const;
+    const long = { ...short, end: 3, dur: 1 };
+    // The same fraction of each cue reads the same value; the same second does not.
+    expect(cueKeys(long, 2.8, swing)).toBe(cueKeys(short, 2.4, swing));
+    expect(cueKeys(long, 2.4, swing)).not.toBe(cueKeys(short, 2.4, swing));
+    expect(cueKeys(short, 2.5, swing)).toBe(1.45);
+    expect(cueKeys(short, 1, swing)).toBe(0.35);
+  });
+
+  test('cueKeys eases a key that names none by the cue’s ease, so the lab’s ease picker moves it', () => {
+    const rise = [
+      [0, 0],
+      [1, 1],
+    ] as const;
+    const cue = { start: 0, end: 2, dur: 2, ease: 'inQuad', stagger: 0 } as const;
+    expect(cueKeys(cue, 1, rise)).toBe(0.25);
+    expect(cueKeys({ ...cue, ease: 'linear' }, 1, rise)).toBe(0.5);
+    expect(
+      cueKeys(cue, 1, [
+        [0, 0],
+        [1, 1, 'linear'],
+      ]),
+    ).toBe(0.5);
+  });
+
+  test('cueKeys on an instant cue jumps to its last value at the cue', () => {
+    const cue = { start: 1, end: 1, dur: 0, ease: DEFAULT_EASE, stagger: 0 } as const;
+    const step = [
+      [0, 3],
+      [1, 7],
+    ] as const;
+    expect([cueKeys(cue, 0.99, step), cueKeys(cue, 1, step)]).toEqual([3, 7]);
+  });
+
+  test('a staggered cue spreads n items over its stagger share; each lasts the rest', () => {
+    const drop = { start: 2, end: 3.4, dur: 1.4, ease: 'linear', stagger: 0.5 } as const;
+    // Three items start at 0, 0.25 and 0.5 of the cue (2, 2.35, 2.7 s), each lasting 0.7 s.
+    expect(staggerProgress(drop, 2.35, 0, 3)).toBeCloseTo(0.5);
+    expect(staggerProgress(drop, 2.35, 1, 3)).toBe(0);
+    expect(staggerProgress(drop, 2.7, 1, 3)).toBeCloseTo(0.5);
+    expect(staggerProgress(drop, 3.05, 1, 3)).toBeCloseTo(1);
+    expect(staggerProgress(drop, 3.4, 2, 3)).toBeCloseTo(1);
+    expect(staggerProgress(drop, 3.5, 2, 3)).toBe(1);
+    // A dur edit scales every item: item 1 now starts at 2.7 and lasts 1.4 s.
+    const longer = { ...drop, end: 4.8, dur: 2.8 };
+    expect(staggerProgress(longer, 3.4, 1, 3)).toBeCloseTo(0.5);
+    // Each item eases by the cue's ease.
+    expect(staggerProgress({ ...drop, ease: 'inQuad' }, 2.35, 0, 3)).toBeCloseTo(0.25);
+  });
+
+  test('with no stagger, or one item, every item is the whole cue', () => {
+    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad', stagger: 0 } as const;
+    expect(staggerProgress(cue, 2, 4, 9)).toBe(cueProgress(cue, 2));
+    expect(staggerProgress({ ...cue, stagger: 0.6 }, 2, 0, 1)).toBe(cueProgress(cue, 2));
+  });
+
+  test('a span’s stagger resolves onto its cue, 0 when it declares none', () => {
+    const cues = resolveTimeline(
+      { drop: { mark: 'fiction', dur: 1.4, stagger: 0.5 }, lift: { after: 'drop' } },
+      clock,
+    );
+    expect([cues.get('drop')?.stagger, cues.get('lift')?.stagger]).toEqual([0.5, 0]);
+  });
+
   test('cueProgress eases by the cue’s own ease', () => {
-    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad' } as const;
+    const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad', stagger: 0 } as const;
     // Halfway through: inQuad gives 0.25.
     expect(cueProgress(cue, 2)).toBeCloseTo(0.25);
     expect(cueProgress({ ...cue, ease: DEFAULT_EASE }, 2.5)).toBeCloseTo(ease.inOutCubic(0.75));
@@ -75,10 +156,91 @@ describe('timeline', () => {
       },
       clock,
     );
-    expect(cues.get('open')).toEqual({ start: 0.1, end: 0.1, dur: 0, ease: DEFAULT_EASE });
+    expect(cues.get('open')).toEqual({
+      start: 0.1,
+      end: 0.1,
+      dur: 0,
+      ease: DEFAULT_EASE,
+      stagger: 0,
+    });
     expect(cues.get('voice')?.start).toBe(0.5);
     expect(cues.get('hush')?.start).toBeCloseTo(8.7);
     expect(cues.get('close')?.end).toBeCloseTo(9.4);
+  });
+
+  test('`until` ends a cue on a mark: its dur is whatever reaches it', () => {
+    const cues = resolveTimeline(
+      { walk: { mark: 'fiction', offset: 0.3, until: 'as' }, sit: { after: 'walk', dur: 1 } },
+      clock,
+    );
+    expect(cues.get('walk')?.start).toBeCloseTo(2.8);
+    expect(cues.get('walk')?.end).toBe(0.5 + 5);
+    expect(cues.get('walk')?.dur).toBeCloseTo(2.7);
+    expect(cues.get('sit')?.start).toBe(0.5 + 5);
+    // A re-take that moves the mark moves the end with it.
+    const later = { ...clock, marks: new Map([...clock.marks, ['as', 6]]) };
+    expect(
+      resolveTimeline({ walk: { mark: 'fiction', until: 'as' } }, later).get('walk')?.dur,
+    ).toBe(4);
+  });
+
+  test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
+    expect(() => resolveTimeline({ walk: { scene: 'start', until: 'nope' } }, clock)).toThrow(
+      'scene justified: cue "walk" ends at unknown mark {nope}',
+    );
+    expect(() => resolveTimeline({ walk: { mark: 'as', until: 'fiction' } }, clock)).toThrow(
+      'scene justified: cue "walk" ends at {fiction}, before it starts',
+    );
+  });
+
+  test('patchSpan: a span ends one way, so a dur replaces an until and an until a dur', () => {
+    const walk = { mark: 'fiction', offset: 0.3, until: 'as', ease: 'linear' } as const;
+    expect(patchSpan(walk, { dur: 2 })).toEqual({
+      mark: 'fiction',
+      offset: 0.3,
+      dur: 2,
+      ease: 'linear',
+    });
+    expect(patchSpan({ after: 'slam', dur: 1 }, { until: 'as', offset: -0.1 })).toEqual({
+      after: 'slam',
+      offset: -0.1,
+      until: 'as',
+    });
+    expect(patchSpan(walk, { ease: 'inQuad' })).toEqual({ ...walk, ease: 'inQuad' });
+  });
+
+  test('dragPatch: the body moves the offset, the right edge the dur, the left edge both', () => {
+    const slam = { mark: 'fiction', offset: 0.9, dur: 0.35 } as const;
+    const c = Option.getOrThrow(
+      Option.fromUndefinedOr(resolveTimeline({ slam }, clock).get('slam')),
+    );
+    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
+      dragPatch(slam, c, edge, { start, end }, 1 / 30);
+    expect(drag('move', c.start + 0.2, c.end + 0.2)).toEqual(Option.some({ offset: 1.1 }));
+    expect(drag('end', c.start, c.end + 0.25)).toEqual(Option.some({ dur: 0.6 }));
+    expect(drag('start', c.start - 0.1, c.end)).toEqual(Option.some({ offset: 0.8, dur: 0.45 }));
+    expect(drag('start', c.start, c.end)).toEqual(Option.none());
+  });
+
+  test('dragPatch: a span that runs until a mark keeps ending on it', () => {
+    // Starts at 2.8 (speech 0.5 + fiction 2 + 0.3), ends on {as} at 5.5.
+    const walk = { mark: 'fiction', offset: 0.3, until: 'as' } as const;
+    const c = Option.getOrThrow(
+      Option.fromUndefinedOr(resolveTimeline({ walk }, clock).get('walk')),
+    );
+    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
+      dragPatch(walk, c, edge, { start, end }, 1 / 30);
+    // The left edge and the body move only the start: the end stays on the mark.
+    expect(drag('start', 3, 5.5)).toEqual(Option.some({ offset: 0.5 }));
+    expect(drag('move', 3.8, 6.5)).toEqual(Option.some({ offset: 1.3 }));
+    // Dragged past the mark, the start holds a frame before it: the span still resolves.
+    const past = drag('move', 6, 8.7);
+    expect(past).toEqual(Option.some({ offset: 2.967 }));
+    const moved = resolveTimeline({ walk: patchSpan(walk, Option.getOrThrow(past)) }, clock);
+    expect(moved.get('walk')?.end).toBe(5.5);
+    // The right edge dropped on the mark keeps `until`; dropped off it, the dur is set by hand.
+    expect(drag('end', 2.8, 5.5)).toEqual(Option.none());
+    expect(drag('end', 2.8, 6)).toEqual(Option.some({ dur: 3.2 }));
   });
 
   test('an unknown mark names the scene and the cue', () => {

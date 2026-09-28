@@ -6,8 +6,8 @@
 // camera comes down over the city, the angel with the third angel's banner
 // flies across again, and figures on the rooftops turn to look and wave.
 
-import { type Camera, type Pt, at, drawing, multiplane } from '@bible/film/canvas';
-import { clamp, ease, keys, lerp, rng } from '@bible/film/core';
+import { type Camera, type Pt, at, drawing, multiplane, unprobed } from '@bible/film/canvas';
+import { clamp, keys, lerp, rng } from '@bible/film/core';
 import { C, blob, glow, person, piece, sky, sub, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, sanctuary } from '../heaven.ts';
@@ -153,8 +153,8 @@ export const rain = drawing({
               if (gone >= 1) return;
               const pop = keys(gone, [
                 [0, 1],
-                [0.4, 1.35, ease.outCubic],
-                [1, 0, ease.inCubic],
+                [0.4, 1.35, 'outCubic'],
+                [1, 0, 'inCubic'],
               ]);
               const bob = Math.sin(t * 1.4 + i) * 6;
               glow(ctx, s.x, s.y + bob, 60 * s.s, C.glow, gone * 0.8);
@@ -171,22 +171,26 @@ export const rain = drawing({
       { rest: [REST.x, REST.y], haze: C.tealLow, thickness: 0.35 },
     );
 
-    // The rain, silver and gold, over everything near.
+    // The rain, silver and gold, over everything near. Texture, not ink the
+    // check measures: it falls before `stop` ends and the herald's banner (the
+    // scene's only text) flies after, and the captions' plate covers it.
     const fall = f.at('fall') * (1 - f.at('stop'));
     if (fall > 0) {
       ctx.save();
       ctx.lineCap = 'round';
-      DROPS.forEach((d, i) => {
-        const y = ((((d.y + t * 1100 * d.v) % 1200) + 1200) % 1200) - 60;
-        const x = ((((d.x - t * 180 * d.v) % 2200) + 2200) % 2200) - 140;
-        ctx.globalAlpha = 0.75 * fall;
-        ctx.strokeStyle = i % 4 === 0 ? C.gold : C.robe;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - 9, y + 46);
-        ctx.stroke();
-      });
+      unprobed(ctx, () =>
+        DROPS.forEach((d, i) => {
+          const y = ((((d.y + t * 1100 * d.v) % 1200) + 1200) % 1200) - 60;
+          const x = ((((d.x - t * 180 * d.v) % 2200) + 2200) % 2200) - 140;
+          ctx.globalAlpha = 0.75 * fall;
+          ctx.strokeStyle = i % 4 === 0 ? C.gold : C.robe;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - 9, y + 46);
+          ctx.stroke();
+        }),
+      );
       ctx.restore();
     }
 
@@ -197,9 +201,9 @@ export const rain = drawing({
       // In fast, a slow glide while the words can be read, out fast.
       const x = keys(k, [
         [0, -200],
-        [0.25, 1150, ease.outCubic],
-        [0.8, 1600, ease.linear],
-        [1, 3400, ease.inCubic],
+        [0.25, 1150, 'outCubic'],
+        [0.8, 1600, 'linear'],
+        [1, 3400, 'inCubic'],
       ]);
       const written = clamp((k - 0.2) / 0.12);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>

@@ -7,16 +7,20 @@
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
-//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n]
+//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
 //   film notes <film> [--watch] [--since n]
-//   film notes reply <film> <id> <text> [--still file.png]
+//   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //                      [--no-share]
 //   film lookbook <film> [--captions] [--tag name]
+//   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
+//                     [--no-captions]
+//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
+//                     [--no-captions]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -37,6 +41,8 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { scenesOf } from '../core/layout.ts';
+import { eventsSince } from '../core/notes.ts';
+import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import { type Reported, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
@@ -51,6 +57,7 @@ import {
   CuesLate,
   type ElevenLabsFailed,
   SoundMissing,
+  UnknownEffect,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
@@ -58,13 +65,21 @@ import { Mixer, masterFile, measureMaster } from './mixer.ts';
 import { Narrator, planNarration } from './narrator.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
-import { cursorLine, noteLine, replyLine, watchLine } from './notes-lines.ts';
+import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
-import { RenderJob, sceneSpan } from './render-plan.ts';
+import { BENCH_RULES } from './bench.ts';
+import {
+  DEFAULT_WORKERS,
+  RenderJob,
+  flagConflicts,
+  givenFlags,
+  jobOf,
+  sceneSpan,
+} from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import { StaticCheck } from './static-check.ts';
+import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
 const film = Argument.String('film').pipe(
@@ -145,6 +160,14 @@ const narrate = Command.make(
     const repo = yield* FilmRepo;
     const narrator = yield* Narrator;
     const loaded = yield* repo.load(input.film);
+    // A misspelt beat fails here rather than recording nothing.
+    yield* Option.match(input.only, {
+      onNone: () => Effect.void,
+      onSome: (ids) =>
+        placeFilm(loaded).pipe(
+          Effect.flatMap((placed) => Effect.fromResult(scenesOf(placed, [...ids]))),
+        ),
+    });
     const options = { only: input.only, force: input.force, acceptMismatch: input.acceptMismatch };
     const plan = yield* Effect.fromResult(planNarration(loaded, options));
     const stale = plan.stale.map((b) => b.id).join(',') || 'none';
@@ -159,6 +182,27 @@ const narrate = Command.make(
   }),
 ).pipe(Command.withDescription("Record a film's stale narration takes, then remix"));
 
+/** `score --only` ids the film has: `music` if it has a score, and its effects. */
+const knownSounds = (
+  loaded: LoadedFilm,
+  only: Option.Option<ReadonlySet<string>>,
+): Result.Result<void, UnknownEffect> => {
+  const known: ReadonlyArray<string> = Option.match(loaded.sound, {
+    onNone: () => [],
+    onSome: (sound) => [
+      ...Arr.filter(['music'], () => Option.isSome(Option.fromNullishOr(sound.music))),
+      ...Object.keys(sound.effects),
+    ],
+  });
+  const unknown = Option.flatMap(only, (ids) =>
+    Arr.findFirst([...ids], (id) => !known.includes(id)),
+  );
+  return Option.match(unknown, {
+    onNone: () => Result.void,
+    onSome: (id) => Result.fail(UnknownEffect.make({ id, known })),
+  });
+};
+
 const score = Command.make(
   'score',
   {
@@ -170,6 +214,8 @@ const score = Command.make(
     const repo = yield* FilmRepo;
     const composer = yield* Composer;
     const loaded = yield* repo.load(input.film);
+    // A misspelt sound fails here rather than generating nothing.
+    yield* Effect.fromResult(knownSounds(loaded, input.only));
     if (!input.dryRun) yield* paidPreflight;
     yield* composer.score(loaded, { only: input.only, dryRun: input.dryRun });
     if (input.dryRun) return;
@@ -230,6 +276,8 @@ const cues = Command.make(
   ),
 );
 
+const encodeCheckLine = Schema.encodeSync(CheckLineJson);
+
 const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   /** The browser leg: the server and the browser start only when it runs. */
   const layoutLeg = Effect.fn('film.check.layout')(function* (
@@ -252,6 +300,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
       ),
       scene: scenes.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
+      json: Flag.Boolean('json').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('print each finding as one line of JSON (level, tag, message)'),
+      ),
       workers: Flag.Int('workers').pipe(
         Flag.withDefault(4),
         Flag.withDescription('pages probing at once'),
@@ -280,8 +332,13 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         const layout = yield* layoutLeg(loaded, input.workers, only);
         for (const finding of layout) found.push({ level: 'error', finding });
       }
-      for (const { level, finding } of found)
-        yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+      for (const { level, finding } of found) {
+        if (input.json)
+          yield* Console.log(
+            encodeCheckLine({ level, tag: finding._tag, message: finding.message }),
+          );
+        else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+      }
       const errors = found.filter((r) => r.level === 'error').length;
       const warnings = found.length - errors;
       yield* Effect.log(
@@ -318,12 +375,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
       workers: Flag.Int('workers').pipe(
-        Flag.withDefault(4),
+        Flag.withDefault(DEFAULT_WORKERS),
         Flag.withDescription('pages rendering at once'),
       ),
       scale: Flag.Finite('scale').pipe(
-        Flag.withDefault(1),
-        Flag.withDescription('scale the video, e.g. 0.5'),
+        Flag.optional,
+        Flag.withDescription('scale the video, e.g. 0.5 (default 1)'),
       ),
       captions: Flag.Boolean('captions').pipe(
         Flag.withDefault(true),
@@ -340,49 +397,43 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.withDescription('the video file (default out/<film>.mp4)'),
       ),
       share: Flag.Boolean('share').pipe(
-        Flag.withDefault(true),
+        Flag.optional,
         Flag.withDescription(
-          'also write a smaller copy to send, <out>.share.mp4 (--no-share to skip it)',
+          'also write a smaller copy to send, <out>.share.mp4 (default; --no-share to skip it)',
         ),
       ),
     },
     Effect.fn('film.render')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       // `--scene` sets the range from the film's own layout.
-      const { from, to } = yield* Option.match(input.scene, {
-        onNone: () => Effect.succeed({ from: input.from, to: input.to }),
+      const span = yield* Option.match(input.scene, {
+        onNone: () => Effect.succeedNone,
         onSome: (ids) =>
           placeFilm(loaded).pipe(
             Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids))),
-            Effect.map((span) => ({ from: Option.some(span.from), to: Option.some(span.to) })),
+            Effect.map(Option.some),
           ),
       });
-      const base = {
-        tag: input.tag,
-        captions: input.captions,
-        workers: Math.max(1, input.workers),
-      };
-      const job = yield* Option.match(input.stills, {
+      const stills = yield* Option.match(input.stills, {
+        onNone: () => Effect.succeedNone,
         onSome: (list) =>
-          Schema.decodeEffect(Seconds)(list.split(',')).pipe(
-            Effect.map((times) => RenderJob.Stills({ ...base, times })),
-          ),
-        onNone: () =>
-          Effect.succeed(
-            Option.match(input.contact, {
-              onSome: (every) => RenderJob.Contact({ ...base, every, from, to }),
-              onNone: () =>
-                RenderJob.Video({
-                  ...base,
-                  from,
-                  to,
-                  scale: input.scale,
-                  out: input.out,
-                  share: input.share,
-                }),
-            }),
-          ),
+          Effect.map(Schema.decodeEffect(Seconds)(list.split(',')), (times) => Option.some(times)),
       });
+      const job = yield* Effect.fromResult(
+        jobOf({
+          tag: input.tag,
+          captions: input.captions,
+          workers: input.workers,
+          stills,
+          contact: input.contact,
+          span,
+          from: input.from,
+          to: input.to,
+          scale: input.scale,
+          out: input.out,
+          share: input.share,
+        }),
+      );
       yield* (yield* Renderer).render(loaded, job);
     }, Effect.provide(renderLayer)),
   ).pipe(
@@ -415,6 +466,134 @@ const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
   ).pipe(
     Command.withDescription(
       "Write out/<film>/lookbook.jpg: every scene's stills at its cue edges and 60% point, labelled, with the palette",
+    ),
+  );
+
+/** `--workers 2,4,6`: page counts, each a whole number from 1. */
+const WorkerCounts = Schema.Array(
+  Schema.FiniteFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
+);
+
+const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
+  Command.make(
+    'bench',
+    {
+      film,
+      every: Flag.Int('every').pipe(
+        Flag.optional,
+        Flag.withDescription('time every this many frames (default 10)'),
+      ),
+      captions: Flag.Boolean('captions').pipe(
+        Flag.withDefault(true),
+        Flag.withDescription(
+          'draw the captions, as render burns them in (--no-captions to leave them out, as render --no-captions)',
+        ),
+      ),
+      runs: Flag.Int('runs').pipe(
+        Flag.withDefault(3),
+        Flag.withDescription(
+          'time each frame (or render each count) this many times; the median counts',
+        ),
+      ),
+      scene: scenes.pipe(Flag.withDescription('only these scenes (id,id)')),
+      hash: Flag.Boolean('hash').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('also hash every 30th frame, to compare pixels with the baseline'),
+      ),
+      baseline: Flag.Boolean('baseline').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('keep this run as out/<film>/bench.baseline.json'),
+      ),
+      budget: Flag.Boolean('budget').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription(
+          'fail when a scene or the film draws over 10% slower than the baseline on this machine, or a hashed frame moved',
+        ),
+      ),
+      workers: Flag.String('workers').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          'instead: render the range (--scene, or --from/--to) at each of these page counts (n,n) and report the median fps',
+        ),
+      ),
+      from: Flag.Finite('from').pipe(
+        Flag.optional,
+        Flag.withDescription('with --workers: start, in seconds'),
+      ),
+      to: Flag.Finite('to').pipe(
+        Flag.optional,
+        Flag.withDescription('with --workers: end, in seconds'),
+      ),
+      share: Flag.Boolean('share').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          'with --workers: encode the share copy too, as a render does (default; --no-share to skip it)',
+        ),
+      ),
+    },
+    Effect.fn('film.bench')(function* (input) {
+      const on = (flag: boolean) => Option.liftPredicate(flag, Boolean);
+      yield* Effect.fromResult(
+        flagConflicts(
+          givenFlags({
+            every: input.every,
+            hash: on(input.hash),
+            baseline: on(input.baseline),
+            budget: on(input.budget),
+            workers: input.workers,
+            scene: input.scene,
+            from: input.from,
+            to: input.to,
+            share: input.share,
+          }),
+          BENCH_RULES,
+        ),
+      );
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
+      const bencher = yield* Bencher;
+      if (Option.isSome(input.workers)) {
+        const counts = yield* Schema.decodeEffect(WorkerCounts)(input.workers.value.split(','));
+        const span = yield* Option.match(input.scene, {
+          onNone: () => Effect.succeedNone,
+          onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
+        });
+        yield* bencher.workers(loaded, {
+          workers: counts,
+          runs: input.runs,
+          share: Option.getOrElse(input.share, () => true),
+          captions: input.captions,
+          from: Option.orElse(
+            Option.map(span, (s) => s.from),
+            () => input.from,
+          ),
+          to: Option.orElse(
+            Option.map(span, (s) => s.to),
+            () => input.to,
+          ),
+        });
+        return;
+      }
+      const picked = yield* Option.match(input.scene, {
+        onNone: () => Effect.succeedNone,
+        onSome: (ids) => Effect.map(Effect.fromResult(scenesOf(placed, ids)), Option.some),
+      });
+      yield* bencher.draw(loaded, {
+        every: Math.max(
+          1,
+          Option.getOrElse(input.every, () => 10),
+        ),
+        runs: Math.max(1, input.runs),
+        captions: input.captions,
+        scenes: Option.map(picked, (hit) => new Set(hit.map((p) => p.spec.id))),
+        hash: input.hash,
+        baseline: input.baseline,
+        budget: input.budget,
+      });
+    }, Effect.provide(benchLayer)),
+  ).pipe(
+    Command.withDescription(
+      'Time a film on the render path: ms of draw per frame per scene (out/<film>/bench.json, a 10% budget against --baseline with --budget), or render fps per worker count (--workers)',
     ),
   );
 
@@ -452,21 +631,41 @@ const notesReply = Command.make(
       Flag.optional,
       Flag.withDescription('a PNG to show with the reply: the frame after the change'),
     ),
+    since: Flag.Int('since').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "print what came past this cursor instead of past the agent's previous reply",
+      ),
+    ),
   },
   Effect.fn('film.notes.reply')(function* (input) {
     const fs = yield* FileSystem.FileSystem;
+    const store = yield* NotesStore;
+    const at = store.paths(input.film);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
       onSome: (file) => Effect.map(fs.readFile(file), Option.some),
     });
-    const note = yield* (yield* NotesStore).reply(input.film, input.id, {
-      by: 'agent',
-      text: input.text,
-      still,
+    // Where the agent left off, read before its reply moves it.
+    const cursor = yield* Option.match(input.since, {
+      onNone: () => Effect.map(store.read(input.film), agentCursor),
+      onSome: (since) => Effect.succeed(since),
     });
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
+    const note = yield* store.reply(input.film, input.id, { by: 'agent', text: input.text, still });
+    yield* Console.log(noteLine(at, note, note.changed));
+    // What the user said while the agent worked: new notes and user replies past its cursor,
+    // but the note it just answered, whose line is above.
+    const news = eventsSince(yield* store.read(input.film), cursor);
+    for (const event of news.events)
+      if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
+        yield* Effect.forEach(Option.toArray(eventLine(at, event)), Console.log);
+    yield* Console.log(cursorLine(news.cursor));
   }),
-).pipe(Command.withDescription("Reply to a note as the agent; it shows in the lab's thread"));
+).pipe(
+  Command.withDescription(
+    "Reply to a note as the agent (it shows in the lab's thread); then print the new notes and user replies since the agent's previous reply, and the cursor",
+  ),
+);
 
 const notesResolve = Command.make(
   'resolve',
@@ -516,12 +715,9 @@ const notes = Command.make(
     const watch = (since: number): Effect.Effect<never, StoreError> =>
       store.wait(input.film, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
-          Effect.forEach(waited.events, (event) => {
-            if (event._tag === 'NoteAdded') return Console.log(noteLine(at, event.note, event.seq));
-            if (event._tag === 'NoteReplied' && event.reply.by === 'user')
-              return Console.log(replyLine(at, event.note, event.reply));
-            return Effect.void;
-          }),
+          Effect.forEach(waited.events, (event) =>
+            Effect.forEach(Option.toArray(eventLine(at, event)), Console.log),
+          ),
         ),
         Effect.flatMap((waited) => watch(waited.cursor)),
       );
@@ -572,6 +768,10 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const benchLayer = Bencher.layer.pipe(
+    Layer.provide(Renderer.layer),
+    Layer.provide([Browser.layer, previewServer]),
+  );
   const root = Command.make('film').pipe(
     Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
     Command.withSubcommands([
@@ -582,6 +782,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       check(checkLayer),
       render(renderLayer),
       lookbook(renderLayer),
+      bench(benchLayer),
       doctor,
       lab(labServer),
       notes,

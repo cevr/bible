@@ -19,7 +19,7 @@ import {
   stroke,
   write,
 } from '@bible/film/canvas';
-import { ease, keys, lerp, rng } from '@bible/film/core';
+import { lerp, rng } from '@bible/film/core';
 import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
 import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
 
@@ -39,7 +39,7 @@ const SHEETS = (() => {
 
 export const cold = drawing({
   timeline: {
-    drop: { mark: 'evidence', dur: 1.55 },
+    drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
     bow: { mark: 'did', dur: 0.35 },
     lean: { mark: 'judge', dur: 0.4 },
     gavel: { mark: 'righteous', offset: -0.37, dur: 0.59 },
@@ -81,20 +81,18 @@ export const cold = drawing({
 
     const stamp =
       f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('stampGone'));
-    const pop = f.cue('stamp');
-    const popScale = keys(f.t - pop.start, [
+    const popScale = f.keys('stamp', [
       [0, 1.2],
-      [0.12, 0.97, ease.outCubic],
-      [0.2, 1],
+      [0.6, 0.97, 'outCubic'],
+      [1, 1, 'inOutCubic'],
     ]);
-    const g = f.cue('gavel');
     const swing =
-      keys(f.t - g.start, [
+      f.keys('gavel', [
         [0, 0.35],
-        [0.22, -0.3],
-        [0.37, 1.62, ease.inCubic],
-        [0.47, 1.4, ease.outQuad],
-        [0.59, 1.58],
+        [0.373, -0.3],
+        [0.627, 1.62, 'inCubic'],
+        [0.797, 1.4, 'outQuad'],
+        [1, 1.58],
       ]) *
         (1 - f.at('rest')) +
       0.35 * f.at('rest');
@@ -181,20 +179,18 @@ export const cold = drawing({
               at(ctx, { x: 1180, y: 672, rot: -0.07, scale: popScale }, () => {
                 ctx.save();
                 ctx.globalAlpha *= Math.min(1, stamp);
-                piece(ctx, rectShape(-250, -78, 500, 118), C.cream, f.hand('label'), {
-                  line: 0,
-                  torn: 3,
-                  shadow: 0.4,
-                });
-                probePlate(ctx, 'Righteous', -250, -78, 500, 118);
-                write(
-                  ctx,
-                  'Righteous',
-                  0,
-                  12,
-                  { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
-                  f.hand('stamp'),
-                  { boil: 0.4 },
+                const label = rectShape(-250, -78, 500, 118);
+                piece(ctx, label, C.cream, f.hand('label'), { line: 0, torn: 3, shadow: 0.4 });
+                probePlate(ctx, label, () =>
+                  write(
+                    ctx,
+                    'Righteous',
+                    0,
+                    12,
+                    { family: F.display, size: 100, weight: 700, color: C.gold, align: 'center' },
+                    f.hand('stamp'),
+                    { boil: 0.4 },
+                  ),
                 );
                 ctx.restore();
               });
@@ -206,16 +202,13 @@ export const cold = drawing({
           lift: 1.3,
           draw: () => {
             contact(ctx, ACCUSED[0], ACCUSED[1] + 4, 170);
-            const drop = f.cue('drop');
-            const landed = SHEETS.filter((_, i) => f.t >= drop.start + i * 0.15).length;
+            // The sheets fall one after another across `drop`, each eased by its ease.
+            const landed = SHEETS.filter((_, i) => f.stagger('drop', i, SHEETS.length) > 0).length;
             if (landed > 0) contact(ctx, 765, 864, 150 + 10 * landed);
             SHEETS.forEach((s, i) => {
-              const t0 = drop.start + i * 0.15;
-              if (f.t < t0) return;
-              const fall = keys(f.t - t0, [
-                [0, -300],
-                [0.2, 0, ease.inCubic],
-              ]);
+              const k = f.stagger('drop', i, SHEETS.length);
+              if (k <= 0) return;
+              const fall = lerp(-300, 0, k);
               at(ctx, { x: s.x, y: s.y + fall, rot: s.rot }, () =>
                 piece(ctx, rectShape(-75, -5.5, 150, 11), C.paper, sub(f.hand('sheet'), i), {
                   line: 2,

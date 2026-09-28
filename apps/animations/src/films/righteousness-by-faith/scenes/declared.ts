@@ -1,8 +1,9 @@
 // Declared. The page, close on the viewer's figure in their stained garment,
-// and the act's one word card: JUSTIFY, δικαιόω, declared righteous. The
+// and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
 // figure looks down at the stains, doubtful: a cover-up again? Pull back to
-// the three icons, the word-bubble lit. On "substantial" the bubble becomes a
-// solid, heavy thing and lands with weight. Then the dawn from `spoke` opens
+// the three icons, the word-bubble lit. On `subst` the bubble becomes a
+// solid, heavy thing and lands with weight (the script now wants the hollow
+// stamp from `cold` here instead; not drawn yet). Then the dawn from `spoke` opens
 // in a panel behind the figure; the same word of light arcs out of its sun
 // and lands on their chest, and gold blooms there as the stains shrink away:
 // made righteous, not covered.
@@ -17,7 +18,7 @@ import {
   rectShape,
   write,
 } from '@bible/film/canvas';
-import { clamp, ease, keys, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import { C, F, ICON_X, blob, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
@@ -52,7 +53,7 @@ const LINES = [
     italic: false,
   },
   {
-    text: 'declared righteous',
+    text: 'made righteous',
     dy: 125,
     size: 52,
     family: F.display,
@@ -89,6 +90,7 @@ export const declared = drawing({
   timeline: {
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
     greek: { mark: 'justified', offset: 0.5, dur: 0.5 },
+    madeLine: { after: 'greek', dur: 0.5 },
     doubt: { mark: 'still', dur: 0.5 },
     push: { mark: 'still', offset: -0.2, dur: 0.8 },
     toIcons: { mark: 'cover', offset: -0.2, dur: 0.8, ease: 'inOutCubic' },
@@ -100,7 +102,7 @@ export const declared = drawing({
     bloom: { mark: 'made', offset: -0.6, dur: 1.6, ease: 'outCubic' },
   },
   draw: (f) => {
-    const { ctx, w, h, t } = f;
+    const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
     const toIcons = f.at('toIcons');
     const back = f.at('back');
@@ -199,36 +201,29 @@ export const declared = drawing({
         const card = f.at('cardIn') * (1 - toIcons) * (1 - back);
         if (card > 0.01)
           at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: card }, () => {
-            piece(ctx, rectShape(-310, -165, 620, 330), C.cream, hand('card'), {
-              line: 0,
-              torn: 3,
-              shadow: 0.4,
-            });
-            const reveal = [
-              f.spoken('justified', 'declared'),
-              f.at('greek'),
-              f.spoken('declared', 'still'),
-            ];
-            LINES.forEach((l, i) => {
-              const box = { w: l.text.length * l.size * 0.52, h: l.size * 1.05 };
-              probePlate(ctx, l.text, -box.w / 2, l.dy - l.size * 0.82, box.w, box.h);
-              write(
-                ctx,
-                l.text,
-                0,
-                l.dy,
-                {
-                  family: l.family,
-                  size: l.size,
-                  weight: l.weight,
-                  italic: l.italic,
-                  color: l.color,
-                  align: 'center',
-                },
-                hand(`line${i}`),
-                { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
-              );
-            });
+            const board = rectShape(-310, -165, 620, 330);
+            piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
+            const reveal = [f.spoken('justified', 'still'), f.at('greek'), f.at('madeLine')];
+            probePlate(ctx, board, () =>
+              LINES.forEach((l, i) =>
+                write(
+                  ctx,
+                  l.text,
+                  0,
+                  l.dy,
+                  {
+                    family: l.family,
+                    size: l.size,
+                    weight: l.weight,
+                    italic: l.italic,
+                    color: l.color,
+                    align: 'center',
+                  },
+                  hand(`line${i}`),
+                  { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
+                ),
+              ),
+            );
           });
       });
       ctx.restore();
@@ -252,18 +247,20 @@ export const declared = drawing({
         );
         if (heavy > 0) {
           // It lifts out of the icon, gains depth, and lands with weight.
-          const since = t - f.cue('heavy').start;
-          const fall = keys(since, [
+          const fall = f.keys('heavy', [
             [0, 0],
-            [0.45, -70, ease.outCubic],
-            [0.75, 0, ease.inCubic],
+            [0.375, -70, 'outCubic'],
+            [0.625, 0, 'inCubic'],
           ]);
-          const squash = keys(since, [
-            [0.72, 1],
-            [0.8, 1.14, ease.outCubic],
-            [1.1, 1, ease.outBack],
+          const squash = f.keys('heavy', [
+            [0.6, 1],
+            [0.667, 1.14, 'outCubic'],
+            [0.917, 1, 'outBack'],
           ]);
-          const depth = clamp(since / 0.45);
+          const depth = f.keys('heavy', [
+            [0, 0],
+            [0.375, 1, 'linear'],
+          ]);
           at(ctx, { x: wordX, y: 540 + fall, sx: squash, sy: 2 - squash }, () => {
             // The slab's depth, then its face and its lines.
             for (let i = 8; i > 0; i--)

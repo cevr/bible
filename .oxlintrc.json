@@ -6,7 +6,7 @@
     "perf": "error"
   },
   "plugins": ["typescript", "import", "node"],
-  "jsPlugins": ["oxlint-plugin-effect/plugin"],
+  "jsPlugins": ["oxlint-plugin-effect/plugin", "./packages/film/lint/plugin.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-type-assertion": "error",
@@ -69,7 +69,13 @@
     "effect/noWidenThenAssert": "error",
     "effect/preferEffectFn": "error"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "**/outputs/**",
+    "**/lint/fixtures/**"
+  ],
   "overrides": [
     {
       "files": ["**/packages/core/src/**/*.ts", "**/packages/core/src/**/*.tsx"],
@@ -182,25 +188,42 @@
       }
     },
     {
-      // The film draw path: the Canvas 2D kit, each film's scenes and props, and
-      // the easing and seeded-noise helpers they call. A frame is a pure
-      // function of time drawn thousands of times per render, so it keeps plain
-      // arithmetic: ternaries and `?? default` for optional geometry, short
-      // shape names (`pts`, `rim`), and a thrown Error for a programming
-      // mistake (a missing cue, an unknown mark) that must stop the render.
-      // Every other rule applies. The tools and the Schema/data modules of
-      // packages/film are not listed here and get the full rule set.
+      // The film draw path: the Canvas 2D kit and each film's scenes and props.
+      // A frame is a pure function of time drawn thousands of times per render,
+      // so it keeps plain arithmetic: ternaries and `?? default` for optional
+      // geometry, and short shape names (`pts`, `rim`). Every other rule
+      // applies, `throw` included: a film never throws. The tools and the
+      // Schema/data modules of packages/film are not listed here and get the
+      // full rule set.
+      "files": ["**/packages/film/src/canvas/**/*.ts", "**/apps/animations/src/films/**/*.ts"],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noShapeInSymbolNames": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
+      // The easing helpers the draw path calls every frame: ternaries and
+      // `?? default` as the draw path, nothing else.
+      "files": ["**/packages/film/src/core/time.ts"],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
+      // The engine's thrown Errors: a programming mistake (a film with no
+      // scenes, a missing cue, knob or mark, no 2d context) that must stop the
+      // render. They live in the engine, never in a film; the probe test
+      // throws inside a draw to prove the probe comes off.
       "files": [
-        "**/packages/film/src/canvas/**/*.ts",
-        "**/packages/film/src/core/time.ts",
-        "**/packages/film/src/core/random.ts",
-        "**/apps/animations/src/films/**/*.ts"
+        "**/packages/film/src/canvas/film.ts",
+        "**/packages/film/src/canvas/paper.ts",
+        "**/packages/film/src/canvas/cutout.ts",
+        "**/packages/film/src/canvas/probe.test.ts"
       ],
       "rules": {
         "effect/noNewError": "off",
-        "effect/noNullish": "off",
-        "effect/noShapeInSymbolNames": "off",
-        "effect/noTernary": "off",
         "effect/noThrowStatement": "off"
       }
     },
@@ -242,6 +265,17 @@
       "rules": {
         "effect/noNullish": "off",
         "effect/noTernary": "off"
+      }
+    },
+    {
+      // The `film` plugin's guardrails (packages/film/lint/), on every film
+      // but the frozen first cut: righteousness-by-faith-v1 is kept as it was
+      // made and gets no new rules (ledger 2026-09-27, Pass 1 decisions).
+      "files": ["**/apps/animations/src/films/**/*.ts"],
+      "excludeFiles": ["**/apps/animations/src/films/righteousness-by-faith-v1/**"],
+      "rules": {
+        "film/drawing-literal": "error",
+        "film/no-unprobed-ink": "error"
       }
     },
     {

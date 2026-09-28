@@ -5,8 +5,8 @@
 import { Array as Arr, Result } from 'effect';
 import { UnknownScene } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Knob, Timed, Timings, Transition, Word } from './schema.ts';
-import { type ResolvedCue, type SceneClock, resolveTimeline } from './timeline.ts';
+import type { Knob, ResolvedCue, Timed, Timings, Transition, Word } from './schema.ts';
+import { type SceneClock, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
   readonly spec: S;
@@ -46,6 +46,12 @@ const clockOf = (
 export const sceneClock = (p: Placed): SceneClock =>
   clockOf(p.spec.id, p.voice, p.speechStart, p.dur);
 
+/** The shortest lead before a scene's words: a long entrance lengthens it (`enter` × 0.7). */
+export const MIN_LEAD = 0.5;
+
+/** The time after a scene's last word, unless it declares a `tail`. */
+export const DEFAULT_TAIL = 0.1;
+
 /** Lay scenes end to end. Pure. */
 export const layout = <S extends Timed>(
   scenes: ReadonlyArray<S>,
@@ -58,10 +64,11 @@ export const layout = <S extends Timed>(
     if (ids.has(spec.id)) throw new Error(`duplicate scene id ${spec.id}`);
     ids.add(spec.id);
     const voice = voiceFor(spec.id, spec.say ?? '', timings);
-    const lead = spec.lead ?? Math.max(0.5, transitionDur(spec.enter) * 0.7);
+    const lead = spec.lead ?? Math.max(MIN_LEAD, transitionDur(spec.enter) * 0.7);
     // With the minimum lead, the default seam between two scenes' words is
-    // 0.6 s (the film skill's CRAFT rule 9); a meant pause sets `tail`.
-    const tail = spec.tail ?? 0.1;
+    // MIN_LEAD + DEFAULT_TAIL = 0.6 s (the film skill's CRAFT rule 9); a meant
+    // pause sets `tail`.
+    const tail = spec.tail ?? DEFAULT_TAIL;
     const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
     const speechStart = voice.duration > 0 ? lead : 0;
     const cues = resolveTimeline(spec.timeline, clockOf(spec.id, voice, speechStart, dur));

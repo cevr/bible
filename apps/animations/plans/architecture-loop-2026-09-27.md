@@ -127,13 +127,38 @@ Triage (wave 1 in parallel from main `a215190a`; wave 2 after wave 1 merges; wav
 
 Guardrails added:
 
-| Defect class | Check | Red on | Hash |
-| ------------ | ----- | ------ | ---- |
+| Defect class                              | Check                                                                  | Red on                                                                                  | Hash               |
+| ----------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------ |
+| a timeline or knobs the lab cannot locate | `film/drawing-literal` (runs the lab locator's `unlocatable`)          | computed slot, aliased `drawing`, drawing in a factory, unexported, slot declared twice | 95039251, 85502d74 |
+| ink drawn outside the probe               | `film/no-unprobed-ink` (scope-resolved `unprobed`)                     | rain's streaks; bracket/`.call`/destructured ink                                        | a171cb7d, 2962e464 |
+| a text plate the probe cannot see         | `probePlate(ctx, shape, draw)` + `TextOffPlate`                        | a line running off its plate                                                            | 557c623f, 83654bdc |
+| a seam longer than the default            | `SeamLong` in `film check`, seams in `cues`                            | a 1.2 s fade after a `min: 1` scene                                                     | 1fe01506, 236c3d59 |
+| a plugin type error cached away           | turbo `typecheck.inputs` includes `lint/**/*.ts`                       | 0 of 100 inputs under `lint/`                                                           | 8983fb08           |
+| a flag a render would ignore              | `FlagsConflict`, misspelt `--only` fails                               | `--contact` with `--stills`                                                             | 5d59e64e           |
+| a scene slower than its budget            | `film bench --budget`, held against a hashed, caption-matched baseline | a baseline from other captions                                                          | f1f066ef, 60b817ce |
 
 Counsel defects:
 
-| ID  | Defect | Red test | Status |
-| --- | ------ | -------- | ------ |
+| ID       | Defect                                                                | Red test                                   | Status                                  |
+| -------- | --------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------- |
+| engine-1 | finish and caption values unbounded                                   | `createFilm` decode test                   | done c339d9bc                           |
+| render-1 | track encode not fail-fast (chunks then aac)                          | bencher/encode test                        | done fbdb7d1e                           |
+| render-2 | bench drew without captions; baseline compared across captions/hashes | `BaselineIncomparable`, `BaselineUnhashed` | done 60b817ce                           |
+| render-3 | contact range ran past the film (frames repeat)                       | `frameSpan` test                           | done 82b5f72a                           |
+| render-4 | encoder budget read as per page                                       | docs                                       | done 4db21e81                           |
+| lab-L2   | stored A–B loop not read against the film; any rate decoded           | view-state tests                           | done f86cd577                           |
+| lab-L3   | `#T` trailed seeks/scrubs; a write reload landed off the click        | t-in-url tests + live                      | done 285dd9a0                           |
+| guard-1  | turbo typecheck missed `lint/`                                        | dry-run inputs                             | done 8983fb08                           |
+| guard-2  | `no-unprobed-ink` misses and one false positive                       | real-oxlint fixture                        | done 2962e464                           |
+| guard-3  | `drawing-literal` could disagree with the lab                         | fixture (5 cases)                          | done 85502d74                           |
+| guard-4  | SeamLong miscounted `min`; `MAX_SEAM` duplicated defaults             | `min: 1` fade test                         | done 236c3d59                           |
+| guard-5  | storyboard plate undisclosed                                          | docs                                       | done 745e5c30                           |
+| core-D1  | an `until` drag past its mark wrote an unresolvable file              | scene-writer + 422 route tests             | fixed b0f296ba, 20ee47e3; merge pending |
+| core-D2  | a left-edge drag swapped `until` for `dur`; inspector showed dur 0    | `dragPatch` test                           | fixed 20ee47e3; merge pending           |
+
+Open from counsel: `bench --workers` leaves an empty `out/<film>/bench/` (pass 2).
+
+Merged to main: engine bf868773, render 0f361f18, lab d8dcb2da, guard 92ce9d80, script revision c7385458 (73e1c49b script, ecaeb114 takes: 10 beats, WER ≤ 2.7%, runtime 435.6 s, landing 86.2%, quotes 11.6%).
 
 Live check: —
 

@@ -16,6 +16,8 @@ export * from './preview-server.ts';
 export * from './browser.ts';
 export * from './render-plan.ts';
 export * from './renderer.ts';
+export * from './bench.ts';
+export * from './bencher.ts';
 export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';

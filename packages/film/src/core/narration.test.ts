@@ -190,13 +190,9 @@ describe('turns', () => {
   });
 });
 
-import { ease, progress } from './time.ts';
-
-describe('time', () => {
-  test('eases are exactly 0 before their start and 1 after', () => {
-    for (const e of Object.values(ease)) {
-      expect(progress(0, 1, 1, e)).toBe(0);
-      expect(progress(3, 1, 1, e)).toBe(1);
-    }
+describe('hashText', () => {
+  // Takes and the score are keyed by this hash: a change to it re-records every take.
+  test('is FNV-1a as eight hex digits, pinned', () => {
+    expect(['', 'sheep', 'Hi there.'].map(hashText)).toEqual(['811c9dc5', '07cc25f4', '5b6d78ca']);
   });
 });

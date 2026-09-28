@@ -227,21 +227,23 @@ export const BANNER = 'the commandments of God, and the faith of Jesus';
  */
 export const herald = (ctx: CanvasRenderingContext2D, hand: Hands, t: number, written: number) => {
   at(ctx, { x: -800, y: -150 + Math.sin(t * 3) * 6, rot: 0.01 * Math.sin(t * 2) }, () => {
-    piece(ctx, plate(0, 0, 1220, 110), C.cream, hand('banner'), { line: 3.5, torn: 2 });
+    const banner = plate(0, 0, 1220, 110);
+    piece(ctx, banner, C.cream, hand('banner'), { line: 3.5, torn: 2 });
     for (const side of [-1, 1] as const)
       piece(ctx, rounded(side * 628, 0, 36, 96, 6), C.gold, sub(hand('bannerEnd'), side), {
         line: 3,
       });
     if (written <= 0) return;
-    probePlate(ctx, BANNER, -610, -55, 1220, 110);
-    write(
-      ctx,
-      BANNER,
-      0,
-      17,
-      { family: F.display, size: 50, weight: 600, color: C.ink, align: 'center' },
-      hand('bannerText'),
-      { progress: written, reveal: 'write', boil: 0.3 },
+    probePlate(ctx, banner, () =>
+      write(
+        ctx,
+        BANNER,
+        0,
+        17,
+        { family: F.display, size: 50, weight: 600, color: C.ink, align: 'center' },
+        hand('bannerText'),
+        { progress: written, reveal: 'write', boil: 0.3 },
+      ),
     );
   });
   at(ctx, { x: 0, y: 0, scale: 1.1, rot: 0.06 }, () =>

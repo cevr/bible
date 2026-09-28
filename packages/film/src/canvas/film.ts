@@ -16,6 +16,7 @@ import {
 import type {
   Knob,
   Knobs,
+  ResolvedCue,
   Point,
   Sound,
   Span,
@@ -24,7 +25,7 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
+import { cueKeys, cueProgress, resolveTimeline, staggerProgress } from '../core/timeline.ts';
 import {
   type Grain,
   type Offscreen,
@@ -38,7 +39,7 @@ import {
 } from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
-import { clamp, ease } from '../core/time.ts';
+import { type Key, clamp, ease } from '../core/time.ts';
 
 export const BOIL_FPS = 12;
 
@@ -68,10 +69,23 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   cue(name: C): ResolvedCue;
   /**
    * 0→1 across a named cue, eased by the cue's declared `ease` (default
-   * `inOutCubic`): `progress(t, cue.start, cue.dur, ease[cue.ease])`. The ease
+   * `DEFAULT_EASE`, `inOutCubic`): `progress(t, cue.start, cue.dur, ease[cue.ease])`. The ease
    * is data on the span, so the lab can change it; the draw never passes one.
    */
   at(name: C): number;
+  /**
+   * Keyframes across a named cue (`cueKeys`): each key's time is a fraction of
+   * the cue, 0 its start and 1 its end, and its ease a name; a key that names
+   * none takes the cue's `ease`. So the lab's `dur` and `ease` edits reshape the
+   * motion: `f.keys('gavel', [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`.
+   */
+  keys(name: C, frames: ReadonlyArray<Key>): number;
+  /**
+   * 0→1 for item `i` of `n` across a named cue (`staggerProgress`), eased by
+   * the cue's `ease`: the items' starts spread over the span's `stagger` share
+   * and each lasts the rest, so a `dur` edit scales every item.
+   */
+  stagger(name: C, i: number, n: number): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
@@ -403,6 +417,8 @@ export const createFilm = (spec: FilmSpec): Film => {
         return c;
       },
       at: (name) => cueProgress(frame.cue(name), t),
+      keys: (name, frames) => cueKeys(frame.cue(name), t, frames),
+      stagger: (name, i, n) => staggerProgress(frame.cue(name), t, i, n),
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);

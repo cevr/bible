@@ -2,24 +2,28 @@
 // `film lab <film>` runs. The framework owns the routes; the app mounts the
 // handler at `/lab/*` (its server owns the port, the HTML bundle and HMR).
 // Every route reads and writes through NotesStore, so the page and
-// `film notes` see the same file.
+// `film notes` see the same file. Every route names the film it is for
+// (`/lab/<film>/…`, `labBase`); one for a film the lab does not serve is a 409,
+// so a page for another film can neither read nor write this one's notes or
+// source.
 //
-//   GET  /lab/notes                     the film's notes file (its `seq` is the cursor)
-//   POST /lab/notes                     a new note: NotePost (draft + the frame as base64 PNG)
-//   POST /lab/notes/:id/reply           the user replies: ReplyPost
-//   POST /lab/notes/:id/resolve
-//   GET  /lab/notes/wait?since=&timeout= the changes past `since`, long-polled (≤ 60 s)
-//   GET  /lab/stills/:name              a still PNG
+//   GET  /lab/<film>/notes                           the film's notes file (its `seq` is the cursor)
+//   POST /lab/<film>/notes                           a new note: NotePost (draft + the frame as base64 PNG)
+//   POST /lab/<film>/notes/:id/reply                 the user replies: ReplyPost
+//   POST /lab/<film>/notes/:id/resolve
+//   GET  /lab/<film>/notes/wait?since=&timeout=      the changes past `since`, long-polled (≤ 60 s)
+//   GET  /lab/<film>/stills/:name                    a still PNG
 //
 // And the scene source the lab edits (SceneSources, SceneWriter): each write
 // lands in the scene's `.ts` file, then `film check --static` runs fresh.
 //
-//   GET  /lab/scenes/:scene/source      the scene's file and which cues and knobs are literals
-//   GET  /lab/scenes/:scene/head        its timeline and knobs at HEAD, and whether its code changed
-//   POST /lab/cues/:scene/:cue          set a cue's offset, dur or ease: CuePatch
-//   POST /lab/knobs/:scene/:knob        set a knob: KnobPatch
-//   POST /lab/undo                      put the last write's file back, byte for byte
-//   GET  /lab/check                     `film check --static` now, and the write Undo reverts
+//   GET  /lab/<film>/scenes/:scene/source            the scene's file and which cues and knobs are literals
+//   GET  /lab/<film>/scenes/:scene/head              its timeline and knobs at HEAD, and whether its code changed
+//   POST /lab/<film>/cues/:scene/:cue                set a cue's offset, dur or ease: CuePatch
+//   POST /lab/<film>/knobs/:scene/:knob              set a knob: KnobPatch
+//   POST /lab/<film>/undo                            put the newest write's file back, byte for byte
+//   POST /lab/<film>/redo                            make the newest undone write again
+//   GET  /lab/<film>/check                           `film check --static` now, the latest change, and what Undo and Redo would do
 //
 // The API rewrites source, so it answers only the lab's own page (`admit`):
 // the server listens on the loopback interface, every request must name the
@@ -44,6 +48,7 @@ import { sceneClock, sceneOf } from '../core/layout.ts';
 import {
   type CheckLine,
   CheckReport,
+  labBase,
   CuePatch,
   HeadSource,
   KnobPatch,
@@ -76,7 +81,7 @@ export type LabHandler = (request: Request, server: LabBound) => Promise<Respons
 
 /** A request the lab does not answer, and the status it answers instead. */
 export interface Refusal {
-  readonly status: 403 | 415;
+  readonly status: 403 | 409 | 415;
   readonly reason: string;
 }
 
@@ -128,6 +133,20 @@ export const admit = (request: Request, bound: LabBound): Option.Option<Refusal>
     },
   });
 
+/**
+ * Whether the request is for `film`: `None` when its path is under
+ * `labBase(film)`, else a 409 naming the film the lab serves. Pure.
+ */
+export const forFilm = (request: Request, film: string): Option.Option<Refusal> => {
+  const [, root = '', named = ''] = new URL(request.url).pathname.split('/');
+  const asked = Result.getOrElse(
+    Result.try(() => decodeURIComponent(named)),
+    () => named,
+  );
+  if (root === 'lab' && asked === film) return Option.none();
+  return refused(409, `this lab serves film "${film}", not "${asked}"`);
+};
+
 /** The longest a wait may hold a request open. */
 export const MAX_WAIT = Duration.seconds(60);
 
@@ -157,8 +176,8 @@ const headJson = HttpServerResponse.schemaJson(HeadSource);
 const statusOf = (tag: string) => {
   if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
-  if (tag === 'SourceRefused' || tag === 'SourceShared') return 422;
-  if (tag === 'UndoUnavailable' || tag === 'SourceChanged') return 409;
+  if (tag === 'SourceRefused' || tag === 'SourceShared' || tag === 'TimelineUnresolved') return 422;
+  if (tag === 'UndoUnavailable' || tag === 'RedoUnavailable' || tag === 'SourceChanged') return 409;
   return 500;
 };
 
@@ -236,11 +255,12 @@ const handled = <E extends { readonly _tag: string; readonly message: string }, 
   );
 
 /** The routes over one film's notes. */
-export const labRoutes = (film: string) =>
-  HttpRouter.addAll([
+export const labRoutes = (film: string) => {
+  const base = labBase(film);
+  return HttpRouter.addAll([
     HttpRouter.route(
       'GET',
-      '/lab/notes',
+      `${base}/notes`,
       handled(
         Effect.gen(function* () {
           return yield* notesJson(yield* (yield* NotesStore).read(film));
@@ -249,7 +269,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/notes',
+      `${base}/notes`,
       handled(
         Effect.gen(function* () {
           const { still, ...draft } = yield* HttpServerRequest.schemaBodyJson(NotePost);
@@ -259,7 +279,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/notes/:id/reply',
+      `${base}/notes/:id/reply`,
       handled(
         Effect.gen(function* () {
           const { id } = yield* HttpRouter.schemaPathParams(IdParams);
@@ -275,7 +295,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/notes/:id/resolve',
+      `${base}/notes/:id/resolve`,
       handled(
         Effect.gen(function* () {
           const { id } = yield* HttpRouter.schemaPathParams(IdParams);
@@ -285,7 +305,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'GET',
-      '/lab/notes/wait',
+      `${base}/notes/wait`,
       handled(
         Effect.gen(function* () {
           const query = yield* HttpServerRequest.schemaSearchParams(WaitQuery);
@@ -299,7 +319,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'GET',
-      '/lab/stills/:name',
+      `${base}/stills/:name`,
       handled(
         Effect.gen(function* () {
           const { name } = yield* HttpRouter.schemaPathParams(StillParams);
@@ -312,7 +332,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'GET',
-      '/lab/scenes/:scene/source',
+      `${base}/scenes/:scene/source`,
       handled(
         Effect.gen(function* () {
           const { scene } = yield* HttpRouter.schemaPathParams(SceneParams);
@@ -330,7 +350,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'GET',
-      '/lab/scenes/:scene/head',
+      `${base}/scenes/:scene/head`,
       handled(
         Effect.gen(function* () {
           const { scene } = yield* HttpRouter.schemaPathParams(SceneParams);
@@ -349,7 +369,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/cues/:scene/:cue',
+      `${base}/cues/:scene/:cue`,
       handled(
         Effect.gen(function* () {
           const { scene, cue } = yield* HttpRouter.schemaPathParams(CueParams);
@@ -378,7 +398,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/knobs/:scene/:knob',
+      `${base}/knobs/:scene/:knob`,
       handled(
         Effect.gen(function* () {
           const { scene, knob } = yield* HttpRouter.schemaPathParams(KnobParams);
@@ -397,7 +417,7 @@ export const labRoutes = (film: string) =>
     ),
     HttpRouter.route(
       'POST',
-      '/lab/undo',
+      `${base}/undo`,
       handled(
         Effect.gen(function* () {
           const written = yield* (yield* SceneWriter).undo;
@@ -406,26 +426,41 @@ export const labRoutes = (film: string) =>
       ),
     ),
     HttpRouter.route(
+      'POST',
+      `${base}/redo`,
+      handled(
+        Effect.gen(function* () {
+          const written = yield* (yield* SceneWriter).redo;
+          return yield* answer(film, written, Effect.succeed({}));
+        }),
+      ),
+    ),
+    HttpRouter.route(
       'GET',
-      '/lab/check',
+      `${base}/check`,
       handled(
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const dir = (yield* FilmRepo).paths(film).dir;
-          const last = yield* (yield* SceneWriter).last;
-          return yield* checkJson({
-            findings: yield* findings(film),
-            ...Option.match(last, {
+          const history = yield* (yield* SceneWriter).history;
+          const step = (key: 'latest' | 'undo' | 'redo') =>
+            Option.match(history[key], {
               onNone: () => ({}),
               onSome: (w) => ({
-                last: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
+                [key]: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
               }),
-            }),
+            });
+          return yield* checkJson({
+            findings: yield* findings(film),
+            ...step('latest'),
+            ...step('undo'),
+            ...step('redo'),
           });
         }),
       ),
     ),
   ]);
+};
 
 /**
  * The lab's routes as a web handler over the services the caller runs with
@@ -448,24 +483,28 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     (web) => Effect.promise(() => web.dispose()),
   );
   const run = Effect.runPromiseWith(services);
-  // Each admitted request runs with the caller's store and file system; a refused one, logged, runs nothing.
+  // Each admitted request for this film runs with the caller's store and file
+  // system; a refused one, logged, runs nothing.
   const lab: LabHandler = (request, server) =>
-    Option.match(admit(request, server), {
-      onNone: () => handler(request, services),
-      onSome: (refusal) =>
-        run(
-          Effect.logWarning(
-            `lab.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
-          ).pipe(
-            Effect.map(() =>
-              HttpServerResponse.toWeb(
-                HttpServerResponse.text(`LabRequestRefused: ${refusal.reason}`, {
-                  status: refusal.status,
-                }),
+    Option.match(
+      Option.orElse(admit(request, server), () => forFilm(request, film)),
+      {
+        onNone: () => handler(request, services),
+        onSome: (refusal) =>
+          run(
+            Effect.logWarning(
+              `lab.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
+            ).pipe(
+              Effect.map(() =>
+                HttpServerResponse.toWeb(
+                  HttpServerResponse.text(`LabRequestRefused: ${refusal.reason}`, {
+                    status: refusal.status,
+                  }),
+                ),
               ),
             ),
           ),
-        ),
-    });
+      },
+    );
   return lab;
 });

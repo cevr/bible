@@ -37,7 +37,7 @@ export const BUBBLE: Pt[] = [
   [-80, 40],
 ];
 
-/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, whose box `probePlate` declares. */
+/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, drawn by `piece` and declared by `probePlate`. */
 export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
   rectShape(x - w / 2, y - h / 2, w, h);
 

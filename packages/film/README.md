@@ -180,8 +180,8 @@ change with `git diff`.
 | `GET /lab/check`                | `film check --static` now, and the write Undo would revert (`last`)                                 |
 | `GET /lab/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
 
-A scene that is not located is a 404, a value the lab will not rewrite a 422,
-an undo with nothing to undo (or a file changed since) a 409.
+A scene that is not located is a 404, a value the lab will not rewrite a 422
+(so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
 
 **SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
 not by name: the parser (oxc) lists every exported `drawing({...})` call in
@@ -198,7 +198,10 @@ ContentStore (a partial renamed into place), runs `oxfmt` on it and reads the
 value back. If oxfmt fails or the value does not read back, the file is put
 back and the write fails (`FormatFailed`, `WriteUnverified`). It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
-computed key, a shorthand) and names it. Writes run one at a time and are
+computed key, a shorthand) and names it. A cue write is also refused
+(`TimelineUnresolved`) when the scene's timeline, read back from the new text,
+does not resolve: an `until` span dragged past its mark would end before it
+starts. Writes run one at a time and are
 uninterruptible (the reload a write causes drops its request). The last write
 can be undone once, only while the file is exactly as that write left it.
 
@@ -209,13 +212,18 @@ scene modules at start) and returns its findings, which the lab lists.
 **The editor** (`player/lab-edit.ts`): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
-its right edge to move its end (dur). Edges snap to word starts and ends,
+its right edge to move its end (dur). A cue that runs `until` a mark keeps
+ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
+only its offset, its start held a frame before the mark, and its right edge
+sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
 marks and other cues' edges within 8 px, else move by whole frames; shift
 places them freely. While dragging, the frame previews the edit in memory
 (`film.preview(scene, edit)` resolves the edited timeline on the scene's own
-clock, `sceneClock(p)`, as `layout()` does); the release writes. The
+clock, `sceneClock(p)`, as `layout()` does; an edit that does not resolve is
+not shown, and the status says why); the release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs, and an ease picker drawing each curve (the ease is only ever data:
+inputs (for an `until` cue, `until {mark}` and its resolved end instead of
+`dur`), and an ease picker drawing each curve (the ease is only ever data:
 `f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
@@ -286,13 +294,24 @@ what a review used to find by eye:
   more than 4 px, where no opaque plate drawn after the stroke covers it, is
   an `InkOverText`, measured along the crossing (a segment-versus-box
   clip, not the bounds). A line on a plate that the frame cuts off, and that
-  sits still there, is a `PlateOffFrame`. Findings merge per scene and text
-  (or pair), at the worst sampled frame.
+  sits still there, is a `PlateOffFrame`. A line drawn on a declared plate
+  (`probePlate`) whose box leaves the plate's box by more than 4 px is a
+  `TextOffPlate` (a brief overrunning its card). Findings merge per scene and
+  text (or pair), at the worst sampled frame.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
-centre line and `cutout` its outline. A drawing declares the plate its text sits on (a torn tag)
-with `probePlate`, because a plate hides what is under it as the text does.
+centre line and `cutout` its outline. A drawing declares the plate its text
+sits on (a torn tag, a word card) with `probePlate(ctx, shape, () => write(…))`:
+the shape it drew the plate with, and the lines on it drawn inside. A plate
+hides what is under it as the text does, so it is measured as text too; the
+lines drawn inside carry the plate's `order` (`on`), so a card never collides
+with its own lines, while any other text over it does. The kit declares one
+plate itself: a storyboard scene's card (`canvas/storyboard.ts`), so its id and
+brief are checked against the card (`TextOffPlate`) and against each other
+(`TextOverlap`). The films declare the rest (righteousness-by-faith: heaven's
+banner, the court and cold labels, the thesis, message and word boards, the
+declared card; v1: the cite tab and the justified strip).
 With no probe attached a draw costs one WeakMap lookup, and a probed frame
 is pixel for pixel the same (it only reads the transform, `measureText` and
 the path it was going to draw). The export handle exposes it as `probe(i)`.

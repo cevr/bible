@@ -92,7 +92,7 @@ export class ApiKeyMissing extends Schema.TaggedError<ApiKeyMissing>()('ApiKeyMi
 
 /** A media file that could not be read, decoded, written or joined into a film. */
 export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed', {
-  op: Schema.Literals(['read', 'decode', 'write', 'join']),
+  op: Schema.Literals(['read', 'decode', 'encode', 'write', 'join']),
   file: Schema.String,
   reason: Schema.String,
 }) {
@@ -236,6 +236,101 @@ export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
   }
 }
 
+const FLAG_RULE = { excludes: 'does not go with', needs: 'needs' } as const;
+
+/**
+ * A flag that would be ignored: given with one it `excludes`, or without the
+ * one it `needs`.
+ */
+export class FlagsConflict extends Schema.TaggedError<FlagsConflict>()('FlagsConflict', {
+  flag: Schema.String,
+  rule: Schema.Literals(['excludes', 'needs']),
+  other: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `--${this.flag} ${FLAG_RULE[this.rule]} --${this.other}: ${this.reason}`;
+  }
+}
+
+/** `score --only` names a sound the film does not have. */
+export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownEffect', {
+  id: Schema.String,
+  /** The sounds the film has: `music`, if it has a score, and its effect ids. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the film has no sound "${this.id}"; its sounds are ${this.known.join(', ')}`;
+  }
+}
+
+/** `film bench --budget` with no baseline to hold the run against. */
+export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `no bench baseline at ${this.file}; run bench --baseline first`;
+  }
+}
+
+/** A bench run that cannot be held against its baseline: another machine, or the other captions setting. */
+export class BaselineIncomparable extends Schema.TaggedError<BaselineIncomparable>()(
+  'BaselineIncomparable',
+  { file: Schema.String, reason: Schema.String },
+) {
+  override get message() {
+    return `the bench baseline at ${this.file} does not compare with this run: ${this.reason}; run bench --baseline on this setup first`;
+  }
+}
+
+/** A `--hash` bench run against a baseline that kept no hashes: its pixels would pass unchecked. */
+export class BaselineUnhashed extends Schema.TaggedError<BaselineUnhashed>()('BaselineUnhashed', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `the bench baseline at ${this.file} has no pixel hashes to compare; run bench --hash --baseline first`;
+  }
+}
+
+/** A bench run more than the budget slower than its baseline, on the same machine. */
+export class BenchOverBudget extends Schema.TaggedError<BenchOverBudget>()('BenchOverBudget', {
+  /** Each measure over: a scene's median ms, or the film's summed draw seconds. */
+  slower: Schema.Array(
+    Schema.Struct({ what: Schema.String, now: Schema.Finite, before: Schema.Finite }),
+  ),
+}) {
+  override get message() {
+    const lines = this.slower.map(
+      (s) =>
+        `${s.what} ${s.now.toFixed(1)} against ${s.before.toFixed(1)} (+${((s.now / s.before - 1) * 100).toFixed(0)}%)`,
+    );
+    return `slower than the baseline by more than the budget: ${lines.join('; ')}`;
+  }
+}
+
+/** A bench run whose frames' pixels differ from the baseline's. */
+export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved', {
+  frames: Schema.Array(Schema.Int),
+}) {
+  override get message() {
+    return `${this.frames.length} hashed frames differ from the baseline: ${this.frames.join(', ')}`;
+  }
+}
+
+/** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
+export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
+  workers: Schema.Int,
+  share: Schema.Boolean,
+  max: Schema.Int,
+}) {
+  override get message() {
+    const perPage = 1 + Number(this.share);
+    const copy = ' with a share copy'.repeat(Number(this.share));
+    const orNoShare = ', or --no-share'.repeat(Number(this.share));
+    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
+  }
+}
+
 /** A render range with no frames in it. */
 export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
   from: Schema.Finite,
@@ -259,6 +354,22 @@ export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
 }) {
   override get message() {
     return `scene "${this.scene}": cue "${this.cue}" ends at ${this.end.toFixed(2)}s, after the scene (${this.dur.toFixed(2)}s)`;
+  }
+}
+
+/**
+ * The pause between one scene's last word and the next scene's first is over
+ * the default seam, and neither scene declares it (no `tail` or `min` on the
+ * first, no `lead` on the second): a default stretched it, not the script.
+ */
+export class SeamLong extends Schema.TaggedError<SeamLong>()('SeamLong', {
+  from: Schema.String,
+  to: Schema.String,
+  seam: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `scenes "${this.from}" → "${this.to}": ${this.seam.toFixed(2)}s between their words, over ${this.max.toFixed(1)}s, and neither declares the pause (set "${this.to}".lead or "${this.from}".tail)`;
   }
 }
 
@@ -417,6 +528,23 @@ export class SourceRefused extends Schema.TaggedError<SourceRefused>()('SourceRe
   }
 }
 
+/**
+ * A cue timing the lab will not write: with it, the scene's timeline does not
+ * resolve (e.g. a span that would end before it starts). The file is untouched.
+ */
+export class TimelineUnresolved extends Schema.TaggedError<TimelineUnresolved>()(
+  'TimelineUnresolved',
+  {
+    file: Schema.String,
+    target: Schema.String,
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `${this.file}: will not write ${this.target}: the timeline would not resolve: ${this.reason}`;
+  }
+}
+
 /** oxfmt failed on a file the lab wrote; the file was put back as it was. */
 export class FormatFailed extends Schema.TaggedError<FormatFailed>()('FormatFailed', {
   file: Schema.String,
@@ -470,6 +598,15 @@ export class UndoUnavailable extends Schema.TaggedError<UndoUnavailable>()('Undo
   }
 }
 
+/** The lab's Redo has no undone write to write again, or its file changed since the undo. */
+export class RedoUnavailable extends Schema.TaggedError<RedoUnavailable>()('RedoUnavailable', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `nothing to redo: ${this.reason}`;
+  }
+}
+
 /** `film check --static`, run for the lab after a write, did not run to a report. */
 export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
   'StaticCheckFailed',
@@ -508,6 +645,31 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
   override get message() {
     const box = `${Math.round(this.x)},${Math.round(this.y)} ${Math.round(this.w)}×${Math.round(this.h)}`;
     return `${where(this)}: ${this.strokes} stroke(s) at ${box} cross "${this.text}" for ${Math.round(this.length)} px (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A line of text running off the plate under it (a card, a tag), past the plate's edge. */
+export class TextOffPlate extends Schema.TaggedError<TextOffPlate>()('TextOffPlate', {
+  ...sampled,
+  text: Schema.String,
+  /** How far the line's box reaches past each side of the plate's box, in canvas pixels. */
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: "${this.text}" runs off the plate under it, ${past.join(', ')} (${this.frames} sampled frame(s))`;
   }
 }
 

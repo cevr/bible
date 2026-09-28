@@ -4,23 +4,121 @@
 // it. Resolved once per layout; the picture and the sound both read the result.
 // Pure and DOM-free.
 
-import type { EaseName, Span, Timeline } from './schema.ts';
-import { ease, progress } from './time.ts';
-
-/** The ease a cue declares none of: the same curve `progress` defaults to. */
-export const DEFAULT_EASE: EaseName = 'inOutCubic';
-
-/** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
-export interface ResolvedCue {
-  readonly start: number;
-  readonly end: number;
-  readonly dur: number;
-  readonly ease: EaseName;
-}
+import { Option } from 'effect';
+import type { CuePatch, ResolvedCue, Span, Timeline } from './schema.ts';
+import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
+
+/**
+ * 0→1 for item `i` of `n` across a staggered cue at scene time `t`, eased by
+ * the cue's ease. The items' starts spread evenly over the cue's `stagger`
+ * share, the first at its start, and each lasts the rest, the last ending
+ * with the cue; so a `dur` edit scales every item. One item is the whole cue.
+ */
+export const staggerProgress = (cue: ResolvedCue, t: number, i: number, n: number): number => {
+  if (n <= 1) return cueProgress(cue, t);
+  const lead = (cue.stagger * i) / (n - 1);
+  return progress(t, cue.start + cue.dur * lead, cue.dur * (1 - cue.stagger), ease[cue.ease]);
+};
+
+/**
+ * Keyframes across a cue at scene time `t`. Each key's time is a fraction of
+ * the cue (0 its start, 1 its end), so a `dur` edit stretches the motion; a
+ * key that names no ease takes the cue's, so an `ease` edit reshapes it.
+ */
+export const cueKeys = (cue: ResolvedCue, t: number, frames: ReadonlyArray<Key>): number => {
+  if (cue.dur <= 0) return keys(t >= cue.start ? 1 : 0, frames, cue.ease);
+  return keys((t - cue.start) / cue.dur, frames, cue.ease);
+};
+
+/** A span's anchor alone: the field that says where it starts. */
+const anchorField = (span: Span) => {
+  if ('mark' in span) return { mark: span.mark };
+  if ('after' in span) return { after: span.after };
+  if ('with' in span) return { with: span.with };
+  return { scene: span.scene };
+};
+
+/** A span's end: its `dur`, or the mark it runs `until`. */
+const endField = (span: Span, patch: CuePatch) => {
+  if (patch.until !== undefined) return { until: patch.until };
+  if (patch.dur !== undefined) return { dur: patch.dur };
+  if (span.until !== undefined) return { until: span.until };
+  if (span.dur !== undefined) return { dur: span.dur };
+  return {};
+};
+
+/**
+ * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
+ * its `until` and an `until` its `dur`.
+ */
+export const patchSpan = (span: Span, patch: CuePatch): Span => ({
+  ...anchorField(span),
+  offset: patch.offset ?? span.offset,
+  ...endField(span, patch),
+  ease: patch.ease ?? span.ease,
+  stagger: patch.stagger ?? span.stagger,
+});
+
+/** Where a lab drag grabs a cue's bar: its body, its left edge or its right edge. */
+export type DragEdge = 'move' | 'start' | 'end';
+
+/** Where a dragged bar now sits on the scene clock. */
+export interface DraggedBar {
+  readonly start: number;
+  readonly end: number;
+}
+
+/** A time as the lab writes it: to the millisecond. */
+const ms = (v: number) => Math.round(v * 1000) / 1000 + 0;
+
+/**
+ * The patch a lab drag of `span` writes, given its cue as resolved before the
+ * drag and where the bar now sits; none when the drag changes nothing. The
+ * body moves the offset, the right edge the dur, the left edge both.
+ *
+ * A span that runs `until` a mark keeps ending on the mark (narration is the
+ * clock): the body and the left edge move only its offset, its start held
+ * at least `frame` before the mark so it never ends before it starts, and the
+ * right edge leaves the mark only when dropped off it, as a hand-set `dur`.
+ */
+export const dragPatch = (
+  span: Span,
+  cue: ResolvedCue,
+  edge: DragEdge,
+  at: DraggedBar,
+  frame: number,
+): Option.Option<CuePatch> => {
+  const anchor = cue.start - (span.offset ?? 0);
+  if (span.until !== undefined) return untilPatch(span, cue, edge, at, anchor, frame);
+  const offset = ms(at.start - anchor);
+  const dur = ms(at.end - at.start);
+  if (offset === ms(span.offset ?? 0) && dur === ms(cue.dur)) return Option.none();
+  if (edge === 'move') return Option.some({ offset });
+  if (edge === 'end') return Option.some({ dur });
+  return Option.some({ offset, dur });
+};
+
+/** `dragPatch` for a span that runs `until` a mark: see there. */
+const untilPatch = (
+  span: Span,
+  cue: ResolvedCue,
+  edge: DragEdge,
+  at: DraggedBar,
+  anchor: number,
+  frame: number,
+): Option.Option<CuePatch> => {
+  if (edge === 'end') {
+    if (ms(at.end) === ms(cue.end)) return Option.none();
+    return Option.some({ dur: ms(Math.max(0, at.end - cue.start)) });
+  }
+  const offset = ms(Math.min(at.start, cue.end - frame) - anchor);
+  if (offset === ms(span.offset ?? 0)) return Option.none();
+  return Option.some({ offset });
+};
 
 /** What a timeline resolves against. `marks` are speech-relative, as narration gives them. */
 export interface SceneClock {
@@ -54,10 +152,30 @@ export const resolveTimeline = (
     visiting.add(name);
     const start = anchor(name, span) + (span.offset ?? 0);
     visiting.delete(name);
-    const dur = span.dur ?? 0;
-    const cue = { start, end: start + dur, dur, ease: span.ease ?? DEFAULT_EASE };
+    const dur = length(name, span, start);
+    const cue = {
+      start,
+      end: start + dur,
+      dur,
+      ease: span.ease ?? DEFAULT_EASE,
+      stagger: span.stagger ?? 0,
+    };
     out.set(name, cue);
     return cue;
+  };
+
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark. */
+  const length = (name: string, span: Span, start: number): number => {
+    if (span.until === undefined) return span.dur ?? 0;
+    const m = clock.marks.get(span.until);
+    if (m === undefined)
+      throw new Error(`scene ${clock.scene}: cue "${name}" ends at unknown mark {${span.until}}`);
+    const dur = clock.speechStart + m - start;
+    if (dur < 0)
+      throw new Error(
+        `scene ${clock.scene}: cue "${name}" ends at {${span.until}}, before it starts`,
+      );
+    return dur;
   };
 
   const anchor = (name: string, span: Span): number => {

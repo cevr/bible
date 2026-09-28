@@ -5,9 +5,9 @@
 // text, text off the frame, brush strokes across text, and a plate carrying
 // text cut off by the frame. Every finding is collected; none stops the others.
 
-import { Array as Arr, Match, Option, Order, Record as Rec, Result } from 'effect';
+import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { everyTakeRecorded, sceneOf } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type {
@@ -20,9 +20,9 @@ import type {
   TextBox,
   Timed,
 } from '../core/schema.ts';
-import { MIN_CHUNK_MS, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
-  ActTooShort,
+  type ActTooShort,
   AssetMissing,
   AssetStale,
   type AudioMissing,
@@ -31,8 +31,10 @@ import {
   type CueInvalid,
   InkOverText,
   PlateOffFrame,
+  SeamLong,
   TakeStale,
   TextOffFrame,
+  TextOffPlate,
   TextOverlap,
   type UnknownCue,
   type UnknownMark,
@@ -44,6 +46,7 @@ import { masterFile, masterFinding } from './mixer.ts';
 
 export type StaticFinding =
   | CueLate
+  | SeamLong
   | TakeStale
   | AssetStale
   | AssetMissing
@@ -55,7 +58,7 @@ export type StaticFinding =
   | CueInvalid
   | ActTooShort
   | UnknownVoice;
-export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame;
+export type LayoutFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type Finding = StaticFinding | LayoutFinding;
 
 export type Level = 'error' | 'warning';
@@ -80,6 +83,49 @@ export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> 
       .filter(([, c]) => c.end > p.dur + 1e-9)
       .map(([cue, c]) => CueLate.make({ scene: p.spec.id, cue, end: c.end, dur: p.dur })),
   );
+
+/**
+ * The longest pause between two voices a film makes without saying so: the
+ * layout's shortest lead plus its default tail (0.6 s), the film skill's CRAFT
+ * rule 9.
+ */
+export const MAX_SEAM = MIN_LEAD + DEFAULT_TAIL;
+
+/** The pause from `p`'s last word to `q`'s first, when both speak and `q` follows `p`. */
+export const seamAfter = (p: Placed, q: Placed): Option.Option<number> => {
+  if (p.voice.duration <= 0 || q.voice.duration <= 0) return Option.none();
+  return Option.some(p.dur - (p.speechStart + p.voice.duration) + q.speechStart);
+};
+
+/**
+ * Whether a scene declares the time after its words: a `tail`, or a `min`
+ * that stretches the scene past its words and default tail. A `min` its words
+ * outrun declares nothing.
+ */
+const declaresEnd = (p: Placed) =>
+  Predicate.isNotUndefined(p.spec.tail) ||
+  Option.exists(
+    Option.fromUndefinedOr(p.spec.min),
+    (min) => min > p.speechStart + p.voice.duration + DEFAULT_TAIL + 1e-9,
+  );
+
+/**
+ * Seams over `MAX_SEAM` between two speaking scenes, where neither scene
+ * declares the pause: a long entrance stretching the default lead, not a pause
+ * the script means.
+ */
+export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong> =>
+  placed.slice(1).flatMap((q, i) => {
+    const p = Arr.getUnsafe(placed, i);
+    if (declaresEnd(p) || Predicate.isNotUndefined(q.spec.lead)) return [];
+    return Option.match(seamAfter(p, q), {
+      onNone: () => [],
+      onSome: (seam) => {
+        if (seam <= MAX_SEAM + 1e-9) return [];
+        return [SeamLong.make({ from: p.spec.id, to: q.spec.id, seam, max: MAX_SEAM })];
+      },
+    });
+  });
 
 const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
 
@@ -126,42 +172,30 @@ const assetFinding = (
 
 /**
  * The score's acts: each names a scene, and each runs in film order for at
- * least the API's shortest chunk. Only a plan that holds is checked for a
- * stale score.
+ * least the API's shortest chunk (`actSpans`, every failure rather than the
+ * first). Only a plan that holds is checked for a stale score.
  */
 export const musicFindings = (
   music: Music,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> => {
-  const unknown = music.acts.flatMap((act) =>
-    Result.match(sceneOf(placed, act.from), { onFailure: (e) => [e], onSuccess: () => [] }),
-  );
-  if (unknown.length > 0) return unknown;
-  const starts = music.acts.map((act, i) => {
-    if (i === 0) return 0;
-    return Option.match(
-      Arr.findFirst(placed, (p) => p.spec.id === act.from),
-      { onNone: () => 0, onSome: (p) => p.start },
-    );
+): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> =>
+  Result.match(actSpans(music, placed), {
+    onFailure: (unknown) => unknown,
+    onSuccess: (spans) => {
+      const short = Arr.getFailures(spans);
+      if (short.length > 0) return short;
+      return Result.match(musicPlan(music, placed), {
+        onFailure: (error) => [error],
+        onSuccess: (plan) =>
+          assetFinding(
+            'music',
+            Option.map(Option.fromNullishOr(manifest.music), (a) => a.hash),
+            musicKey(music, plan),
+          ),
+      });
+    },
   });
-  const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
-  const short = music.acts.flatMap((act, i) => {
-    const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
-    if (ms >= MIN_CHUNK_MS) return [];
-    return [ActTooShort.make({ act: act.name, ms })];
-  });
-  if (short.length > 0) return short;
-  return Result.match(musicPlan(music, placed), {
-    onFailure: (error) => [error],
-    onSuccess: (plan) =>
-      assetFinding(
-        'music',
-        Option.map(Option.fromNullishOr(manifest.music), (a) => a.hash),
-        musicKey(music, plan),
-      ),
-  });
-};
 
 /** Every effect placement names a real scene, cue or mark; every effect's asset is current. */
 export const effectFindings = (
@@ -189,6 +223,7 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
       if (options.allowStale) return 'warning';
       return 'error';
     case 'AssetMissing':
+    case 'SeamLong':
       return 'warning';
     default:
       return 'error';
@@ -233,10 +268,12 @@ export const staticFindings = (
   ]);
   const audio = masterFindings(film, placed, master);
   const takes = [...unknownVoices(film), ...staleTakes(film)];
-  return [...lateCues(placed), ...takes, ...sound, ...audio].map((finding) => ({
-    level: levelOf(finding, options),
-    finding,
-  }));
+  return [...lateCues(placed), ...longSeams(placed), ...takes, ...sound, ...audio].map(
+    (finding) => ({
+      level: levelOf(finding, options),
+      finding,
+    }),
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -637,6 +674,50 @@ export const platesOffFrame = (
   });
 };
 
+/** How far box `a` reaches past each side of box `b` (0 where it does not). */
+const pastBox = (
+  a: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  b: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+) => ({
+  left: Math.max(0, b.x - a.x),
+  top: Math.max(0, b.y - a.y),
+  right: Math.max(0, a.x + a.w - (b.x + b.w)),
+  bottom: Math.max(0, a.y + a.h - (b.y + b.h)),
+});
+
+/**
+ * Text running off its plate: a visible line drawn on a declared plate
+ * (`probePlate`, so it carries the plate's `order` as `on`) whose box, pulled
+ * in by the tolerance, leaves the plate's box, as a brief overrunning its card
+ * would. Only a declared plate counts: text over scenery (a sky, a pillar, a
+ * coin) has no plate to run off.
+ */
+export const textsOffPlate = (sample: Sample, probed: Probed): ReadonlyArray<TextOffPlate> => {
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const plates = new Map(probed.texts.map((t) => [t.order, t] as const));
+  return probed.texts.filter(visible).flatMap((text) =>
+    Option.match(
+      Option.flatMap(Option.fromUndefinedOr(text.on), (on) =>
+        Option.fromUndefinedOr(plates.get(on)),
+      ),
+      {
+        onNone: () => [],
+        onSome: (plate) => {
+          const inner = Option.getOrElse(
+            inset(text.corners, OVERLAP_TOLERANCE),
+            () => text.corners,
+          );
+          if (inner.every((corner) => insidePolygon(plate.corners, corner))) return [];
+          return [TextOffPlate.make({ ...where, text: text.text, ...pastBox(text, plate) })];
+        },
+      },
+    ),
+  );
+};
+
+/** Whether one box is the plate the other line sits on (`probePlate`): they never collide. */
+const carries = (a: TextBox, b: TextBox) => a.on === b.order || b.on === a.order;
+
 /**
  * The layout findings in one probed frame; `next` is the frame after it, which
  * tells a plate at rest from one on its way in or out (the frame itself when
@@ -652,7 +733,7 @@ export const frameFindings = (
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const overlaps = shown.flatMap((a, i) =>
     shown.slice(i + 1).flatMap((b) => {
-      if (a.text === b.text) return [];
+      if (a.text === b.text || carries(a, b)) return [];
       const area = overlapArea(a, b);
       if (area <= 0) return [];
       const [first, second] = Arr.sort([a.text, b.text], Order.String);
@@ -669,6 +750,7 @@ export const frameFindings = (
     ...off,
     ...inkOverText(sample, probed),
     ...platesOffFrame(sample, probed, size, next),
+    ...textsOffPlate(sample, probed),
   ];
 };
 
@@ -680,6 +762,7 @@ const keyOf = matchFinding.pipe(
     TextOffFrame: (f) => `off\u0000${f.scene}\u0000${f.text}`,
     InkOverText: (f) => `ink\u0000${f.scene}\u0000${f.text}`,
     PlateOffFrame: (f) => `plate\u0000${f.scene}\u0000${f.text}`,
+    TextOffPlate: (f) => `offplate\u0000${f.scene}\u0000${f.text}`,
   }),
 );
 
@@ -692,6 +775,7 @@ const size = matchFinding.pipe(
     InkOverText: (f) => f.length,
     TextOffFrame: edges,
     PlateOffFrame: edges,
+    TextOffPlate: edges,
   }),
 );
 
@@ -723,6 +807,15 @@ const withFrames = (f: LayoutFinding, frames: number): LayoutFinding => {
         }),
       PlateOffFrame: (o): LayoutFinding =>
         PlateOffFrame.make({
+          ...where,
+          text: o.text,
+          left: o.left,
+          top: o.top,
+          right: o.right,
+          bottom: o.bottom,
+        }),
+      TextOffPlate: (o): LayoutFinding =>
+        TextOffPlate.make({
           ...where,
           text: o.text,
           left: o.left,

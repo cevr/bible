@@ -15,6 +15,7 @@ import {
   readKnobs,
   readSpans,
   codeOf,
+  unlocatable,
 } from './scene-source.ts';
 
 const FILE = 'scenes/hand.ts';
@@ -87,6 +88,46 @@ describe('scene source', () => {
     expect(ok(readCue(FILE, timed, 'hand', 'bare'))).toEqual({ offset: 0.25, dur: 1 });
   });
 
+  it('writes an until in place of a dur, and a dur in place of an until', () => {
+    const marked = ok(editCue(FILE, scene, 'hand', 'topple', { until: 'gift' }));
+    expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
+    expect(ok(readCue(FILE, marked, 'hand', 'topple'))).toEqual({ offset: 0.1, until: 'gift' });
+    expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
+      name: 'topple',
+      offset: 'literal',
+      dur: 'absent',
+      until: 'literal',
+      ease: 'absent',
+      stagger: 'absent',
+    });
+    const sized = ok(editCue(FILE, marked, 'hand', 'topple', { dur: 1.2 }));
+    expect(sized).toBe(scene.replace('dur: 1.8', 'dur: 1.2'));
+    const bare = ok(editCue(FILE, scene, 'hand', 'bare', { until: 'gift', ease: 'linear' }));
+    expect(bare).toContain("bare: { scene: 'speech', until: 'gift', ease: 'linear' }");
+    expect(readSpans(FILE, marked, 'hand')['topple']).toEqual({
+      mark: 'earns',
+      offset: 0.1,
+      until: 'gift',
+    });
+  });
+
+  it('writes a stagger after the ease, and reads it back', () => {
+    const spread = ok(editCue(FILE, scene, 'hand', 'shine', { stagger: 0.857 }));
+    expect(spread).toContain(
+      "shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack', stagger: 0.857 }",
+    );
+    expect(ok(readCue(FILE, spread, 'hand', 'shine'))).toEqual({
+      offset: -0.5,
+      dur: 0.3,
+      ease: 'outBack',
+      stagger: 0.857,
+    });
+    expect(ok(editable(FILE, spread, 'hand')).cues[1]?.stagger).toBe('literal');
+    expect(ok(editCue(FILE, spread, 'hand', 'shine', { stagger: 0.5 }))).toBe(
+      spread.replace('stagger: 0.857', 'stagger: 0.5'),
+    );
+  });
+
   it('sets a point knob coordinate by coordinate, and a number knob', () => {
     const moved = ok(editKnob(FILE, scene, 'hand', 'palm', [1010.4, 760]));
     expect(moved).toBe(scene.replace('palm: [960, 800]', 'palm: [1010.4, 760]'));
@@ -114,6 +155,25 @@ describe('scene source', () => {
     const shared = scene.replace(/timeline: \{[\s\S]*?\n {2}\},\n {2}knobs/, 'timeline,\n  knobs');
     expect(refused(editCue(FILE, shared, 'hand', 'topple', { dur: 1 }))).toContain(
       'it is `timeline`, not an object literal',
+    );
+    const computedKey = scene.replace('late: {', '[LATE]: {');
+    expect(refused(editCue(FILE, computedKey, 'hand', 'topple', { dur: 1 }))).toContain(
+      'its object has a computed key, so the value is not provable',
+    );
+    const twice = scene.replace("bare: { scene: 'speech' }", "topple: { scene: 'speech' }");
+    expect(refused(editCue(FILE, twice, 'hand', 'topple', { dur: 1 }))).toContain(
+      '"topple" is declared 2 times',
+    );
+    const broken = `${scene}\nexport const = ;`;
+    expect(refused(editCue(FILE, broken, 'hand', 'topple', { dur: 1 }))).toContain(
+      'the module: it does not parse',
+    );
+    const unanchored = scene.replace("bare: { scene: 'speech' }", 'bare: { dur: 1 }');
+    expect(refused(editCue(FILE, unanchored, 'hand', 'bare', { offset: 1 }))).toContain(
+      'the span has no anchor (mark, after, with or scene)',
+    );
+    expect(refused(editKnob(FILE, scene, 'hand', 'nope', 1))).toBe(
+      'scenes/hand.ts: will not edit knob nope: the drawing declares no such knob',
     );
   });
 
@@ -145,10 +205,38 @@ export const hand = drawing({
   it('says which fields are literals, missing or computed', () => {
     const found = ok(editable(FILE, scene, 'hand'));
     expect(found.cues).toEqual([
-      { name: 'topple', offset: 'literal', dur: 'literal', ease: 'absent' },
-      { name: 'shine', offset: 'literal', dur: 'literal', ease: 'literal' },
-      { name: 'late', offset: 'computed', dur: 'absent', ease: 'absent' },
-      { name: 'bare', offset: 'absent', dur: 'absent', ease: 'absent' },
+      {
+        name: 'topple',
+        offset: 'literal',
+        dur: 'literal',
+        until: 'absent',
+        ease: 'absent',
+        stagger: 'absent',
+      },
+      {
+        name: 'shine',
+        offset: 'literal',
+        dur: 'literal',
+        until: 'absent',
+        ease: 'literal',
+        stagger: 'absent',
+      },
+      {
+        name: 'late',
+        offset: 'computed',
+        dur: 'absent',
+        until: 'absent',
+        ease: 'absent',
+        stagger: 'absent',
+      },
+      {
+        name: 'bare',
+        offset: 'absent',
+        dur: 'absent',
+        until: 'absent',
+        ease: 'absent',
+        stagger: 'absent',
+      },
     ]);
     expect(found.knobs).toEqual([
       { name: 'palm', state: 'literal' },
@@ -182,5 +270,50 @@ export const hand = drawing({
     expect(ok(codeOf(FILE, data, 'hand'))).toBe(ok(codeOf(FILE, scene, 'hand')));
     const code = scene.replace("f.at('topple');", "f.at('shine');");
     expect(ok(codeOf(FILE, code, 'hand'))).not.toBe(ok(codeOf(FILE, scene, 'hand')));
+  });
+});
+
+/** What `unlocatable` reports on `source`: the text of each range. */
+const unlocated = (source: string) =>
+  unlocatable(source, ok(parseModule(FILE, source))).map((u) => source.slice(u.start, u.end));
+
+describe('what the lab cannot locate', () => {
+  it('is only the drawing no export names, in a scene the lab edits', () => {
+    expect(unlocated(scene)).toEqual(['draw({ timeline: {}, draw: () => {} })']);
+  });
+
+  it('follows an aliased import to a computed timeline', () => {
+    const source = `import { drawing as d } from 'k';
+declare const make: () => object;
+export const a = d({ timeline: make(), draw: () => {} });
+`;
+    expect(unlocated(source)).toEqual(['timeline: make()']);
+  });
+
+  it('refuses a drawing built inside a function, whatever its slots name', () => {
+    const source = `import { drawing } from 'k';
+declare const make: () => object;
+const lifted = { go: { mark: 'go' } };
+export const factory = () => {
+  const lifted = make();
+  return drawing({ timeline: lifted, draw: () => {} });
+};
+`;
+    expect(unlocated(source)).toEqual(['drawing({ timeline: lifted, draw: () => {} })']);
+  });
+
+  it('refuses a slot declared twice, drawing off a namespace, and a scene outside drawing()', () => {
+    const source = `import * as K from 'k';
+import { drawing } from 'k';
+const a = { go: { mark: 'go' } };
+export const twice = drawing({ timeline: a, timeline: a, draw: () => {} });
+export const ns = K.drawing({ timeline: a, draw: () => {} });
+export const bare = { timeline: a, draw: () => {} };
+`;
+    expect(unlocated(source)).toEqual([
+      'timeline: a',
+      'K.drawing({ timeline: a, draw: () => {} })',
+      '{ timeline: a, draw: () => {} }',
+    ]);
   });
 });

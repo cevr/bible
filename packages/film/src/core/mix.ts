@@ -82,10 +82,12 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<string>, MixPlan
       ),
     );
 
-    // A stale score still plays, with a warning.
+    // A stale score still plays, with a warning; a missing one is silence, with a warning.
     let music = Option.none<Bed<string>>();
     const score = Option.flatMap(input.sound, (s) => Option.fromNullishOr(s.music));
     const made = Option.fromNullishOr(manifest.music);
+    if (Option.isSome(score) && Option.isNone(made))
+      warnings.push('mix.missing asset=music hint="run score to generate it"');
     if (Option.isSome(score) && Option.isSome(made)) {
       const plan = yield* musicPlan(score.value, placed);
       if (made.value.hash !== musicKey(score.value, plan))
@@ -118,15 +120,6 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<string>, MixPlan
 
     return { seconds: filmEnd(placed), voice, music, effects, warnings };
   });
-
-/** Each sound a plan plays, once. */
-export const planSounds = <A>(plan: MixPlan<A>): ReadonlyArray<A> => [
-  ...new Set([
-    ...plan.voice.map((p) => p.sound),
-    ...Option.toArray(plan.music).map((bed) => bed.sound),
-    ...plan.effects.map((p) => p.sound),
-  ]),
-];
 
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
 export interface Mixed {

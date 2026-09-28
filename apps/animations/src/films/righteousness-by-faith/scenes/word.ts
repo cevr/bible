@@ -136,22 +136,24 @@ const card = (f: WordFrame) => {
   at(ctx, { x, y: y - 500 * f.at('cardOut'), scale: show, rot: -0.02 }, () => {
     ctx.save();
     ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(flip * Math.PI))));
-    piece(ctx, plate(0, 0, 820, 210), C.cream, f.hand('card'), { line: 4, torn: 2 });
-    probePlate(ctx, text, -410, -105, 820, 210);
-    write(
-      ctx,
-      text,
-      0,
-      34,
-      {
-        family: turned ? F.hand : F.display,
-        size: turned ? 120 : 104,
-        weight: turned ? 400 : 700,
-        color: turned ? C.inkSoft : C.ink,
-        align: 'center',
-      },
-      f.hand(turned ? 'meaning' : 'word'),
-      { boil: 0.4 },
+    const board = plate(0, 0, 820, 210);
+    piece(ctx, board, C.cream, f.hand('card'), { line: 4, torn: 2 });
+    probePlate(ctx, board, () =>
+      write(
+        ctx,
+        text,
+        0,
+        34,
+        {
+          family: turned ? F.hand : F.display,
+          size: turned ? 120 : 104,
+          weight: turned ? 400 : 700,
+          color: turned ? C.inkSoft : C.ink,
+          align: 'center',
+        },
+        f.hand(turned ? 'meaning' : 'word'),
+        { boil: 0.4 },
+      ),
     );
     ctx.restore();
   });

@@ -17,6 +17,8 @@ import {
   AudioSampleSource,
   BufferSource,
   BufferTarget,
+  EncodedAudioPacketSource,
+  type EncodedPacket,
   EncodedPacketSink,
   EncodedVideoPacketSource,
   FilePathTarget,
@@ -24,6 +26,7 @@ import {
   type InputAudioTrack,
   MP3,
   Mp4OutputFormat,
+  NullTarget,
   Output,
   WavOutputFormat,
 } from 'mediabunny';
@@ -41,9 +44,11 @@ export interface MediaService {
   readonly decode: (file: string) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` written to `file` as a 16-bit WAV. */
   readonly writeWav: (file: string, pcm: Pcm) => Effect.Effect<void, MediaFailed>;
+  /** `pcm` encoded to AAC packets, from its first frame, for `join` to copy. */
+  readonly encodeAac: (pcm: Pcm) => Effect.Effect<AacTrack, MediaFailed>;
   /**
    * The film as one MP4 at `out`: each segment's H.264 packets copied, not
-   * re-encoded, at its place; and the track, if any, encoded to AAC beside
+   * re-encoded, at its place, and the track's AAC packets, if any, beside
    * them. Every segment must be encoded alike.
    */
   readonly join: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
@@ -63,7 +68,15 @@ export interface JoinedFilm {
   /** Frames across every segment: the index at the head of the file is sized by it. */
   readonly frames: number;
   /** The track under the film, from its first frame. */
-  readonly audio: Option.Option<Pcm>;
+  readonly audio: Option.Option<AacTrack>;
+}
+
+/** A track encoded once to AAC, so every film joined with it copies the same packets. */
+export interface AacTrack {
+  /** In decode order; the first carries the priming, stamped before zero. */
+  readonly packets: ReadonlyArray<EncodedPacket>;
+  /** The encoder's metadata for the first packet: its decoder config. */
+  readonly meta: EncodedAudioChunkMetadata;
 }
 
 /** Sound is written this many frames at a time. */
@@ -237,31 +250,33 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'reserve' }), target });
     const video = new EncodedVideoPacketSource('avc');
     output.addVideoTrack(video, { maximumPacketCount: film.frames });
-    const audio = Option.map(film.audio, (pcm) => {
-      const source = new AudioSampleSource({ codec: 'aac', bitrate: AAC_BITRATE });
-      output.addAudioTrack(source, {
-        maximumPacketCount: Math.ceil((pcm.frames + AAC_PRIMING) / AAC_FRAME) + 1,
-      });
-      return { pcm, source, written: 0 };
+    const audio = Option.map(film.audio, (aac) => {
+      const source = new EncodedAudioPacketSource('aac');
+      output.addAudioTrack(source, { maximumPacketCount: aac.packets.length });
+      return { aac, source, written: 0 };
     });
 
-    /** The track up to `until` seconds, so video and audio reach the file side by side. */
+    /** The track's packets that start before `until` seconds, so video and audio reach the file side by side. */
     const soundTo = (until: number) =>
       Option.match(audio, {
         onNone: () => Effect.void,
         onSome: (track) =>
           Effect.gen(function* () {
-            const end = Math.min(track.pcm.frames, Math.round(until * track.pcm.rate));
-            while (track.written < end) {
-              const frames = Math.min(WRITE_BLOCK, end - track.written);
-              const at = (track.written - AAC_PRIMING) / track.pcm.rate;
-              yield* Effect.acquireUseRelease(
-                attemptSync('write', out, () => block(track.pcm, track.written, frames, at)),
-                (sample) => attempt('write', out, () => track.source.add(sample)),
-                (sample) => Effect.sync(() => sample.close()),
-              );
-              track.written += frames;
-            }
+            const { packets, meta } = track.aac;
+            const from = track.written;
+            const due = Arr.takeWhile(packets.slice(from), (packet) => packet.timestamp < until);
+            yield* Effect.forEach(
+              due,
+              (packet, k) =>
+                attempt('write', out, () =>
+                  track.source.add(
+                    packet,
+                    Option.getOrUndefined(Option.filter(Option.some(meta), () => from + k === 0)),
+                  ),
+                ),
+              { discard: true },
+            );
+            track.written = from + due.length;
           }),
       });
 
@@ -328,6 +343,52 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
       yield* soundTo(Infinity);
       yield* attempt('write', out, () => output.finalize());
     }).pipe(Effect.onError(() => Effect.ignore(attempt('write', out, () => output.cancel()))));
+  });
+
+/** The name a track's encode fails under: it has no file of its own. */
+const TRACK = 'the track';
+
+/**
+ * `pcm` through the AAC encoder into a muxer that keeps nothing, its packets
+ * kept as they come out. The samples go in `AAC_PRIMING` frames early, so the
+ * first packet is stamped before zero and the MP4's edit list skips it.
+ */
+const encodeTrack = (pcm: Pcm) =>
+  Effect.gen(function* () {
+    const packets: Array<EncodedPacket> = [];
+    const metas: Array<EncodedAudioChunkMetadata> = [];
+    const output = new Output({ format: new Mp4OutputFormat(), target: new NullTarget() });
+    const source = new AudioSampleSource({
+      codec: 'aac',
+      bitrate: AAC_BITRATE,
+      onEncodedPacket: (packet, meta) => {
+        packets.push(packet);
+        metas.push(...Option.toArray(Option.fromNullishOr(meta)));
+      },
+    });
+    output.addAudioTrack(source, {
+      maximumPacketCount: Math.ceil((pcm.frames + AAC_PRIMING) / AAC_FRAME) + 1,
+    });
+    yield* Effect.gen(function* () {
+      yield* attempt('encode', TRACK, () => output.start());
+      for (let written = 0; written < pcm.frames; written += WRITE_BLOCK) {
+        const frames = Math.min(WRITE_BLOCK, pcm.frames - written);
+        const at = (written - AAC_PRIMING) / pcm.rate;
+        yield* Effect.acquireUseRelease(
+          attemptSync('encode', TRACK, () => block(pcm, written, frames, at)),
+          (sample) => attempt('encode', TRACK, () => source.add(sample)),
+          (sample) => Effect.sync(() => sample.close()),
+        );
+      }
+      yield* attempt('encode', TRACK, () => output.finalize());
+    }).pipe(Effect.onError(() => Effect.ignore(attempt('encode', TRACK, () => output.cancel()))));
+    const meta = yield* Option.match(Arr.head(metas), {
+      onNone: () =>
+        Effect.fail(MediaFailed.make({ op: 'encode', file: TRACK, reason: 'no decoder config' })),
+      onSome: (first) => Effect.succeed(first),
+    });
+    const track: AacTrack = { packets, meta };
+    return track;
   });
 
 export class Media extends Context.Service<Media, MediaService>()('@bible/film/tools/Media') {
@@ -425,7 +486,11 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         yield* joinInto(fs, film);
       });
 
-      return Media.of({ duration, decode, writeWav, join });
+      const encodeAac = Effect.fn('Media.encodeAac')(function* (pcm: Pcm) {
+        return yield* encodeTrack(pcm);
+      });
+
+      return Media.of({ duration, decode, writeWav, encodeAac, join });
     }),
   );
 }

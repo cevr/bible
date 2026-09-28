@@ -9,6 +9,7 @@
         "src/**/*.tsx",
         "electron/**/*.ts",
         "scripts/**/*.ts",
+        "lint/**/*.ts",
         "tsconfig.json",
         "../../tsconfig.json",
         "package.json"

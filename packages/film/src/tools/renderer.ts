@@ -36,6 +36,7 @@ import {
   type PageCrashed,
   type PageError,
   RangeEmpty,
+  type TooManyEncoders,
 } from './errors.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
@@ -50,6 +51,7 @@ import {
   contactTimes,
   frameAt,
   frameSpan,
+  encoderBudget,
   planChunks,
   segmentName,
   shareName,
@@ -69,6 +71,7 @@ export type RenderError =
   | AudioMissing
   | AudioStale
   | RangeEmpty
+  | TooManyEncoders
   | LayoutInvalid
   | PlatformError;
 
@@ -123,6 +126,19 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         // Before a frame is drawn: a browser that cannot encode the film fails here.
         yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(job.scale)));
 
+        // The track, cut and encoded once beside the pages; both joins copy its packets.
+        const aac = Option.match(audio, {
+          onNone: () => Effect.succeedNone,
+          onSome: (cut) =>
+            media.decode(cut.file).pipe(
+              Effect.map((pcm) =>
+                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
+              ),
+              Effect.flatMap(media.encodeAac),
+              Effect.map(Option.some),
+            ),
+        });
+
         const segDir = path.join(dir, 'segments');
         const shareDir = path.join(dir, 'share');
         yield* fresh(segDir);
@@ -171,16 +187,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
           );
 
-        const encoded = yield* Effect.forEach(chunks, encode, { concurrency: job.workers });
-        const track = yield* Option.match(audio, {
-          onNone: () => Effect.succeedNone,
-          onSome: (cut) =>
-            Effect.map(media.decode(cut.file), (pcm) =>
-              Option.some(
-                slice(pcm, Math.round(cut.start * pcm.rate), Math.round(cut.duration * pcm.rate)),
-              ),
-            ),
-        });
+        // One structured run: the first failure, a page's or the track's, stops the other.
+        const [encoded, track] = yield* Effect.all(
+          [Effect.forEach(chunks, encode, { concurrency: job.workers }), aac],
+          { concurrency: 'unbounded' },
+        );
         yield* media.join({
           out: target,
           segments: encoded.map((chunk) => chunk.master),
@@ -198,6 +209,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               audio: track,
             }),
         });
+
+        // Joined: the segments are copied into the film and nothing reads them
+        // again. A failed join leaves them for the error that names one.
+        yield* fs.remove(segDir, { recursive: true, force: true });
+        yield* fs.remove(shareDir, { recursive: true, force: true });
 
         const placed = yield* placeFilm(film);
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
@@ -239,9 +255,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         info: ExportInfo,
         dir: string,
       ) {
-        const from = Option.getOrElse(job.from, () => 0);
-        const to = Option.getOrElse(job.to, () => info.duration);
-        const times = contactTimes(from, to, job.every);
+        // Clipped to the film as a video's range is, so no frame repeats at either end.
+        const { start, end } = frameSpan(info, job.from, job.to);
+        if (end <= start)
+          return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
+        const times = contactTimes(start / info.fps, end / info.fps, job.every);
         const page = yield* Pool.get(pool);
         const sheet = path.join(dir, contactSheetName);
         yield* fs.writeFile(sheet, yield* page.contact(times.map((t) => frameAt(info, t))));
@@ -266,6 +284,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           'export',
           ...Arr.filter(['captions=0'], () => !job.captions),
         ];
+        // Before a page opens: a video past the encoders the hardware runs would hang.
+        yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
         const dir = path.join(film.paths.out, job.tag);
         yield* fs.makeDirectory(dir, { recursive: true });

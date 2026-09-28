@@ -7,17 +7,20 @@
 // An edit rewrites only a value the parser proves is a literal: a number
 // (`0.4`, `-0.2`), a string (`'inQuad'`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
-// the lab could not say what it would be changing. A missing `offset`, `dur`
-// or `ease` is added after the span's anchor, in that order.
+// the lab could not say what it would be changing. A missing `offset`, `dur`,
+// `until`, `ease` or `stagger` is added after the span's anchor, in that order; a span
+// ends one way, so a `dur` written replaces its `until`, and an `until` its `dur`.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
   type ArrayExpression,
+  type CallExpression,
   type Expression,
   type ObjectExpression,
   type ObjectProperty,
   type Program,
   type Statement,
+  Visitor,
   parseSync,
 } from 'oxc-parser';
 import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
@@ -46,7 +49,9 @@ export interface EditableCue {
   readonly name: string;
   readonly offset: FieldState;
   readonly dur: FieldState;
+  readonly until: FieldState;
   readonly ease: FieldState;
+  readonly stagger: FieldState;
 }
 
 export interface EditableKnob {
@@ -68,13 +73,18 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'after', 'with', 'scene'];
-const TIMING = ['offset', 'dur', 'ease'] satisfies ReadonlyArray<keyof CuePatch>;
+const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
+  keyof CuePatch
+>;
 type TimingKey = (typeof TIMING)[number];
 
 /** Seconds and pixels to the thousandth: what the lab writes (and never `-0`). */
 export const roundValue = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 const numberText = (v: number) => String(roundValue(v));
+
+/** A single-quoted string literal. */
+const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
 
 const refuse = <A>(file: string, target: string, reason: string): Result.Result<A, SourceRefused> =>
   Result.fail(SourceRefused.make({ file, target, reason }));
@@ -304,6 +314,130 @@ export const drawingSites = (source: string, program: Program): ReadonlyArray<Dr
   );
 };
 
+/** A place in a module the lab cannot locate or edit: the source range to point at, and why. */
+export interface Unlocatable {
+  readonly start: number;
+  readonly end: number;
+  readonly reason: string;
+}
+
+/** The slots of a drawing the lab writes to. */
+const SLOTS: ReadonlySet<string> = new Set(['timeline', 'knobs']);
+
+const unlocatableAt = (
+  node: { readonly start: number; readonly end: number },
+  reason: string,
+): Unlocatable => ({ start: node.start, end: node.end, reason });
+
+/** What the lab cannot prove in a located drawing's object: a spread, a slot twice, a slot that is not a literal. */
+const argumentDefects = (
+  consts: ReadonlyMap<string, ObjectExpression>,
+  arg: ObjectExpression,
+): ReadonlyArray<Unlocatable> => {
+  const seen = new Set<string>();
+  return arg.properties.flatMap((p): ReadonlyArray<Unlocatable> => {
+    if (p.type === 'SpreadElement')
+      return [
+        unlocatableAt(p, 'A spread in drawing({…}): the lab cannot prove what it would edit.'),
+      ];
+    const slot = Option.filter(keyName(p), (k) => SLOTS.has(k));
+    if (Option.isNone(slot)) return [];
+    const name = slot.value;
+    if (seen.has(name))
+      return [
+        unlocatableAt(
+          p,
+          `drawing's ${name} is declared twice: the lab would edit the first, and the film runs the last.`,
+        ),
+      ];
+    seen.add(name);
+    if (Option.isSome(literalValue(consts, p.value))) return [];
+    return [
+      unlocatableAt(
+        p,
+        `drawing's ${name} is not an object literal or a module-level const literal: the lab cannot locate or edit it.`,
+      ),
+    ];
+  });
+};
+
+/** An object with both a `timeline` and a `draw`: a scene, typed or not. */
+const isScene = (node: ObjectExpression): boolean => {
+  const keys = node.properties.flatMap((p) => {
+    if (p.type === 'SpreadElement') return [];
+    return Option.toArray(keyName(p));
+  });
+  return keys.includes('timeline') && keys.includes('draw');
+};
+
+/** Why a `drawing(…)` call the locator skips is skipped. */
+const skippedBecause = (arg: Option.Option<CallExpression['arguments'][number]>): string => {
+  if (Option.exists(arg, (a) => a.type === 'ObjectExpression'))
+    return 'This drawing({…}) is not a module-level `export const x = drawing({…})` (or a const exported by name): the lab locates only those, so it cannot find this scene.';
+  return 'drawing(…) takes an object literal: the lab cannot locate a scene built elsewhere.';
+};
+
+/**
+ * Everything in a module the lab's locator (`drawingSites`) cannot locate or
+ * edit, where it is written: a `drawing(…)` call that is not an exported
+ * module-level declarator, a slot that is not a literal the locator resolves,
+ * `drawing` read off a namespace, and a scene object that skips `drawing()`.
+ * The `film/drawing-literal` lint rule reports exactly these, so the rule and
+ * the lab read a scene the same way.
+ */
+export const unlocatable = (source: string, program: Program): ReadonlyArray<Unlocatable> => {
+  const names = drawingNames(program);
+  const consts = constObjects(program);
+  const located = new Set(drawingSites(source, program).map((s) => s.at));
+  const found: Array<Unlocatable> = [];
+  const passed = new Set<number>();
+  const scenes: Array<ObjectExpression> = [];
+  const pass = (call: CallExpression) =>
+    Option.map(Arr.head(call.arguments), (arg) => {
+      if (arg.type === 'ObjectExpression') passed.add(arg.start);
+      return arg;
+    });
+  new Visitor({
+    CallExpression: (call) => {
+      const callee = call.callee;
+      if (callee.type === 'MemberExpression') {
+        if (callee.computed || callee.property.type !== 'Identifier') return;
+        if (callee.property.name !== 'drawing') return;
+        pass(call);
+        found.push(
+          unlocatableAt(
+            call,
+            'drawing is read off an object here: the lab resolves it only as a named import (`import { drawing } from …`).',
+          ),
+        );
+        return;
+      }
+      if (callee.type !== 'Identifier' || !names.has(callee.name)) return;
+      const arg = pass(call);
+      if (!located.has(call.start)) {
+        found.push(unlocatableAt(call, skippedBecause(arg)));
+        return;
+      }
+      Option.map(
+        Option.filter(arg, (a): a is ObjectExpression => a.type === 'ObjectExpression'),
+        (obj) => found.push(...argumentDefects(consts, obj)),
+      );
+    },
+    ObjectExpression: (obj) => {
+      if (isScene(obj)) scenes.push(obj);
+    },
+  }).visit(program);
+  const bare = scenes
+    .filter((obj) => !passed.has(obj.start))
+    .map((obj) =>
+      unlocatableAt(
+        obj,
+        'A scene with a timeline goes through drawing(), so its cues are typed and the lab can locate it.',
+      ),
+    );
+  return [...found, ...bare].sort((a, b) => a.start - b.start);
+};
+
 /** The drawing a module exports as `name`, read from its source now. */
 const siteNamed = (
   file: string,
@@ -381,7 +515,9 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     name: cue,
     offset: state('offset', isNumberLiteral),
     dur: state('dur', isNumberLiteral),
+    until: state('until', isStringLiteral),
     ease: state('ease', isStringLiteral),
+    stagger: state('stagger', isNumberLiteral),
   };
 };
 
@@ -437,14 +573,25 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
       return Option.map(Option.fromUndefinedOr(patch.offset), numberText);
     case 'dur':
       return Option.map(Option.fromUndefinedOr(patch.dur), numberText);
+    case 'until':
+      return Option.map(Option.fromUndefinedOr(patch.until), stringText);
     case 'ease':
-      return Option.map(Option.fromUndefinedOr(patch.ease), (e) => `'${e}'`);
+      return Option.map(Option.fromUndefinedOr(patch.ease), stringText);
+    case 'stagger':
+      return Option.map(Option.fromUndefinedOr(patch.stagger), numberText);
   }
 };
 
 const isLiteralFor = (key: TimingKey) => {
-  if (key === 'ease') return isStringLiteral;
+  if (key === 'ease' || key === 'until') return isStringLiteral;
   return isNumberLiteral;
+};
+
+/** The field a span's other end is: a `dur` written replaces `until`, and the reverse. */
+const otherEnd = (key: TimingKey): Option.Option<TimingKey> => {
+  if (key === 'dur') return Option.some('until');
+  if (key === 'until') return Option.some('dur');
+  return Option.none();
 };
 
 /** Where a new field goes: after the last present field that comes before it. */
@@ -460,7 +607,40 @@ const insertAt = (span: ObjectExpression, key: TimingKey): Option.Option<number>
 };
 
 /**
- * Set a cue's `offset`, `dur` or `ease` in the drawing exported as `name`: the
+ * The splice that writes `key` over the span's other end (`until` for a `dur`,
+ * `dur` for an `until`), when it has one: the whole property is replaced.
+ */
+const replaceEnd = (
+  file: string,
+  source: string,
+  span: ObjectExpression,
+  cue: string,
+  key: TimingKey,
+  text: string,
+): Result.Result<Option.Option<Splice>, SourceRefused> =>
+  Option.match(otherEnd(key), {
+    onNone: () => Result.succeed(Option.none()),
+    onSome: (other) =>
+      Result.flatMap(propertyOf(file, `cue ${cue} ${other}`, span, other), (prop) =>
+        Option.match(prop, {
+          onNone: () => Result.succeed(Option.none<Splice>()),
+          onSome: (p) => {
+            if (!Option.exists(valueOf(p), isLiteralFor(other)))
+              return refuse<Option.Option<Splice>>(
+                file,
+                `cue ${cue} ${other}`,
+                `it is \`${textOf(source, p.value)}\`, not a literal, so ${key} cannot replace it`,
+              );
+            return Result.succeed(
+              Option.some({ start: p.start, end: p.end, text: `${key}: ${text}` }),
+            );
+          },
+        }),
+      ),
+  });
+
+/**
+ * Set a cue's `offset`, `dur`, `until`, `ease` or `stagger` in the drawing exported as `name`: the
  * value's text replaced where it is a literal, or the field added after the
  * span's anchor. The result is the whole new source.
  */
@@ -485,6 +665,12 @@ export const editCue = (
         if (!Option.exists(valueOf(p), isLiteralFor(key)))
           return refuse(file, target, `it is \`${textOf(source, p.value)}\`, not a literal`);
         splices.push({ start: p.value.start, end: p.value.end, text: text.value });
+        continue;
+      }
+      const replaced = replaceEnd(file, source, span, cue, key, text.value);
+      if (Result.isFailure(replaced)) return Result.fail(replaced.failure);
+      if (Option.isSome(replaced.success)) {
+        splices.push(replaced.success.value);
         continue;
       }
       const at = insertAt(span, key);
@@ -546,7 +732,13 @@ export const readCue = (
         Option.flatMap(prop, valueOf),
       );
     return Result.map(
-      Result.all({ offset: read('offset'), dur: read('dur'), ease: read('ease') }),
+      Result.all({
+        offset: read('offset'),
+        dur: read('dur'),
+        until: read('until'),
+        ease: read('ease'),
+        stagger: read('stagger'),
+      }),
       (f): CuePatch => ({
         ...Option.match(Option.flatMap(f.offset, numberOf), {
           onNone: () => ({}),
@@ -556,9 +748,17 @@ export const readCue = (
           onNone: () => ({}),
           onSome: (dur) => ({ dur }),
         }),
+        ...Option.match(Option.flatMap(f.until, stringOf), {
+          onNone: () => ({}),
+          onSome: (until) => ({ until }),
+        }),
         ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
           onNone: () => ({}),
           onSome: (ease) => ({ ease }),
+        }),
+        ...Option.match(Option.flatMap(f.stagger, numberOf), {
+          onNone: () => ({}),
+          onSome: (stagger) => ({ stagger }),
         }),
       }),
     );

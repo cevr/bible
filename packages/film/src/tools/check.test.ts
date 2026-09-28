@@ -1,7 +1,7 @@
 import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
-import { layout } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
@@ -12,6 +12,9 @@ import {
   frameFindings,
   lateCues,
   layoutSamples,
+  longSeams,
+  MAX_SEAM,
+  seamAfter,
   mergeFindings,
   musicFindings,
   overlapArea,
@@ -114,6 +117,33 @@ describe('frameFindings', () => {
       frame,
     );
     expect(found).toEqual([]);
+  });
+});
+
+describe('a plate and the lines it carries', () => {
+  // The declared card: one plate, three lines on it, and a line from elsewhere.
+  const card = 'Justify / δικαιόω / declared righteous';
+  const plate = inkMark('plate', [
+    [650, 375],
+    [1270, 375],
+    [1270, 705],
+    [650, 705],
+  ]);
+  const lines = [
+    textBox(card, 650, 375, 620, 330, { order: 1 }),
+    textBox('Justify', 800, 420, 320, 70, { order: 2, on: 1 }),
+    textBox('δικαιόω', 820, 510, 280, 60, { order: 3, on: 1 }),
+    textBox('declared righteous', 700, 600, 520, 60, { order: 4, on: 1 }),
+  ];
+
+  test('a plate carrying three lines does not collide with them', () => {
+    expect(frameFindings(sample, { texts: lines, inks: [plate] }, frame)).toEqual([]);
+  });
+
+  test('a line from elsewhere over the plate does', () => {
+    const stray = textBox('Let there be light', 1130, 505, 130, 60, { order: 5 });
+    const found = frameFindings(sample, { texts: [...lines, stray], inks: [plate] }, frame);
+    expect(found).toMatchObject([{ _tag: 'TextOverlap', a: card, b: 'Let there be light' }]);
   });
 });
 
@@ -444,6 +474,35 @@ describe('plates off the frame', () => {
   });
 });
 
+describe('text off its plate', () => {
+  // A storyboard card declared as a plate, and its brief's line on it.
+  const card = textBox('(the card)', 360, 250, 1200, 520, { order: 1 });
+  const brief = (w: number, on = 1) =>
+    textBox('a brief too long for its card', 420, 700, w, 40, { order: 2, on });
+
+  test('a line running off the plate it is drawn on is a finding', () => {
+    const found = frameFindings(sample, { texts: [card, brief(1300)], inks: [] }, frame);
+    expect(found).toMatchObject([{ _tag: 'TextOffPlate', text: 'a brief too long for its card' }]);
+    expect(found[0]).toMatchObject({ right: 160, left: 0, top: 0, bottom: 0 });
+  });
+
+  test('a line inside its plate, or past it by no more than the tolerance, is not', () => {
+    expect(frameFindings(sample, { texts: [card, brief(1080)], inks: [] }, frame)).toEqual([]);
+    expect(frameFindings(sample, { texts: [card, brief(1143)], inks: [] }, frame)).toEqual([]);
+  });
+
+  test('text over scenery (a fill it was not drawn on) has no plate to run off', () => {
+    const sky = inkMark('fill', [
+      [0, 0],
+      [1920, 0],
+      [1920, 400],
+      [0, 400],
+    ]);
+    const quote = textBox('over the horizon', 800, 370, 400, 60, { order: 1 });
+    expect(frameFindings(sample, { texts: [quote], inks: [sky] }, frame)).toEqual([]);
+  });
+});
+
 describe('mergeFindings', () => {
   test('one finding per pair and scene: the worst sample, counting every frame that shows it', () => {
     const at = (time: number, dy: number): LayoutFinding => {
@@ -589,6 +648,66 @@ describe('lateCues', () => {
       noTakes,
     );
     expect(lateCues(late).map((c) => [c.scene, c.cue, c.end])).toEqual([['s', 'over', 4.5]]);
+  });
+});
+
+describe('longSeams', () => {
+  const said = (id: string, extra: Partial<Timed> = {}): Timed => ({
+    id,
+    say: 'One two three four.',
+    ...extra,
+  });
+
+  test('a default lead stretched by a long entrance makes a seam over 0.6 s', () => {
+    const placed = layout([said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })], noTakes);
+    const found = longSeams(placed);
+    expect(found.map((f) => [f._tag, f.from, f.to])).toEqual([['SeamLong', 'a', 'b']]);
+    expect(found[0]?.seam).toBeCloseTo(0.94);
+  });
+
+  test('a declared lead or tail is a meant pause; the default seam is 0.6 s', () => {
+    const fade = { kind: 'fade', dur: 1.2 } as const;
+    expect(longSeams(layout([said('a'), said('b', { enter: fade, lead: 1 })], noTakes))).toEqual(
+      [],
+    );
+    expect(
+      longSeams(layout([said('a', { tail: 1 }), said('b', { enter: fade })], noTakes)),
+    ).toEqual([]);
+    expect(longSeams(layout([said('a'), said('b')], noTakes))).toEqual([]);
+  });
+
+  test('a min the words outrun declares nothing; a min that stretches the scene does', () => {
+    const fade = { kind: 'fade', dur: 1.2 } as const;
+    const short = longSeams(layout([said('a', { min: 1 }), said('b', { enter: fade })], noTakes));
+    expect(short.map((f) => [f.from, f.to])).toEqual([['a', 'b']]);
+    expect(
+      longSeams(layout([said('a', { min: 30 }), said('b', { enter: fade })], noTakes)),
+    ).toEqual([]);
+  });
+
+  test('the default seam is the layout default lead plus its default tail', () => {
+    expect(MAX_SEAM).toBe(MIN_LEAD + DEFAULT_TAIL);
+    const [a, b] = layout([said('a'), said('b')], noTakes);
+    expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM);
+  });
+
+  test('a scene with no words between two voices is a pause of its own', () => {
+    const placed = layout([said('a'), { id: 'title', min: 3 }, said('b')], noTakes);
+    expect(longSeams(placed)).toEqual([]);
+  });
+
+  test('is a warning in the static check', () => {
+    const scenes = [said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })];
+    const film = testFilm(scenes, noTakes);
+    const found = staticFindings(
+      film,
+      layout(scenes, noTakes),
+      { allowStale: true },
+      Option.none(),
+    );
+    expect(found.filter((r) => r.finding._tag === 'SeamLong').map((r) => r.level)).toEqual([
+      'warning',
+    ]);
   });
 });
 

@@ -4,9 +4,10 @@
 // tablets inside it, still legible. Then two panels, one after the other: a
 // closed book with a gold ribbon (the past, forgiven: "first"), and a path
 // ahead with the figure walking it and flowers springing up in their
-// footprints ("second"). On "sab" the page opens into a cardboard field at
-// golden hour: tools set down, the figure resting against a tree. Last, the
-// pull back to the three icons, the heart lighting, all three lit.
+// footprints ("second"). Last, the pull back to the three icons, the heart
+// lighting, all three lit. The Sabbath rest moved to `daily` (its field is
+// `restingField` in garden.ts); the script's `power`, `not` and `become` shots
+// are not drawn yet.
 
 import {
   type Hand,
@@ -18,9 +19,8 @@ import {
   rectShape,
   stroke,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import { C, blob, contact, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
-import { shadeTree } from '../garden.ts';
 
 /** The figure on the page: where they stand, and where they stand aside. */
 const CENTRE: Pt = [960, 930];
@@ -79,28 +79,19 @@ export const within = drawing({
     aside: { mark: 'first', offset: -0.4, dur: 0.8 },
     book: { mark: 'first', dur: 0.5, ease: 'outBack' },
     swap: { mark: 'second', offset: -0.3, dur: 0.6 },
-    walk: { mark: 'second', offset: 0.3, dur: 3, ease: 'linear' },
-    through: { mark: 'sab', offset: -0.1, dur: 0.7 },
-    settle: { after: 'through', dur: 1.2, ease: 'outCubic' },
-    rest: { mark: 'rest', dur: 1.2 },
-    toIcons: { mark: 'rest', offset: 1, dur: 0.3 },
+    walk: { mark: 'second', offset: 0.3, dur: 2, ease: 'linear' },
+    toIcons: { mark: 'second', offset: 1.9, dur: 0.3 },
     pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
     heartLit: { after: 'pullBack', dur: 0.4 },
   },
   draw: (f) => {
     const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
-    const through = f.at('through');
     const toIcons = f.at('toIcons');
 
     // ── A: the page ─────────────────────────────────────────────────────────
-    if (through < 1) {
+    if (toIcons < 1) {
       ctx.save();
-      // Pushing through the page: it swells and lets go.
-      ctx.translate(960, 540);
-      ctx.scale(1 + 0.6 * ease.inCubic(through), 1 + 0.6 * ease.inCubic(through));
-      ctx.translate(-960, -540);
-      ctx.globalAlpha *= 1 - through;
       sky(ctx, w, h, [
         [0, C.paper],
         [1, C.paper],
@@ -249,58 +240,7 @@ export const within = drawing({
       ctx.restore();
     }
 
-    // ── B: the field at golden hour, resting ────────────────────────────────
-    if (through > 0 && toIcons < 1) {
-      const settle = f.at('settle');
-      const rest = f.at('rest');
-      ctx.save();
-      ctx.globalAlpha *= through;
-      sky(ctx, w, h, [
-        [0, C.peachTop],
-        [0.6, C.peachLow],
-        [1, C.glow],
-      ]);
-      at(ctx, { x: 960, y: 540, scale: lerp(1.12, 1, settle) }, () => {
-        at(ctx, { x: -960, y: -540 }, () => {
-          glow(ctx, 1500, 700, 520 + 80 * rest, C.glow, 0.9);
-          piece(ctx, ellipseShape(1500, 700, 70, 70), C.gold, hand('sun'), { line: 0 });
-          piece(ctx, blob(1300, 900, 2200, 420, 51), C.boardLight, hand('hillFar'), {
-            line: 0,
-            shadow: 0.3,
-          });
-          piece(ctx, blob(700, 1000, 2000, 360, 52), C.leaf, hand('field'), {
-            line: 0,
-            shadow: 0.4,
-          });
-          // Tools set down: a hoe on the ground, a basket beside it.
-          at(ctx, { x: 1060, y: 915, rot: -0.12 }, () =>
-            piece(ctx, rounded(0, 0, 300, 12, 5), C.boardDeep, hand('hoe'), { line: 2 }),
-          );
-          piece(ctx, rounded(918, 902, 26, 44, 4), C.inkSoft, hand('hoeBlade'), { line: 2 });
-          piece(ctx, rounded(1230, 880, 130, 80, 30), C.board, hand('basket'), { line: 3 });
-          at(ctx, { x: 640, y: 935, scale: 1.6 }, () => shadeTree(ctx, hand, C.leaf));
-          contact(ctx, 700, 938, 220);
-          // Leaning back against the trunk, face to the low sun.
-          at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () =>
-            person(
-              ctx,
-              {
-                tilt: lerp(0.05, -0.1, rest),
-                nod: lerp(2, -2, rest),
-                look: [lerp(2, 3, rest), lerp(1, -1, rest)],
-                browL: lerp(0, 1, rest),
-                browR: lerp(0, 1, rest),
-                browTilt: 0,
-              },
-              hand('rester'),
-            ),
-          );
-        });
-      });
-      ctx.restore();
-    }
-
-    // ── C: the three icons, the heart lighting, all three lit ───────────────
+    // ── B: the three icons, the heart lighting, all three lit ───────────────
     if (toIcons > 0) {
       const pull = f.at('pullBack');
       ctx.save();

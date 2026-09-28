@@ -8,7 +8,7 @@
 // bench itself goes gold, and the word gives way to the name in `thesis`.
 
 import { type Camera, drawing, write } from '@bible/film/canvas';
-import { ease, keys, lerp } from '@bible/film/core';
+import { lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import { QUESTION, REST, WIDE, landingCourt, questionStyle } from '../court.ts';
 import { between } from '../kit.ts';
@@ -40,19 +40,17 @@ export const name = drawing({
     const up = f.at('lookUp') * (1 - f.at('turn'));
     const touch = f.at('touch') * (1 - f.at('release'));
     const turn = f.at('turn');
-    const g = f.cue('gavel');
     // A soft fall: the same arc as the cold open, landing without the bounce.
-    const swing = keys(f.t - g.start, [
+    const swing = f.keys('gavel', [
       [0, 0.35],
-      [0.22, -0.2],
-      [0.45, 1.5, ease.inOutCubic],
-      [0.59, 1.45],
+      [0.373, -0.2],
+      [0.763, 1.5, 'inOutCubic'],
+      [1, 1.45],
     ]);
-    const s = f.cue('stamp');
-    const pop = keys(f.t - s.start, [
+    const pop = f.keys('stamp', [
       [0, 1.2],
-      [0.12, 0.97, ease.outCubic],
-      [0.2, 1],
+      [0.6, 0.97, 'outCubic'],
+      [1, 1, 'inOutCubic'],
     ]);
     const smile = f.at('smile');
 
