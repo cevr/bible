@@ -1,8 +1,8 @@
+import { drawFigure } from '../figure.ts';
 import {
   at,
   cutout,
   type Frame,
-  drawFigure,
   type Pt,
   cubic,
   line,

@@ -1,12 +1,10 @@
 // Props for the closing beats: the wilderness camp, serpents, the bronze
 // serpent, the heart, flowers, the 1888 newspaper and stamp, and the angel.
 
+import { type Look, type Pose, drawFigure } from '../figure.ts';
 import {
   at,
   cutout,
-  type Look,
-  type Pose,
-  drawFigure,
   type Hand,
   type Pt,
   ellipseShape,

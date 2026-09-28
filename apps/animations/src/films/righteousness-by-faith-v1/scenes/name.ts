@@ -1,9 +1,9 @@
+import { robeShape } from '../figure.ts';
 import {
   camera,
   at,
   drawing,
   cutout,
-  robeShape,
   type Pt,
   ellipseShape,
   line,

@@ -138,7 +138,7 @@ src/films/<film>/
   voice.ts         who reads it: one voice, or a cast in conversation (changing it re-records everything)
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
-  kit.ts           the film's recurring props and type treatments
+  kit.ts           the film's recurring props, its people and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
@@ -247,7 +247,6 @@ points:
 |                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse), the variable-width brush `stroke`, and `sub(hand, k)`: a sub-hand on its own seed, so each piece of a drawing boils on its own                                                                                                                       |
 |                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                                                                                                                                                                                                   |
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                                                                                                                                                                                 |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                                                                                                                                                                                                      |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                                                                                                                                                                                  |
 |                      | `paper.ts`      | the sheet under everything, the grain over everything, `offscreen` canvases                                                                                                                                                                                                                              |
 |                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                                                                                                                                                                                        |

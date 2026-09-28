@@ -1,11 +1,21 @@
-// A cut-paper person. Feet stand at the origin; the figure is ~440 units tall
-// at scale 1. A pose is a handful of angles, so figures can be keyframed like
-// any other number; a hand that must land on something reaches for it instead.
+// v1's cut-paper person. Feet stand at the origin; the figure is ~440 units
+// tall at scale 1. A pose is a handful of angles, so figures can be keyframed
+// like any other number; a hand that must land on something reaches for it
+// instead.
 
-import { type CutoutStyle, cutout } from './cutout.ts';
-import { reach } from './ik.ts';
-import { type Hand, type Pt, ellipseShape, quad, spline, stroke, sub } from './ink.ts';
-import { hash2 } from '../core/random.ts';
+import {
+  type CutoutStyle,
+  type Hand,
+  type Pt,
+  cutout,
+  ellipseShape,
+  quad,
+  reach,
+  spline,
+  stroke,
+  sub,
+} from '@bible/film/canvas';
+import { hash2 } from '@bible/film/core';
 
 export interface Pose {
   /** Whole-body lean, radians (+ leans right). */

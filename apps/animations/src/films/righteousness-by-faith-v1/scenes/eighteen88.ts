@@ -1,4 +1,5 @@
-import { at, drawing, drawFigure, write } from '@bible/film/canvas';
+import { drawFigure } from '../figure.ts';
+import { at, drawing, write } from '@bible/film/canvas';
 import { hash2, clamp, ease, lerp, progress } from '@bible/film/core';
 import { C, F, cite, hand, quote, sheet, star, tablets } from '../kit.ts';
 import { angel, glow, newspaper, silhouette, stamp } from './props-3.ts';

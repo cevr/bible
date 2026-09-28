@@ -1,13 +1,5 @@
-import {
-  at,
-  cutout,
-  type Frame,
-  drawFigure,
-  type Look,
-  ellipse,
-  ellipseShape,
-  stroke,
-} from '@bible/film/canvas';
+import { drawFigure, type Look } from '../figure.ts';
+import { at, cutout, type Frame, ellipse, ellipseShape, stroke } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, quote, star, tablets } from '../kit.ts';
 import type { Drawing } from './index.ts';
