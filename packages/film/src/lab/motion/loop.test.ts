@@ -39,6 +39,7 @@ const fakes = () => {
     timelineOf: () => ({}),
     knobsOf: () => ({}),
     holdT: Effect.void,
+    reload: Effect.die('not asked'),
     settle: Effect.void,
     pause: Effect.void,
     still: () => Effect.die('not asked'),

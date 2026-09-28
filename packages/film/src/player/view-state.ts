@@ -1,4 +1,5 @@
-// The lab's view: speed, loop, onion skin, compare and play. A lab write
+// The lab's view: speed, loop, onion skin, compare, play, and the studio's
+// beat. A lab write
 // changes a scene file, and the page reloads to show it; the view comes back
 // from the tab's sessionStorage, under one key per film. Each tool patches its
 // part as it changes. Storage that is missing, throws or holds something that
@@ -27,6 +28,8 @@ export const LabView = Schema.Struct({
     split: Schema.Finite,
   }),
   playing: Schema.Boolean,
+  /** The beat the studio records, kept through the reload a take kept causes. */
+  studio: Schema.optionalKey(Schema.Struct({ beat: Schema.String })),
 });
 export type LabView = typeof LabView.Type;
 

@@ -59,6 +59,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabRefused> = Effect.succeed(lande
     timelineOf: () => ({}),
     knobsOf: () => ({}),
     holdT: Effect.sync(() => log.push('holdT')),
+    reload: Effect.die('not asked'),
     settle: Effect.sync(() => log.push('settle')),
     pause: Effect.sync(() => log.push('pause')),
     duration: 10,

@@ -37,6 +37,7 @@ describe('lab view state', () => {
     before.patch({ onion: { on: true, count: 3, spacing: 2 } });
     before.patch({ compare: { mode: 'wipe', split: 0.3 } });
     before.patch({ playing: true });
+    before.patch({ studio: { beat: 'thesis' } });
     const after = viewStore('f', storage, DURATION).get();
     expect(after).toEqual({
       rate: 0.25,
@@ -44,6 +45,7 @@ describe('lab view state', () => {
       onion: { on: true, count: 3, spacing: 2 },
       compare: { mode: 'wipe', split: 0.3 },
       playing: true,
+      studio: { beat: 'thesis' },
     });
     // Another film's page starts from the default.
     expect(viewStore('g', storage, DURATION).get()).toEqual(DEFAULT_VIEW);

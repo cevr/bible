@@ -7,7 +7,8 @@
 //
 //   Idle | Review | Failed ─Arm→ CountIn(n) ─Tick (each second)→ CountIn(n−1)
 //   CountIn(1) ─CountDone→ Recording ─Stop→ Review ─Submit→ Importing
-//   Importing ─Imported→ Idle (kept) | ─Refused→ Failed ─Retry→ Review | Idle
+//   Importing ─Imported→ Idle (kept; the page reloads when the track was
+//     remixed) | ─Refused→ Failed ─Retry→ Review | Idle
 //   Failed (TakeMismatch with its attempt) ─AcceptAnyway→ Importing
 //   Idle | Failed ─KeepAttempt→ Importing
 //
@@ -242,7 +243,13 @@ export const recorderMachine = (beat: string) =>
       onFailure: (e) => RecorderEvent.Refused({ refusal: e.refusal }),
     })
     .on(RecorderState.Importing, RecorderEvent.Imported, ({ state, event }) =>
-      RecorderState.Idle({ beat: state.beat, kept: Option.some(event.kept) }),
+      Effect.gen(function* () {
+        // The player reads the timings and the track once, at load: a take
+        // mixed into the track plays only after a reload, at this same T. A
+        // mix that failed reloads nothing, so the status can say why.
+        if (event.kept.mixed) yield* (yield* Stage).reload;
+        return RecorderState.Idle({ beat: state.beat, kept: Option.some(event.kept) });
+      }),
     )
     .on(RecorderState.Importing, RecorderEvent.Refused, ({ state, event }) =>
       RecorderState.Failed({ beat: state.beat, refusal: event.refusal, wav: workWav(state.work) }),

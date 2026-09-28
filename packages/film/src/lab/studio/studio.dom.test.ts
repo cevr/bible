@@ -5,10 +5,11 @@
 // that can be kept. The whole take by the studio's keys: R counts in and
 // records (the meter moves), Space stops, the recording plays back, K
 // submits a lossless WAV at the context's rate; the server's TakeMismatch
-// shows in its own words; K accepts it anyway; the take kept shows what was
-// heard, and the beats and attempts are read again. Keep on an attempt keeps
-// it. ←/→ move between beats without moving the film; the lab's keys pass
-// through. A mic too hot warns of clipping; a mic refused says so.
+// shows in its own words; K accepts it anyway; the take kept and mixed
+// reloads the page at the same T, back on the same beat. Keep on an attempt
+// keeps it, and a take whose mix failed stays to say so. ←/→ move between
+// beats without moving the film; the lab's keys pass through. A mic too hot
+// warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -93,7 +94,8 @@ const took = (file: string): Json => ({
   heard: 'the law is holy',
   wer: 0,
   timings: { voice: 'v', scenes: {} },
-  mixed: true,
+  // The newest attempt's mix fails: its keep stays on the page to say so.
+  mixed: file !== 'thesis.new.flac',
 });
 
 const studioRoutes: ReadonlyArray<FakeRoute> = [
@@ -145,8 +147,14 @@ const wavFormat = (base64: string) =>
 const withMic = (amplitude: number, permissions: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const wav = yield* toneFile(4, amplitude);
-    return yield* openLab(studioRoutes, { mic: { wav, permissions } });
+    return yield* openLab(studioRoutes, { hash: '#1', mic: { wav, permissions } });
   });
+
+/** The film seconds `#T` holds. */
+const shownT = (page: Page) =>
+  Effect.promise(() =>
+    page.evaluate(() => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '')),
+  );
 
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
@@ -267,12 +275,11 @@ describe('the studio', () => {
           const accept = yield* textOf(page, '[data-act="acceptAnyway"]');
           expect(accept).toBe('Accept anyway (K)');
 
+          // The take kept and mixed: the page loads again, at the same T, on the same beat.
           const beatsBefore = asked.filter((a) => a.path === '/studio/beats').length;
+          const loaded = page.waitForEvent('load');
           yield* press(page, 'k');
-          yield* statusIs(
-            page,
-            /^kept thesis\.abcd\.flac: heard “the law is holy” · 0\.0% words differ$/,
-          );
+          yield* Effect.promise(() => loaded);
           const [keep] = posted(asked, /^\/studio\/takes\/thesis\/keep$/);
           expect(
             Option.getOrUndefined(Option.fromUndefinedOr(keep).pipe(Option.flatMap((k) => k.body))),
@@ -280,7 +287,8 @@ describe('the studio', () => {
             file: 'thesis.abcd.flac',
             acceptMismatch: true,
           });
-          yield* Effect.promise(() => page.waitForTimeout(300));
+          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"].selected'));
+          expect(yield* shownT(page)).toBe(1);
           expect(asked.filter((a) => a.path === '/studio/beats').length).toBeGreaterThan(
             beatsBefore,
           );
@@ -301,7 +309,14 @@ describe('the studio', () => {
           yield* Effect.promise(() =>
             page.click('[data-file="thesis.new.flac"] [data-act="keep"]'),
           );
-          yield* statusIs(page, /^kept thesis\.new\.flac/);
+          yield* statusIs(
+            page,
+            /^kept thesis\.new\.flac: heard “the law is holy” · 0\.0% words differ · the mix failed; the lab log says why$/,
+          );
+          // The attempts are read again after the keep.
+          expect(
+            asked.filter((a) => a.path === '/studio/takes/thesis/attempts').length,
+          ).toBeGreaterThan(1);
           const [keep] = posted(asked, /^\/studio\/takes\/thesis\/keep$/);
           expect(
             Option.getOrUndefined(Option.fromUndefinedOr(keep).pipe(Option.flatMap((k) => k.body))),
@@ -324,12 +339,6 @@ describe('the studio', () => {
             mic: { wav: yield* toneFile(4, 0.5), permissions: ['microphone'] },
           });
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          const shownT = () =>
-            Effect.promise(() =>
-              page.evaluate(() =>
-                Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? ''),
-              ),
-            );
           const playLabel = () => textOf(page, '[data-act="play"]');
           const paused = yield* playLabel();
           yield* focusStudio(page);
@@ -341,7 +350,7 @@ describe('the studio', () => {
           yield* press(page, 'ArrowRight');
           yield* press(page, ' ');
           yield* Effect.promise(() => page.waitForTimeout(300));
-          expect(yield* shownT()).toBe(1);
+          expect(yield* shownT(page)).toBe(1);
           expect(yield* playLabel()).toBe(paused);
           expect(
             yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
@@ -352,7 +361,7 @@ describe('the studio', () => {
           );
           yield* press(page, 'Shift+ArrowRight');
           yield* Effect.promise(() => page.waitForTimeout(300));
-          expect(yield* shownT()).toBe(2);
+          expect(yield* shownT(page)).toBe(2);
           expect(
             yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
           ).toBe(1);

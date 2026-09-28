@@ -95,6 +95,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
     timelineOf: () => ({}),
     knobsOf: () => ({}),
     holdT: say('holdT'),
+    reload: say('reload'),
     settle: say('settle'),
     pause: say('pause'),
     duration: 10,
@@ -267,6 +268,34 @@ describe('importing', () => {
         RecorderEvent.Imported({ kept }),
       ]);
       expect(result.finalState).toEqual(RecorderState.Idle({ beat: 'a', kept: Option.some(kept) }));
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('a take kept and mixed reloads the film at the same T, to play the new take', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      yield* simulate(machine, [
+        ...recorded,
+        RecorderEvent.Submit,
+        RecorderEvent.Imported({ kept: { ...kept, mixed: true } }),
+      ]);
+      expect(log.calls.at(-1)).toBe('reload');
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('a take kept whose mix failed reloads nothing: the status says why', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      const unmixed = { ...kept, mixed: false };
+      const result = yield* simulate(machine, [
+        ...recorded,
+        RecorderEvent.Submit,
+        RecorderEvent.Imported({ kept: unmixed }),
+      ]);
+      expect(log.calls).not.toContain('reload');
+      expect(result.finalState).toEqual(
+        RecorderState.Idle({ beat: 'a', kept: Option.some(unmixed) }),
+      );
     }).pipe(Effect.provide(layer));
   });
 
@@ -444,7 +473,7 @@ describe('the import task, through an actor', () => {
       const { log } = yield* run(Effect.succeed(took), [
         RecorderEvent.KeepAttempt({ file: 'a.1234.flac' }),
       ]);
-      expect(log.calls).toEqual(['keep a a.1234.flac false']);
+      expect(log.calls).toEqual(['keep a a.1234.flac false', 'reload']);
     }).pipe(Effect.scoped),
   );
 

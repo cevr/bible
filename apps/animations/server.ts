@@ -45,7 +45,9 @@ export const serve = (port: number, development: boolean, lab?: Handler) =>
     routes: {
       '/': index,
       ...labRoutes(Option.fromUndefinedOr(lab)),
-      // Narration takes: /films/<film>/narration/<file>
+      // Narration takes: /films/<film>/narration/<file>. The studio rewrites
+      // them in place (a take kept, the track remixed), so the browser asks
+      // again on every load rather than play a take it cached.
       '/films/*': (req) => {
         const rel = normalize(
           decodeURIComponent(new URL(req.url).pathname.slice('/films/'.length)),
@@ -55,7 +57,11 @@ export const serve = (port: number, development: boolean, lab?: Handler) =>
         const file = Bun.file(join(FILMS, rel));
         return file
           .exists()
-          .then((ok) => (ok ? new Response(file) : new Response('not found', { status: 404 })));
+          .then((ok) =>
+            ok
+              ? new Response(file, { headers: { 'Cache-Control': 'no-cache' } })
+              : new Response('not found', { status: 404 }),
+          );
       },
     },
   });

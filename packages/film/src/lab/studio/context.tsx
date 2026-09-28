@@ -139,6 +139,8 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     ),
   );
   const beat = createMemo(() => recorder().beat);
+  // The beat is remembered through the reload a take kept causes.
+  createEffect(beat, (b) => meta.view.patch({ studio: { beat: b } }));
 
   const attemptsOf = Atom.family((id: string) =>
     runtime.atom(StudioApi.use((api) => api.attempts(id))),
@@ -285,10 +287,21 @@ const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Re
   );
 };
 
-/** The beat the recorder starts on: the first the server lists. */
-const firstBeat = (beats: AsyncResult.AsyncResult<StudioBeats, StudioRefused>) =>
+/** The beat the recorder starts on: the one remembered, while the server lists it, else the first. */
+const startBeat = (
+  beats: AsyncResult.AsyncResult<StudioBeats, StudioRefused>,
+  remembered: Option.Option<string>,
+) =>
   Option.flatMap(AsyncResult.value(beats), (b) =>
-    Option.map(Option.fromUndefinedOr(b.beats[0]), (first) => first.id),
+    Option.map(
+      Option.orElse(
+        Option.flatMap(remembered, (id) =>
+          Option.fromUndefinedOr(b.beats.find((x) => x.id === id)),
+        ),
+        () => Option.fromUndefinedOr(b.beats[0]),
+      ),
+      (start) => start.id,
+    ),
   );
 
 /** Why there is no recorder yet: the beats are being read, refused, or none has a line. */
@@ -300,8 +313,9 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, StudioRefused>)
   });
 
 /**
- * The studio's state and actions, for its section. The recorder is spawned on
- * the first beat once the beats are read; until then the children render
+ * The studio's state and actions, for its section. The recorder is spawned
+ * once the beats are read, on the beat the view remembers (a take kept
+ * reloads the page) or else the first; until then the children render
  * nothing and the fallback says why.
  */
 export const Provider = (props: ParentProps) => {
@@ -318,9 +332,11 @@ export const Provider = (props: ParentProps) => {
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
   };
   const beats = useAtomValue(() => reads.beats);
-  const first = createMemo(() => Option.getOrUndefined(firstBeat(beats())));
+  // Read once: the beat selected later is remembered for the next page, not this one.
+  const remembered = Option.map(Option.fromUndefinedOr(meta.view.get().studio), (s) => s.beat);
+  const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), remembered)));
   return (
-    <Show when={first()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
+    <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
       {(beat: string) => (
         <Loading>
           <Recorder beat={beat} reads={reads}>
