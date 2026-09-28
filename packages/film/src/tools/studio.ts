@@ -418,7 +418,8 @@ export const isStudio = (request: Request, film: string): boolean =>
 const holdOpen = (request: Request, server: LabBound, film: string) => {
   if (request.method !== 'POST') return;
   if (!new URL(request.url).pathname.startsWith(`${labBase(film)}/studio/takes/`)) return;
-  Option.map(Option.fromUndefinedOr(server.timeout), (hold) => hold(request, STUDIO_IMPORT_IDLE_S));
+  // Called on the server, never detached: Bun's `timeout` reads its own server.
+  server.timeout?.(request, STUDIO_IMPORT_IDLE_S);
 };
 
 /**

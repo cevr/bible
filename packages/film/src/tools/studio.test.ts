@@ -329,11 +329,18 @@ describe('studio routes', () => {
       const { layer } = setup(said);
       return Effect.gen(function* () {
         const raised: Array<readonly [string, number]> = [];
-        const server = {
-          ...bound,
-          timeout: (request: Request, seconds: number) =>
-            void raised.push([new URL(request.url).pathname, seconds]),
-        };
+        // As Bun's server does, `timeout` works on its own server: a call
+        // detached from it ("Expected this to be instanceof …" in Bun) is
+        // recorded as such.
+        class Held {
+          readonly hostname = bound.hostname;
+          readonly port = bound.port;
+          timeout(request: Request, seconds: number) {
+            if (!(this instanceof Held)) return void raised.push(['detached', seconds]);
+            raised.push([new URL(request.url).pathname, seconds]);
+          }
+        }
+        const server = new Held();
         const studio = yield* studioHandler('test');
         yield* Effect.promise(() =>
           studio(post('/lab/test/studio/takes/a', recording('Hello world.')), server),
