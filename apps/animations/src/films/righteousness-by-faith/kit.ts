@@ -263,6 +263,11 @@ export interface Person {
   handR?: Pt;
   /** Stains on the garment: blob outlines in the person's units. */
   stains?: ReadonlyArray<ReadonlyArray<Pt>>;
+  /**
+   * 0 stands, 1 sits: the origin becomes the seat, the body drops onto it by
+   * the legs' height, and the legs hang below it over the edge.
+   */
+  sit?: number;
 }
 
 export const NECK: Pt = [0, -128];
@@ -271,17 +276,8 @@ const HEAD_RX = 35;
 const HEAD_RY = 38;
 const SHOULDER_Y = -116;
 const ARM = [36, 34];
-
-/** Where a point on the head lands once the head has turned and dropped. */
-const onHead = (p: Person, x: number, y: number): Pt => {
-  const a = p.tilt ?? 0;
-  const dx = x - NECK[0];
-  const dy = y - NECK[1];
-  return [
-    NECK[0] + dx * Math.cos(a) - dy * Math.sin(a),
-    NECK[1] + (p.nod ?? 0) + dx * Math.sin(a) + dy * Math.cos(a),
-  ];
-};
+/** How far the body drops onto its seat when sitting: the legs' height. */
+const SEAT = 22;
 
 /** The turban's dome, over a head centred on (0, 0) of radii rx, ry: high enough to leave the brows showing. */
 const turbanShape = (rx: number, ry: number): Pt[] =>
@@ -369,9 +365,62 @@ const mouthOf = (
   }
 };
 
+/**
+ * The two legs: under the body standing, and as `sit` goes to 1 hanging
+ * below the seat, their feet splayed a little.
+ */
+const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: Hand) => {
+  for (const x of [-13, 13]) {
+    const k = sub(hand, 1 + x);
+    if (sit <= 0) {
+      piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { line: 2.5 });
+      continue;
+    }
+    at(
+      ctx,
+      { x: x * (1 + 0.1 * sit), y: lerp(-10, 14, sit), rot: -Math.sign(x) * 0.08 * sit },
+      () => piece(ctx, rounded(0, 0, 16, 22, 5), shade, k, { line: 2.5 }),
+    );
+  }
+};
+
+const ROBE_SHAPE = spline(
+  [
+    [-24, -126],
+    [24, -126],
+    [44, -60],
+    [52, -2],
+    [-52, -2],
+    [-44, -60],
+  ],
+  6,
+  true,
+);
+const TUNIC_SHAPE = rounded(0, -72, 66, 112, 22);
+/** Each garment's top and hem, standing. */
+const ROBE_SPAN = [-126, -2] as const;
+const TUNIC_SPAN = [-128, -16] as const;
+/** Where the hem rests once seated: just over the seat's edge. */
+const SEAT_HEM = 3;
+
+/**
+ * Draws the garment's layer: standing as it is; seated, its top dropped onto
+ * the seat and its length folded into the lap, the hem at the seat's edge.
+ */
+const garmentLayer = (
+  ctx: CanvasRenderingContext2D,
+  span: readonly [number, number],
+  sit: number,
+  draw: () => void,
+) => {
+  if (sit <= 0) return draw();
+  const [top, hem] = span;
+  const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
+  at(ctx, { x: 0, y: top + SEAT * sit - top * k, sy: k }, draw);
+};
+
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
   const body = p.body ?? C.figure;
-  const shade = p.shade ?? C.figureShade;
   const skin = p.skin ?? C.figure;
   const arm = (side: -1 | 1, target: Pt | undefined, k: number) => {
     if (target === undefined) return;
@@ -381,32 +430,28 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
     const [hx, hy] = path.at(-1) ?? target;
     piece(ctx, ellipseShape(hx, hy, 8, 8, 20), skin, sub(hand, k + 2), { line: 2.5 });
   };
+  // Seated, everything but the legs drops onto the seat.
+  const sit = clamp(p.sit ?? 0);
+  const upper = (draw: () => void) => (sit > 0 ? at(ctx, { x: 0, y: SEAT * sit }, draw) : draw());
 
   // The far arm behind the body, the near one over it.
-  arm(-1, p.handL, 40);
-  for (const x of [-13, 13])
-    piece(ctx, rounded(x, -10, 16, 22, 5), shade, sub(hand, 1 + x), { line: 2.5 });
-  const garment =
-    p.garment === 'robe'
-      ? spline(
-          [
-            [-24, -126],
-            [24, -126],
-            [44, -60],
-            [52, -2],
-            [-52, -2],
-            [-44, -60],
-          ],
-          6,
-          true,
-        )
-      : rounded(0, -72, 66, 112, 22);
-  piece(ctx, garment, body, sub(hand, 3));
-  (p.stains ?? []).forEach((stain, i) =>
-    cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i)),
-  );
+  upper(() => arm(-1, p.handL, 40));
+  legs(ctx, sit, p.shade ?? C.figureShade, hand);
+  const robe = p.garment === 'robe';
+  garmentLayer(ctx, robe ? ROBE_SPAN : TUNIC_SPAN, sit, () => {
+    piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
+    (p.stains ?? []).forEach((stain, i) =>
+      cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i)),
+    );
+  });
+  upper(() => {
+    head(ctx, p, skin, hand);
+    arm(1, p.handR, 50);
+  });
+};
 
-  // The head turns about the neck.
+/** The head, turned about the neck, with its face and any turban. */
+const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand) => {
   ctx.save();
   ctx.translate(NECK[0], NECK[1] + (p.nod ?? 0));
   ctx.rotate(p.tilt ?? 0);
@@ -456,11 +501,7 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   brow(1, p.browR ?? 0, 9);
   mouthOf(ctx, cx, cy, p.mouth ?? 0, smile, hand);
   ctx.restore();
-  arm(1, p.handR, 50);
 };
-
-/** Where a person's face is, for a camera to find it. */
-export const faceOf = (p: Person): Pt => onHead(p, HEAD[0], HEAD[1]);
 
 /**
  * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
@@ -487,7 +528,7 @@ export type Hands = (k: string) => Hand;
  */
 export const christ = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands) => {
   person(ctx, { ...pose, body: C.robe, shade: C.robe, garment: 'robe' }, hand('christ'));
-  at(ctx, { x: 0, y: -90, rot: -0.45 }, () =>
+  at(ctx, { x: 0, y: -90 + SEAT * clamp(pose.sit ?? 0), rot: -0.45 }, () =>
     piece(ctx, rounded(0, 0, 92, 12, 3), C.gold, hand('sash'), { line: 2 }),
   );
 };

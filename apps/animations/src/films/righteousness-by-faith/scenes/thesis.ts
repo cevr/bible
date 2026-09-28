@@ -72,11 +72,12 @@ export const thesis = drawing({
           lift: 1.4,
           draw: () => {
             cityFront(ctx, (k) => f.hand(k));
-            // Sitting: the garment's hem on the roof line, legs over the edge.
-            at(ctx, { x: ROOF.x + 34, y: ROOF.top + 12, scale: 0.68 }, () =>
+            // Sitting on the roof's edge, their legs over it.
+            at(ctx, { x: ROOF.x + 34, y: ROOF.top, scale: 0.68 }, () =>
               christ(
                 ctx,
                 {
+                  sit: 1,
                   tilt: lerp(-0.08, -0.16, turn),
                   look: [lerp(1, -3, turn), -3],
                   browTilt: 0.2,
@@ -85,10 +86,11 @@ export const thesis = drawing({
                 (k) => f.hand(k),
               ),
             );
-            at(ctx, { x: ROOF.x - 44, y: ROOF.top + 11, scale: 0.62 }, () =>
+            at(ctx, { x: ROOF.x - 44, y: ROOF.top, scale: 0.62 }, () =>
               person(
                 ctx,
                 {
+                  sit: 1,
                   body: C.robe,
                   shade: C.robe,
                   garment: 'robe',
