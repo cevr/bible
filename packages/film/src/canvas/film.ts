@@ -26,6 +26,7 @@ import type {
 } from '../core/schema.ts';
 import { type ResolvedCue, cueProgress, resolveTimeline } from '../core/timeline.ts';
 import {
+  type Grain,
   type Offscreen,
   type PaperStyle,
   grain,
@@ -300,7 +301,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   let assets:
     | {
         paper: HTMLCanvasElement;
-        grain: HTMLCanvasElement[];
+        grain: Grain;
         a: Offscreen;
         b: Offscreen;
       }
@@ -308,7 +309,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const getAssets = () =>
     (assets ??= {
       paper: makePaper(width, height, spec.paper),
-      grain: makeGrain(finish.grainSize, finish.grainTiles, spec.paper.seed + 99),
+      grain: makeGrain(finish.grainSize, finish.grainTiles, spec.paper.seed + 99, width, height),
       a: offscreen(width, height),
       b: offscreen(width, height),
     });

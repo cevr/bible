@@ -1,7 +1,9 @@
 // The paper under everything, and the grain over everything. Both are built
-// once from a seed; grain cycles through a few tiles on the boil tick so the
-// surface feels alive without flickering at the full frame rate.
+// once from a seed; grain cycles through a few tiles on the boil tick, each
+// shifted by the tick, so the surface feels alive without flickering at the
+// full frame rate. A frame's grain is a function of its tick alone.
 
+import type { Vec2 } from 'math';
 import { fbm, hash2, rng } from '../core/random.ts';
 
 export interface PaperStyle {
@@ -93,45 +95,85 @@ export const makePaper = (w: number, h: number, style: PaperStyle): HTMLCanvasEl
   return c;
 };
 
-/** Tileable-enough grain tiles; the film cycles them on the boil tick. */
-export const makeGrain = (size: number, count: number, seed: number): HTMLCanvasElement[] =>
-  Array.from({ length: count }, (_, k) => {
-    const { c, ctx } = offscreen(size, size);
-    const img = ctx.createImageData(size, size);
-    for (let i = 0; i < size * size; i++) {
-      const v = hash2(i, seed + k * 977) * 255;
-      img.data[i * 4] = v;
-      img.data[i * 4 + 1] = v;
-      img.data[i * 4 + 2] = v;
-      img.data[i * 4 + 3] = 255;
+/**
+ * Film grain for a `w` × `h` frame: tileable-enough noise tiles, each already
+ * repeated across the frame plus one tile each way (a sheet), so a tick's
+ * shifted grain is a plain copy out of its sheet rather than a pattern fill.
+ */
+export interface Grain {
+  /** A tile's side in px: the tick's shift wraps at it. */
+  readonly size: number;
+  /** One sheet per tile, `w + size` × `h + size`; the film cycles them on the boil tick. */
+  readonly sheets: ReadonlyArray<HTMLCanvasElement>;
+}
+
+/** One noise tile, `size` × `size`, opaque grey. */
+const grainTile = (size: number, seed: number): HTMLCanvasElement => {
+  const { c, ctx } = offscreen(size, size);
+  const img = ctx.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    const v = hash2(i, seed) * 255;
+    img.data[i * 4] = v;
+    img.data[i * 4 + 1] = v;
+    img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+};
+
+/** `count` grain tiles of `size` px, each laid out as a sheet over a `w` × `h` frame. */
+export const makeGrain = (
+  size: number,
+  count: number,
+  seed: number,
+  w: number,
+  h: number,
+): Grain => ({
+  size,
+  sheets: Array.from({ length: count }, (_, k) => {
+    const tile = grainTile(size, seed + k * 977);
+    const { c, ctx } = offscreen(w + size, h + size);
+    // An unshifted repeat onto a clear sheet copies the opaque tile exactly.
+    const pattern = ctx.createPattern(tile, 'repeat');
+    if (pattern !== null) {
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, c.width, c.height);
     }
-    ctx.putImageData(img, 0, 0);
     return c;
-  });
+  }),
+});
+
+/**
+ * Where tick `boil` reads its grain sheet, written into `out`: the tile
+ * shifted by (137, 71) px a tick, so repeated tiles never line up. Frame
+ * pixel (x, y) shows tile pixel ((x + out[0]) mod size, (y + out[1]) mod size).
+ */
+export const grainShift = (out: Vec2, boil: number, size: number): Vec2 => {
+  out[0] = (size - ((boil * 137) % size)) % size;
+  out[1] = (size - ((boil * 71) % size)) % size;
+  return out;
+};
+
+/** Scratch for a tick's sheet offset, written and read within one call. */
+const shift: Vec2 = [0, 0];
 
 /** Overlay grain across the frame; `strength` is the overlay alpha. */
 export const grain = (
   ctx: CanvasRenderingContext2D,
-  tiles: ReadonlyArray<HTMLCanvasElement>,
+  film: Grain,
   boil: number,
   w: number,
   h: number,
   strength = 0.07,
 ) => {
-  const tile = tiles[boil % tiles.length];
-  if (tile === undefined) return;
+  const sheet = film.sheets[boil % film.sheets.length];
+  if (sheet === undefined) return;
+  grainShift(shift, boil, film.size);
   ctx.save();
   ctx.globalAlpha = strength;
   ctx.globalCompositeOperation = 'overlay';
-  const pattern = ctx.createPattern(tile, 'repeat');
-  if (pattern !== null) {
-    // Shift the pattern each tick so repeated tiles never line up.
-    pattern.setTransform(
-      new DOMMatrix().translate((boil * 137) % tile.width, (boil * 71) % tile.height),
-    );
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, w, h);
-  }
+  ctx.drawImage(sheet, shift[0], shift[1], w, h, 0, 0, w, h);
   ctx.restore();
 };
 
