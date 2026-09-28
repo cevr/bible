@@ -188,6 +188,24 @@ describe('marking a frame', () => {
   );
 
   it.live(
+    'the marks and pins mount with no cleanup Solid cannot run',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(
+          [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+          { hash: '#1' },
+        );
+        const warned: Array<string> = [];
+        page.on('console', (m) => warned.push(m.text()));
+        yield* Effect.promise(() => page.reload());
+        yield* waitAttached(page, '.track .tick.note');
+        yield* waitFor(page, '.lab-overlay');
+        expect(warned.filter((w) => w.includes('NO_OWNER_CLEANUP'))).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'n notes the whole frame, and Escape closes the composer',
     () =>
       Effect.gen(function* () {

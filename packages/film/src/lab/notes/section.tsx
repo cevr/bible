@@ -6,7 +6,7 @@
 
 import { For, Portal, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { createEffect, onCleanup } from 'solid-js';
+import { createEffect } from 'solid-js';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { useLab } from '../shell.tsx';
 import { draftMarks } from './composer.ts';
@@ -234,8 +234,8 @@ export const Marks = () => {
       surface.addEventListener('pointermove', move);
       surface.addEventListener('pointerup', up);
     };
+    // Native, as the handles' are; it lives and goes with the surface it is on.
     surface.addEventListener('pointerdown', down);
-    onCleanup(() => surface.removeEventListener('pointerdown', down));
   };
   return (
     <>
@@ -280,8 +280,8 @@ const Pin = (props: { readonly note: Note }) => {
       e.stopPropagation();
       actions.select(props.note);
     };
+    // Native, so it runs before the track's own listener seeks; it goes with the pin.
     el.addEventListener('pointerdown', down);
-    onCleanup(() => el.removeEventListener('pointerdown', down));
   };
   return (
     <div
