@@ -7,11 +7,13 @@
 // Rev 14 flies in with a banner that writes the third angel's message in its
 // own words. On "hand" a tablet and a cross meet in one gold emblem; on
 // "three" the camera pushes through it onto the parchment page, where the
-// grey figure stands in their stains and looks up. On "makes" a warm light
-// rises in their chest and the stains fade; on "gifts" an open hand rises in
-// their place and the film's three icons are set across its palm one by one:
-// faith, forgiveness and power. On "daily" the sun arcs over them three
-// times, the hand closing a little at each dusk and opening again at dawn.
+// grey figure stands in their stains and looks up. On "makes" a word of light
+// falls from above into their chest, and from it a warmth spreads that washes
+// the stains out; on "gifts" an open hand rises in their place and the film's
+// three icons are set across its palm one by one: faith, forgiveness and
+// power. From "daily" to the last word the sun arcs over them three times,
+// rising into the frame and setting out of it, the page dimming and the hand
+// closing a little toward each dusk and opening again at dawn.
 
 import {
   type Camera,
@@ -31,12 +33,11 @@ import {
   write,
   sub,
 } from '@bible/film/canvas';
-import { ease, lerp } from '@bible/film/core';
+import { clamp, ease, lerp } from '@bible/film/core';
 import {
   C,
   F,
   type Person,
-  blob,
   contact,
   glow,
   icons,
@@ -50,6 +51,7 @@ import {
 } from '../kit.ts';
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { herald } from '../heaven.ts';
+import { arc, flight } from '../spoken.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
 
 const REST: Camera = { x: 960, y: 560, zoom: 1.1 };
@@ -105,9 +107,11 @@ const timeline = {
   power: { mark: 'power', offset: -0.15, dur: 0.45, ease: 'outBack' },
   figureIn: { after: 'through', dur: 0.5, ease: 'outBack' },
   hear: { mark: 'three', offset: 0.9, dur: 0.5 },
-  warm: { mark: 'makes', dur: 1.3 },
+  given: { mark: 'makes', offset: -0.6, dur: 0.8, ease: 'inOutSine' },
+  warm: { after: 'given', dur: 1 },
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
-  days: { mark: 'daily', dur: 3.1, ease: 'linear' },
+  // The days start on "daily" and run to the last word (`page` reads the speech's end).
+  days: { mark: 'daily' },
 } as const;
 const knobs = {
   angelAt: [1620, 330],
@@ -203,12 +207,26 @@ const FIGURE_AT: Pt = [960, 1010];
 /** The open hand's scale, and the gifts' row scale across its palm. */
 const HAND_S = 2.2;
 const GIFTS_S = 0.6;
-/** The sun's path across each day: the horizon's ends and the noon height. */
+/**
+ * The sun's path across each day: the horizon's ends, and a horizon below
+ * the frame, so it rises into view at dawn and sets out of it at dusk, and
+ * the next day's dawn begins where nothing shows; and the noon height.
+ */
 const DAWN_X = 160;
 const DUSK_X = 1760;
-const HORIZON_Y = 640;
-const NOON_RISE = 520;
+const HORIZON_Y = 1300;
+const NOON_Y = 130;
 const DAYS = 3;
+/** How much of a day the days take to come in and to go: the dusk dims and the hand's close ease in and out over it. */
+const DAYS_EASE = 0.5;
+/** The word of light that falls into the figure's chest on "makes", from above the page. */
+const MAKES_PATH = arc([1320, -120], [FIGURE_AT[0], FIGURE_AT[1] - 80 * FIGURE_S], 60);
+/** Each stain's reach from the light in the chest, and one scratch list of their wash. */
+const STAIN_REACH = FIGURE_STAIN_SPOTS.map(([x, y]) => Math.hypot(x, y + 80) / 40);
+const WASH: number[] = FIGURE_STAIN_SPOTS.map(() => 0);
+/** The icons' glow and shown, reused every frame. */
+const LIT: [number, number, number] = [0, 0, 0];
+const POPS: [number, number, number] = [0, 0, 0];
 
 /**
  * The parchment page: on "makes" the grey figure, a warm light rising in
@@ -222,12 +240,17 @@ const page = (f: MessageFrame) => {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
 
-  // The days: where the sun is in the current one, and how high.
-  const days = f.at('days');
-  const running = days > 0 && days < 1;
+  // The days, from "daily" to the last word: where the sun is in the current
+  // one and how high, and how deep into dusk the page is, which eases in over
+  // the first half day and out over the last, so the page, the icons and the
+  // hand leave and rejoin the day before and after without a step.
+  const from = f.cue('days').start;
+  const days = clamp((f.t - from) / (f.speech.end - from));
   const k = (days * DAYS) % 1;
-  const noon = running ? Math.sin(Math.PI * k) : 1;
-  if (running) sun(ctx, f.hand('sun'), k, noon, w, h);
+  const noon = Math.sin(Math.PI * k);
+  const settle = clamp(Math.min(days, 1 - days) * (DAYS / DAYS_EASE));
+  const dusk = (1 - noon) * settle;
+  if (days > 0 && days < 1) sun(ctx, f.hand('sun'), k, noon, dusk, w, h);
 
   const handIn = f.at('handIn');
   if (handIn < 1) pageFigure(f, handIn);
@@ -235,53 +258,57 @@ const page = (f: MessageFrame) => {
   if (handIn > 0) {
     const [px, py] = f.knob('palm');
     const [gx, gy] = f.knob('gifts');
+    const close = clamp(1 - 3 * noon) * settle;
     ctx.save();
     ctx.globalAlpha *= handIn;
     at(ctx, { x: px, y: lerp(py + 400, py, handIn), scale: HAND_S }, () =>
-      openHand(ctx, f.hand, lerp(0.7, 1, Math.min(1, 3 * noon))),
+      openHand(ctx, f.hand, 1 - 0.3 * close),
     );
     ctx.restore();
-    const pops = [f.at('faith'), f.at('forgiveness'), f.at('power')] as const;
-    const lit = [pops[0] * noon, pops[1] * noon, pops[2] * noon] as const;
-    at(ctx, { x: gx, y: gy, scale: GIFTS_S }, () => icons(ctx, f.hand, lit, pops));
+    POPS[0] = f.at('faith');
+    POPS[1] = f.at('forgiveness');
+    POPS[2] = f.at('power');
+    for (let i = 0; i < 3; i++) LIT[i] = (POPS[i] ?? 0) * (1 - dusk);
+    at(ctx, { x: gx, y: gy, scale: GIFTS_S }, () => icons(ctx, f.hand, LIT, POPS));
   }
 };
 
-/** The sun at `k` across its day, `noon` its height 0..1, the page dimmed toward dusk. */
+/** The sun at `k` across its day, `noon` its height 0..1, and the page dimmed by `dusk`. */
 const sun = (
   ctx: CanvasRenderingContext2D,
   hand: Hand,
   k: number,
   noon: number,
+  dusk: number,
   w: number,
   h: number,
 ) => {
-  ctx.save();
-  ctx.globalAlpha *= 0.35 * (1 - noon);
-  ctx.fillStyle = C.peachLow;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
+  if (dusk > 0) {
+    ctx.save();
+    ctx.globalAlpha *= 0.35 * dusk;
+    ctx.fillStyle = C.peachLow;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
   const x = lerp(DAWN_X, DUSK_X, k);
-  const y = HORIZON_Y - NOON_RISE * noon;
+  const y = lerp(HORIZON_Y, NOON_Y, noon);
   glow(ctx, x, y, 160, C.glow, 0.8);
   piece(ctx, ellipseShape(x, y, 44, 44), C.gold, hand, { line: 0, shadow: 0.2 });
 };
 
-/** The grey figure: in after the push through, looking up on "three", warmed from the chest on "makes". */
+/**
+ * The grey figure: in after the push through, looking up on "three". On
+ * "makes" a word of light falls from above into their chest (God makes), and
+ * from it a warmth spreads that washes the stains out, the nearest first.
+ */
 const pageFigure = (f: MessageFrame, handIn: number) => {
   const { ctx } = f;
   const shown = f.at('figureIn');
   if (shown <= 0.01) return;
   const warm = f.at('warm');
   const hear = f.at('hear');
-  const stains =
-    warm <= 0
-      ? FIGURE_STAINS
-      : warm >= 1
-        ? []
-        : FIGURE_STAIN_SPOTS.map(([x, y, sw, sh, seed]) =>
-            blob(x, y, sw * (1 - warm), sh * (1 - warm), seed),
-          );
+  for (let i = 0; i < WASH.length; i++) WASH[i] = clamp(2.2 * warm - (STAIN_REACH[i] ?? 0));
+  const given = f.at('given');
   ctx.save();
   ctx.globalAlpha *= 1 - handIn;
   at(
@@ -299,7 +326,8 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
           browR: 4 * hear + 2 * warm,
           browTilt: 0.35 * hear * (1 - warm),
           smile: 0.8 * warm,
-          stains,
+          stains: FIGURE_STAINS,
+          washed: WASH,
         },
         f.hand('pageFigure'),
       );
@@ -310,6 +338,8 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
     },
   );
   ctx.restore();
+  // The word of light, over the figure as it lands in the chest.
+  if (given < 1) flight(ctx, MAKES_PATH, given, f.hand('given'), 0.4);
 };
 
 /** The hall of 1888: wall and windows (which lift away as the roof), the platform, and the crowd. */
