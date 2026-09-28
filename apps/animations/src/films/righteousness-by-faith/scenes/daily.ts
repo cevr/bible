@@ -14,8 +14,8 @@
 // (the path from `within`). On "sab" the seventh sun sets gold and the shot
 // dissolves to the Sabbath field (garden.ts `restingField`): tools set down,
 // the robed figure resting against the tree, heart still glowing, face calm
-// on "rest". Then the pull back to the three icons, all lit, with the open
-// hand under them. Nothing here is earned: the hand only receives.
+// on "rest", held through "rest in his", the scene's last words. Nothing
+// here is earned: the hand only receives.
 
 import {
   type Frame,
@@ -189,9 +189,6 @@ const timeline = {
   field: { after: 'seventh', offset: -0.2, dur: 0.6 },
   settle: { after: 'field', dur: 2.5, ease: 'outCubic' },
   rest: { mark: 'rest', dur: 1.5 },
-  toIcons: { mark: 'rest', offset: 1.3, dur: 0.3 },
-  pullBack: { with: 'toIcons', dur: 0.8, ease: 'outCubic' },
-  iconsLit: { after: 'pullBack', dur: 0.4 },
 } as const;
 
 type DailyFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -202,11 +199,9 @@ export const daily = drawing({
   draw: (f) => {
     const through = f.at('through');
     const field = f.at('field');
-    const shown = f.at('toIcons');
     if (through < 1) page(f, through);
     if (through > THROUGH_CUT && field < 1) room(f, (through - THROUGH_CUT) / (1 - THROUGH_CUT));
-    if (field > 0 && shown < 1) sabbath(f, field);
-    if (shown > 0) iconsShot(f, shown);
+    if (field > 0) sabbath(f, field);
   },
 });
 
@@ -497,30 +492,3 @@ const sabbath = (f: DailyFrame, alpha: number) => {
   restingField(ctx, w, h, f.hand, f.at('settle'), f.at('rest'), ROBED, 1);
   ctx.restore();
 };
-
-/** D: the three icons, all lit, with the open hand under them. */
-const iconsShot = (f: DailyFrame, alpha: number) => {
-  const { ctx, w, h } = f;
-  const pull = f.at('pullBack');
-  const lit = 0.6 + 0.4 * f.at('iconsLit');
-  ctx.save();
-  ctx.globalAlpha *= alpha;
-  sky(ctx, w, h, ICON_SKY);
-  ctx.save();
-  ctx.translate(960, lerp(1500, 880, pull));
-  ctx.scale(1.1, 1.1);
-  openHand(ctx, f.hand, 1);
-  ctx.restore();
-  LIT[0] = lit;
-  LIT[1] = lit;
-  LIT[2] = lit;
-  ctx.translate(960, lerp(-160, 430, pull));
-  const s = lerp(2.3, 1, pull);
-  ctx.scale(s, s);
-  icons(ctx, f.hand, LIT);
-  ctx.restore();
-};
-const ICON_SKY = [
-  [0, C.glow],
-  [1, C.peachLow],
-] as const;

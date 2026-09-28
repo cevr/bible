@@ -96,7 +96,7 @@ const timeline = {
   ascend: { mark: 'up', dur: 1.3, ease: 'inOutCubic' },
   robed: { after: 'ascend', dur: 0.5 },
   minister: { after: 'robed', dur: 0.6, ease: 'inOutSine' },
-  cut: { mark: 'plead', offset: 0.6, dur: 0 },
+  cut: { mark: 'now', dur: 0 },
   hands: { after: 'cut', offset: 0.2, dur: 0.6, ease: 'outBack' },
   push: { after: 'cut', dur: 2, ease: 'linear' },
   toIcons: { after: 'push', dur: 0.3 },

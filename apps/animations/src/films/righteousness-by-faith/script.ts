@@ -130,7 +130,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'exchange',
-    say: '{@ask}Okay, but how can God make guilty people righteous {fair}and still be fair? {@lead}{right}That is the right question. {notes}Ellen White answered it in her account of that 1888 conference: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}Our sins went onto him at the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {plead}And right now, she wrote, Christ is pleading for his people in the courts of heaven.',
+    say: '{@ask}Okay, but how can God make guilty people righteous {fair}and still be fair? {@lead}{right}That is the right question. {notes}Ellen White answered it in her account of that 1888 conference: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}Our sins went onto him at the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {plead}And {now}right now, she wrote, Christ is pleading for his people in the courts of heaven.',
     cite: [
       'Ellen G. White, Ms 24, 1888',
       '1 Peter 2:24',
@@ -149,7 +149,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'robe',
-    say: "{take}Then he says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you in new clothes. {loom}A robe from heaven's loom, Ellen White said, {woven}with not one thread of our own. {@ask}{nicer}So it is a cover-up. {just}Just a nicer one. {@lead}{no}No. {cloak}Christ does not give a cloak for sin, Waggoner said. {away}He takes it away. {judicial}God's forgiveness is more than a judge's ruling, she wrote. {reclaim}“It is not only forgiveness for sin, but reclaiming from sin.”",
+    say: "{take}Then he says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you in new clothes. {loom}A robe from heaven's loom, Ellen White said, {woven}with not one thread of our own. {@ask}{nicer}So it is a cover-up. {just}Just a nicer one. {@lead}{no}No. {cloak}Christ does not give a cloak for sin, Waggoner said. {away}He takes it away. {judicial}God's forgiveness is more than a judge's ruling, she wrote. {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
     cite: [
       'Zechariah 3:4',
       "Ellen G. White, Christ's Object Lessons, 311",
