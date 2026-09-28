@@ -1,8 +1,9 @@
-// The lab's writes to scene files, as one machine: a drag on the strip (a
-// press grabs a cue and pauses the film, moves preview it in memory, the
-// release writes what changed), a field or an ease set in the inspector, and
-// Undo or Redo. One machine serializes them all: while a write is out, a press
-// or another write is not taken, so two writes never race for one file.
+// The lab's writes to scene files, as one machine: a drag on the strip or of
+// a knob's handle on the frame (a press grabs a cue or a knob and pauses the
+// film, moves preview it in memory, the release writes what changed), a field
+// or an ease set in the inspector, and Undo or Redo. One machine serializes
+// them all: while a write is out, a press or another write is not taken, so
+// two writes never race for one file.
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed→ Refused
@@ -16,15 +17,15 @@ import { Event, Machine, State } from 'effect-machine';
 import { CheckLine, LabWrite } from '../../core/schema.ts';
 import { LabApi, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { CueGrip, Edit, Pointer, StepWrite, Write, dragCue, wroteNote } from './grip.ts';
+import { Edit, Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
 
 export const EditState = State({
   /** At rest: `note` is what the last thing done said, if anything. */
   Idle: { note: Schema.String },
-  /** A cue is grabbed and has not moved yet: a release here only selects it. */
-  Pressed: { grip: CueGrip, note: Schema.String },
-  /** A cue is being dragged: `write` is what its release sends, none when back where it began. */
-  Dragging: { grip: CueGrip, write: Schema.Option(Write), note: Schema.String },
+  /** A cue or a knob handle is grabbed and has not moved yet: a release here only selects it. */
+  Pressed: { grip: Grip, note: Schema.String },
+  /** A cue or a knob handle is being dragged: `write` is what its release sends, none when back where it began. */
+  Dragging: { grip: Grip, write: Schema.Option(Write), note: Schema.String },
   /** A write is out: the server is changing a scene file. */
   Writing: { write: Write },
   /** The write landed; the page reloads with it. */
@@ -35,7 +36,7 @@ export const EditState = State({
 export type EditState = typeof EditState.Type;
 
 export const EditEvent = Event({
-  Press: { grip: CueGrip },
+  Press: { grip: Grip },
   /** A press on something the lab may not write: why. */
   Refuse: { message: Schema.String },
   Move: { pointer: Pointer },
@@ -97,7 +98,7 @@ export const editMachine = Machine.make({
   )
   .on(AT_REST, EditEvent.Refuse, ({ event }) => EditState.Refused({ message: event.message }))
   .on([EditState.Pressed, EditState.Dragging], EditEvent.Move, ({ state, event }) => {
-    const dragged = dragCue(state.grip, event.pointer);
+    const dragged = drag(state.grip, event.pointer);
     return Stage.use((stage) =>
       stage.preview(dragged.scene, dragged.edit).pipe(
         Effect.as(''),

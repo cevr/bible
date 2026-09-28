@@ -13,7 +13,7 @@ import type { SceneEdit } from '../../canvas/film.ts';
 import type { LabWrite } from '../../core/schema.ts';
 import { LabApi, type LabCalls, LabRefused } from '../api.ts';
 import { NotPreviewed, Stage, type StageOps } from '../stage.ts';
-import { type CueGrip, CueWrite, StepWrite } from './grip.ts';
+import { type CueGrip, CueWrite, type KnobGrip, KnobWrite, StepWrite } from './grip.ts';
 import { EditEvent, EditState, editMachine } from './machine.ts';
 
 const grip: CueGrip = {
@@ -159,6 +159,55 @@ describe('a drag on the strip', () => {
       expect(result.finalState._tag).toBe('Pressed');
     }).pipe(Effect.provide(fakes().layer)),
   );
+});
+
+// A knob's handle on the frame goes through the same machine: a press grabs
+// it, moves preview the knobs, the release writes the knob. A camera's target
+// under a pushed-in camera drags the picture: right moves the target left.
+describe('a drag of a knob handle', () => {
+  const knobGrip: KnobGrip = {
+    _tag: 'KnobGrip',
+    scene: 'three',
+    knob: 'face',
+    mode: 'picture',
+    from: [400, 200],
+    m: [2, 0, 0, 2, -480, -220],
+    inv: [0.5, 0, 0, 0.5, 240, 110],
+    frame: { left: 0, top: 0, sx: 1, sy: 1 },
+    start: [320, 180],
+    knobs: { face: [400, 200], faceZoom: 2 },
+  };
+  const to = (x: number, y: number) => EditEvent.Move({ pointer: { x, y, shift: false } });
+
+  it.effect('moves preview the knobs; the release writes the knob and holds #T', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      const result = yield* simulate(editMachine, [
+        EditEvent.Press({ grip: knobGrip }),
+        to(360, 180),
+        EditEvent.Release,
+      ]);
+      expect(result.states.map((s) => s._tag)).toEqual(['Idle', 'Pressed', 'Dragging', 'Writing']);
+      expect(result.finalState).toEqual(
+        EditState.Writing({
+          write: KnobWrite.make({ scene: 'three', knob: 'face', value: [380, 200] }),
+        }),
+      );
+      expect(log).toEqual(['pause', 'preview three face,faceZoom', 'holdT']);
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('dragged back where it began, the release puts the preview back', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      yield* assertPath(
+        editMachine,
+        [EditEvent.Press({ grip: knobGrip }), to(360, 180), to(320, 180), EditEvent.Release],
+        ['Idle', 'Pressed', 'Dragging', 'Dragging', 'Idle'],
+      );
+      expect(log.at(-1)).toBe('unpreview three');
+    }).pipe(Effect.provide(layer));
+  });
 });
 
 describe('writes', () => {

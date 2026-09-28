@@ -1,8 +1,9 @@
 // The editor's provider: its machine's actor (one per lab page, run on the
 // shell's runtime), the scene the strip shows, what the lab knows of that
-// scene's source and of the selected scene's, and the film's check. The strip
-// and the inspector read this context and send the machine events; neither
-// holds state of its own, nor reaches into another panel's.
+// scene's source and of the selected scene's, and the film's check. The strip,
+// the inspector and the knobs (rows and handles) read this context and send
+// the machine events; none holds state of its own, nor reaches into another
+// panel's.
 //
 // A drag listens on the window while the machine is Pressed or Dragging, and
 // only then: the listeners come and go with the state.
@@ -22,7 +23,16 @@ import type { CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb } from '../api.ts';
 import { useLab } from '../shell.tsx';
-import { CueGrip, type Write, cueRefusal, snapTargets } from './grip.ts';
+import {
+  CueGrip,
+  KnobGrip,
+  type Write,
+  cueRefusal,
+  filmPoint,
+  knobRefusal,
+  snapTargets,
+} from './grip.ts';
+import { type Handle, knobMode } from './handles.ts';
 import { type EditActor, EditEvent, type EditState, spawnEditor } from './machine.ts';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
@@ -54,9 +64,30 @@ export interface Press {
   readonly perSec: number;
 }
 
+/** The overlay's screen box. */
+export interface Box {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A press on a knob's handle on the frame: which, where it sits, and the overlay's screen box. */
+export interface KnobPress {
+  readonly scene: string;
+  readonly knob: string;
+  readonly handle: Handle;
+  readonly box: Box;
+  /** The pointer, in screen pixels. */
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface EditorActions {
   /** A press on a cue's bar: select it, and grab it (or say why it cannot be dragged). */
   readonly press: (press: Press) => void;
+  /** A press on a knob's handle: select it, and grab it (or say why it cannot be moved). */
+  readonly grabKnob: (press: KnobPress) => void;
   /** Write `write`, showing `edit` until the reload. */
   readonly commit: (write: Write, edit: SceneEdit) => void;
   readonly step: (verb: StepVerb) => void;
@@ -149,6 +180,34 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     );
   };
 
+  const grabKnob = (p: KnobPress) => {
+    labActions.select(Option.some({ kind: 'knob', scene: p.scene, name: p.knob }));
+    const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
+    if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
+    const knobs = stage.knobsOf(p.scene);
+    const frame = {
+      left: p.box.left,
+      top: p.box.top,
+      sx: film.width / p.box.width,
+      sy: film.height / p.box.height,
+    };
+    send(
+      EditEvent.Press({
+        grip: KnobGrip.make({
+          scene: p.scene,
+          knob: p.knob,
+          mode: knobMode(knobs, p.knob, p.handle, [film.width, film.height]),
+          from: p.handle.value,
+          m: p.handle.m,
+          inv: p.handle.inv,
+          frame,
+          start: filmPoint(frame, { x: p.x, y: p.y, shift: false }),
+          knobs,
+        }),
+      }),
+    );
+  };
+
   // A grip follows the pointer on the window while it is held, and Escape lets it go.
   const holding = createMemo(() => edit()._tag === 'Pressed' || edit()._tag === 'Dragging');
   createEffect(holding, (held) => {
@@ -185,6 +244,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     state: { edit, stripScene, inspected, stripSource, inspectedSource, report },
     actions: {
       press,
+      grabKnob,
       commit: (write, shown) => send(EditEvent.Commit({ write, edit: shown })),
       step,
       refuse: (message) => send(EditEvent.Refuse({ message })),

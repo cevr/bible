@@ -250,7 +250,18 @@ inputs (for an `until` cue, `until {mark}` and its resolved end instead of
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 `transform · value` and a drag maps the pointer back through the inverse
 (`core/affine.ts`), to whole units of the knob's own space: a knob read
-inside `at(...)`, scaled or tilted, drags where it is drawn. Read inside a
+inside `at(...)`, scaled or tilted, drags where it is drawn. A knob read
+outside every camera is drawn where the scene's next camera puts it: each
+scene draws through `hearingCameras` (`canvas/camera.ts`), which tells the
+recorder the transform inside each outermost `camera` or `multiplane` (its
+focal plane) it applies, and the reads before it are stamped with it
+(`KnobRead.framed`); the handle sits at `framed · value`. A read before the
+scene's first camera but drawn outside every camera would be misplaced, so
+read a knob where it is drawn. A camera's target (a point knob `X` beside a
+number knob `XZoom`, as `knobCamera` declares them) is a reticle; while the
+camera sits on it (the handle at the frame's centre) its drag moves the
+picture with the pointer, the target by the move taken back through the
+camera, the other way. Read inside a
 transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
 disabled. Undo write reverts the last write. Every write, a drag's, a
@@ -260,9 +271,11 @@ field's, a knob's, Undo's and Redo's, goes through one effect-machine
 two writes never race for a file; Escape during a drag puts the cue back.
 The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
 patch a drag makes, why a cue cannot be dragged) are shared by the machine
-and its tests, which run every transition with no DOM. The knobs' rows and
-handles are still plain DOM (`player/lab-knobs.ts`) and write through the
-same machine.
+and its tests, which run every transition with no DOM. The knobs' rows
+(`<Editor.Knobs>`) and handles (`<Editor.Handles>`, in the overlay) are Solid
+(`lab/editor/knobs.tsx`): a handle's press grabs the knob as a `KnobGrip`, and
+the same machine previews each move and writes on release; where a handle
+sits and how it drags are pure (`lab/editor/handles.ts`, `dragKnob`).
 
 ### Motion, compare and the look-book
 

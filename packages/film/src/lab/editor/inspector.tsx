@@ -34,7 +34,7 @@ interface NumberFieldProps {
 }
 
 /** A number the inspector writes on change: seconds, to the thousandth. */
-const NumberField = (props: NumberFieldProps) => (
+export const NumberField = (props: NumberFieldProps) => (
   <input
     class="lab-num"
     type="number"

@@ -594,6 +594,22 @@ body.lab .bar {
 .lab-handle.selected circle {
   fill: rgb(226 176 74 / 0.4);
 }
+/* A camera's target: a reticle, the framing the camera keeps on it. */
+.lab-handle.reticle rect {
+  stroke: none;
+}
+.lab-handle.reticle path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.lab-handle.reticle circle {
+  fill: var(--accent);
+  stroke: none;
+}
+.lab-handle.reticle.selected rect {
+  fill: rgb(226 176 74 / 0.18);
+}
 
 /* ── Motion tools: onion skin, speed, loops. ────────────────────────────── */
 .lab-onion,

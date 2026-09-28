@@ -8,7 +8,6 @@ import { onSettled } from 'solid-js';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { type LegacyHost, mountLegacy } from './legacy.ts';
 import { Editor } from './editor/index.ts';
-import { KnobsBridge } from './editor/knobs-bridge.tsx';
 import { Lab, useLab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
@@ -51,12 +50,14 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
           slots.layers = Option.some(el);
         }}
       />
-      <Lab.Overlay
-        ref={(el) => {
-          slots.overlay = Option.some(el);
-        }}
-      />
       <Editor.Provider>
+        <Lab.Overlay
+          ref={(el) => {
+            slots.overlay = Option.some(el);
+          }}
+        >
+          <Editor.Handles />
+        </Lab.Overlay>
         <Lab.Strip>
           <Editor.Strip />
         </Lab.Strip>
@@ -67,7 +68,7 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
         >
           <Lab.Header />
           <Editor.Section>
-            <KnobsBridge overlay={() => slots.overlay} />
+            <Editor.Knobs />
           </Editor.Section>
         </Lab.Panel>
         <Legacy slots={slots} />

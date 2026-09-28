@@ -85,6 +85,19 @@ export const sourceOne = {
 
 const sourceTwo = { scene: 'two', file: 'scenes/two.ts', cues: [], knobs: [], refused: [] };
 
+/** Scene three's source: its camera's target and zoom, and a pole, all literals. */
+export const sourceThree = {
+  scene: 'three',
+  file: 'scenes/three.ts',
+  cues: [],
+  knobs: [
+    { name: 'face', state: literal },
+    { name: 'faceZoom', state: literal },
+    { name: 'pole', state: literal },
+  ],
+  refused: [],
+};
+
 /** A write the server took, as it answers one. */
 export const wrote = (target: string, scene = 'one') => ({
   scene,
@@ -98,7 +111,8 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/notes\/wait/, () => hold),
   route('GET', /^\/scenes\/one\/source$/, () => json(sourceOne)),
   route('GET', /^\/scenes\/two\/source$/, () => json(sourceTwo)),
-  route('GET', /^\/scenes\/(one|two)\/head$/, (asked) => {
+  route('GET', /^\/scenes\/three\/source$/, () => json(sourceThree)),
+  route('GET', /^\/scenes\/(one|two|three)\/head$/, (asked) => {
     const scene = asked.path.split('/')[2] ?? '';
     return json({
       scene,

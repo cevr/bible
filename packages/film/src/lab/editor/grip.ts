@@ -8,12 +8,14 @@
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../../canvas/film.ts';
+import { applyAffine } from '../../core/affine.ts';
 import type { Placed } from '../../core/layout.ts';
 import {
   CuePatch,
   Knob,
   Knobs,
   type LabWrite,
+  Point,
   ResolvedCue,
   type SceneSource,
   Span,
@@ -136,7 +138,7 @@ export const Edit = Schema.Struct({
 
 /** Where a drag has got to: the write its release makes (none when back where it began) and the edit it shows. */
 export interface Dragged {
-  readonly write: Option.Option<CueWrite>;
+  readonly write: Option.Option<CueWrite | KnobWrite>;
   readonly scene: string;
   readonly edit: SceneEdit;
 }
@@ -168,6 +170,119 @@ export const dragCue = (grip: CueGrip, pointer: Pointer): Dragged => {
     edit: { timeline: { ...grip.timeline, [grip.cue]: span } },
   };
 };
+
+const AffineSchema = Schema.Tuple([
+  Schema.Finite,
+  Schema.Finite,
+  Schema.Finite,
+  Schema.Finite,
+  Schema.Finite,
+  Schema.Finite,
+]);
+
+/**
+ * A press on a point knob's handle: everything its drag needs, taken at the
+ * press. `point` follows the pointer: the knob moves by the pointer's move
+ * taken back through the transform it lands on the frame through. `picture`
+ * is a camera's target the camera sits on: the handle cannot leave the
+ * frame's centre, so the drag moves the picture with the pointer, and the
+ * target by the same move taken back, the other way.
+ */
+export const KnobGrip = Schema.TaggedStruct('KnobGrip', {
+  scene: Schema.String,
+  knob: Schema.String,
+  mode: Schema.Literals(['point', 'picture']),
+  /** The knob's value at the press. */
+  from: Point,
+  /** From the knob's space onto the frame, and back. */
+  m: AffineSchema,
+  inv: AffineSchema,
+  /** The overlay's screen box: its top-left, and film pixels per screen pixel. */
+  frame: Schema.Struct({
+    left: Schema.Finite,
+    top: Schema.Finite,
+    sx: Schema.Finite,
+    sy: Schema.Finite,
+  }),
+  /** The pointer at the press, in film pixels. */
+  start: Point,
+  /** The scene's knobs as shown at the press. */
+  knobs: Knobs,
+});
+export type KnobGrip = typeof KnobGrip.Type;
+
+/** A press on the strip or on the frame. */
+export const Grip = Schema.Union([CueGrip, KnobGrip]);
+export type Grip = typeof Grip.Type;
+
+/** Where `pointer` is on the overlay `frame`, in film pixels. */
+export const filmPoint = (frame: KnobGrip['frame'], pointer: Pointer): Point => [
+  (pointer.x - frame.left) * frame.sx,
+  (pointer.y - frame.top) * frame.sy,
+];
+
+/** Where the knob grabbed by `grip` lies with the pointer at `pointer`, to whole units. */
+const knobAt = (grip: KnobGrip, pointer: Pointer): Point => {
+  const now = filmPoint(grip.frame, pointer);
+  const d: Point = [now[0] - grip.start[0], now[1] - grip.start[1]];
+  const [a, b, c, e] = grip.inv;
+  if (grip.mode === 'picture')
+    return [
+      Math.round(grip.from[0] - (a * d[0] + c * d[1])),
+      Math.round(grip.from[1] - (b * d[0] + e * d[1])),
+    ];
+  const grab = applyAffine(grip.m, grip.from);
+  const [x, y] = applyAffine(grip.inv, [grab[0] + d[0], grab[1] + d[1]]);
+  return [Math.round(x), Math.round(y)];
+};
+
+/** A knob grabbed by `grip`, dragged to `pointer`. */
+export const dragKnob = (grip: KnobGrip, pointer: Pointer): Dragged => {
+  const value = knobAt(grip, pointer);
+  const moved = value[0] !== grip.from[0] || value[1] !== grip.from[1];
+  return {
+    write: Option.map(
+      Option.liftPredicate(value, () => moved),
+      (v) => KnobWrite.make({ scene: grip.scene, knob: grip.knob, value: v }),
+    ),
+    scene: grip.scene,
+    edit: { knobs: { ...grip.knobs, [grip.knob]: value } },
+  };
+};
+
+/** Whatever `grip` grabbed, dragged to `pointer`. */
+export const drag = (grip: Grip, pointer: Pointer): Dragged =>
+  Match.value(grip).pipe(
+    Match.tagsExhaustive({
+      CueGrip: (g) => dragCue(g, pointer),
+      KnobGrip: (g) => dragKnob(g, pointer),
+    }),
+  );
+
+/**
+ * Why knob `knob` cannot be written, when it cannot: the scene has no source
+ * the lab can read (`error`, as the server said), its knobs object is one the
+ * lab will not rewrite, or the knob's value is computed in source.
+ */
+export const knobRefusal = (
+  source: Option.Option<SceneSource>,
+  error: string,
+  knob: string,
+): Option.Option<string> =>
+  Option.match(source, {
+    onNone: () => Option.some(`cannot edit: ${error || 'no source for this scene'}`),
+    onSome: (s) => {
+      const refused = Arr.findFirst(s.refused, (r) => r.field === 'knobs');
+      if (Option.isSome(refused))
+        return Option.some(`cannot move ${knob}: ${refused.value.reason}`);
+      const literal = Option.exists(
+        Arr.findFirst(s.knobs, (k) => k.name === knob),
+        (k) => k.state === 'literal',
+      );
+      if (literal) return Option.none();
+      return Option.some(`cannot move ${knob}: it is computed in the source`);
+    },
+  });
 
 const NEEDS = {
   move: ['offset'],

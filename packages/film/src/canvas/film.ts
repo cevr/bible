@@ -4,6 +4,7 @@
 
 import { Predicate, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
+import { hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
 import { captionCues } from '../core/captions.ts';
 import {
@@ -208,6 +209,13 @@ export interface KnobRead {
    * composited moving or fading: there the frame cannot say where it lands.
    */
   readonly transform: Affine | undefined;
+  /**
+   * For a knob read outside every camera, the transform inside the first
+   * camera its scene applied after the read: a point read before `camera(…)`
+   * (or `multiplane`, its focal plane) and drawn inside it lands at
+   * `framed · value`. None when no camera followed, or read inside one.
+   */
+  readonly framed?: Affine;
 }
 
 /** Where a frame records the knobs it read, for the lab (`RenderOptions.knobs`). */
@@ -394,6 +402,15 @@ export const createFilm = (spec: FilmSpec): Film => {
   ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
+    // The reads made outside every camera and not yet framed by one: the next camera frames them.
+    const unframed: number[] = [];
+    const frameReads = (list: KnobRead[], inside: DOMMatrix) => {
+      for (const i of unframed) {
+        const read = list[i];
+        if (read !== undefined) list[i] = { ...read, framed: affineOf(inside) };
+      }
+      unframed.length = 0;
+    };
     const shown = override?.scene === p.spec.id ? override.shown : (previews.get(p.spec.id) ?? p);
     const frame: Frame = {
       ctx,
@@ -420,6 +437,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
+        if (reads?.direct === true && !insideCamera(ctx)) unframed.push(reads.list.length);
         reads?.list.push({
           scene: p.spec.id,
           name,
@@ -445,7 +463,9 @@ export const createFilm = (spec: FilmSpec): Film => {
       },
     };
     ctx.save();
-    p.spec.draw(frame);
+    const heard =
+      reads?.direct === true ? (inside: DOMMatrix) => frameReads(reads.list, inside) : undefined;
+    hearingCameras(ctx, heard, () => p.spec.draw(frame));
     ctx.restore();
   };
 
