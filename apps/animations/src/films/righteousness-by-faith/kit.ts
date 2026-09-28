@@ -24,6 +24,17 @@ export const F = fonts;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * A resting camera from its knobs: where it looks (a point knob), how close (a
+ * number knob, `<name>Zoom`) and, for a framing that leans, its turn
+ * (`<name>Rot`), so the lab can move a framing like any other knob.
+ */
+export const knobCamera = (
+  [x, y]: readonly [number, number],
+  zoom: number,
+  rot?: number,
+): Camera => (rot === undefined ? { x, y, zoom } : { x, y, zoom, rot });
+
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [
   [-80, -48],
@@ -50,14 +61,6 @@ export const mix = (a: string, b: string, t: number): string => {
   );
   return `#${out.join('')}`;
 };
-
-/** A camera part way from `a` to `b`. */
-export const between = (a: Camera, b: Camera, t: number): Camera => ({
-  x: lerp(a.x, b.x, t),
-  y: lerp(a.y, b.y, t),
-  zoom: lerp(a.zoom ?? 1, b.zoom ?? 1, t),
-  rot: lerp(a.rot ?? 0, b.rot ?? 0, t),
-});
 
 // ─── shapes ──────────────────────────────────────────────────────────────────
 
@@ -884,8 +887,8 @@ const CREASE = spline([
 
 /**
  * The open hand, palm up, the palm's centre near (0, 0), about 390 units
- * wide: faith, the hand that takes (`look` draws its own, `daily` lays the
- * icons in this one). `open` 1 holds the fingers straight; toward 0 they curl
+ * wide: faith, the hand that takes (`look` lays the gold light in it, `daily`
+ * the icons). `open` 1 holds the fingers straight; toward 0 they curl
  * down toward the palm, as a hand closes.
  */
 export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {

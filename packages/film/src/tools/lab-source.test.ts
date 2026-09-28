@@ -48,6 +48,7 @@ const brokenRepo = (films: string) =>
           Effect.fail(
             FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
           ),
+        script: repo.script,
       }),
     ),
   ).pipe(Layer.provide(FilmRepo.layer(films)));

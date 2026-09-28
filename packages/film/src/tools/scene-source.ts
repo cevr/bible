@@ -72,7 +72,7 @@ interface Splice {
 }
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
-const ANCHORS: ReadonlyArray<string> = ['mark', 'after', 'with', 'scene'];
+const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'scene'];
 const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
   keyof CuePatch
 >;

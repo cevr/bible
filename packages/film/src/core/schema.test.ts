@@ -14,6 +14,7 @@ const take: VoiceTiming = {
   hash: 'h',
   file: 'a.mp3',
   duration: 2,
+  source: 'elevenlabs',
   words: [
     { text: 'Look', start: 0, end: 0.4 },
     { text: 'and', start: 0.5, end: 0.8 },
@@ -54,6 +55,27 @@ describe('Timings', () => {
 
   test('refuses words out of order', () => {
     expect(decodes(withWord(2, { start: 0.2 }))).toBe(false);
+  });
+
+  test('a take stored without a source reads as staged; a recorded one keeps its source', () => {
+    const stored = (source: string) =>
+      `{"voice":"v","scenes":{"a":{"hash":"h","file":"a.mp3","duration":1,"words":[]${source}}}}`;
+    const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Timings));
+    expect(decode(stored(''))).toMatchObject({ scenes: { a: { source: 'elevenlabs' } } });
+    expect(decode(stored(',"source":"recorded"'))).toMatchObject({
+      scenes: { a: { source: 'recorded' } },
+    });
+    expect(() => decode(stored(',"source":"someone"'))).toThrow();
+  });
+
+  test('a staged take is written as before takes had a source, so committed timings never churn', () => {
+    const stored = (source: string) =>
+      `{"voice":"v","scenes":{"a":{"hash":"h","file":"a.mp3","duration":1,"words":[]${source}}}}`;
+    const codec = Schema.fromJsonString(Timings);
+    const roundTrip = (text: string) => Schema.encodeSync(codec)(Schema.decodeSync(codec)(text));
+    expect(roundTrip(stored(''))).toBe(stored(''));
+    expect(roundTrip(stored(',"source":"elevenlabs"'))).toBe(stored(''));
+    expect(roundTrip(stored(',"source":"recorded"'))).toBe(stored(',"source":"recorded"'));
   });
 
   test('refuses a word that ends after the take', () => {

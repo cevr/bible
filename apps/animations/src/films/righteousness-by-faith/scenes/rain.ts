@@ -13,11 +13,8 @@ import { C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
 
+/** The unmoved frame (the canvas itself, so not a knob). */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
-/** Tilted up to the sanctuary. */
-const UP: Camera = { x: 960, y: -40, zoom: 1 };
-/** Down over the city on the horizon. */
-const CITY: Camera = { x: 1000, y: 560, zoom: 1.7 };
 
 /** Where the sanctuary floats, on the far plane. */
 const SANCTUARY: Pt = [960, -110];
@@ -63,16 +60,25 @@ export const rain = drawing({
     fly: { mark: 'loud', offset: -0.1, dur: 3.9, ease: 'linear' },
     turn: { mark: 'loud', offset: 0.6, dur: 0.6 },
   },
+  knobs: {
+    // Tilted up to the sanctuary.
+    up: [960, -40],
+    // Down over the city on the horizon.
+    city: [1000, 560],
+    cityZoom: 1.7,
+  },
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
     const green = f.at('green');
     const up = f.at('tiltUp') * (1 - f.at('down'));
     const down = f.at('down');
+    const upAt = f.knob('up');
+    const city = f.knob('city');
     const cam: Camera = {
-      x: lerp(lerp(REST.x, UP.x, up), CITY.x, down),
-      y: lerp(lerp(REST.y, UP.y, up), CITY.y, down),
-      zoom: lerp(1, CITY.zoom ?? 1, down),
+      x: lerp(lerp(REST.x, upAt[0], up), city[0], down),
+      y: lerp(lerp(REST.y, upAt[1], up), city[1], down),
+      zoom: lerp(1, f.knob('cityZoom'), down),
     };
     const wink = f.at('wink');
     const turn = f.at('turn');

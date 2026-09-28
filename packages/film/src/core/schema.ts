@@ -36,6 +36,13 @@ export const Word = Schema.Struct({
 }).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
+/**
+ * Who read a take: the ElevenLabs staging voice (`narrate`), or a person
+ * (`takes import`, the lab's studio). Staging never replaces a recorded take.
+ */
+export const TakeSource = Schema.Literals(['elevenlabs', 'recorded']);
+export type TakeSource = typeof TakeSource.Type;
+
 /** What narrate records for one scene: its words in order, all inside the take. */
 export const VoiceTiming = Schema.Struct({
   /** Hash of the spoken text; a mismatch means the take is stale. */
@@ -43,6 +50,19 @@ export const VoiceTiming = Schema.Struct({
   file: Schema.String,
   duration: Seconds,
   words: Schema.Array(Word),
+  /**
+   * A take stored with no source was staged: it reads as `elevenlabs`, and a
+   * staged take is written with none, so the committed timings never churn.
+   */
+  source: Schema.optionalKey(TakeSource).pipe(
+    Schema.decodeTo(
+      TakeSource,
+      SchemaTransformation.transformOptional({
+        decode: (source) => Option.orElseSome(source, (): TakeSource => 'elevenlabs'),
+        encode: (source) => Option.filter(source, (s) => s !== 'elevenlabs'),
+      }),
+    ),
+  ),
 }).check(
   Schema.makeFilter((take) => {
     const issues: Array<Schema.FilterIssue> = [];
@@ -206,12 +226,18 @@ const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
 
 /**
  * Where a named cue starts, plus how long it lasts: at a `{mark}` in the
- * scene's narration, at the end of another cue (`after`), at its start
- * (`with`), or at a scene landmark (its start, where the voice starts or
- * ends, or its end).
+ * scene's narration, or at the first `word` said at or after it (a word pin,
+ * for a beat on a word that has no mark: `{ mark: 'gift', word: 'faith' }`;
+ * a line that never says it there is `WordMissing` at layout), at the end of
+ * another cue (`after`), at its start (`with`), or at a scene landmark (its
+ * start, where the voice starts or ends, or its end).
  */
 export const Span = Schema.Union([
-  ...anchored({ mark: Schema.String }),
+  ...anchored({
+    mark: Schema.String,
+    /** Pin to this word at or after the mark, not the mark; read as a take is checked (`normalizeWords`). */
+    word: Schema.optionalKey(Schema.String),
+  }),
   ...anchored({ after: Schema.String }),
   ...anchored({ with: Schema.String }),
   ...anchored({ scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']) }),
@@ -278,6 +304,14 @@ export const Beat = Schema.Struct({
   picture: Schema.String,
 });
 export type Beat = typeof Beat.Type;
+
+/**
+ * `script.ts`'s optional `heardAs`: a word of the script (a name, mostly) and
+ * the ways speech-to-text writes it, so a take that reads it right is not a
+ * mismatch: `{ Ellet: ['Elliot', 'Elliott'] }`.
+ */
+export const HeardAs = Schema.Record(Schema.String, Schema.Array(Schema.String));
+export type HeardAs = typeof HeardAs.Type;
 
 // ---------------------------------------------------------------------------
 // Sound

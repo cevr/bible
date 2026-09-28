@@ -1,5 +1,6 @@
 // A camera over a scene's world: (x, y) is the world point at frame centre.
 
+import { lerp } from '../core/time.ts';
 import { raised } from './cutout.ts';
 
 export interface Camera {
@@ -76,6 +77,41 @@ const shoot = (
   if (heard) tell(ctx);
   deeper(ctx, draw);
   ctx.restore();
+};
+
+/**
+ * `out` part way from camera `a` to `b` at `t` (0 is `a`, 1 is `b`), every
+ * field blended, a missing zoom read as 1 and a missing turn as 0. `out` may
+ * be `a`: each field is read before it is written.
+ */
+export const lerpCamera = (out: Camera, a: Camera, b: Camera, t: number): Camera => {
+  out.x = lerp(a.x, b.x, t);
+  out.y = lerp(a.y, b.y, t);
+  out.zoom = lerp(a.zoom ?? 1, b.zoom ?? 1, t);
+  out.rot = lerp(a.rot ?? 0, b.rot ?? 0, t);
+  return out;
+};
+
+/** One leg of a shot: how far along it is (a cue's `f.at`), and where it goes. */
+export type ShotStop = readonly [progress: number, to: Camera];
+
+/**
+ * A shot as data: from `base`, each stop in turn blends the camera so far
+ * toward its `to` by its progress, so a later stop takes over from wherever
+ * the earlier ones left it. `shotPath(REST, [[f.at('push'), FACE], [f.at('back'), REST]])`
+ * pushes in, then comes back. Written into `out`, a fresh camera by default.
+ */
+export const shotPath = (
+  base: Camera,
+  stops: ReadonlyArray<ShotStop>,
+  out: Camera = { x: 0, y: 0 },
+): Camera => {
+  out.x = base.x;
+  out.y = base.y;
+  out.zoom = base.zoom ?? 1;
+  out.rot = base.rot ?? 0;
+  for (const [progress, to] of stops) lerpCamera(out, out, to, progress);
+  return out;
 };
 
 export const camera = (

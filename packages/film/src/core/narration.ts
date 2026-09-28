@@ -139,6 +139,38 @@ export const voiceKey = (voice: Voice): string => {
   return `${voices}/${voice.model}/${settings}`;
 };
 
+/** Why a beat's take no longer fits it. */
+export type StaleReason = 'missing' | 'text changed' | 'voice changed';
+
+/**
+ * Where a beat's take stands: current and read by a person (`Recorded`),
+ * current and read by the staging voice (`Staging`), or `Stale`. A person's
+ * take is read by no voice in the film, so a change of staging voice never
+ * stales it; only a change of its words does. `recorded` says whether the
+ * stale take was a person's, which staging must not replace unasked.
+ */
+export type TakeState =
+  | { readonly _tag: 'Recorded' }
+  | { readonly _tag: 'Staging' }
+  | { readonly _tag: 'Stale'; readonly reason: StaleReason; readonly recorded: boolean };
+
+/** The state of the take `timings` keep for beat `id`, whose take script is `script`, under `voice` (`voiceKey`). */
+export const takeState = (
+  id: string,
+  script: string,
+  timings: Timings,
+  voice: string,
+): TakeState => {
+  const take = timings.scenes[id];
+  if (take === undefined) return { _tag: 'Stale', reason: 'missing', recorded: false };
+  const recorded = take.source === 'recorded';
+  if (!recorded && timings.voice !== voice)
+    return { _tag: 'Stale', reason: 'voice changed', recorded };
+  if (take.hash !== hashText(script)) return { _tag: 'Stale', reason: 'text changed', recorded };
+  if (recorded) return { _tag: 'Recorded' };
+  return { _tag: 'Staging' };
+};
+
 /**
  * Words with estimated times: ~2.7 words/s, longer words take longer, and
  * punctuation adds a pause. Close enough to lay out a cut before recording.
@@ -156,6 +188,53 @@ export const estimate = (spoken: string): Word[] => {
   }
   return out;
 };
+
+/**
+ * Words only, as a take is checked against its script (`narrator`'s word
+ * error): composed (NFC, so an accent is one letter however it was typed),
+ * lower case, apostrophes dropped (`God’s` is `gods`), and every other mark a
+ * break (`cover-up` is `cover`, `up`). Letters are any script's, accents kept.
+ */
+export const normalizeWords = (s: string): ReadonlyArray<string> =>
+  s
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+
+/**
+ * Whether a spoken word reads `word`, both normalised as a take is checked
+ * (`normalizeWords`): `“Not,` reads `not`, `God’s` reads `god's`, and
+ * `cover-up` reads `cover`, `up` and `cover-up`, a whole part at a time.
+ */
+export const readsWord = (text: string, word: string): boolean => {
+  const said = normalizeWords(text);
+  const want = normalizeWords(word);
+  if (want.length === 0) return false;
+  for (let i = 0; i + want.length <= said.length; i++)
+    if (want.every((w, k) => said[i + k] === w)) return true;
+  return false;
+};
+
+/** Whether a spoken word ends a sentence: `.`, `!` or `?`, before any closing quote or bracket. */
+export const endsSentence = (text: string): boolean => /[.!?]["”’)]*$/.test(text);
+
+/**
+ * When the first word said at or after `from` (seconds, on the words' clock)
+ * that reads `word` starts; none when the line never says it there. A word
+ * pin (`{ mark, word }`) lands here.
+ */
+export const wordAfter = (
+  words: ReadonlyArray<Word>,
+  from: number,
+  word: string,
+): Option.Option<number> =>
+  Option.map(
+    Arr.findFirst(words, (w) => w.start >= from - 1e-3 && readsWord(w.text, word)),
+    (w) => w.start,
+  );
 
 /**
  * Words as spoken in a recorded take. ElevenLabs aligns characters; group them
@@ -196,6 +275,19 @@ export const wordsFromAlignment = (
     return Result.fail(AlignmentMismatch.make({ spoken, words: out.length, expected }));
   return Result.succeed(out);
 };
+
+/**
+ * Words held inside a take `duration` seconds long. The alignment runs on the
+ * speech model's clock and the take is measured from its encoded file; the
+ * two can disagree by a frame or, at the end of a long line, by more. A word
+ * past the end ends at it (and starts there at the latest), so the timings
+ * always fit the audio they time.
+ */
+export const heldInside = (words: ReadonlyArray<Word>, duration: number): Word[] =>
+  words.map((w) => {
+    const start = Math.min(Math.max(0, w.start), duration);
+    return { text: w.text, start, end: Math.min(Math.max(start, w.end), duration) };
+  });
 
 export interface SceneVoice {
   readonly spoken: string;

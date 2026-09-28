@@ -12,6 +12,7 @@ export {
   UnknownMark,
   UnknownScene,
   UnknownVoice,
+  WordMissing,
 } from '../core/errors.ts';
 
 export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {
@@ -73,6 +74,62 @@ export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismat
   }
 }
 
+/**
+ * A person's recording that cannot become a take: named for no beat, with
+ * nothing in it louder than the room, or one file with no beat to be.
+ */
+export class RecordingInvalid extends Schema.TaggedError<RecordingInvalid>()('RecordingInvalid', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file}: ${this.reason}`;
+  }
+}
+
+/** A recording the studio was sent that is not one: not base64, or of a type no recorder makes. */
+export class AudioInvalid extends Schema.TaggedError<AudioInvalid>()('AudioInvalid', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the recording sent is not audio the studio reads: ${this.reason}`;
+  }
+}
+
+/**
+ * A recording sent to the studio in a lossy codec (Opus, AAC, MP3). A
+ * person's take is the film's final voice and its master is lossless, so the
+ * studio takes PCM (WAV) or FLAC only: a lossy upload would bake its codec's
+ * loss into the master.
+ */
+export class RecordingLossy extends Schema.TaggedError<RecordingLossy>()('RecordingLossy', {
+  type: Schema.String,
+}) {
+  override get message() {
+    return `a recording of type "${this.type}" is lossy; send the take as audio/wav (PCM) or audio/flac`;
+  }
+}
+
+/** `--accept-mismatch` bare with no `--only`: it would accept every beat's mismatch unseen. */
+export class AcceptMismatchUnnamed extends Schema.TaggedError<AcceptMismatchUnnamed>()(
+  'AcceptMismatchUnnamed',
+  {},
+) {
+  override get message() {
+    return '--accept-mismatch names the beats it accepts (--accept-mismatch a,b); bare, it needs --only';
+  }
+}
+
+/** A request body over what the studio reads, refused before it is read whole. */
+export class BodyTooLarge extends Schema.TaggedError<BodyTooLarge>()('BodyTooLarge', {
+  /** The most the route reads, in bytes. */
+  limit: Schema.Int,
+}) {
+  override get message() {
+    return `the request body is over ${this.limit} bytes`;
+  }
+}
+
 export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('ElevenLabsFailed', {
   op: Schema.String,
   exitCode: Schema.Int,
@@ -80,6 +137,17 @@ export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('El
 }) {
   override get message() {
     return `elevenlabs ${this.op} failed (${this.exitCode}): ${this.reason}`;
+  }
+}
+
+/** Speech-to-text heard words in a take but timed none of them: nothing to time the script by. */
+export class SttUntimed extends Schema.TaggedError<SttUntimed>()('SttUntimed', {
+  file: Schema.String,
+  /** How many words its text holds. */
+  heard: Schema.Int,
+}) {
+  override get message() {
+    return `speech-to-text heard ${this.heard} words in ${this.file} but timed none of them; import it again`;
   }
 }
 
@@ -346,6 +414,23 @@ export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
 // failure only; the run fails with `CheckFailed` once every one is reported.
 
 /** A named cue that ends after its scene does. */
+/**
+ * A word pin that lands more than one sentence past its mark: the line says
+ * the word near the mark no longer (a re-take dropped or moved it), and the
+ * cue has moved to a later saying without an error.
+ */
+export class WordPinFar extends Schema.TaggedError<WordPinFar>()('WordPinFar', {
+  scene: Schema.String,
+  cue: Schema.String,
+  mark: Schema.String,
+  word: Schema.String,
+  sentences: Schema.Int,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" is pinned to "${this.word}", ${this.sentences} sentences past {${this.mark}}: a re-take that dropped the word near the mark moves the cue there`;
+  }
+}
+
 export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
   scene: Schema.String,
   cue: Schema.String,
@@ -393,8 +478,12 @@ export class StaticHold extends Schema.TaggedError<StaticHold>()('StaticHold', {
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,
   reason: Schema.Literals(['missing', 'text changed', 'voice changed']),
+  /** The stale take was read by a person: staging does not replace it unasked. */
+  recorded: Schema.Boolean,
 }) {
   override get message() {
+    if (this.recorded)
+      return `scene "${this.scene}": recorded take is stale (${this.reason}); record it again and run takes import, or stage it with narrate --only ${this.scene} --replace-recorded`;
     return `scene "${this.scene}": take is stale (${this.reason}); run narrate`;
   }
 }

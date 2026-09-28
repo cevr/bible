@@ -17,22 +17,17 @@ import {
   line,
   multiplane,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, sky, between } from '../kit.ts';
+import { C, blob, contact, glow, knobCamera, person, piece, sky } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 
-/** The garden's rest, and close on the sewing. */
+/** The garden's rest: the unmoved frame (the canvas itself, so not a knob). */
 const GARDEN: Camera = { x: 960, y: 540, zoom: 1 };
-const SEW: Camera = { x: 960, y: 700, zoom: 2.2 };
-const PATCH: Camera = { x: 960, y: 670, zoom: 1.7 };
-
-/** The mirror's rest, and the push on the stains. */
-const GLASS: Camera = { x: 1060, y: 580, zoom: 1.05 };
-const STAINED: Camera = { x: 1170, y: 565, zoom: 1.24 };
 
 /** The stains the leaves hide and the mirror shows, in a person's units. */
 const STAINS = [
@@ -58,9 +53,24 @@ const timeline = {
   push: { mark: 'stain', dur: 1, ease: 'inOutSine' },
   scrub: { mark: 'wash', offset: -0.1, dur: 0.4 },
   back: { mark: 'wash', dur: 1, ease: 'inOutSine' },
-  glance: { mark: 'wash', offset: 1.3, dur: 0.4 },
+  // Once the camera is back, he glances out at us.
+  glance: { after: 'back', offset: 0.3, dur: 0.4 },
 } as const;
-const knobs = { figure: [960, 930], mirror: [1250, 560], viewer: [860, 990] } as const;
+const knobs = {
+  figure: [960, 930],
+  mirror: [1250, 560],
+  viewer: [860, 990],
+  // Close on the sewing, then on the patch.
+  sew: [960, 700],
+  sewZoom: 2.2,
+  patch: [960, 670],
+  patchZoom: 1.7,
+  // The mirror's rest, and the push on the stains.
+  glass: [1060, 580],
+  glassZoom: 1.05,
+  stained: [1170, 565],
+  stainedZoom: 1.24,
+} as const;
 
 type MirrorFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
@@ -81,11 +91,11 @@ const garden = (f: MirrorFrame) => {
     [0, C.peachTop],
     [1, C.peachLow],
   ]);
-  const cam = between(
-    between(between(GARDEN, SEW, f.at('toSew')), PATCH, f.at('toPatch')),
-    GARDEN,
-    f.at('wide'),
-  );
+  const cam = shotPath(GARDEN, [
+    [f.at('toSew'), knobCamera(f.knob('sew'), f.knob('sewZoom'))],
+    [f.at('toPatch'), knobCamera(f.knob('patch'), f.knob('patchZoom'))],
+    [f.at('wide'), GARDEN],
+  ]);
   const sewing = f.at('toSew') * (1 - f.at('promise'));
   const promise = f.at('promise') * (1 - f.at('sheepish'));
   const sheepish = f.at('sheepish') * (1 - f.at('droop'));
@@ -204,7 +214,11 @@ const glass = (f: MirrorFrame) => {
   const flare = f.at('flare');
   const scrub = f.at('scrub') * (1 - f.at('glance'));
   const glance = f.at('glance');
-  const cam = between(between(GLASS, STAINED, f.at('push')), GLASS, f.at('back'));
+  const GLASS = knobCamera(f.knob('glass'), f.knob('glassZoom'));
+  const cam = shotPath(GLASS, [
+    [f.at('push'), knobCamera(f.knob('stained'), f.knob('stainedZoom'))],
+    [f.at('back'), GLASS],
+  ]);
   const rub = Math.sin(t * 13) * 16 * scrub;
   const handR: [number, number] = [lerp(30, 70, scrub), lerp(-60, -124, scrub) + rub];
 

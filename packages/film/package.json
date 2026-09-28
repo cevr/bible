@@ -22,6 +22,7 @@
     "@mediabunny/aac-encoder": "1.60.0",
     "@solidjs/compiler": "catalog:",
     "@solidjs/web": "catalog:",
+    "@wasm-audio-decoders/flac": "0.2.11",
     "effect": "catalog:",
     "effect-machine": "catalog:",
     "math": "0.1.0",

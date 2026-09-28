@@ -5,12 +5,22 @@
 // and fall back to the CLI's OAuth login, which covers everything but sound
 // effects.
 
-import { Config, Context, Effect, Layer, Option, Redacted, Schema, Semaphore } from 'effect';
+import {
+  Config,
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Redacted,
+  Result,
+  Schema,
+  Semaphore,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import type { Line } from '../core/narration.ts';
-import { type Cast, MusicModel, Plan, type Reader } from '../core/schema.ts';
-import { ApiKeyMissing, ElevenLabsFailed } from './errors.ts';
+import { type Cast, MusicModel, Plan, type Reader, type Word } from '../core/schema.ts';
+import { ApiKeyMissing, ElevenLabsFailed, SttUntimed } from './errors.ts';
 import { type Finished, collect, isNotFound } from './process.ts';
 
 const OUTPUT_FORMAT = 'mp3_44100_192';
@@ -86,9 +96,45 @@ export const DialogueResponse = Schema.Struct({
 });
 export type DialogueResponse = typeof DialogueResponse.Type;
 
-/** `speech-to-text convert`: what a take actually says. */
-export const SttResponse = Schema.Struct({ text: Schema.String });
+/** One stretch of a transcript: a word, the spacing after it, or a sound (`(breath)`). */
+const SttWord = Schema.Struct({
+  text: Schema.String,
+  start: Schema.Finite,
+  end: Schema.Finite,
+  type: Schema.String,
+});
+
+/**
+ * `speech-to-text convert`: what a take actually says, and when each word of
+ * it was heard (a person's take is timed by these).
+ */
+export const SttResponse = Schema.Struct({
+  text: Schema.String,
+  /** Absent when the reply carries no timestamps: `heardWords` refuses that for a take. */
+  words: Schema.optionalKey(Schema.Array(SttWord)),
+});
 export type SttResponse = typeof SttResponse.Type;
+
+/**
+ * The words a transcript heard, in order, with their times: spacing and sound
+ * events left out. A reply whose text has words but whose timestamps time
+ * none of them fails `SttUntimed`: a take timed by nothing would place every
+ * script word in one guessed gap. A reply that heard nothing has no words.
+ */
+export const heardWords = (
+  reply: SttResponse,
+  file: string,
+): Result.Result<ReadonlyArray<Word>, SttUntimed> => {
+  const timed = Option.getOrElse(
+    Option.fromNullishOr(reply.words),
+    (): (typeof SttWord.Type)[] => [],
+  )
+    .filter((w) => w.type === 'word')
+    .map((w) => ({ text: w.text, start: w.start, end: Math.max(w.start, w.end) }));
+  const heard = reply.text.split(/\s+/).filter((w) => w.length > 0).length;
+  if (heard > 0 && timed.length === 0) return Result.fail(SttUntimed.make({ file, heard }));
+  return Result.succeed(timed);
+};
 
 export interface TtsRequest {
   readonly text: string;

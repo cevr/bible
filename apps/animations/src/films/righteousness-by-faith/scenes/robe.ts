@@ -2,7 +2,7 @@
 // lift the filthy clothes off Joshua and carry them out left (Zech 3:4); the
 // last speck lifts from his cheek; Christ reaches out to him. Then a push
 // into the light, where a loom weaves a robe with no hand at it but light,
-// and the robe settles on Joshua. The ask's doubt is a tiny cloak dropped
+// and the robe settles on Joshua. The doubt is a tiny cloak dropped
 // over a stain and flicked away; the answer is a look beneath the robe: the
 // stain is there on the grey paper, and on "away" it breaks up and is carried
 // out of the frame the way the clothes went, leaving clean paper (never a
@@ -88,16 +88,20 @@ const loomFrame = (
 
 const timeline = {
   lift: { mark: 'take', offset: 0.33, dur: 1.5 },
-  carry: { mark: 'take', offset: 2.1, dur: 2.75, ease: 'inOutSine' },
-  specks: { mark: 'take', offset: 2.5, dur: 0.8 },
+  carry: { mark: 'take', word: 'him', offset: -0.1, dur: 2.75, ease: 'inOutSine' },
+  specks: { with: 'carry', offset: 0.4, dur: 0.8 },
   speck: { mark: 'pass', dur: 1.17 },
   reachOut: { mark: 'clothe', dur: 0.75 },
   loomIn: { mark: 'loom', offset: -0.33, dur: 0.67 },
   pushLoom: { mark: 'loom', offset: 0.33, dur: 1.17 },
-  weave: { mark: 'woven', offset: -0.4, dur: 2.9, ease: 'linear' },
+  // The loom weaves as soon as the push reaches it, so the robe rises from it
+  // before "So is it a cover-up?" and the cloak's hover plays on its word.
+  weave: { after: 'pushLoom', dur: 2.9, ease: 'linear' },
   robeUp: { after: 'weave', dur: 0.4 },
   settle: { after: 'robeUp', dur: 0.75, ease: 'outSoft' },
   lookDown: { after: 'settle', dur: 0.5 },
+  // The robe's glow comes up on him once it has settled.
+  glowUp: { after: 'settle', dur: 0.25, ease: 'linear' },
   hover: { mark: 'nicer', dur: 0.4 },
   cover: { mark: 'just', offset: 0.1, dur: 0.4, ease: 'outBack' },
   flick: { mark: 'no', dur: 0.5, ease: 'inCubic' },
@@ -243,9 +247,8 @@ const weaving = (f: RobeFrame) => {
 
 /** B2: close on Joshua's face as the robe settles on him. */
 const robed = (f: RobeFrame) => {
-  const { ctx, w, h, t } = f;
+  const { ctx, w, h } = f;
   const { hand } = f;
-  const settle = f.cue('settle');
   const down = f.at('lookDown');
   // The robe comes up onto him from below, clear of his face.
   const drop = lerp(560, 0, f.at('settle'));
@@ -257,7 +260,7 @@ const robed = (f: RobeFrame) => {
       hand('face'),
     ),
   );
-  glow(ctx, 960, 720, 450, C.glow, (1 - Math.abs(down - 0.6)) * clamp((t - settle.end) * 4));
+  glow(ctx, 960, 720, 450, C.glow, (1 - Math.abs(down - 0.6)) * f.at('glowUp'));
   at(ctx, { x: 960, y: 660 + drop }, () =>
     piece(
       ctx,
@@ -438,7 +441,7 @@ const judged = (f: RobeFrame) => {
         tunic: { at: [JOSHUA[0] - 1250, JOSHUA[1]], flare: () => 0 },
         helpers: { grip: 1, dx: -1250, bob: 0, up: 1 },
       });
-      at(ctx, { x: GAVEL_ON[0], y: GAVEL_ON[1] }, () => gavel(ctx, hand, GAVEL_LIE));
+      gavel(ctx, hand, { x: GAVEL_ON[0], y: GAVEL_ON[1], rot: GAVEL_LIE });
       // The glow rising in his chest, beyond the verdict.
       glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 90 + 110 * beyond, C.glow, 0.8 * beyond);
       glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 40 + 40 * beyond, C.gold, 0.4 * beyond);

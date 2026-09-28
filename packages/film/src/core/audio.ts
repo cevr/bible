@@ -40,6 +40,27 @@ export const slice = (pcm: Pcm, from: number, frames: number): Pcm => ({
 });
 
 /**
+ * `pcm` fading in from silence over its first `seconds` and out to silence
+ * over its last (linear, sample by sample: the first and last samples are 0),
+ * every sample between as it was. A copy; `pcm` is left alone.
+ */
+export const fadeEdges = (pcm: Pcm, seconds: number): Pcm => {
+  const n = Math.min(Math.round(seconds * pcm.rate), Math.floor(pcm.frames / 2));
+  return {
+    ...pcm,
+    channels: pcm.channels.map((plane) => {
+      const out = plane.slice(0, pcm.frames);
+      for (let i = 0; i < n; i++) {
+        const k = i / n;
+        out[i] = (out[i] ?? 0) * k;
+        out[pcm.frames - 1 - i] = (out[pcm.frames - 1 - i] ?? 0) * k;
+      }
+      return out;
+    }),
+  };
+};
+
+/**
  * Two channels. Mono spreads to both sides at −3 dB, as ffmpeg's rematrix did
  * in the graph the mix was balanced with (libswresample/rematrix.c,
  * `center_mix_level`); stereo passes through; more channels keep their first two.
@@ -74,6 +95,15 @@ export const toInt16 = (pcm: Pcm): Int16Array => {
   return out;
 };
 
+/** Interleaved 32-bit float samples, as they are: nothing rounded. */
+export const toInterleaved = (pcm: Pcm): Float32Array => {
+  const n = pcm.channels.length;
+  const out = new Float32Array(pcm.frames * n);
+  for (const [c, channel] of pcm.channels.entries())
+    for (let i = 0; i < pcm.frames; i++) out[i * n + c] = channel[i] ?? 0;
+  return out;
+};
+
 /** How loud a sound is, in dBFS: its mean power and its peak (what ffmpeg's volumedetect reports). */
 export interface Levels {
   readonly mean: number;
@@ -94,4 +124,32 @@ export const levels = (pcm: Pcm): Levels => {
     mean: 10 * Math.log10(samples > 0 ? power / samples : 0),
     peak: 20 * Math.log10(peak),
   };
+};
+
+/** One channel: the mean of `pcm`'s channels, sample by sample. */
+export const toMono = (pcm: Pcm): Pcm => {
+  const out = new Float32Array(pcm.frames);
+  const n = Math.max(1, pcm.channels.length);
+  for (const channel of pcm.channels)
+    for (let i = 0; i < pcm.frames; i++) out[i] = (out[i] ?? 0) + (channel[i] ?? 0) / n;
+  return { rate: pcm.rate, frames: pcm.frames, channels: [out] };
+};
+
+/** The RMS level in dBFS of each `window` frames of `plane`, in order; the last may be short. */
+export const windowLevels = (plane: Float32Array, window: number): Float64Array => {
+  const out = new Float64Array(Math.ceil(plane.length / window));
+  for (let w = 0; w < out.length; w++) {
+    const from = w * window;
+    const to = Math.min(plane.length, from + window);
+    let power = 0;
+    for (let i = from; i < to; i++) power += (plane[i] ?? 0) ** 2;
+    out[w] = 10 * Math.log10(power / Math.max(1, to - from));
+  }
+  return out;
+};
+
+/** `pcm` made `db` decibels louder (quieter when negative). */
+export const gain = (pcm: Pcm, db: number): Pcm => {
+  const k = 10 ** (db / 20);
+  return { ...pcm, channels: pcm.channels.map((channel) => channel.map((x) => x * k)) };
 };

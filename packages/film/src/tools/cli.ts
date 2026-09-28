@@ -3,7 +3,9 @@
 // names its films folder and serves its player page, which imports the same
 // folder, so the tools and the page always read one film.
 //
-//   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch]
+//   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
+//   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
+//   film script <film> [--sheet]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound]
@@ -35,13 +37,17 @@ import {
   Layer,
   Logger,
   Option,
-  type Path,
+  Path,
   Result,
   Schema,
+  Stdio,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
+import type { ChildProcessSpawner } from 'effect/unstable/process';
 import { scenesOf } from '../core/layout.ts';
+import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
+import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
@@ -56,14 +62,18 @@ import {
   CheckFailed,
   CuesLate,
   type ElevenLabsFailed,
+  type MediaFailed,
   SoundMissing,
   UnknownEffect,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { Media } from './media.ts';
+import { Media, ffmpegReady } from './media.ts';
 import { Mixer, masterFile, measureMaster } from './mixer.ts';
-import { Narrator, planNarration } from './narrator.ts';
+import { writeSheet } from './script-sheet.ts';
+import { Takes } from './takes.ts';
+import { Narrator, planNarration, stateLine } from './narrator.ts';
 import { labHandler } from './lab.ts';
+import { studioHandler, withStudio } from './studio.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
@@ -96,6 +106,17 @@ const scenes = Flag.String('scene').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => ids.split(','))),
 );
+/**
+ * `--accept-mismatch a,b`: the beats that may keep a take whose transcript
+ * does not match; bare, the `--only` beats (`accept.ts`).
+ */
+const acceptMismatch = (what: string) =>
+  Flag.String('accept-mismatch').pipe(
+    Flag.optional,
+    Flag.withDescription(
+      `keep a ${what} whose transcript does not match, for these beats (id,id); bare, for the --only beats`,
+    ),
+  );
 const dryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDefault(false),
   Flag.withDescription('print what would be generated, then stop'),
@@ -110,7 +131,11 @@ interface ToolCheck {
   readonly tool: string;
   /** The commands that need it. */
   readonly needed: string;
-  readonly run: Effect.Effect<void, BrowserMissing | BrowserFailed | ElevenLabsFailed, Path.Path>;
+  readonly run: Effect.Effect<
+    void,
+    BrowserMissing | BrowserFailed | ElevenLabsFailed | MediaFailed,
+    Path.Path | ChildProcessSpawner.ChildProcessSpawner
+  >;
 }
 
 const doctor = Command.make(
@@ -121,6 +146,7 @@ const doctor = Command.make(
     const checks: ReadonlyArray<ToolCheck> = [
       { tool: 'chromium', needed: 'render, check', run: browserReady },
       { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
+      { tool: 'ffmpeg', needed: 'takes import, the studio', run: ffmpegReady() },
     ];
     const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
       concurrency: checks.length,
@@ -137,7 +163,7 @@ const doctor = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Check the tools the film commands need: headless Chromium, and the elevenlabs CLI and its login',
+    'Check the tools the film commands need: headless Chromium, the elevenlabs CLI and its login, and ffmpeg',
   ),
 );
 
@@ -151,9 +177,12 @@ const narrate = Command.make(
       Flag.withDescription('record every beat'),
     ),
     dryRun,
-    acceptMismatch: Flag.Boolean('accept-mismatch').pipe(
+    acceptMismatch: acceptMismatch('staging take'),
+    replaceRecorded: Flag.Boolean('replace-recorded').pipe(
       Flag.withDefault(false),
-      Flag.withDescription('keep a take whose transcript does not match its script'),
+      Flag.withDescription(
+        "stage a beat whose recorded take is stale (its line changed), replacing the person's take",
+      ),
     ),
   },
   Effect.fn('film.narrate')(function* (input) {
@@ -168,13 +197,34 @@ const narrate = Command.make(
           Effect.flatMap((placed) => Effect.fromResult(scenesOf(placed, [...ids]))),
         ),
     });
-    const options = { only: input.only, force: input.force, acceptMismatch: input.acceptMismatch };
+    const options = {
+      only: input.only,
+      force: input.force,
+      acceptMismatch: yield* Effect.fromResult(
+        acceptedBeats(
+          input.acceptMismatch,
+          input.only,
+          loaded.scenes.map((s) => s.id),
+        ),
+      ),
+      replaceRecorded: input.replaceRecorded,
+    };
     const plan = yield* Effect.fromResult(planNarration(loaded, options));
     const stale = plan.stale.map((b) => b.id).join(',') || 'none';
     yield* Effect.log(
       `narrate.plan film=${input.film} beats=${plan.beats.length} to_record=${stale}`,
     );
-    if (input.dryRun) return;
+    // A person's reading of a beat that was renamed or cut: kept, and said.
+    for (const orphan of plan.orphaned)
+      yield* Effect.logWarning(
+        `narrate.orphaned id=${orphan.id} file=${orphan.file} reason="a recorded take for no beat; move its key in timings.json to the beat it reads"`,
+      );
+    if (input.dryRun) {
+      for (const take of plan.states) yield* Console.log(stateLine(take));
+      for (const orphan of plan.orphaned)
+        yield* Console.log(`orphaned  ${orphan.id} (${orphan.file}, recorded take, no beat)`);
+      return;
+    }
     // Before the first paid take: the CLI must be logged in.
     yield* paidPreflight;
     yield* narrator.record(loaded, plan, options);
@@ -238,6 +288,94 @@ const mix = Command.make(
 ).pipe(
   Command.withDescription(
     'Rebuild narration/full.wav, the mixed track, from the current takes and sound',
+  ),
+);
+
+const takesImport = Command.make(
+  'import',
+  {
+    film,
+    path: Argument.String('path').pipe(
+      Argument.withDescription(
+        'a folder of recordings named <beat>.wav|m4a|mp3, or one recording (named for its beat, or --only it)',
+      ),
+    ),
+    only: only.pipe(
+      Flag.withDescription(
+        'import just these beats; one recording named otherwise imports as the one beat named',
+      ),
+    ),
+    acceptMismatch: acceptMismatch('take'),
+    whole: Flag.Boolean('whole').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'the file is one reading of the whole script: find each beat in it and cut at the quietest silence around it',
+      ),
+    ),
+  },
+  Effect.fn('film.takes.import')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const at = (yield* Path.Path).resolve(input.path);
+    // A misspelt or bare-without---only flag fails before a credit is spent.
+    const accepted = yield* Effect.fromResult(
+      acceptedBeats(
+        input.acceptMismatch,
+        input.only,
+        loaded.scenes.map((s) => s.id),
+      ),
+    );
+    // Every take is transcribed back: the CLI must be logged in.
+    yield* paidPreflight;
+    const imported = yield* (yield* Takes).importPath(loaded, at, {
+      only: input.only,
+      acceptMismatch: accepted,
+      whole: input.whole,
+    });
+    for (const beat of imported)
+      yield* Console.log(
+        `recorded  ${beat.id.padEnd(14)} ${beat.take.file}  ${beat.take.duration.toFixed(2)}s  wer ${(beat.wer * 100).toFixed(1)}%`,
+      );
+    yield* (yield* Mixer).mix(input.film, { stems: false });
+  }),
+).pipe(
+  Command.withDescription(
+    "Import a person's recordings as the film's takes (trimmed, levelled, transcribed and timed as staging takes are), then remix",
+  ),
+);
+
+const takes = Command.make('takes').pipe(
+  Command.withDescription("A person's narration takes: import recordings over the staging voice"),
+  Command.withSubcommands([takesImport]),
+);
+
+const script = Command.make(
+  'script',
+  {
+    film,
+    sheet: Flag.Boolean('sheet').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'write out/<film>/script-sheet.md and a page to print, script-sheet.html',
+      ),
+    ),
+  },
+  Effect.fn('film.script')(function* (input) {
+    const repo = yield* FilmRepo;
+    const loaded = yield* repo.load(input.film);
+    const lines = yield* repo.script(input.film);
+    if (!input.sheet) {
+      const beats = Option.getOrElse(lines, () =>
+        loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
+      );
+      return yield* Console.log(sheetMarkdown(input.film, sheetBeats(beats, [])));
+    }
+    const written = yield* writeSheet(loaded, lines);
+    yield* Console.log(written.markdown);
+    yield* Console.log(written.html);
+  }),
+).pipe(
+  Command.withDescription(
+    'Print the reading sheet: each beat with the file to save its take as, marks stripped, quotations set apart (--sheet writes it, with its sources, to out/<film>)',
   ),
 );
 
@@ -606,7 +744,12 @@ const lab = <E>(labServer: LabServer<E>) =>
     Effect.fn('film.lab')(function* (input) {
       // An unknown film fails here, before a server starts.
       yield* (yield* FilmRepo).load(input.film);
-      const handler = yield* labHandler(input.film);
+      // The studio's routes answer `/lab/<film>/studio/…`; the lab the rest.
+      const handler = withStudio(
+        input.film,
+        yield* labHandler(input.film),
+        yield* studioHandler(input.film),
+      );
       const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
       const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
       const notes = (yield* NotesStore).paths(input.film).notes.file;
@@ -765,7 +908,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
     Layer.provide([Repo, Store, Platform]),
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
-  const Services = Layer.mergeAll(Narrator.layer, Composer.layer, Mixer.layer).pipe(
+  const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
     Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Tools, Platform)),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
@@ -778,6 +921,8 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
     Command.withDescription('Narrate, score, mix, inspect and render a cut-paper film'),
     Command.withSubcommands([
       narrate,
+      takes,
+      script,
       score,
       mix,
       cues,
@@ -793,8 +938,10 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
   // Logs go to stderr, so stdout carries only what a command prints: the lines
   // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
   const Logs = Layer.succeed(Logger.LogToStderr, true);
-  Command.run(root, { version: '0.1.0' }).pipe(
-    Effect.provide(Layer.mergeAll(Services, Logs)),
-    BunRuntime.runMain,
-  );
+  // A bare `--accept-mismatch` stays bare: the parser would take the next word as its beats.
+  Stdio.Stdio.use(({ args }) =>
+    Effect.flatMap(args, (given) =>
+      Command.runWith(root, { version: '0.1.0' })(bareAcceptMismatch(given)),
+    ),
+  ).pipe(Effect.provide(Layer.mergeAll(Services, Logs)), BunRuntime.runMain);
 };

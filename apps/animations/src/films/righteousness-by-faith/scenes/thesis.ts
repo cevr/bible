@@ -12,10 +12,11 @@ import {
   multiplane,
   probePlate,
   rectShape,
+  shotPath,
   write,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, F, christ, glow, person, piece, between } from '../kit.ts';
+import { C, F, christ, glow, knobCamera, person, piece } from '../kit.ts';
 import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
 import {
   ADVOCATE_POSE,
@@ -27,12 +28,8 @@ import {
   landingCourt,
 } from '../court.ts';
 
-/** Where the camera ends: the title's city, near enough to see the two of them. */
-const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
-/** Where it enters the city: close on the rooftop. */
+/** Where the camera enters the city: close on the rooftop (derived from the roof, so not a knob). */
 const ROOFTOP: Camera = { x: ROOF.x - 20, y: ROOF.top - 70, zoom: 3.4 };
-/** The court's last framing, pulled back. */
-const COURT_BACK: Camera = { x: 930, y: 400, zoom: 0.92 };
 
 const ANSWER = 'THE LORD OUR RIGHTEOUSNESS';
 /** The answer's plate, over the place the question stood. */
@@ -50,10 +47,23 @@ export const thesis = drawing({
   timeline: {
     lookUp: { scene: 'speech', dur: 0.5 },
     answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
-    textOut: { scene: 'start', offset: 10, dur: 1.2 },
-    away: { scene: 'start', offset: 10.6, dur: 4.5, ease: 'inOutSine' },
-    city: { scene: 'start', offset: 13.2, dur: 11, ease: 'inOutSine' },
-    turn: { scene: 'start', offset: 25.5, dur: 1.2 },
+    // The gavel lifts back from where `name` laid it down.
+    gavel: { scene: 'start', dur: 2, ease: 'linear' },
+    // A pause the script means: the answer stands alone on screen while the
+    // music rises, then lets go. What follows it hangs off it.
+    textOut: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
+    away: { with: 'textOut', offset: 0.6, dur: 4.5, ease: 'inOutSine' },
+    city: { with: 'away', offset: 2.6, dur: 11, ease: 'inOutSine' },
+    // The two of them turn to each other once the city has settled.
+    turn: { after: 'city', offset: 1.3, dur: 1.2 },
+  },
+  knobs: {
+    // Where the camera ends: the title's city, near enough to see the two of them.
+    city: [1200, 640],
+    cityZoom: 1.3,
+    // The court's last framing, pulled back.
+    courtBack: [930, 400],
+    courtBackZoom: 0.92,
   },
   draw: (f) => {
     const { ctx, w, h } = f;
@@ -71,7 +81,7 @@ export const thesis = drawing({
     if (cityIn > 0) {
       ctx.save();
       ctx.globalAlpha *= cityIn;
-      const cam = between(ROOFTOP, CITY, city);
+      const cam = shotPath(ROOFTOP, [[city, knobCamera(f.knob('city'), f.knob('cityZoom'))]]);
       multiplane(ctx, cam, w, h, [
         { z: 1.6, draw: () => cityBack(ctx, (k) => f.hand(k)) },
         {
@@ -123,9 +133,8 @@ export const thesis = drawing({
       ctx.save();
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
-        cam: between(WIDE, COURT_BACK, away),
-        // The gavel lifts back from where `name` laid it down.
-        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * clamp(f.t / 2),
+        cam: shotPath(WIDE, [[away, knobCamera(f.knob('courtBack'), f.knob('courtBackZoom'))]]),
+        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * f.at('gavel'),
         stamp: 0,
         pop: 1,
         gold: 1,

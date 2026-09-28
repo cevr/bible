@@ -27,6 +27,7 @@ import {
   drawing,
   ellipseShape,
   rectShape,
+  shotPath,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
@@ -38,20 +39,18 @@ import {
   christ,
   gait,
   glow,
+  knobCamera,
   mix,
   person,
   piece,
   rounded,
   sky,
-  between,
 } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
 
-/** The whole hill; close on both faces; up in heaven at the sanctuary. */
+/** The whole hill: the unmoved frame (the canvas itself, so not a knob). */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
-const CLOSE: Camera = { x: 700, y: 650, zoom: 2.1 };
-const HEAVEN: Camera = { x: 960, y: -560, zoom: 1 };
 
 const SCALE = 1.9;
 /** Where Jesus stops beside the figure, and the hilltop where the cross stands. */
@@ -78,12 +77,12 @@ const inHeaven = ([x, y]: Pt): Pt => [SANCTUARY[0] + x * SS, SANCTUARY[1] + y * 
 
 /**
  * After the cut: close in the most holy place, the veil at the left edge,
- * Christ before the ark; the camera eases in a little as the last words are spoken.
+ * Christ before the ark (the `ark` knobs); the camera eases in a little, to
+ * `ARK_IN`, as the last words are spoken.
  */
-const ARK: Camera = { x: 1224, y: -450, zoom: 2.5 };
 const ARK_IN = 2.75;
 /** The ark framing this frame: rewritten each frame, never made per frame. */
-const AT_ARK: Camera = { ...ARK };
+const AT_ARK: Camera = { x: 0, y: 0, zoom: 1 };
 
 /** The ground under the hill and the garden. */
 const GROUND = rectShape(-200, 950, 2400, 300);
@@ -105,8 +104,9 @@ const timeline = {
   walkIn: { mark: 'right', offset: -0.4, until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
-  back: { mark: 'took', offset: 1.1, dur: 1.3, ease: 'inOutCubic' },
-  walkUp: { mark: 'took', offset: 1.3, dur: 1.9, ease: 'inOutSine' },
+  // Back out on "that we might take His righteousness", and he walks up the hill.
+  back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
+  walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
   ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },
@@ -116,7 +116,19 @@ const timeline = {
   hands: { after: 'cut', offset: 0.2, dur: 0.6, ease: 'outBack' },
 } as const;
 
-const knobs = { figure: [560, 960], sun: [1450, 300] } as const;
+const knobs = {
+  figure: [560, 960],
+  sun: [1450, 300],
+  // Close on both faces.
+  close: [700, 650],
+  closeZoom: 2.1,
+  // Up in heaven at the sanctuary.
+  heaven: [960, -560],
+  heavenZoom: 1,
+  // Close in the most holy place, before the ark.
+  ark: [1224, -450],
+  arkZoom: 2.5,
+} as const;
 
 type ExchangeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
@@ -153,7 +165,10 @@ const hill = (f: ExchangeFrame) => {
   const walking = gait(t, f.cue('walkIn')) + gait(t, f.cue('walkUp'));
   const shoulders: Pt = [cx, cy - walking - 118 * cs];
 
-  const cam = between(between(WIDE, CLOSE, f.at('close')), WIDE, f.at('back'));
+  const cam = shotPath(WIDE, [
+    [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'))],
+    [f.at('back'), WIDE],
+  ]);
   // The sky reddens as the sun goes down toward the hilltop.
   sky(ctx, w, h, [
     [0, C.sunsetTop],
@@ -343,7 +358,8 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
   ctx.save();
   ctx.globalAlpha *= dawn;
   dawnSky(ctx, w, h, ascend);
-  camera(ctx, between(WIDE, HEAVEN, ascend), w, h, () => {
+  const HEAVEN = knobCamera(f.knob('heaven'), f.knob('heavenZoom'));
+  camera(ctx, shotPath(WIDE, [[ascend, HEAVEN]]), w, h, () => {
     tomb(ctx, hand);
     const arrived = ascend >= 1;
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
@@ -378,7 +394,10 @@ const mostHoly = (f: ExchangeFrame) => {
     [0.55, C.tealMid],
     [1, C.tealLow],
   ]);
-  AT_ARK.zoom = lerp(ARK.zoom ?? 1, ARK_IN, f.spoken('now'));
+  const ark = f.knob('ark');
+  AT_ARK.x = ark[0];
+  AT_ARK.y = ark[1];
+  AT_ARK.zoom = lerp(f.knob('arkZoom'), ARK_IN, f.spoken('now'));
   camera(ctx, AT_ARK, w, h, () =>
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
       ministry(ctx, hand, 1, f.at('hands')),

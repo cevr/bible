@@ -1,12 +1,21 @@
 // Narrator with fakes: which beats are recorded, and what a take that says
 // something else does. No network, no media files.
 
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
+import { Effect, type FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import { captionCues } from '../core/captions.ts';
+import { hashText, parse, takeScript, voiceFor, voiceKey } from '../core/narration.ts';
 import { type Cast, type Timed, type Timings, TimingsJson, type Voice } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
-import { type NarrateOptions, Narrator, planNarration } from './narrator.ts';
+import type { LoadedFilm } from './film-repo.ts';
+import {
+  type NarrateOptions,
+  type NarrationPlan,
+  Narrator,
+  planNarration,
+  stateLine,
+} from './narrator.ts';
 import {
   type ElevenLabsCalls,
   crashingFileSystem,
@@ -32,6 +41,7 @@ const take = (spoken: string, file: string) => ({
   file,
   duration: 1,
   words: [],
+  source: 'elevenlabs' as const,
 });
 
 /** `a` recorded under the test voice, `b` never recorded. */
@@ -40,7 +50,12 @@ const recorded: Timings = {
   scenes: { a: take('Hello world.', 'a.mp3') },
 };
 
-const defaults: NarrateOptions = { only: Option.none(), force: false, acceptMismatch: false };
+const defaults: NarrateOptions = {
+  only: Option.none(),
+  force: false,
+  acceptMismatch: new Set(),
+  replaceRecorded: false,
+};
 
 const TIMINGS = '/films/test/narration/timings.json';
 
@@ -96,6 +111,24 @@ describe('Narrator', () => {
     }),
   );
 
+  it.effect("a word timed past the take's end is held inside it, not refused by the timings", () =>
+    Effect.gen(function* () {
+      // The fake take measures 2.5 s; its alignment runs one character per 0.05 s, to 4 s.
+      const long = 'This line runs on and on, far past the end of the audio it was made from.';
+      const { layer } = setup(recorded);
+      const after = yield* narrate(layer, testVoice, defaults, [{ id: 'b', say: long }]);
+      const take = after.scenes['b'];
+      expect(take?.duration).toBe(2.5);
+      expect(take?.words.map((w) => w.text).join(' ')).toBe(long);
+      for (const w of take?.words ?? []) {
+        expect(w.start).toBeLessThanOrEqual(2.5);
+        expect(w.end).toBeLessThanOrEqual(2.5);
+        expect(w.start).toBeLessThanOrEqual(w.end);
+      }
+      expect(take?.words.at(-1)?.end).toBe(2.5);
+    }),
+  );
+
   it.effect('skips every beat whose hash is unchanged', () =>
     Effect.gen(function* () {
       const current: Timings = {
@@ -136,11 +169,18 @@ describe('Narrator', () => {
     }),
   );
 
-  it.effect('keeps a mismatched take with --accept-mismatch', () =>
+  it.effect('keeps a mismatched take for the beats --accept-mismatch names, and no other', () =>
     Effect.gen(function* () {
       const heard = new Map([['The second line.', 'The second lie of the night.']]);
       const { layer } = setup(recorded, heard);
-      const after = yield* narrate(layer, testVoice, { ...defaults, acceptMismatch: true });
+      const other = yield* Effect.flip(
+        narrate(layer, testVoice, { ...defaults, acceptMismatch: new Set(['a']) }),
+      );
+      expect(other).toMatchObject({ _tag: 'TakeMismatch', id: 'b' });
+      const after = yield* narrate(layer, testVoice, {
+        ...defaults,
+        acceptMismatch: new Set(['b']),
+      });
       expect(after.scenes['b']?.hash).toBe(hashText('The second line.'));
     }),
   );
@@ -201,6 +241,141 @@ describe('Narrator', () => {
     );
   });
 
+  describe("a person's takes", () => {
+    const person = (spoken: string, file: string) => ({
+      ...take(spoken, file),
+      source: 'recorded' as const,
+    });
+    /** `a` read by the owner and current, `b` read by the owner before its line changed. */
+    const owned: Timings = {
+      voice: voiceKey(testVoice),
+      scenes: { a: person('Hello world.', 'a.mp3'), b: person('The first line.', 'b.mp3') },
+    };
+    const film = (timings: Timings, voice: Voice = testVoice) =>
+      ({ ...testFilm(scenes, timings, voice), timings }) satisfies LoadedFilm;
+    const states = (plan: NarrationPlan) => plan.states.map((s) => [s.id, s.state._tag]);
+
+    test('the plan names each beat recorded, staging or stale', () => {
+      const plan = Result.getOrThrow(planNarration(film(owned), defaults));
+      expect(states(plan)).toEqual([
+        ['a', 'Recorded'],
+        ['b', 'Stale'],
+      ]);
+      const staged = Result.getOrThrow(planNarration(film(recorded), defaults));
+      expect(states(staged)).toEqual([
+        ['a', 'Staging'],
+        ['b', 'Stale'],
+      ]);
+    });
+
+    test('--dry-run lists each beat as recorded, staging or stale', () => {
+      const mixed: Timings = {
+        voice: voiceKey(testVoice),
+        scenes: { a: take('Hello world.', 'a.mp3'), b: person('The first line.', 'b.mp3') },
+      };
+      const plan = Result.getOrThrow(planNarration(film(mixed), defaults));
+      expect(plan.states.map(stateLine)).toEqual([
+        'staging   a',
+        'stale     b (text changed, recorded take)',
+      ]);
+      const owner = Result.getOrThrow(planNarration(film(owned), defaults));
+      expect(owner.states.map(stateLine).at(0)).toBe('recorded  a');
+    });
+
+    test('staging never replaces a current recorded take, even when forced or named', () => {
+      for (const options of [
+        { ...defaults, force: true },
+        { ...defaults, only: Option.some(new Set(['a'])) },
+      ]) {
+        const plan = Result.getOrThrow(planNarration(film(owned), options));
+        expect(plan.stale.map((b) => b.id)).not.toContain('a');
+        expect(plan.kept.map((k) => [k.id, k.why])).toContainEqual(['a', 'recorded']);
+      }
+    });
+
+    test('a stale recorded take is refused unless --replace-recorded', () => {
+      const refused = Result.getOrThrow(planNarration(film(owned), defaults));
+      expect(refused.stale).toEqual([]);
+      expect(refused.kept.map((k) => [k.id, k.why])).toEqual([['b', 'recorded, stale']]);
+      const replaced = Result.getOrThrow(
+        planNarration(film(owned), { ...defaults, replaceRecorded: true }),
+      );
+      expect(replaced.stale.map((b) => b.id)).toEqual(['b']);
+    });
+
+    it.effect('a recorded take outlives a change of staging voice', () => {
+      const { calls, layer } = setup(owned);
+      return Effect.gen(function* () {
+        const voice = { ...testVoice, settings: { stability: 0.9 } };
+        const store = yield* ContentStore;
+        const before = yield* store.read(testFilm(scenes, owned).paths.timings);
+        const plan = Result.getOrThrow(planNarration(film(before, voice), defaults));
+        expect(plan.stale).toEqual([]);
+        yield* Narrator.use((n) => n.record(film(before, voice), plan, defaults));
+        const after = yield* store.read(testFilm(scenes, owned).paths.timings);
+        expect(calls.tts).toEqual([]);
+        expect(after.scenes).toEqual(owned.scenes);
+        expect(after.voice).toBe(voiceKey(voice));
+      }).pipe(Effect.provide(layer));
+    });
+
+    it.effect("a renamed beat's recorded take is kept and reported, never swept", () => {
+      const { files, layer } = setup(owned);
+      files.set('/films/test/narration/a.mp3', text('Hello world.'));
+      // `a` renamed `hello`: the person's take names a beat the film no longer has.
+      const renamed = scenes.map((s) => {
+        if (s.id === 'a') return { ...s, id: 'hello' };
+        return s;
+      });
+      return Effect.gen(function* () {
+        const store = yield* ContentStore;
+        const before = yield* store.read(testFilm(scenes, owned).paths.timings);
+        const loaded = { ...testFilm(renamed, before), timings: before };
+        const plan = Result.getOrThrow(planNarration(loaded, defaults));
+        expect(plan.orphaned).toEqual([{ id: 'a', file: 'a.mp3' }]);
+        yield* Narrator.use((n) => n.record(loaded, plan, defaults));
+        const after = yield* store.read(testFilm(scenes, owned).paths.timings);
+        expect(after.scenes['a']).toEqual(owned.scenes['a']);
+        expect(files.has('/films/test/narration/a.mp3')).toBe(true);
+      }).pipe(Effect.provide(layer));
+    });
+  });
+
+  describe('a cast of one', () => {
+    const solo: Cast = {
+      model: 'eleven_v3',
+      settings: { stability: 0.5 },
+      voices: [{ name: 'lead', voiceId: 'L' }],
+    };
+    const said = 'Grace, {free}freely given. Received, not earned.';
+    const none: Timings = { voice: voiceKey(solo), scenes: {} };
+
+    it.effect('plans, reads and captions the film as one narrator, with no dash', () =>
+      Effect.gen(function* () {
+        const { calls, layer } = setup(none);
+        const after = yield* narrate(layer, solo, defaults, [{ id: 's', say: said }]);
+        expect(calls.dialogue.map((r) => r.lines.map((l) => [l.name, l.text]))).toEqual([
+          [['lead', 'Grace, freely given. Received, not earned.']],
+        ]);
+        const voice = voiceFor('s', said, after);
+        expect(voice.recorded).toBe(true);
+        const captions = captionCues(voice.words, voice.turns).map((c) => c.text);
+        expect(captions.length).toBeGreaterThan(0);
+        expect(captions.filter((c) => c.startsWith('-'))).toEqual([]);
+      }),
+    );
+
+    it.effect('refuses a turn to a voice the one-voice cast does not have', () =>
+      Effect.gen(function* () {
+        const { calls, layer } = setup(none);
+        const beats = [{ id: 's', say: 'One. {@ask}Two?' }];
+        const error = yield* Effect.flip(narrate(layer, solo, defaults, beats));
+        expect(error).toMatchObject({ _tag: 'UnknownVoice', voice: 'ask', known: ['lead'] });
+        expect(calls.dialogue).toEqual([]);
+      }),
+    );
+  });
+
   describe('crash safety', () => {
     const DIR = '/films/test/narration';
     const said = 'Hello world.';
@@ -210,7 +385,13 @@ describe('Narrator', () => {
       const timings: Timings = {
         voice: voiceKey(testVoice),
         scenes: {
-          a: { hash: hashText(said), file: 'a.mp3', duration: fakeLength(audio), words: [] },
+          a: {
+            hash: hashText(said),
+            file: 'a.mp3',
+            duration: fakeLength(audio),
+            words: [],
+            source: 'elevenlabs',
+          },
         },
       };
       return new Map([
@@ -262,6 +443,8 @@ describe('Narrator', () => {
         const files = agreed();
         files.set(`${DIR}/b.take.mp3`, text('stray'));
         files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
+        // A replaced recorded take's committed FLAC goes the same way (its master stays in attempts/).
+        files.set(`${DIR}/b.0123456789ab.flac`, text('replaced master'));
         files.set(`${TIMINGS}.partial`, text('{'));
         const layer = Narrator.layer.pipe(
           Layer.provideMerge(storeLayer(files)),

@@ -88,6 +88,15 @@ describe('scene source', () => {
     expect(ok(readCue(FILE, timed, 'hand', 'bare'))).toEqual({ offset: 0.25, dur: 1 });
   });
 
+  it('adds an offset to a word pin after its word, which it keeps', () => {
+    const pinned = scene.replace(
+      "bare: { scene: 'speech' },",
+      "bare: { scene: 'speech' },\n    lit: { mark: 'gift', word: 'faith', dur: 0.6 },",
+    );
+    const next = ok(editCue(FILE, pinned, 'hand', 'lit', { offset: -0.3 }));
+    expect(next).toContain("lit: { mark: 'gift', word: 'faith', offset: -0.3, dur: 0.6 }");
+  });
+
   it('writes an until in place of a dur, and a dur in place of an until', () => {
     const marked = ok(editCue(FILE, scene, 'hand', 'topple', { until: 'gift' }));
     expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));

@@ -5,6 +5,7 @@
   "jsPlugins": ["../plugin.ts"],
   "rules": {
     "film/drawing-literal": "error",
-    "film/no-unprobed-ink": "error"
+    "film/no-unprobed-ink": "error",
+    "film/no-hand-timed-seconds": "error"
   }
 }

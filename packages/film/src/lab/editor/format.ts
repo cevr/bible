@@ -11,7 +11,11 @@ export const round = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 /** What a cue's span starts from, in words. */
 export const anchorText = (span: Span): string => {
-  if ('mark' in span) return `mark {${span.mark}}`;
+  if ('mark' in span)
+    return Option.match(Option.fromUndefinedOr(span.word), {
+      onNone: () => `mark {${span.mark}}`,
+      onSome: (word) => `word "${word}" after mark {${span.mark}}`,
+    });
   if ('after' in span) return `after cue ${span.after}`;
   if ('with' in span) return `with cue ${span.with}`;
   return `scene ${span.scene}`;

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
+import { WordMissing } from './errors.ts';
 import { layout, sceneClock } from './layout.ts';
 import type { Timings } from './schema.ts';
 
@@ -22,6 +23,14 @@ const clock: SceneClock = {
     ['fiction', 2],
     ['as', 5],
   ]),
+  words: [
+    { text: 'A', start: 0, end: 0.2 },
+    { text: 'legal', start: 0.3, end: 0.6 },
+    { text: 'fiction?', start: 2, end: 2.5 },
+    { text: '“Not,', start: 3, end: 3.3 },
+    { text: 'as', start: 5, end: 5.2 },
+    { text: 'not', start: 6, end: 6.2 },
+  ],
   speechStart: 0.5,
   speechEnd: 8.5,
   dur: 9.4,
@@ -241,6 +250,75 @@ describe('timeline', () => {
     // The right edge dropped on the mark keeps `until`; dropped off it, the dur is set by hand.
     expect(drag('end', 2.8, 5.5)).toEqual(Option.none());
     expect(drag('end', 2.8, 6)).toEqual(Option.some({ dur: 3.2 }));
+  });
+
+  test('a word pin starts at the first word said at or after its mark that reads the word', () => {
+    const cues = resolveTimeline(
+      {
+        open: { mark: 'fiction', word: 'not', offset: -0.3, dur: 0.6 },
+        again: { mark: 'as', word: 'not', dur: 0.5 },
+        self: { mark: 'fiction', word: 'fiction' },
+      },
+      clock,
+    );
+    // Quotes, commas and case are ignored: “Not, reads not.
+    expect(cues.get('open')?.start).toBeCloseTo(0.5 + 3 - 0.3, 9);
+    expect(cues.get('open')?.dur).toBe(0.6);
+    // The first "not" at or after {as}, not the one before it.
+    expect(cues.get('again')?.start).toBe(0.5 + 6);
+    // The mark's own word counts.
+    expect(cues.get('self')?.start).toBe(0.5 + 2);
+  });
+
+  test('a word pin reads a word as the take check does: any case, apostrophes dropped, a hyphen’s parts, accents kept', () => {
+    const said: SceneClock = {
+      ...clock,
+      marks: new Map([['m', 0]]),
+      words: [
+        { text: '“God’s', start: 1, end: 1.2 },
+        { text: 'cover-up,', start: 2, end: 2.4 },
+        { text: 'Christ', start: 3, end: 3.3 },
+        { text: 'Café.', start: 4, end: 4.3 },
+        { text: 'naïve', start: 5, end: 5.3 },
+      ],
+    };
+    const at = (word: string) =>
+      resolveTimeline({ c: { mark: 'm', word, dur: 0.1 } }, said).get('c')?.start;
+    expect(at("god's")).toBe(0.5 + 1);
+    expect(at('God’s')).toBe(0.5 + 1);
+    expect(at('gods')).toBe(0.5 + 1);
+    expect(at('cover')).toBe(0.5 + 2);
+    expect(at('up')).toBe(0.5 + 2);
+    expect(at('cover-up')).toBe(0.5 + 2);
+    expect(at('Christ')).toBe(0.5 + 3);
+    expect(at('café')).toBe(0.5 + 4);
+    expect(at('CAFÉ')).toBe(0.5 + 4);
+    // Composed or decomposed, an accent is the same letter.
+    expect(at('naïve')).toBe(0.5 + 5);
+    // A part is a whole part: "cove" is not "cover", "caf" not "café".
+    expect(() => at('cove')).toThrow(WordMissing);
+    expect(() => at('caf')).toThrow(WordMissing);
+  });
+
+  test('a word pin on a word the line never says after its mark is WordMissing, never the mark', () => {
+    const pin = (mark: string, word: string) => () =>
+      resolveTimeline({ lit: { mark, word, dur: 0.6 } }, clock);
+    // Said only before the mark.
+    expect(pin('as', 'legal')).toThrow(WordMissing);
+    expect(pin('as', 'legal')).toThrow(
+      'scene justified: cue "lit" is pinned to the word "legal", which the line never says at or after {as}',
+    );
+    // Never said.
+    expect(pin('fiction', 'faith')).toThrow(WordMissing);
+  });
+
+  test('patchSpan keeps a word pin’s word', () => {
+    expect(patchSpan({ mark: 'fiction', word: 'not', dur: 0.6 }, { offset: -0.2 })).toEqual({
+      mark: 'fiction',
+      word: 'not',
+      offset: -0.2,
+      dur: 0.6,
+    });
   });
 
   test('an unknown mark names the scene and the cue', () => {
