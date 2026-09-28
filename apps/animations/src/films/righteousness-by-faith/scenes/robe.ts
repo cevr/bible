@@ -7,9 +7,10 @@
 // stain is there on the grey paper, and on "away" it breaks up and is carried
 // out of the frame the way the clothes went, leaving clean paper (never a
 // flight into the sky, as if sin had no destination). On "judicial" the court
-// again, Joshua robed: the cold open's gavel lies on the bench and the Angel
-// moves it aside with the back of his hand. On "reclaim" close on Joshua's
-// face, and under the robe a warm glow rises where the heart is, a preview
+// again, Joshua robed, the cold open's gavel resting on the bench: the ruling
+// stands, and a warm glow begins to rise in Joshua's chest, more than the
+// ruling. On "reclaim" close on Joshua's face, and under the robe that glow
+// rises where the heart is, a preview
 // of the third gift, and he looks up glad on "reclaiming". The close-up
 // holds through the quotation's last word, which ends the scene.
 
@@ -28,11 +29,10 @@ import {
 import { clamp, ease, lerp } from '@bible/film/core';
 import { C, type Person, ROBE, blob, gait, glow, person, piece, rounded, turban } from '../kit.ts';
 import {
-  ANGEL_AT,
   ANGEL_HAND,
-  ANGEL_NEAR,
   COURT_BENCH,
   JOSHUA,
+  JS,
   ZECH_REST,
   courtWall,
   gavel,
@@ -53,13 +53,12 @@ const FLAKES: ReadonlyArray<readonly [number, number, number]> = [
 /** How far left the flakes are carried: out of the frame, the way the clothes went. */
 const CARRIED = 1500;
 
-/** The Angel's scale in the court (`zechCourt`'s), to reach his near hand to the bench. */
-const ANGEL_SCALE = 2.1;
-/** Where the gavel lies on the bench (its handle's foot, the head to its left), and how far it slides aside. */
+/** Where the gavel lies on the bench: its handle's foot, the head to its left. */
 const GAVEL_ON: Pt = [COURT_BENCH[0], COURT_BENCH[1] - 36];
-const GAVEL_SLIDE = 180;
 /** Lying on its side, the handle down the bench to the left of its head. */
 const GAVEL_LIE = -Math.PI / 2 + 0.22;
+/** Joshua's chest in the court: `JS` times the person's chest height above his feet. */
+const JOSHUA_CHEST_Y = JOSHUA[1] - 80 * JS;
 
 /** A little loom, as a shape of light. */
 const loomFrame = (
@@ -92,8 +91,7 @@ const timeline = {
   flakes: { mark: 'away', dur: 0.9, ease: 'inQuad', stagger: 0.5 },
   shut: { after: 'flakes', dur: 0.33 },
   drift: { mark: 'judicial', until: 'reclaim', ease: 'linear' },
-  reach: { mark: 'judicial', offset: 0.3, dur: 0.6, ease: 'inOutSine' },
-  aside: { after: 'reach', dur: 0.7, ease: 'outCubic' },
+  beyond: { mark: 'judicial', until: 'reclaim', ease: 'inOutSine' },
   warm: { mark: 'reclaim', offset: 0.4, dur: 2.2, ease: 'inOutSine' },
   glad: { mark: 'reclaiming', dur: 0.6 },
 } as const;
@@ -375,23 +373,15 @@ const beneath = (f: RobeFrame) => {
 };
 
 /**
- * D2: the court on "judicial", Joshua robed. The cold open's gavel lies on
- * the bench; the Angel's near hand reaches and moves it aside with its back,
- * a light touch, and goes back to his side.
+ * D2: the court on "judicial", Joshua robed. The cold open's gavel rests on
+ * the bench, the ruling standing; over the line a warm glow rises in
+ * Joshua's chest, the "more than" a ruling.
  */
 const judged = (f: RobeFrame) => {
   const { ctx, w, h } = f;
   const hand = (k: string) => f.hand(k);
-  const reach = f.at('reach');
-  const aside = f.at('aside');
+  const beyond = f.at('beyond');
   const [jx, jy] = f.knob('judged');
-  const slid = GAVEL_SLIDE * aside;
-  // The back of his hand meets the gavel's head and follows it half way.
-  const touch: Pt = [
-    (GAVEL_ON[0] - 130 + Math.min(slid, GAVEL_SLIDE / 2) - ANGEL_AT[0]) / ANGEL_SCALE,
-    (GAVEL_ON[1] - 45 - ANGEL_AT[1]) / ANGEL_SCALE,
-  ];
-  const k = reach * (1 - clamp((aside - 0.5) / 0.5));
   courtWall(ctx, w, h);
   camera(
     ctx,
@@ -406,7 +396,6 @@ const judged = (f: RobeFrame) => {
           lift: 0,
           tilt: 0,
           hand: ANGEL_HAND,
-          handR: [lerp(ANGEL_NEAR[0], touch[0], k), lerp(ANGEL_NEAR[1], touch[1], k)],
         },
         joshua: {
           body: C.robe,
@@ -422,7 +411,10 @@ const judged = (f: RobeFrame) => {
         tunic: { at: [JOSHUA[0] - 1250, JOSHUA[1]], flare: () => 0 },
         helpers: { grip: 1, dx: -1250, bob: 0, up: 1 },
       });
-      at(ctx, { x: GAVEL_ON[0] + slid, y: GAVEL_ON[1] }, () => gavel(ctx, hand, GAVEL_LIE));
+      at(ctx, { x: GAVEL_ON[0], y: GAVEL_ON[1] }, () => gavel(ctx, hand, GAVEL_LIE));
+      // The glow rising in his chest, beyond the verdict.
+      glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 90 + 110 * beyond, C.glow, 0.8 * beyond);
+      glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 40 + 40 * beyond, C.gold, 0.4 * beyond);
     },
   );
 };
@@ -448,7 +440,9 @@ const reclaimed = (f: RobeFrame) => {
     smile: 0.6 * glad,
   });
   const y = lerp(930, 800, warm);
-  glow(ctx, 960, y, 360, C.glow, 0.85 * warm);
-  glow(ctx, 960, y, 150, C.gold, 0.45 * warm);
+  // Already rising from "judicial", it swells as he is reclaimed.
+  const lit = lerp(0.5, 1, warm);
+  glow(ctx, 960, y, 360, C.glow, 0.85 * lit);
+  glow(ctx, 960, y, 150, C.gold, 0.45 * lit);
   ctx.restore();
 };

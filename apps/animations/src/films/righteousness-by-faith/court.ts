@@ -384,7 +384,7 @@ export const ANGEL_AT: Pt = [1330, 950];
 const ANGEL_S = 2.1;
 export const ANGEL_HAND: Pt = [-30, -58];
 /** His near hand at rest, at his side. */
-export const ANGEL_NEAR: Pt = [30, -58];
+const ANGEL_NEAR: Pt = [30, -58];
 
 /** The heavenly court's people, as a scene has them this frame; every place is the court's. */
 export interface ZechCourt {
@@ -393,14 +393,13 @@ export interface ZechCourt {
   /** The accuser: 0..1 stepped up (0 draws none), shrunk back, pointing. */
   readonly accuser: { readonly enter: number; readonly shrink: number; readonly point: number };
   /**
-   * The Angel: his light brightening 0..1, his head's turn, his far hand (from
-   * `ANGEL_HAND`), and his near hand when it reaches (at his side unless given).
+   * The Angel: his light brightening 0..1, his head's turn, and his far hand
+   * (from `ANGEL_HAND`); his near hand rests at his side.
    */
   readonly angel: {
     readonly lift: number;
     readonly tilt: number;
     readonly hand: Pt;
-    readonly handR?: Pt;
   };
   /** Joshua's pose (the turban is his); his specks' alpha; the cheek's speck, moved `dy` and faded. */
   readonly joshua: Person;
@@ -448,7 +447,7 @@ const zechAngel = (ctx: CanvasRenderingContext2D, hand: Hands, a: ZechCourt['ang
   at(ctx, { x, y, scale: ANGEL_S }, () =>
     christ(
       ctx,
-      { tilt: a.tilt, look: [-3, 1], browTilt: 0.15, handL: a.hand, handR: a.handR ?? ANGEL_NEAR },
+      { tilt: a.tilt, look: [-3, 1], browTilt: 0.15, handL: a.hand, handR: ANGEL_NEAR },
       hand,
     ),
   );
