@@ -2,9 +2,10 @@
 // the Sabbath is rest in His works, not ours. First the parchment: the robed
 // figure from `robe`, heart glowing, asks "am I done?"; on "kingdom" the
 // camera pans to a gold city gate with light and small music notes drifting
-// out; on "joy" a small grey figure with a scarlet heart stands beside it,
-// hands over ears, the notes jangling for them (a light moment; never robed:
-// a robe over a scarlet heart would be a cloak for sin). On "keep" back to
+// out; on "joy" a small grey figure stands beside it in the cold open's
+// scarlet stains, the film's picture of sin, hands over ears, the notes
+// jangling for them (a light moment; never robed: a robe over the stains
+// would be a cloak for sin). On "keep" back to
 // the robed figure asking again. On "will" the camera pushes through their
 // glowing heart into STORY: a cardboard room at dawn, the same figure at the
 // window, face at a third of the frame. On "choose" the open hand from `look`
@@ -27,6 +28,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
+import { FIGURE_STAINS } from '../court.ts';
 import { restingField } from '../garden.ts';
 import {
   C,
@@ -50,7 +52,7 @@ const FIG: Pt = [560, 930];
 const FIG_SCALE = 2.3;
 /** The heart's place on the chest, in the person's units. */
 const CHEST: Pt = [0, -80];
-/** The small grey figure beside the gate, and their scale. */
+/** The small grey figure in their stains beside the gate, and their scale. */
 const OTHER_DX = 380;
 const OTHER_SCALE = 1.5;
 
@@ -96,22 +98,6 @@ const NOTE_FLAG: Pt[] = [
 ];
 /** How fast each note drifts out, in drifts per second. */
 const NOTE_RATE = 0.22;
-
-/** The small scarlet heart of the one who still loves sin, in the person's units. */
-const SCARLET_HEART = spline(
-  [
-    [0, -10],
-    [8, -18],
-    [18, -12],
-    [16, 1],
-    [0, 18],
-    [-16, 1],
-    [-18, -12],
-    [-8, -18],
-  ],
-  6,
-  true,
-);
 
 const PAPER_SKY = [
   [0, C.paper],
@@ -278,7 +264,7 @@ const gate = (f: DailyFrame) => {
   ctx.restore();
 };
 
-/** The small grey figure with a scarlet heart beside the gate, hands over their ears. */
+/** The small grey figure in the scarlet stains beside the gate, hands over their ears. */
 const other = (f: DailyFrame) => {
   const { ctx } = f;
   const pop = f.at('other');
@@ -309,11 +295,10 @@ const other = (f: DailyFrame) => {
       smile: -0.45 * ears,
       handL: EARS_L,
       handR: EARS_R,
+      stains: FIGURE_STAINS,
     },
     f.hand('other'),
   );
-  ctx.translate(CHEST[0], CHEST[1]);
-  piece(ctx, SCARLET_HEART, C.scarlet, f.hand('scarletHeart'), { line: 2.5 });
   ctx.restore();
 };
 
