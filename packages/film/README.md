@@ -212,13 +212,18 @@ scene modules at start) and returns its findings, which the lab lists.
 **The editor** (`player/lab-edit.ts`): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
-its right edge to move its end (dur). Edges snap to word starts and ends,
+its right edge to move its end (dur). A cue that runs `until` a mark keeps
+ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
+only its offset, its start held a frame before the mark, and its right edge
+sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
 marks and other cues' edges within 8 px, else move by whole frames; shift
 places them freely. While dragging, the frame previews the edit in memory
 (`film.preview(scene, edit)` resolves the edited timeline on the scene's own
-clock, `sceneClock(p)`, as `layout()` does); the release writes. The
+clock, `sceneClock(p)`, as `layout()` does; an edit that does not resolve is
+not shown, and the status says why); the release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs, and an ease picker drawing each curve (the ease is only ever data:
+inputs (for an `until` cue, `until {mark}` and its resolved end instead of
+`dur`), and an ease picker drawing each curve (the ease is only ever data:
 `f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { Option } from 'effect';
 import { layout, sceneClock } from './layout.ts';
 import type { Timings } from './schema.ts';
 
@@ -9,6 +10,7 @@ import {
   type SceneClock,
   cueKeys,
   cueProgress,
+  dragPatch,
   patchSpan,
   resolveTimeline,
   staggerProgress,
@@ -205,6 +207,40 @@ describe('timeline', () => {
       until: 'as',
     });
     expect(patchSpan(walk, { ease: 'inQuad' })).toEqual({ ...walk, ease: 'inQuad' });
+  });
+
+  test('dragPatch: the body moves the offset, the right edge the dur, the left edge both', () => {
+    const slam = { mark: 'fiction', offset: 0.9, dur: 0.35 } as const;
+    const c = Option.getOrThrow(
+      Option.fromUndefinedOr(resolveTimeline({ slam }, clock).get('slam')),
+    );
+    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
+      dragPatch(slam, c, edge, { start, end }, 1 / 30);
+    expect(drag('move', c.start + 0.2, c.end + 0.2)).toEqual(Option.some({ offset: 1.1 }));
+    expect(drag('end', c.start, c.end + 0.25)).toEqual(Option.some({ dur: 0.6 }));
+    expect(drag('start', c.start - 0.1, c.end)).toEqual(Option.some({ offset: 0.8, dur: 0.45 }));
+    expect(drag('start', c.start, c.end)).toEqual(Option.none());
+  });
+
+  test('dragPatch: a span that runs until a mark keeps ending on it', () => {
+    // Starts at 2.8 (speech 0.5 + fiction 2 + 0.3), ends on {as} at 5.5.
+    const walk = { mark: 'fiction', offset: 0.3, until: 'as' } as const;
+    const c = Option.getOrThrow(
+      Option.fromUndefinedOr(resolveTimeline({ walk }, clock).get('walk')),
+    );
+    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
+      dragPatch(walk, c, edge, { start, end }, 1 / 30);
+    // The left edge and the body move only the start: the end stays on the mark.
+    expect(drag('start', 3, 5.5)).toEqual(Option.some({ offset: 0.5 }));
+    expect(drag('move', 3.8, 6.5)).toEqual(Option.some({ offset: 1.3 }));
+    // Dragged past the mark, the start holds a frame before it: the span still resolves.
+    const past = drag('move', 6, 8.7);
+    expect(past).toEqual(Option.some({ offset: 2.967 }));
+    const moved = resolveTimeline({ walk: patchSpan(walk, Option.getOrThrow(past)) }, clock);
+    expect(moved.get('walk')?.end).toBe(5.5);
+    // The right edge dropped on the mark keeps `until`; dropped off it, the dur is set by hand.
+    expect(drag('end', 2.8, 5.5)).toEqual(Option.none());
+    expect(drag('end', 2.8, 6)).toEqual(Option.some({ dur: 3.2 }));
   });
 
   test('an unknown mark names the scene and the cue', () => {

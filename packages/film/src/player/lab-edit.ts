@@ -9,11 +9,14 @@
 // its findings show under the inspector.
 //
 // On the strip: drag a cue's body to move its offset, its left edge to move
-// its start (offset and dur), its right edge to move its end (dur). Edges
-// snap to word starts and ends, marks and other cues' edges within a few
-// pixels, else move by whole frames; hold shift to place freely.
+// its start (offset and dur), its right edge to move its end (dur). A cue
+// that runs `until` a mark keeps ending on it: its body and left edge move
+// only its offset, and its right edge sets a dur only when dropped off the
+// mark (`dragPatch`). Edges snap to word starts and ends, marks and other
+// cues' edges within a few pixels, else move by whole frames; hold shift to
+// place freely.
 
-import { Option, Schema } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
 import { type Affine, applyAffine, invertAffine, sameAffine } from '../core/affine.ts';
 import type { Placed } from '../core/layout.ts';
@@ -32,7 +35,7 @@ import {
   type Timeline,
 } from '../core/schema.ts';
 import { DEFAULT_EASE, ease } from '../core/time.ts';
-import { patchSpan } from '../core/timeline.ts';
+import { type DragEdge, dragPatch, patchSpan } from '../core/timeline.ts';
 import type { Player } from './main.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -49,21 +52,6 @@ const decodeCheck = Schema.decodeUnknownSync(CheckReport);
 type Selection =
   | { readonly kind: 'cue'; readonly scene: string; readonly name: string }
   | { readonly kind: 'knob'; readonly scene: string; readonly name: string };
-
-type DragMode = 'move' | 'start' | 'end';
-
-/** Where a dragged cue now sits: its offset from its anchor and its length, in seconds. */
-interface Placement {
-  readonly offset: number;
-  readonly dur: number;
-}
-
-/** What a drag changes: the body moves the offset, the right edge the dur, the left edge both. */
-const patchFor = (mode: DragMode, at: Placement): CuePatch => {
-  if (mode === 'move') return { offset: at.offset };
-  if (mode === 'end') return { dur: at.dur };
-  return { offset: at.offset, dur: at.dur };
-};
 
 const isPoint = Schema.is(Point);
 
@@ -171,10 +159,15 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   const knobValue = (p: Placed<SceneSpec>, name: string): Knob | undefined =>
     declaredKnobs(p)[name];
 
+  /** Show `edit` in memory; one the scene's timeline cannot resolve is not shown, and says why. */
   const preview = (scene: string, edit: SceneEdit | undefined) => {
+    const shown = Result.try({
+      try: () => film.preview(scene, edit),
+      catch: (err) => String(err).replace(/^Error: /, ''),
+    });
+    if (Result.isFailure(shown)) return setStatus(`not previewed: ${shown.failure}`);
     if (edit === undefined) edits.delete(scene);
     else edits.set(scene, edit);
-    film.preview(scene, edit);
     player.redraw();
   };
 
@@ -279,7 +272,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     // Measured before selecting: selecting draws the strip again, with new bars.
     const rect = bar.getBoundingClientRect();
     select({ kind: 'cue', scene: p.spec.id, name: cue });
-    const mode: DragMode =
+    const mode: DragEdge =
       e.clientX - rect.left < EDGE_PX && rect.width > EDGE_PX * 2
         ? 'start'
         : rect.right - e.clientX < EDGE_PX
@@ -301,7 +294,6 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const span = declared[cue];
     const c0 = film.cuesOf(p.spec.id).get(cue);
     if (span === undefined || c0 === undefined) return;
-    const anchor = c0.start - (span.offset ?? 0);
     const width = stripRows.getBoundingClientRect().width;
     const perSec = width / p.dur;
     const targets = snapTargets(p, cue);
@@ -324,8 +316,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       return edge + Math.round(dt * film.fps) / film.fps;
     };
     const x0 = e.clientX;
-    const from: Placement = { offset: round(span.offset ?? 0), dur: round(c0.dur) };
-    let next = from;
+    let patch = Option.none<CuePatch>();
     dragging = true;
     const move = (ev: PointerEvent) => {
       const dt = (ev.clientX - x0) / perSec;
@@ -336,8 +327,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
         end = start + c0.dur;
       } else if (mode === 'start') start = Math.min(snap(c0.start, dt, ev.shiftKey), c0.end);
       else end = Math.max(snap(c0.end, dt, ev.shiftKey), c0.start);
-      next = { offset: round(start - anchor), dur: round(end - start) };
-      const edited = patchSpan(span, patchFor(mode, next));
+      patch = dragPatch(span, c0, mode, { start, end }, 1 / film.fps);
+      const edited = Option.match(patch, { onNone: () => span, onSome: (q) => patchSpan(span, q) });
       preview(p.spec.id, { ...edits.get(p.spec.id), timeline: { ...declared, [cue]: edited } });
       renderStrip();
       renderInspector();
@@ -346,8 +337,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       dragging = false;
-      if (next.offset === from.offset && next.dur === from.dur) return;
-      writeCue(p.spec.id, cue, patchFor(mode, next));
+      if (Option.isSome(patch)) writeCue(p.spec.id, cue, patch.value);
     };
     // On the window: the strip redraws its bars as the drag previews.
     window.addEventListener('pointermove', move);
@@ -561,7 +551,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       writeCue(p.spec.id, name, { offset: round(v) });
     });
     offset.dataset['field'] = 'offset';
-    const dur = numberInput(span.dur ?? 0, writable(name, 'dur'), (v) => {
+    const dur = numberInput(c.dur, writable(name, 'dur'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
         timeline: { ...declaredTimeline(p), [name]: patchSpan(span, { dur: Math.max(0, v) }) },
@@ -571,7 +561,13 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     });
     dur.dataset['field'] = 'dur';
     grid.append(el('span', 'lab-edit-key', 'offset'), offset);
-    grid.append(el('span', 'lab-edit-key', 'dur'), dur);
+    // A cue that runs until a mark ends on it: its dur is the mark's, not a number to type.
+    if (span.until === undefined) grid.append(el('span', 'lab-edit-key', 'dur'), dur);
+    else
+      grid.append(
+        el('span', 'lab-edit-key', 'end'),
+        el('span', 'lab-edit-val', `until {${span.until}} · ${c.end.toFixed(2)}s`),
+      );
     grid.append(
       el('span', 'lab-edit-key', 'plays'),
       el('span', 'lab-edit-val', `${c.start.toFixed(2)}–${c.end.toFixed(2)}s in the scene`),
