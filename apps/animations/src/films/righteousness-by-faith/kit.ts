@@ -280,8 +280,9 @@ export interface Person {
   /** Stains on the garment: blob outlines in the person's units. */
   stains?: ReadonlyArray<ReadonlyArray<Pt>>;
   /**
-   * 0 stands, 1 sits: the origin becomes the seat, the body drops onto it by
-   * the legs' height, and the legs hang below it over the edge.
+   * 0 stands, 1 sits: the origin becomes the seat's front edge, the body
+   * drops onto it by the legs' height, the lap comes forward over the edge
+   * with its two knees, and the shins hang down its face.
    */
   sit?: number;
 }
@@ -461,9 +462,15 @@ const frameOf = (ctx: CanvasRenderingContext2D, dy: number, sx = 1, sy = 1) => {
   if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
 };
 
+/** A seated shin's length, from under the knee to the heel: long enough to hang down a wall and read. */
+const SHIN = 46;
+/** Where a seated shin starts: under the lap's knees. */
+const KNEE_Y = 6;
+
 /**
- * The two legs: under the body standing, and as `sit` goes to 1 hanging
- * below the seat, their feet splayed a little.
+ * The two legs: under the body standing; as `sit` goes to 1 each becomes a
+ * shin hanging from under its knee down the seat's face, a foot turned out
+ * toward us at its end.
  */
 const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: Hand) => {
   for (const x of LEG_X) {
@@ -472,11 +479,17 @@ const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: H
       piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { line: 2.5 });
       continue;
     }
-    ctx.save();
-    ctx.translate(x * (1 + 0.1 * sit), lerp(-10, 14, sit));
-    ctx.rotate(-Math.sign(x) * 0.08 * sit);
-    piece(ctx, rounded(0, 0, 16, 22, 5), shade, k, { line: 2.5 });
-    ctx.restore();
+    const lx = x * (1 + 0.35 * sit);
+    const top = lerp(-21, KNEE_Y, sit);
+    const heel = lerp(1, KNEE_Y + SHIN, sit);
+    piece(ctx, rounded(lx, (top + heel) / 2, 15, heel - top, 5), shade, k, { line: 2.5 });
+    piece(
+      ctx,
+      ellipseShape(lx + Math.sign(x) * 4 * sit, heel - 1, 8 + 3 * sit, 6, 24),
+      shade,
+      sub(k, 40),
+      { line: 2.5 },
+    );
   }
 };
 
@@ -496,8 +509,35 @@ const TUNIC_SHAPE = rounded(0, -72, 66, 112, 22);
 /** Each garment's top and hem, standing. */
 const ROBE_SPAN = [-126, -2] as const;
 const TUNIC_SPAN = [-128, -16] as const;
-/** Where the hem rests once seated: just over the seat's edge. */
+/** Where the hem rests once seated: under the lap, just over the seat's edge. */
 const SEAT_HEM = 3;
+/**
+ * The seated lap, about the seat: the thighs come toward us over the seat's
+ * edge, so the silhouette widens there; its top is the fold at the hips, its
+ * bottom the two knees with the cloth dipping between them.
+ */
+const LAP = spline(
+  [
+    [-46, -14],
+    [0, -11],
+    [46, -14],
+    [52, 2],
+    [38, 14],
+    [20, 13],
+    [0, 7],
+    [-20, 13],
+    [-38, 14],
+    [-52, 2],
+  ],
+  6,
+  true,
+);
+/** The shadowed crease between the knees, and its soft line. */
+const LAP_CREASE: Pt[] = [
+  [1, -4],
+  [0, 7],
+];
+const LAP_FOLD = { color: C.outline, width: 2, jitter: 0.4, taper: 0.4, alpha: 0.5 } as const;
 const UNBUILT = [1, 1] as const;
 /** How far a build may stretch or squash the body: a person still, never flat or inside out. */
 const BUILD_MIN = 0.6;
@@ -517,6 +557,18 @@ const NO_STAINS: ReadonlyArray<ReadonlyArray<Pt>> = [];
  * onto the seat and its length folded into the lap, the hem at the seat's
  * edge.
  */
+/**
+ * The seated garment's fold for `sit` > 0: its top dropped onto the seat,
+ * its length folded so the hem rests at the seat's edge under the lap, and
+ * its width drawn in, since the cloth falls straight to the lap rather than
+ * belling to the feet. As a drop `dy` and a scale (sx, sy) about the feet.
+ */
+const foldOf = (robe: boolean, sit: number): readonly [dy: number, sx: number, sy: number] => {
+  const [top, hem] = robe ? ROBE_SPAN : TUNIC_SPAN;
+  const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
+  return [top + SEAT * sit - top * k, 1 - 0.18 * sit, k];
+};
+
 const garment = (
   ctx: CanvasRenderingContext2D,
   p: Person,
@@ -527,15 +579,22 @@ const garment = (
   const robe = p.garment === 'robe';
   ctx.save();
   if (sit > 0) {
-    const [top, hem] = robe ? ROBE_SPAN : TUNIC_SPAN;
-    const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
-    ctx.translate(0, top + SEAT * sit - top * k);
-    ctx.scale(1, k);
+    const [dy, sx, sy] = foldOf(robe, sit);
+    ctx.translate(0, dy);
+    ctx.scale(sx, sy);
   }
   piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
   let i = 0;
   for (const stain of p.stains ?? NO_STAINS)
     cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i++));
+  ctx.restore();
+  if (sit <= 0) return;
+  // The lap: the thighs come toward us over the seat's edge, the cloth
+  // draped across them and broken by the two knees; it grows in with `sit`.
+  ctx.save();
+  ctx.scale(robe ? 1 : 0.8, sit);
+  piece(ctx, LAP, body, sub(hand, 6), { shadow: 0.25 });
+  stroke(ctx, LAP_CREASE, LAP_FOLD, sub(hand, 14));
   ctx.restore();
 };
 
