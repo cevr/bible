@@ -59,6 +59,20 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > This is a daily matter. Each morning consecrate yourself to God for that day.
 
+## `roof`
+
+The three gifts in scripture, in the order given: faith, then forgiveness, then power. The frame is the owner's handbook study (`packages/cli/outputs/studies/2026-06-17-righteousness-by-faith-a-bible-handbook-study.md`, the gate, the altar and the laver; `rbf-sources/definition.md`, "Outer Courtyard").
+
+- **Mark 2:5, 11–12** (KJV). The paralytic, paraphrased: faith seen, sins forgiven, power to arise and go.
+
+  > When Jesus saw their faith, he said unto the sick of the palsy, Son, thy sins be forgiven thee.
+
+  > I say unto thee, Arise, and take up thy bed, and go thy way into thine house. And immediately he arose, took up the bed, and went forth before them all; insomuch that they were all amazed, and glorified God, saying, We never saw it on this fashion.
+
+- **John 8:9–11** (KJV). The woman taken in adultery; verse 11's answer quoted. Her “No man, Lord” is faith's confession (the handbook study, “The Gate — Faith”).
+
+  > And they which heard it, being convicted by their own conscience, went out one by one, beginning at the eldest, even unto the last: and Jesus was left alone, and the woman standing in the midst. When Jesus had lifted up himself, and saw none but the woman, he said unto her, Woman, where are those thine accusers? hath no man condemned thee? She said, No man, Lord. And Jesus said unto her, Neither do I condemn thee: go, and sin no more.
+
 ## `word`
 
 - **COL 312.2** · Ellen G. White, _Christ’s Object Lessons_ (1900). “It just means right doing.”
