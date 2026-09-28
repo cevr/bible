@@ -43,6 +43,20 @@ export const audioConstraints = (device: Option.Option<string>): MediaTrackConst
   }),
 });
 
+/** The processing stages the constraints turn off, as the owner reads them. */
+const STAGES = [
+  ['echoCancellation', 'echo cancellation'],
+  ['noiseSuppression', 'noise suppression'],
+  ['autoGainControl', 'automatic gain control'],
+] as const;
+
+/**
+ * The stages a track's settings say are still on. A stage a browser does not
+ * report is one it does not have (settings name only what it supports).
+ */
+export const processingOn = (settings: MediaTrackSettings): ReadonlyArray<string> =>
+  STAGES.filter(([key]) => settings[key] === true).map(([, name]) => name);
+
 /** Why getUserMedia gave no microphone, by the DOMException's name, in the owner's words. */
 const DENIED = new Map([
   ['NotAllowedError', 'the browser was not allowed to use it; allow the microphone for this page'],
@@ -131,10 +145,43 @@ export const makeBrowserCapture = Effect.gen(function* () {
         }),
         (s) => Effect.sync(() => s.getTracks().forEach((t) => t.stop())),
       );
+      const track = yield* Effect.fromOption(
+        Option.fromUndefinedOr(stream.getAudioTracks()[0]),
+      ).pipe(Effect.mapError(() => failed('the browser gave the microphone with no audio in it')));
+      const settings = track.getSettings();
+      const leftOn = processingOn(settings);
+      if (leftOn.length > 0)
+        return yield* failed(
+          `the browser kept ${leftOn.join(', ')} on though asked not to; use Chrome or Firefox`,
+        );
+      // The context runs at the microphone's own rate: made with none, it
+      // would run at the output device's, and the browser would resample
+      // the microphone into it without a word.
+      const micRate = Option.fromUndefinedOr(settings.sampleRate);
       const context = yield* Effect.acquireRelease(
-        Effect.sync(() => new AudioContext()),
+        Effect.try({
+          try: () =>
+            new AudioContext(
+              Option.match(micRate, {
+                onNone: () => ({}),
+                onSome: (sampleRate) => ({ sampleRate }),
+              }),
+            ),
+          catch: (error) => failed(`the audio could not start: ${String(error)}`),
+        }),
         (c) => Effect.promise(() => c.close()).pipe(Effect.ignore),
       );
+      yield* Effect.logInfo(
+        `studio.mic.rate mic=${Option.getOrElse(
+          Option.map(micRate, String),
+          () => 'unreported',
+        )} context=${context.sampleRate}`,
+      );
+      const resampled = Option.filter(micRate, (rate) => rate !== context.sampleRate);
+      if (Option.isSome(resampled))
+        return yield* failed(
+          `the browser runs the audio at ${context.sampleRate} Hz, not the microphone’s ${resampled.value} Hz, and would resample every take; use Chrome or Firefox`,
+        );
       yield* Effect.tryPromise({
         try: () => context.audioWorklet.addModule(moduleUrl),
         catch: (error) => failed(`the capture worklet did not load: ${String(error)}`),
@@ -149,7 +196,12 @@ export const makeBrowserCapture = Effect.gen(function* () {
             Effect.fail(failed('the browser kept the audio suspended; click the page, then arm')),
         }),
       );
-      const source = context.createMediaStreamSource(stream);
+      // A browser that cannot join a microphone to a context at another rate
+      // (Firefox) says so here rather than resample.
+      const source = yield* Effect.try({
+        try: () => context.createMediaStreamSource(stream),
+        catch: (error) => failed(`the microphone could not reach the audio: ${String(error)}`),
+      });
       const node = new AudioWorkletNode(context, PROCESSOR, {
         numberOfInputs: 1,
         numberOfOutputs: 0,
