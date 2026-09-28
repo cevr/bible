@@ -804,6 +804,9 @@ export const ROBE: Pt[] = [
   [-330, -210],
 ];
 
+/** The heart's place on a person's chest, in their units (`within`, `daily`, the Sabbath field). */
+export const CHEST: Pt = [0, -80];
+
 /** The three icons' centres, relative to the row's centre. */
 export const ICON_X = [-440, 0, 440] as const;
 

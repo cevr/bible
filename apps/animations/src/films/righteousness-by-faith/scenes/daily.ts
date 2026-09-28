@@ -30,11 +30,11 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { FIGURE_STAINS } from '../court.ts';
-import { restingField } from '../garden.ts';
+import { PATH_AHEAD, PATH_HILL, alongPath, restingField } from '../garden.ts';
 import {
   C,
+  CHEST,
   type Person,
-  blob,
   contact,
   glow,
   icons,
@@ -51,8 +51,6 @@ import {
 /** The robed figure on the page: where they stand and their scale. */
 const FIG: Pt = [560, 930];
 const FIG_SCALE = 2.3;
-/** The heart's place on the chest, in the person's units. */
-const CHEST: Pt = [0, -80];
 /** The small grey figure in their stains beside the gate, and their scale. */
 const OTHER_DX = 380;
 const OTHER_SCALE = 1.5;
@@ -121,19 +119,12 @@ const WIN_BAR_V = rounded(0, 0, 22, WIN_HH * 2, 4);
 const WIN_BAR_H = rounded(0, 0, WIN_HW * 2, 22, 4);
 const SILL = rounded(0, WIN_HH + 40, WIN_HW * 2 + 120, 30, 6);
 /** Where the sun rises and sets in the window, and how high it arcs. */
-const HORIZON = 60;
+const HORIZON = 150;
 const SUN_ARC = 300;
-/** The view's hill and path, in the view's units (the path from `within`). */
-const VIEW_SCALE = 0.62;
-const HILL = blob(0, 280, 1300, 560, 61);
-const PATH: Pt[] = [
-  [-360, 250],
-  [-180, 200],
-  [-40, 110],
-  [110, 40],
-  [260, -60],
-  [380, -130],
-];
+/** The view's scale: `within`'s hill and path, seen through the window. */
+const VIEW_SCALE = 0.75;
+/** How far below the window's centre the view's origin sits, so the hill fills the sill. */
+const VIEW_DROP = 110;
 const FLOWER_STEM: Pt[] = [
   [0, 0],
   [0, -30],
@@ -194,6 +185,7 @@ export const daily = drawing({
 
 // Scratch the draw reuses every frame, so no pose or tuple is made per frame.
 const LOOK: [number, number] = [0, 0];
+const AT: [number, number] = [0, 0];
 const OTHER_LOOK: [number, number] = [0, 0];
 const EARS_L: [number, number] = [0, 0];
 const EARS_R: [number, number] = [0, 0];
@@ -379,10 +371,15 @@ const room = (f: DailyFrame, alpha: number) => {
   glow(ctx, sx, sy, 200, C.glow, 0.9);
   piece(ctx, ellipseShape(sx, sy, 44, 44, 24), C.gold, hand('sun'), { line: 0 });
   ctx.save();
-  ctx.translate(wx, wy + 40);
+  ctx.translate(wx, wy + VIEW_DROP);
   ctx.scale(VIEW_SCALE, VIEW_SCALE);
-  piece(ctx, HILL, C.leaf, hand('hill'), { line: 0, shadow: 0.2 });
-  stroke(ctx, PATH, { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 }, hand('path'));
+  piece(ctx, PATH_HILL, C.leaf, hand('hill'), { line: 0, shadow: 0.2 });
+  stroke(
+    ctx,
+    PATH_AHEAD,
+    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 },
+    hand('path'),
+  );
   flowers(f);
   ctx.restore();
   ctx.restore();
@@ -410,13 +407,10 @@ const flowers = (f: DailyFrame) => {
     const grown = clamp((dayArc(f, i) - 0.55) / 0.35);
     if (grown <= 0) continue;
     const k = (i + 0.5) / DAYS;
-    const seg = k * (PATH.length - 1);
-    const j = Math.min(PATH.length - 2, Math.floor(seg));
-    const a = PATH[j] ?? PATH[0] ?? [0, 0];
-    const b = PATH[j + 1] ?? a;
+    alongPath(k, AT);
     const side = i % 2 === 0 ? -1 : 1;
     ctx.save();
-    ctx.translate(lerp(a[0], b[0], seg - j) + side * 40, lerp(a[1], b[1], seg - j) + 10);
+    ctx.translate(AT[0] + side * 40, AT[1] + 10);
     const s = grown * (2.2 - 0.8 * k);
     ctx.scale(s, s);
     stroke(ctx, FLOWER_STEM, { color: C.leafShade, width: 4, jitter: 0.3 }, sub(hand('stem'), i));

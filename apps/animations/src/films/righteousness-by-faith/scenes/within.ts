@@ -27,6 +27,7 @@ import {
 import { clamp, lerp } from '@bible/film/core';
 import {
   C,
+  CHEST,
   type Person,
   blob,
   contact,
@@ -41,6 +42,7 @@ import {
   sky,
   between,
 } from '../kit.ts';
+import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 
 /** The figure on the page: where they stand, and where they stand aside. */
 const CENTRE: Pt = [960, 930];
@@ -54,8 +56,6 @@ const PANEL_H = 640;
 const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
 const FACE: Camera = { x: 960, y: 590, zoom: 2.1 };
 
-/** The heart's place on the chest, in the person's units. */
-const CHEST: Pt = [0, -80];
 /** Each hand held out open at the side, and at rest; and the shoulder the glow runs through. */
 const OPEN_HAND: Pt = [78, -80];
 const REST_HAND: Pt = [30, -58];
@@ -65,24 +65,6 @@ const RUN_STEPS = 6;
 /** The warmed figure: grey paper toward cream, touched with the word's gold. */
 const WARM_BODY = mix(C.cream, C.gold, 0.22);
 const WARM_SHADE = mix(C.cream, C.gold, 0.45);
-
-/** The path ahead, in the panel's units, from near left to far right. */
-const PATH: Pt[] = [
-  [-360, 250],
-  [-180, 200],
-  [-40, 110],
-  [110, 40],
-  [260, -60],
-  [380, -130],
-];
-
-const along = (t: number): Pt => {
-  const k = clamp(t) * (PATH.length - 1);
-  const i = Math.min(PATH.length - 2, Math.floor(k));
-  const a = PATH[i] ?? [0, 0];
-  const b = PATH[i + 1] ?? a;
-  return [lerp(a[0], b[0], k - i), lerp(a[1], b[1], k - i)];
-};
 
 const timeline = {
   ask: { mark: 'out', dur: 0.4 },
@@ -279,18 +261,23 @@ const panel = (f: WithinFrame, aside: number) => {
 const path = (f: WithinFrame) => {
   const { ctx } = f;
   const hand = (k: string) => f.hand(k);
-  piece(ctx, blob(0, 260, 1100, 420, 31), C.leaf, hand('hill'), {
+  piece(ctx, PATH_HILL, C.leaf, hand('hill'), {
     line: 0,
     shadow: 0.2,
   });
-  stroke(ctx, PATH, { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 }, hand('path'));
+  stroke(
+    ctx,
+    PATH_AHEAD,
+    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 },
+    hand('path'),
+  );
   const walk = f.at('walk');
   // Flowers where the figure has already stepped.
   for (let i = 0; i < 9; i++) {
     const k = i / 9;
     const age = (walk - k) * 6;
     if (age <= 0) continue;
-    const [px, py] = along(k);
+    const [px, py] = alongPath(k, AT);
     const s = clamp(age);
     const side = i % 2 === 0 ? -1 : 1;
     at(ctx, { x: px + side * 34, y: py + 10, scale: s * (1 - 0.4 * k) }, () => {
@@ -304,7 +291,7 @@ const path = (f: WithinFrame) => {
       );
     });
   }
-  const [wx, wy] = along(walk);
+  const [wx, wy] = alongPath(walk, AT);
   // The film's one walk: the kit's step, from the cue's start.
   const bob = gait(f.t, f.cue('walk'));
   at(ctx, { x: wx, y: wy - bob, scale: 0.9 - 0.4 * walk }, () => {
@@ -317,6 +304,8 @@ const path = (f: WithinFrame) => {
     );
   });
 };
+/** Scratch for a point along the path. */
+const AT: [number, number] = [0, 0];
 const STEM: Pt[] = [
   [0, 0],
   [0, -30],

@@ -15,6 +15,7 @@ import {
 import { clamp, ease, hash2, lerp } from '@bible/film/core';
 import {
   C,
+  CHEST,
   type Person,
   blob,
   contact,
@@ -136,10 +137,37 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
   });
 };
 
+// ─── the path ahead ──────────────────────────────────────────────────────────
+
+/**
+ * The path ahead, near left to far right, and the hill it climbs, in its
+ * view's units: `within`'s `second` panel, and the view from `daily`'s window.
+ */
+export const PATH_AHEAD: ReadonlyArray<Pt> = [
+  [-360, 250],
+  [-180, 200],
+  [-40, 110],
+  [110, 40],
+  [260, -60],
+  [380, -130],
+];
+export const PATH_HILL = blob(0, 260, 1100, 420, 31);
+
+/** Where the path ahead is at `t` 0..1 along it, written into `out`. */
+export const alongPath = (t: number, out: [number, number]): [number, number] => {
+  const k = clamp(t) * (PATH_AHEAD.length - 1);
+  const i = Math.min(PATH_AHEAD.length - 2, Math.floor(k));
+  const a = PATH_AHEAD[i] ?? PATH_AHEAD[0] ?? out;
+  const b = PATH_AHEAD[i + 1] ?? a;
+  out[0] = lerp(a[0], b[0], k - i);
+  out[1] = lerp(a[1], b[1], k - i);
+  return out;
+};
+
+// ─── the Sabbath field ───────────────────────────────────────────────────────
+
 /** The resting figure's default: plain grey paper. */
 const PAPER: Person = {};
-/** The heart's place on the chest, in the person's units. */
-const CHEST: Pt = [0, -80];
 
 /**
  * The Sabbath rest (Heb 4:10), full frame: a cardboard field at golden hour,
