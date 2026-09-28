@@ -13,29 +13,45 @@ export interface Pcm {
 /** The canonical PCM header's length: RIFF, fmt and data chunk heads. */
 export const WAV_HEADER_BYTES = 44;
 
-const BYTES_PER_SAMPLE = 3;
-const FULL_SCALE = 0x7fffff;
+export const BYTES_PER_SAMPLE = 3;
+/**
+ * 2^23: a device's integer k reaches the page as k / 2^23 (Chromium and
+ * CoreAudio alike), so this scale gives k back exactly.
+ */
+const FULL_SCALE = 0x800000;
+const MOST_POSITIVE = 0x7fffff;
+const MOST_NEGATIVE = -0x800000;
 
 const writeAscii = (view: DataView, at: number, text: string) => {
   for (let i = 0; i < text.length; i++) view.setUint8(at + i, text.charCodeAt(i));
 };
 
 /**
- * A sample as signed 24-bit PCM: clipped at full scale, never wrapped, and
- * rounded half away from zero, so a waveform and its inverse encode alike.
+ * A sample as signed 24-bit PCM: clipped to [−2^23, 2^23 − 1], never wrapped,
+ * and rounded half away from zero, so a waveform and its inverse encode alike.
  */
 const int24 = (x: number) => {
-  const scaled = Math.max(-1, Math.min(1, x)) * FULL_SCALE;
-  return Math.sign(scaled) * Math.round(Math.abs(scaled));
+  const scaled = x * FULL_SCALE;
+  const rounded = Math.sign(scaled) * Math.round(Math.abs(scaled));
+  return Math.max(MOST_NEGATIVE, Math.min(MOST_POSITIVE, rounded));
 };
 
-/** `pcm` as a 24-bit mono WAV file. */
+/** The length of the WAV `encodeWav` makes of `frames` samples: the header, the data and its pad byte. */
+export const wavBytes = (frames: number): number => {
+  const data = frames * BYTES_PER_SAMPLE;
+  return WAV_HEADER_BYTES + data + (data % 2);
+};
+
+/**
+ * `pcm` as a 24-bit mono WAV file. A data chunk of odd length is followed by
+ * the RIFF pad byte, which the RIFF size counts and the data size does not.
+ */
 export const encodeWav = (pcm: Pcm): Uint8Array => {
   const data = pcm.samples.length * BYTES_PER_SAMPLE;
-  const bytes = new Uint8Array(WAV_HEADER_BYTES + data);
+  const bytes = new Uint8Array(wavBytes(pcm.samples.length));
   const view = new DataView(bytes.buffer);
   writeAscii(view, 0, 'RIFF');
-  view.setUint32(4, WAV_HEADER_BYTES - 8 + data, true);
+  view.setUint32(4, bytes.length - 8, true);
   writeAscii(view, 8, 'WAVE');
   writeAscii(view, 12, 'fmt ');
   view.setUint32(16, 16, true);
