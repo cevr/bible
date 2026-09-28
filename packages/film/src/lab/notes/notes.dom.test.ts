@@ -27,6 +27,18 @@ type JsonObject = { readonly [key: string]: Json };
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
+/**
+ * Do `act` and wait for the answer to the request whose URL ends `suffix`,
+ * listening before `act` starts: a fake route answers at once, so a listener
+ * added after the act can miss the answer and wait forever.
+ */
+const answered = (page: Page, suffix: string, act: () => Promise<unknown>) =>
+  Effect.gen(function* () {
+    const answer = page.waitForResponse((r) => r.url().endsWith(suffix));
+    yield* Effect.promise(act);
+    yield* Effect.promise(() => answer);
+  });
+
 const waitFor = (page: Page, selector: string) =>
   Effect.promise(() => page.waitForSelector(selector));
 
@@ -258,14 +270,8 @@ describe('the thread', () => {
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* waitFor(page, '.lab-note-item.selected .lab-reply-input');
         yield* Effect.promise(() => page.fill('.lab-reply-input', 'see frame 31'));
-        yield* Effect.promise(() => page.press('.lab-reply-input', 'Enter'));
-        yield* Effect.promise(() =>
-          page.waitForResponse((r) => r.url().endsWith('/notes/n1/reply')),
-        );
-        yield* click(page, '.lab-resolve');
-        yield* Effect.promise(() =>
-          page.waitForResponse((r) => r.url().endsWith('/notes/n1/resolve')),
-        );
+        yield* answered(page, '/notes/n1/reply', () => page.press('.lab-reply-input', 'Enter'));
+        yield* answered(page, '/notes/n1/resolve', () => page.click('.lab-resolve'));
         expect(posted(asked, /^\/notes\/n1\/reply$/)).toEqual([
           Option.some({ text: 'see frame 31' }),
         ]);
@@ -326,7 +332,11 @@ describe('the feed', () => {
           ],
           { hash: '#1' },
         );
+        // The feed says nothing while it connects again, before the read goes
+        // out, so the test waits for the read that succeeds, not the quiet.
+        const again = page.waitForResponse((r) => r.url().endsWith('/notes') && r.ok());
         yield* textOf(page, '.lab-feed', 'notes.json is being written');
+        yield* Effect.promise(() => again);
         yield* Effect.promise(() =>
           page.waitForFunction(
             () => (document.querySelector('.lab-feed')?.textContent ?? 'absent') === '',
