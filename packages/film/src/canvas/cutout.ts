@@ -176,7 +176,8 @@ const shadowless = (s: FaceState) =>
  * only where that lands the same pixels as filling the colour and then
  * soft-lighting the pastel over it: drawn opaque, source-over, unfiltered and
  * casting no shadow. Anything else (a faded or composited cutout, a blurred
- * plane, a caller's shadow) keeps the two-pass draw.
+ * plane, a caller's shadow) keeps the two-pass draw, as does a face the
+ * transform magnifies (`magnifies`).
  */
 export const preblends = (s: FaceState): boolean =>
   s.globalAlpha === 1 &&
@@ -184,19 +185,42 @@ export const preblends = (s: FaceState): boolean =>
   s.filter === 'none' &&
   shadowless(s);
 
+/** The linear part of a canvas transform: what scales, squashes and turns a face. */
+export type Linear = Pick<DOMMatrixReadOnly, 'a' | 'b' | 'c' | 'd'>;
+
+/** How far `m` stretches a face at most, along any direction: its larger singular value. */
+export const stretchOf = (m: Linear): number => {
+  const p = m.a * m.a + m.b * m.b;
+  const q = m.c * m.c + m.d * m.d;
+  const r = m.a * m.c + m.b * m.d;
+  return Math.sqrt((p + q) / 2 + Math.sqrt(((p - q) / 2) ** 2 + r * r));
+};
+
+/** The most a face may be stretched and still take its pastel pre-blended. */
+const PREBLEND_STRETCH = 1.05;
+
+/**
+ * `m` magnifies a face past what pre-blending holds to. A magnified pre-blended
+ * tile resamples the blend, where the look soft-lights the resampled pastel;
+ * soft-light is not linear, so a camera push to 1.4 or a squash landing drifts
+ * up to 11/255 from the look. Turned, shifted or pulled-back faces stay within
+ * 8-bit rounding (`cutout.pixel.test.ts`).
+ */
+export const magnifies = (m: Linear): boolean => stretchOf(m) > PREBLEND_STRETCH;
+
 /** Where a face's pastel sits: shifted by the hand's seed, so neighbours never line up. */
 const pastelAt = (pattern: CanvasPattern, hand: Hand) =>
   pattern.setTransform(new DOMMatrix().translate(hand.seed % 320, (hand.seed >> 8) % 320));
 
 /** The face in one fill of its pre-blended tile; false when this face cannot take it. */
-const blendedFace = (
+export const blendedFace = (
   ctx: CanvasRenderingContext2D,
   face: ReadonlyArray<Pt>,
   style: CutoutStyle,
   grain: number,
   hand: Hand,
 ): boolean => {
-  if (grain <= 0 || !preblends(ctx)) return false;
+  if (grain <= 0 || !preblends(ctx) || magnifies(ctx.getTransform())) return false;
   const blended = faceOf(style.color, grain);
   if (!blended.opaque) return false;
   const pattern = ctx.createPattern(blended.tile, 'repeat');
@@ -208,8 +232,11 @@ const blendedFace = (
   return true;
 };
 
-/** The face as a flat fill with the pastel soft-lit over it, clipped to the face. */
-const layeredFace = (
+/**
+ * The face as a flat fill with the pastel soft-lit over it, clipped to the
+ * face: the look itself, which `blendedFace` must match wherever it draws.
+ */
+export const layeredFace = (
   ctx: CanvasRenderingContext2D,
   face: ReadonlyArray<Pt>,
   style: CutoutStyle,
