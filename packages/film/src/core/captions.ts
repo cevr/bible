@@ -6,6 +6,7 @@ import { Array as Arr, Option } from 'effect';
 import { type Placed, captionLines } from './layout.ts';
 import type { Turn } from './narration.ts';
 import type { Word } from './schema.ts';
+import { phraseCues, shortPhrases } from './phrases.ts';
 import type { ResolvedShort } from './shorts.ts';
 
 /** A line shows this long before its first word, so the eye is there first. */
@@ -71,22 +72,20 @@ export const filmCaptions = (
   });
 
 /**
- * Every caption line of a short, in the time of its range `[from, to)`: each
- * span's lines as the film shows them there, laid where the span plays.
+ * Every caption of a short, in the time of its range `[from, to)`: the
+ * phrases its page burns in (`shortPhrases`), as it shows them.
  */
 export const shortCaptions = (
   placed: ReadonlyArray<Placed>,
   short: ResolvedShort,
   range: { readonly from: number; readonly to: number },
 ): Array<CaptionCue> =>
-  short.spans.flatMap((span) =>
-    filmCaptions(placed, { from: span.from, to: span.to }).flatMap((cue) => {
-      const start = Math.max(range.from, cue.start + span.at);
-      const end = Math.min(range.to, cue.end + span.at);
-      if (end <= start) return [];
-      return [{ start: start - range.from, end: end - range.from, text: cue.text }];
-    }),
-  );
+  phraseCues(shortPhrases(placed, short)).flatMap((cue) => {
+    const start = Math.max(range.from, cue.start);
+    const end = Math.min(range.to, cue.end);
+    if (end <= start) return [];
+    return [{ start: start - range.from, end: end - range.from, text: cue.text }];
+  });
 
 const pad = (n: number, width: number) => String(n).padStart(width, '0');
 

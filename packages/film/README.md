@@ -129,7 +129,22 @@ colours, sizes in 1080×1920 px, checked by `createFilm`). The
 renderer resolves the short again on the page's fps, cuts `full.wav` to its
 pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
 writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
-film's caption cues under each span, moved to short time). `film cues --short`
+phrases the page burns in, as it shows them).
+
+A short's captions are phrases, not the film's lines (`core/phrases.ts`):
+`shortPhrases` takes each span's words, breaks them at every sentence and
+voice turn, then at clauses, and cuts each clause evenly into two to four
+words (`PHRASE_MAX`); a one-word sentence joins its voice's next one, and no
+phrase crosses a join. A phrase shows from its first word to the next
+phrase's, or `PHRASE_HOLD` (0.6 s) after its last word. A word between the
+script's “ and ” (which the take's words carry; `quotedWords`) is quoted.
+`canvas/short-captions.ts` (`burnedCaptions`) draws them centred on y 1318 in
+the style's caption font, no plate, each phrase broken into as few lines of
+at most 800 px as it needs and balanced (`breakLines`, so no word is left
+alone); a quoted word gets a gold marker (`caption.highlight`) swept behind
+it as it is read, so a quotation lights word by word. The phrases are set
+once; a frame looks one up and draws it. The long film's captions are
+untouched. `render --short --no-captions` leaves them out. `film cues --short`
 prints `shortReport`; `film bench --workers n --short <id>` times the same
 render.
 

@@ -12,6 +12,7 @@ export * from './timeline.ts';
 export * from './layout.ts';
 export * from './shorts.ts';
 export * from './captions.ts';
+export * from './phrases.ts';
 export * from './ticks.ts';
 export * from './notes.ts';
 export * from './affine.ts';

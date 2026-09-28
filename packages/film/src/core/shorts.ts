@@ -35,6 +35,8 @@ export interface ResolvedShort {
   readonly spans: readonly [ShortCut, ...ShortCut[]];
   /** Seconds, a whole number of frames. */
   readonly duration: number;
+  /** The frame rate it was resolved on: each span's ends sit within half a frame of their points. */
+  readonly fps: number;
 }
 
 /**
@@ -162,7 +164,7 @@ export const resolveShort = (
         at + f.to - f.from,
         { scene: f.scene, from: f.from / fps, to: f.to / fps, at: at / fps },
       ]);
-      return { id: short.id, title: short.title, spans, duration: length / fps };
+      return { id: short.id, title: short.title, spans, duration: length / fps, fps };
     },
   );
 

@@ -20,7 +20,9 @@ import {
   shortPage,
   shortSpanAt,
 } from '../core/shorts.ts';
+import { shortPhrases } from '../core/phrases.ts';
 import { BOIL_FPS } from './ink.ts';
+import { burnedCaptions } from './short-captions.ts';
 import type { Film, RenderOptions, SceneSpec } from './film.ts';
 import {
   type Grain,
@@ -187,6 +189,9 @@ export const createShort = (film: Film, declared: Short): Film => {
     return assets;
   };
 
+  /** The words below the band, phrase by phrase (`--no-captions` leaves them out). */
+  const captions = burnedCaptions(shortPhrases(film.placed, short), style.caption, k);
+
   /** The hook, set once on the first frame that draws it. */
   let hook: SetBlock | undefined;
   const hookOf = (ctx: CanvasRenderingContext2D, text: string) =>
@@ -282,9 +287,16 @@ export const createShort = (film: Film, declared: Short): Film => {
     ctx.drawImage(frame.c, 0, band.top);
     ctx.restore();
 
-    if (sink === undefined || probed === undefined) return drawHook(ctx, T, undefined);
+    const words = opts.captions !== false;
+    if (sink === undefined || probed === undefined) {
+      drawHook(ctx, T, undefined);
+      if (words) captions.draw(ctx, T, undefined);
+      return;
+    }
     onPage(probed, sink, band.top);
-    drawHook(ctx, T, { sink, scene: span.scene, dx: 0, alpha: 1, caption: true });
+    const probe: Probe = { sink, scene: span.scene, dx: 0, alpha: 1, caption: true };
+    drawHook(ctx, T, probe);
+    if (words) captions.draw(ctx, T, probe);
   };
 
   return {
