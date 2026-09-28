@@ -130,14 +130,21 @@ both beats beside it. Every beat is placed and cut before `--only` picks.
 
 The padding and loudness a recorded take gets are measured, not chosen: over
 the 30 committed staging takes (both films, 2026-09-28; mpg123 decode, 10 ms
-RMS windows), the median mean power is −19.69 dBFS (as volumedetect reports
-it), the median peak −1.38 dBFS (−0.4 to −3.0), integrated loudness about
-−18.5 to −20.2 LUFS, and the median silence 0.07 s before the first window
-within 40 dB of the take's loudest (the loudest sits near −9.5 dBFS, so that
-is a −50 dBFS gate) and 0.00 s after the last. So `TAKE_LEVEL` is −19.7 dBFS
-mean under a −1 dBFS ceiling (a 5 ms look-ahead limiter, its delay read back
-out), and `TAKE_PAD` is 0.07 s lead and no tail; a recording that starts on
-its first word gets the lead in silence.
+RMS windows), the median speech level is −17.10 dBFS (−17.90 to −15.67;
+`speechLevel`: the mean power of the 10 ms windows over −70 dBFS and within
+10 dB of their mean, BS.1770's two-stage gate without K-weighting, so pauses
+are left out), the median peak −1.28 dBFS (−0.4 to −3.0), and the median
+silence 0.07 s before the first window within 40 dB of the take's loudest
+(the loudest sits near −9.5 dBFS, so that is a −50 dBFS gate) and 0.00 s
+after the last. So a take is made louder or quieter by one clean gain, to
+`TAKE_LEVEL.speech` −17.1 dBFS or less when that would take its peak past
+the −1 dBFS ceiling: min(target − speech level, ceiling − peak), with no
+limiter, so the voice keeps its dynamics and a longer pause never changes
+its level. `TAKE_PAD` is 0.07 s lead and no tail; a recording that starts on
+its first word gets the lead in silence. Speech is sound over the gate that
+lasts 0.1 s (`TAKE_MIN_SPEECH`) counting gaps under 0.25 s (`TAKE_HOLD`), so
+a click or tap after the line is trimmed with its silence, and the take fades
+over 5 ms (`TAKE_FADE`) at both ends so neither trim clicks.
 
 `film script <film>` prints the reading sheet (`core/sheet.ts`), and
 `--sheet` writes it to `out/<film>/script-sheet.md` and a page to print,
