@@ -48,12 +48,7 @@ export const postJson = async (url: string, body: unknown): Promise<unknown> => 
 };
 
 /** Bytes as base64: what the export handle hands back across `page.evaluate`. */
-export const bytesBase64 = (bytes: Uint8Array): string => {
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
+export const bytesBase64 = (bytes: Uint8Array): string => bytes.toBase64();
 
 /** A canvas as base64 PNG or JPEG (JPEG at quality 0.95; PNG is lossless). */
 export const canvasBase64 = async (

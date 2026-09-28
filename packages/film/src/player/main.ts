@@ -13,6 +13,7 @@ import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { tInUrl } from './t-in-url.ts';
+import { hashFrames, timeFrames } from './timing.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -57,6 +58,10 @@ export interface ExportHandle {
   ): Promise<{ readonly master: string; readonly share?: string }>;
   /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
   contact(frames: ReadonlyArray<number>): Promise<string>;
+  /** Milliseconds each of `frames` takes to draw, raster included (`timeFrames`). */
+  time(frames: ReadonlyArray<number>): ReadonlyArray<number>;
+  /** A hash of each of `frames`' pixels (`hashFrames`). */
+  hash(frames: ReadonlyArray<number>): ReadonlyArray<string>;
 }
 
 declare global {
@@ -173,6 +178,8 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
             : { master, share: bytesBase64(chunk.share) };
         },
         contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
+        time: (frames) => timeFrames(draw, ctx, frames),
+        hash: (frames) => hashFrames(draw, ctx, frames),
       };
       return;
     }

@@ -21,8 +21,10 @@ bun run check <film> ... --json                # each finding as one line of JSO
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # any render, over those scenes
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
+bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
+bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
@@ -37,7 +39,9 @@ is answered 409, so it cannot touch this film's notes or source). Lab notes and 
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
-`--only music,<effect>` and `--dry-run`. The films are always `src/films`, the
+`--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
+anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
+film's sounds) for score. The films are always `src/films`, the
 folder the player imports (`cli.ts` hands it to the tools); `FILMS_OUT`
 overrides `out`.
 
@@ -50,11 +54,47 @@ missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
 review step, run by hand: the app's `gate` runs typecheck and tests only.
 
+Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
+(default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
+30th frame's pixels), `--baseline` (keep the run as
+`out/<film>/bench.baseline.json`), `--budget` (fail with `BenchOverBudget` when
+a scene's median or the film's summed draw is more than 10% over the baseline,
+or with `PixelsMoved` when a hashed frame differs; a scene under 2 ms never
+fails), `--no-captions` (as `render --no-captions`; captions are drawn by
+default, as a render burns them in). The bench times each frame in one headless
+export page, the render's page with the same captions choice, with the raster
+flushed; a run always compares with a baseline on disk and logs what it finds,
+and only `--budget` fails. A baseline is per machine and per captions setting:
+against one taken on another machine or with the other setting, a run warns and
+compares nothing, and `--budget` fails with `BaselineIncomparable`. A `--hash`
+run against a baseline kept without `--hash` fails with `BaselineUnhashed`
+rather than reporting no pixels moved; a `--budget` run without `--hash` warns
+that it compared no pixels. The budget is opt-in, never in the gate. `--workers n,n` instead renders the range (`--scene`, or
+`--from/--to`) at each page count `--runs` times, as `render` would (share copy
+on unless `--no-share`), and reports the median fps. A flag the chosen leg
+would ignore (`--hash` with `--workers`, `--from` without it) fails with
+`FlagsConflict`.
+
+Render flags that would be ignored fail with `FlagsConflict` before a browser
+opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
+`--scale`, `--out`, `--no-share`; `--contact` takes a range (clipped to the
+film like a video's, so no frame repeats; a range wholly outside it is
+`RangeEmpty`) but no video flag;
+`--scene` goes with neither `--from` nor `--to`.
+
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
+(pages, default 6: the knee of `bench --workers`), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
-(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass). A video's audio
-is encoded once from the film's track `narration/full.wav`, which must cover the
+(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
+Each page runs one hardware encoder, two with the share copy; past 14 at once
+the encoder hangs, so a render that would need more fails with
+`TooManyEncoders` before a page opens (at most 7 pages with the share copy,
+14 without). The count is per render: two renders at once (say two `--tag`s)
+share the hardware, so keep their pages together within the same 14 or they
+can hang with no error. Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
+until the film is joined, then the folders go; a failed join leaves them. A video's audio
+is encoded to AAC once, beside the pages, and the video and its share copy
+take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`). Its captions are also
 written as WebVTT beside it. `mix` runs in-process (`@bible/film/core`'s
