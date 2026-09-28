@@ -3,7 +3,7 @@
 // the scheduling is checked without Chromium; `Renderer` only runs it.
 
 import { Array as Arr, Data, Option, Result } from 'effect';
-import { Encoder, encoderName } from '../core/encoder.ts';
+import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import type { UnknownScene } from '../core/errors.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
@@ -58,8 +58,14 @@ export type RenderJob = Data.TaggedEnum<{
     readonly scale: number;
     /** Default `out/<film>.mp4`. */
     readonly out: Option.Option<string>;
-    /** Also a small copy to send, encoded in the same pass: `shareName(out)`. */
+    /**
+     * Also a small copy to send, `shareName(out)`: encoded in the same pass
+     * on the hardware encoder, made from the joined master by x264 on the
+     * software one (`Media.shareCopy`).
+     */
     readonly share: boolean;
+    /** `--encoder`: the one encoder the render may use; none takes the platform's (`encoderCandidates`). */
+    readonly encoder: Option.Option<Encoder>;
   };
   Stills: DrawJob & { readonly cut: Cut; readonly times: ReadonlyArray<number> };
   /** One page composes the whole sheet. */
@@ -125,6 +131,8 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['contact', 'excludes', 'out', VIDEO],
   ['contact', 'excludes', 'share', VIDEO],
   ['contact', 'excludes', 'workers', 'one page composes the whole sheet'],
+  ['stills', 'excludes', 'encoder', VIDEO],
+  ['contact', 'excludes', 'encoder', VIDEO],
   ['short', 'excludes', 'scene', "a short's spans are its scenes"],
 ];
 
@@ -142,6 +150,8 @@ export interface RenderFlags {
   readonly scale: Option.Option<number>;
   readonly out: Option.Option<string>;
   readonly share: Option.Option<boolean>;
+  /** `--encoder hardware|software`. */
+  readonly encoder: Option.Option<Encoder>;
   /** `--short <id>`, looked up in the film's `shorts.ts`. */
   readonly short: Option.Option<Short>;
 }
@@ -163,6 +173,7 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
     share: flags.share,
     short: flags.short,
     workers: flags.workers,
+    encoder: flags.encoder,
   });
   const workers = Option.map(flags.workers, (n) => Math.max(1, n));
   const base = {
@@ -200,6 +211,7 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
             scale: Option.getOrElse(flags.scale, () => 1),
             out: flags.out,
             share: Option.getOrElse(flags.share, () => true),
+            encoder: flags.encoder,
           }),
       }),
   });
@@ -227,10 +239,11 @@ export const MAX_HARDWARE_ENCODERS = 14;
 /**
  * Pages a render on the software encoder runs by default, measured on the
  * Linux Workbox (16 cores, no GPU encoder) with `film bench
- * righteousness-by-faith --workers 2,4,6,8 --scene word`, the share copy on:
- * the sweep is in packages/film/README.md.
+ * righteousness-by-faith --workers 4,6,8,10 --scene word,mirror --no-share`
+ * (the software share is x264's, after the join): 4 pages 62 fps, 6 84, 8
+ * 98, 10 104. Eight is the knee; the sweep is in packages/film/README.md.
  */
-export const SOFTWARE_WORKERS = 6;
+export const SOFTWARE_WORKERS = 8;
 
 /** What an encoder allows a render: the encoders it may run at once, and the pages it opens by default. */
 export interface EncoderLimits {
@@ -242,7 +255,8 @@ export interface EncoderLimits {
  * `encoder`'s limits on a machine with `cores`. The hardware encoder hangs
  * past `MAX_HARDWARE_ENCODERS`, whatever the cores. A software encoder does
  * not hang, it takes a core: a render runs at most one a core, and its
- * default pages keep their share copies within that.
+ * default pages, each drawing on one core and encoding on another, stay
+ * within the cores.
  */
 export const encoderLimits = (encoder: Encoder, cores: number): EncoderLimits =>
   Encoder.match(encoder, {
@@ -260,7 +274,10 @@ export const videoWorkers = (
   cores: number,
 ): number => Option.getOrElse(workers, () => encoderLimits(encoder, cores).workers);
 
-/** The encoders `workers` pages run (two each with a share copy), within `encoder`'s limit. */
+/**
+ * The encoders `workers` pages run, within `encoder`'s limit: one each, two
+ * with a share copy the encoder makes in the page (`sharesInPage`).
+ */
 export const videoEncoders = (
   workers: number,
   share: boolean,
@@ -268,10 +285,11 @@ export const videoEncoders = (
   cores: number,
 ): Result.Result<number, TooManyEncoders> => {
   const { max } = encoderLimits(encoder, cores);
+  const inPage = share && sharesInPage(encoder);
   return Result.liftPredicate(
-    workers * (1 + Number(share)),
+    workers * (1 + Number(inPage)),
     (n) => n <= max,
-    () => TooManyEncoders.make({ workers, share, max, encoder: encoderName(encoder) }),
+    () => TooManyEncoders.make({ workers, share: inPage, max, encoder: encoderName(encoder) }),
   );
 };
 

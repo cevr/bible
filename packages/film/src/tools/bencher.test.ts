@@ -7,7 +7,7 @@ import { Effect, Layer, Option, Path, Schema } from 'effect';
 import { BenchReport } from './bench.ts';
 import { Cut } from './render-plan.ts';
 import { Bencher, type DrawBenchOptions } from './bencher.ts';
-import { Renderer } from './renderer.ts';
+import { Platform, Renderer } from './renderer.ts';
 import {
   type FakeRenderHost,
   emptyLedger,
@@ -62,7 +62,8 @@ const setup = (
           to: Option.some(6),
           cut: Cut.Whole(),
         });
-      }).pipe(Effect.provide(layer)),
+        // On the Mac: the hardware encoder, whatever machine the tests run on.
+      }).pipe(Effect.provideService(Platform, 'darwin'), Effect.provide(layer)),
   };
 };
 

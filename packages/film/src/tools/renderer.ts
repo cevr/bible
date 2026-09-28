@@ -14,6 +14,7 @@ import {
   Effect,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
   Pool,
@@ -21,7 +22,7 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { splice } from '../core/audio.ts';
-import { encoderName } from '../core/encoder.ts';
+import { encoderCandidates, encoderName, sharesInPage } from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { ShortError } from '../core/errors.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
@@ -78,13 +79,22 @@ export const Cores = Context.Reference<number>('@bible/film/tools/Cores', {
   defaultValue: () => availableParallelism(),
 });
 
+/**
+ * The platform the render runs on (`process.platform`): it decides which
+ * encoders a render may use (`encoderCandidates`). Tests set it.
+ */
+export const Platform = Context.Reference<string>('@bible/film/tools/Platform', {
+  defaultValue: () => process.platform,
+});
+
 /** How the doctor's encoder check can fail. */
 export type EncoderReadyError = PageOpenError | PageError | PageCrashed | EncoderMissing;
 
 /**
  * The doctor's encoder line: the encoder the app's player (its first film,
- * at full size) chooses in headless Chromium, as a render's first page does,
- * and the pages a render opens on it by default.
+ * at full size, with its share copy) chooses in headless Chromium among the
+ * platform's, as a render's first page does, and the pages a render opens
+ * on it by default.
  */
 export const encoderReady: Effect.Effect<
   string,
@@ -96,7 +106,8 @@ export const encoderReady: Effect.Effect<
     // A browser of its own, so the doctor's other lines print when Chromium is missing.
     const browser = yield* makeBrowser;
     const page = yield* browser.open(`${server.url}?export`);
-    const encoder = yield* page.encoder(1);
+    const candidates = encoderCandidates(yield* Platform, Option.none());
+    const encoder = yield* page.encoder(1, true, candidates);
     const cores = yield* Cores;
     const { workers, max } = encoderLimits(encoder, cores);
     return `${encoderName(encoder)} H.264, ${workers} pages by default, at most ${max} encoders at once (${cores} cores)`;
@@ -173,8 +184,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               onNone: () => job.scale,
               onSome: () => shortPage(page.info.width).scale * job.scale,
             });
-            // Before a frame is drawn: a browser that cannot encode the film fails here.
-            const by = yield* page.encoder(k);
+            // Before a frame is drawn: a browser that cannot encode the film with
+            // one of the encoders this platform allows fails here.
+            const candidates = encoderCandidates(yield* Platform, job.encoder);
+            const by = yield* page.encoder(k, job.share, candidates);
             return { info: page.info, short: found, scale: k, encoder: by };
           }),
         );
@@ -255,7 +268,9 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const segDir = path.join(work, 'segments');
         const shareDir = path.join(work, 'share');
         yield* fs.makeDirectory(segDir);
-        if (job.share) yield* fs.makeDirectory(shareDir);
+        // The hardware encoder makes the share copy in the page, chunk by chunk.
+        const shareInPage = job.share && sharesInPage(encoder);
+        if (shareInPage) yield* fs.makeDirectory(shareDir);
         const chunks = planChunks(start, end, workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
@@ -311,16 +326,30 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           frames: total,
           audio: track,
         });
+        /** The hardware encoder's share: its copies from the page, joined as the master is. */
+        const joinedShare = (out: string) =>
+          media.join({
+            out,
+            segments: encoded.flatMap((chunk) => Option.toArray(chunk.share)),
+            frames: total,
+            audio: track,
+          });
+        /** The software encoder's share: x264 over the joined master. */
+        const x264Share = (out: string) =>
+          Effect.gen(function* () {
+            const from = yield* Clock.currentTimeMillis;
+            yield* media.shareCopy(target, out);
+            const secs = ((yield* Clock.currentTimeMillis) - from) / 1000;
+            yield* Effect.log(`render.share by=x264 secs=${secs.toFixed(1)} file=${out}`);
+          });
         const shared = Option.filter(Option.some(shareName(target)), () => job.share);
         yield* Option.match(shared, {
           onNone: () => Effect.void,
           onSome: (out) =>
-            media.join({
-              out,
-              segments: encoded.flatMap((chunk) => Option.toArray(chunk.share)),
-              frames: total,
-              audio: track,
-            }),
+            Match.value(shareInPage).pipe(
+              Match.when(true, () => joinedShare(out)),
+              Match.orElse(() => x264Share(out)),
+            ),
         });
 
         // Joined: the segments are copied into the film and nothing reads them

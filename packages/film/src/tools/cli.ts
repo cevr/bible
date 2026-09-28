@@ -18,7 +18,7 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
-//                      [--no-share] [--short id]
+//                      [--no-share] [--encoder hardware|software] [--short id]
 //   film lookbook <film> [--captions] [--tag name]
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
 //                     [--no-captions]
@@ -31,6 +31,7 @@
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
+  Cause,
   Console,
   Context,
   Effect,
@@ -67,6 +68,7 @@ import {
   CuesLate,
   type ElevenLabsFailed,
   type MediaFailed,
+  PreviewServerFailed,
   SoundMissing,
   UnknownEffect,
   UnknownShort,
@@ -90,6 +92,7 @@ import { SceneWriter } from './scene-writer.ts';
 import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
+import { EncoderName, encoderNamed } from '../core/encoder.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -164,7 +167,8 @@ type ToolError =
   | BrowserFailed
   | ElevenLabsFailed
   | MediaFailed
-  | EncoderReadyError;
+  | EncoderReadyError
+  | PreviewServerFailed;
 /** What a doctor check needs from the platform. */
 type ToolNeeds = Path.Path | ChildProcessSpawner.ChildProcessSpawner;
 
@@ -190,16 +194,29 @@ const toolLine = (
     onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
   });
 
-/** The player served for the encoder check: the app's own, as `render` serves it. */
-const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) =>
-  Command.make(
+/**
+ * The doctor. The encoder check serves the app's own player, as `render`
+ * does; a player that does not start fails that line alone
+ * (`PreviewServerFailed`), and every other line still prints.
+ */
+const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
+  const served = previewServer.pipe(
+    Layer.catchCause((cause) =>
+      Layer.effect(
+        PreviewServer,
+        Effect.fail(PreviewServerFailed.make({ reason: Cause.pretty(cause) })),
+      ),
+    ),
+  );
+  const encoderCheck = encoderReady.pipe(Effect.provide(served));
+  return Command.make(
     'doctor',
     {},
     Effect.fn('film.doctor')(function* () {
       const elevenLabs = yield* ElevenLabs;
-      const checks: ReadonlyArray<ToolCheck<ToolError, ToolNeeds | PreviewServer>> = [
+      const checks: ReadonlyArray<ToolCheck<ToolError, ToolNeeds | R>> = [
         { tool: 'chromium', needed: 'render, check', run: Effect.as(browserReady, '') },
-        { tool: 'encoder', needed: 'render', run: encoderReady },
+        { tool: 'encoder', needed: 'render', run: encoderCheck },
         { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
         { tool: 'ffmpeg', needed: 'takes import, the studio', run: Effect.as(ffmpegReady(), '') },
       ];
@@ -210,12 +227,13 @@ const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) =>
         yield* Console.log(toolLine(check, result));
       const failure = Arr.head(Arr.getFailures(results));
       if (Option.isSome(failure)) return yield* failure.value;
-    }, Effect.provide(previewServer)),
+    }),
   ).pipe(
     Command.withDescription(
       'Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg',
     ),
   );
+};
 
 const narrate = Command.make(
   'narrate',
@@ -665,6 +683,13 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           'also write a smaller copy to send, <out>.share.mp4 (default; --no-share to skip it)',
         ),
       ),
+      encoder: Flag.Literals('encoder', EncoderName.literals).pipe(
+        Flag.optional,
+        Flag.map(Option.map(encoderNamed)),
+        Flag.withDescription(
+          "encode with this H.264 encoder only (default: hardware on macOS, software elsewhere); software on a Mac changes the film's look",
+        ),
+      ),
       short: short.pipe(
         Flag.withDescription(
           'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>.mp4 (--from/--to in its seconds)',
@@ -698,6 +723,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           scale: input.scale,
           out: input.out,
           share: input.share,
+          encoder: input.encoder,
           short: cut,
         }),
       );

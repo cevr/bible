@@ -183,6 +183,51 @@ describe('Media', () => {
       ),
   );
 
+  it.effect.layer(MediaOnDisk)(
+    "a share copy is x264's encode of the joined film, every frame in place, its track copied",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const dir = yield* tempDir;
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          yield* media.join({
+            out: `${dir}/film.mp4`,
+            segments: [
+              { file: fixture('segment-a.mp4'), at: 0 },
+              { file: fixture('segment-b.mp4'), at: 0.5 },
+            ],
+            frames: 30,
+            audio: Option.some(yield* media.encodeAac(second())),
+          });
+          yield* media.shareCopy(`${dir}/film.mp4`, `${dir}/film.share.mp4`);
+          const [video, audio] = yield* readBack(`${dir}/film.share.mp4`);
+          expect([video?.codec, audio?.codec]).toEqual(['avc', 'aac']);
+          expect(video?.times.length).toBe(30);
+          expect(video?.duration).toBeCloseTo(1, 1);
+          expect(audio?.duration).toBeCloseTo(1, 1);
+          // Nothing else is left beside it.
+          expect([...(yield* fs.readDirectory(dir))].sort()).toEqual([
+            'film.mp4',
+            'film.share.mp4',
+          ]);
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const dir = yield* tempDir;
+        const error = yield* Effect.flip(
+          (yield* Media).shareCopy('/nonexistent/film-probe-x.mp4', `${dir}/x.share.mp4`),
+        );
+        expect([error._tag, error.op]).toEqual(['MediaFailed', 'encode']);
+        expect(yield* (yield* FileSystem.FileSystem).readDirectory(dir)).toEqual([]);
+      }),
+    ),
+  );
+
   it.effect.layer(MediaOnDisk)('a film with no track has video only', () =>
     Effect.scoped(
       Effect.gen(function* () {

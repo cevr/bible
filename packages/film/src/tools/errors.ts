@@ -3,6 +3,7 @@
 // names every way a run can fail.
 
 import { Schema } from 'effect';
+import { EncoderName } from '../core/encoder.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
@@ -215,6 +216,16 @@ export class BrowserFailed extends Schema.TaggedError<BrowserFailed>()('BrowserF
   }
 }
 
+/** The app's player server did not start (`film doctor` reports it on the encoder line alone). */
+export class PreviewServerFailed extends Schema.TaggedError<PreviewServerFailed>()(
+  'PreviewServerFailed',
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `the player server did not start: ${this.reason}`;
+  }
+}
+
 /** The player page did not load, or loaded without an export handle. */
 export class PageLoadFailed extends Schema.TaggedError<PageLoadFailed>()('PageLoadFailed', {
   url: Schema.String,
@@ -416,10 +427,10 @@ export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved'
  */
 export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
   workers: Schema.Int,
+  /** Each page also encodes the share copy (the hardware encoder's, made in the page). */
   share: Schema.Boolean,
   max: Schema.Int,
-  /** The encoder's name: `hardware` or `software`. */
-  encoder: Schema.String,
+  encoder: EncoderName,
 }) {
   override get message() {
     const perPage = 1 + Number(this.share);

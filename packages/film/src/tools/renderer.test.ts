@@ -4,10 +4,10 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
-import { EncoderMissing, MediaFailed, PageCrashed, PageError } from './errors.ts';
+import { MediaFailed, PageCrashed, PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
-import { Cores, Renderer } from './renderer.ts';
+import { Cores, Platform, Renderer } from './renderer.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
@@ -31,6 +31,7 @@ const video = RenderJob.Video({
   scale: 1,
   out: Option.none(),
   share: false,
+  encoder: Option.none(),
   cut: Cut.Whole(),
 });
 
@@ -44,10 +45,11 @@ const setup = (
   const layer = Renderer.layer.pipe(
     Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files, folders), Path.layer]),
   );
-  const render = (job: RenderJob) =>
+  /** `job` rendered on `platform`: the Mac, unless a test says otherwise. */
+  const render = (job: RenderJob, platform = 'darwin') =>
     Effect.gen(function* () {
       yield* (yield* Renderer).render(rendered, job);
-    }).pipe(Effect.provide(layer));
+    }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
   return { ledger, files, folders, render };
 };
 
@@ -175,49 +177,80 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('on the hardware encoder a render left to the default opens its six pages', () =>
+  it.live(
+    'on the Mac a render left to the default opens its six hardware pages, the share copy made in them',
+    () =>
+      Effect.gen(function* () {
+        const { ledger, render } = setup();
+        yield* render({ ...video, workers: Option.none(), share: true }).pipe(
+          Effect.provideService(Cores, 16),
+        );
+        expect(ledger.encoderAsked).toEqual([['Hardware']]);
+        expect(ledger.pages.opened).toBe(1 + HARDWARE_WORKERS);
+        expect(new Set(ledger.encodedBy)).toEqual(new Set(['Hardware']));
+        expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
+        expect(ledger.shareCopies).toEqual([]);
+      }),
+  );
+
+  it.live(
+    'a Mac whose hardware encoder fails stops with EncoderMissing: it never falls to software',
+    () =>
+      Effect.gen(function* () {
+        const { ledger, render } = setup({ encoders: ['Software'] });
+        const error = yield* Effect.flip(render(video));
+        expect(error._tag).toBe('EncoderMissing');
+        expect(ledger.encoderAsked).toEqual([['Hardware']]);
+        expect(ledger.frames).toEqual([]);
+        expectAllClosed(ledger);
+      }),
+  );
+
+  it.live('--encoder software is the one way a Mac renders in software', () =>
     Effect.gen(function* () {
       const { ledger, render } = setup();
-      yield* render({ ...video, workers: Option.none(), share: true }).pipe(
-        Effect.provideService(Cores, 16),
-      );
-      expect(ledger.pages.opened).toBe(1 + HARDWARE_WORKERS);
-      expect(new Set(ledger.encodedBy)).toEqual(new Set(['Hardware']));
+      yield* render({ ...video, encoder: Option.some({ _tag: 'Software' }) });
+      expect(ledger.encoderAsked).toEqual([['Software']]);
+      expect(new Set(ledger.encodedBy)).toEqual(new Set(['Software']));
     }),
   );
 
   it.live(
-    'with no hardware encoder every chunk is encoded in software, on the software default pages',
+    'on Linux every chunk is encoded in software on the default pages, and x264 makes the share from the master',
     () =>
       Effect.gen(function* () {
-        const { ledger, render } = setup({ encoder: Effect.succeed({ _tag: 'Software' }) });
-        yield* render({ ...video, workers: Option.none(), share: true }).pipe(
+        const { ledger, render } = setup({ encoders: ['Software'] });
+        yield* render({ ...video, workers: Option.none(), share: true }, 'linux').pipe(
           Effect.provideService(Cores, 16),
         );
+        expect(ledger.encoderAsked).toEqual([['Software']]);
         expect(ledger.pages.opened).toBe(1 + SOFTWARE_WORKERS);
         expect(ledger.encodedBy.length).toBe(ledger.encoders.spawned);
         expect(new Set(ledger.encodedBy)).toEqual(new Set(['Software']));
+        // One join, the master's; the share is x264's encode of it.
+        expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4']);
+        expect(ledger.shareCopies).toEqual([
+          { master: '/out/test.mp4', out: '/out/test.share.mp4' },
+        ]);
         expectAllClosed(ledger);
 
-        // One a core: nine pages with share copies are too many for 16 cores.
-        const over = setup({ encoder: Effect.succeed({ _tag: 'Software' }) });
+        // One encoder a page, one a core: seventeen pages are too many for 16 cores.
+        const over = setup({ encoders: ['Software'] });
         const error = yield* Effect.flip(
           over
-            .render({ ...video, workers: Option.some(9), share: true })
+            .render({ ...video, workers: Option.some(17), share: true }, 'linux')
             .pipe(Effect.provideService(Cores, 16)),
         );
         expect(error.message).toBe(
-          '9 pages with a share copy need 18 encoders at once, over the 16 software encoders a render may run; use --workers 8 or fewer, or --no-share',
+          '17 pages need 17 encoders at once, over the 16 software encoders a render may run; use --workers 16 or fewer',
         );
       }),
   );
 
   it.live('a browser that cannot encode the film fails before a frame is drawn', () =>
     Effect.gen(function* () {
-      const { ledger, render } = setup({
-        encoder: Effect.fail(EncoderMissing.make({ reason: 'no H.264' })),
-      });
-      const exit = yield* Effect.exit(render(video));
+      const { ledger, render } = setup({ encoders: [] });
+      const exit = yield* Effect.exit(render(video, 'linux'));
       expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag))).toEqual(
         Option.some('EncoderMissing'),
       );

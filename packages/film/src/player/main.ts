@@ -48,8 +48,15 @@ export interface ExportHandle {
   probe(i: number): Probed;
   /** Compose the film's look-book (`composeLookbook`) and return it encoded. */
   lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
-  /** The encoder the film is encoded with here at `scale`, or none (`encoderChoice`). */
-  encoder(scale: number): Promise<EncoderChoice>;
+  /**
+   * The first of `candidates` the film can be encoded with here at `scale`
+   * (with its share copy when `share`), or none (`encoderChoice`).
+   */
+  encoder(
+    scale: number,
+    share: boolean,
+    candidates: ReadonlyArray<Encoder>,
+  ): Promise<EncoderChoice>;
   /**
    * Frames `[from, to)` encoded by `encoder` as an H.264 MP4 at `scale`
    * (`encodeChunk`), and with `share` a small copy beside it, each as base64.
@@ -213,7 +220,8 @@ export const mountPlayer = (films: Films): void => {
         },
         lookbook: async (type = 'image/jpeg') =>
           canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
-        encoder: (scale) => encoderChoice(canvas, film.fps, scale),
+        encoder: (scale, share, candidates) =>
+          encoderChoice(canvas, film.fps, scale, share, candidates),
         encode: async (from, to, scale, share, encoder) => {
           const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share, encoder);
           const master = bytesBase64(chunk.master);

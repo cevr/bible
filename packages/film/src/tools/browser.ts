@@ -48,9 +48,14 @@ export interface FramePage {
   readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** Compose the film's look-book and return it as a JPEG. */
   readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
-  /** The encoder the page encodes the film with at `scale`: hardware where it has it, else software; `EncoderMissing` when neither. */
+  /**
+   * The first of `candidates` the page can encode the film with at `scale`,
+   * its share copy included when `share`; `EncoderMissing` when none can.
+   */
   readonly encoder: (
     scale: number,
+    share: boolean,
+    candidates: ReadonlyArray<Encoder>,
   ) => Effect.Effect<Encoder, PageError | PageCrashed | EncoderMissing>;
   /**
    * Draw frames `[from, to)` and return them encoded by `encoder` as an H.264
@@ -347,9 +352,14 @@ const openPage = (page: Page, url: string) =>
       (reason) => LookbookFailed.make({ reason }),
     );
 
-    const encoder = (scale: number) =>
+    const encoder = (scale: number, share: boolean, candidates: ReadonlyArray<Encoder>) =>
       handle(
-        () => page.evaluate((k) => window.__film?.encoder(k), scale),
+        () =>
+          page.evaluate(([k, copy, allowed]) => window.__film?.encoder(k, copy, allowed), [
+            scale,
+            share,
+            [...candidates],
+          ] satisfies [number, boolean, Array<Encoder>]),
         EncoderChoice,
         FRAME_TIMEOUT,
         (reason) => EncoderMissing.make({ reason }),

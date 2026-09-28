@@ -47,10 +47,10 @@ import {
 } from './errors.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
-import { encoderName } from '../core/encoder.ts';
+import { encoderCandidates, encoderName } from '../core/encoder.ts';
 import { shortPage } from '../core/shorts.ts';
 import { Cut, RenderJob, cutPage, frameSpan, videoEncoders } from './render-plan.ts';
-import { Cores, type RenderError, Renderer } from './renderer.ts';
+import { Cores, Platform, type RenderError, Renderer } from './renderer.ts';
 
 export interface DrawBenchOptions {
   /** Time every this many frames. */
@@ -317,7 +317,11 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
               Whole: () => 1,
               Short: () => shortPage(page.info.width).scale,
             });
-            return { info: page.info, encoder: yield* page.encoder(scale) };
+            const candidates = encoderCandidates(yield* Platform, Option.none());
+            return {
+              info: page.info,
+              encoder: yield* page.encoder(scale, options.share, candidates),
+            };
           }),
         );
         // Before any render: every count must fit the encoders, not just the first.
@@ -343,6 +347,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
                   scale: 1,
                   out: Option.some(path.join(dir, `w${n}.mp4`)),
                   share: options.share,
+                  encoder: Option.some(encoder),
                   cut: options.cut,
                 });
                 const runsSec = yield* Effect.forEach(Arr.range(1, Math.max(1, options.runs)), () =>

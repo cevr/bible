@@ -36,6 +36,7 @@ const flags = {
   scale: Option.none(),
   out: Option.none(),
   share: Option.none(),
+  encoder: Option.none(),
   short: Option.none(),
 } as const;
 
@@ -225,21 +226,30 @@ describe('encoder budget', () => {
     expect(tag(videoEncoders(HARDWARE_WORKERS, true, hardware, 10))).toBe('12');
   });
 
-  test('a software encoder is bounded by the cores, one encoder each', () => {
+  test('a software encoder is bounded by the cores, one encoder a page: its share is made after the join', () => {
     expect(encoderLimits(software, 16).max).toBe(16);
-    expect(tag(videoEncoders(8, true, software, 16))).toBe('16');
-    expect(tag(videoEncoders(9, true, software, 16))).toBe('TooManyEncoders');
+    expect(tag(videoEncoders(16, true, software, 16))).toBe('16');
+    expect(tag(videoEncoders(17, true, software, 16))).toBe('TooManyEncoders');
     expect(tag(videoEncoders(16, false, software, 16))).toBe('16');
-    expect(tag(videoEncoders(3, true, software, 4))).toBe('TooManyEncoders');
+    expect(tag(videoEncoders(5, true, software, 4))).toBe('TooManyEncoders');
   });
 
-  test('the software default is the measured knee, and fits a smaller machine with its share copy', () => {
+  test('the software default is the measured knee, and fits a smaller machine', () => {
     expect(encoderLimits(software, 16).workers).toBe(SOFTWARE_WORKERS);
-    expect(tag(videoEncoders(SOFTWARE_WORKERS, true, software, 16))).toBe(
-      String(SOFTWARE_WORKERS * 2),
-    );
+    expect(tag(videoEncoders(SOFTWARE_WORKERS, true, software, 16))).toBe(String(SOFTWARE_WORKERS));
     expect(encoderLimits(software, 4).workers).toBe(2);
     expect(encoderLimits(software, 1).workers).toBe(1);
+  });
+
+  test('TooManyEncoders names the encoder, and counts a share copy only where the page makes it', () => {
+    const over = (r: ReturnType<typeof videoEncoders>) =>
+      Result.match(r, { onSuccess: () => '', onFailure: (e) => e.message });
+    expect(over(videoEncoders(8, true, hardware, 64))).toBe(
+      '8 pages with a share copy need 16 encoders at once, over the 14 hardware encoders a render may run; use --workers 7 or fewer, or --no-share',
+    );
+    expect(over(videoEncoders(17, true, software, 16))).toBe(
+      '17 pages need 17 encoders at once, over the 16 software encoders a render may run; use --workers 16 or fewer',
+    );
   });
 
   test('--workers wins over the encoder default; none takes it', () => {
@@ -266,6 +276,21 @@ describe('encoder budget', () => {
   test('--workers on a contact sheet fails: one page composes it', () => {
     expect(conflict({ contact: Option.some(5), workers: Option.some(2) })).toBe(
       'contact excludes workers',
+    );
+  });
+
+  test('--encoder is a video flag: a video keeps it, stills and a contact sheet refuse it', () => {
+    const software = Option.some({ _tag: 'Software' } as const);
+    expect(Result.getOrThrow(jobOf({ ...flags, encoder: software }))).toMatchObject({
+      _tag: 'Video',
+      encoder: software,
+    });
+    expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ encoder: Option.none() });
+    expect(conflict({ stills: Option.some([1]), encoder: software })).toBe(
+      'stills excludes encoder',
+    );
+    expect(conflict({ contact: Option.some(5), encoder: software })).toBe(
+      'contact excludes encoder',
     );
   });
 });
