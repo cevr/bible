@@ -1,11 +1,21 @@
-// A cut-paper person. Feet stand at the origin; the figure is ~440 units tall
-// at scale 1. A pose is a handful of angles, so figures can be keyframed like
-// any other number; a hand that must land on something reaches for it instead.
+// v1's cut-paper person. Feet stand at the origin; the figure is ~440 units
+// tall at scale 1. A pose is a handful of angles, so figures can be keyframed
+// like any other number; a hand that must land on something reaches for it
+// instead.
 
-import { type CutoutStyle, cutout } from './cutout.ts';
-import { reach } from './ik.ts';
-import { type Hand, type Pt, ellipseShape, quad, spline, stroke } from './ink.ts';
-import { hash2 } from '../core/random.ts';
+import {
+  type CutoutStyle,
+  type Hand,
+  type Pt,
+  cutout,
+  ellipseShape,
+  quad,
+  reach,
+  spline,
+  stroke,
+  sub,
+} from '@bible/film/canvas';
+import { hash2 } from '@bible/film/core';
 
 export interface Pose {
   /** Whole-body lean, radians (+ leans right). */
@@ -111,7 +121,6 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
   ctx.save();
   ctx.rotate(p.lean);
   ctx.scale(1, p.squash);
-  const sub = (k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
   const paper: Omit<CutoutStyle, 'color'> = {
     torn: 2.5,
     rim: 3,
@@ -120,8 +129,8 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
   };
 
   // Feet.
-  cutout(ctx, ellipseShape(-40, -14, 30, 14), { ...paper, color: look.ink, rim: 2 }, sub(1));
-  cutout(ctx, ellipseShape(40, -14, 30, 14), { ...paper, color: look.ink, rim: 2 }, sub(2));
+  cutout(ctx, ellipseShape(-40, -14, 30, 14), { ...paper, color: look.ink, rim: 2 }, sub(hand, 1));
+  cutout(ctx, ellipseShape(40, -14, 30, 14), { ...paper, color: look.ink, rim: 2 }, sub(hand, 2));
 
   // Back arm, robe, front arm — the far arm tucks behind the body.
   const armL = armPath(-1, p.armL, p.elbowL, pose.reachL);
@@ -131,18 +140,18 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
       ctx,
       path,
       { color: look.robe, width: 40, jitter: 0.8, taper: 0.05, pressure: 0.1 },
-      sub(k),
+      sub(hand, k),
     );
     const handPt = path[path.length - 1] ?? [0, 0];
     cutout(
       ctx,
       ellipseShape(handPt[0], handPt[1], 17, 17, 20),
       { ...paper, color: look.skin, rim: 2, shadow: 0.3 },
-      sub(k + 1),
+      sub(hand, k + 1),
     );
   };
   sleeve(armL, 10);
-  cutout(ctx, robeShape(rags, hand.seed), { ...paper, color: look.robe }, sub(3));
+  cutout(ctx, robeShape(rags, hand.seed), { ...paper, color: look.robe }, sub(hand, 3));
   if (rags) {
     // Patches and a tear or two.
     cutout(
@@ -154,7 +163,7 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
         [-58, -156],
       ],
       { ...paper, color: look.ink, alpha: 0.18, rim: 0, shadow: 0 },
-      sub(4),
+      sub(hand, 4),
     );
     cutout(
       ctx,
@@ -165,13 +174,13 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
         [26, -64],
       ],
       { ...paper, color: look.ink, alpha: 0.15, rim: 0, shadow: 0 },
-      sub(5),
+      sub(hand, 5),
     );
     stroke(
       ctx,
       quad([30, -260], [44, -236], [36, -210]),
       { color: look.ink, width: 3, alpha: 0.6 },
-      sub(6),
+      sub(hand, 6),
     );
   }
   sleeve(armR, 12);
@@ -181,7 +190,12 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
   ctx.translate(0, NECK_Y);
   ctx.rotate(p.headTilt);
   const cy = -HEAD_R + 6;
-  cutout(ctx, ellipseShape(0, cy, HEAD_R, HEAD_R * 1.04), { ...paper, color: look.skin }, sub(20));
+  cutout(
+    ctx,
+    ellipseShape(0, cy, HEAD_R, HEAD_R * 1.04),
+    { ...paper, color: look.skin },
+    sub(hand, 20),
+  );
   if (look.hair !== undefined) {
     const hair: Pt[] = [
       ...spline(
@@ -198,9 +212,9 @@ export const drawFigure = (ctx: CanvasRenderingContext2D, pose: Pose, look: Look
       [0, cy - 34],
       [-HEAD_R + 10, cy - 18],
     ];
-    cutout(ctx, hair, { ...paper, color: look.hair, rim: 0, shadow: 0.2 }, sub(21));
+    cutout(ctx, hair, { ...paper, color: look.hair, rim: 0, shadow: 0.2 }, sub(hand, 21));
   }
-  drawFace(ctx, look.face ?? 'calm', cy, look.ink, sub(30));
+  drawFace(ctx, look.face ?? 'calm', cy, look.ink, sub(hand, 30));
   ctx.restore();
   ctx.restore();
 };
@@ -221,7 +235,7 @@ const drawFace = (
         ctx,
         quad([x - 9, ey], [x, ey + 7 * up * -1], [x + 9, ey]),
         { color: ink, width: 4.5, jitter: 0.4 },
-        { ...hand, seed: hand.seed + k },
+        sub(hand, k),
       );
     } else {
       ctx.fillStyle = ink;
@@ -238,7 +252,7 @@ const drawFace = (
     ctx,
     quad([-11, my], [0, my + curve], [11, my]),
     { color: ink, width: 4, jitter: 0.4 },
-    { ...hand, seed: hand.seed + 3 },
+    sub(hand, 3),
   );
   // Cheeks.
   ctx.save();

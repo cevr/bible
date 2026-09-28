@@ -18,9 +18,10 @@ import {
   multiplane,
   rectShape,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, sky, sub, between } from '../kit.ts';
+import { C, blob, contact, glow, person, piece, sky, between } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 
@@ -105,7 +106,16 @@ const garden = (f: MirrorFrame) => {
             [1420, 1.2, 3],
             [1760, 1.6, 4],
           ] as const)
-            at(ctx, { x, y: 900, scale: 1 }, () => tree(ctx, f.hand(`tree${k}`), s, k));
+            at(ctx, { x, y: 900, scale: s }, () =>
+              tree(ctx, f.hand(`tree${k}`), {
+                height: 230,
+                trunk: 44,
+                lobes: 5,
+                spread: 70,
+                leaves: [C.leaf, C.leafPale],
+                seed: k,
+              }),
+            );
           piece(ctx, rectShape(-600, 880, 3120, 500), C.boardLight, f.hand('ground'), {
             line: 0,
             torn: 3,

@@ -18,18 +18,30 @@ import {
   drawing,
   ellipseShape,
   rectShape,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, christ, glow, icons, person, piece, rounded, sky, sub, between } from '../kit.ts';
-import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, highPriest, sanctuary } from '../heaven.ts';
+import {
+  C,
+  blob,
+  christ,
+  gait,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  between,
+} from '../kit.ts';
+import { FIGURE_STAINS } from '../court.ts';
+import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, priestAt, sanctuary } from '../heaven.ts';
 
 /** The whole hill; close on both faces; up in heaven at the sanctuary. */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
 const CLOSE: Camera = { x: 700, y: 650, zoom: 2.1 };
 const HEAVEN: Camera = { x: 960, y: -560, zoom: 1 };
 
-/** The figure's stains: the cold open's, so the callback reads. */
-const STAINS = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 const SCALE = 1.9;
 /** Where Jesus stops beside the figure, and the hilltop where the cross stands. */
 const BESIDE = 830;
@@ -87,8 +99,8 @@ export const exchange = drawing({
     const cx = walkUp > 0 ? lerp(BESIDE, TOP - 50, walkUp) : lerp(2120, BESIDE, walkIn);
     const cy = walkUp > 0 ? ridge(cx) : fy;
     const cs = lerp(SCALE, 1.15, walkUp);
-    const walking =
-      (walkIn > 0 && walkIn < 1) || (walkUp > 0 && walkUp < 1) ? Math.abs(Math.sin(t * 7)) * 5 : 0;
+    // His steps keep the scene clock (phase 0) across both walks.
+    const walking = gait(t, f.cue('walkIn'), 0) + gait(t, f.cue('walkUp'), 0);
     const shoulders: Pt = [cx, cy - walking - 118 * cs];
 
     // ── A–B: the hill at sunset, until dawn has fully come ──────────────────
@@ -119,7 +131,7 @@ export const exchange = drawing({
               browTilt: 0.35 * puzzle + 0.3 * after,
               browL: 3 * puzzle,
               mouth: puzzle * 0.6,
-              stains: lift < 0.05 ? STAINS : [],
+              stains: lift < 0.05 ? FIGURE_STAINS : [],
             },
             hand('figure'),
           ),
@@ -287,19 +299,7 @@ export const exchange = drawing({
             if (alpha <= 0) return;
             ctx.save();
             ctx.globalAlpha *= alpha;
-            at(ctx, { x: spot[0], y: spot[1], scale: IN_SANCTUARY }, () =>
-              highPriest(
-                ctx,
-                {
-                  look: [3, -1 - 2 * raised],
-                  browTilt: 0.3 + 0.2 * raised,
-                  handL: [lerp(-30, -72, raised), lerp(-58, -196, raised)],
-                  handR: [lerp(30, 72, raised), lerp(-58, -196, raised)],
-                },
-                hand,
-                f.at('robed'),
-              ),
-            );
+            priestAt(ctx, hand, spot, raised, f.at('robed'));
             ctx.restore();
           };
           const arrived = ascend >= 1;

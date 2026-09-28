@@ -1,9 +1,19 @@
-// What grows: the fig leaves we sew (`mirror`), the garden's trees, and the
+// What grows: the fig leaves we sew (`mirror`), the film's one tree (the
+// garden's in `mirror`, the dawn's in `spoken`, the Sabbath field's), and the
 // field the figure rests in on the Sabbath.
 
-import { type Hand, type Pt, at, ellipseShape, line, spline, stroke } from '@bible/film/canvas';
-import { hash2, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, rounded, sky, sub, type Hands } from './kit.ts';
+import {
+  type Hand,
+  type Pt,
+  at,
+  ellipseShape,
+  line,
+  spline,
+  stroke,
+  sub,
+} from '@bible/film/canvas';
+import { clamp, ease, hash2, lerp } from '@bible/film/core';
+import { C, blob, contact, glow, person, piece, rounded, sky, type Hands } from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
 export const leafShape = (s: number, seed: number): Pt[] =>
@@ -64,27 +74,55 @@ export const apron = (
   });
 };
 
-/** A tree of the garden: a board trunk and a round crown of leaves, feet at (0, 0), `s` scaled. */
-export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, s: number, seed: number) =>
-  at(ctx, { x: 0, y: 0, scale: s }, () => {
-    piece(ctx, rounded(0, -110, 44, 230, 12), C.boardShade, sub(hand, seed), { line: 3, torn: 2 });
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2 + seed;
+/** A tree's shape: every tree in the film is this one tree at another size. */
+export interface Tree {
+  /** The trunk's height and width. */
+  readonly height: number;
+  readonly trunk: number;
+  /** How many leaf lobes ring the crown, and how far they sit from its centre. */
+  readonly lobes: number;
+  readonly spread: number;
+  /** The lobes' two colours, alternating from the back. */
+  readonly leaves: readonly [string, string];
+  /** The trunk's board. */
+  readonly bark?: string;
+  /** Turns the ring of lobes and reseeds their shapes, so neighbours differ. */
+  readonly seed?: number;
+  /** 0..1: the trunk climbs over 0–0.6, then the crown opens out of it over 0.4–1. */
+  readonly grow?: number;
+}
+
+/**
+ * A tree, feet at (0, 0): a board trunk and a crown of leaf lobes ringed
+ * around its top, each lobe about 2 × `spread` wide.
+ */
+export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
+  const seed = t.seed ?? 0;
+  const grow = t.grow ?? 1;
+  const height = t.height * ease.outCubic(clamp(grow / 0.6));
+  if (height <= 0) return;
+  piece(
+    ctx,
+    rounded(0, -height / 2, t.trunk, height, t.trunk * 0.3),
+    t.bark ?? C.boardShade,
+    sub(hand, seed),
+    { line: 3, torn: 2, shadow: 0.4 },
+  );
+  const crown = ease.outBack(clamp((grow - 0.4) / 0.6));
+  if (crown <= 0) return;
+  const s = t.spread;
+  at(ctx, { x: 0, y: -height - 0.57 * s, scale: crown }, () => {
+    for (let i = 0; i < t.lobes; i++) {
+      const a = (i / t.lobes) * Math.PI * 2 + seed;
       piece(
         ctx,
-        blob(Math.cos(a) * 70, -270 + Math.sin(a) * 45, 150, 120, seed * 10 + i),
-        i % 2 === 0 ? C.leaf : '#8fb06a',
+        blob(Math.cos(a) * s, Math.sin(a) * 0.64 * s, 2.15 * s, 1.7 * s, seed * 10 + i),
+        t.leaves[i % 2] ?? C.leaf,
         sub(hand, seed * 10 + i + 1),
         { line: 3, torn: 2 },
       );
     }
   });
-
-/** The tree the figure rests under on the Sabbath: its foot at the origin, about 520 tall. */
-export const shadeTree = (ctx: CanvasRenderingContext2D, hand: Hands, leaves: string) => {
-  piece(ctx, rounded(0, -150, 60, 300, 20), C.boardShade, hand('trunk'), { line: 3 });
-  piece(ctx, blob(0, -380, 380, 260, 41), leaves, hand('crown'), { line: 3 });
-  piece(ctx, blob(-90, -330, 180, 140, 42), leaves, hand('crown2'), { line: 3 });
 };
 
 /**
@@ -125,7 +163,15 @@ export const restingField = (
       );
       piece(ctx, rounded(918, 902, 26, 44, 4), C.inkSoft, hand('hoeBlade'), { line: 2 });
       piece(ctx, rounded(1230, 880, 130, 80, 30), C.board, hand('basket'), { line: 3 });
-      at(ctx, { x: 640, y: 935, scale: 1.6 }, () => shadeTree(ctx, hand, C.leaf));
+      at(ctx, { x: 640, y: 935, scale: 1.6 }, () =>
+        tree(ctx, hand('tree'), {
+          height: 300,
+          trunk: 60,
+          lobes: 4,
+          spread: 90,
+          leaves: [C.leaf, C.leafPale],
+        }),
+      );
       contact(ctx, 700, 938, 220);
       // Leaning back against the trunk, face to the low sun.
       at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () =>

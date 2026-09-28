@@ -1,13 +1,10 @@
 // Props for the exchange half of the film: the Christ figure, the balance,
 // the open hand, the torn rags, the loom.
 
+import { type Look, type Pose, drawFigure, robeShape } from '../figure.ts';
 import {
   at,
   cutout,
-  type Look,
-  type Pose,
-  drawFigure,
-  robeShape,
   type Hand,
   type Pt,
   ellipseShape,

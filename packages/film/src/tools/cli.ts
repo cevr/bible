@@ -44,7 +44,7 @@ import { scenesOf } from '../core/layout.ts';
 import { eventsSince } from '../core/notes.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
-import { type Reported, staticFindings } from './check.ts';
+import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -293,7 +293,9 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       film,
       static: Flag.Boolean('static').pipe(
         Flag.withDefault(false),
-        Flag.withDescription('skip the layout leg: no browser, only cues, takes and sound'),
+        Flag.withDescription(
+          'skip the layout leg: no browser, only cues, takes and sound (no static holds: telling one needs the frames)',
+        ),
       ),
       allowStale: Flag.Boolean('allow-stale').pipe(
         Flag.withDefault(false),
@@ -330,7 +332,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       ];
       if (!input.static) {
         const layout = yield* layoutLeg(loaded, input.workers, only);
-        for (const finding of layout) found.push({ level: 'error', finding });
+        for (const finding of layout) found.push({ level: layoutLevel(finding), finding });
       }
       for (const { level, finding } of found) {
         if (input.json)
@@ -348,7 +350,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
     }),
   ).pipe(
     Command.withDescription(
-      'Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, and no text over text or off the frame at any mark or cue',
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s`,
     ),
   );
 };

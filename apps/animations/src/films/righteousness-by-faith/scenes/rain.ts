@@ -1,16 +1,17 @@
 // Where it was heading. Wide cardboard fields under a teal sky, dry, with the
 // city low on the horizon and scarlet specks hanging over the land. On
 // "spirit" the rain begins, silver-gold, and the fields green where it falls.
-// On "blot" the camera tilts up to the gold sanctuary far above: its light
+// On "blot" the camera tilts up to the gold sanctuary far above, veil drawn
+// up and Christ pleading before the ark as `exchange` left him: its light
 // brightens, and the specks over the land wink out one by one. On "loud" the
 // camera comes down over the city, the angel with the third angel's banner
 // flies across again, and figures on the rooftops turn to look and wave.
 
-import { type Camera, type Pt, at, drawing, multiplane, unprobed } from '@bible/film/canvas';
+import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
 import { clamp, keys, lerp, rng } from '@bible/film/core';
-import { C, blob, glow, person, piece, sky, sub, mix } from '../kit.ts';
+import { C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
-import { herald, sanctuary } from '../heaven.ts';
+import { herald, ministry } from '../heaven.ts';
 
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
 /** Tilted up to the sanctuary. */
@@ -89,11 +90,11 @@ export const rain = drawing({
       h,
       [
         {
-          // Heaven: the sanctuary, far above the land.
+          // Heaven: the sanctuary far above the land, Christ pleading before the ark.
           z: 1.3,
           draw: () =>
             at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: 0.42 }, () => {
-              sanctuary(ctx, hand, 0, f.at('bright'));
+              ministry(ctx, hand, f.at('bright'));
               piece(ctx, blob(0, 40, 1400, 190, 88), C.cream, hand('cloud'), {
                 line: 0,
                 shadow: 0.2,

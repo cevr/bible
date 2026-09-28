@@ -3,13 +3,21 @@ import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
-import type { Cast, Music, Sound, Timed, Timings } from '../core/schema.ts';
+import type { Cast, Music, Probed, Sound, Timed, Timings } from '../core/schema.ts';
+import { stroke } from '../canvas/ink.ts';
+import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
-  type LayoutFinding,
+  type FrameFinding,
+  HOLD,
   type Sample,
   effectFindings,
   frameFindings,
+  heldStill,
+  holdCandidates,
+  holdGrid,
+  holdTicks,
+  layoutLevel,
   lateCues,
   layoutSamples,
   longSeams,
@@ -20,10 +28,22 @@ import {
   overlapArea,
   pastFrame,
   staleTakes,
+  STILL_DRIFT,
   staticFindings,
+  stillSpan,
   unknownVoices,
 } from './check.ts';
-import { inkMark, testFilm, testVoice, textBox } from './testing.ts';
+import { StaticHold } from './errors.ts';
+import {
+  holdScenes,
+  holdTimings,
+  inkMark,
+  spokenTake,
+  stubContext,
+  testFilm,
+  testVoice,
+  textBox,
+} from './testing.ts';
 
 const frame = { width: 1920, height: 1080 };
 const noTakes: Timings = { voice: '', scenes: {} };
@@ -505,7 +525,7 @@ describe('text off its plate', () => {
 
 describe('mergeFindings', () => {
   test('one finding per pair and scene: the worst sample, counting every frame that shows it', () => {
-    const at = (time: number, dy: number): LayoutFinding => {
+    const at = (time: number, dy: number): FrameFinding => {
       const found = frameFindings(
         { ...sample, time },
         { texts: [textBox('a', 0, 0, 100, 40), textBox('b', 0, dy, 100, 40)], inks: [] },
@@ -868,5 +888,170 @@ describe('the audio master', () => {
       (r) => r.finding._tag,
     );
     expect(tagsOf).toEqual(['TakeStale']);
+  });
+});
+
+describe('static holds', () => {
+  const placed = layout(holdScenes, holdTimings);
+  const seven = 'one two three four five six seven';
+
+  test('a spoken stretch over HOLD with no cue is a candidate; one of 3 s is not', () => {
+    const found = holdCandidates(placed);
+    expect(found.map((c) => c.scene)).toEqual(['held', 'ambient']);
+    const [held] = found;
+    expect(held?.from).toBeCloseTo(1.4);
+    expect(held?.to).toBeCloseTo(6.4);
+    expect(HOLD).toBe(4);
+  });
+
+  test('the stretch is the spoken words, not the whole scene: a long silent end holds nothing', () => {
+    // Words 0.5–3.9 s, then 10 s of scene with no cue and no voice.
+    const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: seven, min: 14 }];
+    const timings: Timings = { voice: holdTimings.voice, scenes: { a: spokenTake(seven) } };
+    expect(holdCandidates(layout(scenes, timings))).toEqual([]);
+  });
+
+  test('a cue running through the words, or the scene arriving, is motion', () => {
+    const say = Option.getOrThrow(Option.fromUndefinedOr(Arr.getUnsafe(holdScenes, 0).say));
+    const scenes: ReadonlyArray<Timed> = [
+      { id: 'first', say },
+      {
+        id: 'a',
+        say,
+        enter: { kind: 'fade', dur: 1.5 },
+        timeline: { drift: { scene: 'start', offset: 4, dur: 1 } },
+      },
+    ];
+    const timings: Timings = {
+      voice: holdTimings.voice,
+      scenes: { first: spokenTake(say), a: spokenTake(say) },
+    };
+    // `first` speaks 0.5–6.4 s with nothing declared; `a` fades in to 1.5 s and drifts at 4–5 s.
+    expect(holdCandidates(layout(scenes, timings)).map((c) => c.scene)).toEqual(['first']);
+  });
+
+  test('a storyboard card holds still by design and is never a candidate', () => {
+    const card: Timed = { ...Arr.getUnsafe(holdScenes, 0), storyboard: true };
+    expect(holdCandidates(layout([card], holdTimings))).toEqual([]);
+  });
+
+  test('the ticks span the stretch a boil tick apart, from its first frame to its last', () => {
+    const ticks = holdTicks({ from: 1.4, to: 6.4 }, 30);
+    expect(ticks.slice(0, 5)).toEqual([42, 45, 47, 50, 52]);
+    expect(Arr.last(ticks)).toEqual(Option.some(191));
+    expect(ticks).toHaveLength(61);
+  });
+
+  test('the grid is a tick every HOLD / 2, and the last; any run over HOLD spans two in a row', () => {
+    expect(holdGrid(holdTicks({ from: 1.4, to: 6.4 }, 30))).toEqual([42, 102, 162, 191]);
+    const every = Arr.range(0, 99);
+    const grid = holdGrid(every);
+    for (const lo of Arr.range(0, 51)) {
+      const run = every.slice(lo, lo + 49);
+      expect(grid.filter((g) => run.includes(g)).length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('a still run covers the stretch to an edge it reaches, else its still ticks', () => {
+    const ticks = holdTicks({ from: 1.4, to: 6.4 }, 30);
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 42, 191, 30)).toEqual([1.4, 6.4]);
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 57, 150, 30)).toEqual([1.9, 5]);
+  });
+
+  const card = textBox('A MOST PRECIOUS MESSAGE', 600, 300, 700, 80);
+  const figure = inkMark('fill', [
+    [900, 500],
+    [1000, 500],
+    [1000, 800],
+  ]);
+  const shifted = (dx: number) => ({ ...figure, x: figure.x + dx });
+  const first = { texts: [card], inks: [figure] };
+
+  test('frames that differ only by boil hold still', () => {
+    const boiled = { texts: [{ ...card, x: card.x + 0.6 }], inks: [shifted(1.1)] };
+    expect(heldStill([first, boiled])).toBe(true);
+  });
+
+  test('a mark that drifts, fades or appears is motion', () => {
+    expect(heldStill([first, { texts: [card], inks: [shifted(6)] }])).toBe(false);
+    const faded = { texts: [card], inks: [{ ...figure, alpha: 0.5 }] };
+    expect(heldStill([first, faded])).toBe(false);
+    expect(heldStill([first, { texts: [card], inks: [figure, figure] }])).toBe(false);
+  });
+
+  test('the captions are the voice, not the picture: a new caption line is not motion', () => {
+    const line = (text: string, w: number) => {
+      const box = textBox(text, 960 - w / 2, 960, w, 60, { order: 5, caption: true });
+      const plate = inkMark(
+        'plate',
+        [
+          [box.x, box.y],
+          [box.x + box.w, box.y],
+          [box.x + box.w, box.y + box.h],
+          [box.x, box.y + box.h],
+        ],
+        { order: 4, caption: true },
+      );
+      return { box, plate };
+    };
+    const a = line('one two three', 400);
+    const b = line('four five six seven', 520);
+    expect(
+      heldStill([
+        { texts: [card, a.box], inks: [figure, a.plate] },
+        { texts: [card, b.box], inks: [figure, b.plate] },
+      ]),
+    ).toBe(true);
+  });
+
+  test('D1: a stroke that only boils holds still at any zoom (drift in its own units)', () => {
+    const drawnAt = (zoom: number, boil: number, dy = 0): Probed => {
+      const sink: ProbeSink = { texts: [], inks: [] };
+      const ctx = stubContext(zoom);
+      probing(ctx, { sink, scene: 'a', dx: 0, alpha: 1 }, () =>
+        stroke(
+          ctx,
+          [
+            [100, 100 + dy],
+            [300, 140 + dy],
+            [500, 120 + dy],
+          ],
+          { color: '#000', width: 6 },
+          { boil, seed: 7 },
+        ),
+      );
+      return sink;
+    };
+    for (const zoom of [1, 1.5, 2.3, 4]) {
+      const moved = Arr.range(1, 23).filter(
+        (b) => !heldStill([drawnAt(zoom, 0), drawnAt(zoom, b)]),
+      );
+      expect({ zoom, moved }).toEqual({ zoom, moved: [] });
+      // Moved a few of its own px further than boil can, it moves, however far the camera is.
+      expect(heldStill([drawnAt(zoom, 0), drawnAt(zoom, 0, 3 * STILL_DRIFT)])).toBe(false);
+    }
+  });
+
+  test('D5: a picture line that reads as a caption line is still the picture', () => {
+    // The card writes the words as they are heard, over the caption line saying the same.
+    const caption = textBox('one two three', 760, 960, 400, 60, { order: 5, caption: true });
+    const growing = (w: number) => textBox('one two three', 600, 300, w, 80);
+    const frames = [
+      { texts: [growing(200), caption], inks: [] },
+      { texts: [growing(500), caption], inks: [] },
+    ];
+    expect(heldStill(frames)).toBe(false);
+  });
+
+  test('a static hold is a warning, every other layout finding an error', () => {
+    const hold = StaticHold.make({ scene: 'held', from: 1.4, to: 6.4, max: HOLD });
+    expect(layoutLevel(hold)).toBe('warning');
+    expect(hold.message).toContain('scene "held" 1.40–6.40s');
+    const found = frameFindings(
+      sample,
+      { texts: [textBox('a', 0, 0, 100, 40), textBox('b', 0, 10, 100, 40)], inks: [] },
+      frame,
+    );
+    expect(found.map(layoutLevel)).toEqual(['error']);
   });
 });

@@ -14,15 +14,13 @@ import {
   rectShape,
   spline,
   stroke,
+  sub,
 } from '@bible/film/canvas';
-import { hash2, lerp } from '@bible/film/core';
+import { clamp, hash2, lerp } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
 export const F = fonts;
-
-/** A sub-hand, so each piece of a drawing boils on its own seed. */
-export const sub = (hand: Hand, k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -174,6 +172,60 @@ export const piece = (
     );
 };
 
+/** The bubble's three lines of writing, centred like it. */
+const BUBBLE_LINES = [0, 1, 2].map((i) =>
+  rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
+);
+
+/**
+ * The word-bubble in `fill` with its three lines of writing in `ink`,
+ * centred on (0, 0): the icon (`icons`), the word of light (`spoken`), the
+ * heavy word (`declared`). `lines(i)` seeds each line.
+ */
+export const bubble = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hand,
+  lines: (i: number) => Hand,
+  s: { readonly fill: string; readonly ink: string; readonly shadow: number },
+) => {
+  piece(ctx, BUBBLE, s.fill, hand, { line: 5, shadow: s.shadow });
+  BUBBLE_LINES.forEach((l, i) => piece(ctx, l, s.ink, lines(i), { line: 0, shadow: 0 }));
+};
+
+/** The icon's heart, centred on (0, 0), about 190 units wide. */
+const HEART: Pt[] = [
+  [0, -54],
+  [40, -94],
+  [96, -60],
+  [84, 4],
+  [0, 96],
+  [-84, 4],
+  [-96, -60],
+  [-40, -94],
+];
+
+/**
+ * The heart in `fill` with the two tablets of the law on it (`icons`,
+ * `within`); `law` writes their lines, so they stay legible close up.
+ */
+export const heart = (
+  ctx: CanvasRenderingContext2D,
+  hand: (k: string) => Hand,
+  fill: string,
+  law: boolean,
+) => {
+  piece(ctx, HEART, fill, hand('heart'), { line: 5 });
+  for (const x of [-24, 24] as const) {
+    piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
+    if (law)
+      for (let i = 0; i < 4; i++)
+        piece(ctx, rounded(x, -10 + i * 12, 24, 3, 1), C.ink, sub(hand('law'), x * 10 + i), {
+          line: 0,
+          shadow: 0,
+        });
+  }
+};
+
 // ─── people ──────────────────────────────────────────────────────────────────
 
 /**
@@ -200,32 +252,50 @@ export interface Person {
   browTilt?: number;
   /** 0 closed, 1 a small round "oh". */
   mouth?: number;
-  /** A priest's wrapped linen turban. */
-  turban?: boolean;
+  /** The mouth's curve, −1 a frown to 1 a smile (held there); nothing near 0. An "oh" opens under it. */
+  smile?: number;
+  /** 1 open to 0 shut; below 0.3 each eye is an arc, a happy crescent when smiling past 0.5. */
+  eyes?: number;
+  /**
+   * What sits on the head (a turban, a helmet, hair, spectacles): drawn in
+   * head space, turned with it, over the eyes and under the brows. `c` is the
+   * head's centre and `r` its radii, in the person's units. A module-level
+   * function, so no closure is made per frame: what it needs beyond the
+   * person's hand comes through `headHands`.
+   */
+  onHead?: HeadPiece;
+  /** Keyed hands `onHead` draws with, so its pieces keep the scene's own seeds. */
+  headHands?: Hands;
+  /**
+   * The body's width and height as multiples (garment, legs, shoulders), each
+   * held in 0.6..1.5; the head keeps the size that reads.
+   */
+  build?: readonly [number, number];
+  /** A moustache, 0 none to 1 a full handlebar (held there), in `hair` (the outline ink unless given). */
+  moustache?: number;
+  hair?: string;
   /** Hands, in the person's units, when they reach for something; no arm otherwise. */
   handL?: Pt;
   handR?: Pt;
   /** Stains on the garment: blob outlines in the person's units. */
   stains?: ReadonlyArray<ReadonlyArray<Pt>>;
+  /**
+   * 0 stands, 1 sits: the origin becomes the seat's front edge, the body
+   * drops onto it by the legs' height, the lap comes forward over the edge
+   * with its two knees, and the shins hang down its face.
+   */
+  sit?: number;
 }
 
-export const NECK: Pt = [0, -128];
-export const HEAD: Pt = [0, -165];
+const NECK: Pt = [0, -128];
+const HEAD: Pt = [0, -165];
 const HEAD_RX = 35;
 const HEAD_RY = 38;
+const HEAD_R: Pt = [HEAD_RX, HEAD_RY];
 const SHOULDER_Y = -116;
 const ARM = [36, 34];
-
-/** Where a point on the head lands once the head has turned and dropped. */
-const onHead = (p: Person, x: number, y: number): Pt => {
-  const a = p.tilt ?? 0;
-  const dx = x - NECK[0];
-  const dy = y - NECK[1];
-  return [
-    NECK[0] + dx * Math.cos(a) - dy * Math.sin(a),
-    NECK[1] + (p.nod ?? 0) + dx * Math.sin(a) + dy * Math.cos(a),
-  ];
-};
+/** How far the body drops onto its seat when sitting: the legs' height. */
+const SEAT = 22;
 
 /** The turban's dome, over a head centred on (0, 0) of radii rx, ry: high enough to leave the brows showing. */
 const turbanShape = (rx: number, ry: number): Pt[] =>
@@ -243,108 +313,459 @@ const turbanShape = (rx: number, ry: number): Pt[] =>
     true,
   );
 
+/** Each turban wrap: its height on the head and half its width, in head radii. */
+const TURBAN_WRAPS = [
+  [-0.82, 0.92],
+  [-1.02, 0.8],
+  [-1.22, 0.5],
+] as const;
+
+/** `pts` moved by (dx, dy), without a per-point closure. */
+export const shifted = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] => {
+  const out: Pt[] = [];
+  for (const [x, y] of pts) out.push([dx + x, dy + y]);
+  return out;
+};
+
+/**
+ * What sits on a head, drawn in head space: `c` the head's centre, `r` its
+ * radii, `hand` the person's, `hands` the person's `headHands` when given.
+ */
+export type HeadPiece = (
+  ctx: CanvasRenderingContext2D,
+  c: Pt,
+  r: Pt,
+  hand: Hand,
+  hands: Hands | undefined,
+) => void;
+
+/** A priest's wrapped linen turban, as a person's `onHead`. */
+export const turban: HeadPiece = (ctx, [cx, cy], [rx, ry], hand) => {
+  piece(ctx, shifted(turbanShape(rx, ry), cx, cy), C.paper, sub(hand, 5));
+  for (const [y, w] of TURBAN_WRAPS)
+    stroke(
+      ctx,
+      quad(
+        [cx - w * rx, cy + (y - 0.04) * ry],
+        [cx, cy + (y + 0.08) * ry],
+        [cx + w * rx, cy + (y + 0.02) * ry],
+      ),
+      { color: C.paperTone, width: 2, jitter: 0.4 },
+      sub(hand, 70 + y),
+    );
+};
+
+/**
+ * One side of a moustache over a mouth at (x, y), `side` −1 left or 1 right:
+ * `m` 0..1 grows it from a trim line to a full handlebar with its tips out.
+ */
+const moustacheSide = (x: number, y: number, side: -1 | 1, m: number): Pt[] => {
+  const s = 0.5 + 0.5 * m;
+  return spline(
+    [
+      [x, y - 3],
+      [x + side * 9 * s, y - 5],
+      [x + side * 17 * s, y - 2],
+      [x + side * 23 * s, y + 1 + 4 * m],
+      [x + side * 15 * s, y + 3],
+      [x + side * 6 * s, y + 4],
+      [x, y + 3],
+    ],
+    5,
+    true,
+  );
+};
+
+/** Each eye's, leg's and moustache side's offset or side: fixed, so a frame allocates none. */
+const EYE_DX = [-12, 13] as const;
+const LEG_X = [-13, 13] as const;
+const SIDES = [-1, 1] as const;
+
+/**
+ * The two eyes about (x, y), the midpoint between them: filled ovals that
+ * narrow as `open` falls, and below 0.3 an arc each, bowed down when shut,
+ * bowed up in a happy crescent when `smile` is past 0.5.
+ */
+const eyePair = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  open: number,
+  smile: number,
+  hand: Hand,
+) => {
+  for (const dx of EYE_DX) {
+    if (open < 0.3) {
+      const bow = smile > 0.5 ? -4 : 4;
+      stroke(
+        ctx,
+        quad([x + dx - 5, y], [x + dx, y + bow], [x + dx + 5, y]),
+        { color: C.outline, width: 2.6, jitter: 0.3, taper: 0.2 },
+        sub(hand, 11 + dx),
+      );
+      continue;
+    }
+    ctx.fillStyle = C.outline;
+    ctx.beginPath();
+    ctx.ellipse(x + dx, y, 3.2, 4.2 * open, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
+/**
+ * The mouth under a head centred on (x, y): the `smile` curve, and `open` as
+ * a small round "oh" that becomes an open grin under the curve as the smile
+ * grows.
+ */
+const mouthOf = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  open: number,
+  smile: number,
+  hand: Hand,
+) => {
+  if (Math.abs(smile) > 0.05)
+    stroke(
+      ctx,
+      quad([x - 7, y + 14], [x + 2, y + 14 + 8 * smile], [x + 11, y + 14]),
+      { color: C.outline, width: 3, jitter: 0.3, taper: 0.3 },
+      sub(hand, 10),
+    );
+  if (open <= 0.02) return;
+  const grin = clamp(smile * 3);
+  const oh = open * (1 - grin);
+  ctx.fillStyle = C.outline;
+  if (oh > 0.02) {
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 16, 3 * oh + 0.5, 4 * oh + 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const lip = open * grin;
+  if (lip > 0.02) {
+    ctx.beginPath();
+    ctx.moveTo(x - 7, y + 14);
+    ctx.quadraticCurveTo(x + 2, y + 14 + 8 * smile + 10 * lip, x + 11, y + 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+/**
+ * Opens a frame dropped `dy` and scaled (sx, sy) about the origin, skipping
+ * the identity; the caller restores it. The person's layers use it in place
+ * of a closure per layer.
+ */
+const frameOf = (ctx: CanvasRenderingContext2D, dy: number, sx = 1, sy = 1) => {
+  ctx.save();
+  if (dy !== 0) ctx.translate(0, dy);
+  if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+};
+
+/** A seated shin's length, from under the knee to the heel: long enough to hang down a wall and read. */
+const SHIN = 46;
+/** Where a seated shin starts: under the lap's knees. */
+const KNEE_Y = 6;
+
+/**
+ * The two legs: under the body standing; as `sit` goes to 1 each becomes a
+ * shin hanging from under its knee down the seat's face, a foot turned out
+ * toward us at its end.
+ */
+const legs = (ctx: CanvasRenderingContext2D, sit: number, shade: string, hand: Hand) => {
+  for (const x of LEG_X) {
+    const k = sub(hand, 1 + x);
+    if (sit <= 0) {
+      piece(ctx, rounded(x, -10, 16, 22, 5), shade, k, { line: 2.5 });
+      continue;
+    }
+    const lx = x * (1 + 0.35 * sit);
+    const top = lerp(-21, KNEE_Y, sit);
+    const heel = lerp(1, KNEE_Y + SHIN, sit);
+    piece(ctx, rounded(lx, (top + heel) / 2, 15, heel - top, 5), shade, k, { line: 2.5 });
+    piece(
+      ctx,
+      ellipseShape(lx + Math.sign(x) * 4 * sit, heel - 1, 8 + 3 * sit, 6, 24),
+      shade,
+      sub(k, 40),
+      { line: 2.5 },
+    );
+  }
+};
+
+const ROBE_SHAPE = spline(
+  [
+    [-24, -126],
+    [24, -126],
+    [44, -60],
+    [52, -2],
+    [-52, -2],
+    [-44, -60],
+  ],
+  6,
+  true,
+);
+const TUNIC_SHAPE = rounded(0, -72, 66, 112, 22);
+/** Each garment's top and hem, standing. */
+const ROBE_SPAN = [-126, -2] as const;
+const TUNIC_SPAN = [-128, -16] as const;
+/** Where the hem rests once seated: under the lap, just over the seat's edge. */
+const SEAT_HEM = 3;
+/**
+ * The seated lap, about the seat: the thighs come toward us over the seat's
+ * edge, so the silhouette widens there; its top is the fold at the hips, its
+ * bottom the two knees with the cloth dipping between them.
+ */
+const LAP = spline(
+  [
+    [-46, -14],
+    [0, -11],
+    [46, -14],
+    [52, 2],
+    [38, 14],
+    [20, 13],
+    [0, 7],
+    [-20, 13],
+    [-38, 14],
+    [-52, 2],
+  ],
+  6,
+  true,
+);
+/** The shadowed crease between the knees, and its soft line. */
+const LAP_CREASE: Pt[] = [
+  [1, -4],
+  [0, 7],
+];
+const LAP_FOLD = { color: C.outline, width: 2, jitter: 0.4, taper: 0.4, alpha: 0.5 } as const;
+const UNBUILT = [1, 1] as const;
+/** How far a build may stretch or squash the body: a person still, never flat or inside out. */
+const BUILD_MIN = 0.6;
+const BUILD_MAX = 1.5;
+
+/** The person's build, each factor held in [BUILD_MIN, BUILD_MAX]. */
+export const buildOf = (p: Person): readonly [number, number] =>
+  p.build === undefined
+    ? UNBUILT
+    : [clamp(p.build[0], BUILD_MIN, BUILD_MAX), clamp(p.build[1], BUILD_MIN, BUILD_MAX)];
+/** Pupils looking straight ahead. */
+const HEAD_STILL: Pt = [0, 0];
+const NO_STAINS: ReadonlyArray<ReadonlyArray<Pt>> = [];
+
+/**
+ * The garment and its stains: standing as it is; seated, its top dropped
+ * onto the seat and its length folded into the lap, the hem at the seat's
+ * edge.
+ */
+/**
+ * The seated garment's fold for `sit` > 0: its top dropped onto the seat,
+ * its length folded so the hem rests at the seat's edge under the lap, and
+ * its width drawn in, since the cloth falls straight to the lap rather than
+ * belling to the feet. As a drop `dy` and a scale (sx, sy) about the feet.
+ */
+const foldOf = (robe: boolean, sit: number): readonly [dy: number, sx: number, sy: number] => {
+  const [top, hem] = robe ? ROBE_SPAN : TUNIC_SPAN;
+  const k = (lerp(hem, SEAT_HEM, sit) - top - SEAT * sit) / (hem - top);
+  return [top + SEAT * sit - top * k, 1 - 0.18 * sit, k];
+};
+
+/**
+ * Where the point `y` units up this person's standing garment is drawn, for
+ * their build and sit, and the garment's width there as a multiple: so
+ * something worn on it (Christ's sash) stays on it.
+ */
+export const onGarment = (p: Person, y: number): readonly [sx: number, y: number] => {
+  const [bw, bh] = buildOf(p);
+  const sit = clamp(p.sit ?? 0);
+  if (sit <= 0) return [bw, bh * y];
+  const [dy, sx, sy] = foldOf(p.garment === 'robe', sit);
+  return [bw * sx, bh * (dy + sy * y)];
+};
+
+/** Folds the frame onto the seat for `sit` > 0 (see `foldOf`); nothing standing. */
+const toFold = (ctx: CanvasRenderingContext2D, robe: boolean, sit: number) => {
+  if (sit <= 0) return;
+  const [dy, sx, sy] = foldOf(robe, sit);
+  ctx.translate(0, dy);
+  ctx.scale(sx, sy);
+};
+
+/** Adds `pts` to the current path as one closed subpath. */
+const tracePath = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
+  let first = true;
+  for (const [x, y] of pts) {
+    if (first) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    first = false;
+  }
+  ctx.closePath();
+};
+
+/**
+ * Clips to this person's garment as `person` draws it, build, seated fold
+ * and lap included, in the frame `person` was drawn in: so something spread
+ * through the cloth (declared's gold) stays on it. The caller saves before
+ * and restores after; the transform is left as it was.
+ */
+export const clipToGarment = (ctx: CanvasRenderingContext2D, p: Person) => {
+  const m = ctx.getTransform();
+  const [bw, bh] = buildOf(p);
+  const sit = clamp(p.sit ?? 0);
+  const robe = p.garment === 'robe';
+  if (bw !== 1 || bh !== 1) ctx.scale(bw, bh);
+  ctx.beginPath();
+  if (sit > 0) {
+    // The lap's subpath first, in the build's frame, before the fold.
+    const lap = ctx.getTransform();
+    ctx.scale(robe ? 1 : 0.8, sit);
+    tracePath(ctx, LAP);
+    ctx.setTransform(lap);
+  }
+  toFold(ctx, robe, sit);
+  tracePath(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE);
+  ctx.clip();
+  ctx.setTransform(m);
+};
+
+const garment = (
+  ctx: CanvasRenderingContext2D,
+  p: Person,
+  sit: number,
+  body: string,
+  hand: Hand,
+) => {
+  const robe = p.garment === 'robe';
+  ctx.save();
+  toFold(ctx, robe, sit);
+  piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
+  let i = 0;
+  for (const stain of p.stains ?? NO_STAINS)
+    cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i++));
+  ctx.restore();
+  if (sit <= 0) return;
+  // The lap: the thighs come toward us over the seat's edge, the cloth
+  // draped across them and broken by the two knees; it grows in with `sit`.
+  ctx.save();
+  ctx.scale(robe ? 1 : 0.8, sit);
+  piece(ctx, LAP, body, sub(hand, 6), { shadow: 0.25 });
+  stroke(ctx, LAP_CREASE, LAP_FOLD, sub(hand, 14));
+  ctx.restore();
+};
+
+/** One arm from its shoulder on a body of build (bw, bh) to `target`, when it reaches. */
+const arm = (
+  ctx: CanvasRenderingContext2D,
+  side: -1 | 1,
+  target: Pt | undefined,
+  [bw, bh]: readonly [number, number],
+  colours: readonly [body: string, skin: string],
+  hand: Hand,
+  k: number,
+) => {
+  if (target === undefined) return;
+  const path = spline(reach([side * 26 * bw, SHOULDER_Y * bh], target, ARM, side), 8);
+  stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
+  stroke(ctx, path, { color: colours[0], width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
+  const [hx, hy] = path.at(-1) ?? target;
+  piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), { line: 2.5 });
+};
+
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
-  const body = p.body ?? C.figure;
-  const shade = p.shade ?? C.figureShade;
-  const skin = p.skin ?? C.figure;
-  const arm = (side: -1 | 1, target: Pt | undefined, k: number) => {
-    if (target === undefined) return;
-    const path = spline(reach([side * 26, SHOULDER_Y], target, ARM, side), 8);
-    stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
-    stroke(ctx, path, { color: body, width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
-    const [hx, hy] = path.at(-1) ?? target;
-    piece(ctx, ellipseShape(hx, hy, 8, 8, 20), skin, sub(hand, k + 2), { line: 2.5 });
-  };
+  const colours = [p.body ?? C.figure, p.skin ?? C.figure] as const;
+  const build = buildOf(p);
+  const [bw, bh] = build;
+  const sit = clamp(p.sit ?? 0);
+  // Seated, everything but the legs drops onto the seat.
+  const drop = sit > 0 ? SEAT * sit * bh : 0;
 
   // The far arm behind the body, the near one over it.
-  arm(-1, p.handL, 40);
-  for (const x of [-13, 13])
-    piece(ctx, rounded(x, -10, 16, 22, 5), shade, sub(hand, 1 + x), { line: 2.5 });
-  const garment =
-    p.garment === 'robe'
-      ? spline(
-          [
-            [-24, -126],
-            [24, -126],
-            [44, -60],
-            [52, -2],
-            [-52, -2],
-            [-44, -60],
-          ],
-          6,
-          true,
-        )
-      : rounded(0, -72, 66, 112, 22);
-  piece(ctx, garment, body, sub(hand, 3));
-  (p.stains ?? []).forEach((stain, i) =>
-    cutout(ctx, stain, { color: C.scarlet, torn: 2.5, rim: 0, shadow: 0.1 }, sub(hand, 60 + i)),
-  );
+  frameOf(ctx, drop);
+  arm(ctx, -1, p.handL, build, colours, hand, 40);
+  ctx.restore();
+  // A build stretches the body from the feet; the head rides its neck.
+  frameOf(ctx, 0, bw, bh);
+  legs(ctx, sit, p.shade ?? C.figureShade, hand);
+  ctx.restore();
+  frameOf(ctx, 0, bw, bh);
+  garment(ctx, p, sit, colours[0], hand);
+  ctx.restore();
+  frameOf(ctx, drop);
+  head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
+  arm(ctx, 1, p.handR, build, colours, hand, 50);
+  ctx.restore();
+};
 
-  // The head turns about the neck.
+/**
+ * One brow over the eye on `side` of a head centred on (cx, cy), raised
+ * `rise`; a `tilt` past 0 lifts the end nearer the nose: the left brow's
+ * inner end is its right one, and the other way round.
+ */
+const browOf = (
+  ctx: CanvasRenderingContext2D,
+  [cx, cy]: Pt,
+  side: -1 | 1,
+  rise: number,
+  tilt: number,
+  hand: Hand,
+) => {
+  const bx = cx + side * 13;
+  const by = cy - 21 - rise;
+  stroke(
+    ctx,
+    [
+      [bx - 8, by - side * tilt * 6],
+      [bx + 8, by + side * tilt * 6],
+    ],
+    { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2 },
+    hand,
+  );
+};
+
+/**
+ * The head, turned about the neck and raised `lift` with a build, with its
+ * face, whatever sits on it and any moustache.
+ */
+const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand, lift: number) => {
   ctx.save();
-  ctx.translate(NECK[0], NECK[1] + (p.nod ?? 0));
+  ctx.translate(NECK[0], NECK[1] + (p.nod ?? 0) + lift);
   ctx.rotate(p.tilt ?? 0);
   ctx.translate(-NECK[0], -NECK[1]);
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
-  const [lx, ly] = p.look ?? [0, 0];
-  for (const x of [-12, 13]) {
-    ctx.fillStyle = C.outline;
-    ctx.beginPath();
-    ctx.ellipse(cx + x + lx, cy - 7 + ly, 3.2, 4.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  if (p.turban === true) {
-    const dome = turbanShape(HEAD_RX, HEAD_RY).map(([x, y]): Pt => [cx + x, cy + y]);
-    piece(ctx, dome, C.paper, sub(hand, 5));
-    // Each wrap: its height on the head and half its width, in head radii.
-    for (const [y, w] of [
-      [-0.82, 0.92],
-      [-1.02, 0.8],
-      [-1.22, 0.5],
-    ] as const)
-      stroke(
-        ctx,
-        quad(
-          [cx - w * HEAD_RX, cy + (y - 0.04) * HEAD_RY],
-          [cx, cy + (y + 0.08) * HEAD_RY],
-          [cx + w * HEAD_RX, cy + (y + 0.02) * HEAD_RY],
-        ),
-        { color: C.paperTone, width: 2, jitter: 0.4 },
-        sub(hand, 70 + y),
-      );
-  }
+  const [lx, ly] = p.look ?? HEAD_STILL;
+  const smile = clamp(p.smile ?? 0, -1, 1);
+  eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);
+  p.onHead?.(ctx, HEAD, HEAD_R, hand, p.headHands);
   const tilt = p.browTilt ?? 0;
-  const brow = (side: -1 | 1, rise: number, k: number) => {
-    const bx = cx + side * 13;
-    const by = cy - 21 - rise;
-    // A raised inner end lifts the end nearer the nose: the left brow's inner
-    // end is its right one, and the other way round.
-    stroke(
-      ctx,
-      [
-        [bx - 8, by - side * tilt * 6],
-        [bx + 8, by + side * tilt * 6],
-      ],
-      { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2 },
-      sub(hand, k),
-    );
-  };
-  brow(-1, p.browL ?? 0, 8);
-  brow(1, p.browR ?? 0, 9);
-  const open = p.mouth ?? 0;
-  if (open > 0.02) {
-    ctx.fillStyle = C.outline;
-    ctx.beginPath();
-    ctx.ellipse(cx + 2, cy + 16, 3 * open + 0.5, 4 * open + 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  browOf(ctx, HEAD, -1, p.browL ?? 0, tilt, sub(hand, 8));
+  browOf(ctx, HEAD, 1, p.browR ?? 0, tilt, sub(hand, 9));
+  mouthOf(ctx, cx, cy, p.mouth ?? 0, smile, hand);
+  const m = clamp(p.moustache ?? 0);
+  if (m > 0)
+    for (const side of SIDES)
+      piece(
+        ctx,
+        moustacheSide(cx + 2, cy + 10, side, m),
+        p.hair ?? C.outline,
+        sub(hand, 12 + side),
+        {
+          line: 2,
+          shadow: 0,
+        },
+      );
   ctx.restore();
-  arm(1, p.handR, 50);
 };
 
-/** Where a person's face is, for a camera to find it. */
-export const faceOf = (p: Person): Pt => onHead(p, HEAD[0], HEAD[1]);
+/**
+ * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
+ * it: a step every π/7 s counted from `phase` (scene seconds; the cue's
+ * start unless given), each rising up to 5 units.
+ */
+export const gait = (
+  t: number,
+  walk: { readonly start: number; readonly end: number },
+  phase = walk.start,
+): number => (t > walk.start && t < walk.end ? Math.abs(Math.sin((t - phase) * 7)) * 5 : 0);
 
 // ─── recurring figures and the icon row ──────────────────────────────────────
 // Figures and the icon row more than one scene draws, so a callback lands in
@@ -359,11 +780,18 @@ export type Hands = (k: string) => Hand;
  * sash: the pose is the caller's (look, brows, hands), the robe is not.
  */
 export const christ = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands) => {
-  person(ctx, { ...pose, body: C.robe, shade: C.robe, garment: 'robe' }, hand('christ'));
-  at(ctx, { x: 0, y: -90, rot: -0.45 }, () =>
-    piece(ctx, rounded(0, 0, 92, 12, 3), C.gold, hand('sash'), { line: 2 }),
-  );
+  const robed: Person = { ...pose, body: C.robe, shade: C.robe, garment: 'robe' };
+  person(ctx, robed, hand('christ'));
+  // The sash rides the robe, 90 units up it, through any build or sit.
+  const [sx, y] = onGarment(robed, -90);
+  ctx.save();
+  ctx.translate(0, y);
+  ctx.rotate(-0.45);
+  ctx.scale(sx, 1);
+  piece(ctx, SASH, C.gold, hand('sash'), { line: 2 });
+  ctx.restore();
 };
+const SASH = rounded(0, 0, 92, 12, 3);
 
 /** The shape of a robe, centred on (0, 0) at size 1: the loom's cloth and the icon. */
 export const ROBE: Pt[] = [
@@ -403,40 +831,17 @@ export const icons = (
       inner();
     });
   };
-  disc(0, 'iconWord', () => {
-    piece(ctx, BUBBLE, C.gold, hand('bubble'), { line: 5 });
-    for (let i = 0; i < 3; i++)
-      piece(
-        ctx,
-        rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-        C.ink,
-        sub(hand('lines'), i),
-        { line: 0, shadow: 0 },
-      );
-  });
+  disc(0, 'iconWord', () =>
+    bubble(ctx, hand('bubble'), (i) => sub(hand('lines'), i), {
+      fill: C.gold,
+      ink: C.ink,
+      shadow: 0.35,
+    }),
+  );
   disc(1, 'iconRobe', () =>
     at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
       piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { line: 18 }),
     ),
   );
-  disc(2, 'iconHeart', () => {
-    piece(
-      ctx,
-      [
-        [0, -54],
-        [40, -94],
-        [96, -60],
-        [84, 4],
-        [0, 96],
-        [-84, 4],
-        [-96, -60],
-        [-40, -94],
-      ],
-      C.boardLight,
-      hand('heart'),
-      { line: 5 },
-    );
-    for (const x of [-24, 24])
-      piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
-  });
+  disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };

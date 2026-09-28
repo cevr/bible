@@ -17,9 +17,10 @@ import {
   rectShape,
   spline,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, person, piece, rounded, sky, sub, between } from '../kit.ts';
+import { C, blob, glow, person, piece, rounded, sky, between } from '../kit.ts';
 
 /** The desert wide, and close on the face looking up at the serpent. */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };

@@ -10,7 +10,6 @@
 // are not drawn yet.
 
 import {
-  type Hand,
   type Pt,
   at,
   drawing,
@@ -18,9 +17,22 @@ import {
   ellipseShape,
   rectShape,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
+import {
+  C,
+  blob,
+  contact,
+  gait,
+  glow,
+  heart as drawHeart,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+} from '../kit.ts';
 
 /** The figure on the page: where they stand, and where they stand aside. */
 const CENTRE: Pt = [960, 930];
@@ -47,29 +59,6 @@ const along = (t: number): Pt => {
   const b = PATH[i + 1] ?? a;
   return [lerp(a[0], b[0], k - i), lerp(a[1], b[1], k - i)];
 };
-
-/** The two tablets on the heart, with their lines. */
-const tablets = (ctx: CanvasRenderingContext2D, hand: (k: string) => Hand) => {
-  for (const x of [-24, 24] as const) {
-    piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
-    for (let i = 0; i < 4; i++)
-      piece(ctx, rounded(x, -10 + i * 12, 24, 3, 1), C.ink, sub(hand('law'), x * 10 + i), {
-        line: 0,
-        shadow: 0,
-      });
-  }
-};
-
-const HEART: Pt[] = [
-  [0, -54],
-  [40, -94],
-  [96, -60],
-  [84, 4],
-  [0, 96],
-  [-84, 4],
-  [-96, -60],
-  [-40, -94],
-];
 
 export const within = drawing({
   timeline: {
@@ -156,8 +145,8 @@ export const within = drawing({
         if (heart > 0)
           at(ctx, { x: 0, y: -80, scale: 0.36 * heart }, () => {
             glow(ctx, 0, 0, 220, C.glow, 0.8);
-            piece(ctx, HEART, C.peachTop, hand('heart'), { line: 5 });
-            tablets(ctx, hand);
+            // The icon's heart, warm, its tablets still legible.
+            drawHeart(ctx, hand, C.peachTop, true);
           });
       });
 
@@ -227,7 +216,8 @@ export const within = drawing({
                 });
               }
               const [wx, wy] = along(walk);
-              const bob = Math.abs(Math.sin(walk * 30)) * 6;
+              // The film's one walk: the kit's step, from the cue's start.
+              const bob = gait(f.t, f.cue('walk'));
               at(ctx, { x: wx, y: wy - bob, scale: 0.9 - 0.4 * walk }, () => {
                 glow(ctx, 0, -90, 90, C.glow, 0.6);
                 person(ctx, { look: [3, -1], browTilt: 0.1 }, hand('walker'));

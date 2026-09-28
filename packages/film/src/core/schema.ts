@@ -251,6 +251,12 @@ export const Timed = Schema.Struct({
   timeline: Schema.optionalKey(Timeline),
   /** Named numbers and points the drawing reads with `f.knob`. */
   knobs: Schema.optionalKey(Knobs),
+  /**
+   * Set by `storyboard()`: the beat has no drawing yet and plays as its card.
+   * A card holds still over its words by design, so `film check` reports no
+   * `StaticHold` in it.
+   */
+  storyboard: Schema.optionalKey(Schema.Literal(true)),
 });
 export type Timed = typeof Timed.Type;
 
@@ -423,6 +429,14 @@ export const TextBox = Schema.Struct({
    * carries it, so the two never collide; any other text over the plate does.
    */
   on: Schema.optionalKey(Schema.Int),
+  /**
+   * How many canvas pixels one unit of the space it was drawn in spans
+   * (`sqrt(|det|)` of the transform): what turns a drift on screen back into
+   * the drawing's own units.
+   */
+  scale: Schema.Finite,
+  /** Set on the caption line: the voice's words, drawn over the picture. */
+  caption: Schema.optionalKey(Schema.Literal(true)),
 });
 export type TextBox = typeof TextBox.Type;
 
@@ -448,6 +462,10 @@ export const InkMark = Schema.Struct({
   alpha: Schema.Finite,
   order: Schema.Int,
   marks: Schema.optionalKey(Schema.Array(Schema.Finite)),
+  /** Canvas pixels per unit of the space it was drawn in, as `TextBox.scale`. */
+  scale: Schema.Finite,
+  /** Set on the caption line's plate. */
+  caption: Schema.optionalKey(Schema.Literal(true)),
 });
 export type InkMark = typeof InkMark.Type;
 

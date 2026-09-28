@@ -2,8 +2,8 @@
 // in `mirror` and the heart's tablets in `within`), the gold ring as big as
 // the universe, and the cross that meets the tablets in `message`.
 
-import { type Hand, type Pt, at, ellipseShape, line, stroke } from '@bible/film/canvas';
-import { C, glow, piece, rounded, sub, type Hands } from './kit.ts';
+import { type Hand, type Pt, at, ellipseShape, line, stroke, sub } from '@bible/film/canvas';
+import { C, glow, piece, rounded, type Hands } from './kit.ts';
 
 /** A tablet with an arched top, centred on (0, 0), `w` by `h`. */
 export const tabletShape = (w: number, h: number): Pt[] => {

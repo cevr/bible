@@ -1,13 +1,5 @@
-import {
-  camera,
-  at,
-  drawFigure,
-  type Pt,
-  quad,
-  stroke,
-  type TextStyle,
-  write,
-} from '@bible/film/canvas';
+import { drawFigure } from '../figure.ts';
+import { camera, at, type Pt, quad, stroke, type TextStyle, write } from '@bible/film/canvas';
 import { clamp, ease, progress } from '@bible/film/core';
 import { C, book, cite, hand, sun } from '../kit.ts';
 import type { Drawing } from './index.ts';

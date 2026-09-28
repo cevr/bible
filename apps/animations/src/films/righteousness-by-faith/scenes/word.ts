@@ -17,9 +17,10 @@ import {
   probePlate,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { C, F, contact, glow, person, piece, rounded, sub, plate } from '../kit.ts';
+import { C, F, contact, glow, person, piece, rounded, plate } from '../kit.ts';
 import { planet, ring, star, tablets } from '../law.ts';
 
 const WORD_CARD = 'Righteousness';

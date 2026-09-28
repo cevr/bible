@@ -18,15 +18,24 @@ import {
   rectShape,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
-import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
+import { C, F, contact, person, piece, rounded, between } from '../kit.ts';
+import {
+  ACCUSED,
+  FIGURE_STAINS,
+  GAVEL,
+  GAVEL_REST,
+  JUDGE,
+  REST,
+  STAMP_POP,
+  WIDE,
+  question,
+} from '../court.ts';
 
 /** Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in. */
 const FACE: Camera = { x: 669, y: 682, zoom: 4, rot: 0.06 };
-
-const STAINS = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 
 const SHEETS = (() => {
   const r = rng(1889);
@@ -76,26 +85,22 @@ export const cold = drawing({
       browR: 1 * puzzle + 4 * up,
       browTilt: 0.35 * puzzle + 0.4 * up,
       mouth: puzzle,
-      stains: STAINS,
+      stains: FIGURE_STAINS,
     };
 
     const stamp =
       f.at('stamp') * (1 - f.at('stampOut')) + f.at('stampBack') * (1 - f.at('stampGone'));
-    const popScale = f.keys('stamp', [
-      [0, 1.2],
-      [0.6, 0.97, 'outCubic'],
-      [1, 1, 'inOutCubic'],
-    ]);
+    const popScale = f.keys('stamp', STAMP_POP);
     const swing =
       f.keys('gavel', [
-        [0, 0.35],
+        [0, GAVEL_REST],
         [0.373, -0.3],
         [0.627, 1.62, 'inCubic'],
         [0.797, 1.4, 'outQuad'],
         [1, 1.58],
       ]) *
         (1 - f.at('rest')) +
-      0.35 * f.at('rest');
+      GAVEL_REST * f.at('rest');
     const lean = f.at('lean') * (1 - f.at('rest'));
 
     multiplane(
@@ -224,10 +229,6 @@ export const cold = drawing({
     );
 
     // Job's question, the only words on screen.
-    write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), {
-      progress: f.spoken('job'),
-      reveal: 'write',
-      boil: 0.4,
-    });
+    question(ctx, f.hand('question'), { progress: f.spoken('job'), reveal: 'write' });
   },
 });

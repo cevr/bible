@@ -3,7 +3,7 @@
 // any instant T — the same function serves the preview player and the export.
 
 import { Predicate, Schema } from 'effect';
-import type { Hand } from './ink.ts';
+import { BOIL_FPS, type Hand } from './ink.ts';
 import type { Affine } from '../core/affine.ts';
 import { captionCues } from '../core/captions.ts';
 import {
@@ -40,8 +40,6 @@ import {
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { type Key, clamp, ease } from '../core/time.ts';
-
-export const BOIL_FPS = 12;
 
 /** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
 export type KnobValue<V extends Knob> = V extends number ? number : Point;
@@ -534,7 +532,10 @@ export const createFilm = (spec: FilmSpec): Film => {
     grain(ctx, getAssets().grain, boil, width, height, finish.grain);
     if (opts.captions === true && captions !== undefined) {
       const style = captions;
-      probing(ctx, probe(cur, 0, 1), () => caption(ctx, cur, local, width, height, style));
+      const voice = probe(cur, 0, 1);
+      probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
+        caption(ctx, cur, local, width, height, style),
+      );
     }
     ctx.restore();
   };

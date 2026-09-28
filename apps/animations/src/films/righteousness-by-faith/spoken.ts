@@ -12,9 +12,11 @@ import {
   quad,
   stroke,
   trim,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { BUBBLE, C, blob, glow, piece, rounded, sky, sub, type Hands } from './kit.ts';
+import { C, blob, bubble, glow, piece, sky, type Hands } from './kit.ts';
+import { tree } from './garden.ts';
 
 /**
  * The word of light at the origin, `size` 1 being 160 units wide: the gold
@@ -24,15 +26,7 @@ export const wordLight = (ctx: CanvasRenderingContext2D, hand: Hand, size = 1, l
   at(ctx, { x: 0, y: 0, scale: size }, () => {
     glow(ctx, 0, 0, 260, C.glow, 0.95 * lit);
     glow(ctx, 0, 0, 150, C.gold, 0.45 * lit);
-    piece(ctx, BUBBLE, C.gold, hand, { line: 5, shadow: 0.2 });
-    for (let i = 0; i < 3; i++)
-      piece(
-        ctx,
-        rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-        C.cream,
-        sub(hand, 20 + i),
-        { line: 0, shadow: 0 },
-      );
+    bubble(ctx, hand, (i) => sub(hand, 20 + i), { fill: C.gold, ink: C.cream, shadow: 0.2 });
   });
 
 /** The arc a word flies from `from` to `to`, bowed up by `lift` over their midpoint. */
@@ -201,21 +195,19 @@ export const dawn = (ctx: CanvasRenderingContext2D, w: number, h: number, hand: 
   }
 
   // The tree: a trunk that climbs, then its crown opening out of it.
-  if (d.tree > 0) {
-    const [tx, ty] = TREE;
-    const trunk = clamp(d.tree / 0.6);
-    const height = 300 * ease.outCubic(trunk);
-    piece(ctx, rounded(tx, ty - height / 2, 34, height, 10), C.boardDeep, hand('trunk'), {
-      line: 3,
-      shadow: 0.4,
-    });
-    const crown = ease.outBack(clamp((d.tree - 0.4) / 0.6));
-    if (crown > 0)
-      at(ctx, { x: tx, y: ty - height, scale: crown }, () => {
-        piece(ctx, blob(0, -40, 300, 220, 9), C.leafShade, hand('crownBack'), { line: 3.5 });
-        piece(ctx, blob(-20, -60, 230, 170, 10), C.leaf, hand('crown'), { line: 3.5 });
-      });
-  }
+  if (d.tree > 0)
+    at(ctx, { x: TREE[0], y: TREE[1] }, () =>
+      tree(ctx, hand('tree'), {
+        height: 300,
+        trunk: 34,
+        lobes: 5,
+        spread: 70,
+        leaves: [C.leafShade, C.leaf],
+        bark: C.boardDeep,
+        seed: 9,
+        grow: d.tree,
+      }),
+    );
 };
 
 /** Linear blend, for a camera or a place on its way between two. */

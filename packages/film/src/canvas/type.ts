@@ -2,7 +2,7 @@
 // like cut-out letters — and every glyph boils a little so type sits in the
 // same hand-made world as the drawings.
 
-import type { Hand } from './ink.ts';
+import { type Hand, sub } from './ink.ts';
 import { probeOf, recordText, textExtent } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
 import { clamp, ease } from '../core/time.ts';
@@ -241,16 +241,7 @@ export const block = (
     const span = l.length / total;
     done += l.length;
     const p = span === 0 ? 1 : clamp((progress - start) / span);
-    if (p > 0)
-      write(
-        ctx,
-        l,
-        x,
-        y + i * lead,
-        style,
-        { boil: hand.boil, seed: hand.seed + i * 101 },
-        { ...opts, progress: p },
-      );
+    if (p > 0) write(ctx, l, x, y + i * lead, style, sub(hand, i * 101), { ...opts, progress: p });
   });
   return lines.length * lead;
 };

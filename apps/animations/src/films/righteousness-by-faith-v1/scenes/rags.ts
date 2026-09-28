@@ -1,4 +1,5 @@
-import { at, drawFigure, type Frame, type Pt, line, quad, stroke, write } from '@bible/film/canvas';
+import { drawFigure } from '../figure.ts';
+import { at, type Frame, type Pt, line, quad, stroke, write } from '@bible/film/canvas';
 import { hash2, clamp, ease, envelope, lerp, progress } from '@bible/film/core';
 import { C, cite, hand, quote, star } from '../kit.ts';
 import type { Drawing } from './index.ts';

@@ -2,12 +2,14 @@
 // a browser and its pages that answer from memory and count their calls. No
 // network, no Chromium, no credits.
 
-import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted } from 'effect';
+import { Effect, Encoding, Exit, FileSystem, Layer, Option, Path, Redacted, Schema } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
+import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import {
   type ExportInfo,
+  type VoiceTiming,
   SoundManifestJson,
   type InkMark,
   type Probed,
@@ -481,6 +483,77 @@ export const testFilm = (
   manifest: { effects: {} },
 });
 
+/**
+ * A current take of `say`: one word every half second, each 0.4 s long, so
+ * twelve words speak from 0 to 5.9 s.
+ */
+export const spokenTake = (say: string): VoiceTiming => {
+  const parsed = parse(say);
+  const words = parsed.spoken
+    .split(' ')
+    .map((text, i) => ({ text, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  return {
+    hash: hashText(takeScript(parsed)),
+    file: 'take.mp3',
+    duration: Math.max(0, ...words.map((w) => w.end)),
+    words,
+  };
+};
+
+const TWELVE = 'one two three four five six seven eight nine ten eleven twelve';
+
+/**
+ * Three recorded scenes of twelve words each (spoken 0.5–6.4 s, scene-local,
+ * 6.5 s long): `held` has no cue after 1.4 s (5 s of speech with none),
+ * `brief` none after 3.4 s (3 s), and `ambient` is laid out as `held` is, for
+ * a page that draws it moving.
+ */
+export const holdScenes: ReadonlyArray<Timed> = [
+  { id: 'held', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+  { id: 'brief', say: TWELVE, timeline: { intro: { scene: 'start', dur: 3.4 } } },
+  { id: 'ambient', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+];
+
+export const holdTimings: Timings = {
+  voice: voiceKey(testVoice),
+  scenes: Object.fromEntries(holdScenes.map((s) => [s.id, spokenTake(TWELVE)])),
+};
+
+const TWENTY = `${TWELVE} thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty`;
+
+/**
+ * One recorded scene of twenty words (spoken 0.5–10.4 s, scene-local) with
+ * no cue after 1.4 s: a 9 s candidate, for a page that draws motion no cue
+ * declares inside it.
+ */
+export const longHoldScenes: ReadonlyArray<Timed> = [
+  { id: 'long', say: TWENTY, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+];
+
+export const longHoldTimings: Timings = {
+  voice: voiceKey(testVoice),
+  scenes: { long: spokenTake(TWENTY) },
+};
+
+/**
+ * A stand-in 2D context (bun has no canvas) that the kit can draw a stroke or
+ * a cutout into, under a transform that scales by `zoom`: drawing does
+ * nothing, and the probe reads the transform and the opacity.
+ */
+export const stubContext = (zoom: number): CanvasRenderingContext2D =>
+  Schema.decodeSync(Schema.Any)({
+    globalAlpha: 1,
+    fillStyle: '#000',
+    getTransform: () => ({ a: zoom, b: 0, c: 0, d: zoom, e: 0, f: 0 }),
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    closePath: () => {},
+    fill: () => {},
+  });
+
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));
 
@@ -503,6 +576,10 @@ export const textBox = (
     readonly hand?: number;
     /** The `order` of the plate it sits on. */
     readonly on?: number;
+    /** Canvas pixels per unit of the space it was drawn in (default 1). */
+    readonly scale?: number;
+    /** The caption line. */
+    readonly caption?: true;
   } = {},
 ): TextBox => {
   const rot = Option.getOrElse(Option.fromNullishOr(options.rot), () => 0);
@@ -538,6 +615,11 @@ export const textBox = (
       onNone: () => ({}),
       onSome: (on) => ({ on }),
     }),
+    scale: Option.getOrElse(Option.fromNullishOr(options.scale), () => 1),
+    ...Option.match(Option.fromNullishOr(options.caption), {
+      onNone: () => ({}),
+      onSome: (caption) => ({ caption }),
+    }),
   };
 };
 
@@ -554,6 +636,10 @@ export const inkMark = (
     readonly order?: number;
     /** The seeds of the hands whose text this stroke marks on purpose. */
     readonly marks?: ReadonlyArray<number>;
+    /** Canvas pixels per unit of the space it was drawn in (default 1). */
+    readonly scale?: number;
+    /** The caption line's plate. */
+    readonly caption?: true;
   } = {},
 ): InkMark => {
   const xs = points.map((c) => c[0]);
@@ -569,6 +655,11 @@ export const inkMark = (
     h: Math.max(...ys) - Math.min(...ys),
     alpha: Option.getOrElse(Option.fromNullishOr(options.alpha), () => 1),
     order: Option.getOrElse(Option.fromNullishOr(options.order), () => 0),
+    scale: Option.getOrElse(Option.fromNullishOr(options.scale), () => 1),
+    ...Option.match(Option.fromNullishOr(options.caption), {
+      onNone: () => ({}),
+      onSome: (caption) => ({ caption }),
+    }),
   };
   return Option.match(Option.fromNullishOr(options.marks), {
     onNone: () => mark,

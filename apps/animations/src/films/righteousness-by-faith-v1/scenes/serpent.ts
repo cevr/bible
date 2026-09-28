@@ -1,4 +1,5 @@
-import { at, type Look, write } from '@bible/film/canvas';
+import { type Look } from '../figure.ts';
+import { at, write } from '@bible/film/canvas';
 import { clamp, ease, envelope, keys, progress } from '@bible/film/core';
 import { C, cite, hand, quote } from '../kit.ts';
 import type { Drawing } from './index.ts';

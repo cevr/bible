@@ -17,7 +17,15 @@ import {
 import { clamp, lerp } from '@bible/film/core';
 import { C, F, christ, glow, person, piece, between } from '../kit.ts';
 import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
-import { QUESTION, WIDE, landingCourt, questionStyle } from '../court.ts';
+import {
+  ADVOCATE_POSE,
+  FIGURE_LANDED,
+  GAVEL_DOWN,
+  GAVEL_REST,
+  WIDE,
+  landingCourt,
+  question,
+} from '../court.ts';
 
 /** Where the camera ends: the title's city, near enough to see the two of them. */
 const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
@@ -72,18 +80,25 @@ export const thesis = drawing({
           lift: 1.4,
           draw: () => {
             cityFront(ctx, (k) => f.hand(k));
-            // Sitting: the garment's hem on the roof line, legs over the edge.
-            at(ctx, { x: ROOF.x + 34, y: ROOF.top + 12, scale: 0.68 }, () =>
+            // Sitting on the roof's edge, their legs over it.
+            at(ctx, { x: ROOF.x + 34, y: ROOF.top, scale: 0.68 }, () =>
               christ(
                 ctx,
-                { tilt: lerp(-0.08, -0.16, turn), look: [lerp(1, -3, turn), -3], browTilt: 0.2 },
+                {
+                  sit: 1,
+                  tilt: lerp(-0.08, -0.16, turn),
+                  look: [lerp(1, -3, turn), -3],
+                  browTilt: 0.2,
+                  smile: 0.6,
+                },
                 (k) => f.hand(k),
               ),
             );
-            at(ctx, { x: ROOF.x - 44, y: ROOF.top + 11, scale: 0.62 }, () =>
+            at(ctx, { x: ROOF.x - 44, y: ROOF.top, scale: 0.62 }, () =>
               person(
                 ctx,
                 {
+                  sit: 1,
                   body: C.robe,
                   shade: C.robe,
                   garment: 'robe',
@@ -92,6 +107,7 @@ export const thesis = drawing({
                   browL: 2,
                   browR: 3,
                   browTilt: 0.3,
+                  smile: 0.8,
                 },
                 f.hand('figure'),
               ),
@@ -104,23 +120,27 @@ export const thesis = drawing({
 
     // The court in its gold light, pulled back and let go.
     if (courtOut < 1) {
+      const lookUp = f.at('frame');
       ctx.save();
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
         cam: between(between(WIDE, TEXT, f.at('frame')), COURT_BACK, away),
-        swing: 1.45 - 1.1 * clamp(f.t / 2),
+        // The gavel lifts back from where `name` laid it down.
+        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * clamp(f.t / 2),
         stamp: 0,
         pop: 1,
         gold: 1,
         shine: 0.9,
-        figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1 },
-        advocate: {
-          tilt: -0.06,
-          look: [3, 1],
-          browTilt: 0.15,
-          handL: [-86, -104],
-          handR: [30, -58],
+        // From where `name` left the figure, up to the words as the court reframes.
+        figure: {
+          look: [lerp(FIGURE_LANDED.look[0], 2, lookUp), lerp(FIGURE_LANDED.look[1], -4, lookUp)],
+          browL: lerp(FIGURE_LANDED.browL, 3, lookUp),
+          browR: lerp(FIGURE_LANDED.browR, 4, lookUp),
+          browTilt: 0.35 * lookUp,
+          tilt: lerp(FIGURE_LANDED.tilt, -0.1, lookUp),
+          smile: FIGURE_LANDED.smile,
         },
+        advocate: { ...ADVOCATE_POSE, tilt: -0.06, look: [3, 1], smile: 0.6 },
       });
       ctx.restore();
     }
@@ -129,7 +149,7 @@ export const thesis = drawing({
     const out = f.at('textOut');
     if (out < 1) {
       const alpha = f.at('question') * (1 - out);
-      write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), { alpha, boil: 0.4 });
+      question(ctx, f.hand('question'), { alpha });
       const answer = f.at('answer');
       if (answer > 0) {
         ctx.save();

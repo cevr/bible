@@ -15,8 +15,8 @@ bun run mix <film> [--stems]                   # remix full.wav in-process (no A
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
-bun run check <film> --static --allow-stale    # the no-browser leg
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
+bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
@@ -138,7 +138,7 @@ src/films/<film>/
   voice.ts         who reads it: one voice, or a cast in conversation (changing it re-records everything)
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
-  kit.ts           the film's recurring props and type treatments
+  kit.ts           the film's recurring props, its people and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
@@ -155,7 +155,13 @@ stretches that scene past its words; no `lead` after it): a long entrance stretc
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
 one never re-records. `f.spoken(from, to)` is 0→1 in step with the words
-between two marks — quotes reveal as they are read.
+between two marks — quotes reveal as they are read. The picture keeps pace
+with the voice too: `check` warns `StaticHold` where a drawn scene speaks for
+more than 4 s with no cue running and nothing moving, probed a boil tick
+apart (captions and boil aside, at any zoom; a storyboard card is exempt). A
+flourish no cue declares does not hide the still stretch after it. Pin a
+motion to a mark in that stretch, or cut it. A colour change, or drawing the
+probe cannot see, reads as still: look before pinning.
 
 **A cast reads a film as a conversation.** `voice.ts` exports either one
 reader (`{ voiceId, model, settings }`, recorded through text-to-speech) or a
@@ -244,10 +250,9 @@ points:
 |                      | `random.ts`     | seeded hash and noise                                                                                                                                                                                                                                                                                    |
 |                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                                                                                                                                                                                            |
 | `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, keys, stagger, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor and its finish (`FilmSpec.finish`: vignette, grain), captions (`CaptionStyle`: font, colours, plate); `createFilm` refuses a finish or plate value the canvas cannot draw |
-|                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse) and the variable-width brush `stroke`                                                                                                                                                                                                                 |
+|                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse), the variable-width brush `stroke`, and `sub(hand, k)`: a sub-hand on its own seed, so each piece of a drawing boils on its own                                                                                                                       |
 |                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow; an opaque face under flat state takes its pastel pre-blended per colour, `preblends`, unless the transform magnifies it, `magnifies`), `at` placement, `raised` (longer shadows for a nearer layer)                                                             |
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                                                                                                                                                                                 |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                                                                                                                                                                                                      |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                                                                                                                                                                                  |
 |                      | `paper.ts`      | the sheet under everything, the grain over everything (`Grain`: pre-drawn sheets copied at the boil tick's shift), the vignette drawn once (`makeVignette`, multiplied in by `shadeBy`), `offscreen` canvases                                                                                            |
 |                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                                                                                                                                                                                        |
