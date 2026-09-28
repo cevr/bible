@@ -10,6 +10,7 @@ import { script } from '../script.ts';
 import { accuser } from './accuser.ts';
 import { centurion } from './centurion.ts';
 import { cold } from './cold.ts';
+import { daily } from './daily.ts';
 import { declared } from './declared.ts';
 import { end } from './end.ts';
 import { exchange } from './exchange.ts';
@@ -32,6 +33,7 @@ const drawings = new Map<string, Drawing>(
     accuser,
     centurion,
     cold,
+    daily,
     declared,
     end,
     exchange,

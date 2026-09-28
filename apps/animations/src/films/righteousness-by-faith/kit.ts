@@ -842,3 +842,46 @@ export const icons = (
   );
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
+
+/** The open hand's four fingers: each one's x across the palm and its seed. */
+const FINGERS = [
+  [-105, 1],
+  [-37, 2],
+  [33, 3],
+  [100, 4],
+] as const;
+const WRIST = rounded(20, 190, 170, 260, 50);
+const FINGER = rounded(0, 0, 58, 120, 28);
+const PALM = rounded(0, 20, 310, 170, 80);
+const THUMB = rounded(0, 0, 56, 130, 28);
+const CREASE = spline([
+  [-90, 50],
+  [0, 30],
+  [90, 55],
+]);
+
+/**
+ * The open hand, palm up, the palm's centre near (0, 0), about 390 units
+ * wide: faith, the hand that takes (`look` draws its own, `daily` lays the
+ * icons in this one). `open` 1 holds the fingers straight; toward 0 they curl
+ * down toward the palm, as a hand closes.
+ */
+export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {
+  piece(ctx, WRIST, C.figure, hand('wrist'), { line: 4 });
+  const curl = lerp(0.45, 1, clamp(open));
+  for (const [x, k] of FINGERS) {
+    ctx.save();
+    ctx.translate(x, lerp(-10, -80, curl));
+    ctx.rotate(x * 0.0012);
+    ctx.scale(1, curl);
+    piece(ctx, FINGER, C.figure, sub(hand('finger'), k), { line: 4 });
+    ctx.restore();
+  }
+  piece(ctx, PALM, C.figure, hand('palm'), { line: 4 });
+  ctx.save();
+  ctx.translate(-165, 10);
+  ctx.rotate(-0.9);
+  piece(ctx, THUMB, C.figure, hand('thumb'), { line: 4 });
+  ctx.restore();
+  stroke(ctx, CREASE, { color: C.figureShade, width: 4, jitter: 0.4 }, hand('crease'));
+};

@@ -13,7 +13,18 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, hash2, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, rounded, sky, type Hands } from './kit.ts';
+import {
+  C,
+  type Person,
+  blob,
+  contact,
+  glow,
+  person,
+  piece,
+  rounded,
+  sky,
+  type Hands,
+} from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
 export const leafShape = (s: number, seed: number): Pt[] =>
@@ -125,12 +136,18 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
   });
 };
 
+/** The resting figure's default: plain grey paper. */
+const PAPER: Person = {};
+/** The heart's place on the chest, in the person's units. */
+const CHEST: Pt = [0, -80];
+
 /**
  * The Sabbath rest (Heb 4:10), full frame: a cardboard field at golden hour,
  * tools set down, the figure leaning against a tree with its face to the low
  * sun. `settle` 0..1 eases the push-in back to rest; `rest` 0..1 settles the
- * figure and swells the sun. Drawn in `within` until the script moved the
- * Sabbath to `daily`, which reuses it once drawn.
+ * figure and swells the sun. `dress` is what the figure wears (grey paper
+ * unless given) and `lit` 0..1 glows the heart in their chest: `daily`'s
+ * Sabbath, the robed figure from `robe` at rest.
  */
 export const restingField = (
   ctx: CanvasRenderingContext2D,
@@ -139,6 +156,8 @@ export const restingField = (
   hand: Hands,
   settle: number,
   rest: number,
+  dress: Person = PAPER,
+  lit = 0,
 ) => {
   sky(ctx, w, h, [
     [0, C.peachTop],
@@ -174,7 +193,7 @@ export const restingField = (
       );
       contact(ctx, 700, 938, 220);
       // Leaning back against the trunk, face to the low sun.
-      at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () =>
+      at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () => {
         person(
           ctx,
           {
@@ -184,10 +203,12 @@ export const restingField = (
             browL: lerp(0, 1, rest),
             browR: lerp(0, 1, rest),
             browTilt: 0,
+            ...dress,
           },
           hand('rester'),
-        ),
-      );
+        );
+        if (lit > 0) glow(ctx, CHEST[0], CHEST[1], 90, C.glow, lit);
+      });
     });
   });
 };
