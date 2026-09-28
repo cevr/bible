@@ -24,6 +24,7 @@ import {
   type Pt,
   at,
   camera,
+  driftHeld,
   drawing,
   ellipseShape,
   rectShape,
@@ -182,76 +183,83 @@ const hill = (f: ExchangeFrame) => {
     [0.55, mix(C.peachTop, C.sunsetTop, 0.6 * sun)],
     [1, C.peachLow],
   ]);
-  camera(ctx, cam, w, h, () => {
-    const [sx, sy] = f.knob('sun');
-    const sunY = sy + SUN_FALL * sun;
-    glow(ctx, sx, sunY + 200, 520, C.glow, 0.6);
-    glow(ctx, sx, sunY, 200, C.glow, 0.8 - 0.3 * sun);
-    // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
-    piece(ctx, ellipseShape(sx, sunY, 62, 62), mix(C.gold, C.sunsetTop, sun), hand('sun'), {
-      role: 'scenery',
-      line: 0,
-      shadow: 0,
-    });
-    piece(ctx, HILL, C.board, hand('hill'), { role: 'scenery', line: 4, torn: 2 });
-    piece(ctx, GROUND, C.boardShade, hand('ground'), {
-      role: 'scenery',
-      line: 0,
-      torn: 4,
-    });
+  camera(
+    ctx,
+    cam,
+    w,
+    h,
+    () => {
+      const [sx, sy] = f.knob('sun');
+      const sunY = sy + SUN_FALL * sun;
+      glow(ctx, sx, sunY + 200, 520, C.glow, 0.6);
+      glow(ctx, sx, sunY, 200, C.glow, 0.8 - 0.3 * sun);
+      // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
+      piece(ctx, ellipseShape(sx, sunY, 62, 62), mix(C.gold, C.sunsetTop, sun), hand('sun'), {
+        role: 'scenery',
+        line: 0,
+        shadow: 0,
+      });
+      piece(ctx, HILL, C.board, hand('hill'), { role: 'scenery', line: 4, torn: 2 });
+      piece(ctx, GROUND, C.boardShade, hand('ground'), {
+        role: 'scenery',
+        line: 0,
+        torn: 4,
+      });
 
-    // The figure: turned toward the hill, puzzled on "fair", then watching him go.
-    const turn = f.at('turn') * (1 - walkIn);
-    const puzzle = f.at('puzzle') * (1 - f.at('close'));
-    const after = clamp(walkUp * 2);
-    at(ctx, { x: fx, y: fy, scale: SCALE }, () =>
-      person(
-        ctx,
-        {
-          tilt: 0.06 * turn - 0.12 * puzzle + 0.1 * walkIn * (1 - after) - 0.14 * after,
-          look: [lerp(3 * Math.max(turn, walkIn), 3, after), lerp(-2 * puzzle - turn, -4, after)],
-          browTilt: 0.35 * puzzle + 0.3 * after,
-          browL: 3 * puzzle,
-          mouth: puzzle * 0.6,
-          stains: lift < 0.05 ? FIGURE_STAINS : [],
-        },
-        hand('figure'),
-      ),
-    );
-
-    // Jesus, facing the figure, the cloth on his shoulders once it lands.
-    at(ctx, { x: cx, y: cy - walking, scale: cs }, () =>
-      christ(
-        ctx,
-        {
-          tilt: 0.08 * walkUp,
-          nod: 4 * walkUp,
-          look: [lerp(-3, 2, walkUp), lerp(0, -1, walkUp)],
-          browTilt: 0.3,
-        },
-        hand,
-      ),
-    );
-
-    // The scarlet cloth: lifted off the figure, onto his shoulders.
-    if (lift > 0) {
-      const from: Pt = [fx + 10, fy - 76 * SCALE];
-      const p: Pt = [
-        lerp(from[0], shoulders[0], lift),
-        lerp(from[1], shoulders[1], lift) - 120 * Math.sin(Math.PI * lift),
-      ];
-      const s = lerp(SCALE, cs, lift);
-      at(ctx, { x: p[0], y: p[1], scale: s, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
-        piece(
+      // The figure: turned toward the hill, puzzled on "fair", then watching him go.
+      const turn = f.at('turn') * (1 - walkIn);
+      const puzzle = f.at('puzzle') * (1 - f.at('close'));
+      const after = clamp(walkUp * 2);
+      at(ctx, { x: fx, y: fy, scale: SCALE }, () =>
+        person(
           ctx,
-          blob(0, 0, lerp(70, 120, lift), lerp(70, 34, lift), 31),
-          C.scarlet,
-          hand('cloth'),
-          { role: 'figure', line: 2.5, torn: 2.5 },
+          {
+            tilt: 0.06 * turn - 0.12 * puzzle + 0.1 * walkIn * (1 - after) - 0.14 * after,
+            look: [lerp(3 * Math.max(turn, walkIn), 3, after), lerp(-2 * puzzle - turn, -4, after)],
+            browTilt: 0.35 * puzzle + 0.3 * after,
+            browL: 3 * puzzle,
+            mouth: puzzle * 0.6,
+            stains: lift < 0.05 ? FIGURE_STAINS : [],
+          },
+          hand('figure'),
         ),
       );
-    }
-  });
+
+      // Jesus, facing the figure, the cloth on his shoulders once it lands.
+      at(ctx, { x: cx, y: cy - walking, scale: cs }, () =>
+        christ(
+          ctx,
+          {
+            tilt: 0.08 * walkUp,
+            nod: 4 * walkUp,
+            look: [lerp(-3, 2, walkUp), lerp(0, -1, walkUp)],
+            browTilt: 0.3,
+          },
+          hand,
+        ),
+      );
+
+      // The scarlet cloth: lifted off the figure, onto his shoulders.
+      if (lift > 0) {
+        const from: Pt = [fx + 10, fy - 76 * SCALE];
+        const p: Pt = [
+          lerp(from[0], shoulders[0], lift),
+          lerp(from[1], shoulders[1], lift) - 120 * Math.sin(Math.PI * lift),
+        ];
+        const s = lerp(SCALE, cs, lift);
+        at(ctx, { x: p[0], y: p[1], scale: s, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
+          piece(
+            ctx,
+            blob(0, 0, lerp(70, 120, lift), lerp(70, 34, lift), 31),
+            C.scarlet,
+            hand('cloth'),
+            { role: 'figure', line: 2.5, torn: 2.5 },
+          ),
+        );
+      }
+    },
+    driftHeld(f.at('dark')),
+  );
 };
 
 /** C: the one black moment. */
@@ -269,36 +277,45 @@ const blackMoment = (f: ExchangeFrame) => {
   ]);
   // The last of the light, low behind the hill.
   glow(ctx, TOP, 420, 520, C.sunsetTop, 0.7);
-  camera(ctx, WIDE, w, h, () => {
-    piece(ctx, HILL, C.night, hand('hillDark'), {
-      role: 'scenery',
-      line: 0,
-      torn: 2,
-      shadow: 0,
-    });
-    piece(ctx, GROUND, C.night, hand('groundDark'), {
-      role: 'scenery',
-      line: 0,
-      shadow: 0,
-    });
-    piece(ctx, UPRIGHT, C.night, hand('upright'), {
-      role: 'scenery',
-      kind: 'cut',
-      line: 0,
-      shadow: 0,
-    });
-    piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
-    ctx.save();
-    ctx.translate(TOP, NAILED);
-    ctx.scale(1.2, 1.2);
-    person(ctx, CRUCIFIED, hand('crossed'));
-    ctx.restore();
-    ctx.save();
-    ctx.translate(fx, fy);
-    ctx.scale(SCALE, SCALE);
-    person(ctx, WATCHING, hand('figureDark'));
-    ctx.restore();
-  });
+  // The cross holds still, the film's designed stillness; the hill beneath
+  // lets its drift go over the same cue, so the two never part.
+  camera(
+    ctx,
+    WIDE,
+    w,
+    h,
+    () => {
+      piece(ctx, HILL, C.night, hand('hillDark'), {
+        role: 'scenery',
+        line: 0,
+        torn: 2,
+        shadow: 0,
+      });
+      piece(ctx, GROUND, C.night, hand('groundDark'), {
+        role: 'scenery',
+        line: 0,
+        shadow: 0,
+      });
+      piece(ctx, UPRIGHT, C.night, hand('upright'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 0,
+        shadow: 0,
+      });
+      piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
+      ctx.save();
+      ctx.translate(TOP, NAILED);
+      ctx.scale(1.2, 1.2);
+      person(ctx, CRUCIFIED, hand('crossed'));
+      ctx.restore();
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.scale(SCALE, SCALE);
+      person(ctx, WATCHING, hand('figureDark'));
+      ctx.restore();
+    },
+    0,
+  );
   ctx.restore();
 };
 
@@ -394,29 +411,36 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
   ctx.globalAlpha *= dawn;
   dawnSky(ctx, w, h, ascend);
   const HEAVEN = knobCamera(f.knob('heaven'), f.knob('heavenZoom'));
-  camera(ctx, shotPath(WIDE, [[ascend, HEAVEN]]), w, h, () => {
-    tomb(ctx, hand);
-    const arrived = ascend >= 1;
-    at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
-      sanctuary(ctx, hand, 0, 0, () => {
-        if (arrived) priestAt(ctx, hand, HOLY_PLACE, 0.35 * f.at('minister'), f.at('robed'));
-      }),
-    );
-    // Rising with the camera from the garden to the holy place.
-    if (ascend > 0 && !arrived) {
-      const [hx, hy] = inHeaven(HOLY_PLACE);
-      glow(ctx, lerp(1000, hx, ascend), lerp(930, hy, ascend) - 250, 300, C.glow, 0.8);
-      at(
-        ctx,
-        {
-          x: lerp(1000, hx, ascend),
-          y: lerp(930, hy, ascend),
-          scale: lerp(1.5, IN_SANCTUARY * SS, ascend),
-        },
-        () => christ(ctx, { look: [0, -3], browTilt: 0.2, ground: 1 - ascend }, hand),
+  camera(
+    ctx,
+    shotPath(WIDE, [[ascend, HEAVEN]]),
+    w,
+    h,
+    () => {
+      tomb(ctx, hand);
+      const arrived = ascend >= 1;
+      at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
+        sanctuary(ctx, hand, 0, 0, () => {
+          if (arrived) priestAt(ctx, hand, HOLY_PLACE, 0.35 * f.at('minister'), f.at('robed'));
+        }),
       );
-    }
-  });
+      // Rising with the camera from the garden to the holy place.
+      if (ascend > 0 && !arrived) {
+        const [hx, hy] = inHeaven(HOLY_PLACE);
+        glow(ctx, lerp(1000, hx, ascend), lerp(930, hy, ascend) - 250, 300, C.glow, 0.8);
+        at(
+          ctx,
+          {
+            x: lerp(1000, hx, ascend),
+            y: lerp(930, hy, ascend),
+            scale: lerp(1.5, IN_SANCTUARY * SS, ascend),
+          },
+          () => christ(ctx, { look: [0, -3], browTilt: 0.2, ground: 1 - ascend }, hand),
+        );
+      }
+    },
+    driftHeld(1 - ascend),
+  );
   ctx.restore();
 };
 

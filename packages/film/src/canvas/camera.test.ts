@@ -8,10 +8,13 @@ import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
 import {
   type Camera,
+  DRIFT,
+  type Drift,
   PLANE_LIFT_MAX,
   PLANE_LIFT_MIN,
   type Plane,
   camera,
+  driftHeld,
   hearingCameras,
   insideCamera,
   knobCamera,
@@ -355,6 +358,90 @@ describe('multiplane', () => {
   });
 });
 
+// Always breathing (DIRECTION, pillar 3): the outermost camera of a scene
+// drifts over it, pure in the scene's time: from the shot as framed at its
+// start, pushed in and slid at its middle, back to the shot as framed at its
+// end, so every cut and callback lands where it was drawn.
+describe('drift', () => {
+  /** The transform inside `camera(cam)` drawn `through` a scene (0..1), with `drift` when named. */
+  const inside = (through: number, cam: Camera, drift?: Drift | 0) => {
+    const r = recorder();
+    let m: Affine = IDENTITY;
+    hearingCameras(r.ctx, undefined, through, () =>
+      camera(
+        r.ctx,
+        cam,
+        1920,
+        1080,
+        () => {
+          m = r.now();
+        },
+        drift,
+      ),
+    );
+    return m;
+  };
+  const CAM = { x: 1000, y: 500 };
+
+  test('starts and ends on the shot as framed', () => {
+    const plain = inside(0, CAM, 0);
+    for (const [i, v] of inside(0, CAM).entries()) expect(v).toBeCloseTo(plain[i] ?? 0);
+    for (const [i, v] of inside(1, CAM).entries()) expect(v).toBeCloseTo(plain[i] ?? 0);
+  });
+
+  test('at the middle of its scene it has pushed in and slid', () => {
+    const m = inside(0.5, CAM);
+    expect(m[0]).toBeCloseTo(1 + DRIFT.zoom);
+    // The frame's centre now looks at a point slid right by DRIFT.x frame px.
+    const [x, y] = applyAffine(m, [CAM.x + DRIFT.x / (1 + DRIFT.zoom), CAM.y]);
+    expect(x).toBeCloseTo(960);
+    expect(y).toBeCloseTo(540);
+  });
+
+  test('is pure in the scene time: the same moment frames the same', () => {
+    expect(inside(0.3, CAM)).toEqual(inside(0.3, CAM));
+  });
+
+  test('drift: 0 holds the shot as framed, the stillness a scene designs', () => {
+    const m = inside(0.5, CAM, 0);
+    expect(m[0]).toBeCloseTo(1);
+    expect(applyAffine(m, [CAM.x, CAM.y])).toEqual([960, 540]);
+  });
+
+  test('a camera inside another drifts no further', () => {
+    const r = recorder();
+    const seen: Affine[] = [];
+    hearingCameras(r.ctx, undefined, 0.5, () =>
+      camera(r.ctx, CAM, 1920, 1080, () => {
+        seen.push(r.now());
+        camera(r.ctx, { x: 960, y: 540 }, 1920, 1080, () => seen.push(r.now()));
+      }),
+    );
+    for (const [i, v] of (seen[1] ?? IDENTITY).entries()) expect(v).toBeCloseTo(seen[0]?.[i] ?? 0);
+  });
+
+  test('a multiplane shot drifts one camera, so its planes part as it moves', () => {
+    const r = recorder();
+    const zooms = new Map<string, number>();
+    const at = (name: string, z: number): Plane => ({
+      z,
+      draw: () => zooms.set(name, r.now()[0]),
+    });
+    hearingCameras(r.ctx, undefined, 0.5, () =>
+      withDom(() => multiplane(r.ctx, CAM, 1920, 1080, [at('far', 3), at('focal', 1)])),
+    );
+    expect(zooms.get('focal')).toBeCloseTo(1 + DRIFT.zoom);
+    expect(zooms.get('far')).toBeCloseTo((1 + DRIFT.zoom) ** (1 / 3));
+  });
+
+  test('a drift let go holds still: driftHeld(1) is none, driftHeld(0) the whole breath', () => {
+    expect(driftHeld(0)).toEqual(DRIFT);
+    expect(driftHeld(1)).toBe(0);
+    const half = driftHeld(0.5);
+    expect(half === 0 ? 0 : half.zoom).toBeCloseTo(DRIFT.zoom / 2);
+  });
+});
+
 // The lab places a knob read before a camera where the camera draws it: a
 // frame hearing its cameras is told the transform inside each outermost one.
 describe('the cameras a frame applies', () => {
@@ -367,6 +454,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       (m) => heard.push(inside(m)),
+      0,
       () =>
         camera(r.ctx, { x: 1000, y: 500, zoom: 2 }, 1920, 1080, () =>
           camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined),
@@ -389,6 +477,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       (m) => heard.push(inside(m)),
+      0,
       () => shoot(r, { x: 1000, y: 500, zoom: 2 }, { far: 3, focal: 1, near: 0.5 }, [0, 0]),
     );
     expect(heard).toHaveLength(1);
@@ -402,6 +491,7 @@ describe('the cameras a frame applies', () => {
     hearingCameras(
       r.ctx,
       () => heard.push(1),
+      0,
       () => undefined,
     );
     camera(r.ctx, { x: 0, y: 0 }, 1920, 1080, () => undefined);

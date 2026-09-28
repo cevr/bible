@@ -248,6 +248,11 @@ export interface KnobRead {
    * `framed · value`. None when no camera followed, or read inside one.
    */
   readonly framed?: Affine;
+  /**
+   * Beside `framed`, the same camera as authored, before its drift: where a
+   * knob camera keeps its target centred while the shot breathes around it.
+   */
+  readonly aimed?: Affine;
 }
 
 /** Where a frame records the knobs it read, for the lab (`RenderOptions.knobs`). */
@@ -467,10 +472,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     const words = localWords.get(p) ?? [];
     // The reads made outside every camera and not yet framed by one: the next camera frames them.
     const unframed: number[] = [];
-    const frameReads = (list: KnobRead[], inside: DOMMatrix) => {
+    const frameReads = (list: KnobRead[], inside: DOMMatrix, aimed: DOMMatrix) => {
       for (const i of unframed) {
         const read = list[i];
-        if (read !== undefined) list[i] = { ...read, framed: affineOf(inside) };
+        if (read !== undefined)
+          list[i] = { ...read, framed: affineOf(inside), aimed: affineOf(aimed) };
       }
       unframed.length = 0;
     };
@@ -527,8 +533,10 @@ export const createFilm = (spec: FilmSpec): Film => {
     };
     ctx.save();
     const heard =
-      reads?.direct === true ? (inside: DOMMatrix) => frameReads(reads.list, inside) : undefined;
-    hearingCameras(ctx, heard, () => p.spec.draw(frame));
+      reads?.direct === true
+        ? (inside: DOMMatrix, aimed: DOMMatrix) => frameReads(reads.list, inside, aimed)
+        : undefined;
+    hearingCameras(ctx, heard, p.dur > 0 ? t / p.dur : 0, () => p.spec.draw(frame));
     ctx.restore();
   };
 

@@ -134,6 +134,8 @@ export const thesis = drawing({
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
         cam: shotPath(WIDE, [[away, knobCamera(f.knob('courtBack'), f.knob('courtBackZoom'))]]),
+        // The landing's last line: the one place besides the cross the camera sits still.
+        drift: 0,
         swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * f.at('gavel'),
         stamp: 0,
         pop: 1,

@@ -32,6 +32,21 @@ describe('handleOf', () => {
     expect(at).toMatchObject({ _tag: 'Handle', at: [120, 280] });
   });
 
+  test('a camera that drifts keeps the framing as authored beside where it draws', () => {
+    const drifted: Affine = [2.1, 0, 0, 2.1, 320 - 840 + 12, 180 - 420];
+    const at = handleOf(
+      [read({ value: [400, 200], framed: drifted, aimed: pushed })],
+      'one',
+      'spot',
+    );
+    expect(at).toMatchObject({ _tag: 'Handle', at: [332, 180], aimedAt: [320, 180] });
+  });
+
+  test('with no drift the framing as authored is where it draws', () => {
+    const at = handleOf([read({ value: [300, 250], framed: pushed })], 'one', 'spot');
+    expect(at).toMatchObject({ aimedAt: [120, 280] });
+  });
+
   test('numbers only, with the reason, where the frame cannot place it', () => {
     expect(handleOf([], 'one', 'spot')).toEqual({
       _tag: 'NoHandle',
@@ -60,10 +75,11 @@ describe('handleOf', () => {
 
 describe('knobMode', () => {
   const knobs = { face: [400, 200] as const, faceZoom: 2, pole: [300, 250] as const };
-  const handle = (at: readonly [number, number]) => ({
+  const handle = (at: readonly [number, number], aimedAt = at) => ({
     _tag: 'Handle' as const,
     value: [400, 200] as const,
     at,
+    aimedAt,
     m: pushed,
     inv: pushed,
   });
@@ -73,6 +89,9 @@ describe('knobMode', () => {
   test('a target off centre, or any other point, follows the pointer', () => {
     expect(knobMode(knobs, 'face', handle([300, 180]), [640, 360])).toBe('point');
     expect(knobMode(knobs, 'pole', handle([320, 180]), [640, 360])).toBe('point');
+  });
+  test('a target off centre only by the drift is still the one the camera sits on', () => {
+    expect(knobMode(knobs, 'face', handle([332, 180], [320, 180]), [640, 360])).toBe('picture');
   });
 });
 

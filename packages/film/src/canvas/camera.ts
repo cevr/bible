@@ -17,29 +17,87 @@ export interface Camera {
  * cameras deep it draws now. Only a frame recording its knob reads listens;
  * the pixels are the same either way.
  */
-const listeners = new WeakMap<CanvasRenderingContext2D, (inside: DOMMatrix) => void>();
+const listeners = new WeakMap<
+  CanvasRenderingContext2D,
+  (inside: DOMMatrix, aimed: DOMMatrix) => void
+>();
 const depths = new WeakMap<CanvasRenderingContext2D, number>();
+/** How far through its scene the draw on a context is, 0..1, while a scene draws. */
+const throughs = new WeakMap<CanvasRenderingContext2D, number>();
 
 /**
- * Draw `draw` in no camera yet, telling `heard` (when given) the transform
- * inside each outermost camera it applies (a multiplane shot's focal plane,
- * once), as `getTransform` gives it. Each scene's draw goes through here, and
- * each starts afresh: a draw that threw leaves nothing for the next.
+ * Draw `draw` in no camera yet, `through` (0..1) its scene, telling `heard`
+ * (when given) the transform inside each outermost camera it applies (a
+ * multiplane shot's focal plane, once), as `getTransform` gives it. Each
+ * scene's draw goes through here, and each starts afresh: a draw that threw
+ * leaves nothing for the next. How far through the scene it is sets the
+ * scene's drift (`Drift`).
  */
 export const hearingCameras = (
   ctx: CanvasRenderingContext2D,
-  heard: ((inside: DOMMatrix) => void) | undefined,
+  heard: ((inside: DOMMatrix, aimed: DOMMatrix) => void) | undefined,
+  through: number,
   draw: () => void,
 ) => {
   depths.delete(ctx);
   if (heard === undefined) listeners.delete(ctx);
   else listeners.set(ctx, heard);
+  throughs.set(ctx, Math.min(1, Math.max(0, through)));
   draw();
   listeners.delete(ctx);
+  throughs.delete(ctx);
 };
 
 /** Whether `ctx` draws inside a camera now. */
 export const insideCamera = (ctx: CanvasRenderingContext2D): boolean => (depths.get(ctx) ?? 0) > 0;
+
+/**
+ * A scene's breath (DIRECTION, "Always breathing, never busy"): its outermost
+ * camera pushes in by `zoom` (a share of its zoom: 0.03 is 3 %) and slides
+ * right by `x` frame px at the middle of the scene, from the shot as framed
+ * at its start and back to it at its end (`sin(π · through)`), so a held shot
+ * is never still and every cut and callback lands where it was drawn. `0` is
+ * designed stillness: the cross, the landing's last line.
+ */
+export interface Drift {
+  readonly zoom: number;
+  readonly x: number;
+}
+
+/** Every scene's drift unless it says otherwise: 3 % in scale (CRAFT's 1–3 %) and 24 frame px. */
+export const DRIFT: Drift = { zoom: 0.03, x: 24 };
+
+/**
+ * The drift let go as `hold` goes 0..1 (a cue's `f.at`): the whole breath at
+ * 0, none at 1. A shot that comes to designed stillness blends to it, so the
+ * camera settles on the shot as framed instead of jumping there.
+ */
+export const driftHeld = (hold: number, drift: Drift = DRIFT): Drift | 0 => {
+  const k = 1 - Math.min(1, Math.max(0, hold));
+  return k <= 0 ? 0 : { zoom: drift.zoom * k, x: drift.x * k };
+};
+
+/** The camera an outermost shot looks through now: `cam` drifted by `drift`, written into `out`. */
+const drifted = (
+  ctx: CanvasRenderingContext2D,
+  out: Camera,
+  cam: Camera,
+  drift: Drift | 0,
+): Camera => {
+  out.x = cam.x;
+  out.y = cam.y;
+  out.zoom = cam.zoom ?? 1;
+  out.rot = cam.rot ?? 0;
+  const through = throughs.get(ctx);
+  if (drift === 0 || through === undefined || insideCamera(ctx)) return out;
+  const breath = Math.sin(Math.PI * through);
+  out.zoom *= 1 + drift.zoom * breath;
+  out.x += (drift.x * breath) / out.zoom;
+  return out;
+};
+
+/** The drifted camera of the shot drawing now: only the outermost shot drifts, so one at a time. */
+const breathing: Camera = { x: 0, y: 0 };
 
 /** Set `ctx` to look through `cam`, onto the transform it has now. */
 const aim = (ctx: CanvasRenderingContext2D, cam: Camera, w: number, h: number) => {
@@ -50,10 +108,24 @@ const aim = (ctx: CanvasRenderingContext2D, cam: Camera, w: number, h: number) =
   ctx.translate(-cam.x, -cam.y);
 };
 
-/** Tell the listener, if the draw is in no camera yet, what `ctx` looks through now. */
-const tell = (ctx: CanvasRenderingContext2D) => {
+/**
+ * Tell the listener, if the draw is in no camera yet, what `ctx` is about to
+ * look through: `cam`, the shot as it breathes now, and `framed`, the shot as
+ * framed before its drift (where a knob camera keeps its target centred).
+ */
+const tell = (ctx: CanvasRenderingContext2D, cam: Camera, framed: Camera, w: number, h: number) => {
   if (insideCamera(ctx)) return;
-  listeners.get(ctx)?.(ctx.getTransform());
+  const heard = listeners.get(ctx);
+  if (heard === undefined) return;
+  ctx.save();
+  aim(ctx, cam, w, h);
+  const inside = ctx.getTransform();
+  ctx.restore();
+  ctx.save();
+  aim(ctx, framed, w, h);
+  const aimed = ctx.getTransform();
+  ctx.restore();
+  heard(inside, aimed);
 };
 
 /** Draw `draw` a camera deeper (a draw that throws is reset by the next `hearingCameras`). */
@@ -64,18 +136,18 @@ const deeper = (ctx: CanvasRenderingContext2D, draw: () => void) => {
   depths.set(ctx, depth);
 };
 
-/** Draw `draw` through `cam`, telling a listener of it when `heard`. */
+/** Draw `draw` through `cam`, telling a listener of it (as framed before its drift, `framed`) when given. */
 const shoot = (
   ctx: CanvasRenderingContext2D,
   cam: Camera,
   w: number,
   h: number,
   draw: () => void,
-  heard: boolean,
+  framed: Camera | undefined,
 ) => {
+  if (framed !== undefined) tell(ctx, cam, framed, w, h);
   ctx.save();
   aim(ctx, cam, w, h);
-  if (heard) tell(ctx);
   deeper(ctx, draw);
   ctx.restore();
 };
@@ -128,13 +200,18 @@ export const shotPath = (
   return out;
 };
 
+/**
+ * Draw `draw` through `cam`. The outermost camera of a scene drifts over it
+ * (`DRIFT` unless `drift` says otherwise; `0` holds the shot as framed).
+ */
 export const camera = (
   ctx: CanvasRenderingContext2D,
   cam: Camera,
   w: number,
   h: number,
   draw: () => void,
-) => shoot(ctx, cam, w, h, draw, true);
+  drift: Drift | 0 = DRIFT,
+) => shoot(ctx, drifted(ctx, breathing, cam, drift), w, h, draw, cam);
 
 /** One plane of a multiplane shot. */
 export interface Plane {
@@ -180,6 +257,8 @@ export interface Depth {
    * `PLANE_FIBRE`; nearer planes' cutouts carry the fibre in their faces.
    */
   fibre?: number;
+  /** How the shot drifts over its scene (`Drift`): `DRIFT` by default, `0` held as framed. */
+  drift?: Drift | 0;
 }
 
 /** How much of a plane at `z` shows through the haze in front of it. */
@@ -194,21 +273,20 @@ const clearance = (z: number, thickness: number) => Math.exp(-thickness * Math.m
  */
 export const multiplane = (
   ctx: CanvasRenderingContext2D,
-  cam: Camera,
+  framed: Camera,
   w: number,
   h: number,
   planes: ReadonlyArray<Plane>,
   depth: Depth = {},
 ) => {
+  // The shot as it breathes now: its own camera, since a plane may hold a shot of its own.
+  const cam = drifted(ctx, { x: 0, y: 0 }, framed, depth.drift ?? DRIFT);
   const [rx, ry] = depth.rest ?? [w / 2, h / 2];
   const thickness = depth.thickness ?? 0;
   const zoom = cam.zoom ?? 1;
   const ordered = [...planes].sort((a, b) => b.z - a.z);
   // The shot, as a listener hears it: the focal plane's camera, once.
-  ctx.save();
-  aim(ctx, cam, w, h);
-  tell(ctx);
-  ctx.restore();
+  tell(ctx, cam, framed, w, h);
   ordered.forEach((plane, i) => {
     const z = Math.max(plane.z, 1e-3);
     const view: Camera = {
@@ -220,7 +298,7 @@ export const multiplane = (
     const soft = (depth.blur ?? 0) * Math.abs(z - 1);
     ctx.save();
     if (soft > 0.05) ctx.filter = `blur(${soft.toFixed(2)}px)`;
-    raised(ctx, plane.lift ?? planeLift(z), () => shoot(ctx, view, w, h, plane.draw, false));
+    raised(ctx, plane.lift ?? planeLift(z), () => shoot(ctx, view, w, h, plane.draw, undefined));
     ctx.restore();
     // The backdrop's paper grain, fixed to it: it slides with the backdrop's pan.
     if (i === 0) planeFibre(ctx, view, w, h, depth.fibre ?? PLANE_FIBRE);

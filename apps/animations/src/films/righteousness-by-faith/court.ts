@@ -5,6 +5,8 @@
 
 import {
   type Camera,
+  DRIFT,
+  type Drift,
   type Hand,
   type Place,
   type Pt,
@@ -208,6 +210,8 @@ export const FIGURE_LANDED = {
 
 export interface Court {
   readonly cam: Camera;
+  /** How the shot drifts over its scene: `DRIFT` unless the scene holds it (`0`). */
+  readonly drift?: Drift | 0;
   /** The gavel's angle, radians: 0.35 at rest, about 1.6 down. */
   readonly swing: number;
   /** The verdict label: 0 gone, 1 stamped; `pop` its scale. */
@@ -370,7 +374,7 @@ export const landingCourt = (
         },
       },
     ],
-    { rest: [REST.x, REST.y], haze: C.tealLow, thickness: 0.4 },
+    { rest: [REST.x, REST.y], haze: C.tealLow, thickness: 0.4, drift: s.drift ?? DRIFT },
   );
 
 /** Where the figure's heart glows through the robe at the landing, in frame units. */

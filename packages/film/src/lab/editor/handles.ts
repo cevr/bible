@@ -19,6 +19,8 @@ export interface Handle {
   readonly _tag: 'Handle';
   readonly value: Point;
   readonly at: Point;
+  /** Where it sits under the framing as authored, before the scene's drift. */
+  readonly aimedAt: Point;
   readonly m: Affine;
   readonly inv: Affine;
 }
@@ -54,7 +56,14 @@ export const handleOf = (reads: ReadonlyArray<KnobRead>, scene: string, name: st
         return none('read under more than one transform here: numbers only');
       return Option.match(invertAffine(m), {
         onNone: () => none('drawn squashed flat here: numbers only'),
-        onSome: (inv): HandleAt => ({ _tag: 'Handle', value, at: applyAffine(m, value), m, inv }),
+        onSome: (inv): HandleAt => ({
+          _tag: 'Handle',
+          value,
+          at: applyAffine(m, value),
+          aimedAt: applyAffine(first.aimed ?? m, value),
+          m,
+          inv,
+        }),
       });
     },
   });
@@ -93,9 +102,11 @@ export const knobMode = (
   handle: Handle,
   size: readonly [number, number],
 ): 'point' | 'picture' => {
+  // Centred as authored: the scene's drift carries the target a little off
+  // the centre mid-scene, but the camera still sits on it.
   const centred =
-    Math.abs(handle.at[0] - size[0] / 2) <= CENTRED_PX &&
-    Math.abs(handle.at[1] - size[1] / 2) <= CENTRED_PX;
+    Math.abs(handle.aimedAt[0] - size[0] / 2) <= CENTRED_PX &&
+    Math.abs(handle.aimedAt[1] - size[1] / 2) <= CENTRED_PX;
   if (centred && isCameraTarget(knobs, name)) return 'picture';
   return 'point';
 };

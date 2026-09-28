@@ -42,7 +42,8 @@ const rest = drawing({
 /**
  * A shot pushed in 2× on `face`: `pole` is read before the camera and drawn
  * inside it, as a film reads a camera's knobs at the top of its draw. The
- * pole lands at (120, 280) on the frame, and `face` at its centre.
+ * pole lands at (120, 280) on the frame, and `face` at its centre. Held
+ * still (`drift: 0`): the knob tests measure where the camera puts things.
  */
 const shot = drawing({
   timeline: {},
@@ -50,13 +51,20 @@ const shot = drawing({
   draw: (f) => {
     const face = f.knob('face');
     const pole = f.knob('pole');
-    camera(f.ctx, { x: face[0], y: face[1], zoom: f.knob('faceZoom') }, 640, 360, () => {
-      f.ctx.fillStyle = '#2a2520';
-      f.ctx.fillRect(pole[0] - 4, pole[1] - 40, 8, 40);
-      f.ctx.beginPath();
-      f.ctx.arc(face[0], face[1], 12, 0, Math.PI * 2);
-      f.ctx.fill();
-    });
+    camera(
+      f.ctx,
+      { x: face[0], y: face[1], zoom: f.knob('faceZoom') },
+      640,
+      360,
+      () => {
+        f.ctx.fillStyle = '#2a2520';
+        f.ctx.fillRect(pole[0] - 4, pole[1] - 40, 8, 40);
+        f.ctx.beginPath();
+        f.ctx.arc(face[0], face[1], 12, 0, Math.PI * 2);
+        f.ctx.fill();
+      },
+      0,
+    );
   },
 });
 
