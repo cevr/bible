@@ -90,6 +90,20 @@ export interface LumaArea {
 }
 
 /**
+ * A frame's luma as a page hands it back: one value per cell of `area`'s
+ * grid. An empty read (the page had no canvas to sample on) or a short one is
+ * refused, so a loop is never compared on nothing and called clean.
+ */
+export const lumaGrid = (area: LumaArea) =>
+  Schema.Array(Schema.Finite).check(
+    Schema.makeFilter(
+      (cells) =>
+        cells.length === area.cols * area.rows ||
+        `${cells.length} luma cells for a ${area.cols}×${area.rows} grid`,
+    ),
+  );
+
+/**
  * Runs in the page: frame `n` as the export handle encodes it (PNG, so
  * lossless), cropped to the area, scaled down to its grid and read back as
  * Rec. 709 luma. The player is not touched; this reads what it hands out.
@@ -127,6 +141,7 @@ const lumaInPage = ([n, area]: readonly [number, LumaArea]) =>
     )
     .then((bitmap) => {
       const ctx = new OffscreenCanvas(area.cols, area.rows).getContext('2d');
+      // No canvas to sample on: an empty read, which `lumaGrid` refuses as a failed frame.
       if (!ctx) return [];
       ctx.drawImage(bitmap, 0, 0);
       const d = ctx.getImageData(0, 0, area.cols, area.rows).data;
@@ -391,7 +406,7 @@ const openPage = (page: Page, url: string) =>
     const luma = (i: number, area: LumaArea) =>
       handle(
         () => page.evaluate(lumaInPage, [i, area] satisfies [number, LumaArea]),
-        Schema.Array(Schema.Finite),
+        lumaGrid(area),
         FRAME_TIMEOUT,
         (reason) => FrameFailed.make({ frame: i, reason }),
       );

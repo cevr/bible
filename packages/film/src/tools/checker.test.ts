@@ -8,6 +8,7 @@ import { layout } from '../core/layout.ts';
 import type { Short, Timed } from '../core/schema.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
 import { Checker } from './checker.ts';
+import type { LumaArea } from './browser.ts';
 import { PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
@@ -212,6 +213,28 @@ describe('Checker.short', () => {
       const only = yield* words.check;
       expect(words.ledger.frames).toEqual([]);
       expect(only.map((f) => f._tag)).toEqual(['ShortLength', 'ShortHook', 'ShortLoop']);
+    }),
+  );
+
+  it.live("compares the loop on the film's own frame, however tall the film is drawn", () =>
+    Effect.gen(function* () {
+      // A 4:3 film: its band on the short's page is 810 px tall, not the 608 of a 16:9 one.
+      const filmPage = { width: 1080, height: 810, fps: 30, duration: 20, frames: 600 };
+      const areas: Array<LumaArea> = [];
+      const { check } = setupShort({
+        info,
+        infoAt: (url) =>
+          Option.liftPredicate(filmPage, () => url.includes(`film=${film.paths.name}&`)),
+        luma: (_, area) => {
+          areas.push(area);
+          return 128;
+        },
+      });
+      yield* check;
+      // Every cell of the first and last frames reads the one band.
+      const band = { x: 0, y: 620, w: 1080, h: 810, cols: 64, rows: 36 };
+      expect(areas.length).toBe(2 * 64 * 36);
+      for (const area of areas) expect(area).toEqual(band);
     }),
   );
 

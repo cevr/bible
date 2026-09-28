@@ -13,8 +13,9 @@ import { Short } from '../core/schema.ts';
 import {
   type ResolvedShort,
   SHORT_LAYOUT,
-  SHORT_WIDTH,
+  bandOf,
   hookAlpha,
+  pageScale,
   resolveShort,
   shortKey,
   shortPage,
@@ -35,23 +36,6 @@ import {
   shadeBy,
 } from './paper.ts';
 import { type Probe, type ProbeSink, recordText } from './probe.ts';
-
-/** Where the film's frame sits on a short's page, in page px. */
-export interface ShortBand {
-  readonly top: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-/** Page px per 1080 × 1920 px, for a film `width` px wide. */
-const pageScale = (width: number) => width / SHORT_WIDTH;
-
-/** The film's frame at the layout's top (`SHORT_LAYOUT.band`), on a whole pixel row so the copy is exact. */
-export const bandOf = (film: Pick<Film, 'width' | 'height'>): ShortBand => ({
-  top: Math.round(SHORT_LAYOUT.band.top * pageScale(film.width)),
-  width: film.width,
-  height: film.height,
-});
 
 /** A scene of the film on the short's clock: its start moved so its own clock reads the same. */
 const retimed = (film: Film, short: ResolvedShort): ReadonlyArray<Placed<SceneSpec>> =>

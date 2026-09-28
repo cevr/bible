@@ -278,7 +278,10 @@ left for the owner since it moves burned-in pixels. `render --short --no-caption
   than 0.08 between the last frame and the first (`FramePage.luma`, which
   decodes the export handle's PNG in the page, so the player is untouched),
   or more than 0.6 s of silence from the last word's voice round to the
-  first's.
+  first's. The band is `bandOf` (`core/shorts.ts`) of the film's own page,
+  the rectangle the short's page draws the film's frame into, whatever the
+  film's aspect; a read with no value for every cell (no canvas to sample on)
+  fails as `FrameFailed` (`lumaGrid`), never compared as clean.
 - `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
 
 A short resolves on its page's frame rate (`Checker.cut`: the rate the film

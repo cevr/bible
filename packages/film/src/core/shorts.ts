@@ -124,6 +124,27 @@ export const shortPage = (width: number) => ({
   scale: SHORT_WIDTH / width,
 });
 
+/** Where the film's frame sits on a short's page, in page px. */
+export interface ShortBand {
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Page px per 1080 × 1920 px, for a film `width` px wide. */
+export const pageScale = (width: number) => width / SHORT_WIDTH;
+
+/**
+ * The film's frame at the layout's top (`SHORT_LAYOUT.band`), on a whole
+ * pixel row so the copy is exact: as tall as the film is drawn, whatever its
+ * aspect. The page draws it here and the check compares the loop on it.
+ */
+export const bandOf = (film: { readonly width: number; readonly height: number }): ShortBand => ({
+  top: Math.round(SHORT_LAYOUT.band.top * pageScale(film.width)),
+  width: film.width,
+  height: film.height,
+});
+
 /** A scene's landmark, scene-local. */
 const landmarkAt = (p: Placed, landmark: 'start' | 'speech' | 'speechEnd' | 'end'): number => {
   switch (landmark) {

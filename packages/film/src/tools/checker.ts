@@ -11,7 +11,7 @@ import type { ShortError } from '../core/errors.ts';
 import type { Probed, Short } from '../core/schema.ts';
 import {
   type ResolvedShort,
-  SHORT_LAYOUT,
+  bandOf,
   SHORT_RULES,
   SHORT_WIDTH,
   type SafeZoneName,
@@ -283,10 +283,10 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             const { pool, info, cut, phrases } = yield* onPage(film, declared, workers);
             const words = shortStaticFindings(cut, phrases);
             if (options.static) return words;
-            // The short's page is named for the short: the film's title is on the film's page.
-            const title = yield* Effect.map(
+            // The short's page is named for the short: the film's title and size are on the film's page.
+            const { title, band } = yield* Effect.map(
               browser.open(`${server.url}?film=${encodeURIComponent(name)}&export`),
-              (page) => page.title,
+              (page) => ({ title: page.title, band: bandOf(page.info) }),
             );
             const k = info.width / SHORT_WIDTH;
             const probeAt = (i: number) =>
@@ -304,16 +304,16 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             const titled = Option.flatMap(Arr.head(open), (first) =>
               titleOpen(cut.id, first, title),
             );
-            // The film's frame alone: the hook and captions are the short's, and differ by design.
-            const band: LumaArea = {
+            // The film's frame alone, where the page draws it: the hook and captions are the short's, and differ by design.
+            const frame: LumaArea = {
               x: 0,
-              y: Math.round(SHORT_LAYOUT.band.top * k),
-              w: info.width,
-              h: Math.round((info.width * 9) / 16),
+              y: band.top,
+              w: band.width,
+              h: band.height,
               ...LOOP_GRID,
             };
             const lumaAt = (i: number) =>
-              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.luma(i, band)));
+              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.luma(i, frame)));
             const [first, last] = yield* Effect.all([lumaAt(0), lumaAt(info.frames - 1)], {
               concurrency: 2,
             });

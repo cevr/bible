@@ -6,8 +6,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { type FilmSpec, createFilm } from './film.ts';
-import { SHORT_LAYOUT } from '../core/shorts.ts';
-import { bandOf, createShort, shortPages } from './short.ts';
+import { SHORT_LAYOUT, bandOf } from '../core/shorts.ts';
+import { createShort, shortPages } from './short.ts';
 
 const draw = () => {};
 const spec: FilmSpec = {

@@ -439,6 +439,8 @@ export const testExportInfo: ExportInfo = {
 
 export interface FakeRenderHost {
   readonly info?: ExportInfo;
+  /** The info the page at `url` hands out, where it is not `info` (a short's page and its film's). */
+  readonly infoAt?: (url: string) => Option.Option<ExportInfo>;
   /**
    * How page number `page` (1 for the first page opened) draws frame `i`:
    * fail to break it. Every frame first yields for a millisecond, so pages and
@@ -462,8 +464,8 @@ export interface FakeRenderHost {
   readonly drawMs?: (i: number) => number;
   /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
   readonly pixels?: (i: number) => string;
-  /** The luma every sample of frame `i` reads, as `luma` reports it (default 128). */
-  readonly luma?: (i: number) => number;
+  /** The luma every sample of frame `i`'s `area` reads, as `luma` reports it (default 128). */
+  readonly luma?: (i: number, area: LumaArea) => number;
 }
 
 /**
@@ -517,7 +519,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     }),
                   );
                 return {
-                  info,
+                  info: Option.getOrElse(
+                    Option.flatMap(Option.fromNullishOr(host.infoAt), (at) => at(url)),
+                    () => info,
+                  ),
                   title: 'Test film',
                   frame,
                   probe: (i: number) =>
@@ -580,7 +585,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                   luma: (i: number, area: LumaArea) =>
                     Effect.as(
                       frame(i),
-                      Array.from({ length: area.cols * area.rows }, () => luma(i)),
+                      Array.from({ length: area.cols * area.rows }, () => luma(i, area)),
                     ),
                 };
               }),
