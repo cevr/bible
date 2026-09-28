@@ -4,7 +4,7 @@
 
 import { Predicate, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
-import { DRIFT, type Drift, hearingCameras, insideCamera } from './camera.ts';
+import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
 import { sceneCaptions } from '../core/captions.ts';
 import {
@@ -557,10 +557,68 @@ export const createFilm = (spec: FilmSpec): Film => {
       reads?.direct === true
         ? (inside: DOMMatrix, aimed: DOMMatrix) => frameReads(reads.list, inside, aimed)
         : undefined;
-    hearingCameras(ctx, heard, { through: p.dur > 0 ? t / p.dur : 0, drift }, () =>
-      p.spec.draw(frame),
-    );
+    const shot = hearingCameras(ctx, heard, breath, () => p.spec.draw(frame));
     ctx.restore();
+    return shot;
+  };
+
+  /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
+  const breath = { through: 0, drift, outer: false, width, height };
+
+  /**
+   * Scenes whose last frame framed no shot of their own: the first guess for
+   * their next. It only saves a draw, never decides a pixel (`sheet`).
+   */
+  const unshot = new Set<string>();
+
+  /**
+   * Paper, then one scene over it, breathing once (`SceneBreath`): through its
+   * outermost shot when it frames one, around its whole draw when it frames
+   * none. Which it is shows only once it has drawn, so the frame is drawn on
+   * the scene's last answer and, where that was wrong (a scene that frames a
+   * shot in one part and none in another, or a first frame), drawn again from
+   * the paper the other way, the knobs and probe of the first draw let go.
+   * The pixels are the right draw's alone, whatever was drawn before.
+   */
+  const sheet = (
+    ctx: CanvasRenderingContext2D,
+    p: Placed<SceneSpec>,
+    T: number,
+    boil: number,
+    probe: Probe | undefined,
+    reads: Reads | undefined,
+    override: { readonly scene: string; readonly shown: Shown } | undefined,
+  ) => {
+    const { paper } = getAssets();
+    const id = p.spec.id;
+    breath.through = p.dur > 0 ? (T - p.start) / p.dur : 0;
+    const moving = p.spec.storyboard !== true && breathes(breath);
+    breath.outer = moving && unshot.has(id);
+    const sink = probe?.sink;
+    const texts = sink?.texts.length ?? 0;
+    const inks = sink?.inks.length ?? 0;
+    const faces = sink?.faces?.length ?? 0;
+    const read = reads?.list.length ?? 0;
+    ctx.drawImage(paper, 0, 0);
+    let shot = false;
+    probing(ctx, probe, () => {
+      shot = drawScene(ctx, p, T, boil, reads, override);
+    });
+    if (!moving) return;
+    // Guessed whole but it framed a shot, or guessed a shot and it framed none: draw it the other way.
+    if (shot === breath.outer) {
+      if (sink !== undefined) {
+        sink.texts.length = texts;
+        sink.inks.length = inks;
+        if (sink.faces !== undefined) sink.faces.length = faces;
+      }
+      if (reads !== undefined) reads.list.length = read;
+      breath.outer = !shot;
+      ctx.drawImage(paper, 0, 0);
+      probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, override));
+    }
+    if (shot) unshot.delete(id);
+    else unshot.add(id);
   };
 
   /** Paper plus one scene, into a layer. */
@@ -573,17 +631,15 @@ export const createFilm = (spec: FilmSpec): Film => {
     reads: Reads | undefined,
     override: { readonly scene: string; readonly shown: Shown } | undefined,
   ) => {
-    const { paper } = getAssets();
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
-    target.ctx.drawImage(paper, 0, 0);
-    probing(target.ctx, probe, () => drawScene(target.ctx, p, T, boil, reads, override));
+    sheet(target.ctx, p, T, boil, probe, reads, override);
     return target.c;
   };
 
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
-    const { paper, a, b } = getAssets();
+    const { a, b } = getAssets();
     const boil = Math.floor(T * BOIL_FPS + 1e-6);
     const cur = sceneAt(T);
     const prev = placed[cur.index - 1];
@@ -607,8 +663,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
-      ctx.drawImage(paper, 0, 0);
-      probing(ctx, probe(cur, 0, 1), () => drawScene(ctx, cur, T, boil, reads(true), override));
+      sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), override);
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.

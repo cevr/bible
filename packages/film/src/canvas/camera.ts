@@ -23,21 +23,58 @@ const listeners = new WeakMap<
 >();
 const depths = new WeakMap<CanvasRenderingContext2D, number>();
 
-/** Where a scene's frame stands in its breath: how far through the scene, and the film's drift. */
+/**
+ * Where a scene's frame stands in its breath, and who breathes it. A frame
+ * breathes once: through its outermost shot (`camera`, `multiplane`) when it
+ * frames one, or, for a scene that draws with no shot of its own, around its
+ * whole draw (`outer`), as the outermost transform.
+ */
 export interface SceneBreath {
   /** How far through its scene the frame is, 0..1. */
   readonly through: number;
   /** The film's drift (`createFilm({ drift })`): the one place a breath's size is set. */
   readonly drift: Drift | 0;
+  /** Breathe the whole draw, as a scene with no shot of its own; its shots then drift no further. */
+  readonly outer: boolean;
+  /** The frame the whole draw breathes about the centre of, in px. */
+  readonly width: number;
+  readonly height: number;
 }
 
-/** The breath of the scene drawing on a context now, while it draws. */
-const breaths = new WeakMap<CanvasRenderingContext2D, SceneBreath>();
+/** The breath of the scene drawing on a context now, and whether an outermost shot took it. */
+interface Breathing {
+  through: number;
+  drift: Drift | 0;
+  outer: boolean;
+  shot: boolean;
+}
+
+/** Each context's breathing, made once and rewritten by every scene draw on it. */
+const breaths = new WeakMap<CanvasRenderingContext2D, Breathing>();
+/** Whether a scene draws on the context now: a camera drawn outside any scene does not breathe. */
+const drawing = new WeakSet<CanvasRenderingContext2D>();
 
 /**
- * Draw `draw` in no camera yet, at `breath`, telling `heard` (when given) the
- * transform inside each outermost camera it applies (a multiplane shot's
- * focal plane, once), as `getTransform` gives it. Each scene's draw goes
+ * How far a scene has breathed `through` it (0..1) under the film's `drift`:
+ * 0 at its start and its end, 1 at its middle (`sin(π · through)`), and 0
+ * everywhere for a film with none.
+ */
+export const breathAt = (drift: Drift | 0, through: number): number =>
+  drift === 0 ? 0 : Math.sin(Math.PI * Math.min(1, Math.max(0, through)));
+
+/** A breath under this draws as none: a scene's first and last frame sit as framed. */
+const STILL_BREATH = 1e-9;
+
+/** Whether a frame at `breath` moves at all: whoever breathes it, it is drawn otherwise than as framed. */
+export const breathes = (breath: SceneBreath): boolean =>
+  breathAt(breath.drift, breath.through) > STILL_BREATH;
+
+/**
+ * Draw one scene's frame `draw` in no camera yet, at `breath`, telling `heard`
+ * (when given) the transform inside each outermost camera it applies (a
+ * multiplane shot's focal plane, once), as `getTransform` gives it. Returns
+ * whether an outermost shot applied: then that shot took the breath, and a
+ * frame drawn `outer` must be drawn again without it. Each scene's draw goes
  * through here, and each starts afresh: a draw that threw leaves nothing for
  * the next.
  */
@@ -46,14 +83,35 @@ export const hearingCameras = (
   heard: ((inside: DOMMatrix, aimed: DOMMatrix) => void) | undefined,
   breath: SceneBreath,
   draw: () => void,
-) => {
+): boolean => {
   depths.delete(ctx);
   if (heard === undefined) listeners.delete(ctx);
   else listeners.set(ctx, heard);
-  breaths.set(ctx, breath);
-  draw();
+  let now = breaths.get(ctx);
+  if (now === undefined) {
+    now = { through: 0, drift: 0, outer: false, shot: false };
+    breaths.set(ctx, now);
+  }
+  now.through = breath.through;
+  now.drift = breath.drift;
+  now.outer = breath.outer;
+  now.shot = false;
+  drawing.add(ctx);
+  const b = breathAt(breath.drift, breath.through);
+  if (breath.outer && breath.drift !== 0 && b > STILL_BREATH) {
+    // The camera a scene with no shot would breathe through, as one transform over its draw.
+    const { width: w, height: h } = breath;
+    const s = 1 + breath.drift.zoom * b;
+    ctx.save();
+    ctx.translate(w / 2 - breath.drift.x * b, h / 2);
+    ctx.scale(s, s);
+    ctx.translate(-w / 2, -h / 2);
+    draw();
+    ctx.restore();
+  } else draw();
+  drawing.delete(ctx);
   listeners.delete(ctx);
-  breaths.delete(ctx);
+  return now.shot;
 };
 
 /** Whether `ctx` draws inside a camera now. */
@@ -86,7 +144,9 @@ export const driftHeld = (hold: number): number => 1 - Math.min(1, Math.max(0, h
 
 /**
  * The camera an outermost shot looks through now: `cam` drifted by `share`
- * (0..1) of its scene's breath, written into `out`.
+ * (0..1) of its scene's breath, written into `out`. The outermost shot takes
+ * the frame's breath, held still or not; one nested in it, or one in a frame
+ * breathed whole, drifts no further.
  */
 const drifted = (
   ctx: CanvasRenderingContext2D,
@@ -99,8 +159,11 @@ const drifted = (
   out.zoom = cam.zoom ?? 1;
   out.rot = cam.rot ?? 0;
   const scene = breaths.get(ctx);
-  if (scene === undefined || scene.drift === 0 || share <= 0 || insideCamera(ctx)) return out;
-  const breath = Math.sin(Math.PI * Math.min(1, Math.max(0, scene.through)));
+  if (scene === undefined || !drawing.has(ctx) || insideCamera(ctx)) return out;
+  scene.shot = true;
+  if (scene.outer || share <= 0) return out;
+  const breath = breathAt(scene.drift, scene.through);
+  if (breath === 0 || scene.drift === 0) return out;
   out.zoom *= 1 + scene.drift.zoom * share * breath;
   out.x += (scene.drift.x * share * breath) / out.zoom;
   return out;
