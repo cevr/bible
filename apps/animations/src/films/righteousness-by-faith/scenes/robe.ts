@@ -94,7 +94,9 @@ const timeline = {
   reachOut: { mark: 'clothe', dur: 0.75 },
   loomIn: { mark: 'loom', offset: -0.33, dur: 0.67 },
   pushLoom: { mark: 'loom', offset: 0.33, dur: 1.17 },
-  weave: { mark: 'woven', offset: -0.4, dur: 2.9, ease: 'linear' },
+  // The loom weaves as soon as the push reaches it, so the robe rises from it
+  // before "So is it a cover-up?" and the cloak's hover plays on its word.
+  weave: { after: 'pushLoom', dur: 2.9, ease: 'linear' },
   robeUp: { after: 'weave', dur: 0.4 },
   settle: { after: 'robeUp', dur: 0.75, ease: 'outSoft' },
   lookDown: { after: 'settle', dur: 0.5 },
