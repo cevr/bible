@@ -3,6 +3,7 @@
 // names every way a run can fail.
 
 import { Schema } from 'effect';
+import { EncoderName } from '../core/encoder.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
@@ -215,6 +216,16 @@ export class BrowserFailed extends Schema.TaggedError<BrowserFailed>()('BrowserF
   }
 }
 
+/** The app's player server did not start (`film doctor` reports it on the encoder line alone). */
+export class PreviewServerFailed extends Schema.TaggedError<PreviewServerFailed>()(
+  'PreviewServerFailed',
+  { reason: Schema.String },
+) {
+  override get message() {
+    return `the player server did not start: ${this.reason}`;
+  }
+}
+
 /** The player page did not load, or loaded without an export handle. */
 export class PageLoadFailed extends Schema.TaggedError<PageLoadFailed>()('PageLoadFailed', {
   url: Schema.String,
@@ -408,17 +419,24 @@ export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved'
   }
 }
 
-/** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
+/**
+ * A video render that would open more encoders than its encoder allows at
+ * once (tools/render-plan.ts, `encoderLimits`): past 14 the hardware encoder
+ * hangs rather than failing; a software encoder past one a core only fights
+ * for the cores.
+ */
 export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
   workers: Schema.Int,
+  /** Each page also encodes the share copy (the hardware encoder's, made in the page). */
   share: Schema.Boolean,
   max: Schema.Int,
+  encoder: EncoderName,
 }) {
   override get message() {
     const perPage = 1 + Number(this.share);
     const copy = ' with a share copy'.repeat(Number(this.share));
     const orNoShare = ', or --no-share'.repeat(Number(this.share));
-    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
+    return `${this.workers} pages${copy} need ${this.workers * perPage} encoders at once, over the ${this.max} ${this.encoder} encoders a render may run; use --workers ${Math.floor(this.max / perPage)} or fewer${orNoShare}`;
   }
 }
 

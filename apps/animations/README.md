@@ -101,19 +101,33 @@ Render flags that would be ignored fail with `FlagsConflict` before a browser
 opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 `--scale`, `--out`, `--no-share`; `--contact` takes a range (clipped to the
 film like a video's, so no frame repeats; a range wholly outside it is
-`RangeEmpty`) but no video flag;
+`RangeEmpty`) but no video flag (`--workers` and `--encoder` included: one
+page composes the sheet);
 `--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages, default 6: the knee of `bench --workers`), `--scale 0.5`, `--no-captions`, `--tag name` (output
+(pages; the knee of `bench --workers` on each encoder: 6 on the Mac's
+hardware encoder, 8 in software, or half the cores on a software machine with
+fewer than 16), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
-(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
-Each page runs one hardware encoder, two with the share copy; past 14 at once
-the encoder hangs, so a render that would need more fails with
-`TooManyEncoders` before a page opens (at most 7 pages with the share copy,
-14 without). The count is per render: two renders at once (say two `--tag`s)
-share the hardware, so keep their pages together within the same 14 or they
-can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
+(skip the smaller copy to send, `<out>.share.mp4`), `--encoder
+hardware|software`.
+A first page chooses the H.264 encoder once and every page uses it; the
+render logs `render.encoder kind=…` and `bun run doctor` prints the same
+choice on its `encoder` line. The Mac renders on its hardware encoder only:
+if the GPU encoder fails the render stops with `EncoderMissing` rather than
+changing the film's look (`--encoder software` renders there in software on
+purpose). A Linux box (GPU launch flags are macOS-only) renders on Chromium's
+software encoder, and its share copy is made after the join by x264 from the
+master (`render.share by=x264`), which adds minutes but keeps the grain at
+half the size the in-page encoder needed (`packages/film/README.md`,
+"Encoders"). Each page runs one encoder, two on the Mac with the share copy.
+On hardware past 14 at once the encoder hangs; on software more encoders than
+cores only thrash. So a render that would need more fails with
+`TooManyEncoders` before it draws (hardware: at most 7 pages with the share
+copy, 14 without; software: one page a core). The count is per render: on the
+Mac two renders at once (say two `--tag`s) share the hardware, so keep their
+pages together within the same 14 or they can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/` on the hardware encoder)
 until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
 (so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy

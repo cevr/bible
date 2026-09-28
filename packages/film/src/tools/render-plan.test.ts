@@ -3,28 +3,31 @@ import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import {
   Cut,
-  DEFAULT_WORKERS,
+  DRAW_WORKERS,
+  HARDWARE_WORKERS,
   MAX_CHUNK_FRAMES,
+  MAX_HARDWARE_ENCODERS,
   MIN_CHUNK_FRAMES,
-  MAX_ENCODERS,
-  RenderJob,
+  SOFTWARE_WORKERS,
   contactTimes,
   cutBase,
   cutPage,
-  encoderBudget,
+  encoderLimits,
   flagConflicts,
   jobOf,
   frameSpan,
   planChunks,
   sceneSpan,
   stillName,
+  videoEncoders,
+  videoWorkers,
 } from './render-plan.ts';
 import { testExportInfo } from './testing.ts';
 
 const flags = {
   tag: 't',
   captions: true,
-  workers: 4,
+  workers: Option.none(),
   stills: Option.none(),
   contact: Option.none(),
   span: Option.none(),
@@ -33,6 +36,7 @@ const flags = {
   scale: Option.none(),
   out: Option.none(),
   share: Option.none(),
+  encoder: Option.none(),
   short: Option.none(),
 } as const;
 
@@ -203,37 +207,90 @@ describe('ranges', () => {
   });
 });
 
-describe('encoderBudget', () => {
-  const video = (workers: number, share: boolean) =>
-    RenderJob.Video({
-      tag: 't',
-      captions: true,
-      workers,
-      from: Option.none(),
-      to: Option.none(),
-      scale: 1,
-      out: Option.none(),
-      share,
-      cut: Cut.Whole(),
-    });
-  const tag = (job: RenderJob) =>
-    Result.match(encoderBudget(job), { onSuccess: String, onFailure: (e) => e._tag });
+describe('encoder budget', () => {
+  const hardware = { _tag: 'Hardware' } as const;
+  const software = { _tag: 'Software' } as const;
+  const tag = (r: ReturnType<typeof videoEncoders>) =>
+    Result.match(r, { onSuccess: String, onFailure: (e) => e._tag });
 
-  test('two encoders a page with a share copy; past MAX_ENCODERS fails', () => {
-    expect(MAX_ENCODERS).toBe(14);
-    expect(tag(video(7, true))).toBe('14');
-    expect(tag(video(8, true))).toBe('TooManyEncoders');
-    expect(tag(video(14, false))).toBe('14');
-    expect(tag(video(15, false))).toBe('TooManyEncoders');
+  test('the hardware encoder (the Mac): two a page with a share copy; past 14 fails, whatever the cores', () => {
+    expect(MAX_HARDWARE_ENCODERS).toBe(14);
+    expect(HARDWARE_WORKERS).toBe(6);
+    expect(encoderLimits(hardware, 10)).toEqual({ max: 14, workers: 6 });
+    expect(encoderLimits(hardware, 64)).toEqual({ max: 14, workers: 6 });
+    expect(tag(videoEncoders(7, true, hardware, 64))).toBe('14');
+    expect(tag(videoEncoders(8, true, hardware, 64))).toBe('TooManyEncoders');
+    expect(tag(videoEncoders(14, false, hardware, 64))).toBe('14');
+    expect(tag(videoEncoders(15, false, hardware, 64))).toBe('TooManyEncoders');
     // The default render, with its share copy, fits.
-    expect(tag(video(DEFAULT_WORKERS, true))).toBe(String(DEFAULT_WORKERS * 2));
+    expect(tag(videoEncoders(HARDWARE_WORKERS, true, hardware, 10))).toBe('12');
   });
 
-  test('stills encode no video', () => {
-    expect(
-      tag(
-        RenderJob.Stills({ tag: 't', captions: true, workers: 32, times: [1], cut: Cut.Whole() }),
-      ),
-    ).toBe('0');
+  test('a software encoder is bounded by the cores, one encoder a page: its share is made after the join', () => {
+    expect(encoderLimits(software, 16).max).toBe(16);
+    expect(tag(videoEncoders(16, true, software, 16))).toBe('16');
+    expect(tag(videoEncoders(17, true, software, 16))).toBe('TooManyEncoders');
+    expect(tag(videoEncoders(16, false, software, 16))).toBe('16');
+    expect(tag(videoEncoders(5, true, software, 4))).toBe('TooManyEncoders');
+  });
+
+  test('the software default is the measured knee, and fits a smaller machine', () => {
+    expect(encoderLimits(software, 16).workers).toBe(SOFTWARE_WORKERS);
+    expect(tag(videoEncoders(SOFTWARE_WORKERS, true, software, 16))).toBe(String(SOFTWARE_WORKERS));
+    expect(encoderLimits(software, 4).workers).toBe(2);
+    expect(encoderLimits(software, 1).workers).toBe(1);
+  });
+
+  test('TooManyEncoders names the encoder, and counts a share copy only where the page makes it', () => {
+    const over = (r: ReturnType<typeof videoEncoders>) =>
+      Result.match(r, { onSuccess: () => '', onFailure: (e) => e.message });
+    expect(over(videoEncoders(8, true, hardware, 64))).toBe(
+      '8 pages with a share copy need 16 encoders at once, over the 14 hardware encoders a render may run; use --workers 7 or fewer, or --no-share',
+    );
+    expect(over(videoEncoders(17, true, software, 16))).toBe(
+      '17 pages need 17 encoders at once, over the 16 software encoders a render may run; use --workers 16 or fewer',
+    );
+  });
+
+  test('--workers wins over the encoder default; none takes it', () => {
+    expect(videoWorkers(Option.some(3), software, 16)).toBe(3);
+    expect(videoWorkers(Option.none(), software, 16)).toBe(SOFTWARE_WORKERS);
+    expect(videoWorkers(Option.none(), hardware, 16)).toBe(HARDWARE_WORKERS);
+  });
+
+  test('a video left to the default takes its pages from the encoder; stills draw on DRAW_WORKERS', () => {
+    expect(Result.getOrThrow(jobOf(flags))).toMatchObject({
+      _tag: 'Video',
+      workers: Option.none(),
+    });
+    expect(Result.getOrThrow(jobOf({ ...flags, workers: Option.some(4) }))).toMatchObject({
+      workers: Option.some(4),
+    });
+    expect(Result.getOrThrow(jobOf({ ...flags, stills: Option.some([1]) }))).toMatchObject({
+      _tag: 'Stills',
+      workers: DRAW_WORKERS,
+    });
+    expect(DRAW_WORKERS).toBe(6);
+  });
+
+  test('--workers on a contact sheet fails: one page composes it', () => {
+    expect(conflict({ contact: Option.some(5), workers: Option.some(2) })).toBe(
+      'contact excludes workers',
+    );
+  });
+
+  test('--encoder is a video flag: a video keeps it, stills and a contact sheet refuse it', () => {
+    const software = Option.some({ _tag: 'Software' } as const);
+    expect(Result.getOrThrow(jobOf({ ...flags, encoder: software }))).toMatchObject({
+      _tag: 'Video',
+      encoder: software,
+    });
+    expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ encoder: Option.none() });
+    expect(conflict({ stills: Option.some([1]), encoder: software })).toBe(
+      'stills excludes encoder',
+    );
+    expect(conflict({ contact: Option.some(5), encoder: software })).toBe(
+      'contact excludes encoder',
+    );
   });
 });

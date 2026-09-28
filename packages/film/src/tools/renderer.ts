@@ -6,6 +6,7 @@
 // and encoded to AAC. The server, the browser and every page live in one
 // scope: a failure, or Ctrl-C, closes them all.
 
+import { availableParallelism } from 'node:os';
 import {
   Array as Arr,
   Clock,
@@ -13,6 +14,7 @@ import {
   Effect,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
   Pool,
@@ -21,16 +23,18 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { splice } from '../core/audio.ts';
+import { encoderCandidates, encoderName, sharesInPage } from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { ShortError } from '../core/errors.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import type { ExportInfo } from '../core/schema.ts';
 import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
 import { filmEnd } from '../core/sound.ts';
-import { Browser, type FramePage, type PageOpenError } from './browser.ts';
+import { Browser, type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
 import {
   type AudioMissing,
   type AudioStale,
+  type BrowserMissing,
   type ContactFailed,
   type EncodeFailed,
   type EncoderMissing,
@@ -60,12 +64,57 @@ import {
   contactTimes,
   frameAt,
   frameSpan,
-  encoderBudget,
   planChunks,
   segmentName,
   shareName,
+  encoderLimits,
   stillName,
+  videoEncoders,
+  videoWorkers,
 } from './render-plan.ts';
+
+/**
+ * The cores this machine has: a software encoder takes one each, so they
+ * bound a software render's encoders (`encoderLimits`). Tests set it.
+ */
+export const Cores = Context.Reference<number>('@bible/film/tools/Cores', {
+  defaultValue: () => availableParallelism(),
+});
+
+/**
+ * The platform the render runs on (`process.platform`): it decides which
+ * encoders a render may use (`encoderCandidates`). Tests set it.
+ */
+export const Platform = Context.Reference<string>('@bible/film/tools/Platform', {
+  defaultValue: () => process.platform,
+});
+
+/** How the doctor's encoder check can fail. */
+export type EncoderReadyError = PageOpenError | PageError | PageCrashed | EncoderMissing;
+
+/**
+ * The doctor's encoder line: the encoder the app's player (its first film,
+ * at full size, with its share copy) chooses in headless Chromium among the
+ * platform's, as a render's first page does, and the pages a render opens
+ * on it by default.
+ */
+export const encoderReady: Effect.Effect<
+  string,
+  EncoderReadyError | BrowserMissing,
+  PreviewServer | Path.Path
+> = Effect.scoped(
+  Effect.gen(function* () {
+    const server = yield* PreviewServer;
+    // A browser of its own, so the doctor's other lines print when Chromium is missing.
+    const browser = yield* makeBrowser;
+    const page = yield* browser.open(`${server.url}?export`);
+    const candidates = encoderCandidates(yield* Platform, Option.none());
+    const encoder = yield* page.encoder(1, true, candidates);
+    const cores = yield* Cores;
+    const { workers, max } = encoderLimits(encoder, cores);
+    return `${encoderName(encoder)} H.264, ${workers} pages by default, at most ${max} encoders at once (${cores} cores)`;
+  }),
+).pipe(Effect.withSpan('Renderer.encoderReady'));
 
 export type RenderError =
   | PageOpenError
@@ -110,13 +159,41 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const browser = yield* Browser;
       const server = yield* PreviewServer;
 
+      /** The short on a page's clock: the same spans, on the same frames, it draws. */
+      const shortOn = (placed: ReadonlyArray<Placed>, cut: Cut, fps: number) =>
+        Cut.$match(cut, {
+          Whole: () => Effect.succeedNone,
+          Short: ({ short }) =>
+            Effect.map(Effect.fromResult(resolveShort(placed, short, fps)), Option.some),
+        });
+
       const video = Effect.fnUntraced(function* (
         film: LoadedFilm,
         job: Extract<RenderJob, { _tag: 'Video' }>,
-        pool: Pool.Pool<FramePage, PageOpenError>,
-        info: ExportInfo,
-        where: Where,
+        url: string,
+        placed: ReadonlyArray<Placed>,
+        base: string,
       ) {
+        // One page first says what the render draws and which encoder every
+        // page encodes with: the pages, and the encoders they may run, are
+        // sized from that choice before the pool opens.
+        const { info, short, scale, encoder } = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const page = yield* browser.open(url);
+            const found = yield* shortOn(placed, job.cut, page.info.fps);
+            // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
+            const k = Option.match(found, {
+              onNone: () => job.scale,
+              onSome: () => shortPage(page.info.width).scale * job.scale,
+            });
+            // Before a frame is drawn: a browser that cannot encode the film with
+            // one of the encoders this platform allows fails here.
+            const candidates = encoderCandidates(yield* Platform, job.encoder);
+            const by = yield* page.encoder(k, job.share, candidates);
+            return { info: page.info, short: found, scale: k, encoder: by };
+          }),
+        );
+        const where: Where = { base, placed, short };
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
@@ -124,11 +201,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const target = Option.getOrElse(job.out, () => `${where.base}.mp4`);
         yield* fs.makeDirectory(path.dirname(target), { recursive: true });
         const range = { from: start / info.fps, to: end / info.fps };
-        // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
-        const scale = Option.match(where.short, {
-          onNone: () => job.scale,
-          onSome: () => shortPage(info.width).scale * job.scale,
-        });
 
         // The film declares its track only once every take is recorded (a
         // short's page declares none: it plays the film's under its spans).
@@ -159,8 +231,17 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           if (Option.isSome(finding)) return yield* finding.value;
         }
 
-        // Before a frame is drawn: a browser that cannot encode the film fails here.
-        yield* Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.encoder(scale)));
+        // Before the pool opens: pages past the encoders this encoder runs at once would hang
+        // (hardware) or fight for the cores (software).
+        const cores = yield* Cores;
+        const workers = videoWorkers(job.workers, encoder, cores);
+        const encoders = yield* Effect.fromResult(
+          videoEncoders(workers, job.share, encoder, cores),
+        );
+        yield* Effect.log(
+          `render.encoder kind=${encoderName(encoder)} workers=${workers} encoders=${encoders} cores=${cores}`,
+        );
+        const pool = yield* Pool.make({ acquire: browser.open(url), size: workers });
 
         // The track, cut and encoded once beside the pages; both joins copy its packets.
         const aac = Option.match(audio, {
@@ -189,8 +270,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const segDir = path.join(work, 'segments');
         const shareDir = path.join(work, 'share');
         yield* fs.makeDirectory(segDir);
-        if (job.share) yield* fs.makeDirectory(shareDir);
-        const chunks = planChunks(start, end, job.workers);
+        // The hardware encoder makes the share copy in the page, chunk by chunk.
+        const shareInPage = job.share && sharesInPage(encoder);
+        if (shareInPage) yield* fs.makeDirectory(shareDir);
+        const chunks = planChunks(start, end, workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
         const progress = (frames: number) =>
@@ -213,7 +296,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             Effect.gen(function* () {
               const page = yield* Pool.get(pool);
               const encoded = yield* page
-                .encode(chunk, scale, job.share)
+                .encode(chunk, scale, job.share, encoder)
                 .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page)));
               const at = (chunk.from - start) / info.fps;
               const file = path.join(segDir, segmentName(chunk));
@@ -236,7 +319,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         // One structured run: the first failure, a page's or the track's, stops the other.
         const [encoded, track] = yield* Effect.all(
-          [Effect.forEach(chunks, encode, { concurrency: job.workers }), aac],
+          [Effect.forEach(chunks, encode, { concurrency: workers }), aac],
           { concurrency: 'unbounded' },
         );
         yield* media.join({
@@ -245,16 +328,30 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           frames: total,
           audio: track,
         });
+        /** The hardware encoder's share: its copies from the page, joined as the master is. */
+        const joinedShare = (out: string) =>
+          media.join({
+            out,
+            segments: encoded.flatMap((chunk) => Option.toArray(chunk.share)),
+            frames: total,
+            audio: track,
+          });
+        /** The software encoder's share: x264 over the joined master. */
+        const x264Share = (out: string) =>
+          Effect.gen(function* () {
+            const from = yield* Clock.currentTimeMillis;
+            yield* media.shareCopy(target, out);
+            const secs = ((yield* Clock.currentTimeMillis) - from) / 1000;
+            yield* Effect.log(`render.share by=x264 secs=${secs.toFixed(1)} file=${out}`);
+          });
         const shared = Option.filter(Option.some(shareName(target)), () => job.share);
         yield* Option.match(shared, {
           onNone: () => Effect.void,
           onSome: (out) =>
-            media.join({
-              out,
-              segments: encoded.flatMap((chunk) => Option.toArray(chunk.share)),
-              frames: total,
-              audio: track,
-            }),
+            Match.value(shareInPage).pipe(
+              Match.when(true, () => joinedShare(out)),
+              Match.orElse(() => x264Share(out)),
+            ),
         });
 
         // Joined: the segments are copied into the film and nothing reads them
@@ -288,7 +385,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.log(
           `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} file=${target} share=${Option.getOrElse(shared, () => 'none')} captions=${captions}`,
         );
-      });
+      }, Effect.scoped);
 
       const stills = Effect.fnUntraced(function* (
         job: Extract<RenderJob, { _tag: 'Stills' }>,
@@ -355,39 +452,41 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           'export',
           ...Arr.filter(['captions=0'], () => !job.captions),
         ];
-        // Before a page opens: a video past the encoders the hardware runs would hang.
-        yield* Effect.fromResult(encoderBudget(job));
         const url = `${server.url}?${query.join('&')}`;
         const base = cutBase(film.paths.out, cut);
         const dir = path.join(base, job.tag);
-        // A video writes nothing there: its segments are its own, and its file is `--out`.
-        if (!RenderJob.$is('Video')(job)) yield* fs.makeDirectory(dir, { recursive: true });
-        const pages = RenderJob.$match(job, {
-          Video: (v) => v.workers,
-          Stills: (s) => Math.min(s.workers, s.times.length),
+
+        /** A job drawn on `pages` pages that encode nothing, handed the pool and the film's info. */
+        const drawn = <E>(
+          pages: number,
+          run: (
+            pool: Pool.Pool<FramePage, PageOpenError>,
+            info: ExportInfo,
+          ) => Effect.Effect<void, E>,
+        ) =>
+          Effect.scoped(
+            Effect.gen(function* () {
+              yield* fs.makeDirectory(dir, { recursive: true });
+              const pool = yield* Pool.make({
+                acquire: browser.open(url),
+                size: Math.max(1, pages),
+              });
+              const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+              // A short's spans must resolve on the page's frames, as a video's do.
+              yield* shortOn(placed, cut, info.fps);
+              yield* run(pool, info);
+            }),
+          );
+
+        yield* RenderJob.$match(job, {
+          // A video writes nothing under `dir`: its segments are its own, and its file is `--out`.
+          Video: (v) => video(film, v, url, placed, base),
+          Stills: (s) =>
+            drawn(Math.min(s.workers, s.times.length), (pool, info) => stills(s, pool, info, dir)),
           // One page composes the whole sheet.
-          Contact: () => 1,
-          LookBook: () => 1,
+          Contact: (c) => drawn(1, (pool, info) => contact(c, pool, info, dir)),
+          LookBook: () => drawn(1, (pool) => lookbook(pool, dir)),
         });
-        yield* Effect.scoped(
-          Effect.gen(function* () {
-            const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, pages) });
-            const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
-            // The short on the page's clock: the same spans, on the same frames, it draws.
-            const short = yield* Cut.$match(cut, {
-              Whole: () => Effect.succeedNone,
-              Short: ({ short }) =>
-                Effect.map(Effect.fromResult(resolveShort(placed, short, info.fps)), Option.some),
-            });
-            const where: Where = { base, placed, short };
-            yield* RenderJob.$match(job, {
-              Video: (v) => video(film, v, pool, info, where),
-              Stills: (s) => stills(s, pool, info, dir),
-              Contact: (c) => contact(c, pool, info, dir),
-              LookBook: () => lookbook(pool, dir),
-            });
-          }),
-        );
       });
 
       return Renderer.of({ render });

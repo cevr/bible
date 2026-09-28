@@ -47,8 +47,10 @@ import {
 } from './errors.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
+import { encoderCandidates, encoderName } from '../core/encoder.ts';
+import { shortPage } from '../core/shorts.ts';
 import { Cut, RenderJob, cutPage, frameSpan, videoEncoders } from './render-plan.ts';
-import { type RenderError, Renderer } from './renderer.ts';
+import { Cores, Platform, type RenderError, Renderer } from './renderer.ts';
 
 export interface DrawBenchOptions {
   /** Time every this many frames. */
@@ -306,13 +308,28 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
         film: LoadedFilm,
         options: WorkersBenchOptions,
       ) {
-        // Before a page opens: every count must fit the encoders, not just the first.
+        // One page says what the range is and which encoder the renders will use.
+        const { info, encoder } = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const page = yield* browser.open(url(film, options.captions, options.cut));
+            // A short's page encodes down to 1080 × 1920, as the render does.
+            const scale = Cut.$match(options.cut, {
+              Whole: () => 1,
+              Short: () => shortPage(page.info.width).scale,
+            });
+            const candidates = encoderCandidates(yield* Platform, Option.none());
+            return {
+              info: page.info,
+              encoder: yield* page.encoder(scale, options.share, candidates),
+            };
+          }),
+        );
+        // Before any render: every count must fit the encoders, not just the first.
+        const cores = yield* Cores;
         yield* Effect.forEach(options.workers, (n) =>
-          Effect.fromResult(videoEncoders(n, options.share)),
+          Effect.fromResult(videoEncoders(n, options.share, encoder, cores)),
         );
-        const info = yield* Effect.scoped(
-          Effect.map(browser.open(url(film, options.captions, options.cut)), (page) => page.info),
-        );
+        yield* Effect.log(`bench.encoder kind=${encoderName(encoder)} cores=${cores}`);
         const { start, end } = frameSpan(info, options.from, options.to);
         const from = start / info.fps;
         const to = end / info.fps;
@@ -324,12 +341,13 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
                 const job = RenderJob.Video({
                   tag: 'bench',
                   captions: options.captions,
-                  workers: n,
+                  workers: Option.some(n),
                   from: Option.some(from),
                   to: Option.some(to),
                   scale: 1,
                   out: Option.some(path.join(dir, `w${n}.mp4`)),
                   share: options.share,
+                  encoder: Option.some(encoder),
                   cut: options.cut,
                 });
                 const runsSec = yield* Effect.forEach(Arr.range(1, Math.max(1, options.runs)), () =>

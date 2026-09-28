@@ -35,10 +35,11 @@ import {
 import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, type LumaArea } from './browser.ts';
+import { type Encoder, sharesInPage } from '../core/encoder.ts';
 import {
   ApiKeyMissing,
   EncodeFailed,
-  type EncoderMissing,
+  EncoderMissing,
   type FrameFailed,
   type PageCrashed,
   type PageError,
@@ -382,6 +383,8 @@ export const fakeMedia = (
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
+      shareCopy: (master, out) =>
+        Effect.sync(() => void files.set(out, text(`share of ${master}`))),
       load: (file, rate) =>
         Option.match(Option.fromNullishOr(files.get(file)), {
           onNone: () =>
@@ -400,6 +403,12 @@ export interface RenderLedger {
   readonly pages: { opened: number; closed: number };
   /** Chunks a page began to encode: each finished, or was cut off (killed). */
   readonly encoders: { spawned: number; finished: number; killed: number };
+  /** The encoder each chunk was handed, in the order they began. */
+  readonly encodedBy: Array<Encoder['_tag']>;
+  /** The encoders each page choosing one was allowed, in order. */
+  readonly encoderAsked: Array<ReadonlyArray<Encoder['_tag']>>;
+  /** Every share copy made by x264 from a joined master. */
+  readonly shareCopies: Array<{ readonly master: string; readonly out: string }>;
   /** Every frame drawn, by any page. */
   readonly frames: Array<number>;
   /** Look-books composed, by any page. */
@@ -421,6 +430,9 @@ export const emptyLedger = (): RenderLedger => ({
   browser: { launched: 0, closed: 0 },
   pages: { opened: 0, closed: 0 },
   encoders: { spawned: 0, finished: 0, killed: 0 },
+  encodedBy: [],
+  encoderAsked: [],
+  shareCopies: [],
   frames: [],
   lookbooks: { composed: 0 },
   contacts: [],
@@ -461,8 +473,8 @@ export interface FakeRenderHost {
   readonly probe?: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
   /** How long the audio master measures (default: the film's length). */
   readonly master?: number;
-  /** What a page's encoder check finds (ready by default). */
-  readonly encoder?: Effect.Effect<void, EncoderMissing>;
+  /** The encoders the browser has (both by default): a page chooses the first it is allowed that it has. */
+  readonly encoders?: ReadonlyArray<Encoder['_tag']>;
   /** What an AAC encode does once it is recorded (nothing by default). */
   readonly aac?: Effect.Effect<void, MediaFailed>;
   /** What a join does once it is recorded (nothing by default). */
@@ -488,7 +500,28 @@ export interface FakeRenderHost {
 export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
   const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
   const draw = Option.getOrElse(Option.fromNullishOr(host.frame), () => () => Effect.void);
-  const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
+  const has = Option.getOrElse(
+    Option.fromNullishOr(host.encoders),
+    (): ReadonlyArray<Encoder['_tag']> => ['Hardware', 'Software'],
+  );
+  /** The first of `candidates` this browser has, as a page chooses. */
+  const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<Encoder, EncoderMissing> =>
+    Effect.sync(() => void ledger.encoderAsked.push(candidates.map((c) => c._tag))).pipe(
+      Effect.andThen(
+        Option.match(
+          Arr.findFirst(candidates, (c) => has.includes(c._tag)),
+          {
+            onNone: () =>
+              Effect.fail(
+                EncoderMissing.make({
+                  reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
+                }),
+              ),
+            onSome: (found) => Effect.succeed(found),
+          },
+        ),
+      ),
+    );
   const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
   const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
   const looked = Option.getOrElse(Option.fromNullishOr(host.looked), () => (): FakeLook => ({
@@ -550,14 +583,19 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     ledger.lookbooks.composed += 1;
                     return new Uint8Array([0xff, 0xd8]);
                   }),
-                  encoder: () => encoder,
+                  encoder: (_scale: number, _share: boolean, candidates: ReadonlyArray<Encoder>) =>
+                    encoder(candidates),
                   encode: (
                     chunk: { readonly from: number; readonly to: number },
                     _scale: number,
                     share: boolean,
+                    by: Encoder,
                   ) =>
                     Effect.acquireUseRelease(
-                      Effect.sync(() => void (ledger.encoders.spawned += 1)),
+                      Effect.sync(() => {
+                        ledger.encoders.spawned += 1;
+                        ledger.encodedBy.push(by._tag);
+                      }),
                       () =>
                         Effect.forEach(
                           Array.from({ length: chunk.to - chunk.from }, (_, k) => chunk.from + k),
@@ -583,9 +621,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                       ),
                       Effect.as({
                         master: text(`mp4 ${chunk.from}-${chunk.to}`),
+                        // As the page: only the hardware encoder makes the share copy beside the master.
                         share: Option.filter(
                           Option.some(text(`share ${chunk.from}-${chunk.to}`)),
-                          () => share,
+                          () => share && sharesInPage(by),
                         ),
                       }),
                     ),
@@ -635,6 +674,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
           Effect.onInterrupt(() => Effect.sync(() => void (ledger.aacInterrupted.count += 1))),
           Effect.as({ packets: [], meta: {} }),
         ),
+      shareCopy: (master, out) => Effect.sync(() => void ledger.shareCopies.push({ master, out })),
       join: (film) =>
         Effect.sync(() => void ledger.joins.push(film)).pipe(
           Effect.andThen(

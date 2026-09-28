@@ -18,7 +18,7 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
-//                      [--no-share] [--short id]
+//                      [--no-share] [--encoder hardware|software] [--short id]
 //   film lookbook <film> [--captions] [--tag name]
 //   film chapters <film>
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
@@ -32,6 +32,7 @@
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
+  Cause,
   Console,
   Context,
   Effect,
@@ -80,6 +81,7 @@ import {
   CuesLate,
   type ElevenLabsFailed,
   type MediaFailed,
+  PreviewServerFailed,
   SoundMissing,
   UnknownEffect,
   UnknownShort,
@@ -98,7 +100,7 @@ import { type LabServer, PreviewServer } from './preview-server.ts';
 import { BENCH_RULES } from './bench.ts';
 import {
   Cut,
-  DEFAULT_WORKERS,
+  DRAW_WORKERS,
   RenderJob,
   flagConflicts,
   givenFlags,
@@ -110,7 +112,8 @@ import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
-import { Renderer } from './renderer.ts';
+import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
+import { EncoderName, encoderNamed } from '../core/encoder.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -179,45 +182,79 @@ const paidPreflight = Effect.gen(function* () {
   yield* (yield* ElevenLabs).ready;
 });
 
-interface ToolCheck {
+/** How a doctor check can fail: a tool missing or broken. */
+type ToolError =
+  | BrowserMissing
+  | BrowserFailed
+  | ElevenLabsFailed
+  | MediaFailed
+  | EncoderReadyError
+  | PreviewServerFailed;
+/** What a doctor check needs from the platform. */
+type ToolNeeds = Path.Path | ChildProcessSpawner.ChildProcessSpawner;
+
+interface ToolCheck<E, R> {
   readonly tool: string;
   /** The commands that need it. */
   readonly needed: string;
-  readonly run: Effect.Effect<
-    void,
-    BrowserMissing | BrowserFailed | ElevenLabsFailed | MediaFailed,
-    Path.Path | ChildProcessSpawner.ChildProcessSpawner
-  >;
+  /** What it found, said after `ok` (empty when there is nothing to add). */
+  readonly run: Effect.Effect<string, E, R>;
 }
 
-const doctor = Command.make(
-  'doctor',
-  {},
-  Effect.fn('film.doctor')(function* () {
-    const elevenLabs = yield* ElevenLabs;
-    const checks: ReadonlyArray<ToolCheck> = [
-      { tool: 'chromium', needed: 'render, check', run: browserReady },
-      { tool: 'elevenlabs', needed: 'narrate, score', run: elevenLabs.ready },
-      { tool: 'ffmpeg', needed: 'takes import, the studio', run: ffmpegReady() },
-    ];
-    const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
-      concurrency: checks.length,
-    });
-    for (const [{ tool, needed }, result] of Arr.zip(checks, results))
-      yield* Console.log(
-        Result.match(result, {
-          onSuccess: () => `ok      ${tool.padEnd(11)} (${needed})`,
-          onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
-        }),
-      );
-    const failure = Arr.head(Arr.getFailures(results));
-    if (Option.isSome(failure)) return yield* failure.value;
-  }),
-).pipe(
-  Command.withDescription(
-    'Check the tools the film commands need: headless Chromium, the elevenlabs CLI and its login, and ffmpeg',
-  ),
-);
+/** A doctor line: `ok` and what was found, or `missing` and why. */
+const toolLine = (
+  { tool, needed }: { readonly tool: string; readonly needed: string },
+  result: Result.Result<string, { readonly message: string }>,
+) =>
+  Result.match(result, {
+    onSuccess: (found) =>
+      `ok      ${tool.padEnd(11)} (${needed})${Arr.map(
+        Arr.filter([found], (f) => f !== ''),
+        (f) => `: ${f}`,
+      ).join('')}`,
+    onFailure: (error) => `missing ${tool.padEnd(11)} (${needed}): ${error.message}`,
+  });
+
+/**
+ * The doctor. The encoder check serves the app's own player, as `render`
+ * does; a player that does not start fails that line alone
+ * (`PreviewServerFailed`), and every other line still prints.
+ */
+const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
+  const served = previewServer.pipe(
+    Layer.catchCause((cause) =>
+      Layer.effect(
+        PreviewServer,
+        Effect.fail(PreviewServerFailed.make({ reason: Cause.pretty(cause) })),
+      ),
+    ),
+  );
+  const encoderCheck = encoderReady.pipe(Effect.provide(served));
+  return Command.make(
+    'doctor',
+    {},
+    Effect.fn('film.doctor')(function* () {
+      const elevenLabs = yield* ElevenLabs;
+      const checks: ReadonlyArray<ToolCheck<ToolError, ToolNeeds | R>> = [
+        { tool: 'chromium', needed: 'render, check', run: Effect.as(browserReady, '') },
+        { tool: 'encoder', needed: 'render', run: encoderCheck },
+        { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
+        { tool: 'ffmpeg', needed: 'takes import, the studio', run: Effect.as(ffmpegReady(), '') },
+      ];
+      const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
+        concurrency: checks.length,
+      });
+      for (const [check, result] of Arr.zip(checks, results))
+        yield* Console.log(toolLine(check, result));
+      const failure = Arr.head(Arr.getFailures(results));
+      if (Option.isSome(failure)) return yield* failure.value;
+    }),
+  ).pipe(
+    Command.withDescription(
+      'Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg',
+    ),
+  );
+};
 
 const narrate = Command.make(
   'narrate',
@@ -654,8 +691,10 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
       workers: Flag.Int('workers').pipe(
-        Flag.withDefault(DEFAULT_WORKERS),
-        Flag.withDescription('pages rendering at once'),
+        Flag.optional,
+        Flag.withDescription(
+          'pages rendering at once (default: a video, 6 on the hardware encoder and 6 on the software one, within one a core; stills, 6)',
+        ),
       ),
       scale: Flag.Finite('scale').pipe(
         Flag.optional,
@@ -679,6 +718,13 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.optional,
         Flag.withDescription(
           'also write a smaller copy to send, <out>.share.mp4 (default; --no-share to skip it)',
+        ),
+      ),
+      encoder: Flag.Literals('encoder', EncoderName.literals).pipe(
+        Flag.optional,
+        Flag.map(Option.map(encoderNamed)),
+        Flag.withDescription(
+          "encode with this H.264 encoder only (default: hardware on macOS, software elsewhere); software on a Mac changes the film's look",
         ),
       ),
       short: short.pipe(
@@ -714,6 +760,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           scale: input.scale,
           out: input.out,
           share: input.share,
+          encoder: input.encoder,
           short: cut,
         }),
       );
@@ -744,9 +791,9 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
       const acts = yield* Effect.fromResult(actsOf(loaded.look, yield* placeFilm(loaded)));
       yield* (yield* Renderer).render(
         loaded,
-        RenderJob.LookBook({ tag: input.tag, captions: input.captions, workers: 1 }),
+        RenderJob.LookBook({ tag: input.tag, captions: input.captions }),
       );
-      const looked = yield* (yield* Looker).look(loaded, DEFAULT_WORKERS, Option.none());
+      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, Option.none());
       for (const line of lookLines(looked.looks, acts)) yield* Console.log(line);
     }, Effect.provide(lookLayer)),
   ).pipe(
@@ -1105,7 +1152,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       lookbook(lookLayer),
       chaptersCommand,
       bench(benchLayer),
-      doctor,
+      doctor(previewServer),
       lab(labServer),
       notes,
     ]),

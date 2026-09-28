@@ -46,6 +46,7 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
           if (finish === 'hang') return yield* Effect.never;
         }),
       join: () => Effect.void,
+      shareCopy: () => Effect.void,
     }),
   );
 

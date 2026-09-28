@@ -8,6 +8,16 @@
 // H.264 is a browser's codec: a page encodes it (player/encode.ts), and
 // joining only copies its packets.
 //
+// One H.264 encode happens here: the share copy of a film the browser
+// encoded in software (`shareCopy`). Chromium's software encoder keeps the
+// paper's grain only at 24 Mbps, so its share is x264's, from the joined
+// master, through the ffmpeg CLI: CRF 22, preset slow, tune grain. Not
+// mediabunny-server (@mediabunny/server 1.60.0, libx264 through NodeAV):
+// its encoder sets a fixed `qp` with qmin = qmax on the default preset, with
+// no CRF, preset or tune to pass (packages/server/src/video-encoder.ts), and
+// at the same size it kept far less grain (q23: 444 MB, 33–67% of the
+// grain, against CRF 23 tune grain's 487 MB and 75–83%).
+//
 // A person's recording comes in whatever a recorder wrote (WAV, M4A, MP3, a
 // browser's WebM/Opus) at whatever rate its microphone ran: ffmpeg reads
 // every one of them and resamples, into a WAV in a scoped temporary
@@ -74,7 +84,41 @@ export interface MediaService {
    * them. Every segment must be encoded alike.
    */
   readonly join: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
+  /**
+   * The share copy of the film at `master`, written to `out`: its video
+   * encoded again by x264 (`SHARE_X264`), its track copied. `out` appears
+   * only once whole.
+   */
+  readonly shareCopy: (master: string, out: string) => Effect.Effect<void, MediaFailed>;
 }
+
+/**
+ * x264's settings for a share copy, measured on righteousness-by-faith
+ * against its lossless stills (packages/film/README.md, "Encoders"): CRF 22
+ * at preset slow with tune grain kept 78–89% of the paper's grain at its 7
+ * review frames (SSIM 0.86–0.91) at 616 MB, in 289 s on 16 cores, against
+ * the in-page software share's 72–90% at 1.16 GB. Level 4.1 keeps
+ * it playable on every phone (preset slow's five reference frames would
+ * otherwise raise it to 5.0).
+ */
+export const SHARE_X264: ReadonlyArray<string> = [
+  '-c:v',
+  'libx264',
+  '-preset',
+  'slow',
+  '-tune',
+  'grain',
+  '-crf',
+  '22',
+  '-level:v',
+  '4.1',
+  '-pix_fmt',
+  'yuv420p',
+  '-c:a',
+  'copy',
+  '-movflags',
+  '+faststart',
+];
 
 /** A run of H.264 video in its own MP4, played from `at` seconds into the film. */
 export interface Segment {
@@ -656,7 +700,33 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         );
       });
 
-      return Media.of({ duration, decode, writeWav, encodeAac, join, load, encodeFlac });
+      const shareCopy = Effect.fn('Media.shareCopy')(function* (master: string, out: string) {
+        // Beside `out` until whole, so a failed or cut-off encode leaves no share behind.
+        const part = `${out}.part`;
+        yield* ffmpeg('encode', out, ['-i', master, ...SHARE_X264, '-f', 'mp4', part]).pipe(
+          Effect.andThen(fs.rename(part, out)),
+          Effect.mapError((error) =>
+            Match.value(error).pipe(
+              Match.tag('MediaFailed', (failed) => failed),
+              Match.orElse((other) =>
+                MediaFailed.make({ op: 'write', file: out, reason: other.message }),
+              ),
+            ),
+          ),
+          Effect.onExit(() => Effect.ignore(fs.remove(part, { force: true }))),
+        );
+      });
+
+      return Media.of({
+        duration,
+        decode,
+        writeWav,
+        encodeAac,
+        join,
+        load,
+        encodeFlac,
+        shareCopy,
+      });
     }),
   );
 }
