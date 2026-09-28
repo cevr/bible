@@ -439,7 +439,7 @@ const judged = (f: RobeFrame) => {
         tunic: { at: [JOSHUA[0] - 1250, JOSHUA[1]], flare: () => 0 },
         helpers: { grip: 1, dx: -1250, bob: 0, up: 1 },
       });
-      at(ctx, { x: GAVEL_ON[0], y: GAVEL_ON[1] }, () => gavel(ctx, hand, GAVEL_LIE));
+      gavel(ctx, hand, { x: GAVEL_ON[0], y: GAVEL_ON[1], rot: GAVEL_LIE });
       // The glow rising in his chest, beyond the verdict.
       glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 90 + 110 * beyond, C.glow, 0.8 * beyond);
       glow(ctx, JOSHUA[0], JOSHUA_CHEST_Y, 40 + 40 * beyond, C.gold, 0.4 * beyond);

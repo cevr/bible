@@ -35,6 +35,7 @@ import {
   STAMP_POP,
   WIDE,
   benchStamp,
+  gavel,
   question,
 } from '../court.ts';
 
@@ -190,13 +191,7 @@ export const cold = drawing({
             });
             piece(ctx, rounded(1180, 472, 690, 34, 6), C.inkSoft, f.hand('rim'));
             piece(ctx, rounded(1436, 448, 76, 14, 4), C.boardDeep, f.hand('block'), { line: 2 });
-            at(ctx, { x: GAVEL[0], y: GAVEL[1], rot: swing }, () => {
-              piece(ctx, rounded(0, -52, 12, 100, 4), C.inkSoft, f.hand('handle'), { line: 2 });
-              piece(ctx, rounded(0, -104, 64, 34, 8), C.boardDeep, f.hand('gavelHead'), {
-                line: 2.5,
-              });
-              piece(ctx, ellipseShape(0, 0, 15, 13), C.figure, f.hand('gavelHand'), { line: 2.5 });
-            });
+            gavel(ctx, f.hand, { x: GAVEL[0], y: GAVEL[1], rot: swing }, true);
             // The verdict, stamped on a torn label across the bench.
             benchStamp(ctx, f.hand, verdict, popScale);
           },

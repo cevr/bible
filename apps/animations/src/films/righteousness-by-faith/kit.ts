@@ -875,8 +875,8 @@ const CREASE = spline([
 
 /**
  * The open hand, palm up, the palm's centre near (0, 0), about 390 units
- * wide: faith, the hand that takes (`look` draws its own, `daily` lays the
- * icons in this one). `open` 1 holds the fingers straight; toward 0 they curl
+ * wide: faith, the hand that takes (`look` lays the gold light in it, `daily`
+ * the icons). `open` 1 holds the fingers straight; toward 0 they curl
  * down toward the palm, as a hand closes.
  */
 export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {

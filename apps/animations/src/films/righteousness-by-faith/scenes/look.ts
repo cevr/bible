@@ -21,7 +21,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, person, piece, rounded, sky } from '../kit.ts';
+import { C, blob, glow, openHand, person, piece, rounded, sky } from '../kit.ts';
 
 /** The desert wide, and close on the face looking up at the serpent. */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
@@ -155,32 +155,7 @@ export const look = drawing({
         ctx.save();
         ctx.globalAlpha *= handIn;
         at(ctx, { x: 960, y: lerp(1000, 760, handIn), scale: 1.25 }, () => {
-          piece(ctx, rounded(20, 190, 170, 260, 50), C.figure, hand('wrist'), { line: 4 });
-          for (const [x, k] of [
-            [-105, 1],
-            [-37, 2],
-            [33, 3],
-            [100, 4],
-          ] as const)
-            at(ctx, { x, y: -80, rot: x * 0.0012 }, () =>
-              piece(ctx, rounded(0, 0, 58, 120, 28), C.figure, sub(hand('finger'), k), {
-                line: 4,
-              }),
-            );
-          piece(ctx, rounded(0, 20, 310, 170, 80), C.figure, hand('palm'), { line: 4 });
-          at(ctx, { x: -165, y: 10, rot: -0.9 }, () =>
-            piece(ctx, rounded(0, 0, 56, 130, 28), C.figure, hand('thumb'), { line: 4 }),
-          );
-          stroke(
-            ctx,
-            spline([
-              [-90, 50],
-              [0, 30],
-              [90, 55],
-            ]),
-            { color: C.figureShade, width: 4, jitter: 0.4 },
-            hand('crease'),
-          );
+          openHand(ctx, hand);
           if (light > 0) {
             const y = lerp(-620, 0, light);
             glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
