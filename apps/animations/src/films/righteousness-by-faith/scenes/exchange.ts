@@ -14,8 +14,9 @@
 // holy place, the veil open, and Christ pleading before the ark (the ministry
 // `rain` looks up to). The cut is the time jump the sanctuary frame asks for:
 // the holy place first, the most holy place in 1844, never one move from the
-// ascension. Last, the pull back to the three icons, the robe (forgiveness)
-// lit.
+// ascension. The most holy place holds, the camera easing in as she speaks,
+// through "pleading for his people in the courts of heaven", the scene's
+// last words.
 
 import {
   type Camera,
@@ -36,7 +37,6 @@ import {
   christ,
   gait,
   glow,
-  icons,
   mix,
   person,
   piece,
@@ -77,7 +77,7 @@ const inHeaven = ([x, y]: Pt): Pt => [SANCTUARY[0] + x * SS, SANCTUARY[1] + y * 
 
 /**
  * After the cut: close in the most holy place, the veil at the left edge,
- * Christ before the ark; the camera eases in a little over the hold.
+ * Christ before the ark; the camera eases in a little as the last words are spoken.
  */
 const ARK: Camera = { x: 1224, y: -450, zoom: 2.5 };
 const ARK_IN = 2.75;
@@ -93,15 +93,11 @@ const timeline = {
   walkUp: { mark: 'took', offset: 1.3, dur: 1.9, ease: 'inOutSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
-  ascend: { mark: 'up', dur: 1.3, ease: 'inOutCubic' },
+  ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },
   robed: { after: 'ascend', dur: 0.5 },
   minister: { after: 'robed', dur: 0.6, ease: 'inOutSine' },
   cut: { mark: 'now', dur: 0 },
   hands: { after: 'cut', offset: 0.2, dur: 0.6, ease: 'outBack' },
-  push: { after: 'cut', dur: 2, ease: 'linear' },
-  toIcons: { after: 'push', dur: 0.3 },
-  pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
-  iconGlow: { after: 'pullBack', dur: 0.5 },
 } as const;
 
 const knobs = { figure: [560, 960], sun: [1450, 300] } as const;
@@ -113,15 +109,13 @@ export const exchange = drawing({
   knobs,
   draw: (f) => {
     const dawn = f.at('dawn');
-    const toIcons = f.at('toIcons');
     const cut = f.at('cut');
-    if (dawn < 1 && toIcons < 1) {
+    if (dawn < 1) {
       hill(f);
       if (f.at('dark') > 0) blackMoment(f);
     }
     if (dawn > 0 && cut < 1) heaven(f, dawn);
-    if (cut > 0 && toIcons < 1) mostHoly(f);
-    if (toIcons > 0) iconsBack(f, toIcons);
+    if (cut > 0) mostHoly(f);
   },
 });
 
@@ -377,26 +371,9 @@ const mostHoly = (f: ExchangeFrame) => {
     [0.55, C.tealMid],
     [1, C.tealLow],
   ]);
-  camera(ctx, { ...ARK, zoom: lerp(ARK.zoom ?? 1, ARK_IN, f.at('push')) }, w, h, () =>
+  camera(ctx, { ...ARK, zoom: lerp(ARK.zoom ?? 1, ARK_IN, f.spoken('now')) }, w, h, () =>
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
       ministry(ctx, hand, 1, f.at('hands')),
     ),
   );
-};
-
-/** F: pull back to the three icons, the robe's lit. */
-const iconsBack = (f: ExchangeFrame, toIcons: number) => {
-  const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
-  const pull = f.at('pullBack');
-  ctx.save();
-  ctx.globalAlpha *= toIcons;
-  sky(ctx, w, h, [
-    [0, C.glow],
-    [1, C.peachLow],
-  ]);
-  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () =>
-    icons(ctx, hand, [0, f.at('iconGlow'), 0]),
-  );
-  ctx.restore();
 };
