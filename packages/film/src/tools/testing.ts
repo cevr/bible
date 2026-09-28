@@ -18,6 +18,7 @@ import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
+import { unmeasured } from '../core/voiced.ts';
 import {
   type ExportInfo,
   type VoiceTiming,
@@ -356,12 +357,16 @@ const fakeDuration = (bytes: Uint8Array) =>
 
 /**
  * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
- * is not there), decodes to a second of mono silence at the mix's rate, and a
- * WAV written lands as `wav <frames>`, and a joined film as `mp4 <frames>`. A
- * recording loads as `fakeRecording` of its bytes, and a take encodes to
- * `flac <frames>/<rate>`, which measures its own length.
+ * is not there) and decodes to `decoded` (a second of mono silence at the
+ * mix's rate unless given), a WAV written lands as `wav <frames>`, and a
+ * joined film as `mp4 <frames>`. A recording loads as `fakeRecording` of its
+ * bytes, and a take encodes to `flac <frames>/<rate>`, which measures its own
+ * length.
  */
-export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
+export const fakeMedia = (
+  files: Map<string, Uint8Array> = new Map(),
+  decoded: Pcm = silence(MIX_RATE, MIX_RATE, 1),
+) =>
   Layer.succeed(
     Media,
     Media.of({
@@ -372,7 +377,7 @@ export const fakeMedia = (files: Map<string, Uint8Array> = new Map()) =>
             onSome: fakeDuration,
           }),
         ),
-      decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE, 1)),
+      decode: () => Effect.succeed(decoded),
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
@@ -664,7 +669,7 @@ export const spokenTake = (say: string): VoiceTiming => {
     hash: hashText(takeScript(parsed)),
     file: 'take.mp3',
     duration: Math.max(0, ...words.map((w) => w.end)),
-    words,
+    words: unmeasured(words),
     source: 'elevenlabs',
   };
 };

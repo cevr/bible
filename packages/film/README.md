@@ -90,7 +90,15 @@ only by rewriting `timings.json`, so no crash leaves a take and its timings
 disagreeing. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
 inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
-warning past `TAKE_TOLERANCE`), so the timings always fit their audio. It removes the takes (`.mp3` or a person's `.flac`) the timings
+warning past `TAKE_TOLERANCE`), so the timings always fit their audio. The
+aligner puts the pause before a word into that word's start, so each word
+also carries where it is heard (`voiced`, a `TakeWord`): the first and last
+10 ms window inside its aligned span over a −40 dBFS gate, read from the take
+itself when it is timed (`core/voiced.ts` `voicedWords`; `narrate`,
+`takes import` and the studio alike; a span no window passes is heard over
+all of it). A mark and the long film's captions read the aligned start;
+what must meet the ear (a short's captions, its hook and its loop) reads the
+voice (`heard`). It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
 replaced person's take loses only its copy in `narration/`: its master and
 its original stay in `narration/attempts/`.
@@ -227,7 +235,8 @@ writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
 phrases the page burns in, as it shows them).
 
 A short's captions are phrases, not the film's lines (`core/phrases.ts`):
-`shortPhrases` takes each span's words, breaks them at every sentence and
+`shortPhrases` takes each span's words, timed by the voice (`heard`: a word
+shows when it is heard, not when the aligner starts it), breaks them at every sentence and
 voice turn, then at clauses, and cuts each clause evenly into two to four
 words (`PHRASE_MAX`); a one-word sentence joins its voice's next one, and no
 phrase crosses a join. A phrase shows from its first word to the next
@@ -241,7 +250,9 @@ at most 800 px as it needs and balanced (`breakLines`, so no word is left
 alone); a quoted word gets a gold marker (`caption.highlight`) swept behind
 it as it is read, so a quotation lights word by word. The phrases are set
 once; a frame looks one up and draws it. The long film's captions are
-untouched. `render --short --no-captions` leaves them out.
+untouched: they time each line by the aligner (`sceneCaptions`), and timing
+them by the voice is one line in `core/captions.ts` (`filmCaptionTimes = heard`),
+left for the owner since it moves burned-in pixels. `render --short --no-captions` leaves them out.
 
 `film check <film> --short <id> [--zone default|ads]` holds a short to
 `SHORT_RULES` (`core/shorts.ts`) instead of checking the film
@@ -255,7 +266,7 @@ untouched. `render --short --no-captions` leaves them out.
   (hook, captions; probed with the `caption` tag) are an error and fold into
   one finding per side; the film's lines in the band are a warning each,
   since the band is the film's frame and only another span moves them.
-- `ShortHook` (error): the first word after 0.3 s; nothing in the picture
+- `ShortHook` (error): the first word heard after 0.3 s; nothing in the picture
   moving by 0.5 s (probes of the open that hold still, the hook and captions
   left out, as `heldStill` does for holds); or the first frame showing the
   film's title (the film's page title, read from the film's own page). A logo
@@ -263,7 +274,8 @@ untouched. `render --short --no-captions` leaves them out.
 - `ShortLoop` (warning): the band's mean luma on a 64×36 grid differs by more
   than 0.08 between the last frame and the first (`FramePage.luma`, which
   decodes the export handle's PNG in the page, so the player is untouched),
-  or more than 0.6 s of silence from the last word round to the first.
+  or more than 0.6 s of silence from the last word's voice round to the
+  first's.
 - `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
 
 `--static` runs only what the words tell (length, first word, the loop's

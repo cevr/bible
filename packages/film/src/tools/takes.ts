@@ -34,6 +34,7 @@ import { MIX_RATE } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { lineError } from '../core/spoken.ts';
 import { prepareTake } from '../core/recording.ts';
+import { voicedWords } from '../core/voiced.ts';
 import { type Timings, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
@@ -284,7 +285,8 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
             hash: hashText(beat.script),
             file,
             duration,
-            words: timeScript(beat.text, heard, duration),
+            // Where each word is heard, read from the take as it was kept.
+            words: voicedWords(timeScript(beat.text, heard, duration), prepared),
             source: 'recorded',
           },
           heard: reply.text,

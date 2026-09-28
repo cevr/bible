@@ -36,6 +36,34 @@ export const Word = Schema.Struct({
 }).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
+/** Where a word's voice is heard, in seconds from the start of its take. */
+export const Voiced = Schema.Struct({ start: Seconds, end: Seconds });
+export type Voiced = typeof Voiced.Type;
+
+/**
+ * A word of a take: its span as the aligner timed it (`start`, `end`, which
+ * hold the pause before the word), and where inside that span its voice is
+ * heard (`voiced`, measured from the take's audio when it is timed:
+ * `voiced.ts`). A caption, a hook or a loop that must meet the ear reads
+ * `voiced`; a mark reads the aligned `start`.
+ */
+export const TakeWord = Schema.Struct({
+  text: Schema.String,
+  start: Seconds,
+  end: Seconds,
+  voiced: Voiced,
+}).check(
+  Schema.makeFilter((w) => {
+    if (w.start > w.end) return `"${w.text}" ends before it starts`;
+    const { start, end } = w.voiced;
+    return (
+      (w.start <= start && start <= end && end <= w.end) ||
+      `"${w.text}" is heard ${start}–${end}s, outside its ${w.start}–${w.end}s span`
+    );
+  }),
+);
+export type TakeWord = typeof TakeWord.Type;
+
 /**
  * Who read a take: the ElevenLabs staging voice (`narrate`), or a person
  * (`takes import`, the lab's studio). Staging never replaces a recorded take.
@@ -49,7 +77,7 @@ export const VoiceTiming = Schema.Struct({
   hash: Schema.String,
   file: Schema.String,
   duration: Seconds,
-  words: Schema.Array(Word),
+  words: Schema.Array(TakeWord),
   /**
    * A take stored with no source was staged: it reads as `elevenlabs`, and a
    * staged take is written with none, so the committed timings never churn.

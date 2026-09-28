@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { layout } from './layout.ts';
+import { hashText } from './narration.ts';
 import { PHRASE_HOLD, phraseCues, phrasesOf, quotedWords, shortPhrases } from './phrases.ts';
 import type { Word } from './schema.ts';
 import { resolveShort } from './shorts.ts';
@@ -165,5 +166,49 @@ describe('shortPhrases', () => {
   test('the sidecar is the phrases, as shown', () => {
     const cues = phraseCues(phrasesOf(said('One two three four five six')));
     expect(cues.map((c) => c.text)).toEqual(['One two three', 'four five six']);
+  });
+
+  test('a phrase shows when its first word is heard, and its words are timed by the voice', () => {
+    // The aligner starts "Justified?" at 0 with the pause before it; the voice comes at 0.87 s.
+    const say = 'Justified? But I am still guilty.';
+    const heardAt: ReadonlyArray<readonly [number, number, number, number]> = [
+      [0, 2.3, 0.87, 1.9],
+      [2.3, 2.6, 2.4, 2.6],
+      [2.6, 2.7, 2.6, 2.7],
+      [2.7, 2.9, 2.7, 2.9],
+      [2.9, 3.3, 2.95, 3.3],
+      [3.3, 3.9, 3.3, 3.8],
+    ];
+    const words = say.split(' ').map((text, i) => {
+      const [start, end, on, off] = heardAt[i] ?? [0, 0, 0, 0];
+      return { text, start, end, voiced: { start: on, end: off } };
+    });
+    const take = {
+      hash: hashText(say),
+      file: 'a.mp3',
+      duration: 4,
+      words,
+      source: 'elevenlabs' as const,
+    };
+    const film = layout([{ id: 'a', say, lead: 0.5, draw }], { voice: 'v', scenes: { a: take } });
+    const short = Result.getOrThrow(
+      resolveShort(
+        film,
+        {
+          id: 'cut',
+          title: 'Cut',
+          spans: [{ scene: 'a', from: { scene: 'speech' }, to: { scene: 'speechEnd' } }],
+        },
+        30,
+      ),
+    );
+    const phrases = shortPhrases(film, short);
+    const first = phrases[0]?.words[0];
+    expect(first).toEqual({ text: 'Justified?', start: 0.87, end: 1.9, quoted: false });
+    // Shown on the frame nearest the voice, not on the short's first frame.
+    expect(phrases[0]?.start).toBeCloseTo(0.87 - 0.5 / 30 - 1e-6, 6);
+    expect(phrases.flatMap((p) => p.words).map((w) => w.start)).toEqual(
+      heardAt.map(([, , on]) => on),
+    );
   });
 });

@@ -10,6 +10,7 @@ import type { CaptionCue } from './captions.ts';
 import type { Placed } from './layout.ts';
 import type { Word } from './schema.ts';
 import type { ResolvedShort } from './shorts.ts';
+import { heard } from './voiced.ts';
 
 /** The most words a phrase holds. */
 export const PHRASE_MAX = 4;
@@ -153,10 +154,10 @@ export const phrasesOf = (
 };
 
 /**
- * A short's phrases on its clock: each span's words (those whose start falls
- * inside it), phrased apart so no phrase crosses a join, each ended by its
- * span's end. A word keeps the quotation its scene's take gives it, even when
- * the span opens inside the quotation.
+ * A short's phrases on its clock, timed by the voice (`heard`): each span's
+ * words (those first heard inside it), phrased apart so no phrase crosses a
+ * join, each ended by its span's end. A word keeps the quotation its scene's
+ * take gives it, even when the span opens inside the quotation.
  */
 export const shortPhrases = (
   placed: ReadonlyArray<Placed>,
@@ -168,7 +169,9 @@ export const shortPhrases = (
       {
         onNone: () => [],
         onSome: (p) => {
-          const words = p.voice.words;
+          // Timed by the voice: a word shows when it is heard, not when the
+          // aligner starts it (with the pause before it).
+          const words = heard(p.voice.words);
           const quoted = quotedWords(words);
           const offset = p.start + p.speechStart;
           // A span's ends sit on frames, within half a frame of the words they name.

@@ -3,10 +3,13 @@
 // the short, its phrases and what its probed frames report.
 
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
+import { layout } from '../core/layout.ts';
+import { hashText } from '../core/narration.ts';
+import { shortPhrases } from '../core/phrases.ts';
 import type { Phrase } from '../core/phrases.ts';
 import type { Probed, TextBox } from '../core/schema.ts';
-import type { ResolvedShort } from '../core/shorts.ts';
+import { type ResolvedShort, resolveShort } from '../core/shorts.ts';
 import {
   loopGap,
   loopPicture,
@@ -91,6 +94,56 @@ describe('hookWord', () => {
     expect(late.at).toBeCloseTo(0.8);
     expect(shortLevel(late)).toBe('error');
     expect(Option.getOrThrow(hookWord(resolved(60), [])).reason).toBe('late word');
+  });
+});
+
+describe('the hook and the loop read when words are heard', () => {
+  // "The evidence is overwhelming.": the aligner starts "The" at 0 with the
+  // 0.4 s pause before it, and ends "overwhelming." 0.5 s after its voice.
+  const say = 'The evidence is overwhelming.';
+  const aligned: ReadonlyArray<readonly [number, number, number, number]> = [
+    [0, 0.6, 0.4, 0.6],
+    [0.6, 1.1, 0.6, 1.1],
+    [1.1, 1.3, 1.1, 1.3],
+    [1.3, 2.5, 1.3, 2.0],
+  ];
+  const words = say.split(' ').map((text, i) => {
+    const [start, end, on, off] = aligned[i] ?? [0, 0, 0, 0];
+    return { text, start, end, voiced: { start: on, end: off } };
+  });
+  const take = {
+    hash: hashText(say),
+    file: 'a.mp3',
+    duration: 2.5,
+    words,
+    source: 'elevenlabs' as const,
+  };
+  const film = layout([{ id: 'a', say, lead: 0.5, draw: () => {} }], {
+    voice: 'v',
+    scenes: { a: take },
+  });
+  const short = Result.getOrThrow(
+    resolveShort(
+      film,
+      {
+        id: 'cut',
+        title: 'Cut',
+        spans: [{ scene: 'a', from: { scene: 'speech' }, to: { scene: 'speechEnd' } }],
+      },
+      30,
+    ),
+  );
+  const phrases = shortPhrases(film, short);
+
+  test('the first word is late when its voice is, whatever its aligned start', () => {
+    const late = Option.getOrThrow(hookWord(short, phrases));
+    expect(late.at).toBeCloseTo(0.4);
+  });
+
+  test("the loop's silence runs from the last word's voice to the first's", () => {
+    // 0.5 s after "overwhelming." is heard, and 0.4 s before "The": 0.9 s.
+    const gap = Option.getOrThrow(loopGap(short, phrases));
+    expect(gap.value).toBeCloseTo(0.9);
   });
 });
 

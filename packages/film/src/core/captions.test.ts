@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { captionCues, filmCaptions, vttTime, webVtt } from './captions.ts';
 import { hashText } from './narration.ts';
 import { layout } from './layout.ts';
+import { unmeasured } from './voiced.ts';
 import type { Timings, Word } from './schema.ts';
 
 const word = (text: string, start: number, end: number): Word => ({ text, start, end });
@@ -59,14 +60,14 @@ const timings: Timings = {
       hash: hashText('Grace, freely given.'),
       file: 'a.mp3',
       duration: 2,
-      words,
+      words: unmeasured(words),
       source: 'elevenlabs',
     },
     b: {
       hash: hashText('Amen.'),
       file: 'b.mp3',
       duration: 1,
-      words: [word('Amen.', 0, 0.5)],
+      words: unmeasured([word('Amen.', 0, 0.5)]),
       source: 'elevenlabs',
     },
   },

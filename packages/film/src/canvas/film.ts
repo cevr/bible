@@ -5,7 +5,7 @@
 import { Predicate, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
 import type { Affine } from '../core/affine.ts';
-import { captionCues } from '../core/captions.ts';
+import { sceneCaptions } from '../core/captions.ts';
 import {
   type Placed,
   everyTakeRecorded,
@@ -665,7 +665,7 @@ const caption = (
   style: Required<CaptionStyle>,
 ) => {
   const t = local - p.speechStart;
-  const line = captionCues(p.voice.words, p.voice.turns).find((c) => t >= c.start && t < c.end);
+  const line = sceneCaptions(p).find((c) => t >= c.start && t < c.end);
   if (line === undefined) return;
   const text = line.text;
   ctx.save();

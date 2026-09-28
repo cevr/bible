@@ -7,6 +7,7 @@ export * from './random.ts';
 export * from './schema.ts';
 export * from './errors.ts';
 export * from './narration.ts';
+export * from './voiced.ts';
 export * from './align.ts';
 export * from './recording.ts';
 export * from './spoken.ts';
