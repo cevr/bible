@@ -273,6 +273,25 @@ export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('Base
   }
 }
 
+/** A bench run that cannot be held against its baseline: another machine, or the other captions setting. */
+export class BaselineIncomparable extends Schema.TaggedError<BaselineIncomparable>()(
+  'BaselineIncomparable',
+  { file: Schema.String, reason: Schema.String },
+) {
+  override get message() {
+    return `the bench baseline at ${this.file} does not compare with this run: ${this.reason}; run bench --baseline on this setup first`;
+  }
+}
+
+/** A `--hash` bench run against a baseline that kept no hashes: its pixels would pass unchecked. */
+export class BaselineUnhashed extends Schema.TaggedError<BaselineUnhashed>()('BaselineUnhashed', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `the bench baseline at ${this.file} has no pixel hashes to compare; run bench --hash --baseline first`;
+  }
+}
+
 /** A bench run more than the budget slower than its baseline, on the same machine. */
 export class BenchOverBudget extends Schema.TaggedError<BenchOverBudget>()('BenchOverBudget', {
   /** Each measure over: a scene's median ms, or the film's summed draw seconds. */
@@ -298,7 +317,6 @@ export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved'
   }
 }
 
-/** A render range with no frames in it. */
 /** A video render that would open more hardware encoders than run at once: it would hang, not fail. */
 export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooManyEncoders', {
   workers: Schema.Int,
@@ -313,6 +331,7 @@ export class TooManyEncoders extends Schema.TaggedError<TooManyEncoders>()('TooM
   }
 }
 
+/** A render range with no frames in it. */
 export class RangeEmpty extends Schema.TaggedError<RangeEmpty>()('RangeEmpty', {
   from: Schema.Finite,
   to: Schema.Finite,

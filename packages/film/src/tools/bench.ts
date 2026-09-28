@@ -118,6 +118,8 @@ export const BenchReport = Schema.Struct({
   /** Seconds the scenes timed take to draw, summed over all their frames. */
   drawSec: Schema.Finite,
   medianMs: Schema.Finite,
+  /** The page drew the captions, as `render` burns them in by default. */
+  captions: Schema.Boolean,
   scenes: Schema.Array(BenchScene),
   /** With `--hash`: the pixels of every `HASH_EVERY`th frame, by frame. */
   hashes: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
@@ -171,12 +173,15 @@ export interface Slower {
 
 /** A run held against its baseline. */
 export type BudgetVerdict =
-  | { readonly _tag: 'OtherMachine'; readonly baseline: Machine }
+  /** Measured on another machine, or drawn another way: nothing is compared. */
+  | { readonly _tag: 'Incomparable'; readonly reason: string }
   | {
       readonly _tag: 'Compared';
       readonly slower: ReadonlyArray<Slower>;
       /** Frames whose pixels differ from the baseline's (both hashed). */
       readonly moved: ReadonlyArray<number>;
+      /** The run hashed its frames but the baseline did not: no pixels were compared. */
+      readonly unhashed: boolean;
     };
 
 /** `what`, when `now` is more than the budget over `before`. */
@@ -198,16 +203,35 @@ const movedFrames = (now: BenchReport, baseline: BenchReport): ReadonlyArray<num
 
 const sameMachine = (a: Machine, b: Machine) => a.cpu === b.cpu && a.cores === b.cores;
 
+const machineName = (m: Machine) => `${m.cpu} ×${m.cores}`;
+const withCaptions = (on: boolean) => ['without', 'with'][Number(on)];
+
+/** Why `now` cannot be held against `baseline`, if it cannot. */
+const incomparable = (now: BenchReport, baseline: BenchReport): Option.Option<string> =>
+  Option.orElse(
+    Option.liftPredicate(
+      `the baseline was measured on ${machineName(baseline.machine)}, this run on ${machineName(now.machine)}`,
+      () => !sameMachine(now.machine, baseline.machine),
+    ),
+    () =>
+      Option.liftPredicate(
+        `the baseline was drawn ${withCaptions(baseline.captions)} captions, this run ${withCaptions(now.captions)}`,
+        () => now.captions !== baseline.captions,
+      ),
+  );
+
 /**
  * `now` against `baseline`: the film's draw seconds and each scene's median
  * more than `BUDGET_TOLERANCE` slower, and the frames whose pixels moved. Only
- * on the machine the baseline was measured on; a scene the baseline drew under
+ * on the machine the baseline was measured on and with the same captions
+ * setting, else `Incomparable`; a hashed run against a baseline without hashes
+ * is `unhashed`, never "no pixels moved". A scene the baseline drew under
  * `BUDGET_FLOOR_MS` never counts, and the film's sum counts only when the run
  * timed the baseline's scenes.
  */
 export const judge = (now: BenchReport, baseline: BenchReport): BudgetVerdict => {
-  if (!sameMachine(now.machine, baseline.machine))
-    return { _tag: 'OtherMachine', baseline: baseline.machine };
+  const not = incomparable(now, baseline);
+  if (Option.isSome(not)) return { _tag: 'Incomparable', reason: not.value };
   const before = new Map(baseline.scenes.map((s) => [s.id, s]));
   const scenes = now.scenes.flatMap((s) =>
     Option.match(
@@ -220,7 +244,14 @@ export const judge = (now: BenchReport, baseline: BenchReport): BudgetVerdict =>
   );
   const same = now.scenes.length === before.size && now.scenes.every((s) => before.has(s.id));
   const film = Arr.filter(slower('film', now.drawSec, baseline.drawSec), () => same);
-  return { _tag: 'Compared', slower: [...film, ...scenes], moved: movedFrames(now, baseline) };
+  const hashed = (r: BenchReport) => Option.isSome(Option.fromNullishOr(r.hashes));
+  const unhashed = hashed(now) && !hashed(baseline);
+  return {
+    _tag: 'Compared',
+    slower: [...film, ...scenes],
+    moved: movedFrames(now, baseline),
+    unhashed,
+  };
 };
 
 const DRAW = 'the draw leg times frames; --workers times renders';

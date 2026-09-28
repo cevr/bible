@@ -58,11 +58,16 @@ Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
 `out/<film>/bench.baseline.json`), `--budget` (fail with `BenchOverBudget` when
 a scene's median or the film's summed draw is more than 10% over the baseline,
 or with `PixelsMoved` when a hashed frame differs; a scene under 2 ms never
-fails). The bench times each frame in one headless export page, the render's
-page and flags, with the raster flushed; a run always compares with a baseline
-on disk and logs what it finds, and only `--budget` fails. A baseline is per
-machine: on another machine it warns and compares nothing. The budget is opt-in,
-never in the gate. `--workers n,n` instead renders the range (`--scene`, or
+fails), `--no-captions` (as `render --no-captions`; captions are drawn by
+default, as a render burns them in). The bench times each frame in one headless
+export page, the render's page with the same captions choice, with the raster
+flushed; a run always compares with a baseline on disk and logs what it finds,
+and only `--budget` fails. A baseline is per machine and per captions setting:
+against one taken on another machine or with the other setting, a run warns and
+compares nothing, and `--budget` fails with `BaselineIncomparable`. A `--hash`
+run against a baseline kept without `--hash` fails with `BaselineUnhashed`
+rather than reporting no pixels moved; a `--budget` run without `--hash` warns
+that it compared no pixels. The budget is opt-in, never in the gate. `--workers n,n` instead renders the range (`--scene`, or
 `--from/--to`) at each page count `--runs` times, as `render` would (share copy
 on unless `--no-share`), and reports the median fps. A flag the chosen leg
 would ignore (`--hash` with `--workers`, `--from` without it) fails with

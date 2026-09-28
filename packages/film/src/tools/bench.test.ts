@@ -43,6 +43,7 @@ const report = (scenes: ReadonlyArray<[string, number]>, extra: Partial<BenchRep
     sampled: 30,
     drawSec: rows.reduce((sum, r) => sum + r.costSec, 0),
     medianMs: 0,
+    captions: true,
     scenes: rows,
   };
   return { ...base, ...extra };
@@ -119,7 +120,7 @@ describe('budget', () => {
         ]),
         baseline,
       ),
-    ).toEqual({ _tag: 'Compared', slower: [], moved: [] });
+    ).toEqual({ _tag: 'Compared', slower: [], moved: [], unhashed: false });
   });
 
   test('a scene more than 10% slower fails, and the film with it when its sum is over', () => {
@@ -138,6 +139,7 @@ describe('budget', () => {
         { what: 'b', now: 60, before: 40 },
       ],
       moved: [],
+      unhashed: false,
     });
   });
 
@@ -168,6 +170,22 @@ describe('budget', () => {
 
   test('another machine is not compared', () => {
     const verdict = judge(report([['a', 90]], { machine: { cpu: 'Other', cores: 8 } }), baseline);
-    expect(verdict).toEqual({ _tag: 'OtherMachine', baseline: { cpu: 'M', cores: 12 } });
+    expect(verdict).toEqual({
+      _tag: 'Incomparable',
+      reason: 'the baseline was measured on M ×12, this run on Other ×8',
+    });
+  });
+
+  test('a baseline drawn with the other captions setting is not compared', () => {
+    const verdict = judge(report([['a', 30]], { captions: false }), baseline);
+    expect(verdict).toEqual({
+      _tag: 'Incomparable',
+      reason: 'the baseline was drawn with captions, this run without',
+    });
+  });
+
+  test('a hashed run against a baseline without hashes compares no pixels, and says so', () => {
+    const verdict = judge(report([['a', 30]], { hashes: { '0': 'x' } }), baseline);
+    expect(verdict).toMatchObject({ moved: [], unhashed: true });
   });
 });

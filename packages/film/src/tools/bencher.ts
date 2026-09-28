@@ -35,7 +35,9 @@ import {
 } from './bench.ts';
 import { Browser, type FramePage, type PageOpenError } from './browser.ts';
 import {
+  BaselineIncomparable,
   BaselineMissing,
+  BaselineUnhashed,
   BenchOverBudget,
   FileInvalid,
   type FrameFailed,
@@ -52,6 +54,8 @@ import { type RenderError, Renderer } from './renderer.ts';
 export interface DrawBenchOptions {
   /** Time every this many frames. */
   readonly every: number;
+  /** Draw the captions, as `render` burns them in by default. */
+  readonly captions: boolean;
   /** Times each frame is timed; the median counts. */
   readonly runs: number;
   /** Only these scenes. */
@@ -69,6 +73,8 @@ export interface WorkersBenchOptions {
   readonly workers: ReadonlyArray<number>;
   readonly runs: number;
   readonly share: boolean;
+  /** Burn the captions in, as `render` does by default. */
+  readonly captions: boolean;
   /** The range rendered, in seconds. */
   readonly from: Option.Option<number>;
   readonly to: Option.Option<number>;
@@ -81,7 +87,9 @@ export type BenchError =
   | FrameFailed
   | LayoutInvalid
   | FileInvalid
+  | BaselineIncomparable
   | BaselineMissing
+  | BaselineUnhashed
   | BenchOverBudget
   | PixelsMoved
   | PlatformError;
@@ -134,8 +142,13 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
       const server = yield* PreviewServer;
       const renderer = yield* Renderer;
 
-      const url = (film: LoadedFilm) =>
-        `${server.url}?film=${encodeURIComponent(film.paths.name)}&export&captions=0`;
+      /** The export page `render` opens, with the same captions choice. */
+      const url = (film: LoadedFilm, captions: boolean) =>
+        [
+          `${server.url}?film=${encodeURIComponent(film.paths.name)}`,
+          'export',
+          ...Arr.filter(['captions=0'], () => !captions),
+        ].join('&');
 
       /** `frames` through `call` on `page`, a batch at a time. */
       const batched = <A, E>(
@@ -198,12 +211,17 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
             return;
           }
           const verdict = judge(report, yield* readBaseline(file));
-          if (verdict._tag === 'OtherMachine') {
-            yield* Effect.logWarning(
-              `bench.baseline other-machine baseline="${verdict.baseline.cpu} ×${verdict.baseline.cores}" now="${report.machine.cpu} ×${report.machine.cores}": not compared`,
-            );
+          if (verdict._tag === 'Incomparable') {
+            if (budget) return yield* BaselineIncomparable.make({ file, reason: verdict.reason });
+            yield* Effect.logWarning(`bench.baseline not-compared reason="${verdict.reason}"`);
             return;
           }
+          // A hashed run whose baseline kept no hashes would pass its pixels unchecked.
+          if (verdict.unhashed) return yield* BaselineUnhashed.make({ file });
+          if (Option.isNone(Option.fromNullishOr(report.hashes)))
+            yield* Effect.logWarning(
+              'bench.baseline pixels-not-compared reason="run without --hash"',
+            );
           for (const s of verdict.slower)
             yield* Effect.logWarning(
               `bench.slower what=${s.what} now=${s.now.toFixed(2)} before=${s.before.toFixed(2)}`,
@@ -226,7 +244,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
         const placed = yield* placeFilm(film);
         const measured = yield* Effect.scoped(
           Effect.gen(function* () {
-            const page = yield* browser.open(url(film));
+            const page = yield* browser.open(url(film, options.captions));
             const all = filmFrames(placed, page.info.fps, page.info.frames);
             const sampled = benchFrames(all, options.every, options.scenes);
             const ms = yield* timeRuns(
@@ -259,6 +277,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
           sampled: measured.sampled,
           drawSec: measured.scenes.reduce((sum, s) => sum + s.costSec, 0),
           medianMs: measured.medianMs,
+          captions: options.captions,
           scenes: measured.scenes,
         };
         const report = Option.match(measured.hashes, {
@@ -290,7 +309,9 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
         yield* Effect.forEach(options.workers, (n) =>
           Effect.fromResult(videoEncoders(n, options.share)),
         );
-        const info = yield* Effect.scoped(Effect.map(browser.open(url(film)), (page) => page.info));
+        const info = yield* Effect.scoped(
+          Effect.map(browser.open(url(film, options.captions)), (page) => page.info),
+        );
         const { start, end } = frameSpan(info, options.from, options.to);
         const from = start / info.fps;
         const to = end / info.fps;
@@ -301,7 +322,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
               Effect.gen(function* () {
                 const job = RenderJob.Video({
                   tag: 'bench',
-                  captions: false,
+                  captions: options.captions,
                   workers: n,
                   from: Option.some(from),
                   to: Option.some(to),

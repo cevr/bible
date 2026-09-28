@@ -246,6 +246,8 @@ export interface RenderLedger {
   readonly joins: Array<JoinedFilm>;
   /** The frames of every track encoded to AAC. */
   readonly aac: Array<number>;
+  /** The URL of every page opened. */
+  readonly urls: Array<string>;
   /** AAC encodes cut off before they ended. */
   readonly aacInterrupted: { count: number };
 }
@@ -261,6 +263,7 @@ export const emptyLedger = (): RenderLedger => ({
   joins: [],
   aac: [],
   aacInterrupted: { count: 0 },
+  urls: [],
 });
 
 export const testExportInfo: ExportInfo = {
@@ -329,9 +332,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       Effect.sync(() => {
         ledger.browser.launched += 1;
         return Browser.of({
-          open: () =>
+          open: (url: string) =>
             Effect.acquireRelease(
               Effect.sync(() => {
+                ledger.urls.push(url);
                 ledger.pages.opened += 1;
                 return ledger.pages.opened;
               }),

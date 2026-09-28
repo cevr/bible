@@ -26,6 +26,7 @@ const film = testFilm(
 
 const draw: DrawBenchOptions = {
   every: 30,
+  captions: true,
   runs: 3,
   scenes: Option.none(),
   hash: false,
@@ -51,6 +52,7 @@ const setup = (files: Map<string, Uint8Array>, host: FakeRenderHost = {}) => {
           workers: counts,
           runs: 2,
           share: false,
+          captions: true,
           from: Option.some(2),
           to: Option.some(6),
         });
@@ -121,6 +123,41 @@ describe('Bencher', () => {
       const moved = setup(files, { pixels: (i) => `px${i}${'moved'.repeat(Number(i === 300))}` });
       const error = yield* Effect.flip(moved.bench({ ...draw, hash: true, budget: true }));
       expect(error._tag === 'PixelsMoved' && error.frames).toEqual([300]);
+    }),
+  );
+
+  it.live('--hash against a baseline without hashes fails, never passes', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      yield* setup(files).bench({ ...draw, baseline: true });
+      const moved = setup(files, { pixels: (i) => `px${i}moved` });
+      const plain = yield* Effect.flip(moved.bench({ ...draw, hash: true }));
+      expect(plain._tag).toBe('BaselineUnhashed');
+      const budget = yield* Effect.flip(moved.bench({ ...draw, hash: true, budget: true }));
+      expect(budget._tag).toBe('BaselineUnhashed');
+    }),
+  );
+
+  it.live('the bench draws the captions a render does, and its baseline keeps the choice', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const on = setup(files);
+      yield* on.bench({ ...draw, baseline: true });
+      expect(on.ledger.urls.every((u) => !u.includes('captions=0'))).toBe(true);
+      expect(written(files, '/out/test/bench.baseline.json').captions).toBe(true);
+      const off = setup(files);
+      yield* off.bench({ ...draw, captions: false });
+      expect(off.ledger.urls.every((u) => u.includes('captions=0'))).toBe(true);
+    }),
+  );
+
+  it.live('--budget against a baseline with the other captions setting fails', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      yield* setup(files).bench({ ...draw, captions: false, baseline: true });
+      const error = yield* Effect.flip(setup(files).bench({ ...draw, budget: true }));
+      expect(error._tag).toBe('BaselineIncomparable');
+      expect(error.message).toContain('without captions');
     }),
   );
 

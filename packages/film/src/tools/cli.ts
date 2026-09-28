@@ -18,7 +18,9 @@
 //                      [--no-share]
 //   film lookbook <film> [--captions] [--tag name]
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
+//                     [--no-captions]
 //   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
+//                     [--no-captions]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -469,6 +471,12 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
         Flag.optional,
         Flag.withDescription('time every this many frames (default 10)'),
       ),
+      captions: Flag.Boolean('captions').pipe(
+        Flag.withDefault(true),
+        Flag.withDescription(
+          'draw the captions, as render burns them in (--no-captions to leave them out, as render --no-captions)',
+        ),
+      ),
       runs: Flag.Int('runs').pipe(
         Flag.withDefault(3),
         Flag.withDescription(
@@ -542,6 +550,7 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
           workers: counts,
           runs: input.runs,
           share: Option.getOrElse(input.share, () => true),
+          captions: input.captions,
           from: Option.orElse(
             Option.map(span, (s) => s.from),
             () => input.from,
@@ -563,6 +572,7 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
           Option.getOrElse(input.every, () => 10),
         ),
         runs: Math.max(1, input.runs),
+        captions: input.captions,
         scenes: Option.map(picked, (hit) => new Set(hit.map((p) => p.spec.id))),
         hash: input.hash,
         baseline: input.baseline,
