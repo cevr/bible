@@ -252,7 +252,7 @@ export interface Person {
   browTilt?: number;
   /** 0 closed, 1 a small round "oh". */
   mouth?: number;
-  /** The mouth's curve, −1 a frown to 1 a smile; nothing near 0. An "oh" opens under it. */
+  /** The mouth's curve, −1 a frown to 1 a smile (held there); nothing near 0. An "oh" opens under it. */
   smile?: number;
   /** 1 open to 0 shut; below 0.3 each eye is an arc, a happy crescent when smiling past 0.5. */
   eyes?: number;
@@ -266,9 +266,12 @@ export interface Person {
   onHead?: HeadPiece;
   /** Keyed hands `onHead` draws with, so its pieces keep the scene's own seeds. */
   headHands?: Hands;
-  /** The body's width and height as multiples (garment, legs, shoulders); the head keeps the size that reads. */
+  /**
+   * The body's width and height as multiples (garment, legs, shoulders), each
+   * held in 0.6..1.5; the head keeps the size that reads.
+   */
   build?: readonly [number, number];
-  /** A moustache, 0 none to 1 a full handlebar, in `hair` (the outline ink unless given). */
+  /** A moustache, 0 none to 1 a full handlebar (held there), in `hair` (the outline ink unless given). */
   moustache?: number;
   hair?: string;
   /** Hands, in the person's units, when they reach for something; no arm otherwise. */
@@ -496,6 +499,15 @@ const TUNIC_SPAN = [-128, -16] as const;
 /** Where the hem rests once seated: just over the seat's edge. */
 const SEAT_HEM = 3;
 const UNBUILT = [1, 1] as const;
+/** How far a build may stretch or squash the body: a person still, never flat or inside out. */
+const BUILD_MIN = 0.6;
+const BUILD_MAX = 1.5;
+
+/** The person's build, each factor held in [BUILD_MIN, BUILD_MAX]. */
+export const buildOf = (p: Person): readonly [number, number] =>
+  p.build === undefined
+    ? UNBUILT
+    : [clamp(p.build[0], BUILD_MIN, BUILD_MAX), clamp(p.build[1], BUILD_MIN, BUILD_MAX)];
 /** Pupils looking straight ahead. */
 const HEAD_STILL: Pt = [0, 0];
 const NO_STAINS: ReadonlyArray<ReadonlyArray<Pt>> = [];
@@ -547,7 +559,7 @@ const arm = (
 
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
   const colours = [p.body ?? C.figure, p.skin ?? C.figure] as const;
-  const build = p.build ?? UNBUILT;
+  const build = buildOf(p);
   const [bw, bh] = build;
   const sit = clamp(p.sit ?? 0);
   // Seated, everything but the legs drops onto the seat.
@@ -608,14 +620,14 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
   const [lx, ly] = p.look ?? HEAD_STILL;
-  const smile = p.smile ?? 0;
+  const smile = clamp(p.smile ?? 0, -1, 1);
   eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);
   p.onHead?.(ctx, HEAD, HEAD_R, hand, p.headHands);
   const tilt = p.browTilt ?? 0;
   browOf(ctx, HEAD, -1, p.browL ?? 0, tilt, sub(hand, 8));
   browOf(ctx, HEAD, 1, p.browR ?? 0, tilt, sub(hand, 9));
   mouthOf(ctx, cx, cy, p.mouth ?? 0, smile, hand);
-  const m = p.moustache ?? 0;
+  const m = clamp(p.moustache ?? 0);
   if (m > 0)
     for (const side of SIDES)
       piece(
