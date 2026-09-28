@@ -18,11 +18,12 @@ import {
   line,
   multiplane,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, contact, person, piece, rounded, between } from '../kit.ts';
+import { C, contact, person, piece, rounded } from '../kit.ts';
 import {
   type Stamp,
   ACCUSED,
@@ -85,7 +86,11 @@ export const cold = drawing({
 
     const push = f.at('push');
     const back = f.at('back');
-    const cam = between(between(between(REST, FACE, push), REST, back), WIDE, f.at('wide'));
+    const cam = shotPath(REST, [
+      [push, FACE],
+      [back, REST],
+      [f.at('wide'), WIDE],
+    ]);
 
     // The accused's face: head down on "you did it", up at the verdict,
     // puzzled on "wait", looking up at the question on "job".

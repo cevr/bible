@@ -27,6 +27,7 @@ import {
   drawing,
   ellipseShape,
   rectShape,
+  shotPath,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
@@ -43,7 +44,6 @@ import {
   piece,
   rounded,
   sky,
-  between,
 } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
@@ -154,7 +154,10 @@ const hill = (f: ExchangeFrame) => {
   const walking = gait(t, f.cue('walkIn')) + gait(t, f.cue('walkUp'));
   const shoulders: Pt = [cx, cy - walking - 118 * cs];
 
-  const cam = between(between(WIDE, CLOSE, f.at('close')), WIDE, f.at('back'));
+  const cam = shotPath(WIDE, [
+    [f.at('close'), CLOSE],
+    [f.at('back'), WIDE],
+  ]);
   // The sky reddens as the sun goes down toward the hilltop.
   sky(ctx, w, h, [
     [0, C.sunsetTop],
@@ -344,7 +347,7 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
   ctx.save();
   ctx.globalAlpha *= dawn;
   dawnSky(ctx, w, h, ascend);
-  camera(ctx, between(WIDE, HEAVEN, ascend), w, h, () => {
+  camera(ctx, shotPath(WIDE, [[ascend, HEAVEN]]), w, h, () => {
     tomb(ctx, hand);
     const arrived = ascend >= 1;
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>

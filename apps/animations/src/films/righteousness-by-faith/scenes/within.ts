@@ -21,6 +21,7 @@ import {
   ellipse,
   ellipseShape,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
@@ -40,7 +41,6 @@ import {
   piece,
   rounded,
   sky,
-  between,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 
@@ -104,7 +104,10 @@ const page = (f: WithinFrame) => {
     [0, C.paper],
     [1, C.paper],
   ]);
-  const cam = between(between(PAGE, FACE, f.at('closeUp')), PAGE, f.at('closeOut'));
+  const cam = shotPath(PAGE, [
+    [f.at('closeUp'), FACE],
+    [f.at('closeOut'), PAGE],
+  ]);
   camera(ctx, cam, w, h, () => {
     const aside = f.at('aside');
     const [fx, fy] = [lerp(CENTRE[0], ASIDE[0], aside), lerp(CENTRE[1], ASIDE[1], aside)];

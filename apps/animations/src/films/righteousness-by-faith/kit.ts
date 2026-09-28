@@ -3,7 +3,6 @@
 // glows, the stains. Scenes place them; nothing here reads the clock.
 
 import {
-  type Camera,
   type Hand,
   type Pt,
   at,
@@ -50,14 +49,6 @@ export const mix = (a: string, b: string, t: number): string => {
   );
   return `#${out.join('')}`;
 };
-
-/** A camera part way from `a` to `b`. */
-export const between = (a: Camera, b: Camera, t: number): Camera => ({
-  x: lerp(a.x, b.x, t),
-  y: lerp(a.y, b.y, t),
-  zoom: lerp(a.zoom ?? 1, b.zoom ?? 1, t),
-  rot: lerp(a.rot ?? 0, b.rot ?? 0, t),
-});
 
 // ─── shapes ──────────────────────────────────────────────────────────────────
 

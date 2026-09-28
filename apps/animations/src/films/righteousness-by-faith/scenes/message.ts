@@ -29,6 +29,7 @@ import {
   multiplane,
   probePlate,
   rectShape,
+  shotPath,
   stroke,
   write,
   sub,
@@ -47,7 +48,6 @@ import {
   rounded,
   sky,
   plate,
-  between,
 } from '../kit.ts';
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { herald } from '../heaven.ts';
@@ -156,11 +156,11 @@ export const message = drawing({
         [0.6, C.tealMid],
         [1, C.tealLow],
       ]);
-      const cam = between(
-        between(between(REST, PREACH, f.at('push')), REST, f.at('back')),
-        PULPIT,
-        f.at('toPulpit'),
-      );
+      const cam = shotPath(REST, [
+        [f.at('push'), PREACH],
+        [f.at('back'), REST],
+        [f.at('toPulpit'), PULPIT],
+      ]);
       const roof = f.at('roof');
       const up: Camera = { ...cam, y: cam.y - 60 * roof, zoom: lerp(cam.zoom ?? 1, 1, roof) };
       hall(f, up, roof);

@@ -23,6 +23,7 @@ import {
   drawing,
   probePlate,
   rectShape,
+  shotPath,
   write,
 } from '@bible/film/canvas';
 import { type Key, clamp, ease, lerp } from '@bible/film/core';
@@ -31,7 +32,6 @@ import {
   type Person,
   C,
   F,
-  between,
   blob,
   clipToGarment,
   glow,
@@ -324,50 +324,59 @@ export const declared = drawing({
     const down = Math.max(doubt * (1 - drift), cover, sink * (1 - back), landed);
     const look: Pt = [lerp(3, 0, doubt) * (1 - landed), lerp(-1, 4, down) - 5 * up];
 
-    camera(ctx, between(between(REST, FACE, f.at('push')), REST, back), w, h, () => {
-      // The dawn panel, callback to `spoke`.
-      const shown = f.at('panel');
-      if (shown > 0) panel(ctx, hand, shown);
+    camera(
+      ctx,
+      shotPath(REST, [
+        [f.at('push'), FACE],
+        [back, REST],
+      ]),
+      w,
+      h,
+      () => {
+        // The dawn panel, callback to `spoke`.
+        const shown = f.at('panel');
+        if (shown > 0) panel(ctx, hand, shown);
 
-      // The figure, their stains washed out from the light inside as it spreads.
-      at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
-        const figure: Person = {
-          body: clothAt(bloom),
-          tilt: 0.1 * doubt - 0.08 * up + 0.08 * landed,
-          nod: 4 * doubt + 3 * Math.max(cover, landed),
-          look,
-          browL: 2 * doubt + 3 * up + 4 * bloom,
-          browR: 1 * doubt + 4 * up + 4 * bloom,
-          browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
-          mouth: 0.35 * doubt + 0.5 * bloom,
-          handL: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)],
-          handR: [36, -40],
-          stains: STAIN_SHAPES,
-          washed: washStains(WASH, bloom),
-        };
-        person(ctx, figure, hand('figure'));
-        chest(ctx, figure, f.keys('sink', SINK_WARM), bloom);
-      });
+        // The figure, their stains washed out from the light inside as it spreads.
+        at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
+          const figure: Person = {
+            body: clothAt(bloom),
+            tilt: 0.1 * doubt - 0.08 * up + 0.08 * landed,
+            nod: 4 * doubt + 3 * Math.max(cover, landed),
+            look,
+            browL: 2 * doubt + 3 * up + 4 * bloom,
+            browR: 1 * doubt + 4 * up + 4 * bloom,
+            browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
+            mouth: 0.35 * doubt + 0.5 * bloom,
+            handL: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)],
+            handR: [36, -40],
+            stains: STAIN_SHAPES,
+            washed: washStains(WASH, bloom),
+          };
+          person(ctx, figure, hand('figure'));
+          chest(ctx, figure, f.keys('sink', SINK_WARM), bloom);
+        });
 
-      verdictAt(ctx, hand, verdict);
+        verdictAt(ctx, hand, verdict);
 
-      // The word, from the panel's sun to the chest.
-      flight(
-        ctx,
-        arc(PANEL_SUN, CHEST, 160),
-        f.at('speak') < 1 ? f.at('speak') : 0,
-        hand('word'),
-        0.5,
-      );
+        // The word, from the panel's sun to the chest.
+        flight(
+          ctx,
+          arc(PANEL_SUN, CHEST, 160),
+          f.at('speak') < 1 ? f.at('speak') : 0,
+          hand('word'),
+          0.5,
+        );
 
-      // The word card: the act's one card.
-      const shownCard = f.at('cardIn') * (1 - f.at('cardOut'));
-      if (shownCard > 0.01)
-        card(ctx, hand, shownCard, [
-          f.spoken('justified', 'still'),
-          f.at('greek'),
-          f.at('madeLine'),
-        ]);
-    });
+        // The word card: the act's one card.
+        const shownCard = f.at('cardIn') * (1 - f.at('cardOut'));
+        if (shownCard > 0.01)
+          card(ctx, hand, shownCard, [
+            f.spoken('justified', 'still'),
+            f.at('greek'),
+            f.at('madeLine'),
+          ]);
+      },
+    );
   },
 });

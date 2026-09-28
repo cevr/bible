@@ -12,10 +12,11 @@ import {
   multiplane,
   probePlate,
   rectShape,
+  shotPath,
   write,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, F, christ, glow, person, piece, between } from '../kit.ts';
+import { C, F, christ, glow, person, piece } from '../kit.ts';
 import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
 import {
   ADVOCATE_POSE,
@@ -76,7 +77,7 @@ export const thesis = drawing({
     if (cityIn > 0) {
       ctx.save();
       ctx.globalAlpha *= cityIn;
-      const cam = between(ROOFTOP, CITY, city);
+      const cam = shotPath(ROOFTOP, [[city, CITY]]);
       multiplane(ctx, cam, w, h, [
         { z: 1.6, draw: () => cityBack(ctx, (k) => f.hand(k)) },
         {
@@ -128,7 +129,7 @@ export const thesis = drawing({
       ctx.save();
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
-        cam: between(WIDE, COURT_BACK, away),
+        cam: shotPath(WIDE, [[away, COURT_BACK]]),
         swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * f.at('gavel'),
         stamp: 0,
         pop: 1,

@@ -17,11 +17,12 @@ import {
   line,
   multiplane,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, sky, between } from '../kit.ts';
+import { C, blob, contact, glow, person, piece, sky } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 
@@ -82,11 +83,11 @@ const garden = (f: MirrorFrame) => {
     [0, C.peachTop],
     [1, C.peachLow],
   ]);
-  const cam = between(
-    between(between(GARDEN, SEW, f.at('toSew')), PATCH, f.at('toPatch')),
-    GARDEN,
-    f.at('wide'),
-  );
+  const cam = shotPath(GARDEN, [
+    [f.at('toSew'), SEW],
+    [f.at('toPatch'), PATCH],
+    [f.at('wide'), GARDEN],
+  ]);
   const sewing = f.at('toSew') * (1 - f.at('promise'));
   const promise = f.at('promise') * (1 - f.at('sheepish'));
   const sheepish = f.at('sheepish') * (1 - f.at('droop'));
@@ -205,7 +206,10 @@ const glass = (f: MirrorFrame) => {
   const flare = f.at('flare');
   const scrub = f.at('scrub') * (1 - f.at('glance'));
   const glance = f.at('glance');
-  const cam = between(between(GLASS, STAINED, f.at('push')), GLASS, f.at('back'));
+  const cam = shotPath(GLASS, [
+    [f.at('push'), STAINED],
+    [f.at('back'), GLASS],
+  ]);
   const rub = Math.sin(t * 13) * 16 * scrub;
   const handR: [number, number] = [lerp(30, 70, scrub), lerp(-60, -124, scrub) + rub];
 

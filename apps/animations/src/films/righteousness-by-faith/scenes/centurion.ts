@@ -17,6 +17,7 @@ import {
   drawing,
   multiplane,
   rectShape,
+  shotPath,
   sub,
 } from '@bible/film/canvas';
 import { ease, lerp, rng } from '@bible/film/core';
@@ -34,7 +35,6 @@ import {
   rounded,
   shifted,
   sky,
-  between,
 } from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';
 
@@ -184,11 +184,11 @@ const street = (f: CenturionFrame, hand: Hands) => {
         y: HANDSHOT.y,
         zoom: lerp(2.05, HANDSHOT.zoom ?? 1, f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
       }
-    : between(
-        between(between(STREET, FACE, f.at('push')), TOWN, f.at('pullOut')),
-        WINDOW,
-        f.at('toWindow'),
-      );
+    : shotPath(STREET, [
+        [f.at('push'), FACE],
+        [f.at('pullOut'), TOWN],
+        [f.at('toWindow'), WINDOW],
+      ]);
 
   sky(ctx, w, h, [
     [0, C.tealTop],

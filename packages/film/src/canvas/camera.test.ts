@@ -6,7 +6,42 @@ import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
 import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
-import { type Plane, multiplane } from './camera.ts';
+import { type Camera, type Plane, lerpCamera, multiplane, shotPath } from './camera.ts';
+
+describe('shotPath', () => {
+  const REST: Camera = { x: 960, y: 540 };
+  const FACE: Camera = { x: 700, y: 600, zoom: 2.5 };
+  const WIDE: Camera = { x: 1000, y: 500, zoom: 0.8, rot: 0.1 };
+
+  test('is the base, zoom 1 and no turn, while no stop has begun', () => {
+    expect(shotPath(REST, [[0, FACE]])).toEqual({ x: 960, y: 540, zoom: 1, rot: 0 });
+    expect(shotPath(FACE, [])).toEqual({ x: 700, y: 600, zoom: 2.5, rot: 0 });
+  });
+
+  test('a later stop takes over from wherever the earlier ones left the camera', () => {
+    // Pushed half way in, then half way back out to WIDE.
+    const nested = lerpCamera(
+      { x: 0, y: 0 },
+      lerpCamera({ x: 0, y: 0 }, REST, FACE, 0.5),
+      WIDE,
+      0.5,
+    );
+    expect(
+      shotPath(REST, [
+        [0.5, FACE],
+        [0.5, WIDE],
+      ]),
+    ).toEqual(nested);
+    expect(nested).toEqual({ x: 915, y: 535, zoom: 1.275, rot: 0.05 });
+  });
+
+  test('writes into the camera it is given and leaves the stops alone', () => {
+    const out: Camera = { x: 0, y: 0 };
+    expect(shotPath(REST, [[1, FACE]], out)).toBe(out);
+    expect(out).toEqual({ x: 700, y: 600, zoom: 2.5, rot: 0 });
+    expect(FACE).toEqual({ x: 700, y: 600, zoom: 2.5 });
+  });
+});
 
 interface Recorder {
   readonly ctx: CanvasRenderingContext2D;

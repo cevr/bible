@@ -15,7 +15,7 @@
 // from inside the figure. On "jer" the bench itself goes gold, and the word
 // gives way to the name in `thesis`.
 
-import { type Camera, drawing } from '@bible/film/canvas';
+import { type Camera, drawing, shotPath } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import {
@@ -31,7 +31,6 @@ import {
   landingCourt,
   question,
 } from '../court.ts';
-import { between } from '../kit.ts';
 
 /** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
 const SWING: ReadonlyArray<Key> = [
@@ -103,19 +102,13 @@ export const name = drawing({
     const [px, py] = f.knob('present');
 
     landingCourt(ctx, w, h, (k) => f.hand(k), {
-      cam: between(
-        between(
-          between(
-            between(between(REST, WIDE, f.at('wide')), CLOSE, f.at('close')),
-            WIDE,
-            f.at('back'),
-          ),
-          PAIR,
-          f.at('toPair'),
-        ),
-        WIDE,
-        f.at('toBench'),
-      ),
+      cam: shotPath(REST, [
+        [f.at('wide'), WIDE],
+        [f.at('close'), CLOSE],
+        [f.at('back'), WIDE],
+        [f.at('toPair'), PAIR],
+        [f.at('toBench'), WIDE],
+      ]),
       swing,
       stamp: Math.max(f.at('hollow'), f.at('stamp')) * (1 - f.at('stampOut')),
       pop,

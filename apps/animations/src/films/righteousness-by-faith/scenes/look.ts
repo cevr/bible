@@ -15,12 +15,13 @@ import {
   ellipseShape,
   multiplane,
   rectShape,
+  shotPath,
   spline,
   stroke,
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, person, piece, rounded, sky, between } from '../kit.ts';
+import { C, blob, glow, person, piece, rounded, sky } from '../kit.ts';
 
 /** The desert wide, and close on the face looking up at the serpent. */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
@@ -225,7 +226,7 @@ export const look = drawing({
       ]);
       multiplane(
         ctx,
-        between(WIDE, FACE, f.at('push')),
+        shotPath(WIDE, [[f.at('push'), FACE]]),
         w,
         h,
         [

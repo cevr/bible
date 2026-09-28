@@ -8,9 +8,8 @@
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on:
 // both draw the court's `zechCourt`.
 
-import { type Camera, type Pt, camera, drawing } from '@bible/film/canvas';
+import { type Camera, type Pt, camera, drawing, shotPath } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { between } from '../kit.ts';
 import {
   ANGEL_HAND,
   JOSHUA,
@@ -55,12 +54,14 @@ export const accuser = drawing({
     const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
 
-    let cam = between(HIGH, REST, f.at('down'));
-    cam = between(cam, JOSH, f.at('push'));
-    cam = between(cam, PAIR, f.at('toPair'));
-    cam = between(cam, REST, f.at('wide'));
-    cam = between(cam, HIGH, f.at('up'));
-    cam = between(cam, REST, f.at('back'));
+    const cam = shotPath(HIGH, [
+      [f.at('down'), REST],
+      [f.at('push'), JOSH],
+      [f.at('toPair'), PAIR],
+      [f.at('wide'), REST],
+      [f.at('up'), HIGH],
+      [f.at('back'), REST],
+    ]);
 
     // Aimed a little down, at the stains on his clothes.
     const point = 0.7 * f.at('point') * (1 - f.at('drop'));
