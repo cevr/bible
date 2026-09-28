@@ -8,7 +8,14 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Encoding, Layer, Option, Path, Schema } from 'effect';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
-import { StudioAttempts, StudioBeats, StudioRefusal, StudioTake } from '../core/studio.ts';
+import {
+  STUDIO_IMPORT_IDLE_S,
+  STUDIO_IMPORT_WAIT_S,
+  StudioAttempts,
+  StudioBeats,
+  StudioRefusal,
+  StudioTake,
+} from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
@@ -315,6 +322,30 @@ describe('studio routes', () => {
       expect([...files.keys()]).toEqual(before);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+
+  it.effect(
+    'a take posted holds its connection open past the page’s wait, not the server’s idle limit',
+    () => {
+      const { layer } = setup(said);
+      return Effect.gen(function* () {
+        const raised: Array<readonly [string, number]> = [];
+        const server = {
+          ...bound,
+          timeout: (request: Request, seconds: number) =>
+            void raised.push([new URL(request.url).pathname, seconds]),
+        };
+        const studio = yield* studioHandler('test');
+        yield* Effect.promise(() =>
+          studio(post('/lab/test/studio/takes/a', recording('Hello world.')), server),
+        );
+        yield* Effect.promise(() => studio(get('/lab/test/studio/beats'), server));
+        expect(raised).toEqual([['/lab/test/studio/takes/a', STUDIO_IMPORT_IDLE_S]]);
+        // The page stops waiting first, so the socket never closes under it.
+        expect(STUDIO_IMPORT_IDLE_S).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
+        expect(STUDIO_IMPORT_IDLE_S).toBeLessThanOrEqual(255);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
 
   it.effect('takes posted at once are kept and mixed one after the other', () => {
     const { layer } = setup(said);

@@ -5,7 +5,7 @@
 // these to the components, so none of them reads the machine's states. Pure.
 
 import { Match, Option, Predicate } from 'effect';
-import type { StudioAttempt, StudioBeat } from '../../core/studio.ts';
+import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioBeat } from '../../core/studio.ts';
 import { minutes } from './api.ts';
 import { clipping, dbfs, type Level } from './capture.ts';
 import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts';
@@ -54,6 +54,7 @@ export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
         control('discard', 'Discard', 'Esc'),
       ],
       Importing: () => [],
+      Checking: () => [],
       Failed: (s) => [
         ...Option.match(mismatchAttempt(s.refusal), {
           onNone: () => [],
@@ -170,10 +171,14 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
           onSome: (k) =>
             [
               `kept ${k.file}: heard “${k.heard}” · ${percent(k.wer)} words differ`,
-              ...Option.match(Option.some(k.mixed).pipe(Option.filter((m) => !m)), {
-                onNone: () => [],
-                onSome: () => ['the mix failed; the lab log says why'],
-              }),
+              ...Match.value(k.mix).pipe(
+                Match.when('mixed', () => []),
+                Match.when('failed', () => ['the mix failed; the lab log says why']),
+                Match.when('unanswered', () => [
+                  'the lab had not mixed it when the studio stopped waiting; reload once the lab log says mixed',
+                ]),
+                Match.exhaustive,
+              ),
             ].join(' · '),
         }),
       CountIn: (s) => `recording in ${s.n}…`,
@@ -194,6 +199,8 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
             Keep: (w) => `keeping ${w.file}…`,
           }),
         ),
+      Checking: () =>
+        `the lab has not answered in ${minutes(STUDIO_IMPORT_WAIT_S)}: reading its attempts to see whether the take was kept…`,
       Failed: (s) => s.refusal.message,
     }),
   );

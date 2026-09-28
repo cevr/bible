@@ -157,14 +157,14 @@ describe('statusOf', () => {
   test('a take kept says what was heard; a refusal is the server’s words', () => {
     const kept = RecorderState.Idle({
       beat: 'a',
-      kept: Option.some({ file: 'a.12.flac', heard: 'hello world', wer: 0.021, mixed: true }),
+      kept: Option.some({ file: 'a.12.flac', heard: 'hello world', wer: 0.021, mix: 'mixed' }),
     });
     expect(statusOf(kept, Option.none())).toBe(
       'kept a.12.flac: heard “hello world” · 2.1% words differ',
     );
     const unmixed = RecorderState.Idle({
       beat: 'a',
-      kept: Option.some({ file: 'a.12.flac', heard: 'hello', wer: 0, mixed: false }),
+      kept: Option.some({ file: 'a.12.flac', heard: 'hello', wer: 0, mix: 'failed' }),
     });
     expect(statusOf(unmixed, Option.none())).toContain('the mix failed');
     expect(statusOf(failed(mismatch), Option.none())).toBe(mismatch.message);

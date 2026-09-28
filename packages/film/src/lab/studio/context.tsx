@@ -124,6 +124,9 @@ const refusalText = (cause: Cause.Cause<StudioRefused>): string =>
 /** A signal the recorder's effects write. */
 const written = { ownedWrite: true } as const;
 
+/** Whether the recorder is learning what became of a take: the server's answer, or its attempts read back. */
+const settling = (tag: string) => tag === 'Importing' || tag === 'Checking';
+
 const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads: Reads }>) => {
   const { meta } = useLab();
   const { runtime } = props.reads;
@@ -162,13 +165,14 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   const choice = micChoice(localStore());
   const [device, setDevice] = createSignal(choice.get());
 
-  // An import that settles reads the beats and the beat's attempts again;
+  // An import that settles (answered, or read back from the attempts) reads
+  // the beats and the beat's attempts again;
   // a microphone opened names the devices (their labels come with permission).
   let was = recorder()._tag;
   createEffect(
     () => recorder()._tag,
     (tag) => {
-      if (was === 'Importing' && tag !== 'Importing') {
+      if (settling(was) && !settling(tag)) {
         refreshBeats();
         refreshAttempts();
       }

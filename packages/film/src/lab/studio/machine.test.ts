@@ -21,11 +21,17 @@ import {
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
-import type { StudioRefusal, StudioTake } from '../../core/studio.ts';
+import {
+  STUDIO_IMPORT_WAIT_S,
+  type StudioAttempt,
+  type StudioRefusal,
+  type StudioTake,
+} from '../../core/studio.ts';
 import { Stage, type StageOps } from '../stage.ts';
 import { StudioApi, type StudioCalls, StudioRefused } from './api.ts';
 import { Capture, type CaptureOps, MicDenied } from './capture.ts';
 import { COUNT_IN, RecorderEvent, RecorderState, limitAt, recorderMachine } from './machine.ts';
+import { statusOf } from './view.ts';
 import { type Pcm, encodeWav } from './wav.ts';
 
 const pcm: Pcm = { rate: 48000, samples: Float32Array.of(0, 0.25, -0.25, 0.5) };
@@ -56,6 +62,11 @@ interface Log {
   open: boolean;
 }
 
+/** The beat's attempts as the fake server lists them now; a test sets them. */
+interface Listed {
+  attempts: ReadonlyArray<StudioAttempt>;
+}
+
 /**
  * A capture that opens any microphone but `denied`, a stage that says what
  * was asked of it, and a studio whose posts answer `answers` in turn (the
@@ -66,6 +77,8 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
   const say = (call: string) => Effect.sync(() => void log.calls.push(call));
   /** Done, the open microphone's track ends (unplugged). */
   const lose = Deferred.makeUnsafe<void>();
+  /** The beat's attempts as the server lists them now. */
+  const listed: Listed = { attempts: [] };
   let posts = 0;
   const next = () =>
     Effect.suspend(() => {
@@ -97,7 +110,8 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
   };
   const api: StudioCalls = {
     beats: Effect.die('not asked'),
-    attempts: () => Effect.die('not asked'),
+    attempts: (beat) =>
+      say(`attempts ${beat}`).pipe(Effect.as({ beat, attempts: listed.attempts })),
     take: (beat, bytes) => say(`take ${beat} ${bytes.length} bytes`).pipe(Effect.andThen(next())),
     keep: (beat, file, accept) =>
       say(`keep ${beat} ${file} ${accept}`).pipe(Effect.andThen(next())),
@@ -121,7 +135,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
     Layer.succeed(StudioApi, api),
     Layer.succeed(Stage, stage),
   );
-  return { log, layer, lose };
+  return { log, layer, lose, listed };
 };
 
 const machine = recorderMachine('a');
@@ -331,7 +345,7 @@ describe('review', () => {
 });
 
 describe('importing', () => {
-  const kept = { file: took.take.file, heard: took.heard, wer: took.wer, mixed: took.mixed };
+  const kept = { file: took.take.file, heard: took.heard, wer: took.wer, mix: 'mixed' as const };
 
   it.effect('a take kept rests with what was heard', () => {
     const { layer } = fakes();
@@ -351,7 +365,7 @@ describe('importing', () => {
       yield* simulate(machine, [
         ...recorded,
         RecorderEvent.Submit,
-        RecorderEvent.Imported({ kept: { ...kept, mixed: true } }),
+        RecorderEvent.Imported({ kept: { ...kept, mix: 'mixed' } }),
       ]);
       expect(log.calls.at(-1)).toBe('reload');
     }).pipe(Effect.provide(layer));
@@ -360,7 +374,7 @@ describe('importing', () => {
   it.effect('a take kept whose mix failed reloads nothing: the status says why', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
-      const unmixed = { ...kept, mixed: false };
+      const unmixed = { ...kept, mix: 'failed' as const };
       const result = yield* simulate(machine, [
         ...recorded,
         RecorderEvent.Submit,
@@ -522,7 +536,7 @@ describe('the import task, through an actor', () => {
       expect(state).toEqual(
         RecorderState.Idle({
           beat: 'a',
-          kept: Option.some({ file: 'a.1234.flac', heard: 'hello world', wer: 0, mixed: true }),
+          kept: Option.some({ file: 'a.1234.flac', heard: 'hello world', wer: 0, mix: 'mixed' }),
         }),
       );
       expect(log.calls).toContain(`take a ${wav.length} bytes`);
@@ -573,4 +587,132 @@ describe('the import task, through an actor', () => {
       ]);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+});
+
+describe('an import the lab does not answer', () => {
+  /** An attempt of beat a as the server lists it, recorded at `at` (epoch ms). */
+  const listedAttempt = (file: string, at: number, kept: boolean, wer = 0): StudioAttempt => ({
+    file,
+    heard: 'hello word',
+    wer,
+    at,
+    duration: 1,
+    kept,
+    current: true,
+  });
+  /** An attempt from long before this import: never taken for it. */
+  const older = listedAttempt('a.old.flac', -600_000, false);
+
+  /**
+   * `events` sent to an actor whose posts never answer, with the server's
+   * attempts `now` once STUDIO_IMPORT_WAIT_S has passed; the state the
+   * recorder settles in, and what the fakes saw.
+   */
+  const unanswered = (events: ReadonlyArray<RecorderEvent>, now: ReadonlyArray<StudioAttempt>) => {
+    const { log, layer, listed } = fakes(Effect.never);
+    return Effect.gen(function* () {
+      const actor = yield* Machine.spawn(machine);
+      yield* actor.start;
+      for (const event of events) yield* actor.send(event);
+      yield* actor.waitFor(RecorderState.Importing);
+      listed.attempts = now;
+      yield* TestClock.adjust(Duration.seconds(STUDIO_IMPORT_WAIT_S));
+      const state = yield* actor.waitFor(settled);
+      return { state, log, actor };
+    }).pipe(Effect.provide(layer));
+  };
+
+  const posts = (log: Log) => log.calls.filter((c) => c.startsWith('take') || c.startsWith('keep'));
+
+  it.effect(
+    'reads the attempts once it stops waiting: a take the lab kept meanwhile rests as kept, reloading nothing',
+    () =>
+      Effect.gen(function* () {
+        const { state, log } = yield* unanswered(
+          [...recorded, RecorderEvent.Submit],
+          [listedAttempt('a.new.flac', 1_000, true), older],
+        );
+        expect(state).toEqual(
+          RecorderState.Idle({
+            beat: 'a',
+            kept: Option.some({
+              file: 'a.new.flac',
+              heard: 'hello word',
+              wer: 0,
+              mix: 'unanswered',
+            }),
+          }),
+        );
+        expect(statusOf(state, Option.none())).toBe(
+          'kept a.new.flac: heard “hello word” · 0.0% words differ · the lab had not mixed it when the studio stopped waiting; reload once the lab log says mixed',
+        );
+        expect(posts(log)).toEqual([`take a ${wav.length} bytes`]);
+        expect(log.calls).toContain('attempts a');
+        expect(log.calls).not.toContain('reload');
+      }).pipe(Effect.scoped),
+  );
+
+  it.effect(
+    'a take the lab lists no attempt of is not posted again: it may still be making it',
+    () =>
+      Effect.gen(function* () {
+        const { state, log, actor } = yield* unanswered(
+          [...recorded, RecorderEvent.Submit],
+          [older],
+        );
+        expect(state).toEqual(
+          RecorderState.Failed({
+            beat: 'a',
+            refusal: {
+              _tag: 'ImportUnanswered',
+              message:
+                'the lab did not answer within 3 min 30 s, and lists no attempt of this take yet: it may still be making it (the lab log says). Keep it from the attempts once it shows, or record again',
+            },
+            wav: Option.none(),
+          }),
+        );
+        // Back rests: the recording is not the page's to post again.
+        yield* actor.send(RecorderEvent.Retry);
+        expect(yield* actor.waitFor(RecorderState.Idle)).toEqual(
+          RecorderState.Idle({ beat: 'a', kept: Option.none() }),
+        );
+        expect(posts(log)).toEqual([`take a ${wav.length} bytes`]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.effect('a take the lab heard but did not keep says what it heard', () =>
+    Effect.gen(function* () {
+      const { state } = yield* unanswered(
+        [...recorded, RecorderEvent.Submit],
+        [listedAttempt('a.new.flac', 1_000, false, 0.5), older],
+      );
+      expect(state).toEqual(
+        RecorderState.Failed({
+          beat: 'a',
+          refusal: {
+            _tag: 'ImportUnanswered',
+            message:
+              'the lab did not answer within 3 min 30 s; it heard the take as “hello word” (50.0% words differ) and did not keep it: keep it from the attempts below, or record again',
+          },
+          wav: Option.none(),
+        }),
+      );
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('an attempt kept without an answer is read as kept all the same', () =>
+    Effect.gen(function* () {
+      const { state, log } = yield* unanswered(
+        [RecorderEvent.KeepAttempt({ file: 'a.old.flac' })],
+        [listedAttempt('a.old.flac', -600_000, true)],
+      );
+      expect(state).toEqual(
+        RecorderState.Idle({
+          beat: 'a',
+          kept: Option.some({ file: 'a.old.flac', heard: 'hello word', wer: 0, mix: 'unanswered' }),
+        }),
+      );
+      expect(posts(log)).toEqual(['keep a a.old.flac false']);
+    }).pipe(Effect.scoped),
+  );
 });

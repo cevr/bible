@@ -74,6 +74,8 @@ import { StaticCheck } from './static-check.ts';
 export interface LabBound {
   readonly hostname?: string;
   readonly port?: number;
+  /** Hold `request`'s connection open for `seconds` with nothing sent (Bun's `server.timeout`). */
+  readonly timeout?: (request: Request, seconds: number) => void;
 }
 
 /** A web handler for the lab's routes, as a Bun route takes it: the request and its server. */

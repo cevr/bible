@@ -10,6 +10,9 @@
 //   Recording ─MicLost (the device went)→ Failed (what was kept, to review)
 //   Importing ─Imported→ Idle (kept; the page reloads when the track was
 //     remixed) | ─Refused→ Failed ─Retry→ Review | Idle
+//   Importing ─ImportUnanswered (STUDIO_IMPORT_WAIT_S)→ Checking (the beat's
+//     attempts read back) ─Imported→ Idle | ─Refused→ Failed (an upload's
+//     recording is not kept to send again: the lab may have it)
 //   Failed (TakeMismatch with its attempt) ─AcceptAnyway→ Importing
 //   Idle | Failed ─KeepAttempt→ Importing
 //
@@ -23,9 +26,14 @@
 
 import { Clock, Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import { StudioRefusal, type StudioTake } from '../../core/studio.ts';
+import {
+  STUDIO_IMPORT_WAIT_S,
+  type StudioAttempt,
+  StudioRefusal,
+  type StudioTake,
+} from '../../core/studio.ts';
 import { Stage } from '../stage.ts';
-import { StudioApi, takeLimit } from './api.ts';
+import { StudioApi, StudioRefused, minutes, takeLimit } from './api.ts';
 import { Capture, MicLost } from './capture.ts';
 import { encodeWav } from './wav.ts';
 
@@ -42,12 +50,16 @@ export const limitAt = (rate: number): number => takeLimit(rate).seconds - 1;
 /** A recording as it is posted: a 24-bit mono WAV. */
 const Wav = Schema.Uint8Array;
 
-/** A take kept: its file, what the server heard, its word error, and whether the track was remixed. */
+/**
+ * A take kept: its file, what the server heard, its word error, and the mix:
+ * the track remixed with it, the mix failed, or no answer came to say (the
+ * page stopped waiting and read the take as kept from the attempts).
+ */
 export const Kept = Schema.Struct({
   file: Schema.String,
   heard: Schema.String,
   wer: Schema.Finite,
-  mixed: Schema.Boolean,
+  mix: Schema.Literals(['mixed', 'failed', 'unanswered']),
 });
 export type Kept = typeof Kept.Type;
 
@@ -79,6 +91,11 @@ export const RecorderState = State({
   Review: { beat: Schema.String, wav: Wav },
   /** The server is making a take. */
   Importing: { beat: Schema.String, work: Work },
+  /**
+   * No answer came in STUDIO_IMPORT_WAIT_S: the beat's attempts are read to
+   * learn what became of the work, sent at `since` (epoch ms) or after.
+   */
+  Checking: { beat: Schema.String, work: Work, since: Schema.Finite },
   /** Refused: the server's words (or the browser's, for the microphone), and the recording to retry. */
   Failed: { beat: Schema.String, refusal: StudioRefusal, wav: Schema.Option(Wav) },
 });
@@ -101,6 +118,8 @@ export const RecorderEvent = Event({
   Discard: {},
   Imported: { kept: Kept },
   Refused: { refusal: StudioRefusal },
+  /** STUDIO_IMPORT_WAIT_S passed with no answer. */
+  ImportUnanswered: {},
   AcceptAnyway: {},
   KeepAttempt: { file: Schema.String },
   Retry: {},
@@ -185,8 +204,68 @@ const keptOf = (take: StudioTake): Kept => ({
   file: take.take.file,
   heard: take.heard,
   wer: take.wer,
-  mixed: take.mixed,
+  mix: Match.value(take.mixed).pipe(
+    Match.when(true, () => 'mixed' as const),
+    Match.orElse(() => 'failed' as const),
+  ),
 });
+
+/** How the wait reads in the owner's words. */
+const WAITED = minutes(STUDIO_IMPORT_WAIT_S);
+
+/** Attempts listed within this long before the wait began may be the upload's (the clocks are one machine's). */
+const SLACK_MS = 10_000;
+
+/** An import that got no answer, in the owner's words. */
+const unanswered = (message: string): StudioRefusal => ({ _tag: 'ImportUnanswered', message });
+
+/**
+ * What became of `work`, from the beat's `attempts` as the server lists them
+ * now (newest first): kept (the mix unanswered), or refused in words. An
+ * upload is the newest attempt made `since`; a keep, its file.
+ */
+export const settle = (
+  work: Work,
+  since: number,
+  attempts: ReadonlyArray<StudioAttempt>,
+): RecorderEvent => {
+  const found = Match.value(work).pipe(
+    Match.tagsExhaustive({
+      Upload: () => Option.fromUndefinedOr(attempts.find((a) => a.at >= since)),
+      Keep: (w) => Option.fromUndefinedOr(attempts.find((a) => a.file === w.file)),
+    }),
+  );
+  return Option.match(found, {
+    onNone: () =>
+      RecorderEvent.Refused({
+        refusal: unanswered(
+          `the lab did not answer within ${WAITED}, and lists no attempt of this take yet: it may still be making it (the lab log says). Keep it from the attempts once it shows, or record again`,
+        ),
+      }),
+    onSome: (a) => {
+      if (a.kept)
+        return RecorderEvent.Imported({
+          kept: { file: a.file, heard: a.heard, wer: a.wer, mix: 'unanswered' },
+        });
+      return RecorderEvent.Refused({
+        refusal: unanswered(
+          `the lab did not answer within ${WAITED}; it heard the take as “${a.heard}” (${(a.wer * 100).toFixed(1)}% words differ) and did not keep it: keep it from the attempts below, or record again`,
+        ),
+      });
+    },
+  });
+};
+
+/**
+ * The recording a Checking refusal keeps for Retry: never an upload's (the
+ * lab may have it, and a Retry would post it again), a keep's review yes (it
+ * was never posted).
+ */
+const uncheckedWav = (work: Work): Option.Option<typeof Wav.Type> =>
+  Match.value(work).pipe(Match.tagsExhaustive({ Upload: () => Option.none(), Keep: (w) => w.wav }));
+
+/** How long reading the attempts may take once the wait is over. */
+const CHECK_WAIT = Duration.seconds(15);
 
 /** The event the count-in's second sends: the next number, or the recording. */
 const countStep = (state: { readonly n: number }): RecorderEvent =>
@@ -280,17 +359,68 @@ export const recorderMachine = (beat: string) =>
       onSuccess: (take) => RecorderEvent.Imported({ kept: keptOf(take) }),
       onFailure: (e) => RecorderEvent.Refused({ refusal: e.refusal }),
     })
-    .on(RecorderState.Importing, RecorderEvent.Imported, ({ state, event }) =>
-      Effect.gen(function* () {
-        // The player reads the timings and the track once, at load: a take
-        // mixed into the track plays only after a reload, at this same T. A
-        // mix that failed reloads nothing, so the status can say why.
-        if (event.kept.mixed) yield* (yield* Stage).reload;
-        return RecorderState.Idle({ beat: state.beat, kept: Option.some(event.kept) });
-      }),
+    .on(
+      [RecorderState.Importing, RecorderState.Checking],
+      RecorderEvent.Imported,
+      ({ state, event }) =>
+        Effect.gen(function* () {
+          // The player reads the timings and the track once, at load: a take
+          // mixed into the track plays only after a reload, at this same T. A
+          // mix that failed, or never answered, reloads nothing, so the status
+          // can say why.
+          if (event.kept.mix === 'mixed') yield* (yield* Stage).reload;
+          return RecorderState.Idle({ beat: state.beat, kept: Option.some(event.kept) });
+        }),
     )
     .on(RecorderState.Importing, RecorderEvent.Refused, ({ state, event }) =>
       RecorderState.Failed({ beat: state.beat, refusal: event.refusal, wav: workWav(state.work) }),
+    )
+    // An import with no answer is never sent again blind: the attempts say
+    // whether the lab kept it (derived from its ledger, not guessed).
+    .timeout(RecorderState.Importing, {
+      duration: Duration.seconds(STUDIO_IMPORT_WAIT_S),
+      event: RecorderEvent.ImportUnanswered,
+    })
+    .on(RecorderState.Importing, RecorderEvent.ImportUnanswered, ({ state }) =>
+      Effect.map(Clock.currentTimeMillis, (now) =>
+        RecorderState.Checking({
+          beat: state.beat,
+          work: state.work,
+          since: now - STUDIO_IMPORT_WAIT_S * 1000 - SLACK_MS,
+        }),
+      ),
+    )
+    .task(
+      RecorderState.Checking,
+      ({ state }) =>
+        StudioApi.use((api) => api.attempts(state.beat)).pipe(
+          Effect.timeoutOrElse({
+            duration: CHECK_WAIT,
+            orElse: () =>
+              Effect.fail(
+                StudioRefused.make({
+                  refusal: { _tag: 'LabUnreachable', message: 'no answer to that either' },
+                }),
+              ),
+          }),
+          Effect.map((listed) => settle(state.work, state.since, listed.attempts)),
+        ),
+      {
+        onSuccess: (event) => event,
+        onFailure: (e) =>
+          RecorderEvent.Refused({
+            refusal: unanswered(
+              `the lab did not answer within ${WAITED}, nor list the attempts to say whether it kept the take (${e.message}): see the lab log, then record again or keep it from the attempts`,
+            ),
+          }),
+      },
+    )
+    .on(RecorderState.Checking, RecorderEvent.Refused, ({ state, event }) =>
+      RecorderState.Failed({
+        beat: state.beat,
+        refusal: event.refusal,
+        wav: uncheckedWav(state.work),
+      }),
     )
     .when(
       RecorderState.Failed,

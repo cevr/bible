@@ -31,6 +31,7 @@ import { labBase, type VoiceTiming } from '../core/schema.ts';
 import { type Part, type SheetBeat, sheetBeats } from '../core/sheet.ts';
 import {
   KeepPost,
+  STUDIO_IMPORT_IDLE_S,
   STUDIO_MAX_BODY,
   StudioAttempts,
   type StudioBeat,
@@ -48,7 +49,7 @@ import {
   UnknownScene,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm } from './film-repo.ts';
-import { type LabHandler, admit, forFilm } from './lab.ts';
+import { type LabBound, type LabHandler, admit, forFilm } from './lab.ts';
 import { Mixer } from './mixer.ts';
 import { type Beat, beatsOf } from './narrator.ts';
 import { quotesOf } from './script-sheet.ts';
@@ -409,6 +410,18 @@ export const isStudio = (request: Request, film: string): boolean =>
   new URL(request.url).pathname.startsWith(`${labBase(film)}/studio/`);
 
 /**
+ * A take posted (made, heard, kept and remixed, or an attempt kept) sends
+ * nothing until it answers: its connection is held open for
+ * STUDIO_IMPORT_IDLE_S, past the page's wait, where the server's idle limit
+ * would close it under a long import. Other routes keep the server's limit.
+ */
+const holdOpen = (request: Request, server: LabBound, film: string) => {
+  if (request.method !== 'POST') return;
+  if (!new URL(request.url).pathname.startsWith(`${labBase(film)}/studio/takes/`)) return;
+  Option.map(Option.fromUndefinedOr(server.timeout), (hold) => hold(request, STUDIO_IMPORT_IDLE_S));
+};
+
+/**
  * The studio's routes as a web handler over the services the caller runs
  * with (the film, its takes, the mixer), closed when the scope closes. It
  * answers only what the lab would: the lab's own page (`admit`), for its film
@@ -441,13 +454,15 @@ export const studioHandler = Effect.fn('film.studio.handler')(function* (film: s
     Option.match(
       Option.orElse(admit(request, server), () => forFilm(request, film)),
       {
-        onNone: () =>
-          run(Effect.result(bounded(request))).then((read) =>
+        onNone: () => {
+          holdOpen(request, server, film);
+          return run(Effect.result(bounded(request))).then((read) =>
             Result.match(read, {
               onSuccess: (whole) => handler(whole, services),
               onFailure: (error) => refuse(request, error, statusOf(error._tag)),
             }),
-          ),
+          );
+        },
         onSome: (refusal) =>
           refuse(request, { _tag: 'LabRequestRefused', message: refusal.reason }, refusal.status),
       },
