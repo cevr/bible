@@ -14,6 +14,7 @@ import {
   rectShape,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import {
   C,
@@ -28,7 +29,6 @@ import {
   piece,
   rounded,
   sky,
-  sub,
   mix,
 } from './kit.ts';
 

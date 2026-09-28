@@ -176,6 +176,9 @@ export interface Hand {
   readonly seed: number;
 }
 
+/** A sub-hand: the same boil on seed `hand.seed + k`, so each piece of a drawing boils on its own. */
+export const sub = (hand: Hand, k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
+
 /** Push each point along its normal by boiling noise. */
 const wobble = (pts: ReadonlyArray<Pt>, amp: number, freq: number, hand: Hand): Pt[] => {
   if (amp === 0 || pts.length < 2) return [...pts];

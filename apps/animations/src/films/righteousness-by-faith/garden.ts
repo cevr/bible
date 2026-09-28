@@ -1,9 +1,18 @@
 // What grows: the fig leaves we sew (`mirror`), the garden's trees, and the
 // field the figure rests in on the Sabbath.
 
-import { type Hand, type Pt, at, ellipseShape, line, spline, stroke } from '@bible/film/canvas';
+import {
+  type Hand,
+  type Pt,
+  at,
+  ellipseShape,
+  line,
+  spline,
+  stroke,
+  sub,
+} from '@bible/film/canvas';
 import { hash2, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, rounded, sky, sub, type Hands } from './kit.ts';
+import { C, blob, contact, glow, person, piece, rounded, sky, type Hands } from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
 export const leafShape = (s: number, seed: number): Pt[] =>

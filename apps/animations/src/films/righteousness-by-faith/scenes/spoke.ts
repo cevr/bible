@@ -7,9 +7,9 @@
 // a word of light comes down from the sun to hang in the air, and a tree
 // grows up under it, drawn out of the word.
 
-import { type Camera, type Pt, at, camera, drawing, rectShape } from '@bible/film/canvas';
+import { type Camera, type Pt, at, camera, drawing, rectShape, sub } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, person, piece, rounded, sub } from '../kit.ts';
+import { C, person, piece, rounded } from '../kit.ts';
 import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 
 /** The page: close on the asker, and the book they turn to. */

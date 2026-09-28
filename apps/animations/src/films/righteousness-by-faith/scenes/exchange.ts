@@ -18,9 +18,10 @@ import {
   drawing,
   ellipseShape,
   rectShape,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, christ, glow, icons, person, piece, rounded, sky, sub, between } from '../kit.ts';
+import { C, blob, christ, glow, icons, person, piece, rounded, sky, between } from '../kit.ts';
 import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, highPriest, sanctuary } from '../heaven.ts';
 
 /** The whole hill; close on both faces; up in heaven at the sanctuary. */

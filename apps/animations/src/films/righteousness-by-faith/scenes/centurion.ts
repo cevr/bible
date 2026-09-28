@@ -7,7 +7,7 @@
 // soldier, holding out an open hand, and the word settles into it while the
 // definition of faith is read, held in one shot.
 
-import { type Camera, type Pt, at, drawing, multiplane, rectShape } from '@bible/film/canvas';
+import { type Camera, type Pt, at, drawing, multiplane, rectShape, sub } from '@bible/film/canvas';
 import { clamp, ease, lerp, rng } from '@bible/film/core';
 import {
   C,
@@ -20,7 +20,6 @@ import {
   piece,
   rounded,
   sky,
-  sub,
   between,
 } from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';

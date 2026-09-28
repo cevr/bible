@@ -7,9 +7,9 @@
 // closing. On "angel" Christ raises a hand; on "silence" the pointing arm
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on.
 
-import { type Camera, type Pt, at, camera, drawing } from '@bible/film/canvas';
+import { type Camera, type Pt, at, camera, drawing, sub } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, christ, glow, person, piece, sub, between } from '../kit.ts';
+import { C, blob, christ, glow, person, piece, between } from '../kit.ts';
 import {
   accuser as accuserFigure,
   AS,

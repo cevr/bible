@@ -18,9 +18,10 @@ import {
   multiplane,
   rectShape,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, person, piece, sky, sub, between } from '../kit.ts';
+import { C, blob, contact, glow, person, piece, sky, between } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 

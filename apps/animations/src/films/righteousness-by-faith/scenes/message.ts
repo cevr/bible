@@ -24,22 +24,10 @@ import {
   rectShape,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import { ease, lerp } from '@bible/film/core';
-import {
-  C,
-  F,
-  contact,
-  glow,
-  icons,
-  person,
-  piece,
-  rounded,
-  sky,
-  sub,
-  plate,
-  between,
-} from '../kit.ts';
+import { C, F, contact, glow, icons, person, piece, rounded, sky, plate, between } from '../kit.ts';
 import { herald } from '../heaven.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
 

@@ -14,15 +14,13 @@ import {
   rectShape,
   spline,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { hash2, lerp } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
 export const F = fonts;
-
-/** A sub-hand, so each piece of a drawing boils on its own seed. */
-export const sub = (hand: Hand, k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

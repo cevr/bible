@@ -18,9 +18,10 @@ import {
   rectShape,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { C, F, blob, contact, person, piece, rounded, sub, between } from '../kit.ts';
+import { C, F, blob, contact, person, piece, rounded, between } from '../kit.ts';
 import { ACCUSED, GAVEL, JUDGE, QUESTION, REST, WIDE, questionStyle } from '../court.ts';
 
 /** Close on the accused's face (the court's REST and WIDE are in court.ts): the front sheet's parallax is folded in. */

@@ -12,9 +12,10 @@ import {
   quad,
   stroke,
   trim,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { BUBBLE, C, blob, glow, piece, rounded, sky, sub, type Hands } from './kit.ts';
+import { BUBBLE, C, blob, glow, piece, rounded, sky, type Hands } from './kit.ts';
 
 /**
  * The word of light at the origin, `size` 1 being 160 units wide: the gold

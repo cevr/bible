@@ -6,9 +6,9 @@
 // camera comes down over the city, the angel with the third angel's banner
 // flies across again, and figures on the rooftops turn to look and wave.
 
-import { type Camera, type Pt, at, drawing, multiplane, unprobed } from '@bible/film/canvas';
+import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
 import { clamp, keys, lerp, rng } from '@bible/film/core';
-import { C, blob, glow, person, piece, sky, sub, mix } from '../kit.ts';
+import { C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, sanctuary } from '../heaven.ts';
 

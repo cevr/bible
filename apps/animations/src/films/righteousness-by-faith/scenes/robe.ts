@@ -17,9 +17,10 @@ import {
   ellipseShape,
   rectShape,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, ROBE, blob, christ, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
+import { C, ROBE, blob, christ, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 import {
   AS,
   CHEEK,

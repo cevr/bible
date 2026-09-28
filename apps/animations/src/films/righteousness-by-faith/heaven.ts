@@ -12,6 +12,7 @@ import {
   spline,
   stroke,
   write,
+  sub,
 } from '@bible/film/canvas';
 import {
   C,
@@ -23,7 +24,6 @@ import {
   piece,
   plate,
   rounded,
-  sub,
   type Hands,
 } from './kit.ts';
 

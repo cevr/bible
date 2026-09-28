@@ -18,9 +18,10 @@ import {
   ellipseShape,
   rectShape,
   stroke,
+  sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, icons, person, piece, rounded, sky, sub } from '../kit.ts';
+import { C, blob, contact, glow, icons, person, piece, rounded, sky } from '../kit.ts';
 
 /** The figure on the page: where they stand, and where they stand aside. */
 const CENTRE: Pt = [960, 930];
