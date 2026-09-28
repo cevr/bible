@@ -1,11 +1,17 @@
 // The robe: the heavenly court from `accuser`, now quiet. Those standing by
-// lift the filthy clothes off Joshua and carry them out (Zech 3:4); the last
-// speck lifts from his cheek; Christ reaches out to him. Then a push into
-// the light, where a loom weaves a robe with no hand at it but light, and
-// the robe settles on Joshua. The ask's doubt is a tiny cloak dropped over a
-// stain and flicked away; the answer is a look beneath the robe, where there
-// is nothing to hide: clean grey paper, the sin carried off. Last, the pull
-// back to the film's three icons, the robe's lit.
+// lift the filthy clothes off Joshua and carry them out left (Zech 3:4); the
+// last speck lifts from his cheek; Christ reaches out to him. Then a push
+// into the light, where a loom weaves a robe with no hand at it but light,
+// and the robe settles on Joshua. The ask's doubt is a tiny cloak dropped
+// over a stain and flicked away; the answer is a look beneath the robe: the
+// stain is there on the grey paper, and on "away" it breaks up and is carried
+// out of the frame the way the clothes went, leaving clean paper (never a
+// flight into the sky, as if sin had no destination). On "judicial" the court
+// again, Joshua robed: the cold open's gavel lies on the bench and the Angel
+// moves it aside with the back of his hand. On "reclaim" close on Joshua's
+// face, and under the robe a warm glow rises where the heart is, a preview
+// of the third gift. Last, after the quotation, the pull back to the film's
+// three icons, the robe (forgiveness) lit.
 
 import {
   type Camera,
@@ -20,20 +26,53 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, ROBE, blob, gait, glow, icons, person, piece, rounded, sky, turban } from '../kit.ts';
-import { ANGEL_HAND, JOSHUA, ZECH_REST, courtWall, zechCourt } from '../court.ts';
+import {
+  C,
+  type Person,
+  ROBE,
+  blob,
+  gait,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  turban,
+} from '../kit.ts';
+import {
+  ANGEL_AT,
+  ANGEL_HAND,
+  ANGEL_NEAR,
+  COURT_BENCH,
+  JOSHUA,
+  ZECH_REST,
+  courtWall,
+  gavel,
+  zechCourt,
+} from '../court.ts';
 
 const LOOM: Pt = [1045, 560];
 
-/** Where the flakes that lifted from him hang in the air. */
-const FLAKES: ReadonlyArray<Pt> = [
-  [440, 330],
-  [530, 430],
-  [480, 520],
-  [1480, 350],
-  [1400, 460],
-  [1520, 530],
+/** The stain beneath the robe, as the flakes it breaks into: each one's place in the lens, and its size. */
+const FLAKES: ReadonlyArray<readonly [number, number, number]> = [
+  [-40, -30, 70],
+  [30, -46, 60],
+  [52, 12, 66],
+  [-6, 30, 74],
+  [-58, 34, 52],
+  [14, -4, 58],
 ];
+/** How far left the flakes are carried: out of the frame, the way the clothes went. */
+const CARRIED = 1500;
+
+/** The Angel's scale in the court (`zechCourt`'s), to reach his near hand to the bench. */
+const ANGEL_SCALE = 2.1;
+/** Where the gavel lies on the bench (its handle's foot, the head to its left), and how far it slides aside. */
+const GAVEL_ON: Pt = [COURT_BENCH[0], COURT_BENCH[1] - 36];
+const GAVEL_SLIDE = 180;
+/** Lying on its side, the handle down the bench to the left of its head. */
+const GAVEL_LIE = -Math.PI / 2 + 0.22;
 
 /** A little loom, as a shape of light. */
 const loomFrame = (
@@ -63,26 +102,38 @@ const timeline = {
   cover: { mark: 'just', offset: 0.1, dur: 0.4, ease: 'outBack' },
   flick: { mark: 'no', dur: 0.5, ease: 'inCubic' },
   lens: { mark: 'cloak', offset: 0.1, dur: 0.57, ease: 'outBack' },
-  shut: { mark: 'away', offset: -0.2, dur: 0.33 },
-  carried: { mark: 'away', dur: 0.8, ease: 'inCubic' },
-  toIcons: { mark: 'away', offset: 0.57, dur: 0.27 },
+  flakes: { mark: 'away', dur: 0.9, ease: 'inQuad', stagger: 0.5 },
+  shut: { after: 'flakes', dur: 0.33 },
+  drift: { mark: 'judicial', until: 'reclaim', ease: 'linear' },
+  reach: { mark: 'judicial', offset: 0.3, dur: 0.6, ease: 'inOutSine' },
+  aside: { after: 'reach', dur: 0.7, ease: 'outCubic' },
+  warm: { mark: 'reclaim', offset: 0.4, dur: 2.2, ease: 'inOutSine' },
+  glad: { mark: 'reclaim', offset: 2.6, dur: 0.6 },
+  toIcons: { mark: 'reclaim', offset: 3.5, dur: 0.27 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   iconGlow: { after: 'pullBack', dur: 0.4 },
 } as const;
 
-type RobeFrame = Frame<keyof typeof timeline & string>;
+/** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
+const knobs = { judged: [1180, 600] } as const;
+const JUDGED_ZOOM = [1.22, 1.3] as const;
+
+type RobeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 export const robe = drawing({
   timeline,
+  knobs,
   draw: (f) => {
     const { t } = f;
     if (t < f.cue('pushLoom').end) courtWide(f);
     else if (t < f.cue('robeUp').end) weaving(f);
     else if (t < f.mark('nicer')) robed(f);
     else if (t < f.mark('cloak')) cloaked(f);
+    else if (t < f.mark('judicial')) beneath(f);
+    else if (t < f.mark('reclaim')) judged(f);
     else {
       const toIcons = f.at('toIcons');
-      if (toIcons < 1) beneath(f);
+      if (toIcons < 1) reclaimed(f);
       if (toIcons > 0) iconsBack(f, toIcons);
     }
   },
@@ -269,31 +320,35 @@ const cloaked = (f: RobeFrame) => {
   );
 };
 
-/** D: beneath the robe, nothing to hide. */
-const beneath = (f: RobeFrame) => {
-  const { ctx, w, h, t } = f;
+/** Close on Joshua in the robe, his face at human scale: `beneath` and `reclaimed` share it. */
+const closeOnJoshua = (f: RobeFrame, pose: Person) => {
+  const { ctx, w, h } = f;
   const hand = (k: string) => f.hand(k);
   courtWall(ctx, w, h);
-  const carried = f.at('carried');
-  glow(ctx, 960, 850, 650, C.glow, 0.85 * f.at('carried'));
   at(ctx, { x: 960, y: 330 + 165 * 4.6, scale: 4.6 }, () =>
-    person(ctx, { onHead: turban, look: [0, 3.5], browTilt: 0.25 }, hand('faceD')),
+    person(ctx, { onHead: turban, ...pose }, hand('faceD')),
   );
-  piece(
-    ctx,
-    [
-      [840, 550],
-      [1080, 550],
-      [1520, 790],
-      [1580, 1250],
-      [340, 1250],
-      [400, 790],
-    ],
-    C.robe,
-    hand('robeD'),
-    { line: 7 },
-  );
-  // The lens: the robe cut away on clean grey paper.
+  piece(ctx, ROBE_D, C.robe, hand('robeD'), { line: 7 });
+};
+const ROBE_D: Pt[] = [
+  [840, 550],
+  [1080, 550],
+  [1520, 790],
+  [1580, 1250],
+  [340, 1250],
+  [400, 790],
+];
+const JOSHUA_DOWN: Person = { look: [0, 3.5], browTilt: 0.25 };
+
+/**
+ * D: beneath the robe. The lens opens on the stain there, and on "away" it
+ * breaks into its flakes and each is carried out left, the way the clothes
+ * went, leaving clean grey paper; then the lens shuts.
+ */
+const beneath = (f: RobeFrame) => {
+  const { ctx } = f;
+  const hand = (k: string) => f.hand(k);
+  closeOnJoshua(f, JOSHUA_DOWN);
   const open = f.at('lens') * (1 - f.at('shut'));
   if (open > 0.01)
     at(ctx, { x: 960, y: 850, scale: open }, () => {
@@ -317,24 +372,105 @@ const beneath = (f: RobeFrame) => {
         hand('lensLight'),
       );
     });
-  // The flakes the court saw lift from him, carried off out of frame.
-  const drift = f.cue('lens');
-  FLAKES.forEach(([x, y], i) => {
-    const out = x < 960 ? -1 : 1;
-    const shown = clamp((t - drift.start - 0.8 - i * 0.1) / 0.5);
-    if (shown <= 0) return;
-    const float = Math.sin((t + i) * 1.3) * 8;
+  // The stain, as its flakes, carried off out of frame.
+  FLAKES.forEach(([x, y, s], i) => {
+    const p = f.stagger('flakes', i, FLAKES.length);
+    const shown = p > 0 ? 1 : open;
+    if (shown <= 0.01) return;
     at(
       ctx,
-      { x: x + out * 700 * carried, y: y + float - 460 * carried, rot: out * 2.4 * carried },
+      {
+        x: 960 + x - CARRIED * p,
+        y: 850 + y + 160 * p,
+        rot: -0.8 * p,
+        scale: p > 0 ? 1 : open,
+      },
       () =>
-        piece(ctx, blob(0, 0, 38, 30, 70 + i), C.scarlet, hand(`flake${i}`), {
+        piece(ctx, blob(0, 0, s, s * 0.8, 70 + i), C.scarlet, hand(`flake${i}`), {
           line: 0,
           shadow: 0.15,
-          alpha: shown,
         }),
     );
   });
+};
+
+/**
+ * D2: the court on "judicial", Joshua robed. The cold open's gavel lies on
+ * the bench; the Angel's near hand reaches and moves it aside with its back,
+ * a light touch, and goes back to his side.
+ */
+const judged = (f: RobeFrame) => {
+  const { ctx, w, h } = f;
+  const hand = (k: string) => f.hand(k);
+  const reach = f.at('reach');
+  const aside = f.at('aside');
+  const [jx, jy] = f.knob('judged');
+  const slid = GAVEL_SLIDE * aside;
+  // The back of his hand meets the gavel's head and follows it half way.
+  const touch: Pt = [
+    (GAVEL_ON[0] - 130 + Math.min(slid, GAVEL_SLIDE / 2) - ANGEL_AT[0]) / ANGEL_SCALE,
+    (GAVEL_ON[1] - 45 - ANGEL_AT[1]) / ANGEL_SCALE,
+  ];
+  const k = reach * (1 - clamp((aside - 0.5) / 0.5));
+  courtWall(ctx, w, h);
+  camera(
+    ctx,
+    { x: jx, y: jy, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], f.at('drift')) },
+    w,
+    h,
+    () => {
+      zechCourt(ctx, hand, {
+        sun: 0,
+        accuser: { enter: 1, shrink: 1, point: 0 },
+        angel: {
+          lift: 0,
+          tilt: 0,
+          hand: ANGEL_HAND,
+          handR: [lerp(ANGEL_NEAR[0], touch[0], k), lerp(ANGEL_NEAR[1], touch[1], k)],
+        },
+        joshua: {
+          body: C.robe,
+          shade: C.robe,
+          garment: 'robe',
+          look: [2, 0],
+          browTilt: 0.25,
+          smile: 0.2,
+        },
+        specks: 0,
+        cheek: { dy: 0, alpha: 0 },
+        // The clothes and those who carried them, gone out left.
+        tunic: { at: [JOSHUA[0] - 1250, JOSHUA[1]], flare: () => 0 },
+        helpers: { grip: 1, dx: -1250, bob: 0, up: 1 },
+      });
+      at(ctx, { x: GAVEL_ON[0] + slid, y: GAVEL_ON[1] }, () => gavel(ctx, hand, GAVEL_LIE));
+    },
+  );
+};
+
+/**
+ * D3: on "reclaim", close on Joshua's face again; under the robe a warm glow
+ * rises where the heart is, and he looks up, glad, on "reclaiming".
+ */
+const reclaimed = (f: RobeFrame) => {
+  const { ctx } = f;
+  const warm = f.at('warm');
+  const glad = f.at('glad');
+  ctx.save();
+  // A slow push in on him while the glow rises.
+  ctx.translate(960, 700);
+  ctx.scale(1 + 0.06 * warm, 1 + 0.06 * warm);
+  ctx.translate(-960, -700);
+  closeOnJoshua(f, {
+    look: [0, lerp(3.5, -1, glad)],
+    browTilt: lerp(0.25, 0.35, glad),
+    browL: 2 * glad,
+    browR: 2 * glad,
+    smile: 0.6 * glad,
+  });
+  const y = lerp(930, 800, warm);
+  glow(ctx, 960, y, 360, C.glow, 0.85 * warm);
+  glow(ctx, 960, y, 150, C.gold, 0.45 * warm);
+  ctx.restore();
 };
 
 /** E: pull back to the three icons, the robe's lit, as `toIcons` fades them in. */
