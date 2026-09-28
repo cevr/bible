@@ -12,7 +12,7 @@ import { StudioAttempts, StudioBeats, StudioRefusal, StudioTake } from '../core/
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
-import { studioHandler } from './studio.ts';
+import { STUDIO_MAX_BODY, studioHandler } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
   emptyCalls,
@@ -261,6 +261,94 @@ describe('studio routes', () => {
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );
+
+  it.effect('a beat the film does not have is refused before anything is written', () => {
+    const { files, layer } = setup(said);
+    const before = [...files.keys()];
+    return Effect.gen(function* () {
+      for (const beat of [
+        'nope',
+        'a%2F..%2F..%2Ftimings',
+        '..%2Fa',
+        'a%2F',
+        '%2E%2E%2F%2E%2E%2Fx',
+      ]) {
+        const posted = yield* call(
+          post(`/lab/test/studio/takes/${beat}`, recording('Hello world.')),
+        );
+        expect([beat, posted.status, (posted.body as { _tag: string })._tag]).toEqual([
+          beat,
+          404,
+          'UnknownScene',
+        ]);
+        const kept = yield* call(
+          post(`/lab/test/studio/takes/${beat}/keep`, '{"file":"a.000000000000.flac"}'),
+        );
+        expect([beat, kept.status]).toEqual([beat, 404]);
+        expect([
+          beat,
+          (yield* call(get(`/lab/test/studio/takes/${beat}/attempts`))).status,
+        ]).toEqual([beat, 404]);
+      }
+      // Nothing was written: no temporary recording, no attempt.
+      expect([...files.keys()]).toEqual(before);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+
+  it.effect('a body over the limit is refused 413 before it is read whole', () => {
+    const { files, layer } = setup(said);
+    const before = [...files.keys()];
+    return Effect.gen(function* () {
+      const huge = 'x'.repeat(STUDIO_MAX_BODY + 1);
+      const refused = yield* call(post('/lab/test/studio/takes/a', huge));
+      expect([refused.status, (refused.body as { _tag: string })._tag]).toEqual([
+        413,
+        'BodyTooLarge',
+      ]);
+      // Said to be small, sent large: the stream is counted, not the header believed.
+      const lying = new Request(at('/lab/test/studio/takes/a'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': '10' },
+        body: huge,
+      });
+      expect((yield* call(lying)).status).toBe(413);
+      expect([...files.keys()]).toEqual(before);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+
+  it.effect('takes posted at once are kept and mixed one after the other', () => {
+    const { layer } = setup(said);
+    const events: Array<string> = [];
+    const slowMixer = Layer.succeed(
+      Mixer,
+      Mixer.of({
+        mix: () =>
+          Effect.gen(function* () {
+            events.push('mix');
+            for (let i = 0; i < 5; i++) yield* Effect.yieldNow;
+            events.push('mixed');
+          }),
+      }),
+    );
+    return Effect.gen(function* () {
+      // One studio, as the lab runs it, taking two posts at once.
+      const studio = yield* studioHandler('test');
+      const answers = yield* Effect.all(
+        [
+          post('/lab/test/studio/takes/a', recording('Hello world.')),
+          post('/lab/test/studio/takes/b', recording('He said be still to them.')),
+        ].map((request) => Effect.promise(() => studio(request, bound))),
+        { concurrency: 2 },
+      );
+      expect(answers.map((a) => a.status)).toEqual([200, 200]);
+      expect(events).toEqual(['mix', 'mixed', 'mix', 'mixed']);
+      // Both takes are in the timings: neither write lost the other.
+      const listed = yield* Schema.decodeUnknownEffect(StudioBeats)(
+        (yield* call(get('/lab/test/studio/beats'))).body,
+      );
+      expect(listed.beats.map((b) => b.recorded)).toEqual([true, true]);
+    }).pipe(Effect.scoped, Effect.provide(Layer.merge(layer, slowMixer)));
+  });
 
   it.effect('answers only the lab page, for its film: another origin 403, another film 409', () => {
     const { files, layer } = setup(said);

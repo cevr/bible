@@ -22,6 +22,7 @@ import {
   Path,
   Result,
   Schema,
+  Semaphore,
   String as Str,
 } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
@@ -38,7 +39,13 @@ import {
   StudioTake,
   TakePost,
 } from '../core/studio.ts';
-import { AudioInvalid, RecordingLossy } from './errors.ts';
+import {
+  AudioInvalid,
+  BodyTooLarge,
+  RecordingLossy,
+  type TakeMismatch,
+  UnknownScene,
+} from './errors.ts';
 import { FilmRepo, type LoadedFilm } from './film-repo.ts';
 import { type LabHandler, admit, forFilm } from './lab.ts';
 import { Mixer } from './mixer.ts';
@@ -69,6 +76,12 @@ const extensionOf = (type: string): Result.Result<string, AudioInvalid | Recordi
     AudioInvalid.make({ reason: `a recording of type "${type}"` }),
   );
 };
+
+/**
+ * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
+ * about six minutes of 48 kHz 24-bit mono (a beat's line runs seconds).
+ */
+export const STUDIO_MAX_BODY = 64 * 1024 * 1024;
 
 /** An attempt's audio as the page plays it back. */
 const AUDIO_TYPES = new Map([
@@ -131,18 +144,24 @@ const beatRow = (
 
 /**
  * The status a failure answers with: a request the studio cannot read 400,
- * a take it will not keep 422, a missing film 404, the transcriber failing
- * 502, the rest 500.
+ * a take it will not keep 422, a missing film or beat 404, a body over
+ * `STUDIO_MAX_BODY` 413, a lossy recording 415, the transcriber failing 502,
+ * the rest 500.
  */
 const statusOf = (tag: string) => {
   if (tag === 'SchemaError' || tag === 'HttpServerError' || tag === 'AudioInvalid') return 400;
-  if (tag === 'FilmNotFound') return 404;
+  if (tag === 'FilmNotFound' || tag === 'UnknownScene') return 404;
+  if (tag === 'BodyTooLarge') return 413;
   if (tag === 'RecordingLossy') return 415;
   const refused = ['TakeMismatch', 'RecordingInvalid', 'UnknownVoice', 'MediaFailed'];
   if (refused.includes(tag)) return 422;
   if (tag === 'ElevenLabsFailed') return 502;
   return 500;
 };
+
+/** Whether a failure is a take refused for what it says. */
+const isMismatch = (error: { readonly _tag: string }): error is TakeMismatch =>
+  error._tag === 'TakeMismatch';
 
 const refusalJson = HttpServerResponse.schemaJson(StudioRefusal);
 const beatsJson = HttpServerResponse.schemaJson(StudioBeats);
@@ -170,9 +189,28 @@ const handled = <E extends { readonly _tag: string; readonly message: string }, 
 export const studioRoutes = (film: string) => {
   const base: `/lab/${string}` = `${labBase(film)}/studio`;
 
+  /**
+   * One write at a time: a take kept (its attempt, the timings) and the mix
+   * after it finish before the next begins, so two takes posted at once
+   * never interleave their writes or mix over each other.
+   */
+  const writing = Semaphore.makeUnsafe(1);
+
   /** The film as it is stored now: a take kept a moment ago is in its timings. */
   const current = Effect.gen(function* () {
     return yield* (yield* FilmRepo).load(film);
+  });
+
+  /**
+   * The `:beat` of the path, decoded, when it is one of the film's beats;
+   * anything else (another name, a `/` or `..` smuggled in encoded) fails
+   * UnknownScene before the route reads or writes a thing.
+   */
+  const beatParam = Effect.gen(function* () {
+    const { beat } = yield* HttpRouter.schemaPathParams(BeatParams);
+    const known = (yield* Effect.fromResult(beatsOf(yield* current))).map((b) => b.id);
+    if (!known.includes(beat)) return yield* UnknownScene.make({ scene: beat, known });
+    return beat;
   });
 
   /** The kept take, remixed into the track, as the panel reads it. */
@@ -221,6 +259,24 @@ export const studioRoutes = (film: string) => {
     );
   });
 
+  /**
+   * A take made (`make`) and, when kept, remixed, holding `writing` the whole
+   * way; a take refused for what it says answers with its saved attempt.
+   */
+  const keeping = <E extends { readonly _tag: string; readonly message: string }, R>(
+    beat: string,
+    make: Effect.Effect<Imported, E, R>,
+  ) =>
+    writing.withPermits(1)(
+      Effect.gen(function* () {
+        const imported = yield* Effect.result(make);
+        if (Result.isSuccess(imported)) return yield* kept(imported.success);
+        const error = imported.failure;
+        if (isMismatch(error)) return yield* mismatch(beat, error);
+        return yield* Effect.fail(error);
+      }),
+    );
+
   return HttpRouter.addAll([
     HttpRouter.route(
       'GET',
@@ -256,30 +312,26 @@ export const studioRoutes = (film: string) => {
       `${base}/takes/:beat`,
       handled(
         Effect.gen(function* () {
-          const { beat } = yield* HttpRouter.schemaPathParams(BeatParams);
+          const beat = yield* beatParam;
           const post = yield* HttpServerRequest.schemaBodyJson(TakePost);
           const bytes = yield* Effect.fromResult(Encoding.decodeBase64(post.audio)).pipe(
             Effect.mapError(() => AudioInvalid.make({ reason: 'the audio is not base64' })),
           );
           const extension = yield* Effect.fromResult(extensionOf(post.type));
           const fs = yield* FileSystem.FileSystem;
-          const imported = yield* Effect.scoped(
-            Effect.gen(function* () {
-              const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-studio-' });
-              const file = (yield* Path.Path).join(dir, `${beat}${extension}`);
-              yield* fs.writeFile(file, bytes);
-              return yield* (yield* Takes).importBeat(yield* current, beat, file, {
-                acceptMismatch: post.acceptMismatch === true,
-              });
-            }),
-          ).pipe(Effect.result);
-          return yield* Result.match(imported, {
-            onSuccess: kept,
-            onFailure: (error) => {
-              if (error._tag === 'TakeMismatch') return mismatch(beat, error);
-              return Effect.fail(error);
-            },
-          });
+          return yield* keeping(
+            beat,
+            Effect.scoped(
+              Effect.gen(function* () {
+                const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-studio-' });
+                const file = (yield* Path.Path).join(dir, `recording${extension}`);
+                yield* fs.writeFile(file, bytes);
+                return yield* (yield* Takes).importBeat(yield* current, beat, file, {
+                  acceptMismatch: post.acceptMismatch === true,
+                });
+              }),
+            ),
+          );
         }),
       ),
     ),
@@ -288,7 +340,7 @@ export const studioRoutes = (film: string) => {
       `${base}/takes/:beat/attempts`,
       handled(
         Effect.gen(function* () {
-          const { beat } = yield* HttpRouter.schemaPathParams(BeatParams);
+          const beat = yield* beatParam;
           const loaded = yield* current;
           const named = Option.fromNullishOr(loaded.timings.scenes[beat]);
           const script = Arr.findFirst(
@@ -316,7 +368,8 @@ export const studioRoutes = (film: string) => {
       `${base}/takes/:beat/attempts/:file`,
       handled(
         Effect.gen(function* () {
-          const { beat, file } = yield* HttpRouter.schemaPathParams(AttemptParams);
+          const beat = yield* beatParam;
+          const { file } = yield* HttpRouter.schemaPathParams(AttemptParams);
           const found = yield* (yield* Takes).attemptFile(yield* current, beat, file);
           if (Option.isNone(found))
             return HttpServerResponse.text('no such attempt', { status: 404 });
@@ -334,20 +387,19 @@ export const studioRoutes = (film: string) => {
       `${base}/takes/:beat/keep`,
       handled(
         Effect.gen(function* () {
-          const { beat } = yield* HttpRouter.schemaPathParams(BeatParams);
+          const beat = yield* beatParam;
           const post = yield* HttpServerRequest.schemaBodyJson(KeepPost);
-          const imported = yield* (yield* Takes)
-            .keepAttempt(yield* current, beat, post.file, {
-              acceptMismatch: post.acceptMismatch === true,
-            })
-            .pipe(Effect.result);
-          return yield* Result.match(imported, {
-            onSuccess: kept,
-            onFailure: (error) => {
-              if (error._tag === 'TakeMismatch') return mismatch(beat, error);
-              return Effect.fail(error);
-            },
-          });
+          const takes = yield* Takes;
+          return yield* keeping(
+            beat,
+            current.pipe(
+              Effect.flatMap((loaded) =>
+                takes.keepAttempt(loaded, beat, post.file, {
+                  acceptMismatch: post.acceptMismatch === true,
+                }),
+              ),
+            ),
+          );
         }),
       ),
     ),
@@ -373,29 +425,77 @@ export const studioHandler = Effect.fn('film.studio.handler')(function* (film: s
     (web) => Effect.promise(() => web.dispose()),
   );
   const run = Effect.runPromiseWith(services);
+  const refuse = (
+    request: Request,
+    refusal: { readonly _tag: string; readonly message: string },
+    status: number,
+  ) =>
+    run(
+      Effect.logWarning(
+        `studio.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${status} tag=${refusal._tag} reason="${refusal.message}"`,
+      ).pipe(
+        Effect.andThen(refusalJson({ _tag: refusal._tag, message: refusal.message }, { status })),
+        Effect.map(HttpServerResponse.toWeb),
+        Effect.orDie,
+      ),
+    );
   const studio: LabHandler = (request, server) =>
     Option.match(
       Option.orElse(admit(request, server), () => forFilm(request, film)),
       {
-        onNone: () => handler(request, services),
-        onSome: (refusal) =>
-          run(
-            Effect.logWarning(
-              `studio.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
-            ).pipe(
-              Effect.andThen(
-                refusalJson(
-                  { _tag: 'LabRequestRefused', message: refusal.reason },
-                  { status: refusal.status },
-                ),
-              ),
-              Effect.map(HttpServerResponse.toWeb),
-              Effect.orDie,
-            ),
+        onNone: () =>
+          run(Effect.result(bounded(request))).then((read) =>
+            Result.match(read, {
+              onSuccess: (whole) => handler(whole, services),
+              onFailure: (error) => refuse(request, error, statusOf(error._tag)),
+            }),
           ),
+        onSome: (refusal) =>
+          refuse(request, { _tag: 'LabRequestRefused', message: refusal.reason }, refusal.status),
       },
     );
   return studio;
+});
+
+/**
+ * `request` with its body read, when the body is `STUDIO_MAX_BODY` bytes or
+ * less; BodyTooLarge the moment it is not. The stream is counted as it comes
+ * (a Content-Length over the limit is refused before a byte is read, one
+ * under it is not believed), so a body over the limit is never held whole.
+ */
+const bounded = Effect.fn('studio.bounded')(function* (request: Request) {
+  const tooLarge = BodyTooLarge.make({ limit: STUDIO_MAX_BODY });
+  const declared = Option.fromNullishOr(request.headers.get('content-length')).pipe(
+    Option.map(Number),
+  );
+  if (Option.exists(declared, (n) => n > STUDIO_MAX_BODY)) return yield* tooLarge;
+  const body = Option.fromNullishOr(request.body);
+  if (Option.isNone(body)) return request;
+  const reader = body.value.getReader();
+  const unreadable = () => AudioInvalid.make({ reason: 'the request body could not be read' });
+  const chunks: Array<Uint8Array> = [];
+  let total = 0;
+  while (true) {
+    const next = yield* Effect.tryPromise({ try: () => reader.read(), catch: unreadable });
+    if (next.done) break;
+    total += next.value.byteLength;
+    if (total > STUDIO_MAX_BODY) {
+      yield* Effect.tryPromise({ try: () => reader.cancel(), catch: unreadable }).pipe(
+        Effect.ignore,
+      );
+      return yield* tooLarge;
+    }
+    chunks.push(next.value);
+  }
+  const whole = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    whole.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  const headers = new Headers(request.headers);
+  headers.delete('content-length');
+  return new Request(request.url, { method: request.method, headers, body: whole });
 });
 
 /** The lab with its studio: a request under `/lab/<film>/studio/` goes to the studio, the rest to the lab. */

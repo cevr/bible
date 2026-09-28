@@ -110,6 +110,16 @@ export class RecordingLossy extends Schema.TaggedError<RecordingLossy>()('Record
   }
 }
 
+/** A request body over what the studio reads, refused before it is read whole. */
+export class BodyTooLarge extends Schema.TaggedError<BodyTooLarge>()('BodyTooLarge', {
+  /** The most the route reads, in bytes. */
+  limit: Schema.Int,
+}) {
+  override get message() {
+    return `the request body is over ${this.limit} bytes`;
+  }
+}
+
 export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('ElevenLabsFailed', {
   op: Schema.String,
   exitCode: Schema.Int,

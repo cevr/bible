@@ -215,10 +215,17 @@ read (`AudioInvalid`), is a 400; a lossy one (`audio/webm`, `ogg`, `mp4`,
 take is the film's master; the panel records PCM (an AudioWorklet) and posts
 WAV. `TakeMismatch`, `RecordingInvalid` (a beat
 with no line, silence, an attempt never recorded) a 422; a failed
-speech-to-text a 502. The upload is written to a scoped temp file, removed
-when the request ends. After a take is kept the film remixes; `mixed: false`
-says the mix failed (logged) and the take stands. The panel that records in
-the browser is not built yet.
+speech-to-text a 502. `:beat` is decoded and must be one of the film's
+beats before a route reads a body or writes a thing: any other name (an
+encoded `/` or `..` included) is a 404 `UnknownScene`. A body over
+`STUDIO_MAX_BODY` (64 MiB) is a 413 `BodyTooLarge`, counted as it streams (a
+Content-Length over it is refused unread; one under it is not believed). The
+upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
+when the request ends. Takes are kept one at a time (a semaphore per studio):
+the keep, the timings write and the mix after it finish before the next post
+begins. After a take is kept the film remixes; `mixed: false` says the mix
+failed (logged) and the take stands. The panel that records in the browser
+is not built yet.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
