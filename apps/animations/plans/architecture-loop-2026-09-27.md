@@ -99,6 +99,18 @@ Decisions (decided by redesign-from-first-principles unless noted):
 - Script doctrine (owner, 2026-09-27): the spine "declares, clothes, changes" and the verdict open frame justification as a legal declaration; justification is faith, forgiveness and power, all gifts (made righteous), and sanctification is the daily choice. A draft revision with verified sources is in `<scratchpad>/script-revision/draft.md`; re-recording waits for the owner's approval of the draft. `films-b` starts after the revised script lands.
 - One person model: the kit's `person` takes the engine `figure.ts` face features (smile, closed eyes) and the new pose knobs; `figure.ts` goes when v1 no longer needs it or moves into v1.
 
+Wave-1 decisions (orchestrator):
+
+- f.keys fractions written to 3 decimals move 10 stills by PSNR 61–87 dB, read identical by eye: kept (readable data; passes the art-direction rule).
+- E10 torn-edge seam: real in the geometry (0.37–1.58 noise jump), invisible in stills at 3–4×: rejected until a still shows it (art direction beats a geometric nicety; a fix moves every cutout, v1 included).
+- E10b rim normal points inward for ellipse/rect winding: only v1 draws rims (frozen): rejected for now, re-propose with a film that uses rims.
+- PF7 texture pattern cache: pixel-exact but −0.1%: rejected (Performant: measured, not guessed).
+- MAX_ENCODERS=14 is machine-measured; it fails fast with TooManyEncoders. A detection probe waits until another machine renders.
+- The share copy costs ~40% of render fps (136 vs 81 at 8 pages): pass 2 measures a separate transcode before any change.
+- Binary chunk transport (~520 ms per 56 MB CDP string): pass 2 designs the seam (POST route or exposeBinding).
+- Flakes seen under sibling load: animations CLI spawns (fixed in lab with measured budgets), cli `test:perf` phrase matcher, app "keeps the plans query cached across a route change" (~1 in 3 alone): the last two are outside the film; pass 2 guardrails area.
+- `bible egw study --pioneers` excludes Jones and Waggoner (the script draft had to use `--author`): a corpus-tool defect outside this loop; recorded for the bible CLI.
+
 Triage (wave 1 in parallel from main `a215190a`; wave 2 after wave 1 merges; wave 3 after wave 2):
 
 | Batch   | Wave                          | Worktree                  | Items                                                                                                                                                                                                                                                                                                                                                      |
