@@ -20,7 +20,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, ROBE, blob, gait, glow, icons, person, piece, rounded, sky } from '../kit.ts';
+import { C, ROBE, blob, gait, glow, icons, person, piece, rounded, sky, turban } from '../kit.ts';
 import { ANGEL_HAND, JOSHUA, ZECH_REST, courtWall, zechCourt } from '../court.ts';
 
 const LOOM: Pt = [1045, 560];
@@ -203,7 +203,7 @@ const robed = (f: RobeFrame) => {
   at(ctx, { x: 960, y: 430 + 165 * 6, scale: 6 }, () =>
     person(
       ctx,
-      { turban: true, look: [0, 4 * down], nod: 1.5 * down, browTilt: 0.25 * down },
+      { onHead: turban, look: [0, 4 * down], nod: 1.5 * down, browTilt: 0.25 * down },
       hand('face'),
     ),
   );
@@ -277,7 +277,7 @@ const beneath = (f: RobeFrame) => {
   const carried = f.at('carried');
   glow(ctx, 960, 850, 650, C.glow, 0.85 * f.at('carried'));
   at(ctx, { x: 960, y: 330 + 165 * 4.6, scale: 4.6 }, () =>
-    person(ctx, { turban: true, look: [0, 3.5], browTilt: 0.25 }, hand('faceD')),
+    person(ctx, { onHead: turban, look: [0, 3.5], browTilt: 0.25 }, hand('faceD')),
   );
   piece(
     ctx,

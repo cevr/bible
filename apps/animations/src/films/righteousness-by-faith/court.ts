@@ -33,6 +33,7 @@ import {
   rounded,
   sky,
   mix,
+  turban,
 } from './kit.ts';
 
 // ─── the cold open's court, and the landing's ───────────────────────────────
@@ -432,7 +433,7 @@ const zechAngel = (ctx: CanvasRenderingContext2D, hand: Hands, a: ZechCourt['ang
 
 const zechJoshua = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) =>
   at(ctx, { x: JOSHUA[0], y: JOSHUA[1], scale: JS }, () => {
-    person(ctx, { ...s.joshua, turban: true }, hand('joshua'));
+    person(ctx, { ...s.joshua, onHead: turban }, hand('joshua'));
     SPECKS.forEach((speck, i) =>
       piece(ctx, speck, C.scarlet, sub(hand('speck'), i), {
         line: 0,

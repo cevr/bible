@@ -18,7 +18,9 @@ import {
   type Pt,
   at,
   drawing,
+  ellipse,
   line,
+  spline,
   multiplane,
   probePlate,
   rectShape,
@@ -27,7 +29,20 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { ease, lerp } from '@bible/film/core';
-import { C, F, contact, glow, icons, person, piece, rounded, sky, plate, between } from '../kit.ts';
+import {
+  C,
+  F,
+  type Person,
+  contact,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+  plate,
+  between,
+} from '../kit.ts';
 import { herald } from '../heaven.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
 
@@ -265,22 +280,93 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
   );
 };
 
-/** Waggoner and Jones on the platform, one with the Bible open. */
+/**
+ * Hair hugging a head centred on `c` with radii `r`, sideburn to sideburn,
+ * its hairline arched over the brow: `sweep` 1 brushes it up and back
+ * (Jones), 0 is a short crop (Waggoner).
+ */
+const hairShape = ([cx, cy]: Pt, [rx, ry]: Pt, sweep: number): Pt[] =>
+  spline(
+    [
+      [cx - 0.98 * rx, cy - 0.05 * ry],
+      [cx - 1.04 * rx, cy - 0.5 * ry],
+      [cx - 0.8 * rx, cy - (0.92 + 0.06 * sweep) * ry],
+      [cx - 0.2 * rx, cy - (1.06 + 0.1 * sweep) * ry],
+      [cx + 0.5 * rx, cy - (1.02 + 0.08 * sweep) * ry],
+      [cx + 0.94 * rx, cy - 0.7 * ry],
+      [cx + 1.03 * rx, cy - 0.3 * ry],
+      [cx + 0.98 * rx, cy - 0.05 * ry],
+      [cx + 0.86 * rx, cy - 0.1 * ry],
+      [cx + 0.84 * rx, cy - 0.5 * ry],
+      [cx + 0.4 * rx, cy - (0.72 + 0.04 * sweep) * ry],
+      [cx - 0.2 * rx, cy - (0.74 + 0.04 * sweep) * ry],
+      [cx - 0.8 * rx, cy - 0.5 * ry],
+      [cx - 0.86 * rx, cy - 0.1 * ry],
+    ],
+    6,
+    true,
+  );
+
+/**
+ * The two preachers, told apart by silhouette alone (no labels), after their
+ * portraits: Waggoner short and stocky, in round spectacles with a trim
+ * moustache, holding the open Bible; Jones tall and angular, his hair brushed
+ * back and a full handlebar moustache. Each: x, scale and person.
+ */
+const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
+  [
+    740,
+    1.75,
+    {
+      body: C.boardDeep,
+      build: [1.05, 0.95],
+      hair: C.boardShade,
+      moustache: 0.35,
+      onHead: (ctx, c, r, hand) => {
+        piece(ctx, hairShape(c, r, 0), C.boardShade, sub(hand, 85), { line: 2.5, shadow: 0.1 });
+        for (const [i, x] of [-12, 13].entries())
+          stroke(
+            ctx,
+            ellipse(c[0] + x, c[1] - 7, 8, 8, i),
+            { color: C.outline, width: 2, jitter: 0.3, taper: 0 },
+            sub(hand, 80 + i),
+          );
+        stroke(
+          ctx,
+          line([c[0] - 4, c[1] - 8], [c[0] + 5, c[1] - 8]),
+          { color: C.outline, width: 2, jitter: 0.3, taper: 0 },
+          sub(hand, 82),
+        );
+      },
+    },
+  ],
+  [
+    1180,
+    1.85,
+    {
+      body: C.inkSoft,
+      build: [0.9, 1.15],
+      hair: C.boardDeep,
+      moustache: 1,
+      onHead: (ctx, c, r, hand) =>
+        piece(ctx, hairShape(c, r, 1), C.boardDeep, sub(hand, 85), { line: 2.5, shadow: 0.1 }),
+    },
+  ],
+];
+
+/** Waggoner and Jones on the platform, Waggoner with the Bible open. */
 const preachers = (f: MessageFrame) => {
   const { ctx } = f;
   const step = f.at('stepUp');
   const precious = f.at('precious');
   const turn = f.at('turn');
-  for (const [k, x, s] of [
-    [0, 740, 1.75],
-    [1, 1180, 1.85],
-  ] as const) {
+  for (const [k, [x, s, who]] of PREACHERS.entries()) {
     at(ctx, { x, y: STAGE_Y - 8 * step, scale: s }, () => {
       glow(ctx, 0, -110, 170, C.glow, 0.5 * step);
       person(
         ctx,
         {
-          body: C.boardDeep,
+          ...who,
           shade: C.outline,
           look: [lerp(k === 0 ? 3 : -3, 0, step), lerp(0, 2, step) - 3 * turn],
           browL: 2 * step,

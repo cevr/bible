@@ -9,19 +9,7 @@
 
 import { type Camera, type Pt, at, drawing, multiplane, rectShape, sub } from '@bible/film/canvas';
 import { clamp, ease, lerp, rng } from '@bible/film/core';
-import {
-  C,
-  HEAD,
-  NECK,
-  christ,
-  contact,
-  glow,
-  person,
-  piece,
-  rounded,
-  sky,
-  between,
-} from '../kit.ts';
+import { C, christ, contact, glow, person, piece, rounded, sky, between } from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';
 
 const SOLDIER: Pt = [820, 960];
@@ -64,37 +52,28 @@ const FAR = roofs(8, -2400, 2600, 420, 600);
 /** The street's own houses, clear of the servant's. */
 const NEAR = roofs(33, -800, 2400, 480, 640);
 
-/** The soldier's helmet and crest, over a person's head turned by `tilt` and dropped by `nod`. */
-const helmet = (
-  ctx: CanvasRenderingContext2D,
-  tilt: number,
-  nod: number,
-  hand: (k: string) => { boil: number; seed: number },
-) => {
-  ctx.save();
-  ctx.translate(NECK[0], NECK[1] + nod);
-  ctx.rotate(tilt);
-  ctx.translate(-NECK[0], -NECK[1]);
-  const [cx, cy] = HEAD;
-  const dome: Pt[] = Array.from({ length: 17 }, (_, i): Pt => {
-    const a = Math.PI + (Math.PI * i) / 16;
-    return [cx + Math.cos(a) * 40, cy - 33 + Math.sin(a) * 22];
-  });
-  // The crest: a plume arched front to back over the helmet.
-  const plume: Pt[] = [
-    ...Array.from({ length: 13 }, (_, i): Pt => {
-      const a = Math.PI + (Math.PI * i) / 12;
-      return [cx + Math.cos(a) * 44, cy - 46 + Math.sin(a) * 32];
-    }),
-    ...Array.from({ length: 13 }, (_, i): Pt => {
-      const a = 2 * Math.PI - (Math.PI * i) / 12;
-      return [cx + Math.cos(a) * 32, cy - 44 + Math.sin(a) * 18];
-    }),
-  ];
-  piece(ctx, plume, C.sunsetLow, hand('crest'), { line: 2.5 });
-  piece(ctx, dome, C.boardDeep, hand('helmet'), { line: 3 });
-  ctx.restore();
-};
+/** The soldier's helmet and crest, as his person's `onHead`. */
+const helmet =
+  (hand: (k: string) => { boil: number; seed: number }) =>
+  (ctx: CanvasRenderingContext2D, [cx, cy]: Pt) => {
+    const dome: Pt[] = Array.from({ length: 17 }, (_, i): Pt => {
+      const a = Math.PI + (Math.PI * i) / 16;
+      return [cx + Math.cos(a) * 40, cy - 33 + Math.sin(a) * 22];
+    });
+    // The crest: a plume arched front to back over the helmet.
+    const plume: Pt[] = [
+      ...Array.from({ length: 13 }, (_, i): Pt => {
+        const a = Math.PI + (Math.PI * i) / 12;
+        return [cx + Math.cos(a) * 44, cy - 46 + Math.sin(a) * 32];
+      }),
+      ...Array.from({ length: 13 }, (_, i): Pt => {
+        const a = 2 * Math.PI - (Math.PI * i) / 12;
+        return [cx + Math.cos(a) * 32, cy - 44 + Math.sin(a) * 18];
+      }),
+    ];
+    piece(ctx, plume, C.sunsetLow, hand('crest'), { line: 2.5 });
+    piece(ctx, dome, C.boardDeep, hand('helmet'), { line: 3 });
+  };
 
 export const centurion = drawing({
   timeline: {
@@ -265,13 +244,12 @@ export const centurion = drawing({
                 hand('cape'),
                 { line: 3 },
               );
-              const tilt = 0.06 * worry - 0.05 * stop + 0.12 * open;
-              const nod = 4 * worry + 5 * open;
               person(
                 ctx,
                 {
-                  tilt,
-                  nod,
+                  tilt: 0.06 * worry - 0.05 * stop + 0.12 * open,
+                  nod: 4 * worry + 5 * open,
+                  onHead: helmet(hand),
                   look: inHand ? [2, lerp(0, 4, open)] : [lerp(3, -2, worry), worry],
                   browL: 3 * stop + 2 * worry,
                   browR: 2 * stop + 2 * worry,
@@ -285,7 +263,6 @@ export const centurion = drawing({
                 hand('soldier'),
               );
               piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), { line: 2 });
-              helmet(ctx, tilt, nod, hand);
             });
 
             // Jesus, offering to go.
