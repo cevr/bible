@@ -48,6 +48,28 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('keeps the film canvas, and so its layers, inside its row, off the bar', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab();
+      for (const size of [
+        { width: 1400, height: 480 },
+        { width: 1100, height: 420 },
+      ]) {
+        yield* Effect.promise(() => page.setViewportSize(size));
+        yield* Effect.promise(() => page.waitForTimeout(100));
+        const box = (yield* Effect.promise(() =>
+          page.evaluate(
+            `({ stage: ${rects('.stage')}[0], canvas: ${rects('.stage canvas')}[0], overlay: ${rects('.lab-overlay')}[0], bar: ${rects('.bar')}[0] })`,
+          ),
+        )) as Record<'stage' | 'canvas' | 'overlay' | 'bar', [number, number, number, number]>;
+        const bottom = ([, top, , height]: readonly number[]) => (top ?? 0) + (height ?? 0);
+        expect(bottom(box.canvas)).toBeLessThanOrEqual(bottom(box.stage));
+        expect(bottom(box.overlay)).toBeLessThanOrEqual(box.bar[1]);
+        expect(box.overlay).toEqual(box.canvas);
+      }
+    }).pipe(Effect.scoped),
+  );
+
   it.live("keeps the strip's slot right under the player's timeline", () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();

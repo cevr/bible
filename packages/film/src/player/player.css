@@ -221,6 +221,14 @@ body.lab .bar {
 body.lab .bar {
   grid-template-columns: minmax(0, 1fr);
 }
+/*
+ * The stage's one cell is as tall as its row, not as its content: the
+ * canvas's max-height then resolves against it, so the canvas (and every
+ * layer pinned over it) stays inside the row and off the bar below.
+ */
+body.lab .stage {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
 .lab-panel {
   grid-column: 2;
   grid-row: 1 / span 2;
