@@ -2,6 +2,8 @@
 
 The framework renders a film as pure frames: every frame is `draw(frame)` at a time `T`, thousands of times per render, and again on every scrub and every lab tweak. The **objective** is less time per frame (render and lab) and less memory churn. The **constraint** is the look: art direction is never traded for speed (owner, 2026-09-27). By default a change keeps pixels identical, proved by stills compared with `cmp`; a change that moves pixels (an owner-approved look change) must be indistinguishable to the eye in side-by-side stills and is reverted if a still shows it. Pure frames win over speed: no cache that carries state from one frame to the next.
 
+The **scope** is the framework, not a film (owner, 2026-09-27): speed is found in `@bible/film` (canvas primitives, compositor, kit-level helpers the framework offers, renderer, lab, tools) so every film inherits it. Films are the benchmark: a scene that is slow names the primitive to fix, and the fix lands in the primitive. A per-film tweak (fewer strokes in one scene, a scene-local cache, a simplified prop) is not a performance finding.
+
 ## Measure first
 
 A number without an instrument is a guess. When an instrument below does not exist, building it is the first performance finding, and the batch that builds it records the baseline.
