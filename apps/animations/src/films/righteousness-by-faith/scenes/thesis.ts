@@ -134,18 +134,20 @@ export const thesis = drawing({
       if (answer > 0) {
         ctx.save();
         ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
-        piece(ctx, rectShape(210, 262, 1500, 116), C.cream, f.hand('plate'), {
+        const board = rectShape(210, 262, 1500, 116);
+        piece(ctx, board, C.cream, f.hand('plate'), {
           line: 5,
           outline: C.gold,
           torn: 2,
           shadow: 0.4,
         });
-        probePlate(ctx, ANSWER, 210, 262, 1500, 116);
-        write(ctx, ANSWER, 960, 350, answerStyle, f.hand('answer'), {
-          progress: answer,
-          reveal: 'write',
-          boil: 0.4,
-        });
+        probePlate(ctx, board, () =>
+          write(ctx, ANSWER, 960, 350, answerStyle, f.hand('answer'), {
+            progress: answer,
+            reveal: 'write',
+            boil: 0.4,
+          }),
+        );
         ctx.restore();
       }
     }

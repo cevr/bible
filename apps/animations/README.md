@@ -12,7 +12,7 @@ bun run dev                                    # player at http://127.0.0.1:4400
 bun run narrate <film>                         # record stale beats, verify, remix full.wav
 bun run score <film>                           # generate stale music + effects, remix full.wav
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
-bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
+bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
@@ -147,7 +147,10 @@ src/films/<film>/
 **Narration drives the clock.** A scene lasts `lead + speech + tail`: `lead`
 defaults to 70% of its entrance (at least 0.5 s) and `tail` to 0.1 s, so the
 seam between two voices is about 0.6 s; set a longer `tail` only for a pause
-the script means (rule 9 of the film skill's CRAFT.md). Put
+the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
+seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
+with neither scene declaring it (no `tail` before it, and no `min` that
+stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
@@ -257,3 +260,12 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`.
+
+**Lint.** The repo's `film` oxlint plugin (`packages/film/lint/`, rules read
+as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,
+for every film but the frozen `righteousness-by-faith-v1`:
+
+| Rule                   | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `film/drawing-literal` | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()` |
+| `film/no-unprobed-ink` | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                       |

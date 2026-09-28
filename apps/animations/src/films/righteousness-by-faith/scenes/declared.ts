@@ -1,8 +1,9 @@
 // Declared. The page, close on the viewer's figure in their stained garment,
-// and the act's one word card: JUSTIFY, δικαιόω, declared righteous. The
+// and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
 // figure looks down at the stains, doubtful: a cover-up again? Pull back to
-// the three icons, the word-bubble lit. On "substantial" the bubble becomes a
-// solid, heavy thing and lands with weight. Then the dawn from `spoke` opens
+// the three icons, the word-bubble lit. On `subst` the bubble becomes a
+// solid, heavy thing and lands with weight (the script now wants the hollow
+// stamp from `cold` here instead; not drawn yet). Then the dawn from `spoke` opens
 // in a panel behind the figure; the same word of light arcs out of its sun
 // and lands on their chest, and gold blooms there as the stains shrink away:
 // made righteous, not covered.
@@ -52,7 +53,7 @@ const LINES = [
     italic: false,
   },
   {
-    text: 'declared righteous',
+    text: 'made righteous',
     dy: 125,
     size: 52,
     family: F.display,
@@ -199,36 +200,33 @@ export const declared = drawing({
         const card = f.at('cardIn') * (1 - toIcons) * (1 - back);
         if (card > 0.01)
           at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: card }, () => {
-            piece(ctx, rectShape(-310, -165, 620, 330), C.cream, hand('card'), {
-              line: 0,
-              torn: 3,
-              shadow: 0.4,
-            });
+            const board = rectShape(-310, -165, 620, 330);
+            piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
             const reveal = [
               f.spoken('justified', 'declared'),
               f.at('greek'),
               f.spoken('declared', 'still'),
             ];
-            LINES.forEach((l, i) => {
-              const box = { w: l.text.length * l.size * 0.52, h: l.size * 1.05 };
-              probePlate(ctx, l.text, -box.w / 2, l.dy - l.size * 0.82, box.w, box.h);
-              write(
-                ctx,
-                l.text,
-                0,
-                l.dy,
-                {
-                  family: l.family,
-                  size: l.size,
-                  weight: l.weight,
-                  italic: l.italic,
-                  color: l.color,
-                  align: 'center',
-                },
-                hand(`line${i}`),
-                { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
-              );
-            });
+            probePlate(ctx, board, () =>
+              LINES.forEach((l, i) =>
+                write(
+                  ctx,
+                  l.text,
+                  0,
+                  l.dy,
+                  {
+                    family: l.family,
+                    size: l.size,
+                    weight: l.weight,
+                    italic: l.italic,
+                    color: l.color,
+                    align: 'center',
+                  },
+                  hand(`line${i}`),
+                  { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
+                ),
+              ),
+            );
           });
       });
       ctx.restore();

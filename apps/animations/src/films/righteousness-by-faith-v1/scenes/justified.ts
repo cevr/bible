@@ -209,16 +209,18 @@ export const justified = drawing({
         t * 0.1,
       );
       at(ctx, { x: wx + dx, y: wy + dy, rot: -0.04 + Math.sin(t * 2) * 0.02 }, () => {
+        const strip = rectShape(-40, -70, 250, 100);
         cutout(
           ctx,
-          rectShape(-40, -70, 250, 100),
+          strip,
           { color: C.robe, torn: 3, rim: 0, shadow: 0.7, grain: 0.3 },
           f.hand('strip'),
         );
-        probePlate(ctx, 'light', -40, -70, 250, 100);
-        write(ctx, 'light', 85, 2, { ...hand(78, C.ink), align: 'center' }, f.hand('word'), {
-          boil: 0.5,
-        });
+        probePlate(ctx, strip, () =>
+          write(ctx, 'light', 85, 2, { ...hand(78, C.ink), align: 'center' }, f.hand('word'), {
+            boil: 0.5,
+          }),
+        );
       });
       ctx.restore();
     }

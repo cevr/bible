@@ -24,6 +24,8 @@ export interface Probe {
   readonly dx: number;
   /** Opacity the layer is composited at (a fade or wipe transition). */
   readonly alpha: number;
+  /** The `order` of the plate the text drawn now sits on (inside `probePlate`). */
+  readonly plate?: number;
 }
 
 const probes = new WeakMap<CanvasRenderingContext2D, Probe>();
@@ -115,7 +117,8 @@ export const recordText = (
     alpha: alpha * probe.alpha,
     order: nextOrder(probe.sink),
   };
-  probe.sink.texts.push(hand === undefined ? box : { ...box, hand });
+  const handed = hand === undefined ? box : { ...box, hand };
+  probe.sink.texts.push(probe.plate === undefined ? handed : { ...handed, on: probe.plate });
 };
 
 /** A recorded path keeps a point every this many pixels (in its own space) at most. */
@@ -175,26 +178,56 @@ export const textExtent = (ctx: CanvasRenderingContext2D, text: string) => {
   return { ascent: m.actualBoundingBoxAscent, descent: m.actualBoundingBoxDescent };
 };
 
+/** A plate's box in its own space: the rectangle around `shape`. */
+const boundsOf = (shape: ReadonlyArray<Point>) => {
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const [x, y] of shape) {
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x);
+    bottom = Math.max(bottom, y);
+  }
+  return { left, top, width: right - left, height: bottom - top };
+};
+
 /**
- * Declare the plate a line of text sits on (a torn tag, a caption plate), in
- * the current transform's space. A plate hides what is under it as surely as
- * the text does, so the check measures it as that text: recorded under the
- * same words, a line and its plate never collide with each other. It is also
- * recorded as ink (a `plate`), so a stroke drawn before it is known to be
- * hidden under it. Does nothing unless a check is probing `ctx`.
+ * Declare the plate `shape` (the points the scene passes to `piece` or
+ * `cutout`, in the current transform's space) and draw what sits on it. A
+ * plate hides what is under it as surely as text does, so the check measures
+ * it as text, the box around `shape`, and as ink (a `plate`), so a stroke
+ * drawn before it is known to be hidden under it. The lines `draw` writes are
+ * recorded as on this plate, so they never collide with it; any other text
+ * over the plate does. The plate is named by the lines it carries. Without a
+ * probe on `ctx`, this only draws.
  */
 export const probePlate = (
   ctx: CanvasRenderingContext2D,
-  text: string,
-  left: number,
-  top: number,
-  width: number,
-  height: number,
+  shape: ReadonlyArray<Point>,
+  draw: () => void,
 ) => {
   const probe = probeOf(ctx);
-  if (probe === undefined) return;
-  recordPlate(ctx, probe, left, top, width, height, ctx.globalAlpha);
-  recordText(ctx, probe, text, left, top, width, height, ctx.globalAlpha);
+  if (probe === undefined) return draw();
+  const alpha = ctx.globalAlpha;
+  recordInk(ctx, probe, 'plate', shape, 0, alpha);
+  const at = probe.sink.texts.length;
+  const box = boundsOf(shape);
+  recordText(ctx, probe, '', box.left, box.top, box.width, box.height, alpha);
+  const recorded = probe.sink.texts[at];
+  if (recorded === undefined) return draw();
+  probes.set(ctx, { ...probe, plate: recorded.order });
+  try {
+    draw();
+  } finally {
+    probes.set(ctx, probe);
+  }
+  const words = probe.sink.texts.filter((t) => t.on === recorded.order).map((t) => t.text);
+  probe.sink.texts[at] = {
+    ...recorded,
+    text: words.length > 0 ? words.join(' / ') : '(empty plate)',
+  };
 };
 
 /** A plate's rectangle as ink: it hides the strokes drawn before it. */

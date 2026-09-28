@@ -357,6 +357,22 @@ export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
   }
 }
 
+/**
+ * The pause between one scene's last word and the next scene's first is over
+ * the default seam, and neither scene declares it (no `tail` or `min` on the
+ * first, no `lead` on the second): a default stretched it, not the script.
+ */
+export class SeamLong extends Schema.TaggedError<SeamLong>()('SeamLong', {
+  from: Schema.String,
+  to: Schema.String,
+  seam: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `scenes "${this.from}" → "${this.to}": ${this.seam.toFixed(2)}s between their words, over ${this.max.toFixed(1)}s, and neither declares the pause (set "${this.to}".lead or "${this.from}".tail)`;
+  }
+}
+
 /** A beat whose take is missing, or was recorded for other text or another voice. */
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,
@@ -629,6 +645,31 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
   override get message() {
     const box = `${Math.round(this.x)},${Math.round(this.y)} ${Math.round(this.w)}×${Math.round(this.h)}`;
     return `${where(this)}: ${this.strokes} stroke(s) at ${box} cross "${this.text}" for ${Math.round(this.length)} px (${this.frames} sampled frame(s))`;
+  }
+}
+
+/** A line of text running off the plate under it (a card, a tag), past the plate's edge. */
+export class TextOffPlate extends Schema.TaggedError<TextOffPlate>()('TextOffPlate', {
+  ...sampled,
+  text: Schema.String,
+  /** How far the line's box reaches past each side of the plate's box, in canvas pixels. */
+  left: Schema.Finite,
+  top: Schema.Finite,
+  right: Schema.Finite,
+  bottom: Schema.Finite,
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const edges: ReadonlyArray<readonly [string, number]> = [
+      ['left', this.left],
+      ['top', this.top],
+      ['right', this.right],
+      ['bottom', this.bottom],
+    ];
+    const past = edges
+      .filter(([, px]) => px > 0)
+      .map(([edge, px]) => `${Math.round(px)} px past the ${edge}`);
+    return `${where(this)}: "${this.text}" runs off the plate under it, ${past.join(', ')} (${this.frames} sampled frame(s))`;
   }
 }
 

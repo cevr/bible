@@ -14,11 +14,13 @@
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
   type ArrayExpression,
+  type CallExpression,
   type Expression,
   type ObjectExpression,
   type ObjectProperty,
   type Program,
   type Statement,
+  Visitor,
   parseSync,
 } from 'oxc-parser';
 import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
@@ -310,6 +312,130 @@ export const drawingSites = (source: string, program: Program): ReadonlyArray<Dr
       });
     }),
   );
+};
+
+/** A place in a module the lab cannot locate or edit: the source range to point at, and why. */
+export interface Unlocatable {
+  readonly start: number;
+  readonly end: number;
+  readonly reason: string;
+}
+
+/** The slots of a drawing the lab writes to. */
+const SLOTS: ReadonlySet<string> = new Set(['timeline', 'knobs']);
+
+const unlocatableAt = (
+  node: { readonly start: number; readonly end: number },
+  reason: string,
+): Unlocatable => ({ start: node.start, end: node.end, reason });
+
+/** What the lab cannot prove in a located drawing's object: a spread, a slot twice, a slot that is not a literal. */
+const argumentDefects = (
+  consts: ReadonlyMap<string, ObjectExpression>,
+  arg: ObjectExpression,
+): ReadonlyArray<Unlocatable> => {
+  const seen = new Set<string>();
+  return arg.properties.flatMap((p): ReadonlyArray<Unlocatable> => {
+    if (p.type === 'SpreadElement')
+      return [
+        unlocatableAt(p, 'A spread in drawing({…}): the lab cannot prove what it would edit.'),
+      ];
+    const slot = Option.filter(keyName(p), (k) => SLOTS.has(k));
+    if (Option.isNone(slot)) return [];
+    const name = slot.value;
+    if (seen.has(name))
+      return [
+        unlocatableAt(
+          p,
+          `drawing's ${name} is declared twice: the lab would edit the first, and the film runs the last.`,
+        ),
+      ];
+    seen.add(name);
+    if (Option.isSome(literalValue(consts, p.value))) return [];
+    return [
+      unlocatableAt(
+        p,
+        `drawing's ${name} is not an object literal or a module-level const literal: the lab cannot locate or edit it.`,
+      ),
+    ];
+  });
+};
+
+/** An object with both a `timeline` and a `draw`: a scene, typed or not. */
+const isScene = (node: ObjectExpression): boolean => {
+  const keys = node.properties.flatMap((p) => {
+    if (p.type === 'SpreadElement') return [];
+    return Option.toArray(keyName(p));
+  });
+  return keys.includes('timeline') && keys.includes('draw');
+};
+
+/** Why a `drawing(…)` call the locator skips is skipped. */
+const skippedBecause = (arg: Option.Option<CallExpression['arguments'][number]>): string => {
+  if (Option.exists(arg, (a) => a.type === 'ObjectExpression'))
+    return 'This drawing({…}) is not a module-level `export const x = drawing({…})` (or a const exported by name): the lab locates only those, so it cannot find this scene.';
+  return 'drawing(…) takes an object literal: the lab cannot locate a scene built elsewhere.';
+};
+
+/**
+ * Everything in a module the lab's locator (`drawingSites`) cannot locate or
+ * edit, where it is written: a `drawing(…)` call that is not an exported
+ * module-level declarator, a slot that is not a literal the locator resolves,
+ * `drawing` read off a namespace, and a scene object that skips `drawing()`.
+ * The `film/drawing-literal` lint rule reports exactly these, so the rule and
+ * the lab read a scene the same way.
+ */
+export const unlocatable = (source: string, program: Program): ReadonlyArray<Unlocatable> => {
+  const names = drawingNames(program);
+  const consts = constObjects(program);
+  const located = new Set(drawingSites(source, program).map((s) => s.at));
+  const found: Array<Unlocatable> = [];
+  const passed = new Set<number>();
+  const scenes: Array<ObjectExpression> = [];
+  const pass = (call: CallExpression) =>
+    Option.map(Arr.head(call.arguments), (arg) => {
+      if (arg.type === 'ObjectExpression') passed.add(arg.start);
+      return arg;
+    });
+  new Visitor({
+    CallExpression: (call) => {
+      const callee = call.callee;
+      if (callee.type === 'MemberExpression') {
+        if (callee.computed || callee.property.type !== 'Identifier') return;
+        if (callee.property.name !== 'drawing') return;
+        pass(call);
+        found.push(
+          unlocatableAt(
+            call,
+            'drawing is read off an object here: the lab resolves it only as a named import (`import { drawing } from …`).',
+          ),
+        );
+        return;
+      }
+      if (callee.type !== 'Identifier' || !names.has(callee.name)) return;
+      const arg = pass(call);
+      if (!located.has(call.start)) {
+        found.push(unlocatableAt(call, skippedBecause(arg)));
+        return;
+      }
+      Option.map(
+        Option.filter(arg, (a): a is ObjectExpression => a.type === 'ObjectExpression'),
+        (obj) => found.push(...argumentDefects(consts, obj)),
+      );
+    },
+    ObjectExpression: (obj) => {
+      if (isScene(obj)) scenes.push(obj);
+    },
+  }).visit(program);
+  const bare = scenes
+    .filter((obj) => !passed.has(obj.start))
+    .map((obj) =>
+      unlocatableAt(
+        obj,
+        'A scene with a timeline goes through drawing(), so its cues are typed and the lab can locate it.',
+      ),
+    );
+  return [...found, ...bare].sort((a, b) => a.start - b.start);
 };
 
 /** The drawing a module exports as `name`, read from its source now. */

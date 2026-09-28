@@ -294,13 +294,24 @@ what a review used to find by eye:
   more than 4 px, where no opaque plate drawn after the stroke covers it, is
   an `InkOverText`, measured along the crossing (a segment-versus-box
   clip, not the bounds). A line on a plate that the frame cuts off, and that
-  sits still there, is a `PlateOffFrame`. Findings merge per scene and text
-  (or pair), at the worst sampled frame.
+  sits still there, is a `PlateOffFrame`. A line drawn on a declared plate
+  (`probePlate`) whose box leaves the plate's box by more than 4 px is a
+  `TextOffPlate` (a brief overrunning its card). Findings merge per scene and
+  text (or pair), at the worst sampled frame.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
-centre line and `cutout` its outline. A drawing declares the plate its text sits on (a torn tag)
-with `probePlate`, because a plate hides what is under it as the text does.
+centre line and `cutout` its outline. A drawing declares the plate its text
+sits on (a torn tag, a word card) with `probePlate(ctx, shape, () => write(…))`:
+the shape it drew the plate with, and the lines on it drawn inside. A plate
+hides what is under it as the text does, so it is measured as text too; the
+lines drawn inside carry the plate's `order` (`on`), so a card never collides
+with its own lines, while any other text over it does. The kit declares one
+plate itself: a storyboard scene's card (`canvas/storyboard.ts`), so its id and
+brief are checked against the card (`TextOffPlate`) and against each other
+(`TextOverlap`). The films declare the rest (righteousness-by-faith: heaven's
+banner, the court and cold labels, the thesis, message and word boards, the
+declared card; v1: the cite tab and the justified strip).
 With no probe attached a draw costs one WeakMap lookup, and a probed frame
 is pixel for pixel the same (it only reads the transform, `measureText` and
 the path it was going to draw). The export handle exposes it as `probe(i)`.

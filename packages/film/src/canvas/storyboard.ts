@@ -4,9 +4,12 @@
 import type { SceneSpec } from './film.ts';
 import { rectShape } from './ink.ts';
 import { cutout } from './cutout.ts';
+import { probePlate } from './probe.ts';
 import { type TextStyle, block, wrap, write } from './type.ts';
 import { progress } from '../core/time.ts';
 
+/** The card, pinned to the page. */
+const CARD = rectShape(360, 250, 1200, 520);
 const BRIEF_WIDTH = 1080;
 /** From the first baseline to the card's lower margin. */
 const BRIEF_HEIGHT = 340;
@@ -36,20 +39,23 @@ export const storyboard = (id: string, picture: string): Omit<SceneSpec, 'id' | 
     ctx.globalAlpha = lift;
     cutout(
       ctx,
-      rectShape(360, 250, 1200, 520),
+      CARD,
       { color: '#fbf6ea', torn: 3, rim: 0, shadow: 0.6, grain: 0.3 },
       f.hand('card'),
     );
-    write(
-      ctx,
-      `storyboard · ${id}`,
-      420,
-      330,
-      { family: 'Inter', size: 28, weight: 600, color: '#b5533c', tracking: 0.08 },
-      f.hand('id'),
-    );
-    block(ctx, picture, 420, 400, BRIEF_WIDTH, briefStyle(ctx, picture), f.hand('brief'), {
-      boil: 0.3,
+    // The id and the brief sit on the card: `film check` finds a line that runs off it.
+    probePlate(ctx, CARD, () => {
+      write(
+        ctx,
+        `storyboard · ${id}`,
+        420,
+        330,
+        { family: 'Inter', size: 28, weight: 600, color: '#b5533c', tracking: 0.08 },
+        f.hand('id'),
+      );
+      block(ctx, picture, 420, 400, BRIEF_WIDTH, briefStyle(ctx, picture), f.hand('brief'), {
+        boil: 0.3,
+      });
     });
   },
 });
