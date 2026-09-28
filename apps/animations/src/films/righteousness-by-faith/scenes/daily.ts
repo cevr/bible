@@ -35,7 +35,6 @@ import {
   C,
   CHEST,
   type Person,
-  contact,
   glow,
   icons,
   mix,
@@ -307,7 +306,6 @@ const other = (f: DailyFrame) => {
   const ears = f.at('ears');
   const [gx, gy] = f.knob('gate');
   const x = gx + OTHER_DX;
-  contact(ctx, x, gy + 4, 70 * OTHER_SCALE);
   ctx.save();
   ctx.translate(x, gy);
   ctx.scale(OTHER_SCALE * pop, OTHER_SCALE * pop);
@@ -335,7 +333,6 @@ const robedOnPage = (f: DailyFrame, toGate: number) => {
   LOOK[0] = lerp(lerp(1, 2, ask), 4, toGate);
   LOOK[1] = lerp(lerp(0, -4, ask), -1, toGate);
   const FIG = f.knob('fig');
-  contact(ctx, FIG[0], FIG[1] + 4, 80 * FIG_SCALE);
   ctx.save();
   ctx.translate(FIG[0], FIG[1]);
   ctx.scale(FIG_SCALE, FIG_SCALE);

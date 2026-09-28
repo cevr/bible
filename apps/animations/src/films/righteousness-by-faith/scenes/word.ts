@@ -20,7 +20,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { C, F, contact, glow, person, piece, rounded, plate } from '../kit.ts';
+import { C, F, ground, glow, person, piece, rounded, plate } from '../kit.ts';
 import { planet, ring, star, tablets } from '../law.ts';
 
 const WORD_CARD = 'Righteousness';
@@ -87,7 +87,7 @@ const page = (f: WordFrame) => {
 
   const drop = f.at('drop');
   if (drop > 0) {
-    contact(ctx, lx, ly + 180, 520 * drop);
+    ground(ctx, lx, ly + 180, 520 * drop);
     at(ctx, { x: lx, y: lerp(-400, ly, drop), scale: 1.9 }, () =>
       tablets(ctx, f.hand, 10 * clamp(f.spoken('all', 'char') * 1.15)),
     );
@@ -105,7 +105,6 @@ const viewer = (f: WordFrame) => {
   const awe = f.at('awe');
   const handL: Pt = [lerp(-30, -66, shrug), lerp(-58, -104, shrug)];
   const handR: Pt = [lerp(30, 66, shrug), lerp(-58, -104, shrug)];
-  contact(ctx, x, y + 4, 270);
   at(ctx, { x, y, scale: 2.6 }, () =>
     person(
       ctx,

@@ -104,11 +104,6 @@ export const look = drawing({
         const slide = f.at('slide');
         const sheepish = f.at('armsDown');
         at(ctx, { x: 820, y: 960, scale: 2.1 }, () => {
-          piece(ctx, ellipseShape(0, 2, 70, 8), `${C.paperTone}40`, hand('shadow'), {
-            role: 'scenery',
-            line: 0,
-            shadow: 0,
-          });
           person(
             ctx,
             {
@@ -342,6 +337,8 @@ export const look = drawing({
                 person(
                   ctx,
                   {
+                    // Off the sand once they climb.
+                    ground: Math.max(0, 1 - height / 40),
                     tilt: 0.15 * (1 - onPole) * (1 - lookUp) - 0.22 * lookUp,
                     nod: 5 * (1 - rise) * (1 - lookUp),
                     look: [

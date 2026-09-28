@@ -306,6 +306,8 @@ export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number) 
       body: C.robe,
       shade: C.robe,
       garment: 'robe',
+      // Flying: no ground under the feet.
+      ground: 0,
       tilt: 0.08,
       look: [4, -1],
       browTilt: 0.1,

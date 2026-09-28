@@ -9,6 +9,7 @@ import {
   at,
   piece as paperPiece,
   cutout,
+  ground,
   ellipseShape,
   probeFace,
   quad,
@@ -27,7 +28,7 @@ export const F = fonts;
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** A framing from its knobs: the framework's, so every film's scenes name it from their kit. */
-export { knobCamera } from '@bible/film/canvas';
+export { ground, knobCamera } from '@bible/film/canvas';
 
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [
@@ -124,20 +125,6 @@ export const glow = (
   ctx.globalAlpha *= Math.min(1, alpha);
   ctx.fillStyle = g;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.restore();
-};
-
-/** The soft contact shadow under something standing on the floor at (x, y). */
-export const contact = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number) => {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(1, 0.12);
-  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2);
-  g.addColorStop(0, `${C.boardDeep}70`);
-  g.addColorStop(0.55, `${C.paperTone}30`);
-  g.addColorStop(1, `${C.paperTone}00`);
-  ctx.fillStyle = g;
-  ctx.fillRect(-w / 2, -w / 2, w, w);
   ctx.restore();
 };
 
@@ -284,6 +271,12 @@ export interface Person {
    * with its two knees, and the shins hang down its face.
    */
   sit?: number;
+  /**
+   * How much ground is under the feet, 0..1: a standing person casts the
+   * engine's contact shadow there (`ground`), fading as they sit. 0 for a
+   * figure with nothing under it: flying, on the cross, lying down. Default 1.
+   */
+  ground?: number;
 }
 
 const NECK: Pt = [0, -128];
@@ -689,6 +682,11 @@ const arm = (
   });
 };
 
+/** How wide the contact shadow under a standing person spreads, by garment: past the robe's hem, or the tunic and feet. */
+const FOOT_SHADOW_W = { robe: 150, round: 100 } as const;
+/** Where it lies: just under the soles. */
+const FOOT_SHADOW_Y = 2;
+
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
   const colours = [p.body ?? C.figure, p.skin ?? C.figure] as const;
   const build = buildOf(p);
@@ -696,6 +694,15 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   const sit = clamp(p.sit ?? 0);
   // Seated, everything but the legs drops onto the seat.
   const drop = sit > 0 ? SEAT * sit * bh : 0;
+
+  // The contact shadow under the feet, under everything else, as wide as the hem.
+  const standing = clamp(p.ground ?? 1) * (1 - sit);
+  if (standing > 0) {
+    ctx.save();
+    ctx.globalAlpha *= standing;
+    ground(ctx, 0, FOOT_SHADOW_Y, FOOT_SHADOW_W[p.garment ?? 'round'] * bw);
+    ctx.restore();
+  }
 
   // The far arm behind the body, the near one over it.
   frameOf(ctx, drop);

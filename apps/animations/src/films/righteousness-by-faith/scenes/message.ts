@@ -39,7 +39,6 @@ import {
   C,
   F,
   type Person,
-  contact,
   glow,
   knobCamera,
   icons,
@@ -319,7 +318,6 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   ctx.save();
   ctx.globalAlpha *= 1 - handIn;
   at(ctx, { x: fx, y: fy, scale: FIGURE_S * shown * lerp(1, 1.4, handIn) }, () => {
-    contact(ctx, 0, 4, 150);
     person(
       ctx,
       {
@@ -418,7 +416,6 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
         lift: 1.3,
         draw: () =>
           CROWD.forEach((seat, i) => {
-            contact(ctx, seat.x, seat.y + 4, 150 * seat.s);
             const holds = seat.side < 0 && split > 0;
             const wander = seat.side > 0 ? split * (1 - turn) : 0;
             const toward: Pt = [((960 - seat.x) / 700) * 5, -3];

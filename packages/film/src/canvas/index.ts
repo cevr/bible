@@ -5,6 +5,7 @@
 export * from './ink.ts';
 export * from './cutout.ts';
 export * from './piece.ts';
+export * from './ground.ts';
 export * from './paper.ts';
 export * from './type.ts';
 export * from './probe.ts';

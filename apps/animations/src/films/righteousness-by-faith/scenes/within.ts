@@ -31,7 +31,6 @@ import {
   CHEST,
   type Person,
   blob,
-  contact,
   gait,
   glow,
   knobCamera,
@@ -122,7 +121,6 @@ const page = (f: WithinFrame) => {
     const [fx, fy] = [lerp(centre[0], side[0], aside), lerp(centre[1], side[1], aside)];
     const scale = lerp(2.4, 1.9, aside);
     circle(f, [fx, fy - 92 * scale]);
-    contact(ctx, fx, fy + 4, 90 * scale);
     at(ctx, { x: fx, y: fy, scale }, () => figure(f, aside));
     if (aside > 0) panel(f, aside);
   });

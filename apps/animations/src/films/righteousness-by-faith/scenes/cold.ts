@@ -22,7 +22,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, contact, knobCamera, person, piece, rounded } from '../kit.ts';
+import { C, ground, knobCamera, person, piece, rounded } from '../kit.ts';
 import {
   type Stamp,
   ACCUSED,
@@ -153,7 +153,7 @@ export const cold = drawing({
           // The bench, and the judge behind it.
           z: 1,
           draw: () => {
-            contact(ctx, 1180, 860, 820);
+            ground(ctx, 1180, 860, 820);
             at(ctx, { x: JUDGE[0], y: JUDGE[1] + 10 * lean }, () => {
               piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, f.hand('judgeRobe'), {
                 role: 'figure',
@@ -220,10 +220,9 @@ export const cold = drawing({
           z: 0.9,
           lift: 1.3,
           draw: () => {
-            contact(ctx, ACCUSED[0], ACCUSED[1] + 4, 170);
             // The sheets fall one after another across `drop`, each eased by its ease.
             const landed = SHEETS.filter((_, i) => f.stagger('drop', i, SHEETS.length) > 0).length;
-            if (landed > 0) contact(ctx, 765, 864, 150 + 10 * landed);
+            if (landed > 0) ground(ctx, 765, 864, 150 + 10 * landed);
             SHEETS.forEach((s, i) => {
               const k = f.stagger('drop', i, SHEETS.length);
               if (k <= 0) return;

@@ -27,7 +27,7 @@ import {
   type Person,
   blob,
   christ,
-  contact,
+  ground,
   glow,
   person,
   piece,
@@ -276,7 +276,7 @@ export const landingCourt = (
         // The bench and the judge.
         z: 1,
         draw: () => {
-          contact(ctx, 1180, 860, 820);
+          ground(ctx, 1180, 860, 820);
           glow(ctx, 1180, 560, 700, C.glow, 0.9 * s.gold);
           at(ctx, { x: JUDGE[0], y: JUDGE[1] }, () => {
             piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, hand('judgeRobe'), { role: 'figure' });
@@ -347,8 +347,6 @@ export const landingCourt = (
         z: 0.9,
         lift: 1.3,
         draw: () => {
-          contact(ctx, ACCUSED[0], ACCUSED[1] + 4, 170);
-          contact(ctx, ADVOCATE[0], ADVOCATE[1] + 4, 190);
           glow(ctx, ADVOCATE[0], ADVOCATE[1] - 150, 260, C.glow, 0.7);
           glow(ctx, ACCUSED[0], ACCUSED[1] - 110, 200, C.glow, s.shine);
           at(ctx, { x: ADVOCATE[0], y: ADVOCATE[1], scale: ADVOCATE_S }, () =>

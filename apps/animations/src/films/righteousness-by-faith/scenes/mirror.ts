@@ -22,7 +22,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, contact, glow, knobCamera, person, piece, sky } from '../kit.ts';
+import { C, blob, ground, glow, knobCamera, person, piece, sky } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 
@@ -138,7 +138,6 @@ const garden = (f: MirrorFrame) => {
         lift: 1.2,
         draw: () => {
           ring(ctx, f.hand('ring'), fx, fy - 200, lerp(1400, 640, f.at('shrink')));
-          contact(ctx, fx, fy + 4, 220);
           at(ctx, { x: fx, y: fy, scale: 1.8 }, () => {
             person(
               ctx,
@@ -236,7 +235,7 @@ const glass = (f: MirrorFrame) => {
       });
     // ...and the mirror they become.
     if (become > 0) {
-      contact(ctx, mx, my + 400, 600);
+      ground(ctx, mx, my + 400, 600);
       at(ctx, { x: mx, y: my, scale: lerp(0.7, 1, become) }, () => {
         ctx.save();
         ctx.globalAlpha *= become;
@@ -304,7 +303,6 @@ const glass = (f: MirrorFrame) => {
     }
 
     // The one looking in, in the rags of their own sewing.
-    contact(ctx, vx, vy + 4, 260);
     at(ctx, { x: vx, y: vy, scale: 2.4 }, () => {
       person(
         ctx,

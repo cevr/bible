@@ -18,7 +18,6 @@ import {
   CHEST,
   type Person,
   blob,
-  contact,
   glow,
   person,
   piece,
@@ -241,7 +240,6 @@ export const restingField = (
           leaves: [C.leaf, C.leafPale],
         }),
       );
-      contact(ctx, 700, 938, 220);
       // Leaning back against the trunk, face to the low sun.
       at(ctx, { x: 712, y: 935, scale: 1.9, rot: -0.13 }, () => {
         person(

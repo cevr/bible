@@ -91,7 +91,14 @@ const NAILED = ridge(TOP) - 50;
 const UPRIGHT = rectShape(TOP - 13, ridge(TOP) - 300, 26, 310);
 const BEAM = rectShape(TOP - 150, NAILED - 118 * 1.2 - 24, 300, 24);
 const BLACK: Person = { body: C.night, shade: C.night, skin: C.night };
-const CRUCIFIED: Person = { ...BLACK, nod: 8, tilt: 0.3, handL: [-95, -120], handR: [95, -120] };
+const CRUCIFIED: Person = {
+  ...BLACK,
+  ground: 0,
+  nod: 8,
+  tilt: 0.3,
+  handL: [-95, -120],
+  handR: [95, -120],
+};
 const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
 /** The stone rolled back from the tomb, and its core. */
 const STONE = ellipseShape(0, 0, 130, 130);
@@ -406,7 +413,7 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
           y: lerp(930, hy, ascend),
           scale: lerp(1.5, IN_SANCTUARY * SS, ascend),
         },
-        () => christ(ctx, { look: [0, -3], browTilt: 0.2 }, hand),
+        () => christ(ctx, { look: [0, -3], browTilt: 0.2, ground: 1 - ascend }, hand),
       );
     }
   });

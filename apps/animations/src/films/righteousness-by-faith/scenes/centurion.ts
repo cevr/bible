@@ -27,7 +27,7 @@ import {
   C,
   ICON_X,
   christ,
-  contact,
+  ground,
   glow,
   icons,
   person,
@@ -336,6 +336,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 {
                   skin: sit > 0.3 ? C.figure : C.figureShade,
                   body: C.figure,
+                  // In bed: the blanket and the bed carry the shadows.
+                  ground: 0,
                   look: [lerp(-1, 3, sit), lerp(2, -3, sit)],
                   browL: 3 * sit,
                   browR: 3 * sit,
@@ -355,8 +357,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
           });
           ctx.restore();
 
-          // The soldier, his cape behind him.
-          contact(ctx, SOLDIER[0], SOLDIER[1] + 4, 200);
+          // The soldier, his cape behind him; his shadow lies under the cape too.
+          ground(ctx, SOLDIER[0], SOLDIER[1] + 4, 200);
           at(ctx, { x: SOLDIER[0], y: SOLDIER[1], scale: S }, () => {
             piece(
               ctx,
@@ -373,6 +375,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
             person(
               ctx,
               {
+                ground: 0,
                 tilt: 0.06 * worry - 0.05 * stop + 0.12 * open,
                 nod: 4 * worry + 5 * open,
                 onHead: helmet,
@@ -396,7 +399,6 @@ const street = (f: CenturionFrame, hand: Hands) => {
           });
 
           // Jesus, offering to go.
-          contact(ctx, JESUS[0], JESUS[1] + 4, 200);
           glow(ctx, JESUS[0], JESUS[1] - 250, 320, C.glow, 0.7);
           at(ctx, { x: JESUS[0] - 20 * offer, y: JESUS[1], scale: S }, () =>
             christ(
