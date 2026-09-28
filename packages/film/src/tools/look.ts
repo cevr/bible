@@ -151,7 +151,7 @@ export interface SceneLook {
   /** The longest held run, film seconds; empty (from = to) when none held. */
   readonly heldFrom: number;
   readonly heldTo: number;
-  /** The largest face, px on screen; 0 when none. */
+  /** The largest face centred on the frame, px on screen; 0 when none. */
   readonly face: number;
 }
 
@@ -190,11 +190,27 @@ const longestRun = (held: ReadonlyArray<boolean>): readonly [number, number] => 
   return best;
 };
 
-/** Each scene's look from its drawn samples, in film order. */
+/** The frame a film draws, in canvas pixels. */
+export interface FrameSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A face the viewer sees: its scene's own, mostly opaque, and centred on the frame. */
+const seenFace = (f: FaceMark, scene: string, frame: FrameSize) =>
+  f.scene === scene &&
+  f.alpha > 0.5 &&
+  f.x >= 0 &&
+  f.x <= frame.width &&
+  f.y >= 0 &&
+  f.y <= frame.height;
+
+/** Each scene's look from its drawn samples, in film order; `frame` is the canvas the faces were marked on. */
 export const sceneLooks = (
   placed: ReadonlyArray<Placed>,
   samples: ReadonlyArray<LookSample>,
   drawn: ReadonlyArray<Drawn>,
+  frame: FrameSize,
 ): ReadonlyArray<SceneLook> => {
   const pairs = Arr.zip(samples, drawn);
   return placed.map((p) => {
@@ -204,7 +220,7 @@ export const sceneLooks = (
     const face = Math.max(
       0,
       ...mine.flatMap((d) =>
-        d.faces.filter((f) => f.scene === p.spec.id && f.alpha > 0.5).map((f) => f.size),
+        d.faces.filter((f) => seenFace(f, p.spec.id, frame)).map((f) => f.size),
       ),
     );
     const held = heldSeconds(greys);

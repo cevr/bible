@@ -80,7 +80,10 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
               { concurrency: size },
             );
             yield* Effect.log(`look.done film=${film.paths.name} frames=${samples.length}`);
-            return { looks: sceneLooks(placed, samples, drawn.flat()), height: info.height };
+            return {
+              looks: sceneLooks(placed, samples, drawn.flat(), info),
+              height: info.height,
+            };
           }),
         );
       });

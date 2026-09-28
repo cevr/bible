@@ -27,7 +27,9 @@ import {
 import { holdScenes, holdTimings } from './testing.ts';
 
 const FPS = 30;
+const WIDTH = 1920;
 const HEIGHT = 1080;
+const FRAME = { width: WIDTH, height: HEIGHT };
 const thumb = (grey: number) => new Uint8Array(THUMB_BYTES).fill(grey);
 const face = (scene: string, size: number, alpha = 1): FaceMark => ({
   scene,
@@ -46,7 +48,7 @@ const drawn = samples.map((s, k): Drawn => {
   if (s.scene === 'brief') return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)] };
   return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)] };
 });
-const looks = sceneLooks(placed, samples, drawn);
+const looks = sceneLooks(placed, samples, drawn, FRAME);
 const lookOf = (scene: string) => looks.find((l) => l.scene === scene);
 
 describe('heldSeconds', () => {
@@ -100,6 +102,7 @@ describe('HeldShare', () => {
       quiet,
       at,
       at.map(() => ({ thumb: thumb(90), faces: [] })),
+      FRAME,
     );
     expect(still[0]?.judged).toBe(false);
     expect(heldShares(still)).toEqual([]);
@@ -115,6 +118,41 @@ describe('FaceSmall', () => {
       ['ambient', 0],
     ]);
     expect(found[0]?.min).toBeCloseTo(HEIGHT * FACE_SHARE);
+  });
+
+  test('a face whose centre is off the frame is not seen, however large', () => {
+    // `held` again, its big face pushed past each edge in turn; `brief` keeps
+    // its small one inside. A face centred on the frame's very edge still counts.
+    const off = [
+      [-1, 400],
+      [WIDTH + 1, 400],
+      [960, -1],
+      [960, HEIGHT + 1],
+    ] as const;
+    const shifted = samples.map((s, k): Drawn => {
+      const at = off[k % off.length] ?? off[0];
+      if (s.scene === 'held')
+        return { thumb: thumb(128), faces: [{ ...face('held', 400), x: at[0], y: at[1] }] };
+      if (s.scene === 'brief') return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)] };
+      return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)] };
+    });
+    const seen = sceneLooks(placed, samples, shifted, FRAME);
+    expect(seen.map((l) => [l.scene, l.face])).toEqual([
+      ['held', 0],
+      ['brief', 100],
+      ['ambient', 0],
+    ]);
+    expect(smallFaces(seen, HEIGHT).map((f) => f.scene)).toEqual(['held', 'brief', 'ambient']);
+    const atEdge = sceneLooks(
+      placed,
+      samples,
+      samples.map((): Drawn => ({
+        thumb: thumb(1),
+        faces: [{ ...face('held', 400), x: WIDTH, y: HEIGHT }],
+      })),
+      FRAME,
+    );
+    expect(atEdge.find((l) => l.scene === 'held')?.face).toBe(400);
   });
 });
 

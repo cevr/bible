@@ -824,7 +824,7 @@ what a review used to find by eye:
   scene held for over 40 % of its seconds is a `HeldShare` warning naming
   its longest held run. A kit's person declares its head with
   `probeFace(ctx, x, y, height)`; a spoken scene whose largest face (seen at
-  over 0.5 opacity) never reaches a third of the frame's height is
+  over 0.5 opacity, its centre on the frame) never reaches a third of the frame's height is
   `FaceSmall`. `film.ts` may export a `look` (`Look`: acts, each `from` a
   scene, with a `name`, a `chapter`, and `luma`, `saturation` ranges and a
   `dark` share ceiling); over the whole film each act's measure outside its
