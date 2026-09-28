@@ -2,16 +2,17 @@
 // the film CLI again in a fresh process: this process imported the film's
 // modules once, at start, so only a new process reads the scene files as the
 // write left them. The static leg is cheap (no browser; about a quarter
-// second), and its printed lines (`level tag message`) are the report.
+// second). It runs with `--json`, so each line it prints is one finding,
+// encoded by `CheckLineJson` and decoded here by the same schema.
 
-import { Array as Arr, Context, Duration, Effect, Layer, Option } from 'effect';
+import { Context, Duration, Effect, Layer, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import type { CheckLine } from '../core/schema.ts';
+import { CheckLine } from '../core/schema.ts';
 import { StaticCheckFailed } from './errors.ts';
 import { collectWithin } from './process.ts';
 
 export interface StaticCheckService {
-  /** Every finding of `film check <film> --static --allow-stale`, read fresh from disk. */
+  /** Every finding of `film check <film> --static --allow-stale --json`, read fresh from disk. */
   readonly run: (film: string) => Effect.Effect<ReadonlyArray<CheckLine>, StaticCheckFailed>;
 }
 
@@ -21,30 +22,31 @@ export interface StaticCheckService {
  */
 export const CHECK_LIMIT = Duration.seconds(30);
 
-const LINE = /^(error|warning)\s+(\S+)\s+(.*)$/;
+/** One finding as `film check --json` prints it: a CheckLine as one line of JSON. */
+export const CheckLineJson = Schema.fromJsonString(CheckLine);
 
-/** The findings in `check`'s output: one per line it prints, other lines ignored. */
-export const checkLines = (stdout: string): ReadonlyArray<CheckLine> =>
-  Arr.getSomes(
-    stdout.split('\n').map((line) =>
-      Option.flatMap(Option.fromNullishOr(LINE.exec(line)), (m) => {
-        const [, level, tag, message] = m;
-        if (level !== 'error' && level !== 'warning') return Option.none();
-        return Option.zipWith(
-          Option.fromUndefinedOr(tag),
-          Option.fromUndefinedOr(message),
-          (t, text): CheckLine => ({ level, tag: t, message: text }),
-        );
-      }),
+const decodeLine = Schema.decodeUnknownEffect(CheckLineJson);
+
+/**
+ * The findings in `check --json`'s stdout, one per non-empty line. Logs go to
+ * stderr, so a line that does not decode is the CLI and the lab disagreeing
+ * about the format: the run fails, naming the line.
+ */
+export const checkLines = Effect.fn('StaticCheck.lines')(function* (stdout: string) {
+  const lines = stdout.split('\n').filter((line) => line.trim() !== '');
+  return yield* Effect.forEach(lines, (line) =>
+    decodeLine(line).pipe(
+      Effect.mapError(() => StaticCheckFailed.make({ reason: `not a finding: ${line}` })),
     ),
   );
+});
 
 export class StaticCheck extends Context.Service<StaticCheck, StaticCheckService>()(
   '@bible/film/tools/StaticCheck',
 ) {
   /**
    * The check, run as `command` (the film CLI, e.g. `['bun', '/app/cli.ts']`)
-   * with `check <film> --static --allow-stale`. It exits non-zero when it
+   * with `check <film> --static --allow-stale --json`. It exits non-zero when it
    * finds an error; its findings are the answer either way.
    */
   static readonly layer = (command: ReadonlyArray<string>) =>
@@ -57,10 +59,17 @@ export class StaticCheck extends Context.Service<StaticCheck, StaticCheckService
           const done = yield* collectWithin(
             spawner,
             'film check --static',
-            ChildProcess.make(program, [...args, 'check', film, '--static', '--allow-stale']),
+            ChildProcess.make(program, [
+              ...args,
+              'check',
+              film,
+              '--static',
+              '--allow-stale',
+              '--json',
+            ]),
             CHECK_LIMIT,
           ).pipe(Effect.mapError((error) => StaticCheckFailed.make({ reason: error.message })));
-          const lines = checkLines(done.stdout);
+          const lines = yield* checkLines(done.stdout);
           // Exit 1 is the check failing on its findings; anything else is the run failing.
           if (done.exitCode !== 0 && lines.every((l) => l.level !== 'error'))
             return yield* StaticCheckFailed.make({

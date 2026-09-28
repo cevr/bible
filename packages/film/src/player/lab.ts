@@ -11,22 +11,25 @@ import { Option, Schema } from 'effect';
 import { nearestMoment } from '../core/notes.ts';
 import {
   type InkStroke,
-  type Note,
+  Note,
   type NoteBox,
   type NoteDraft,
   NotesFile,
   NotesWait,
   type Point,
+  labBase,
 } from '../core/schema.ts';
+import { canvasBase64, el, postJson, required, svg } from './dom.ts';
 import { mountCompare } from './lab-compare.ts';
 import { mountEditor } from './lab-edit.ts';
 import { mountMotion } from './lab-motion.ts';
+import { sessionStore, viewStore } from './view-state.ts';
 import type { Player } from './main.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 /** A pointer that moves less than this many screen pixels clicked; more, it dragged a box. */
 const DRAG_PX = 6;
 
+const decodeNote = Schema.decodeUnknownSync(Note);
 const decodeNotes = Schema.decodeUnknownSync(NotesFile);
 const decodeWait = Schema.decodeUnknownSync(NotesWait);
 
@@ -36,45 +39,7 @@ interface Draft {
   ink: InkStroke[];
 }
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
-
 const pointsAttr = (stroke: InkStroke) => stroke.map(([x, y]) => `${x},${y}`).join(' ');
-
-/** The frame on the canvas as a base64 PNG: exactly what the film drew, no lab marks. */
-const stillOf = async (canvas: HTMLCanvasElement) => {
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-  if (blob === null) throw new Error('toBlob failed');
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let bin = '';
-  for (let k = 0; k < bytes.length; k += 0x8000)
-    bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
-  return btoa(bin);
-};
-
-const post = async (url: string, body: unknown) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
-  return res;
-};
 
 const label = (note: Note) => {
   const cue = note.cue === undefined ? '' : ` · ${note.cue.name}:${note.cue.edge}`;
@@ -83,6 +48,10 @@ const label = (note: Note) => {
 
 export const mountLab = (player: Player, filmName: string): void => {
   const { film, canvas } = player;
+  /** Every call names this film (`/lab/<film>/…`): the lab refuses a page for another. */
+  const api = labBase(filmName);
+  /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
+  const view = viewStore(filmName, sessionStore(), film.duration);
   document.body.classList.add('lab');
 
   // ── The layer over the canvas: every lab mark draws here, never on the film. ──
@@ -143,18 +112,17 @@ export const mountLab = (player: Player, filmName: string): void => {
     </form>
     <ol class="lab-notes"></ol>`;
   document.body.append(panel);
-  const q = <T extends Element>(sel: string) => {
-    const found = panel.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(panel, sel);
   const penBtn = q<HTMLButtonElement>('[data-act="pen"]');
   // The editor: drag cues and knobs, written back to the scene files.
-  const editor = mountEditor(player, panel, overlay);
+  const editor = mountEditor(player, panel, overlay, api);
   // Onion skin, speed and loops.
-  mountMotion(player, panel, pin, editor.selectedCue);
+  mountMotion(player, panel, pin, editor.selectedCue, view);
   // The frame beside HEAD's timeline and knobs.
-  mountCompare(player, panel, overlay, pin);
+  mountCompare(player, panel, overlay, pin, api, view);
+  // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
+  window.addEventListener('pagehide', () => view.patch({ playing: player.playing() }));
+  if (view.get().playing) player.play();
   const compose = q<HTMLFormElement>('.lab-compose');
   const where = q<HTMLDivElement>('.lab-where');
   const textarea = q<HTMLTextAreaElement>('textarea');
@@ -272,9 +240,8 @@ export const mountLab = (player: Player, filmName: string): void => {
     void (async () => {
       // The still is the film canvas at this very frame, drawn fresh: no lab marks can be in it.
       film.render(player.ctx, T, { captions: player.captions.on });
-      const still = await stillOf(canvas);
-      const res = await post('/lab/notes', { ...note, still });
-      const saved: { id: string } = await res.json();
+      const still = await canvasBase64(canvas, 'image/png');
+      const saved = decodeNote(await postJson(`${api}/notes`, { ...note, still }));
       selected = saved.id;
       closeComposer();
       await refresh();
@@ -357,7 +324,7 @@ export const mountLab = (player: Player, filmName: string): void => {
   };
   const still = (name: string, cls: string) => {
     const img = el('img', cls);
-    img.src = `/lab/stills/${name}`;
+    img.src = `${api}/stills/${name}`;
     img.alt = name;
     img.loading = 'lazy';
     return img;
@@ -395,10 +362,10 @@ export const mountLab = (player: Player, filmName: string): void => {
             e.preventDefault();
             const text = input.value.trim();
             if (text === '') return;
-            void post(`/lab/notes/${note.id}/reply`, { text }).then(refresh);
+            void postJson(`${api}/notes/${note.id}/reply`, { text }).then(refresh);
           });
           resolve.addEventListener('click', () => {
-            void post(`/lab/notes/${note.id}/resolve`, {}).then(refresh);
+            void postJson(`${api}/notes/${note.id}/resolve`, {}).then(refresh);
           });
           item.append(form);
         }
@@ -412,8 +379,8 @@ export const mountLab = (player: Player, filmName: string): void => {
     redrawMarks();
   };
   const refresh = async () => {
-    const res = await fetch('/lab/notes');
-    if (!res.ok) throw new Error(`/lab/notes: ${res.status}`);
+    const res = await fetch(`${api}/notes`);
+    if (!res.ok) throw new Error(`${api}/notes: ${res.status}`);
     const file = decodeNotes(await res.json());
     notes = file.notes;
     cursor = Math.max(cursor, file.seq);
@@ -423,9 +390,9 @@ export const mountLab = (player: Player, filmName: string): void => {
 
   // ── Live: each change (a note, a reply from the agent, a resolve) as it lands. ──
   const follow = (): void => {
-    fetch(`/lab/notes/wait?since=${cursor}&timeout=55`)
+    fetch(`${api}/notes/wait?since=${cursor}&timeout=55`)
       .then(async (res) => {
-        if (!res.ok) throw new Error(`/lab/notes/wait: ${res.status}`);
+        if (!res.ok) throw new Error(`${api}/notes/wait: ${res.status}`);
         const waited = decodeWait(await res.json());
         if (waited.events.length > 0) await refresh();
         cursor = Math.max(cursor, waited.cursor);

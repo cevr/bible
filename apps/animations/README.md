@@ -17,6 +17,7 @@ bun run cues <film> [scene] --sound            # every effect placement's film t
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg
+bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
@@ -26,14 +27,15 @@ bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame pe
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
-bun run notes reply <film> <id> "text" [--still file.png]
+bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
 ```
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
 loads and, for `lab`, the same server in development mode with the lab's
-routes at `/lab/*` (`LAB_PORT`, default 4401). Lab notes and their stills are
+routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
+is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
@@ -106,18 +108,21 @@ a render cleanly: every page, the browser and the server close. Player keys: spa
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills. The strip under the timeline shows the
-current scene's cues: drag one (body = offset, edges = start/end; snaps to
-words and frames, shift for free) and the release writes the new value into
+current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
+all body, alt-drag for its end; snaps to words and frames, shift for free) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
 under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
-runs after each write and its findings show in the panel; Undo write puts the
-last write back. Review with `git diff`. The panel's Motion section ghosts the frames
+runs after each write and its findings show in the panel; Undo (⌘Z) puts the
+newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
+over a change made since. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
 0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
 Compare draws the same frame as HEAD declared the scene's timeline and
-knobs: wipe (HEAD left of a divider you drag) or blink. The panel's
+knobs: wipe (HEAD left of a divider you drag) or blink. Speed, loop, onion,
+compare and play are kept through the reload a write causes (the tab's
+sessionStorage, per film). The panel's
 Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
 sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its

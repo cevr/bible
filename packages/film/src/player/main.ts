@@ -9,9 +9,14 @@ import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
 import { composeContact } from './contact.ts';
+import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { tInUrl } from './t-in-url.ts';
 import { hashFrames, timeFrames } from './timing.ts';
+
+/** The longest `#T` in the URL trails the frame shown while it plays. */
+const HASH_MS = 250;
 
 const FONTS = [
   '400 40px "Fraunces"',
@@ -25,16 +30,6 @@ const FONTS = [
   '400 40px "Gaegu"',
   '700 40px "Gaegu"',
 ];
-
-/** Bytes as base64: what the export handle hands back across `page.evaluate`. */
-const base64 = (bytes: Uint8Array) => bytes.toBase64();
-
-/** A canvas as base64 PNG or JPEG. */
-const encode = async (canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg') => {
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
-  if (blob === null) throw new Error('toBlob failed');
-  return base64(new Uint8Array(await blob.arrayBuffer()));
-};
 
 export interface ExportHandle {
   readonly width: number;
@@ -92,7 +87,18 @@ export interface Player {
   readonly track: HTMLDivElement;
   /** Film seconds shown now. */
   now(): number;
+  /** Show `T` and settle there (`#T` written at once). */
   seek(T: number): void;
+  /** Show `T` as a drag passes through it; the drag ends with `settle`. */
+  scrub(T: number): void;
+  /** T has settled where it is: `#T` is written at once. */
+  settle(): void;
+  /**
+   * A lab write is on its way, and its reload will follow: `#T` is written
+   * now and held at this frame until T next settles, so the reload lands on
+   * the frame the write was made at.
+   */
+  holdT(): void;
   pause(): void;
   play(): void;
   playing(): boolean;
@@ -154,7 +160,7 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         audio: film.audio,
         frame: (i, type = 'image/png') => {
           draw(i);
-          return encode(canvas, type);
+          return canvasBase64(canvas, type);
         },
         probe: (i) => {
           const sink: ProbeSink = { texts: [], inks: [] };
@@ -162,14 +168,16 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
           return sink;
         },
         lookbook: async (type = 'image/jpeg') =>
-          encode((await composeLookbook(film, { captions: captions.on })).canvas, type),
+          canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
         encoder: (scale) => encoderCheck(canvas, film.fps, scale),
         encode: async (from, to, scale, share) => {
           const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share);
-          const master = base64(chunk.master);
-          return chunk.share === undefined ? { master } : { master, share: base64(chunk.share) };
+          const master = bytesBase64(chunk.master);
+          return chunk.share === undefined
+            ? { master }
+            : { master, share: bytesBase64(chunk.share) };
         },
-        contact: (frames) => encode(composeContact(draw, canvas, frames), 'image/jpeg'),
+        contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
         time: (frames) => timeFrames(draw, ctx, frames),
         hash: (frames) => hashFrames(draw, ctx, frames),
       };
@@ -206,11 +214,7 @@ const preview = (
     <div class="tip" hidden></div>
     <div class="keys">space play · ←/→ frame (shift: 1s) · [ ] scene · c captions · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
   document.body.append(bar);
-  const q = <T extends Element>(sel: string) => {
-    const el = bar.querySelector<T & Element>(sel);
-    if (el === null) throw new Error(`missing ${sel}`);
-    return el;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
   const head = q<HTMLDivElement>('.head');
   const timeEl = q<HTMLSpanElement>('.time');
@@ -267,6 +271,17 @@ const preview = (
   const audible = () => audio !== undefined && rate === 1;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
+  /**
+   * `#T` in the URL, so a reload lands on this frame (`tInUrl`): written at
+   * most every HASH_MS while T moves, at once when it settles (a seek, the end
+   * of a scrub, play or pause, the film's end), and held at the frame a lab
+   * write was asked at. A frame loop that wrote it every frame cost a history
+   * call per frame.
+   */
+  const url = tInUrl(
+    () => history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`),
+    HASH_MS,
+  );
 
   const draw = () => {
     reads = [];
@@ -281,15 +296,22 @@ const preview = (
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
-    history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`);
+    url.moved();
   };
 
-  const seek = (t: number) => {
+  /** Show `t`, as a drag passes through it: `#T` follows at most every HASH_MS. */
+  const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
     tStart = T;
     wallStart = performance.now();
     if (audio !== undefined) audio.currentTime = T;
     draw();
+  };
+
+  /** Show `t`, and settle there: `#T` is written at once. */
+  const seek = (t: number) => {
+    scrub(t);
+    url.settled();
   };
 
   /** Restart the clock at `T`, and the narration with it when it is audible. */
@@ -307,6 +329,7 @@ const preview = (
     rebase();
     if (playing) requestAnimationFrame(tick);
     draw();
+    url.settled();
   };
 
   const tick = () => {
@@ -324,17 +347,23 @@ const preview = (
       audio?.pause();
     }
     draw();
+    if (!playing) url.settled();
     if (playing) requestAnimationFrame(tick);
   };
 
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
-    const move = (ev: PointerEvent) => seek(((ev.clientX - r.left) / r.width) * film.duration);
+    const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
     window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', () => window.removeEventListener('pointermove', move), {
-      once: true,
-    });
+    window.addEventListener(
+      'pointerup',
+      () => {
+        window.removeEventListener('pointermove', move);
+        url.settled();
+      },
+      { once: true },
+    );
   });
   playBtn.addEventListener('click', toggle);
   q<HTMLButtonElement>('[data-act="captions"]').addEventListener('click', () => {
@@ -369,6 +398,9 @@ const preview = (
     track,
     now: () => T,
     seek,
+    scrub,
+    settle: () => url.settled(),
+    holdT: () => url.held(),
     pause: () => {
       if (playing) toggle();
     },

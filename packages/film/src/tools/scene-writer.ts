@@ -10,9 +10,11 @@
 // still the text the edit was made from (an editor may have saved it since):
 // then it writes the file whole (a partial file renamed into place), else it
 // fails as `SourceChanged` and writes nothing. So a failed write never
-// changes the file, and there is nothing to put back. Writes run one at a
-// time. The last write can be undone once, byte for byte, while the file is
-// still exactly as that write left it.
+// changes the file, and there is nothing to put back. Writes, undos and redos
+// run one at a time. Undo puts back the newest write still on a bounded stack
+// (UNDO_DEPTH), byte for byte, and Redo writes the newest undone one again;
+// each only while the file is exactly as the step it reverses left it. A new
+// write drops what could be redone.
 
 import {
   Array as Arr,
@@ -38,6 +40,7 @@ import { ContentStore } from './content-store.ts';
 import {
   FormatFailed,
   type SceneNotLocated,
+  RedoUnavailable,
   SourceChanged,
   type SourceRefused,
   type SourceShared,
@@ -85,11 +88,55 @@ export interface SceneWriterService {
     knob: string,
     value: Knob,
   ) => Effect.Effect<Written, WriteError>;
-  /** Put the last write's file back as it was; once. */
+  /** Put the newest write on the stack back: its file as it was before it. */
   readonly undo: Effect.Effect<Written, UndoUnavailable | PlatformError>;
-  /** The write `undo` would put back, if any. */
-  readonly last: Effect.Effect<Option.Option<Written>>;
+  /** Write the newest undone write again. */
+  readonly redo: Effect.Effect<Written, RedoUnavailable | PlatformError>;
+  /** What undo and redo would do now, and the lab's latest change to a file. */
+  readonly history: Effect.Effect<WriteHistory>;
 }
+
+/** What the lab has done to scene files: the writes it may undo, and those it may redo. */
+export interface History {
+  /** Oldest first; Undo takes the last. */
+  readonly undos: ReadonlyArray<Written>;
+  /** Oldest undo first; Redo takes the last. */
+  readonly redos: ReadonlyArray<Written>;
+  /** The latest change: a write, an undo (`undo …`) or a redo (`redo …`). */
+  readonly latest: Option.Option<Written>;
+}
+
+/** The history as a page asks for it (`GET /lab/<film>/check`). */
+export interface WriteHistory {
+  /** The write Undo would put back. */
+  readonly undo: Option.Option<Written>;
+  /** The write Redo would make again. */
+  readonly redo: Option.Option<Written>;
+  readonly latest: Option.Option<Written>;
+}
+
+/** How many writes Undo can walk back. Each holds its file's text before and after. */
+export const UNDO_DEPTH = 50;
+
+export const emptyHistory: History = { undos: [], redos: [], latest: Option.none() };
+
+/** `h` after the write `w`: on top of the stack (the oldest past `depth` dropped), nothing to redo. */
+export const recordWrite = (h: History, w: Written, depth = UNDO_DEPTH): History => ({
+  undos: [...h.undos, w].slice(-depth),
+  redos: [],
+  latest: Option.some(w),
+});
+
+/** The undo of `w`: its file from `w.after` back to `w.before`, named `undo <target>`. */
+const undoneOf = (w: Written): Written => ({
+  ...w,
+  target: `undo ${w.target}`,
+  before: w.after,
+  after: w.before,
+});
+
+/** `w` made again: named `redo <target>`. */
+const redoneOf = (w: Written): Written => ({ ...w, target: `redo ${w.target}` });
 
 /**
  * The longest oxfmt may take on one file. Writes run one at a time, so a hung
@@ -149,7 +196,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
       const store = yield* ContentStore;
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const writer = yield* Semaphore.make(1);
-      const last = yield* Ref.make(Option.none<Written>());
+      const history = yield* Ref.make(emptyHistory);
 
       /** Write `text` as the file, whole. */
       const put = (file: string, text: string) =>
@@ -214,7 +261,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
               });
             yield* check(at, after);
             // Uninterruptible: the write reloads the page, which drops its
-            // request; the file and `last` must still agree once it lands.
+            // request; the file and the history must still agree once it lands.
             return yield* Effect.uninterruptible(
               Effect.gen(function* () {
                 // Compare and swap: only over the very text the edit was made from.
@@ -229,7 +276,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
                   before,
                   after,
                 };
-                yield* Ref.set(last, Option.some(written));
+                yield* Ref.update(history, (h) => recordWrite(h, written));
                 yield* Effect.log(
                   `lab.write film=${film} scene=${scene} target="${target}" file=${path.relative(repo.paths(film).dir, at.file)}`,
                 );
@@ -309,33 +356,63 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         .withPermits(1)(
           Effect.uninterruptible(
             Effect.gen(function* () {
-              const previous = yield* Ref.get(last);
-              if (Option.isNone(previous))
+              const h = yield* Ref.get(history);
+              const top = Arr.last(h.undos);
+              if (Option.isNone(top))
                 return yield* UndoUnavailable.make({ reason: 'the lab has made no write to undo' });
-              const w = previous.value;
-              const now = yield* fs.readFileString(w.file);
-              if (now !== w.after)
+              const w = top.value;
+              if ((yield* fs.readFileString(w.file)) !== w.after)
                 return yield* UndoUnavailable.make({
                   reason: `${w.file} has changed since the lab wrote ${w.target}`,
                 });
               yield* put(w.file, w.before);
-              yield* Ref.set(last, Option.none());
+              const undone = undoneOf(w);
+              yield* Ref.set(history, {
+                undos: h.undos.slice(0, -1),
+                redos: [...h.redos, w],
+                latest: Option.some(undone),
+              });
               yield* Effect.log(`lab.undo scene=${w.scene} target="${w.target}" file=${w.file}`);
-              const undone: Written = {
-                scene: w.scene,
-                file: w.file,
-                exportName: w.exportName,
-                target: `undo ${w.target}`,
-                before: w.after,
-                after: w.before,
-              };
               return undone;
             }),
           ),
         )
         .pipe(Effect.withSpan('SceneWriter.undo'));
 
-      return SceneWriter.of({ setCue, setKnob, undo, last: Ref.get(last) });
+      const redo = writer
+        .withPermits(1)(
+          Effect.uninterruptible(
+            Effect.gen(function* () {
+              const h = yield* Ref.get(history);
+              const top = Arr.last(h.redos);
+              if (Option.isNone(top))
+                return yield* RedoUnavailable.make({ reason: 'the lab has undone no write' });
+              const w = top.value;
+              if ((yield* fs.readFileString(w.file)) !== w.before)
+                return yield* RedoUnavailable.make({
+                  reason: `${w.file} has changed since the lab undid ${w.target}`,
+                });
+              yield* put(w.file, w.after);
+              const redone = redoneOf(w);
+              yield* Ref.set(history, {
+                undos: [...h.undos, w].slice(-UNDO_DEPTH),
+                redos: h.redos.slice(0, -1),
+                latest: Option.some(redone),
+              });
+              yield* Effect.log(`lab.redo scene=${w.scene} target="${w.target}" file=${w.file}`);
+              return redone;
+            }),
+          ),
+        )
+        .pipe(Effect.withSpan('SceneWriter.redo'));
+
+      const current = Effect.map(Ref.get(history), (h): WriteHistory => ({
+        undo: Arr.last(h.undos),
+        redo: Arr.last(h.redos),
+        latest: h.latest,
+      }));
+
+      return SceneWriter.of({ setCue, setKnob, undo, redo, history: current });
     }),
   );
 }

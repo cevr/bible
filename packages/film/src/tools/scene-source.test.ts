@@ -155,6 +155,25 @@ describe('scene source', () => {
     expect(refused(editCue(FILE, shared, 'hand', 'topple', { dur: 1 }))).toContain(
       'it is `timeline`, not an object literal',
     );
+    const computedKey = scene.replace('late: {', '[LATE]: {');
+    expect(refused(editCue(FILE, computedKey, 'hand', 'topple', { dur: 1 }))).toContain(
+      'its object has a computed key, so the value is not provable',
+    );
+    const twice = scene.replace("bare: { scene: 'speech' }", "topple: { scene: 'speech' }");
+    expect(refused(editCue(FILE, twice, 'hand', 'topple', { dur: 1 }))).toContain(
+      '"topple" is declared 2 times',
+    );
+    const broken = `${scene}\nexport const = ;`;
+    expect(refused(editCue(FILE, broken, 'hand', 'topple', { dur: 1 }))).toContain(
+      'the module: it does not parse',
+    );
+    const unanchored = scene.replace("bare: { scene: 'speech' }", 'bare: { dur: 1 }');
+    expect(refused(editCue(FILE, unanchored, 'hand', 'bare', { offset: 1 }))).toContain(
+      'the span has no anchor (mark, after, with or scene)',
+    );
+    expect(refused(editKnob(FILE, scene, 'hand', 'nope', 1))).toBe(
+      'scenes/hand.ts: will not edit knob nope: the drawing declares no such knob',
+    );
   });
 
   it('follows a timeline or knobs name to its module-level const literal', () => {
