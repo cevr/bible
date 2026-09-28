@@ -157,9 +157,11 @@ stretches that scene past its words; no `lead` after it): a long entrance stretc
 one never re-records. `f.spoken(from, to)` is 0→1 in step with the words
 between two marks — quotes reveal as they are read. The picture keeps pace
 with the voice too: `check` warns `StaticHold` where a drawn scene speaks for
-more than 4 s with no cue running and nothing moving in the probed frames
-(captions and boil aside; a storyboard card is exempt). Pin a motion to a
-mark in that stretch, or cut it.
+more than 4 s with no cue running and nothing moving, probed a boil tick
+apart (captions and boil aside, at any zoom; a storyboard card is exempt). A
+flourish no cue declares does not hide the still stretch after it. Pin a
+motion to a mark in that stretch, or cut it. A colour change, or drawing the
+probe cannot see, reads as still: look before pinning.
 
 **A cast reads a film as a conversation.** `voice.ts` exports either one
 reader (`{ voiceId, model, settings }`, recorded through text-to-speech) or a
