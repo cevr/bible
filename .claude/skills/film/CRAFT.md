@@ -50,7 +50,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **Close-ups and reactions:** a quotation lands on its speaker's close-up, and a reaction follows an idea.
 - **Hold and move:**
   - A take runs 5–15 s.
-  - Nothing is still for more than 4 s while the voice speaks: the camera drifts 1–3 % or the planes slide.
+  - Nothing is still for more than 4 s while the voice speaks: a plane slides, the camera pushes, a motion pinned to a mark runs, or the film cuts. The film's drift is texture: it never clears this rule.
   - Each scene holds 40 % of its seconds or fewer.
   - STORY cuts 4–8 times a minute (angle, reverse, close-up). IDEA is one continuous travel over the page.
 - **Check:** `bun run check` warns `HeldShare` (a scene held over 40 %, with its longest held run) and `FaceSmall` (no face at a third of the frame); the look-book stills show the face.

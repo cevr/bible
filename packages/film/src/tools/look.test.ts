@@ -78,6 +78,16 @@ describe('HeldShare', () => {
     expect(found[0]?.message).toContain('longest held run');
   });
 
+  test('the fix it names is a motion that clears the rule, never the drift that is only texture', () => {
+    const message = heldShares(looks)[0]?.message ?? '';
+    expect(message).toContain('slide a plane');
+    expect(message).toContain('push on the turn');
+    expect(message).toContain('pin a motion to a mark');
+    expect(message).toContain('cut');
+    expect(message).not.toContain('drift the camera');
+    expect(message).toContain('drift is texture and never clears it');
+  });
+
   test('a scene that changes every sample holds for none', () => {
     expect(lookOf('brief')?.held).toBe(0);
   });

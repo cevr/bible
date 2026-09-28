@@ -117,7 +117,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 2. **Move with a motive, one move per thought.** A push starts on the turn word and ends on the sentence's last stressed word. A move never starts mid-word. _(Murch: cut or move on the finished thought #33.)_
 3. **Push in on the turn and on the narrator's question** (CRAFT 6), and on every quotation's speaker (CRAFT 5). Pull back to the three-icon layout at each "gift" (CRAFT 8).
-4. **No shot is held for more than 4 s without motion.** In a held shot, the camera drifts 1–3 % in scale or the planes slide. _(Ours 79 % held; benchmarks 20–35 % #1.)_
+4. **No shot is held for more than 4 s without motion** ([CRAFT rule 5](../CRAFT.md#5-human-scale) says what counts). Drift does not count, because a 1–3 % breath is too slow for the eye to read as a move: seen small, the frame still holds, and `HeldShare` measures exactly that. A held shot needs a move the viewer sees, one that carries a thought. _(Ours 79 % held; benchmarks 20–35 % #1.)_
 5. **The camera sits still only on the landing's last line and on the cross.** Stillness is punctuation, so it has to be rare.
 6. **Stage in depth before you cut.** Put the accuser in a far plane and Joshua in the near one, and rack between them with a plane slide rather than a cut. _(Katz #34.)_
 7. **Match cuts carry callbacks.** A callback enters on a graphic match from the earlier scene: the same shape in the same place, with new content. The film's last image rhymes with its first. _(Kon #41, CRAFT 8, Lost Sheep #12.)_

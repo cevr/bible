@@ -570,7 +570,7 @@ export class HeldShare extends Schema.TaggedError<HeldShare>()('HeldShare', {
   to: Schema.Finite,
 }) {
   override get message() {
-    return `scene "${this.scene}": ${Math.round(this.share * 100)}% of its seconds held still, over ${Math.round(this.max * 100)}%; longest held run ${(this.to - this.from).toFixed(1)}s at ${this.from.toFixed(1)}–${this.to.toFixed(1)}s (drift the camera, slide a plane, or push on the turn)`;
+    return `scene "${this.scene}": ${Math.round(this.share * 100)}% of its seconds held still, over ${Math.round(this.max * 100)}%; longest held run ${(this.to - this.from).toFixed(1)}s at ${this.from.toFixed(1)}–${this.to.toFixed(1)}s (slide a plane, push on the turn, pin a motion to a mark, or cut; drift is texture and never clears it)`;
   }
 }
 
