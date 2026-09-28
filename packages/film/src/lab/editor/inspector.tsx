@@ -3,18 +3,18 @@
 // write goes to the editor's machine as a commit, shown first in memory.
 
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Match, Option, Result } from 'effect';
+import { Array as Arr, Option, Result } from 'effect';
 import type { ParentProps } from 'solid-js';
 import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
-import { type CheckLine, EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
+import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE } from '../../core/time.ts';
 import { patchSpan } from '../../core/timeline.ts';
 import type { Selection } from '../selection.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { EASE_BOX, anchorText, easePoints, easeY, round, statusText } from './format.ts';
+import { EASE_BOX, anchorText, easePoints, easeY, round } from './format.ts';
 import { CueWrite } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -209,16 +209,9 @@ const History = () => {
 /** The film's check: the findings of the last write, else of the check as the page loaded. */
 const Findings = () => {
   const { state } = useEditor();
-  const findings = (): ReadonlyArray<CheckLine> =>
-    Match.value(state.edit()).pipe(
-      Match.tag('Written', (s) => s.findings),
-      Match.orElse(() =>
-        Option.match(state.report(), { onNone: () => [], onSome: (r) => r.findings }),
-      ),
-    );
   return (
     <ul class="lab-findings">
-      <For each={findings()}>
+      <For each={state.findings()}>
         {(f) => (
           <li class={['lab-finding', f.level]}>
             <b>{f.tag}</b>
@@ -233,7 +226,7 @@ const Findings = () => {
 /** What the editor last did, or is doing. */
 const Status = () => {
   const { state } = useEditor();
-  return <div class="lab-edit-status">{statusText(state.edit(), state.report())}</div>;
+  return <div class="lab-edit-status">{state.status()}</div>;
 };
 
 /** The editor's section: its header, the inspector, and `children` (the knobs, until they move). */

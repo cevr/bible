@@ -23,19 +23,24 @@ import {
   type CompareActor,
   CompareEvent,
   type CompareMode,
-  type CompareState,
+  type HeadLayer,
   compareFromView,
   compareView,
+  layerOf,
   modeOf,
   spawnCompare,
+  splitOf,
 } from './machine.ts';
 
 export interface CompareStateValue {
-  readonly compare: Accessor<CompareState>;
+  /** The mode chosen: off, wipe or blink. */
+  readonly mode: Accessor<CompareMode>;
+  /** What the HEAD layer shows now: nothing, HEAD, or now (a blink's other side). */
+  readonly layer: Accessor<HeadLayer>;
+  /** Where the wipe's divider sits, 0–1 across the frame: only while wiping. */
+  readonly split: Accessor<Option.Option<number>>;
   /** The scene under the playhead. */
   readonly scene: Accessor<string>;
-  /** That scene at HEAD, as the lab API gave it (initial while off). */
-  readonly head: Accessor<AsyncResult.AsyncResult<HeadSource, LabFailure>>;
   /** HEAD drawn through today's code, once HEAD has been read. */
   readonly edit: Accessor<Option.Option<SceneEdit>>;
   /** What the section says. */
@@ -87,7 +92,14 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
 
   const value: CompareContextValue = {
-    state: { compare, scene, head, edit, status },
+    state: {
+      mode,
+      layer: () => layerOf(compare()),
+      split: () => splitOf(compare()),
+      scene,
+      edit,
+      status,
+    },
     actions: {
       choose: (m) => send(CompareEvent.Choose({ mode: m })),
       split: (split) => send(CompareEvent.Split({ split })),

@@ -284,7 +284,12 @@ being the server's own text (`lab/api.ts`)); `<Lab.Overlay>` and
 resizes; `<Lab.Strip>` is a slot right under the player's timeline;
 `<Lab.Panel>`, `<Lab.Header>` (with the look-book link) and `<Lab.Section>`
 lay out the side panel. Each tool's state lives in its own provider; the
-shell knows none of it. The browser tests (`lab/**/*.dom.test.ts`) open the real
+shell knows none of it. A provider's context gives values derived from its
+machine and actions, never the machine's state: the editor's `status` and
+`findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
+`split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
+component matches a state's tag, and a renamed state touches only its
+module. The browser tests (`lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chromium with the lab API faked
 (`lab/fixtures/harness.ts`).
 

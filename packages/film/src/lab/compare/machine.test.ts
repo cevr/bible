@@ -14,7 +14,24 @@ import {
   compareFromView,
   compareMachine,
   compareView,
+  layerOf,
+  splitOf,
 } from './machine.ts';
+
+describe('what the panel reads', () => {
+  test("the HEAD layer: hidden while off, HEAD in a wipe or on a blink's HEAD, now on its other side", () => {
+    expect(layerOf(CompareState.Off({ split: 0.5 }))).toBe('hidden');
+    expect(layerOf(CompareState.Wipe({ split: 0.5 }))).toBe('head');
+    expect(layerOf(CompareState.Blink({ split: 0.5, head: true }))).toBe('head');
+    expect(layerOf(CompareState.Blink({ split: 0.5, head: false }))).toBe('now');
+  });
+
+  test("the divider sits at the wipe's split, and only in a wipe", () => {
+    expect(splitOf(CompareState.Wipe({ split: 0 }))).toEqual(Option.some(0));
+    expect(splitOf(CompareState.Off({ split: 0.5 }))).toEqual(Option.none());
+    expect(splitOf(CompareState.Blink({ split: 0.5, head: true }))).toEqual(Option.none());
+  });
+});
 
 const off = compareMachine(CompareState.Off({ split: 0.5 }));
 

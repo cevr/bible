@@ -2,7 +2,7 @@
 // the write stores it, an ease as a small curve, and the status line.
 
 import { Match, Option } from 'effect';
-import type { CheckReport, EaseName, Span } from '../../core/schema.ts';
+import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { ease } from '../../core/time.ts';
 import type { EditState } from './machine.ts';
 
@@ -33,6 +33,16 @@ export const easePoints = (name: EaseName): string =>
     const t = i / 32;
     return `${(2 + t * (EASE_BOX.w - 4)).toFixed(1)},${easeY(ease[name](t)).toFixed(1)}`;
   }).join(' ');
+
+/** The findings the panel lists: the landed write's, else the check the page loaded with. */
+export const findingsOf = (
+  state: EditState,
+  report: Option.Option<CheckReport>,
+): ReadonlyArray<CheckLine> =>
+  Match.value(state).pipe(
+    Match.tag('Written', (s) => s.findings),
+    Match.orElse(() => Option.match(report, { onNone: () => [], onSome: (r) => r.findings })),
+  );
 
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 

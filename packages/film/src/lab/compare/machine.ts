@@ -7,7 +7,7 @@
 //   Off | Wipe | Blink ─Choose→ Off | Wipe | Blink
 //   Wipe ─Split→ Wipe        Blink ─Flip (every BLINK_MS)→ Blink
 
-import { Duration, Effect, Match, Schema } from 'effect';
+import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import type { LabView } from '../../player/view-state.ts';
 
@@ -73,6 +73,30 @@ export const modeOf = (state: CompareState): CompareMode =>
       Wipe: (): CompareMode => 'wipe',
       Blink: (): CompareMode => 'blink',
     }),
+  );
+
+/** What the HEAD layer over the film shows: nothing (off), HEAD, or now (a blink's other side). */
+export type HeadLayer = 'hidden' | 'head' | 'now';
+
+/** The HEAD layer `state` shows: HEAD in a wipe (left of the divider) and on a blink's HEAD side. */
+export const layerOf = (state: CompareState): HeadLayer =>
+  Match.value(state).pipe(
+    Match.tag('Off', (): HeadLayer => 'hidden'),
+    Match.tag('Blink', (s): HeadLayer =>
+      Match.value(s.head).pipe(
+        Match.when(true, (): HeadLayer => 'head'),
+        Match.orElse((): HeadLayer => 'now'),
+      ),
+    ),
+    Match.tag('Wipe', (): HeadLayer => 'head'),
+    Match.exhaustive,
+  );
+
+/** Where the wipe's divider sits, 0–1 across the frame: only in a wipe. */
+export const splitOf = (state: CompareState): Option.Option<number> =>
+  Match.value(state).pipe(
+    Match.tag('Wipe', (s) => Option.some(s.split)),
+    Match.orElse(() => Option.none()),
   );
 
 /** The compare as the view keeps it through a reload. */

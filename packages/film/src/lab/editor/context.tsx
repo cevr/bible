@@ -19,7 +19,7 @@ import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, onCleanup, useContext } from 'solid-js';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
-import type { CheckReport, SceneSource } from '../../core/schema.ts';
+import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
@@ -33,7 +33,8 @@ import {
   snapTargets,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
-import { type EditActor, EditEvent, type EditState, spawnEditor } from './machine.ts';
+import { findingsOf, statusText } from './format.ts';
+import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
 export interface Known {
@@ -43,7 +44,10 @@ export interface Known {
 }
 
 export interface EditorState {
-  readonly edit: Accessor<EditState>;
+  /** What the editor last did, or is doing: the status line. */
+  readonly status: Accessor<string>;
+  /** The findings to list: the landed write's, else the check the page loaded with. */
+  readonly findings: Accessor<ReadonlyArray<CheckLine>>;
   /** The scene the strip shows: the one under the playhead. */
   readonly stripScene: Accessor<string>;
   /** The scene the inspector shows: the selection's, else the strip's. */
@@ -228,7 +232,15 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   onCleanup(() => window.removeEventListener('keydown', undoKeys));
 
   const value: EditorContextValue = {
-    state: { edit, stripScene, inspected, stripSource, inspectedSource, report },
+    state: {
+      status: () => statusText(edit(), report()),
+      findings: () => findingsOf(edit(), report()),
+      stripScene,
+      inspected,
+      stripSource,
+      inspectedSource,
+      report,
+    },
     actions: {
       press,
       grabKnob,

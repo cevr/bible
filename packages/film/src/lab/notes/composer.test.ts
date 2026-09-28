@@ -12,7 +12,14 @@ import { TestClock } from 'effect/testing';
 import type { Note, NoteDraft } from '../../core/schema.ts';
 import { LabRefused, NotesApi, type NotesCalls } from '../api.ts';
 import { Stage, type StageOps } from '../stage.ts';
-import { ComposerEvent, ComposerState, composerMachine, composerText } from './composer.ts';
+import {
+  ComposerEvent,
+  ComposerState,
+  composerMachine,
+  composerOpen,
+  composerText,
+  composerTyping,
+} from './composer.ts';
 
 const draft: NoteDraft = { scene: 'one', T: 1, frame: 30, text: 'too early' };
 
@@ -213,5 +220,23 @@ describe('saving', () => {
 
   test('starts closed', () => {
     expect(composerMachine.initial).toEqual(ComposerState.Closed({ saved: Option.none() }));
+  });
+});
+
+describe('what the panel reads', () => {
+  const marks = { T: 1, box: Option.none(), ink: [] };
+  const states = [
+    ComposerState.Closed({ saved: Option.none() }),
+    ComposerState.Marking({ ...marks, from: [1, 1], pen: false }),
+    ComposerState.Open({ ...marks, status: '' }),
+    ComposerState.Saving({ ...marks, draft }),
+  ];
+
+  test('the composer shows from the press on the frame until the note is saved or cancelled', () => {
+    expect(states.map(composerOpen)).toEqual([false, true, true, true]);
+  });
+
+  test("it waits for the note's words only once open", () => {
+    expect(states.map(composerTyping)).toEqual([false, false, true, false]);
   });
 });

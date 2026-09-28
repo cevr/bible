@@ -10,7 +10,7 @@ import type { Accessor } from 'solid-js';
 import { createEffect, onCleanup } from 'solid-js';
 import { Lab, useLab } from '../shell.tsx';
 import { useCompare } from './context.tsx';
-import { CompareMode, modeOf } from './machine.ts';
+import { CompareMode } from './machine.ts';
 
 const TITLES = {
   off: 'draw only now',
@@ -33,7 +33,7 @@ export const Section = () => {
             <button
               type="button"
               data-mode={m}
-              class={{ on: modeOf(state.compare()) === m }}
+              class={{ on: state.mode() === m }}
               title={TITLES[m]}
               onClick={() => actions.choose(m)}
             >
@@ -60,27 +60,26 @@ export const Layer = () => {
   const paint = () => {
     frame = Option.none();
     Option.map(layer, (l) => {
-      const compare = state.compare();
-      const shown = Option.filter(state.edit(), () => compare._tag !== 'Off');
-      l.el.hidden = Option.isNone(shown);
+      const shows = state.layer();
+      const shown = Option.filter(state.edit(), () => shows !== 'hidden');
+      l.el.hidden = Option.isNone(shown) || shows !== 'head';
       Option.map(shown, (edit) => {
         film.render(l.ctx, player.now(), {
           captions: player.captions.on,
           edit: { scene: state.scene(), edit },
         });
-        if (compare._tag === 'Wipe')
-          l.el.style.clipPath = `inset(0 ${(1 - compare.split) * 100}% 0 0)`;
-        if (compare._tag === 'Blink') {
-          l.el.style.clipPath = '';
-          l.el.hidden = !compare.head;
-        }
+        // Clipped left of the divider in a wipe; whole otherwise.
+        l.el.style.clipPath = Option.match(state.split(), {
+          onNone: () => '',
+          onSome: (split) => `inset(0 ${(1 - split) * 100}% 0 0)`,
+        });
       });
     });
   };
   createEffect(
     () => {
       lab.drawn();
-      return [state.compare(), state.edit()] as const;
+      return [state.layer(), state.split(), state.edit()] as const;
     },
     () => {
       if (Option.isSome(frame)) return;
@@ -106,14 +105,7 @@ export const Divider = () => {
   const { film } = meta;
   // The wipe, as an object: a divider at 0 is still shown.
   const wipe = () =>
-    Option.getOrUndefined(
-      Option.map(
-        Option.liftPredicate(state.compare(), (s) => s._tag === 'Wipe'),
-        (s) => ({
-          x: s.split * film.width,
-        }),
-      ),
-    );
+    Option.getOrUndefined(Option.map(state.split(), (split) => ({ x: split * film.width })));
   const grab = (el: SVGCircleElement) =>
     el.addEventListener('pointerdown', (e) => {
       // The divider, not a note: the overlay never sees this press.

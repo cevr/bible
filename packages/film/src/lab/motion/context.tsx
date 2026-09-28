@@ -21,7 +21,6 @@ import { useLab } from '../shell.tsx';
 import {
   type LoopActor,
   LoopEvent,
-  type LoopState,
   loopFromView,
   loopText,
   loopView,
@@ -33,7 +32,6 @@ export type Rate = LabView['rate'];
 export type OnionView = LabView['onion'];
 
 export interface MotionState {
-  readonly loop: Accessor<LoopState>;
   readonly rate: Accessor<Rate>;
   readonly onion: Accessor<OnionView>;
   /** The cue a loop would play: the one selected, if a cue is. */
@@ -105,7 +103,7 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   });
 
   const value: MotionContextValue = {
-    state: { loop, rate, onion, cue, status },
+    state: { rate, onion, cue, status },
     actions: {
       markA: () => send(LoopEvent.MarkA({ t: player.now() })),
       markB: () => send(LoopEvent.MarkB({ t: player.now() })),

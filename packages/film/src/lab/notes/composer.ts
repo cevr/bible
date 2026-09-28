@@ -54,7 +54,8 @@ export const ComposerEvent = Event({
 });
 export type ComposerEvent = typeof ComposerEvent.Type;
 
-type Marked = Pick<ComposerState & { readonly _tag: 'Open' }, 'box' | 'ink'>;
+/** The marks a draft shows on the frame: a point or a box, and ink. */
+export type Marked = Pick<ComposerState & { readonly _tag: 'Open' }, 'box' | 'ink'>;
 
 const nothing: Marked = { box: Option.none(), ink: [] };
 
@@ -154,6 +155,20 @@ export const composerText = (state: ComposerState): string =>
     Match.tag('Saving', () => 'saving…'),
     Match.tag('Open', (s) => s.status),
     Match.orElse(() => ''),
+  );
+
+/** Whether the composer shows: from the press on the frame until the note is saved or cancelled. */
+export const composerOpen = (state: ComposerState): boolean =>
+  Match.value(state).pipe(
+    Match.tag('Closed', () => false),
+    Match.orElse(() => true),
+  );
+
+/** Whether the composer waits for the note's words, and so takes the keys. */
+export const composerTyping = (state: ComposerState): boolean =>
+  Match.value(state).pipe(
+    Match.tag('Open', () => true),
+    Match.orElse(() => false),
   );
 
 /** The marks a state shows on the frame: the draft's, while one is being made. */

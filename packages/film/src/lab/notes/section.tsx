@@ -9,7 +9,6 @@ import { Option } from 'effect';
 import { createEffect } from 'solid-js';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { useLab } from '../shell.tsx';
-import { draftMarks } from './composer.ts';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
 
@@ -129,14 +128,14 @@ const Item = (props: { readonly note: Note }) => {
 export const Section = () => {
   const { state, actions } = useNotes();
   let area = Option.none<HTMLTextAreaElement>();
-  const open = () => state.composer()._tag !== 'Closed';
+  const open = () => state.composerOpen();
   // A note saved or cancelled leaves an empty composer; one opened takes the keys.
   createEffect(
-    () => state.composer()._tag,
-    (tag) => {
+    () => [state.composerOpen(), state.composerTyping()] as const,
+    ([shown, typing]) => {
       Option.map(area, (el) => {
-        if (tag === 'Closed') el.value = '';
-        if (tag === 'Open') el.focus();
+        if (!shown) el.value = '';
+        if (typing) el.focus();
       });
     },
   );
@@ -214,7 +213,7 @@ export const Marks = () => {
   const { state: lab, meta } = useLab();
   const { state, actions } = useNotes();
   const { film } = meta;
-  const draft = () => draftMarks(state.composer());
+  const draft = () => state.draft();
   const shownNote = () =>
     Option.filter(state.selected(), (n) => Math.abs(lab.T() - n.T) < 0.5 / film.fps);
   const listen = (surface: SVGRectElement) => {

@@ -28,11 +28,15 @@ import {
   type ComposerActor,
   ComposerEvent,
   type ComposerState,
+  type Marked,
+  composerOpen,
   composerText,
+  composerTyping,
+  draftMarks,
   spawnComposer,
 } from './composer.ts';
 import { draftOf, whereText } from './draft.ts';
-import { type FeedActor, FeedEvent, type FeedState, feedText, spawnFeed } from './feed.ts';
+import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
 
 /** A reply to a note, or its resolve: what the thread writes. */
 export type ThreadWrite =
@@ -40,8 +44,12 @@ export type ThreadWrite =
   | { readonly _tag: 'Resolve'; readonly id: string };
 
 export interface NotesState {
-  readonly feed: Accessor<FeedState>;
-  readonly composer: Accessor<ComposerState>;
+  /** Whether the composer shows: from a press on the frame until the note is saved or cancelled. */
+  readonly composerOpen: Accessor<boolean>;
+  /** Whether the composer waits for the note's words, and so takes the keys. */
+  readonly composerTyping: Accessor<boolean>;
+  /** The marks of the note being made, while one is. */
+  readonly draft: Accessor<Option.Option<Marked>>;
   /** The film's notes, as the feed last read them. */
   readonly notes: Accessor<ReadonlyArray<Note>>;
   readonly selected: Accessor<Option.Option<Note>>;
@@ -185,8 +193,9 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
 
   const value: NotesContextValue = {
     state: {
-      feed,
-      composer,
+      composerOpen: () => composerOpen(composer()),
+      composerTyping: () => composerTyping(composer()),
+      draft: () => draftMarks(composer()),
       notes,
       selected,
       pen,
