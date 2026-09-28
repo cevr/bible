@@ -19,7 +19,7 @@ import {
   rectShape,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp, rng } from '@bible/film/core';
+import { ease, lerp, rng } from '@bible/film/core';
 import {
   type Hands,
   type HeadPiece,
@@ -113,8 +113,11 @@ const timeline = {
   offer: { mark: 'offer', dur: 0.7 },
   push: { mark: 'only', offset: -0.2, dur: 0.9 },
   stop: { mark: 'only', offset: 0.25, dur: 0.4, ease: 'outBack' },
-  pullOut: { mark: 'only', offset: 2.3, dur: 1.1 },
-  fly: { mark: 'healed', offset: -1.75, dur: 1.7, ease: 'inOutSine' },
+  // Out over the town as he says "come", and the word leaves with it.
+  pullOut: { mark: 'only', word: 'come', dur: 1.1 },
+  fly: { with: 'pullOut', offset: 0.07, dur: 1.7, ease: 'inOutSine' },
+  // Landed by the bed, the word's light fades.
+  landed: { after: 'fly', dur: 1.5, ease: 'linear' },
   sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
   toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
   handShot: { mark: 'exactly', offset: -0.2, dur: 1.2, ease: 'outCubic' },
@@ -367,7 +370,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
           if (fly < 1) flight(ctx, flyPath, fly, hand('word'), 1.1);
           else if (!inHand)
             at(ctx, { x: ROOM.x - 120, y: ROOM.y - 40 + 5 * Math.sin(t * 2) }, () =>
-              wordLight(ctx, hand('word'), 0.3, 1 - clamp((t - f.cue('fly').end) / 1.5)),
+              wordLight(ctx, hand('word'), 0.3, 1 - f.at('landed')),
             );
 
           // In the soldier's open hand, the word settles.

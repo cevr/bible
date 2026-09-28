@@ -61,7 +61,7 @@ export const look = drawing({
   timeline: {
     wonder: { mark: 'faith', dur: 0.5 },
     holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
-    slide: { mark: 'saviour', offset: 2.4, dur: 1.3, ease: 'linear' },
+    slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
     armsDown: { after: 'slide', dur: 0.5 },
     handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'outCubic' },
     light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
@@ -71,9 +71,11 @@ export const look = drawing({
     climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
     slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
     stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
-    lookUp: { mark: 'climb', offset: 1.4, dur: 0.6 },
-    push: { mark: 'climb', offset: 1.4, dur: 1.6, ease: 'inOutCubic' },
-    heal: { mark: 'climb', offset: 4.8, dur: 1.5 },
+    // Stepped back, he looks up and the camera pushes in.
+    lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
+    push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
+    // Healed on "I present Christ".
+    heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
   },
   knobs: { pole: [1180, 930], figure: [760, 930] },
   draw: (f) => {

@@ -76,7 +76,8 @@ export const cold = drawing({
     rest: { mark: 'oldest', dur: 0.57 },
     drain: { mark: 'oldest', dur: 1.1, ease: 'inOutSine' },
     hollowOut: { mark: 'job', offset: -0.5, dur: 0.5 },
-    wide: { mark: 'oldest', offset: 1.2, dur: 1.6 },
+    // Wide once the verdict has drained.
+    wide: { after: 'drain', offset: 0.1, dur: 1.6 },
     lookUp: { mark: 'job', dur: 0.6 },
   },
   draw: (f) => {

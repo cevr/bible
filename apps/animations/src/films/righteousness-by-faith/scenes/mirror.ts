@@ -58,7 +58,8 @@ const timeline = {
   push: { mark: 'stain', dur: 1, ease: 'inOutSine' },
   scrub: { mark: 'wash', offset: -0.1, dur: 0.4 },
   back: { mark: 'wash', dur: 1, ease: 'inOutSine' },
-  glance: { mark: 'wash', offset: 1.3, dur: 0.4 },
+  // Once the camera is back, he glances out at us.
+  glance: { after: 'back', offset: 0.3, dur: 0.4 },
 } as const;
 const knobs = { figure: [960, 930], mirror: [1250, 560], viewer: [860, 990] } as const;
 

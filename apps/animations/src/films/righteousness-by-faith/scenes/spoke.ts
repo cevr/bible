@@ -27,6 +27,8 @@ export const spoke = drawing({
     turn: { mark: 'back', offset: 0.1, dur: 0.5 },
     bookOpen: { mark: 'back', offset: 0.35, dur: 0.55 },
     plunge: { mark: 'dark', offset: -1, dur: 1.1, ease: 'inCubic' },
+    // In the dark, the camera drifts slowly back while the world is made.
+    drift: { after: 'plunge', dur: 12, ease: 'linear' },
     flight: { mark: 'then', offset: 0.1, dur: 1.3, ease: 'inOutSine' },
     burst: { after: 'flight', dur: 0.6, ease: 'outCubic' },
     flood: { mark: 'spake', offset: -0.5, dur: 1.4 },
@@ -120,7 +122,7 @@ export const spoke = drawing({
     }
 
     // ── The dark, and the word that makes the world ─────────────────────────
-    const drift = clamp((t - f.cue('plunge').end) / 12);
+    const drift = f.at('drift');
     camera(ctx, { x: 960, y: lerp(560, 530, drift), zoom: lerp(1.06, 1, drift) }, w, h, () => {
       dawn(ctx, w, h, hand, {
         flood: f.at('flood'),

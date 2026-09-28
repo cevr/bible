@@ -105,8 +105,9 @@ const timeline = {
   walkIn: { mark: 'right', offset: -0.4, until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
-  back: { mark: 'took', offset: 1.1, dur: 1.3, ease: 'inOutCubic' },
-  walkUp: { mark: 'took', offset: 1.3, dur: 1.9, ease: 'inOutSine' },
+  // Back out on "that we might take His righteousness", and he walks up the hill.
+  back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
+  walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
   ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },

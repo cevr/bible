@@ -50,10 +50,15 @@ export const thesis = drawing({
   timeline: {
     lookUp: { scene: 'speech', dur: 0.5 },
     answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
-    textOut: { scene: 'start', offset: 10, dur: 1.2 },
-    away: { scene: 'start', offset: 10.6, dur: 4.5, ease: 'inOutSine' },
-    city: { scene: 'start', offset: 13.2, dur: 11, ease: 'inOutSine' },
-    turn: { scene: 'start', offset: 25.5, dur: 1.2 },
+    // The gavel lifts back from where `name` laid it down.
+    gavel: { scene: 'start', dur: 2, ease: 'linear' },
+    // A pause the script means: the answer stands alone on screen while the
+    // music rises, then lets go. What follows it hangs off it.
+    textOut: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
+    away: { with: 'textOut', offset: 0.6, dur: 4.5, ease: 'inOutSine' },
+    city: { with: 'away', offset: 2.6, dur: 11, ease: 'inOutSine' },
+    // The two of them turn to each other once the city has settled.
+    turn: { after: 'city', offset: 1.3, dur: 1.2 },
   },
   draw: (f) => {
     const { ctx, w, h } = f;
@@ -124,8 +129,7 @@ export const thesis = drawing({
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
         cam: between(WIDE, COURT_BACK, away),
-        // The gavel lifts back from where `name` laid it down.
-        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * clamp(f.t / 2),
+        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * f.at('gavel'),
         stamp: 0,
         pop: 1,
         gold: 1,

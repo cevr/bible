@@ -403,6 +403,14 @@ lives in one place, so the lab's picker always changes the frame. With `drawing(
 (`canvas/drawing.types.ts` holds the checks). The sound plan's `cueTime` reads the same map, so picture and
 sound cannot drift apart. Ornament (wobble, idle motion) stays inline.
 
+The lint rule `film/no-hand-timed-seconds` (`lint/no-hand-timed-seconds.ts`)
+holds a film to it: it refuses a literal second in a draw (`clamp(t / 2)`,
+`(t - cue.end) / 1.5`, `progress(t, 1.2, 0.5)`, `keys(t, …)`,
+`cue.end + 0.5`, `f.mark('x') - 0.4`) and a span offset over 1 s from its
+`mark` or the scene's `start`/`speech`, which stands in for a word (pin the
+word) or for a pause (anchor it to `speechEnd` or another cue and say why).
+A rate (`Math.sin(t * 7)`) is not a time.
+
 ## Knobs
 
 A value a note might ask to tweak (where a hand rests, a tag's angle) is a
