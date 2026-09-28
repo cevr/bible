@@ -8,6 +8,7 @@
 
 import { Array as Arr, Option } from 'effect';
 import { normalizeWords, parse } from './narration.ts';
+import { isAbbreviation } from './spoken.ts';
 
 /** A verified quotation (a film's `quotes.jsonl`): whose words, where they are. */
 export interface Quote {
@@ -56,8 +57,12 @@ const sourceOf = (quotes: ReadonlyArray<Quote>, text: string): Option.Option<str
   );
 };
 
-/** A sentence ends in a breath. */
-const breathe = (text: string): string => text.replace(/([.?!])\s+(?=\S)/g, '$1 / ');
+/** A sentence ends in a breath; an abbreviation's full stop (`Mrs.`, `St.`) ends none. */
+const breathe = (text: string): string =>
+  text.replace(/(\S*)([.?!])\s+(?=\S)/g, (all, word: string, stop: string) => {
+    if (stop === '.' && isAbbreviation(word)) return all;
+    return `${word}${stop} / `;
+  });
 
 /** One voice's words split at its quotations. */
 const partsOf = (

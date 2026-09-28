@@ -167,7 +167,8 @@ over 5 ms (`TAKE_FADE`) at both ends so neither trim clicks.
 has one, with its `cite` sources; from its scenes when not), the file to save
 its take as, marks stripped, each turn's reader named, each “quotation” set
 apart with the `quotes.jsonl` record whose words hold it, and `/` at each
-sentence end for a breath.
+sentence end for a breath (not after an abbreviation such as `Mrs.` or `St.`,
+the same list the take check reads out).
 
 `render` opens the app's server, headless Chromium (`Browser`, the only
 Playwright code) and a pool of player pages in one scope; a failure in any

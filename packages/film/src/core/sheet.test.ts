@@ -57,6 +57,26 @@ describe('the reading sheet', () => {
     ]);
   });
 
+  test('an abbreviation’s full stop is not a sentence’s end, so no breath follows it', () => {
+    const [beat] = sheetBeats(
+      [
+        {
+          id: 'a',
+          say: 'Mrs. White and Dr. Kellogg met at St. Helena. Then Mr. Jones spoke.',
+          cite: [],
+        },
+      ],
+      [],
+    );
+    expect(beat?.parts).toEqual([
+      {
+        _tag: 'Line',
+        voice: Option.none(),
+        text: 'Mrs. White and Dr. Kellogg met at St. Helena. / Then Mr. Jones spoke.',
+      },
+    ]);
+  });
+
   test('the markdown and the printable page carry every beat, escaped for the page', () => {
     const md = sheetMarkdown('test', beats);
     expect(md).toContain('## 1. message');

@@ -64,6 +64,10 @@ const ABBREVIATIONS = new Map([
   ['etc', 'etcetera'],
 ]);
 
+/** Whether a word (its stops and quote marks off, any case) is an abbreviation read out whole. */
+export const isAbbreviation = (word: string): boolean =>
+  ABBREVIATIONS.has(word.replace(/[^\p{L}]/gu, '').toLowerCase());
+
 /** Said before a reference's numbers, and nothing without them. */
 const REFERENCE_WORDS = ['chapter', 'chapters', 'verse', 'verses'];
 
