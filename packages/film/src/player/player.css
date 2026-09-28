@@ -873,6 +873,7 @@ body.lookbook {
 }
 .studio-status {
   margin: 6px 0 0;
+  white-space: pre-line;
   font-size: 12px;
   color: var(--muted);
 }

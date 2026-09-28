@@ -168,7 +168,12 @@ describe('statusOf', () => {
       kept: Option.some({ file: 'a.12.flac', heard: 'hello', wer: 0, mix: 'failed' }),
     });
     expect(statusOf(unmixed, Option.none())).toContain('the mix failed');
-    expect(statusOf(failed(mismatch), Option.none())).toBe(mismatch.message);
+    // A mismatch says how the panel accepts it (the server's words say only what was heard).
+    expect(statusOf(failed(mismatch), Option.none())).toBe(
+      `${mismatch.message}\nAccept anyway (K) keeps it as the take; Record (R) reads it again`,
+    );
+    const lost = { _tag: 'SttUntimed', message: 'no words timed' };
+    expect(statusOf(failed(lost), Option.none())).toBe('no words timed');
   });
 });
 

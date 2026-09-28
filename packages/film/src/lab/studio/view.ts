@@ -161,6 +161,9 @@ const leftOf = (state: RecorderState, level: Option.Option<Level>): Option.Optio
 export const nearLimit = (state: RecorderState, level: Option.Option<Level>): boolean =>
   Option.exists(leftOf(state, level), (left) => left <= NEAR_LIMIT_S);
 
+/** How the panel accepts a take heard as something else (the server's words say only what was heard). */
+const ACCEPT_HINT = 'Accept anyway (K) keeps it as the take; Record (R) reads it again';
+
 /** The status line: where the recorder stands, a take's result, or the refusal in the server's words. */
 export const statusOf = (state: RecorderState, level: Option.Option<Level>): string =>
   Match.value(state).pipe(
@@ -201,7 +204,14 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
         ),
       Checking: () =>
         `the lab has not answered in ${minutes(STUDIO_IMPORT_WAIT_S)}: reading its attempts to see whether the take was kept…`,
-      Failed: (s) => s.refusal.message,
+      Failed: (s) =>
+        [
+          s.refusal.message,
+          ...Option.match(mismatchAttempt(s.refusal), {
+            onNone: () => [],
+            onSome: () => [ACCEPT_HINT],
+          }),
+        ].join('\n'),
     }),
   );
 
