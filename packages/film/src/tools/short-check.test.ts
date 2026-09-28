@@ -118,7 +118,7 @@ describe('the hook and the loop read when words are heard', () => {
     words,
     source: 'elevenlabs' as const,
   };
-  const film = layout([{ id: 'a', say, lead: 0.5, draw: () => {} }], {
+  const film = layout([{ id: 'a', say, lead: 0, draw: () => {} }], {
     voice: 'v',
     scenes: { a: take },
   });
@@ -128,7 +128,8 @@ describe('the hook and the loop read when words are heard', () => {
       {
         id: 'cut',
         title: 'Cut',
-        spans: [{ scene: 'a', from: { scene: 'speech' }, to: { scene: 'speechEnd' } }],
+        // From the scene's start, which is no word: a span opening on the voice would hide the late word.
+        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'speechEnd' } }],
       },
       30,
     ),

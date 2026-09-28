@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import { type Placed, layout } from './layout.ts';
+import { hashText } from './narration.ts';
 import { Shorts, type Short, type Timings } from './schema.ts';
 import {
   type ResolvedShort,
   SHORT_LAYOUT,
+  SHORT_PREROLL,
   hookAlpha,
   resolveShort,
   shortFilmTime,
@@ -70,6 +72,48 @@ describe('shorts', () => {
     expect(cut.duration).toBeCloseTo(lengthOf(first) + lengthOf(second), 9);
     // Every span is a whole number of frames, so picture and sound cut alike.
     for (const s of cut.spans) expect(Math.abs((lengthOf(s) * fps) % 1)).toBeLessThan(1e-6);
+  });
+
+  test('a span that opens on a word opens SHORT_PREROLL before it is heard, not on the pause the aligner gave it', () => {
+    // "So," aligned 0–0.9, heard from 0.6; "back" (the mark) aligned 0.9–2.3, heard from 1.9.
+    const say = 'So, {back}back to it.';
+    const heardAt: ReadonlyArray<readonly [number, number, number, number]> = [
+      [0, 0.9, 0.6, 0.9],
+      [0.9, 2.3, 1.9, 2.3],
+      [2.3, 2.6, 2.3, 2.6],
+      [2.6, 3, 2.6, 2.9],
+    ];
+    const words = say
+      .replace('{back}', '')
+      .split(' ')
+      .map((text, i) => {
+        const [start, end, on, off] = heardAt[i] ?? [0, 0, 0, 0];
+        return { text, start, end, voiced: { start: on, end: off } };
+      });
+    const take = {
+      hash: hashText('So, back to it.'),
+      file: 'a.mp3',
+      duration: 3,
+      words,
+      source: 'elevenlabs' as const,
+    };
+    const film = layout([{ id: 'a', say, lead: 0.5, draw }], { voice: 'v', scenes: { a: take } });
+    const p = Option.getOrThrow(Arr.get(film, 0));
+    const at = (spans: Short['spans']) => Result.getOrThrow(resolveShort(film, short(spans), fps));
+    const voice = p.start + p.speechStart;
+    // From the mark: the word's voice less the preroll, not its aligned 0.9.
+    const marked = spanOf(
+      at([{ scene: 'a', from: { mark: 'back' }, to: { scene: 'speechEnd' } }]),
+      0,
+    );
+    expect(marked.from).toBe(onFrame(voice + 1.9 - SHORT_PREROLL));
+    // From the speech: the first word's voice less the preroll.
+    const spoken = at([{ scene: 'a', from: { scene: 'speech' }, to: { mark: 'back' } }]);
+    expect(spanOf(spoken, 0).from).toBe(onFrame(voice + 0.6 - SHORT_PREROLL));
+    // A span's end stays where it is marked; the scene's start is not a word.
+    expect(spanOf(spoken, 0).to).toBe(onFrame(voice + 0.9));
+    const whole = at([{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }]);
+    expect(spanOf(whole, 0).from).toBe(onFrame(p.start));
   });
 
   test('a cue as the start of a span is its start, unless it names an edge', () => {

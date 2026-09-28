@@ -147,6 +147,34 @@ export const bandOf = (film: { readonly width: number; readonly height: number }
   height: film.height,
 });
 
+/**
+ * The pause a span that opens on a word keeps before the word is heard: the
+ * breath into it. The aligner starts a word with the pause before it, so a
+ * span opened on its aligned start would open on up to a second of silence.
+ */
+export const SHORT_PREROLL = 0.1;
+
+/**
+ * Where a span that opens at voice second `at` (a word's aligned start)
+ * starts: `SHORT_PREROLL` before the word there is heard, never before `at`.
+ * An estimated voice is heard from its aligned start, so it opens there.
+ */
+const openOnVoice = (p: Placed, at: number): number =>
+  Option.match(
+    Arr.findFirst(p.voice.words, (w) => w.end > at),
+    {
+      onNone: () => at,
+      onSome: (w) => Math.max(at, w.voiced.start - SHORT_PREROLL),
+    },
+  );
+
+/** Voice second `at` as a span's `edge`: an opening moves onto the voice, a close stays. */
+const opening = (p: Placed, at: number, edge: 'start' | 'end'): number =>
+  Match.value(edge).pipe(
+    Match.when('start', () => openOnVoice(p, at)),
+    Match.orElse(() => at),
+  );
+
 /** A scene's landmark, scene-local. */
 const landmarkAt = (p: Placed, landmark: 'start' | 'speech' | 'speechEnd' | 'end'): number => {
   switch (landmark) {
@@ -164,6 +192,7 @@ const landmarkAt = (p: Placed, landmark: 'start' | 'speech' | 'speechEnd' | 'end
 /**
  * Where a point lands in its scene, scene-local. A cue that names no edge
  * lands on `edge`: its start when it opens a span, its end when it closes one.
+ * A mark or the speech opening a span lands on the voice (`openOnVoice`).
  */
 const pointAt = (
   short: string,
@@ -175,7 +204,10 @@ const pointAt = (
   return Match.value(point).pipe(
     Match.when({ mark: Match.string }, ({ mark }) =>
       Result.fromOption(
-        Option.map(Option.fromNullishOr(p.voice.marks.get(mark)), (at) => p.speechStart + at),
+        Option.map(
+          Option.fromNullishOr(p.voice.marks.get(mark)),
+          (at) => p.speechStart + opening(p, at, edge),
+        ),
         () => ShortUnknownMark.make({ short, scene, mark, known: [...p.voice.marks.keys()] }),
       ),
     ),
@@ -188,6 +220,7 @@ const pointAt = (
         () => ShortUnknownCue.make({ short, scene, cue, known: [...p.cues.keys()] }),
       ),
     ),
+    Match.when({ scene: 'speech' }, () => Result.succeed(p.speechStart + opening(p, 0, edge))),
     Match.when({ scene: Match.string }, ({ scene: landmark }) =>
       Result.succeed(landmarkAt(p, landmark)),
     ),

@@ -205,7 +205,11 @@ browser is `BrowserMissing`, whose message is the install command.
 A film's `shorts.ts` (optional; `Shorts` in `core/schema.ts`, decoded by
 `FilmRepo`) declares vertical cuts: `{ id, title, spans: [{ scene, from, to }] }`,
 each point a `{ mark }`, a named `{ cue, edge? }` or a scene landmark, never a
-second. `core/shorts.ts` resolves a short against the layout on whole frames
+second. A span that opens on a word (a `{ mark }` or `{ scene: 'speech' }`)
+opens `SHORT_PREROLL` (0.1 s) before the word is heard, never before its
+aligned start: the aligner gives a word the pause before it, and a short
+opened on that pause starts on silence. A close stays where it is marked.
+`core/shorts.ts` resolves a short against the layout on whole frames
 (`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
 and short seconds), or fails with `ShortUnknownScene`, `ShortUnknownMark`,
 `ShortUnknownCue` or `ShortSpanEmpty` naming what the film has; `--short`
