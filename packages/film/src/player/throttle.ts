@@ -17,9 +17,11 @@ export interface Throttled {
   request(): void;
   /** Run a waiting write now; nothing when none waits. */
   flush(): void;
+  /** Drop a waiting write, and count a write made just now outside it. */
+  ran(): void;
 }
 
-const browserTimers: Timers = {
+export const browserTimers: Timers = {
   now: () => performance.now(),
   set: (run, ms) => window.setTimeout(run, ms),
   clear: (id) => window.clearTimeout(id),
@@ -44,6 +46,11 @@ export const throttled = (run: () => void, everyMs: number, timers = browserTime
       if (waiting === undefined) return;
       timers.clear(waiting);
       fire();
+    },
+    ran() {
+      if (waiting !== undefined) timers.clear(waiting);
+      waiting = undefined;
+      last = timers.now();
     },
   };
 };

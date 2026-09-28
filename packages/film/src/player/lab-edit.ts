@@ -143,6 +143,18 @@ export const mountEditor = (
   api: string,
 ): Editor => {
   const { film } = player;
+  /**
+   * A write to a scene file: the page reloads once it lands, so `#T` is held
+   * at the frame the write is asked at first, and the reload lands there. A
+   * refused write reloads nothing, and lets `#T` follow the frame again.
+   */
+  const write = (url: string, body: unknown) => {
+    player.holdT();
+    return post(url, body).catch((err: unknown) => {
+      player.settle();
+      throw err;
+    });
+  };
 
   // ── State. ──
   let selection = selectionFromUrl();
@@ -247,16 +259,21 @@ export const mountEditor = (
     const p = placedOf(stripScene ?? '');
     if (p === undefined) return;
     const r = stripRows.getBoundingClientRect();
-    const seek = (ev: PointerEvent) =>
-      player.seek(
+    const scrub = (ev: PointerEvent) =>
+      player.scrub(
         p.start + Math.max(0, Math.min(p.dur, ((ev.clientX - r.left) / r.width) * p.dur)),
       );
-    seek(e);
-    const move = (ev: PointerEvent) => seek(ev);
+    scrub(e);
+    const move = (ev: PointerEvent) => scrub(ev);
     window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', () => window.removeEventListener('pointermove', move), {
-      once: true,
-    });
+    window.addEventListener(
+      'pointerup',
+      () => {
+        window.removeEventListener('pointermove', move);
+        player.settle();
+      },
+      { once: true },
+    );
   });
 
   /** Where an edge may snap: words, marks, and the other cues' edges; scene-local seconds. */
@@ -376,14 +393,14 @@ export const mountEditor = (
   };
   const writeCue = (scene: string, cue: string, patch: CuePatch) => {
     setStatus('writing…');
-    post(`${api}/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
+    write(`${api}/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
   };
   const writeKnob = (scene: string, knob: string, value: Knob) => {
     setStatus('writing…');
-    post(`${api}/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
+    write(`${api}/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
@@ -695,7 +712,7 @@ export const mountEditor = (
   const redoBtn = q<HTMLButtonElement>('[data-act="redo"]');
   const step = (verb: 'undo' | 'redo') => {
     setStatus(`${verb === 'undo' ? 'undoing' : 'redoing'}…`);
-    post(`${api}/${verb}`, {})
+    write(`${api}/${verb}`, {})
       .then((w) => {
         findings = w.findings;
         setStatus(

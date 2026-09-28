@@ -12,7 +12,7 @@ import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
-import { throttled } from './throttle.ts';
+import { tInUrl } from './t-in-url.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -82,7 +82,18 @@ export interface Player {
   readonly track: HTMLDivElement;
   /** Film seconds shown now. */
   now(): number;
+  /** Show `T` and settle there (`#T` written at once). */
   seek(T: number): void;
+  /** Show `T` as a drag passes through it; the drag ends with `settle`. */
+  scrub(T: number): void;
+  /** T has settled where it is: `#T` is written at once. */
+  settle(): void;
+  /**
+   * A lab write is on its way, and its reload will follow: `#T` is written
+   * now and held at this frame until T next settles, so the reload lands on
+   * the frame the write was made at.
+   */
+  holdT(): void;
   pause(): void;
   play(): void;
   playing(): boolean;
@@ -254,16 +265,16 @@ const preview = (
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
   /**
-   * `#T` in the URL, so a reload lands on this frame: written at most every
-   * HASH_MS while T moves, and at once when it settles (pause, the end of a
-   * seek, pagehide). A frame loop that wrote it every frame cost a history
+   * `#T` in the URL, so a reload lands on this frame (`tInUrl`): written at
+   * most every HASH_MS while T moves, at once when it settles (a seek, the end
+   * of a scrub, play or pause, the film's end), and held at the frame a lab
+   * write was asked at. A frame loop that wrote it every frame cost a history
    * call per frame.
    */
-  const hash = throttled(
+  const url = tInUrl(
     () => history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`),
     HASH_MS,
   );
-  window.addEventListener('pagehide', () => hash.flush());
 
   const draw = () => {
     reads = [];
@@ -278,15 +289,22 @@ const preview = (
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
-    hash.request();
+    url.moved();
   };
 
-  const seek = (t: number) => {
+  /** Show `t`, as a drag passes through it: `#T` follows at most every HASH_MS. */
+  const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
     tStart = T;
     wallStart = performance.now();
     if (audio !== undefined) audio.currentTime = T;
     draw();
+  };
+
+  /** Show `t`, and settle there: `#T` is written at once. */
+  const seek = (t: number) => {
+    scrub(t);
+    url.settled();
   };
 
   /** Restart the clock at `T`, and the narration with it when it is audible. */
@@ -304,7 +322,7 @@ const preview = (
     rebase();
     if (playing) requestAnimationFrame(tick);
     draw();
-    if (!playing) hash.flush();
+    url.settled();
   };
 
   const tick = () => {
@@ -322,20 +340,20 @@ const preview = (
       audio?.pause();
     }
     draw();
-    if (!playing) hash.flush();
+    if (!playing) url.settled();
     if (playing) requestAnimationFrame(tick);
   };
 
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
-    const move = (ev: PointerEvent) => seek(((ev.clientX - r.left) / r.width) * film.duration);
+    const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
     window.addEventListener('pointermove', move);
     window.addEventListener(
       'pointerup',
       () => {
         window.removeEventListener('pointermove', move);
-        hash.flush();
+        url.settled();
       },
       { once: true },
     );
@@ -373,6 +391,9 @@ const preview = (
     track,
     now: () => T,
     seek,
+    scrub,
+    settle: () => url.settled(),
+    holdT: () => url.held(),
     pause: () => {
       if (playing) toggle();
     },
