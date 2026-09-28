@@ -80,6 +80,15 @@ describe('ground', () => {
     expect(r.made()).toBe(2);
   });
 
+  test('two equal tints written inline share one gradient: the cache keys by colour, not by array', () => {
+    const r = recording();
+    for (let i = 0; i < 30; i++) ground(r.ctx, i, 0, 50, { tint: [60, 40, 20] });
+    ground(r.ctx, 0, 0, 50, { tint: [60, 40, 20], alpha: GROUND_ALPHA });
+    expect(r.made()).toBe(1);
+    ground(r.ctx, 0, 0, 50, { tint: [60, 40, 21] });
+    expect(r.made()).toBe(2);
+  });
+
   test('draws nothing with no width', () => {
     const r = recording();
     ground(r.ctx, 0, 0, 0);

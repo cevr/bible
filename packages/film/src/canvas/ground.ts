@@ -19,30 +19,43 @@ export interface GroundStyle {
   readonly alpha?: number;
 }
 
-/** One unit-radius gradient per context, tint and darkness, made once and reused every frame. */
+/** A level of the gradient cache, keyed by one channel's value. */
+type Level<A> = Map<number, A>;
+
+/**
+ * One unit-radius gradient per context, tint and darkness, made once and
+ * reused every frame. Keyed by the tint's values, red, green, blue, then the
+ * darkness, so two equal tints written inline share one, and a lookup builds
+ * no key.
+ */
 const gradients = new WeakMap<
   CanvasRenderingContext2D,
-  Map<readonly [number, number, number], Map<number, CanvasGradient>>
+  Level<Level<Level<Level<CanvasGradient>>>>
 >();
+
+/** The level under `key` in `level`, made empty the first time. */
+const below = <A>(level: Level<Level<A>>, key: number): Level<A> => {
+  const found = level.get(key);
+  if (found !== undefined) return found;
+  const made: Level<A> = new Map();
+  level.set(key, made);
+  return made;
+};
 
 const unitGradient = (
   ctx: CanvasRenderingContext2D,
   tint: readonly [number, number, number],
   alpha: number,
 ) => {
-  let byTint = gradients.get(ctx);
-  if (byTint === undefined) {
-    byTint = new Map();
-    gradients.set(ctx, byTint);
+  let byRed = gradients.get(ctx);
+  if (byRed === undefined) {
+    byRed = new Map();
+    gradients.set(ctx, byRed);
   }
-  let byAlpha = byTint.get(tint);
-  if (byAlpha === undefined) {
-    byAlpha = new Map();
-    byTint.set(tint, byAlpha);
-  }
+  const [r, g, b] = tint;
+  const byAlpha = below(below(below(byRed, r), g), b);
   const cached = byAlpha.get(alpha);
   if (cached !== undefined) return cached;
-  const [r, g, b] = tint;
   const made = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
   made.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
   made.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, ${alpha * 0.4})`);
