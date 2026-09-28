@@ -7,7 +7,9 @@
 // source's words. KJV supplied-word brackets are dropped for speech.
 //
 // The answer's shape, shown once in `message` and pulled back to at each turn:
-// God does not just call us righteous; He makes us righteous by three gifts,
+// God does not just call us righteous; He makes us righteous by three gifts
+// (shown in scripture in `roof`: the paralytic and the woman taken in adultery,
+// each called back inside its icon in `robe` and `within`),
 // faith (`spoke` to `centurion`), forgiveness (`exchange` to `robe`) and power
 // (`look` to `within`), and sanctification is the daily choice to keep
 // receiving them (`daily`). The hinge is `declared`: justified means made
@@ -67,6 +69,17 @@ export const script: ReadonlyArray<Beat> = [
     ],
     picture:
       'STORY: a cardboard meeting hall in 1888, warm peach light through tall windows. Two men at the front, one with a Bible open, faces toward a crowd of grey figures. On `rep` the crowd splits: half hold small stone tablets up, half look for something missing; the tablets have no one with them. On `answer` every grey face turns toward a warm gold light rising behind the pulpit. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet and a cross come together into one gold emblem. On `three` push through into IDEA, the parchment page, on the same row. On `makes` the grey figure stands centre, and a warm light rises in their chest. On `gifts` three icons come in left to right, each set into an open hand held palm up (the hand from `look`, drawn once here): the gold word-bubble, faith (`faith`); the white robe, forgiveness (`forgiveness`); the heart with two small tablets inside, power (`power`). On `daily` a small sun arcs over the row, rising and setting two or three times, and each time the hand opens again.',
+  },
+  {
+    // The three gifts shown in scripture, in the order they are given: the
+    // paralytic (Mark 2:3–12) and the woman taken in adultery (John 8:3–11)
+    // each receive faith, then forgiveness, then power. The owner's handbook
+    // study reads them as the court's gate, altar and laver.
+    id: 'roof',
+    say: '{see}So what do these gifts look like in a life? {roof}Four friends let a paralysed man down through a roof. {saw}Jesus saw their faith. {son}Son, he said, your sins are forgiven. {arise}Arise, take up your bed, and go home. {went}And he did. {woman}Later, a woman taken in adultery stood alone before him. {none}Has no man condemned you? he asked. {lord}No man, Lord, she said. {told}And Jesus said: “Neither do I condemn thee: go, and sin no more.” {order}Faith, then forgiveness, then power.',
+    cite: ['Mark 2:3–12', 'John 8:3–11'],
+    picture:
+      "STORY: the question on `see` pushes through the faith icon of `message`'s row into the scene. A cardboard house in Capernaum, packed with grey figures (varied heights and headcloths, never cloned), under a peach sky; 3–5 planes, the crowd near, the house wall far. Screen direction holds the film's: the one receiving stands screen-left, Jesus screen-right. On `roof` four friends on the flat roof lift tiles away and lower a man on his bed on ropes into the room. On `saw` Jesus (white robe, gold sash) looks up at the four faces in the hole, and the gold word-bubble, faith, lights in a small row of the three icons along the band. On `son` close on the man's face as the scarlet specks lift off him, and the robe icon lights. On `arise` he stands, rolls up his bed and carries it out through the crowd (`went`); the heart icon lights. Cut on `woman` to a temple court in the same light: a woman in a scarlet-stained garment stands alone, stones dropped in the dust around her, Jesus stooped beside words written in the dust. On `lord` her face at a third of the frame, looking up: the faith icon lights again. On `told` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); `Neither` lights the robe and `go` lights the heart (word pins), and on `go` cut back wide as she turns and walks out of frame, screen-left, upright. On `order` pull back to IDEA, the three icons in the `message` layout, lit left to right.",
   },
   {
     id: 'word',
@@ -158,7 +171,7 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Thoughts From the Mount of Blessing, 114',
     ],
     picture:
-      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel rests on the bench, the ruling standing, and a warm glow begins to rise in Joshua's chest: more than the ruling. On `reclaim` close on Joshua's face at human scale; under the white robe the glow rises where the heart is, a preview of the third gift, not yet lit, and he looks up glad on `reclaiming`. After the quotation's last word, pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` on the speech's end): the robe, forgiveness, glows.",
+      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel rests on the bench, the ruling standing, and a warm glow begins to rise in Joshua's chest: more than the ruling. On `reclaim` close on Joshua's face at human scale; under the white robe the glow rises where the heart is, a preview of the third gift, not yet lit, and he looks up glad on `reclaiming`. After the quotation's last word, pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` on the speech's end): the robe, forgiveness, glows. Callback to `roof` (CRAFT rule 8, a graphic match in its layout): inside the glowing robe icon, for a breath, the temple court from `roof` in the same framing, the woman standing where she stood, the stones in the dust, now in white.",
   },
   {
     id: 'look',
@@ -182,7 +195,7 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Steps to Christ, 18',
     ],
     picture:
-      "IDEA: the parchment page. The gold circle from `word` returns, shrinks and settles into the grey figure's chest as a warm heart with the two tablets inside it, still legible (`never` to `write`). On `power` pull back to the three icons, and the heart lights (`heartLit`, moved here from the end). On `not` the grey figure again, the glow running out from the heart along the arms to the open hands. On `become` close on the face (a third of the frame), warm; the grey paper of the figure warms toward cream, the same gold as the word from `declared`. Two panels, one after the other: a forgiven past (a closed book, `first`), and a path ahead with the figure walking it, flowers springing up in their footprints (`second`).",
+      "IDEA: the parchment page. The gold circle from `word` returns, shrinks and settles into the grey figure's chest as a warm heart with the two tablets inside it, still legible (`never` to `write`). On `power` pull back to the three icons, and the heart lights (`heartLit`, moved here from the end); callback to `roof` in its layout: inside the lit heart, for a breath, the man from Capernaum walks out through the crowd with his bed on his shoulder, as he did on `went`. On `not` the grey figure again, the glow running out from the heart along the arms to the open hands. On `become` close on the face (a third of the frame), warm; the grey paper of the figure warms toward cream, the same gold as the word from `declared`. Two panels, one after the other: a forgiven past (a closed book, `first`), and a path ahead with the figure walking it, flowers springing up in their footprints (`second`).",
   },
   {
     id: 'daily',
