@@ -5,19 +5,10 @@
 // the figure in the robe and Christ sit together on the same rooftop the
 // title's figure stood on, under the landing sky.
 
-import {
-  type Camera,
-  at,
-  drawing,
-  multiplane,
-  probePlate,
-  rectShape,
-  shotPath,
-  write,
-} from '@bible/film/canvas';
+import { type Camera, drawing, probePlate, rectShape, shotPath, write } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, F, christ, glow, knobCamera, person, piece } from '../kit.ts';
-import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
+import { C, F, glow, knobCamera, piece } from '../kit.ts';
+import { ROOF, landingSky, rooftop } from '../city.ts';
 import {
   ADVOCATE_POSE,
   FIGURE_LANDED,
@@ -82,48 +73,7 @@ export const thesis = drawing({
       ctx.save();
       ctx.globalAlpha *= cityIn;
       const cam = shotPath(ROOFTOP, [[city, knobCamera(f.knob('city'), f.knob('cityZoom'))]]);
-      multiplane(ctx, cam, w, h, [
-        { z: 1.6, draw: () => cityBack(ctx, (k) => f.hand(k)) },
-        {
-          z: 1,
-          lift: 1.4,
-          draw: () => {
-            cityFront(ctx, (k) => f.hand(k));
-            // Sitting on the roof's edge, their legs over it.
-            at(ctx, { x: ROOF.x + 34, y: ROOF.top, scale: 0.68 }, () =>
-              christ(
-                ctx,
-                {
-                  sit: 1,
-                  tilt: lerp(-0.08, -0.16, turn),
-                  look: [lerp(1, -3, turn), -3],
-                  browTilt: 0.2,
-                  smile: 0.6,
-                },
-                (k) => f.hand(k),
-              ),
-            );
-            at(ctx, { x: ROOF.x - 44, y: ROOF.top, scale: 0.62 }, () =>
-              person(
-                ctx,
-                {
-                  sit: 1,
-                  body: C.robe,
-                  shade: C.robe,
-                  garment: 'robe',
-                  tilt: lerp(-0.08, 0.12, turn),
-                  look: [lerp(1.5, 3, turn), lerp(-3.5, -1, turn)],
-                  browL: 2,
-                  browR: 3,
-                  browTilt: 0.3,
-                  smile: 0.8,
-                },
-                f.hand('figure'),
-              ),
-            );
-          },
-        },
-      ]);
+      rooftop(ctx, w, h, (k) => f.hand(k), cam, turn);
       ctx.restore();
     }
 

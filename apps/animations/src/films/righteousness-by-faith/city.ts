@@ -1,9 +1,9 @@
 // The film's cardboard city under the teal sky: the title's, and the
 // landing's (`rain`, `thesis`), one layout from the same rows and seeds.
 
-import { type Pt, rectShape } from '@bible/film/canvas';
+import { type Camera, type Pt, at, multiplane, rectShape } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { C, type Hands, piece, sky } from './kit.ts';
+import { C, type Hands, christ, person, piece, sky } from './kit.ts';
 
 /** The landing sky: teal at the top warming to yellow at the horizon. */
 export const landingSky = (ctx: CanvasRenderingContext2D, w: number, h: number) =>
@@ -99,3 +99,60 @@ export const cityFront = (ctx: CanvasRenderingContext2D, hand: Hands, up = 0) =>
     torn: 3,
   });
 };
+
+/**
+ * The landing's rooftop (`thesis`, and `end` under the credits): the city
+ * through `cam`, the figure in the robe and Christ sitting on the roof's edge
+ * the title's figure stood on, their legs over it, turned `turn` (0..1) to
+ * each other.
+ */
+export const rooftop = (
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  hand: Hands,
+  cam: Camera,
+  turn: number,
+) =>
+  multiplane(ctx, cam, w, h, [
+    { z: 1.6, draw: () => cityBack(ctx, hand) },
+    {
+      z: 1,
+      lift: 1.4,
+      draw: () => {
+        cityFront(ctx, hand);
+        // Sitting on the roof's edge, their legs over it.
+        at(ctx, { x: ROOF.x + 34, y: ROOF.top, scale: 0.68 }, () =>
+          christ(
+            ctx,
+            {
+              sit: 1,
+              tilt: lerp(-0.08, -0.16, turn),
+              look: [lerp(1, -3, turn), -3],
+              browTilt: 0.2,
+              smile: 0.6,
+            },
+            hand,
+          ),
+        );
+        at(ctx, { x: ROOF.x - 44, y: ROOF.top, scale: 0.62 }, () =>
+          person(
+            ctx,
+            {
+              sit: 1,
+              body: C.robe,
+              shade: C.robe,
+              garment: 'robe',
+              tilt: lerp(-0.08, 0.12, turn),
+              look: [lerp(1.5, 3, turn), lerp(-3.5, -1, turn)],
+              browL: 2,
+              browR: 3,
+              browTilt: 0.3,
+              smile: 0.8,
+            },
+            hand('figure'),
+          ),
+        );
+      },
+    },
+  ]);

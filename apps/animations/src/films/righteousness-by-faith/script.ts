@@ -251,6 +251,11 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'end',
-    picture: 'End card on parchment: Righteousness by Faith, and the sources.',
+    // The credits roll over the landing's pull back (20–30 s), and the last
+    // seconds hold clear for the end screens; its length sets `name` at about
+    // 81 % of the film.
+    min: 30,
+    picture:
+      "STORY: the credits over the landing's last shot. The camera keeps easing back from where `thesis` leaves the city, the two still sitting together on the rooftop, while the film's name and its sources (each beat's cite, by author) roll up a torn paper strip at the left for about 22 s; then the strip goes and the city holds clear for the end screens. Nothing breathes.",
   },
 ];
