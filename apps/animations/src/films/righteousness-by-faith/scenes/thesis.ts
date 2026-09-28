@@ -76,7 +76,12 @@ export const thesis = drawing({
             at(ctx, { x: ROOF.x + 34, y: ROOF.top + 12, scale: 0.68 }, () =>
               christ(
                 ctx,
-                { tilt: lerp(-0.08, -0.16, turn), look: [lerp(1, -3, turn), -3], browTilt: 0.2 },
+                {
+                  tilt: lerp(-0.08, -0.16, turn),
+                  look: [lerp(1, -3, turn), -3],
+                  browTilt: 0.2,
+                  smile: 0.6,
+                },
                 (k) => f.hand(k),
               ),
             );
@@ -92,6 +97,7 @@ export const thesis = drawing({
                   browL: 2,
                   browR: 3,
                   browTilt: 0.3,
+                  smile: 0.8,
                 },
                 f.hand('figure'),
               ),
@@ -114,8 +120,8 @@ export const thesis = drawing({
         pop: 1,
         gold: 1,
         shine: 0.9,
-        figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1 },
-        advocate: { ...ADVOCATE_POSE, tilt: -0.06, look: [3, 1] },
+        figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1, smile: 0.7 },
+        advocate: { ...ADVOCATE_POSE, tilt: -0.06, look: [3, 1], smile: 0.6 },
       });
       ctx.restore();
     }

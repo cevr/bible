@@ -16,7 +16,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { hash2, lerp } from '@bible/film/core';
+import { clamp, hash2, lerp } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
@@ -252,6 +252,10 @@ export interface Person {
   browTilt?: number;
   /** 0 closed, 1 a small round "oh". */
   mouth?: number;
+  /** The mouth's curve, −1 a frown to 1 a smile; nothing near 0. An "oh" opens under it. */
+  smile?: number;
+  /** 1 open to 0 shut; below 0.3 each eye is an arc, a happy crescent when smiling past 0.5. */
+  eyes?: number;
   /** A priest's wrapped linen turban. */
   turban?: boolean;
   /** Hands, in the person's units, when they reach for something; no arm otherwise. */
@@ -294,6 +298,76 @@ const turbanShape = (rx: number, ry: number): Pt[] =>
     8,
     true,
   );
+
+/**
+ * The two eyes about (x, y), the midpoint between them: filled ovals that
+ * narrow as `open` falls, and below 0.3 an arc each, bowed down when shut,
+ * bowed up in a happy crescent when `smile` is past 0.5.
+ */
+const eyePair = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  open: number,
+  smile: number,
+  hand: Hand,
+) => {
+  for (const dx of [-12, 13]) {
+    if (open < 0.3) {
+      const bow = smile > 0.5 ? -4 : 4;
+      stroke(
+        ctx,
+        quad([x + dx - 5, y], [x + dx, y + bow], [x + dx + 5, y]),
+        { color: C.outline, width: 2.6, jitter: 0.3, taper: 0.2 },
+        sub(hand, 11 + dx),
+      );
+      continue;
+    }
+    ctx.fillStyle = C.outline;
+    ctx.beginPath();
+    ctx.ellipse(x + dx, y, 3.2, 4.2 * open, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
+/**
+ * The mouth under a head centred on (x, y): the `smile` curve, and `open` as
+ * a small round "oh" that becomes an open grin under the curve as the smile
+ * grows.
+ */
+const mouthOf = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  open: number,
+  smile: number,
+  hand: Hand,
+) => {
+  if (Math.abs(smile) > 0.05)
+    stroke(
+      ctx,
+      quad([x - 7, y + 14], [x + 2, y + 14 + 8 * smile], [x + 11, y + 14]),
+      { color: C.outline, width: 3, jitter: 0.3, taper: 0.3 },
+      sub(hand, 10),
+    );
+  if (open <= 0.02) return;
+  const grin = clamp(smile * 3);
+  const oh = open * (1 - grin);
+  ctx.fillStyle = C.outline;
+  if (oh > 0.02) {
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 16, 3 * oh + 0.5, 4 * oh + 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const lip = open * grin;
+  if (lip > 0.02) {
+    ctx.beginPath();
+    ctx.moveTo(x - 7, y + 14);
+    ctx.quadraticCurveTo(x + 2, y + 14 + 8 * smile + 10 * lip, x + 11, y + 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+};
 
 export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => {
   const body = p.body ?? C.figure;
@@ -340,12 +414,8 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
   const [lx, ly] = p.look ?? [0, 0];
-  for (const x of [-12, 13]) {
-    ctx.fillStyle = C.outline;
-    ctx.beginPath();
-    ctx.ellipse(cx + x + lx, cy - 7 + ly, 3.2, 4.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const smile = p.smile ?? 0;
+  eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);
   if (p.turban === true) {
     const dome = turbanShape(HEAD_RX, HEAD_RY).map(([x, y]): Pt => [cx + x, cy + y]);
     piece(ctx, dome, C.paper, sub(hand, 5));
@@ -384,13 +454,7 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   };
   brow(-1, p.browL ?? 0, 8);
   brow(1, p.browR ?? 0, 9);
-  const open = p.mouth ?? 0;
-  if (open > 0.02) {
-    ctx.fillStyle = C.outline;
-    ctx.beginPath();
-    ctx.ellipse(cx + 2, cy + 16, 3 * open + 0.5, 4 * open + 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  mouthOf(ctx, cx, cy, p.mouth ?? 0, smile, hand);
   ctx.restore();
   arm(1, p.handR, 50);
 };

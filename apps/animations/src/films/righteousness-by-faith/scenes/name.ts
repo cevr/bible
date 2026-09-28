@@ -77,12 +77,14 @@ export const name = drawing({
         browL: 3 * up + 2 * smile,
         browR: 4 * up + 2 * smile,
         browTilt: 0.35 * up,
+        smile: 0.7 * smile,
         handR: touch > 0.01 ? [lerp(40, -24, touch), lerp(-60, -76, touch)] : undefined,
       },
       advocate: {
         ...ADVOCATE_POSE,
         tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch'),
         look: [lerp(-3, 3, turn), 1],
+        smile: 0.6 * smile,
       },
     });
 
