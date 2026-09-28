@@ -208,50 +208,112 @@ browser is `BrowserMissing`, whose message is the install command.
 ## Encoders
 
 Segments are joined without re-encoding, so every chunk of a render must come
-from one encoder. The page decides once: `encoderChoice` (`player/encode.ts`)
-asks `canEncodeVideo` for the master's and the share copy's settings, hardware
-first, and answers `Hardware | Software | Missing{reason}` (`EncoderChoice`,
-`core/encoder.ts`). The renderer opens one page for that answer, logs
-`render.encoder kind=… workers=… encoders=… cores=…`, and hands the same
-encoder to every chunk; `Missing` is `EncoderMissing` before a frame is drawn.
-`film doctor` runs the same choice.
+from one encoder. The platform names the candidates (`encoderCandidates`,
+`core/encoder.ts`): the Mac asks for the hardware encoder and nothing else, a
+box with no hardware path (Linux) for the software one, and `--encoder
+hardware|software` for exactly the one named. The page tries them
+(`encoderChoice`, `player/encode.ts`, `canEncodeVideo` with the master's
+settings, and the share copy's only when it makes one in the page) and answers
+`Hardware | Software | Missing{reason}` (`EncoderChoice`). The renderer opens
+one page for that answer, logs `render.encoder kind=… workers=… encoders=…
+cores=…`, and hands the same encoder to every chunk; `Missing` is
+`EncoderMissing` before a frame is drawn. A Mac whose GPU encoder fails
+therefore stops loudly instead of rendering a different look in software.
+`film doctor` runs the same choice, and still prints its other lines when the
+player server will not start (the encoder line then says so).
 
-|                  | Hardware (macOS)                 | Software (Linux, any box without a GPU encoder)                      |
-| ---------------- | -------------------------------- | -------------------------------------------------------------------- |
-| Chromium flags   | `--enable-gpu --use-angle=metal` | neither (`launchArgs`, `tools/browser.ts`); stills are cmp-identical |
-| master           | quantizer 16 (~37 Mbps)          | 37 Mbps variable (31 Mbps measured over righteousness-by-faith)      |
-| share            | quantizer 26 (~160 MB for 7 min) | 24 Mbps variable (22 Mbps, 1.16 GB for 7 min)                        |
-| encoders at once | 14 (past it the encoder hangs)   | one per core                                                         |
-| default pages    | 6                                | 6, or half the cores below 12                                        |
+|                  | Hardware (macOS)                    | Software (Linux, any box without a GPU encoder)                      |
+| ---------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| Chromium flags   | `--enable-gpu --use-angle=metal`    | neither (`launchArgs`, `tools/browser.ts`); stills are cmp-identical |
+| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (31.6 Mbps, 1.65 GB for 7 min)    |
+| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (11.7 Mbps, 616 MB)               |
+| encoders at once | 14 (past it the encoder hangs)      | one per core                                                         |
+| default pages    | 6                                   | 8, or half the cores below 16                                        |
 
-Chromium's software H.264 refuses quantizer rate control ("Unsupported
-bitrate mode"), so it encodes to a bitrate, and it spends bits far less well
-than the hardware encoder or x264. Each rate was measured on frames in the
-middle of a chunk (the first I-frame of every chunk comes out the same size
-whatever the target) against the lossless stills at 7.5, 140.4 and 236.8 s,
-as SSIM and as the paper grain kept (mean |x − blur(x)| of the frame over the
-still's):
+`SETTINGS` (`player/encode.ts`) holds both columns; a test pins the hardware
+one (quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode
+quality), which is the look the films were made in.
 
-| share target    | grain kept at 7.5 / 140.4 / 236.8 s                  |
-| --------------- | ---------------------------------------------------- |
-| 8 Mbps          | 0.50 / 0.36 / 0.41 (the cutouts' grain went flat)    |
-| 12 Mbps         | 0.55 / 0.43 / 0.52                                   |
-| 16 Mbps         | 0.68 / 0.60 / 0.75 (visibly softer)                  |
-| 24 Mbps         | 0.75 / 0.68 / 0.80 (chosen; SSIM 0.92 / 0.89 / 0.95) |
-| master, 37 Mbps | 0.86 / 0.82 / 0.87                                   |
+### Software master: the pre-roll
 
-Variable and constant bitrate modes measured alike. The share copy is kept at
-24 Mbps because the grain is the look, and the look outranks the file's size.
+Chromium's software H.264 (OpenH264) refuses quantizer rate control
+("Unsupported bitrate mode"), so it encodes to a bitrate. Its first I-frame of
+a session is coded at a coarse fixed quantizer, whatever the target: 21 KB
+where the key frames two seconds on take 144–161 KB, keeping 0.22 of the
+paper's grain against 0.62–0.66 (mean |x − blur(x)| of the frame over the
+lossless still's). Every chunk is its own session, so every chunk opened on a
+soft frame, one flash of flatness every few seconds. Pre-roll 8 and a 60 Mbps
+target gave byte-identical I-frames, so neither the rate nor more warm-up
+changes it; only being the session's first does.
 
-The software default of 6 pages is the knee of
-`bench righteousness-by-faith --workers 2,4,6,8 --scene word,mirror` (1325
-frames, share copy on, 16 cores, siblings loading the box):
+So the software master pre-rolls (`SETTINGS.Software.preroll`, 2 frames):
+each chunk's session first encodes the chunk's first frame twice at negative
+timestamps, into a `NullTarget` output, then the chunk proper with a forced
+key frame at `from`. `onEncodedPacket` drops the packets before `from` and
+copies the rest, with the decoder config, into an `EncodedVideoPacketSource`
+on the segment's real output. A chunk's first frame then comes out a settled
+I-frame (142–162 KB), as good as the stream's own 2 s key frames. Over all 52
+chunks of righteousness-by-faith, frame 0 keeps on average what the chunk's
+own key frame two seconds on keeps (mean difference −0.01; 48 of 52 within
+0.05 or above it; the rest are a fade from black, where the still has almost
+no grain to keep, and cuts inside those two seconds). Where the paper sits
+around 0.62 at every key frame (the tablets, the dark rooms), frame 0 does
+too: the encoder's I-frames keep no more there whatever the rate, so no
+chunk start can pass 0.75 in those scenes, and 34 of 52 do. At four chunk
+starts the grain kept went 0.27→0.66, 0.30→0.62, 0.48→0.80 and 0.42→0.81.
+Frames after the first are P-frames on a better reference, and measured the
+same or better. The hardware path is untouched (preroll 0, the same
+`CanvasSource` as before).
 
-| pages | 2    | 4    | 6    | 8    |
-| ----- | ---- | ---- | ---- | ---- |
-| fps   | 39.2 | 60.8 | 73.7 | 71.6 |
+### Software share: x264 after the join
 
-The whole film (12453 frames) renders in 211 s at 59 fps under that load.
+The in-page software share needed 24 Mbps (1.16 GB for 7 minutes) to keep
+the grain. The share is now x264's (`Media.shareCopy`, `SHARE_X264`), from
+the joined master, through the ffmpeg CLI the doctor already checks: CRF 22,
+preset slow, tune grain, level 4.1 (preset slow's reference frames would raise
+it to 5.0), AAC copied, written to `<out>.part` and renamed once whole. It
+logs `render.share by=x264 secs=…`.
+
+Not `@mediabunny/server` 1.60.0: its libx264 (through NodeAV) runs a fixed
+`qp` with qmin = qmax on the default preset, with no CRF, preset or tune to
+pass (`packages/server/src/video-encoder.ts`), and at equal size it kept far
+less grain: q23 was 444 MB and kept 0.33–0.67, against x264 CRF 23 tune
+grain's 487 MB at 0.75–0.83.
+
+The share at righteousness-by-faith's 7 review frames (grain kept / SSIM Y),
+beside the master it came from:
+
+| t (s) | master      | x264 share  |
+| ----- | ----------- | ----------- |
+| 7.5   | 0.86 / 0.95 | 0.81 / 0.90 |
+| 81.5  | 0.92 / 0.92 | 0.85 / 0.90 |
+| 140.4 | 0.82 / 0.93 | 0.78 / 0.86 |
+| 161.5 | 0.94 / 0.91 | 0.89 / 0.88 |
+| 236.8 | 0.86 / 0.96 | 0.81 / 0.91 |
+| 241.5 | 0.83 / 0.95 | 0.81 / 0.91 |
+| 321.5 | 0.88 / 0.93 | 0.84 / 0.90 |
+
+One pass after the join, not per-segment passes beside the render, measured
+on the Workbox (16 cores): the one-pass render took 447.5 s (pages and join
+158.9 s, x264 288.6 s). x264 over the 52 segments, 4 at a time, while a
+`--no-share` render ran took 324.0 s, and the render beside it slowed from
+158.9 s to 385.7 s, so about 388 s in all: 60 s saved, for share segments
+to join (x264's parameter sets must then match across segments) and a render
+that no longer measures alone. Decided by subtract-before-you-add: the one
+pass stays.
+
+The software default of 8 pages is the knee of
+`bench righteousness-by-faith --workers 4,6,8,10 --scene word,mirror
+--no-share` (1325 frames, 16 cores, the median of 3 runs; the share is
+x264's after the join, so the pages carry one encoder each):
+
+| pages | 4    | 6    | 8    | 10    |
+| ----- | ---- | ---- | ---- | ----- |
+| fps   | 62.4 | 84.2 | 97.9 | 104.3 |
+
+The render timed above ran at the earlier default of 6 pages; at 8 the pages
+and join take less, and the x264 pass, which does not depend on the pages,
+takes most of the time.
 
 ## Shorts
 
