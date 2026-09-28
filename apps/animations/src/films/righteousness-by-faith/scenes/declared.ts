@@ -89,6 +89,7 @@ export const declared = drawing({
   timeline: {
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
     greek: { mark: 'justified', offset: 0.5, dur: 0.5 },
+    madeLine: { after: 'greek', dur: 0.5 },
     doubt: { mark: 'still', dur: 0.5 },
     push: { mark: 'still', offset: -0.2, dur: 0.8 },
     toIcons: { mark: 'cover', offset: -0.2, dur: 0.8, ease: 'inOutCubic' },
@@ -201,11 +202,7 @@ export const declared = drawing({
           at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: card }, () => {
             const board = rectShape(-310, -165, 620, 330);
             piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
-            const reveal = [
-              f.spoken('justified', 'declared'),
-              f.at('greek'),
-              f.spoken('declared', 'still'),
-            ];
+            const reveal = [f.spoken('justified', 'still'), f.at('greek'), f.at('madeLine')];
             probePlate(ctx, board, () =>
               LINES.forEach((l, i) =>
                 write(

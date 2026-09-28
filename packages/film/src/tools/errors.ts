@@ -373,6 +373,22 @@ export class SeamLong extends Schema.TaggedError<SeamLong>()('SeamLong', {
   }
 }
 
+/**
+ * A stretch of a drawn scene, longer than `max`, where the voice speaks and
+ * nothing moves: no cue of the scene starts, ends or runs, and the probed
+ * frames across it hold still. `from` and `to` are film seconds.
+ */
+export class StaticHold extends Schema.TaggedError<StaticHold>()('StaticHold', {
+  scene: Schema.String,
+  from: Schema.Finite,
+  to: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}" ${this.from.toFixed(2)}–${this.to.toFixed(2)}s: ${(this.to - this.from).toFixed(2)}s of speech with nothing moving (no cue runs and the frame holds still), over ${this.max.toFixed(1)}s`;
+  }
+}
+
 /** A beat whose take is missing, or was recorded for other text or another voice. */
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,

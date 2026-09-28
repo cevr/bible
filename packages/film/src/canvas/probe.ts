@@ -26,6 +26,8 @@ export interface Probe {
   readonly alpha: number;
   /** The `order` of the plate the text drawn now sits on (inside `probePlate`). */
   readonly plate?: number;
+  /** Set while the caption line draws: what it records is tagged `caption`. */
+  readonly caption?: true;
 }
 
 const probes = new WeakMap<CanvasRenderingContext2D, Probe>();
@@ -79,6 +81,16 @@ const screen = (ctx: CanvasRenderingContext2D, probe: Probe) => {
   ];
 };
 
+/** Canvas pixels per unit of the current space: `sqrt(|det|)` of `ctx`'s transform. */
+const scaleOf = (ctx: CanvasRenderingContext2D) => {
+  const m = ctx.getTransform();
+  return Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+};
+
+/** `record` tagged as the caption's, when the caption line is drawing. */
+const tagged = <A extends object>(probe: Probe, record: A): A | (A & { readonly caption: true }) =>
+  probe.caption === true ? { ...record, caption: true } : record;
+
 /**
  * Record a line of text drawn in the current transform's space: the box
  * `[left, left + width] × [top, top + height]`, mapped through the transform
@@ -116,9 +128,12 @@ export const recordText = (
     corners,
     alpha: alpha * probe.alpha,
     order: nextOrder(probe.sink),
+    scale: scaleOf(ctx),
   };
   const handed = hand === undefined ? box : { ...box, hand };
-  probe.sink.texts.push(probe.plate === undefined ? handed : { ...handed, on: probe.plate });
+  probe.sink.texts.push(
+    tagged(probe, probe.plate === undefined ? handed : { ...handed, on: probe.plate }),
+  );
 };
 
 /** A recorded path keeps a point every this many pixels (in its own space) at most. */
@@ -156,20 +171,21 @@ export const recordInk = (
   const ys = kept.map((c) => c[1]);
   const x = Math.min(...xs);
   const y = Math.min(...ys);
-  const m = ctx.getTransform();
+  const scale = scaleOf(ctx);
   const mark: InkMark = {
     kind,
     scene: probe.scene,
     points: kept,
-    width: width * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)),
+    width: width * scale,
     x,
     y,
     w: Math.max(...xs) - x,
     h: Math.max(...ys) - y,
     alpha: alpha * probe.alpha,
     order: nextOrder(probe.sink),
+    scale,
   };
-  probe.sink.inks.push(marks === undefined ? mark : { ...mark, marks });
+  probe.sink.inks.push(tagged(probe, marks === undefined ? mark : { ...mark, marks }));
 };
 
 /** How far a line of text reaches above and below its baseline, in the context's font. */

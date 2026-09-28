@@ -32,6 +32,7 @@ const briefStyle = (ctx: CanvasRenderingContext2D, picture: string): TextStyle =
 };
 
 export const storyboard = (id: string, picture: string): Omit<SceneSpec, 'id' | 'say'> => ({
+  storyboard: true,
   enter: { kind: 'fade', dur: 0.4 },
   draw: (f) => {
     const { ctx } = f;

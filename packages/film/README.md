@@ -298,6 +298,35 @@ what a review used to find by eye:
   (`probePlate`) whose box leaves the plate's box by more than 4 px is a
   `TextOffPlate` (a brief overrunning its card). Findings merge per scene and
   text (or pair), at the worst sampled frame.
+- **Holds** (a warning, found in two steps): the static step (`holdCandidates`)
+  finds each stretch of a drawn scene over `HOLD` (4 s) inside its voice's
+  spoken span (first word's start to last word's end, from the take's word
+  timings) where no cue starts, ends or runs and the scene is not arriving.
+  The layout leg then looks inside each candidate at one frame per boil tick
+  (`holdTicks`, `BOIL_FPS` a second, so a sway slower than the boil is seen
+  at more than one phase). It probes a grid tick every `HOLD / 2` first
+  (`holdGrid`): a still run over `HOLD` spans two grid ticks in a row, so
+  only where two in a row hold still does it probe the ticks around them,
+  growing the run each way until a tick moves. Motion no cue declares ends a
+  run; the still stretch after it is still found. The longest run over
+  `HOLD` is a `StaticHold` with its scene and film `from`–`to`. A mark is at
+  rest when its box moves no more than `STILL_DRIFT` of its own units (the
+  screen drift over the `scale` the probe records, `sqrt(|det|)` of the
+  transform it was drawn under) and its opacity no more than `STILL_FADE`
+  (0.02). `STILL_DRIFT` is twice `STROKE_JITTER` (1.1), the most one boil
+  tick moves a default stroke's box edge, so a boiling stroke is still at any
+  zoom and a walk loop or drifting snow is motion. Glyph and torn-edge boil
+  never reach the probe: `write` records its box from the unjittered glyphs,
+  `cutout` the shape it was given. The caption line and its plate are the
+  voice, not the picture: the caption probe tags them `caption`, and the diff
+  leaves them out, whatever they say. Known limits: the diff sees boxes and
+  opacity only, so a colour change (a dawn warming, a stain fading by
+  `fillStyle`) and anything the probe does not see (`unprobed`, `drawImage`
+  textures, raw canvas paths) read as still, giving a warning that asks for
+  a look; a stroke drawn with a `jitter` over the default boils past
+  `STILL_DRIFT` and reads as motion. `film check` stays
+  green on it; `--static` skips it, since telling a still picture from
+  undeclared motion needs the frames.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
@@ -331,6 +360,12 @@ What the rules leave alone, and why:
   split page) and may bleed; a plate whose line is itself past the edge, or
   that has moved by the next frame (the check draws that frame only for a
   candidate), is entering or leaving.
+- A hold leaves out the caption line and its plate, by the `caption` tag the
+  caption probe puts on them, not by their words: they are the voice, and
+  change over a still picture, while a card writing the same words as they
+  are heard is the picture and moves. A storyboard
+  card (`storyboard: true` on its scene, set by `storyboard()`) holds still
+  over its words by design and is never a candidate.
 
 ## Named cues
 

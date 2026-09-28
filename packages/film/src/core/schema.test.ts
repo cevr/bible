@@ -109,6 +109,11 @@ describe('Timed', () => {
     expect(decodes('{"id":"a","knobs":{"quoteAt":[960]}}')).toBe(false);
     expect(decodes('{"id":"a","knobs":{"handY":null}}')).toBe(false);
   });
+
+  test('a scene may say it is a storyboard card, and only with true', () => {
+    expect(decodes('{"id":"a","storyboard":true}')).toBe(true);
+    expect(decodes('{"id":"a","storyboard":false}')).toBe(false);
+  });
 });
 
 describe('CuePatch', () => {
