@@ -26,7 +26,7 @@ import { title } from './title.ts';
 import { within } from './within.ts';
 import { word } from './word.ts';
 
-export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs'>;
+export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift'>;
 
 const drawings = new Map<string, Drawing>(
   Object.entries({

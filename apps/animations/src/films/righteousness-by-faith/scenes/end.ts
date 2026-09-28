@@ -1,5 +1,6 @@
 // The end card on parchment: the film's name, and the sources it quotes, by
-// author, as one block of type.
+// author, as one block of type. It holds still: the film has stopped
+// breathing by its last card.
 
 import { block, drawing, write } from '@bible/film/canvas';
 import { C, F } from '../kit.ts';
@@ -13,6 +14,7 @@ const SOURCES = [
 ].join('   ');
 
 export const end = drawing({
+  drift: 0,
   timeline: {
     show: { scene: 'start', dur: 0.5 },
   },

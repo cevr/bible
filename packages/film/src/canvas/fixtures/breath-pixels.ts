@@ -1,7 +1,7 @@
 // Browser side of breath.pixel.test.ts: one dark square on white paper, drawn
 // by scenes that differ only in how they frame it (no camera, an unmoved
 // camera, a multiplane shot, no camera in their first half and a camera in
-// their second), rendered through `createFilm` as the export renders it, and
+// their second; two held still by their own `drift: 0`), rendered through `createFilm` as the export renders it, and
 // reported as where the square lands on the frame.
 
 import { Predicate } from 'effect';
@@ -37,6 +37,9 @@ export interface BreathStats {
   readonly mixedLateFresh: Landed;
   readonly mixedEarly: Landed;
   readonly mixedEarlyFresh: Landed;
+  /** A scene held still by its own `drift: 0`, with no camera and with one, at 60 %. */
+  readonly held60: Landed;
+  readonly heldShot60: Landed;
 }
 
 const square = (f: Parameters<SceneSpec['draw']>[0]) => {
@@ -54,7 +57,11 @@ const plane: SceneSpec['draw'] = (f) =>
   });
 const mixed: SceneSpec['draw'] = (f) => (f.t < f.dur / 2 ? still(f) : shot(f));
 
-const scenes = { still, shot, plane, mixed };
+const scenes = { still, shot, plane, mixed, held: still, heldShot: shot };
+/** The scenes that set their own breath: none, in a film that breathes. */
+const HELD = new Set(['held', 'heldShot']);
+/** A scene's own breath: none for a held one, the film's for the rest. */
+const own = (id: string): Pick<SceneSpec, 'drift'> => (HELD.has(id) ? { drift: 0 } : {});
 const ORDER = Object.keys(scenes);
 
 /** The film, made afresh: nothing it drew before carries into it. */
@@ -71,6 +78,7 @@ const film = (): Film =>
       min: DUR,
       knobs: { at: [W / 2, H / 2] },
       draw,
+      ...own(id),
     })),
   });
 
@@ -119,6 +127,8 @@ const breathStats = (): BreathStats => {
     mixedLateFresh: land(film(), 'mixed', 0.8),
     mixedEarly: land(early, 'mixed', 0.2),
     mixedEarlyFresh: land(film(), 'mixed', 0.2),
+    held60: land(film(), 'held', 0.6),
+    heldShot60: land(film(), 'heldShot', 0.6),
   };
 };
 

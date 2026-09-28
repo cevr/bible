@@ -91,4 +91,15 @@ describe('every scene breathes, once', () => {
       }),
     60_000,
   );
+
+  it.scopedLive(
+    'a scene that sets its own drift: 0 holds still in a breathing film, with a camera or without',
+    () =>
+      Effect.gen(function* () {
+        const s = yield* stats;
+        near(s.held60, { x: 160, y: 90, w: 40 });
+        near(s.heldShot60, { x: 160, y: 90, w: 40 });
+      }),
+    60_000,
+  );
 });

@@ -100,6 +100,12 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
 
 export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
+  /**
+   * How this scene breathes (`Drift`), in place of the film's `drift`: `0`
+   * holds it still (an end card), a `Drift` sets its own size. The film's
+   * breath when it names none.
+   */
+  readonly drift?: Drift | 0;
 }
 
 /** A span whose `after` or `with` names one of the cues `K`. */
@@ -394,6 +400,15 @@ const shortOf = (declared: ShortStyle = {}, shade: string): ShortLook => {
   };
 };
 
+/** The breath a scene draw is given (`SceneBreath`), rewritten for each draw. */
+interface BreathNow {
+  through: number;
+  drift: Drift | 0;
+  outer: boolean;
+  readonly width: number;
+  readonly height: number;
+}
+
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
@@ -404,6 +419,13 @@ export const createFilm = (spec: FilmSpec): Film => {
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
   const drift: Drift | 0 = Schema.decodeSync(FilmDrift)(spec.drift ?? DRIFT);
+  /** Each scene's breath: its own `drift` where it sets one, the film's where it does not. */
+  const drifts = new Map<string, Drift | 0>(
+    placed.map((p) => [
+      p.spec.id,
+      p.spec.drift === undefined ? drift : Schema.decodeSync(FilmDrift)(p.spec.drift),
+    ]),
+  );
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
   const short = shortOf(spec.short, spec.shade);
 
@@ -563,7 +585,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   };
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
-  const breath = { through: 0, drift, outer: false, width, height };
+  const breath: BreathNow = { through: 0, drift, outer: false, width, height };
 
   /**
    * Scenes whose last frame framed no shot of their own: the first guess for
@@ -592,6 +614,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const { paper } = getAssets();
     const id = p.spec.id;
     breath.through = p.dur > 0 ? (T - p.start) / p.dur : 0;
+    breath.drift = drifts.get(id) ?? drift;
     const moving = p.spec.storyboard !== true && breathes(breath);
     breath.outer = moving && unshot.has(id);
     const sink = probe?.sink;
