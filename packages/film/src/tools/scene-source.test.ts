@@ -15,6 +15,7 @@ import {
   readKnobs,
   readSpans,
   codeOf,
+  unlocatable,
 } from './scene-source.ts';
 
 const FILE = 'scenes/hand.ts';
@@ -182,5 +183,50 @@ export const hand = drawing({
     expect(ok(codeOf(FILE, data, 'hand'))).toBe(ok(codeOf(FILE, scene, 'hand')));
     const code = scene.replace("f.at('topple');", "f.at('shine');");
     expect(ok(codeOf(FILE, code, 'hand'))).not.toBe(ok(codeOf(FILE, scene, 'hand')));
+  });
+});
+
+/** What `unlocatable` reports on `source`: the text of each range. */
+const unlocated = (source: string) =>
+  unlocatable(source, ok(parseModule(FILE, source))).map((u) => source.slice(u.start, u.end));
+
+describe('what the lab cannot locate', () => {
+  it('is only the drawing no export names, in a scene the lab edits', () => {
+    expect(unlocated(scene)).toEqual(['draw({ timeline: {}, draw: () => {} })']);
+  });
+
+  it('follows an aliased import to a computed timeline', () => {
+    const source = `import { drawing as d } from 'k';
+declare const make: () => object;
+export const a = d({ timeline: make(), draw: () => {} });
+`;
+    expect(unlocated(source)).toEqual(['timeline: make()']);
+  });
+
+  it('refuses a drawing built inside a function, whatever its slots name', () => {
+    const source = `import { drawing } from 'k';
+declare const make: () => object;
+const lifted = { go: { mark: 'go' } };
+export const factory = () => {
+  const lifted = make();
+  return drawing({ timeline: lifted, draw: () => {} });
+};
+`;
+    expect(unlocated(source)).toEqual(['drawing({ timeline: lifted, draw: () => {} })']);
+  });
+
+  it('refuses a slot declared twice, drawing off a namespace, and a scene outside drawing()', () => {
+    const source = `import * as K from 'k';
+import { drawing } from 'k';
+const a = { go: { mark: 'go' } };
+export const twice = drawing({ timeline: a, timeline: a, draw: () => {} });
+export const ns = K.drawing({ timeline: a, draw: () => {} });
+export const bare = { timeline: a, draw: () => {} };
+`;
+    expect(unlocated(source)).toEqual([
+      'timeline: a',
+      'K.drawing({ timeline: a, draw: () => {} })',
+      '{ timeline: a, draw: () => {} }',
+    ]);
   });
 });

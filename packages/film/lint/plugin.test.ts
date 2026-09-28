@@ -2,15 +2,13 @@
 // `fixtures/` with only this plugin on, and what it reports must be exactly the
 // lines a fixture marks `// RED film/<rule>`. no-unprobed-ink resolves names
 // through scope, which only a real oxlint run provides, so its fixture is its
-// test. The mock-AST cases below pin drawing-literal's decision on one node.
+// test; drawing-literal is the lab locator's `unlocatable`, tested on source in
+// src/tools/scene-source.test.ts.
 
 import { BunServices } from '@effect/platform-bun';
-import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { Testing } from 'oxlint-plugin-effect/rule-bindings';
-import { drawingLiteral } from './drawing-literal.ts';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));
@@ -82,22 +80,4 @@ describe('film oxlint plugin', () => {
       expect(run.exitCode).not.toBe(0);
     }),
   );
-});
-
-describe('film/drawing-literal', () => {
-  test('reports drawing(x) with no object literal', () => {
-    const call = {
-      ...Testing.callExpr('drawing', [Testing.id('shared')]),
-      parent: Testing.program(),
-    };
-    expect(Testing.runRule(drawingLiteral, 'CallExpression', call)).toHaveLength(1);
-  });
-
-  test('reports a scene object outside drawing()', () => {
-    const scene = {
-      ...Testing.objectExpr([{ key: 'timeline' }, { key: 'draw' }]),
-      parent: Testing.program(),
-    };
-    expect(Testing.runRule(drawingLiteral, 'ObjectExpression', scene)).toHaveLength(1);
-  });
 });
