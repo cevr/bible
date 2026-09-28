@@ -1,12 +1,16 @@
 // Declared. The page, close on the viewer's figure in their stained garment,
 // and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
-// figure looks down at the stains, doubtful: a cover-up again? Pull back to
-// the three icons, the word-bubble lit. On `subst` the bubble becomes a
-// solid, heavy thing and lands with weight (the script now wants the hollow
-// stamp from `cold` here instead; not drawn yet). Then the dawn from `spoke` opens
-// in a panel behind the figure; the same word of light arcs out of its sun
-// and lands on their chest, and gold blooms there as the stains shrink away:
-// made righteous, not covered.
+// figure looks down at the card, doubtful (`still`). On `cover` the card
+// goes and the cold open's hollow verdict drifts in over the figure's head,
+// the same label at the same size on screen; on `would` it lowers over the
+// stains on their chest, a cover-up if God only said the words, and on
+// `subst` ("But") it lifts off again, the stains still there. Through
+// Waggoner's quotation (`w`) its letters fill with gold word by word; as the
+// quotation ends it drops, heavy, into the chest and leaves a glow there.
+// On `voice` the camera eases back and the dawn from `spoke` opens in a panel
+// behind the figure; the same word of light arcs out of its sun and lands on
+// the chest (`speaks`), and gold blooms there as the stains shrink away
+// (`made`): made righteous, not covered.
 
 import {
   type Camera,
@@ -20,31 +24,33 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
+  type Hands,
   type Person,
-  BUBBLE,
   C,
   F,
-  ICON_X,
+  between,
   blob,
-  bubble,
   clipToGarment,
   glow,
-  icons,
   person,
   piece,
-  sky,
 } from '../kit.ts';
-import { FIGURE_STAIN_SPOTS } from '../court.ts';
+import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../court.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
 const FIG: Pt = [520, 1240];
 const FS = 3.8;
-/** The figure's chest, where the word lands. */
+/** The figure's chest, where the verdict sinks and the word lands. */
 const CHEST: Pt = [FIG[0], FIG[1] - 80 * FS];
 
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
 /** Close on the face, with the word card still whole beside it. */
 const FACE: Camera = { x: 800, y: 610, zoom: 1.22 };
+
+/** The verdict's scale here: the size it stamps at on screen in the court, under the FACE framing. */
+const STAMP_SCALE = (COURT.zoom ?? 1) / (FACE.zoom ?? 1);
+/** Where the verdict drifts in from: where the card was. */
+const STAMP_FROM: Pt = [1240, 440];
 
 /** The word card: its centre, and each line's baseline and size. */
 const CARD: Pt = [1240, 440];
@@ -86,6 +92,92 @@ const PANEL = { x: 1010, y: 150, w: 780, h: 440 };
 const PANEL_SCALE = PANEL.w / 1920;
 const PANEL_SUN: Pt = [PANEL.x + SUN[0] * PANEL_SCALE, PANEL.y + SUN[1] * PANEL_SCALE];
 
+/** The verdict's place and size this frame: `sx`/`sy` squash it as it lands heavy. */
+interface Verdict extends Stamp {
+  readonly x: number;
+  readonly y: number;
+  readonly scale: number;
+  readonly squash: number;
+}
+
+const verdictAt = (ctx: CanvasRenderingContext2D, hand: Hands, v: Verdict) => {
+  if (v.shown <= 0.01) return;
+  at(ctx, { x: v.x, y: v.y, sx: v.scale * v.squash, sy: v.scale * (2 - v.squash) }, () =>
+    stamp(ctx, hand, v),
+  );
+};
+
+/** The word card, its three lines written in as they are spoken. */
+const card = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  shown: number,
+  reveal: readonly number[],
+) =>
+  at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: shown }, () => {
+    const board = rectShape(-310, -165, 620, 330);
+    piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
+    probePlate(ctx, board, () =>
+      LINES.forEach((l, i) =>
+        write(
+          ctx,
+          l.text,
+          0,
+          l.dy,
+          {
+            family: l.family,
+            size: l.size,
+            weight: l.weight,
+            italic: l.italic,
+            color: l.color,
+            align: 'center',
+          },
+          hand(`line${i}`),
+          { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
+        ),
+      ),
+    );
+  });
+
+/** The dawn from `spoke`, in its torn frame, at `shown` scale. */
+const panel = (ctx: CanvasRenderingContext2D, hand: Hands, shown: number) =>
+  at(ctx, { x: PANEL.x + PANEL.w / 2, y: PANEL.y + PANEL.h / 2, scale: shown }, () =>
+    at(ctx, { x: -PANEL.w / 2, y: -PANEL.h / 2 }, () => {
+      piece(ctx, rectShape(-14, -14, PANEL.w + 28, PANEL.h + 28), C.cream, hand('frame'), {
+        line: 3,
+        torn: 3,
+      });
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, PANEL.w, PANEL.h);
+      ctx.clip();
+      at(ctx, { x: 0, y: 0, scale: PANEL_SCALE }, () => dawn(ctx, 1920, 1080, hand, DAWN_DONE));
+      ctx.restore();
+    }),
+  );
+
+/** Gold in the chest: the glow the sunk verdict leaves (`warm`), and the bloom through the garment. */
+const chest = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  figure: Person,
+  warm: number,
+  bloom: number,
+) => {
+  const lit = Math.max(0.8 * warm, bloom);
+  if (lit > 0) glow(ctx, 0, -80, 50, C.glow, 0.5 * lit);
+  if (warm > 0) glow(ctx, 0, -80, 20, C.gold, 0.7 * warm * (1 - bloom));
+  if (bloom <= 0) return;
+  ctx.save();
+  clipToGarment(ctx, figure);
+  piece(ctx, blob(-4, -82, 56 * bloom, 76 * bloom, 5), C.gold, hand('bloom'), {
+    line: 0,
+    shadow: 0,
+    alpha: 0.6,
+  });
+  ctx.restore();
+};
+
 export const declared = drawing({
   timeline: {
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
@@ -93,185 +185,108 @@ export const declared = drawing({
     madeLine: { after: 'greek', dur: 0.5 },
     doubt: { mark: 'still', dur: 0.5 },
     push: { mark: 'still', offset: -0.2, dur: 0.8 },
-    toIcons: { mark: 'cover', offset: -0.2, dur: 0.8, ease: 'inOutCubic' },
-    wordLit: { mark: 'would', dur: 0.6 },
-    heavy: { mark: 'subst', offset: -0.1, dur: 1.2, ease: 'linear' },
-    back: { mark: 'voice', offset: -0.3, dur: 0.3, ease: 'inOutCubic' },
+    cardOut: { mark: 'cover', offset: -0.2, dur: 0.4 },
+    drift: { mark: 'cover', offset: 0.1, dur: 1.2, ease: 'outCubic' },
+    patch: { mark: 'would', offset: 0.3, dur: 0.8, ease: 'inOutCubic' },
+    unpatch: { mark: 'subst', dur: 0.7, ease: 'inOutCubic' },
+    sink: { mark: 'voice', offset: -0.7, dur: 0.7, ease: 'linear' },
+    back: { mark: 'voice', offset: -0.3, dur: 0.8, ease: 'inOutCubic' },
     panel: { mark: 'voice', offset: 0.2, dur: 0.6, ease: 'outBack' },
     speak: { mark: 'speaks', offset: -0.6, dur: 1.3, ease: 'inOutSine' },
     bloom: { mark: 'made', offset: -0.6, dur: 1.6, ease: 'outCubic' },
   },
+  // Where the hollow verdict hangs over the head, and where it lowers over the stains.
+  knobs: { hang: [540, 360], patch: [515, 880] },
   draw: (f) => {
     const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
-    const toIcons = f.at('toIcons');
     const back = f.at('back');
-    const figureShown = 1 - toIcons + back;
     const bloom = f.at('bloom');
+    const doubt = f.at('doubt') * (1 - back);
 
-    // ── The figure (and, first, the word card; last, the dawn panel) ────────
-    if (figureShown > 0.01) {
-      ctx.save();
-      ctx.globalAlpha *= clamp(figureShown);
-      const doubt = f.at('doubt');
-      const cam: Camera =
-        back > 0
-          ? REST
-          : {
-              x: lerp(REST.x, FACE.x, f.at('push')),
-              y: lerp(REST.y, FACE.y, f.at('push')),
-              zoom: lerp(1, FACE.zoom ?? 1, f.at('push')),
-            };
-      camera(ctx, cam, w, h, () => {
-        // The dawn panel, callback to `spoke`.
-        const panel = f.at('panel');
-        if (panel > 0)
-          at(ctx, { x: PANEL.x + PANEL.w / 2, y: PANEL.y + PANEL.h / 2, scale: panel }, () => {
-            at(ctx, { x: -PANEL.w / 2, y: -PANEL.h / 2 }, () => {
-              piece(ctx, rectShape(-14, -14, PANEL.w + 28, PANEL.h + 28), C.cream, hand('frame'), {
-                line: 3,
-                torn: 3,
-              });
-              ctx.save();
-              ctx.beginPath();
-              ctx.rect(0, 0, PANEL.w, PANEL.h);
-              ctx.clip();
-              at(ctx, { x: 0, y: 0, scale: PANEL_SCALE }, () =>
-                dawn(ctx, 1920, 1080, hand, DAWN_DONE),
-              );
-              ctx.restore();
-            });
-          });
+    // The verdict: drifts in over the head, lowers over the stains and lifts
+    // off, fills word by word through the quotation, then drops into the chest.
+    const [hx, hy] = f.knob('hang');
+    const [px, py] = f.knob('patch');
+    const drift = f.at('drift');
+    const cover = f.at('patch') * (1 - f.at('unpatch'));
+    const sink = f.at('sink');
+    // It rises a little as it takes the weight, then drops into the chest.
+    const rise = f.keys('sink', [
+      [0, 0],
+      [0.25, -20, 'outCubic'],
+      [0.5, 0, 'inCubic'],
+    ]);
+    const drop = f.keys('sink', [
+      [0.25, 0],
+      [1, 1, 'inCubic'],
+    ]);
+    const hangX = lerp(lerp(STAMP_FROM[0], hx, drift), px, cover);
+    const hangY = lerp(lerp(STAMP_FROM[1], hy, drift), py, cover);
+    const verdict: Verdict = {
+      x: lerp(hangX, CHEST[0], drop),
+      y: lerp(hangY, CHEST[1], drop) + rise,
+      scale: STAMP_SCALE * lerp(1, 0.2, drop),
+      squash: f.keys('sink', [
+        [0, 1],
+        [0.25, 0.9, 'outCubic'],
+        [0.6, 1.1, 'inCubic'],
+      ]),
+      fill: f.spoken('w', 'voice'),
+      shown: drift * (1 - clamp((sink - 0.7) / 0.3)),
+    };
 
-        // The figure, their stains shrinking as the gold blooms.
-        const landed = f.at('speak') >= 1 ? 1 : 0;
-        const look: Pt = [
-          lerp(3, 0, doubt) * (1 - landed),
-          lerp(-1, 4, Math.max(doubt * (1 - back), landed)),
-        ];
-        at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
-          const stains = STAINS.flatMap(([x, y, sw, sh, seed]) => {
-            const k = 1 - clamp(bloom * 1.3);
-            return k > 0.05 ? [blob(x, y, sw * k, sh * k, seed)] : [];
-          });
-          const figure: Person = {
-            tilt: 0.1 * doubt * (1 - back) + 0.08 * landed,
-            nod: 4 * doubt * (1 - back) + 3 * landed,
-            look,
-            browL: 2 * doubt * (1 - back) + 4 * bloom,
-            browR: 1 * doubt * (1 - back) + 4 * bloom,
-            browTilt: 0.45 * doubt * (1 - back) + 0.1 * bloom,
-            mouth: 0.35 * doubt * (1 - back) + 0.5 * bloom,
-            handL: [lerp(-36, -14, doubt * (1 - back)), lerp(-40, -84, doubt * (1 - back))],
-            handR: [36, -40],
-            stains,
-          };
-          person(ctx, figure, hand('figure'));
-          if (bloom > 0) {
-            // Gold spreads through the garment from where the word landed.
-            glow(ctx, 0, -80, 50, C.glow, 0.35 * bloom);
-            ctx.save();
-            clipToGarment(ctx, figure);
-            piece(ctx, blob(-4, -82, 56 * bloom, 76 * bloom, 5), C.gold, hand('bloom'), {
-              line: 0,
-              shadow: 0,
-              alpha: 0.6,
-            });
-            ctx.restore();
-          }
-        });
+    // The figure's eyes follow the verdict: up at it, down at the chest under it, and down as it sinks in.
+    const landed = f.at('speak') >= 1 ? 1 : 0;
+    const up = drift * (1 - cover) * (1 - sink);
+    const down = Math.max(doubt * (1 - drift), cover, sink * (1 - back), landed);
+    const look: Pt = [lerp(3, 0, doubt) * (1 - landed), lerp(-1, 4, down) - 5 * up];
 
-        // The word, from the panel's sun to the chest.
-        flight(
-          ctx,
-          arc(PANEL_SUN, CHEST, 160),
-          f.at('speak') < 1 ? f.at('speak') : 0,
-          hand('word'),
-          0.5,
-        );
+    camera(ctx, between(between(REST, FACE, f.at('push')), REST, back), w, h, () => {
+      // The dawn panel, callback to `spoke`.
+      const shown = f.at('panel');
+      if (shown > 0) panel(ctx, hand, shown);
 
-        // The word card: the act's one card.
-        const card = f.at('cardIn') * (1 - toIcons) * (1 - back);
-        if (card > 0.01)
-          at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: card }, () => {
-            const board = rectShape(-310, -165, 620, 330);
-            piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
-            const reveal = [f.spoken('justified', 'still'), f.at('greek'), f.at('madeLine')];
-            probePlate(ctx, board, () =>
-              LINES.forEach((l, i) =>
-                write(
-                  ctx,
-                  l.text,
-                  0,
-                  l.dy,
-                  {
-                    family: l.family,
-                    size: l.size,
-                    weight: l.weight,
-                    italic: l.italic,
-                    color: l.color,
-                    align: 'center',
-                  },
-                  hand(`line${i}`),
-                  { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
-                ),
-              ),
-            );
-          });
+      // The figure, their stains shrinking as the gold blooms.
+      at(ctx, { x: FIG[0], y: FIG[1], scale: FS }, () => {
+        const k = 1 - clamp(bloom * 1.3);
+        const stains =
+          k > 0.05 ? STAINS.map(([x, y, sw, sh, seed]) => blob(x, y, sw * k, sh * k, seed)) : [];
+        const figure: Person = {
+          tilt: 0.1 * doubt - 0.08 * up + 0.08 * landed,
+          nod: 4 * doubt + 3 * Math.max(cover, landed),
+          look,
+          browL: 2 * doubt + 3 * up + 4 * bloom,
+          browR: 1 * doubt + 4 * up + 4 * bloom,
+          browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
+          mouth: 0.35 * doubt + 0.5 * bloom,
+          handL: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)],
+          handR: [36, -40],
+          stains,
+        };
+        person(ctx, figure, hand('figure'));
+        chest(ctx, hand, figure, sink, bloom);
       });
-      ctx.restore();
-    }
 
-    // ── The three icons, and the word made heavy ────────────────────────────
-    const iconsShown = toIcons * (1 - back);
-    if (iconsShown > 0.01) {
-      ctx.save();
-      ctx.globalAlpha *= iconsShown;
-      sky(ctx, w, h, [
-        [0, C.glow],
-        [1, C.peachLow],
-      ]);
-      const heavy = f.at('heavy');
-      const wordX = 960 + ICON_X[0];
-      // Push in on the word-bubble as it becomes solid.
-      camera(ctx, { x: lerp(960, wordX, heavy), y: 540, zoom: lerp(1, 3.4, heavy) }, w, h, () => {
-        at(ctx, { x: 960, y: lerp(900, 540, toIcons), scale: lerp(2, 1, toIcons) }, () =>
-          icons(ctx, hand, [0.5 + 0.5 * f.at('wordLit'), 0, 0]),
-        );
-        if (heavy > 0) {
-          // It lifts out of the icon, gains depth, and lands with weight.
-          const fall = f.keys('heavy', [
-            [0, 0],
-            [0.375, -70, 'outCubic'],
-            [0.625, 0, 'inCubic'],
-          ]);
-          const squash = f.keys('heavy', [
-            [0.6, 1],
-            [0.667, 1.14, 'outCubic'],
-            [0.917, 1, 'outBack'],
-          ]);
-          const depth = f.keys('heavy', [
-            [0, 0],
-            [0.375, 1, 'linear'],
-          ]);
-          at(ctx, { x: wordX, y: 540 + fall, sx: squash, sy: 2 - squash }, () => {
-            // The slab's depth, then its face and its lines.
-            for (let i = 8; i > 0; i--)
-              at(ctx, { x: 0, y: i * 2.5 * depth }, () =>
-                piece(ctx, BUBBLE, C.boardDeep, hand(`depth${i}`), {
-                  line: 0,
-                  shadow: i === 8 ? 0.8 : 0,
-                }),
-              );
-            bubble(ctx, hand('slab'), (i) => hand(`slabLine${i}`), {
-              fill: C.gold,
-              ink: C.ink,
-              shadow: 0,
-            });
-          });
-        }
-      });
-      ctx.restore();
-    }
+      verdictAt(ctx, hand, verdict);
+
+      // The word, from the panel's sun to the chest.
+      flight(
+        ctx,
+        arc(PANEL_SUN, CHEST, 160),
+        f.at('speak') < 1 ? f.at('speak') : 0,
+        hand('word'),
+        0.5,
+      );
+
+      // The word card: the act's one card.
+      const shownCard = f.at('cardIn') * (1 - f.at('cardOut'));
+      if (shownCard > 0.01)
+        card(ctx, hand, shownCard, [
+          f.spoken('justified', 'still'),
+          f.at('greek'),
+          f.at('madeLine'),
+        ]);
+    });
   },
 });
