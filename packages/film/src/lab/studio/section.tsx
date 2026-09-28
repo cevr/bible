@@ -91,13 +91,10 @@ export const Mic = () => {
             actions.pick(Option.filter(Option.some(e.currentTarget.value), (id) => id !== ''))
           }
         >
-          <option value="" selected={Option.isNone(state.device())}>
-            Default microphone
-          </option>
-          <For each={state.devices()}>
-            {(d) => (
-              <option value={d.id} selected={Option.contains(state.device(), d.id)}>
-                {d.label || d.id}
+          <For each={state.mics()} keyed={(o) => o.id}>
+            {(o) => (
+              <option value={o().id} selected={o().selected}>
+                {o().label}
               </option>
             )}
           </For>

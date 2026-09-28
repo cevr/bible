@@ -7,7 +7,7 @@
 import { Match, Option, Predicate } from 'effect';
 import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioBeat } from '../../core/studio.ts';
 import { minutes } from './api.ts';
-import { clipping, dbfs, type Level } from './capture.ts';
+import { clipping, dbfs, type Level, type MicDevice } from './capture.ts';
 import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts';
 import { wavSeconds } from './wav.ts';
 
@@ -259,6 +259,52 @@ export const meterOf = (level: Option.Option<Level>): Option.Option<Meter> =>
     fill: Math.min(1, (decibels(l.peak) - FLOOR_DB) / -FLOOR_DB),
     clip: clipping(level),
   }));
+
+/** One choice in the microphone picker; the empty id is the browser's default. */
+export interface MicOption {
+  readonly id: string;
+  readonly label: string;
+  readonly selected: boolean;
+}
+
+/**
+ * The microphone picker: the default first, then each microphone the browser
+ * lists (by its label, or its id while unnamed), the one picked selected. A
+ * remembered microphone the browser does not list is shown, selected, as the
+ * one picked before, and called not connected once the browser names its
+ * microphones (before that it may only be unnamed): so the picker never
+ * seems to be on Default while it is not, and Default can be picked again.
+ */
+export const micOptions = (
+  devices: ReadonlyArray<MicDevice>,
+  device: Option.Option<string>,
+): ReadonlyArray<MicOption> => {
+  const listed = devices
+    .filter((d) => d.id !== '')
+    .map((d) => ({
+      id: d.id,
+      label: d.label || d.id,
+      selected: Option.contains(device, d.id),
+    }));
+  const named = devices.some((d) => d.id !== '');
+  const gone = Option.filter(device, (id) => !devices.some((d) => d.id === id));
+  return [
+    { id: '', label: 'Default microphone', selected: Option.isNone(device) },
+    ...listed,
+    ...Option.match(gone, {
+      onNone: () => [],
+      onSome: (id) => [
+        {
+          id,
+          label: ['the microphone picked before', ...['(not connected)'].filter(() => named)].join(
+            ' ',
+          ),
+          selected: true,
+        },
+      ],
+    }),
+  ];
+};
 
 /** An attempt as its row reads: what was heard, how far off the line, how long. */
 export const attemptLine = (attempt: StudioAttempt): string =>

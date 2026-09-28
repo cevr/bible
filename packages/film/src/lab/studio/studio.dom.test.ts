@@ -428,6 +428,40 @@ describe('the studio', () => {
   );
 
   it.live(
+    'shows a remembered microphone that is gone as gone, and Default picks the default again',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page } = yield* withMic(0.5, ['microphone']);
+          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          yield* Effect.promise(() =>
+            page.evaluate(() => window.localStorage.setItem('film-lab-mic', 'film-probe-gone')),
+          );
+          yield* Effect.promise(() => page.reload());
+          yield* Effect.promise(() =>
+            page.waitForSelector('[data-field="mic"] option[value="film-probe-gone"]', {
+              state: 'attached',
+              timeout: 10_000,
+            }),
+          );
+          const shown = yield* Effect.promise(() =>
+            page.$eval(
+              '[data-field="mic"]',
+              (s) => (s as HTMLSelectElement).selectedOptions[0]?.textContent,
+            ),
+          );
+          expect(shown).toBe('the microphone picked before (not connected)');
+          yield* Effect.promise(() => page.selectOption('[data-field="mic"]', ''));
+          const stored = yield* Effect.promise(() =>
+            page.evaluate(() => window.localStorage.getItem('film-lab-mic')),
+          );
+          expect(stored).toBe('');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
     'warns of clipping when the microphone runs too hot',
     () =>
       scoped(

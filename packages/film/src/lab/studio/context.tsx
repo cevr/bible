@@ -20,7 +20,7 @@ import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
 import { StudioApi, type StudioRefused, attemptSrc, studioApiLayer } from './api.ts';
-import { Capture, type MicDevice } from './capture.ts';
+import { Capture } from './capture.ts';
 import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
 import { localStore, micChoice } from './mic-choice.ts';
@@ -34,6 +34,8 @@ import {
   eventOf,
   keyOf,
   meterOf,
+  micOptions,
+  type MicOption,
   nearLimit,
   neighbour,
   reviewWav,
@@ -76,9 +78,8 @@ export interface StudioStateValue {
   readonly review: Accessor<Option.Option<string>>;
   /** The microphone's level while it is open. */
   readonly meter: Accessor<Option.Option<Meter>>;
-  readonly devices: Accessor<ReadonlyArray<MicDevice>>;
-  /** The microphone picked; none is the browser's default. */
-  readonly device: Accessor<Option.Option<string>>;
+  /** The microphone picker's choices: the default, each one listed, and one remembered but gone. */
+  readonly mics: Accessor<ReadonlyArray<MicOption>>;
   /** The selected beat's recordings, newest first. */
   readonly attempts: Accessor<ReadonlyArray<AttemptRow>>;
   /** Why the attempts are not shown, while they are not. */
@@ -273,8 +274,11 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
       tone,
       review,
       meter: () => meterOf(level()),
-      devices: () => Option.getOrElse(AsyncResult.value(devicesResult()), () => []),
-      device,
+      mics: () =>
+        micOptions(
+          Option.getOrElse(AsyncResult.value(devicesResult()), () => []),
+          device(),
+        ),
       attempts,
       attemptsStatus: () =>
         AsyncResult.match(attemptsResult(), {

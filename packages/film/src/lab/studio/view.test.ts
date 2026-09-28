@@ -15,6 +15,7 @@ import {
   eventOf,
   keyOf,
   meterOf,
+  micOptions,
   nearLimit,
   neighbour,
   reviewWav,
@@ -242,5 +243,37 @@ describe('attemptLine', () => {
       current: true,
     };
     expect(attemptLine(a)).toBe('“hello world” · 12.5% · 3.5 s');
+  });
+});
+
+describe('micOptions', () => {
+  const devices = [
+    { id: 'usb', label: 'USB interface' },
+    { id: 'built', label: '' },
+  ];
+
+  test('the default first, then each microphone by its label (its id when unnamed), the one picked selected', () => {
+    expect(micOptions(devices, Option.some('usb'))).toEqual([
+      { id: '', label: 'Default microphone', selected: false },
+      { id: 'usb', label: 'USB interface', selected: true },
+      { id: 'built', label: 'built', selected: false },
+    ]);
+    expect(micOptions(devices, Option.none()).map((o) => o.selected)).toEqual([true, false, false]);
+  });
+
+  test('a remembered microphone that is gone shows as gone and selected, so Default can be picked again', () => {
+    expect(micOptions(devices, Option.some('gone'))).toEqual([
+      { id: '', label: 'Default microphone', selected: false },
+      { id: 'usb', label: 'USB interface', selected: false },
+      { id: 'built', label: 'built', selected: false },
+      { id: 'gone', label: 'the microphone picked before (not connected)', selected: true },
+    ]);
+  });
+
+  test('before the browser names its microphones, the remembered one is not called gone', () => {
+    expect(micOptions([{ id: '', label: '' }], Option.some('usb'))).toEqual([
+      { id: '', label: 'Default microphone', selected: false },
+      { id: 'usb', label: 'the microphone picked before', selected: true },
+    ]);
   });
 });
