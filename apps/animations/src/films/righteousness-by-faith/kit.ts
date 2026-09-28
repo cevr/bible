@@ -569,6 +569,19 @@ const foldOf = (robe: boolean, sit: number): readonly [dy: number, sx: number, s
   return [top + SEAT * sit - top * k, 1 - 0.18 * sit, k];
 };
 
+/**
+ * Where the point `y` units up this person's standing garment is drawn, for
+ * their build and sit, and the garment's width there as a multiple: so
+ * something worn on it (Christ's sash) stays on it.
+ */
+export const onGarment = (p: Person, y: number): readonly [sx: number, y: number] => {
+  const [bw, bh] = buildOf(p);
+  const sit = clamp(p.sit ?? 0);
+  if (sit <= 0) return [bw, bh * y];
+  const [dy, sx, sy] = foldOf(p.garment === 'robe', sit);
+  return [bw * sx, bh * (dy + sy * y)];
+};
+
 const garment = (
   ctx: CanvasRenderingContext2D,
   p: Person,
@@ -726,11 +739,18 @@ export type Hands = (k: string) => Hand;
  * sash: the pose is the caller's (look, brows, hands), the robe is not.
  */
 export const christ = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands) => {
-  person(ctx, { ...pose, body: C.robe, shade: C.robe, garment: 'robe' }, hand('christ'));
-  at(ctx, { x: 0, y: -90 + SEAT * clamp(pose.sit ?? 0), rot: -0.45 }, () =>
-    piece(ctx, rounded(0, 0, 92, 12, 3), C.gold, hand('sash'), { line: 2 }),
-  );
+  const robed: Person = { ...pose, body: C.robe, shade: C.robe, garment: 'robe' };
+  person(ctx, robed, hand('christ'));
+  // The sash rides the robe, 90 units up it, through any build or sit.
+  const [sx, y] = onGarment(robed, -90);
+  ctx.save();
+  ctx.translate(0, y);
+  ctx.rotate(-0.45);
+  ctx.scale(sx, 1);
+  piece(ctx, SASH, C.gold, hand('sash'), { line: 2 });
+  ctx.restore();
 };
+const SASH = rounded(0, 0, 92, 12, 3);
 
 /** The shape of a robe, centred on (0, 0) at size 1: the loom's cloth and the icon. */
 export const ROBE: Pt[] = [
