@@ -7,6 +7,8 @@ import { Effect, Option, Schema } from 'effect';
 import { onSettled } from 'solid-js';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { type LegacyHost, mountLegacy } from './legacy.ts';
+import { Editor } from './editor/index.ts';
+import { KnobsBridge } from './editor/knobs-bridge.tsx';
 import { Lab, useLab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
@@ -18,7 +20,6 @@ interface Slots {
   panel: Option.Option<HTMLElement>;
   overlay: Option.Option<SVGSVGElement>;
   layers: Option.Option<HTMLElement>;
-  strip: Option.Option<HTMLElement>;
 }
 
 /** Mounts the panels not yet in Solid once the shell has placed its elements. */
@@ -29,7 +30,6 @@ const Legacy = (props: { readonly slots: Slots }) => {
       panel: props.slots.panel,
       overlay: props.slots.overlay,
       layers: props.slots.layers,
-      strip: props.slots.strip,
     });
     Option.map(host, (h) => mountLegacy(lab, h));
   });
@@ -42,7 +42,6 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
     panel: Option.none(),
     overlay: Option.none(),
     layers: Option.none(),
-    strip: Option.none(),
   };
   return (
     <Lab.Root name={props.name} player={props.player}>
@@ -57,22 +56,22 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
           slots.overlay = Option.some(el);
         }}
       />
-      <Lab.Strip>
-        <div
-          class="lab-legacy-strip"
-          ref={(el: HTMLDivElement) => {
-            slots.strip = Option.some(el);
+      <Editor.Provider>
+        <Lab.Strip>
+          <Editor.Strip />
+        </Lab.Strip>
+        <Lab.Panel
+          ref={(el) => {
+            slots.panel = Option.some(el);
           }}
-        />
-      </Lab.Strip>
-      <Lab.Panel
-        ref={(el) => {
-          slots.panel = Option.some(el);
-        }}
-      >
-        <Lab.Header />
-      </Lab.Panel>
-      <Legacy slots={slots} />
+        >
+          <Lab.Header />
+          <Editor.Section>
+            <KnobsBridge overlay={() => slots.overlay} />
+          </Editor.Section>
+        </Lab.Panel>
+        <Legacy slots={slots} />
+      </Editor.Provider>
     </Lab.Root>
   );
 };

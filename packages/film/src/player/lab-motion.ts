@@ -10,7 +10,8 @@
 import type { SceneSpec } from '../canvas/film.ts';
 import { Result } from 'effect';
 import { type Placed, sceneOf } from '../core/layout.ts';
-import type { Editor } from './lab-edit.ts';
+/** The cue selected on the strip, if a cue is selected. */
+export type SelectedCue = () => { readonly scene: string; readonly name: string } | undefined;
 import { el, required } from './dom.ts';
 import type { LoopRange, Player } from './main.ts';
 import { type LabView, RATES, type ViewStore } from './view-state.ts';
@@ -94,7 +95,7 @@ export const mountMotion = (
   player: Player,
   panel: HTMLElement,
   pin: (layer: HTMLElement) => void,
-  selectedCue: Editor['selectedCue'],
+  selectedCue: SelectedCue,
   view: ViewStore,
 ): void => {
   const { film } = player;

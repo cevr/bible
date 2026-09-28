@@ -8,7 +8,8 @@
 
 import { RegistryProvider } from '@bible/atom-solid';
 import { Portal } from '@solidjs/web';
-import { Option } from 'effect';
+import { Layer, Option } from 'effect';
+import * as Atom from 'effect/unstable/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
 import type { Film } from '../canvas/film.ts';
@@ -16,6 +17,9 @@ import { labBase } from '../core/schema.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
 import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
+import { type LabApi, labApiLayer } from './api.ts';
+import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
+import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
 /** What every panel reads: the film on the stage and the frame it shows. */
 export interface LabState {
@@ -23,11 +27,17 @@ export interface LabState {
   readonly T: Accessor<number>;
   /** Counts the frames drawn: a panel that must follow each draw (not only T) reads it. */
   readonly drawn: Accessor<number>;
+  /** Counts the edits previewed and put back: a panel that draws the edited timeline or knobs reads it. */
+  readonly revision: Accessor<number>;
+  /** The cue or knob selected, kept in the URL as `sel`. */
+  readonly selection: Accessor<Option.Option<Selection>>;
 }
 
 export interface LabActions {
   /** Keep `layer` exactly over the film canvas until the returned function is called. */
   readonly pin: (layer: HTMLElement | SVGElement) => () => void;
+  /** Select a cue or a knob, or nothing; the URL keeps it through a reload. */
+  readonly select: (selection: Option.Option<Selection>) => void;
 }
 
 export interface LabMeta {
@@ -39,6 +49,10 @@ export interface LabMeta {
   readonly api: string;
   /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
   readonly view: ViewStore;
+  /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
+  readonly stage: StageOps;
+  /** What the panels' machines and atoms run with: the stage and the lab API. */
+  readonly runtime: Atom.AtomRuntime<Stage | LabApi>;
 }
 
 export interface LabContextValue {
@@ -103,16 +117,29 @@ const Root = (props: RootProps) => {
   document.body.classList.add('lab');
   onCleanup(() => document.body.classList.remove('lab'));
 
+  const [revision, setRevision] = createSignal(0, fromDraw);
+  const stage = makeStage(player, () => setRevision((n) => n + 1));
+  const api = labBase(props.name);
+  const runtime = Atom.runtime(Layer.merge(stageLayer(stage), labApiLayer(location.origin, api)));
+
+  const [selection, setSelection] = createSignal(selectionFromSearch(location.search));
+  const select = (next: Option.Option<Selection>) => {
+    setSelection(next);
+    const search = searchWithSelection(location.search, next);
+    history.replaceState(history.state, '', `${search}${location.hash}`);
+  };
+
   const value: LabContextValue = {
-    state: { T, drawn },
+    state: { T, drawn, revision, selection },
     actions: {
       pin: (layer) => {
         pinned.add(layer);
         place();
         return () => pinned.delete(layer);
       },
+      select,
     },
-    meta: { name: props.name, film: player.film, player, api: labBase(props.name), view },
+    meta: { name: props.name, film: player.film, player, api, view, stage, runtime },
   };
   return (
     <RegistryProvider>
@@ -167,7 +194,7 @@ interface LayerProps {
 }
 
 /** A canvas pinned over the film, under the overlay: the onion skin, the HEAD compare. */
-const Layer = (props: LayerProps) => {
+const PinnedLayer = (props: LayerProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
@@ -236,4 +263,4 @@ interface SectionProps extends ParentProps {
 const Section = (props: SectionProps) => <section class={props.class}>{props.children}</section>;
 
 /** The lab's shell: `<Lab.Root>` and the pieces it places. */
-export const Lab = { Root, Overlay, Layer, Strip, Panel, Header, Section };
+export const Lab = { Root, Overlay, Layer: PinnedLayer, Strip, Panel, Header, Section };

@@ -111,14 +111,15 @@ note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills. The strip under the timeline shows the
 current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
-all body, alt-drag for its end; snaps to words and frames, shift for free) and the release writes the new value into
+all body, alt-drag for its end; snaps to words and frames, shift for free; Esc puts it back) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
 under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
 runs after each write and its findings show in the panel; Undo (⌘Z) puts the
 newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
-over a change made since. Review with `git diff`. The panel's Motion section ghosts the frames
+over a change made since. One write is out at a time: a drag or a field set while one
+is in flight is not taken. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
 0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
 Compare draws the same frame as HEAD declared the scene's timeline and

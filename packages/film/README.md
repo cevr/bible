@@ -6,14 +6,14 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import                     | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`         | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                   |
-| `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                               |
-| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                    |
-| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the panels not yet moved from plain DOM (`player/lab-*.ts`) mount into it through `lab/legacy.ts`.                                                                 |
-| `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                       |
-| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
+| Import                     | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@bible/film/core`         | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                                                                            |
+| `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                        |
+| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                                                                             |
+| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; the panels not yet moved from plain DOM (`player/lab-*.ts`) mount into it through `lab/legacy.ts`. |
+| `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film), Narrator, Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck.                                                          |
 
 ## Data
 
@@ -144,7 +144,11 @@ layout it draws, so a note carries the cue the viewer saw.
 **The page** (`lab/`, Solid 2 around the framework-free preview): the shell
 (`lab/shell.tsx`) is compound components. `<Lab.Root>` holds what every panel
 shares (the film, its player, the lab API's base, the view kept through a
-reload, and `T`, the frame drawn last, as a signal); `<Lab.Overlay>` and
+reload, `T`, the frame drawn last, as a signal, the selection (kept in the URL as
+`sel`), and a runtime for the panels' machines: `Stage`, the preview as they
+drive it (`lab/stage.ts`: edits shown in memory, `#T` held for a write), and
+`LabApi`, every lab route through `HttpClient` with its Schema, a refusal
+being the server's own text (`lab/api.ts`)); `<Lab.Overlay>` and
 `<Lab.Layer>` are pinned exactly over the film canvas and follow it as it
 resizes; `<Lab.Strip>` is a slot right under the player's timeline;
 `<Lab.Panel>`, `<Lab.Header>` (with the look-book link) and `<Lab.Section>`
@@ -226,7 +230,7 @@ can be undone once, only while the file is exactly as that write left it.
 --allow-stale` in a new process after each write (this one imported the
 scene modules at start) and returns its findings, which the lab lists.
 
-**The editor** (`player/lab-edit.ts`): a strip under the timeline shows the
+**The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur). A cue that runs `until` a mark keeps
@@ -249,7 +253,16 @@ read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 inside `at(...)`, scaled or tilted, drags where it is drawn. Read inside a
 transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
-disabled. Undo write reverts the last write.
+disabled. Undo write reverts the last write. Every write, a drag's, a
+field's, a knob's, Undo's and Redo's, goes through one effect-machine
+(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Written`,
+`Refused`), so a press or another write while one is out is not taken and
+two writes never race for a file; Escape during a drag puts the cue back.
+The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
+patch a drag makes, why a cue cannot be dragged) are shared by the machine
+and its tests, which run every transition with no DOM. The knobs' rows and
+handles are still plain DOM (`player/lab-knobs.ts`) and write through the
+same machine.
 
 ### Motion, compare and the look-book
 
