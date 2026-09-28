@@ -5,7 +5,9 @@
 
 import {
   type Camera,
+  type Hand,
   type Pt,
+  type WriteOptions,
   at,
   ellipseShape,
   line,
@@ -16,6 +18,7 @@ import {
   write,
   sub,
 } from '@bible/film/canvas';
+import { type Key, lerp } from '@bible/film/core';
 import {
   C,
   F,
@@ -44,19 +47,45 @@ export const ADVOCATE: Pt = [820, 860];
 export const JUDGE: Pt = [1180, 350];
 export const GAVEL: Pt = [1330, 445];
 
-/** Job's question, where the cold open wrote it. */
-export const QUESTION = 'How should man be just with God?';
-export const questionStyle = {
+/** The grey figure's stains, in the person's units: each blob's centre, size and seed (`cold`, `exchange`, `declared`). */
+export const FIGURE_STAIN_SPOTS = [
+  [10, -76, 30, 38, 7],
+  [-14, -52, 14, 16, 11],
+] as const;
+export const FIGURE_STAINS = FIGURE_STAIN_SPOTS.map(([x, y, w, h, seed]) => blob(x, y, w, h, seed));
+
+/** The gavel's angle at rest, and where the landing's soft fall leaves it (`name` to `thesis`). */
+export const GAVEL_REST = 0.35;
+export const GAVEL_DOWN = 1.45;
+/** The verdict label's scale across its `stamp` cue: in large, a small give, settled (`cold`, `name`). */
+export const STAMP_POP: ReadonlyArray<Key> = [
+  [0, 1.2],
+  [0.6, 0.97, 'outCubic'],
+  [1, 1, 'inOutCubic'],
+];
+
+/** Job's question, where the cold open wrote it: the only words on screen (`cold`, `name`, `thesis`). */
+const QUESTION = 'How should man be just with God?';
+const QUESTION_AT: Pt = [960, 205];
+const questionStyle = {
   family: F.display,
   size: 84,
   weight: 600,
   color: C.ink,
   align: 'center',
 } as const;
+export const question = (ctx: CanvasRenderingContext2D, hand: Hand, opts: WriteOptions) =>
+  write(ctx, QUESTION, QUESTION_AT[0], QUESTION_AT[1], questionStyle, hand, {
+    boil: 0.4,
+    ...opts,
+  });
 
 // The cold open's layout rebuilt in cardboard under the landing sky: the
 // figure stands where they stood, now in the white robe, and Christ stands
 // beside them as Advocate.
+
+/** Christ as Advocate at the landing (`name`, `thesis`): his brows and hands; the scene gives his turn and look. */
+export const ADVOCATE_POSE: Person = { browTilt: 0.15, handL: [-86, -104], handR: [30, -58] };
 
 export interface Court {
   readonly cam: Camera;
@@ -329,6 +358,124 @@ export const TUNIC_STAINS = [
 /** The specks on his skin: the cheek's is the last to go. */
 export const CHEEK: Pt = [-19, -160];
 export const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
+
+/** The frame `accuser` ends on and `robe` opens on: the whole court. */
+export const ZECH_REST: Camera = { x: 960, y: 540, zoom: 1 };
+/** Where the accuser stands once he has stepped up (he steps in from off the left), and his scale there. */
+export const ACCUSER_AT: Pt = [300, 950];
+const ACCUSER_FROM = -260;
+const ACCUSER_S = 0.9;
+/** Where the Angel (Christ) stands at the bench, his scale, and his near hand at rest. */
+export const ANGEL_AT: Pt = [1330, 950];
+const ANGEL_S = 2.1;
+export const ANGEL_HAND: Pt = [-30, -58];
+
+/** The heavenly court's people, as a scene has them this frame; every place is the court's. */
+export interface ZechCourt {
+  /** The sun's fall in the window (`court`'s `sun`). */
+  readonly sun: number;
+  /** The accuser: 0..1 stepped up (0 draws none), shrunk back, pointing. */
+  readonly accuser: { readonly enter: number; readonly shrink: number; readonly point: number };
+  /** The Angel: his light brightening 0..1, his head's turn, his near hand (from `ANGEL_HAND`). */
+  readonly angel: { readonly lift: number; readonly tilt: number; readonly hand: Pt };
+  /** Joshua's pose (the turban is his); his specks' alpha; the cheek's speck, moved `dy` and faded. */
+  readonly joshua: Person;
+  readonly specks: number;
+  readonly cheek: { readonly dy: number; readonly alpha: number };
+  /** The filthy tunic: where it is (frame units) and each stain's flare. */
+  readonly tunic: { readonly at: Pt; readonly flare: (i: number) => number };
+  /** Those who stand by: 0..1 their hands on the tunic, walked `dx`, bobbing, looking up. */
+  readonly helpers: {
+    readonly grip: number;
+    readonly dx: number;
+    readonly bob: number;
+    readonly up: number;
+  };
+}
+
+/**
+ * The heavenly court of Zech 3 with its people, in 1920×1080 frame units
+ * under the scene's camera, so `accuser` and `robe` draw one layout and the
+ * handoff frame cannot drift: the set, the accuser, the Angel at the bench,
+ * Joshua, those who stand by, and the tunic.
+ */
+export const zechCourt = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) => {
+  court(ctx, hand, s.sun);
+  zechAccuser(ctx, hand, s.accuser);
+  zechAngel(ctx, hand, s.angel);
+  zechJoshua(ctx, hand, s);
+  for (const helper of HELPERS) zechHelper(ctx, hand, helper, s);
+  at(ctx, { x: s.tunic.at[0], y: s.tunic.at[1], scale: JS }, () => tunic(ctx, hand, s.tunic.flare));
+};
+
+const zechAccuser = (ctx: CanvasRenderingContext2D, hand: Hands, a: ZechCourt['accuser']) => {
+  if (a.enter <= 0) return;
+  const [x, y] = ACCUSER_AT;
+  at(ctx, { x: lerp(ACCUSER_FROM, x, a.enter), y, scale: lerp(1.05, ACCUSER_S, a.shrink) }, () => {
+    accuser(ctx, hand, a.point);
+    // Shrinking back into shadow.
+    glow(ctx, 0, -250, 330, C.boardDeep, 0.35 * a.shrink * (1 - a.shrink) * 4);
+  });
+};
+
+const zechAngel = (ctx: CanvasRenderingContext2D, hand: Hands, a: ZechCourt['angel']) => {
+  const [x, y] = ANGEL_AT;
+  glow(ctx, x, y - 250, 310, C.glow, 0.8 + 0.2 * a.lift);
+  at(ctx, { x, y, scale: ANGEL_S }, () =>
+    christ(
+      ctx,
+      { tilt: a.tilt, look: [-3, 1], browTilt: 0.15, handL: a.hand, handR: [30, -58] },
+      hand,
+    ),
+  );
+};
+
+const zechJoshua = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) =>
+  at(ctx, { x: JOSHUA[0], y: JOSHUA[1], scale: JS }, () => {
+    person(ctx, { ...s.joshua, turban: true }, hand('joshua'));
+    SPECKS.forEach((speck, i) =>
+      piece(ctx, speck, C.scarlet, sub(hand('speck'), i), {
+        line: 0,
+        shadow: 0.1,
+        alpha: s.specks,
+      }),
+    );
+    const [cx, cy] = CHEEK;
+    piece(ctx, blob(cx, cy + s.cheek.dy, 6, 5, 11), C.scarlet, hand('cheek'), {
+      line: 0,
+      shadow: 0.1,
+      alpha: s.cheek.alpha,
+    });
+  });
+
+/** One who stands by, gripping the tunic's near side a little below its shoulder as `grip` goes to 1. */
+const zechHelper = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  [x0, side, k]: (typeof HELPERS)[number],
+  s: ZechCourt,
+) => {
+  const { grip, dx, bob, up } = s.helpers;
+  const x = x0 + dx;
+  const y = JOSHUA[1] - (k === 1 ? bob : 5 - bob);
+  const [tx, ty] = s.tunic.at;
+  const target: Pt = [(tx - side * 44 * JS - x) / AS, (ty - 90 * JS - y) / AS];
+  const rest: Pt = [side * 30, -58];
+  const reachTo: Pt =
+    grip >= 1 ? target : [lerp(rest[0], target[0], grip), lerp(rest[1], target[1], grip)];
+  at(ctx, { x, y, scale: AS }, () =>
+    person(
+      ctx,
+      {
+        body: C.figureShade,
+        skin: C.figureShade,
+        look: [side * 2 * grip - side * 1.5 * (1 - grip), -2 * up],
+        ...(side === 1 ? { handR: reachTo } : { handL: reachTo }),
+      },
+      sub(hand('helper'), k),
+    ),
+  );
+};
 
 /** The filthy tunic in Joshua's units; `flare` 0..1 per stain lights it scarlet. */
 export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: number) => number) => {

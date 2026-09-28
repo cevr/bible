@@ -20,19 +20,8 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { C, ROBE, blob, christ, gait, glow, icons, person, piece, rounded, sky } from '../kit.ts';
-import {
-  AS,
-  CHEEK,
-  JOSHUA,
-  JS,
-  SPECKS,
-  TUNIC,
-  TUNIC_STAINS,
-  accuser,
-  court,
-  courtWall,
-} from '../court.ts';
+import { C, ROBE, blob, gait, glow, icons, person, piece, rounded, sky } from '../kit.ts';
+import { ANGEL_HAND, JOSHUA, ZECH_REST, courtWall, zechCourt } from '../court.ts';
 
 const LOOM: Pt = [1045, 560];
 
@@ -109,95 +98,30 @@ const courtWide = (f: RobeFrame) => {
   const away = -1250 * carry;
   const push = f.at('pushLoom');
   const cam: Camera = {
-    x: lerp(960, LOOM[0], push),
-    y: lerp(540, LOOM[1], push),
-    zoom: lerp(1, 4.2, ease.inCubic(push)),
+    x: lerp(ZECH_REST.x, LOOM[0], push),
+    y: lerp(ZECH_REST.y, LOOM[1], push),
+    zoom: lerp(ZECH_REST.zoom ?? 1, 4.2, ease.inCubic(push)),
   };
   courtWall(ctx, w, h);
   camera(ctx, cam, w, h, () => {
-    court(ctx, hand);
-    at(ctx, { x: 300, y: 950, scale: 0.9 }, () => accuser(ctx, hand));
-
-    // Christ, in white and gold, reaching out on "clothe".
     const reachOut = f.at('reachOut');
-    glow(ctx, 1330, 950 - 250, 310, C.glow, 0.8);
-    at(ctx, { x: 1330, y: 950, scale: 2.1 }, () =>
-      christ(
-        ctx,
-        {
-          tilt: -0.06 * reachOut,
-          look: [-3, 1],
-          browTilt: 0.15,
-          handL: [lerp(-30, -110, reachOut), lerp(-58, -118, reachOut)],
-          handR: [30, -58],
-        },
-        hand,
-      ),
-    );
-
-    // Joshua, the specks going from his skin.
-    at(ctx, { x: JOSHUA[0], y: JOSHUA[1], scale: JS }, () => {
-      const pass = f.at('speck');
-      person(
-        ctx,
-        {
-          turban: true,
-          tilt: 0.1 * (1 - pass),
-          look: [2 * reachOut, 0],
-          browTilt: 0.2 + 0.3 * pass,
-        },
-        hand('joshua'),
-      );
-      const fade = 1 - f.at('specks');
-      SPECKS.forEach((speck, i) =>
-        piece(ctx, speck, C.scarlet, sub(hand('speck'), i), {
-          line: 0,
-          shadow: 0.1,
-          alpha: fade,
-        }),
-      );
-      const [cx, cy] = CHEEK;
-      if (pass < 1)
-        piece(ctx, blob(cx, cy - 66 * pass, 6, 5, 11), C.scarlet, hand('cheek'), {
-          line: 0,
-          shadow: 0.1,
-          alpha: 1 - clamp((pass - 0.3) / 0.7),
-        });
-    });
-
-    // The filthy clothes, lifted over his head and carried out left.
-    const tunicY = JOSHUA[1] - 250 * lift - bob;
-    const tunicX = JOSHUA[0] + away;
-    const helper = (x0: number, side: -1 | 1, k: number) => {
-      const x = x0 + away;
-      const y = JOSHUA[1] - (k === 1 ? bob : 5 - bob);
-      // Hands on the tunic's near side, a little below its shoulder.
-      const grip: Pt = [tunicX - side * 44 * JS, tunicY - 90 * JS];
-      const local: Pt = [(grip[0] - x) / AS, (grip[1] - y) / AS];
-      at(ctx, { x, y, scale: AS }, () =>
-        person(
-          ctx,
-          {
-            body: C.figureShade,
-            skin: C.figureShade,
-            look: [side * 2, -2 * lift],
-            ...(side === 1 ? { handR: local } : { handL: local }),
-          },
-          sub(hand('helper'), k),
-        ),
-      );
-    };
-    helper(610, 1, 1);
-    helper(910, -1, 2);
-    at(ctx, { x: tunicX, y: tunicY, scale: JS }, () => {
-      piece(ctx, TUNIC, C.boardShade, hand('tunic'), { torn: 2.5, line: 2 });
-      TUNIC_STAINS.forEach((stain, i) =>
-        piece(ctx, stain, i % 2 === 0 ? C.scarlet : C.scarletShade, sub(hand('stain'), i), {
-          line: 0,
-          torn: 3,
-          shadow: 0.1,
-        }),
-      );
+    const pass = f.at('speck');
+    zechCourt(ctx, hand, {
+      sun: 0,
+      accuser: { enter: 1, shrink: 1, point: 0 },
+      // Christ, in white and gold, reaching out on "clothe".
+      angel: {
+        lift: 0,
+        tilt: -0.06 * reachOut,
+        hand: [lerp(ANGEL_HAND[0], -110, reachOut), lerp(ANGEL_HAND[1], -118, reachOut)],
+      },
+      // Joshua, the specks going from his skin.
+      joshua: { tilt: 0.1 * (1 - pass), look: [2 * reachOut, 0], browTilt: 0.2 + 0.3 * pass },
+      specks: 1 - f.at('specks'),
+      cheek: { dy: -66 * pass, alpha: 1 - clamp((pass - 0.3) / 0.7) },
+      // The filthy clothes, lifted over his head and carried out left.
+      tunic: { at: [JOSHUA[0] + away, JOSHUA[1] - 250 * lift - bob], flare: () => 0 },
+      helpers: { grip: 1, dx: away, bob, up: lift },
     });
 
     // The loom gathers in the light.

@@ -19,7 +19,21 @@ import {
   write,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, F, ICON_X, blob, glow, icons, person, piece, rounded, sky } from '../kit.ts';
+import {
+  BUBBLE,
+  C,
+  F,
+  ICON_X,
+  blob,
+  bubble,
+  glow,
+  icons,
+  person,
+  piece,
+  rounded,
+  sky,
+} from '../kit.ts';
+import { FIGURE_STAIN_SPOTS } from '../court.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 
 const FIG: Pt = [520, 1240];
@@ -63,28 +77,13 @@ const LINES = [
   },
 ] as const;
 
-/** The stains on the garment, in the figure's units: centre, size and seed. */
-const STAINS = [
-  [10, -76, 30, 38, 7],
-  [-14, -52, 14, 16, 11],
-  [-16, -100, 18, 14, 13],
-] as const;
+/** The stains on the garment, in the figure's units: the cold open's two and one more (centre, size, seed). */
+const STAINS = [...FIGURE_STAIN_SPOTS, [-16, -100, 18, 14, 13]] as const;
 
 /** The dawn panel behind the figure, in frame units, and its scale on the dawn world. */
 const PANEL = { x: 1010, y: 150, w: 780, h: 440 };
 const PANEL_SCALE = PANEL.w / 1920;
 const PANEL_SUN: Pt = [PANEL.x + SUN[0] * PANEL_SCALE, PANEL.y + SUN[1] * PANEL_SCALE];
-
-/** The heavy word: the bubble given depth, a slab of gold. */
-const BUBBLE: Pt[] = [
-  [-80, -48],
-  [80, -48],
-  [80, 40],
-  [-20, 40],
-  [-54, 76],
-  [-46, 40],
-  [-80, 40],
-];
 
 export const declared = drawing({
   timeline: {
@@ -273,15 +272,11 @@ export const declared = drawing({
                   shadow: i === 8 ? 0.8 : 0,
                 }),
               );
-            piece(ctx, BUBBLE, C.gold, hand('slab'), { line: 5, shadow: 0 });
-            for (let i = 0; i < 3; i++)
-              piece(
-                ctx,
-                rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-                C.ink,
-                hand(`slabLine${i}`),
-                { line: 0, shadow: 0 },
-              );
+            bubble(ctx, hand('slab'), (i) => hand(`slabLine${i}`), {
+              fill: C.gold,
+              ink: C.ink,
+              shadow: 0,
+            });
           });
         }
       });

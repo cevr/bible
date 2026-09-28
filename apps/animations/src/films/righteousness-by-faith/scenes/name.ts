@@ -7,10 +7,19 @@
 // the bench as in the cold open, and the robe glows with it. On "jer" the
 // bench itself goes gold, and the word gives way to the name in `thesis`.
 
-import { type Camera, drawing, write } from '@bible/film/canvas';
+import { type Camera, drawing } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
-import { QUESTION, REST, WIDE, landingCourt, questionStyle } from '../court.ts';
+import {
+  ADVOCATE_POSE,
+  GAVEL_DOWN,
+  GAVEL_REST,
+  REST,
+  STAMP_POP,
+  WIDE,
+  landingCourt,
+  question,
+} from '../court.ts';
 import { between } from '../kit.ts';
 
 /** Close on the two of them as the figure touches the robe. */
@@ -42,16 +51,12 @@ export const name = drawing({
     const turn = f.at('turn');
     // A soft fall: the same arc as the cold open, landing without the bounce.
     const swing = f.keys('gavel', [
-      [0, 0.35],
+      [0, GAVEL_REST],
       [0.373, -0.2],
       [0.763, 1.5, 'inOutCubic'],
-      [1, 1.45],
+      [1, GAVEL_DOWN],
     ]);
-    const pop = f.keys('stamp', [
-      [0, 1.2],
-      [0.6, 0.97, 'outCubic'],
-      [1, 1, 'inOutCubic'],
-    ]);
+    const pop = f.keys('stamp', STAMP_POP);
     const smile = f.at('smile');
 
     landingCourt(ctx, w, h, (k) => f.hand(k), {
@@ -75,21 +80,18 @@ export const name = drawing({
         handR: touch > 0.01 ? [lerp(40, -24, touch), lerp(-60, -76, touch)] : undefined,
       },
       advocate: {
+        ...ADVOCATE_POSE,
         tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch'),
         look: [lerp(-3, 3, turn), 1],
-        browTilt: 0.15,
-        handL: [-86, -104],
-        handR: [30, -58],
       },
     });
 
     // Job's question, where the cold open wrote it, the only words on screen.
     const out = f.at('questionOut');
     if (out < 1)
-      write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), {
+      question(ctx, f.hand('question'), {
         progress: f.spoken('how', 'not'),
         reveal: 'write',
-        boil: 0.4,
         alpha: 1 - out,
       });
   },

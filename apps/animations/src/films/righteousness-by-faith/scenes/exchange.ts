@@ -34,6 +34,7 @@ import {
   sky,
   between,
 } from '../kit.ts';
+import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, MOST_HOLY, highPriest, sanctuary } from '../heaven.ts';
 
 /** The whole hill; close on both faces; up in heaven at the sanctuary. */
@@ -41,8 +42,6 @@ const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
 const CLOSE: Camera = { x: 700, y: 650, zoom: 2.1 };
 const HEAVEN: Camera = { x: 960, y: -560, zoom: 1 };
 
-/** The figure's stains: the cold open's, so the callback reads. */
-const STAINS = [blob(10, -76, 30, 38, 7), blob(-14, -52, 14, 16, 11)];
 const SCALE = 1.9;
 /** Where Jesus stops beside the figure, and the hilltop where the cross stands. */
 const BESIDE = 830;
@@ -132,7 +131,7 @@ export const exchange = drawing({
               browTilt: 0.35 * puzzle + 0.3 * after,
               browL: 3 * puzzle,
               mouth: puzzle * 0.6,
-              stains: lift < 0.05 ? STAINS : [],
+              stains: lift < 0.05 ? FIGURE_STAINS : [],
             },
             hand('figure'),
           ),

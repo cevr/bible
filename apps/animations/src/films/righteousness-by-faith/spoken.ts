@@ -15,7 +15,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { BUBBLE, C, blob, glow, piece, rounded, sky, type Hands } from './kit.ts';
+import { C, blob, bubble, glow, piece, rounded, sky, type Hands } from './kit.ts';
 
 /**
  * The word of light at the origin, `size` 1 being 160 units wide: the gold
@@ -25,15 +25,7 @@ export const wordLight = (ctx: CanvasRenderingContext2D, hand: Hand, size = 1, l
   at(ctx, { x: 0, y: 0, scale: size }, () => {
     glow(ctx, 0, 0, 260, C.glow, 0.95 * lit);
     glow(ctx, 0, 0, 150, C.gold, 0.45 * lit);
-    piece(ctx, BUBBLE, C.gold, hand, { line: 5, shadow: 0.2 });
-    for (let i = 0; i < 3; i++)
-      piece(
-        ctx,
-        rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-        C.cream,
-        sub(hand, 20 + i),
-        { line: 0, shadow: 0 },
-      );
+    bubble(ctx, hand, (i) => sub(hand, 20 + i), { fill: C.gold, ink: C.cream, shadow: 0.2 });
   });
 
 /** The arc a word flies from `from` to `to`, bowed up by `lift` over their midpoint. */

@@ -17,7 +17,7 @@ import {
 import { clamp, lerp } from '@bible/film/core';
 import { C, F, christ, glow, person, piece, between } from '../kit.ts';
 import { ROOF, cityBack, cityFront, landingSky } from '../city.ts';
-import { QUESTION, WIDE, landingCourt, questionStyle } from '../court.ts';
+import { ADVOCATE_POSE, GAVEL_DOWN, GAVEL_REST, WIDE, landingCourt, question } from '../court.ts';
 
 /** Where the camera ends: the title's city, near enough to see the two of them. */
 const CITY: Camera = { x: 1200, y: 640, zoom: 1.3 };
@@ -108,19 +108,14 @@ export const thesis = drawing({
       ctx.globalAlpha *= 1 - courtOut;
       landingCourt(ctx, w, h, (k) => f.hand(k), {
         cam: between(between(WIDE, TEXT, f.at('frame')), COURT_BACK, away),
-        swing: 1.45 - 1.1 * clamp(f.t / 2),
+        // The gavel lifts back from where `name` laid it down.
+        swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * clamp(f.t / 2),
         stamp: 0,
         pop: 1,
         gold: 1,
         shine: 0.9,
         figure: { look: [2, -4], browL: 3, browR: 4, browTilt: 0.35, tilt: -0.1 },
-        advocate: {
-          tilt: -0.06,
-          look: [3, 1],
-          browTilt: 0.15,
-          handL: [-86, -104],
-          handR: [30, -58],
-        },
+        advocate: { ...ADVOCATE_POSE, tilt: -0.06, look: [3, 1] },
       });
       ctx.restore();
     }
@@ -129,7 +124,7 @@ export const thesis = drawing({
     const out = f.at('textOut');
     if (out < 1) {
       const alpha = f.at('question') * (1 - out);
-      write(ctx, QUESTION, 960, 205, questionStyle, f.hand('question'), { alpha, boil: 0.4 });
+      question(ctx, f.hand('question'), { alpha });
       const answer = f.at('answer');
       if (answer > 0) {
         ctx.save();

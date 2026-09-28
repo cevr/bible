@@ -172,6 +172,60 @@ export const piece = (
     );
 };
 
+/** The bubble's three lines of writing, centred like it. */
+const BUBBLE_LINES = [0, 1, 2].map((i) =>
+  rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
+);
+
+/**
+ * The word-bubble in `fill` with its three lines of writing in `ink`,
+ * centred on (0, 0): the icon (`icons`), the word of light (`spoken`), the
+ * heavy word (`declared`). `lines(i)` seeds each line.
+ */
+export const bubble = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hand,
+  lines: (i: number) => Hand,
+  s: { readonly fill: string; readonly ink: string; readonly shadow: number },
+) => {
+  piece(ctx, BUBBLE, s.fill, hand, { line: 5, shadow: s.shadow });
+  BUBBLE_LINES.forEach((l, i) => piece(ctx, l, s.ink, lines(i), { line: 0, shadow: 0 }));
+};
+
+/** The icon's heart, centred on (0, 0), about 190 units wide. */
+const HEART: Pt[] = [
+  [0, -54],
+  [40, -94],
+  [96, -60],
+  [84, 4],
+  [0, 96],
+  [-84, 4],
+  [-96, -60],
+  [-40, -94],
+];
+
+/**
+ * The heart in `fill` with the two tablets of the law on it (`icons`,
+ * `within`); `law` writes their lines, so they stay legible close up.
+ */
+export const heart = (
+  ctx: CanvasRenderingContext2D,
+  hand: (k: string) => Hand,
+  fill: string,
+  law: boolean,
+) => {
+  piece(ctx, HEART, fill, hand('heart'), { line: 5 });
+  for (const x of [-24, 24] as const) {
+    piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
+    if (law)
+      for (let i = 0; i < 4; i++)
+        piece(ctx, rounded(x, -10 + i * 12, 24, 3, 1), C.ink, sub(hand('law'), x * 10 + i), {
+          line: 0,
+          shadow: 0,
+        });
+  }
+};
+
 // ─── people ──────────────────────────────────────────────────────────────────
 
 /**
@@ -412,40 +466,17 @@ export const icons = (
       inner();
     });
   };
-  disc(0, 'iconWord', () => {
-    piece(ctx, BUBBLE, C.gold, hand('bubble'), { line: 5 });
-    for (let i = 0; i < 3; i++)
-      piece(
-        ctx,
-        rounded(-6 + (i % 2) * 8, -12 + i * 14, 90 - (i % 2) * 20, 5, 2),
-        C.ink,
-        sub(hand('lines'), i),
-        { line: 0, shadow: 0 },
-      );
-  });
+  disc(0, 'iconWord', () =>
+    bubble(ctx, hand('bubble'), (i) => sub(hand('lines'), i), {
+      fill: C.gold,
+      ink: C.ink,
+      shadow: 0.35,
+    }),
+  );
   disc(1, 'iconRobe', () =>
     at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
       piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { line: 18 }),
     ),
   );
-  disc(2, 'iconHeart', () => {
-    piece(
-      ctx,
-      [
-        [0, -54],
-        [40, -94],
-        [96, -60],
-        [84, 4],
-        [0, 96],
-        [-84, 4],
-        [-96, -60],
-        [-40, -94],
-      ],
-      C.boardLight,
-      hand('heart'),
-      { line: 5 },
-    );
-    for (const x of [-24, 24])
-      piece(ctx, rounded(x, 6, 40, 64, 14), C.gold, sub(hand('tablet'), x), { line: 3.5 });
-  });
+  disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
