@@ -3,7 +3,9 @@
 // drawing's until the write lands and the page reloads), and the clock's `#T`
 // held at the frame a write is asked at, then let go. `#T` keeps its one
 // owner (`tInUrl`, behind `Player.holdT` and `Player.settle`); nothing here
-// writes the URL.
+// writes the URL. A write the film's code does not import (a take's audio
+// and timings, which the player fetches once) reloads the page itself, at
+// the frame held.
 
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
@@ -35,6 +37,11 @@ export interface StageOps {
   readonly knobsOf: (scene: string) => Knobs;
   /** A write is on its way: hold `#T` at this frame for the reload it causes. */
   readonly holdT: Effect.Effect<void>;
+  /**
+   * Load the page again at this frame: the film's timings and narration are
+   * read once, at load, so a new take plays only after it.
+   */
+  readonly reload: Effect.Effect<void>;
   /** T settles where it is (a refused write reloads nothing). */
   readonly settle: Effect.Effect<void>;
   readonly pause: Effect.Effect<void>;
@@ -114,6 +121,10 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     timelineOf,
     knobsOf,
     holdT: Effect.sync(() => player.holdT()),
+    reload: Effect.sync(() => {
+      player.holdT();
+      location.reload();
+    }),
     settle: Effect.sync(() => player.settle()),
     pause: Effect.sync(() => player.pause()),
     duration: film.duration,

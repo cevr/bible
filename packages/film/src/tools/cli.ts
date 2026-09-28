@@ -52,7 +52,7 @@ import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
 import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName, resolveShort } from '../core/shorts.ts';
 import { FILM_FPS } from '../core/time.ts';
-import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
+import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
 import {
@@ -1114,9 +1114,12 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
   // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
   const Logs = Layer.succeed(Logger.LogToStderr, true);
   // A bare `--accept-mismatch` stays bare: the parser would take the next word as its beats.
+  // A take heard as something else is printed with the flags that re-record or keep it.
   Stdio.Stdio.use(({ args }) =>
     Effect.flatMap(args, (given) =>
-      Command.runWith(root, { version: '0.1.0' })(bareAcceptMismatch(given)),
+      Command.runWith(root, { version: '0.1.0' })(bareAcceptMismatch(given)).pipe(
+        Effect.mapError(atTheCommandLine),
+      ),
     ),
   ).pipe(Effect.provide(Layer.mergeAll(Services, Logs)), BunRuntime.runMain);
 };

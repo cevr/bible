@@ -357,8 +357,62 @@ upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
 when the request ends. Takes are kept one at a time (a semaphore per studio):
 the keep, the timings write and the mix after it finish before the next post
 begins. After a take is kept the film remixes; `mixed: false` says the mix
-failed (logged) and the take stands. The panel that records in the browser
-is not built yet.
+failed (logged) and the take stands. The lab's **Studio** section records
+through these routes (below).
+
+### Studio
+
+**The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
+for recording the final voiceover beat by beat. It lists every beat with a
+line and where its take stands (`recorded`, `staging`, `stale: <why>`, with
+the counts), reads the selected beat as a teleprompter (the sheet's lines, a
+quotation set apart with who said it, marks stripped), and records it:
+
+- **Capture** (`capture-browser.ts`, behind the `Capture` service in
+  `capture.ts`): `getUserMedia` with echo cancelling, noise suppression and
+  gain control off, one channel, the microphone picked (`enumerateDevices`;
+  the choice is remembered in this browser, `mic-choice.ts`), into an
+  `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
+  rate. The worklet hands each block of float PCM over untouched with its
+  peak and RMS (the meter: dBFS, a clip warning at −1 dBFS); the page keeps
+  the blocks from the count-in's end and joins them on stop. Nothing is
+  resampled or compressed, and there is no MediaRecorder: `wav.ts` encodes
+  the PCM as a 24-bit mono WAV at that rate, which is what is posted
+  (`audio/wav`). A microphone refused is `MicDenied`, shown in the panel in
+  the owner's words.
+- **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
+| Review | Importing | Failed` on `SelectBeat | Arm | Tick | CountDone |
+Cancel | Stop | Retake | Submit | Discard | Imported | Refused |
+AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
+  microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
+  review (play it back before submitting); Submit posts it as the state's
+  task; the answer is the take kept (what was heard, its word error) or the
+  server's refusal in its own words. A `TakeMismatch` with the attempt it
+  saved offers **Accept anyway** (a guarded transition: `keep` with
+  `acceptMismatch`). Each beat's attempts (newest first: heard, word error,
+  length, kept, recorded for an earlier line) play from their audio route
+  and **Keep** makes one the take.
+- **After a take is kept and mixed** the machine asks the stage to reload the
+  page (`Stage.reload`: `#T` held, then `location.reload()`): the player reads
+  the timings and the track once, at load, so the film then plays the new
+  take at the same T, back on the same beat (the view keeps it). A mix that
+  failed reloads nothing and the status says so. The app serves the
+  narration with `Cache-Control: no-cache`, so a reload never plays a take
+  the browser cached.
+- **Keys**, only while focus is in the Studio: R record (and retake), Space
+  stop, K submit (or accept anyway), ←/→ the previous or next beat (at rest
+  or after a refusal, never mid-take), Esc cancel, discard or back. There
+  they are the Studio's alone, so the lab's own keys (Space play, ←/→ frame,
+  `[` `]` scene, `c` captions, `n` note, Esc, ⌘Z/⇧⌘Z) never fire from it;
+  with focus anywhere else the lab's keys work as before. Keys with ⌘, Ctrl
+  or Alt pass through, and a focused picker or player keeps its own keys.
+
+The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
+studio's routes, the capture), so the shell knows nothing of it, and hands
+the section derived values and actions (`view.ts`: the controls each state
+offers with their keys, the status line, the meter, the counts), never the
+machine's states. `lab/studio/studio.dom.test.ts` drives the whole panel in
+Chromium with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in

@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect } from 'effect';
+import { FetchHttpClient, HttpClient } from 'effect/unstable/http';
 import { serve } from '../server.ts';
 
 /** The server `serve` starts, stopped when the test's scope closes. */
@@ -23,5 +24,18 @@ describe('serve', () => {
         expect(server.url.hostname).toBe('127.0.0.1');
       }
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'serves the narration uncached: the studio rewrites a take and its timings in place',
+    () =>
+      Effect.gen(function* () {
+        const server = yield* served(false);
+        const res = yield* HttpClient.get(
+          new URL('/films/righteousness-by-faith/narration/timings.json', server.url),
+        );
+        expect(res.status).toBe(200);
+        expect(res.headers['cache-control']).toBe('no-cache');
+      }).pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer)),
   );
 });

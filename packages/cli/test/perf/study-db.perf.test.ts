@@ -2,17 +2,35 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { BibleDatabase } from '@bible/core/bible-db';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array, Clock, Duration, Effect, FileSystem, Layer, Option } from 'effect';
+import { Array, Clock, Duration, Effect, FileSystem, Layer, Option, Order } from 'effect';
 
 const DB_PATH = `${import.meta.dir}/../../../core/data/bible.db`;
 const BibleServicesLayer = Layer.mergeAll(BibleDbBun.layerBun(DB_PATH), BunServices.layer);
 
-const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+/**
+ * A budget guards the query plan (an index against a scan is orders of
+ * magnitude), not one wall-clock sample: one warm-up run, then the median of
+ * `RUNS`, so a machine under other load does not fail a query that is fast.
+ */
+const RUNS = 7;
+
+const once = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
     const start = yield* Clock.currentTimeNanos;
     const value = yield* effect;
     const end = yield* Clock.currentTimeNanos;
     return [value, Duration.toMillis(Duration.nanos(end - start))] as const;
+  });
+
+const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.gen(function* () {
+    yield* effect;
+    const runs = yield* Effect.forEach(Array.range(1, RUNS), () => once(effect));
+    const sorted = Array.sort(
+      runs.map(([, ms]) => ms),
+      Order.Number,
+    );
+    return [runs[runs.length - 1]![0], sorted[Math.floor(RUNS / 2)]!] as const;
   });
 
 const whenDatabaseExists = <A, E, R>(effect: Effect.Effect<A, E, R>) =>

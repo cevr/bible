@@ -35,8 +35,12 @@ const labRoutes = (lab: Option.Option<Handler>) => ({
   '/lab/*': Option.getOrElse(lab, () => notFound),
 });
 
-/** The player on `HOST`:`port`; with `lab` (the film lab's API), the lab's page and routes too. */
-export const serve = (port: number, development: boolean, lab?: Handler) =>
+/**
+ * The player on `HOST`:`port`; with `lab` (the film lab's API), the lab's
+ * page and routes too. The narration is served from `films` (a test's copy
+ * of the films folder, so the studio's writes never touch the real one).
+ */
+export const serve = (port: number, development: boolean, lab?: Handler, films: string = FILMS) =>
   Bun.serve({
     hostname: HOST,
     port,
@@ -45,17 +49,23 @@ export const serve = (port: number, development: boolean, lab?: Handler) =>
     routes: {
       '/': index,
       ...labRoutes(Option.fromUndefinedOr(lab)),
-      // Narration takes: /films/<film>/narration/<file>
+      // Narration takes: /films/<film>/narration/<file>. The studio rewrites
+      // them in place (a take kept, the track remixed), so the browser asks
+      // again on every load rather than play a take it cached.
       '/films/*': (req) => {
         const rel = normalize(
           decodeURIComponent(new URL(req.url).pathname.slice('/films/'.length)),
         );
         if (rel.startsWith('..') || !rel.includes('/narration/'))
           return new Response('not found', { status: 404 });
-        const file = Bun.file(join(FILMS, rel));
+        const file = Bun.file(join(films, rel));
         return file
           .exists()
-          .then((ok) => (ok ? new Response(file) : new Response('not found', { status: 404 })));
+          .then((ok) =>
+            ok
+              ? new Response(file, { headers: { 'Cache-Control': 'no-cache' } })
+              : new Response('not found', { status: 404 }),
+          );
       },
     },
   });
