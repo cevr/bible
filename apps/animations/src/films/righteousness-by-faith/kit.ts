@@ -582,6 +582,51 @@ export const onGarment = (p: Person, y: number): readonly [sx: number, y: number
   return [bw * sx, bh * (dy + sy * y)];
 };
 
+/** Folds the frame onto the seat for `sit` > 0 (see `foldOf`); nothing standing. */
+const toFold = (ctx: CanvasRenderingContext2D, robe: boolean, sit: number) => {
+  if (sit <= 0) return;
+  const [dy, sx, sy] = foldOf(robe, sit);
+  ctx.translate(0, dy);
+  ctx.scale(sx, sy);
+};
+
+/** Adds `pts` to the current path as one closed subpath. */
+const tracePath = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
+  let first = true;
+  for (const [x, y] of pts) {
+    if (first) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    first = false;
+  }
+  ctx.closePath();
+};
+
+/**
+ * Clips to this person's garment as `person` draws it, build, seated fold
+ * and lap included, in the frame `person` was drawn in: so something spread
+ * through the cloth (declared's gold) stays on it. The caller saves before
+ * and restores after; the transform is left as it was.
+ */
+export const clipToGarment = (ctx: CanvasRenderingContext2D, p: Person) => {
+  const m = ctx.getTransform();
+  const [bw, bh] = buildOf(p);
+  const sit = clamp(p.sit ?? 0);
+  const robe = p.garment === 'robe';
+  if (bw !== 1 || bh !== 1) ctx.scale(bw, bh);
+  ctx.beginPath();
+  if (sit > 0) {
+    // The lap's subpath first, in the build's frame, before the fold.
+    const lap = ctx.getTransform();
+    ctx.scale(robe ? 1 : 0.8, sit);
+    tracePath(ctx, LAP);
+    ctx.setTransform(lap);
+  }
+  toFold(ctx, robe, sit);
+  tracePath(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE);
+  ctx.clip();
+  ctx.setTransform(m);
+};
+
 const garment = (
   ctx: CanvasRenderingContext2D,
   p: Person,
@@ -591,11 +636,7 @@ const garment = (
 ) => {
   const robe = p.garment === 'robe';
   ctx.save();
-  if (sit > 0) {
-    const [dy, sx, sy] = foldOf(robe, sit);
-    ctx.translate(0, dy);
-    ctx.scale(sx, sy);
-  }
+  toFold(ctx, robe, sit);
   piece(ctx, robe ? ROBE_SHAPE : TUNIC_SHAPE, body, sub(hand, 3));
   let i = 0;
   for (const stain of p.stains ?? NO_STAINS)

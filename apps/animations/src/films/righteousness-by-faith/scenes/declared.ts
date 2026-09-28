@@ -20,17 +20,18 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
+  type Person,
   BUBBLE,
   C,
   F,
   ICON_X,
   blob,
   bubble,
+  clipToGarment,
   glow,
   icons,
   person,
   piece,
-  rounded,
   sky,
 } from '../kit.ts';
 import { FIGURE_STAIN_SPOTS } from '../court.ts';
@@ -153,31 +154,24 @@ export const declared = drawing({
             const k = 1 - clamp(bloom * 1.3);
             return k > 0.05 ? [blob(x, y, sw * k, sh * k, seed)] : [];
           });
-          person(
-            ctx,
-            {
-              tilt: 0.1 * doubt * (1 - back) + 0.08 * landed,
-              nod: 4 * doubt * (1 - back) + 3 * landed,
-              look,
-              browL: 2 * doubt * (1 - back) + 4 * bloom,
-              browR: 1 * doubt * (1 - back) + 4 * bloom,
-              browTilt: 0.45 * doubt * (1 - back) + 0.1 * bloom,
-              mouth: 0.35 * doubt * (1 - back) + 0.5 * bloom,
-              handL: [lerp(-36, -14, doubt * (1 - back)), lerp(-40, -84, doubt * (1 - back))],
-              handR: [36, -40],
-              stains,
-            },
-            hand('figure'),
-          );
+          const figure: Person = {
+            tilt: 0.1 * doubt * (1 - back) + 0.08 * landed,
+            nod: 4 * doubt * (1 - back) + 3 * landed,
+            look,
+            browL: 2 * doubt * (1 - back) + 4 * bloom,
+            browR: 1 * doubt * (1 - back) + 4 * bloom,
+            browTilt: 0.45 * doubt * (1 - back) + 0.1 * bloom,
+            mouth: 0.35 * doubt * (1 - back) + 0.5 * bloom,
+            handL: [lerp(-36, -14, doubt * (1 - back)), lerp(-40, -84, doubt * (1 - back))],
+            handR: [36, -40],
+            stains,
+          };
+          person(ctx, figure, hand('figure'));
           if (bloom > 0) {
             // Gold spreads through the garment from where the word landed.
             glow(ctx, 0, -80, 50, C.glow, 0.35 * bloom);
-            const garment = rounded(0, -72, 66, 112, 22);
             ctx.save();
-            ctx.beginPath();
-            garment.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
-            ctx.closePath();
-            ctx.clip();
+            clipToGarment(ctx, figure);
             piece(ctx, blob(-4, -82, 56 * bloom, 76 * bloom, 5), C.gold, hand('bloom'), {
               line: 0,
               shadow: 0,
