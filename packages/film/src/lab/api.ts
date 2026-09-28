@@ -2,7 +2,8 @@
 // through Effect's HttpClient, each body encoded and each answer decoded by
 // the route's Schema. A refusal is the server's own text (`SourceRefused: …`),
 // which the panel shows as it is; a request that never reached the server, or
-// an answer that does not decode, says so in its own words.
+// an answer that does not decode, says so in its own words. The scene source
+// routes are `LabApi`; the notes routes are `NotesApi`.
 
 import { Cause, Context, Effect, Layer, Result, Schema } from 'effect';
 import {
@@ -18,6 +19,11 @@ import {
   type Knob,
   KnobPatch,
   LabWrite,
+  Note,
+  NotePost,
+  NotesFile,
+  NotesWait,
+  ReplyPost,
   SceneSource,
 } from '../core/schema.ts';
 
@@ -34,7 +40,10 @@ export class LabUnreachable extends Schema.TaggedError<LabUnreachable>()('LabUnr
 
 export type LabFailure = LabRefused | LabUnreachable;
 
-/** A failed call, in the server's words without its tag (`SceneNotFound: …` reads `…`). */
+/** The server's words without their tag (`SceneNotFound: …` reads `…`). */
+export const untagged = (message: string): string => message.replace(/^\w+: /, '');
+
+/** A failed call, in the server's words without its tag. */
 export const reasonOf = (cause: Cause.Cause<unknown>): string => {
   const squashed = Cause.squash(cause);
   const text = Result.match(
@@ -44,7 +53,7 @@ export const reasonOf = (cause: Cause.Cause<unknown>): string => {
       onSuccess: (e) => e.message,
     },
   );
-  return text.replace(/^\w+: /, '');
+  return untagged(text);
 };
 
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
@@ -76,6 +85,27 @@ export interface LabCalls {
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
 
+/** A new note as the page posts it: the draft and the frame's still, as bytes. */
+export type NotePost = typeof NotePost.Type;
+
+/** The film's notes: read, long-polled, added to and answered. */
+export interface NotesCalls {
+  /** The notes file; its `seq` is the cursor a wait waits past. */
+  readonly notes: Effect.Effect<NotesFile, LabFailure>;
+  /** The changes past `since`, long-polled: answered empty after `WAIT_S` with none. */
+  readonly wait: (since: number) => Effect.Effect<NotesWait, LabFailure>;
+  /** A new note: its draft and the frame's still. */
+  readonly add: (post: NotePost) => Effect.Effect<Note, LabFailure>;
+  /** The user replies in a note's thread. */
+  readonly reply: (id: string, text: string) => Effect.Effect<Note, LabFailure>;
+  readonly resolve: (id: string) => Effect.Effect<Note, LabFailure>;
+}
+
+export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/film/lab/NotesApi') {}
+
+/** How long one wait for the notes holds on the server, in seconds. */
+export const WAIT_S = 55;
+
 const unreachable = (cause: { readonly message: string }) =>
   LabUnreachable.make({ message: cause.message });
 
@@ -97,10 +127,11 @@ const NoBody = Schema.Struct({});
 const Empty = {};
 
 /**
- * The lab API under `base` (`labBase(film)`) on `origin`, through `HttpClient`.
- * Writes are same-origin JSON, as the server admits them.
+ * A client of the routes under `base` (`labBase(film)`) on `origin`, through
+ * `HttpClient`, every answer decoded by its schema. Writes are same-origin
+ * JSON, as the server admits them.
  */
-export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, base: string) {
+const labClient = Effect.fn('lab.api.client')(function* (origin: string, base: string) {
   const client = (yield* HttpClient.HttpClient).pipe(
     HttpClient.mapRequest(HttpClientRequest.prependUrl(`${origin}${base}`)),
   );
@@ -118,8 +149,16 @@ export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, b
       Effect.flatMap((req) => Effect.mapError(client.execute(req), unreachable)),
       Effect.flatMap(answer(schema)),
     );
-  const at = (...parts: ReadonlyArray<string>) =>
-    `/${parts.map((p) => encodeURIComponent(p)).join('/')}`;
+  return { get, post };
+});
+
+/** A path of `parts`, each one encoded. */
+const at = (...parts: ReadonlyArray<string>) =>
+  `/${parts.map((p) => encodeURIComponent(p)).join('/')}`;
+
+/** The scene source routes under `base` (`labBase(film)`) on `origin`. */
+export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, base: string) {
+  const { get, post } = yield* labClient(origin, base);
   const api: LabCalls = {
     source: (scene) => get(`${at('scenes', scene)}/source`, SceneSource),
     head: (scene) => get(`${at('scenes', scene)}/head`, HeadSource),
@@ -132,6 +171,22 @@ export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, b
   return api;
 });
 
+/** The notes routes under `base` on `origin`. */
+export const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, base: string) {
+  const { get, post } = yield* labClient(origin, base);
+  const api: NotesCalls = {
+    notes: get('/notes', NotesFile),
+    wait: (since) => get(`/notes/wait?since=${since}&timeout=${WAIT_S}`, NotesWait),
+    add: (note) => post('/notes', NotePost, note, Note),
+    reply: (id, text) => post(`${at('notes', id)}/reply`, ReplyPost, { text }, Note),
+    resolve: (id) => post(`${at('notes', id)}/resolve`, NoBody, Empty, Note),
+  };
+  return api;
+});
+
 /** The lab API for the film at `base`, on the page's own origin, over `fetch`. */
-export const labApiLayer = (origin: string, base: string): Layer.Layer<LabApi> =>
-  Layer.effect(LabApi, makeLabApi(origin, base)).pipe(Layer.provide(FetchHttpClient.layer));
+export const labApiLayer = (origin: string, base: string): Layer.Layer<LabApi | NotesApi> =>
+  Layer.mergeAll(
+    Layer.effect(LabApi, makeLabApi(origin, base)),
+    Layer.effect(NotesApi, makeNotesApi(origin, base)),
+  ).pipe(Layer.provide(FetchHttpClient.layer));

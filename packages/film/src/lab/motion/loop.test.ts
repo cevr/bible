@@ -41,6 +41,7 @@ const fakes = () => {
     holdT: Effect.void,
     settle: Effect.void,
     pause: Effect.void,
+    still: () => Effect.die('not asked'),
   };
   return { log, stage: full, layer: Layer.succeed(Stage, full) };
 };

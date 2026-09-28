@@ -17,7 +17,7 @@ import { labBase } from '../core/schema.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
 import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
-import { type LabApi, labApiLayer } from './api.ts';
+import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
@@ -51,8 +51,8 @@ export interface LabMeta {
   readonly view: ViewStore;
   /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
   readonly stage: StageOps;
-  /** What the panels' machines and atoms run with: the stage and the lab API. */
-  readonly runtime: Atom.AtomRuntime<Stage | LabApi>;
+  /** What the panels' machines and atoms run with: the stage, the lab API and the notes API. */
+  readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi>;
 }
 
 export interface LabContextValue {
@@ -158,29 +158,19 @@ const usePinned = (): ((el: HTMLElement | SVGElement) => void) => {
   };
 };
 
-interface OverlayProps extends ParentProps {
-  /** The overlay's element, for a panel not yet in Solid that draws on it. */
-  readonly ref?: (el: SVGSVGElement) => void;
-  /** Extra classes (`pen` while the pen draws). */
-  readonly class?: Record<string, boolean>;
-}
-
 /**
  * The layer over the canvas, in the film's own pixels: every lab mark draws
  * here, never on the film.
  */
-const Overlay = (props: OverlayProps) => {
+const Overlay = (props: ParentProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
     <svg
-      class={['lab-overlay', props.class ?? {}]}
+      class="lab-overlay"
       viewBox={`0 0 ${meta.film.width} ${meta.film.height}`}
       preserveAspectRatio="none"
-      ref={(el: SVGSVGElement) => {
-        pin(el);
-        props.ref?.(el);
-      }}
+      ref={pin}
     >
       {props.children}
     </svg>
@@ -223,17 +213,8 @@ const Strip = (props: ParentProps) => {
   return <Portal mount={slot}>{props.children}</Portal>;
 };
 
-interface PanelProps extends ParentProps {
-  /** The panel's element, for a panel not yet in Solid that mounts into it. */
-  readonly ref?: (el: HTMLElement) => void;
-}
-
 /** The side panel: the header, then each tool's section. */
-const Panel = (props: PanelProps) => (
-  <aside class="lab-panel" ref={(el: HTMLElement) => props.ref?.(el)}>
-    {props.children}
-  </aside>
-);
+const Panel = (props: ParentProps) => <aside class="lab-panel">{props.children}</aside>;
 
 /** The panel's header: its name, the hint, the header's tools, and the look-book link. */
 const Header = (props: ParentProps) => {

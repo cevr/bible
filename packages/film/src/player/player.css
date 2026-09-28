@@ -364,8 +364,25 @@ body.lab .bar {
   cursor: crosshair;
   touch-action: none;
 }
-.lab-overlay.pen {
+/* The notes' surface, under every other mark: a click pins, a drag boxes, the pen inks. */
+.lab-overlay .lab-notes-surface {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+.lab-overlay .lab-notes-surface.pen {
   cursor: cell;
+}
+.lab-overlay .lab-marks {
+  pointer-events: none;
+}
+/* The notes' connection to the server, said only once lost. */
+.lab-feed {
+  color: #e2b04a;
+  font-size: 11px;
+}
+.lab-feed:empty {
+  display: none;
 }
 .lab-overlay rect,
 .lab-overlay circle,

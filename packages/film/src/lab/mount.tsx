@@ -3,81 +3,54 @@
 // player page (`/`), which the renderer loads, never imports this.
 
 import { render } from '@solidjs/web';
-import { Effect, Option, Schema } from 'effect';
-import { onSettled } from 'solid-js';
+import { Effect, Schema } from 'effect';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
-import { type LegacyHost, mountLegacy } from './legacy.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
-import { Lab, useLab } from './shell.tsx';
+import { Notes } from './notes/index.ts';
+import { Lab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
 export class LabStartFailed extends Schema.TaggedError<LabStartFailed>()('LabStartFailed', {
   reason: Schema.String,
 }) {}
 
-interface Slots {
-  panel: Option.Option<HTMLElement>;
-  overlay: Option.Option<SVGSVGElement>;
-}
-
-/** Mounts the panels not yet in Solid once the shell has placed its elements. */
-const Legacy = (props: { readonly slots: Slots }) => {
-  const lab = useLab();
-  onSettled(() => {
-    const host: Option.Option<LegacyHost> = Option.all({
-      panel: props.slots.panel,
-      overlay: props.slots.overlay,
-    });
-    Option.map(host, (h) => mountLegacy(lab, h));
-  });
-  return <></>;
-};
-
 /** The lab: the shell, and each tool in its place. */
-export const LabPage = (props: { readonly name: string; readonly player: Player }) => {
-  const slots: Slots = {
-    panel: Option.none(),
-    overlay: Option.none(),
-  };
-  return (
-    <Lab.Root name={props.name} player={props.player}>
-      <Editor.Provider>
-        <Motion.Provider>
-          <Compare.Provider>
+export const LabPage = (props: { readonly name: string; readonly player: Player }) => (
+  <Lab.Root name={props.name} player={props.player}>
+    <Editor.Provider>
+      <Motion.Provider>
+        <Compare.Provider>
+          <Notes.Provider>
             <Motion.Onion />
             <Compare.Layer />
-            <Lab.Overlay
-              ref={(el) => {
-                slots.overlay = Option.some(el);
-              }}
-            >
+            <Lab.Overlay>
+              <Notes.Marks />
               <Editor.Handles />
               <Compare.Divider />
             </Lab.Overlay>
             <Lab.Strip>
               <Editor.Strip />
             </Lab.Strip>
-            <Lab.Panel
-              ref={(el) => {
-                slots.panel = Option.some(el);
-              }}
-            >
-              <Lab.Header />
+            <Notes.Pins />
+            <Lab.Panel>
+              <Lab.Header>
+                <Notes.Pen />
+              </Lab.Header>
               <Editor.Section>
                 <Editor.Knobs />
               </Editor.Section>
               <Motion.Section />
               <Compare.Section />
+              <Notes.Section />
             </Lab.Panel>
-            <Legacy slots={slots} />
-          </Compare.Provider>
-        </Motion.Provider>
-      </Editor.Provider>
-    </Lab.Root>
-  );
-};
+          </Notes.Provider>
+        </Compare.Provider>
+      </Motion.Provider>
+    </Editor.Provider>
+  </Lab.Root>
+);
 
 const start = Effect.fn('lab.start')(
   function* (films: Films) {

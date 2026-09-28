@@ -63,6 +63,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabRefused> = Effect.succeed(lande
     duration: 10,
     cueSpan: () => Option.none(),
     playFrom: () => Effect.void,
+    still: () => Effect.die('not asked'),
   };
   const api: LabCalls = {
     source: () => Effect.die('not asked'),

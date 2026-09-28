@@ -44,6 +44,17 @@ export interface StageOps {
   readonly cueSpan: (scene: string, name: string) => Option.Option<LoopRange>;
   /** Show `T` and play from it. */
   readonly playFrom: (T: number) => Effect.Effect<void>;
+  /** The frame at `T` as the film draws it (no lab marks: they never touch the film), as PNG bytes. */
+  readonly still: (T: number) => Effect.Effect<Uint8Array, NoStill>;
+}
+
+/** The canvas gave no PNG for the frame. */
+export class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
+  T: Schema.Finite,
+}) {
+  override get message() {
+    return `no still of ${this.T.toFixed(2)}s: the canvas gave no image`;
+  }
 }
 
 export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/Stage') {}
@@ -118,6 +129,23 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
         player.seek(T);
         player.play();
       }),
+    still: (T) =>
+      Effect.sync(() => film.render(player.ctx, T, { captions: player.captions.on })).pipe(
+        Effect.flatMap(() =>
+          Effect.callback<Blob, NoStill>((resume) =>
+            player.canvas.toBlob((blob) =>
+              resume(
+                Option.match(Option.fromNullishOr(blob), {
+                  onNone: () => Effect.fail(NoStill.make({ T })),
+                  onSome: Effect.succeed,
+                }),
+              ),
+            ),
+          ),
+        ),
+        Effect.flatMap((blob) => Effect.promise(() => blob.arrayBuffer())),
+        Effect.map((buffer) => new Uint8Array(buffer)),
+      ),
   };
 };
 
