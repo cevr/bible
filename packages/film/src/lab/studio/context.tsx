@@ -51,8 +51,6 @@ export interface AttemptRow {
   readonly kept: boolean;
   /** Recorded for the line as it reads now. */
   readonly current: boolean;
-  /** Whether Keep makes it the take now. */
-  readonly keepable: boolean;
 }
 
 /** How the status line reads: at rest, working, near the take limit, a take kept, or refused. */
@@ -85,6 +83,10 @@ export interface StudioStateValue {
   readonly attempts: Accessor<ReadonlyArray<AttemptRow>>;
   /** Why the attempts are not shown, while they are not. */
   readonly attemptsStatus: Accessor<string>;
+  /** Whether an attempt may be kept now (at rest or after a refusal); a row adds its own terms. */
+  readonly keepable: Accessor<boolean>;
+  /** Whether focus was in the studio when the page last went (a take kept reloads it). */
+  readonly hadFocus: boolean;
 }
 
 export interface StudioActions {
@@ -95,6 +97,8 @@ export interface StudioActions {
   readonly pick: (device: Option.Option<string>) => void;
   /** A key pressed in the studio: whether it was the studio's (and so done here). */
   readonly press: (key: string) => boolean;
+  /** Focus came into the studio, or left it. */
+  readonly focused: (inside: boolean) => void;
 }
 
 export interface StudioContextValue {
@@ -143,8 +147,19 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     ),
   );
   const beat = createMemo(() => recorder().beat);
-  // The beat is remembered through the reload a take kept causes.
-  createEffect(beat, (b) => meta.view.patch({ studio: { beat: b } }));
+  // The beat, and whether focus is in the studio, are remembered through the
+  // reload a take kept causes.
+  const hadFocus = Option.exists(
+    Option.flatMap(Option.fromUndefinedOr(meta.view.get().studio), (s) =>
+      Option.fromUndefinedOr(s.focused),
+    ),
+    (f) => f,
+  );
+  const [focused, setFocused] = createSignal(hadFocus);
+  createEffect(
+    () => ({ beat: beat(), focused: focused() }),
+    (studio) => meta.view.patch({ studio }),
+  );
 
   const attemptsOf = Atom.family((id: string) =>
     runtime.atom(StudioApi.use((api) => api.attempts(id))),
@@ -204,7 +219,6 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
           src: attemptSrc(meta.api, a.beat, attempt.file),
           kept: attempt.kept,
           current: attempt.current,
-          keepable: keepable() && attempt.current && !attempt.kept,
         })),
       ),
       () => [],
@@ -239,6 +253,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
           return true;
         },
       }),
+    focused: setFocused,
   };
 
   const value: StudioContextValue = {
@@ -271,6 +286,8 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
             }),
           onFailure: (f) => refusalText(f.cause),
         }),
+      keepable,
+      hadFocus,
     },
     actions,
   };

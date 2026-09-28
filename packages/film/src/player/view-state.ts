@@ -28,8 +28,13 @@ export const LabView = Schema.Struct({
     split: Schema.Finite,
   }),
   playing: Schema.Boolean,
-  /** The beat the studio records, kept through the reload a take kept causes. */
-  studio: Schema.optionalKey(Schema.Struct({ beat: Schema.String })),
+  /**
+   * The beat the studio records, and whether focus was in the studio (so its
+   * keys still reach it), kept through the reload a take kept causes.
+   */
+  studio: Schema.optionalKey(
+    Schema.Struct({ beat: Schema.String, focused: Schema.optionalKey(Schema.Boolean) }),
+  ),
 });
 export type LabView = typeof LabView.Type;
 

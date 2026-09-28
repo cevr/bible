@@ -292,6 +292,11 @@ describe('the studio', () => {
           expect(asked.filter((a) => a.path === '/studio/beats').length).toBeGreaterThan(
             beatsBefore,
           );
+          // The reload keeps the studio's keys: R records with no click back into it.
+          yield* press(page, 'r');
+          yield* statusIs(page, /^recording in [123]…$/);
+          yield* press(page, 'Escape');
+          yield* statusIs(page, /^ready/);
           expect(errors).toEqual([]);
         }),
       ),
@@ -365,6 +370,58 @@ describe('the studio', () => {
           expect(
             yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
           ).toBe(1);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'keeps its keys when the button clicked goes: Record clicked, Space stops the take, not the film',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page, errors } = yield* withMic(0.5, ['microphone']);
+          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
+          const playLabel = () => textOf(page, '[data-act="play"]');
+          const paused = yield* playLabel();
+          yield* Effect.promise(() => page.click('[data-act="arm"]'));
+          yield* statusIs(page, /^recording · /);
+          yield* Effect.promise(() => page.waitForTimeout(600));
+          yield* press(page, ' ');
+          yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
+          expect(yield* shownT(page)).toBe(1);
+          expect(yield* playLabel()).toBe(paused);
+          expect(errors).toEqual([]);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'keeps an attempt’s row (and its player) while the recorder moves',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page } = yield* withMic(0.5, ['microphone']);
+          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
+          yield* Effect.promise(() => page.waitForSelector('[data-file="thesis.new.flac"] audio'));
+          // Mark the row's player; a row built again would lose the mark.
+          yield* Effect.promise(() =>
+            page.$eval('[data-file="thesis.new.flac"] audio', (a) =>
+              Reflect.set(a, 'filmMark', true),
+            ),
+          );
+          yield* focusStudio(page);
+          yield* press(page, 'r');
+          yield* statusIs(page, /^recording in [123]…$/);
+          yield* press(page, 'Escape');
+          yield* statusIs(page, /^ready/);
+          const marked = yield* Effect.promise(() =>
+            page.$eval('[data-file="thesis.new.flac"] audio', (a) => Reflect.get(a, 'filmMark')),
+          );
+          expect(marked).toBe(true);
         }),
       ),
     60_000,

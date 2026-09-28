@@ -11,6 +11,7 @@
 // Alt pass through; a focused picker or player keeps its own keys.
 
 import { For, Show } from '@solidjs/web';
+import { type Accessor, createEffect, onSettled } from 'solid-js';
 import { Option } from 'effect';
 import type { StudioPart } from '../../core/studio.ts';
 import { Lab } from '../shell.tsx';
@@ -145,10 +146,10 @@ export const Controls = () => {
   return (
     <div class="studio-controls">
       <div class="studio-buttons">
-        <For each={state.controls()}>
+        <For each={state.controls()} keyed={(c) => c.act}>
           {(c) => (
-            <button type="button" data-act={c.act} onClick={() => actions.perform(c.act)}>
-              {c.label}
+            <button type="button" data-act={c().act} onClick={() => actions.perform(c().act)}>
+              {c().label}
             </button>
           )}
         </For>
@@ -163,28 +164,30 @@ export const Controls = () => {
   );
 };
 
-const Attempt = (props: { readonly row: AttemptRow }) => {
-  const { actions } = useStudio();
+/** One recording's row: kept by its file, so a player in it keeps playing while the recorder moves. */
+const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
+  const { state, actions } = useStudio();
+  const row = props.row;
   return (
-    <li class={['studio-attempt', { kept: props.row.kept }]} data-file={props.row.file}>
+    <li class={['studio-attempt', { kept: row().kept }]} data-file={row().file}>
       <div class="studio-attempt-head">
-        <span class="studio-attempt-line">{props.row.line}</span>
-        <Show when={props.row.kept}>
+        <span class="studio-attempt-line">{row().line}</span>
+        <Show when={row().kept}>
           <span class="lab-badge recorded">kept</span>
         </Show>
-        <Show when={!props.row.current}>
+        <Show when={!row().current}>
           <span class="lab-badge stale" title="recorded for the line as it read before">
             earlier line
           </span>
         </Show>
       </div>
       <div class="studio-attempt-row">
-        <audio controls preload="none" src={props.row.src} />
+        <audio controls preload="none" src={row().src} />
         <button
           type="button"
           data-act="keep"
-          disabled={!props.row.keepable}
-          onClick={() => actions.keep(props.row.file)}
+          disabled={!(state.keepable() && row().current && !row().kept)}
+          onClick={() => actions.keep(row().file)}
         >
           Keep
         </button>
@@ -201,7 +204,9 @@ export const Attempts = () => {
       <strong>Attempts</strong>
       <Show when={state.attemptsStatus()}>{(status) => <p class="lab-status">{status()}</p>}</Show>
       <ol>
-        <For each={state.attempts()}>{(row) => <Attempt row={row} />}</For>
+        <For each={state.attempts()} keyed={(row) => row.file}>
+          {(row) => <Attempt row={row} />}
+        </For>
       </ol>
     </div>
   );
@@ -213,9 +218,45 @@ const ownsKeys = (target: EventTarget) =>
   target instanceof HTMLMediaElement ||
   target instanceof HTMLInputElement;
 
-/** The studio: its keys while focus is in it, and its pieces. */
+/** Focus moved to the section leaves the page where it is (a click lands where it was aimed). */
+const STAY: FocusOptions = { preventScroll: true };
+
+/** What the section holds of the DOM: itself, and the element in it that last had focus. */
+interface Held {
+  root: Option.Option<HTMLElement>;
+  last: Option.Option<Element>;
+}
+
+/** Whether `target` is a button (or inside one). */
+const onButton = (target: EventTarget) =>
+  target instanceof Element && Option.isSome(Option.fromNullishOr(target.closest('button')));
+
+/**
+ * The studio: its keys while focus is in it, and its pieces. Focus stays in
+ * it while its controls change under it: a button clicked leaves focus on the
+ * section, not on the button (the next state may take the button away), an
+ * element that had focus and is gone hands it back to the section, and focus
+ * in the studio comes back after the reload a take kept causes.
+ */
 export const Section = () => {
-  const { actions } = useStudio();
+  const { state, actions } = useStudio();
+  const held: Held = { root: Option.none(), last: Option.none() };
+  /** Whether the target is in the studio. */
+  const within = (target: EventTarget) =>
+    target instanceof Node && Option.exists(held.root, (root) => root.contains(target));
+  // Focus lost with the element that had it (a control the new state took
+  // away) goes back to the section. The effect runs once the DOM has changed.
+  createEffect(
+    () => [state.controls(), state.attempts()],
+    () => {
+      const lost = Option.exists(held.last, (el) => !el.isConnected);
+      if (lost && document.activeElement === document.body)
+        Option.map(held.root, (r) => r.focus(STAY));
+    },
+  );
+  onSettled(() => {
+    if (state.hadFocus) Option.map(held.root, (r) => r.focus(STAY));
+  });
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (Option.exists(Option.fromNullishOr(e.target), ownsKeys)) return e.stopPropagation();
@@ -223,9 +264,31 @@ export const Section = () => {
     e.preventDefault();
     e.stopPropagation();
   };
+  const onMouseDown = (e: MouseEvent) => {
+    if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
+    e.preventDefault();
+    Option.map(held.root, (r) => r.focus(STAY));
+  };
+  const onFocusIn = (e: FocusEvent) => {
+    held.last = Option.filter(Option.fromNullishOr(e.target), (t) => t instanceof Element);
+    actions.focused(true);
+  };
   return (
     <Lab.Section class="lab-studio">
-      <div class="studio" tabindex="0" data-role="studio" onKeyDown={onKey}>
+      <div
+        class="studio"
+        tabindex="0"
+        data-role="studio"
+        ref={(el) => {
+          held.root = Option.some(el);
+        }}
+        onKeyDown={onKey}
+        onMouseDown={onMouseDown}
+        onFocusIn={onFocusIn}
+        onFocusOut={(e) =>
+          actions.focused(Option.exists(Option.fromNullishOr(e.relatedTarget), within))
+        }
+      >
         <header>
           <strong>Studio</strong>
           <span class="lab-hint">
