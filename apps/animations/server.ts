@@ -16,7 +16,7 @@ export const FILMS = join(import.meta.dir, 'src/films');
  */
 export const HOST = '127.0.0.1';
 
-/** A wait on `/lab/notes/wait` holds up to 60 s: the connection must outlive it. */
+/** A wait on `/lab/<film>/notes/wait` holds up to 60 s: the connection must outlive it. */
 const IDLE_SECONDS = 75;
 
 type Handler = (req: Request, server: LabBound) => Response | Promise<Response>;

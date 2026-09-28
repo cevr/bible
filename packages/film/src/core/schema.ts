@@ -394,6 +394,11 @@ export const TextBox = Schema.Struct({
    * when two say the same words. A stroke's `marks` names it.
    */
   hand: Schema.optionalKey(Schema.Finite),
+  /**
+   * The `order` of the plate this line sits on (`probePlate`): the plate
+   * carries it, so the two never collide; any other text over the plate does.
+   */
+  on: Schema.optionalKey(Schema.Int),
 });
 export type TextBox = typeof TextBox.Type;
 
@@ -575,16 +580,27 @@ export const CheckLine = Schema.Struct({
 });
 export type CheckLine = typeof CheckLine.Type;
 
-/** `GET /lab/check`. */
 /**
- * `GET /lab/check`: `film check --static` now, and the lab's last write, the
- * one Undo puts back (a page reloaded by that write learns of it here).
+ * The lab API's root for one film: every route is under `/lab/<film>/`, so a
+ * page for another film cannot read or write this one's (the server answers
+ * 409 for a film it does not serve).
+ */
+export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
+
+/** One change the lab made to a scene file, as a page is told of it. */
+const LabStep = Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String });
+
+/**
+ * `GET /lab/<film>/check`: `film check --static` now; the lab's latest change
+ * to a file (a write, `undo …` or `redo …`: a page that change reloaded
+ * learns of it here); and the writes Undo would put back and Redo would make
+ * again.
  */
 export const CheckReport = Schema.Struct({
   findings: Schema.Array(CheckLine),
-  last: Schema.optionalKey(
-    Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String }),
-  ),
+  latest: Schema.optionalKey(LabStep),
+  undo: Schema.optionalKey(LabStep),
+  redo: Schema.optionalKey(LabStep),
 });
 export type CheckReport = typeof CheckReport.Type;
 

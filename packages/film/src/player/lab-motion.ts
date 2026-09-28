@@ -8,12 +8,13 @@
 // narration plays only at 1×.
 
 import type { SceneSpec } from '../canvas/film.ts';
-import type { Placed } from '../core/layout.ts';
+import { Result } from 'effect';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Editor } from './lab-edit.ts';
+import { el, required } from './dom.ts';
 import type { LoopRange, Player } from './main.ts';
+import { type LabView, RATES, type ViewStore } from './view-state.ts';
 
-/** The rates the lab plays at. */
-const RATES: ReadonlyArray<number> = [0.25, 0.5, 1];
 /** A cue shorter than this loops with this much film either side, or there is nothing to watch. */
 const SHORT_CUE = 0.2;
 const CUE_PAD = 0.4;
@@ -28,16 +29,8 @@ type LoopSource =
   | { readonly kind: 'cue'; readonly scene: string; readonly name: string }
   | { readonly kind: 'ab' };
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
+/** Speed, loop and onion as the page left them, kept through the reload a write causes. */
+type MotionView = Pick<LabView, 'rate' | 'loop' | 'onion'>;
 
 const canvas2d = (w: number, h: number, className = '') => {
   const c = el('canvas', className);
@@ -55,28 +48,34 @@ const brightness = (d: Uint8ClampedArray, i: number) =>
 const whole = (value: string, fallback: number, max: number) =>
   Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
 
+/** Each pixel's brightness in `d`, written into `into` (one entry per pixel). */
+const brightnessInto = (into: Float64Array, d: Uint8ClampedArray) => {
+  for (let p = 0, i = 0; p < into.length; p++, i += 4) into[p] = brightness(d, i);
+};
+
 /** Ink is darker than the page on paper (1), lighter on a night sky (-1). */
-const inkSign = (now: Uint8ClampedArray) => {
+const inkSign = (now: Float64Array) => {
   let sum = 0;
-  for (let i = 0; i < now.length; i += 4 * 97) sum += brightness(now, i);
-  return sum / Math.ceil(now.length / (4 * 97)) > 110 ? 1 : -1;
+  for (let p = 0; p < now.length; p += 97) sum += now[p] ?? 0;
+  return sum / Math.ceil(now.length / 97) > 110 ? 1 : -1;
 };
 
 /**
- * Paint into `o`, in `color`, the ink `px` has where `now` has none, at
- * `strength`; a pixel an earlier, stronger ghost holds keeps it.
+ * Paint into `o`, in `color`, the ink `px` has where `now` (the frame shown,
+ * as brightness per pixel) has none, at `strength`; a pixel an earlier,
+ * stronger ghost holds keeps it.
  */
 const ghostInto = (
   o: Uint8ClampedArray,
-  now: Uint8ClampedArray,
+  now: Float64Array,
   px: Uint8ClampedArray,
   light: number,
   strength: number,
   color: readonly [number, number, number],
 ) => {
   const [r, g, bl] = color;
-  for (let i = 0; i < o.length; i += 4) {
-    const moved = light * (brightness(now, i) - brightness(px, i));
+  for (let p = 0, i = 0; i < o.length; p++, i += 4) {
+    const moved = light * ((now[p] ?? 0) - brightness(px, i));
     if (moved < MOVED) continue;
     const alpha = Math.round(255 * strength * Math.min(1, (moved - MOVED) / 60 + 0.35));
     if (alpha <= (o[i + 3] ?? 0)) continue;
@@ -96,6 +95,7 @@ export const mountMotion = (
   panel: HTMLElement,
   pin: (layer: HTMLElement) => void,
   selectedCue: Editor['selectedCue'],
+  view: ViewStore,
 ): void => {
   const { film } = player;
   const section = el('section', 'lab-motion');
@@ -119,11 +119,7 @@ export const mountMotion = (
   const edit = panel.querySelector('.lab-edit');
   if (edit === null) panel.prepend(section);
   else edit.after(section);
-  const q = <T extends Element>(sel: string) => {
-    const found = section.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(section, sel);
   const status = q<HTMLSpanElement>('.lab-motion-status');
   const onionBtn = q<HTMLButtonElement>('[data-act="onion"]');
   const countIn = q<HTMLInputElement>('[data-field="count"]');
@@ -134,15 +130,17 @@ export const mountMotion = (
 
   // ── Speed. ──
   const rates = q<HTMLDivElement>('[data-role="rates"]');
+  const setRate = (r: LabView['rate']) => {
+    player.setRate(r);
+    for (const other of rateBtns) other.classList.toggle('on', other.dataset['rate'] === String(r));
+    say(r === 1 ? '' : `${r}×: narration muted`);
+    view.patch({ rate: r });
+  };
   const rateBtns = RATES.map((r) => {
     const b = el('button', r === 1 ? 'on' : '', `${r}×`);
     b.type = 'button';
     b.dataset['rate'] = String(r);
-    b.addEventListener('click', () => {
-      player.setRate(r);
-      for (const other of rateBtns) other.classList.toggle('on', other === b);
-      say(r === 1 ? '' : `${r}×: narration muted`);
-    });
+    b.addEventListener('click', () => setRate(r));
     rates.append(b);
     return b;
   });
@@ -152,7 +150,7 @@ export const mountMotion = (
   let b: number | undefined;
   let source: LoopSource | undefined;
   const placedOf = (scene: string): Placed<SceneSpec> | undefined =>
-    film.placed.find((p) => p.spec.id === scene);
+    Result.getOrUndefined(sceneOf(film.placed, scene));
   /** The span a source loops now: a cue follows its own edits. */
   const rangeOf = (s: LoopSource): LoopRange | undefined => {
     if (s.kind === 'ab')
@@ -173,9 +171,17 @@ export const mountMotion = (
     looping = next;
     player.setLoop(next);
   };
-  const startLoop = (s: LoopSource) => {
+  /** Loop `s` from now on, and keep it through a reload. */
+  const setSource = (s: LoopSource | undefined) => {
     source = s;
     applyLoop();
+    if (s?.kind === 'ab' && a !== undefined && b !== undefined)
+      view.patch({ loop: { kind: 'ab', from: a, to: b } });
+    else if (s?.kind === 'cue') view.patch({ loop: s });
+    else view.patch({ loop: undefined });
+  };
+  const startLoop = (s: LoopSource) => {
+    setSource(s);
     if (looping === undefined) return;
     player.seek(looping.from);
     player.play();
@@ -198,10 +204,9 @@ export const mountMotion = (
     startLoop({ kind: 'ab' });
   });
   q<HTMLButtonElement>('[data-act="loop-off"]').addEventListener('click', () => {
-    source = undefined;
     a = undefined;
     b = undefined;
-    applyLoop();
+    setSource(undefined);
     say('');
   });
 
@@ -213,6 +218,12 @@ export const mountMotion = (
   pin(onion.c);
   const ghost = canvas2d(film.width, film.height);
   const small = canvas2d(w, h);
+  /**
+   * The frame shown, as brightness per pixel: computed once per paint rather
+   * than again for every ghost. The buffer is reused; its values are this
+   * paint's only.
+   */
+  const nowBrightness = new Float64Array(w * h);
   let onionOn = false;
   let pending = false;
 
@@ -233,7 +244,8 @@ export const mountMotion = (
     const count = whole(countIn.value, 2, 4);
     const spacing = whole(spacingIn.value, 3, 15);
     const T = player.now();
-    const now = pixelsAt(undefined);
+    brightnessInto(nowBrightness, pixelsAt(undefined));
+    const now = nowBrightness;
     const light = inkSign(now);
     const out = onion.ctx.createImageData(w, h);
     // Farthest first, so the nearest ghost ends on top.
@@ -253,16 +265,42 @@ export const mountMotion = (
     pending = true;
     requestAnimationFrame(paintOnion);
   };
-  onionBtn.addEventListener('click', () => {
-    onionOn = !onionOn;
+  const keepOnion = () =>
+    view.patch({
+      onion: {
+        on: onionOn,
+        count: whole(countIn.value, 2, 4),
+        spacing: whole(spacingIn.value, 3, 15),
+      },
+    });
+  const setOnion = (on: boolean) => {
+    onionOn = on;
     onionBtn.classList.toggle('on', onionOn);
+    keepOnion();
     scheduleOnion();
-  });
-  countIn.addEventListener('change', scheduleOnion);
-  spacingIn.addEventListener('change', scheduleOnion);
+  };
+  onionBtn.addEventListener('click', () => setOnion(!onionOn));
+  for (const input of [countIn, spacingIn])
+    input.addEventListener('change', () => {
+      keepOnion();
+      scheduleOnion();
+    });
 
   player.onDraw(() => {
     if (source !== undefined) applyLoop();
     if (onionOn) scheduleOnion();
   });
+
+  // ── The view the page was in before a write reloaded it. ──
+  const kept: MotionView = view.get();
+  countIn.value = String(kept.onion.count);
+  spacingIn.value = String(kept.onion.spacing);
+  if (kept.onion.on) setOnion(true);
+  if (kept.rate !== 1) setRate(kept.rate);
+  if (kept.loop?.kind === 'ab') {
+    a = kept.loop.from;
+    b = kept.loop.to;
+    setSource({ kind: 'ab' });
+  } else if (kept.loop?.kind === 'cue') setSource(kept.loop);
+  if (looping !== undefined) say(`looping ${looping.from.toFixed(2)} – ${looping.to.toFixed(2)}`);
 };

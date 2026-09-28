@@ -318,20 +318,22 @@ const placard = (f: MessageFrame) => {
   const show = f.at('placard') * (1 - f.at('placardOut'));
   if (show <= 0.01) return;
   at(ctx, { x: 960, y: 190, scale: show, rot: -0.02 }, () => {
-    piece(ctx, plate(0, 0, 620, 110), C.cream, f.hand('placard'), { line: 3, torn: 2 });
-    probePlate(ctx, 'Minneapolis, 1888', -310, -55, 620, 110);
-    write(
-      ctx,
-      'Minneapolis, 1888',
-      0,
-      22,
-      { family: F.display, size: 62, weight: 600, color: C.ink, align: 'center' },
-      f.hand('placardText'),
-      {
-        progress: Math.min(1, f.spoken('year', 'two') * 2.2),
-        reveal: 'write',
-        boil: 0.3,
-      },
+    const board = plate(0, 0, 620, 110);
+    piece(ctx, board, C.cream, f.hand('placard'), { line: 3, torn: 2 });
+    probePlate(ctx, board, () =>
+      write(
+        ctx,
+        'Minneapolis, 1888',
+        0,
+        22,
+        { family: F.display, size: 62, weight: 600, color: C.ink, align: 'center' },
+        f.hand('placardText'),
+        {
+          progress: Math.min(1, f.spoken('year', 'two') * 2.2),
+          reveal: 'write',
+          boil: 0.3,
+        },
+      ),
     );
   });
 };

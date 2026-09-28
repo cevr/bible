@@ -5,7 +5,7 @@
 // after it. Pure.
 
 import { Option } from 'effect';
-import type { Note, Reply } from '../core/schema.ts';
+import type { Note, NoteEvent, NotesFile, Reply } from '../core/schema.ts';
 import type { NotesPaths } from './notes-store.ts';
 
 /** Text in double quotes, on one line. */
@@ -38,6 +38,25 @@ export const replyLine = (at: NotesPaths, note: Note, reply: Reply) => {
   const still = Option.getOrElse(Option.fromNullishOr(reply.still), () => note.still);
   return `reply id=${note.id} seq=${reply.seq} by=${reply.by} ${fields(note)} still=${at.stills}/${still} text=${quoted(reply.text)}`;
 };
+
+/**
+ * The line for a change the agent has not seen: a new note, or a reply from
+ * the user. None for the agent's own replies and for resolving, which the
+ * agent does not act on.
+ */
+export const eventLine = (at: NotesPaths, event: NoteEvent): Option.Option<string> => {
+  if (event._tag === 'NoteAdded') return Option.some(noteLine(at, event.note, event.seq));
+  if (event._tag === 'NoteReplied' && event.reply.by === 'user')
+    return Option.some(replyLine(at, event.note, event.reply));
+  return Option.none();
+};
+
+/** Where the agent last left the notes: the change of its newest reply, 0 before its first. */
+export const agentCursor = (file: NotesFile) =>
+  Math.max(
+    0,
+    ...file.notes.flatMap((n) => n.thread.filter((r) => r.by === 'agent').map((r) => r.seq)),
+  );
 
 /** The notes file's cursor: pass it to `--watch --since` to see every change after it. */
 export const cursorLine = (seq: number) => `cursor seq=${seq}`;

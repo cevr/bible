@@ -1,18 +1,20 @@
 // The lab's compare: the frame shown beside the same frame as HEAD declared
 // the scene's timeline and knobs. The server reads the scene file at HEAD
-// (`GET /lab/scenes/:scene/head`, parsed with the same locator and parser the
+// (`GET /lab/<film>/scenes/:scene/head`, parsed with the same locator and parser the
 // writer uses); the page draws HEAD's values through the code it has now
 // (`film.render(…, { edit })`, one frame, nothing kept) onto a layer over the
 // film. A wipe shows HEAD left of a divider you drag, now to its right; blink
 // flips between them. Only data can differ this way: when the file's code
 // changed since HEAD, the panel says so.
 
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import type { SceneEdit } from '../canvas/film.ts';
+import { sceneOf } from '../core/layout.ts';
 import { HeadSource } from '../core/schema.ts';
+import { el, svg } from './dom.ts';
 import type { Player } from './main.ts';
+import type { ViewStore } from './view-state.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 const decodeHead = Schema.decodeUnknownSync(HeadSource);
 /** How long each side of a blink shows. */
 const BLINK_MS = 450;
@@ -24,23 +26,6 @@ type Loaded =
   | { readonly kind: 'head'; readonly head: HeadSource; readonly edit: SceneEdit }
   | { readonly kind: 'none'; readonly reason: string };
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
-
 /**
  * Mount the compare: a section in the lab panel, the HEAD layer (`pin` keeps
  * it over the film) and the wipe's divider on the lab's overlay.
@@ -50,6 +35,8 @@ export const mountCompare = (
   panel: HTMLElement,
   overlay: SVGSVGElement,
   pin: (layer: HTMLElement) => void,
+  api: string,
+  view: ViewStore,
 ): void => {
   const { film } = player;
   const section = el('section', 'lab-compare-tools');
@@ -89,7 +76,7 @@ export const mountCompare = (
 
   let mode: Mode = 'off';
   /** Where the divider sits, 0–1 across the frame. */
-  let split = 0.5;
+  let split = view.get().compare.split;
   let blinkShowsHead = true;
   let blinker: ReturnType<typeof setInterval> | undefined;
   const loaded = new Map<string, Loaded>();
@@ -113,11 +100,11 @@ export const mountCompare = (
   const load = (scene: string) => {
     if (loaded.has(scene) || loading.has(scene)) return;
     loading.add(scene);
-    fetch(`/lab/scenes/${encodeURIComponent(scene)}/head`)
+    fetch(`${api}/scenes/${encodeURIComponent(scene)}/head`)
       .then(async (res): Promise<Loaded> => {
         if (!res.ok) return { kind: 'none', reason: (await res.text()).replace(/^\w+: /, '') };
         const head = decodeHead(await res.json());
-        const p = film.placed.find((x) => x.spec.id === scene);
+        const p = Result.getOrUndefined(sceneOf(film.placed, scene));
         // HEAD's literals over today's declarations: a span HEAD computed stays as it is now.
         const edit: SceneEdit = {
           timeline: { ...p?.spec.timeline, ...head.timeline },
@@ -173,6 +160,7 @@ export const mountCompare = (
 
   const setMode = (next: Mode) => {
     mode = next;
+    view.patch({ compare: { mode: next, split } });
     for (const b of buttons) b.classList.toggle('on', b.dataset['mode'] === next);
     if (blinker !== undefined) clearInterval(blinker);
     blinker = undefined;
@@ -203,6 +191,7 @@ export const mountCompare = (
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      view.patch({ compare: { mode, split } });
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -211,4 +200,6 @@ export const mountCompare = (
   player.onDraw(() => {
     if (mode !== 'off') schedule();
   });
+  // The mode the page was in before a write reloaded it.
+  if (view.get().compare.mode !== 'off') setMode(view.get().compare.mode);
 };

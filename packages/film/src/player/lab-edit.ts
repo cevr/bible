@@ -2,21 +2,23 @@
 // film's timeline, draggable, and an inspector for the selected cue and the
 // scene's knobs. A drag previews in memory — `film.preview`, which resolves
 // the edited timeline on the scene's own clock exactly as the layout does —
-// and writes once, on release (`POST /lab/cues/:scene/:cue`). Each write
+// and writes once, on release (`POST /lab/<film>/cues/:scene/:cue`). Each write
 // lands in the scene's `.ts` file; the dev server rebuilds and the page
 // reloads at the same `#T`, with the selection kept in the URL
 // (`&sel=cue:hand:topple`). `film check --static` runs after every write, and
 // its findings show under the inspector.
 //
 // On the strip: drag a cue's body to move its offset, its left edge to move
-// its start (offset and dur), its right edge to move its end (dur). Edges
-// snap to word starts and ends, marks and other cues' edges within a few
-// pixels, else move by whole frames; hold shift to place freely.
+// its start (offset and dur), its right edge to move its end (dur). A bar
+// too short for two edges and a body (under 3 × EDGE_PX) is all body; alt-drag
+// it to move its end. Edges snap to word starts and ends, marks and other
+// cues' edges within a few pixels, else move by whole frames; hold shift to
+// place freely.
 
-import { Option, Schema } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
 import { type Affine, applyAffine, invertAffine, sameAffine } from '../core/affine.ts';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import {
   type CheckLine,
   CheckReport,
@@ -32,13 +34,13 @@ import {
 } from '../core/schema.ts';
 import { ease } from '../core/time.ts';
 import { DEFAULT_EASE, type ResolvedCue } from '../core/timeline.ts';
+import { el, postJson, required, svg } from './dom.ts';
 import type { Player } from './main.ts';
 
-const SVG = 'http://www.w3.org/2000/svg';
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
 const SNAP_PX = 8;
 /** How wide (screen pixels) a cue's edge is to grab. */
-const EDGE_PX = 6;
+export const EDGE_PX = 6;
 
 const decodeWrite = Schema.decodeUnknownSync(LabWrite);
 const decodeSource = Schema.decodeUnknownSync(SceneSource);
@@ -50,6 +52,18 @@ type Selection =
   | { readonly kind: 'knob'; readonly scene: string; readonly name: string };
 
 type DragMode = 'move' | 'start' | 'end';
+
+/**
+ * What a press `x` pixels into a cue's bar `width` wide grabs. A bar under
+ * 3 × EDGE_PX has no room for two edges and a body, so it is all body (its
+ * offset), or its end (dur) with alt held.
+ */
+export const dragModeAt = (x: number, width: number, alt: boolean): DragMode => {
+  if (width < EDGE_PX * 3) return alt ? 'end' : 'move';
+  if (x < EDGE_PX) return 'start';
+  if (width - x < EDGE_PX) return 'end';
+  return 'move';
+};
 
 /** Where a dragged cue now sits: its offset from its anchor and its length, in seconds. */
 interface Placement {
@@ -81,23 +95,6 @@ const selectionToUrl = (sel: Selection | undefined) => {
   history.replaceState(null, '', `?${params.toString()}${location.hash}`);
 };
 
-const el = <K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] => {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-
-const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
-  const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-};
-
 /** Seconds and pixels to the thousandth, as the write stores them. */
 const round = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
@@ -126,15 +123,8 @@ const curve = (name: EaseName) => {
   return node;
 };
 
-const post = async (url: string, body: unknown) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return decodeWrite(await res.json());
-};
+/** A write to the lab's API, answered with what landed. */
+const post = (url: string, body: unknown) => postJson(url, body).then(decodeWrite);
 
 /**
  * Mount the editor: the strip in the player's bar, the inspector at the top
@@ -146,15 +136,44 @@ export interface Editor {
   readonly selectedCue: () => { readonly scene: string; readonly name: string } | undefined;
 }
 
-export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGElement): Editor => {
+export const mountEditor = (
+  player: Player,
+  panel: HTMLElement,
+  overlay: SVGSVGElement,
+  api: string,
+): Editor => {
   const { film } = player;
+  /**
+   * A write to a scene file: the page reloads once it lands, so `#T` is held
+   * at the frame the write is asked at first, and the reload lands there. A
+   * refused write reloads nothing, and lets `#T` follow the frame again.
+   */
+  const write = (url: string, body: unknown) => {
+    player.holdT();
+    return post(url, body).catch((err: unknown) => {
+      player.settle();
+      throw err;
+    });
+  };
 
   // ── State. ──
   let selection = selectionFromUrl();
-  /** The scene the strip shows, and what the lab knows of its source. */
+  /** The scene the strip shows. */
   let stripScene: string | undefined;
-  let source: SceneSource | undefined;
-  let sourceError = '';
+  /**
+   * What the lab knows of a scene's source: the strip scene's and the
+   * selection's, which differ once the playhead leaves the selected scene.
+   * Each is fetched again when its scene is shown or selected.
+   */
+  const sources = new Map<string, SceneSource | { readonly error: string }>();
+  const sourceOf = (scene: string): SceneSource | undefined => {
+    const known = sources.get(scene);
+    return known === undefined || 'error' in known ? undefined : known;
+  };
+  const sourceErrorOf = (scene: string): string => {
+    const known = sources.get(scene);
+    return known !== undefined && 'error' in known ? known.error : '';
+  };
   /** An edit previewed and not yet reloaded from source, by scene. */
   const edits = new Map<string, SceneEdit>();
   let findings: ReadonlyArray<CheckLine> = [];
@@ -162,7 +181,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   let dragging = false;
 
   const placedOf = (scene: string): Placed<SceneSpec> | undefined =>
-    film.placed.find((p) => p.spec.id === scene);
+    Result.getOrUndefined(sceneOf(film.placed, scene));
   const declaredTimeline = (p: Placed<SceneSpec>): Timeline =>
     edits.get(p.spec.id)?.timeline ?? p.spec.timeline ?? {};
   const declaredKnobs = (p: Placed<SceneSpec>): Knobs =>
@@ -191,7 +210,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const p = placedOf(stripScene ?? '');
     stripRows.replaceChildren();
     if (p === undefined) return;
-    stripHead.textContent = `${p.spec.id} · ${p.dur.toFixed(2)}s · ${source?.file ?? sourceError}`;
+    stripHead.textContent = `${p.spec.id} · ${p.dur.toFixed(2)}s · ${sourceOf(p.spec.id)?.file ?? sourceErrorOf(p.spec.id)}`;
     const words = el('div', 'lab-strip-words');
     for (const w of p.voice.words) {
       const word = el('span', 'lab-word', w.text);
@@ -240,16 +259,21 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     const p = placedOf(stripScene ?? '');
     if (p === undefined) return;
     const r = stripRows.getBoundingClientRect();
-    const seek = (ev: PointerEvent) =>
-      player.seek(
+    const scrub = (ev: PointerEvent) =>
+      player.scrub(
         p.start + Math.max(0, Math.min(p.dur, ((ev.clientX - r.left) / r.width) * p.dur)),
       );
-    seek(e);
-    const move = (ev: PointerEvent) => seek(ev);
+    scrub(e);
+    const move = (ev: PointerEvent) => scrub(ev);
     window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', () => window.removeEventListener('pointermove', move), {
-      once: true,
-    });
+    window.addEventListener(
+      'pointerup',
+      () => {
+        window.removeEventListener('pointermove', move);
+        player.settle();
+      },
+      { once: true },
+    );
   });
 
   /** Where an edge may snap: words, marks, and the other cues' edges; scene-local seconds. */
@@ -260,14 +284,15 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   ];
 
   /** Why the lab will not write a scene's timeline or knobs at all, when it will not. */
-  const refusal = (field: 'timeline' | 'knobs') =>
-    source?.refused.find((r) => r.field === field)?.reason;
+  const refusal = (scene: string, field: 'timeline' | 'knobs') =>
+    sourceOf(scene)?.refused.find((r) => r.field === field)?.reason;
   /** Why a cue's or knob's value cannot be written: the field refused, else computed. */
-  const whyNot = (field: 'timeline' | 'knobs') => refusal(field) ?? 'it is computed in the source';
+  const whyNot = (scene: string, field: 'timeline' | 'knobs') =>
+    refusal(scene, field) ?? 'it is computed in the source';
 
-  /** A field the lab may write: a literal, or absent (then added). */
-  const writable = (cue: string, field: 'offset' | 'dur' | 'ease') => {
-    const found = source?.cues.find((c) => c.name === cue);
+  /** A field of a scene's cue the lab may write: a literal, or absent (then added). */
+  const writable = (scene: string, cue: string, field: 'offset' | 'dur' | 'ease') => {
+    const found = sourceOf(scene)?.cues.find((c) => c.name === cue);
     return found !== undefined && found[field] !== 'computed';
   };
 
@@ -278,20 +303,16 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     // Measured before selecting: selecting draws the strip again, with new bars.
     const rect = bar.getBoundingClientRect();
     select({ kind: 'cue', scene: p.spec.id, name: cue });
-    const mode: DragMode =
-      e.clientX - rect.left < EDGE_PX && rect.width > EDGE_PX * 2
-        ? 'start'
-        : rect.right - e.clientX < EDGE_PX
-          ? 'end'
-          : 'move';
+    const mode = dragModeAt(e.clientX - rect.left, rect.width, e.altKey);
     const needs: ReadonlyArray<'offset' | 'dur'> =
       mode === 'move' ? ['offset'] : mode === 'end' ? ['dur'] : ['offset', 'dur'];
-    if (source === undefined || !needs.every((f) => writable(cue, f))) {
+    const scene = p.spec.id;
+    if (sourceOf(scene) === undefined || !needs.every((f) => writable(scene, cue, f))) {
       setStatus(
-        source === undefined
-          ? `cannot edit: ${sourceError || 'no source for this scene'}`
-          : refusal('timeline') !== undefined
-            ? `cannot drag ${cue}: ${whyNot('timeline')}`
+        sourceOf(scene) === undefined
+          ? `cannot edit: ${sourceErrorOf(scene) || 'no source for this scene'}`
+          : refusal(scene, 'timeline') !== undefined
+            ? `cannot drag ${cue}: ${whyNot(scene, 'timeline')}`
             : `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
       );
       return;
@@ -372,14 +393,14 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   };
   const writeCue = (scene: string, cue: string, patch: CuePatch) => {
     setStatus('writing…');
-    post(`/lab/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
+    write(`${api}/cues/${encodeURIComponent(scene)}/${encodeURIComponent(cue)}`, patch).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
   };
   const writeKnob = (scene: string, knob: string, value: Knob) => {
     setStatus('writing…');
-    post(`/lab/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
+    write(`${api}/knobs/${encodeURIComponent(scene)}/${encodeURIComponent(knob)}`, { value }).then(
       shown,
       (err: unknown) => failed(scene, err),
     );
@@ -469,8 +490,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     select({ kind: 'knob', scene, name });
     const p = placedOf(scene);
     if (p === undefined) return;
-    if (!knobWritable(name)) {
-      setStatus(`cannot move ${name}: ${whyNot('knobs')}`);
+    if (!knobWritable(scene, name)) {
+      setStatus(`cannot move ${name}: ${whyNot(scene, 'knobs')}`);
       return;
     }
     const from = at.value;
@@ -500,8 +521,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   };
-  const knobWritable = (name: string) =>
-    source?.knobs.find((k) => k.name === name)?.state === 'literal';
+  const knobWritable = (scene: string, name: string) =>
+    sourceOf(scene)?.knobs.find((k) => k.name === name)?.state === 'literal';
 
   // ── The inspector. ──
   const section = el('section', 'lab-edit');
@@ -509,7 +530,8 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     <header>
       <strong>Edit</strong>
       <span class="lab-edit-file"></span>
-      <button data-act="undo" title="put the scene file back as it was before the last write">Undo write</button>
+      <button data-act="undo" title="put the scene file back as it was before the newest write (⌘Z)" disabled>Undo</button>
+      <button data-act="redo" title="make the newest undone write again (⇧⌘Z)" disabled>Redo</button>
     </header>
     <div class="lab-edit-body"></div>
     <ul class="lab-findings"></ul>
@@ -517,11 +539,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
   const header = panel.querySelector('header');
   if (header === null) panel.prepend(section);
   else header.after(section);
-  const q = <T extends Element>(sel: string) => {
-    const found = section.querySelector<T & Element>(sel);
-    if (found === null) throw new Error(`missing ${sel}`);
-    return found;
-  };
+  const q = <T extends Element>(sel: string) => required<T>(section, sel);
   const fileEl = q<HTMLSpanElement>('.lab-edit-file');
   const body = q<HTMLDivElement>('.lab-edit-body');
   const findingsEl = q<HTMLUListElement>('.lab-findings');
@@ -551,7 +569,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     box.append(el('div', 'lab-edit-title', `${p.spec.id} · cue ${name}`));
     const grid = el('div', 'lab-edit-grid');
     grid.append(el('span', 'lab-edit-key', 'anchor'), el('span', 'lab-edit-val', anchorText(span)));
-    const offset = numberInput(span.offset ?? 0, writable(name, 'offset'), (v) => {
+    const offset = numberInput(span.offset ?? 0, writable(p.spec.id, name, 'offset'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
         timeline: { ...declaredTimeline(p), [name]: { ...span, offset: v } },
@@ -560,7 +578,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       writeCue(p.spec.id, name, { offset: round(v) });
     });
     offset.dataset['field'] = 'offset';
-    const dur = numberInput(span.dur ?? 0, writable(name, 'dur'), (v) => {
+    const dur = numberInput(span.dur ?? 0, writable(p.spec.id, name, 'dur'), (v) => {
       preview(p.spec.id, {
         ...edits.get(p.spec.id),
         timeline: { ...declaredTimeline(p), [name]: { ...span, dur: Math.max(0, v) } },
@@ -585,7 +603,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       ),
     );
     const eases = el('div', 'lab-eases');
-    const canEase = writable(name, 'ease');
+    const canEase = writable(p.spec.id, name, 'ease');
     for (const e of EaseName.literals) {
       const b = el('button', `lab-ease${e === c.ease ? ' on' : ''}`);
       b.type = 'button';
@@ -621,7 +639,7 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       row.dataset['knob'] = name;
       if (selection?.kind === 'knob' && selection.name === name) row.classList.add('selected');
       row.append(el('span', 'lab-edit-key', name));
-      const ok = knobWritable(name);
+      const ok = knobWritable(p.spec.id, name);
       const commit = (v: Knob) => {
         preview(p.spec.id, { ...edits.get(p.spec.id), knobs: { ...declaredKnobs(p), [name]: v } });
         writeKnob(p.spec.id, name, v);
@@ -632,21 +650,33 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
           numberInput(value[0], ok, (v) => commit([v, value[1]])),
           numberInput(value[1], ok, (v) => commit([value[0], v])),
         );
-        const at = handleOf(p.spec.id, name);
-        const where = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
-        row.append(el('span', 'lab-edit-note', where));
+        // Filled, and kept current frame by frame, by `placeWhere`.
+        row.append(el('span', 'lab-edit-note lab-knob-where'));
       }
       if (!ok)
-        row.append(el('span', 'lab-edit-note', refusal('knobs') ?? 'computed in the source'));
+        row.append(
+          el('span', 'lab-edit-note', refusal(p.spec.id, 'knobs') ?? 'computed in the source'),
+        );
       box.append(row);
     }
     return box;
   };
 
+  /** Each point knob row's note: whether this frame has its handle, and if not, why. */
+  const placeWhere = () => {
+    const scene = selection?.scene ?? film.sceneAt(player.now()).spec.id;
+    for (const note of body.querySelectorAll<HTMLElement>('.lab-knob-where')) {
+      const name = note.closest<HTMLElement>('.lab-knob')?.dataset['knob'];
+      if (name === undefined) continue;
+      const at = handleOf(scene, name);
+      note.textContent = at.kind === 'handle' ? 'drag its handle on the frame' : at.why;
+    }
+  };
+
   const renderInspector = () => {
     const scene = selection?.scene ?? film.sceneAt(player.now()).spec.id;
     const p = placedOf(scene);
-    fileEl.textContent = source !== undefined && source.scene === scene ? source.file : '';
+    fileEl.textContent = sourceOf(scene)?.file ?? '';
     body.replaceChildren();
     if (p !== undefined) {
       if (selection?.kind === 'cue') body.append(cueInspector(p, selection.name));
@@ -662,9 +692,12 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       }),
     );
     statusEl.textContent = status;
+    placeWhere();
   };
 
   const select = (sel: Selection) => {
+    // The selection's scene may not be the one shown: its source is its own.
+    if (sel.scene !== stripScene) loadSource(sel.scene);
     selection = sel;
     selectionToUrl(sel);
     renderStrip();
@@ -672,32 +705,45 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
     renderHandles();
   };
 
-  q<HTMLButtonElement>('[data-act="undo"]').addEventListener('click', () => {
-    setStatus('undoing…');
-    post('/lab/undo', {})
+  // ── Undo and Redo: the server's bounded stack of the lab's writes. Each
+  // changes a scene file, so the page reloads and learns what it did from
+  // `check` (`latest`), and whether there is more to undo or redo. ──
+  const undoBtn = q<HTMLButtonElement>('[data-act="undo"]');
+  const redoBtn = q<HTMLButtonElement>('[data-act="redo"]');
+  const step = (verb: 'undo' | 'redo') => {
+    setStatus(`${verb === 'undo' ? 'undoing' : 'redoing'}…`);
+    write(`${api}/${verb}`, {})
       .then((w) => {
         findings = w.findings;
-        setStatus(`undid ${w.target.replace(/^undo /, '')} in ${w.file}`);
+        setStatus(
+          `${verb === 'undo' ? 'undid' : 'redid'} ${w.target.replace(/^(undo|redo) /, '')} in ${w.file}`,
+        );
         renderInspector();
       })
       .catch((err: unknown) => setStatus(String(err instanceof Error ? err.message : err)));
+  };
+  undoBtn.addEventListener('click', () => step('undo'));
+  redoBtn.addEventListener('click', () => step('redo'));
+  window.addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+    e.preventDefault();
+    step(e.shiftKey ? 'redo' : 'undo');
   });
 
   // ── Following the frame: the strip follows the scene shown. ──
+  /** Fetch `scene`'s source again; what the lab knew of it stands until the answer lands. */
   const loadSource = (scene: string) => {
-    source = undefined;
-    sourceError = '';
-    fetch(`/lab/scenes/${encodeURIComponent(scene)}/source`)
+    fetch(`${api}/scenes/${encodeURIComponent(scene)}/source`)
       .then(async (res) => {
-        if (stripScene !== scene) return;
         if (!res.ok) {
-          sourceError = (await res.text()).replace(/^\w+: /, '');
+          sources.set(scene, { error: (await res.text()).replace(/^\w+: /, '') });
           return;
         }
-        source = decodeSource(await res.json());
+        sources.set(scene, decodeSource(await res.json()));
       })
       .catch((err: unknown) => {
-        sourceError = String(err);
+        sources.set(scene, { error: String(err) });
       })
       .finally(() => {
         renderStrip();
@@ -712,24 +758,28 @@ export const mountEditor = (player: Player, panel: HTMLElement, overlay: SVGSVGE
       loadSource(scene);
       if (!dragging) renderInspector();
     } else placePlayhead();
-    // Handles follow the frame, a dragged knob's included.
+    // Handles follow the frame, a dragged knob's included, and so do the rows' notes on them.
     renderHandles();
+    placeWhere();
   });
 
   // On load: the selection from the URL, and the film's findings as they stand.
-  if (selection !== undefined) select(selection);
   stripScene = film.sceneAt(player.now()).spec.id;
-  renderStrip();
   loadSource(stripScene);
+  if (selection !== undefined) select(selection);
+  renderStrip();
   renderHandles();
-  fetch('/lab/check')
+  fetch(`${api}/check`)
     .then(async (res) => {
       if (!res.ok) throw new Error(await res.text());
       const report = decodeCheck(await res.json());
       findings = report.findings;
-      // A write reloads the page before its answer lands: say what it was here.
-      if (report.last !== undefined)
-        status = `wrote ${report.last.file}: ${report.last.target} (Undo write puts it back)`;
+      // A write, undo or redo reloads the page before its answer lands: say what it was here.
+      if (report.latest !== undefined) status = `${report.latest.file}: ${report.latest.target}`;
+      undoBtn.disabled = report.undo === undefined;
+      redoBtn.disabled = report.redo === undefined;
+      undoBtn.title = `undo ${report.undo?.target ?? '(nothing to undo)'} (⌘Z)`;
+      redoBtn.title = `redo ${report.redo?.target ?? '(nothing to redo)'} (⇧⌘Z)`;
       renderInspector();
     })
     .catch((err: unknown) => setStatus(`check: ${String(err)}`));

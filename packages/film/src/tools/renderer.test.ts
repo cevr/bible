@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
-import { EncoderMissing, PageCrashed, PageError } from './errors.ts';
+import { EncoderMissing, MediaFailed, PageCrashed, PageError } from './errors.ts';
 import { RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
 import {
@@ -32,9 +32,8 @@ const video = RenderJob.Video({
   share: false,
 });
 
-const setup = (host: FakeRenderHost = {}) => {
+const setup = (host: FakeRenderHost = {}, files = new Map<string, Uint8Array>()) => {
   const ledger = emptyLedger();
-  const files = new Map<string, Uint8Array>();
   const layer = Renderer.layer.pipe(
     Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files), Path.layer]),
   );
@@ -43,6 +42,25 @@ const setup = (host: FakeRenderHost = {}) => {
       yield* (yield* Renderer).render(film, job);
     }).pipe(Effect.provide(layer));
   return { ledger, files, render };
+};
+
+/** A render whose joins keep, by file, the bytes each segment held when it was joined. */
+const joinedBytes = () => {
+  const files = new Map<string, Uint8Array>();
+  const joined = new Map<string, Uint8Array>();
+  const run = setup(
+    {
+      join: (film) =>
+        Effect.sync(() => {
+          for (const s of film.segments)
+            Option.map(Option.fromNullishOr(files.get(s.file)), (bytes) =>
+              joined.set(s.file, bytes),
+            );
+        }),
+    },
+    files,
+  );
+  return { ...run, joined };
 };
 
 /** Every resource the render opened was closed, and every chunk's encode ended. */
@@ -57,7 +75,7 @@ const expectAllClosed = (ledger: RenderLedger) => {
 describe('Renderer', () => {
   it.live('renders every frame once, joins the segments in order, and closes everything', () =>
     Effect.gen(function* () {
-      const { ledger, files, render } = setup();
+      const { ledger, files, joined, render } = joinedBytes();
       yield* render(video);
       expect([...ledger.frames].sort((a, b) => a - b)).toEqual(
         Array.from({ length: 600 }, (_, i) => i),
@@ -71,7 +89,7 @@ describe('Renderer', () => {
       expect(join?.segments.map((s) => s.at)).toEqual(
         Array.from({ length: 16 }, (_, k) => (k * 38) / 30),
       );
-      expect(files.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
+      expect(joined.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
       expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test.vtt')).toBe(true);
       expectAllClosed(ledger);
@@ -80,13 +98,45 @@ describe('Renderer', () => {
 
   it.live('a share copy encodes in the same pass and joins beside the film', () =>
     Effect.gen(function* () {
-      const { ledger, files, render } = setup();
+      const { ledger, joined, render } = joinedBytes();
       yield* render({ ...video, share: true });
       expect(ledger.encoders.spawned).toBe(16);
       expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
       const [, share] = ledger.joins;
-      expect(files.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
+      expect(joined.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
       expect(share?.segments.map((s) => s.at)).toEqual(ledger.joins[0]?.segments.map((s) => s.at));
+    }),
+  );
+
+  it.live('the segments go once the film is joined, and stay when the join fails', () =>
+    Effect.gen(function* () {
+      const segments = (files: Map<string, Uint8Array>) =>
+        [...files.keys()].filter((f) => f.includes('/segments/') || f.includes('/share/'));
+      const done = setup();
+      yield* done.render({ ...video, share: true });
+      expect(done.ledger.joins.length).toBe(2);
+      expect(segments(done.files)).toEqual([]);
+
+      const failed = setup({
+        join: () => Effect.fail(MediaFailed.make({ op: 'join', file: 'x', reason: 'no' })),
+      });
+      const exit = yield* Effect.exit(failed.render({ ...video, share: true }));
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(segments(failed.files).length).toBe(32);
+    }),
+  );
+
+  it.live('a video needing more encoders than the machine runs fails before a page opens', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      // Eight pages with a share copy are sixteen encoders: the hardware encoder hangs at sixteen.
+      const exit = yield* Effect.exit(render({ ...video, workers: 8, share: true }));
+      expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e.message))).toEqual(
+        Option.some(
+          '8 pages with a share copy need 16 encoders at once, over the 14 a render may run; use --workers 7 or fewer, or --no-share',
+        ),
+      );
+      expect(ledger.pages.opened).toBe(0);
     }),
   );
 
@@ -203,6 +253,32 @@ describe('Renderer', () => {
     }),
   );
 
+  it.live('a contact sheet over a range past the film shows each frame once', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      const sheet = (from: number, to: number) =>
+        render(
+          RenderJob.Contact({
+            tag: 'g',
+            captions: false,
+            workers: 1,
+            every: 1,
+            from: Option.some(from),
+            to: Option.some(to),
+          }),
+        );
+      yield* sheet(-5, 2);
+      yield* sheet(18, 25);
+      expect(ledger.contacts).toEqual([
+        [0, 30],
+        [540, 570],
+      ]);
+      // Wholly past the film: nothing to show, as with a video.
+      const error = yield* Effect.flip(sheet(25, 30));
+      expect(error._tag).toBe('RangeEmpty');
+    }),
+  );
+
   it.live('a look-book is one page composing one sheet, written beside the stills', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
@@ -225,8 +301,8 @@ describe('Renderer', () => {
         const { ledger, files, render } = setup({ info });
         files.set(MASTER, text('pcm'));
         yield* render(video);
-        const audio = ledger.joins[0]?.audio ?? Option.none();
-        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(20 * 44100));
+        expect(ledger.aac).toEqual([20 * 44100]);
+        expect(Option.isSome(ledger.joins[0]?.audio ?? Option.none())).toBe(true);
         expectAllClosed(ledger);
       }),
     );
@@ -239,8 +315,51 @@ describe('Renderer', () => {
         const [join] = ledger.joins;
         expect(join?.frames).toBe(90);
         expect(join?.segments[0]?.at).toBe(0);
-        const audio = join?.audio ?? Option.none();
-        expect(Option.map(audio, (pcm) => pcm.frames)).toEqual(Option.some(3 * 44100));
+        expect(ledger.aac).toEqual([3 * 44100]);
+      }),
+    );
+
+    it.live('a page failure stops the track encode with the render', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({
+          info,
+          aac: Effect.sleep('10 seconds'),
+          frame: (i) =>
+            Effect.when(
+              Effect.fail(PageError.make({ reason: 'boom' })),
+              Effect.sync(() => i === 100),
+            ),
+        });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('PageError'));
+        expect(ledger.aacInterrupted.count).toBe(1);
+      }),
+    );
+
+    it.live('a failed track encode fails the render before every frame is drawn', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({
+          info,
+          aac: Effect.fail(MediaFailed.make({ op: 'encode', file: 'the track', reason: 'no' })),
+          frame: () => Effect.sleep('5 millis'),
+        });
+        files.set(MASTER, text('pcm'));
+        const exit = yield* Effect.exit(render(video));
+        expect(tagOf(exit)).toEqual(Option.some('MediaFailed'));
+        expect(ledger.frames.length).toBeLessThan(600);
+        expectAllClosed(ledger);
+      }),
+    );
+
+    it.live('a share copy joins the same track: it is encoded once', () =>
+      Effect.gen(function* () {
+        const { ledger, files, render } = setup({ info });
+        files.set(MASTER, text('pcm'));
+        yield* render({ ...video, share: true });
+        expect(ledger.aac).toEqual([20 * 44100]);
+        const [master, share] = ledger.joins.map((j) => Option.getOrThrow(j.audio));
+        expect(share).toBe(master);
       }),
     );
 

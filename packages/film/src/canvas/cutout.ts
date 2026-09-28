@@ -2,7 +2,9 @@
 // paper core showing where it tore, pastel grain on its face, and a soft
 // shadow where it lifts off the sheet beneath.
 
+import { type Vec2, vec2 } from 'math';
 import { type Hand, type Path, type Pt, resample } from './ink.ts';
+import { offscreen } from './paper.ts';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
 
@@ -40,6 +42,9 @@ export const raised = (ctx: CanvasRenderingContext2D, height: number, draw: () =
   }
 };
 
+/** Scratch for the outward normal at each point, written and read within one step. */
+const normal: Vec2 = [0, 0];
+
 /** Push a closed outline outward by `amount` plus torn noise. */
 const tear = (shape: Path, amount: number, rough: number, seed: number, boil: number): Pt[] => {
   const closed = [...shape, shape[0] ?? [0, 0]];
@@ -62,11 +67,11 @@ const tear = (shape: Path, amount: number, rough: number, seed: number, boil: nu
     const prev = pts[(i - 1 + n) % n] ?? p;
     const next = pts[(i + 1) % n] ?? p;
     if (i > 0) s += 3;
-    let nx = next[1] - prev[1];
-    let ny = -(next[0] - prev[0]);
-    const nl = Math.hypot(nx, ny) || 1;
-    nx = (nx / nl) * out;
-    ny = (ny / nl) * out;
+    normal[0] = next[1] - prev[1];
+    normal[1] = -(next[0] - prev[0]);
+    vec2.normalize(normal, normal);
+    const nx = normal[0] * out;
+    const ny = normal[1] * out;
     // Torn fibre: coarse wander + fine tooth, and a whisper of boil.
     const d =
       amount +
@@ -88,11 +93,7 @@ let pastel: HTMLCanvasElement | undefined;
 /** Directional crayon streaks, light and dark, on a transparent tile. */
 const pastelTile = (): HTMLCanvasElement => {
   if (pastel !== undefined) return pastel;
-  const c = document.createElement('canvas');
-  c.width = 320;
-  c.height = 320;
-  const ctx = c.getContext('2d');
-  if (ctx === null) throw new Error('2d context unavailable');
+  const { c, ctx } = offscreen(320, 320);
   const r = rng(4242);
   ctx.lineCap = 'round';
   for (let i = 0; i < 2600; i++) {

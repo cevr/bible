@@ -12,30 +12,36 @@ bun run dev                                    # player at http://127.0.0.1:4400
 bun run narrate <film>                         # record stale beats, verify, remix full.wav
 bun run score <film>                           # generate stale music + effects, remix full.wav
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
-bun run cues <film> [scene]                    # scene times, {mark} times, named cues (fails if one overruns)
+bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
 bun run check <film> --static --allow-stale    # the no-browser leg
+bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # any render, over those scenes
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
+bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
+bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
-bun run notes reply <film> <id> "text" [--still file.png]
+bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
 ```
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
 loads and, for `lab`, the same server in development mode with the lab's
-routes at `/lab/*` (`LAB_PORT`, default 4401). Lab notes and their stills are
+routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
+is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print what is stale, record nothing),
 `--accept-mismatch` (keep a take whose transcript differs). Score flags:
-`--only music,<effect>` and `--dry-run`. The films are always `src/films`, the
+`--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
+anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
+film's sounds) for score. The films are always `src/films`, the
 folder the player imports (`cli.ts` hands it to the tools); `FILMS_OUT`
 overrides `out`.
 
@@ -48,11 +54,47 @@ missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
 review step, run by hand: the app's `gate` runs typecheck and tests only.
 
+Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
+(default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
+30th frame's pixels), `--baseline` (keep the run as
+`out/<film>/bench.baseline.json`), `--budget` (fail with `BenchOverBudget` when
+a scene's median or the film's summed draw is more than 10% over the baseline,
+or with `PixelsMoved` when a hashed frame differs; a scene under 2 ms never
+fails), `--no-captions` (as `render --no-captions`; captions are drawn by
+default, as a render burns them in). The bench times each frame in one headless
+export page, the render's page with the same captions choice, with the raster
+flushed; a run always compares with a baseline on disk and logs what it finds,
+and only `--budget` fails. A baseline is per machine and per captions setting:
+against one taken on another machine or with the other setting, a run warns and
+compares nothing, and `--budget` fails with `BaselineIncomparable`. A `--hash`
+run against a baseline kept without `--hash` fails with `BaselineUnhashed`
+rather than reporting no pixels moved; a `--budget` run without `--hash` warns
+that it compared no pixels. The budget is opt-in, never in the gate. `--workers n,n` instead renders the range (`--scene`, or
+`--from/--to`) at each page count `--runs` times, as `render` would (share copy
+on unless `--no-share`), and reports the median fps. A flag the chosen leg
+would ignore (`--hash` with `--workers`, `--from` without it) fails with
+`FlagsConflict`.
+
+Render flags that would be ignored fail with `FlagsConflict` before a browser
+opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
+`--scale`, `--out`, `--no-share`; `--contact` takes a range (clipped to the
+film like a video's, so no frame repeats; a range wholly outside it is
+`RangeEmpty`) but no video flag;
+`--scene` goes with neither `--from` nor `--to`.
+
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages, default 4), `--scale 0.5`, `--no-captions`, `--tag name` (output
+(pages, default 6: the knee of `bench --workers`), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
-(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass). A video's audio
-is encoded once from the film's track `narration/full.wav`, which must cover the
+(skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
+Each page runs one hardware encoder, two with the share copy; past 14 at once
+the encoder hangs, so a render that would need more fails with
+`TooManyEncoders` before a page opens (at most 7 pages with the share copy,
+14 without). The count is per render: two renders at once (say two `--tag`s)
+share the hardware, so keep their pages together within the same 14 or they
+can hang with no error. Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
+until the film is joined, then the folders go; a failed join leaves them. A video's audio
+is encoded to AAC once, beside the pages, and the video and its share copy
+take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`). Its captions are also
 written as WebVTT beside it. `mix` runs in-process (`@bible/film/core`'s
@@ -66,18 +108,21 @@ a render cleanly: every page, the browser and the server close. Player keys: spa
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills. The strip under the timeline shows the
-current scene's cues: drag one (body = offset, edges = start/end; snaps to
-words and frames, shift for free) and the release writes the new value into
+current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
+all body, alt-drag for its end; snaps to words and frames, shift for free) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
 under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
-runs after each write and its findings show in the panel; Undo write puts the
-last write back. Review with `git diff`. The panel's Motion section ghosts the frames
+runs after each write and its findings show in the panel; Undo (⌘Z) puts the
+newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
+over a change made since. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
 0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
 Compare draws the same frame as HEAD declared the scene's timeline and
-knobs: wipe (HEAD left of a divider you drag) or blink. The panel's
+knobs: wipe (HEAD left of a divider you drag) or blink. Speed, loop, onion,
+compare and play are kept through the reload a write causes (the tab's
+sessionStorage, per film). The panel's
 Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
 sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
@@ -102,7 +147,10 @@ src/films/<film>/
 **Narration drives the clock.** A scene lasts `lead + speech + tail`: `lead`
 defaults to 70% of its entrance (at least 0.5 s) and `tail` to 0.1 s, so the
 seam between two voices is about 0.6 s; set a longer `tail` only for a pause
-the script means (rule 9 of the film skill's CRAFT.md). Put
+the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
+seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
+with neither scene declaring it (no `tail` before it, and no `min` that
+stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
@@ -176,24 +224,24 @@ first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
 with the registry in `src/films/index.ts`. Scenes import from three entry
 points:
 
-| Entry point          | Module          | What it gives a scene                                                                                                     |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`             |
-|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                  |
-|                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                              |
-|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                    |
-|                      | `random.ts`     | seeded hash and noise                                                                                                     |
-|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                             |
-| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor, captions |
-|                      | `ink.ts`        | path builders (line, quad, spline, ellipse, morph) and variable-width brush `stroke`, `fill`, `hatch`                     |
-|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                    |
-|                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                  |
-|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                       |
-|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                   |
-|                      | `paper.ts`      | the sheet under everything and the grain over everything                                                                  |
-|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)         |
-|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                           |
-| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                  |
+| Entry point          | Module          | What it gives a scene                                                                                                                                                                                                                                                                     |
+| -------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | `layout.ts`     | `layout` (scenes end to end, sized to their takes), transitions (`fade`, `pan`, `ink`, `cut`), `captionLines`                                                                                                                                                                             |
+|                      | `timeline.ts`   | named cues: `Span` anchors (mark, `after`, `with`, scene landmark) and `resolveTimeline`                                                                                                                                                                                                  |
+|                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                                                                                                                                                                                              |
+|                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                                                                                                                                                                                    |
+|                      | `random.ts`     | seeded hash and noise                                                                                                                                                                                                                                                                     |
+|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                                                                                                                                                                             |
+| `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor and its finish (`FilmSpec.finish`: vignette, grain), captions (`CaptionStyle`: font, colours, plate); `createFilm` refuses a finish or plate value the canvas cannot draw |
+|                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse) and the variable-width brush `stroke`                                                                                                                                                                                                  |
+|                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow), `at` placement, `raised` (longer shadows for a nearer layer)                                                                                                                                                                                    |
+|                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                                                                                                                                                                  |
+|                      | `figure.ts`     | a poseable cut-paper person (`drawFigure`); `reachL`/`reachR` put a hand on a point                                                                                                                                                                                                       |
+|                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                                                                                                                                                                   |
+|                      | `paper.ts`      | the sheet under everything, the grain over everything, `offscreen` canvases                                                                                                                                                                                                               |
+|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                                                                                                                                                                         |
+|                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                                                                                                                                                                                           |
+| `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                                                                                                                                                                                  |
 
 `core` is pure and DOM-free, so the scripts and tests read it without a
 browser.
@@ -201,3 +249,12 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`.
+
+**Lint.** The repo's `film` oxlint plugin (`packages/film/lint/`, rules read
+as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,
+for every film but the frozen `righteousness-by-faith-v1`:
+
+| Rule                   | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `film/drawing-literal` | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()` |
+| `film/no-unprobed-ink` | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                       |

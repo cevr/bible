@@ -1,11 +1,13 @@
-// The film's clock as text: each scene's placement, its marks and its resolved
-// named cues, or each sound effect's film time. Pure; `film cues` prints it.
+// The film's clock as text: each scene's placement, its marks, its resolved
+// named cues and the seam to the next voice, or each sound effect's film time.
+// Pure; `film cues` prints it.
 
-import { Option, Result } from 'effect';
+import { Array as Arr, Option, Result } from 'effect';
 import type { SoundCueError, UnknownScene } from '../core/errors.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Cue, Sound } from '../core/schema.ts';
 import { cueTime } from '../core/sound.ts';
+import { longSeams, seamAfter } from './check.ts';
 
 export interface CueReport {
   readonly lines: ReadonlyArray<string>;
@@ -29,7 +31,23 @@ interface CueLine {
   readonly late: number;
 }
 
-const lineOf = (p: Placed): CueLine => {
+/**
+ * `seam=0.60`: the pause from this scene's last word to the next scene's
+ * first, when both speak; `(LONG)` when `check` warns of it (`SeamLong`).
+ */
+const seamOf = (p: Placed, next: Option.Option<Placed>, long: ReadonlySet<string>) =>
+  Option.match(
+    Option.flatMap(next, (q) => seamAfter(p, q)),
+    {
+      onNone: () => '',
+      onSome: (seam) => {
+        if (long.has(p.spec.id)) return `seam=${seam.toFixed(2)} (LONG) `;
+        return `seam=${seam.toFixed(2)} `;
+      },
+    },
+  );
+
+const lineOf = (p: Placed, seam: string): CueLine => {
   const marks = [...p.voice.marks].map(([k, v]) => `${k}@${(p.speechStart + v).toFixed(2)}`);
   let late = 0;
   const cues = [...p.cues].map(([k, c]) => {
@@ -41,6 +59,7 @@ const lineOf = (p: Placed): CueLine => {
   const speech = `${p.speechStart.toFixed(2)}–${(p.speechStart + p.voice.duration).toFixed(2)}`;
   const parts = [
     `${p.spec.id.padEnd(11)} start=${p.start.toFixed(2).padStart(7)} dur=${p.dur.toFixed(2).padStart(6)} speech=${speech} `,
+    seam,
   ];
   if (!p.voice.recorded) parts.push('(estimated) ');
   parts.push(marks.join(' '));
@@ -54,7 +73,11 @@ export const sceneReport = (
   only: Option.Option<string>,
 ): Result.Result<CueReport, UnknownScene> =>
   Result.map(sceneFilter(placed, only), (inScene) => {
-    const rows = placed.filter((p) => inScene(p.spec.id)).map(lineOf);
+    const long = new Set(longSeams(placed).map((f) => f.from));
+    const rows = placed.flatMap((p, i) => {
+      if (!inScene(p.spec.id)) return [];
+      return [lineOf(p, seamOf(p, Arr.get(placed, i + 1), long))];
+    });
     return { lines: rows.map((r) => r.line), late: rows.reduce((n, r) => n + r.late, 0) };
   });
 

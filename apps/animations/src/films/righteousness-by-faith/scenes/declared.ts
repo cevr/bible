@@ -200,36 +200,33 @@ export const declared = drawing({
         const card = f.at('cardIn') * (1 - toIcons) * (1 - back);
         if (card > 0.01)
           at(ctx, { x: CARD[0], y: CARD[1], rot: -0.02, scale: card }, () => {
-            piece(ctx, rectShape(-310, -165, 620, 330), C.cream, hand('card'), {
-              line: 0,
-              torn: 3,
-              shadow: 0.4,
-            });
+            const board = rectShape(-310, -165, 620, 330);
+            piece(ctx, board, C.cream, hand('card'), { line: 0, torn: 3, shadow: 0.4 });
             const reveal = [
               f.spoken('justified', 'declared'),
               f.at('greek'),
               f.spoken('declared', 'still'),
             ];
-            LINES.forEach((l, i) => {
-              const box = { w: l.text.length * l.size * 0.52, h: l.size * 1.05 };
-              probePlate(ctx, l.text, -box.w / 2, l.dy - l.size * 0.82, box.w, box.h);
-              write(
-                ctx,
-                l.text,
-                0,
-                l.dy,
-                {
-                  family: l.family,
-                  size: l.size,
-                  weight: l.weight,
-                  italic: l.italic,
-                  color: l.color,
-                  align: 'center',
-                },
-                hand(`line${i}`),
-                { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
-              );
-            });
+            probePlate(ctx, board, () =>
+              LINES.forEach((l, i) =>
+                write(
+                  ctx,
+                  l.text,
+                  0,
+                  l.dy,
+                  {
+                    family: l.family,
+                    size: l.size,
+                    weight: l.weight,
+                    italic: l.italic,
+                    color: l.color,
+                    align: 'center',
+                  },
+                  hand(`line${i}`),
+                  { progress: reveal[i] ?? 1, reveal: i === 1 ? 'pop' : 'write', boil: 0.4 },
+                ),
+              ),
+            );
           });
       });
       ctx.restore();
