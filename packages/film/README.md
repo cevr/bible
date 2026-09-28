@@ -180,8 +180,8 @@ change with `git diff`.
 | `GET /lab/check`                | `film check --static` now, and the write Undo would revert (`last`)                                 |
 | `GET /lab/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
 
-A scene that is not located is a 404, a value the lab will not rewrite a 422,
-an undo with nothing to undo (or a file changed since) a 409.
+A scene that is not located is a 404, a value the lab will not rewrite a 422
+(so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
 
 **SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
 not by name: the parser (oxc) lists every exported `drawing({...})` call in
@@ -198,7 +198,10 @@ ContentStore (a partial renamed into place), runs `oxfmt` on it and reads the
 value back. If oxfmt fails or the value does not read back, the file is put
 back and the write fails (`FormatFailed`, `WriteUnverified`). It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
-computed key, a shorthand) and names it. Writes run one at a time and are
+computed key, a shorthand) and names it. A cue write is also refused
+(`TimelineUnresolved`) when the scene's timeline, read back from the new text,
+does not resolve: an `until` span dragged past its mark would end before it
+starts. Writes run one at a time and are
 uninterruptible (the reload a write causes drops its request). The last write
 can be undone once, only while the file is exactly as that write left it.
 

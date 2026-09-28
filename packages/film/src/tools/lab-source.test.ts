@@ -141,6 +141,13 @@ describe('lab source routes', () => {
       expect(yield* status(post('/lab/cues/nope/topple', '{"dur":1}'))).toBe(404);
       expect(yield* status(post('/lab/cues/hand/topple', '{}'))).toBe(400);
       expect(yield* status(post('/lab/cues/hand/topple', '{"ease":"bouncy"}'))).toBe(400);
+      // A timing the timeline would not resolve with: refused as the panel shows it.
+      const unresolved = yield* Effect.promise(() =>
+        lab(post('/lab/cues/hand/topple', '{"until":"earns"}'), bound),
+      );
+      expect(unresolved.status).toBe(422);
+      expect(yield* Effect.promise(() => unresolved.text())).toContain('TimelineUnresolved: ');
+      expect(yield* read()).toBe(after);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 

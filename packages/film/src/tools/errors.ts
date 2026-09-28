@@ -417,6 +417,23 @@ export class SourceRefused extends Schema.TaggedError<SourceRefused>()('SourceRe
   }
 }
 
+/**
+ * A cue timing the lab will not write: with it, the scene's timeline does not
+ * resolve (e.g. a span that would end before it starts). The file is untouched.
+ */
+export class TimelineUnresolved extends Schema.TaggedError<TimelineUnresolved>()(
+  'TimelineUnresolved',
+  {
+    file: Schema.String,
+    target: Schema.String,
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `${this.file}: will not write ${this.target}: the timeline would not resolve: ${this.reason}`;
+  }
+}
+
 /** oxfmt failed on a file the lab wrote; the file was put back as it was. */
 export class FormatFailed extends Schema.TaggedError<FormatFailed>()('FormatFailed', {
   file: Schema.String,

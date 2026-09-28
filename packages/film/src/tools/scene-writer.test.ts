@@ -162,6 +162,23 @@ describe('scene writer', () => {
     }).pipe(Effect.provide(fixture)),
   );
 
+  it.effect('refuses a timing the timeline cannot resolve and leaves the file alone', () =>
+    Effect.gen(function* () {
+      const writer = yield* SceneWriter;
+      const before = yield* read();
+      // topple starts 0.1 s after {earns}: ending at {earns} ends it before it starts.
+      const error = yield* Effect.flip(writer.setCue('f', 'hand', 'topple', { until: 'earns' }));
+      expect(error._tag).toBe('TimelineUnresolved');
+      expect(error.message).toContain('before it starts');
+      expect(yield* read()).toBe(before);
+      // Starting before the mark, the same end resolves and lands.
+      yield* writer.setCue('f', 'hand', 'topple', { offset: -0.5, until: 'earns' });
+      expect(yield* read()).toBe(
+        before.replace('offset: 0.1, dur: 1.8 }', "offset: -0.5, until: 'earns' }"),
+      );
+    }).pipe(Effect.provide(fixture)),
+  );
+
   it.effect('undoes the last write byte for byte, once, and not over a later change', () =>
     Effect.gen(function* () {
       const writer = yield* SceneWriter;

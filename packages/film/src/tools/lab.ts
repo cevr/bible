@@ -157,7 +157,7 @@ const headJson = HttpServerResponse.schemaJson(HeadSource);
 const statusOf = (tag: string) => {
   if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
-  if (tag === 'SourceRefused' || tag === 'SourceShared') return 422;
+  if (tag === 'SourceRefused' || tag === 'SourceShared' || tag === 'TimelineUnresolved') return 422;
   if (tag === 'UndoUnavailable' || tag === 'SourceChanged') return 409;
   return 500;
 };

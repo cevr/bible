@@ -1,5 +1,7 @@
-// The lab's writes to scene source: a cue's `offset`, `dur` or `ease`, or a
-// knob's value, in the `drawing({...})` literal SceneSources locates.
+// The lab's writes to scene source: a cue's `offset`, `dur`, `until`, `ease`
+// or `stagger`, or a knob's value, in the `drawing({...})` literal
+// SceneSources locates. A cue write the scene's timeline cannot resolve with
+// is refused (`TimelineUnresolved`).
 //
 // A write re-reads the file (the modules this process imported are as they
 // were at start), splices the one value (`scene-source.ts`), formats the new
@@ -29,7 +31,9 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { sceneClock, sceneOf } from '../core/layout.ts';
 import type { CuePatch, Knob } from '../core/schema.ts';
+import { resolveTimeline } from '../core/timeline.ts';
 import { ContentStore } from './content-store.ts';
 import {
   FormatFailed,
@@ -37,12 +41,13 @@ import {
   SourceChanged,
   type SourceRefused,
   type SourceShared,
+  TimelineUnresolved,
   UndoUnavailable,
   WriteUnverified,
 } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmRepo, placeFilm } from './film-repo.ts';
 import { collectWithin } from './process.ts';
-import { editCue, editKnob, readCue, readKnob, roundValue } from './scene-source.ts';
+import { editCue, editKnob, readCue, readKnob, readSpans, roundValue } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 
 /** One write the lab made: the file's text before and after it. */
@@ -64,7 +69,8 @@ export type WriteError =
   | FormatFailed
   | WriteUnverified
   | SourceChanged
-  | SourceShared;
+  | SourceShared
+  | TimelineUnresolved;
 
 export interface SceneWriterService {
   readonly setCue: (
@@ -120,12 +126,14 @@ const field = <K extends keyof CuePatch>(patch: CuePatch, key: K) =>
 const cueMismatches = (patch: CuePatch, read: CuePatch): ReadonlyArray<string> => [
   ...missed('offset', field(patch, 'offset'), field(read, 'offset'), same),
   ...missed('dur', field(patch, 'dur'), field(read, 'dur'), same),
+  ...missed('until', field(patch, 'until'), field(read, 'until'), (a, b) => a === b),
   ...missed('ease', field(patch, 'ease'), field(read, 'ease'), (a, b) => a === b),
+  ...missed('stagger', field(patch, 'stagger'), field(read, 'stagger'), same),
 ];
 
 const fieldsOf = (patch: CuePatch) =>
-  (['offset', 'dur', 'ease'] satisfies ReadonlyArray<keyof CuePatch>).filter((k) =>
-    Predicate.hasProperty(patch, k),
+  (['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<keyof CuePatch>).filter(
+    (k) => Predicate.hasProperty(patch, k),
   );
 
 export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService>()(
@@ -172,8 +180,9 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         );
 
       /**
-       * Rewrite one value of a scene's drawing: `edit` gives the new text, and
-       * `verify` reads the formatted text back, naming what did not land.
+       * Rewrite one value of a scene's drawing: `edit` gives the new text,
+       * `verify` reads the formatted text back, naming what did not land, and
+       * `check` refuses a text the scene cannot play.
        */
       const write = (
         film: string,
@@ -185,6 +194,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           at: SceneSite,
           after: string,
         ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
+        check: (at: SceneSite, after: string) => Effect.Effect<void, TimelineUnresolved>,
       ) =>
         writer.withPermits(1)(
           Effect.gen(function* () {
@@ -202,6 +212,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
                 target,
                 reason: missed.join(', '),
               });
+            yield* check(at, after);
             // Uninterruptible: the write reloads the page, which drops its
             // request; the file and `last` must still agree once it lands.
             return yield* Effect.uninterruptible(
@@ -228,22 +239,49 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           }),
         );
 
+      /**
+       * Refuse `after` when the scene's timeline, its spans read from `after`
+       * where they are literals, does not resolve. A film that does not load or
+       * lay out as it stands is not this write's to judge: the check passes.
+       */
+      const resolves =
+        (film: string, scene: string, target: string) => (at: SceneSite, after: string) =>
+          Effect.gen(function* () {
+            const placed = yield* repo.load(film).pipe(Effect.flatMap(placeFilm), Effect.option);
+            const p = Option.flatMap(placed, (all) => Result.getSuccess(sceneOf(all, scene)));
+            if (Option.isNone(p)) return;
+            const spans = readSpans(at.file, after, at.exportName);
+            const resolved = Result.try({
+              try: () =>
+                resolveTimeline({ ...p.value.spec.timeline, ...spans }, sceneClock(p.value)),
+              catch: (cause) => String(cause).replace(/^Error: /, ''),
+            });
+            if (Result.isFailure(resolved))
+              return yield* TimelineUnresolved.make({
+                file: at.file,
+                target,
+                reason: resolved.failure,
+              });
+          });
+
       const setCue = Effect.fn('SceneWriter.setCue')(function* (
         film: string,
         scene: string,
         cue: string,
         patch: CuePatch,
       ) {
+        const target = `cue ${cue} ${fieldsOf(patch).join(',')}`;
         return yield* write(
           film,
           scene,
           'timeline',
-          `cue ${cue} ${fieldsOf(patch).join(',')}`,
+          target,
           (at, source) => editCue(at.file, source, at.exportName, cue, patch),
           (at, after) =>
             Result.map(readCue(at.file, after, at.exportName, cue), (read) =>
               cueMismatches(patch, read),
             ),
+          resolves(film, scene, target),
         );
       });
 
@@ -263,6 +301,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             Result.map(readKnob(at.file, after, at.exportName, knob), (read) =>
               Arr.filter([knob], () => !Option.exists(read, (r) => sameKnob(r, value))),
             ),
+          () => Effect.void,
         );
       });
 
