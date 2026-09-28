@@ -6,6 +6,7 @@ import {
   type Hand,
   type PieceStyle,
   type Pt,
+  type StrokeStyle,
   at,
   piece as paperPiece,
   cutout,
@@ -342,7 +343,7 @@ export const turban: HeadPiece = (ctx, [cx, cy], [rx, ry], hand) => {
         [cx, cy + (y + 0.08) * ry],
         [cx + w * rx, cy + (y + 0.02) * ry],
       ),
-      { color: C.paperTone, width: 2, jitter: 0.4 },
+      { color: C.paperTone, width: 2, jitter: 0.4, boil: 'crawl' },
       sub(hand, 70 + y),
     );
 };
@@ -392,7 +393,7 @@ const eyePair = (
       stroke(
         ctx,
         quad([x + dx - 5, y], [x + dx, y + bow], [x + dx + 5, y]),
-        { color: C.outline, width: 2.6, jitter: 0.3, taper: 0.2 },
+        { color: C.outline, width: 2.6, jitter: 0.3, taper: 0.2, boil: 'crawl' },
         sub(hand, 11 + dx),
       );
       continue;
@@ -421,7 +422,7 @@ const mouthOf = (
     stroke(
       ctx,
       quad([x - 7, y + 14], [x + 2, y + 14 + 8 * smile], [x + 11, y + 14]),
-      { color: C.outline, width: 3, jitter: 0.3, taper: 0.3 },
+      { color: C.outline, width: 3, jitter: 0.3, taper: 0.3, boil: 'crawl' },
       sub(hand, 10),
     );
   if (open <= 0.02) return;
@@ -532,7 +533,14 @@ const LAP_CREASE: Pt[] = [
   [1, -4],
   [0, 7],
 ];
-const LAP_FOLD = { color: C.outline, width: 2, jitter: 0.4, taper: 0.4, alpha: 0.5 } as const;
+const LAP_FOLD: StrokeStyle = {
+  color: C.outline,
+  width: 2,
+  jitter: 0.4,
+  taper: 0.4,
+  alpha: 0.5,
+  boil: 'crawl',
+};
 const UNBUILT = [1, 1] as const;
 /** How far a build may stretch or squash the body: a person still, never flat or inside out. */
 const BUILD_MIN = 0.6;
@@ -645,6 +653,7 @@ const garment = (
           torn: 2.5,
           rim: 0,
           shadow: 0.1,
+          boil: 'crawl',
         },
         sub(hand, 60 + i),
       );
@@ -673,8 +682,18 @@ const arm = (
 ) => {
   if (target === undefined) return;
   const path = spline(reach([side * 26 * bw, SHOULDER_Y * bh], target, ARM, side), 8);
-  stroke(ctx, path, { color: C.outline, width: 17, taper: 0, jitter: 0.5 }, sub(hand, k));
-  stroke(ctx, path, { color: colours[0], width: 12, taper: 0, jitter: 0.5 }, sub(hand, k + 1));
+  stroke(
+    ctx,
+    path,
+    { color: C.outline, width: 17, taper: 0, jitter: 0.5, boil: 'crawl' },
+    sub(hand, k),
+  );
+  stroke(
+    ctx,
+    path,
+    { color: colours[0], width: 12, taper: 0, jitter: 0.5, boil: 'crawl' },
+    sub(hand, k + 1),
+  );
   const [hx, hy] = path.at(-1) ?? target;
   piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), {
     role: 'figure',
@@ -742,7 +761,7 @@ const browOf = (
       [bx - 8, by - side * tilt * 6],
       [bx + 8, by + side * tilt * 6],
     ],
-    { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2 },
+    { color: C.outline, width: 3.4, jitter: 0.3, taper: 0.2, boil: 'crawl' },
     hand,
   );
 };
@@ -918,5 +937,10 @@ export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) =
   ctx.rotate(-0.9);
   piece(ctx, THUMB, C.figure, hand('thumb'), { role: 'figure', line: 4 });
   ctx.restore();
-  stroke(ctx, CREASE, { color: C.figureShade, width: 4, jitter: 0.4 }, hand('crease'));
+  stroke(
+    ctx,
+    CREASE,
+    { color: C.figureShade, width: 4, jitter: 0.4, boil: 'crawl' },
+    hand('crease'),
+  );
 };

@@ -270,13 +270,13 @@ export const look = drawing({
                 stroke(
                   ctx,
                   path,
-                  { color: C.outline, width: 15, taper: 0.7, jitter: 0.3 },
+                  { color: C.outline, width: 15, taper: 0.7, jitter: 0.3, boil: 'crawl' },
                   sub(hand('snakeLine'), k),
                 );
                 stroke(
                   ctx,
                   path,
-                  { color: C.scarlet, width: 10, taper: 0.7, jitter: 0.3 },
+                  { color: C.scarlet, width: 10, taper: 0.7, jitter: 0.3, boil: 'crawl' },
                   sub(hand('snake'), k),
                 );
                 const [hx, hy] = path.at(-1) ?? [sx, sy];
@@ -309,7 +309,7 @@ export const look = drawing({
                     [px + 34, top + 160],
                     [px - 10, top + 200],
                   ]),
-                  { color: C.outline, width: 20, taper: 0.5, jitter: 0.3 },
+                  { color: C.outline, width: 20, taper: 0.5, jitter: 0.3, boil: 'crawl' },
                   hand('serpentLine'),
                 );
                 stroke(
@@ -321,7 +321,7 @@ export const look = drawing({
                     [px + 34, top + 160],
                     [px - 10, top + 200],
                   ]),
-                  { color: C.gold, width: 14, taper: 0.5, jitter: 0.3 },
+                  { color: C.gold, width: 14, taper: 0.5, jitter: 0.3, boil: 'crawl' },
                   hand('serpent'),
                 );
                 piece(ctx, ellipseShape(px - 70, top + 26, 16, 12), C.gold, hand('serpentHead'), {

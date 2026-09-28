@@ -308,7 +308,7 @@ const path = (f: WithinFrame) => {
   stroke(
     ctx,
     PATH_AHEAD,
-    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 },
+    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5, boil: 'none' },
     hand('path'),
   );
   const walk = f.at('walk');
@@ -321,7 +321,12 @@ const path = (f: WithinFrame) => {
     const s = clamp(age);
     const side = i % 2 === 0 ? -1 : 1;
     at(ctx, { x: px + side * 34, y: py + 10, scale: s * (1 - 0.4 * k) }, () => {
-      stroke(ctx, STEM, { color: C.leafShade, width: 4, jitter: 0.3 }, sub(hand('stem'), i));
+      stroke(
+        ctx,
+        STEM,
+        { color: C.leafShade, width: 4, jitter: 0.3, boil: 'none' },
+        sub(hand('stem'), i),
+      );
       piece(
         ctx,
         ellipseShape(0, -34, 14, 14),

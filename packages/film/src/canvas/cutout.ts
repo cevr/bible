@@ -3,7 +3,7 @@
 // shadow where it lifts off the sheet beneath.
 
 import { type Vec2, vec2 } from 'math';
-import { type Hand, type Path, type Pt, resample } from './ink.ts';
+import { type Boil, type Hand, type Path, type Pt, boilPhase, resample } from './ink.ts';
 import { offscreen } from './paper.ts';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
@@ -20,6 +20,8 @@ export interface CutoutStyle {
   /** Pastel grain strength 0..1. */
   grain?: number;
   alpha?: number;
+  /** How the torn edge boils (`ink.ts`, `Boil`): `tick` by default; a figure's `crawl`, scenery's `none`. */
+  boil?: Boil;
 }
 
 const PAPER_CORE = '#fbf6ea';
@@ -48,8 +50,11 @@ export const heightOf = (ctx: CanvasRenderingContext2D) => heights.get(ctx) ?? 1
 /** Scratch for the outward normal at each point, written and read within one step. */
 const normal: Vec2 = [0, 0];
 
-/** Push a closed outline outward by `amount` plus torn noise. */
-const tear = (shape: Path, amount: number, rough: number, seed: number, boil: number): Pt[] => {
+/** How far a boil tick moves a torn edge's whisper of boil, in noise phase. */
+const TEAR_TICK_PHASE = 0.9;
+
+/** Push a closed outline outward by `amount` plus torn noise, its boil at `phase`. */
+const tear = (shape: Path, amount: number, rough: number, seed: number, phase: number): Pt[] => {
   const closed = [...shape, shape[0] ?? [0, 0]];
   const pts = resample(closed, 3);
   const n = pts.length;
@@ -64,7 +69,6 @@ const tear = (shape: Path, amount: number, rough: number, seed: number, boil: nu
   const out = area > 0 ? -1 : 1;
   const res: Pt[] = [];
   let s = 0;
-  const jitterPhase = boil * 0.9;
   for (let i = 0; i < n; i++) {
     const p = pts[i] ?? [0, 0];
     const prev = pts[(i - 1 + n) % n] ?? p;
@@ -79,7 +83,7 @@ const tear = (shape: Path, amount: number, rough: number, seed: number, boil: nu
     const d =
       amount +
       rough * (0.65 * noise1(s * 0.035, seed) + 0.35 * (hash2(i, seed) * 2 - 1)) +
-      0.4 * noise1(s * 0.05 + jitterPhase, seed + 5);
+      0.4 * noise1(s * 0.05 + phase, seed + 5);
     res.push([p[0] + nx * d, p[1] + ny * d]);
   }
   return res;
@@ -274,13 +278,14 @@ export const cutout = (
   if (shape.length < 3) return;
   const torn = style.torn ?? 4;
   const rim = style.rim ?? 3;
-  const face = tear(shape, 0, torn, hand.seed, hand.boil);
+  const phase = boilPhase(style.boil ?? 'tick', hand.boil, TEAR_TICK_PHASE);
+  const face = tear(shape, 0, torn, hand.seed, phase);
   ctx.save();
   ctx.globalAlpha *= style.alpha ?? 1;
 
   // Rim (the white core where the sheet tore), carrying the shadow.
   const lift = style.shadow ?? 0.5;
-  const under = rim > 0 ? tear(shape, rim, torn * 1.3, hand.seed + 17, hand.boil) : face;
+  const under = rim > 0 ? tear(shape, rim, torn * 1.3, hand.seed + 17, phase) : face;
   if (lift > 0) {
     const height = heightOf(ctx);
     ctx.save();

@@ -183,7 +183,7 @@ const tape = (f: WordFrame) => {
       stroke(
         ctx,
         line([-35, yy], [-35 + (long ? 30 : 14), yy]),
-        { color: C.ink, width: long ? 3.5 : 2.5, jitter: 0.3 },
+        { color: C.ink, width: long ? 3.5 : 2.5, jitter: 0.3, boil: 'none' },
         sub(f.hand('tick'), yy),
       );
     }

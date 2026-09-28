@@ -124,7 +124,7 @@ export const sanctuary = (
       stroke(
         ctx,
         quad([-r, -250], [0, -250 + r * 1.6], [r, -250]),
-        { color: C.gold, width: 9, jitter: 0.3, taper: 0 },
+        { color: C.gold, width: 9, jitter: 0.3, taper: 0, boil: 'none' },
         sub(hand('branch'), i),
       );
     for (const x of [-86, -58, -30, 0, 30, 58, 86]) {
@@ -183,7 +183,7 @@ export const sanctuary = (
     stroke(
       ctx,
       quad([0, -134], [-30, -190], [8, -240]),
-      { color: C.robe, width: 10, jitter: 0.6, taper: 0.6, alpha: 0.8 },
+      { color: C.robe, width: 10, jitter: 0.6, taper: 0.6, alpha: 0.8, boil: 'none' },
       hand('smoke'),
     );
   });
@@ -226,7 +226,7 @@ export const sanctuary = (
     stroke(
       ctx,
       line([VEIL_X + x, top + 12], [VEIL_X + x, top + drop - 12]),
-      { color: C.paperTone, width: 2, jitter: 0.4 },
+      { color: C.paperTone, width: 2, jitter: 0.4, boil: 'none' },
       sub(hand('fold'), x),
     );
   piece(ctx, rounded(VEIL_X, top, 60, 14, 4), C.gold, hand('rod'), {

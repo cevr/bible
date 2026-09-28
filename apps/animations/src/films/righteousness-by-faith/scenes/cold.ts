@@ -177,13 +177,13 @@ export const cold = drawing({
                 stroke(
                   ctx,
                   line([side * 22 - 13, -28], [side * 22 + 13, -28]),
-                  { color: C.outline, width: 5, jitter: 0.3, taper: 0.2 },
+                  { color: C.outline, width: 5, jitter: 0.3, taper: 0.2, boil: 'crawl' },
                   f.hand(`judgeBrow${side}`),
                 );
               stroke(
                 ctx,
                 line([-11, 30], [11, 30]),
-                { color: C.outline, width: 4, jitter: 0.3 },
+                { color: C.outline, width: 4, jitter: 0.3, boil: 'crawl' },
                 f.hand('judgeMouth'),
               );
             });
@@ -197,7 +197,7 @@ export const cold = drawing({
               stroke(
                 ctx,
                 [...panel, panel[0] ?? [x, 540]],
-                { color: C.inkSoft, width: 3, jitter: 0.5, taper: 0 },
+                { color: C.inkSoft, width: 3, jitter: 0.5, taper: 0, boil: 'none' },
                 f.hand(`panel${i}`),
               );
             });

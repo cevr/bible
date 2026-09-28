@@ -6,7 +6,7 @@
 // follows from what the piece is, never from a copied number.
 
 import { cutout } from './cutout.ts';
-import { type Hand, type Pt, stroke, sub } from './ink.ts';
+import { type Boil, type Hand, type Pt, stroke, sub } from './ink.ts';
 
 /** How a piece was made: cut with scissors, torn by hand, or inked on. */
 export type PaperKind = 'cut' | 'torn' | 'ink';
@@ -41,11 +41,17 @@ export interface PieceStyle {
   /** Pastel grain strength 0..1 (0.5). */
   readonly grain?: number;
   readonly alpha?: number;
+  /** How its edge and outline boil. Default: a figure crawls, scenery holds still. */
+  readonly boil?: Boil;
 }
 
 /** The kind a piece is made as: its own, or its role's. */
 export const kindOf = (style: Pick<PieceStyle, 'role' | 'kind'>): PaperKind =>
   style.kind ?? (style.role === 'figure' ? 'cut' : 'torn');
+
+/** How a piece boils (DIRECTION, "Boil"): its own, or its role's: a figure crawls, scenery holds still. */
+export const boilOf = (style: Pick<PieceStyle, 'role' | 'boil'>): Boil =>
+  style.boil ?? (style.role === 'figure' ? 'crawl' : 'none');
 
 /** The outline a piece is drawn with, in px: its own, or its role's. */
 export const lineOf = (style: Pick<PieceStyle, 'role' | 'line'>): number =>
@@ -64,6 +70,7 @@ export const piece = (
   const alpha = style.alpha ?? 1;
   if (alpha <= 0) return;
   const edge = PAPER_EDGES[kindOf(style)];
+  const boil = boilOf(style);
   cutout(
     ctx,
     shape,
@@ -74,6 +81,7 @@ export const piece = (
       shadow: style.shadow ?? 0.35,
       grain: style.grain ?? 0.5,
       alpha,
+      boil,
     },
     hand,
   );
@@ -82,7 +90,7 @@ export const piece = (
     stroke(
       ctx,
       [...shape, shape[0] ?? [0, 0]],
-      { color: style.outline, width, jitter: 0.7, taper: 0, pressure: 0.15, alpha },
+      { color: style.outline, width, jitter: 0.7, taper: 0, pressure: 0.15, alpha, boil },
       sub(hand, 7),
     );
 };

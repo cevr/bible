@@ -5,13 +5,23 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
-import { rectShape } from './ink.ts';
-import { FIGURE_LINE, PAPER_EDGES, type PieceStyle, kindOf, lineOf, piece } from './piece.ts';
+import { CRAWL_MAX, type Pt, rectShape } from './ink.ts';
+import {
+  FIGURE_LINE,
+  PAPER_EDGES,
+  type PieceStyle,
+  boilOf,
+  kindOf,
+  lineOf,
+  piece,
+} from './piece.ts';
 import { type Probe, probing } from './probe.ts';
 
-/** A stand-in context that records the colour of every fill, in order. */
+/** A stand-in context that records the colour of every fill, in order, and every point a path passes through. */
 const recording = () => {
   const fills: string[] = [];
+  const points: Pt[] = [];
+  const at = (x: number, y: number) => points.push([x, y]);
   const ctx: CanvasRenderingContext2D = Schema.decodeSync(Schema.Any)({
     globalAlpha: 1,
     globalCompositeOperation: 'source-over',
@@ -25,14 +35,14 @@ const recording = () => {
     save: () => {},
     restore: () => {},
     beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
+    moveTo: at,
+    lineTo: at,
     closePath: () => {},
     fill() {
       fills.push(String(this.fillStyle));
     },
   });
-  return { ctx, fills };
+  return { ctx, fills, points };
 };
 
 const hand = { boil: 0, seed: 7 };
@@ -54,7 +64,13 @@ describe('paper by meaning', () => {
     expect(lineOf({ role: 'scenery' })).toBe(0);
   });
 
+  test('a figure crawls; scenery holds still', () => {
+    expect(boilOf({ role: 'figure' })).toBe('crawl');
+    expect(boilOf({ role: 'scenery' })).toBe('none');
+  });
+
   test('what a piece names for itself wins over its role', () => {
+    expect(boilOf({ role: 'scenery', boil: 'tick' })).toBe('tick');
     expect(kindOf({ role: 'scenery', kind: 'cut' })).toBe('cut');
     expect(lineOf({ role: 'scenery', line: 5 })).toBe(5);
     expect(lineOf({ role: 'figure', line: 0 })).toBe(0);
@@ -87,6 +103,32 @@ describe('piece', () => {
     const { ctx, fills } = recording();
     piece(ctx, square, style('figure', { kind: 'ink', line: 0 }), hand);
     expect(fills).toEqual(['#aa3322']);
+  });
+
+  test('scenery holds still on every tick; a figure crawls, edge and outline', () => {
+    const drawn = (s: PieceStyle, boil: number) => {
+      const { ctx, points } = recording();
+      piece(ctx, square, s, { boil, seed: 7 });
+      return points;
+    };
+    const most = (s: PieceStyle, a: number, b: number) => {
+      const from = drawn(s, a);
+      const to = drawn(s, b);
+      expect(to).toHaveLength(from.length);
+      return Math.max(
+        ...from.map(([x, y], i) => {
+          const [u, v] = to[i] ?? [x, y];
+          return Math.hypot(u - x, v - y);
+        }),
+      );
+    };
+    expect(most(style('scenery'), 2, 3)).toBe(0);
+    expect(most(style('scenery', { kind: 'cut', line: 5 }), 2, 90)).toBe(0);
+    const step = most(style('figure'), 2, 3);
+    expect(step).toBeGreaterThan(0);
+    expect(step).toBeLessThanOrEqual(CRAWL_MAX);
+    // Named, ink boils as ink on a piece too.
+    expect(most(style('figure', { boil: 'tick' }), 2, 3)).toBeGreaterThan(CRAWL_MAX);
   });
 
   test('the check sees a scenery piece as a fill and a figure also as a stroke', () => {

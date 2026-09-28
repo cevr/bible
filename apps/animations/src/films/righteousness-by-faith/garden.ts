@@ -84,7 +84,7 @@ export const apron = (
       stroke(
         ctx,
         line([x - 8, y + 28 + hang], [x + 8, y + 22 + hang]),
-        { color: C.scarlet, width: 3, jitter: 0.6, alpha: stitch },
+        { color: C.scarlet, width: 3, jitter: 0.6, alpha: stitch, boil: 'crawl' },
         sub(hand, 110 + i),
       );
   });

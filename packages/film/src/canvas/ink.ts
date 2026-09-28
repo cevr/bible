@@ -182,12 +182,46 @@ export interface Hand {
 /** A sub-hand: the same boil on seed `hand.seed + k`, so each piece of a drawing boils on its own. */
 export const sub = (hand: Hand, k: number): Hand => ({ boil: hand.boil, seed: hand.seed + k });
 
-/** Push each point along its normal by boiling noise. */
-const wobble = (pts: ReadonlyArray<Pt>, amp: number, freq: number, hand: Hand): Pt[] => {
+/**
+ * How a line boils (DIRECTION, "Boil"): `tick` redraws its wobble on every
+ * boil tick, as ink does; `crawl` lets it wander slowly, as a figure's line
+ * may, each point moving at most `CRAWL_MAX` px a tick at the stroke's usual
+ * jitter; `none` holds it, as scenery's is. The wobble itself stays: a held
+ * line is still drawn by hand.
+ */
+export type Boil = 'tick' | 'crawl' | 'none';
+
+/** How far a tick moves the boil noise's phase: past a whole cell, so each tick is a new line. */
+const TICK_PHASE = 3.7;
+
+/** The steepest the boil noise changes per unit of phase (value noise under smoothstep). */
+const NOISE_SLOPE = 3;
+
+/** The most a crawling line's point moves in one tick at `STROKE_JITTER`, in px (the direction's "about 0.3 px"). */
+export const CRAWL_MAX = 0.3;
+
+/**
+ * Where tick `tick` puts the boil noise's phase, for a line boiling as
+ * `boil`, whose ticks otherwise move it `perTick`. A crawl steps the phase so
+ * a point at `STROKE_JITTER` moves at most `CRAWL_MAX` a tick.
+ */
+export const boilPhase = (boil: Boil, tick: number, perTick = TICK_PHASE): number => {
+  if (boil === 'none') return 0;
+  if (boil === 'tick') return tick * perTick;
+  return tick * (CRAWL_MAX / (STROKE_JITTER * NOISE_SLOPE));
+};
+
+/** Push each point along its normal by boiling noise at `phase`. */
+const wobble = (
+  pts: ReadonlyArray<Pt>,
+  amp: number,
+  freq: number,
+  hand: Hand,
+  phase: number,
+): Pt[] => {
   if (amp === 0 || pts.length < 2) return [...pts];
   const out: Pt[] = [];
   let s = 0;
-  const phase = hand.boil * 3.7;
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i] ?? [0, 0];
     const prev = pts[i - 1] ?? p;
@@ -220,6 +254,8 @@ export interface StrokeStyle {
   progress?: number;
   /** Normal wobble in px. */
   jitter?: number;
+  /** How the line boils: `tick` (ink, the default), `crawl` (a figure's line), `none` (scenery). */
+  boil?: Boil;
   /** Fraction of the length over which each end tapers. */
   taper?: number;
   /** Width variation along the stroke, 0..1. */
@@ -248,7 +284,13 @@ export const stroke = (
   const progress = style.progress ?? 1;
   if (progress <= 0 || path.length < 2) return;
   const base = resample(path, Math.max(2, style.width * 0.6));
-  const pts = wobble(base, style.jitter ?? STROKE_JITTER, 0.012, hand);
+  const pts = wobble(
+    base,
+    style.jitter ?? STROKE_JITTER,
+    0.012,
+    hand,
+    boilPhase(style.boil ?? 'tick', hand.boil),
+  );
   const total = length(pts);
   const drawn = trim(pts, total * clamp(progress));
   if (drawn.length < 2) return;

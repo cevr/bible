@@ -136,13 +136,13 @@ const hallWindow = (ctx: CanvasRenderingContext2D, hand: Hand, x: number, y: num
     stroke(
       ctx,
       line([0, -85], [0, 150]),
-      { color: C.boardDeep, width: 5, jitter: 0.3 },
+      { color: C.boardDeep, width: 5, jitter: 0.3, boil: 'none' },
       sub(hand, 1),
     );
     stroke(
       ctx,
       line([-65, 20], [65, 20]),
-      { color: C.boardDeep, width: 5, jitter: 0.3 },
+      { color: C.boardDeep, width: 5, jitter: 0.3, boil: 'none' },
       sub(hand, 2),
     );
   });
@@ -503,13 +503,13 @@ const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
           stroke(
             ctx,
             ellipse(c[0] + x, c[1] - 7, 8, 8, i),
-            { color: C.outline, width: 2, jitter: 0.3, taper: 0 },
+            { color: C.outline, width: 2, jitter: 0.3, taper: 0, boil: 'crawl' },
             sub(hand, 80 + i),
           );
         stroke(
           ctx,
           line([c[0] - 4, c[1] - 8], [c[0] + 5, c[1] - 8]),
-          { color: C.outline, width: 2, jitter: 0.3, taper: 0 },
+          { color: C.outline, width: 2, jitter: 0.3, taper: 0, boil: 'crawl' },
           sub(hand, 82),
         );
       },

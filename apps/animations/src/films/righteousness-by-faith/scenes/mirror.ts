@@ -168,13 +168,13 @@ const garden = (f: MirrorFrame) => {
               stroke(
                 ctx,
                 line([nx, ny], [nx + 10, ny - 22]),
-                { color: C.inkSoft, width: 2.5, jitter: 0.2 },
+                { color: C.inkSoft, width: 2.5, jitter: 0.2, boil: 'crawl' },
                 f.hand('needle'),
               );
               stroke(
                 ctx,
                 line([nx + 10, ny - 22], [-6, -70]),
-                { color: C.scarlet, width: 1.5, jitter: 0.6 },
+                { color: C.scarlet, width: 1.5, jitter: 0.6, boil: 'crawl' },
                 f.hand('thread'),
               );
             }
@@ -294,7 +294,7 @@ const glass = (f: MirrorFrame) => {
           stroke(
             ctx,
             line([x, -120], [x + 90, -220]),
-            { color: C.robe, width: 8, jitter: 0.3, alpha: 0.5 },
+            { color: C.robe, width: 8, jitter: 0.3, alpha: 0.5, boil: 'none' },
             sub(f.hand('streak'), k),
           );
         ctx.restore();

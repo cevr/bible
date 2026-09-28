@@ -402,7 +402,7 @@ const room = (f: DailyFrame, alpha: number) => {
   stroke(
     ctx,
     PATH_AHEAD,
-    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5 },
+    { color: C.boardLight, width: 44, jitter: 0.4, taper: 0.5, boil: 'none' },
     hand('path'),
   );
   flowers(f);
@@ -442,7 +442,12 @@ const flowers = (f: DailyFrame) => {
     ctx.translate(AT[0] + side * 40, AT[1] + 10);
     const s = grown * (2.2 - 0.8 * k);
     ctx.scale(s, s);
-    stroke(ctx, FLOWER_STEM, { color: C.leafShade, width: 4, jitter: 0.3 }, sub(hand('stem'), i));
+    stroke(
+      ctx,
+      FLOWER_STEM,
+      { color: C.leafShade, width: 4, jitter: 0.3, boil: 'none' },
+      sub(hand('stem'), i),
+    );
     piece(ctx, FLOWER_HEAD, i % 3 === 0 ? C.gold : C.robe, sub(hand('flower'), i), {
       role: 'scenery',
       line: 2,

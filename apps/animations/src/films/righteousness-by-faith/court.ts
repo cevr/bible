@@ -136,7 +136,7 @@ export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
     stroke(
       ctx,
       STAMP_EDGE,
-      { color: C.gold, width: 4, jitter: 0.5, taper: 0, alpha: hollow },
+      { color: C.gold, width: 4, jitter: 0.5, taper: 0, alpha: hollow, boil: 'none' },
       hand('labelEdge'),
     );
   probePlate(ctx, STAMP_LABEL, () =>
@@ -297,7 +297,7 @@ export const landingCourt = (
               stroke(
                 ctx,
                 line([side * 22 - 13, -30 + side * 2], [side * 22 + 13, -30 - side * 2]),
-                { color: C.outline, width: 5, jitter: 0.3, taper: 0.2 },
+                { color: C.outline, width: 5, jitter: 0.3, taper: 0.2, boil: 'crawl' },
                 hand(`judgeBrow${side}`),
               );
             stroke(
@@ -307,7 +307,7 @@ export const landingCourt = (
                 [0, 33],
                 [13, 27],
               ],
-              { color: C.outline, width: 4, jitter: 0.3 },
+              { color: C.outline, width: 4, jitter: 0.3, boil: 'crawl' },
               hand('judgeMouth'),
             );
           });
@@ -321,7 +321,7 @@ export const landingCourt = (
             stroke(
               ctx,
               [...panel, panel[0] ?? [x, 540]],
-              { color: C.boardShade, width: 3, jitter: 0.5, taper: 0 },
+              { color: C.boardShade, width: 3, jitter: 0.5, taper: 0, boil: 'none' },
               hand(`panel${i}`),
             );
           });

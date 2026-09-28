@@ -394,7 +394,7 @@ const beneath = (f: RobeFrame) => {
       stroke(
         ctx,
         [...ellipseShape(0, 0, 190, 190), [190, 0]],
-        { color: C.outline, width: 8, jitter: 0.8, taper: 0 },
+        { color: C.outline, width: 8, jitter: 0.8, taper: 0, boil: 'crawl' },
         hand('lensRing'),
       );
       stroke(
@@ -403,7 +403,7 @@ const beneath = (f: RobeFrame) => {
           const a = Math.PI * (1.08 + 0.3 * (i / 11));
           return [Math.cos(a) * 160, Math.sin(a) * 160];
         }),
-        { color: C.robe, width: 7, alpha: 0.85, taper: 0.3 },
+        { color: C.robe, width: 7, alpha: 0.85, taper: 0.3, boil: 'crawl' },
         hand('lensLight'),
       );
     });
