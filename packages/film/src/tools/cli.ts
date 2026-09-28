@@ -214,8 +214,15 @@ const narrate = Command.make(
     yield* Effect.log(
       `narrate.plan film=${input.film} beats=${plan.beats.length} to_record=${stale}`,
     );
+    // A person's reading of a beat that was renamed or cut: kept, and said.
+    for (const orphan of plan.orphaned)
+      yield* Effect.logWarning(
+        `narrate.orphaned id=${orphan.id} file=${orphan.file} reason="a recorded take for no beat; move its key in timings.json to the beat it reads"`,
+      );
     if (input.dryRun) {
       for (const take of plan.states) yield* Console.log(stateLine(take));
+      for (const orphan of plan.orphaned)
+        yield* Console.log(`orphaned  ${orphan.id} (${orphan.file}, recorded take, no beat)`);
       return;
     }
     // Before the first paid take: the CLI must be logged in.

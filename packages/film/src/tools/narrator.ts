@@ -91,6 +91,20 @@ export interface Kept {
   readonly why: 'recorded' | 'recorded, stale';
 }
 
+/** A person's take for a beat the film no longer has. */
+export interface Orphan {
+  readonly id: string;
+  readonly file: string;
+}
+
+/** A person's takes whose beat is gone from the film, in the timings' order. */
+const orphansOf = (timings: Timings, beats: ReadonlyArray<{ readonly id: string }>) => {
+  const ids = new Set(beats.map((b) => b.id));
+  return Object.entries(timings.scenes)
+    .filter(([id, take]) => take.source === 'recorded' && !ids.has(id))
+    .map(([id, take]): Orphan => ({ id, file: take.file }));
+};
+
 export interface NarrationPlan {
   readonly beats: ReadonlyArray<Beat>;
   /** Every beat with words and where its take stands, in film order. */
@@ -99,6 +113,12 @@ export interface NarrationPlan {
   readonly stale: ReadonlyArray<Beat>;
   /** The beats staging would have recorded but a person's take holds. */
   readonly kept: ReadonlyArray<Kept>;
+  /**
+   * A person's takes whose beat the film no longer has (renamed or cut):
+   * kept in the timings and on disk, never swept, and reported, so a rename
+   * never throws a reading away. Move its key in `timings.json` to the new id.
+   */
+  readonly orphaned: ReadonlyArray<Orphan>;
   /** `voiceKey(voice)`: the key every take is recorded under. */
   readonly voice: string;
 }
@@ -170,6 +190,7 @@ export const planNarration = (
       kept: verdicts.flatMap((v) =>
         Option.toArray(Option.map(v.kept, (why): Kept => ({ id: v.beat.id, why }))),
       ),
+      orphaned: orphansOf(film.timings, beats),
       voice,
     };
   });
@@ -211,12 +232,18 @@ const withTake =
     scenes: { ...currentTakes(timings, voice), [id]: take },
   });
 
-/** Keep only the takes of beats that still exist. */
+/**
+ * Keep only the takes of beats that still exist, and every take a person
+ * read: a beat renamed or cut leaves its reading in place (`orphaned`), not
+ * swept with the staging takes.
+ */
 const withoutRemoved =
   (voice: string, beats: ReadonlyArray<Beat>) =>
   (timings: Timings): Timings => {
     const ids = new Set(beats.map((b) => b.id));
-    const scenes = Object.entries(currentTakes(timings, voice)).filter(([id]) => ids.has(id));
+    const scenes = Object.entries(currentTakes(timings, voice)).filter(
+      ([id, take]) => ids.has(id) || take.source === 'recorded',
+    );
     return { voice, scenes: Object.fromEntries(scenes) };
   };
 

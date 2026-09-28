@@ -101,7 +101,11 @@ person's, by `takes import` or the lab's studio). `core/narration.ts`
 `narrate` never stages over a current recorded take and refuses a stale one
 without `--replace-recorded`; a recorded take stays current across a change
 of staging voice, since no staging voice made it; `check` fails a stale one
-(`TakeStale`, `recorded: true`).
+(`TakeStale`, `recorded: true`). A recorded take whose beat id the script no
+longer has (a renamed or removed beat) stays in `timings.json` and on disk,
+so no sweep deletes a person's reading; `narrate` warns
+`narrate.orphaned id=… file=…` and `--dry-run` lists it as `orphaned`, for
+the author to rename the entry or remove the file by hand.
 
 `takes import` (`Takes`, `tools/takes.ts`) makes a person's recording a take:
 `Media.load` at the mix rate, `prepareTake` (`core/recording.ts`: one

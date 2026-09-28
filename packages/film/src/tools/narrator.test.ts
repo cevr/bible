@@ -300,6 +300,27 @@ describe('Narrator', () => {
         expect(after.voice).toBe(voiceKey(voice));
       }).pipe(Effect.provide(layer));
     });
+
+    it.effect("a renamed beat's recorded take is kept and reported, never swept", () => {
+      const { files, layer } = setup(owned);
+      files.set('/films/test/narration/a.mp3', text('Hello world.'));
+      // `a` renamed `hello`: the person's take names a beat the film no longer has.
+      const renamed = scenes.map((s) => {
+        if (s.id === 'a') return { ...s, id: 'hello' };
+        return s;
+      });
+      return Effect.gen(function* () {
+        const store = yield* ContentStore;
+        const before = yield* store.read(testFilm(scenes, owned).paths.timings);
+        const loaded = { ...testFilm(renamed, before), timings: before };
+        const plan = Result.getOrThrow(planNarration(loaded, defaults));
+        expect(plan.orphaned).toEqual([{ id: 'a', file: 'a.mp3' }]);
+        yield* Narrator.use((n) => n.record(loaded, plan, defaults));
+        const after = yield* store.read(testFilm(scenes, owned).paths.timings);
+        expect(after.scenes['a']).toEqual(owned.scenes['a']);
+        expect(files.has('/films/test/narration/a.mp3')).toBe(true);
+      }).pipe(Effect.provide(layer));
+    });
   });
 
   describe('a cast of one', () => {
