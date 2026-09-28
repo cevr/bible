@@ -6,8 +6,31 @@
 // in a render.
 
 import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
-import type { Probed } from '../core/schema.ts';
-import { Browser, type FramePage, type PageOpenError } from './browser.ts';
+import { shortPhrases } from '../core/phrases.ts';
+import type { ShortError } from '../core/errors.ts';
+import type { Probed, Short } from '../core/schema.ts';
+import {
+  type ResolvedShort,
+  bandOf,
+  SHORT_RULES,
+  SHORT_WIDTH,
+  type SafeZoneName,
+  resolveShort,
+  shortKey,
+} from '../core/shorts.ts';
+import { Browser, type FramePage, type LumaArea, type PageOpenError } from './browser.ts';
+import {
+  type ShortFinding,
+  loopPicture,
+  lumaDiff,
+  mergeUnsafe,
+  openFrames,
+  shortStaticFindings,
+  stillOpen,
+  titleOpen,
+  unsafeTexts,
+  zoneFrames,
+} from './short-check.ts';
 import {
   HOLD,
   type HoldCandidate,
@@ -132,6 +155,17 @@ const confirmHold = (
     };
   });
 
+export interface ShortCheckOptions {
+  /** Pages probing at once. */
+  readonly workers: number;
+  /** The safe zone its text is held to. */
+  readonly zone: SafeZoneName;
+  /** Only what its words tell: no frame is probed (the page is opened for its frame rate alone). */
+  readonly static: boolean;
+}
+
+export type ShortCheckError = LayoutCheckError | ShortError;
+
 export interface CheckerService {
   /**
    * Probe every sampled frame and return what collides, one finding per pair
@@ -142,6 +176,20 @@ export interface CheckerService {
     film: LoadedFilm,
     options: LayoutCheckOptions,
   ) => Effect.Effect<ReadonlyArray<LayoutFinding>, LayoutCheckError>;
+  /** A short on its page's frames (`shortKey`): the rate the film declares, as the renderer reads it. */
+  readonly cut: (film: LoadedFilm, short: Short) => Effect.Effect<ResolvedShort, ShortCheckError>;
+  /**
+   * Check a short, resolved on its page's frames: what its words tell (its
+   * length, its first word, its loop's silence); then, unless `static`, its
+   * page probed every half second and at each phrase's first frame for text
+   * past the safe zone, the open for motion and the film's title card, and
+   * its first and last frames' band for the loop.
+   */
+  readonly short: (
+    film: LoadedFilm,
+    short: Short,
+    options: ShortCheckOptions,
+  ) => Effect.Effect<ReadonlyArray<ShortFinding>, ShortCheckError>;
 }
 
 export class Checker extends Context.Service<Checker, CheckerService>()(
@@ -198,7 +246,90 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
         );
       });
 
-      return Checker.of({ layout });
+      /**
+       * The short's page, `workers` of it, and the short resolved on the rate
+       * that page declares: the frames the renderer draws, never an assumed 30.
+       */
+      const onPage = Effect.fnUntraced(function* (
+        film: LoadedFilm,
+        declared: Short,
+        workers: number,
+      ) {
+        const placed = yield* placeFilm(film);
+        const key = shortKey(film.paths.name, declared.id);
+        const url = `${server.url}?film=${encodeURIComponent(key)}&export`;
+        const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, workers) });
+        const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+        const cut = yield* Effect.fromResult(resolveShort(placed, declared, info.fps));
+        return { pool, info, cut, phrases: shortPhrases(placed, cut) };
+      });
+
+      const cut = Effect.fn('Checker.cut')(function* (film: LoadedFilm, declared: Short) {
+        return (yield* Effect.scoped(onPage(film, declared, 1))).cut;
+      });
+
+      const short = Effect.fn('Checker.short')(function* (
+        film: LoadedFilm,
+        declared: Short,
+        options: ShortCheckOptions,
+      ) {
+        const name = film.paths.name;
+        return yield* Effect.scoped(
+          Effect.gen(function* () {
+            const workers = Math.max(1, options.workers);
+            const { pool, info, cut, phrases } = yield* onPage(film, declared, workers);
+            const words = shortStaticFindings(cut, phrases);
+            if (options.static) return words;
+            // The short's page is named for the short: the film's title and size are on the film's page.
+            const { title, band } = yield* Effect.map(
+              browser.open(`${server.url}?film=${encodeURIComponent(name)}&export`),
+              (page) => ({ title: page.title, band: bandOf(page.info) }),
+            );
+            const k = info.width / SHORT_WIDTH;
+            const probeAt = (i: number) =>
+              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.probe(i)));
+            const frames = zoneFrames(cut, phrases);
+            const probed = yield* Effect.forEach(frames, probeAt, { concurrency: workers });
+            const unsafe = mergeUnsafe(
+              Arr.zip(frames, probed).flatMap(([i, p]) =>
+                unsafeTexts(cut.id, options.zone, i / info.fps, p, k),
+              ),
+            );
+            const open = yield* Effect.forEach(openFrames(info.fps), probeAt, {
+              concurrency: workers,
+            });
+            const titled = Option.flatMap(Arr.head(open), (first) =>
+              titleOpen(cut.id, first, title),
+            );
+            // The film's frame alone, where the page draws it: the hook and captions are the short's, and differ by design.
+            const frame: LumaArea = {
+              x: 0,
+              y: band.top,
+              w: band.width,
+              h: band.height,
+              ...SHORT_RULES.loopGrid,
+            };
+            const lumaAt = (i: number) =>
+              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.luma(i, frame)));
+            const [first, last] = yield* Effect.all([lumaAt(0), lumaAt(info.frames - 1)], {
+              concurrency: 2,
+            });
+            const findings = [
+              ...words,
+              ...unsafe,
+              ...Option.toArray(stillOpen(cut.id, open, SHORT_RULES.motionBy)),
+              ...Option.toArray(titled),
+              ...Option.toArray(loopPicture(cut.id, first, last)),
+            ];
+            yield* Effect.log(
+              `check.short film=${name} short=${cut.id} zone=${options.zone} frames=${frames.length + open.length + 2} loop=${lumaDiff(first, last).toFixed(3)} findings=${findings.length}`,
+            );
+            return findings;
+          }),
+        );
+      });
+
+      return Checker.of({ layout, cut, short });
     }),
   );
 }

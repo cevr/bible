@@ -67,4 +67,8 @@ export const film = async () =>
     audio: '/films/righteousness-by-faith/narration/full.wav',
     palette,
     captions: { font: `500 38px "${fonts.body}"`, color: palette.ink, plate: palette.robe },
+    short: {
+      hook: { font: `600 64px "${fonts.display}"`, color: palette.ink },
+      caption: { font: `600 60px "${fonts.body}"`, color: palette.ink, highlight: palette.gold },
+    },
   });

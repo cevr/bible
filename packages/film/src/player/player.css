@@ -202,9 +202,15 @@ body.export .stage canvas {
   font-size: 11px;
 }
 
-/* ── The lab (`?lab`): notes on frames. ─────────────────────────────────── */
+/* ── The lab (`/lab?film=…`): notes on frames. ─────────────────────────── */
 body.lab {
   grid-template-columns: minmax(0, 1fr) 360px;
+}
+/* The lab's own wrappers: the Solid root, its pinned layers and its panel sections lay out as their children. */
+.lab-root,
+.lab-layers,
+.lab-notes-box {
+  display: contents;
 }
 body.lab .stage,
 body.lab .bar {
@@ -214,6 +220,14 @@ body.lab .bar {
 }
 body.lab .bar {
   grid-template-columns: minmax(0, 1fr);
+}
+/*
+ * The stage's one cell is as tall as its row, not as its content: the
+ * canvas's max-height then resolves against it, so the canvas (and every
+ * layer pinned over it) stays inside the row and off the bar below.
+ */
+body.lab .stage {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
 .lab-panel {
   grid-column: 2;
@@ -358,8 +372,25 @@ body.lab .bar {
   cursor: crosshair;
   touch-action: none;
 }
-.lab-overlay.pen {
+/* The notes' surface, under every other mark: a click pins, a drag boxes, the pen inks. */
+.lab-overlay .lab-notes-surface {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+.lab-overlay .lab-notes-surface.pen {
   cursor: cell;
+}
+.lab-overlay .lab-marks {
+  pointer-events: none;
+}
+/* The notes' connection to the server, said only once lost. */
+.lab-feed {
+  color: #e2b04a;
+  font-size: 11px;
+}
+.lab-feed:empty {
+  display: none;
 }
 .lab-overlay rect,
 .lab-overlay circle,
@@ -587,6 +618,22 @@ body.lab .bar {
 }
 .lab-handle.selected circle {
   fill: rgb(226 176 74 / 0.4);
+}
+/* A camera's target: a reticle, the framing the camera keeps on it. */
+.lab-handle.reticle rect {
+  stroke: none;
+}
+.lab-handle.reticle path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.lab-handle.reticle circle {
+  fill: var(--accent);
+  stroke: none;
+}
+.lab-handle.reticle.selected rect {
+  fill: rgb(226 176 74 / 0.18);
 }
 
 /* ── Motion tools: onion skin, speed, loops. ────────────────────────────── */

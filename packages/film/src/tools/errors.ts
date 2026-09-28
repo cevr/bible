@@ -3,11 +3,16 @@
 // names every way a run can fail.
 
 import { Schema } from 'effect';
+import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
   ActTooShort,
   AlignmentMismatch,
   CueInvalid,
+  ShortSpanEmpty,
+  ShortUnknownCue,
+  ShortUnknownMark,
+  ShortUnknownScene,
   UnknownCue,
   UnknownMark,
   UnknownScene,
@@ -332,6 +337,20 @@ export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownE
   }
 }
 
+/** `--short` names a short the film's `shorts.ts` does not declare. */
+export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The shorts the film declares, in order; empty when it has no `shorts.ts`. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0)
+      return `film "${this.film}" has no short "${this.id}": it declares none (a shorts.ts beside its script)`;
+    return `film "${this.film}" has no short "${this.id}"; its shorts are ${this.known.join(', ')}`;
+  }
+}
+
 /** `film bench --budget` with no baseline to hold the run against. */
 export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
   file: Schema.String,
@@ -491,6 +510,32 @@ export class DeadAir extends Schema.TaggedError<DeadAir>()('DeadAir', {
 }
 
 /**
+ * A line of text on a short that crosses its safe zone (`SAFE_ZONES`), first
+ * at short second `at`, by `by` px (1080 × 1920) past its worst `side`. `own`
+ * when it is the short's own text (its hook or captions), which the page
+ * places; otherwise it is the film's, in the band.
+ */
+export class ShortUnsafeText extends Schema.TaggedError<ShortUnsafeText>()('ShortUnsafeText', {
+  short: Schema.String,
+  zone: Schema.String,
+  text: Schema.String,
+  at: Schema.Finite,
+  side: Schema.Literals(['top', 'bottom', 'left', 'right']),
+  by: Schema.Finite,
+  own: Schema.Boolean,
+  /** How many other lines cross the same side with it (the short's own lines are one finding). */
+  others: Schema.Int,
+}) {
+  override get message() {
+    let whose = "the film's";
+    if (this.own) whose = "the short's";
+    let more = '';
+    if (this.others > 0) more = ` (and ${this.others} more of its lines)`;
+    return `short "${this.short}" ${this.at.toFixed(2)}s: ${whose} "${this.text}"${more} runs up to ${Math.ceil(this.by)} px past the ${this.side} of the ${this.zone} safe zone, under the platform's buttons`;
+  }
+}
+
+/**
  * A drawn scene holds still for more than `max` of its seconds: its picture,
  * seen small (64×36 grey at 2 fps), barely changes. `from` and `to` are its
  * longest held run, in film seconds.
@@ -564,6 +609,62 @@ export class ChaptersInvalid extends Schema.TaggedError<ChaptersInvalid>()('Chap
 }) {
   override get message() {
     return `${this.film}: no chapters (${this.reason})`;
+  }
+}
+
+/**
+ * A short that does not hook in its first moments: its first word comes
+ * late, nothing moves, or it opens on the film's title card.
+ */
+export class ShortHook extends Schema.TaggedError<ShortHook>()('ShortHook', {
+  short: Schema.String,
+  reason: Schema.Literals(['late word', 'still open', 'title card']),
+  /** Seconds: the first word's start (`late word`), or how long the open holds still. */
+  at: Schema.Finite,
+  max: Schema.Finite,
+  /** The title's words, for `title card`. */
+  text: Schema.optionalKey(Schema.String),
+}) {
+  override get message() {
+    if (this.reason === 'late word')
+      return `short "${this.short}": the first word starts at ${this.at.toFixed(2)}s, after ${this.max.toFixed(1)}s; open on the voice`;
+    if (this.reason === 'still open')
+      return `short "${this.short}": nothing moves in the first ${this.at.toFixed(2)}s (by ${this.max.toFixed(1)}s something must)`;
+    return `short "${this.short}": it opens on the title card "${this.text ?? ''}"; open on the hook, not a title`;
+  }
+}
+
+/**
+ * A short that will not loop cleanly: its last frame's picture is far from
+ * its first (`picture`, the mean absolute per-cell luma difference on
+ * `SHORT_RULES.loopGrid`, 0–1), or the silence from its
+ * last word round to its first is long (`gap`, seconds).
+ */
+export class ShortLoop extends Schema.TaggedError<ShortLoop>()('ShortLoop', {
+  short: Schema.String,
+  reason: Schema.Literals(['picture', 'gap']),
+  value: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    if (this.reason === 'picture')
+      return `short "${this.short}": its last frame differs from its first by ${this.value.toFixed(3)} (mean absolute per-cell luma difference on a ${SHORT_RULES.loopGrid.cols}×${SHORT_RULES.loopGrid.rows} grid), over ${this.max.toFixed(3)}; the loop shows a cut`;
+    return `short "${this.short}": ${this.value.toFixed(2)}s of silence from the last word round to the first, over ${this.max.toFixed(1)}s; the loop stalls`;
+  }
+}
+
+/** A short past `max` s (an error), or outside `from`–`to` s (a warning). */
+export class ShortLength extends Schema.TaggedError<ShortLength>()('ShortLength', {
+  short: Schema.String,
+  length: Schema.Finite,
+  max: Schema.Finite,
+  from: Schema.Finite,
+  to: Schema.Finite,
+}) {
+  override get message() {
+    if (this.length > this.max)
+      return `short "${this.short}" is ${this.length.toFixed(1)}s, over the ${this.max}s a short may run`;
+    return `short "${this.short}" is ${this.length.toFixed(1)}s, outside the ${this.from}–${this.to}s that hold best`;
   }
 }
 

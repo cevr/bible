@@ -36,6 +36,34 @@ export const Word = Schema.Struct({
 }).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
+/** Where a word's voice is heard, in seconds from the start of its take. */
+export const Voiced = Schema.Struct({ start: Seconds, end: Seconds });
+export type Voiced = typeof Voiced.Type;
+
+/**
+ * A word of a take: its span as the aligner timed it (`start`, `end`, which
+ * hold the pause before the word), and where inside that span its voice is
+ * heard (`voiced`, measured from the take's audio when it is timed:
+ * `voiced.ts`). A caption, a hook or a loop that must meet the ear reads
+ * `voiced`; a mark reads the aligned `start`.
+ */
+export const TakeWord = Schema.Struct({
+  text: Schema.String,
+  start: Seconds,
+  end: Seconds,
+  voiced: Voiced,
+}).check(
+  Schema.makeFilter((w) => {
+    if (w.start > w.end) return `"${w.text}" ends before it starts`;
+    const { start, end } = w.voiced;
+    return (
+      (w.start <= start && start <= end && end <= w.end) ||
+      `"${w.text}" is heard ${start}–${end}s, outside its ${w.start}–${w.end}s span`
+    );
+  }),
+);
+export type TakeWord = typeof TakeWord.Type;
+
 /**
  * Who read a take: the ElevenLabs staging voice (`narrate`), or a person
  * (`takes import`, the lab's studio). Staging never replaces a recorded take.
@@ -49,7 +77,7 @@ export const VoiceTiming = Schema.Struct({
   hash: Schema.String,
   file: Schema.String,
   duration: Seconds,
-  words: Schema.Array(Word),
+  words: Schema.Array(TakeWord),
   /**
    * A take stored with no source was staged: it reads as `elevenlabs`, and a
    * staged take is written with none, so the committed timings never churn.
@@ -318,6 +346,71 @@ export type Beat = typeof Beat.Type;
  */
 export const HeardAs = Schema.Record(Schema.String, Schema.Array(Schema.String));
 export type HeardAs = typeof HeardAs.Type;
+
+// ---------------------------------------------------------------------------
+// Shorts
+
+/** A key a point must not name beside its own anchor. */
+const none = Schema.optionalKey(Schema.Never);
+
+/**
+ * Where a short's span starts or ends inside its scene, never at a second: a
+ * `{mark}` (the word it precedes starts), a named cue (its start, or its end
+ * with `edge: 'end'`; a span's `to` takes the end when no edge is named), or
+ * a scene landmark (its start, where the voice starts or ends, or its end).
+ * A point names one anchor.
+ */
+export const ShortPoint = Schema.Union([
+  Schema.Struct({ mark: Schema.String, cue: none, edge: none, scene: none }),
+  Schema.Struct({
+    cue: Schema.String,
+    edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
+    mark: none,
+    scene: none,
+  }),
+  Schema.Struct({
+    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
+    mark: none,
+    cue: none,
+    edge: none,
+  }),
+]);
+export type ShortPoint = typeof ShortPoint.Type;
+
+/** One stretch of one scene a short plays: `from` a point `to` a later one. */
+export const ShortSpan = Schema.Struct({
+  scene: Schema.String,
+  from: ShortPoint,
+  to: ShortPoint,
+});
+export type ShortSpan = typeof ShortSpan.Type;
+
+/** A short's id names its files (`out/<film>/shorts/<id>.mp4`): lower case, digits and dashes. */
+const ShortId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/));
+
+/** A vertical short cut from a film (`shorts.ts`): its spans, played back to back. */
+export const Short = Schema.Struct({
+  id: ShortId,
+  title: Schema.String,
+  /**
+   * The line set above the picture from the first frame for its first
+   * seconds (`SHORT_LAYOUT`), for the viewer who watches with the sound off:
+   * the narrator's own question, or a claim against expectation.
+   */
+  hook: Schema.optionalKey(Schema.NonEmptyString),
+  spans: Schema.NonEmptyArray(ShortSpan),
+});
+export type Short = typeof Short.Type;
+
+/** A film's `shorts.ts`: its shorts, each id once. */
+export const Shorts = Schema.Array(Short).check(
+  Schema.makeFilter((shorts) => {
+    const ids = shorts.map((s) => s.id);
+    const twice = ids.filter((id, i) => ids.indexOf(id) !== i);
+    return twice.length === 0 || `short ids must be unique: ${[...new Set(twice)].join(', ')}`;
+  }),
+);
+export type Shorts = typeof Shorts.Type;
 
 // ---------------------------------------------------------------------------
 // Sound

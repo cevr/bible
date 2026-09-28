@@ -2,8 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
   },
-  "include": ["src/**/*.ts", "lint/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "lint/**/*.ts"],
   "exclude": ["node_modules", "lint/fixtures"]
 }

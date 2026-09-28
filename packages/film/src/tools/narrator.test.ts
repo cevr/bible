@@ -4,6 +4,7 @@
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import type { Pcm } from '../core/audio.ts';
 import { captionCues } from '../core/captions.ts';
 import { hashText, parse, takeScript, voiceFor, voiceKey } from '../core/narration.ts';
 import { type Cast, type Timed, type Timings, TimingsJson, type Voice } from '../core/schema.ts';
@@ -59,7 +60,7 @@ const defaults: NarrateOptions = {
 
 const TIMINGS = '/films/test/narration/timings.json';
 
-const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map()) => {
+const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map(), decoded?: Pcm) => {
   const files = new Map<string, Uint8Array>();
   files.set(TIMINGS, text(Schema.encodeSync(TimingsJson)(timings)));
   const calls = emptyCalls();
@@ -69,7 +70,7 @@ const setup = (timings: Timings, heard: ReadonlyMap<string, string> = new Map())
       memoryFileSystem(files),
       Path.layer,
       fakeElevenLabs(files, calls, { heard }),
-      fakeMedia(),
+      fakeMedia(new Map(), decoded),
     ]),
   );
   return { files, calls, layer };
@@ -126,6 +127,27 @@ describe('Narrator', () => {
         expect(w.start).toBeLessThanOrEqual(w.end);
       }
       expect(take?.words.at(-1)?.end).toBe(2.5);
+    }),
+  );
+
+  it.effect('a staged take says where each word is heard, read from the take itself', () =>
+    Effect.gen(function* () {
+      // The take is silent for its first 0.1 s, then speaks to its end.
+      const rate = 8000;
+      const voice = Float32Array.from(
+        { length: 3 * rate },
+        (_, i) => Number(i >= 0.1 * rate) * 0.3 * Math.sin((2 * Math.PI * 220 * i) / rate),
+      );
+      const { layer } = setup(recorded, new Map(), {
+        rate,
+        frames: voice.length,
+        channels: [voice],
+      });
+      const after = yield* narrate(layer);
+      const [the, second] = after.scenes['b']?.words ?? [];
+      // One character per 0.05 s: "The" is aligned from 0, heard from 0.1 s.
+      expect([the?.text, the?.start, the?.voiced.start]).toEqual(['The', 0, 0.1]);
+      expect([second?.voiced.start, second?.voiced.end]).toEqual([second?.start, second?.end]);
     }),
   );
 

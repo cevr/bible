@@ -269,6 +269,8 @@ export const BENCH_RULES: ReadonlyArray<FlagRule> = [
   ['share', 'needs', 'workers', 'only --workers encodes'],
   ['scene', 'excludes', 'from', '--scene sets the range from the layout'],
   ['scene', 'excludes', 'to', '--scene sets the range from the layout'],
+  ['short', 'needs', 'workers', 'a short is timed as the render it is (--workers)'],
+  ['short', 'excludes', 'scene', "a short's spans are its scenes"],
 ];
 
 /** A worker count timed rendering the same range: its runs and its median. */

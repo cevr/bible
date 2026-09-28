@@ -15,6 +15,7 @@ import {
   voiceKey,
   wordsFromAlignment,
 } from './narration.ts';
+import { unmeasured } from './voiced.ts';
 
 describe('narration', () => {
   test('marks are removed from speech and point at the next word', () => {
@@ -49,7 +50,7 @@ describe('narration', () => {
       hash: hashText(spoken),
       file: 'a.mp3',
       duration: 2,
-      words: estimate(spoken),
+      words: unmeasured(estimate(spoken)),
       source: 'elevenlabs' as const,
     };
     const timings = { voice: 'v', scenes: { s: take } };
@@ -63,7 +64,7 @@ describe('narration', () => {
       hash: hashText(spoken),
       file: 'a.mp3',
       duration: 2,
-      words: estimate(spoken),
+      words: unmeasured(estimate(spoken)),
       source: 'elevenlabs' as const,
     };
     const timings = { voice: 'v', scenes: { s: take } };
@@ -191,7 +192,7 @@ describe('turns', () => {
       hash: hashText(takeScript(parsed)),
       file: 'a.mp3',
       duration: 4,
-      words: estimate(parsed.spoken),
+      words: unmeasured(estimate(parsed.spoken)),
       source: 'elevenlabs' as const,
     };
     const voice = voiceFor('s', line, { voice: 'v', scenes: { s: take } });

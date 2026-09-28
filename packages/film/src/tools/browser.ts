@@ -36,6 +36,8 @@ export type FrameFormat = 'image/png' | 'image/jpeg';
 /** One player page in export mode. */
 export interface FramePage {
   readonly info: ExportInfo;
+  /** The page's title: the film's (or the short's) title, as the player sets it. */
+  readonly title: string;
   /** Draw frame `i` and return it encoded. */
   readonly frame: (
     i: number,
@@ -70,6 +72,11 @@ export interface FramePage {
   readonly hash: (
     frames: ReadonlyArray<number>,
   ) => Effect.Effect<ReadonlyArray<string>, PageError | PageCrashed | FrameFailed>;
+  /** Draw frame `i` and return the luma (0–255) of `area`, sampled down, row by row. */
+  readonly luma: (
+    i: number,
+    area: LumaArea,
+  ) => Effect.Effect<ReadonlyArray<number>, PageError | PageCrashed | FrameFailed>;
   /**
    * Draw `frames` without captions and return each as a `w` × `h` RGBA thumb
    * (end to end) with the faces it declared: the look pass.
@@ -87,6 +94,78 @@ export const LookedFrames = Schema.Struct({
   faces: Schema.Array(Schema.Array(FaceMark)),
 });
 export type LookedFrames = typeof LookedFrames.Type;
+
+/** A rectangle of a frame in canvas px, and the grid its luma is sampled down to. */
+export interface LumaArea {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly cols: number;
+  readonly rows: number;
+}
+
+/**
+ * A frame's luma as a page hands it back: one value per cell of `area`'s
+ * grid. An empty read (the page had no canvas to sample on) or a short one is
+ * refused, so a loop is never compared on nothing and called clean.
+ */
+export const lumaGrid = (area: LumaArea) =>
+  Schema.Array(Schema.Finite).check(
+    Schema.makeFilter(
+      (cells) =>
+        cells.length === area.cols * area.rows ||
+        `${cells.length} luma cells for a ${area.cols}×${area.rows} grid`,
+    ),
+  );
+
+/**
+ * Runs in the page: frame `n` as the export handle encodes it (PNG, so
+ * lossless), cropped to the area, scaled down to its grid and read back as
+ * Rec. 709 luma. The player is not touched; this reads what it hands out.
+ */
+const lumaInPage = ([n, area]: readonly [number, LumaArea]) =>
+  window.__film
+    ?.frame(n, 'image/png')
+    .then((b64) => {
+      // Base64 by hand: the page has no module to import a decoder from.
+      const table = new Int16Array(128).fill(-1);
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      for (let i = 0; i < alphabet.length; i++) table[alphabet.charCodeAt(i)] = i;
+      const bytes = new Uint8Array(Math.floor((b64.length * 3) / 4));
+      let acc = 0;
+      let bits = 0;
+      let at = 0;
+      for (let i = 0; i < b64.length; i++) {
+        const v = table[b64.charCodeAt(i) & 127] ?? -1;
+        if (v < 0) continue;
+        acc = ((acc << 6) | v) & 0xffffff;
+        bits += 6;
+        if (bits >= 8) {
+          bits -= 8;
+          bytes[at++] = (acc >> bits) & 0xff;
+        }
+      }
+      return new Blob([bytes.subarray(0, at)], { type: 'image/png' });
+    })
+    .then((png) =>
+      createImageBitmap(png, area.x, area.y, area.w, area.h, {
+        resizeWidth: area.cols,
+        resizeHeight: area.rows,
+        resizeQuality: 'medium',
+      }),
+    )
+    .then((bitmap) => {
+      const ctx = new OffscreenCanvas(area.cols, area.rows).getContext('2d');
+      // No canvas to sample on: an empty read, which `lumaGrid` refuses as a failed frame.
+      if (!ctx) return [];
+      ctx.drawImage(bitmap, 0, 0);
+      const d = ctx.getImageData(0, 0, area.cols, area.rows).data;
+      const out: number[] = [];
+      for (let i = 0; i < d.length; i += 4)
+        out.push(0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0));
+      return out;
+    });
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
 
@@ -197,6 +276,8 @@ const openPage = (page: Page, url: string) =>
         catch: loadFailed,
       }),
     );
+    // The player names the page after the film it mounted.
+    const title = yield* guarded(Effect.tryPromise({ try: () => page.title(), catch: loadFailed }));
     const reported = yield* guarded(
       Effect.tryPromise({
         try: () =>
@@ -351,8 +432,17 @@ const openPage = (page: Page, url: string) =>
         batchFailed(frames),
       );
 
+    const luma = (i: number, area: LumaArea) =>
+      handle(
+        () => page.evaluate(lumaInPage, [i, area] satisfies [number, LumaArea]),
+        lumaGrid(area),
+        FRAME_TIMEOUT,
+        (reason) => FrameFailed.make({ frame: i, reason }),
+      );
+
     return {
       info,
+      title,
       frame,
       probe,
       lookbook,
@@ -362,6 +452,7 @@ const openPage = (page: Page, url: string) =>
       time,
       hash,
       look,
+      luma,
     } satisfies FramePage;
   });
 

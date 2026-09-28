@@ -16,19 +16,23 @@ bun run score <film>                           # generate stale music + effects,
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
+bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns StaticHold, HeldShare, FaceSmall, ColourScript, EndShort
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold or look pass: they need the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
+bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
+bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
-bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
+bun run bench <film> --workers 6 --short <id>          # the same, rendering a short
+bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -36,8 +40,10 @@ bun run notes resolve <film> <id>
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
-loads and, for `lab`, the same server in development mode with the lab's
-routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
+loads and, for `lab`, the same server in development mode with the lab's own
+page at `/lab` (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`;
+`bunfig.toml` compiles its Solid JSX; the render's server never serves it) and
+the lab's routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
 is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
@@ -124,23 +130,27 @@ a render cleanly: every page, the browser and the server close. Player keys: spa
 `c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
-agent's replies arrive with their after-stills. The strip under the timeline shows the
+agent's replies arrive with their after-stills (if the page loses the lab server, the notes say so and connect again on their own). The strip under the timeline shows the
 current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
-all body, alt-drag for its end; snaps to words and frames, shift for free) and the release writes the new value into
+all body, alt-drag for its end; snaps to words and frames, shift for free; Esc puts it back) and the release writes the new value into
 the scene's `.ts` file, the page reloading at the same time and selection.
 The inspector sets offset, dur and ease (each curve drawn) and knobs; a point
 knob gets a handle on the frame, placed through the transform it was read
-under (inside `at(...)`, scaled, tilted), so it drags where it is drawn. `film check --static`
+under (inside `at(...)`, scaled, tilted) or, read before a camera, through that
+camera, so it drags where it is drawn. A camera's target (a point knob `face`
+beside `faceZoom`) is a reticle; while the camera sits on it, dragging it moves
+the picture with the pointer (the target moves the other way). `film check --static`
 runs after each write and its findings show in the panel; Undo (⌘Z) puts the
 newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
-over a change made since. Review with `git diff`. The panel's Motion section ghosts the frames
+over a change made since. One write is out at a time: a drag or a field set while one
+is in flight is not taken. Review with `git diff`. The panel's Motion section ghosts the frames
 around a paused one (Onion: warm before, cool after), slows the clock to
-0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range.
+0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range (setting B after A plays from A; a B before A waits for a new one). A film with no mixed `full.wav` yet plays on its own clock and the time line says `no narration`; a browser that holds the narration until a click says `narration waits for a click`, and the next play tries again.
 Compare draws the same frame as HEAD declared the scene's timeline and
-knobs: wipe (HEAD left of a divider you drag) or blink. Speed, loop, onion,
+knobs: wipe (HEAD left of a divider you drag) or blink; when HEAD cannot give the scene, the section says the server's reason. Speed, loop, onion,
 compare and play are kept through the reload a write causes (the tab's
 sessionStorage, per film). The panel's
-Look-book link (`?film=<film>&lab&lookbook`) composes `bun run lookbook`'s
+Look-book link (`?film=<film>&lookbook`) composes `bun run lookbook`'s
 sheet live; a click on a still opens that frame. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
@@ -157,6 +167,7 @@ src/films/<film>/
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props, its people and type treatments
   sound.ts         music acts and sound effects, placed on scenes' named cues
+  shorts.ts        vertical shorts: spans of scenes, from a mark or cue to a later one (optional)
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           generated score + effects, and manifest.json (their request hashes)
 ```
@@ -225,8 +236,9 @@ frame. Ornament
 move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
 constant. A framing is knobs too: a point and a zoom (and a tilt),
-`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with a film
-kit's `knobCamera(f.knob('face'), f.knob('faceZoom'))`. Only the unmoved
+`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with
+`knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`, which
+a film's kit re-exports); the lab gives that pair a reticle. Only the unmoved
 frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
 constant and one shared across scenes stay code. Read a position knob
 under the transform it is drawn with (inside the camera or the plane), so
@@ -293,11 +305,44 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `mix --stems` against the levels in rule 10 of the film skill's
 [CRAFT.md](../../.claude/skills/film/CRAFT.md).
 
+**Shorts are cut from the film, not drawn again.** `shorts.ts` exports
+`shorts`, each `{ id, title, spans }`, a span being `{ scene, from, to }`
+where a point is a `{ mark }`, a named `{ cue }` (its start, or its end as a
+span's `to`, or `edge` to say which) or a scene landmark
+(`{ scene: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
+re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
+back to back at 1080×1920 with the track cut from `full.wav` under the same
+spans (a 10 ms fade either side of each join, so no join clicks), and writes
+`out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
+lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
+scene has). `cues <film> --short <id>` prints each span's film time and the
+short's length, on the frames at the rate the film declares (read from its page,
+as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px
+down, byte for byte the film's own frame at that time (a band crop of
+`render --short <id> --stills T` equals `render --stills <film time> --no-captions`);
+above it the short's `hook` (the narrator's question or claim, set from the
+first frame, held 2.4 s, faded by 2.8 s); round it the film's paper, vignette
+and grain made at the page's size; below it the captions, burned in two to
+four words at a time as they are said, with no plate, and each quoted word
+(between the script's “ and ”) marked gold as it is read. `check <film>
+--short <id>` checks the short, not the film: `ShortUnsafeText` (text under
+the platform's buttons: the `default` zone keeps 270 px top, 520 bottom, 140
+right and 65 left clear, `--zone ads` the bottom 35%; the short's own lines
+are errors, the film's a warning), `ShortHook` (a first word after 0.3 s,
+nothing moving by 0.5 s, or the film's title card first), `ShortLoop`
+(warning: the last frame far from the first, or over 0.6 s of silence round
+the loop) and `ShortLength` (over 90 s an error, outside 45–75 s a warning).
+The film's `short` style sets the hook's
+and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`).
+`src/films/index.ts` keeps `films` (a key per film folder)
+apart from `pages`, what the player mounts: the films plus each short's page
+from `shortPages`, under `<film>/shorts/<id>`.
+
 ## Engine (`@bible/film`)
 
 The engine lives in [`packages/film`](../../packages/film); this app is its
-first user. `src/main.ts` is the browser entry: it calls `mountPlayer(films)`
-with the registry in `src/films/index.ts`. Scenes import from three entry
+first user. `src/main.ts` is the browser entry: it calls `mountPlayer(pages)`
+with the registry in `src/films/index.ts` (the films and their shorts). Scenes import from three entry
 points:
 
 | Entry point          | Module          | What it gives a scene                                                                                                                                                                                                                                                                                                                                          |

@@ -167,7 +167,65 @@ Pass 2 performance candidates (framework, pixel-exact or not at all):
 
 Merged to main: engine bf868773, render 0f361f18, lab d8dcb2da, guard 92ce9d80, script revision c7385458 (73e1c49b script, ecaeb114 takes: 10 beats, WER ≤ 2.7%, runtime 435.6 s, landing 86.2%, quotes 11.6%).
 
-Live check: —
+Wave 3 merged: films-b2 c1fe698d (message, daily, thesis, declared, name, centurion drawn; kit `openHand`), films-b1 acb1daca (exchange R6/R3, robe, within, daily fixes, R1 thesis answer where the question stood), films-b perf 94dc11ac/f263f362 (per-frame objects out of scenes). Guardrail from the 4f46add3 miss: `every scene of every registered film draws` 2db2a6e4, widened to each cue's midpoint into a stub canvas that refuses what a real one does cd648b08.
+
+Merged after wave 3, all on main at 1955df10 (pushed to GitHub, owner OK 2026-09-28):
+
+| Batch        | Merge / head             | What landed                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| p1-framework | 592ff77e … ad313e59      | word pins `{ mark, word }` + `WordMissing` 6433321c, `WordPinFar` 58dcf7bd, `film/no-hand-timed-seconds` 0f7ee600 (widened e435ff83), `shotPath` bfaa949d, framings and figures as knobs d45ac8ed (`knobCamera` in the film kit), renderer temp folder e7d19e3a/3e9a14fa                                                                                                     |
+| p1-script    | f81c680e, takes bb8d5242 | the owner-approved single-narrator script 82233641 (the narrator asks the viewer's question at each turn): 16 staging takes by Chris, 415.1 s, landing 86.7 % (over CRAFT's 84 %: owner keeps it; options if raised again are cuts or a longer coda), `check` 0/0                                                                                                            |
+| p1-voice     | e42f0c62 … 1955df10      | the owner's voice replaces staging beat by beat a48f06b6; studio server cb56ffa0; 24-bit FLAC masters with the original kept cb8d2b47; one clean gain to −17.1 dBFS 990f0c3e; `:beat` checked first, 413, one write at a time 9976b5c7; lenient WER + `heardAs` 090a9d1d; `SttUntimed` 51efeddf; `--whole` cut at the quietest silence 999a0ac3; renamed beats kept b3fec541 |
+
+Live check: pass 1's live check folds into pass 2's (below), run once after pass 2's merges.
+
+## Pass 2
+
+HEAD at start: `1955df10` (Workbox from here on: numbers taken on the Workbox do not compare with the Mac rows above).
+
+Owner decisions (2026-09-28):
+
+- The lab UI is Solid 2 + effect-machine (effect-frame left the repo 2026-09-25); a machine for any control with several states; the lab stays in the browser (Electron only for a native need).
+- Studio recording is unprocessed and lossless: getUserMedia with echoCancellation, noiseSuppression and autoGainControl false, PCM through an AudioWorklet → WAV. Never MediaRecorder or Opus (the server refuses lossy types with 415).
+- Director's vision approved in all four parts: (1) the doc and its checks, (2) the paper treatment in the kit, (3) score and landing music, paid, after the owner's voiceover so it is generated once, (4) motion and the colour valley (scene work after p2-direction's framework). Pixel-moving commits wait for the owner's OK on before/after montages before merge.
+- Shorts next after this pass's batches: the vertical camera (A2), pickup lines (A8), the cover (A9); the lab draws safe zones from `SAFE_ZONES` in `@bible/film/core`.
+
+Triage:
+
+| Batch        | Worktree                    | Items                                                                                                                                                       | State                          |
+| ------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| p2-lab       | ../bible-tools-p2-lab       | the lab's controls on Solid 2 + effect-machine: shell, cue strip and inspector, knobs and handles, motion and compare, notes and findings (items 1–5)       | merged 0bf8295d (fixups below) |
+| p2-shorts    | ../bible-tools-p2-shorts    | A1 shorts as data, A3 stacked 9:16 page, A4 burned word captions, A5–A7 short checks, CRAFT Shorts, two shorts (verdict 47.2 s, mirror 29.3 s)              | merged 7255cae8 (fixups below) |
+| p2-direction | ../bible-tools-p2-direction | director-vision doc, CRAFT/SKILL rules; checks `DeadAir`, `HeldShare`, `ColourScript`, `FaceSmall`, `EndShort`, `chapters`; paper look C1–C6; scene drift D | apply running                  |
+| p2-studio    | ../bible-tools-p2-studio    | the Studio panel in the Solid lab against the p1-voice server (recorder machine, AudioWorklet WAV, teleprompter, takes history)                             | apply running (from 0bf8295d)  |
+
+Counsel defects (pass 2):
+
+| ID           | Defect                                                                                                | Red test                                        | Status                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| lab-1        | a knob at 0 had no inspector row (`<Show when>` truthiness)                                           | `knobs.dom.test.ts` 0-knob row writes           | done c670bef9                                                                                                                  |
+| lab-2        | docs named a `knobCamera` only one film's kit had                                                     | `camera.test.ts` export                         | done 388fa387 (framework, film re-exports)                                                                                     |
+| lab-3        | the editor could wedge in Writing                                                                     | TestClock actor test, `Effect.never` write      | done e07f7623 (20 s → Refused)                                                                                                 |
+| lab-4        | providers exposed machine state unions; consumers matched other modules' tags                         | `findingsOf`, `layerOf`, `composerOpen`         | done d7158f60                                                                                                                  |
+| lab-5        | pre-existing: canvas overflowed its row; notes overlay and onion covered the bar                      | `shell.dom.test.ts` boxes at 1400×480, 1100×420 | done 849c29a4 (`body.lab .stage` grid)                                                                                         |
+| lab-6        | pre-existing: `audio.play()` rejected every loop on a film with no master (HMR overlay)               | `narration.test.ts`                             | done 26292ed3 (typed `NarrationState`)                                                                                         |
+| lab-flake    | notes DOM tests raced their fake answers under the hook                                               | —                                               | done e8fdc104                                                                                                                  |
+| shorts-D1/D2 | aligned word starts carry the pause before them: hook/loop passed wrongly, captions up to 2.8 s early | voiced/phrases/short-check/narrator tests       | done 5ce236f2, c2cfa722: `TakeWord.voiced` measured once from the take (−40 dBFS, 10 ms), backfilled locally, hashes unchanged |
+| shorts-D3    | a phrase crossed a sentence end                                                                       | two phrases tests                               | done e4493d48                                                                                                                  |
+| shorts-D4    | `check/cues --short` resolved at 30 fps                                                               | 24 fps fixture                                  | done 2e5a3091                                                                                                                  |
+| shorts-D5    | an empty luma read passed the loop; band recomputed as 16:9                                           | 4:3 fixture, `lumaGrid`                         | done 99a1e741                                                                                                                  |
+| shorts-D6    | verdict's third span opened on a fragment                                                             | —                                               | done 40d7fde9 (`{ mark: 'how' }`, 50.23 s)                                                                                     |
+| shorts-D7    | CRAFT "Checked" wording; bench claim                                                                  | message test                                    | done 5d9f907e (parity ~0.92×)                                                                                                  |
+| shorts-hook  | after D1 mirror failed ShortHook 0.50 s: a span opens 0.1 s before its word is heard                  | `openOnVoice` test                              | done 24b2b80d                                                                                                                  |
+
+Merge proofs: p2-lab stills t=2, 12.5, 40, 75 cmp-identical to main, player bundle has no Solid or effect-machine (494,721 B min). p2-shorts: `cues` identical and 10 stills (2 … 400 s, captions burned) cmp-identical to main. Shorts now: verdict 50.23 s, first voice 0.11 s, loop gap 0.35 s, worst caption lead 70 ms; mirror 29.10 s, 0.11 s, 0.24 s, 90 ms (was 860 ms).
+
+Open for the owner (pass 2):
+
+- The long film's captions on voiced onsets: `core/captions.ts` `filmCaptionTimes` → `heard` moves 186 of 248 lines later (mean 0.205 s, max 0.90 s). Pixel-moving: owner's call.
+- Mirror short is 29.1 s (ShortLength warns under 45 s): another span, or keep it short.
+- Short MP4s cannot be made on the Workbox (its Playwright Chromium has no H.264 encoder: `EncoderMissing`); render both on the Mac. Guard candidate: `doctor` reports the missing encoder before a render starts.
+- A `takes voiced` backfill command for other films' timings (the scratch script was not committed).
 
 ## Close
 

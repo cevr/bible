@@ -7,7 +7,7 @@ import {
   Timings,
   TimingsJson,
   type VoiceTiming,
-  type Word,
+  type TakeWord,
 } from './schema.ts';
 
 const take: VoiceTiming = {
@@ -16,9 +16,9 @@ const take: VoiceTiming = {
   duration: 2,
   source: 'elevenlabs',
   words: [
-    { text: 'Look', start: 0, end: 0.4 },
-    { text: 'and', start: 0.5, end: 0.8 },
-    { text: 'live.', start: 0.9, end: 2 },
+    { text: 'Look', start: 0, end: 0.4, voiced: { start: 0.1, end: 0.4 } },
+    { text: 'and', start: 0.5, end: 0.8, voiced: { start: 0.5, end: 0.8 } },
+    { text: 'live.', start: 0.9, end: 2, voiced: { start: 1.2, end: 1.9 } },
   ],
 };
 
@@ -26,7 +26,7 @@ const decodes = (a: VoiceTiming) =>
   Result.isSuccess(Schema.decodeResult(Timings)({ voice: 'v', scenes: { a } }));
 
 /** `take` with word `i` changed. */
-const withWord = (i: number, word: Partial<Word>): VoiceTiming => ({
+const withWord = (i: number, word: Partial<TakeWord>): VoiceTiming => ({
   ...take,
   words: take.words.map((w, k) => {
     if (k !== i) return w;
@@ -51,6 +51,14 @@ describe('Timings', () => {
   test('refuses a word that starts before 0 or ends before it starts', () => {
     expect(decodes(withWord(0, { start: -0.1 }))).toBe(false);
     expect(decodes(withWord(1, { start: 0.9, end: 0.6 }))).toBe(false);
+  });
+
+  test('a word is heard inside its aligned span, and a take word says where', () => {
+    expect(decodes(withWord(2, { voiced: { start: 0.8, end: 1.9 } }))).toBe(false);
+    expect(decodes(withWord(2, { voiced: { start: 1.2, end: 2.1 } }))).toBe(false);
+    expect(decodes(withWord(2, { voiced: { start: 1.5, end: 1.2 } }))).toBe(false);
+    const unheard = `{"voice":"v","scenes":{"a":{"hash":"h","file":"a.mp3","duration":1,"words":[{"text":"Look","start":0,"end":0.4}]}}}`;
+    expect(() => Schema.decodeSync(Schema.fromJsonString(Timings))(unheard)).toThrow();
   });
 
   test('refuses words out of order', () => {

@@ -6,12 +6,14 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`, the studio's wire `studio`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                         |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper by meaning (`piece`: a figure cut and outlined, scenery torn with no ink), paper, type, IK limbs, figure, multiplane camera and `shotPath`/`lerpCamera` shots, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                            |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                                                                                              |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
+| Import                     | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`         | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`, the studio's wire `studio`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper by meaning (`piece`: a figure cut and outlined, scenery torn with no ink), paper, type, IK limbs, figure, multiplane camera, `shotPath`/`lerpCamera` shots and `knobCamera` framings from knobs, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, the narration as a typed state (`narration.ts`: `None`, `Loading`, `Ready`, `Blocked` until a click, `Missing` when the master will not load or play, which the preview then never asks to play and says `no narration`), and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                                                                                                                                                                                              |
+| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell. |
+| `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck.                                                                                                                                                                                                                                                                                                                     |
 
 ## Data
 
@@ -90,7 +92,16 @@ only by rewriting `timings.json`, so no crash leaves a take and its timings
 disagreeing. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
 inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
-warning past `TAKE_TOLERANCE`), so the timings always fit their audio. It removes the takes (`.mp3` or a person's `.flac`) the timings
+warning past `TAKE_TOLERANCE`), so the timings always fit their audio. The
+aligner puts the pause before a word into that word's start, so each word
+also carries where it is heard (`voiced`, a `TakeWord`): the first and last
+10 ms window inside its aligned span over a −40 dBFS gate, read from the take
+itself when it is timed (`core/voiced.ts` `voicedWords`; `narrate`,
+`takes import` and the studio alike; a span no window passes holds no
+voice, since the aligner put it past the span, so it is heard from the span's
+end, never sooner). A mark and the long film's captions read the aligned start;
+what must meet the ear (a short's captions, its hook and its loop) reads the
+voice (`heard`). It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
 replaced person's take loses only its copy in `narration/`: its master and
 its original stay in `narration/attempts/`.
@@ -192,13 +203,115 @@ contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
 
+## Shorts
+
+A film's `shorts.ts` (optional; `Shorts` in `core/schema.ts`, decoded by
+`FilmRepo`) declares vertical cuts: `{ id, title, spans: [{ scene, from, to }] }`,
+each point a `{ mark }`, a named `{ cue, edge? }` or a scene landmark, never a
+second. A span that opens on a word (a `{ mark }` or `{ scene: 'speech' }`)
+opens `SHORT_PREROLL` (0.1 s) before the word is heard, never before its
+aligned start: the aligner gives a word the pause before it, and a short
+opened on that pause starts on silence. A close stays where it is marked.
+`core/shorts.ts` resolves a short against the layout on whole frames
+(`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
+and short seconds), or fails with `ShortUnknownScene`, `ShortUnknownMark`,
+`ShortUnknownCue` or `ShortSpanEmpty` naming what the film has; `--short`
+naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
+the film stretches under it.
+
+The page is a `Film` of its own (`canvas/short.ts`, `createShort`), so the
+player, the export handle and the worker pool serve it unchanged: the app
+spreads `shortPages(name, load, shorts)` into its registry, one page per
+short under `<film>/shorts/<id>` (`shortKey`). Each frame is the film's own
+frame at the film time under it, drawn full size into a band and copied onto
+a 9:16 page at the film's density (`shortPage(1920)`: 1920×3414), which the
+encoder scales to 1080×1920 through the same `--scale` path; so a crop of the
+band is, pixel for pixel, a `render --stills --no-captions` still at that film
+time. The page is stacked by `SHORT_LAYOUT` (`core/shorts.ts`, 1080×1920 px,
+data the checks and the lab read): the short's `hook` centred on y 445 at
+most 800 px wide, set from frame 0 and faded out by 2.8 s (`hookAlpha`); the
+band from y 620; the captions centred on y 1318. Round the band the page is
+the film's paper under its own vignette, made once at the page's size, and
+the film's grain laid over the paper only (`grainRect`), so nothing touches
+the band. `Film.look` carries the film's paper, shade, finish and `short`
+style (`ShortStyle` on `FilmSpec.short`: the hook's and captions' fonts and
+colours, sizes in 1080×1920 px, checked by `createFilm`). The
+renderer resolves the short again on the page's fps, cuts `full.wav` to its
+pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
+writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
+phrases the page burns in, as it shows them).
+
+A short's captions are phrases, not the film's lines (`core/phrases.ts`):
+`shortPhrases` takes each span's words, timed by the voice (`heard`: a word
+shows when it is heard, not when the aligner starts it), breaks them at
+every sentence end (`.`, `?`, `!`) and voice turn, then at clauses (`,`,
+dashes, `;`, `:`, `…`), and cuts each clause evenly into two to four words
+(`PHRASE_MAX`). No phrase crosses a sentence end or a join, so a one-word
+sentence ("Justified?") is a phrase of its own; a one-word clause joins a
+neighbouring clause of its sentence unless the voice pauses over
+`PHRASE_GAP` (0.3 s) between them. A phrase shows from its first word to the
+next phrase's, or `PHRASE_HOLD` (0.6 s) after its last word, each moved half
+a frame earlier so it shows from the frame nearest its first word. A word
+between the script's “ and ” (which the take's words carry; `quotedWords`)
+is quoted.
+`canvas/short-captions.ts` (`burnedCaptions`) draws them centred on y 1318 in
+the style's caption font, no plate, each phrase broken into as few lines of
+at most 800 px as it needs and balanced (`breakLines`, so no word is left
+alone); a quoted word gets a gold marker (`caption.highlight`) swept behind
+it as it is read, so a quotation lights word by word. The phrases are set
+once; a frame looks one up and draws it. The long film's captions are
+untouched: they time each line by the aligner (`sceneCaptions`), and timing
+them by the voice is one line in `core/captions.ts` (`filmCaptionTimes = heard`),
+left for the owner since it moves burned-in pixels. `render --short --no-captions` leaves them out.
+
+`film check <film> --short <id> [--zone default|ads]` holds a short to
+`SHORT_RULES` (`core/shorts.ts`) instead of checking the film
+(`tools/short-check.ts`, pure; `Checker.short` probes the page):
+
+- `ShortUnsafeText`: a line of text past the safe zone, probed every half
+  second and at each phrase's first frame. `SAFE_ZONES` (exported from
+  `@bible/film/core` with `safeRect`, so the lab draws the same zones) holds
+  the margins in 1080×1920 px: `default` top 270, bottom 520, right 140,
+  left 65; `ads` the same with the bottom 35% (672). The short's own lines
+  (hook, captions; probed with the `caption` tag) are an error and fold into
+  one finding per side; the film's lines in the band are a warning each,
+  since the band is the film's frame and only another span moves them.
+- `ShortHook` (error): the first word heard after 0.3 s; nothing in the picture
+  moving by 0.5 s (probes of the open that hold still, the hook and captions
+  left out, as `heldStill` does for holds); or the first frame showing the
+  film's title (the film's page title, read from the film's own page). A logo
+  drawn as ink is not told from other ink.
+- `ShortLoop` (warning): the mean absolute per-cell luma difference on a
+  64×36 grid (`SHORT_RULES.loopGrid`) of the band is over 0.08 between the
+  last frame and the first (`FramePage.luma`, which
+  decodes the export handle's PNG in the page, so the player is untouched),
+  or more than 0.6 s of silence from the last word's voice round to the
+  first's. The band is `bandOf` (`core/shorts.ts`) of the film's own page,
+  the rectangle the short's page draws the film's frame into, whatever the
+  film's aspect; a read with no value for every cell (no canvas to sample on)
+  fails as `FrameFailed` (`lumaGrid`), never compared as clean.
+- `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
+
+A short resolves on its page's frame rate (`Checker.cut`: the rate the film
+declares, read from the page's `info.fps`, as the renderer does), so
+`check --short`, `cues --short` and the render cut the same frames.
+`--static` runs only what the words tell (length, first word, the loop's
+silence), probing no frames: it opens the page once, for its rate.
+`film cues --short` prints `shortReport` at that rate; `film bench --workers n --short <id>` times the same
+render. A short draws at about parity with the film per frame (~0.92× of the
+same frames as a 16:9 render, measured against one contiguous range): the
+9:16 page costs nothing extra, and saves nothing either.
+
 ## Lab
 
-`film lab <film>` serves the player in development mode (the bundle rebuilds
-and hot-reloads as scenes change) at `?film=<film>&lab`, prints that URL,
-and runs until Ctrl-C, which stops the server and the routes with the
-command's scope. The framework owns the routes (`lab.ts`, an `HttpRouter` web
-handler over NotesStore); the app mounts them at `/lab/*`:
+`film lab <film>` serves the lab's page in development mode (the bundle
+rebuilds and hot-reloads as scenes change) at `/lab?film=<film>`, prints that
+URL, and runs until Ctrl-C, which stops the server and the routes with the
+command's scope. The page is the app's (`lab.html`, whose entry calls
+`mountLab(films)`, bundled with `@bible/film/solid-plugin`); only the lab's
+server serves it, so the render's server never bundles Solid. The framework
+owns the routes (`lab.ts`, an `HttpRouter` web handler over NotesStore); the
+app mounts them at `/lab/*`:
 
 | Route                                    | What it does                                                         |
 | ---------------------------------------- | -------------------------------------------------------------------- |
@@ -267,7 +380,28 @@ note's still is written before the note that names it.
 it, the nearest named-cue edge and `{mark}`; the page computes it from the
 layout it draws, so a note carries the cue the viewer saw.
 
-**The page** (`player/lab.ts`, plain DOM over the preview): on the canvas a
+**The page** (`lab/`, Solid 2 around the framework-free preview): the shell
+(`lab/shell.tsx`) is compound components. `<Lab.Root>` holds what every panel
+shares (the film, its player, the lab API's base, the view kept through a
+reload, `T`, the frame drawn last, as a signal, the selection (kept in the URL as
+`sel`), and a runtime for the panels' machines: `Stage`, the preview as they
+drive it (`lab/stage.ts`: edits shown in memory, `#T` held for a write), and
+`LabApi`, every lab route through `HttpClient` with its Schema, a refusal
+being the server's own text (`lab/api.ts`)); `<Lab.Overlay>` and
+`<Lab.Layer>` are pinned exactly over the film canvas and follow it as it
+resizes; `<Lab.Strip>` is a slot right under the player's timeline;
+`<Lab.Panel>`, `<Lab.Header>` (with the look-book link) and `<Lab.Section>`
+lay out the side panel. Each tool's state lives in its own provider; the
+shell knows none of it. A provider's context gives values derived from its
+machine and actions, never the machine's state: the editor's `status` and
+`findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
+`split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
+component matches a state's tag, and a renamed state touches only its
+module. The browser tests (`lab/**/*.dom.test.ts`) open the real
+page over a probe film in headless Chromium with the lab API faked
+(`lab/fixtures/harness.ts`).
+
+**Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
 ink; `n` notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
@@ -275,10 +409,20 @@ Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on
 the canvas, so a still, an export frame and a probe are the film's pixels
 alone. Notes appear as pins through the timeline (the tick machinery, hover
-for the text) and in a side list with their status, still and thread,
+for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2) and in a side list with their status, still and thread,
 newest first; clicking one seeks to its frame and draws its box and ink
-there. The selected note takes a reply or a resolve. A long-poll on
-`/lab/notes/wait` refreshes the list the moment the agent replies.
+there. The selected note takes a reply or a resolve. Two machines hold it. The
+composer (`lab/notes/composer.ts`): `Closed | Marking | Open | Saving` on
+`Press | Drag | Lift | Note | Cancel | Save | Saved | Failed`; the save is
+the state's task (`Stage.still`, then `NotesApi.add`), so one is out at a
+time, and a refusal comes back to the draft in the server's words. The feed
+(`lab/notes/feed.ts`), the page's live connection to its server:
+`Connecting | Live | Lost` on `Synced | Waited | Dropped | Retry | Refresh`;
+it reads the notes, then long-polls `/lab/<film>/notes/wait` past the
+cursor, so the list changes the moment the agent replies; a failed read or
+wait says so in the panel and connects again after 2 s (a state timeout);
+a note, reply or resolve made on the page reads the notes at once. (Scene
+hot reload is Bun's own HMR client, not the lab's.)
 
 `film notes <film>` prints each unresolved note as one line:
 
@@ -340,7 +484,7 @@ can be undone once, only while the file is exactly as that write left it.
 --allow-stale` in a new process after each write (this one imported the
 scene modules at start) and returns its findings, which the lab lists.
 
-**The editor** (`player/lab-edit.ts`): a strip under the timeline shows the
+**The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur). A cue that runs `until` a mark keeps
@@ -360,14 +504,38 @@ inputs (for an `until` cue, `until {mark}` and its resolved end instead of
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 `transform · value` and a drag maps the pointer back through the inverse
 (`core/affine.ts`), to whole units of the knob's own space: a knob read
-inside `at(...)`, scaled or tilted, drags where it is drawn. Read inside a
+inside `at(...)`, scaled or tilted, drags where it is drawn. A knob read
+outside every camera is drawn where the scene's next camera puts it: each
+scene draws through `hearingCameras` (`canvas/camera.ts`), which tells the
+recorder the transform inside each outermost `camera` or `multiplane` (its
+focal plane) it applies, and the reads before it are stamped with it
+(`KnobRead.framed`); the handle sits at `framed · value`. A read before the
+scene's first camera but drawn outside every camera would be misplaced, so
+read a knob where it is drawn. A camera's target (a point knob `X` beside a
+number knob `XZoom`, as `knobCamera` (`canvas/camera.ts`) reads them) is a reticle; while the
+camera sits on it (the handle at the frame's centre) its drag moves the
+picture with the pointer, the target by the move taken back through the
+camera, the other way. Read inside a
 transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
-disabled. Undo write reverts the last write.
+disabled. Undo write reverts the last write. Every write, a drag's, a
+field's, a knob's, Undo's and Redo's, goes through one effect-machine
+(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Written`,
+`Refused`), so a press or another write while one is out is not taken and
+two writes never race for a file; a write with no answer in 20 s
+(`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
+the editor; Escape during a drag puts the cue back.
+The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
+patch a drag makes, why a cue cannot be dragged) are shared by the machine
+and its tests, which run every transition with no DOM. The knobs' rows
+(`<Editor.Knobs>`) and handles (`<Editor.Handles>`, in the overlay) are Solid
+(`lab/editor/knobs.tsx`): a handle's press grabs the knob as a `KnobGrip`, and
+the same machine previews each move and writes on release; where a handle
+sits and how it drags are pure (`lab/editor/handles.ts`, `dragKnob`).
 
 ### Motion, compare and the look-book
 
-**Motion** (`player/lab-motion.ts`) never draws on the film canvas. The
+**Motion** (`lab/motion/`, Solid 2; the onion painter is framework-free in `player/onion.ts`) never draws on the film canvas. The
 onion skin renders the frames around the one shown (± 1–4, every 1–15
 frames) at half size, keeps only the pixels that moved (darker than the
 frame on a light page, lighter on a dark one) and paints them on a layer
@@ -375,22 +543,22 @@ over the film, warm before and cool after, fainter the further away; it
 shows on a paused frame. Speed (0.25×, 0.5×, 1×) and loops drive the
 player's clock (`Player.setRate`, `Player.setLoop`); narration plays only
 at 1×. A cue loop follows the cue as it is edited; a cue under 0.2 s loops
-with 0.4 s either side. A–B loops any range.
+with 0.4 s either side. A–B loops any range. The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
 
-**Compare** (`player/lab-compare.ts`) reads the scene's file at HEAD
+**Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
 (`GET /lab/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
 and parses it with the locator and parser the writer uses) and draws the
 frame with HEAD's timeline and knobs through today's code (`film.render(…,
 { edit })`) on a layer over the film: wipe (HEAD left of a draggable
-divider) or blink. Only data can differ that way; when the file's code
-changed since HEAD the panel says so.
+divider) or blink. The mode is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink` on `Choose | Split | Flip`, a blink flipping itself every 450 ms by the machine's timeout. Only data can differ that way; when the file's code
+changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
 
 **The look-book** (`player/lookbook.ts`) is one sheet of the whole film:
 the palette (`createFilm({ palette })`) as swatches, then per scene a row of
 stills at every cue's start and end and its 60% point (`sceneMoments`, the
 moments `film check` samples, less the marks), each labelled with the cue
 and time. The page composes it with `film.render`, so the lab shows it live
-(`?film=<film>&lab&lookbook`, a still opening that frame in the lab) and
+(`?film=<film>&lookbook`, a still opening that frame in the lab) and
 `film lookbook <film> [--captions] [--tag t]` asks one export page for the
 same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`) and writes
 `out/<film>/lookbook.jpg`. It is the first page to read for a new film

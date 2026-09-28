@@ -3,7 +3,9 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "server.ts", "cli.ts"],
   "exclude": ["node_modules", "out"]

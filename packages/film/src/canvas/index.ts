@@ -12,3 +12,4 @@ export * from './ik.ts';
 export * from './camera.ts';
 export * from './storyboard.ts';
 export * from './film.ts';
+export * from './short.ts';

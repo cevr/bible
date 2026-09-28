@@ -11,6 +11,88 @@ export interface Camera {
 }
 
 /**
+ * Who hears of the cameras a context applies (the lab's knob reads: a knob
+ * read before a camera is drawn where the camera puts it), and how many
+ * cameras deep it draws now. Only a frame recording its knob reads listens;
+ * the pixels are the same either way.
+ */
+const listeners = new WeakMap<CanvasRenderingContext2D, (inside: DOMMatrix) => void>();
+const depths = new WeakMap<CanvasRenderingContext2D, number>();
+
+/**
+ * Draw `draw` in no camera yet, telling `heard` (when given) the transform
+ * inside each outermost camera it applies (a multiplane shot's focal plane,
+ * once), as `getTransform` gives it. Each scene's draw goes through here, and
+ * each starts afresh: a draw that threw leaves nothing for the next.
+ */
+export const hearingCameras = (
+  ctx: CanvasRenderingContext2D,
+  heard: ((inside: DOMMatrix) => void) | undefined,
+  draw: () => void,
+) => {
+  depths.delete(ctx);
+  if (heard === undefined) listeners.delete(ctx);
+  else listeners.set(ctx, heard);
+  draw();
+  listeners.delete(ctx);
+};
+
+/** Whether `ctx` draws inside a camera now. */
+export const insideCamera = (ctx: CanvasRenderingContext2D): boolean => (depths.get(ctx) ?? 0) > 0;
+
+/** Set `ctx` to look through `cam`, onto the transform it has now. */
+const aim = (ctx: CanvasRenderingContext2D, cam: Camera, w: number, h: number) => {
+  ctx.translate(w / 2, h / 2);
+  if (cam.rot !== undefined && cam.rot !== 0) ctx.rotate(cam.rot);
+  const z = cam.zoom ?? 1;
+  ctx.scale(z, z);
+  ctx.translate(-cam.x, -cam.y);
+};
+
+/** Tell the listener, if the draw is in no camera yet, what `ctx` looks through now. */
+const tell = (ctx: CanvasRenderingContext2D) => {
+  if (insideCamera(ctx)) return;
+  listeners.get(ctx)?.(ctx.getTransform());
+};
+
+/** Draw `draw` a camera deeper (a draw that throws is reset by the next `hearingCameras`). */
+const deeper = (ctx: CanvasRenderingContext2D, draw: () => void) => {
+  const depth = depths.get(ctx) ?? 0;
+  depths.set(ctx, depth + 1);
+  draw();
+  depths.set(ctx, depth);
+};
+
+/** Draw `draw` through `cam`, telling a listener of it when `heard`. */
+const shoot = (
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  draw: () => void,
+  heard: boolean,
+) => {
+  ctx.save();
+  aim(ctx, cam, w, h);
+  if (heard) tell(ctx);
+  deeper(ctx, draw);
+  ctx.restore();
+};
+
+/**
+ * A resting camera from its knobs: where it looks (a point knob `<name>`), how
+ * close (a number knob `<name>Zoom`) and, for a framing that leans, its turn
+ * (`<name>Rot`): `knobCamera(f.knob('face'), f.knob('faceZoom'))`. The lab
+ * reads that pair as a camera's target and gives it a reticle, so a framing
+ * moves like any other knob.
+ */
+export const knobCamera = (
+  [x, y]: readonly [number, number],
+  zoom: number,
+  rot?: number,
+): Camera => (rot === undefined ? { x, y, zoom } : { x, y, zoom, rot });
+
+/**
  * `out` part way from camera `a` to `b` at `t` (0 is `a`, 1 is `b`), every
  * field blended, a missing zoom read as 1 and a missing turn as 0. `out` may
  * be `a`: each field is read before it is written.
@@ -51,16 +133,7 @@ export const camera = (
   w: number,
   h: number,
   draw: () => void,
-) => {
-  ctx.save();
-  ctx.translate(w / 2, h / 2);
-  if (cam.rot !== undefined && cam.rot !== 0) ctx.rotate(cam.rot);
-  const z = cam.zoom ?? 1;
-  ctx.scale(z, z);
-  ctx.translate(-cam.x, -cam.y);
-  draw();
-  ctx.restore();
-};
+) => shoot(ctx, cam, w, h, draw, true);
 
 /** One plane of a multiplane shot. */
 export interface Plane {
@@ -124,6 +197,11 @@ export const multiplane = (
   const thickness = depth.thickness ?? 0;
   const zoom = cam.zoom ?? 1;
   const ordered = [...planes].sort((a, b) => b.z - a.z);
+  // The shot, as a listener hears it: the focal plane's camera, once.
+  ctx.save();
+  aim(ctx, cam, w, h);
+  tell(ctx);
+  ctx.restore();
   ordered.forEach((plane, i) => {
     const z = Math.max(plane.z, 1e-3);
     const view: Camera = {
@@ -135,7 +213,7 @@ export const multiplane = (
     const soft = (depth.blur ?? 0) * Math.abs(z - 1);
     ctx.save();
     if (soft > 0.05) ctx.filter = `blur(${soft.toFixed(2)}px)`;
-    raised(ctx, plane.lift ?? planeLift(z), () => camera(ctx, view, w, h, plane.draw));
+    raised(ctx, plane.lift ?? planeLift(z), () => shoot(ctx, view, w, h, plane.draw, false));
     ctx.restore();
     // Haze over everything so far, as thick as the air between this plane
     // and the next nearer one, or the focal plane after the nearest.
