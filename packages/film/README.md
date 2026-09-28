@@ -45,13 +45,15 @@ tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
 
 Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its
-login (`auth status`, free) and `ffmpeg` (`-version`), reports each, and fails
-if any is missing. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
+login (`auth status`, free), the H.264 encoder a render would use (a page
+chooses it as a render does; the line says `hardware` or `software`, the
+default pages and the encoder budget) and `ffmpeg` (`-version`), reports
+each, and fails if any is missing. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
 and the `ElevenLabs` service uses `ELEVENLABS_API_KEY` when the environment
 or the Keychain holds one (effects need it) and the CLI's OAuth login
 otherwise, one OAuth call at a time (concurrent refreshes race and fail);
-and a video `render` asks a page whether it can encode H.264 at the film's size
-(`EncoderMissing`) before it draws a frame.
+and a video `render` asks a page which H.264 encoder it can encode the film's
+size with (`EncoderMissing` when none) before it draws a frame.
 
 Media files go through `Media` (`tools/media.ts`): mediabunny reads and writes
 the containers in-process, and MP3 decodes through mpg123 (WASM), gapless, so
@@ -190,11 +192,11 @@ Playwright code) and a pool of player pages in one scope; a failure in any
 page, or Ctrl-C, closes every page, the browser and the server. A video's
 frames split into chunks (`planChunks`: about four per page, at least a second
 and at most eight each) on a queue that idle pages pull from; each page draws
-its chunk and encodes it with the browser's hardware H.264 encoder through
-mediabunny (`player/encode.ts`: quantizer 16, a key frame every two seconds)
-into a segment of its own (and, unless `--no-share`, a share copy at
-quantizer 26 from a second encoder in the same pass), and a chunk whose page
-crashes is retried once on a new page. `Media.join` joins the segments in order with the track cut from
+its chunk and encodes it with the browser's H.264 encoder through mediabunny
+(`player/encode.ts`, a key frame every two seconds) into a segment of its own
+(and, unless `--no-share`, a share copy from a second encoder in the same
+pass), and a chunk whose page crashes is retried once on a new page. Which
+encoder is data, chosen once (below). `Media.join` joins the segments in order with the track cut from
 `full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
 use. Segments are written to a temp folder of the render's own (`makeTempDirectory`), removed once joined;
@@ -202,6 +204,54 @@ a video writes nothing under `out/<film>/`, whatever its tag. A
 contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
+
+## Encoders
+
+Segments are joined without re-encoding, so every chunk of a render must come
+from one encoder. The page decides once: `encoderChoice` (`player/encode.ts`)
+asks `canEncodeVideo` for the master's and the share copy's settings, hardware
+first, and answers `Hardware | Software | Missing{reason}` (`EncoderChoice`,
+`core/encoder.ts`). The renderer opens one page for that answer, logs
+`render.encoder kind=… workers=… encoders=… cores=…`, and hands the same
+encoder to every chunk; `Missing` is `EncoderMissing` before a frame is drawn.
+`film doctor` runs the same choice.
+
+|                  | Hardware (macOS)                 | Software (Linux, any box without a GPU encoder)                      |
+| ---------------- | -------------------------------- | -------------------------------------------------------------------- |
+| Chromium flags   | `--enable-gpu --use-angle=metal` | neither (`launchArgs`, `tools/browser.ts`); stills are cmp-identical |
+| master           | quantizer 16 (~37 Mbps)          | 37 Mbps variable (31 Mbps measured over righteousness-by-faith)      |
+| share            | quantizer 26 (~160 MB for 7 min) | 24 Mbps variable (22 Mbps, 1.16 GB for 7 min)                        |
+| encoders at once | 14 (past it the encoder hangs)   | one per core                                                         |
+| default pages    | 6                                | 6, or half the cores below 12                                        |
+
+Chromium's software H.264 refuses quantizer rate control ("Unsupported
+bitrate mode"), so it encodes to a bitrate, and it spends bits far less well
+than the hardware encoder or x264. Each rate was measured on frames in the
+middle of a chunk (the first I-frame of every chunk comes out the same size
+whatever the target) against the lossless stills at 7.5, 140.4 and 236.8 s,
+as SSIM and as the paper grain kept (mean |x − blur(x)| of the frame over the
+still's):
+
+| share target    | grain kept at 7.5 / 140.4 / 236.8 s                  |
+| --------------- | ---------------------------------------------------- |
+| 8 Mbps          | 0.50 / 0.36 / 0.41 (the cutouts' grain went flat)    |
+| 12 Mbps         | 0.55 / 0.43 / 0.52                                   |
+| 16 Mbps         | 0.68 / 0.60 / 0.75 (visibly softer)                  |
+| 24 Mbps         | 0.75 / 0.68 / 0.80 (chosen; SSIM 0.92 / 0.89 / 0.95) |
+| master, 37 Mbps | 0.86 / 0.82 / 0.87                                   |
+
+Variable and constant bitrate modes measured alike. The share copy is kept at
+24 Mbps because the grain is the look, and the look outranks the file's size.
+
+The software default of 6 pages is the knee of
+`bench righteousness-by-faith --workers 2,4,6,8 --scene word,mirror` (1325
+frames, share copy on, 16 cores, siblings loading the box):
+
+| pages | 2    | 4    | 6    | 8    |
+| ----- | ---- | ---- | ---- | ---- |
+| fps   | 39.2 | 60.8 | 73.7 | 71.6 |
+
+The whole film (12453 frames) renders in 211 s at 59 fps under that load.
 
 ## Shorts
 

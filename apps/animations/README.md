@@ -104,15 +104,23 @@ film like a video's, so no frame repeats; a range wholly outside it is
 `--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages, default 6: the knee of `bench --workers`), `--scale 0.5`, `--no-captions`, `--tag name` (output
+(pages; default 6, the knee of `bench --workers` on both encoders, or half the
+cores on a software machine with fewer than 12), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
 (skip the smaller copy to send, `<out>.share.mp4`, encoded in the same pass).
-Each page runs one hardware encoder, two with the share copy; past 14 at once
-the encoder hangs, so a render that would need more fails with
-`TooManyEncoders` before a page opens (at most 7 pages with the share copy,
-14 without). The count is per render: two renders at once (say two `--tag`s)
-share the hardware, so keep their pages together within the same 14 or they
-can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
+A first page chooses the H.264 encoder once, hardware before software, and
+every page uses it; the render logs `render.encoder kind=…` and `bun run doctor`
+prints the same choice on its `encoder` line. The Mac gets the hardware
+encoder; a Linux box (GPU launch flags are macOS-only) gets Chromium's
+software encoder, which is slower and writes a far larger share copy
+(`packages/film/README.md`, "Encoders"). Each page runs one encoder, two with
+the share copy. On hardware past 14 at once the encoder hangs; on software
+more encoders than cores only thrash. So a render that would need more fails
+with `TooManyEncoders` before it draws (hardware: at most 7 pages with the
+share copy, 14 without; software on 16 cores: 8 and 16). The count is per
+render: on the Mac two renders at once (say two `--tag`s) share the hardware,
+so keep their pages together within the same 14 or they can hang with no
+error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
 until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
 (so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
