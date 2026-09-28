@@ -93,8 +93,8 @@ quantizer 26 from a second encoder in the same pass), and a chunk whose page
 crashes is retried once on a new page. `Media.join` joins the segments in order with the track cut from
 `full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
-use. The joined segments are removed, and their `<tag>` folder when nothing
-else is in it; a video never makes that folder before its segments do. A
+use. Segments are written to a temp folder of the render's own (`makeTempDirectory`), removed once joined;
+a video writes nothing under `out/<film>/`, whatever its tag. A
 contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.

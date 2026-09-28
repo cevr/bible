@@ -96,9 +96,9 @@ the encoder hangs, so a render that would need more fails with
 `TooManyEncoders` before a page opens (at most 7 pages with the share copy,
 14 without). The count is per render: two renders at once (say two `--tag`s)
 share the hardware, so keep their pages together within the same 14 or they
-can hang with no error. Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
-until the film is joined, then the folders go, and the `<tag>` folder with them when
-they were all it held (so `bench --workers` leaves only its report); a failed join leaves them. A video's audio
+can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
+until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
+(so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or

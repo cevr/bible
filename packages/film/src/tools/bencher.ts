@@ -353,6 +353,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
           to,
           rows,
         };
+        yield* fs.makeDirectory(film.paths.out, { recursive: true });
         const file = path.join(film.paths.out, 'bench.workers.json');
         yield* writeJson(file, WorkersJson, report);
         yield* Effect.log(`bench.done film=${report.film} rows=${rows.length} file=${file}`);
