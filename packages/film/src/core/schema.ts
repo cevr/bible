@@ -251,6 +251,12 @@ export const Timed = Schema.Struct({
   timeline: Schema.optionalKey(Timeline),
   /** Named numbers and points the drawing reads with `f.knob`. */
   knobs: Schema.optionalKey(Knobs),
+  /**
+   * Set by `storyboard()`: the beat has no drawing yet and plays as its card.
+   * A card holds still over its words by design, so `film check` reports no
+   * `StaticHold` in it.
+   */
+  storyboard: Schema.optionalKey(Schema.Literal(true)),
 });
 export type Timed = typeof Timed.Type;
 
