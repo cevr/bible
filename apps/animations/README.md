@@ -230,8 +230,9 @@ frame. Ornament
 move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
 constant. A framing is knobs too: a point and a zoom (and a tilt),
-`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with a film
-kit's `knobCamera(f.knob('face'), f.knob('faceZoom'))`. Only the unmoved
+`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with
+`knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`, which
+a film's kit re-exports); the lab gives that pair a reticle. Only the unmoved
 frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
 constant and one shared across scenes stay code. Read a position knob
 under the transform it is drawn with (inside the camera or the plane), so

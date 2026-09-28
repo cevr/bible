@@ -3,7 +3,6 @@
 // glows, the stains. Scenes place them; nothing here reads the clock.
 
 import {
-  type Camera,
   type Hand,
   type Pt,
   at,
@@ -24,16 +23,8 @@ export const F = fonts;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * A resting camera from its knobs: where it looks (a point knob), how close (a
- * number knob, `<name>Zoom`) and, for a framing that leans, its turn
- * (`<name>Rot`), so the lab can move a framing like any other knob.
- */
-export const knobCamera = (
-  [x, y]: readonly [number, number],
-  zoom: number,
-  rot?: number,
-): Camera => (rot === undefined ? { x, y, zoom } : { x, y, zoom, rot });
+/** A framing from its knobs: the framework's, so every film's scenes name it from their kit. */
+export { knobCamera } from '@bible/film/canvas';
 
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [

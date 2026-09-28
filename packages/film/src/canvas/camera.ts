@@ -80,6 +80,19 @@ const shoot = (
 };
 
 /**
+ * A resting camera from its knobs: where it looks (a point knob `<name>`), how
+ * close (a number knob `<name>Zoom`) and, for a framing that leans, its turn
+ * (`<name>Rot`): `knobCamera(f.knob('face'), f.knob('faceZoom'))`. The lab
+ * reads that pair as a camera's target and gives it a reticle, so a framing
+ * moves like any other knob.
+ */
+export const knobCamera = (
+  [x, y]: readonly [number, number],
+  zoom: number,
+  rot?: number,
+): Camera => (rot === undefined ? { x, y, zoom } : { x, y, zoom, rot });
+
+/**
  * `out` part way from camera `a` to `b` at `t` (0 is `a`, 1 is `b`), every
  * field blended, a missing zoom read as 1 and a missing turn as 0. `out` may
  * be `a`: each field is read before it is written.

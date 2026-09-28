@@ -12,10 +12,18 @@ import {
   camera,
   hearingCameras,
   insideCamera,
+  knobCamera,
   lerpCamera,
   multiplane,
   shotPath,
 } from './camera.ts';
+
+describe('knobCamera', () => {
+  test('a framing from its knobs: where it looks, how close, and a turn only when given', () => {
+    expect(knobCamera([800, 610], 1.22)).toEqual({ x: 800, y: 610, zoom: 1.22 });
+    expect(knobCamera([800, 610], 1.22, 0.05)).toEqual({ x: 800, y: 610, zoom: 1.22, rot: 0.05 });
+  });
+});
 
 describe('shotPath', () => {
   const REST: Camera = { x: 960, y: 540 };
