@@ -38,6 +38,7 @@ import { clamp, ease, lerp } from '@bible/film/core';
 import {
   C,
   F,
+  type Hands,
   type Person,
   glow,
   knobCamera,
@@ -126,6 +127,13 @@ const knobs = {
   gifts: [960, 875],
 } as const;
 
+/**
+ * Where the answer's shape lies on the page as `message` leaves it: the open
+ * hand's palm and the row of gifts across it (its knobs, so `roof` opens
+ * through that row and pulls back into it wherever the lab sets them).
+ */
+export const GIFTS_AT = { palm: knobs.palm, gifts: knobs.gifts } as const;
+
 type MessageFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 /** A tall arched window of the hall, centred on (x, y), with peach light in it. */
@@ -209,9 +217,9 @@ export const message = drawing({
 
 /** The figure on the page: its scale (where it stands is the `figureAt` knob). */
 const FIGURE_S = 2.6;
-/** The open hand's scale, and the gifts' row scale across its palm. */
+/** The open hand's scale, and the gifts' row scale across its palm (`roof` moves into and out of that row). */
 const HAND_S = 2.2;
-const GIFTS_S = 0.6;
+export const GIFTS_S = 0.6;
 /**
  * The sun's path across each day: the horizon's ends, and a horizon below
  * the frame, so it rises into view at dawn and sets out of it at dusk, and
@@ -261,22 +269,47 @@ const page = (f: MessageFrame) => {
   if (handIn < 1) pageFigure(f, handIn);
 
   if (handIn > 0) {
-    const [px, py] = f.knob('palm');
-    const [gx, gy] = f.knob('gifts');
     const close = clamp(1 - 3 * noon) * settle;
-    ctx.save();
-    ctx.globalAlpha *= handIn;
-    at(ctx, { x: px, y: lerp(py + 400, py, handIn), scale: HAND_S }, () =>
-      openHand(ctx, f.hand, 1 - 0.3 * close),
-    );
-    ctx.restore();
+    giftHand(ctx, f.hand, f.knob('palm'), handIn, 1 - 0.3 * close);
     POPS[0] = f.at('faith');
     POPS[1] = f.at('forgiveness');
     POPS[2] = f.at('power');
     for (let i = 0; i < 3; i++) LIT[i] = (POPS[i] ?? 0) * (1 - dusk);
-    at(ctx, { x: gx, y: gy, scale: GIFTS_S }, () => icons(ctx, f.hand, LIT, POPS));
+    giftRow(ctx, f.hand, f.knob('gifts'), LIT, POPS);
   }
 };
+
+/**
+ * The open hand of the answer's shape, palm up at `palm`: rising into place
+ * from below as `rise` goes 0..1 (and faded in with it); `open` 1 holds the
+ * fingers straight. `roof` pulls back to it where `message` leaves it.
+ */
+export const giftHand = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  [px, py]: Pt,
+  rise: number,
+  open: number,
+) => {
+  ctx.save();
+  ctx.globalAlpha *= rise;
+  at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () => openHand(ctx, hand, open));
+  ctx.restore();
+};
+
+/**
+ * The three icons as `message` sets them across the palm, their row's centre
+ * at `row`: `lit` and `shown` as `icons` reads them, `scale` the row's (the
+ * palm's by default). `roof` opens through this row and pulls back into it.
+ */
+export const giftRow = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  [gx, gy]: Pt,
+  lit: readonly [number, number, number],
+  shown?: readonly [number, number, number],
+  scale = GIFTS_S,
+) => at(ctx, { x: gx, y: gy, scale }, () => icons(ctx, hand, lit, shown));
 
 /** The sun at `k` across its day, `noon` its height 0..1, and the page dimmed by `dusk`. */
 const sun = (

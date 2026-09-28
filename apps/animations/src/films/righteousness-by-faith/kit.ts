@@ -20,7 +20,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { clamp, hash2, lerp } from '@bible/film/core';
+import { clamp, hash2, lerp, seedOf } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
@@ -168,8 +168,8 @@ export const bubble = (
   );
 };
 
-/** The icon's heart, centred on (0, 0), about 190 units wide. */
-const HEART: Pt[] = [
+/** The icon's heart, centred on (0, 0), about 190 units wide (`within` shows a callback inside it). */
+export const HEART: Pt[] = [
   [0, -54],
   [40, -94],
   [96, -60],
@@ -594,7 +594,7 @@ const toFold = (ctx: CanvasRenderingContext2D, robe: boolean, sit: number) => {
 };
 
 /** Adds `pts` to the current path as one closed subpath. */
-const tracePath = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
+export const tracePath = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
   let first = true;
   for (const [x, y] of pts) {
     if (first) ctx.moveTo(x, y);
@@ -815,9 +815,19 @@ export const gait = (t: number, walk: { readonly start: number; readonly end: nu
 // Figures and the icon row more than one scene draws, so a callback lands in
 // the same layout (CRAFT rule 8). Each takes a `hand` for its keys, so boil
 // seeds stay the scene's own. Sets live in their own modules: court.ts,
-// heaven.ts, city.ts, law.ts, garden.ts, spoken.ts.
+// heaven.ts, city.ts, law.ts, garden.ts, spoken.ts, gospel.ts.
 
 export type Hands = (k: string) => Hand;
+
+/**
+ * Another scene's hands, as its own `f.hand` gives them there, boiling on
+ * this frame's tick: a callback or a shot carried over a cut draws that
+ * scene's paper, torn the same, not a new sheet.
+ */
+export const handsOf =
+  (f: { readonly hand: (key: string | number) => Hand }, scene: string): Hands =>
+  (k) =>
+    f.hand(seedOf(`${scene}:${k}`));
 
 /**
  * Christ, feet at the origin, as a `person` in the white robe with a gold
