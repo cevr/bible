@@ -7,7 +7,9 @@ import { Effect, Option, Schema } from 'effect';
 import { onSettled } from 'solid-js';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { type LegacyHost, mountLegacy } from './legacy.ts';
+import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
+import { Motion } from './motion/index.ts';
 import { Lab, useLab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
@@ -18,7 +20,6 @@ export class LabStartFailed extends Schema.TaggedError<LabStartFailed>()('LabSta
 interface Slots {
   panel: Option.Option<HTMLElement>;
   overlay: Option.Option<SVGSVGElement>;
-  layers: Option.Option<HTMLElement>;
 }
 
 /** Mounts the panels not yet in Solid once the shell has placed its elements. */
@@ -28,7 +29,6 @@ const Legacy = (props: { readonly slots: Slots }) => {
     const host: Option.Option<LegacyHost> = Option.all({
       panel: props.slots.panel,
       overlay: props.slots.overlay,
-      layers: props.slots.layers,
     });
     Option.map(host, (h) => mountLegacy(lab, h));
   });
@@ -40,38 +40,40 @@ export const LabPage = (props: { readonly name: string; readonly player: Player 
   const slots: Slots = {
     panel: Option.none(),
     overlay: Option.none(),
-    layers: Option.none(),
   };
   return (
     <Lab.Root name={props.name} player={props.player}>
-      <div
-        class="lab-layers"
-        ref={(el: HTMLDivElement) => {
-          slots.layers = Option.some(el);
-        }}
-      />
       <Editor.Provider>
-        <Lab.Overlay
-          ref={(el) => {
-            slots.overlay = Option.some(el);
-          }}
-        >
-          <Editor.Handles />
-        </Lab.Overlay>
-        <Lab.Strip>
-          <Editor.Strip />
-        </Lab.Strip>
-        <Lab.Panel
-          ref={(el) => {
-            slots.panel = Option.some(el);
-          }}
-        >
-          <Lab.Header />
-          <Editor.Section>
-            <Editor.Knobs />
-          </Editor.Section>
-        </Lab.Panel>
-        <Legacy slots={slots} />
+        <Motion.Provider>
+          <Compare.Provider>
+            <Motion.Onion />
+            <Compare.Layer />
+            <Lab.Overlay
+              ref={(el) => {
+                slots.overlay = Option.some(el);
+              }}
+            >
+              <Editor.Handles />
+              <Compare.Divider />
+            </Lab.Overlay>
+            <Lab.Strip>
+              <Editor.Strip />
+            </Lab.Strip>
+            <Lab.Panel
+              ref={(el) => {
+                slots.panel = Option.some(el);
+              }}
+            >
+              <Lab.Header />
+              <Editor.Section>
+                <Editor.Knobs />
+              </Editor.Section>
+              <Motion.Section />
+              <Compare.Section />
+            </Lab.Panel>
+            <Legacy slots={slots} />
+          </Compare.Provider>
+        </Motion.Provider>
       </Editor.Provider>
     </Lab.Root>
   );

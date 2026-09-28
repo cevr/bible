@@ -9,7 +9,7 @@ import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Knobs, Timeline } from '../core/schema.ts';
-import type { Player } from '../player/main.ts';
+import type { LoopRange, Player } from '../player/main.ts';
 
 /** An edit the scene's timeline cannot resolve with: shown nowhere, and why. */
 export class NotPreviewed extends Schema.TaggedError<NotPreviewed>()('NotPreviewed', {
@@ -38,6 +38,12 @@ export interface StageOps {
   /** T settles where it is (a refused write reloads nothing). */
   readonly settle: Effect.Effect<void>;
   readonly pause: Effect.Effect<void>;
+  /** The film's length, in seconds. */
+  readonly duration: number;
+  /** Where cue `name` of `scene` plays in film seconds, as its timeline is shown now. */
+  readonly cueSpan: (scene: string, name: string) => Option.Option<LoopRange>;
+  /** Show `T` and play from it. */
+  readonly playFrom: (T: number) => Effect.Effect<void>;
 }
 
 export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/Stage') {}
@@ -99,6 +105,19 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     holdT: Effect.sync(() => player.holdT()),
     settle: Effect.sync(() => player.settle()),
     pause: Effect.sync(() => player.pause()),
+    duration: film.duration,
+    cueSpan: (scene, name) =>
+      Option.flatMap(placed(scene), (p) =>
+        Option.map(Option.fromUndefinedOr(film.cuesOf(scene).get(name)), (c) => ({
+          from: p.start + c.start,
+          to: p.start + c.end,
+        })),
+      ),
+    playFrom: (T) =>
+      Effect.sync(() => {
+        player.seek(T);
+        player.play();
+      }),
   };
 };
 

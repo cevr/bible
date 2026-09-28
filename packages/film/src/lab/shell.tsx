@@ -191,6 +191,8 @@ interface LayerProps {
   readonly class: string;
   readonly ref?: (el: HTMLCanvasElement) => void;
   readonly hidden?: boolean;
+  /** The canvas's pixels as a fraction of the film's (the onion draws at half). Defaults to 1. */
+  readonly scale?: number;
 }
 
 /** A canvas pinned over the film, under the overlay: the onion skin, the HEAD compare. */
@@ -200,8 +202,8 @@ const PinnedLayer = (props: LayerProps) => {
   return (
     <canvas
       class={props.class}
-      width={meta.film.width}
-      height={meta.film.height}
+      width={Math.round(meta.film.width * (props.scale ?? 1))}
+      height={Math.round(meta.film.height * (props.scale ?? 1))}
       hidden={props.hidden}
       ref={(el: HTMLCanvasElement) => {
         pin(el);

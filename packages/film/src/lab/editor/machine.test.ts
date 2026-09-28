@@ -60,6 +60,9 @@ const fakes = (write: Effect.Effect<LabWrite, LabRefused> = Effect.succeed(lande
     holdT: Effect.sync(() => log.push('holdT')),
     settle: Effect.sync(() => log.push('settle')),
     pause: Effect.sync(() => log.push('pause')),
+    duration: 10,
+    cueSpan: () => Option.none(),
+    playFrom: () => Effect.void,
   };
   const api: LabCalls = {
     source: () => Effect.die('not asked'),

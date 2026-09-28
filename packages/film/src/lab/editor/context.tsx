@@ -10,7 +10,7 @@
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Cause, Option, Result, Schema } from 'effect';
+import { Option, Result } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
@@ -21,7 +21,7 @@ import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
-import { LabApi, type StepVerb } from '../api.ts';
+import { LabApi, type StepVerb, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import {
   CueGrip,
@@ -105,23 +105,10 @@ const EditorContext = createContext<EditorContextValue>();
 /** The editor's context: only inside `<Editor.Provider>`. */
 export const useEditor = (): EditorContextValue => useContext(EditorContext);
 
-/** A failed read, in the server's words without its tag (`SceneNotFound: …` reads `…`). */
-const reason = (cause: Cause.Cause<unknown>): string => {
-  const squashed = Cause.squash(cause);
-  const text = Result.match(
-    Schema.decodeUnknownResult(Schema.Struct({ message: Schema.String }))(squashed),
-    {
-      onFailure: () => String(squashed),
-      onSuccess: (e) => e.message,
-    },
-  );
-  return text.replace(/^\w+: /, '');
-};
-
 const knownOf = (result: AsyncResult.AsyncResult<SceneSource, unknown>): Known =>
   AsyncResult.match(result, {
     onInitial: () => ({ source: Option.none(), error: '' }),
-    onFailure: (f) => ({ source: Option.none(), error: reason(f.cause) }),
+    onFailure: (f) => ({ source: Option.none(), error: reasonOf(f.cause) }),
     onSuccess: (s) => ({ source: Option.some(s.value), error: '' }),
   });
 

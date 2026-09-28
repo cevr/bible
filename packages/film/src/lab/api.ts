@@ -4,7 +4,7 @@
 // which the panel shows as it is; a request that never reached the server, or
 // an answer that does not decode, says so in its own words.
 
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Cause, Context, Effect, Layer, Result, Schema } from 'effect';
 import {
   FetchHttpClient,
   HttpClient,
@@ -33,6 +33,19 @@ export class LabUnreachable extends Schema.TaggedError<LabUnreachable>()('LabUnr
 }) {}
 
 export type LabFailure = LabRefused | LabUnreachable;
+
+/** A failed call, in the server's words without its tag (`SceneNotFound: …` reads `…`). */
+export const reasonOf = (cause: Cause.Cause<unknown>): string => {
+  const squashed = Cause.squash(cause);
+  const text = Result.match(
+    Schema.decodeUnknownResult(Schema.Struct({ message: Schema.String }))(squashed),
+    {
+      onFailure: () => String(squashed),
+      onSuccess: (e) => e.message,
+    },
+  );
+  return text.replace(/^\w+: /, '');
+};
 
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
 export const StepVerb = Schema.Literals(['undo', 'redo']);
