@@ -758,14 +758,11 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
 
 /**
  * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
- * it: a step every π/7 s counted from `phase` (scene seconds; the cue's
- * start unless given), each rising up to 5 units.
+ * it: a step every π/7 s counted from the cue's start, each rising up to 5
+ * units, so the bob starts from rest and never jumps as the walk begins.
  */
-export const gait = (
-  t: number,
-  walk: { readonly start: number; readonly end: number },
-  phase = walk.start,
-): number => (t > walk.start && t < walk.end ? Math.abs(Math.sin((t - phase) * 7)) * 5 : 0);
+export const gait = (t: number, walk: { readonly start: number; readonly end: number }): number =>
+  t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
 
 // ─── recurring figures and the icon row ──────────────────────────────────────
 // Figures and the icon row more than one scene draws, so a callback lands in

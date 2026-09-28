@@ -199,10 +199,11 @@ export const priestAt = (
 /**
  * The ministry now: the sanctuary with the veil drawn up and Christ pleading
  * before the ark in the most holy place, where `exchange` leaves him and
- * `rain` looks up to him. `light` 0..1 brightens its glory.
+ * `rain` looks up to him. `light` 0..1 brightens its glory; `raised` 0..1
+ * lifts his hands in pleading (`exchange` raises them after its cut).
  */
-export const ministry = (ctx: CanvasRenderingContext2D, hand: Hands, light: number) =>
-  sanctuary(ctx, hand, 1, light, () => priestAt(ctx, hand, MOST_HOLY, 1, 1));
+export const ministry = (ctx: CanvasRenderingContext2D, hand: Hands, light: number, raised = 1) =>
+  sanctuary(ctx, hand, 1, light, () => priestAt(ctx, hand, MOST_HOLY, raised, 1));
 
 // ─── the angel of Rev 14 ─────────────────────────────────────────────────────
 
