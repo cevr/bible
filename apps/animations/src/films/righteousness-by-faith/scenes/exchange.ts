@@ -33,6 +33,7 @@ import { clamp, lerp } from '@bible/film/core';
 import {
   C,
   type Hands,
+  type Person,
   blob,
   christ,
   gait,
@@ -81,6 +82,21 @@ const inHeaven = ([x, y]: Pt): Pt => [SANCTUARY[0] + x * SS, SANCTUARY[1] + y * 
  */
 const ARK: Camera = { x: 1224, y: -450, zoom: 2.5 };
 const ARK_IN = 2.75;
+/** The ark framing this frame: rewritten each frame, never made per frame. */
+const AT_ARK: Camera = { ...ARK };
+
+/** The ground under the hill and the garden. */
+const GROUND = rectShape(-200, 950, 2400, 300);
+/** The cross in silhouette on the hilltop: where he is nailed, the upright and the beam. */
+const NAILED = ridge(TOP) - 50;
+const UPRIGHT = rectShape(TOP - 13, ridge(TOP) - 300, 26, 310);
+const BEAM = rectShape(TOP - 150, NAILED - 118 * 1.2 - 24, 300, 24);
+const BLACK: Person = { body: C.night, shade: C.night, skin: C.night };
+const CRUCIFIED: Person = { ...BLACK, nod: 8, tilt: 0.3, handL: [-95, -120], handR: [95, -120] };
+const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
+/** The stone rolled back from the tomb, and its core. */
+const STONE = ellipseShape(0, 0, 130, 130);
+const STONE_CORE = ellipseShape(0, 0, 60, 60);
 
 const timeline = {
   turn: { scene: 'speech', dur: 0.6 },
@@ -122,7 +138,7 @@ export const exchange = drawing({
 /** A–B: the hill at sunset, until dawn has fully come. */
 const hill = (f: ExchangeFrame) => {
   const { ctx, w, h, t } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const [fx, fy] = f.knob('figure');
   const lift = f.at('lift');
   const walkUp = f.at('walkUp');
@@ -149,12 +165,13 @@ const hill = (f: ExchangeFrame) => {
     const sunY = sy + SUN_FALL * sun;
     glow(ctx, sx, sunY + 200, 520, C.glow, 0.6);
     glow(ctx, sx, sunY, 200, C.glow, 0.8 - 0.3 * sun);
+    // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
     piece(ctx, ellipseShape(sx, sunY, 62, 62), mix(C.gold, C.sunsetTop, sun), hand('sun'), {
       line: 0,
       shadow: 0,
     });
     piece(ctx, HILL, C.board, hand('hill'), { line: 4, torn: 2 });
-    piece(ctx, rectShape(-200, 950, 2400, 300), C.boardShade, hand('ground'), {
+    piece(ctx, GROUND, C.boardShade, hand('ground'), {
       line: 0,
       torn: 4,
     });
@@ -216,7 +233,7 @@ const hill = (f: ExchangeFrame) => {
 /** C: the one black moment. */
 const blackMoment = (f: ExchangeFrame) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const [fx, fy] = f.knob('figure');
   ctx.save();
   ctx.globalAlpha *= f.at('dark');
@@ -228,34 +245,24 @@ const blackMoment = (f: ExchangeFrame) => {
   ]);
   // The last of the light, low behind the hill.
   glow(ctx, TOP, 420, 520, C.sunsetTop, 0.7);
-  const black = { body: C.night, shade: C.night, skin: C.night };
   camera(ctx, WIDE, w, h, () => {
     piece(ctx, HILL, C.night, hand('hillDark'), { line: 0, torn: 2, shadow: 0 });
-    piece(ctx, rectShape(-200, 950, 2400, 300), C.night, hand('groundDark'), {
+    piece(ctx, GROUND, C.night, hand('groundDark'), {
       line: 0,
       shadow: 0,
     });
-    const foot = ridge(TOP);
-    piece(ctx, rectShape(TOP - 13, foot - 300, 26, 310), C.night, hand('upright'), {
-      line: 0,
-      shadow: 0,
-    });
-    const nailed = foot - 50;
-    const beam = nailed - 118 * 1.2 - 12;
-    piece(ctx, rectShape(TOP - 150, beam - 12, 300, 24), C.night, hand('beam'), {
-      line: 0,
-      shadow: 0,
-    });
-    at(ctx, { x: TOP, y: nailed, scale: 1.2 }, () =>
-      person(
-        ctx,
-        { ...black, nod: 8, tilt: 0.3, handL: [-95, -120], handR: [95, -120] },
-        hand('crossed'),
-      ),
-    );
-    at(ctx, { x: fx, y: fy, scale: SCALE }, () =>
-      person(ctx, { ...black, tilt: -0.14, look: [3, -4] }, hand('figureDark')),
-    );
+    piece(ctx, UPRIGHT, C.night, hand('upright'), { line: 0, shadow: 0 });
+    piece(ctx, BEAM, C.night, hand('beam'), { line: 0, shadow: 0 });
+    ctx.save();
+    ctx.translate(TOP, NAILED);
+    ctx.scale(1.2, 1.2);
+    person(ctx, CRUCIFIED, hand('crossed'));
+    ctx.restore();
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.scale(SCALE, SCALE);
+    person(ctx, WATCHING, hand('figureDark'));
+    ctx.restore();
   });
   ctx.restore();
 };
@@ -264,7 +271,7 @@ const blackMoment = (f: ExchangeFrame) => {
 const tomb = (ctx: CanvasRenderingContext2D, hand: Hands) => {
   glow(ctx, 380, 900, 600, C.glow, 0.9);
   piece(ctx, blob(1220, 900, 1250, 980, 7), C.boardLight, hand('rock'), { line: 4 });
-  piece(ctx, rectShape(-200, 950, 2400, 300), C.board, hand('garden'), {
+  piece(ctx, GROUND, C.board, hand('garden'), {
     line: 0,
     torn: 4,
   });
@@ -273,8 +280,8 @@ const tomb = (ctx: CanvasRenderingContext2D, hand: Hands) => {
   for (const [x, y, wd, k] of CLOTHS)
     piece(ctx, rounded(x, y, wd, 26, 10), C.robe, sub(hand('cloths'), k), { line: 2.5 });
   at(ctx, { x: 1440, y: 830, rot: 0.4 }, () => {
-    piece(ctx, ellipseShape(0, 0, 130, 130), C.board, hand('stone'), { line: 4 });
-    piece(ctx, ellipseShape(0, 0, 60, 60), C.boardShade, hand('stoneCore'), {
+    piece(ctx, STONE, C.board, hand('stone'), { line: 4 });
+    piece(ctx, STONE_CORE, C.boardShade, hand('stoneCore'), {
       line: 2,
       shadow: 0,
     });
@@ -331,7 +338,7 @@ const dawnSky = (ctx: CanvasRenderingContext2D, w: number, h: number, ascend: nu
  */
 const heaven = (f: ExchangeFrame, dawn: number) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const ascend = f.at('ascend');
   ctx.save();
   ctx.globalAlpha *= dawn;
@@ -365,13 +372,14 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
 /** After the cut ("right now"): close in the most holy place, Christ pleading before the ark. */
 const mostHoly = (f: ExchangeFrame) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   sky(ctx, w, h, [
     [0, C.tealTop],
     [0.55, C.tealMid],
     [1, C.tealLow],
   ]);
-  camera(ctx, { ...ARK, zoom: lerp(ARK.zoom ?? 1, ARK_IN, f.spoken('now')) }, w, h, () =>
+  AT_ARK.zoom = lerp(ARK.zoom ?? 1, ARK_IN, f.spoken('now'));
+  camera(ctx, AT_ARK, w, h, () =>
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
       ministry(ctx, hand, 1, f.at('hands')),
     ),

@@ -121,7 +121,7 @@ const circle = (f: WithinFrame, chest: Pt) => {
   const { ctx } = f;
   const heart = f.at('heart');
   if (heart >= 0.6) return;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const shrink = f.at('shrink');
   const r = lerp(720, 40, shrink);
   const [cx, cy] = [lerp(960, chest[0], shrink), lerp(470, chest[1], shrink)];
@@ -154,11 +154,21 @@ const WORLDS = [
   [0.05, -0.7, 9],
 ] as const;
 
-/** Where the hand on `side` is as the arms open `open` 0..1 from rest. */
-const handAt = (side: -1 | 1, open: number): Pt => [
-  side * lerp(REST_HAND[0], OPEN_HAND[0], open),
-  lerp(REST_HAND[1], OPEN_HAND[1], open),
-];
+/** Where the hand on `side` is as the arms open `open` 0..1 from rest, written into `out`. */
+const handAt = (side: -1 | 1, open: number, out: [number, number]): [number, number] => {
+  out[0] = side * lerp(REST_HAND[0], OPEN_HAND[0], open);
+  out[1] = lerp(REST_HAND[1], OPEN_HAND[1], open);
+  return out;
+};
+
+// Scratch the draw rewrites every frame, so no pose or point is made per frame.
+const HAND_L: [number, number] = [0, 0];
+const HAND_R: [number, number] = [0, 0];
+const LOOK: [number, number] = [0, 0];
+const POSE: Person = { look: LOOK };
+const END: [number, number] = [0, 0];
+const SHOULDER_AT: [number, number] = [0, 0];
+const GLOW_AT: [number, number] = [0, 0];
 
 /**
  * The figure, in their own units: asking, then the heart in the chest; after
@@ -167,7 +177,7 @@ const handAt = (side: -1 | 1, open: number): Pt => [
  */
 const figure = (f: WithinFrame, aside: number) => {
   const { ctx } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const ask = f.at('ask') * (1 - f.at('heart'));
   const heart = f.at('heart');
   const lit = f.at('heartLit');
@@ -177,22 +187,21 @@ const figure = (f: WithinFrame, aside: number) => {
   // After the icons the arms are there, at rest until they open out.
   const armed = f.at('backIn') > 0;
   const body = mix(C.figure, WARM_BODY, warm);
-  const pose: Person = {
-    body,
-    skin: body,
-    shade: mix(C.figureShade, WARM_SHADE, warm),
-    tilt: -0.12 * ask + 0.08 * settled,
-    nod: 4 * settled,
-    look: [lerp(0, 2, ask) + 2 * aside, lerp(-4 * ask, 3, settled)],
-    browL: 4 * ask + 2 * heart + 1.5 * warm,
-    browR: 2 * ask + 2 * heart + 1.5 * warm,
-    browTilt: 0.35 * ask + 0.25 * warm,
-    mouth: 0.6 * ask,
-    smile: 0.55 * warm,
-    handL: armed ? handAt(-1, open) : undefined,
-    handR: armed ? handAt(1, open) : undefined,
-  };
-  person(ctx, pose, hand('figure'));
+  LOOK[0] = lerp(0, 2, ask) + 2 * aside;
+  LOOK[1] = lerp(-4 * ask, 3, settled);
+  POSE.body = body;
+  POSE.skin = body;
+  POSE.shade = mix(C.figureShade, WARM_SHADE, warm);
+  POSE.tilt = -0.12 * ask + 0.08 * settled;
+  POSE.nod = 4 * settled;
+  POSE.browL = 4 * ask + 2 * heart + 1.5 * warm;
+  POSE.browR = 2 * ask + 2 * heart + 1.5 * warm;
+  POSE.browTilt = 0.35 * ask + 0.25 * warm;
+  POSE.mouth = 0.6 * ask;
+  POSE.smile = 0.55 * warm;
+  POSE.handL = armed ? handAt(-1, open, HAND_L) : undefined;
+  POSE.handR = armed ? handAt(1, open, HAND_R) : undefined;
+  person(ctx, POSE, hand('figure'));
   if (heart > 0)
     at(ctx, { x: CHEST[0], y: CHEST[1], scale: 0.36 * heart }, () => {
       glow(ctx, 0, 0, 220 + 140 * lit, C.glow, 0.8 + 0.2 * lit);
@@ -208,13 +217,16 @@ const running = (f: WithinFrame, open: number) => {
   const run = f.at('run');
   if (run <= 0 || open <= 0) return;
   for (const side of SIDES) {
-    const shoulder: Pt = [side * SHOULDER[0], SHOULDER[1]];
-    const end = handAt(side, open);
+    SHOULDER_AT[0] = side * SHOULDER[0];
+    SHOULDER_AT[1] = SHOULDER[1];
+    const end = handAt(side, open, END);
     for (let i = 1; i <= RUN_STEPS; i++) {
       const k = i / RUN_STEPS;
       if (k > run + 0.001) break;
       const [x, y] =
-        k < 0.4 ? toward(CHEST, shoulder, k / 0.4) : toward(shoulder, end, (k - 0.4) / 0.6);
+        k < 0.4
+          ? toward(CHEST, SHOULDER_AT, k / 0.4, GLOW_AT)
+          : toward(SHOULDER_AT, end, (k - 0.4) / 0.6, GLOW_AT);
       glow(ctx, x, y, 44, C.glow, 0.9 * open);
       glow(ctx, x, y, 22, C.gold, 0.6 * open);
     }
@@ -224,12 +236,17 @@ const running = (f: WithinFrame, open: number) => {
   }
 };
 const SIDES = [-1, 1] as const;
-const toward = (a: Pt, b: Pt, k: number): Pt => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+/** The point `k` of the way from `a` to `b`, written into `out`. */
+const toward = (a: Pt, b: Pt, k: number, out: [number, number]): [number, number] => {
+  out[0] = lerp(a[0], b[0], k);
+  out[1] = lerp(a[1], b[1], k);
+  return out;
+};
 
 /** The panel: first the past, closed and forgiven; then the path ahead. */
 const panel = (f: WithinFrame, aside: number) => {
   const { ctx } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const swap = f.at('swap');
   at(ctx, { x: PANEL[0] + (1 - aside) * 900, y: PANEL[1] }, () => {
     piece(ctx, rounded(0, 0, PANEL_W, PANEL_H, 24), C.cream, hand('panel'), {
@@ -248,7 +265,7 @@ const panel = (f: WithinFrame, aside: number) => {
           line: 0,
         });
         // The ribbon tied across it.
-        piece(ctx, rectShape(-40, -160, 40, 320), C.gold, hand('ribbon'), { line: 3 });
+        piece(ctx, RIBBON, C.gold, hand('ribbon'), { line: 3 });
         piece(ctx, blob(-20, -8, 90, 60, 9), C.gold, hand('bow'), { line: 3 });
       });
     }
@@ -260,7 +277,7 @@ const panel = (f: WithinFrame, aside: number) => {
 /** The hills, the path ahead and the figure walking it, flowers where they have stepped. */
 const path = (f: WithinFrame) => {
   const { ctx } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   piece(ctx, PATH_HILL, C.leaf, hand('hill'), {
     line: 0,
     shadow: 0.2,
@@ -297,13 +314,19 @@ const path = (f: WithinFrame) => {
   at(ctx, { x: wx, y: wy - bob, scale: 0.9 - 0.4 * walk }, () => {
     glow(ctx, 0, -90, 90, C.glow, 0.6);
     // The same figure, still warm.
-    person(
-      ctx,
-      { body: WARM_BODY, skin: WARM_BODY, shade: WARM_SHADE, look: [3, -1], browTilt: 0.1 },
-      hand('walker'),
-    );
+    person(ctx, WALKER, hand('walker'));
   });
 };
+/** The walker: the same figure, still warm. */
+const WALKER: Person = {
+  body: WARM_BODY,
+  skin: WARM_BODY,
+  shade: WARM_SHADE,
+  look: [3, -1],
+  browTilt: 0.1,
+};
+/** The ribbon tied across the closed book. */
+const RIBBON = rectShape(-40, -160, 40, 320);
 /** Scratch for a point along the path. */
 const AT: [number, number] = [0, 0];
 const STEM: Pt[] = [
@@ -314,7 +337,7 @@ const STEM: Pt[] = [
 /** B: the three icons on "power", faith and forgiveness lit, the heart lighting. */
 const iconsShot = (f: WithinFrame, alpha: number) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const pull = f.at('pullBack');
   ctx.save();
   ctx.globalAlpha *= alpha;

@@ -189,6 +189,23 @@ const AT: [number, number] = [0, 0];
 const OTHER_LOOK: [number, number] = [0, 0];
 const EARS_L: [number, number] = [0, 0];
 const EARS_R: [number, number] = [0, 0];
+const ASKING: Person = { ...ROBED, look: LOOK };
+const OTHER: Person = {
+  look: OTHER_LOOK,
+  handL: EARS_L,
+  handR: EARS_R,
+  stains: FIGURE_STAINS,
+};
+/** At the window, face to the light. */
+const AT_THE_WINDOW: Person = {
+  ...ROBED,
+  tilt: -0.06,
+  look: [-3, -1],
+  browL: 1.5,
+  browR: 1.5,
+  browTilt: 0.1,
+  smile: 0.5,
+};
 const LAID: [number, number, number] = [0, 0, 0];
 const LIT: [number, number, number] = [0, 0, 0];
 const SKY_TOP: [number, string] = [0, C.tealTop];
@@ -218,7 +235,7 @@ const page = (f: DailyFrame, through: number) => {
 /** The gold city gate, light and music drifting out of it. */
 const gate = (f: DailyFrame) => {
   const { ctx, t } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const [gx, gy] = f.knob('gate');
   ctx.save();
   ctx.translate(gx, gy);
@@ -276,22 +293,13 @@ const other = (f: DailyFrame) => {
   EARS_R[1] = lerp(-58, -160, ears);
   OTHER_LOOK[0] = lerp(-3, 0, ears);
   OTHER_LOOK[1] = -1;
-  person(
-    ctx,
-    {
-      tilt: 0.1 * ears,
-      look: OTHER_LOOK,
-      eyes: lerp(1, 0.2, ears),
-      browL: -1 * ears,
-      browR: -1 * ears,
-      browTilt: 0.3 * ears,
-      smile: -0.45 * ears,
-      handL: EARS_L,
-      handR: EARS_R,
-      stains: FIGURE_STAINS,
-    },
-    f.hand('other'),
-  );
+  OTHER.tilt = 0.1 * ears;
+  OTHER.eyes = lerp(1, 0.2, ears);
+  OTHER.browL = -1 * ears;
+  OTHER.browR = -1 * ears;
+  OTHER.browTilt = 0.3 * ears;
+  OTHER.smile = -0.45 * ears;
+  person(ctx, OTHER, f.hand('other'));
   ctx.restore();
 };
 
@@ -305,20 +313,13 @@ const robedOnPage = (f: DailyFrame, toGate: number) => {
   ctx.save();
   ctx.translate(FIG[0], FIG[1]);
   ctx.scale(FIG_SCALE, FIG_SCALE);
-  person(
-    ctx,
-    {
-      ...ROBED,
-      tilt: -0.12 * ask,
-      look: LOOK,
-      browL: 4 * ask,
-      browR: 2 * ask,
-      browTilt: 0.1 + 0.25 * ask,
-      mouth: 0.5 * ask,
-      smile: 0.3 * (1 - ask),
-    },
-    f.hand('robed'),
-  );
+  ASKING.tilt = -0.12 * ask;
+  ASKING.browL = 4 * ask;
+  ASKING.browR = 2 * ask;
+  ASKING.browTilt = 0.1 + 0.25 * ask;
+  ASKING.mouth = 0.5 * ask;
+  ASKING.smile = 0.3 * (1 - ask);
+  person(ctx, ASKING, f.hand('robed'));
   glow(ctx, CHEST[0], CHEST[1], 70, C.glow, 1);
   glow(ctx, CHEST[0], CHEST[1], 28, C.gold, 0.7);
   ctx.restore();
@@ -344,7 +345,7 @@ const sunArc = (f: DailyFrame): number => {
 /** B: the room at dawn, the robed figure at the window, the open hand and its icons. */
 const room = (f: DailyFrame, alpha: number) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const [wx, wy] = f.knob('window');
   const arc = sunArc(f);
   const day = Math.sin(Math.PI * arc);
@@ -369,6 +370,7 @@ const room = (f: DailyFrame, alpha: number) => {
   const sx = wx + lerp(-WIN_HW + 60, WIN_HW - 60, arc);
   const sy = wy + HORIZON - SUN_ARC * day;
   glow(ctx, sx, sy, 200, C.glow, 0.9);
+  // Built where it stands: the ink reads a shape's own points, so a moved copy draws other pixels.
   piece(ctx, ellipseShape(sx, sy, 44, 44, 24), C.gold, hand('sun'), { line: 0 });
   ctx.save();
   ctx.translate(wx, wy + VIEW_DROP);
@@ -402,7 +404,7 @@ const room = (f: DailyFrame, alpha: number) => {
 /** One flower on the path for each working day done. */
 const flowers = (f: DailyFrame) => {
   const { ctx } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   for (let i = 0; i < DAYS; i++) {
     const grown = clamp((dayArc(f, i) - 0.55) / 0.35);
     if (grown <= 0) continue;
@@ -422,16 +424,10 @@ const flowers = (f: DailyFrame) => {
 /** The robed figure at the window, face to the light, heart glowing. */
 const robedAtWindow = (f: DailyFrame, day: number) => {
   const { ctx } = f;
-  LOOK[0] = -3;
-  LOOK[1] = -1;
   ctx.save();
   ctx.translate(AT_WINDOW[0], AT_WINDOW[1]);
   ctx.scale(WINDOW_SCALE, WINDOW_SCALE);
-  person(
-    ctx,
-    { ...ROBED, tilt: -0.06, look: LOOK, browL: 1.5, browR: 1.5, browTilt: 0.1, smile: 0.5 },
-    f.hand('atWindow'),
-  );
+  person(ctx, AT_THE_WINDOW, f.hand('atWindow'));
   glow(ctx, CHEST[0], CHEST[1], 60, C.glow, 0.8 + 0.2 * day);
   glow(ctx, CHEST[0], CHEST[1], 24, C.gold, 0.6);
   ctx.restore();

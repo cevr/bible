@@ -120,7 +120,7 @@ export const robe = drawing({
 /** A: the court, wide, until the push reaches the loom. */
 const courtWide = (f: RobeFrame) => {
   const { ctx, w, h, t } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const lift = f.at('lift');
   const carry = f.at('carry');
   const bob = gait(t, f.cue('carry'));
@@ -175,7 +175,7 @@ const courtWide = (f: RobeFrame) => {
 /** B: the loom in the light, weaving through the quotation. */
 const weaving = (f: RobeFrame) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const weave = f.at('weave');
   const robeUp = f.at('robeUp');
   ctx.fillStyle = C.gold;
@@ -223,7 +223,7 @@ const weaving = (f: RobeFrame) => {
 /** B2: close on Joshua's face as the robe settles on him. */
 const robed = (f: RobeFrame) => {
   const { ctx, w, h, t } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const settle = f.cue('settle');
   const down = f.at('lookDown');
   // The robe comes up onto him from below, clear of his face.
@@ -258,7 +258,7 @@ const robed = (f: RobeFrame) => {
 /** C: the doubt, a tiny cloak over a stain. */
 const cloaked = (f: RobeFrame) => {
   const { ctx, w, h, t } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   piece(ctx, blob(960, 700, 330, 210, 41), C.scarlet, hand('stainC'), { line: 0, torn: 4 });
@@ -300,14 +300,17 @@ const cloaked = (f: RobeFrame) => {
 
 /** Close on Joshua in the robe, his face at human scale: `beneath` and `reclaimed` share it. */
 const closeOnJoshua = (f: RobeFrame, pose: Person) => {
-  const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { ctx, w, h, hand } = f;
   courtWall(ctx, w, h);
-  at(ctx, { x: 960, y: 330 + 165 * 4.6, scale: 4.6 }, () =>
-    person(ctx, { onHead: turban, ...pose }, hand('faceD')),
-  );
+  ctx.save();
+  ctx.translate(960, 330 + 165 * FACE_SCALE);
+  ctx.scale(FACE_SCALE, FACE_SCALE);
+  person(ctx, pose, hand('faceD'));
+  ctx.restore();
   piece(ctx, ROBE_D, C.robe, hand('robeD'), { line: 7 });
 };
+/** Joshua's scale close on his face. */
+const FACE_SCALE = 4.6;
 const ROBE_D: Pt[] = [
   [840, 550],
   [1080, 550],
@@ -316,7 +319,10 @@ const ROBE_D: Pt[] = [
   [340, 1250],
   [400, 790],
 ];
-const JOSHUA_DOWN: Person = { look: [0, 3.5], browTilt: 0.25 };
+const JOSHUA_DOWN: Person = { onHead: turban, look: [0, 3.5], browTilt: 0.25 };
+/** Joshua reclaimed, looking up glad: rewritten each frame, never made per frame. */
+const GLAD_LOOK: [number, number] = [0, 0];
+const GLAD: Person = { onHead: turban, look: GLAD_LOOK };
 
 /**
  * D: beneath the robe. The lens opens on the stain there, and on "away" it
@@ -325,7 +331,7 @@ const JOSHUA_DOWN: Person = { look: [0, 3.5], browTilt: 0.25 };
  */
 const beneath = (f: RobeFrame) => {
   const { ctx } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   closeOnJoshua(f, JOSHUA_DOWN);
   const open = f.at('lens') * (1 - f.at('shut'));
   if (open > 0.01)
@@ -379,7 +385,7 @@ const beneath = (f: RobeFrame) => {
  */
 const judged = (f: RobeFrame) => {
   const { ctx, w, h } = f;
-  const hand = (k: string) => f.hand(k);
+  const { hand } = f;
   const beyond = f.at('beyond');
   const [jx, jy] = f.knob('judged');
   courtWall(ctx, w, h);
@@ -432,13 +438,12 @@ const reclaimed = (f: RobeFrame) => {
   ctx.translate(960, 700);
   ctx.scale(1 + 0.06 * warm, 1 + 0.06 * warm);
   ctx.translate(-960, -700);
-  closeOnJoshua(f, {
-    look: [0, lerp(3.5, -1, glad)],
-    browTilt: lerp(0.25, 0.35, glad),
-    browL: 2 * glad,
-    browR: 2 * glad,
-    smile: 0.6 * glad,
-  });
+  GLAD_LOOK[1] = lerp(3.5, -1, glad);
+  GLAD.browTilt = lerp(0.25, 0.35, glad);
+  GLAD.browL = 2 * glad;
+  GLAD.browR = 2 * glad;
+  GLAD.smile = 0.6 * glad;
+  closeOnJoshua(f, GLAD);
   const y = lerp(930, 800, warm);
   // Already rising from "judicial", it swells as he is reclaimed.
   const lit = lerp(0.5, 1, warm);
