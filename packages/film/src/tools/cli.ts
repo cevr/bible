@@ -19,6 +19,7 @@
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //                      [--no-share]
 //   film lookbook <film> [--captions] [--tag name]
+//   film chapters <film>
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
 //                     [--no-captions]
 //   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
@@ -44,14 +45,25 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import type { ChildProcessSpawner } from 'effect/unstable/process';
-import { scenesOf } from '../core/layout.ts';
+import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
 import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
-import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
+import {
+  DEAD_WINDOW,
+  HOLD,
+  type Reported,
+  deadAir,
+  designedSilences,
+  layoutLevel,
+  masterFindings,
+  staticFindings,
+} from './check.ts';
 import { Checker } from './checker.ts';
+import { actsOf, filmChapters, lookFindings, lookLines } from './look.ts';
+import { Looker } from './looker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { sceneReport, soundReport } from './cues.ts';
@@ -68,7 +80,7 @@ import {
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media, ffmpegReady } from './media.ts';
-import { Mixer, masterFile, measureMaster } from './mixer.ts';
+import { Mixer, masterFile, masterLevels, measureMaster } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
@@ -416,14 +428,26 @@ const cues = Command.make(
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 
-const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
-  /** The browser leg: the server and the browser start only when it runs. */
+const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
+  /**
+   * The browser legs, on one server and browser that start only when they
+   * run: the layout at every sampled frame, then the look pass over the film.
+   */
   const layoutLeg = Effect.fn('film.check.layout')(function* (
     loaded: LoadedFilm,
+    placed: ReadonlyArray<Placed>,
     workers: number,
     scenes: Option.Option<ReadonlySet<string>>,
   ) {
-    return yield* (yield* Checker).layout(loaded, { workers, scenes });
+    // Acts are judged only over the whole film; a misnamed act fails before any page opens.
+    const declared = Option.filter(loaded.look, () => Option.isNone(scenes));
+    const acts = yield* Effect.fromResult(actsOf(declared, placed));
+    const layout = yield* (yield* Checker).layout(loaded, { workers, scenes });
+    const looked = yield* (yield* Looker).look(loaded, workers, scenes);
+    return [
+      ...layout.map((finding): Reported => ({ level: layoutLevel(finding), finding })),
+      ...lookFindings(looked, acts),
+    ];
   }, Effect.provide(checkLayer));
   return Command.make(
     'check',
@@ -468,10 +492,14 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       const found: Array<Reported> = [
         ...staticFindings(loaded, placed, { allowStale: input.allowStale }, master),
       ];
-      if (!input.static) {
-        const layout = yield* layoutLeg(loaded, input.workers, only);
-        for (const finding of layout) found.push({ level: layoutLevel(finding), finding });
+      // Dead air is read from a master that covers this film; a missing or
+      // stale one is its own finding.
+      if (everyTakeRecorded(placed) && masterFindings(loaded, placed, master).length === 0) {
+        const levels = yield* masterLevels(yield* Media, masterFile(loaded.paths), DEAD_WINDOW);
+        for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
+          found.push({ level: 'error', finding });
       }
+      if (!input.static) found.push(...(yield* layoutLeg(loaded, placed, input.workers, only)));
       for (const { level, finding } of found) {
         if (input.json)
           yield* Console.log(
@@ -488,7 +516,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
     }),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, no dead air in the master, and warnings where the voice speaks over a still picture for more than ${HOLD} s, a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens`,
     ),
   );
 };
@@ -582,7 +610,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     ),
   );
 
-const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
+const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
   Command.make(
     'lookbook',
     {
@@ -598,16 +626,33 @@ const lookbook = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     },
     Effect.fn('film.lookbook')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
+      const acts = yield* Effect.fromResult(actsOf(loaded.look, yield* placeFilm(loaded)));
       yield* (yield* Renderer).render(
         loaded,
         RenderJob.LookBook({ tag: input.tag, captions: input.captions, workers: 1 }),
       );
-    }, Effect.provide(renderLayer)),
+      const looked = yield* (yield* Looker).look(loaded, DEFAULT_WORKERS, Option.none());
+      for (const line of lookLines(looked.looks, acts)) yield* Console.log(line);
+    }, Effect.provide(lookLayer)),
   ).pipe(
     Command.withDescription(
-      "Write out/<film>/lookbook.jpg: every scene's stills at its cue edges and 60% point, labelled, with the palette",
+      "Write out/<film>/lookbook.jpg (every scene's stills at its cue edges and 60% point, labelled, with the palette) and print each scene's and act's light, held share and largest face",
     ),
   );
+
+const chaptersCommand = Command.make(
+  'chapters',
+  { film },
+  Effect.fn('film.chapters')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const lines = yield* Effect.fromResult(filmChapters(loaded, yield* placeFilm(loaded)));
+    for (const line of lines) yield* Console.log(line);
+  }),
+).pipe(
+  Command.withDescription(
+    "Print the film's YouTube chapters, one `mm:ss title` line each, from the acts its film.ts look names",
+  ),
+);
 
 /** `--workers 2,4,6`: page counts, each a whole number from 1. */
 const WorkerCounts = Schema.Array(
@@ -912,7 +957,12 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
     Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Tools, Platform)),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
-  const checkLayer = Checker.layer.pipe(Layer.provide([Browser.layer, previewServer]));
+  const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
+    Layer.provide([Browser.layer, previewServer]),
+  );
+  const lookLayer = Layer.mergeAll(Renderer.layer, Looker.layer).pipe(
+    Layer.provide([Browser.layer, previewServer]),
+  );
   const benchLayer = Bencher.layer.pipe(
     Layer.provide(Renderer.layer),
     Layer.provide([Browser.layer, previewServer]),
@@ -928,7 +978,8 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       cues,
       check(checkLayer),
       render(renderLayer),
-      lookbook(renderLayer),
+      lookbook(lookLayer),
+      chaptersCommand,
       bench(benchLayer),
       doctor,
       lab(labServer),

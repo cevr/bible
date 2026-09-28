@@ -202,6 +202,12 @@ const spanTiming = {
    * starts; each item lasts the rest. Defaults to 0: every item is the whole cue.
    */
   stagger: Schema.optionalKey(Share),
+  /**
+   * The cue is a designed silence: `film check` lets the master fall quiet
+   * across it without a `DeadAir` finding. Only where the script means one
+   * (after the key quotation, the black moment, the beat before the last word).
+   */
+  silence: Schema.optionalKey(Schema.Literal(true)),
 };
 
 /** A span that ends by its length. */
@@ -503,12 +509,59 @@ export const InkMark = Schema.Struct({
 });
 export type InkMark = typeof InkMark.Type;
 
-/** A probed frame: every line of text and every mark of ink it drew. */
+/**
+ * A face the probe saw (`probeFace`, called by a kit's person): its centre and
+ * its height on screen in canvas pixels, and its effective opacity. What
+ * `FaceSmall` reads to tell whether a scene ever gives a face human scale.
+ */
+export const FaceMark = Schema.Struct({
+  scene: Schema.String,
+  x: Schema.Finite,
+  y: Schema.Finite,
+  /** The face's height on screen, in canvas pixels. */
+  size: Schema.Finite,
+  alpha: Schema.Finite,
+});
+export type FaceMark = typeof FaceMark.Type;
+
+/** A probed frame: every line of text and every mark of ink it drew, and the faces. */
 export const Probed = Schema.Struct({
   texts: Schema.Array(TextBox),
   inks: Schema.Array(InkMark),
+  /** Recorded only where the sink asks for faces (the look pass). */
+  faces: Schema.optionalKey(Schema.Array(FaceMark)),
 });
 export type Probed = typeof Probed.Type;
+
+/** A range of a measure, low to high, both included. */
+const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
+
+/**
+ * One act of a film's colour script and shape (`film.ts`'s `look.acts`):
+ * where it starts, its chapter title, and the light it should measure.
+ */
+export const LookAct = Schema.Struct({
+  /** The scene the act starts on; it runs until the next act's. */
+  from: Schema.String,
+  /** The act's name, for the report: `cold open`, `valley`. */
+  name: Schema.String,
+  /**
+   * The narrator's question that opens the act, in the viewer's words: its
+   * YouTube chapter title (`film chapters`).
+   */
+  chapter: Schema.optionalKey(Schema.String),
+  /** Mean luma, 0–255, the act's frames should measure. */
+  luma: Schema.optionalKey(Range),
+  /** Mean saturation, 0–1. */
+  saturation: Schema.optionalKey(Range),
+  /** The most of its frames that may be darker than luma 60, 0–1. */
+  dark: Schema.optionalKey(Share),
+});
+export type LookAct = typeof LookAct.Type;
+
+/** A film's declared look (`export const look` in `film.ts`): its acts, in film order. */
+export const Look = Schema.Struct({ acts: Schema.Array(LookAct) });
+export type Look = typeof Look.Type;
 
 // ---------------------------------------------------------------------------
 // Lab notes: what a viewer marks on a frame in the lab (`film lab`), and the

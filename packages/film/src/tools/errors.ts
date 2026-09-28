@@ -474,6 +474,99 @@ export class StaticHold extends Schema.TaggedError<StaticHold>()('StaticHold', {
   }
 }
 
+/**
+ * The audio master falls quiet (below `floor` dBFS) for longer than `max`
+ * seconds where no cue declares a designed silence (`silence: true`). `from`
+ * and `to` are film seconds.
+ */
+export class DeadAir extends Schema.TaggedError<DeadAir>()('DeadAir', {
+  from: Schema.Finite,
+  to: Schema.Finite,
+  floor: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `${this.from.toFixed(2)}–${this.to.toFixed(2)}s: ${(this.to - this.from).toFixed(2)}s of the master under ${this.floor} dBFS, over ${this.max.toFixed(1)}s, and no cue declares the silence (score it in sound.ts, or mark the cue silence: true where the script means one)`;
+  }
+}
+
+/**
+ * A drawn scene holds still for more than `max` of its seconds: its picture,
+ * seen small (64×36 grey at 2 fps), barely changes. `from` and `to` are its
+ * longest held run, in film seconds.
+ */
+export class HeldShare extends Schema.TaggedError<HeldShare>()('HeldShare', {
+  scene: Schema.String,
+  share: Schema.Finite,
+  max: Schema.Finite,
+  from: Schema.Finite,
+  to: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": ${Math.round(this.share * 100)}% of its seconds held still, over ${Math.round(this.max * 100)}%; longest held run ${(this.to - this.from).toFixed(1)}s at ${this.from.toFixed(1)}–${this.to.toFixed(1)}s (drift the camera, slide a plane, or push on the turn)`;
+  }
+}
+
+/** How each colour-script measure is written: luma 0–255, the dark share in %, saturation 0–1. */
+const shownMeasure = {
+  luma: (v: number) => v.toFixed(0),
+  dark: (v: number) => `${Math.round(v * 100)}%`,
+  saturation: (v: number) => v.toFixed(2),
+};
+
+/** An act of the declared colour script (`look.acts`) measures outside its target. */
+export class ColourScript extends Schema.TaggedError<ColourScript>()('ColourScript', {
+  act: Schema.String,
+  measure: Schema.Literals(['luma', 'saturation', 'dark']),
+  value: Schema.Finite,
+  low: Schema.Finite,
+  high: Schema.Finite,
+}) {
+  override get message() {
+    const shown = shownMeasure[this.measure];
+    return `act "${this.act}": ${this.measure} ${shown(this.value)}, outside ${shown(this.low)}–${shown(this.high)}`;
+  }
+}
+
+/**
+ * No face in a drawn scene reaches `min` px on screen: the scene never gives a
+ * face human scale (a third of the frame's height).
+ */
+export class FaceSmall extends Schema.TaggedError<FaceSmall>()('FaceSmall', {
+  scene: Schema.String,
+  /** The largest face the scene showed, in px; 0 when it showed none. */
+  largest: Schema.Finite,
+  min: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": its largest face is ${this.largest.toFixed(0)} px (0: none drawn), where a face should fill ${this.min.toFixed(0)} px (a third of the frame) at least once`;
+  }
+}
+
+/**
+ * The film's ending leaves YouTube no room: the stretch after the last word is
+ * under `min` seconds (credits and music alone), or the end card is.
+ */
+export class EndShort extends Schema.TaggedError<EndShort>()('EndShort', {
+  part: Schema.Literals(['after the last word', 'end card']),
+  secs: Schema.Finite,
+  min: Schema.Finite,
+}) {
+  override get message() {
+    return `${this.part}: ${this.secs.toFixed(1)}s, under ${this.min}s (credits and sources roll 20–30 s; end screens need the last 5–20 s)`;
+  }
+}
+
+/** The film's declared acts do not make YouTube chapters. */
+export class ChaptersInvalid extends Schema.TaggedError<ChaptersInvalid>()('ChaptersInvalid', {
+  film: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.film}: no chapters (${this.reason})`;
+  }
+}
+
 /** A beat whose take is missing, or was recorded for other text or another voice. */
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,

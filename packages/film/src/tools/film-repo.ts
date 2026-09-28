@@ -9,6 +9,7 @@ import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from
 import { type Placed, layout } from '../core/layout.ts';
 import {
   HeardAs,
+  Look,
   Sound,
   type SoundManifest,
   SoundManifestJson,
@@ -43,6 +44,8 @@ export interface LoadedFilm {
   readonly manifest: SoundManifest;
   /** How speech-to-text writes the script's names (`script.ts`'s `heardAs`); none when it lists none. */
   readonly heardAs: HeardAs;
+  /** The film's declared colour script and acts (`film.ts`'s `look`); none when it declares none. */
+  readonly look: Option.Option<Look>;
 }
 
 export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
@@ -71,6 +74,8 @@ const ScriptModule = Schema.Struct({
 type ScriptModule = typeof ScriptModule.Type;
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
+/** The part of `film.ts` the tools read: its declared look, when it declares one. */
+const FilmModule = Schema.Struct({ look: Schema.optionalKey(Look) });
 
 /**
  * The one place a film module is imported by path. The process keeps the
@@ -172,7 +177,11 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           let heardAs: HeardAs = {};
           if (yield* fs.exists(scriptFile))
             heardAs = (yield* loadModule(name, scriptFile, ScriptModule)).heardAs;
-          return { paths: at, scenes, voice, sound, timings, manifest, heardAs };
+          const filmFile = path.join(at.dir, 'film.ts');
+          let look = Option.none<Look>();
+          if (yield* fs.exists(filmFile))
+            look = Option.fromNullishOr((yield* loadModule(name, filmFile, FilmModule)).look);
+          return { paths: at, scenes, voice, sound, timings, manifest, heardAs, look };
         });
 
         const script = Effect.fn('FilmRepo.script')(function* (name: string) {

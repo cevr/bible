@@ -42,7 +42,17 @@ describe('FilmRepo', () => {
       expect(cold?.say).toContain('How should man be just with God?');
       expect(script.find((beat) => beat.id === 'title')?.say).toBeUndefined();
       // It lists no heardAs names, so the take check has none.
-      expect((yield* (yield* FilmRepo).load('righteousness-by-faith')).heardAs).toEqual({});
+      const loaded = yield* (yield* FilmRepo).load('righteousness-by-faith');
+      expect(loaded.heardAs).toEqual({});
+      // Its film.ts declares the look: five acts, the first from the cold open.
+      const look = Option.getOrThrow(loaded.look);
+      expect(look.acts.map((act) => act.from)).toEqual([
+        'cold',
+        'message',
+        'spoke',
+        'look',
+        'rain',
+      ]);
     }),
   );
 });

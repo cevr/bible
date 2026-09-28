@@ -22,6 +22,7 @@ import {
   type ExportInfo,
   type VoiceTiming,
   SoundManifestJson,
+  type FaceMark,
   type InkMark,
   type Probed,
   type TextBox,
@@ -432,6 +433,12 @@ export const testExportInfo: ExportInfo = {
   frames: 600,
 };
 
+/** A frame as a fake page's look pass draws it: one flat grey, and the faces it declares. */
+export interface FakeLook {
+  readonly grey: number;
+  readonly faces: ReadonlyArray<FaceMark>;
+}
+
 export interface FakeRenderHost {
   readonly info?: ExportInfo;
   /**
@@ -457,6 +464,11 @@ export interface FakeRenderHost {
   readonly drawMs?: (i: number) => number;
   /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
   readonly pixels?: (i: number) => string;
+  /**
+   * Frame `i` as the look pass sees it: the grey its `w` × `h` thumb is filled
+   * with, and the faces it declares (default mid grey, no faces).
+   */
+  readonly looked?: (i: number) => FakeLook;
 }
 
 /**
@@ -470,6 +482,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const encoder = Option.getOrElse(Option.fromNullishOr(host.encoder), () => Effect.void);
   const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
   const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
+  const looked = Option.getOrElse(Option.fromNullishOr(host.looked), () => (): FakeLook => ({
+    grey: 128,
+    faces: [],
+  }));
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -568,6 +584,16 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                     Effect.forEach(frames, (i) => Effect.as(frame(i), drawMs(i))),
                   hash: (frames: ReadonlyArray<number>) =>
                     Effect.forEach(frames, (i) => Effect.as(frame(i), pixels(i))),
+                  look: (frames: ReadonlyArray<number>, w: number, h: number) =>
+                    Effect.forEach(frames, (i) => Effect.as(frame(i), looked(i))).pipe(
+                      Effect.map((drawn) => {
+                        const thumbs = new Uint8Array(frames.length * w * h * 4);
+                        drawn.forEach(({ grey }, k) => {
+                          thumbs.fill(grey, k * w * h * 4, (k + 1) * w * h * 4);
+                        });
+                        return { thumbs, faces: drawn.map((d) => d.faces) };
+                      }),
+                    ),
                 };
               }),
             ),
@@ -639,6 +665,7 @@ export const testFilm = (
   timings,
   manifest: { effects: {} },
   heardAs: {},
+  look: Option.none(),
 });
 
 /**

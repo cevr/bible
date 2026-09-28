@@ -53,7 +53,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - Nothing is still for more than 4 s while the voice speaks: the camera drifts 1–3 % or the planes slide.
   - Each scene holds 40 % of its seconds or fewer.
   - STORY cuts 4–8 times a minute (angle, reverse, close-up). IDEA is one continuous travel over the page.
-- **Check:** the look-book stills show a face at that scale in every scene row.
+- **Check:** `bun run check` warns `HeldShare` (a scene held over 40 %, with its longest held run) and `FaceSmall` (no face at a third of the frame); the look-book stills show the face.
 
 ## 6. The viewer's question
 
@@ -61,7 +61,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **Give the question its own voice.** Cast the film in `voice.ts`, and hand the line over with `{@ask}` and back with `{@lead}`: "…and God calls him righteous. {@ask}Declared? But he's guilty. {@lead}Exactly. And that's the point." The question is the viewer's own words, not a setup line.
 - Keep the second voice a companion who is curious, never a skeptic to be beaten. BibleProject's co-host thinks aloud beside the narrator.
 - With one reader, the narrator asks the question in the viewer's words and answers it with the wrap line.
-- **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film.
+- **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film: the act's `chapter` in `film.ts`'s `look`. `bun run chapters <film>` prints them.
 - **Check:** every register switch in the script comes with a question.
 
 ## 7. The shape in time
@@ -78,7 +78,7 @@ The shape as a share of the runtime:
 | Coda                     | credits and sources roll for 20–30 s over the final pull-back; the last 5–20 s stay clear for end screens |
 
 - The landing ends on the thesis line, with a held pause of about 3 s before its last word.
-- **Check:** each scene's `start` from `cues`, divided by the film's length.
+- **Check:** each scene's `start` from `cues`, divided by the film's length. `bun run check` warns `EndShort` under 20 s after the last word or a 5 s end card.
 
 ## 8. Repetition as layout
 
@@ -103,7 +103,7 @@ The shape as a share of the runtime:
 - **The low end:** the register under 70 Hz swells about 15 dB on the problem lines and the climax, and thins under the answers.
 - **Effects:** put them on the story's concrete nouns: serpents, the loom, coins, cloth, chains. Page and slide sounds go only at register switches.
 - **Levels:** the voice sits near −17 dBFS at its 70th percentile, and the master near −18 LUFS.
-- **Check:** `bun run mix <film>` logs `mix.levels`, each bus's mean and peak dBFS. `--stems` writes each bus the film's length, to measure a stretch or hear it alone.
+- **Check:** `bun run check` fails `DeadAir` on undeclared silence; a designed one is a cue with `silence: true`. `bun run mix <film>` logs `mix.levels`, each bus's mean and peak dBFS. `--stems` writes each bus the film's length, to measure a stretch or hear it alone.
 
 ## 11. Tone
 
@@ -121,7 +121,7 @@ BibleProject is informative, curious and hopeful. The weight sits on explanation
   - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer;
   - the landing is the most saturated act;
   - the `script.ts` header names the film's 3–5 tent-pole frames and their act lighting, next to its motifs.
-- **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. In the contact sheet, only the cross's tiles read dark.
+- **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. Declare the acts and their targets as `look.acts` in `film.ts`: `bun run lookbook` prints each act's luma, dark share and saturation, and `check` warns `ColourScript` outside a target. In the contact sheet, only the cross's tiles read dark.
 
 ## 12. The look
 
@@ -134,4 +134,4 @@ A paper theatre lit from behind.
 - **One hand design,** from the figure's own arm. A big hand is only a close-up of a figure we have seen.
 - **A crowd is never cloned:** vary height, silhouette and hat.
 - **Screen direction is fixed per role** for the whole film; it crosses once, on purpose, at the turn.
-- **Check:** the look-book, and the stills at full size.
+- **Check:** the look-book, its per-scene numbers (luma, saturation, top hues), and the stills at full size.

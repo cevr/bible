@@ -4,7 +4,7 @@
 
 import type { Film, KnobRead } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
-import type { Probed } from '../core/schema.ts';
+import type { FaceMark, Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { mountLab } from './lab.ts';
@@ -13,7 +13,7 @@ import { bytesBase64, canvasBase64, required } from './dom.ts';
 import { type EncoderCheck, encodeChunk, encoderCheck } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { tInUrl } from './t-in-url.ts';
-import { hashFrames, timeFrames } from './timing.ts';
+import { hashFrames, lookFrames, timeFrames } from './timing.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -62,6 +62,15 @@ export interface ExportHandle {
   time(frames: ReadonlyArray<number>): ReadonlyArray<number>;
   /** A hash of each of `frames`' pixels (`hashFrames`). */
   hash(frames: ReadonlyArray<number>): ReadonlyArray<string>;
+  /**
+   * `frames` drawn without captions, each shrunk to a `w` × `h` RGBA thumb
+   * (end to end, base64), and the faces each declared (`lookFrames`).
+   */
+  look(
+    frames: ReadonlyArray<number>,
+    w: number,
+    h: number,
+  ): { readonly thumbs: string; readonly faces: ReadonlyArray<ReadonlyArray<FaceMark>> };
 }
 
 declare global {
@@ -180,6 +189,16 @@ export const mountPlayer = (films: Record<string, () => Promise<Film>>): void =>
         contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
         time: (frames) => timeFrames(draw, ctx, frames),
         hash: (frames) => hashFrames(draw, ctx, frames),
+        look: (frames, w, h) => {
+          const drawn = lookFrames(
+            (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
+            canvas,
+            frames,
+            w,
+            h,
+          );
+          return { thumbs: bytesBase64(drawn.thumbs), faces: drawn.faces };
+        },
       };
       return;
     }

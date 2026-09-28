@@ -9,6 +9,7 @@ import {
   at,
   cutout,
   ellipseShape,
+  probeFace,
   quad,
   reach,
   rectShape,
@@ -754,6 +755,7 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
   ctx.translate(-NECK[0], -NECK[1]);
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4));
+  probeFace(ctx, cx, cy, 2 * HEAD_RY);
   const [lx, ly] = p.look ?? HEAD_STILL;
   const smile = clamp(p.smile ?? 0, -1, 1);
   eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);

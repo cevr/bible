@@ -50,6 +50,9 @@ const frame = { width: 1920, height: 1080 };
 const noTakes: Timings = { voice: '', scenes: {} };
 const sample: Sample = { scene: 'a', frame: 30, time: 1, at: 'mark go' };
 const tags = (fs: ReadonlyArray<{ readonly _tag: string }>) => fs.map((f) => f._tag);
+/** Every finding but the ending's: these fixtures are too short for end screens (`check-ending.test.ts`). */
+const besideEnding = (r: { readonly finding: { readonly _tag: string } }) =>
+  r.finding._tag !== 'EndShort';
 
 describe('overlapArea', () => {
   test('two lines drawn over each other share their common box', () => {
@@ -666,7 +669,7 @@ describe('unknownVoices', () => {
       { allowStale: true },
       Option.none(),
     );
-    expect(found.map((r) => [r.level, r.finding._tag])).toEqual([
+    expect(found.filter(besideEnding).map((r) => [r.level, r.finding._tag])).toEqual([
       ['error', 'UnknownVoice'],
       ['warning', 'TakeStale'],
     ]);
@@ -883,10 +886,9 @@ describe('staticFindings', () => {
 
   test('stale work is an error, an unmade sound a warning', () => {
     expect(
-      staticFindings(film, placed, { allowStale: false }, Option.none()).map((r) => [
-        r.level,
-        r.finding._tag,
-      ]),
+      staticFindings(film, placed, { allowStale: false }, Option.none())
+        .filter(besideEnding)
+        .map((r) => [r.level, r.finding._tag]),
     ).toEqual([
       ['error', 'TakeStale'],
       ['warning', 'AssetMissing'],
@@ -895,7 +897,9 @@ describe('staticFindings', () => {
 
   test('--allow-stale turns stale work into warnings', () => {
     expect(
-      staticFindings(film, placed, { allowStale: true }, Option.none()).map((r) => r.level),
+      staticFindings(film, placed, { allowStale: true }, Option.none())
+        .filter(besideEnding)
+        .map((r) => r.level),
     ).toEqual(['warning', 'warning']);
   });
 });
@@ -910,7 +914,9 @@ describe('the audio master', () => {
   const placed = layout(scenes, recorded);
   const end = filmEnd(placed);
   const found = (master: Option.Option<number>, allowStale = false) =>
-    staticFindings(film, placed, { allowStale }, master).map((r) => [r.level, r.finding._tag]);
+    staticFindings(film, placed, { allowStale }, master)
+      .filter(besideEnding)
+      .map((r) => [r.level, r.finding._tag]);
 
   test('a master as long as the film, within a frame, passes', () => {
     expect(found(Option.some(end))).toEqual([]);
@@ -934,9 +940,9 @@ describe('the audio master', () => {
   test('a film with a take still to record has no master to check', () => {
     const unrecorded = testFilm(scenes, noTakes);
     const laid = layout(scenes, noTakes);
-    const tagsOf = staticFindings(unrecorded, laid, { allowStale: true }, Option.none()).map(
-      (r) => r.finding._tag,
-    );
+    const tagsOf = staticFindings(unrecorded, laid, { allowStale: true }, Option.none())
+      .filter(besideEnding)
+      .map((r) => r.finding._tag);
     expect(tagsOf).toEqual(['TakeStale']);
   });
 });

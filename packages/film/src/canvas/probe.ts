@@ -7,12 +7,14 @@
 // `measureText`), so a probed frame is pixel for pixel the frame it would have
 // been.
 
-import type { InkMark, Point, TextBox } from '../core/schema.ts';
+import type { FaceMark, InkMark, Point, TextBox } from '../core/schema.ts';
 
-/** What one probed frame collects: text and ink, in the order drawn. */
+/** What one probed frame collects: text and ink, in the order drawn, and faces when asked. */
 export interface ProbeSink {
   readonly texts: TextBox[];
   readonly inks: InkMark[];
+  /** Given, every face `probeFace` declares lands here (the look pass's `FaceSmall`). */
+  readonly faces?: FaceMark[];
 }
 
 /** Where text and ink drawn into a context land on screen, and whose they are. */
@@ -186,6 +188,26 @@ export const recordInk = (
     scale,
   };
   probe.sink.inks.push(tagged(probe, marks === undefined ? mark : { ...mark, marks }));
+};
+
+/**
+ * Declare a face centred on (x, y), `height` tall, in the current transform's
+ * space: a kit's person calls it for its head, so `film check` measures the
+ * face on screen (`FaceSmall`) rather than a reader guessing it from a still.
+ * Records only when a probe that collects faces is attached; draws nothing.
+ */
+export const probeFace = (ctx: CanvasRenderingContext2D, x: number, y: number, height: number) => {
+  const probe = probes.get(ctx);
+  const faces = probe?.sink.faces;
+  if (probe === undefined || faces === undefined) return;
+  const [sx, sy] = screen(ctx, probe)(x, y);
+  faces.push({
+    scene: probe.scene,
+    x: sx,
+    y: sy,
+    size: height * scaleOf(ctx),
+    alpha: ctx.globalAlpha * probe.alpha,
+  });
 };
 
 /** How far a line of text reaches above and below its baseline, in the context's font. */

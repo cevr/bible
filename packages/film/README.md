@@ -25,7 +25,7 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lab|notes <film>` (and `film doctor`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|chapters|lab|notes <film>` (and `film doctor`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, previewServer, labServer })`
 with its films folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
@@ -394,7 +394,18 @@ and time. The page composes it with `film.render`, so the lab shows it live
 `film lookbook <film> [--captions] [--tag t]` asks one export page for the
 same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`) and writes
 `out/<film>/lookbook.jpg`. It is the first page to read for a new film
-and the consistency reference while its scenes are built.
+and the consistency reference while its scenes are built. The command then
+runs the look pass (below) and prints one line per scene (held share and
+longest held run, largest face, mean luma, dark share, saturation and top
+five colours), one per declared act against its target, and one for the
+film.
+
+**Chapters.** An act of `film.ts`'s `look` that names a `chapter` (the
+narrator's question, in the viewer's words) starts a YouTube chapter at its
+first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
+whole-film `render` writes them beside the video as `<out>.chapters.txt`.
+Fewer than three, a first past 00:00, or one under 10 s fail with
+`ChaptersInvalid` (a render logs the reason and writes none).
 
 ## Check
 
@@ -458,6 +469,26 @@ what a review used to find by eye:
   `STILL_DRIFT` and reads as motion. `film check` stays
   green on it; `--static` skips it, since telling a still picture from
   undeclared motion needs the frames.
+- **The ending and the air** (static): the stretch after the last word under
+  20 s, or an end card (a last scene that speaks nothing) under 5 s, is an
+  `EndShort` warning. Once the master covers the film, it is read mono at
+  16 kHz in 50 ms windows: a run under −60 dBFS longer than 1.5 s is
+  `DeadAir`, an error, less any span a cue declares with `silence: true`
+  (`{ scene: 'start', offset: 2, dur: 3, silence: true }`), the designed
+  silences the script means.
+- **The look pass** (headless pages, `looker.ts`, measures in `look.ts`):
+  every scene drawn at 2 fps and shrunk to a 64×36 thumb (the research's
+  measure). A second holds when both its half-second steps change the mean
+  grey by under 2 (paper grain and boil alone score 0.5–2); a spoken, drawn
+  scene held for over 40 % of its seconds is a `HeldShare` warning naming
+  its longest held run. A kit's person declares its head with
+  `probeFace(ctx, x, y, height)`; a spoken scene whose largest face (seen at
+  over 0.5 opacity) never reaches a third of the frame's height is
+  `FaceSmall`. `film.ts` may export a `look` (`Look`: acts, each `from` a
+  scene, with a `name`, a `chapter`, and `luma`, `saturation` ranges and a
+  `dark` share ceiling); over the whole film each act's measure outside its
+  target is a `ColourScript` warning. `--scene` skips the acts: an act
+  measured on part of itself is not the act.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn

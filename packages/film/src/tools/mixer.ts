@@ -7,7 +7,7 @@
 
 import { Context, Effect, FileSystem, Layer, Option } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type Pcm, levels } from '../core/audio.ts';
+import { type Pcm, levels, windowLevels } from '../core/audio.ts';
 import {
   type Bed,
   MIX_RATE,
@@ -45,6 +45,19 @@ export const measureMaster = (
     if (!(yield* fs.exists(file))) return Option.none();
     return Option.some(yield* media.duration(file));
   });
+
+/** The rate the master is read at for its levels: speech and room tone both sit under 8 kHz. */
+const LEVEL_RATE = 16000;
+
+/** The master's RMS level in dBFS over each `window` seconds, in order (`DeadAir` reads it). */
+export const masterLevels = (
+  media: MediaService,
+  file: string,
+  window: number,
+): Effect.Effect<Float64Array, MediaFailed> =>
+  Effect.map(media.load(file, LEVEL_RATE), (pcm) =>
+    windowLevels(pcm.channels[0] ?? new Float32Array(), Math.round(window * LEVEL_RATE)),
+  );
 
 /**
  * The track against the film it must cover: missing, or longer or shorter

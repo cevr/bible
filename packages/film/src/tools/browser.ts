@@ -17,7 +17,7 @@ import {
   type Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
-import { ExportInfo, Probed } from '../core/schema.ts';
+import { ExportInfo, FaceMark, Probed } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,
@@ -70,7 +70,23 @@ export interface FramePage {
   readonly hash: (
     frames: ReadonlyArray<number>,
   ) => Effect.Effect<ReadonlyArray<string>, PageError | PageCrashed | FrameFailed>;
+  /**
+   * Draw `frames` without captions and return each as a `w` × `h` RGBA thumb
+   * (end to end) with the faces it declared: the look pass.
+   */
+  readonly look: (
+    frames: ReadonlyArray<number>,
+    w: number,
+    h: number,
+  ) => Effect.Effect<LookedFrames, PageError | PageCrashed | FrameFailed>;
 }
+
+/** The look pass's frames: thumbs end to end, and each frame's faces. */
+export const LookedFrames = Schema.Struct({
+  thumbs: Schema.Uint8ArrayFromBase64,
+  faces: Schema.Array(Schema.Array(FaceMark)),
+});
+export type LookedFrames = typeof LookedFrames.Type;
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
 
@@ -322,6 +338,19 @@ const openPage = (page: Page, url: string) =>
         batchFailed(frames),
       );
 
+    const look = (frames: ReadonlyArray<number>, w: number, h: number) =>
+      handle(
+        () =>
+          page.evaluate(([all, tw, th]) => window.__film?.look(all, tw, th), [
+            [...frames],
+            w,
+            h,
+          ] satisfies [number[], number, number]),
+        LookedFrames,
+        SHEET_TIMEOUT,
+        batchFailed(frames),
+      );
+
     return {
       info,
       frame,
@@ -332,6 +361,7 @@ const openPage = (page: Page, url: string) =>
       contact,
       time,
       hash,
+      look,
     } satisfies FramePage;
   });
 

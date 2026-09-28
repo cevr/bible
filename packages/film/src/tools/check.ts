@@ -38,7 +38,12 @@ import {
   type AudioMissing,
   type AudioStale,
   CueLate,
+  DeadAir,
+  EndShort,
+  type ColourScript,
   type CueInvalid,
+  type FaceSmall,
+  type HeldShare,
   InkOverText,
   PlateOffFrame,
   SeamLong,
@@ -70,11 +75,15 @@ export type StaticFinding =
   | CueInvalid
   | ActTooShort
   | UnknownVoice
-  | WordPinFar;
+  | WordPinFar
+  | EndShort
+  | DeadAir;
 /** What one probed frame shows wrong. */
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type LayoutFinding = FrameFinding | StaticHold;
-export type Finding = StaticFinding | LayoutFinding;
+/** What the look pass measures across the film (`look.ts`): every one a warning. */
+export type LookFinding = HeldShare | ColourScript | FaceSmall;
+export type Finding = StaticFinding | LayoutFinding | LookFinding;
 
 export type Level = 'error' | 'warning';
 
@@ -274,6 +283,7 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
     case 'AssetMissing':
     case 'SeamLong':
     case 'WordPinFar':
+    case 'EndShort':
       return 'warning';
     default:
       return 'error';
@@ -298,6 +308,102 @@ export const masterFindings = (
   return Option.toArray(
     masterFinding(masterFile(film.paths), length, filmEnd(placed), MASTER_TOLERANCE),
   );
+};
+
+// ---------------------------------------------------------------------------
+// The ending and the air
+
+/** After the last word, credits and music alone need at least this long (research #6, #44). */
+export const TAIL_MIN = 20;
+/** YouTube's end screens need at least this long at the end. */
+export const CARD_MIN = 5;
+
+/**
+ * The ending, against what YouTube needs: the stretch after the last word
+ * under `TAIL_MIN`, or the end card (the last scene, when it speaks nothing)
+ * under `CARD_MIN`; a last scene that speaks is no end card at all.
+ */
+export const endShort = (placed: ReadonlyArray<Placed>): ReadonlyArray<EndShort> => {
+  const last = Arr.last(placed);
+  if (Option.isNone(last)) return [];
+  const spoken = placed.filter((p) => p.voice.duration > 0);
+  const lastWord = Math.max(0, ...spoken.map((p) => p.start + p.speechStart + p.voice.duration));
+  const tail = filmEnd(placed) - lastWord;
+  const card = Option.match(
+    Option.liftPredicate(last.value, (p) => p.voice.duration <= 0),
+    { onNone: () => 0, onSome: (p) => p.dur },
+  );
+  return [
+    ...Arr.filter(
+      [EndShort.make({ part: 'after the last word', secs: tail, min: TAIL_MIN })],
+      () => spoken.length > 0 && tail < TAIL_MIN,
+    ),
+    ...Arr.filter(
+      [EndShort.make({ part: 'end card', secs: card, min: CARD_MIN })],
+      () => card < CARD_MIN,
+    ),
+  ];
+};
+
+/** The master counts as silent below this level, in dBFS. */
+export const DEAD_FLOOR = -60;
+/** A silence longer than this, in seconds, that no cue declares is dead air. */
+export const DEAD_MAX = 1.5;
+/** The master's level is read in windows this long, in seconds. */
+export const DEAD_WINDOW = 0.05;
+
+/** The film seconds every cue declared `silence: true` spans. */
+export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Span> =>
+  placed.flatMap((p) =>
+    Object.entries(p.spec.timeline ?? {})
+      .filter(([, span]) => span.silence === true)
+      .flatMap(([name]) =>
+        Option.toArray(Option.fromNullishOr(p.cues.get(name))).map((c): Span => [
+          p.start + c.start,
+          p.start + c.end,
+        ]),
+      ),
+  );
+
+/** `run` less every span of `cut`, in order. */
+const without = (run: Span, cut: ReadonlyArray<Span>): ReadonlyArray<Span> =>
+  cut.reduce<ReadonlyArray<Span>>(
+    (pieces, [a, b]) =>
+      pieces.flatMap(([from, to]): ReadonlyArray<Span> => {
+        if (b <= from || a >= to) return [[from, to]];
+        const kept: ReadonlyArray<Span> = [
+          [from, a],
+          [b, to],
+        ];
+        return kept.filter(([x, y]) => y > x);
+      }),
+    [run],
+  );
+
+/**
+ * Dead air in the master: each run of `levels` (dBFS per `window` seconds)
+ * under `DEAD_FLOOR` that, less the designed silences, still lasts over
+ * `DEAD_MAX`.
+ */
+export const deadAir = (
+  levels: ArrayLike<number>,
+  window: number,
+  designed: ReadonlyArray<Span>,
+): ReadonlyArray<DeadAir> => {
+  const runs: Span[] = [];
+  let from = -1;
+  for (let i = 0; i <= levels.length; i++) {
+    const quiet = i < levels.length && (levels[i] ?? 0) < DEAD_FLOOR;
+    if (quiet && from < 0) from = i;
+    if (!quiet && from >= 0) {
+      runs.push([from * window, i * window]);
+      from = -1;
+    }
+  }
+  return runs
+    .flatMap((run) => without(run, designed))
+    .filter(([a, b]) => b - a > DEAD_MAX)
+    .map(([a, b]) => DeadAir.make({ from: a, to: b, floor: DEAD_FLOOR, max: DEAD_MAX }));
 };
 
 /**
@@ -325,6 +431,7 @@ export const staticFindings = (
     ...takes,
     ...sound,
     ...audio,
+    ...endShort(placed),
   ].map((finding) => ({
     level: levelOf(finding, options),
     finding,

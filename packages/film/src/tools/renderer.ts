@@ -17,6 +17,7 @@ import {
   Path,
   Pool,
   Ref,
+  Result,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { slice } from '../core/audio.ts';
@@ -38,6 +39,7 @@ import {
   type TooManyEncoders,
 } from './errors.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
+import { filmChapters } from './look.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -216,6 +218,17 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
         const range = { from: start / info.fps, to: end / info.fps };
         yield* fs.writeFileString(captions, webVtt(filmCaptions(placed, range)));
+        // The whole film of a film that declares a look also gets its YouTube chapters.
+        if (start === 0 && end === info.frames && Option.isSome(film.look))
+          yield* Result.match(filmChapters(film, placed), {
+            onFailure: (error) => Effect.logWarning(`render.chapters skipped: ${error.message}`),
+            onSuccess: (lines) => {
+              const file = `${target.replace(/\.[^./]+$/, '')}.chapters.txt`;
+              return Effect.andThen(fs.writeFileString(file, `${lines.join('\n')}\n`), () =>
+                Effect.log(`render.chapters count=${lines.length} file=${file}`),
+              );
+            },
+          });
 
         const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
         yield* Effect.log(

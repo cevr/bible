@@ -17,14 +17,15 @@ bun run mix <film> [--stems]                   # remix full.wav in-process (no A
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg: ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
-bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns StaticHold, HeldShare, FaceSmall, ColourScript, EndShort
+bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold or look pass: they need the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
-bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
+bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
 bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
-bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%
+bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
+bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
 bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/?film=<film>&lab (Ctrl-C stops it)
