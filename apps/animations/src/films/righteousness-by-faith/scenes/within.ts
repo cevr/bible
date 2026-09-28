@@ -24,6 +24,7 @@ import {
   C,
   blob,
   contact,
+  gait,
   glow,
   heart as drawHeart,
   icons,
@@ -215,7 +216,8 @@ export const within = drawing({
                 });
               }
               const [wx, wy] = along(walk);
-              const bob = Math.abs(Math.sin(walk * 30)) * 6;
+              // The film's one walk: the kit's step, from the cue's start.
+              const bob = gait(f.t, f.cue('walk'));
               at(ctx, { x: wx, y: wy - bob, scale: 0.9 - 0.4 * walk }, () => {
                 glow(ctx, 0, -90, 90, C.glow, 0.6);
                 person(ctx, { look: [3, -1], browTilt: 0.1 }, hand('walker'));
