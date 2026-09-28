@@ -43,22 +43,11 @@ import {
   layoutSamples,
   mergeFindings,
 } from './check.ts';
-import {
-  type FrameFailed,
-  type LayoutInvalid,
-  type PageCrashed,
-  type PageError,
-  StaticHold,
-} from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type FrameFailed, type PageCrashed, type PageError, StaticHold } from './errors.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
 
-export type LayoutCheckError =
-  | PageOpenError
-  | PageError
-  | PageCrashed
-  | FrameFailed
-  | LayoutInvalid;
+export type LayoutCheckError = PageOpenError | PageError | PageCrashed | FrameFailed | PlaceError;
 
 export interface LayoutCheckOptions {
   /** Pages probing at once. */

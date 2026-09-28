@@ -21,22 +21,28 @@ import {
   Encoding,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
+  Record as Rec,
   Result,
 } from 'effect';
 import type { UnknownVoice } from '../core/errors.ts';
 import {
   type Line,
   hashText,
+  heldInside,
   linesOf,
   parse,
+  type TakeState,
   takeScript,
+  takeState,
   voiceKey,
   wordsFromAlignment,
 } from '../core/narration.ts';
-import { type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
-import { ContentStore, isStale, type StoreError } from './content-store.ts';
+import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
+import { lineError } from '../core/spoken.ts';
+import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type AlignmentMismatch,
@@ -63,18 +69,57 @@ export interface Beat {
 }
 
 export interface NarrateOptions {
-  /** Record just these beats, current or not. */
+  /** Record just these beats, current or not (a current recorded take is never replaced). */
   readonly only: Option.Option<ReadonlySet<string>>;
-  /** Record every beat. */
+  /** Record every beat (but those a person read). */
   readonly force: boolean;
-  /** Keep a take whose transcript does not match, with a warning. */
-  readonly acceptMismatch: boolean;
+  /** The beats that may keep a take whose transcript does not match, with a warning (`--accept-mismatch`). */
+  readonly acceptMismatch: ReadonlySet<string>;
+  /** Let staging replace a person's take whose line has changed. */
+  readonly replaceRecorded: boolean;
 }
+
+/** A beat's take as the plan found it. */
+export interface BeatTake {
+  readonly id: string;
+  readonly state: TakeState;
+}
+
+/** A beat staging was asked for and left alone, because a person read it. */
+export interface Kept {
+  readonly id: string;
+  /** `recorded`: current; `recorded, stale`: its line changed, and it waits to be read again. */
+  readonly why: 'recorded' | 'recorded, stale';
+}
+
+/** A person's take for a beat the film no longer has. */
+export interface Orphan {
+  readonly id: string;
+  readonly file: string;
+}
+
+/** A person's takes whose beat is gone from the film, in the timings' order. */
+const orphansOf = (timings: Timings, beats: ReadonlyArray<{ readonly id: string }>) => {
+  const ids = new Set(beats.map((b) => b.id));
+  return Object.entries(timings.scenes)
+    .filter(([id, take]) => take.source === 'recorded' && !ids.has(id))
+    .map(([id, take]): Orphan => ({ id, file: take.file }));
+};
 
 export interface NarrationPlan {
   readonly beats: ReadonlyArray<Beat>;
+  /** Every beat with words and where its take stands, in film order. */
+  readonly states: ReadonlyArray<BeatTake>;
   /** The beats to record, in film order. */
   readonly stale: ReadonlyArray<Beat>;
+  /** The beats staging would have recorded but a person's take holds. */
+  readonly kept: ReadonlyArray<Kept>;
+  /**
+   * A person's takes whose beat the film no longer has (renamed or cut):
+   * kept in the timings and on disk, never swept, and reported, so a rename
+   * never throws a reading away. Move its key in `timings.json` to the new id.
+   */
+  readonly orphaned: ReadonlyArray<Orphan>;
   /** `voiceKey(voice)`: the key every take is recorded under. */
   readonly voice: string;
 }
@@ -86,10 +131,13 @@ export type NarrateError =
   | MediaFailed
   | StoreError;
 
-/** Takes recorded under the current voice; a different voice leaves none current. */
+/**
+ * Takes recorded under the current voice; a different voice leaves only the
+ * takes a person read, which no staging voice made.
+ */
 const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
   if (timings.voice === voice) return timings.scenes;
-  return {};
+  return Rec.filter(timings.scenes, (take) => take.source === 'recorded');
 };
 
 /** One beat's lines, or the voice a turn names that the film does not have. */
@@ -103,60 +151,79 @@ const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) => {
   }));
 };
 
+/** Every beat's lines, in film order, or the voice a turn names that the film does not have. */
+export const beatsOf = (film: LoadedFilm): Result.Result<ReadonlyArray<Beat>, UnknownVoice> =>
+  Result.all(film.scenes.map((scene) => beatOf(film, scene)));
+
+/** Whether the options ask staging for this beat, before a person's take has its say. */
+const asked = (options: NarrateOptions, take: BeatTake): boolean =>
+  Option.match(options.only, {
+    onSome: (only) => only.has(take.id),
+    onNone: () => options.force || take.state._tag === 'Stale',
+  });
+
+/** Why staging leaves an asked beat alone, if it does: a person read it. */
+const keptBy = (options: NarrateOptions, state: TakeState): Option.Option<Kept['why']> => {
+  if (state._tag === 'Recorded') return Option.some('recorded');
+  if (state._tag === 'Stale' && state.recorded && !options.replaceRecorded)
+    return Option.some('recorded, stale');
+  return Option.none();
+};
+
 /** What to record, from the film and its timings. Pure. */
 export const planNarration = (
   film: LoadedFilm,
   options: NarrateOptions,
 ): Result.Result<NarrationPlan, UnknownVoice> => {
   const voice = voiceKey(film.voice);
-  const takes = currentTakes(film.timings, voice);
-  return Result.map(
-    Result.all(film.scenes.map((scene) => beatOf(film, scene))),
-    (beats): NarrationPlan => {
-      const stale = beats
-        .filter((b) => b.text.length > 0)
-        .filter((b) =>
-          Option.match(options.only, {
-            onSome: (only) => only.has(b.id),
-            onNone: () =>
-              isStale(
-                Option.map(Option.fromNullishOr(takes[b.id]), (t) => t.hash),
-                hashText(b.script),
-                options.force,
-              ),
-          }),
-        );
-      return { beats, stale, voice };
-    },
-  );
+  return Result.map(beatsOf(film), (beats): NarrationPlan => {
+    const spoken = beats.filter((b) => b.text.length > 0);
+    const states = spoken.map((b) => ({
+      id: b.id,
+      state: takeState(b.id, b.script, film.timings, voice),
+    }));
+    const wanted = Arr.zip(spoken, states).filter(([, take]) => asked(options, take));
+    const verdicts = wanted.map(([beat, take]) => ({ beat, kept: keptBy(options, take.state) }));
+    return {
+      beats,
+      states,
+      stale: verdicts.filter((v) => Option.isNone(v.kept)).map((v) => v.beat),
+      kept: verdicts.flatMap((v) =>
+        Option.toArray(Option.map(v.kept, (why): Kept => ({ id: v.beat.id, why }))),
+      ),
+      orphaned: orphansOf(film.timings, beats),
+      voice,
+    };
+  });
 };
 
-/** Words only, lowercased: punctuation and casing never fail a take. */
-export const normalizeWords = (s: string): ReadonlyArray<string> =>
-  s
-    .toLowerCase()
-    .replace(/[’']/g, '')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 0);
+/**
+ * One line of `narrate --dry-run`: the beat's take `recorded` (a person read
+ * it), `staging` (ElevenLabs), or `stale`, with why, and whose take went stale.
+ */
+export const stateLine = (take: BeatTake): string =>
+  Match.type<TakeState>().pipe(
+    Match.tagsExhaustive({
+      Recorded: () => `recorded  ${take.id}`,
+      Staging: () => `staging   ${take.id}`,
+      Stale: ({ reason, recorded }) => {
+        if (recorded) return `stale     ${take.id} (${reason}, recorded take)`;
+        return `stale     ${take.id} (${reason})`;
+      },
+    }),
+  )(take.state);
 
-/** Word-level edit distance, as a share of the script's words. */
-export const wordError = (want: ReadonlyArray<string>, got: ReadonlyArray<string>): number => {
-  let previous: ReadonlyArray<number> = Arr.makeBy(got.length + 1, (j) => j);
-  for (const [i, w] of want.entries()) {
-    const row: Array<number> = [i + 1];
-    for (const [j, g] of got.entries()) {
-      const substitute = Arr.getUnsafe(previous, j) + Number(w !== g);
-      row.push(Math.min(Arr.getUnsafe(previous, j + 1) + 1, Arr.getUnsafe(row, j) + 1, substitute));
-    }
-    previous = row;
-  }
-  return Arr.getUnsafe(previous, got.length) / Math.max(1, want.length);
-};
+/** A take's audio: a staging take is ElevenLabs' MP3, a person's a FLAC master. */
+export const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
+export type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
 
-/** A new take's file name: `<beat>.<hash of its audio>.mp3`, never the name of another take. */
-export const takeFile = (id: string, audio: Uint8Array): string =>
-  `${id}.${createHash('sha256').update(audio).digest('hex').slice(0, 12)}.mp3`;
+/** Twelve hex digits of the SHA-256 of `bytes`: a file named by what it holds. */
+export const contentHash = (bytes: Uint8Array): string =>
+  createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+
+/** A new take's file name: `<beat>.<hash of its audio><ext>`, never the name of another take. */
+export const takeFile = (id: string, audio: Uint8Array, ext: TakeExtension = '.mp3'): string =>
+  `${id}.${contentHash(audio)}${ext}`;
 
 /** Put one take into the timings, dropping any recorded under another voice. */
 const withTake =
@@ -166,12 +233,18 @@ const withTake =
     scenes: { ...currentTakes(timings, voice), [id]: take },
   });
 
-/** Keep only the takes of beats that still exist. */
+/**
+ * Keep only the takes of beats that still exist, and every take a person
+ * read: a beat renamed or cut leaves its reading in place (`orphaned`), not
+ * swept with the staging takes.
+ */
 const withoutRemoved =
   (voice: string, beats: ReadonlyArray<Beat>) =>
   (timings: Timings): Timings => {
     const ids = new Set(beats.map((b) => b.id));
-    const scenes = Object.entries(currentTakes(timings, voice)).filter(([id]) => ids.has(id));
+    const scenes = Object.entries(currentTakes(timings, voice)).filter(
+      ([id, take]) => ids.has(id) || take.source === 'recorded',
+    );
     return { voice, scenes: Object.fromEntries(scenes) };
   };
 
@@ -252,8 +325,13 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const take = path.join(film.paths.narration, file);
         yield* store.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
-        const wer = wordError(normalizeWords(beat.text), normalizeWords(heard.text));
+        const wer = lineError(beat.text, heard.text, film.heardAs);
         const duration = yield* media.duration(take);
+        const overrun = Math.max(0, ...words.map((w) => w.end)) - duration;
+        if (overrun > TAKE_TOLERANCE)
+          yield* Effect.logWarning(
+            `narrate.overrun id=${beat.id} secs=${overrun.toFixed(2)} (the alignment runs past the take; its words are held inside it)`,
+          );
         yield* Effect.log(
           `narrate.take id=${beat.id} words=${words.length} lines=${beat.lines.length} secs=${duration.toFixed(2)} wer=${(wer * 100).toFixed(1)}%`,
         );
@@ -265,19 +343,26 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             wer,
           });
           // Never made current, the take is removed with the run's leftovers.
-          if (!options.acceptMismatch) return yield* mismatch;
+          if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
         // The commit: timings.json is replaced whole, naming the new take.
         yield* store.update(
           film.paths.timings,
-          withTake(plan.voice, beat.id, { hash: hashText(beat.script), file, duration, words }),
+          withTake(plan.voice, beat.id, {
+            hash: hashText(beat.script),
+            file,
+            duration,
+            words: heldInside(words, duration),
+            source: 'elevenlabs',
+          }),
         );
       });
 
       /**
        * Remove every take file the timings do not name, and every partial
        * write: what a crashed or failed run left, or a take since replaced.
+       * A person's replaced take goes too: its master stays in `attempts/`.
        */
       const sweep = Effect.fn('Narrator.sweep')(function* (film: LoadedFilm) {
         const dir = film.paths.narration;
@@ -285,7 +370,9 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         const timings = yield* store.read(film.paths.timings);
         const named = new Set(Object.values(timings.scenes).map((t) => t.file));
         const stray = (yield* fs.readDirectory(dir)).filter(
-          (name) => name.endsWith('.partial') || (name.endsWith('.mp3') && !named.has(name)),
+          (name) =>
+            name.endsWith('.partial') ||
+            (TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name)),
         );
         yield* Effect.forEach(stray, (name) => fs.remove(path.join(dir, name)), { discard: true });
         if (stray.length > 0) yield* Effect.log(`narrate.sweep removed=${stray.join(',')}`);
@@ -296,6 +383,13 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         plan: NarrationPlan,
         options: NarrateOptions,
       ) {
+        yield* Effect.forEach(plan.kept, (kept) => {
+          if (kept.why === 'recorded')
+            return Effect.log(`narrate.skip id=${kept.id} take=recorded`);
+          return Effect.logWarning(
+            `narrate.refused id=${kept.id} take=recorded-stale: its line changed; record it again (takes import, or the lab's studio), or stage it with --replace-recorded`,
+          );
+        });
         yield* sweep(film);
         yield* settleAll(
           plan.stale,

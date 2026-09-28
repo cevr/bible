@@ -15,9 +15,10 @@
 // from inside the figure. On "jer" the bench itself goes gold, and the word
 // gives way to the name in `thesis`.
 
-import { type Camera, drawing } from '@bible/film/canvas';
+import { drawing, shotPath } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
+import { knobCamera } from '../kit.ts';
 import {
   ADVOCATE_HAND,
   ADVOCATE_POSE,
@@ -31,8 +32,6 @@ import {
   landingCourt,
   question,
 } from '../court.ts';
-import { between } from '../kit.ts';
-import { onWord } from '../spoken.ts';
 
 /** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
 const SWING: ReadonlyArray<Key> = [
@@ -41,11 +40,6 @@ const SWING: ReadonlyArray<Key> = [
   [0.763, 1.5, 'inOutCubic'],
   [1, GAVEL_DOWN],
 ];
-
-/** Close on the two of them as the figure touches the robe. */
-const CLOSE: Camera = { x: 720, y: 700, zoom: 2.6, rot: 0.03 };
-/** On the two of them as the Advocate shows the light in the figure: the evidence. */
-const PAIR: Camera = { x: 760, y: 690, zoom: 2 };
 
 export const name = drawing({
   timeline: {
@@ -63,8 +57,11 @@ export const name = drawing({
     withdraw: { mark: 'taking', offset: 0.2, dur: 0.6 },
     sun: { mark: 'every', offset: -0.3, until: 'verdict', ease: 'inOutSine' },
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
+    // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
+    show: { mark: 'verdict', word: 'not', offset: -0.3, dur: 0.6 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
-    toPair: { mark: 'verdict', offset: 1.3, dur: 0.9 },
+    // To the pair as "righteous" is said, a word with no mark.
+    toPair: { mark: 'verdict', word: 'righteous', offset: 0.35, dur: 0.9 },
     toBench: { mark: 'real', offset: -0.3, dur: 0.8 },
     hollow: { mark: 'real', dur: 0.5 },
     land: { mark: 'true', offset: -0.5, dur: 0.5, ease: 'inCubic' },
@@ -72,11 +69,21 @@ export const name = drawing({
     stamp: { mark: 'true', dur: 0.3 },
     shine: { mark: 'true', dur: 0.6 },
     gold: { mark: 'jer', dur: 1.2 },
-    stampOut: { mark: 'jer', offset: 1.4, dur: 0.5 },
+    // The stamp goes on "the coming King".
+    stampOut: { mark: 'jer', word: 'king', dur: 0.5 },
     smile: { mark: 'jer', offset: 0.4, dur: 0.6 },
   },
   // Where the Advocate's open hand gives, and later presents, the light in the figure's chest, in his units.
-  knobs: { present: [-104, -80] },
+  knobs: {
+    present: [-104, -80],
+    // Close on the two of them as the figure touches the robe.
+    close: [720, 700],
+    closeZoom: 2.6,
+    closeRot: 0.03,
+    // On the two of them as the Advocate shows the light in the figure: the evidence.
+    pair: [760, 690],
+    pairZoom: 2,
+  },
   draw: (f) => {
     const { ctx, w, h } = f;
     landingSky(ctx, w, h);
@@ -90,8 +97,7 @@ export const name = drawing({
     const pop = STAMP_WIDE * f.keys('stamp', STAMP_LANDS);
     const smile = f.at('smile');
     // The Advocate's hand open to the figure's chest, from "not a cover-up" until the verdict lands.
-    // On "not" (a cover-up): pinned to the word, which has no mark of its own.
-    const shown = onWord(f, 'verdict', 'not', -0.3, 0.6);
+    const shown = f.at('show');
     const present = shown * (1 - f.at('lower'));
     // The figure looks down at the light in them, then up at the hollow verdict until it drops.
     const down = Math.max(f.at('pass') * (1 - f.at('withdraw')), shown) * (1 - f.at('hollow'));
@@ -101,19 +107,13 @@ export const name = drawing({
     const [px, py] = f.knob('present');
 
     landingCourt(ctx, w, h, (k) => f.hand(k), {
-      cam: between(
-        between(
-          between(
-            between(between(REST, WIDE, f.at('wide')), CLOSE, f.at('close')),
-            WIDE,
-            f.at('back'),
-          ),
-          PAIR,
-          f.at('toPair'),
-        ),
-        WIDE,
-        f.at('toBench'),
-      ),
+      cam: shotPath(REST, [
+        [f.at('wide'), WIDE],
+        [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'), f.knob('closeRot'))],
+        [f.at('back'), WIDE],
+        [f.at('toPair'), knobCamera(f.knob('pair'), f.knob('pairZoom'))],
+        [f.at('toBench'), WIDE],
+      ]),
       swing,
       stamp: Math.max(f.at('hollow'), f.at('stamp')) * (1 - f.at('stampOut')),
       pop,

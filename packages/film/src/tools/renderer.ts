@@ -34,7 +34,6 @@ import {
   type EncodeFailed,
   type EncoderMissing,
   type FrameFailed,
-  type LayoutInvalid,
   type LookbookFailed,
   type MediaFailed,
   type PageCrashed,
@@ -42,7 +41,7 @@ import {
   RangeEmpty,
   type TooManyEncoders,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, measureMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -80,7 +79,7 @@ export type RenderError =
   | AudioStale
   | RangeEmpty
   | TooManyEncoders
-  | LayoutInvalid
+  | PlaceError
   | ShortError
   | PlatformError;
 
@@ -88,8 +87,6 @@ export type RenderError =
 interface Where {
   /** `out/<film>`, or a short's `out/<film>/shorts/<id>` (`cutBase`). */
   readonly base: string;
-  /** `<base>/<tag>`: stills, sheets and a video's segments. */
-  readonly dir: string;
   readonly placed: ReadonlyArray<Placed>;
   /** The short, resolved on the page's frames, when the render is one. */
   readonly short: Option.Option<ResolvedShort>;
@@ -111,11 +108,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const browser = yield* Browser;
       const server = yield* PreviewServer;
 
-      const fresh = (dir: string) =>
-        fs
-          .remove(dir, { recursive: true, force: true })
-          .pipe(Effect.andThen(fs.makeDirectory(dir, { recursive: true })));
-
       const video = Effect.fnUntraced(function* (
         film: LoadedFilm,
         job: Extract<RenderJob, { _tag: 'Video' }>,
@@ -128,6 +120,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const total = end - start;
         const target = Option.getOrElse(job.out, () => `${where.base}.mp4`);
+        yield* fs.makeDirectory(path.dirname(target), { recursive: true });
         const range = { from: start / info.fps, to: end / info.fps };
         // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
         const scale = Option.match(where.short, {
@@ -187,10 +180,14 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             ),
         });
 
-        const segDir = path.join(where.dir, 'segments');
-        const shareDir = path.join(where.dir, 'share');
-        yield* fresh(segDir);
-        if (job.share) yield* fresh(shareDir);
+        // The segments go in a folder of this render's own, made fresh by the
+        // system: never under out/<film>, so two renders at once never share
+        // one, and nothing is left there for this render to clean up.
+        const work = yield* fs.makeTempDirectory({ prefix: 'film-segments-' });
+        const segDir = path.join(work, 'segments');
+        const shareDir = path.join(work, 'share');
+        yield* fs.makeDirectory(segDir);
+        if (job.share) yield* fs.makeDirectory(shareDir);
         const chunks = planChunks(start, end, job.workers);
         const began = yield* Clock.currentTimeMillis;
         const done = yield* Ref.make(0);
@@ -260,8 +257,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         // Joined: the segments are copied into the film and nothing reads them
         // again. A failed join leaves them for the error that names one.
-        yield* fs.remove(segDir, { recursive: true, force: true });
-        yield* fs.remove(shareDir, { recursive: true, force: true });
+        yield* fs.remove(work, { recursive: true, force: true });
 
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
         const cues = Option.match(where.short, {
@@ -346,7 +342,8 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const url = `${server.url}?${query.join('&')}`;
         const base = cutBase(film.paths.out, cut);
         const dir = path.join(base, job.tag);
-        yield* fs.makeDirectory(dir, { recursive: true });
+        // A video writes nothing there: its segments are its own, and its file is `--out`.
+        if (!RenderJob.$is('Video')(job)) yield* fs.makeDirectory(dir, { recursive: true });
         const pages = RenderJob.$match(job, {
           Video: (v) => v.workers,
           Stills: (s) => Math.min(s.workers, s.times.length),
@@ -364,7 +361,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               Short: ({ short }) =>
                 Effect.map(Effect.fromResult(resolveShort(placed, short, info.fps)), Option.some),
             });
-            const where: Where = { base, dir, placed, short };
+            const where: Where = { base, placed, short };
             yield* RenderJob.$match(job, {
               Video: (v) => video(film, v, pool, info, where),
               Stills: (s) => stills(s, pool, info, dir),

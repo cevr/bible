@@ -11,7 +11,15 @@ import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
-import { hashText, linesOf, parse, takeScript, voiceKey } from '../core/narration.ts';
+import {
+  endsSentence,
+  linesOf,
+  parse,
+  takeScript,
+  takeState,
+  voiceKey,
+  wordAfter,
+} from '../core/narration.ts';
 import type {
   InkMark,
   Music,
@@ -43,6 +51,7 @@ import {
   type UnknownMark,
   type UnknownScene,
   type UnknownVoice,
+  WordPinFar,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { masterFile, masterFinding } from './mixer.ts';
@@ -60,7 +69,8 @@ export type StaticFinding =
   | UnknownMark
   | CueInvalid
   | ActTooShort
-  | UnknownVoice;
+  | UnknownVoice
+  | WordPinFar;
 /** What one probed frame shows wrong. */
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type LayoutFinding = FrameFinding | StaticHold;
@@ -80,6 +90,43 @@ export interface CheckOptions {
 
 // ---------------------------------------------------------------------------
 // Static
+
+/**
+ * How many sentence ends a word pin may cross past its mark: its own
+ * sentence's end, into the next sentence. Past that, the word it meant near
+ * the mark is likely gone from the take.
+ */
+export const PIN_REACH = 1;
+
+/**
+ * Word pins that land more than `PIN_REACH` sentences past their mark. A pin
+ * lands on the first saying at or after its mark, so a re-take that drops the
+ * word near the mark moves the cue to a later saying without failing; this
+ * says so. A pin the line never says is `WordMissing` at layout, not here.
+ */
+export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar> =>
+  placed.flatMap((p) =>
+    Object.entries(Option.getOrElse(Option.fromNullishOr(p.spec.timeline), () => ({}))).flatMap(
+      ([cue, span]) => {
+        if (!('word' in span)) return [];
+        const mark = span.mark;
+        const pin = Option.all({
+          word: Option.fromNullishOr(span.word),
+          m: Option.fromNullishOr(p.voice.marks.get(mark)),
+        });
+        const landed = Option.flatMap(pin, ({ word, m }) =>
+          Option.map(wordAfter(p.voice.words, m, word), (t) => ({ word, m, t })),
+        );
+        return Option.toArray(landed).flatMap(({ word, m, t }) => {
+          const sentences = p.voice.words.filter(
+            (w) => w.start >= m - 1e-3 && w.start < t && endsSentence(w.text),
+          ).length;
+          if (sentences <= PIN_REACH) return [];
+          return [WordPinFar.make({ scene: p.spec.id, cue, mark, word, sentences })];
+        });
+      },
+    ),
+  );
 
 /** Named cues that end after their scene. */
 export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> =>
@@ -136,19 +183,16 @@ const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene
 
 /**
  * Beats with words whose take is missing or was recorded for other text,
- * other turns or another voice.
+ * other turns or another voice (a person's take is read by no staging voice).
  */
 export const staleTakes = (film: LoadedFilm): ReadonlyArray<TakeStale> => {
-  const voiceChanged = film.timings.voice !== voiceKey(film.voice);
+  const voice = voiceKey(film.voice);
   return film.scenes.flatMap((scene) => {
     const parsed = said(scene);
     if (parsed.spoken.length === 0) return [];
-    const take = Rec.get(film.timings.scenes, scene.id);
-    if (Option.isNone(take)) return [TakeStale.make({ scene: scene.id, reason: 'missing' })];
-    if (voiceChanged) return [TakeStale.make({ scene: scene.id, reason: 'voice changed' })];
-    if (take.value.hash !== hashText(takeScript(parsed)))
-      return [TakeStale.make({ scene: scene.id, reason: 'text changed' })];
-    return [];
+    const state = takeState(scene.id, takeScript(parsed), film.timings, voice);
+    if (state._tag !== 'Stale') return [];
+    return [TakeStale.make({ scene: scene.id, reason: state.reason, recorded: state.recorded })];
   });
 };
 
@@ -229,6 +273,7 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
       return 'error';
     case 'AssetMissing':
     case 'SeamLong':
+    case 'WordPinFar':
       return 'warning';
     default:
       return 'error';
@@ -273,12 +318,17 @@ export const staticFindings = (
   ]);
   const audio = masterFindings(film, placed, master);
   const takes = [...unknownVoices(film), ...staleTakes(film)];
-  return [...lateCues(placed), ...longSeams(placed), ...takes, ...sound, ...audio].map(
-    (finding) => ({
-      level: levelOf(finding, options),
-      finding,
-    }),
-  );
+  return [
+    ...lateCues(placed),
+    ...longSeams(placed),
+    ...farPins(placed),
+    ...takes,
+    ...sound,
+    ...audio,
+  ].map((finding) => ({
+    level: levelOf(finding, options),
+    finding,
+  }));
 };
 
 // ---------------------------------------------------------------------------

@@ -41,12 +41,11 @@ import {
   BenchOverBudget,
   FileInvalid,
   type FrameFailed,
-  type LayoutInvalid,
   type PageCrashed,
   type PageError,
   PixelsMoved,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
 import { Cut, RenderJob, cutPage, frameSpan, videoEncoders } from './render-plan.ts';
 import { type RenderError, Renderer } from './renderer.ts';
@@ -87,7 +86,7 @@ export type BenchError =
   | PageError
   | PageCrashed
   | FrameFailed
-  | LayoutInvalid
+  | PlaceError
   | FileInvalid
   | BaselineIncomparable
   | BaselineMissing
@@ -357,6 +356,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
           to,
           rows,
         };
+        yield* fs.makeDirectory(film.paths.out, { recursive: true });
         const file = path.join(film.paths.out, 'bench.workers.json');
         yield* writeJson(file, WorkersJson, report);
         yield* Effect.log(`bench.done film=${report.film} rows=${rows.length} file=${file}`);

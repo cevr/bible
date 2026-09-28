@@ -38,16 +38,17 @@ const setup = (
   host: FakeRenderHost = {},
   files = new Map<string, Uint8Array>(),
   rendered: LoadedFilm = film,
+  folders = new Set<string>(),
 ) => {
   const ledger = emptyLedger();
   const layer = Renderer.layer.pipe(
-    Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files), Path.layer]),
+    Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files, folders), Path.layer]),
   );
   const render = (job: RenderJob) =>
     Effect.gen(function* () {
       yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provide(layer));
-  return { ledger, files, render };
+  return { ledger, files, folders, render };
 };
 
 /** A render whose joins keep, by file, the bytes each segment held when it was joined. */
@@ -129,6 +130,26 @@ describe('Renderer', () => {
       const exit = yield* Effect.exit(failed.render({ ...video, share: true }));
       expect(Exit.isFailure(exit)).toBe(true);
       expect(segments(failed.files).length).toBe(32);
+    }),
+  );
+
+  it.live('a video makes nothing under out/<film>, tagged or not, and keeps what is there', () =>
+    Effect.gen(function* () {
+      const bare = setup();
+      yield* bare.render({ ...video, tag: 'bench', share: true });
+      const under = (p: string) => p === '/out/test' || p.startsWith('/out/test/');
+      expect([...bare.folders, ...bare.files.keys()].filter(under)).toEqual([]);
+      // Its own segments folder goes too, once joined.
+      expect([...bare.folders].filter((f) => f.startsWith('/tmp/film-segments-'))).toEqual([]);
+      expect(bare.ledger.joins[0]?.out).toBe('/out/test.mp4');
+      expect(bare.files.has('/out/test.vtt')).toBe(true);
+
+      const files = new Map([['/out/test/look/stills/t0001.00.png', text('png')]]);
+      const kept = setup({}, files);
+      yield* kept.render({ ...video, tag: 'look' });
+      expect([...kept.files.keys()].filter((f) => f.startsWith('/out/test/look/'))).toEqual([
+        '/out/test/look/stills/t0001.00.png',
+      ]);
     }),
   );
 

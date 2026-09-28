@@ -9,13 +9,15 @@ scrubbable preview and a frame-exact MP4 export.
 
 ```sh
 bun run dev                                    # player at http://127.0.0.1:4400
-bun run narrate <film>                         # record stale beats, verify, remix full.wav
+bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
+bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
+bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
 bun run score <film>                           # generate stale music + effects, remix full.wav
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
-bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
+bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
 bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
@@ -41,8 +43,15 @@ loads and, for `lab`, the same server in development mode with the lab's
 routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
 is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
-`--force` (every beat), `--dry-run` (print what is stale, record nothing),
-`--accept-mismatch` (keep a take whose transcript differs). Score flags:
+`--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
+`stale` with why, record nothing), `--accept-mismatch id,id` (keep these
+beats' takes though their transcripts differ; bare, the `--only` beats, and
+bare without `--only` fails), `--replace-recorded` (stage over a person's take whose
+line changed). Takes import flags: `--only id,id` (just these beats; one file
+not named for its beat imports as the one beat named), `--accept-mismatch id,id`,
+`--whole` (the file is one reading of the whole script, cut at the quietest
+point of the silence around each beat; a flubbed line read again keeps the
+reading that finished it). Score flags:
 `--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
 anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
 film's sounds) for score. The films are always `src/films`, the
@@ -56,7 +65,13 @@ scenes' layout), `--workers n`. A scene id the film lacks (`--scene`, or
 Once every take is recorded, the static leg also measures `narration/full.wav`:
 missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
-review step, run by hand: the app's `gate` runs typecheck and tests only.
+review step, run by hand: the app's `gate` runs typecheck and tests only. One
+of those tests (`test/every-scene-draws.test.ts`) draws every scene of every
+film in `src/films/index.ts` at its first frame, each cue's edges and midpoint, its 60% point
+and its last frame, through the film's own compositor into a null 2D context,
+so a scene that reads a mark, cue or knob its film no longer has, or draws
+what a real canvas refuses (a negative arc radius), fails the gate, not the
+next render.
 
 Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
 (default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
@@ -95,8 +110,9 @@ the encoder hangs, so a render that would need more fails with
 `TooManyEncoders` before a page opens (at most 7 pages with the share copy,
 14 without). The count is per render: two renders at once (say two `--tag`s)
 share the hardware, so keep their pages together within the same 14 or they
-can hang with no error. Each chunk lands in `out/<film>/<tag>/segments/` (and `share/`)
-until the film is joined, then the folders go; a failed join leaves them. A video's audio
+can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/`)
+until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
+(so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or
@@ -182,7 +198,12 @@ first line opens with a dash.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to
-a mark, another cue (`after` / `with`) or a scene landmark. It lasts its `dur`,
+a mark, another cue (`after` / `with`) or a scene landmark. A beat on a word
+that has no mark is a word pin: `{ mark: 'gift', word: 'faith', dur: 0.6 }`
+starts on the first word said at or after `{gift}` that reads `faith` (read as
+a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
+the word there fails the layout with `WordMissing` (`film check`, the player,
+the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
 a re-take moves its end as well as its start; a span declares one or the
 other, and a lab `dur` write replaces its `until`. Read it in
@@ -207,14 +228,25 @@ frame. Ornament
 **A tweakable value is a knob.** A position or an angle a review may ask to
 move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
-constant.
+constant. A framing is knobs too: a point and a zoom (and a tilt),
+`face: [800, 610], faceZoom: 1.22`, made a camera in the draw with a film
+kit's `knobCamera(f.knob('face'), f.knob('faceZoom'))`. Only the unmoved
+frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
+constant and one shared across scenes stay code. Read a position knob
+under the transform it is drawn with (inside the camera or the plane), so
+its handle lands on it.
 
 **Takes are content-addressed.** `narrate` hashes each beat's spoken text,
 with its turns, and re-records only beats whose text or turns changed, transcribes every new take back with
 speech-to-text, and fails the run with `TakeMismatch` when the take doesn't say
-what the script says (over 8% word error). A failed take never replaces the
-current one; `--accept-mismatch` keeps it with a warning. A new take is saved
-as `<id>.<audio hash>.mp3`, beside the take it replaces, and becomes current
+what the script says (over 8% word error, both read as said: numbers however
+written or spoken, `144,000` and "one hundred forty-four thousand", a year in
+pairs, "Zechariah 3:1-4" as "chapter three verses one through four", `Mrs.`
+as "Missus", and a name spelt as `script.ts`'s `heardAs` lists it, e.g.
+`export const heardAs = { Ellet: ['Elliot'] }`). A failed take never replaces
+the current one; `--accept-mismatch <id,…>` keeps the named beats' takes
+with a warning. A new take is saved
+as `<id>.<audio hash>.mp3` (a person's, `.flac`), beside the take it replaces, and becomes current
 only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next
 `narrate` removes what a crash or a failed take left (takes the timings no
@@ -222,6 +254,32 @@ longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
 one writer at a time, so takes finishing together never lose entries.
+
+**ElevenLabs stages; the owner's voice replaces it.** A film is staged with
+ElevenLabs (`narrate`), then read by a person beat by beat:
+
+1. `bun run script <film> --sheet`, and print `out/<film>/script-sheet.html`:
+   each beat's line with its marks stripped, the file to save it as
+   (`<beat>.wav`), quotations set apart with their source, `/` for a breath.
+2. Record each beat into its own file (WAV or FLAC for the final voice; M4A
+   or MP3 import with a warning; any rate, any room noise), or the whole
+   script in one file.
+3. `bun run takes import <film> <folder>` (or `<file> --whole`). Each
+   recording is trimmed to the staging takes' padding and levelled to their
+   loudness (numbers in `packages/film/README.md`), kept as a 24-bit FLAC
+   master (`<beat>.<hash>.flac`: the owner's voice is the final voiceover,
+   never lossy after the recorder), transcribed and timed by the words heard;
+   `TakeMismatch` and `--accept-mismatch` work as for `narrate`. Every
+   recording stays in `narration/attempts/<beat>/` (git-ignored), the original
+   file byte for byte beside its FLAC; the kept FLAC is committed, with
+   `source: "recorded"` in `timings.json`.
+4. `bun run check`, `bun run cues` and `bun run mix` as for any take, then
+   tighten each scene's `lead` and `tail` at the seams.
+
+Staging never overwrites a recorded take: `narrate` skips it (even under
+`--force` and `--only`); when its line changes the take is stale, `check`
+fails it, and `narrate` refuses to stage over it without `--replace-recorded`.
+A change of staging voice leaves recorded takes current.
 
 **Sound follows the same clock.** `sound.ts` declares the score as acts, each
 starting at a scene, and effects as prompts placed at a scene's named cue —
@@ -292,7 +350,7 @@ points:
 |                      | `ik.ts`         | `reach`: a limb's joints toward a target, solved by FABRIK (`math/ik`), fresh each frame                                                                                                                                                                                                                 |
 |                      | `type.ts`       | glyph-by-glyph lettering: `write` (write / rise / pop), `block`, `wrap`                                                                                                                                                                                                                                  |
 |                      | `paper.ts`      | the sheet under everything, the grain over everything (`Grain`: pre-drawn sheets copied at the boil tick's shift), the vignette drawn once (`makeVignette`, multiplied in by `shadeBy`), `offscreen` canvases                                                                                            |
-|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows)                                                                                                                                                                                        |
+|                      | `camera.ts`     | pan/zoom over a scene's world; `multiplane`: planes at depth `z` (parallax, haze, blur off focus, raised shadows); a shot as data, `shotPath(REST, [[f.at('push'), FACE], [f.at('back'), REST]])` (each stop blends from where the earlier ones left the camera), over `lerpCamera(out, a, b, t)`        |
 |                      | `storyboard.ts` | placeholder card for a beat with no drawing yet                                                                                                                                                                                                                                                          |
 | `@bible/film/player` | `main.ts`       | `mountPlayer` (scrubbable preview, `?export` handle for the renderer) and `ExportHandle`                                                                                                                                                                                                                 |
 
@@ -307,7 +365,8 @@ state between frames — compute everything from `f.t`.
 as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,
 for every film but the frozen `righteousness-by-faith-v1`:
 
-| Rule                   | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `film/drawing-literal` | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()` |
-| `film/no-unprobed-ink` | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                       |
+| Rule                         | What it refuses                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `film/drawing-literal`       | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()`                                                                                                                                                                                                                                                                                                                                                                                         |
+| `film/no-unprobed-ink`       | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `film/no-hand-timed-seconds` | a second written by hand, which the lab cannot reach, a sound cannot follow and a re-take leaves behind: `clamp(t / 2)` or `clamp((t - cue.end) / 1.5)` over the scene clock, `(t - cue.start) / 0.5`, `progress`/`envelope(t, …)` with a literal start or length, `keys(t, …)` on the scene clock, `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5` or `t - 4.2`, the clock compared with a second (`t > 3.5`, `t - cue.start > 0.5`), a second hidden in a module `const`, and a span whose literal `offset` sits over 1 s from its `mark` or the scene's `start`/`speech`. Declare a cue and read `f.at`/`f.keys`/`f.stagger`, anchored to a word pin, another cue (`after`/`with`) or the voice's end (`scene: 'speechEnd'`); a pause the script means is a named cue with its reason in a comment. A rate (`Math.sin(t * 7)`) and a lead-in under 1 s are not times |

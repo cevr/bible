@@ -17,6 +17,7 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@mediabunny/aac-encoder": "1.60.0",
+    "@wasm-audio-decoders/flac": "0.2.11",
     "effect": "catalog:",
     "math": "0.1.0",
     "mediabunny": "1.60.0",

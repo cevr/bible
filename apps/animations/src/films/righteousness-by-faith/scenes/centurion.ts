@@ -17,9 +17,10 @@ import {
   drawing,
   multiplane,
   rectShape,
+  shotPath,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp, rng } from '@bible/film/core';
+import { ease, lerp, rng } from '@bible/film/core';
 import {
   type Hands,
   type HeadPiece,
@@ -33,13 +34,11 @@ import {
   piece,
   rounded,
   shifted,
+  knobCamera,
   sky,
-  between,
 } from '../kit.ts';
-import { arc, flight, onWord, wordLight } from '../spoken.ts';
+import { arc, flight, wordLight } from '../spoken.ts';
 
-const SOLDIER: Pt = [820, 960];
-const JESUS: Pt = [1330, 960];
 /** The people's scale on the street. */
 const S = 2.2;
 /** The servant's house, far across town, and its open room. */
@@ -48,11 +47,22 @@ const ROOM = { x: HOUSE_X, y: 790, w: 420, h: 260 };
 /** Where the servant's hips rest on the bed: he lies and sits up about them. */
 const HIP: Pt = [HOUSE_X - 10, 872];
 
-const STREET: Camera = { x: 1075, y: 640, zoom: 1.15 };
-const FACE: Camera = { x: 930, y: 630, zoom: 2.5 };
-const TOWN: Camera = { x: 130, y: 590, zoom: 0.62 };
+/** Close on the servant at his window: framed on the house, so it stays code. */
 const WINDOW: Camera = { x: HOUSE_X - 20, y: 790, zoom: 2.8 };
-const HANDSHOT: Camera = { x: 800, y: 680, zoom: 2.3 };
+
+/** Where the soldier and Jesus stand, and the street's framings: the street, his face, the town, his hand. */
+const knobs = {
+  soldier: [820, 960],
+  jesus: [1330, 960],
+  street: [1075, 640],
+  streetZoom: 1.15,
+  face: [930, 630],
+  faceZoom: 2.5,
+  town: [130, 590],
+  townZoom: 0.62,
+  handShot: [800, 680],
+  handShotZoom: 2.3,
+} as const;
 
 interface Roof {
   readonly x: number;
@@ -113,8 +123,11 @@ const timeline = {
   offer: { mark: 'offer', dur: 0.7 },
   push: { mark: 'only', offset: -0.2, dur: 0.9 },
   stop: { mark: 'only', offset: 0.25, dur: 0.4, ease: 'outBack' },
-  pullOut: { mark: 'only', offset: 2.3, dur: 1.1 },
-  fly: { mark: 'healed', offset: -1.75, dur: 1.7, ease: 'inOutSine' },
+  // Out over the town as he says "come", and the word leaves with it.
+  pullOut: { mark: 'only', word: 'come', dur: 1.1 },
+  fly: { with: 'pullOut', offset: 0.07, dur: 1.7, ease: 'inOutSine' },
+  // Landed by the bed, the word's light fades.
+  landed: { after: 'fly', dur: 1.5, ease: 'linear' },
   sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
   toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
   handShot: { mark: 'exactly', offset: -0.2, dur: 1.2, ease: 'outCubic' },
@@ -123,9 +136,11 @@ const timeline = {
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
   toIcons: { mark: 'gift', offset: -0.1, dur: 0.3 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
+  // The word-bubble lights on "faith", a word with no mark of its own.
+  faithLit: { mark: 'gift', word: 'faith', dur: 0.6 },
 } as const;
 
-type CenturionFrame = Frame<keyof typeof timeline & string>;
+type CenturionFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 /** The three icons' light, faith's set each frame (a scratch tuple, so the draw allocates none). */
 const LIT: [number, number, number] = [0, 0, 0];
@@ -134,6 +149,7 @@ const LIT: [number, number, number] = [0, 0, 0];
 const ICONS_CLOSE = 2.3;
 
 export const centurion = drawing({
+  knobs,
   timeline,
   draw: (f) => {
     const { ctx, w, h } = f;
@@ -158,8 +174,7 @@ export const centurion = drawing({
           scale: lerp(ICONS_CLOSE, 1, pull),
         },
         () => {
-          // The word-bubble lights on "faith", pinned to the word (it has no mark).
-          LIT[0] = onWord(f, 'gift', 'faith', 0, 0.6);
+          LIT[0] = f.at('faithLit');
           icons(ctx, hand, LIT);
         },
       );
@@ -171,20 +186,22 @@ export const centurion = drawing({
 /** The street, the town and the servant's house, up to the word held in the soldier's hand. */
 const street = (f: CenturionFrame, hand: Hands) => {
   const { ctx, w, h, t } = f;
+  const STREET = knobCamera(f.knob('street'), f.knob('streetZoom'));
 
   const shot = f.cue('handShot');
   const inHand = t >= shot.start;
+  const [hx, hy] = f.knob('handShot');
   const cam = inHand
     ? {
-        x: HANDSHOT.x,
-        y: HANDSHOT.y,
-        zoom: lerp(2.05, HANDSHOT.zoom ?? 1, f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
+        x: hx,
+        y: hy,
+        zoom: lerp(2.05, f.knob('handShotZoom'), f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
       }
-    : between(
-        between(between(STREET, FACE, f.at('push')), TOWN, f.at('pullOut')),
-        WINDOW,
-        f.at('toWindow'),
-      );
+    : shotPath(STREET, [
+        [f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))],
+        [f.at('pullOut'), knobCamera(f.knob('town'), f.knob('townZoom'))],
+        [f.at('toWindow'), WINDOW],
+      ]);
 
   sky(ctx, w, h, [
     [0, C.tealTop],
@@ -198,7 +215,6 @@ const street = (f: CenturionFrame, hand: Hands) => {
   const stop = f.at('stop') * (1 - f.at('pullOut'));
   const open = f.at('open');
   const offer = f.at('offer') * (1 - f.at('push'));
-  const flyPath = arc([JESUS[0] - 40, 600], [ROOM.x - 120, ROOM.y - 30], 520);
 
   multiplane(
     ctx,
@@ -257,6 +273,10 @@ const street = (f: CenturionFrame, hand: Hands) => {
         z: 1,
         lift: 1.3,
         draw: () => {
+          // Read on this plane, where the two of them are drawn, so the lab's handles land on them.
+          const SOLDIER = f.knob('soldier');
+          const JESUS = f.knob('jesus');
+          const flyPath = arc([JESUS[0] - 40, 600], [ROOM.x - 120, ROOM.y - 30], 520);
           // The street.
           piece(ctx, rectShape(-2600, 950, 5400, 600), C.board, hand('street'), {
             line: 0,
@@ -366,7 +386,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
           if (fly < 1) flight(ctx, flyPath, fly, hand('word'), 1.1);
           else if (!inHand)
             at(ctx, { x: ROOM.x - 120, y: ROOM.y - 40 + 5 * Math.sin(t * 2) }, () =>
-              wordLight(ctx, hand('word'), 0.3, 1 - clamp((t - f.cue('fly').end) / 1.5)),
+              wordLight(ctx, hand('word'), 0.3, 1 - f.at('landed')),
             );
 
           // In the soldier's open hand, the word settles.

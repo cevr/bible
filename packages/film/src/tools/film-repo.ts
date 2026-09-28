@@ -8,6 +8,7 @@
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { type Placed, layout } from '../core/layout.ts';
 import {
+  HeardAs,
   Sound,
   type SoundManifest,
   SoundManifestJson,
@@ -18,7 +19,7 @@ import {
   Voice,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmNotFound, LayoutInvalid } from './errors.ts';
+import { FilmModuleInvalid, FilmNotFound, LayoutInvalid, WordMissing } from './errors.ts';
 
 /** Every path a tool touches for one film. */
 export interface FilmPaths {
@@ -43,6 +44,8 @@ export interface LoadedFilm {
   /** Empty (no takes, no voice) until the first take is recorded. */
   readonly timings: Timings;
   readonly manifest: SoundManifest;
+  /** How speech-to-text writes the script's names (`script.ts`'s `heardAs`); none when it lists none. */
+  readonly heardAs: HeardAs;
 }
 
 export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
@@ -50,9 +53,25 @@ export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
 export interface FilmRepoService {
   readonly paths: (film: string) => FilmPaths;
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
+  /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
+  readonly script: (
+    film: string,
+  ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
+/** The part of `script.ts` the tools read: each beat's line and its sources. */
+const ScriptModule = Schema.Struct({
+  script: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      say: Schema.optionalKey(Schema.String),
+      cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+    }),
+  ),
+  heardAs: HeardAs.pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
+});
+type ScriptModule = typeof ScriptModule.Type;
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
 const ShortsModule = Schema.Struct({ shorts: Shorts });
@@ -64,11 +83,22 @@ const ShortsModule = Schema.Struct({ shorts: Shorts });
  */
 export const importFilmModule = (file: string) => import(file);
 
-/** Lay the film out, turning `layout()`'s authoring errors into a typed failure. */
-export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, LayoutInvalid> =>
+/** Why a film does not lay out: a word pin with no word to land on, or any other authoring error. */
+export type PlaceError = WordMissing | LayoutInvalid;
+
+const isWordMissing = Schema.is(WordMissing);
+
+/**
+ * Lay the film out, turning `layout()`'s authoring errors into a typed
+ * failure: `WordMissing` as itself, every other one as `LayoutInvalid`.
+ */
+export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, PlaceError> =>
   Effect.try({
     try: () => layout(film.scenes, film.timings),
-    catch: (cause) => LayoutInvalid.make({ film: film.paths.name, reason: String(cause) }),
+    catch: (cause) =>
+      Option.getOrElse(Option.liftPredicate(cause, isWordMissing), () =>
+        LayoutInvalid.make({ film: film.paths.name, reason: String(cause) }),
+      ),
   });
 
 export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
@@ -146,10 +176,23 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             shorts = (yield* loadModule(name, shortsFile, ShortsModule)).shorts;
           const timings = yield* store.read(at.timings);
           const manifest = yield* store.read(at.manifest);
-          return { paths: at, scenes, voice, sound, shorts, timings, manifest };
+          const scriptFile = path.join(at.dir, 'script.ts');
+          let heardAs: HeardAs = {};
+          if (yield* fs.exists(scriptFile))
+            heardAs = (yield* loadModule(name, scriptFile, ScriptModule)).heardAs;
+          return { paths: at, scenes, voice, sound, shorts, timings, manifest, heardAs };
         });
 
-        return FilmRepo.of({ paths, load });
+        const script = Effect.fn('FilmRepo.script')(function* (name: string) {
+          const at = paths(name);
+          if (!(yield* fs.exists(at.dir)))
+            return yield* FilmNotFound.make({ film: name, dir: at.dir });
+          const file = path.join(at.dir, 'script.ts');
+          if (!(yield* fs.exists(file))) return Option.none<ScriptModule['script']>();
+          return Option.some((yield* loadModule(name, file, ScriptModule)).script);
+        });
+
+        return FilmRepo.of({ paths, load, script });
       }),
     );
 }

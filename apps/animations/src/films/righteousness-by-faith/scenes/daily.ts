@@ -48,16 +48,12 @@ import {
 
 // ─── A: the parchment ────────────────────────────────────────────────────────
 
-/** The robed figure on the page: where they stand and their scale. */
-const FIG: Pt = [560, 930];
+/** The robed figure's scale on the page (where they stand is the `fig` knob). */
 const FIG_SCALE = 2.3;
 /** The small grey figure in their stains beside the gate, and their scale. */
 const OTHER_DX = 380;
 const OTHER_SCALE = 1.5;
 
-/** The cameras on the page: on the robed figure, and on the gate. */
-const ON_FIG = { x: 640, y: 650, zoom: 1.45 } as const;
-const ON_GATE = { x: 1460, y: 600, zoom: 1.25 } as const;
 /** How far the push through the heart zooms in. */
 const THROUGH_ZOOM = 9;
 /** How far into the push the room starts to come through the glow. */
@@ -147,7 +143,19 @@ const DAYS = 6;
 /** The robe, as `robe` gives it. */
 const ROBED: Person = { body: C.robe, shade: C.robe, garment: 'robe' };
 
-const knobs = { gate: [1420, 930], window: [620, 440] } as const;
+/**
+ * The gate and the window; where the robed figure stands on the page; and the
+ * page's cameras, on the robed figure and on the gate.
+ */
+const knobs = {
+  gate: [1420, 930],
+  window: [620, 440],
+  fig: [560, 930],
+  onFig: [640, 650],
+  onFigZoom: 1.45,
+  onGate: [1460, 600],
+  onGateZoom: 1.25,
+} as const;
 
 const timeline = {
   ask: { scene: 'speech', dur: 0.4 },
@@ -217,11 +225,14 @@ const page = (f: DailyFrame, through: number) => {
   const { ctx, w, h } = f;
   sky(ctx, w, h, PAPER_SKY);
   const toGate = f.at('toGate') * (1 - f.at('toFig'));
+  const FIG = f.knob('fig');
+  const [fx, fy] = f.knob('onFig');
+  const [gx, gy] = f.knob('onGate');
   const chestY = FIG[1] + CHEST[1] * FIG_SCALE;
   const push = through;
-  const x = lerp(lerp(ON_FIG.x, ON_GATE.x, toGate), FIG[0], push);
-  const y = lerp(lerp(ON_FIG.y, ON_GATE.y, toGate), chestY, push);
-  const zoom = lerp(lerp(ON_FIG.zoom, ON_GATE.zoom, toGate), THROUGH_ZOOM, push);
+  const x = lerp(lerp(fx, gx, toGate), FIG[0], push);
+  const y = lerp(lerp(fy, gy, toGate), chestY, push);
+  const zoom = lerp(lerp(f.knob('onFigZoom'), f.knob('onGateZoom'), toGate), THROUGH_ZOOM, push);
   ctx.save();
   ctx.translate(w / 2, h / 2);
   ctx.scale(zoom, zoom);
@@ -309,6 +320,7 @@ const robedOnPage = (f: DailyFrame, toGate: number) => {
   const ask = f.at('ask') * (1 - f.at('lead')) + f.at('askAgain');
   LOOK[0] = lerp(lerp(1, 2, ask), 4, toGate);
   LOOK[1] = lerp(lerp(0, -4, ask), -1, toGate);
+  const FIG = f.knob('fig');
   contact(ctx, FIG[0], FIG[1] + 4, 80 * FIG_SCALE);
   ctx.save();
   ctx.translate(FIG[0], FIG[1]);

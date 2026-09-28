@@ -14,11 +14,10 @@ import {
   type ActTooShort,
   type ApiKeyMissing,
   type ElevenLabsFailed,
-  type LayoutInvalid,
   SoundMissing,
   type UnknownScene,
 } from './errors.ts';
-import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { settleAll } from './settle.ts';
 
 export interface ScoreOptions {
@@ -30,7 +29,7 @@ export interface ScoreOptions {
 
 export type ScoreError =
   | SoundMissing
-  | LayoutInvalid
+  | PlaceError
   | UnknownScene
   | ActTooShort
   | ElevenLabsFailed

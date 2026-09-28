@@ -45,7 +45,13 @@ describe('narration', () => {
 
   test('a take is used only while its text is unchanged', () => {
     const spoken = 'Look and live.';
-    const take = { hash: hashText(spoken), file: 'a.mp3', duration: 2, words: estimate(spoken) };
+    const take = {
+      hash: hashText(spoken),
+      file: 'a.mp3',
+      duration: 2,
+      words: estimate(spoken),
+      source: 'elevenlabs' as const,
+    };
     const timings = { voice: 'v', scenes: { s: take } };
     expect(voiceFor('s', 'Look and {live}live.', timings).recorded).toBe(true);
     expect(voiceFor('s', 'Look and die.', timings).recorded).toBe(false);
@@ -53,7 +59,13 @@ describe('narration', () => {
 
   test('a take changes with its words, not with its marks', () => {
     const spoken = 'Look and live.';
-    const take = { hash: hashText(spoken), file: 'a.mp3', duration: 2, words: estimate(spoken) };
+    const take = {
+      hash: hashText(spoken),
+      file: 'a.mp3',
+      duration: 2,
+      words: estimate(spoken),
+      source: 'elevenlabs' as const,
+    };
     const timings = { voice: 'v', scenes: { s: take } };
     expect(voiceFor('s', '{look}Look and {live}live.', timings).recorded).toBe(true);
   });
@@ -180,6 +192,7 @@ describe('turns', () => {
       file: 'a.mp3',
       duration: 4,
       words: estimate(parsed.spoken),
+      source: 'elevenlabs' as const,
     };
     const voice = voiceFor('s', line, { voice: 'v', scenes: { s: take } });
     expect(voice.recorded).toBe(true);

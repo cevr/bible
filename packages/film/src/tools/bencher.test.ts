@@ -35,11 +35,15 @@ const draw: DrawBenchOptions = {
   budget: false,
 };
 
-const setup = (files: Map<string, Uint8Array>, host: FakeRenderHost = {}) => {
+const setup = (
+  files: Map<string, Uint8Array>,
+  host: FakeRenderHost = {},
+  folders: Set<string> = new Set(),
+) => {
   const ledger = emptyLedger();
   const layer = Bencher.layer.pipe(
     Layer.provide(Renderer.layer),
-    Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files), Path.layer]),
+    Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files, folders), Path.layer]),
   );
   return {
     ledger,
@@ -175,6 +179,19 @@ describe('Bencher', () => {
       // Four renders of frames 60–180, each joined once.
       expect(ledger.joins.map((j) => j.frames)).toEqual([120, 120, 120, 120]);
       expect(files.has('/out/test/bench.workers.json')).toBe(true);
+    }),
+  );
+
+  it.live('--workers leaves nothing under out/<film> but its report', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const folders = new Set<string>();
+      const { workers } = setup(files, {}, folders);
+      yield* workers([1, 2]);
+      expect([...folders].filter((f) => f.startsWith('/out/test/'))).toEqual([]);
+      expect([...files.keys()].filter((f) => f.startsWith('/out/test/'))).toEqual([
+        '/out/test/bench.workers.json',
+      ]);
     }),
   );
 
