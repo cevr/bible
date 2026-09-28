@@ -6,12 +6,12 @@ recorded words, and every frame is a pure function of that film and a time.
 
 ## Entry points
 
-| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                           |
-| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                     |
-| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                                                                    |
-| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
+| Import               | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bible/film/core`   | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`, the studio's wire `studio`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported).                                                                                                                                         |
+| `@bible/film/canvas` | The Canvas 2D draw kit (ink, cutout, paper, type, IK limbs, figure, multiplane camera, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads.                                                                                                                                                                                                                                                                                                                               |
+| `@bible/film/player` | `mountPlayer(films)`: the scrubbable preview, whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, and the lab (`?lab`, `lab.ts`): notes on frames, and cue and knob editing (`lab-edit.ts`), motion tools (`lab-motion.ts`), compare with HEAD (`lab-compare.ts`) and the look-book (`lookbook.ts`). `player.css` styles it.                                                                                                              |
+| `@bible/film/tools`  | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC: durations, decode, WAV, joining a film; ffmpeg for recordings), Narrator, Takes (a person's recordings), Composer, Mixer, Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck. |
 
 ## Data
 
@@ -165,6 +165,32 @@ handler over NotesStore); the app mounts them at `/lab/*`:
 | `GET /lab/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
 
 A bad body is a 400, an unknown note a 404, and every failure is logged.
+
+**The studio** (`tools/studio.ts`, over `Takes`, `FilmRepo` and `Mixer`)
+records takes from the lab through the same import as `takes import`. It
+answers `/lab/<film>/studio/*` (`withStudio` routes that prefix to it and the
+rest to the lab) with the same admission: same-origin JSON, and the film the
+lab serves (another film is a 409). Every body and answer is a Schema in
+`core/studio.ts`:
+
+| Route                                    | Body → answer                                                                                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts |
+| `POST /studio/takes/:beat`               | `TakePost` (`audio` base64, `type` its media type, `acceptMismatch?`) → `StudioTake` (the take, what was heard, the word error, the new `timings`, `mixed`)  |
+| `GET /studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: what each heard, its word error, when, whether it is the take and whether it reads the line as it is now                     |
+| `GET /studio/takes/:beat/attempts/:file` | the attempt's MP3, to hear it again; a name the ledger does not hold is a 404                                                                                |
+| `POST /studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                      |
+
+A take not kept answers `StudioRefusal` (`_tag`, `message`, and for a
+`TakeMismatch` the `script`, what was `heard`, the `wer` and the `attempt` it
+saved, which `keep` with `acceptMismatch` makes the take: "accept anyway").
+A body that is not a recording, or of a media type ffmpeg is not told how to
+read (`AudioInvalid`), is a 400; `TakeMismatch`, `RecordingInvalid` (a beat
+with no line, silence, an attempt never recorded) a 422; a failed
+speech-to-text a 502. The upload is written to a scoped temp file, removed
+when the request ends. After a take is kept the film remixes; `mixed: false`
+says the mix failed (logged) and the take stands. The panel that records in
+the browser is not built yet.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in

@@ -71,6 +71,7 @@ import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
 import { labHandler } from './lab.ts';
+import { studioHandler, withStudio } from './studio.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
@@ -715,7 +716,12 @@ const lab = <E>(labServer: LabServer<E>) =>
     Effect.fn('film.lab')(function* (input) {
       // An unknown film fails here, before a server starts.
       yield* (yield* FilmRepo).load(input.film);
-      const handler = yield* labHandler(input.film);
+      // The studio's routes answer `/lab/<film>/studio/…`; the lab the rest.
+      const handler = withStudio(
+        input.film,
+        yield* labHandler(input.film),
+        yield* studioHandler(input.film),
+      );
       const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
       const url = `${server.url}?film=${encodeURIComponent(input.film)}&lab`;
       const notes = (yield* NotesStore).paths(input.film).notes.file;

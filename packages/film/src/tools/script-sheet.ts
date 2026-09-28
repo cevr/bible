@@ -22,7 +22,7 @@ const QuoteLine = Schema.fromJsonString(
 );
 
 /** The film's verified quotations, none when it keeps no `quotes.jsonl`. */
-const quotesOf = Effect.fn('ScriptSheet.quotes')(function* (film: LoadedFilm) {
+export const quotesOf = Effect.fn('ScriptSheet.quotes')(function* (film: LoadedFilm) {
   const fs = yield* FileSystem.FileSystem;
   const file = (yield* Path.Path).join(film.paths.dir, 'quotes.jsonl');
   if (!(yield* fs.exists(file))) return [];

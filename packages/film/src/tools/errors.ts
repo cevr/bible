@@ -86,6 +86,15 @@ export class RecordingInvalid extends Schema.TaggedError<RecordingInvalid>()('Re
   }
 }
 
+/** A recording the studio was sent that is not one: not base64, or of a type no recorder makes. */
+export class AudioInvalid extends Schema.TaggedError<AudioInvalid>()('AudioInvalid', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the recording sent is not audio the studio reads: ${this.reason}`;
+  }
+}
+
 export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('ElevenLabsFailed', {
   op: Schema.String,
   exitCode: Schema.Int,

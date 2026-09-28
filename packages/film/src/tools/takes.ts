@@ -155,6 +155,12 @@ export interface TakesService {
     film: LoadedFilm,
     beat: string,
   ) => Effect.Effect<ReadonlyArray<Attempt>, StoreError>;
+  /** Where an attempt's audio is on disk, when `file` is one of the beat's attempts. */
+  readonly attemptFile: (
+    film: LoadedFilm,
+    beat: string,
+    file: string,
+  ) => Effect.Effect<Option.Option<string>, StoreError>;
   /** Keep an earlier attempt as the beat's take. */
   readonly keepAttempt: (
     film: LoadedFilm,
@@ -438,10 +444,21 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         return yield* keep(film, beat, made.value, options);
       });
 
+      const attemptFile = Effect.fn('Takes.attemptFile')(function* (
+        film: LoadedFilm,
+        beat: string,
+        file: string,
+      ) {
+        // Only a name the ledger holds: a request's path never reaches the disk as given.
+        const known = Arr.findFirst(yield* attempts(film, beat), (a) => a.file === file);
+        return Option.map(known, (a) => path.join(attemptsDir(film, beat), a.file));
+      });
+
       return Takes.of({
         importPath,
         importBeat,
         attempts,
+        attemptFile,
         keepAttempt,
       });
     }),
