@@ -133,35 +133,51 @@ const revealGlyph = (
 const GLYPH_FOOT = 0.3;
 const GLYPH_TOP = -1;
 
+/** How much of the fill's last stretch the outline thins over, so it never steps on or off. */
+const OUTLINE_THIN = 0.2;
+
+/** A `fill` option as a level 0..1: solid when not given, empty when not a number. */
+const fillLevel = (fill: number | undefined) =>
+  fill === undefined ? 1 : Number.isNaN(fill) ? 0 : clamp(fill);
+
+/** Whether text at this fill and outline puts any ink down at all. */
+const inks = (fill: number, outline: number) => fill > 0 || outline > 0;
+
 /**
- * One glyph at its origin: filled up to `fill` of its height from the foot
- * (clipped there when part filled), and outlined `outline` px wide in the
- * same colour when given, so it reads hollow above its level.
+ * Text at (tx, ty), ty its baseline, spanning `left`..`left + width`: filled
+ * up to `fill` of its height from the foot (clipped there when part filled),
+ * and outlined in the same colour, `outline` px wide while the fill is below
+ * its last stretch and thinning to nothing as it completes, so it reads hollow
+ * above its level.
  */
-const inkGlyph = (
+const inkText = (
   ctx: CanvasRenderingContext2D,
-  ch: string,
-  gw: number,
+  text: string,
+  tx: number,
+  ty: number,
+  left: number,
+  width: number,
   style: TextStyle,
   fill: number,
   outline: number,
 ) => {
-  if (fill >= 1) ctx.fillText(ch, -gw / 2, 0);
+  if (fill >= 1) ctx.fillText(text, tx, ty);
   else if (fill > 0) {
-    const foot = GLYPH_FOOT * style.size;
-    const level = foot + (GLYPH_TOP * style.size - foot) * fill;
+    const foot = ty + GLYPH_FOOT * style.size;
+    const level = foot + (GLYPH_TOP - GLYPH_FOOT) * style.size * fill;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(-gw / 2 - style.size, level, gw + 2 * style.size, foot - level);
+    ctx.rect(left - style.size, level, width + 2 * style.size, foot - level);
     ctx.clip();
-    ctx.fillText(ch, -gw / 2, 0);
+    ctx.fillText(text, tx, ty);
     ctx.restore();
   }
-  if (outline <= 0) return;
-  ctx.lineWidth = outline;
+  const line = outline * clamp((1 - fill) / OUTLINE_THIN);
+  if (line <= 0) return;
+  ctx.lineWidth = line;
   ctx.lineJoin = 'round';
   ctx.strokeStyle = style.color;
-  ctx.strokeText(ch, -gw / 2, 0);
+  ctx.strokeText(text, tx, ty);
 };
 
 /** One line of text at (x, y) — y is the alphabetic baseline. */
@@ -176,13 +192,15 @@ export const write = (
 ) => {
   if (RTL.test(text)) return writeWhole(ctx, text, x, y, style, hand, opts);
   const { chars, xs, ws, width } = glyphs(ctx, text, style);
+  const fill = fillLevel(opts.fill);
+  const outline = opts.outline ?? 0;
+  // Neither filled nor outlined, the line draws nothing, and the check sees nothing.
+  if (!inks(fill, outline)) return width;
   const x0 = leftEdge(style.align ?? 'left', x, width);
   const progress = clamp(opts.progress ?? 1);
   const reveal = opts.reveal ?? 'rise';
   const n = chars.length;
   const boil = opts.boil ?? 0.6;
-  const fill = clamp(opts.fill ?? 1);
-  const outline = opts.outline ?? 0;
   ctx.save();
   ctx.font = font(style);
   ctx.textBaseline = 'alphabetic';
@@ -215,7 +233,7 @@ export const write = (
     ctx.translate(gx + gw / 2 + jx, y + jy);
     ctx.rotate(rot + popTilt(reveal, i, hand.seed, local));
     revealGlyph(ctx, reveal, local, gw, style.size, baseAlpha);
-    inkGlyph(ctx, ch, gw, style, fill, outline);
+    inkText(ctx, ch, -gw / 2, 0, -gw / 2, gw, style, fill, outline);
     ctx.restore();
   }
   if (probe !== undefined && shownTo > shownFrom) {
@@ -305,6 +323,12 @@ const writeWhole = (
   ctx.direction = 'rtl';
   ctx.textBaseline = 'alphabetic';
   const width = ctx.measureText(text).width;
+  const fill = fillLevel(opts.fill);
+  const outline = opts.outline ?? 0;
+  if (!inks(fill, outline)) {
+    ctx.restore();
+    return width;
+  }
   const align = style.align ?? 'left';
   // x is the line's left edge for 'left', its centre for 'center', its right edge for 'right'.
   const right = align === 'center' ? x + width / 2 : align === 'right' ? x : x + width;
@@ -316,10 +340,17 @@ const writeWhole = (
   ctx.clip();
   ctx.fillStyle = style.color;
   ctx.textAlign = 'right';
-  ctx.fillText(
+  const tx = right + b * noise1(hand.boil * 1.3, hand.seed);
+  inkText(
+    ctx,
     text,
-    right + b * noise1(hand.boil * 1.3, hand.seed),
+    tx,
     y + b * noise1(hand.boil * 1.7, hand.seed + 1),
+    tx - width,
+    width,
+    style,
+    fill,
+    outline,
   );
   const probe = probeOf(ctx);
   if (probe !== undefined && p > 0) {
