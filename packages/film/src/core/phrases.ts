@@ -29,10 +29,13 @@ export interface Phrase {
   readonly words: ReadonlyArray<PhraseWord>;
 }
 
-/** A sentence ends here: its last word closes on a stop (a closing quote or bracket may follow). */
-const STOP = /[.?!;:…][”’"')\]]*$/;
-/** A clause ends here. */
-const PAUSE = /[,—–][”’"')\]]*$/;
+/** A lone word joins a neighbour only across a pause in the voice of at most this, in seconds. */
+export const PHRASE_GAP = 0.3;
+
+/** A sentence ends here: on a full stop, a question or an exclamation (a closing quote or bracket may follow). */
+const SENTENCE = /[.?!][”’"')\]]*$/;
+/** A clause ends here: on a comma, a dash, a colon, a semicolon or an ellipsis. */
+const CLAUSE = /[,—–;:…][”’"')\]]*$/;
 
 /** Whether each word sits inside a quotation: from the word that opens “ to the one that closes ”. */
 export const quotedWords = (words: ReadonlyArray<Word>): ReadonlyArray<boolean> => {
@@ -98,10 +101,12 @@ const joinLone = (
 /**
  * The phrases of a take's `words`, each two to four words: broken at every
  * sentence and at each voice's turn (`turns`, word indices), then at clauses,
- * each clause cut evenly. A one-word sentence joins its voice's next sentence
- * when there is one; a one-word clause joins the next clause of its sentence.
- * Each phrase shows from its first word until the next phrase's, or
- * `PHRASE_HOLD` after its last word when that comes first.
+ * each clause cut evenly. No phrase crosses a sentence end, so a one-word
+ * sentence ("Justified?") stands as its own phrase; a one-word clause joins
+ * the next clause of its sentence (or the one before), unless the voice
+ * pauses over `PHRASE_GAP` between them. Each phrase shows from its first
+ * word until the next phrase's, or `PHRASE_HOLD` after its last word when
+ * that comes first.
  */
 export const phrasesOf = (
   words: ReadonlyArray<Word>,
@@ -111,19 +116,22 @@ export const phrasesOf = (
   /** Whether word `i` closes on `pattern`. */
   const closes = (pattern: RegExp) => (i: number) =>
     Option.exists(Arr.get(words, i), (w) => pattern.test(w.text));
-  const ends = closes(STOP);
-  const pauses = closes(PAUSE);
-  /** Whether `then` goes on in the voice `first` speaks: no turn opens it. */
-  const sameVoice = (_: ReadonlyArray<number>, then: ReadonlyArray<number>) =>
-    !Option.exists(Arr.head(then), (i) => turns.has(i));
-  const sentences = joinLone(
-    cutBefore(run(0, words.length), (i) => turns.has(i) || ends(i - 1)),
-    sameVoice,
-  );
+  const ends = closes(SENTENCE);
+  const pauses = closes(CLAUSE);
+  /** Whether the voice runs on from `first` into `then`: no pause over `PHRASE_GAP` between them. */
+  const runsOn = (first: ReadonlyArray<number>, then: ReadonlyArray<number>) =>
+    Option.exists(
+      Option.all([
+        Option.flatMap(Arr.last(first), (i) => Arr.get(words, i)),
+        Option.flatMap(Arr.head(then), (i) => Arr.get(words, i)),
+      ]),
+      ([last, next]) => next.start - last.end <= PHRASE_GAP + 1e-9,
+    );
+  const sentences = cutBefore(run(0, words.length), (i) => turns.has(i) || ends(i - 1));
   const chunks = sentences.flatMap((sentence) =>
     joinLone(
       cutBefore(sentence, (i, at) => at > 0 && pauses(i - 1)),
-      () => true,
+      runsOn,
     ).flatMap(balanced),
   );
   const phrased = chunks.flatMap((chunk) =>

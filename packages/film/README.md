@@ -236,14 +236,17 @@ phrases the page burns in, as it shows them).
 
 A short's captions are phrases, not the film's lines (`core/phrases.ts`):
 `shortPhrases` takes each span's words, timed by the voice (`heard`: a word
-shows when it is heard, not when the aligner starts it), breaks them at every sentence and
-voice turn, then at clauses, and cuts each clause evenly into two to four
-words (`PHRASE_MAX`); a one-word sentence joins its voice's next one, and no
-phrase crosses a join. A phrase shows from its first word to the next
-phrase's, or `PHRASE_HOLD` (0.6 s) after its last word, each moved half a
-frame earlier so it shows from the frame nearest its first word (a span cut
-on a word's mark shows that word's phrase on its first frame). A word between the
-script's “ and ” (which the take's words carry; `quotedWords`) is quoted.
+shows when it is heard, not when the aligner starts it), breaks them at
+every sentence end (`.`, `?`, `!`) and voice turn, then at clauses (`,`,
+dashes, `;`, `:`, `…`), and cuts each clause evenly into two to four words
+(`PHRASE_MAX`). No phrase crosses a sentence end or a join, so a one-word
+sentence ("Justified?") is a phrase of its own; a one-word clause joins a
+neighbouring clause of its sentence unless the voice pauses over
+`PHRASE_GAP` (0.3 s) between them. A phrase shows from its first word to the
+next phrase's, or `PHRASE_HOLD` (0.6 s) after its last word, each moved half
+a frame earlier so it shows from the frame nearest its first word. A word
+between the script's “ and ” (which the take's words carry; `quotedWords`)
+is quoted.
 `canvas/short-captions.ts` (`burnedCaptions`) draws them centred on y 1318 in
 the style's caption font, no plate, each phrase broken into as few lines of
 at most 800 px as it needs and balanced (`breakLines`, so no word is left

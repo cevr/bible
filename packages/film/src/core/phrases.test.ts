@@ -33,23 +33,39 @@ describe('phrasesOf', () => {
     ).toEqual(['It shows the', 'stain perfectly,', 'but you cannot', 'wash your face']);
   });
 
-  test('a one-word sentence joins the sentence after it, never another voice', () => {
+  test('no phrase crosses a sentence end: a one-word sentence stands as its own phrase', () => {
     expect(texts(phrasesOf(said('Right? And yet the Bible says')))).toEqual([
-      'Right? And yet',
-      'the Bible says',
+      'Right?',
+      'And yet the',
+      'Bible says',
     ]);
-    // A turn to another voice starts a phrase: the lone word joins its own voice's next sentence.
+    expect(texts(phrasesOf(said('Justified! But I am still guilty.')))).toEqual([
+      'Justified!',
+      'But I am',
+      'still guilty.',
+    ]);
+    // A lone clause still joins the rest of its sentence; a turn to another voice starts a phrase.
     const turn = said('Wait, a cover-up? Fair. It just means');
     expect(texts(phrasesOf(turn, new Set([3])))).toEqual([
-      'Wait, a cover-up?',
-      'Fair. It just means',
-    ]);
-    // With the next sentence in another voice, it stays alone.
-    expect(texts(phrasesOf(turn, new Set([3, 4])))).toEqual([
       'Wait, a cover-up?',
       'Fair.',
       'It just means',
     ]);
+  });
+
+  test('a lone word stands alone across a pause in the voice over 0.3 s', () => {
+    // "So," heard to 0.4 s, "back" from 1.0 s: the pause keeps them apart.
+    const words: Array<Word> = [
+      { text: 'So,', start: 0, end: 0.4 },
+      ...said('back to the question', 1),
+    ];
+    expect(texts(phrasesOf(words))).toEqual(['So,', 'back to the question']);
+    // Heard 0.2 s apart, it joins.
+    const close: Array<Word> = [
+      { text: 'So,', start: 0, end: 0.4 },
+      ...said('back to the question', 0.6),
+    ];
+    expect(texts(phrasesOf(close))).toEqual(['So, back to', 'the question']);
   });
 
   test('a phrase shows from its first word until the next, and holds after the last', () => {
