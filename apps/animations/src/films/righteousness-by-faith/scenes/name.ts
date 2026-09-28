@@ -2,8 +2,10 @@
 // same framing), now standing in the cardboard world under the landing sky.
 // The figure stands where they stood as the accused, in the white robe, and
 // Christ stands beside them as Advocate. Job's question writes itself above
-// the bench again; on "receive" the figure touches the robe's sleeve, and on
-// "heart" a light rises in their chest, through the robe. On "every" a sun
+// the bench again; on "receive" the figure touches the robe's sleeve. On
+// "heart" they let it go and the Advocate reaches out: a light in his open
+// hand passes into their chest and glows there, through the robe; he draws
+// his hand back on "taking". On "every" a sun
 // passes over the court: every day. The gavel falls softly on "verdict"; on
 // "not a cover-up" the Advocate opens his hand to the light in the figure's
 // chest, the evidence, and the figure looks down at it. On "real" the cold
@@ -44,8 +46,12 @@ export const name = drawing({
     lookUp: { mark: 'how', dur: 0.5 },
     questionOut: { mark: 'receive', offset: -0.6, dur: 0.4 },
     touch: { mark: 'receive', offset: -0.1, dur: 0.6 },
-    release: { mark: 'taking', offset: 0.6, dur: 0.6 },
-    heart: { mark: 'heart', dur: 0.8 },
+    // The figure lets go of the robe before the heart comes: the new heart is given, not raised.
+    release: { mark: 'heart', offset: -0.5, dur: 0.4 },
+    give: { mark: 'heart', offset: -0.4, dur: 0.5 },
+    pass: { mark: 'heart', offset: 0.1, dur: 0.5, ease: 'inOutSine' },
+    heart: { mark: 'heart', offset: 0.35, dur: 0.8, ease: 'outCubic' },
+    withdraw: { mark: 'taking', offset: 0.2, dur: 0.6 },
     sun: { mark: 'every', offset: -0.3, until: 'verdict', ease: 'inOutSine' },
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
@@ -61,7 +67,7 @@ export const name = drawing({
     stampOut: { mark: 'jer', offset: 1.4, dur: 0.5 },
     smile: { mark: 'jer', offset: 0.4, dur: 0.6 },
   },
-  // Where the Advocate's open hand presents the light in the figure's chest, in his units.
+  // Where the Advocate's open hand gives, and later presents, the light in the figure's chest, in his units.
   knobs: { present: [-104, -80] },
   draw: (f) => {
     const { ctx, w, h } = f;
@@ -83,7 +89,10 @@ export const name = drawing({
     // The Advocate's hand open to the figure's chest, from "not a cover-up" until the verdict lands.
     const present = f.at('present') * (1 - f.at('lower'));
     // The figure looks down at the light in them, then up at the hollow verdict until it drops.
-    const down = f.at('present') * (1 - f.at('hollow'));
+    const down =
+      Math.max(f.at('pass') * (1 - f.at('withdraw')), f.at('present')) * (1 - f.at('hollow'));
+    // His open hand at the figure's chest: giving the heart on "heart", then showing it on "not a cover-up".
+    const reach = Math.max(f.at('give') * (1 - f.at('withdraw')), present);
     const hung = f.at('hollow') * (1 - f.at('land'));
     const [px, py] = f.knob('present');
 
@@ -109,6 +118,8 @@ export const name = drawing({
       gold: f.at('gold'),
       shine: 0.9 * f.at('shine'),
       heart: 0.55 * f.at('heart') + 0.35 * present,
+      offer: f.at('give'),
+      given: f.at('pass'),
       sun: f.at('sun'),
       figure: {
         // Ends on FIGURE_LANDED, where `thesis` picks the figure up.
@@ -126,8 +137,8 @@ export const name = drawing({
       },
       advocate: {
         ...ADVOCATE_POSE,
-        handL: [lerp(ADVOCATE_HAND[0], px, present), lerp(ADVOCATE_HAND[1], py, present)],
-        tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch') + 0.06 * present,
+        handL: [lerp(ADVOCATE_HAND[0], px, reach), lerp(ADVOCATE_HAND[1], py, reach)],
+        tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch') + 0.06 * reach,
         look: [lerp(lerp(-3, 3, turn), -3, present), 1 + 2 * present],
         smile: 0.6 * smile,
       },

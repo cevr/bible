@@ -214,6 +214,13 @@ export interface Court {
   readonly hung?: number;
   /** A warm light in the figure's chest, through the robe (the robe's `shine` lights it too). */
   readonly heart?: number;
+  /**
+   * The light the Advocate gives: `offer` 0..1 shows it in his left hand, and
+   * `given` carries it from there (0) into the figure's chest (1), where it
+   * fades as `heart` takes over.
+   */
+  readonly offer?: number;
+  readonly given?: number;
   /** A sun's pass over the court, 0 rising behind the left pillar to 1 set behind the bench; none outside 0..1. */
   readonly sun?: number;
   /** The bench's gold: 0 cardboard, 1 glowing. */
@@ -328,7 +335,7 @@ export const landingCourt = (
           contact(ctx, ADVOCATE[0], ADVOCATE[1] + 4, 190);
           glow(ctx, ADVOCATE[0], ADVOCATE[1] - 150, 260, C.glow, 0.7);
           glow(ctx, ACCUSED[0], ACCUSED[1] - 110, 200, C.glow, s.shine);
-          at(ctx, { x: ADVOCATE[0], y: ADVOCATE[1], scale: 1.12 }, () =>
+          at(ctx, { x: ADVOCATE[0], y: ADVOCATE[1], scale: ADVOCATE_S }, () =>
             christ(ctx, s.advocate, hand),
           );
           at(ctx, { x: ACCUSED[0], y: ACCUSED[1] }, () =>
@@ -338,6 +345,7 @@ export const landingCourt = (
               hand('figure'),
             ),
           );
+          giftLight(ctx, s);
           // The light inside answers through the robe, not only on it.
           const inner = Math.max(s.heart ?? 0, s.shine);
           if (inner > 0) {
@@ -353,6 +361,21 @@ export const landingCourt = (
 
 /** Where the figure's heart glows through the robe at the landing, in frame units. */
 const HEART_IN: Pt = [ACCUSED[0] + 4, ACCUSED[1] - 84];
+/** Christ's scale at the landing, so a point in his units lands on the frame. */
+const ADVOCATE_S = 1.12;
+
+/** The Advocate's gift: a light in his open hand, carried into the figure's chest (`Court.offer`, `Court.given`). */
+const giftLight = (ctx: CanvasRenderingContext2D, s: Court) => {
+  const offer = s.offer ?? 0;
+  const given = s.given ?? 0;
+  const alpha = offer * (1 - given * given);
+  if (alpha <= 0.01) return;
+  const [hx, hy] = s.advocate.handL ?? ADVOCATE_HAND;
+  const x = lerp(ADVOCATE[0] + ADVOCATE_S * hx, HEART_IN[0], given);
+  const y = lerp(ADVOCATE[1] + ADVOCATE_S * hy, HEART_IN[1], given);
+  glow(ctx, x, y, 46, C.glow, 0.9 * alpha);
+  glow(ctx, x, y, 16, C.gold, 0.9 * alpha);
+};
 /** The sun's pass behind the court, on the pillars' plane: rising behind the left pillar, its height, set behind the bench. */
 const SUN_FROM: Pt = [470, 600];
 const SUN_TO: Pt = [990, 600];
