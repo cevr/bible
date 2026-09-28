@@ -2,12 +2,13 @@
 // and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
 // figure looks down at the card, doubtful (`still`). On `cover` the card
 // goes and the cold open's hollow verdict drifts in over the figure's head,
-// the same label at the same size on screen; on `would` it lowers over the
-// stains on their chest, a cover-up if God only said the words, and on
-// `subst` ("But") it lifts off again, the stains still there. Through
-// Waggoner's quotation (`w`) its letters fill with gold word by word; as the
-// quotation ends it drops, heavy, into the chest and leaves a glow there.
-// On `voice` the camera eases back and the dawn from `spoke` opens in a panel
+// the same label at the same size on screen; on `would` it goes round the
+// face to lie over the stains on their chest, a cover-up if God only said the
+// words, and on `subst` ("But") it goes back round, the stains still there.
+// It never crosses the face. Through Waggoner's quotation (`w`) its letters
+// fill with gold word by word; once the quotation ends it takes its weight,
+// solid, and goes round the face into the chest, its letters kept until it is
+// inside, and the chest glows as it enters. On `voice` the camera eases back and the dawn from `spoke` opens in a panel
 // behind the figure; the same word of light arcs out of its sun and lands on
 // the chest (`speaks`). On `made` its light spreads through the garment from
 // inside: the stains wash out, the nearest first, and the grey paper of the
@@ -23,7 +24,7 @@ import {
   rectShape,
   write,
 } from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
+import { type Key, clamp, ease, lerp } from '@bible/film/core';
 import {
   type Hands,
   type Person,
@@ -51,8 +52,60 @@ const FACE: Camera = { x: 800, y: 610, zoom: 1.22 };
 
 /** The verdict's scale here: the size it stamps at on screen in the court, under the FACE framing. */
 const STAMP_SCALE = (COURT.zoom ?? 1) / (FACE.zoom ?? 1);
-/** Where the verdict drifts in from: where the card was. */
-const STAMP_FROM: Pt = [1240, 440];
+/** Where the verdict drifts in from, level with where it hangs: across from where the card was. */
+const STAMP_FROM_X = 1240;
+/** Half the verdict's label here, across and down (the stamp's gold edge, 262 by 90, at its scale). */
+const STAMP_HALF: Pt = [262 * STAMP_SCALE, 90 * STAMP_SCALE];
+/**
+ * The column the verdict passes down, clear of the face: the head's right
+ * edge (its 35-unit radius at the figure's scale) plus half the label and a
+ * margin, so no part of it crosses the face on the way.
+ */
+const SIDE_X = FIG[0] + 35 * FS + STAMP_HALF[0] + 40;
+/** Where the verdict is this frame: one scratch point, reused. */
+const AT: [number, number] = [0, 0];
+
+/**
+ * Sets `AT` to the point `p` (0..1) along the way from `a` to `b` round the
+ * face: out level to the side column, along it to `b`'s height, then in
+ * level to `b`, each leg eased. The label never crosses the face.
+ */
+const aroundFace = (a: readonly [number, number], b: readonly [number, number], p: number) => {
+  const out = ease.inOutSine(clamp(p * 3));
+  const along = ease.inOutSine(clamp(p * 3 - 1));
+  const inward = ease.inOutSine(clamp(p * 3 - 2));
+  AT[0] = lerp(lerp(a[0], SIDE_X, out), b[0], inward);
+  AT[1] = lerp(a[1], b[1], along);
+};
+
+/** The sink across its cue: settling its weight in place first, then round the face into the chest. */
+const SINK_PATH: ReadonlyArray<Key> = [
+  [0.2, 0],
+  [1, 1, 'linear'],
+];
+/** The little rise as it takes its weight. */
+const SINK_RISE: ReadonlyArray<Key> = [
+  [0, 0],
+  [0.1, -20, 'outCubic'],
+  [0.2, 0, 'inCubic'],
+];
+/** The squash as it takes its weight: down, over, and settled. */
+const SINK_SQUASH: ReadonlyArray<Key> = [
+  [0, 1],
+  [0.1, 0.9, 'outCubic'],
+  [0.18, 1.06, 'inCubic'],
+  [0.26, 1, 'outCubic'],
+];
+/** It fades only once it is small inside the chest, its letters kept until then. */
+const SINK_OUT: ReadonlyArray<Key> = [
+  [0.92, 0],
+  [1, 1, 'linear'],
+];
+/** The chest's glow, lit as the verdict goes in. */
+const SINK_WARM: ReadonlyArray<Key> = [
+  [0.85, 0],
+  [1, 1, 'linear'],
+];
 
 /** The word card: its centre, and each line's baseline and size. */
 const CARD: Pt = [1240, 440];
@@ -209,12 +262,13 @@ export const declared = drawing({
     push: { mark: 'still', offset: -0.2, dur: 0.8 },
     cardOut: { mark: 'cover', offset: -0.2, dur: 0.4 },
     drift: { mark: 'cover', offset: 0.1, dur: 1.2, ease: 'outCubic' },
-    patch: { mark: 'would', offset: 0.3, dur: 0.8, ease: 'inOutCubic' },
-    unpatch: { mark: 'subst', dur: 0.7, ease: 'inOutCubic' },
-    sink: { mark: 'voice', offset: -0.7, dur: 0.7, ease: 'linear' },
+    patch: { mark: 'would', offset: 0.3, dur: 1.2, ease: 'linear' },
+    unpatch: { mark: 'subst', dur: 1, ease: 'linear' },
+    sink: { mark: 'voice', offset: -0.15, dur: 1.4, ease: 'linear' },
     back: { mark: 'voice', offset: -0.3, dur: 0.8, ease: 'inOutCubic' },
     panel: { mark: 'voice', offset: 0.2, dur: 0.6, ease: 'outBack' },
     speak: { mark: 'speaks', offset: -0.6, dur: 1.3, ease: 'inOutSine' },
+    landed: { after: 'speak', dur: 0.5 },
     bloom: { mark: 'made', offset: -0.6, dur: 1.6, ease: 'outCubic' },
   },
   // Where the hollow verdict hangs over the head, and where it lowers over the stains.
@@ -226,40 +280,33 @@ export const declared = drawing({
     const bloom = f.at('bloom');
     const doubt = f.at('doubt') * (1 - back);
 
-    // The verdict: drifts in over the head, lowers over the stains and lifts
-    // off, fills word by word through the quotation, then drops into the chest.
-    const [hx, hy] = f.knob('hang');
-    const [px, py] = f.knob('patch');
+    // The verdict: drifts in over the head, goes round the face to lie over
+    // the stains and back, fills word by word through the quotation, then,
+    // solid, takes its weight and goes round the face into the chest.
+    const hang = f.knob('hang');
+    const patch = f.knob('patch');
     const drift = f.at('drift');
     const cover = f.at('patch') * (1 - f.at('unpatch'));
     const sink = f.at('sink');
-    // It rises a little as it takes the weight, then drops into the chest.
-    const rise = f.keys('sink', [
-      [0, 0],
-      [0.25, -20, 'outCubic'],
-      [0.5, 0, 'inCubic'],
-    ]);
-    const drop = f.keys('sink', [
-      [0.25, 0],
-      [1, 1, 'inCubic'],
-    ]);
-    const hangX = lerp(lerp(STAMP_FROM[0], hx, drift), px, cover);
-    const hangY = lerp(lerp(STAMP_FROM[1], hy, drift), py, cover);
+    const into = f.keys('sink', SINK_PATH);
+    if (sink > 0) aroundFace(hang, CHEST, into);
+    else if (f.at('unpatch') > 0) aroundFace(patch, hang, f.at('unpatch'));
+    else if (f.at('patch') > 0) aroundFace(hang, patch, f.at('patch'));
+    else {
+      AT[0] = lerp(STAMP_FROM_X, hang[0], drift);
+      AT[1] = hang[1];
+    }
     const verdict: Verdict = {
-      x: lerp(hangX, CHEST[0], drop),
-      y: lerp(hangY, CHEST[1], drop) + rise,
-      scale: STAMP_SCALE * lerp(1, 0.2, drop),
-      squash: f.keys('sink', [
-        [0, 1],
-        [0.25, 0.9, 'outCubic'],
-        [0.6, 1.1, 'inCubic'],
-      ]),
+      x: AT[0],
+      y: AT[1] + f.keys('sink', SINK_RISE),
+      scale: STAMP_SCALE * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3),
+      squash: f.keys('sink', SINK_SQUASH),
       fill: f.spoken('w', 'voice'),
-      shown: drift * (1 - clamp((sink - 0.7) / 0.3)),
+      shown: drift * (1 - f.keys('sink', SINK_OUT)),
     };
 
     // The figure's eyes follow the verdict: up at it, down at the chest under it, and down as it sinks in.
-    const landed = f.at('speak') >= 1 ? 1 : 0;
+    const landed = f.at('landed');
     const up = drift * (1 - cover) * (1 - sink);
     const down = Math.max(doubt * (1 - drift), cover, sink * (1 - back), landed);
     const look: Pt = [lerp(3, 0, doubt) * (1 - landed), lerp(-1, 4, down) - 5 * up];
@@ -286,7 +333,7 @@ export const declared = drawing({
           washed: washStains(WASH, bloom),
         };
         person(ctx, figure, hand('figure'));
-        chest(ctx, figure, sink, bloom);
+        chest(ctx, figure, f.keys('sink', SINK_WARM), bloom);
       });
 
       verdictAt(ctx, hand, verdict);
