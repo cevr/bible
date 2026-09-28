@@ -226,6 +226,8 @@ Open for the owner (pass 2):
 - Mirror short is 29.1 s (ShortLength warns under 45 s): another span, or keep it short.
 - Short MP4s cannot be made on the Workbox (its Playwright Chromium has no H.264 encoder: `EncoderMissing`); render both on the Mac. Guard candidate: `doctor` reports the missing encoder before a render starts.
 - A `takes voiced` backfill command for other films' timings (the scratch script was not committed).
+- Media stack (owner, 2026-09-28: read mediabunny's source before any encode/decode decision). mediabunny's own packages cover what the film shells out to ffmpeg for: `@mediabunny/server` (NodeAV/libav in Bun: libx264 in true `qp` quantizer mode, decoders for any take format), `@mediabunny/flac-encoder` (libFLAC WASM, 24-bit). Batch p2-media replaces the ffmpeg CLI in `tools/media.ts` (take decode, FLAC master) and decides the Linux share copy (Bun-side libx264 at `Quality({ quantizer: 26 })` vs the 24 Mbps in-page encode) from the p2-encoder counsel numbers.
+- Bump `mediabunny` and every `@mediabunny/*` together to the first release carrying upstream 06e4709 (extension workers under Bun 1.4; npm latest is still 1.60.0) and drop `patches/@mediabunny%2Faac-encoder@1.60.0.patch`, which is the same fix for aac only. p2-media waits for it (flac-encoder has the same hang in 1.60.0).
 
 ## Close
 
