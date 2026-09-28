@@ -14,9 +14,10 @@ export const shorts = [
       { scene: 'cold', from: { mark: 'evidence' }, to: { mark: 'oldest' } },
       // Paul's answer: not only counted righteous, made righteous.
       { scene: 'declared', from: { mark: 'paul' }, to: { scene: 'speechEnd' } },
-      // "By taking God at his word … it is not a cover-up. He makes it true":
-      // the stamp lands solid.
-      { scene: 'name', from: { mark: 'taking' }, to: { mark: 'jer' } },
+      // Job's question asked again, and answered: "How should man be just with
+      // God? … By taking God at his word … it is not a cover-up. He makes it
+      // true": the stamp lands solid.
+      { scene: 'name', from: { mark: 'how' }, to: { mark: 'jer' } },
     ],
   },
   {
