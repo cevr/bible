@@ -8,8 +8,9 @@
 //   film script <film> [--sheet]
 //   film score <film> [--only music|<effect>,...] [--dry-run]
 //   film mix <film> [--stems]
-//   film cues <film> [scene] [--sound]
+//   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
+//   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
 //   film notes <film> [--watch] [--since n]
@@ -17,11 +18,11 @@
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
-//                      [--no-share]
+//                      [--no-share] [--short id]
 //   film lookbook <film> [--captions] [--tag name]
 //   film bench <film> [--every n] [--runs n] [--scene id,id] [--hash] [--baseline] [--budget]
 //                     [--no-captions]
-//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--runs n] [--no-share]
+//   film bench <film> --workers n,n [--scene id,id | --from s --to s] [--short id] [--runs n] [--no-share]
 //                     [--no-captions]
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
@@ -44,17 +45,20 @@ import {
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import type { ChildProcessSpawner } from 'effect/unstable/process';
-import { scenesOf } from '../core/layout.ts';
+import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
+import type { Short } from '../core/schema.ts';
+import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName, resolveShort } from '../core/shorts.ts';
+import { FILM_FPS } from '../core/time.ts';
 import { acceptedBeats, bareAcceptMismatch } from './accept.ts';
 import { Bencher } from './bencher.ts';
 import { Browser, browserReady } from './browser.ts';
-import { HOLD, type Reported, layoutLevel, staticFindings } from './check.ts';
+import { HOLD, type Level, type Reported, layoutLevel, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
-import { sceneReport, soundReport } from './cues.ts';
+import { CUES_RULES, sceneReport, shortReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type BrowserFailed,
@@ -65,6 +69,7 @@ import {
   type MediaFailed,
   SoundMissing,
   UnknownEffect,
+  UnknownShort,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media, ffmpegReady } from './media.ts';
@@ -79,6 +84,7 @@ import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes
 import { type LabServer, PreviewServer } from './preview-server.ts';
 import { BENCH_RULES } from './bench.ts';
 import {
+  Cut,
   DEFAULT_WORKERS,
   RenderJob,
   flagConflicts,
@@ -89,6 +95,7 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { Renderer } from './renderer.ts';
 
@@ -106,6 +113,38 @@ const scenes = Flag.String('scene').pipe(
   Flag.optional,
   Flag.map(Option.map((ids: string) => ids.split(','))),
 );
+/** `--short <id>`: one of the film's shorts (`shorts.ts`). */
+const short = Flag.String('short').pipe(Flag.optional);
+
+/**
+ * The short `--short` names, its spans checked against the film's layout, so
+ * a misspelt short, scene, mark or cue fails before a page or a browser starts.
+ * Only a check of names: the short is resolved for use on its page's frame rate
+ * (`Checker.cut`, the renderer), not at `FILM_FPS`.
+ */
+const pickShort = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, id: Option.Option<string>) =>
+  Option.match(id, {
+    onNone: () => Effect.succeed(Option.none<Short>()),
+    onSome: (want) =>
+      Option.match(
+        Arr.findFirst(loaded.shorts, (s) => s.id === want),
+        {
+          onNone: () =>
+            Effect.fail(
+              UnknownShort.make({
+                film: loaded.paths.name,
+                id: want,
+                known: loaded.shorts.map((s) => s.id),
+              }),
+            ),
+          onSome: (found) =>
+            Effect.fromResult(resolveShort(placed, found, FILM_FPS)).pipe(
+              Effect.as(Option.some(found)),
+            ),
+        },
+      ),
+  });
+
 /**
  * `--accept-mismatch a,b`: the beats that may keep a take whose transcript
  * does not match; bare, the `--only` beats (`accept.ts`).
@@ -379,40 +418,64 @@ const script = Command.make(
   ),
 );
 
-const cues = Command.make(
-  'cues',
-  {
-    film,
-    scene: Argument.String('scene').pipe(
-      Argument.optional,
-      Argument.withDescription('only this scene'),
+const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
+  /** The short on its page's frames: the rate the film declares, read from its page. */
+  const onPage = Effect.fn('film.cues.short')(function* (loaded: LoadedFilm, declared: Short) {
+    return yield* (yield* Checker).cut(loaded, declared);
+  }, Effect.provide(checkLayer));
+  return Command.make(
+    'cues',
+    {
+      film,
+      scene: Argument.String('scene').pipe(
+        Argument.optional,
+        Argument.withDescription('only this scene'),
+      ),
+      sound: Flag.Boolean('sound').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription("print each effect placement's film time instead"),
+      ),
+      short: short.pipe(
+        Flag.withDescription("print this short's spans in film time, and its length, instead"),
+      ),
+    },
+    Effect.fn('film.cues')(function* (input) {
+      yield* Effect.fromResult(
+        flagConflicts(
+          givenFlags({
+            short: input.short,
+            sound: Option.liftPredicate(input.sound, Boolean),
+            scene: input.scene,
+          }),
+          CUES_RULES,
+        ),
+      );
+      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
+      const cut = yield* pickShort(loaded, placed, input.short);
+      if (Option.isSome(cut)) {
+        for (const line of shortReport(yield* onPage(loaded, cut.value))) yield* Console.log(line);
+        return;
+      }
+      if (input.sound) {
+        const sound = yield* Option.match(loaded.sound, {
+          onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
+          onSome: Effect.succeed,
+        });
+        const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
+        for (const line of lines) yield* Console.log(line);
+        return;
+      }
+      const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
+      for (const line of report.lines) yield* Console.log(line);
+      if (report.late > 0) return yield* CuesLate.make({ count: report.late });
+    }),
+  ).pipe(
+    Command.withDescription(
+      "Print each scene's placement, marks and named cues; fails when a cue ends after its scene",
     ),
-    sound: Flag.Boolean('sound').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription("print each effect placement's film time instead"),
-    ),
-  },
-  Effect.fn('film.cues')(function* (input) {
-    const loaded = yield* (yield* FilmRepo).load(input.film);
-    const placed = yield* placeFilm(loaded);
-    if (input.sound) {
-      const sound = yield* Option.match(loaded.sound, {
-        onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
-        onSome: Effect.succeed,
-      });
-      const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
-      for (const line of lines) yield* Console.log(line);
-      return;
-    }
-    const report = yield* Effect.fromResult(sceneReport(placed, input.scene));
-    for (const line of report.lines) yield* Console.log(line);
-    if (report.late > 0) return yield* CuesLate.make({ count: report.late });
-  }),
-).pipe(
-  Command.withDescription(
-    "Print each scene's placement, marks and named cues; fails when a cue ends after its scene",
-  ),
-);
+  );
+};
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 
@@ -424,6 +487,29 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
     scenes: Option.Option<ReadonlySet<string>>,
   ) {
     return yield* (yield* Checker).layout(loaded, { workers, scenes });
+  }, Effect.provide(checkLayer));
+  /**
+   * `check --short`: the short resolved on its page's frame rate, its words
+   * (its length, its first word, its loop's silence), then, unless
+   * `--static`, its page's frames. `--static` still opens the page, for its rate.
+   */
+  const shortLeg = Effect.fn('film.check.short')(function* (
+    loaded: LoadedFilm,
+    declared: Short,
+    input: {
+      readonly static: boolean;
+      readonly workers: number;
+      readonly zone: SafeZoneName;
+      readonly json: boolean;
+    },
+  ) {
+    const found = yield* (yield* Checker).short(loaded, declared, {
+      workers: input.workers,
+      zone: input.zone,
+      static: input.static,
+    });
+    const leveled = found.map((finding) => ({ level: shortLevel(finding), finding }));
+    yield* reportFindings(declared.id, 'short', !input.static, leveled, input.json);
   }, Effect.provide(checkLayer));
   return Command.make(
     'check',
@@ -448,10 +534,19 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         Flag.withDefault(4),
         Flag.withDescription('pages probing at once'),
       ),
+      short: short.pipe(Flag.withDescription('check this short (shorts.ts), not the film')),
+      zone: Flag.Literals('zone', SAFE_ZONE_NAMES).pipe(
+        Flag.withDefault('default'),
+        Flag.withDescription(
+          "the platform's safe zone a short's text is held to: default (the feed) or ads (the bottom 35% covered)",
+        ),
+      ),
     },
     Effect.fn('film.check')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
+      const picked = yield* pickShort(loaded, placed, input.short);
+      if (Option.isSome(picked)) return yield* shortLeg(loaded, picked.value, input);
       // A misspelt scene fails here, in either leg, rather than probing nothing.
       const only = yield* Option.match(input.scene, {
         onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
@@ -472,26 +567,41 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         const layout = yield* layoutLeg(loaded, input.workers, only);
         for (const finding of layout) found.push({ level: layoutLevel(finding), finding });
       }
-      for (const { level, finding } of found) {
-        if (input.json)
-          yield* Console.log(
-            encodeCheckLine({ level, tag: finding._tag, message: finding.message }),
-          );
-        else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
-      }
-      const errors = found.filter((r) => r.level === 'error').length;
-      const warnings = found.length - errors;
-      yield* Effect.log(
-        `check.done film=${input.film} layout=${!input.static} errors=${errors} warnings=${warnings}`,
-      );
-      if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+      yield* reportFindings(input.film, 'film', !input.static, found, input.json);
     }),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
     ),
   );
 };
+
+/** One finding and how bad it is, whichever leg found it. */
+interface Leveled {
+  readonly level: Level;
+  readonly finding: { readonly _tag: string; readonly message: string };
+}
+
+/** Print each finding (a line, or a line of JSON), log the count, and fail on any error. */
+const reportFindings = Effect.fn('film.check.report')(function* (
+  name: string,
+  what: 'film' | 'short',
+  layout: boolean,
+  found: ReadonlyArray<Leveled>,
+  json: boolean,
+) {
+  for (const { level, finding } of found) {
+    if (json)
+      yield* Console.log(encodeCheckLine({ level, tag: finding._tag, message: finding.message }));
+    else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
+  }
+  const errors = found.filter((r) => r.level === 'error').length;
+  const warnings = found.length - errors;
+  yield* Effect.log(
+    `check.done ${what}=${name} layout=${layout} errors=${errors} warnings=${warnings}`,
+  );
+  if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
+});
 
 /** `--stills 3,10.5`: seconds, each a finite number. */
 const Seconds = Schema.Array(Schema.FiniteFromString);
@@ -542,18 +652,21 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           'also write a smaller copy to send, <out>.share.mp4 (default; --no-share to skip it)',
         ),
       ),
+      short: short.pipe(
+        Flag.withDescription(
+          'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>.mp4 (--from/--to in its seconds)',
+        ),
+      ),
     },
     Effect.fn('film.render')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
+      const placed = yield* placeFilm(loaded);
       // `--scene` sets the range from the film's own layout.
       const span = yield* Option.match(input.scene, {
         onNone: () => Effect.succeedNone,
-        onSome: (ids) =>
-          placeFilm(loaded).pipe(
-            Effect.flatMap((placed) => Effect.fromResult(sceneSpan(placed, ids))),
-            Effect.map(Option.some),
-          ),
+        onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
       });
+      const cut = yield* pickShort(loaded, placed, input.short);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
         onSome: (list) =>
@@ -572,13 +685,14 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           scale: input.scale,
           out: input.out,
           share: input.share,
+          short: cut,
         }),
       );
       yield* (yield* Renderer).render(loaded, job);
     }, Effect.provide(renderLayer)),
   ).pipe(
     Command.withDescription(
-      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet',
+      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short)',
     ),
   );
 
@@ -670,6 +784,9 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
           'with --workers: encode the share copy too, as a render does (default; --no-share to skip it)',
         ),
       ),
+      short: short.pipe(
+        Flag.withDescription('with --workers: render this short (--from/--to in its seconds)'),
+      ),
     },
     Effect.fn('film.bench')(function* (input) {
       const on = (flag: boolean) => Option.liftPredicate(flag, Boolean);
@@ -685,12 +802,14 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
             from: input.from,
             to: input.to,
             share: input.share,
+            short: input.short,
           }),
           BENCH_RULES,
         ),
       );
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
+      const cut = yield* pickShort(loaded, placed, input.short);
       const bencher = yield* Bencher;
       if (Option.isSome(input.workers)) {
         const counts = yield* Schema.decodeEffect(WorkerCounts)(input.workers.value.split(','));
@@ -711,6 +830,10 @@ const bench = <E, R>(benchLayer: Layer.Layer<Bencher, E, R>) =>
             Option.map(span, (s) => s.to),
             () => input.to,
           ),
+          cut: Option.match(cut, {
+            onNone: () => Cut.Whole(),
+            onSome: (picked) => Cut.Short({ short: picked }),
+          }),
         });
         return;
       }
@@ -925,7 +1048,7 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
       script,
       score,
       mix,
-      cues,
+      cues(checkLayer),
       check(checkLayer),
       render(renderLayer),
       lookbook(renderLayer),

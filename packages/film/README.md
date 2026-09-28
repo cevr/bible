@@ -92,7 +92,16 @@ only by rewriting `timings.json`, so no crash leaves a take and its timings
 disagreeing. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
 inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
-warning past `TAKE_TOLERANCE`), so the timings always fit their audio. It removes the takes (`.mp3` or a person's `.flac`) the timings
+warning past `TAKE_TOLERANCE`), so the timings always fit their audio. The
+aligner puts the pause before a word into that word's start, so each word
+also carries where it is heard (`voiced`, a `TakeWord`): the first and last
+10 ms window inside its aligned span over a −40 dBFS gate, read from the take
+itself when it is timed (`core/voiced.ts` `voicedWords`; `narrate`,
+`takes import` and the studio alike; a span no window passes holds no
+voice, since the aligner put it past the span, so it is heard from the span's
+end, never sooner). A mark and the long film's captions read the aligned start;
+what must meet the ear (a short's captions, its hook and its loop) reads the
+voice (`heard`). It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
 replaced person's take loses only its copy in `narration/`: its master and
 its original stay in `narration/attempts/`.
@@ -193,6 +202,105 @@ a video writes nothing under `out/<film>/`, whatever its tag. A
 contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
+
+## Shorts
+
+A film's `shorts.ts` (optional; `Shorts` in `core/schema.ts`, decoded by
+`FilmRepo`) declares vertical cuts: `{ id, title, spans: [{ scene, from, to }] }`,
+each point a `{ mark }`, a named `{ cue, edge? }` or a scene landmark, never a
+second. A span that opens on a word (a `{ mark }` or `{ scene: 'speech' }`)
+opens `SHORT_PREROLL` (0.1 s) before the word is heard, never before its
+aligned start: the aligner gives a word the pause before it, and a short
+opened on that pause starts on silence. A close stays where it is marked.
+`core/shorts.ts` resolves a short against the layout on whole frames
+(`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
+and short seconds), or fails with `ShortUnknownScene`, `ShortUnknownMark`,
+`ShortUnknownCue` or `ShortSpanEmpty` naming what the film has; `--short`
+naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
+the film stretches under it.
+
+The page is a `Film` of its own (`canvas/short.ts`, `createShort`), so the
+player, the export handle and the worker pool serve it unchanged: the app
+spreads `shortPages(name, load, shorts)` into its registry, one page per
+short under `<film>/shorts/<id>` (`shortKey`). Each frame is the film's own
+frame at the film time under it, drawn full size into a band and copied onto
+a 9:16 page at the film's density (`shortPage(1920)`: 1920×3414), which the
+encoder scales to 1080×1920 through the same `--scale` path; so a crop of the
+band is, pixel for pixel, a `render --stills --no-captions` still at that film
+time. The page is stacked by `SHORT_LAYOUT` (`core/shorts.ts`, 1080×1920 px,
+data the checks and the lab read): the short's `hook` centred on y 445 at
+most 800 px wide, set from frame 0 and faded out by 2.8 s (`hookAlpha`); the
+band from y 620; the captions centred on y 1318. Round the band the page is
+the film's paper under its own vignette, made once at the page's size, and
+the film's grain laid over the paper only (`grainRect`), so nothing touches
+the band. `Film.look` carries the film's paper, shade, finish and `short`
+style (`ShortStyle` on `FilmSpec.short`: the hook's and captions' fonts and
+colours, sizes in 1080×1920 px, checked by `createFilm`). The
+renderer resolves the short again on the page's fps, cuts `full.wav` to its
+pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
+writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
+phrases the page burns in, as it shows them).
+
+A short's captions are phrases, not the film's lines (`core/phrases.ts`):
+`shortPhrases` takes each span's words, timed by the voice (`heard`: a word
+shows when it is heard, not when the aligner starts it), breaks them at
+every sentence end (`.`, `?`, `!`) and voice turn, then at clauses (`,`,
+dashes, `;`, `:`, `…`), and cuts each clause evenly into two to four words
+(`PHRASE_MAX`). No phrase crosses a sentence end or a join, so a one-word
+sentence ("Justified?") is a phrase of its own; a one-word clause joins a
+neighbouring clause of its sentence unless the voice pauses over
+`PHRASE_GAP` (0.3 s) between them. A phrase shows from its first word to the
+next phrase's, or `PHRASE_HOLD` (0.6 s) after its last word, each moved half
+a frame earlier so it shows from the frame nearest its first word. A word
+between the script's “ and ” (which the take's words carry; `quotedWords`)
+is quoted.
+`canvas/short-captions.ts` (`burnedCaptions`) draws them centred on y 1318 in
+the style's caption font, no plate, each phrase broken into as few lines of
+at most 800 px as it needs and balanced (`breakLines`, so no word is left
+alone); a quoted word gets a gold marker (`caption.highlight`) swept behind
+it as it is read, so a quotation lights word by word. The phrases are set
+once; a frame looks one up and draws it. The long film's captions are
+untouched: they time each line by the aligner (`sceneCaptions`), and timing
+them by the voice is one line in `core/captions.ts` (`filmCaptionTimes = heard`),
+left for the owner since it moves burned-in pixels. `render --short --no-captions` leaves them out.
+
+`film check <film> --short <id> [--zone default|ads]` holds a short to
+`SHORT_RULES` (`core/shorts.ts`) instead of checking the film
+(`tools/short-check.ts`, pure; `Checker.short` probes the page):
+
+- `ShortUnsafeText`: a line of text past the safe zone, probed every half
+  second and at each phrase's first frame. `SAFE_ZONES` (exported from
+  `@bible/film/core` with `safeRect`, so the lab draws the same zones) holds
+  the margins in 1080×1920 px: `default` top 270, bottom 520, right 140,
+  left 65; `ads` the same with the bottom 35% (672). The short's own lines
+  (hook, captions; probed with the `caption` tag) are an error and fold into
+  one finding per side; the film's lines in the band are a warning each,
+  since the band is the film's frame and only another span moves them.
+- `ShortHook` (error): the first word heard after 0.3 s; nothing in the picture
+  moving by 0.5 s (probes of the open that hold still, the hook and captions
+  left out, as `heldStill` does for holds); or the first frame showing the
+  film's title (the film's page title, read from the film's own page). A logo
+  drawn as ink is not told from other ink.
+- `ShortLoop` (warning): the mean absolute per-cell luma difference on a
+  64×36 grid (`SHORT_RULES.loopGrid`) of the band is over 0.08 between the
+  last frame and the first (`FramePage.luma`, which
+  decodes the export handle's PNG in the page, so the player is untouched),
+  or more than 0.6 s of silence from the last word's voice round to the
+  first's. The band is `bandOf` (`core/shorts.ts`) of the film's own page,
+  the rectangle the short's page draws the film's frame into, whatever the
+  film's aspect; a read with no value for every cell (no canvas to sample on)
+  fails as `FrameFailed` (`lumaGrid`), never compared as clean.
+- `ShortLength`: over 90 s is an error; outside 45–75 s a warning.
+
+A short resolves on its page's frame rate (`Checker.cut`: the rate the film
+declares, read from the page's `info.fps`, as the renderer does), so
+`check --short`, `cues --short` and the render cut the same frames.
+`--static` runs only what the words tell (length, first word, the loop's
+silence), probing no frames: it opens the page once, for its rate.
+`film cues --short` prints `shortReport` at that rate; `film bench --workers n --short <id>` times the same
+render. A short draws at about parity with the film per frame (~0.92× of the
+same frames as a 16:9 render, measured against one contiguous range): the
+9:16 page costs nothing extra, and saves nothing either.
 
 ## Lab
 

@@ -5,6 +5,13 @@ import type { EaseName } from './schema.ts';
 
 export type Ease = (t: number) => number;
 
+/**
+ * Frames a second a film draws at when its spec names no rate (`createFilm`).
+ * The tools, which never load the film's page, resolve a short on it before
+ * a render; the render resolves it again on the page's own rate.
+ */
+export const FILM_FPS = 30;
+
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));

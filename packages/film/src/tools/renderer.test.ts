@@ -5,7 +5,8 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
 import { EncoderMissing, MediaFailed, PageCrashed, PageError } from './errors.ts';
-import { RenderJob } from './render-plan.ts';
+import type { LoadedFilm } from './film-repo.ts';
+import { Cut, RenderJob } from './render-plan.ts';
 import { Renderer } from './renderer.ts';
 import {
   type FakeRenderHost,
@@ -30,11 +31,13 @@ const video = RenderJob.Video({
   scale: 1,
   out: Option.none(),
   share: false,
+  cut: Cut.Whole(),
 });
 
 const setup = (
   host: FakeRenderHost = {},
   files = new Map<string, Uint8Array>(),
+  rendered: LoadedFilm = film,
   folders = new Set<string>(),
 ) => {
   const ledger = emptyLedger();
@@ -43,7 +46,7 @@ const setup = (
   );
   const render = (job: RenderJob) =>
     Effect.gen(function* () {
-      yield* (yield* Renderer).render(film, job);
+      yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provide(layer));
   return { ledger, files, folders, render };
 };
@@ -258,7 +261,15 @@ describe('Renderer', () => {
   it.live('stills and a contact sheet go through the same pages', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
-      yield* render(RenderJob.Stills({ tag: 'g', captions: true, workers: 4, times: [1, 2.5] }));
+      yield* render(
+        RenderJob.Stills({
+          tag: 'g',
+          captions: true,
+          workers: 4,
+          times: [1, 2.5],
+          cut: Cut.Whole(),
+        }),
+      );
       expect(files.has('/out/test/g/stills/t0002.50.png')).toBe(true);
       expect(ledger.pages.opened).toBe(2);
       yield* render(
@@ -269,6 +280,7 @@ describe('Renderer', () => {
           every: 5,
           from: Option.none(),
           to: Option.none(),
+          cut: Cut.Whole(),
         }),
       );
       // One page tiles every fifth second's frame into the sheet.
@@ -289,6 +301,7 @@ describe('Renderer', () => {
             every: 1,
             from: Option.some(from),
             to: Option.some(to),
+            cut: Cut.Whole(),
           }),
         );
       yield* sheet(-5, 2);
@@ -405,6 +418,75 @@ describe('Renderer', () => {
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioMissing'));
         expect(ledger.frames).toEqual([]);
+      }),
+    );
+  });
+
+  describe('a short', () => {
+    /** A 15 s film of three silent scenes; the short plays c, then a: 10 s. */
+    const three = testFilm(
+      [
+        { id: 'a', min: 4 },
+        { id: 'b', min: 5 },
+        { id: 'c', min: 6 },
+      ],
+      { voice: '', scenes: {} },
+    );
+    const short = Cut.Short({
+      short: {
+        id: 'cut',
+        title: 'A cut',
+        spans: [
+          { scene: 'c', from: { scene: 'start' }, to: { scene: 'end' } },
+          { scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } },
+        ],
+      },
+    });
+    /** The short's page: 9:16 at the film's density, 10 s. */
+    const page: ExportInfo = { width: 1920, height: 3414, fps: 30, duration: 10, frames: 300 };
+    const MASTER = '/films/test/narration/full.wav';
+
+    it.live(
+      'renders its page to out/<film>/shorts/<id>.mp4 at 1080×1920, with its spans of the track',
+      () =>
+        Effect.gen(function* () {
+          const files = new Map<string, Uint8Array>([[MASTER, text('pcm')]]);
+          const { ledger, render } = setup({ info: page, master: 15 }, files, three);
+          yield* render({ ...video, cut: short });
+          expect(ledger.urls[0]).toBe('http://preview.test/?film=test%2Fshorts%2Fcut&export');
+          const [join] = ledger.joins;
+          expect(join?.out).toBe('/out/test/shorts/cut.mp4');
+          expect(join?.frames).toBe(300);
+          // The track is the film's c then a: 6 s and 4 s, cut from the 15 s master.
+          expect(ledger.aac).toEqual([10 * 44100]);
+          expect(files.has('/out/test/shorts/cut.vtt')).toBe(true);
+          expectAllClosed(ledger);
+        }),
+    );
+
+    it.live("a short's stills land in its own folder", () =>
+      Effect.gen(function* () {
+        const files = new Map<string, Uint8Array>([[MASTER, text('pcm')]]);
+        const { render } = setup({ info: page, master: 15 }, files, three);
+        yield* render(
+          RenderJob.Stills({ tag: 'g', captions: true, workers: 1, times: [1], cut: short }),
+        );
+        expect(files.has('/out/test/shorts/cut/g/stills/t0001.00.png')).toBe(true);
+      }),
+    );
+
+    it.live('a short whose span names a mark the scene lacks fails naming it', () =>
+      Effect.gen(function* () {
+        const { render } = setup({ info: page }, new Map(), three);
+        const broken = Cut.Short({
+          short: {
+            id: 'cut',
+            title: 'x',
+            spans: [{ scene: 'a', from: { mark: 'nope' }, to: { scene: 'end' } }],
+          },
+        });
+        const error = yield* Effect.flip(render({ ...video, cut: broken }));
+        expect(error._tag).toBe('ShortUnknownMark');
       }),
     );
   });

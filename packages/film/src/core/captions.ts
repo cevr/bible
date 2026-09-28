@@ -5,7 +5,9 @@
 import { Array as Arr, Option } from 'effect';
 import { type Placed, captionLines } from './layout.ts';
 import type { Turn } from './narration.ts';
-import type { Word } from './schema.ts';
+import type { TakeWord, Word } from './schema.ts';
+import { phraseCues, shortPhrases } from './phrases.ts';
+import type { ResolvedShort } from './shorts.ts';
 
 /** A line shows this long before its first word, so the eye is there first. */
 export const CAPTION_LEAD = 0.05;
@@ -52,6 +54,19 @@ export const captionCues = (
 };
 
 /**
+ * How the long film times its caption lines: by the aligner's word starts, as
+ * it always has. A short's captions are timed by the voice (`heard`); to time
+ * the film's the same way is this one line, `= heard` (`voiced.ts`). It
+ * moves every line after a pause later, by up to most of a second, in the
+ * burned-in frames and the sidecar alike: pixel-moving, so the owner's call.
+ */
+const filmCaptionTimes = (words: ReadonlyArray<TakeWord>): ReadonlyArray<Word> => words;
+
+/** A scene's caption lines, take-local: what the film burns in and the sidecar writes. */
+export const sceneCaptions = (p: Placed): Array<CaptionCue> =>
+  captionCues(filmCaptionTimes(p.voice.words), p.voice.turns);
+
+/**
  * Every caption line of a film, in the time of the range `[from, to)`: a line
  * shows only while its scene is on screen, and a range starts at zero.
  */
@@ -61,12 +76,28 @@ export const filmCaptions = (
 ): Array<CaptionCue> =>
   placed.flatMap((p) => {
     const at = p.start + p.speechStart;
-    return captionCues(p.voice.words, p.voice.turns).flatMap((cue) => {
+    return sceneCaptions(p).flatMap((cue) => {
       const start = Math.max(p.start, range.from, at + cue.start);
       const end = Math.min(p.start + p.dur, range.to, at + cue.end);
       if (end <= start) return [];
       return [{ start: start - range.from, end: end - range.from, text: cue.text }];
     });
+  });
+
+/**
+ * Every caption of a short, in the time of its range `[from, to)`: the
+ * phrases its page burns in (`shortPhrases`), as it shows them.
+ */
+export const shortCaptions = (
+  placed: ReadonlyArray<Placed>,
+  short: ResolvedShort,
+  range: { readonly from: number; readonly to: number },
+): Array<CaptionCue> =>
+  phraseCues(shortPhrases(placed, short)).flatMap((cue) => {
+    const start = Math.max(range.from, cue.start);
+    const end = Math.min(range.to, cue.end);
+    if (end <= start) return [];
+    return [{ start: start - range.from, end: end - range.from, text: cue.text }];
   });
 
 const pad = (n: number, width: number) => String(n).padStart(width, '0');

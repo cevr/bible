@@ -6,7 +6,8 @@ import { Array as Arr, Data, Option, Result } from 'effect';
 import type { UnknownScene } from '../core/errors.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
-import type { ExportInfo } from '../core/schema.ts';
+import type { ExportInfo, Short } from '../core/schema.ts';
+import { type FilmPiece, shortKey } from '../core/shorts.ts';
 
 interface JobBase {
   /** Output subfolder under `out/<film>`, so parallel renders do not collide. */
@@ -17,9 +18,35 @@ interface JobBase {
   readonly workers: number;
 }
 
+/** What a render draws: the whole film, or one of its shorts (`--short`). */
+export type Cut = Data.TaggedEnum<{
+  Whole: {};
+  Short: { readonly short: Short };
+}>;
+export const Cut = Data.taggedEnum<Cut>();
+
+/** The page a cut is drawn on: the film's, or its short's (`shortKey`). */
+export const cutPage = (film: string, cut: Cut): string =>
+  Cut.$match(cut, {
+    Whole: () => film,
+    Short: ({ short }) => shortKey(film, short.id),
+  });
+
+/**
+ * Where a cut's outputs go, from the film's `out/<film>`: the video beside it
+ * as `<base>.mp4` and its stills and sheets in `<base>/<tag>`. A short's base
+ * is `out/<film>/shorts/<id>`.
+ */
+export const cutBase = (out: string, cut: Cut): string =>
+  Cut.$match(cut, {
+    Whole: () => out,
+    Short: ({ short }) => `${out}/shorts/${short.id}`,
+  });
+
 /** A render: the film as video, a few stills, a contact sheet, or its look-book. */
 export type RenderJob = Data.TaggedEnum<{
   Video: JobBase & {
+    readonly cut: Cut;
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
     readonly scale: number;
@@ -28,8 +55,9 @@ export type RenderJob = Data.TaggedEnum<{
     /** Also a small copy to send, encoded in the same pass: `shareName(out)`. */
     readonly share: boolean;
   };
-  Stills: JobBase & { readonly times: ReadonlyArray<number> };
+  Stills: JobBase & { readonly cut: Cut; readonly times: ReadonlyArray<number> };
   Contact: JobBase & {
+    readonly cut: Cut;
     readonly every: number;
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
@@ -89,6 +117,7 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['contact', 'excludes', 'scale', VIDEO],
   ['contact', 'excludes', 'out', VIDEO],
   ['contact', 'excludes', 'share', VIDEO],
+  ['short', 'excludes', 'scene', "a short's spans are its scenes"],
 ];
 
 /** `film render`'s flags, parsed; `span` is `--scene`'s range, read from the layout. */
@@ -104,6 +133,8 @@ export interface RenderFlags {
   readonly scale: Option.Option<number>;
   readonly out: Option.Option<string>;
   readonly share: Option.Option<boolean>;
+  /** `--short <id>`, looked up in the film's `shorts.ts`. */
+  readonly short: Option.Option<Short>;
 }
 
 /**
@@ -121,8 +152,17 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
     scale: flags.scale,
     out: flags.out,
     share: flags.share,
+    short: flags.short,
   });
-  const base = { tag: flags.tag, captions: flags.captions, workers: Math.max(1, flags.workers) };
+  const base = {
+    tag: flags.tag,
+    captions: flags.captions,
+    workers: Math.max(1, flags.workers),
+    cut: Option.match(flags.short, {
+      onNone: () => Cut.Whole(),
+      onSome: (short) => Cut.Short({ short }),
+    }),
+  };
   const from = Option.orElse(
     Option.map(flags.span, (s) => s.from),
     () => flags.from,
@@ -272,9 +312,19 @@ export const contactSheetName = 'contact.jpg';
 /** The look-book's file name, in the job's folder. */
 export const lookbookName = 'lookbook.jpg';
 
-/** The part of the lossless master under a range: from `start`, `duration` long. */
+/**
+ * The parts of the lossless master a video plays: one stretch under a film's
+ * range, or a short's spans, back to back (`shortPieces`), each join faded
+ * over `JOIN_FADE`.
+ */
 export interface AudioCut {
   readonly file: string;
-  readonly start: number;
-  readonly duration: number;
+  readonly pieces: ReadonlyArray<FilmPiece>;
 }
+
+/**
+ * A join between two of a short's spans fades out and in over this long: long
+ * enough that the cut never clicks, short enough that a word cut on its first
+ * frame (a span ends on the `{mark}` before it) keeps its onset.
+ */
+export const JOIN_FADE = 0.01;

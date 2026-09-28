@@ -14,7 +14,8 @@
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import { AlignmentMismatch, UnknownVoice } from './errors.ts';
 import { fnv1a } from './random.ts';
-import { type Timings, type Voice, VoiceKey, type Word, isCast } from './schema.ts';
+import { type TakeWord, type Timings, type Voice, VoiceKey, type Word, isCast } from './schema.ts';
+import { unmeasured } from './voiced.ts';
 
 /** Another voice takes the line: `{@name}` before a word. */
 export interface Turn {
@@ -291,7 +292,8 @@ export const heldInside = (words: ReadonlyArray<Word>, duration: number): Word[]
 
 export interface SceneVoice {
   readonly spoken: string;
-  readonly words: ReadonlyArray<Word>;
+  /** Each word's aligned span and where it is heard; an estimate is heard over its span. */
+  readonly words: ReadonlyArray<TakeWord>;
   /** Seconds of speech (0 for a silent scene). */
   readonly duration: number;
   readonly marks: ReadonlyMap<string, number>;
@@ -318,7 +320,7 @@ export const voiceFor = (id: string, text: string, timings: Timings | undefined)
     };
   const take = timings?.scenes[id];
   const recorded = take !== undefined && take.hash === hashText(takeScript(parsed));
-  const words = recorded ? take.words : estimate(spoken);
+  const words = recorded ? take.words : unmeasured(estimate(spoken));
   const duration = recorded ? take.duration : (words[words.length - 1]?.end ?? 0);
   const times = new Map<string, number>();
   for (const [name, index] of marks) {

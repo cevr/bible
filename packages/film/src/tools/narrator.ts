@@ -42,6 +42,7 @@ import {
 } from '../core/narration.ts';
 import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
+import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -346,6 +347,8 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
           if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
+        // Where each word is heard, read from the take as it will be mixed.
+        const voiced = voicedWords(heldInside(words, duration), yield* media.decode(take));
         // The commit: timings.json is replaced whole, naming the new take.
         yield* store.update(
           film.paths.timings,
@@ -353,7 +356,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             hash: hashText(beat.script),
             file,
             duration,
-            words: heldInside(words, duration),
+            words: voiced,
             source: 'elevenlabs',
           }),
         );

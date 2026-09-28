@@ -1,6 +1,7 @@
-// The browser entry: the film player over this app's film registry.
+// The browser entry: the film player over this app's pages (its films and
+// their shorts).
 
 import { mountPlayer } from '@bible/film/player';
-import { films } from './films/index.ts';
+import { pages } from './films/index.ts';
 
-mountPlayer(films);
+mountPlayer(pages);

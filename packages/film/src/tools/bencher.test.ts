@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path, Schema } from 'effect';
 import { BenchReport } from './bench.ts';
+import { Cut } from './render-plan.ts';
 import { Bencher, type DrawBenchOptions } from './bencher.ts';
 import { Renderer } from './renderer.ts';
 import {
@@ -59,6 +60,7 @@ const setup = (
           captions: true,
           from: Option.some(2),
           to: Option.some(6),
+          cut: Cut.Whole(),
         });
       }).pipe(Effect.provide(layer)),
   };

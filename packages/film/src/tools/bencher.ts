@@ -47,7 +47,7 @@ import {
 } from './errors.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
-import { RenderJob, frameSpan, videoEncoders } from './render-plan.ts';
+import { Cut, RenderJob, cutPage, frameSpan, videoEncoders } from './render-plan.ts';
 import { type RenderError, Renderer } from './renderer.ts';
 
 export interface DrawBenchOptions {
@@ -77,6 +77,8 @@ export interface WorkersBenchOptions {
   /** The range rendered, in seconds. */
   readonly from: Option.Option<number>;
   readonly to: Option.Option<number>;
+  /** The film, or one of its shorts (`--short`), on the pages a render draws it on. */
+  readonly cut: Cut;
 }
 
 export type BenchError =
@@ -142,9 +144,9 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
       const renderer = yield* Renderer;
 
       /** The export page `render` opens, with the same captions choice. */
-      const url = (film: LoadedFilm, captions: boolean) =>
+      const url = (film: LoadedFilm, captions: boolean, cut: Cut = Cut.Whole()) =>
         [
-          `${server.url}?film=${encodeURIComponent(film.paths.name)}`,
+          `${server.url}?film=${encodeURIComponent(cutPage(film.paths.name, cut))}`,
           'export',
           ...Arr.filter(['captions=0'], () => !captions),
         ].join('&');
@@ -309,7 +311,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
           Effect.fromResult(videoEncoders(n, options.share)),
         );
         const info = yield* Effect.scoped(
-          Effect.map(browser.open(url(film, options.captions)), (page) => page.info),
+          Effect.map(browser.open(url(film, options.captions, options.cut)), (page) => page.info),
         );
         const { start, end } = frameSpan(info, options.from, options.to);
         const from = start / info.fps;
@@ -328,6 +330,7 @@ export class Bencher extends Context.Service<Bencher, BencherService>()(
                   scale: 1,
                   out: Option.some(path.join(dir, `w${n}.mp4`)),
                   share: options.share,
+                  cut: options.cut,
                 });
                 const runsSec = yield* Effect.forEach(Arr.range(1, Math.max(1, options.runs)), () =>
                   Effect.gen(function* () {
