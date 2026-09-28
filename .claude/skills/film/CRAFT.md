@@ -1,6 +1,6 @@
 # Craft
 
-How a film carries its argument. Rules 1 to 10 come from measuring sixteen BibleProject films against the first cut of our first film, now `righteousness-by-faith-v1`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most. Rule 11, the tone, comes from ten more films measured for voice and colour, in [reference/bibleproject-tone-art.md](reference/bibleproject-tone-art.md).
+How a film carries its argument. Rules 1 to 10 come from measuring sixteen BibleProject films against the first cut of our first film, now `righteousness-by-faith-v1`; the numbers and the frame-by-frame evidence are in [reference/bibleproject-study.md](reference/bibleproject-study.md). They are ranked: the first ones changed the most. Rule 11, the tone, comes from ten more films measured for voice and colour, in [reference/bibleproject-tone-art.md](reference/bibleproject-tone-art.md). Rule 12, the look, and the numbers added to rules 5, 7, 9, 10 and 11 come from the director's vision, **[reference/director-vision.md](reference/director-vision.md)**: how a film looks, moves and sounds, with the reasons and the research behind each number. Read it before drawing a film's first scene or changing its look.
 
 Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphrase stays inside its quote's words, and a picture shows nothing the topic's MUST NOT SAY-OR-SHOW forbids.
 
@@ -48,7 +48,11 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 
 - **Faces:** every beat has a shot where a face fills a third of the frame's height or more.
 - **Close-ups and reactions:** a quotation lands on its speaker's close-up, and a reaction follows an idea.
-- **Hold and move:** hold a shot 5 to 10 s and move the picture inside it. Cut only to change place.
+- **Hold and move:**
+  - A take runs 5–15 s.
+  - Nothing is still for more than 4 s while the voice speaks: the camera drifts 1–3 % or the planes slide.
+  - Each scene holds 40 % of its seconds or fewer.
+  - STORY cuts 4–8 times a minute (angle, reverse, close-up). IDEA is one continuous travel over the page.
 - **Check:** the look-book stills show a face at that scale in every scene row.
 
 ## 6. The viewer's question
@@ -57,20 +61,21 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 - **Give the question its own voice.** Cast the film in `voice.ts`, and hand the line over with `{@ask}` and back with `{@lead}`: "…and God calls him righteous. {@ask}Declared? But he's guilty. {@lead}Exactly. And that's the point." The question is the viewer's own words, not a setup line.
 - Keep the second voice a companion who is curious, never a skeptic to be beaten. BibleProject's co-host thinks aloud beside the narrator.
 - With one reader, the narrator asks the question in the viewer's words and answers it with the wrap line.
+- **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film.
 - **Check:** every register switch in the script comes with a question.
 
 ## 7. The shape in time
 
 The shape as a share of the runtime:
 
-| Part                     | Where it falls                             |
-| ------------------------ | ------------------------------------------ |
-| Title                    | 4–10%                                      |
-| Backstory and history    | 10–48%, never inside the landing           |
-| Deepest turn or callback | 55–65%                                     |
-| Landing                  | starts at 70–84% and lasts 20–35 s         |
-| Music alone              | 25–35 s after the landing                  |
-| Coda                     | 10–20 s, with the end card and the sources |
+| Part                     | Where it falls                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Title                    | 4–10%                                                                                                     |
+| Backstory and history    | 10–48%, never inside the landing                                                                          |
+| Deepest turn or callback | 55–65%                                                                                                    |
+| Landing                  | starts at 70–84% and lasts 20–35 s                                                                        |
+| Music alone              | 25–35 s after the landing                                                                                 |
+| Coda                     | credits and sources roll for 20–30 s over the final pull-back; the last 5–20 s stay clear for end screens |
 
 - The landing ends on the thesis line, with a held pause of about 3 s before its last word.
 - **Check:** each scene's `start` from `cues`, divided by the film's length.
@@ -86,10 +91,13 @@ The shape as a share of the runtime:
 - **Seams:** the gap between one scene's last word and the next scene's first word is 0.6 s or less. Scene `lead` and `tail` set it.
 - **Long pauses:** a pause of 1 s or more goes only where the script means one: before the landing's last word, after a key quotation, or at a register switch.
 - **Between sentences:** 0.2 to 0.5 s.
+- **Pace:** 150–165 words a minute over the spoken span. The owner records the voice, so the script leaves room: about 5–8 % fewer words than the timeline allows.
 - **Check:** a seam is the next scene's `start` plus its speech start, minus this scene's `start` plus its speech end.
 
 ## 10. Sound
 
+- **A score is not optional,** and no air is dead: no stretch over 1.5 s below −60 dBFS unless the script declares it.
+- **Designed silences** go in three places only: after the key quotation, at the black moment, and the held beat before the landing's last word.
 - **The bed:** 17 to 20 dB under the voice wherever narration runs, short gaps included.
 - **Music alone:** the music rises only where no one speaks, to about 6 dB under the voice level. That means an optional open of 5 to 7 s, and the landing's 25 to 35 s.
 - **The low end:** the register under 70 Hz swells about 15 dB on the problem lines and the climax, and thins under the answers.
@@ -106,8 +114,24 @@ BibleProject is informative, curious and hopeful. The weight sits on explanation
 - **Name sin in "we", as a mechanism:** "So we do what Adam and Eve did. We sew fig leaves." Then take the weight off with a light line: "How is that going?"
 - **Say wonder out loud, once per act,** about the text: "Jones noticed something kind of amazing".
 - **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
-- **Keep the colour script bright:**
+- **Keep the colour script bright, with one valley:**
   - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
-  - one black moment, at the cross;
-  - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer.
+  - one act, the answer's valley, may fall to 90–110;
+  - one black moment, at the cross, held 4–6 s;
+  - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer;
+  - the landing is the most saturated act;
+  - the `script.ts` header names the film's 3–5 tent-pole frames and their act lighting, next to its motifs.
 - **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. In the contact sheet, only the cross's tiles read dark.
+
+## 12. The look
+
+A paper theatre lit from behind.
+
+- **Three accents, each with one meaning:** gold is God's word and gift, and only gold glows; scarlet is sin, only on the person or the cloth that carries it; white is the robe. Everything else stays at saturation 0.2–0.35.
+- **4–6 hues per scene,** from the film's palette.
+- **Paper on every shape:** its edge (cut or torn, chosen by what it is), a shadow on the sheet under it, grain that travels with it.
+- **Ink only for figures and features:** eyes, brows, mouths, hand creases, a prop's letters. Scenery has no outline.
+- **One hand design,** from the figure's own arm. A big hand is only a close-up of a figure we have seen.
+- **A crowd is never cloned:** vary height, silhouette and hat.
+- **Screen direction is fixed per role** for the whole film; it crosses once, on purpose, at the turn.
+- **Check:** the look-book, and the stills at full size.
