@@ -3,8 +3,7 @@
 // too big for them. Up close they sew fig leaves into an apron (Gen 3:7),
 // the seams stained scarlet, add patch after patch, raise a hand in a
 // promise, catch the viewer's eye, and the apron wilts into rags. Then the
-// parchment: Waggoner's sum, a blot times a blot times a blot, and the total
-// is still a blot. Last the two tablets stand up and become a tall mirror;
+// two tablets stand up and become a tall mirror;
 // the figure looks in, and the glass shows every stain the leaves were
 // hiding. They scrub the glass; the reflection stays stained; they give the
 // mirror a look.
@@ -52,8 +51,6 @@ const timeline = {
   sheepish: { mark: 'going', offset: 0.1, dur: 0.4 },
   droop: { mark: 'rags', offset: 0.3, dur: 1.2, ease: 'outCubic' },
   wide: { mark: 'rags', dur: 1.4, ease: 'inOutSine' },
-  sum: { mark: 'math', offset: 0.2, dur: 2.2, ease: 'linear' },
-  total: { mark: 'never', offset: -0.2, dur: 0.6, ease: 'outBack' },
   stand: { mark: 'mirror', dur: 0.5, ease: 'outBack' },
   become: { mark: 'mirror', offset: 0.6, dur: 0.8, ease: 'inOutSine' },
   flare: { mark: 'stain', dur: 0.8 },
@@ -70,8 +67,7 @@ export const mirror = drawing({
   timeline,
   knobs,
   draw: (f) => {
-    if (f.t < f.mark('math')) garden(f);
-    else if (f.t < f.mark('mirror')) sum(f);
+    if (f.t < f.mark('mirror')) garden(f);
     else glass(f);
   },
 });
@@ -186,55 +182,6 @@ const garden = (f: MirrorFrame) => {
     ],
     { rest: [960, 540], haze: C.peachLow, thickness: 0.5 },
   );
-};
-
-/** Waggoner's sum on the parchment: blot × blot × blot = blot. */
-const sum = (f: MirrorFrame) => {
-  const { ctx } = f;
-  const p = f.at('sum');
-  const y = 520;
-  const times = (x: number, k: number, show: number) => {
-    if (show <= 0) return;
-    for (const [a, b] of [
-      [
-        [-30, -30],
-        [30, 30],
-      ],
-      [
-        [30, -30],
-        [-30, 30],
-      ],
-    ] as const)
-      stroke(
-        ctx,
-        line([x + a[0], y + a[1]], [x + b[0], y + b[1]]),
-        { color: C.ink, width: 9, jitter: 0.5, alpha: show },
-        sub(f.hand('times'), k + a[0]),
-      );
-  };
-  const blot = (x: number, k: number, show: number, size: number) => {
-    if (show <= 0) return;
-    at(ctx, { x, y, scale: show }, () =>
-      piece(ctx, blob(0, 0, size, size * 0.86, 80 + k), C.scarlet, f.hand(`blot${k}`), {
-        line: 3.5,
-      }),
-    );
-  };
-  blot(380, 0, clamp(p * 5), 190);
-  times(580, 0, clamp(p * 5 - 1.2));
-  blot(780, 1, clamp(p * 5 - 1.8), 190);
-  times(980, 1, clamp(p * 5 - 3));
-  blot(1180, 2, clamp(p * 5 - 3.6), 190);
-  const total = f.at('total');
-  if (total > 0)
-    for (const dy of [-22, 22])
-      stroke(
-        ctx,
-        line([1330, y + dy], [1410, y + dy]),
-        { color: C.ink, width: 9, jitter: 0.5, alpha: clamp(total) },
-        sub(f.hand('equals'), dy),
-      );
-  blot(1600, 3, total, 250);
 };
 
 /** The tablets stand up as a mirror; the glass shows every stain. */

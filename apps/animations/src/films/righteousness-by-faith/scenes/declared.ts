@@ -1,8 +1,9 @@
 // Declared. The page, close on the viewer's figure in their stained garment,
-// and the act's one word card: JUSTIFY, δικαιόω, declared righteous. The
+// and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
 // figure looks down at the stains, doubtful: a cover-up again? Pull back to
-// the three icons, the word-bubble lit. On "substantial" the bubble becomes a
-// solid, heavy thing and lands with weight. Then the dawn from `spoke` opens
+// the three icons, the word-bubble lit. On `subst` the bubble becomes a
+// solid, heavy thing and lands with weight (the script now wants the hollow
+// stamp from `cold` here instead; not drawn yet). Then the dawn from `spoke` opens
 // in a panel behind the figure; the same word of light arcs out of its sun
 // and lands on their chest, and gold blooms there as the stains shrink away:
 // made righteous, not covered.
@@ -52,7 +53,7 @@ const LINES = [
     italic: false,
   },
   {
-    text: 'declared righteous',
+    text: 'made righteous',
     dy: 125,
     size: 52,
     family: F.display,

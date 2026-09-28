@@ -1,6 +1,6 @@
 # Righteousness by Faith: sources
 
-Every quotation the film speaks is verbatim, and every paraphrase stays inside its source’s words. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/quotes.jsonl` (28 records, 0 failing, 2026-09-27). The KJV was checked with `bible verse`; its supplied-word brackets are dropped for speech.
+Every quotation the film speaks is verbatim, and every paraphrase stays inside its source’s words. The Ellen G. White and pioneer texts are records in `quotes.jsonl`, checked against the local corpus with `python3 .claude/skills/film/frame/verify-quotes.py apps/animations/src/films/righteousness-by-faith/quotes.jsonl` (48 records, all EXACT, 2026-09-27). The KJV was checked with `bible verse`; its supplied-word brackets are dropped for speech.
 
 Doctrine follows [the frame](../../../../../.claude/skills/film/frame/righteousness-by-faith.md): 1889 Principle XVIII, the third angel’s message in its own words, Christ now in the heavenly courts, Zech 3 with the accuser in the day of atonement, the Sabbath as rest by faith, and the latter rain.
 
@@ -18,7 +18,7 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
 ## `message`
 
-- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “a most precious message” quoted; “It turned their eyes back to Jesus” and “It was the third angel’s message” paraphrase it.
+- **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “a most precious message” quoted; “It was the third angel’s message” paraphrases it.
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
 
@@ -33,6 +33,31 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 - **Revelation 14:12** (KJV). “the commandments of God, and the faith of Jesus”, spoken as the message’s own words (frame: GNT 256.4).
 
   > Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus.
+
+- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). “God does not just call us righteous. He makes us righteous” paraphrases it; quoted in `declared`.
+
+  > People are not simply counted righteous, but actually made righteous, by the obedience of Christ, who is as righteous as He ever was, and who lives today in those who yield to Him.
+
+- **The three gifts.** The triad faith, forgiveness and power is the film’s own summary, spoken in its own voice and not as a quotation; no pioneer states it in one sentence. Each gift is sourced on its own:
+  - **Ephesians 2:8** (KJV). Faith, the gift of God.
+
+    > For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:
+
+  - **Acts 5:31** (KJV). Repentance and forgiveness, given.
+
+    > Him hath God exalted with his right hand to be a Prince and a Saviour, for to give repentance to Israel, and forgiveness of sins.
+
+  - **RH June 24, 1884, par. 4** · Ellen G. White, _Review and Herald, June 24, 1884 (later GW92 414.2, 1SM 353.2 with added commas)_ (1884). Supporting: forgiveness a gift.
+
+    > Repentance as well as forgiveness is the gift of God through Christ.
+
+  - **John 1:12** (KJV). Power to become.
+
+    > But as many as received him, to them gave he power to become the sons of God, even to them that believe on his name:
+
+- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). “And every day, we choose to keep receiving them”; quoted in `daily`.
+
+  > This is a daily matter. Each morning consecrate yourself to God for that day.
 
 ## `word`
 
@@ -65,10 +90,6 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 - **Isaiah 64:6** (KJV). Quoted.
 
   > But we are all as an unclean thing, and all our righteousnesses are as filthy rags; and we all do fade as a leaf; and our iniquities, like the wind, have taken us away.
-
-- **CHR 55.1** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “multiply evil all you like, it never adds up to one good deed”.
-
-  > Only evil can come from an evil heart, and multiplied evil cannot make one good deed
 
 - **RH March 8, 1881, par. 10** · Ellen G. White, _Review and Herald, March 8, 1881 (reprinted as FW 31.4)_ (1881). The law as a mirror; “you cannot wash your face with a mirror” is the narrator’s own picture of it.
 
@@ -106,27 +127,43 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.
 
+- **Ephesians 2:8** (KJV). “And even that faith is God’s gift”.
+
+  > For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:
+
+- **ST May 19, 1898, par. 14** · Ellen G. White, _Signs of the Times, May 19, 1898 (reprinted 6BC 1080.9)_ (1898). “And even that faith is God’s gift, the first of three.”
+
+  > Faith earns nothing for us; it is the gift of God, which we may receive and cherish by making Christ our personal Saviour.
+
 ## `declared`
 
 - **Romans 3:24** (KJV). “Paul says we are justified”.
 
   > Being justified freely by his grace through the redemption that is in Christ Jesus:
 
-- **LOF_ATJ 22.7** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, January 17, 1899, p. 40)_ (1899). “declared righteous”.
+- **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). Quoted: “People are not simply counted righteous, but actually made righteous.”
 
-  > Justification by faith is righteousness by faith, for justification is the being declared righteous.
+  > People are not simply counted righteous, but actually made righteous, by the obedience of Christ, who is as righteous as He ever was, and who lives today in those who yield to Him.
 
-- **GTI 14.2** · E. J. Waggoner, _The Glad Tidings_ (1900). Quoted.
-
-  > His word is substantial; it carries with it the thing which it names.
-
-- **LOF_ATJ 22.9** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, January 17, 1899, p. 40)_ (1899). “The voice that said, let there be light, speaks righteousness over a life.”
+- **LOF_ATJ 22.9** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, January 17, 1899, p. 40)_ (1899). “The voice that said, let there be light, speaks righteousness into a life”.
 
   > the same One who said, “Let there be light, and there was light,” … this same One speaks the righteousness of God unto and upon all that believe.
 
-- **GTI 77.1** · E. J. Waggoner, _The Glad Tidings_ (1900). “Justified means made righteous.”
+- **LOF_ATJ 23.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, January 1899)_ (1899). “into a life where there was none before”.
 
-  > The meaning of the word “justified” is “made righteous.”
+  > In man’s life there is no righteousness. … The word of God received by faith—that is, the word of God expected to do what that word says and depended upon to do what it says—produces righteousness in the man and in the life where there never was any before
+
+- **LOF_ATJ 24.1** · A. T. Jones, _Lessons on Faith (compiled; Review and Herald, January 1899)_ (1899). Supporting: Jones glosses “justified” as “made righteous” in Rom 5:1.
+
+  > “Therefore being justified [made righteous] by faith [by ex-pecting and depending upon the word of God only] we have peace with God through our Lord Jesus Christ.”
+
+- **GTI 77.1** · E. J. Waggoner, _The Glad Tidings_ (1900). Supporting: justified means made righteous, “which God does”.
+
+  > The meaning of the word “justified” is “made righteous.” … But since all have sinned, there are none just or righteous before God; therefore they need to be justified, or made righteous, which God does.
+
+- **CHR 58.1** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting: the publican went home made righteous (Luke 18:14).
+
+  > Christ says that he went justified; that is, made righteous.
 
 ## `exchange`
 
@@ -174,13 +211,25 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > the command is given, “Take away the filthy garments” from them, and the encouraging words are spoken, “Behold, I have caused thine iniquity to pass from thee, and I will clothe thee with change of raiment.”
 
-- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Quoted.
+- **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: “A robe from heaven’s loom, Ellen White said, with not one thread of our own.”
 
   > This robe, woven in the loom of heaven, has in it not one thread of human devising.
 
-- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “Christ does not give a cloak for sin… He takes it away.”
+- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “Christ does not give a cloak for sin… He takes it away.” (The corpus prints the page number 66 inside “And so we find”; the ellipsis marks that omission.)
 
-  > Notice in the above account that the taking away of the filthy garments is the same as causing the iniquity to pass from the person. And so we find that when Christ covers us with the robe of His own righteousness, He does not furnish a cloak for sin but takes the sin away.
+  > Notice in the above account that the taking away of the filthy garments is the same as causing the iniquity to pass from the person. … when Christ covers us with the robe of His own righteousness, He does not furnish a cloak for sin but takes the sin away.
+
+- **CHR 65.3** (same paragraph, later sentences). Supporting: forgiveness is “a reality”, “a radical change”.
+
+  > And this shows that the forgiveness of sins is something more than a mere form, something more than a mere entry in the books of record in heaven, to the effect that the sin has been canceled. The forgiveness of sins is a reality; it is something tangible, something that vitally affects the individual. It actually clears him from guilt, and if he is cleared from guilt, is justified, made righteous, he has certainly undergone a radical change.
+
+- **CHR 64.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting: not a cover-up; God removes the guilt.
+
+  > It is true that God will by no means clear the guilty. He could not do that and still be a just God. But He does something which is far better. He removes the guilt, so that the one formerly guilty does not need to be cleared—he is justified and counted as though he never had sinned.
+
+- **MB 114.1** · Ellen G. White, _Thoughts From the Mount of Blessing_ (1896). “God’s forgiveness is more than a judge’s ruling, she wrote” paraphrases the first sentence; the second is quoted.
+
+  > God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart.
 
 ## `look`
 
@@ -202,11 +251,73 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > … I will put my laws into their mind, and write them in their hearts: and I will be to them a God, and they shall be to me a people:
 
+- **John 1:12** (KJV). “the power actually to become them”.
+
+  > But as many as received him, to them gave he power to become the sons of God, even to them that believe on his name:
+
+- **PTUK May 9, 1895, page 290.12** · E. J. Waggoner, _“Our Inheritance”, The Present Truth 11, 19 (byline E. J. Waggoner)_ (1895). “Not just the right to be called God’s children, Waggoner said, but the power actually to become them.”
+
+  > Those who believe on the name of Christ have the privilege to become the sons of God. It is not simply the right to be called the sons, but the power actually to become sons.
+
 - **FP1889 150.6** · (unsigned; SDA Year Book 1889), _Fundamental Principles XVIII_ (1889). “we depend on Christ first to be justified from our past sins, then for grace to obey his law from now on.”
 
   > we are dependent on Christ, first, for justification from our past offenses, and, secondly, for grace whereby to render acceptable obedience to his holy law in time to come.
 
-- **GCDB March 8, 1897, page 303.7** · E. J. Waggoner, _“Studies in the Book of Hebrews. - No. 16” (Sunday afternoon, Feb. 28, 1897), General Conference Daily Bulletin, March 8, 1897 (byline at page 297; the corpus author field names the editor, A. T. Jones)_ (1897). “the Sabbath is righteousness by faith” quoted; “we stop our own works, and rest in his” with Hebrews 4:10.
+- **SC 18.1** · Ellen G. White, _Steps to Christ_ (1892). Supporting: the power from within.
+
+  > There must be a power working from within, a new life from above, before men can be changed from sin to holiness. That power is Christ.
+
+- **SC 51.1** · Ellen G. White, _Steps to Christ_ (1892). Supporting: God does the changing we cannot.
+
+  > You cannot atone for your past sins; you cannot change your heart and make yourself holy. But God promises to do all this for you through Christ. … If you believe the promise,—believe that you are forgiven and cleansed,—God supplies the fact; you are made whole, just as Christ gave the paralytic power to walk when the man believed that he was healed.
+
+- **SC 43.2** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). Supporting: an entire transformation.
+
+  > God desires to heal us, to set us free. But since this requires an entire transformation, a renewing of our whole nature, we must yield ourselves wholly to Him.
+
+## `daily`
+
+- **Revelation 21:27** (KJV). “God will not take a sinner at heart into his kingdom.”
+
+  > And there shall in no wise enter into it any thing that defileth, neither whatsoever worketh abomination, or maketh a lie: but they which are written in the Lamb’s book of life.
+
+- **CHR 55.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting the same line.
+
+  > The law of God is perfect righteousness, and perfect conformity to it is demanded of everyone who shall enter the kingdom of heaven.
+
+- **SC 17.2** · Ellen G. White, _Steps to Christ_ (1892). “Heaven would be no joy to a heart that still loves sin.”
+
+  > The sinner could not be happy in God’s presence; he would shrink from the companionship of holy beings. Could he be permitted to enter heaven, it would have no joy for him. … It is no arbitrary decree on the part of God that excludes the wicked from heaven; they are shut out by their own unfitness for its companionship.
+
+- **RH November 4, 1890, par. 4** · Ellen G. White, _Review and Herald, November 4, 1890 (reprinted 1SM 366.1, FW 100.1)_ (1890). Supporting “So how do I stay changed?”
+
+  > God requires the entire surrender of the heart, before justification can take place; and in order for man to retain justification, there must be continual obedience, through active, living faith that works by love and purifies the soul.
+
+- **Joshua 24:15** (KJV). The choice.
+
+  > And if it seem evil unto you to serve the LORD, choose you this day whom ye will serve; whether the gods which your fathers served that were on the other side of the flood, or the gods of the Amorites, in whose land ye dwell: but as for me and my house, we will serve the LORD.
+
+- **SC 47.1** · Ellen G. White, _Steps to Christ, ch. 5 “Consecration”_ (1892). “We cannot change our own hearts, Ellen White said, but we can choose to give God our will.”
+
+  > You cannot change your heart, you cannot of yourself give to God its affections; but you can choose to serve Him. You can give Him your will; He will then work in you to will and to do according to His good pleasure.
+
+- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). Quoted: “This is a daily matter.”
+
+  > This is a daily matter. Each morning consecrate yourself to God for that day.
+
+- **SC 48.1** · Ellen G. White, _Steps to Christ_ (1892). Supporting: constant surrender.
+
+  > thus through constant surrender to God you will be enabled to live the new life, even the life of faith.
+
+- **4LtMs, Ms 25, 1886, par. 4** · Ellen G. White, _Manuscript 25, 1886_ (1886). Supporting: sanctification the work of a lifetime (the earliest form; never the popular shorthand).
+
+  > Sanctification is not the work of a moment, but of a lifetime. It is not gained by a happy flight of feeling, but is the result of constantly dying to sin, and constantly believing and living to Christ
+
+- **AA 560.3** · Ellen G. White, _The Acts of the Apostles_ (1911). Supporting, the later form.
+
+  > Sanctification is not the work of a moment, an hour, a day, but of a lifetime.
+
+- **GCDB March 8, 1897, page 303.7** · E. J. Waggoner, _“Studies in the Book of Hebrews. - No. 16” (Sunday afternoon, Feb. 28, 1897), General Conference Daily Bulletin, March 8, 1897 (byline at page 297; the corpus author field names the editor, A. T. Jones)_ (1897). “the Sabbath is righteousness by faith”, now reported speech without quotation marks; “we stop our own works, and rest in his” with Hebrews 4:10.
 
   > for the Sabbath is righteousness by faith; for by it a man comes into God’s works, and those works are perfect. Therefore he gets rest by faith.
 
@@ -228,11 +339,27 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > The Lord in His great mercy sent a most precious message to His people through Elders Waggoner and Jones. … Many had lost sight of Jesus. They needed to have their eyes directed to His divine person, His merits, and His changeless love for the human family. … It is the third angel’s message, which is to be proclaimed with a loud voice, and attended with the outpouring of His Spirit in a large measure.
 
+- **CWCP 124.2** (a later clause of the same paragraph). Verified and held in reserve, not spoken: Jones’s own gloss on the blotting out.
+
+  > it is the finishing of all transgression in our lives; it is the making an end of all sins in our character
+
 ## `name`
 
 - **Job 9:2** (KJV). The opening question, answered.
 
   > I know it is so of a truth: but how should man be just with God?
+
+- **Ezekiel 36:26** (KJV). “and a new heart with it”.
+
+  > A new heart also will I give you, and a new spirit will I put within you: and I will take away the stony heart out of your flesh, and I will give you an heart of flesh.
+
+- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). “By taking God at his word, every day.”
+
+  > This is a daily matter. Each morning consecrate yourself to God for that day.
+
+- **PTUK March 21, 1895, page 177.12** · E. J. Waggoner, _“The Witness of Faith”, The Present Truth 11, 12 (byline E. J. Waggoner)_ (1895). “God never deals in make-believe. He makes it true.”
+
+  > We are made thus in Him by being created new, through the power of Him who is the Creator. Ephesians 2:10. Thus we are not simply “counted” righteous and perfect without being so, but are righteous in reality, by a new creation in Christ. God never deals with unrealities.
 
 ## `thesis`
 

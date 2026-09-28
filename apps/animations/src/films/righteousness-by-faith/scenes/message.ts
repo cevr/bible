@@ -1,13 +1,15 @@
 // The message: Minneapolis, 1888. A cardboard meeting hall in warm peach
 // light, two young preachers at the front, the congregation in rows before
 // them. On "reputation" the crowd splits: half hold small stone tablets up,
-// half look about for something missing. On "lost" every face turns to a gold
-// light rising behind the pulpit; the tablets stay up, the law is not dropped.
-// On "angel" the roof lifts off the diorama and the angel of Rev 14 flies in
-// with a banner that writes the third angel's message in its own words. On
-// "hand" a tablet and a cross meet in one gold emblem; on "three" the camera
-// pushes through it onto the parchment page, where the film's three icons
-// appear one by one: God declares, clothes and changes.
+// half look about for something missing. On the answer ("It was") every face
+// turns to a gold light rising behind the pulpit; the tablets stay up, the law
+// is not dropped. On "angel" the roof lifts off the diorama and the angel of
+// Rev 14 flies in with a banner that writes the third angel's message in its
+// own words. On "hand" a tablet and a cross meet in one gold emblem; on
+// "three" the camera pushes through it onto the parchment page, where the
+// film's three icons appear one by one: the three gifts, faith, forgiveness
+// and power. (The script's `makes`, `gifts` and `daily` shots are not drawn
+// yet.)
 
 import {
   type Camera,
@@ -80,18 +82,18 @@ const timeline = {
   split: { mark: 'rep', offset: 0.5, dur: 0.8, ease: 'outBack' },
   precious: { mark: 'precious', dur: 0.9 },
   curious: { mark: 'what', dur: 0.4 },
-  light: { mark: 'lost', offset: -0.2, dur: 1.4 },
-  turn: { mark: 'lost', dur: 0.6 },
-  toPulpit: { mark: 'lost', offset: 0.2, dur: 1.6, ease: 'inOutSine' },
+  light: { mark: 'answer', offset: -0.2, dur: 1.4 },
+  turn: { mark: 'answer', dur: 0.6 },
+  toPulpit: { mark: 'answer', offset: 0.2, dur: 1.6, ease: 'inOutSine' },
   roof: { mark: 'angel', dur: 1.1, ease: 'inCubic' },
   fly: { mark: 'angel', offset: 0.4, dur: 1.5, ease: 'outCubic' },
   flyOut: { mark: 'hand', offset: -0.2, dur: 0.9, ease: 'inCubic' },
   meet: { mark: 'hand', offset: 0.2, dur: 0.9, ease: 'outCubic' },
   golden: { after: 'meet', dur: 0.6 },
   through: { mark: 'three', offset: -0.1, dur: 0.6, ease: 'inCubic' },
-  declares: { mark: 'declares', offset: -0.15, dur: 0.45, ease: 'outBack' },
-  clothes: { mark: 'clothes', offset: -0.15, dur: 0.45, ease: 'outBack' },
-  changes: { mark: 'changes', offset: -0.15, dur: 0.45, ease: 'outBack' },
+  faith: { mark: 'faith', offset: -0.15, dur: 0.45, ease: 'outBack' },
+  forgiveness: { mark: 'forgiveness', offset: -0.15, dur: 0.45, ease: 'outBack' },
+  power: { mark: 'power', offset: -0.15, dur: 0.45, ease: 'outBack' },
 } as const;
 const knobs = { angelAt: [1620, 330], emblem: [960, 190] } as const;
 
@@ -171,7 +173,7 @@ export const message = drawing({
       ctx.globalAlpha *= through;
       ctx.fillStyle = C.paper;
       ctx.fillRect(0, 0, w, h);
-      const pops = [f.at('declares'), f.at('clothes'), f.at('changes')] as const;
+      const pops = [f.at('faith'), f.at('forgiveness'), f.at('power')] as const;
       at(ctx, { x: 960, y: 540 }, () => icons(ctx, f.hand, pops, pops));
       ctx.restore();
     }
