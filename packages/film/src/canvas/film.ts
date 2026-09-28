@@ -2,7 +2,7 @@
 // drawing; the film lays them end to end, sizes each to its voice, and draws
 // any instant T — the same function serves the preview player and the export.
 
-import { Predicate } from 'effect';
+import { Predicate, Schema } from 'effect';
 import type { Hand } from './ink.ts';
 import type { Affine } from '../core/affine.ts';
 import { captionCues } from '../core/captions.ts';
@@ -26,7 +26,15 @@ import type {
   Word,
 } from '../core/schema.ts';
 import { cueKeys, cueProgress, resolveTimeline, staggerProgress } from '../core/timeline.ts';
-import { type PaperStyle, grain, makeGrain, makePaper, vignette } from './paper.ts';
+import {
+  type Offscreen,
+  type PaperStyle,
+  grain,
+  makeGrain,
+  makePaper,
+  offscreen,
+  vignette,
+} from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { type Key, clamp, ease } from '../core/time.ts';
@@ -122,11 +130,50 @@ export const drawing = <const T extends Timeline, const K extends Knobs = NoKnob
   },
 ) => d;
 
-export interface CaptionStyle {
-  readonly font: string;
-  readonly color: string;
-  readonly plate: string;
-}
+/** An opacity or strength the canvas draws: 0..1. */
+const Unit = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }));
+/** A length in px the canvas draws: finite, not negative. */
+const Length = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+/** A count or a tile side: a whole number, at least 1. */
+const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
+
+/**
+ * The captions' look. The plate fields are checked where the film is made
+ * (`createFilm`), so a plate the canvas cannot draw never reaches a frame.
+ */
+export const CaptionStyle = Schema.Struct({
+  font: Schema.String,
+  color: Schema.String,
+  /** The plate's colour. */
+  plate: Schema.String,
+  /** How opaque the plate shows, 0..1. Defaults to 0.82. */
+  plateOpacity: Schema.optionalKey(Unit),
+  /** The plate's height in px. Defaults to 60. */
+  plateHeight: Schema.optionalKey(Length),
+  /** Space either side of the line inside the plate, in px. Defaults to 26. */
+  platePadding: Schema.optionalKey(Length),
+  /** The plate's corner radius in px. Defaults to 12. */
+  plateRadius: Schema.optionalKey(Length),
+  /** How far above the frame's bottom edge the line's centre sits, in px. Defaults to 86. */
+  bottom: Schema.optionalKey(Schema.Finite),
+});
+export type CaptionStyle = typeof CaptionStyle.Type;
+
+/**
+ * The finish laid over every frame, after the scenes: a vignette and film
+ * grain. Checked where the film is made (`createFilm`).
+ */
+export const FinishStyle = Schema.Struct({
+  /** How strongly the vignette darkens the edges toward `shade`, 0..1. Defaults to 0.28. */
+  vignette: Schema.optionalKey(Unit),
+  /** How strongly the film grain overlays the frame, 0..1. Defaults to 0.09. */
+  grain: Schema.optionalKey(Unit),
+  /** A grain tile's side in whole px, at least 1. Defaults to 256. */
+  grainSize: Schema.optionalKey(Count),
+  /** How many grain tiles cycle on the boil tick, at least 1. Defaults to 6. */
+  grainTiles: Schema.optionalKey(Count),
+});
+export type FinishStyle = typeof FinishStyle.Type;
 
 export interface FilmSpec {
   readonly title: string;
@@ -134,7 +181,10 @@ export interface FilmSpec {
   readonly height?: number;
   readonly fps?: number;
   readonly paper: PaperStyle;
+  /** The vignette's colour, and an ink transition's when it names none. */
   readonly shade: string;
+  /** The vignette and grain over every frame. */
+  readonly finish?: FinishStyle;
   readonly scenes: ReadonlyArray<SceneSpec>;
   readonly timings?: Timings;
   readonly captions?: CaptionStyle;
@@ -217,13 +267,36 @@ export interface Film {
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
 
-const offscreen = (w: number, h: number) => {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d');
-  if (ctx === null) throw new Error('2d context unavailable');
-  return { c, ctx };
+/**
+ * A film's finish, checked (a `SchemaError` naming the field when the canvas
+ * could not draw it), each value it leaves out at its default.
+ */
+const finishOf = (declared: FinishStyle = {}): Required<FinishStyle> => {
+  const f = Schema.decodeSync(FinishStyle)(declared);
+  return {
+    vignette: f.vignette ?? 0.28,
+    grain: f.grain ?? 0.09,
+    grainSize: f.grainSize ?? 256,
+    grainTiles: f.grainTiles ?? 6,
+  };
+};
+
+/**
+ * A film's caption style, checked (a `SchemaError` naming the field when the
+ * canvas could not draw it), each plate value it leaves out at its default.
+ */
+const captionOf = (declared: CaptionStyle): Required<CaptionStyle> => {
+  const c = Schema.decodeSync(CaptionStyle)(declared);
+  return {
+    font: c.font,
+    color: c.color,
+    plate: c.plate,
+    plateOpacity: c.plateOpacity ?? 0.82,
+    plateHeight: c.plateHeight ?? 60,
+    platePadding: c.platePadding ?? 26,
+    plateRadius: c.plateRadius ?? 12,
+    bottom: c.bottom ?? 86,
+  };
 };
 
 export const createFilm = (spec: FilmSpec): Film => {
@@ -234,20 +307,22 @@ export const createFilm = (spec: FilmSpec): Film => {
   const last = placed[placed.length - 1];
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = everyTakeRecorded(placed);
+  const finish = finishOf(spec.finish);
+  const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:
     | {
         paper: HTMLCanvasElement;
         grain: HTMLCanvasElement[];
-        a: ReturnType<typeof offscreen>;
-        b: ReturnType<typeof offscreen>;
+        a: Offscreen;
+        b: Offscreen;
       }
     | undefined;
   const getAssets = () =>
     (assets ??= {
       paper: makePaper(width, height, spec.paper),
-      grain: makeGrain(256, 6, spec.paper.seed + 99),
+      grain: makeGrain(finish.grainSize, finish.grainTiles, spec.paper.seed + 99),
       a: offscreen(width, height),
       b: offscreen(width, height),
     });
@@ -374,7 +449,7 @@ export const createFilm = (spec: FilmSpec): Film => {
 
   /** Paper plus one scene, into a layer. */
   const layer = (
-    target: ReturnType<typeof offscreen>,
+    target: Offscreen,
     p: Placed<SceneSpec>,
     T: number,
     boil: number,
@@ -451,10 +526,10 @@ export const createFilm = (spec: FilmSpec): Film => {
       }
     }
 
-    vignette(ctx, width, height, spec.shade, 0.28);
-    grain(ctx, getAssets().grain, boil, width, height, 0.09);
-    if (opts.captions === true && spec.captions !== undefined) {
-      const style = spec.captions;
+    vignette(ctx, width, height, spec.shade, finish.vignette);
+    grain(ctx, getAssets().grain, boil, width, height, finish.grain);
+    if (opts.captions === true && captions !== undefined) {
+      const style = captions;
       probing(ctx, probe(cur, 0, 1), () => caption(ctx, cur, local, width, height, style));
     }
     ctx.restore();
@@ -521,7 +596,7 @@ const caption = (
   local: number,
   w: number,
   h: number,
-  style: CaptionStyle,
+  style: Required<CaptionStyle>,
 ) => {
   const t = local - p.speechStart;
   const line = captionCues(p.voice.words, p.voice.turns).find((c) => t >= c.start && t < c.end);
@@ -532,11 +607,14 @@ const caption = (
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const tw = ctx.measureText(text).width;
-  const y = h - 86;
-  ctx.globalAlpha = 0.82;
+  const y = h - style.bottom;
+  const left = w / 2 - tw / 2 - style.platePadding;
+  const top = y - style.plateHeight / 2;
+  const pw = tw + 2 * style.platePadding;
+  ctx.globalAlpha = style.plateOpacity;
   ctx.fillStyle = style.plate;
   ctx.beginPath();
-  ctx.roundRect(w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 12);
+  ctx.roundRect(left, top, pw, style.plateHeight, style.plateRadius);
   ctx.fill();
   ctx.globalAlpha = 1;
   ctx.fillStyle = style.color;
@@ -544,8 +622,8 @@ const caption = (
   // The plate hides whatever is under it, so the check measures the plate.
   const probe = probeOf(ctx);
   if (probe !== undefined) {
-    recordPlate(ctx, probe, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
-    recordText(ctx, probe, text, w / 2 - tw / 2 - 26, y - 30, tw + 52, 60, 0.82);
+    recordPlate(ctx, probe, left, top, pw, style.plateHeight, style.plateOpacity);
+    recordText(ctx, probe, text, left, top, pw, style.plateHeight, style.plateOpacity);
   }
   ctx.restore();
 };

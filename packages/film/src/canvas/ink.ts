@@ -2,7 +2,8 @@
 // wobble with noise keyed to `boil` — a counter that ticks at 12 fps, so lines
 // "boil" like hand-inked animation on twos while motion stays smooth at 30 fps.
 
-import { probeOf, recordInk, unprobed } from './probe.ts';
+import { type Vec2, vec2 } from 'math';
+import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
 import { clamp, lerp } from '../core/time.ts';
 
@@ -164,60 +165,10 @@ export const rectShape = (x: number, y: number, w: number, h: number): Pt[] => [
   [x, y + h],
 ];
 
-/** Four slightly overshooting strokes, like a rectangle drawn by hand. */
-export const rectStrokes = (x: number, y: number, w: number, h: number, seed = 0): Pt[][] => {
-  const o = Math.min(w, h) * 0.04;
-  const j = (k: number) => (hash2(seed, k) * 2 - 1) * o;
-  return [
-    line([x - o + j(1), y + j(2)], [x + w + o + j(3), y + j(4)], 0.01, seed + 1),
-    line([x + w + j(5), y - o + j(6)], [x + w + j(7), y + h + o + j(8)], 0.01, seed + 2),
-    line([x + w + o + j(9), y + h + j(10)], [x - o + j(11), y + h + j(12)], 0.01, seed + 3),
-    line([x + j(13), y + h + o + j(14)], [x + j(15), y - o + j(16)], 0.01, seed + 4),
-  ];
-};
-
-export const translate = (path: Path, dx: number, dy: number): Pt[] =>
-  path.map(([x, y]) => [x + dx, y + dy]);
-
-export const scale = (path: Path, s: number, ox = 0, oy = 0): Pt[] =>
-  path.map(([x, y]) => [ox + (x - ox) * s, oy + (y - oy) * s]);
-
-export const rotate = (path: Path, angle: number, ox = 0, oy = 0): Pt[] => {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  return path.map(([x, y]) => {
-    const dx = x - ox;
-    const dy = y - oy;
-    return [ox + dx * c - dy * s, oy + dx * s + dy * c];
-  });
-};
-
-/** Linear blend between two paths of equal point count (resample first). */
-export const morph = (a: Path, b: Path, t: number): Pt[] => {
-  const n = Math.max(a.length, b.length);
-  const ra = a.length === n ? a : resampleCount(a, n);
-  const rb = b.length === n ? b : resampleCount(b, n);
-  const out: Pt[] = [];
-  for (let i = 0; i < n; i++) {
-    const p = ra[i] ?? [0, 0];
-    const q = rb[i] ?? [0, 0];
-    out.push([lerp(p[0], q[0], t), lerp(p[1], q[1], t)]);
-  }
-  return out;
-};
-
-/** Resample to exactly `n` points. */
-export const resampleCount = (path: Path, n: number): Pt[] => {
-  const total = length(path);
-  if (total === 0 || n < 2) return [...path];
-  const r = resample(path, total / (n - 1));
-  while (r.length > n) r.pop();
-  const last = path[path.length - 1];
-  if (last !== undefined) while (r.length < n) r.push(last);
-  return r;
-};
-
 // ─── wobble ──────────────────────────────────────────────────────────────────
+
+/** Scratch for the unit normal at each point, written and read within one step. */
+const normal: Vec2 = [0, 0];
 
 export interface Hand {
   /** 12 fps tick; lines re-jitter every tick. */
@@ -236,11 +187,11 @@ const wobble = (pts: ReadonlyArray<Pt>, amp: number, freq: number, hand: Hand): 
     const prev = pts[i - 1] ?? p;
     const next = pts[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    let nx = -(next[1] - prev[1]);
-    let ny = next[0] - prev[0];
-    const nl = Math.hypot(nx, ny) || 1;
-    nx /= nl;
-    ny /= nl;
+    normal[0] = -(next[1] - prev[1]);
+    normal[1] = next[0] - prev[0];
+    vec2.normalize(normal, normal);
+    const nx = normal[0];
+    const ny = normal[1];
     const d = amp * noise1(s * freq + phase, hand.seed);
     out.push([p[0] + nx * d, p[1] + ny * d]);
   }
@@ -300,11 +251,11 @@ export const stroke = (
     const prev = drawn[i - 1] ?? p;
     const next = drawn[i + 1] ?? p;
     if (i > 0) s += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    let nx = -(next[1] - prev[1]);
-    let ny = next[0] - prev[0];
-    const nl = Math.hypot(nx, ny) || 1;
-    nx /= nl;
-    ny /= nl;
+    normal[0] = -(next[1] - prev[1]);
+    normal[1] = next[0] - prev[0];
+    vec2.normalize(normal, normal);
+    const nx = normal[0];
+    const ny = normal[1];
     // Taper the tail against the full stroke, and the head against what has
     // been drawn so far — a growing stroke always has a pointed brush tip.
     const tail = taperCurve(s / (total * taper || 1));
@@ -378,98 +329,4 @@ export const trim = (pts: Path, len: number): Pt[] => {
     out.push(b);
   }
   return out;
-};
-
-// ─── fills ───────────────────────────────────────────────────────────────────
-
-export interface FillStyle {
-  color: string;
-  alpha?: number;
-  /** Edge wobble in px. */
-  jitter?: number;
-  /** Offset from the line art, like a print slightly out of register. */
-  offset?: Pt;
-}
-
-/** A flat fill with a boiling edge. */
-export const fill = (ctx: CanvasRenderingContext2D, shape: Path, style: FillStyle, hand: Hand) => {
-  if (shape.length < 3) return;
-  const closed = [...shape, shape[0] ?? [0, 0]];
-  const pts = wobble(resample(closed, 6), style.jitter ?? 1.4, 0.008, hand);
-  const [ox, oy] = style.offset ?? [0, 0];
-  ctx.save();
-  ctx.globalAlpha *= style.alpha ?? 1;
-  ctx.fillStyle = style.color;
-  ctx.beginPath();
-  pts.forEach((p, i) =>
-    i === 0 ? ctx.moveTo(p[0] + ox, p[1] + oy) : ctx.lineTo(p[0] + ox, p[1] + oy),
-  );
-  ctx.closePath();
-  ctx.fill();
-  const probe = probeOf(ctx);
-  if (probe !== undefined)
-    recordInk(ctx, probe, 'fill', translate(shape, ox, oy), 0, ctx.globalAlpha);
-  ctx.restore();
-};
-
-/** Parallel hatching clipped to a shape — shade, shadow, stain. */
-export const hatch = (
-  ctx: CanvasRenderingContext2D,
-  shape: Path,
-  style: {
-    color: string;
-    width?: number;
-    spacing?: number;
-    angle?: number;
-    progress?: number;
-    alpha?: number;
-  },
-  hand: Hand,
-) => {
-  if (shape.length < 3) return;
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const [x, y] of shape) {
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-  }
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const r = Math.hypot(maxX - minX, maxY - minY) / 2;
-  const angle = style.angle ?? -Math.PI / 4;
-  const spacing = style.spacing ?? 10;
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  ctx.save();
-  ctx.beginPath();
-  shape.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
-  ctx.closePath();
-  ctx.clip();
-  const count = Math.ceil((2 * r) / spacing);
-  const shown = Math.round(count * clamp(style.progress ?? 1));
-  // Clipped to the shape: a hatch line's path runs past where its ink shows, so it is not probed.
-  unprobed(ctx, () => {
-    for (let i = 0; i < shown; i++) {
-      const d = -r + i * spacing;
-      const a: Pt = [cx + -s * d - c * r, cy + c * d - s * r];
-      const b: Pt = [cx + -s * d + c * r, cy + c * d + s * r];
-      stroke(
-        ctx,
-        line(a, b, 0.01, hand.seed + i),
-        {
-          color: style.color,
-          width: style.width ?? 2,
-          jitter: 0.8,
-          alpha: style.alpha ?? 1,
-          taper: 0.1,
-        },
-        { boil: hand.boil, seed: hand.seed + i * 13 },
-      );
-    }
-  });
-  ctx.restore();
 };

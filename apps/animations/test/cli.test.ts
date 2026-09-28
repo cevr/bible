@@ -76,4 +76,43 @@ describe('film cli', () => {
       unknownTypo(run.out);
     }),
   );
+
+  it.effect.layer(BunServices.layer)('narrate --only with a misspelt beat fails', () =>
+    Effect.gen(function* () {
+      const run = yield* cli('narrate', film, '--only', '1888,typo', '--dry-run');
+      expect(run.exitCode).not.toBe(0);
+      unknownTypo(run.out);
+    }),
+  );
+
+  it.effect.layer(BunServices.layer)('score --only with a misspelt sound fails', () =>
+    Effect.gen(function* () {
+      const run = yield* cli('score', film, '--only', 'musik', '--dry-run');
+      expect(run.exitCode).not.toBe(0);
+      expect(run.out).toContain('UnknownEffect');
+      expect(run.out).toContain('"musik"');
+      // The message lists what the film does have.
+      expect(run.out).toContain('music');
+    }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'render flags that would be ignored fail before a browser opens',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli(
+          'render',
+          film,
+          '--stills',
+          '3',
+          '--scene',
+          '1888',
+          '--tag',
+          'p1-t5',
+        );
+        expect(run.exitCode).not.toBe(0);
+        expect(run.out).toContain('FlagsConflict');
+        expect(run.out).not.toContain('render.still');
+      }),
+  );
 });

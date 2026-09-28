@@ -92,10 +92,9 @@ export const multiplane = (
     raised(ctx, plane.lift ?? 1, () => camera(ctx, view, w, h, plane.draw));
     ctx.restore();
     // Haze over everything so far, as thick as the air between this plane
-    // and the next nearer one.
-    const next = ordered[i + 1];
-    const veil =
-      next === undefined ? 0 : 1 - clearance(z, thickness) / clearance(next.z, thickness);
+    // and the next nearer one, or the focal plane after the nearest.
+    const nearer = ordered[i + 1]?.z ?? 1;
+    const veil = 1 - clearance(z, thickness) / clearance(nearer, thickness);
     if (depth.haze !== undefined && veil > 1e-3) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);

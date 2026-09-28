@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
+import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
 import { type Plane, multiplane } from './camera.ts';
 
@@ -17,14 +18,8 @@ interface Recorder {
   readonly filters: Map<string, string>;
 }
 
-const times = (m: Affine, n: Affine): Affine => [
-  m[0] * n[0] + m[2] * n[1],
-  m[1] * n[0] + m[3] * n[1],
-  m[0] * n[2] + m[2] * n[3],
-  m[1] * n[2] + m[3] * n[3],
-  m[0] * n[4] + m[2] * n[5] + m[4],
-  m[1] * n[4] + m[3] * n[5] + m[5],
-];
+/** `m` then `n`, as the canvas composes a transform onto the current one. */
+const times = (m: Affine, n: Mat2d): Mat2d => mat2d.multiply(mat2d.create(), [...m], n);
 
 const recorder = (): Recorder => {
   let state = { m: IDENTITY, alpha: 1, filter: 'none' };
@@ -141,6 +136,16 @@ describe('multiplane', () => {
     const through = r.veils.reduce((t, v) => t * (1 - v), 1);
     expect(through).toBeCloseTo(Math.exp(-1));
     expect(r.veils).toHaveLength(2);
+  });
+
+  test('hazes the nearest plane too when it stands beyond the focal plane', () => {
+    const r = recorder();
+    shoot(r, { x: 960, y: 540 }, { a: 3, b: 2 }, [0, 0], { haze: '#fff', thickness: 0.5 });
+    // Nothing stands at z 1, yet the air from z 3 to 1 still lies over a,
+    // and the air from z 2 to 1 over b: one unit past the focal plane shows 1 - e^-0.5.
+    const through = r.veils.reduce((t, v) => t * (1 - v), 1);
+    expect(through).toBeCloseTo(Math.exp(-1));
+    expect(r.veils.at(-1)).toBeCloseTo(1 - Math.exp(-0.5));
   });
 
   test('softens planes off the focal plane only', () => {
