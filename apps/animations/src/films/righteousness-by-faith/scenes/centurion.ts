@@ -5,16 +5,30 @@
 // the rooftops like a paper plane to a house far off, where the servant in
 // bed sits up. Close on the servant's face, well. Then a cut back to the
 // soldier, holding out an open hand, and the word settles into it while the
-// definition of faith is read, held in one shot.
+// definition of faith is read, held in one shot until `gift`. On `gift` the
+// frame pulls back from the gold word, now the word-bubble icon, to the three
+// icons in a row, and on "faith" the word-bubble lights: the first gift.
 
-import { type Camera, type Pt, at, drawing, multiplane, rectShape, sub } from '@bible/film/canvas';
+import {
+  type Camera,
+  type Frame,
+  type Pt,
+  at,
+  drawing,
+  multiplane,
+  rectShape,
+  sub,
+} from '@bible/film/canvas';
 import { clamp, ease, lerp, rng } from '@bible/film/core';
 import {
+  type Hands,
   type HeadPiece,
   C,
+  ICON_X,
   christ,
   contact,
   glow,
+  icons,
   person,
   piece,
   rounded,
@@ -94,240 +108,278 @@ const helmet: HeadPiece = (ctx, [cx, cy], _r, hand, hands) => {
   });
 };
 
+const timeline = {
+  worry: { mark: 'servant', dur: 0.5 },
+  offer: { mark: 'offer', dur: 0.7 },
+  push: { mark: 'only', offset: -0.2, dur: 0.9 },
+  stop: { mark: 'only', offset: 0.25, dur: 0.4, ease: 'outBack' },
+  pullOut: { mark: 'only', offset: 2.3, dur: 1.1 },
+  fly: { mark: 'healed', offset: -1.75, dur: 1.7, ease: 'inOutSine' },
+  sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
+  toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
+  handShot: { mark: 'exactly', offset: -0.2, dur: 1.2, ease: 'outCubic' },
+  open: { mark: 'def', dur: 0.6 },
+  settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
+  hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
+  toIcons: { mark: 'gift', offset: -0.1, dur: 0.3 },
+  pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
+  faithLit: { mark: 'gift', offset: 1.1, dur: 0.6 },
+} as const;
+
+type CenturionFrame = Frame<keyof typeof timeline & string>;
+
+/** How close the pull back starts: on the gold word-bubble, faith's icon, filling the frame. */
+const ICONS_CLOSE = 2.3;
+
 export const centurion = drawing({
-  timeline: {
-    worry: { mark: 'servant', dur: 0.5 },
-    offer: { mark: 'offer', dur: 0.7 },
-    push: { mark: 'only', offset: -0.2, dur: 0.9 },
-    stop: { mark: 'only', offset: 0.25, dur: 0.4, ease: 'outBack' },
-    pullOut: { mark: 'only', offset: 2.3, dur: 1.1 },
-    fly: { mark: 'healed', offset: -1.75, dur: 1.7, ease: 'inOutSine' },
-    sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
-    toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
-    handShot: { mark: 'exactly', offset: -0.2, dur: 1.2, ease: 'outCubic' },
-    open: { mark: 'def', dur: 0.6 },
-    settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
-    hold: { mark: 'faith', offset: 0.7, dur: 5.5, ease: 'linear' },
-  },
+  timeline,
   draw: (f) => {
-    const { ctx, w, h, t } = f;
+    const { ctx, w, h } = f;
     const hand = (k: string) => f.hand(k);
+    const toIcons = f.at('toIcons');
+    if (toIcons < 1) street(f, hand);
 
-    const shot = f.cue('handShot');
-    const inHand = t >= shot.start;
-    const cam = inHand
-      ? {
-          x: HANDSHOT.x,
-          y: HANDSHOT.y,
-          zoom: lerp(2.05, HANDSHOT.zoom ?? 1, f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
-        }
-      : between(
-          between(between(STREET, FACE, f.at('push')), TOWN, f.at('pullOut')),
-          WINDOW,
-          f.at('toWindow'),
-        );
-
-    sky(ctx, w, h, [
-      [0, C.tealTop],
-      [0.55, C.tealMid],
-      [1, C.peachLow],
-    ]);
-    glow(ctx, 1500, 160, 600, C.glow, 0.6);
-
-    const sit = f.at('sit');
-    const worry = f.at('worry') * (1 - f.at('stop'));
-    const stop = f.at('stop') * (1 - f.at('pullOut'));
-    const open = f.at('open');
-    const offer = f.at('offer') * (1 - f.at('push'));
-    const flyPath = arc([JESUS[0] - 40, 600], [ROOM.x - 120, ROOM.y - 30], 520);
-
-    multiplane(
-      ctx,
-      cam,
-      w,
-      h,
-      [
+    // Pull back from the gold word to the three icons; faith's lights.
+    if (toIcons > 0) {
+      const pull = f.at('pullBack');
+      ctx.save();
+      ctx.globalAlpha *= toIcons;
+      sky(ctx, w, h, [
+        [0, C.glow],
+        [1, C.peachLow],
+      ]);
+      at(
+        ctx,
         {
-          // The far roofs of the town.
-          z: 1.8,
-          draw: () =>
-            FAR.forEach((b, i) =>
-              piece(
-                ctx,
-                rectShape(b.x - b.w / 2, b.top, b.w, 1300 - b.top),
-                C.boardShade,
-                sub(hand('far'), i),
-                {
-                  line: 0,
-                  torn: 3,
-                  shadow: 0.4,
-                },
-              ),
+          x: lerp(960 - ICON_X[0] * ICONS_CLOSE, 960, pull),
+          y: 540,
+          scale: lerp(ICONS_CLOSE, 1, pull),
+        },
+        () => icons(ctx, hand, [f.at('faithLit'), 0, 0]),
+      );
+      ctx.restore();
+    }
+  },
+});
+
+/** The street, the town and the servant's house, up to the word held in the soldier's hand. */
+const street = (f: CenturionFrame, hand: Hands) => {
+  const { ctx, w, h, t } = f;
+
+  const shot = f.cue('handShot');
+  const inHand = t >= shot.start;
+  const cam = inHand
+    ? {
+        x: HANDSHOT.x,
+        y: HANDSHOT.y,
+        zoom: lerp(2.05, HANDSHOT.zoom ?? 1, f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
+      }
+    : between(
+        between(between(STREET, FACE, f.at('push')), TOWN, f.at('pullOut')),
+        WINDOW,
+        f.at('toWindow'),
+      );
+
+  sky(ctx, w, h, [
+    [0, C.tealTop],
+    [0.55, C.tealMid],
+    [1, C.peachLow],
+  ]);
+  glow(ctx, 1500, 160, 600, C.glow, 0.6);
+
+  const sit = f.at('sit');
+  const worry = f.at('worry') * (1 - f.at('stop'));
+  const stop = f.at('stop') * (1 - f.at('pullOut'));
+  const open = f.at('open');
+  const offer = f.at('offer') * (1 - f.at('push'));
+  const flyPath = arc([JESUS[0] - 40, 600], [ROOM.x - 120, ROOM.y - 30], 520);
+
+  multiplane(
+    ctx,
+    cam,
+    w,
+    h,
+    [
+      {
+        // The far roofs of the town.
+        z: 1.8,
+        draw: () =>
+          FAR.forEach((b, i) =>
+            piece(
+              ctx,
+              rectShape(b.x - b.w / 2, b.top, b.w, 1300 - b.top),
+              C.boardShade,
+              sub(hand('far'), i),
+              {
+                line: 0,
+                torn: 3,
+                shadow: 0.4,
+              },
             ),
-        },
-        {
-          // The street's houses, their windows lit or dark.
-          z: 1.3,
-          draw: () =>
-            NEAR.forEach((b, i) => {
-              piece(
-                ctx,
-                rectShape(b.x - b.w / 2, b.top, b.w, 1200 - b.top),
-                C.boardLight,
-                sub(hand('near'), i),
-                {
-                  line: 0,
-                  torn: 3,
-                  shadow: 0.5,
-                },
-              );
-              piece(
-                ctx,
-                rounded(b.x, b.top + 90, 50, 64, 22),
-                b.lit ? C.glow : C.boardDeep,
-                sub(hand('nw'), i),
-                {
-                  line: 0,
-                  torn: 1.4,
-                  shadow: 0.2,
-                },
-              );
-            }),
-        },
-        {
-          z: 1,
-          lift: 1.3,
-          draw: () => {
-            // The street.
-            piece(ctx, rectShape(-2600, 950, 5400, 600), C.board, hand('street'), {
-              line: 0,
-              torn: 4,
-            });
-
-            // The servant's house, open to show the room.
-            piece(ctx, rectShape(HOUSE_X - 330, 520, 660, 440), C.boardLight, hand('house'), {
-              line: 3,
-              torn: 2,
-            });
-            piece(ctx, rectShape(HOUSE_X - 360, 500, 720, 40), C.boardDeep, hand('roof'), {
-              line: 3,
-            });
-            const room = rounded(ROOM.x, ROOM.y, ROOM.w, ROOM.h, 16);
-            piece(ctx, room, C.peachLow, hand('room'), { line: 4, shadow: 0 });
-            ctx.save();
-            ctx.beginPath();
-            room.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
-            ctx.closePath();
-            ctx.clip();
-            glow(ctx, ROOM.x - 100, ROOM.y - 40, 300, C.glow, sit);
-            piece(ctx, rounded(HOUSE_X, 905, 340, 44, 10), C.boardDeep, hand('bed'), { line: 3 });
-            piece(ctx, rounded(HOUSE_X - 140, 868, 80, 30, 12), C.cream, hand('pillow'), {
-              line: 2.5,
-            });
-            at(ctx, { x: HIP[0], y: HIP[1], rot: lerp(-Math.PI / 2 + 0.05, -0.06, sit) }, () =>
-              at(ctx, { x: 0, y: 60 * 1.4, scale: 1.4 }, () =>
-                person(
-                  ctx,
-                  {
-                    skin: sit > 0.3 ? C.figure : C.figureShade,
-                    body: C.figure,
-                    look: [lerp(-1, 3, sit), lerp(2, -3, sit)],
-                    browL: 3 * sit,
-                    browR: 3 * sit,
-                    browTilt: lerp(0.5, 0.3, sit),
-                    eyes: sit,
-                    smile: sit,
-                    mouth: 0.5 * sit * (1 - f.at('toWindow')) + 0.3 * f.at('toWindow'),
-                  },
-                  hand('servant'),
-                ),
-              ),
+          ),
+      },
+      {
+        // The street's houses, their windows lit or dark.
+        z: 1.3,
+        draw: () =>
+          NEAR.forEach((b, i) => {
+            piece(
+              ctx,
+              rectShape(b.x - b.w / 2, b.top, b.w, 1200 - b.top),
+              C.boardLight,
+              sub(hand('near'), i),
+              {
+                line: 0,
+                torn: 3,
+                shadow: 0.5,
+              },
             );
-            piece(ctx, rounded(HOUSE_X + 60, 890, 240, 44, 14), C.cream, hand('blanket'), {
-              line: 3,
-            });
-            ctx.restore();
+            piece(
+              ctx,
+              rounded(b.x, b.top + 90, 50, 64, 22),
+              b.lit ? C.glow : C.boardDeep,
+              sub(hand('nw'), i),
+              {
+                line: 0,
+                torn: 1.4,
+                shadow: 0.2,
+              },
+            );
+          }),
+      },
+      {
+        z: 1,
+        lift: 1.3,
+        draw: () => {
+          // The street.
+          piece(ctx, rectShape(-2600, 950, 5400, 600), C.board, hand('street'), {
+            line: 0,
+            torn: 4,
+          });
 
-            // The soldier, his cape behind him.
-            contact(ctx, SOLDIER[0], SOLDIER[1] + 4, 200);
-            at(ctx, { x: SOLDIER[0], y: SOLDIER[1], scale: S }, () => {
-              piece(
-                ctx,
-                [
-                  [-40, -122],
-                  [40, -122],
-                  [62, -6],
-                  [-62, -6],
-                ],
-                C.sunsetLow,
-                hand('cape'),
-                { line: 3 },
-              );
+          // The servant's house, open to show the room.
+          piece(ctx, rectShape(HOUSE_X - 330, 520, 660, 440), C.boardLight, hand('house'), {
+            line: 3,
+            torn: 2,
+          });
+          piece(ctx, rectShape(HOUSE_X - 360, 500, 720, 40), C.boardDeep, hand('roof'), {
+            line: 3,
+          });
+          const room = rounded(ROOM.x, ROOM.y, ROOM.w, ROOM.h, 16);
+          piece(ctx, room, C.peachLow, hand('room'), { line: 4, shadow: 0 });
+          ctx.save();
+          ctx.beginPath();
+          room.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+          ctx.closePath();
+          ctx.clip();
+          glow(ctx, ROOM.x - 100, ROOM.y - 40, 300, C.glow, sit);
+          piece(ctx, rounded(HOUSE_X, 905, 340, 44, 10), C.boardDeep, hand('bed'), { line: 3 });
+          piece(ctx, rounded(HOUSE_X - 140, 868, 80, 30, 12), C.cream, hand('pillow'), {
+            line: 2.5,
+          });
+          at(ctx, { x: HIP[0], y: HIP[1], rot: lerp(-Math.PI / 2 + 0.05, -0.06, sit) }, () =>
+            at(ctx, { x: 0, y: 60 * 1.4, scale: 1.4 }, () =>
               person(
                 ctx,
                 {
-                  tilt: 0.06 * worry - 0.05 * stop + 0.12 * open,
-                  nod: 4 * worry + 5 * open,
-                  onHead: helmet,
-                  headHands: hand,
-                  look: inHand ? [2, lerp(0, 4, open)] : [lerp(3, -2, worry), worry],
-                  browL: 3 * stop + 2 * worry,
-                  browR: 2 * stop + 2 * worry,
-                  browTilt: 0.45 * worry + 0.2 * stop,
-                  mouth: 0.5 * stop,
-                  handL: [lerp(-36, -80, worry), lerp(-40, -90, worry)],
-                  handR: inHand
-                    ? [lerp(40, 72, open), lerp(-40, -74, open)]
-                    : [lerp(40, 84, stop), lerp(-40, -158, stop)],
+                  skin: sit > 0.3 ? C.figure : C.figureShade,
+                  body: C.figure,
+                  look: [lerp(-1, 3, sit), lerp(2, -3, sit)],
+                  browL: 3 * sit,
+                  browR: 3 * sit,
+                  browTilt: lerp(0.5, 0.3, sit),
+                  eyes: sit,
+                  smile: sit,
+                  mouth: 0.5 * sit * (1 - f.at('toWindow')) + 0.3 * f.at('toWindow'),
                 },
-                hand('soldier'),
-              );
-              piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), { line: 2 });
-            });
-
-            // Jesus, offering to go.
-            contact(ctx, JESUS[0], JESUS[1] + 4, 200);
-            glow(ctx, JESUS[0], JESUS[1] - 250, 320, C.glow, 0.7);
-            at(ctx, { x: JESUS[0] - 20 * offer, y: JESUS[1], scale: S }, () =>
-              christ(
-                ctx,
-                {
-                  tilt: -0.05 * offer,
-                  look: [-3, 1],
-                  browTilt: 0.15,
-                  handL: [lerp(-36, -118, offer), lerp(-40, -112, offer)],
-                  handR: [34, -44],
-                },
-                hand,
+                hand('servant'),
               ),
+            ),
+          );
+          piece(ctx, rounded(HOUSE_X + 60, 890, 240, 44, 14), C.cream, hand('blanket'), {
+            line: 3,
+          });
+          ctx.restore();
+
+          // The soldier, his cape behind him.
+          contact(ctx, SOLDIER[0], SOLDIER[1] + 4, 200);
+          at(ctx, { x: SOLDIER[0], y: SOLDIER[1], scale: S }, () => {
+            piece(
+              ctx,
+              [
+                [-40, -122],
+                [40, -122],
+                [62, -6],
+                [-62, -6],
+              ],
+              C.sunsetLow,
+              hand('cape'),
+              { line: 3 },
+            );
+            person(
+              ctx,
+              {
+                tilt: 0.06 * worry - 0.05 * stop + 0.12 * open,
+                nod: 4 * worry + 5 * open,
+                onHead: helmet,
+                headHands: hand,
+                look: inHand ? [2, lerp(0, 4, open)] : [lerp(3, -2, worry), worry],
+                browL: 3 * stop + 2 * worry,
+                browR: 2 * stop + 2 * worry,
+                browTilt: 0.45 * worry + 0.2 * stop,
+                mouth: 0.5 * stop,
+                handL: [lerp(-36, -80, worry), lerp(-40, -90, worry)],
+                handR: inHand
+                  ? [lerp(40, 72, open), lerp(-40, -74, open)]
+                  : [lerp(40, 84, stop), lerp(-40, -158, stop)],
+              },
+              hand('soldier'),
+            );
+            piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), { line: 2 });
+          });
+
+          // Jesus, offering to go.
+          contact(ctx, JESUS[0], JESUS[1] + 4, 200);
+          glow(ctx, JESUS[0], JESUS[1] - 250, 320, C.glow, 0.7);
+          at(ctx, { x: JESUS[0] - 20 * offer, y: JESUS[1], scale: S }, () =>
+            christ(
+              ctx,
+              {
+                tilt: -0.05 * offer,
+                look: [-3, 1],
+                browTilt: 0.15,
+                handL: [lerp(-36, -118, offer), lerp(-40, -112, offer)],
+                handR: [34, -44],
+              },
+              hand,
+            ),
+          );
+
+          // The word, over the roofs to the bed.
+          const fly = f.at('fly');
+          if (fly < 1) flight(ctx, flyPath, fly, hand('word'), 1.1);
+          else if (!inHand)
+            at(ctx, { x: ROOM.x - 120, y: ROOM.y - 40 + 5 * Math.sin(t * 2) }, () =>
+              wordLight(ctx, hand('word'), 0.3, 1 - clamp((t - f.cue('fly').end) / 1.5)),
             );
 
-            // The word, over the roofs to the bed.
-            const fly = f.at('fly');
-            if (fly < 1) flight(ctx, flyPath, fly, hand('word'), 1.1);
-            else if (!inHand)
-              at(ctx, { x: ROOM.x - 120, y: ROOM.y - 40 + 5 * Math.sin(t * 2) }, () =>
-                wordLight(ctx, hand('word'), 0.3, 1 - clamp((t - f.cue('fly').end) / 1.5)),
-              );
-
-            // In the soldier's open hand, the word settles.
-            const settle = f.at('settle');
-            if (inHand && settle > 0) {
-              const palm: Pt = [SOLDIER[0] + 72 * S, SOLDIER[1] - 74 * S - 22];
-              at(
-                ctx,
-                {
-                  x: lerp(palm[0] + 260, palm[0], settle),
-                  y: lerp(palm[1] - 320, palm[1], ease.outCubic(settle)) + 3 * Math.sin(t * 2),
-                  rot: 0.3 * (1 - settle),
-                },
-                () => wordLight(ctx, hand('held'), 0.4, lerp(0.6, 1, settle)),
-              );
-            }
-          },
+          // In the soldier's open hand, the word settles.
+          const settle = f.at('settle');
+          if (inHand && settle > 0) {
+            const palm: Pt = [SOLDIER[0] + 72 * S, SOLDIER[1] - 74 * S - 22];
+            at(
+              ctx,
+              {
+                x: lerp(palm[0] + 260, palm[0], settle),
+                y: lerp(palm[1] - 320, palm[1], ease.outCubic(settle)) + 3 * Math.sin(t * 2),
+                rot: 0.3 * (1 - settle),
+              },
+              () => wordLight(ctx, hand('held'), 0.4, lerp(0.6, 1, settle)),
+            );
+          }
         },
-      ],
-      { rest: [STREET.x, STREET.y], haze: C.tealLow, thickness: 0.35 },
-    );
-  },
-});
+      },
+    ],
+    { rest: [STREET.x, STREET.y], haze: C.tealLow, thickness: 0.35 },
+  );
+};
