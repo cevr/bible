@@ -298,6 +298,19 @@ what a review used to find by eye:
   (`probePlate`) whose box leaves the plate's box by more than 4 px is a
   `TextOffPlate` (a brief overrunning its card). Findings merge per scene and
   text (or pair), at the worst sampled frame.
+- **Holds** (a warning, found in two steps): the static step (`holdCandidates`)
+  finds each stretch of a drawn scene over `HOLD` (4 s) inside its voice's
+  spoken span (first word's start to last word's end, from the take's word
+  timings) where no cue starts, ends or runs and the scene is not arriving.
+  The layout leg then probes each candidate (`holdFrames`: its first frame,
+  the next one, then one every 0.5 s, and its last) and stops at the first
+  frame that moves; a candidate whose frames all hold still against the
+  first is a `StaticHold` with its scene and film `from`–`to`. A mark is at
+  rest when its box moves no more than 3 px and its opacity no more than
+  0.02 (`STILL_DRIFT`, `STILL_FADE`), so boil (a stroke's 1.1 px jitter each
+  way) is still and a walk loop or drifting snow that no cue declares is
+  motion. `film check` stays green on it; `--static` skips it, since telling
+  a still picture from undeclared motion needs the frames.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
@@ -331,6 +344,10 @@ What the rules leave alone, and why:
   split page) and may bleed; a plate whose line is itself past the edge, or
   that has moved by the next frame (the check draws that frame only for a
   candidate), is entering or leaving.
+- A hold leaves out the captions (the caption lines and the plates under
+  them): they are the voice, and change over a still picture. A storyboard
+  card (`storyboard: true` on its scene, set by `storyboard()`) holds still
+  over its words by design and is never a candidate.
 
 ## Named cues
 

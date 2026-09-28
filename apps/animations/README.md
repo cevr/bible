@@ -15,8 +15,8 @@ bun run mix <film> [--stems]                   # remix full.wav in-process (no A
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login: ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any)
-bun run check <film> --static --allow-stale    # the no-browser leg
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions (fails on any); warns StaticHold
+bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold: it needs the frames)
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
 bun run render <film>                          # out/<film>.mp4 + out/<film>.vtt (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
@@ -155,7 +155,11 @@ stretches that scene past its words; no `lead` after it): a long entrance stretc
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
 one never re-records. `f.spoken(from, to)` is 0→1 in step with the words
-between two marks — quotes reveal as they are read.
+between two marks — quotes reveal as they are read. The picture keeps pace
+with the voice too: `check` warns `StaticHold` where a drawn scene speaks for
+more than 4 s with no cue running and nothing moving in the probed frames
+(captions and boil aside; a storyboard card is exempt). Pin a motion to a
+mark in that stretch, or cut it.
 
 **A cast reads a film as a conversation.** `voice.ts` exports either one
 reader (`{ voiceId, model, settings }`, recorded through text-to-speech) or a
