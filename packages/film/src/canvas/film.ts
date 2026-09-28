@@ -32,8 +32,9 @@ import {
   grain,
   makeGrain,
   makePaper,
+  makeVignette,
   offscreen,
-  vignette,
+  shadeBy,
 } from './paper.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
@@ -302,6 +303,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     | {
         paper: HTMLCanvasElement;
         grain: Grain;
+        vignette: HTMLCanvasElement;
         a: Offscreen;
         b: Offscreen;
       }
@@ -310,6 +312,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     (assets ??= {
       paper: makePaper(width, height, spec.paper),
       grain: makeGrain(finish.grainSize, finish.grainTiles, spec.paper.seed + 99, width, height),
+      vignette: makeVignette(width, height, spec.shade, finish.vignette),
       a: offscreen(width, height),
       b: offscreen(width, height),
     });
@@ -511,7 +514,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       }
     }
 
-    vignette(ctx, width, height, spec.shade, finish.vignette);
+    shadeBy(ctx, getAssets().vignette);
     grain(ctx, getAssets().grain, boil, width, height, finish.grain);
     if (opts.captions === true && captions !== undefined) {
       const style = captions;

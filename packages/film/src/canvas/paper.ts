@@ -177,6 +177,7 @@ export const grain = (
   ctx.restore();
 };
 
+/** Darken the edges toward `color`: a radial gradient multiplied over the frame at `strength`. */
 export const vignette = (
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -199,5 +200,32 @@ export const vignette = (
   ctx.globalCompositeOperation = 'multiply';
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+};
+
+/**
+ * The vignette drawn once, as a `w` × `h` sheet: `vignette` laid over white,
+ * so each pixel holds the factor it scales a frame by. Multiplying a frame by
+ * the sheet (`shadeBy`) darkens it as `vignette` does.
+ */
+export const makeVignette = (
+  w: number,
+  h: number,
+  color: string,
+  strength = 0.35,
+): HTMLCanvasElement => {
+  const { c, ctx } = offscreen(w, h);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+  vignette(ctx, w, h, color, strength);
+  return c;
+};
+
+/** Multiply the frame by a sheet from `makeVignette`. */
+export const shadeBy = (ctx: CanvasRenderingContext2D, sheet: HTMLCanvasElement) => {
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.drawImage(sheet, 0, 0);
   ctx.restore();
 };
