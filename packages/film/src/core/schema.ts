@@ -324,6 +324,12 @@ const ShortId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/));
 export const Short = Schema.Struct({
   id: ShortId,
   title: Schema.String,
+  /**
+   * The line set above the picture from the first frame for its first
+   * seconds (`SHORT_LAYOUT`), for the viewer who watches with the sound off:
+   * the narrator's own question, or a claim against expectation.
+   */
+  hook: Schema.optionalKey(Schema.NonEmptyString),
   spans: Schema.NonEmptyArray(ShortSpan),
 });
 export type Short = typeof Short.Type;

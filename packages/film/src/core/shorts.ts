@@ -37,6 +37,27 @@ export interface ResolvedShort {
   readonly duration: number;
 }
 
+/**
+ * Where a short's parts sit, in 1080 × 1920 px, top to bottom: the hook line
+ * (centred on `hook.y`, at most `width` wide, set from the first frame, held
+ * `hold` s and faded over `fade` s), the film's 16:9 frame (607.5 px tall from
+ * `band.top`), and the captions (centred on `caption.y`). Every line is
+ * centred on `centre`. Data, so the page, the checks and the lab read one
+ * layout.
+ */
+export const SHORT_LAYOUT = {
+  centre: 540,
+  hook: { y: 445, width: 800, hold: 2.4, fade: 0.4 },
+  band: { top: 620 },
+  caption: { y: 1318, width: 800 },
+} as const;
+
+/** How opaque the hook is at short second `s`: set at once, held, then faded out. */
+export const hookAlpha = (s: number): number => {
+  const { hold, fade } = SHORT_LAYOUT.hook;
+  return Math.min(1, Math.max(0, 1 - (s - hold) / fade));
+};
+
 /** The page a short is drawn on (`shortKey`), in the registry the player loads from. */
 export const shortKey = (film: string, id: string): string => `${film}/shorts/${id}`;
 

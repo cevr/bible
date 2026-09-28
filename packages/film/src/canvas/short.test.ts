@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { type FilmSpec, createFilm } from './film.ts';
+import { SHORT_LAYOUT } from '../core/shorts.ts';
 import { bandOf, createShort, shortPages } from './short.ts';
 
 const draw = () => {};
@@ -58,8 +59,21 @@ describe('createShort', () => {
     ).toThrow('has no mark {nope}');
   });
 
-  test('the band is the film frame, centred on whole pixel rows', () => {
-    expect(bandOf(film, 3414)).toEqual({ top: 1167, width: 1920, height: 1080 });
+  test('the band is the film frame, at the layout top, on whole pixel rows', () => {
+    // 620 px down a 1080 × 1920 short, at the film's density.
+    expect(bandOf(film)).toEqual({ top: 1102, width: 1920, height: 1080 });
+    // Hook above it, captions below it, the band inside the page.
+    const { top, height } = bandOf(film);
+    const k = 1920 / 1080;
+    expect(SHORT_LAYOUT.hook.y * k).toBeLessThan(top);
+    expect(SHORT_LAYOUT.caption.y * k).toBeGreaterThan(top + height);
+  });
+
+  test('a short style the canvas cannot draw fails where the film is made', () => {
+    expect(() => createFilm({ ...spec, short: { hook: { font: '', color: '#000' } } })).toThrow(
+      'font',
+    );
+    expect(createFilm({ ...spec }).look.short.caption.highlight).toBe('#e6b347');
   });
 
   test('each short is a page under <film>/shorts/<id>', () => {

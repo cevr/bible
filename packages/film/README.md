@@ -116,7 +116,16 @@ short under `<film>/shorts/<id>` (`shortKey`). Each frame is the film's own
 frame at the film time under it, drawn full size into a band and copied onto
 a 9:16 page at the film's density (`shortPage(1920)`: 1920×3414), which the
 encoder scales to 1080×1920 through the same `--scale` path; so a crop of the
-band is, pixel for pixel, a `render --stills` still at that film time. The
+band is, pixel for pixel, a `render --stills --no-captions` still at that film
+time. The page is stacked by `SHORT_LAYOUT` (`core/shorts.ts`, 1080×1920 px,
+data the checks and the lab read): the short's `hook` centred on y 445 at
+most 800 px wide, set from frame 0 and faded out by 2.8 s (`hookAlpha`); the
+band from y 620; the captions centred on y 1318. Round the band the page is
+the film's paper under its own vignette, made once at the page's size, and
+the film's grain laid over the paper only (`grainRect`), so nothing touches
+the band. `Film.look` carries the film's paper, shade, finish and `short`
+style (`ShortStyle` on `FilmSpec.short`: the hook's and captions' fonts and
+colours, sizes in 1080×1920 px, checked by `createFilm`). The
 renderer resolves the short again on the page's fps, cuts `full.wav` to its
 pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
 writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the

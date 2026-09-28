@@ -7,6 +7,7 @@ export const shorts = [
   {
     id: 'verdict',
     title: "Is God's verdict a cover-up?",
+    hook: "Is God's verdict a cover-up?",
     spans: [
       // The courtroom, "righteous", "That is a cover-up", "God justifies the ungodly".
       { scene: 'cold', from: { scene: 'speech' }, to: { mark: 'oldest' } },

@@ -175,6 +175,33 @@ export const FinishStyle = Schema.Struct({
 });
 export type FinishStyle = typeof FinishStyle.Type;
 
+/** A CSS font the canvas sets (`600 60px "Fraunces"`): its size in a short's 1080 × 1920 px. */
+const Font = Schema.NonEmptyString;
+
+/**
+ * How a film's shorts set their words (`canvas/short.ts`): the hook line
+ * above the picture, and the captions below it, whose words inside a
+ * quotation take the `highlight` as they are read. Checked where the film is
+ * made (`createFilm`); each value it leaves out takes its default.
+ */
+export const ShortStyle = Schema.Struct({
+  hook: Schema.optionalKey(Schema.Struct({ font: Font, color: Schema.String })),
+  caption: Schema.optionalKey(
+    Schema.Struct({
+      font: Font,
+      color: Schema.String,
+      highlight: Schema.optionalKey(Schema.String),
+    }),
+  ),
+});
+export type ShortStyle = typeof ShortStyle.Type;
+
+/** A short style with every value it leaves out at its default. */
+export interface ShortLook {
+  readonly hook: { readonly font: string; readonly color: string };
+  readonly caption: { readonly font: string; readonly color: string; readonly highlight: string };
+}
+
 export interface FilmSpec {
   readonly title: string;
   readonly width?: number;
@@ -194,6 +221,8 @@ export interface FilmSpec {
   readonly sound?: Sound;
   /** The film's named colours (`palette.ts`): the look-book shows them as swatches. */
   readonly palette?: Readonly<Record<string, string>>;
+  /** How its shorts set the hook and the captions. */
+  readonly short?: ShortStyle;
 }
 
 /** A knob as a frame read it (`RenderOptions.knobs`): the lab's handles come from these. */
@@ -272,6 +301,7 @@ export interface FilmLook {
   readonly paper: PaperStyle;
   readonly shade: string;
   readonly finish: Required<FinishStyle>;
+  readonly short: ShortLook;
 }
 
 const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
@@ -308,6 +338,26 @@ const captionOf = (declared: CaptionStyle): Required<CaptionStyle> => {
   };
 };
 
+/** The gold a quotation's words take in a short's captions when the film names none. */
+const QUOTE_GOLD = '#e6b347';
+
+/**
+ * A film's short style, checked (a `SchemaError` naming the field when the
+ * canvas could not set it), each value it leaves out at its default: the
+ * film's `shade` for the words, serif for the hook and sans for the captions.
+ */
+const shortOf = (declared: ShortStyle = {}, shade: string): ShortLook => {
+  const s = Schema.decodeSync(ShortStyle)(declared);
+  return {
+    hook: s.hook ?? { font: '600 60px serif', color: shade },
+    caption: {
+      font: s.caption?.font ?? '600 58px sans-serif',
+      color: s.caption?.color ?? shade,
+      highlight: s.caption?.highlight ?? QUOTE_GOLD,
+    },
+  };
+};
+
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
@@ -318,6 +368,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
+  const short = shortOf(spec.short, spec.shade);
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
   let assets:
@@ -560,7 +611,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     sound: spec.sound,
     palette: spec.palette ?? {},
     allRecorded,
-    look: { paper: spec.paper, shade: spec.shade, finish },
+    look: { paper: spec.paper, shade: spec.shade, finish, short },
     sceneAt,
     render,
     preview,

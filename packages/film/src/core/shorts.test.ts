@@ -4,6 +4,8 @@ import { type Placed, layout } from './layout.ts';
 import { Shorts, type Short, type Timings } from './schema.ts';
 import {
   type ResolvedShort,
+  SHORT_LAYOUT,
+  hookAlpha,
   resolveShort,
   shortFilmTime,
   shortKey,
@@ -131,6 +133,18 @@ describe('shorts', () => {
     expect(tail.length).toBe(2);
     expect(tail[0]?.start).toBeCloseTo(first.to - 0.1, 9);
     expect(tail[1]?.duration).toBeCloseTo(0.1, 9);
+  });
+
+  test('the hook is set from the first frame, held, then faded once', () => {
+    const { hold, fade } = SHORT_LAYOUT.hook;
+    expect(hold + fade).toBeGreaterThanOrEqual(2);
+    expect(hold + fade).toBeLessThanOrEqual(3);
+    expect(hookAlpha(0)).toBe(1);
+    expect(hookAlpha(hold)).toBe(1);
+    expect(hookAlpha(hold + fade / 2)).toBeCloseTo(0.5, 9);
+    expect(hookAlpha(hold + fade)).toBeCloseTo(0, 9);
+    expect(hookAlpha(hold + fade + 0.1)).toBe(0);
+    expect(hookAlpha(40)).toBe(0);
   });
 
   test('the page is the film at its own density, 9:16, encoded to 1080×1920', () => {

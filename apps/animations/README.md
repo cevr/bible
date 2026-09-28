@@ -249,7 +249,14 @@ spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
 lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
 scene has). `cues <film> --short <id>` prints each span's film time and the
-short's length. `src/films/index.ts` keeps `films` (a key per film folder)
+short's length. The page is stacked: the film's 16:9 frame in a band 620 px
+down, byte for byte the film's own frame at that time (a band crop of
+`render --short <id> --stills T` equals `render --stills <film time> --no-captions`);
+above it the short's `hook` (the narrator's question or claim, set from the
+first frame, held 2.4 s, faded by 2.8 s); round it the film's paper, vignette
+and grain made at the page's size. The film's `short` style sets the hook's
+and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`).
+`src/films/index.ts` keeps `films` (a key per film folder)
 apart from `pages`, what the player mounts: the films plus each short's page
 from `shortPages`, under `<film>/shorts/<id>`.
 

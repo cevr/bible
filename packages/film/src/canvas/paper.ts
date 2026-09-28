@@ -166,14 +166,34 @@ export const grain = (
   w: number,
   h: number,
   strength = 0.07,
+) => grainRect(ctx, film, boil, 0, 0, w, h, strength);
+
+/**
+ * Overlay grain over the frame's `w` × `h` rectangle at (`x`, `y`) only: each
+ * pixel the grain `grain` lays there, and none elsewhere (a short's page
+ * grains its paper round the film's frame, which carries its own). The tile
+ * repeats, so the sheet is read from row `sy` (default `y`); any row that
+ * matches `y` modulo the tile lays the same grain, and a sheet a tile taller
+ * than the rectangle serves it wherever it sits.
+ */
+export const grainRect = (
+  ctx: CanvasRenderingContext2D,
+  film: Grain,
+  boil: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  strength = 0.07,
+  sy = y,
 ) => {
   const sheet = film.sheets[boil % film.sheets.length];
-  if (sheet === undefined) return;
+  if (sheet === undefined || w <= 0 || h <= 0) return;
   grainShift(shift, boil, film.size);
   ctx.save();
   ctx.globalAlpha = strength;
   ctx.globalCompositeOperation = 'overlay';
-  ctx.drawImage(sheet, shift[0], shift[1], w, h, 0, 0, w, h);
+  ctx.drawImage(sheet, shift[0] + x, shift[1] + sy, w, h, x, y, w, h);
   ctx.restore();
 };
 
