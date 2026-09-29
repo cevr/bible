@@ -11,6 +11,7 @@
 import {
   type Camera,
   type Frame,
+  type Pt,
   at,
   camera,
   drawing,
@@ -22,7 +23,19 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, ground, glow, knobCamera, person, piece, sky } from '../kit.ts';
+import {
+  type ArmAt,
+  C,
+  type Person,
+  blob,
+  ground,
+  glow,
+  handOf,
+  knobCamera,
+  person,
+  piece,
+  sky,
+} from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 
@@ -36,6 +49,15 @@ const STAINS = [
   blob(-18, -36, 20, 16, 33),
   blob(12, -112, 14, 12, 34),
 ];
+
+/** The sewer's hands: the patch held in the far hand, the needle in the near, which rises to `PROMISING` on the promise. */
+const PATCH: ArmAt = { to: [-18, -86], grow: 0, grip: 'hold' };
+const NEEDLE: ArmAt = { to: [22, -86], grow: 0, grip: 'hold' };
+const PROMISING: Pt = [60, -176];
+/** The viewer's cloth hand at the glass (and its reflection's), rubbing up and down about `SCRUB_AT`. */
+const SCRUB_AT: Pt = [70, -124];
+const SCRUBBING: ArmAt = { to: [SCRUB_AT[0], SCRUB_AT[1]], grow: 0, grip: 'hold' };
+const SCRUBBER: Person = { near: SCRUBBING };
 
 const timeline = {
   shrink: { mark: 'short', dur: 1.8, ease: 'inOutSine' },
@@ -101,6 +123,13 @@ const garden = (f: MirrorFrame) => {
   const sheepish = f.at('sheepish') * (1 - f.at('droop'));
   const droop = f.at('droop');
   const stitch = Math.sin(t * 9);
+  // The far hand holds the patch while they sew; the near hand stitches, then
+  // rises beside the head on the promise, and both go as they turn sheepish.
+  PATCH.grow = sewing;
+  NEEDLE.to[0] = lerp(22 + 14 * stitch, PROMISING[0], promise);
+  NEEDLE.to[1] = lerp(-86 - 10 * stitch, PROMISING[1], promise);
+  NEEDLE.grow = clamp(sewing + promise);
+  NEEDLE.grip = promise < 0.5 ? 'hold' : 'palm';
   multiplane(
     ctx,
     cam,
@@ -152,17 +181,8 @@ const garden = (f: MirrorFrame) => {
                 browR: -1 * sewing + 3 * promise + 5 * sheepish + 4 * droop,
                 browTilt: -0.25 * sewing + 0.45 * sheepish + 0.4 * droop,
                 mouth: 0.4 * droop,
-                far: sewing > 0.05 ? { to: [-28, -84], grow: 1 } : undefined,
-                near:
-                  sewing + promise > 0.05
-                    ? {
-                        to: [
-                          lerp(22 + 14 * stitch, 40, promise),
-                          lerp(-86 - 10 * stitch, -184, promise),
-                        ],
-                        grow: 1,
-                      }
-                    : undefined,
+                far: PATCH,
+                near: NEEDLE,
               },
               f.hand('sewer'),
             );
@@ -226,8 +246,9 @@ const glass = (f: MirrorFrame) => {
     [f.at('push'), knobCamera(f.knob('stained'), f.knob('stainedZoom'))],
     [f.at('back'), GLASS],
   ]);
-  const rub = Math.sin(t * 13) * 16 * scrub;
-  const handR: [number, number] = [lerp(30, 70, scrub), lerp(-60, -124, scrub) + rub];
+  // The cloth hand grows on the scrub, rubbing, and withdraws on the glance.
+  SCRUBBING.to[1] = SCRUB_AT[1] + Math.sin(t * 13) * 16 * scrub;
+  SCRUBBING.grow = scrub;
 
   camera(ctx, cam, w, h, () => {
     // The tablets, standing up...
@@ -271,7 +292,7 @@ const glass = (f: MirrorFrame) => {
             {
               look: [lerp(5, 0, glance), lerp(0, 2, glance)],
               stains: STAINS,
-              near: scrub > 0.05 ? { to: handR, grow: 1 } : undefined,
+              near: SCRUBBING,
             },
             f.hand('reflection'),
           );
@@ -319,16 +340,19 @@ const glass = (f: MirrorFrame) => {
           browR: 4 * flare - 1.5 * glance,
           browTilt: 0.4 * flare * (1 - glance) - 0.3 * glance,
           mouth: 0.5 * flare * (1 - scrub),
-          near: scrub > 0.05 ? { to: handR, grow: 1 } : undefined,
+          near: SCRUBBING,
         },
         f.hand('viewer'),
       );
       apron(ctx, f.hand('apron'), 4, 1, 0);
-      if (scrub > 0.05)
-        piece(ctx, blob(handR[0] + 6, handR[1], 26, 20, 90), C.cream, f.hand('cloth'), {
+      // The cloth in the hand, grown with it.
+      if (scrub > 0) {
+        const [hx, hy] = handOf(SCRUBBER, 'near') ?? SCRUB_AT;
+        piece(ctx, blob(hx + 6 * scrub, hy, 26 * scrub, 20 * scrub, 90), C.cream, f.hand('cloth'), {
           role: 'figure',
           line: 2.5,
         });
+      }
     });
   });
 };

@@ -276,6 +276,9 @@ const washStains = (out: number[], bloom: number) => {
 const clothAt = (bloom: number) =>
   CLOTH_WARMS[Math.round(clamp(bloom) * (CLOTH_WARMS.length - 1))] ?? C.figure;
 
+/** Where the doubtful hand goes: under the chin, in front of the body. */
+const DOUBT_AT: Pt = [-10, -100];
+
 export const declared = drawing({
   timeline: {
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
@@ -382,8 +385,8 @@ export const declared = drawing({
             browR: 1 * doubt + 4 * up + 4 * bloom,
             browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
             mouth: 0.35 * doubt + 0.5 * bloom,
-            far: { to: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)], grow: 1 },
-            near: { to: [36, -40], grow: 1 },
+            // Doubtful, a hand to the chin, over the chest: grown on the doubt and gone as they look up.
+            far: { to: DOUBT_AT, grow: doubt, grip: 'hold' },
             stains: STAIN_SHAPES,
             washed: washStains(WASH, bloom),
           };

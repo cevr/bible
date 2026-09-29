@@ -22,13 +22,16 @@ import {
 } from '@bible/film/canvas';
 import { ease, lerp, rng } from '@bible/film/core';
 import {
+  type ArmAt,
   type Hands,
   type HeadPiece,
+  type Person,
   C,
   ICON_X,
   christ,
   ground,
   glow,
+  handOf,
   icons,
   person,
   piece,
@@ -38,6 +41,17 @@ import {
   sky,
 } from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';
+
+/** The soldier's hands: out in worry, up to stop, and held open for the word after the cut. */
+const WORRIED: ArmAt = { to: [-80, -90], grow: 0, grip: 'open' };
+const STOPPING: ArmAt = { to: [84, -158], grow: 0, grip: 'palm' };
+const OPEN_FOR_WORD: ArmAt = { to: [72, -74], grow: 0, grip: 'open' };
+/** The open hand as `handOf` reads it, for where the word settles. */
+const HOLDING_WORD: Person = { near: OPEN_FOR_WORD };
+/** How far above the mitten's middle the word rests, in his units. */
+const ON_PALM = 12;
+/** Jesus's hand out to the soldier as he offers to go. */
+const OFFERING: ArmAt = { to: [-118, -112], grow: 0, grip: 'open' };
 
 /** The people's scale on the street. */
 const S = 2.2;
@@ -219,6 +233,12 @@ const street = (f: CenturionFrame, hand: Hands) => {
   const stop = f.at('stop') * (1 - f.at('pullOut'));
   const open = f.at('open');
   const offer = f.at('offer') * (1 - f.at('push'));
+  // His hands: out in worry, then up to stop; after the cut to his hand, held
+  // open for the word. Jesus's hand out as he offers to go.
+  WORRIED.grow = worry;
+  STOPPING.grow = stop;
+  OPEN_FOR_WORD.grow = open;
+  OFFERING.grow = offer;
 
   multiplane(
     ctx,
@@ -385,13 +405,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 browR: 2 * stop + 2 * worry,
                 browTilt: 0.45 * worry + 0.2 * stop,
                 mouth: 0.5 * stop,
-                far: { to: [lerp(-36, -80, worry), lerp(-40, -90, worry)], grow: 1 },
-                near: {
-                  to: inHand
-                    ? [lerp(40, 72, open), lerp(-40, -74, open)]
-                    : [lerp(40, 84, stop), lerp(-40, -158, stop)],
-                  grow: 1,
-                },
+                far: WORRIED,
+                near: inHand ? OPEN_FOR_WORD : STOPPING,
               },
               hand('soldier'),
             );
@@ -410,8 +425,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 tilt: -0.05 * offer,
                 look: [-3, 1],
                 browTilt: 0.15,
-                far: { to: [lerp(-36, -118, offer), lerp(-40, -112, offer)], grow: 1 },
-                near: { to: [34, -44], grow: 1 },
+                far: OFFERING,
               },
               hand,
             ),
@@ -428,7 +442,9 @@ const street = (f: CenturionFrame, hand: Hands) => {
           // In the soldier's open hand, the word settles.
           const settle = f.at('settle');
           if (inHand && settle > 0) {
-            const palm: Pt = [SOLDIER[0] + 72 * S, SOLDIER[1] - 74 * S - 22];
+            // On the open mitten, just above its middle.
+            const [px, py] = handOf(HOLDING_WORD, 'near') ?? OPEN_FOR_WORD.to;
+            const palm: Pt = [SOLDIER[0] + px * S, SOLDIER[1] + (py - ON_PALM) * S];
             at(
               ctx,
               {

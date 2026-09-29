@@ -5,6 +5,7 @@
 import {
   type Arm,
   type ArmStyle,
+  type Grip,
   type Hand,
   type PieceStyle,
   type Pt,
@@ -866,6 +867,7 @@ export type Posed<T> = { -readonly [K in keyof T]: T[K] };
 export interface ArmAt extends Arm {
   readonly to: [number, number];
   grow: number;
+  grip?: Grip;
 }
 
 /** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
