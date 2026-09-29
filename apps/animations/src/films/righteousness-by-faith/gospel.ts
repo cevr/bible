@@ -433,10 +433,6 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         }),
     );
   });
-  // The ropes, from each friend's hand down to the bed's end on their side,
-  // until he stands.
-  const ropes = clamp(1 - 3 * s.rise);
-  const y = bedY(s.lower);
   FRIENDS.forEach((fr, i) => {
     at(ctx, { x: fr.x, y: ROOF_TOP, scale: FRIEND_S }, () =>
       person(
@@ -454,17 +450,29 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         sub(hand('friend'), i),
       ),
     );
-    if (ropes > 0)
-      stroke(
-        ctx,
-        [
-          [fr.x - fr.side * FRIEND_HOLD * FRIEND_S, ROOF_TOP + FRIEND_HOLD_Y * FRIEND_S],
-          [BED_X + fr.side * (BED_W / 2 - 18 - 14 * (i % 2)), y - 6],
-        ],
-        { color: C.boardDeep, width: 3, jitter: 0.4, taper: 0, alpha: ropes, boil: 'crawl' },
-        sub(hand('rope'), i),
-      );
   });
+};
+
+/**
+ * The ropes, from each friend's hand down to the bed's end on their side,
+ * until he stands: hung behind the room's people (drawn before them), so no
+ * rope ever crosses a face, the man's close-up on "son" included.
+ */
+const ropes = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
+  const shown = clamp(1 - 3 * s.rise);
+  if (shown <= 0) return;
+  const y = bedY(s.lower);
+  FRIENDS.forEach((fr, i) =>
+    stroke(
+      ctx,
+      [
+        [fr.x - fr.side * FRIEND_HOLD * FRIEND_S, ROOF_TOP + FRIEND_HOLD_Y * FRIEND_S],
+        [BED_X + fr.side * (BED_W / 2 - 18 - 14 * (i % 2)), y - 6],
+      ],
+      { color: C.boardDeep, width: 3, jitter: 0.4, taper: 0, alpha: shown, boil: 'crawl' },
+      sub(hand('rope'), i),
+    ),
+  );
 };
 
 /** The man's pose, rewritten every frame. */
@@ -490,6 +498,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     line: 0,
     torn: 4,
   });
+  ropes(ctx, hand, s);
   onlookers(
     ctx,
     hand,
