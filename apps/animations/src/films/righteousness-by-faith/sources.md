@@ -16,6 +16,46 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
   > I know it is so of a truth: but how should man be just with God?
 
+## `word`
+
+- **COL 312.2** · Ellen G. White, _Christ’s Object Lessons_ (1900). “It just means right doing.”
+
+  > Righteousness is right doing
+
+- **Psalm 119:172** (KJV). Quoted.
+
+  > My tongue shall speak of thy word: for all thy commandments are righteousness.
+
+- **CHR 48.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “a transcript of his character”.
+
+  > Since the law is the righteousness of God—a transcript of His character
+
+- **CHR 50.4** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “a circle as big as the universe”.
+
+  > the decalogue is a circle having a circumference as great as the universe and containing within it the moral duty of every creature.
+
+## `mirror`
+
+- **Romans 3:23** (KJV). “every one of us comes up short”.
+
+  > For all have sinned, and come short of the glory of God;
+
+- **COL 311.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). The fig leaves.
+
+  > They have sewed together fig leaves to cover the nakedness caused by transgression.
+
+- **Isaiah 64:6** (KJV). Quoted.
+
+  > But we are all as an unclean thing, and all our righteousnesses are as filthy rags; and we all do fade as a leaf; and our iniquities, like the wind, have taken us away.
+
+- **RH March 8, 1881, par. 10** · Ellen G. White, _Review and Herald, March 8, 1881 (reprinted as FW 31.4)_ (1881). The law as a mirror; “you cannot wash your face with a mirror” is the narrator’s own picture of it.
+
+  > God’s law is the mirror presenting a complete reflection of the man as he is
+
+- **James 1:23** (KJV). The mirror.
+
+  > For if any be a hearer of the word, and not a doer, he is like unto a man beholding his natural face in a glass:
+
 ## `message`
 
 - **10LtMs, Lt 57, 1895, par. 43** · Ellen G. White, _Letter 57, 1895 (to O. A. Olsen, May 1, 1895; printed as TM 91.2)_ (1895). “a most precious message” quoted; “It was the third angel’s message” paraphrases it.
@@ -61,59 +101,27 @@ Jones’s _Lessons on Faith_ (LOF_ATJ) is a later compilation. Its chapters firs
 
 ## `roof`
 
-The three gifts in scripture, in the order given: faith, then forgiveness, then power. The frame is the owner's handbook study (`packages/cli/outputs/studies/2026-06-17-righteousness-by-faith-a-bible-handbook-study.md`, the gate, the altar and the laver; `rbf-sources/definition.md`, "Outer Courtyard").
+The three gifts in scripture, in the order given: faith, then forgiveness, then power, told and then counted. The frame is the owner's handbook study (`packages/cli/outputs/studies/2026-06-17-righteousness-by-faith-a-bible-handbook-study.md`, the gate, the altar and the laver; `rbf-sources/definition.md`, "Outer Courtyard"). The count is an order, not a timetable: Mark 2:12's “immediately he arose” gives all three in one moment.
 
-- **Mark 2:5, 11–12** (KJV). The paralytic, paraphrased: faith seen, sins forgiven, power to arise and go.
+- **Mark 2:1–12** (KJV). The paralytic, told in paraphrase; verse 5's word quoted: “Son, thy sins be forgiven thee.” “Only God forgives sins, the scribes think” is verse 7; “Easy to say, right?” is verse 9 put in the viewer's words; “the proof that two was real” is verse 10's “that ye may know”. “They believed, and he took Jesus at his word” is the narrator's own reading of verse 5's “their faith”.
 
-  > When Jesus saw their faith, he said unto the sick of the palsy, Son, thy sins be forgiven thee.
+  > And again he entered into Capernaum after some days; and it was noised that he was in the house. … And they come unto him, bringing one sick of the palsy, which was borne of four. And when they could not come nigh unto him for the press, they uncovered the roof where he was: and when they had broken it up, they let down the bed wherein the sick of the palsy lay. When Jesus saw their faith, he said unto the sick of the palsy, Son, thy sins be forgiven thee.
 
-  > I say unto thee, Arise, and take up thy bed, and go thy way into thine house. And immediately he arose, took up the bed, and went forth before them all; insomuch that they were all amazed, and glorified God, saying, We never saw it on this fashion.
+  > But there were certain of the scribes sitting there, and reasoning in their hearts, Why doth this man thus speak blasphemies? who can forgive sins but God only? … Whether is it easier to say to the sick of the palsy, Thy sins be forgiven thee; or to say, Arise, and take up thy bed, and walk? But that ye may know that the Son of man hath power on earth to forgive sins, (he saith to the sick of the palsy,) I say unto thee, Arise, and take up thy bed, and go thy way into thine house. And immediately he arose, took up the bed, and went forth before them all; insomuch that they were all amazed, and glorified God, saying, We never saw it on this fashion.
 
-- **John 8:9–11** (KJV). The woman taken in adultery; verse 11's answer quoted. Her “No man, Lord” is faith's confession (the handbook study, “The Gate — Faith”).
+## `woman`
+
+- **John 8:2–11** (KJV). The woman taken in adultery, told in paraphrase and counted again; verse 11's answer quoted: “Neither do I condemn thee: go, and sin no more.” Her “No man, Lord” read as faith's confession, “She calls him Lord”, is the owner's handbook reading (§9, “The woman enters at the gate of faith”), said in the film's own voice: no pioneer line in the corpus says it in so many words.
+
+  > And the scribes and Pharisees brought unto him a woman taken in adultery; and when they had set her in the midst, They say unto him, Master, this woman was taken in adultery, in the very act. Now Moses in the law commanded us, that such should be stoned: but what sayest thou? … But Jesus stooped down, and with his finger wrote on the ground, as though he heard them not. So when they continued asking him, he lifted up himself, and said unto them, He that is without sin among you, let him first cast a stone at her.
 
   > And they which heard it, being convicted by their own conscience, went out one by one, beginning at the eldest, even unto the last: and Jesus was left alone, and the woman standing in the midst. When Jesus had lifted up himself, and saw none but the woman, he said unto her, Woman, where are those thine accusers? hath no man condemned thee? She said, No man, Lord. And Jesus said unto her, Neither do I condemn thee: go, and sin no more.
 
-## `word`
-
-- **COL 312.2** · Ellen G. White, _Christ’s Object Lessons_ (1900). “It just means right doing.”
-
-  > Righteousness is right doing
-
-- **Psalm 119:172** (KJV). Quoted.
-
-  > My tongue shall speak of thy word: for all thy commandments are righteousness.
-
-- **CHR 48.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “a transcript of his character”.
-
-  > Since the law is the righteousness of God—a transcript of His character
-
-- **CHR 50.4** · E. J. Waggoner, _Christ and His Righteousness_ (1890). “a circle as big as the universe”.
-
-  > the decalogue is a circle having a circumference as great as the universe and containing within it the moral duty of every creature.
-
-## `mirror`
-
-- **Romans 3:23** (KJV). “every one of us comes up short”.
-
-  > For all have sinned, and come short of the glory of God;
-
-- **COL 311.1** · Ellen G. White, _Christ’s Object Lessons_ (1900). The fig leaves.
-
-  > They have sewed together fig leaves to cover the nakedness caused by transgression.
-
-- **Isaiah 64:6** (KJV). Quoted.
-
-  > But we are all as an unclean thing, and all our righteousnesses are as filthy rags; and we all do fade as a leaf; and our iniquities, like the wind, have taken us away.
-
-- **RH March 8, 1881, par. 10** · Ellen G. White, _Review and Herald, March 8, 1881 (reprinted as FW 31.4)_ (1881). The law as a mirror; “you cannot wash your face with a mirror” is the narrator’s own picture of it.
-
-  > God’s law is the mirror presenting a complete reflection of the man as he is
-
-- **James 1:23** (KJV). The mirror.
-
-  > For if any be a hearer of the word, and not a doer, he is like unto a man beholding his natural face in a glass:
-
 ## `spoke`
+
+- **Romans 10:17** (KJV). “The first gift: faith. Where does it come from? From God's word.”
+
+  > So then faith cometh by hearing, and hearing by the word of God.
 
 - **Genesis 1:2–3** (KJV). “the world starts dark and empty”; “let there be light” returns in `declared`.
 
@@ -123,7 +131,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > For he spake, and it was done; he commanded, and it stood fast.
 
-- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). “God spoke the word only, and the word itself produced the thing.” The answer “From God’s word” is LOF_ATJ 22.9, quoted under `declared`.
+- **LOF_ATJ 16.5** · A. T. Jones, _Lessons on Faith (compiled; first printed as an unsigned editorial in the Review and Herald while Jones edited it, December 27, 1898, p. 832)_ (1898). “God spoke the word only, and the word itself produced the thing.” The answer “From God’s word” is Romans 10:17, and Jones’s LOF_ATJ 22.9 under `declared`.
 
   > He spoke the word only, and it was so. The word spoken, itself produced the thing.
 
@@ -141,19 +149,37 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.
 
-- **Ephesians 2:8** (KJV). “Even that faith is God’s gift”.
+- **Ephesians 2:8** (KJV). “And even that faith is God’s gift”.
 
   > For by grace are ye saved through faith; and that not of yourselves: it is the gift of God:
 
-- **ST May 19, 1898, par. 14** · Ellen G. White, _Signs of the Times, May 19, 1898 (reprinted 6BC 1080.9)_ (1898). “Even that faith is God’s gift, the first of three.”
+- **ST May 19, 1898, par. 14** · Ellen G. White, _Signs of the Times, May 19, 1898 (reprinted 6BC 1080.9)_ (1898). “And even that faith is God’s gift.”
 
   > Faith earns nothing for us; it is the gift of God, which we may receive and cherish by making Christ our personal Saviour.
 
+## `look`
+
+- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). “Faith is not our Saviour… It earns nothing. It is the hand that takes hold of Christ.”
+
+  > Through faith we receive the grace of God; but faith is not our Saviour. It earns nothing. It is the hand by which we lay hold upon Christ, and appropriate His merits, the remedy for sin.
+
+- **Numbers 21:8** (KJV). The serpent on the pole.
+
+  > And the LORD said unto Moses, Make thee a fiery serpent, and set it upon a pole: and it shall come to pass, that every one that is bitten, when he looketh upon it, shall live.
+
+- **7LtMs, Lt 85, 1891, par. 6** · Ellen G. White, _Letter 85, 1891 (printed as 13MR 150.1)_ (1891). Quoted.
+
+  > The same Jesus has bidden me tell you, Look and live. Do not climb the pole, but only look. I present Christ to you. Look and live.
+
 ## `declared`
 
-- **Romans 3:24** (KJV). “Paul says we are justified”.
+- **Romans 3:24–25** (KJV). “The second gift: forgiveness. Paul calls it being justified”: verse 25's “for the remission of sins that are past” ties justification to forgiveness.
 
-  > Being justified freely by his grace through the redemption that is in Christ Jesus:
+  > Being justified freely by his grace through the redemption that is in Christ Jesus: Whom God hath set forth to be a propitiation through faith in his blood, to declare his righteousness for the remission of sins that are past, through the forbearance of God;
+
+- **CHR 65.3** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting: forgiveness is justification, made righteous (quoted under `robe`).
+
+  > The forgiveness of sins is a reality; it is something tangible, something that vitally affects the individual. It actually clears him from guilt, and if he is cleared from guilt, is justified, made righteous, he has certainly undergone a radical change.
 
 - **PTUK October 18, 1894, page 659.3** · E. J. Waggoner, _Studies in Romans, The Present Truth 10 (byline E. J. Waggoner; reprinted SITI March 12, 1896, 165.2 and WOR 94.2)_ (1894). Quoted: “People are not simply counted righteous, but actually made righteous.”
 
@@ -245,25 +271,15 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart.
 
-## `look`
-
-- **DA 175.4** · Ellen G. White, _The Desire of Ages_ (1898). “Faith is not our Saviour… It earns nothing. It is the hand that takes hold of Christ.”
-
-  > Through faith we receive the grace of God; but faith is not our Saviour. It earns nothing. It is the hand by which we lay hold upon Christ, and appropriate His merits, the remedy for sin.
-
-- **Numbers 21:8** (KJV). The serpent on the pole.
-
-  > And the LORD said unto Moses, Make thee a fiery serpent, and set it upon a pole: and it shall come to pass, that every one that is bitten, when he looketh upon it, shall live.
-
-- **7LtMs, Lt 85, 1891, par. 6** · Ellen G. White, _Letter 85, 1891 (printed as 13MR 150.1)_ (1891). Quoted.
-
-  > The same Jesus has bidden me tell you, Look and live. Do not climb the pole, but only look. I present Christ to you. Look and live.
-
 ## `within`
 
 - **Hebrews 8:10** (KJV). “God writes it on the heart.”
 
   > … I will put my laws into their mind, and write them in their hearts: and I will be to them a God, and they shall be to me a people:
+
+- **Mark 2:11–12** (KJV). “Christ gave the paralysed man power to walk”: the narrator’s own line from the text, the callback to `roof`, attributed to no one.
+
+  > I say unto thee, Arise, and take up thy bed, and go thy way into thine house. And immediately he arose, took up the bed, and went forth before them all;
 
 - **John 1:12** (KJV). “the power to become them”.
 
@@ -281,7 +297,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > There must be a power working from within, a new life from above, before men can be changed from sin to holiness. That power is Christ.
 
-- **SC 51.1** · Ellen G. White, _Steps to Christ_ (1892). Supporting: God does the changing we cannot.
+- **SC 51.1** · Ellen G. White, _Steps to Christ_ (1892). Supporting: God does the changing we cannot. Not spoken: the paralytic line above is the narrator’s, never put in her mouth.
 
   > You cannot atone for your past sins; you cannot change your heart and make yourself holy. But God promises to do all this for you through Christ. … If you believe the promise,—believe that you are forgiven and cleansed,—God supplies the fact; you are made whole, just as Christ gave the paralytic power to walk when the man believed that he was healed.
 
@@ -290,14 +306,6 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
   > God desires to heal us, to set us free. But since this requires an entire transformation, a renewing of our whole nature, we must yield ourselves wholly to Him.
 
 ## `daily`
-
-- **Revelation 21:27** (KJV). “No sinner at heart enters his kingdom.”
-
-  > And there shall in no wise enter into it any thing that defileth, neither whatsoever worketh abomination, or maketh a lie: but they which are written in the Lamb’s book of life.
-
-- **CHR 55.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Supporting the same line.
-
-  > The law of God is perfect righteousness, and perfect conformity to it is demanded of everyone who shall enter the kingdom of heaven.
 
 - **SC 17.2** · Ellen G. White, _Steps to Christ_ (1892). “Heaven would be no joy to a heart that still loves sin.”
 
@@ -367,7 +375,7 @@ The three gifts in scripture, in the order given: faith, then forgiveness, then 
 
   > A new heart also will I give you, and a new spirit will I put within you: and I will take away the stony heart out of your flesh, and I will give you an heart of flesh.
 
-- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). “By taking God at his word, every day.”
+- **SC 70.1** · Ellen G. White, _Steps to Christ_ (1892). “By taking God at his word, receiving his robe, and a new heart with it, every day”: the three gifts in the count’s order, received daily.
 
   > This is a daily matter. Each morning consecrate yourself to God for that day.
 

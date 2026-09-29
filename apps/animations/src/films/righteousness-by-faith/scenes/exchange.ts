@@ -124,7 +124,7 @@ const timeline = {
   turn: { scene: 'speech', dur: 0.6 },
   sun: { scene: 'speech', until: 'cross', ease: 'linear' },
   puzzle: { mark: 'fair', dur: 0.4 },
-  walkIn: { mark: 'right', offset: -0.4, until: 'notes', ease: 'inOutSine' },
+  walkIn: { mark: 'fair', word: 'fair', until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },
   // The figure's hand to the cloth on their chest, it lifts across to him, and his hand takes it.
   give: { with: 'lift', offset: -0.4, dur: 0.4 },

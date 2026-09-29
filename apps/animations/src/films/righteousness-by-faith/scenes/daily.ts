@@ -168,11 +168,11 @@ const knobs = {
 
 const timeline = {
   ask: { scene: 'speech', dur: 0.4 },
-  lead: { mark: 'kingdom', dur: 0.4 },
-  toGate: { mark: 'kingdom', offset: -0.2, dur: 1, ease: 'inOutCubic' },
-  notes: { mark: 'kingdom', offset: 0.3, dur: 0.8 },
+  lead: { mark: 'joy', dur: 0.4 },
+  toGate: { mark: 'joy', offset: -0.2, dur: 1, ease: 'inOutCubic' },
+  notes: { mark: 'joy', offset: 0.3, dur: 0.8 },
   other: { mark: 'joy', offset: -0.2, dur: 0.5, ease: 'outBack' },
-  ears: { mark: 'joy', offset: 0.4, dur: 0.7, ease: 'inOutSine' },
+  ears: { mark: 'joy', offset: 0.5, dur: 0.7, ease: 'inOutSine' },
   toFig: { mark: 'keep', offset: -0.4, dur: 0.9, ease: 'inOutCubic' },
   askAgain: { mark: 'keep', dur: 0.4 },
   through: { mark: 'will', offset: -0.35, dur: 0.6, ease: 'inCubic' },

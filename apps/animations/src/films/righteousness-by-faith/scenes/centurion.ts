@@ -148,7 +148,7 @@ const timeline = {
   landed: { after: 'fly', dur: 1.5, ease: 'linear' },
   sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
   toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
-  handShot: { mark: 'exactly', offset: -0.2, dur: 1.2, ease: 'outCubic' },
+  handShot: { mark: 'room', word: 'room', dur: 1.2, ease: 'outCubic' },
   open: { mark: 'def', dur: 0.6 },
   settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },

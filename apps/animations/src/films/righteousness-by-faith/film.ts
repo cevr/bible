@@ -1,4 +1,4 @@
-// Righteousness by Faith: the rebuild, read by two voices.
+// Righteousness by Faith: the rebuild, read by one narrator.
 
 import { createFilm } from '@bible/film/canvas';
 import { type Look, type Timings, TimingsJson } from '@bible/film/core';
@@ -15,30 +15,42 @@ import { scenes } from './scenes/index.ts';
 export const look: Look = {
   acts: [
     {
+      // The question and the problem: the cool page to the peach garden.
       from: 'cold',
       name: 'cold open',
       chapter: 'How should man be just with God?',
-      luma: [150, 165],
-      saturation: [0.15, 0.2],
+      luma: [140, 165],
+      saturation: [0.15, 0.25],
     },
     {
+      // The answer's shape, and the two stories that count it.
       from: 'message',
-      name: 'problem',
+      name: 'message',
       chapter: 'So what was the message?',
-      luma: [120, 140],
+      luma: [135, 150],
       saturation: [0.2, 0.3],
     },
     {
+      // The first gift: down to black on the dark world, and back up to dawn.
       from: 'spoke',
-      name: 'valley',
-      chapter: 'Where does righteousness come from?',
+      name: 'faith',
+      chapter: 'Where does faith come from?',
+      luma: [135, 150],
+      saturation: [0.2, 0.3],
+    },
+    {
+      // The second gift: the valley, and its one black moment at the cross.
+      from: 'declared',
+      name: 'forgiveness',
+      chapter: "Isn't that a cover-up?",
       luma: [90, 110],
       dark: 0.05,
     },
     {
-      from: 'look',
+      // The third gift: early gold.
+      from: 'within',
       name: 'power',
-      chapter: 'What does faith do?',
+      chapter: 'So is the law out of the picture?',
       luma: [150, 160],
       saturation: [0.25, 0.35],
     },
