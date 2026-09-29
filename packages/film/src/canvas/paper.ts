@@ -241,10 +241,33 @@ export const makeVignette = (
   return c;
 };
 
-/** Multiply the frame by a sheet from `makeVignette`. */
-export const shadeBy = (ctx: CanvasRenderingContext2D, sheet: HTMLCanvasElement) => {
+/**
+ * A scene's light drawn once, as a `w` × `h` sheet to multiply a frame by:
+ * `color` over the middle of the frame (a circle a quarter of its short side
+ * across), falling to `edge` at its corners. The same colour twice is an even
+ * light.
+ */
+export const makeLight = (w: number, h: number, color: string, edge: string): HTMLCanvasElement => {
+  const { c, ctx } = offscreen(w, h);
+  const g = ctx.createRadialGradient(
+    w / 2,
+    h / 2,
+    Math.min(w, h) * 0.25,
+    w / 2,
+    h / 2,
+    Math.hypot(w, h) / 2,
+  );
+  g.addColorStop(0, color);
+  g.addColorStop(1, edge);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  return c;
+};
+
+/** Multiply the frame by a sheet from `makeVignette`, or from `makeLight` at `amount`. */
+export const shadeBy = (ctx: CanvasRenderingContext2D, sheet: HTMLCanvasElement, amount = 1) => {
   ctx.save();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = amount;
   ctx.globalCompositeOperation = 'multiply';
   ctx.drawImage(sheet, 0, 0);
   ctx.restore();

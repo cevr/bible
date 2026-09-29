@@ -33,6 +33,7 @@ import {
   type PaperStyle,
   grain,
   makeGrain,
+  makeLight,
   makePaper,
   makeVignette,
   offscreen,
@@ -119,6 +120,26 @@ export interface SceneSpec extends Timed {
    * it names none.
    */
   readonly drift?: Drift | 0;
+  /**
+   * The light the scene is lit by (CRAFT rule 11, the colour script): its
+   * page and all drawn on it multiplied by the light's colours, under the
+   * film's vignette and grain. A function reads it each frame, so a light can
+   * come up or go down on a cue. Unlit when it names none.
+   */
+  readonly light?: Light | ((f: Frame) => Light);
+}
+
+/**
+ * A scene's light: `color` over the middle of the frame, falling to `edge`
+ * (`color` when it names none) at the corners, at `amount` (0 unlit, 1 fully
+ * lit; 1 when it names none). White is no light at all. A light is drawn
+ * once per `color` and `edge` and kept, so a draw that returns one of a few
+ * lights, its `amount` rewritten, allocates nothing.
+ */
+export interface Light {
+  readonly color: string;
+  readonly edge?: string;
+  readonly amount?: number;
 }
 
 /** A span whose `after` or `with` names one of the cues `K`. */
@@ -143,10 +164,11 @@ type NoKnobs = Record<never, Knob>;
  * the result is an ordinary scene drawing.
  */
 export const drawing = <const T extends Timeline, const K extends Knobs = NoKnobs>(
-  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw'> & {
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'draw' | 'light'> & {
     readonly timeline: T & Closed<T>;
     readonly knobs?: K;
     readonly draw: (f: Frame<keyof T & string, K>) => void;
+    readonly light?: Light | ((f: Frame<keyof T & string, K>) => Light);
   },
 ) => d;
 
@@ -473,6 +495,22 @@ export const createFilm = (spec: FilmSpec): Film => {
       b: offscreen(width, height),
     });
 
+  /** Each light's sheet, drawn once per `color` and `edge` (`makeLight`). */
+  const lights = new Map<string, HTMLCanvasElement>();
+  /** Multiply the frame by `light` at its amount. */
+  const lightUp = (ctx: CanvasRenderingContext2D, light: Light) => {
+    const amount = clamp(light.amount ?? 1);
+    if (amount <= 0) return;
+    const edge = light.edge ?? light.color;
+    const key = `${light.color} ${edge}`;
+    let sheet = lights.get(key);
+    if (sheet === undefined) {
+      sheet = makeLight(width, height, light.color, edge);
+      lights.set(key, sheet);
+    }
+    shadeBy(ctx, sheet, amount);
+  };
+
   const sceneAt = (T: number): Placed<SceneSpec> => {
     for (let i = placed.length - 1; i >= 0; i--) {
       const p = placed[i];
@@ -611,8 +649,13 @@ export const createFilm = (spec: FilmSpec): Film => {
         : undefined;
     const shot = hearingCameras(ctx, heard, breath, () => p.spec.draw(frame));
     ctx.restore();
+    const light = p.spec.light;
+    drawnLight = Predicate.isFunction(light) ? light(frame) : light;
     return shot;
   };
+
+  /** The light the last scene drawn is lit by, read on its own frame (`SceneSpec.light`). */
+  let drawnLight: Light | undefined;
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
   const breath: BreathNow = { through: 0, drift: DRIFT, outer: false, width, height };
@@ -655,17 +698,18 @@ export const createFilm = (spec: FilmSpec): Film => {
     probing(ctx, probe, () => {
       shot = drawScene(ctx, p, T, boil, reads, override);
     });
-    if (!moving) return;
     // Guessed whole but it framed a shot, or guessed a shot and it framed none: draw it the other way.
-    if (shot === breath.outer) {
+    if (moving && shot === breath.outer) {
       rewindSink(sink);
       if (reads !== undefined) reads.list.length = read;
       breath.outer = !shot;
       ctx.drawImage(paper, 0, 0);
       probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, override));
     }
-    if (shot) unshot.delete(id);
-    else unshot.add(id);
+    if (moving && shot) unshot.delete(id);
+    else if (moving) unshot.add(id);
+    // The scene's light over its page and all on it, outside the probe: light is no ink.
+    if (drawnLight !== undefined) lightUp(ctx, drawnLight);
   };
 
   /** Paper plus one scene, into a layer. */

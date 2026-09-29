@@ -791,6 +791,16 @@ longest held run, largest face, mean luma, dark share, saturation and top
 five colours), one per declared act against its target, and one for the
 film.
 
+**Light.** A scene brings its act's light into band with `light` on its
+drawing, not by repainting its page: `{ color, edge?, amount? }` multiplies
+the page and all drawn on it by `color` over the middle of the frame,
+falling to `edge` at the corners (a pool keeps the subject lit while the
+page around it dims), at `amount`. A function `(f) => Light` reads it each
+frame, so dusk can deepen or dawn come up on a cue. It is laid per sheet,
+before the vignette and grain, so a fade between two scenes crosses their
+lights; each `color`/`edge` pair is drawn once and kept, and it never
+reaches the probe (light is no ink).
+
 **Chapters.** An act of `film.ts`'s `look` that names a `chapter` (the
 narrator's question, in the viewer's words) starts a YouTube chapter at its
 first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
