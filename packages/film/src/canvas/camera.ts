@@ -251,14 +251,58 @@ export const lerpCamera = (out: Camera, a: Camera, b: Camera, t: number): Camera
   return out;
 };
 
-/** One leg of a shot: how far along it is (a cue's `f.at`), and where it goes. */
-export type ShotStop = readonly [progress: number, to: Camera];
+/** Below this change of zoom (as a log ratio) a push is a pan: `pushInto` blends it straight. */
+const PAN_ONLY = 1e-3;
+
+/**
+ * `out` part way from camera `a` to `b` at `t`, as a push (or a pull) moves
+ * through the world: the zoom grows by a constant ratio (`za·(zb/za)^t`) and
+ * the one world point that sits at the same place on screen in both framings
+ * holds still there, so what the shot pushes into slides straight to where
+ * `b` frames it and never swings out of the frame on the way, however deep
+ * the push. A straight blend of centre and zoom (`lerpCamera`) runs the zoom
+ * fastest at the start and throws a deep push's target far off frame before
+ * it comes back. The turn blends straight. Where the zoom barely changes, it
+ * is `lerpCamera`. `out` may be `a`: each field is read before it is written.
+ */
+export const pushInto = (out: Camera, a: Camera, b: Camera, t: number): Camera => {
+  const za = a.zoom ?? 1;
+  const zb = b.zoom ?? 1;
+  const ratio = Math.log(zb / za);
+  if (!(Math.abs(ratio) > PAN_ONLY)) return lerpCamera(out, a, b, t);
+  const z = za * Math.exp(ratio * t);
+  // The fixed point, and how far from it the centre stands, shrinking as the zoom grows.
+  const px = (zb * b.x - za * a.x) / (zb - za);
+  const py = (zb * b.y - za * a.y) / (zb - za);
+  const k = za / z;
+  const ax = a.x;
+  const ay = a.y;
+  out.rot = lerp(a.rot ?? 0, b.rot ?? 0, t);
+  out.x = px - (px - ax) * k;
+  out.y = py - (py - ay) * k;
+  out.zoom = z;
+  return out;
+};
+
+/** How a shot's leg blends the camera toward its stop: `lerpCamera` (straight) or `pushInto`. */
+export type CameraBlend = (out: Camera, a: Camera, b: Camera, t: number) => Camera;
+
+/**
+ * One leg of a shot: how far along it is (a cue's `f.at`), where it goes, and
+ * how it gets there (`lerpCamera` unless it names `pushInto`, for a deep push
+ * that must keep its target in frame).
+ */
+export type ShotStop =
+  | readonly [progress: number, to: Camera]
+  | readonly [progress: number, to: Camera, blend: CameraBlend];
 
 /**
  * A shot as data: from `base`, each stop in turn blends the camera so far
  * toward its `to` by its progress, so a later stop takes over from wherever
  * the earlier ones left it. `shotPath(REST, [[f.at('push'), FACE], [f.at('back'), REST]])`
- * pushes in, then comes back. Written into `out`, a fresh camera by default.
+ * pushes in, then comes back; `[f.at('through'), ICON, pushInto]` pushes
+ * deep into ICON with it in frame all the way. Written into `out`, a fresh
+ * camera by default.
  */
 export const shotPath = (
   base: Camera,
@@ -269,7 +313,7 @@ export const shotPath = (
   out.y = base.y;
   out.zoom = base.zoom ?? 1;
   out.rot = base.rot ?? 0;
-  for (const [progress, to] of stops) lerpCamera(out, out, to, progress);
+  for (const [progress, to, blend = lerpCamera] of stops) blend(out, out, to, progress);
   return out;
 };
 

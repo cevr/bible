@@ -27,6 +27,7 @@ import {
   camera,
   drawing,
   knobCamera,
+  pushInto,
   shotPath,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
@@ -117,8 +118,12 @@ type RoofFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 /** The page at rest, where `message` leaves it: the unmoved frame. */
 const PAGE = { x: 960, y: 540, zoom: 1 } as const;
-/** Where the push through the faith icon ends (set on its disc each frame), close enough that the disc is past the frame's corners. */
-const FAITH = { x: 0, y: 0, zoom: 14 };
+/** Where the push through the faith icon ends: on its disc in `message`'s row, close enough that the disc is past the frame's corners. */
+const FAITH: Camera = {
+  x: GIFTS_AT.gifts[0] + ICON_X[0] * GIFTS_S,
+  y: GIFTS_AT.gifts[1],
+  zoom: 14,
+};
 /** The window into the house inside the icon's disc, in the icon's units: just inside its rim. */
 const WINDOW_R = 140;
 /** How far each close-up keeps pushing in while its face is on screen. */
@@ -155,12 +160,10 @@ const story = (f: RoofFrame) => (f.t < f.mark('woman') ? capernaum(f) : court(f)
 const opening = (f: RoofFrame) => {
   const { ctx, w, h } = f;
   const hands = f.handsOf('message');
-  const [gx, gy] = GIFTS_AT.gifts;
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
-  FAITH.x = gx + ICON_X[0] * GIFTS_S;
-  FAITH.y = gy;
-  const cam = into(PAGE, FAITH, f.at('through'));
+  // A push fourteen times over: `pushInto` keeps the disc in frame all the way.
+  const cam = shotPath(PAGE, [[f.at('through'), FAITH, pushInto]]);
   camera(ctx, cam, w, h, () => {
     giftHand(ctx, hands, GIFTS_AT.palm, 1, 1);
     giftRow(ctx, hands, GIFTS_AT.gifts, ALL, ALL);
@@ -182,23 +185,6 @@ const opening = (f: RoofFrame) => {
   capernaum(f);
   ctx.restore();
 };
-
-/**
- * Part way (`p`) through a push from `a` into the point `b` looks at: the zoom
- * grows by a constant ratio and that point slides to the frame's centre as
- * it does, so it never swings out of the frame on the way (a straight blend
- * of centre and zoom, `lerpCamera`, does).
- */
-const into = (a: Camera, b: Camera, p: number): Camera => {
-  const za = a.zoom ?? 1;
-  const zoom = za * ((b.zoom ?? 1) / za) ** p;
-  const k = ((1 - p) * za) / zoom;
-  PUSH.x = b.x - (b.x - a.x) * k;
-  PUSH.y = b.y - (b.y - a.y) * k;
-  PUSH.zoom = zoom;
-  return PUSH;
-};
-const PUSH: Camera = { x: 0, y: 0, zoom: 1 };
 
 /** The house in Capernaum, from the roof to the man walking out. */
 const capernaum = (f: RoofFrame) => {

@@ -21,6 +21,7 @@ import {
   knobCamera,
   lerpCamera,
   multiplane,
+  pushInto,
   shotPath,
 } from './camera.ts';
 import { heightOf } from './cutout.ts';
@@ -58,6 +59,57 @@ describe('shotPath', () => {
       ]),
     ).toEqual(nested);
     expect(nested).toEqual({ x: 915, y: 535, zoom: 1.275, rot: 0.05 });
+  });
+
+  test('a leg that names pushInto pushes deep with its target in frame all the way', () => {
+    // From the page into `roof`'s faith icon: 1 → 14. A straight blend
+    // (`lerpCamera`, every leg's default) throws the icon 720 px below the
+    // frame half way in.
+    const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
+    const ICON: Camera = { x: 696, y: 875, zoom: 14 };
+    let last = Number.POSITIVE_INFINITY;
+    for (let i = 0; i <= 100; i++) {
+      const cam = shotPath(PAGE, [[i / 100, ICON, pushInto]]);
+      const z = cam.zoom ?? 1;
+      const sx = 960 + (ICON.x - cam.x) * z;
+      const sy = 540 + (ICON.y - cam.y) * z;
+      expect([i, sx >= 0 && sx <= 1920 && sy >= 0 && sy <= 1080]).toEqual([i, true]);
+      // Sliding straight to the centre, never back out.
+      const off = Math.hypot(sx - 960, sy - 540);
+      expect(off).toBeLessThanOrEqual(last + 1e-9);
+      last = off;
+    }
+    // Its zoom grows by a constant ratio: half way is the geometric mean.
+    expect(shotPath(PAGE, [[0.5, ICON, pushInto]]).zoom).toBeCloseTo(Math.sqrt(14));
+    // The straight blend is still every other leg's.
+    const straight = shotPath(PAGE, [[0.45, ICON]]);
+    expect(960 + (ICON.x - straight.x) * (straight.zoom ?? 1)).toBeLessThan(0);
+  });
+
+  test('pushInto starts and ends on its framings, pulls out as it pushes in, and pans straight', () => {
+    const A: Camera = { x: 960, y: 540, zoom: 1 };
+    const B: Camera = { x: 300, y: 900, zoom: 6, rot: 0.2 };
+    const at = (out: Camera) => [out.x, out.y, out.zoom ?? 1, out.rot ?? 0];
+    for (const [got, want] of [
+      [pushInto({ x: 0, y: 0 }, A, B, 0), [960, 540, 1, 0]],
+      [pushInto({ x: 0, y: 0 }, A, B, 1), [300, 900, 6, 0.2]],
+      [pushInto({ x: 0, y: 0 }, B, A, 1), [960, 540, 1, 0]],
+    ] as const)
+      for (const [i, v] of at(got).entries()) expect(v).toBeCloseTo(want[i] ?? Number.NaN);
+    // A pull out is the push in run backward.
+    expect(at(pushInto({ x: 0, y: 0 }, B, A, 0.3)).map((v) => v.toFixed(6))).toEqual(
+      at(pushInto({ x: 0, y: 0 }, A, B, 0.7)).map((v) => v.toFixed(6)),
+    );
+    // No change of zoom: a pan, blended straight.
+    const PAN: Camera = { x: 100, y: 100, zoom: 1 };
+    expect(pushInto({ x: 0, y: 0 }, A, PAN, 0.25)).toEqual(
+      lerpCamera({ x: 0, y: 0 }, A, PAN, 0.25),
+    );
+    // It may write into the camera it starts from.
+    const out: Camera = { ...A };
+    expect(at(pushInto(out, out, B, 1)).map((v) => v.toFixed(6))).toEqual(
+      [300, 900, 6, 0.2].map((v) => v.toFixed(6)),
+    );
   });
 
   test('writes into the camera it is given and leaves the stops alone', () => {
