@@ -14,21 +14,16 @@
 //
 // Generated sounds: everything the picture does by hand (paper, wood, cloth,
 // stone, steps) is a one-shot on the cue that draws it; a bed is placed only
-// where the picture has a real place to hear. Not placed yet (low confidence
-// in the p4-sfx audition, `montages/sfx/index.md`), each waiting on a new
-// prompt or a CC0 recording:
-//   TODO tape.measure: `word`'s tape drop (every take is a steel tape).
-//   TODO crowd.swell: `message`'s crowd turning on `answer` (no murmur-then-rise).
-//   TODO needle.thread: `mirror`'s sewing on `fig` (no take has two stitches).
-//   TODO amb.court: the courts of `woman`, `accuser` and `robe` (near-silent rumble).
-//   TODO amb.town: `centurion`'s street (rumble, no town).
+// where the picture has a real place to hear: the court's air under both
+// courts (`woman`'s temple court, and `accuser` into `robe`'s heavenly one),
+// the town's under `centurion` until its row.
 
 import type { Cue, Sound } from '@bible/film/core';
 
 /** The paper room's level under the voice (dB). */
-const PAPER = -19;
+const PAPER = -16;
 /** Every place's air under the voice (dB). */
-const AIR = -20;
+const AIR = -17;
 
 const cue = (scene: string, name: string, offset = 0): Cue => ({ scene, cue: name, offset });
 const ends = (scene: string, name: string, offset = 0): Cue => ({
@@ -45,8 +40,13 @@ export const sound: Sound = {
     // IDEA: the parchment page.
     { sound: 'room.paper', level: PAPER, from: start('cold'), to: start('mirror', 0.4) },
     { sound: 'room.paper', level: PAPER, from: mark('message', 'three'), to: start('roof', 0.4) },
-    { sound: 'room.paper', level: PAPER, from: start('spoke'), to: cue('spoke', 'plunge') },
-    { sound: 'room.paper', level: PAPER, from: start('look'), to: cue('look', 'toDesert') },
+    { sound: 'room.paper', level: PAPER, from: cue('woman', 'toIdea'), to: cue('spoke', 'plunge') },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: cue('centurion', 'toIcons'),
+      to: cue('look', 'toDesert'),
+    },
     { sound: 'room.paper', level: PAPER, from: cue('look', 'toIcons'), to: start('exchange', 0.4) },
     { sound: 'room.paper', level: PAPER, from: cue('robe', 'toIcons'), to: mark('daily', 'will') },
 
@@ -54,9 +54,12 @@ export const sound: Sound = {
     { sound: 'amb.garden', level: AIR, from: start('mirror'), to: mark('mirror', 'mirror') },
     { sound: 'amb.hall', level: AIR, from: cue('message', 'window'), to: mark('message', 'three') },
     { sound: 'amb.house', level: AIR, from: start('roof'), to: start('woman', 0.4) },
+    { sound: 'amb.court', level: AIR, from: start('woman'), to: cue('woman', 'toIdea') },
     { sound: 'amb.dawn', level: AIR, from: mark('spoke', 'spake'), to: start('centurion', 0.4) },
+    { sound: 'amb.town', level: AIR, from: start('centurion'), to: cue('centurion', 'toIcons') },
     { sound: 'amb.desert', level: AIR, from: cue('look', 'toDesert'), to: cue('look', 'toIcons') },
     { sound: 'amb.dawn', level: AIR, from: cue('exchange', 'dawn'), to: mark('exchange', 'up') },
+    { sound: 'amb.court', level: AIR, from: start('accuser'), to: cue('robe', 'toIcons') },
     { sound: 'amb.dawn', level: AIR, from: mark('daily', 'will'), to: start('rain', 0.4) },
     { sound: 'amb.rain', level: AIR, from: start('rain'), to: start('name', 0.6) },
 
@@ -95,14 +98,17 @@ export const sound: Sound = {
     flip: { sound: 'paper.flip', at: [cue('word', 'flip', 0.2), cue('spoke', 'bookOpen')] },
     tablets: { sound: 'tablet.set', at: [ends('word', 'drop', -0.1)] },
     tear: { sound: 'paper.tear', at: [cue('word', 'cardOut')] },
+    tape: { sound: 'tape.measure', at: [cue('word', 'tape')] },
     book: { sound: 'book.close', at: [cue('within', 'book')] },
 
     // ── The garden ─────────────────────────────────────────────────────────
     leaves: { sound: 'leaves.rustle', at: [cue('mirror', 'leaves')] },
     scrub: { sound: 'glass.scrub', at: [cue('mirror', 'scrub')] },
+    needle: { sound: 'needle.thread', at: [ends('mirror', 'toSew')] },
 
     // ── The hall ───────────────────────────────────────────────────────────
     banner: { sound: 'cloth.banner', at: [mark('message', 'banner'), cue('rain', 'fly')] },
+    crowd: { sound: 'crowd.swell', at: [cue('message', 'turn', -0.3)] },
     wings: { sound: 'wings.pass', at: [cue('message', 'fly')] },
 
     // ── Capernaum ──────────────────────────────────────────────────────────
