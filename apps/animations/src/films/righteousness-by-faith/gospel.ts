@@ -498,6 +498,9 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     line: 0,
     torn: 4,
   });
+  // His light, on the back of the room: behind the crowd and him, never fog over them.
+  const [jx, jy] = JESUS_HOUSE;
+  glow(ctx, jx, jy - 240, 330, C.glow, 0.6);
   ropes(ctx, hand, s);
   onlookers(
     ctx,
@@ -510,8 +513,6 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   );
 
   // Jesus, looking to the man, up at the four, and after the man as he goes.
-  const [jx, jy] = JESUS_HOUSE;
-  glow(ctx, jx, jy - 240, 330, C.glow, 0.6);
   const up = s.lookUp * (1 - s.reach);
   at(ctx, { x: jx, y: jy, scale: JESUS_HOUSE_S }, () =>
     christ(
