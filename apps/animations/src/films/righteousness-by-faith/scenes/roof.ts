@@ -31,7 +31,7 @@ import {
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { COURT_WIDE, WENT, house, temple } from '../gospel.ts';
-import { C, ICON_X, gait, handsOf } from '../kit.ts';
+import { C, ICON_X, gait } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, giftHand, giftRow } from './message.ts';
 
 const timeline = {
@@ -154,7 +154,7 @@ const story = (f: RoofFrame) => (f.t < f.mark('woman') ? capernaum(f) : court(f)
  */
 const opening = (f: RoofFrame) => {
   const { ctx, w, h } = f;
-  const hands = handsOf(f, 'message');
+  const hands = f.handsOf('message');
   const [gx, gy] = GIFTS_AT.gifts;
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
@@ -287,7 +287,7 @@ const closing = (f: RoofFrame, toIdea: number) => {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
-  giftHand(ctx, handsOf(f, 'message'), GIFTS_AT.palm, f.at('handUp'), 1);
+  giftHand(ctx, f.handsOf('message'), GIFTS_AT.palm, f.at('handUp'), 1);
 };
 
 /**
@@ -310,6 +310,6 @@ const row = (f: RoofFrame, shown: number, toIdea: number) => {
   const at: Pt = [lerp(bx, gx, toIdea), lerp(by, gy, toIdea)];
   ctx.save();
   ctx.globalAlpha *= shown;
-  giftRow(ctx, handsOf(f, 'message'), at, LIT, ALL, lerp(BAND_S, GIFTS_S, toIdea));
+  giftRow(ctx, f.handsOf('message'), at, LIT, ALL, lerp(BAND_S, GIFTS_S, toIdea));
   ctx.restore();
 };

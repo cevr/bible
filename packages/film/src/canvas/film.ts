@@ -96,7 +96,20 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   spoken(from: string, to?: string): number;
   /** Line-wobble state for a named or numbered drawing. */
   hand(key: string | number): Hand;
+  /**
+   * Another scene's hands, as its own `f.hand` gives them there, boiling on
+   * this frame's tick: a callback or a shot carried over a cut draws that
+   * scene's paper torn as it was, not a new sheet. Throws, naming it, for a
+   * scene the film lacks.
+   */
+  handsOf(scene: string): (key: string | number) => Hand;
 }
+
+/** The hand scene `scene` gives `key` on boil tick `boil`: what `f.hand` and `f.handsOf` both give. */
+const sceneHand = (scene: string, key: string | number, boil: number): Hand => ({
+  boil,
+  seed: Predicate.isNumber(key) ? key : seedOf(`${scene}:${key}`),
+});
 
 export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
@@ -458,6 +471,9 @@ export const createFilm = (spec: FilmSpec): Film => {
     return first;
   };
 
+  /** Every scene's id, for `f.handsOf`. */
+  const ids = new Set(placed.map((p) => p.spec.id));
+
   const placedOf = (scene: string) => {
     const p = placed.find((x) => x.spec.id === scene);
     if (p === undefined) throw new Error(`film has no scene "${scene}"`);
@@ -558,10 +574,12 @@ export const createFilm = (spec: FilmSpec): Film => {
         });
         return k;
       },
-      hand: (key) => ({
-        boil,
-        seed: Predicate.isNumber(key) ? key : seedOf(`${p.spec.id}:${key}`),
-      }),
+      hand: (key) => sceneHand(p.spec.id, key, boil),
+      handsOf: (scene) => {
+        if (!ids.has(scene))
+          throw new Error(`scene ${p.spec.id}: film has no scene "${scene}" to take hands from`);
+        return (key) => sceneHand(scene, key, boil);
+      },
       words,
       spoken: (from, to) => {
         const a = frame.mark(from);

@@ -20,7 +20,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { clamp, hash2, lerp, seedOf } from '@bible/film/core';
+import { clamp, hash2, lerp } from '@bible/film/core';
 import { fonts, palette } from './palette.ts';
 
 export const C = palette;
@@ -817,17 +817,8 @@ export const gait = (t: number, walk: { readonly start: number; readonly end: nu
 // seeds stay the scene's own. Sets live in their own modules: court.ts,
 // heaven.ts, city.ts, law.ts, garden.ts, spoken.ts, gospel.ts.
 
+/** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
 export type Hands = (k: string) => Hand;
-
-/**
- * Another scene's hands, as its own `f.hand` gives them there, boiling on
- * this frame's tick: a callback or a shot carried over a cut draws that
- * scene's paper, torn the same, not a new sheet.
- */
-export const handsOf =
-  (f: { readonly hand: (key: string | number) => Hand }, scene: string): Hands =>
-  (k) =>
-    f.hand(seedOf(`${scene}:${k}`));
 
 /**
  * Christ, feet at the origin, as a `person` in the white robe with a gold

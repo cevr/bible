@@ -402,7 +402,10 @@ browser.
 
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
-state between frames — compute everything from `f.t`.
+state between frames — compute everything from `f.t`. A callback, or a shot
+carried over a cut, draws another scene's paper with `f.handsOf('message')`:
+that scene's hands as its own `f.hand` gives them, boiling on this frame's
+tick; a scene the film lacks throws, naming it.
 
 **Lint.** The repo's `film` oxlint plugin (`packages/film/lint/`, rules read
 as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,

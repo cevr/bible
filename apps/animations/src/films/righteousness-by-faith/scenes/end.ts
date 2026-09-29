@@ -17,7 +17,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp } from '@bible/film/core';
 import { landingSky, rooftop } from '../city.ts';
-import { C, F, glow, handsOf, piece } from '../kit.ts';
+import { C, F, glow, piece } from '../kit.ts';
 import { script } from '../script.ts';
 
 /** The authors the sources are grouped under, in the order the credits give them, after scripture. */
@@ -139,7 +139,7 @@ export const end = drawing({
       [f.at('back'), knobCamera(f.knob('wide'), f.knob('wideZoom'))],
     ]);
     // `thesis`'s rooftop, its paper cut as it was, the two turned to each other.
-    rooftop(ctx, w, h, handsOf(f, 'thesis'), cam, 1);
+    rooftop(ctx, w, h, f.handsOf('thesis'), cam, 1);
 
     const shown = f.at('stripIn') * (1 - f.at('stripOut'));
     if (shown <= 0) return;

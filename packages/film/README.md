@@ -947,7 +947,7 @@ fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
 tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
-frames. Seed randomness by key (`f.hand(key)`, `random.ts`).
+frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`.
 
 ```sh
 bun run gate   # typecheck + tests

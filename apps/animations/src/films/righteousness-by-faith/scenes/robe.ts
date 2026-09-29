@@ -38,7 +38,6 @@ import {
   blob,
   gait,
   glow,
-  handsOf,
   icons,
   person,
   piece,
@@ -532,7 +531,7 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
       icons(ctx, hand, ICONS_LIT);
       at(ctx, { x: ICON_X[1], y: 0 }, () =>
         recall(ctx, w, h, ROBE_DISC, CALLBACK_K, forgiven, () =>
-          temple(ctx, w, h, handsOf(f, 'roof'), COURT_FORGIVEN),
+          temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN),
         ),
       );
     });
