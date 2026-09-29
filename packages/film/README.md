@@ -33,7 +33,10 @@ with its films folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
 mode with the lab's routes mounted, because only the app can bundle its HTML
 and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
-key=value`) go to stderr; stdout carries only what a command prints. The player imports the same folder, so the tools
+key=value`) go to stderr, a failed command's report too (logged under the
+same logger before the runtime exits, not by `runMain`'s own reporter, which
+would print to stdout); stdout carries only what a command prints, so a
+failing `check --json` still prints only findings. The player imports the same folder, so the tools
 and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`

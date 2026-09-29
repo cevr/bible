@@ -63,6 +63,20 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
+    'a failure is reported on stderr, so stdout holds only what the command prints',
+    () =>
+      Effect.gen(function* () {
+        // The lab reads `check --json`'s stdout line by line: a failed check's
+        // report there read as a finding that does not decode.
+        const run = yield* cli('cues', film, 'typo');
+        expect(run.exitCode).not.toBe(0);
+        unknownTypo(run.out);
+        expect(run.stdout).not.toContain('UnknownScene');
+      }),
+    spawnBudget(1),
+  );
+
+  it.effect.layer(BunServices.layer)(
     'cues --sound with a misspelt scene fails',
     () =>
       Effect.gen(function* () {

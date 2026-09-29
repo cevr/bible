@@ -42,6 +42,7 @@ import {
   Option,
   Path,
   Result,
+  Runtime,
   Schema,
   Stdio,
 } from 'effect';
@@ -1168,5 +1169,20 @@ export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp
         Effect.mapError(atTheCommandLine),
       ),
     ),
-  ).pipe(Effect.provide(Layer.mergeAll(Services, Logs)), BunRuntime.runMain);
+  ).pipe(
+    // runMain would report a failure after these layers are gone, through the
+    // default logger, onto stdout; it is reported here instead, under `Logs`.
+    Effect.tapCause(reportFailure),
+    Effect.provide(Layer.mergeAll(Services, Logs)),
+    BunRuntime.runMain({ disableErrorReporting: true }),
+  );
 };
+
+/** What runMain reports of a failure (not an interrupt, nor an error marked unreported), as an error log. */
+const reportFailure = (cause: Cause.Cause<unknown>) =>
+  Effect.when(
+    Effect.logError(cause),
+    Effect.sync(
+      () => !Cause.hasInterruptsOnly(cause) && Runtime.getErrorReported(Cause.squash(cause)),
+    ),
+  );
