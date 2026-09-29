@@ -287,6 +287,17 @@ Receipts in SP/film-pass2/finish/.
 - **Render** (default, load 4.93 → 20.87 by its end): software encoder, 8 pages, 13712 frames, 58 chunks, 293.5 s wall (pages + join ~142 s, x264 share 151.8 s). Master 765 MB at 13.4 Mbps, share 126 MB at 2.2 Mbps; grain kept master 0.57–0.85, share 0.56–0.80 (`grain.txt`). `--contact 6` sheet shows every scene; the review page index lists the share, the vtt, the chapters and the sheet.
 - **Lab** (agent-browser): seek into `roof`, select a cue, drag the point knob (the handle follows), Undo, `git diff` empty, Studio lists the beats (`lab/*.png`). The lab's static check listed nothing: the CLI's failure report went to stdout and broke `check --json`, fixed fd0137d0 (red first, `cli.test.ts`).
 
+## Pass 3: arms (2026-09-29)
+
+Owner: "many arms facing the wrong way, janky actions … a minimal style that only draws arms when needed … a distinct direction." Audit (SP/film-pass3/arms-audit/): 36 arm sites, 54 targets; root causes were a side-fixed `Bend`, a 70-unit arm reaching targets up to 103 units away, the far arm always behind the body, threshold pops, a ball hand with no thumb, and the tunic drawn over the helpers. Four directions were prototyped on a sketchbook branch (split-pin, arms only when acting, sleeve, floating mittens; bundle SP/film-pass3/arms-explore.bundle). The owner chose **B, arms only when acting**.
+
+| Batch   | Items                                                                                                                                                                            | State                      |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| p3-arms | engine `arm.ts` (grow strip, one mitten with grips, `closeHand`); kit `near`/`far`; every scene on cues; 5 missing arms; `ArmPop`/`HandHidden`; director-vision Hands + CRAFT 12 | merged 6aa94803 (owner OK) |
+| p3-hand | the close-up hand, second pass: a top-down palm, the small hand turns palm-up before the push, soft creases                                                                      | running                    |
+
+Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 2,489 frames; HeldShare no scene worse than main (robe 75→71, roof 36→32); FaceSmall unchanged; bench median 53.6 → 53.3 ms (load 5–8), spoke +8 % on a rerun.
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
