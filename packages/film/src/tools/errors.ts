@@ -162,6 +162,27 @@ export class CandidateMissing extends Schema.TaggedError<CandidateMissing>()('Ca
   }
 }
 
+/** `sfx unkeep` (or `keep --replace`'s undo) naming a kept variant the sound does not have. */
+export class VariantMissing extends Schema.TaggedError<VariantMissing>()('VariantMissing', {
+  name: Schema.String,
+  index: Schema.Int,
+  variants: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" keeps ${this.variants} variants; there is no variant ${this.index}`;
+  }
+}
+
+/** `sfx push` copied a file into the store, and the store then did not hold its bytes. */
+export class StoreCopyFailed extends Schema.TaggedError<StoreCopyFailed>()('StoreCopyFailed', {
+  file: Schema.String,
+  store: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} was copied to the store at ${this.store}, which then did not hold its bytes`;
+  }
+}
+
 /** A command that takes one kind of sound given another (`sfx render` a generated one, `import` a procedural one). */
 export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   'SoundKindMismatch',

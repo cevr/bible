@@ -10,7 +10,8 @@
 //   film sfx plan [name…] [--force]
 //   film sfx make [name…] [--force] [--yes] [--cap n] [--tally file]
 //   film sfx audition <name> [--candidates]
-//   film sfx keep <name> <n…>      film sfx reject <name> <n…>
+//   film sfx keep <name> <n…> [--replace]
+//   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
 //   film sfx import <file> <name>
 //   film sfx render <name> [--seed n]
 //   film sfx check [--json]
@@ -224,14 +225,48 @@ const audition = Command.make(
 
 const keep = Command.make(
   'keep',
-  { name, picks },
+  {
+    name,
+    picks,
+    replace: Flag.Boolean('replace').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'keep them in place of the kept variants, which wait again as candidates',
+      ),
+    ),
+  },
   Effect.fn('film.sfx.keep')(function* (input) {
-    const entry = yield* (yield* SoundLibrary).keep(input.name, input.picks);
+    const entry = yield* (yield* SoundLibrary).keep(input.name, input.picks, input.replace);
     yield* Console.log(
       `${input.name} variants=${entry.variants.length} candidates=${entry.candidates.length}`,
     );
   }),
-).pipe(Command.withDescription('Keep candidates as the variants the mix plays'));
+).pipe(
+  Command.withDescription(
+    'Keep candidates as the variants the mix plays: beside the kept ones, or in their place with --replace',
+  ),
+);
+
+const unkeep = Command.make(
+  'unkeep',
+  {
+    name,
+    picks: Argument.Int('n').pipe(
+      Argument.variadic({ min: 1 }),
+      Argument.withDescription('kept variants by number (1-based), as audition plays them'),
+    ),
+  },
+  Effect.fn('film.sfx.unkeep')(function* (input) {
+    const entry = yield* (yield* SoundLibrary).unkeep(input.name, input.picks);
+    yield* Console.log(
+      `${input.name} variants=${entry.variants.length} candidates=${entry.candidates.length}`,
+    );
+  }),
+).pipe(
+  Command.withDescription(
+    'Stop playing kept variants: each waits again as a candidate, to keep or reject later',
+  ),
+);
 
 const reject = Command.make(
   'reject',
@@ -314,10 +349,15 @@ const push = Command.make(
   'push',
   {},
   Effect.fn('film.sfx.push')(function* () {
-    const { sent, had } = yield* (yield* SoundLibrary).push;
-    yield* Console.log(`pushed ${sent}, had ${had}`);
+    const { sent, had, total } = yield* (yield* SoundLibrary).push;
+    for (const file of sent) yield* Console.log(`sent  ${file}`);
+    yield* Console.log(`pushed ${sent.length}, had ${had}, of ${total} in the lock`);
   }),
-).pipe(Command.withDescription("Copy the lock's generated files the store lacks into it"));
+).pipe(
+  Command.withDescription(
+    "Copy the lock's generated files the store lacks (or holds with other bytes) into it, each read back by hash",
+  ),
+);
 
 const guard = Command.make(
   'guard',
@@ -347,6 +387,7 @@ export const sfx = Command.make('sfx').pipe(
     make,
     audition,
     keep,
+    unkeep,
     reject,
     importCommand,
     render,

@@ -52,7 +52,11 @@ credits (40 a second), fails `PaidUnconfirmed` without `--yes`, and
 `CreditsOverCap` when `--cap` is under the credits it would spend plus those
 its `--tally` TSV already records; every generation is appended to the tally
 as it lands. Candidates are FLAC under the git-ignored `files/<name>/`, named
-by their hash, and wait in the lock until `keep` or `reject`. `guard` is the
+by their hash, and wait in the lock until `keep` or `reject`; `keep --replace`
+keeps them in place of the kept variants, and `unkeep` sends kept variants
+back to wait (the lock is only ever written by these commands). `push` copies
+each private file the store lacks, or holds with other bytes, reads it back by
+hash (`StoreCopyFailed` otherwise), and names every file it sent. `guard` is the
 pre-commit hook's: of the staged files, it refuses any audio under `files/`,
 any copy of a variant or candidate that is not CC0 (by its sha256, wherever
 it is staged), and anything under `public/` the lock does not hold as a CC0

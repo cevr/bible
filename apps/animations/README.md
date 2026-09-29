@@ -18,10 +18,12 @@ bun run sfx plan [name…]                       # what make would generate and 
 bun run sfx make [name…] --yes [--cap n --tally f]  # generate candidates (paid; without --yes it prints the plan and stops)
 bun run sfx audition <name> [--candidates]     # one WAV of the variants (or candidates), levelled, 0.5 s apart
 bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected one is never offered again
+bun run sfx keep <name> <n…> --replace         # keep candidates in place of the kept variants (those wait again)
+bun run sfx unkeep <name> <n…>                 # stop playing kept variants (by audition number); they wait again
 bun run sfx import <file> <name>               # a CC0 recording into a declared recorded sound (public/)
 bun run sfx render <name> [--seed n]           # a procedural sound's seeds as WAVs
 bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams
-bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts
+bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span

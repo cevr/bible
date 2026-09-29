@@ -263,6 +263,65 @@ describe('SoundLibrary', () => {
       ),
   );
 
+  it.effect.layer(fixture)(
+    'unkeeps a kept variant back to waiting, and keeps in place of the kept ones with replace',
+    () =>
+      withLibrary(() =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
+          const first = yield* library.keep('paper.slide', [1, 2]);
+          const [one, two] = first.variants.map((v) => v.sha256);
+          // Unkept: the variant waits again as the last candidate, playable by keep.
+          const unkept = yield* library.unkeep('paper.slide', [1]);
+          expect(unkept.variants.map((v) => v.sha256)).toEqual([two ?? '']);
+          expect(unkept.candidates.map((v) => v.sha256)).toContain(one ?? '');
+          expect(unkept.candidates).toHaveLength(3);
+          const outOfRange = yield* Effect.flip(library.unkeep('paper.slide', [2]));
+          expect(outOfRange).toMatchObject({ _tag: 'VariantMissing', index: 2, variants: 1 });
+          // Replace: the picks play alone; what played waits again.
+          const waiting = unkept.candidates[0]?.sha256;
+          const replaced = yield* library.keep('paper.slide', [1], true);
+          expect(replaced.variants.map((v) => v.sha256)).toEqual([waiting ?? '']);
+          expect(replaced.candidates.map((v) => v.sha256)).toContain(two ?? '');
+          expect(replaced.candidates).toHaveLength(3);
+          // Unkeeping the last variant leaves nothing playing: the sound is unmade again.
+          const none = yield* library.unkeep('paper.slide', [1]);
+          expect(none.variants).toEqual([]);
+          const loaded = yield* library.load;
+          const entry = loaded.library['paper.slide'];
+          if (entry)
+            expect(soundState(entry, Option.fromUndefinedOr(loaded.lock['paper.slide']))).toEqual({
+              _tag: 'Missing',
+              candidates: 4,
+            });
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'push names each file it sends, and sends again a store copy that is not its bytes',
+    () =>
+      withLibrary(({ storeDir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          yield* library.make(all);
+          const lock = (yield* library.load).lock;
+          const files = Object.values(lock).flatMap((e) => e.candidates.map((v) => v.file));
+          const first = yield* library.push;
+          expect([...first.sent].sort()).toEqual([...files].sort());
+          expect(first).toMatchObject({ had: 0, total: 6 });
+          const broken = files[0] ?? '';
+          yield* fs.writeFileString(`${storeDir}/${broken}`, 'half a file');
+          yield* fs.remove(`${storeDir}/${files[1] ?? ''}`);
+          const again = yield* library.push;
+          expect([...again.sent].sort()).toEqual([broken, files[1] ?? ''].sort());
+          expect(again).toMatchObject({ had: 4, total: 6 });
+        }),
+      ),
+  );
+
   it.effect.layer(fixture)('checks files by hash, and syncs them through the folder store', () =>
     withLibrary(({ dir, storeDir }) =>
       Effect.gen(function* () {
@@ -277,8 +336,8 @@ describe('SoundLibrary', () => {
           'wood.knock',
         ]);
 
-        expect(yield* library.push).toEqual({ sent: 6, had: 0 });
-        expect(yield* library.push).toEqual({ sent: 0, had: 6 });
+        expect(yield* library.push).toMatchObject({ had: 0, total: 6 });
+        expect(yield* library.push).toEqual({ sent: [], had: 6, total: 6 });
         const lock = (yield* library.load).lock;
         const slide = lock['paper.slide']?.variants[0]?.file ?? '';
         const court = lock['amb.court']?.variants[0]?.file ?? '';

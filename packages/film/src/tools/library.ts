@@ -74,7 +74,9 @@ import {
   SoundLicence,
   SoundStale,
   SoundUnmade,
+  StoreCopyFailed,
   type UnknownSound,
+  VariantMissing,
 } from './errors.ts';
 import { libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
@@ -216,6 +218,13 @@ export type MakeError =
   | MediaFailed
   | PlatformError;
 
+/** What `push` did: the files it copied, those the store already held, and the lock's total. */
+export interface PushReport {
+  readonly sent: ReadonlyArray<string>;
+  readonly had: number;
+  readonly total: number;
+}
+
 export interface SoundLibraryService {
   readonly paths: SoundsPaths;
   readonly load: Effect.Effect<LoadedLibrary, LibraryError>;
@@ -226,11 +235,21 @@ export interface SoundLibraryService {
   ) => Effect.Effect<ReadonlyArray<MakeJob>, LibraryError>;
   /** Generate the planned candidates (paid), each measured, hashed and recorded as it lands. */
   readonly make: (options: MakeOptions) => Effect.Effect<ReadonlyArray<Variant>, MakeError>;
-  /** Move candidates (1-based, among those for the current request) into the variants that play. */
+  /**
+   * Move candidates (1-based, among those for the current request) into the
+   * variants that play: beside the kept ones, or with `replace` in their place
+   * (the variants they replace wait again as candidates).
+   */
   readonly keep: (
     name: string,
     picks: ReadonlyArray<number>,
+    replace?: boolean,
   ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | CandidateMissing>;
+  /** Move kept variants (1-based, in the order they play) back to the candidates waiting. */
+  readonly unkeep: (
+    name: string,
+    picks: ReadonlyArray<number>,
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | VariantMissing>;
   /** Drop candidates, never to be offered again. */
   readonly reject: (
     name: string,
@@ -269,11 +288,12 @@ export interface SoundLibraryService {
     { readonly fetched: number; readonly had: number },
     LibraryError | PlatformError
   >;
-  /** Copy every lock file under `files/` the store lacks into it. */
-  readonly push: Effect.Effect<
-    { readonly sent: number; readonly had: number },
-    LibraryError | PlatformError
-  >;
+  /**
+   * Copy every lock file under `files/` the store lacks (or holds with other
+   * bytes) into it, each read back by hash. `sent` names the files copied,
+   * `had` counts those the store already held, `total` the lock's files.
+   */
+  readonly push: Effect.Effect<PushReport, LibraryError | PlatformError | StoreCopyFailed>;
   /** Of `files` (as staged for a commit), the audio a public repo may not take (`refusedAudio`). */
   readonly guard: (
     files: ReadonlyArray<string>,
@@ -515,13 +535,51 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const keep = Effect.fn('SoundLibrary.keep')(function* (
           name: string,
           picks: ReadonlyArray<number>,
+          replace = false,
         ) {
-          return yield* curate(name, picks, (had, chosen, request) => ({
+          return yield* curate(name, picks, (had, chosen, request) => {
             // Variants for an older request play only until new ones are kept.
-            variants: [...had.variants.filter((v) => v.request === request), ...chosen],
-            candidates: without(had.candidates, chosen),
-            rejected: had.rejected,
-          }));
+            const current = had.variants.filter((v) => v.request === request);
+            if (!replace)
+              return {
+                variants: [...current, ...chosen],
+                candidates: without(had.candidates, chosen),
+                rejected: had.rejected,
+              };
+            return {
+              variants: chosen,
+              candidates: [...without(had.candidates, chosen), ...current],
+              rejected: had.rejected,
+            };
+          });
+        });
+
+        const unkeep = Effect.fn('SoundLibrary.unkeep')(function* (
+          name: string,
+          picks: ReadonlyArray<number>,
+        ) {
+          const loaded = yield* load;
+          yield* entryOf(loaded, name);
+          const kept = Option.match(Option.fromUndefinedOr(loaded.lock[name]), {
+            onNone: (): ReadonlyArray<Variant> => [],
+            onSome: (l) => l.variants,
+          });
+          const chosen = yield* Effect.forEach(picks, (n) => {
+            if (n >= 1 && n <= kept.length) return Effect.succeed(Arr.getUnsafe(kept, n - 1));
+            return Effect.fail(VariantMissing.make({ name, index: n, variants: kept.length }));
+          });
+          const next = yield* store.update(paths.lock, (lock) => {
+            const had = Option.getOrElse(Option.fromUndefinedOr(lock[name]), () => emptyEntry);
+            return {
+              ...lock,
+              [name]: {
+                variants: without(had.variants, chosen),
+                candidates: [...had.candidates, ...chosen],
+                rejected: had.rejected,
+              },
+            };
+          });
+          return Option.getOrElse(Option.fromUndefinedOr(next[name]), () => emptyEntry);
         });
 
         const reject = Effect.fn('SoundLibrary.reject')(function* (
@@ -714,7 +772,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const check = checkLibrary();
 
         const storeOf = (loaded: LoadedLibrary): SoundStoreService =>
-          folderStore(fs, path, expandHome(loaded.store.folder, home));
+          folderStore(fs, path, expandHome(loaded.store.folder, home), sha256);
 
         /** Every lock file under `files/`: the private ones a store keeps. */
         const privateFiles = (lock: Lock) =>
@@ -746,20 +804,27 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const pushFiles = Effect.fn('SoundLibrary.push')(function* () {
           const loaded = yield* load;
           const remote = storeOf(loaded);
-          let sent = 0;
+          const files = privateFiles(loaded.lock);
+          const sent: Array<string> = [];
           let had = 0;
-          for (const { variant } of privateFiles(loaded.lock)) {
-            if (yield* remote.has(variant.file)) {
+          const holds = (variant: Variant) =>
+            Effect.map(remote.hashOf(variant.file), (h) => Option.contains(h, variant.sha256));
+          for (const { variant } of files) {
+            if (yield* holds(variant)) {
               had++;
               continue;
             }
             yield* remote.put(variant.file, path.join(dir, variant.file));
-            sent++;
+            if (!(yield* holds(variant)))
+              return yield* StoreCopyFailed.make({ file: variant.file, store: remote.where });
+            sent.push(variant.file);
+            yield* Effect.log(`sfx.push.sent file=${variant.file}`);
           }
           yield* Effect.log(
-            `sfx.push store=${remote.where} sent=${sent} had=${had} todo="${loaded.store.remote.todo}"`,
+            `sfx.push store=${remote.where} sent=${sent.length} had=${had} total=${files.length} todo="${loaded.store.remote.todo}"`,
           );
-          return { sent, had };
+          const report: PushReport = { sent, had, total: files.length };
+          return report;
         });
         const push = pushFiles();
 
@@ -790,6 +855,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           plan,
           make,
           keep,
+          unkeep,
           reject,
           importFile,
           heard,
