@@ -254,6 +254,13 @@ const MAN_SPECKS = [
   blob(14, -40, 12, 10, 53),
 ];
 
+/**
+ * A scene's pose written in place every frame: `House` or `Temple` with its
+ * fields writable, so a scene keeps one at module scope and draws with no
+ * allocation.
+ */
+export type Posed<T> = { -readonly [K in keyof T]: T[K] };
+
 /** The house in Capernaum as a scene has it this frame. */
 export interface House {
   readonly cam: Camera;
@@ -731,6 +738,17 @@ export interface Temple {
   };
 }
 
+/** The courts' stone, the cornice's shade and the court's dusty floor, mixed once. */
+const COURTS = mix(C.stone, C.boardShade, 0.35);
+const CORNICE = mix(C.stone, C.boardShade, 0.5);
+const COURT_GROUND = mix(C.board, C.peachLow, 0.35);
+/** Her robe and its shade, out of white and in it. */
+const HER_BODY = [mix(C.stone, C.robe, 0), mix(C.stone, C.robe, 1)] as const;
+const HER_SHADE = [mix(C.figureShade, C.robe, 0), mix(C.figureShade, C.robe, 1)] as const;
+/** Her colour at `white`: an end mixed once, or mixed now for a white between them. */
+const inWhite = (ends: readonly [string, string], white: number) =>
+  white <= 0 ? ends[0] : white >= 1 ? ends[1] : mix(ends[0], ends[1], white);
+
 /**
  * The temple court: the sanctuary far off under the peach sky, the
  * colonnade those who brought her walk out through, the court's floor with
@@ -759,7 +777,7 @@ export const temple = (
             [200, 380, 440, 'courtL'],
             [1300, 380, 440, 'courtR'],
           ] as const)
-            piece(ctx, rectShape(x, top, bw, 700), mix(C.stone, C.boardShade, 0.35), hand(k), {
+            piece(ctx, rectShape(x, top, bw, 700), COURTS, hand(k), {
               role: 'scenery',
               kind: 'cut',
               line: 0,
@@ -773,18 +791,12 @@ export const temple = (
             torn: 2,
             shadow: 0.5,
           });
-          piece(
-            ctx,
-            rectShape(610, 60, 720, 50),
-            mix(C.stone, C.boardShade, 0.5),
-            hand('cornice'),
-            {
-              role: 'scenery',
-              kind: 'cut',
-              line: 0,
-              torn: 2,
-            },
-          );
+          piece(ctx, rectShape(610, 60, 720, 50), CORNICE, hand('cornice'), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 0,
+            torn: 2,
+          });
           piece(ctx, rounded(970, 700, 220, 460, 30), C.boardDeep, hand('porch'), {
             role: 'scenery',
             kind: 'cut',
@@ -876,17 +888,11 @@ const HIS_HAND: [number, number] = [0, 0];
 const HIM: Person = { look: HIS_LOOK, build: HIS_BUILD, handL: HIS_HAND, handR: [30, -58] };
 
 const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
-  piece(
-    ctx,
-    rectShape(-800, COURT_FLOOR - 40, 3500, 700),
-    mix(C.board, C.peachLow, 0.35),
-    hand('floor'),
-    {
-      role: 'scenery',
-      line: 0,
-      torn: 4,
-    },
-  );
+  piece(ctx, rectShape(-800, COURT_FLOOR - 40, 3500, 700), COURT_GROUND, hand('floor'), {
+    role: 'scenery',
+    line: 0,
+    torn: 4,
+  });
   STONE_SHAPES.forEach((stone, i) => {
     const [x, y, bw] = STONES[i] ?? [0, 0, 0];
     ground(ctx, x, y + 8, bw * 1.3);
@@ -933,8 +939,8 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
   HER_LOOK[0] = wm.look[0];
   HER_LOOK[1] = wm.look[1];
   for (let i = 0; i < HER_WASH.length; i++) HER_WASH[i] = Math.max(wm.washed, white);
-  HER.body = mix(C.stone, C.robe, white);
-  HER.shade = mix(C.figureShade, C.robe, white);
+  HER.body = inWhite(HER_BODY, white);
+  HER.shade = inWhite(HER_SHADE, white);
   HER.onHead = white > 0.5 ? HER_VEIL_WHITE : HER_VEIL;
   HER.nod = 5 * wm.bowed;
   HER.tilt = 0.08 * wm.bowed;
@@ -1020,12 +1026,8 @@ export const COURT_FORGIVEN: Temple = {
   woman: { walk: 0, bob: 0, washed: 1, look: [3, 0], bowed: 0, glad: 1, white: 1 },
 };
 
-/**
- * The house as `roof` has it on "went", framed there, held still: the man
- * standing, forgiven, carrying his bed out `walk` (0..1) of the way, his step
- * `bob` (`within`'s callback).
- */
-export const went = (walk: number, bob: number): House => ({
+/** `went`'s house, its walk and bob rewritten every frame. */
+const WENT_HOUSE = {
   cam: WENT,
   tiles: 1,
   lower: 1,
@@ -1035,8 +1037,20 @@ export const went = (walk: number, bob: number): House => ({
   specks: 1,
   rise: 1,
   roll: 1,
-  walk,
-  bob,
+  walk: 0,
+  bob: 0,
   glad: 1,
   wonder: 1,
-});
+} satisfies House;
+
+/**
+ * The house as `roof` has it on "went", framed there, held still: the man
+ * standing, forgiven, carrying his bed out `walk` (0..1) of the way, his step
+ * `bob` (`within`'s callback). One house, rewritten in place: draw it before
+ * the next call.
+ */
+export const went = (walk: number, bob: number): House => {
+  WENT_HOUSE.walk = walk;
+  WENT_HOUSE.bob = bob;
+  return WENT_HOUSE;
+};

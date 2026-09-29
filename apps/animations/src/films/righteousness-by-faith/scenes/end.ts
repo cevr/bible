@@ -33,6 +33,8 @@ const BASELINES = CREDITS.reduce<number[]>((ys, c, i) => {
   ys.push((i === 0 ? 0 : (ys[i - 1] ?? 0)) + c.gap + LEADING[c.kind]);
   return ys;
 }, []);
+/** Each line's hand key, made once. */
+const KEYS = CREDITS.map((_, i) => `credit${i}`);
 
 /** The torn paper strip the credits roll up, at the frame's left, clear of the rooftop. */
 const STRIP = { x: 90, y: 70, w: 700, h: 940 } as const;
@@ -101,7 +103,7 @@ export const end = drawing({
         const above = y - STYLES[c.kind].size - STRIP.y - MARGIN;
         const below = STRIP.y + STRIP.h - MARGIN - y;
         if (above < 0 || below < 0) return;
-        write(ctx, c.text, cx, y, STYLES[c.kind], f.hand(`credit${i}`), {
+        write(ctx, c.text, cx, y, STYLES[c.kind], f.hand(KEYS[i] ?? i), {
           alpha: clamp(Math.min(above, below) / FADE),
           boil: 0,
         });

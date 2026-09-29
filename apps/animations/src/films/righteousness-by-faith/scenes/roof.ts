@@ -31,8 +31,9 @@ import {
   shotPath,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { COURT_WIDE, WENT, house, temple } from '../gospel.ts';
-import { C, ICON_X, gait } from '../kit.ts';
+import { COURT_WIDE, type House, type Posed, type Temple, WENT, house, temple } from '../gospel.ts';
+
+import { C, type Hands, ICON_X, gait } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, giftHand, giftRow } from './message.ts';
 
 const timeline = {
@@ -136,16 +137,52 @@ const LIT: [number, number, number] = [0, 0, 0];
 const ALL: readonly [number, number, number] = [1, 1, 1];
 const LOOK: [number, number] = [0, 0];
 const HER_LOOK: [number, number] = [0, 0];
+/** The house's and the court's poses, rewritten every frame. */
+const CAPERNAUM: Posed<House> = {
+  cam: WENT,
+  tiles: 0,
+  lower: 0,
+  lookUp: 0,
+  reach: 0,
+  lookAfter: 0,
+  specks: 0,
+  rise: 0,
+  roll: 0,
+  walk: 0,
+  bob: 0,
+  glad: 0,
+  wonder: 0,
+};
+const WOMAN: Posed<Temple['woman']> = {
+  walk: 0,
+  bob: 0,
+  washed: 0,
+  look: HER_LOOK,
+  bowed: 1,
+  glad: 0,
+  white: 0,
+};
+const COURT: Posed<Temple> = {
+  cam: COURT_WIDE,
+  leave: 0,
+  leaveBob: 0,
+  writing: 0,
+  stand: 0,
+  speak: 0,
+  look: LOOK,
+  woman: WOMAN,
+};
 
 export const roof = drawing({
   timeline,
   knobs,
   draw: (f) => {
     const toIdea = f.at('toIdea');
-    if (f.at('through') < 1) opening(f);
+    const message = f.handsOf('message');
+    if (f.at('through') < 1) opening(f, message);
     else if (toIdea < 1) story(f);
-    if (toIdea > 0) closing(f, toIdea);
-    row(f, f.at('band'), toIdea);
+    if (toIdea > 0) closing(f, message, toIdea);
+    row(f, message, f.at('band'), toIdea);
   },
 });
 
@@ -157,9 +194,8 @@ const story = (f: RoofFrame) => (f.t < f.mark('woman') ? capernaum(f) : court(f)
  * house shows inside the icon's disc, and the push carries the disc past the
  * frame's edges.
  */
-const opening = (f: RoofFrame) => {
+const opening = (f: RoofFrame, hands: Hands) => {
   const { ctx, w, h } = f;
-  const hands = f.handsOf('message');
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   // A push fourteen times over: `pushInto` keeps the disc in frame all the way.
@@ -190,28 +226,28 @@ const opening = (f: RoofFrame) => {
 const capernaum = (f: RoofFrame) => {
   const { ctx, w, h, t } = f;
   const walk = f.cue('walk');
-  house(ctx, w, h, f.hand, {
-    cam: shotPath(knobCamera(f.knob('wide'), f.knob('wideZoom')), [
-      [f.at('up'), knobCamera(f.knob('up'), f.knob('upZoom'))],
-      [f.at('lower'), knobCamera(f.knob('room'), f.knob('roomZoom'))],
-      [f.at('look'), knobCamera(f.knob('saw'), f.knob('sawZoom'))],
-      [f.at('push'), knobCamera(f.knob('manFace'), f.knob('manFaceZoom'))],
-      [f.at('back'), knobCamera(f.knob('arise'), f.knob('ariseZoom'))],
-      [f.at('follow'), WENT],
-    ]),
-    tiles: f.at('tiles'),
-    lower: f.at('lower'),
-    lookUp: f.at('look'),
-    reach: f.at('reach'),
-    lookAfter: f.at('rise'),
-    specks: f.at('specks'),
-    rise: f.at('rise'),
-    roll: f.at('roll'),
-    walk: f.at('walk'),
-    bob: gait(t, walk),
-    glad: f.at('glad'),
-    wonder: f.at('wonder'),
-  });
+  const s = CAPERNAUM;
+  s.cam = shotPath(knobCamera(f.knob('wide'), f.knob('wideZoom')), [
+    [f.at('up'), knobCamera(f.knob('up'), f.knob('upZoom'))],
+    [f.at('lower'), knobCamera(f.knob('room'), f.knob('roomZoom'))],
+    [f.at('look'), knobCamera(f.knob('saw'), f.knob('sawZoom'))],
+    [f.at('push'), knobCamera(f.knob('manFace'), f.knob('manFaceZoom'))],
+    [f.at('back'), knobCamera(f.knob('arise'), f.knob('ariseZoom'))],
+    [f.at('follow'), WENT],
+  ]);
+  s.tiles = f.at('tiles');
+  s.lower = f.at('lower');
+  s.lookUp = f.at('look');
+  s.reach = f.at('reach');
+  s.lookAfter = f.at('rise');
+  s.specks = f.at('specks');
+  s.rise = f.at('rise');
+  s.roll = f.at('roll');
+  s.walk = f.at('walk');
+  s.bob = gait(t, walk);
+  s.glad = f.at('glad');
+  s.wonder = f.at('wonder');
+  house(ctx, w, h, f.hand, s);
 };
 
 /** How far into a speaking cue the mouth moves: none at its edges, open through its middle. */
@@ -245,35 +281,29 @@ const court = (f: RoofFrame) => {
   const walk = f.at('walkOut');
   HER_LOOK[0] = lerp(lerp(1, 3, up), -4, walk);
   HER_LOOK[1] = lerp(lerp(3, 0, raise), -3, up) * (1 - walk);
-  temple(ctx, w, h, f.hand, {
-    cam,
-    leave: f.at('leave'),
-    leaveBob: gait(t, f.cue('leave')),
-    writing: f.at('writing'),
-    stand,
-    speak: 0.4 * talk * Math.abs(Math.sin(t * 8)),
-    look: LOOK,
-    woman: {
-      walk,
-      bob: gait(t, f.cue('walkOut')),
-      washed: f.at('wash'),
-      look: HER_LOOK,
-      bowed: 1 - 0.5 * raise - 0.5 * up,
-      glad: f.at('wash'),
-      white: 0,
-    },
-  });
+  COURT.cam = cam;
+  COURT.leave = f.at('leave');
+  COURT.leaveBob = gait(t, f.cue('leave'));
+  COURT.writing = f.at('writing');
+  COURT.stand = stand;
+  COURT.speak = 0.4 * talk * Math.abs(Math.sin(t * 8));
+  WOMAN.walk = walk;
+  WOMAN.bob = gait(t, f.cue('walkOut'));
+  WOMAN.washed = f.at('wash');
+  WOMAN.bowed = 1 - 0.5 * raise - 0.5 * up;
+  WOMAN.glad = f.at('wash');
+  temple(ctx, w, h, f.hand, COURT);
 };
 
 /** The page again, and the open hand rising under the row. */
-const closing = (f: RoofFrame, toIdea: number) => {
+const closing = (f: RoofFrame, hands: Hands, toIdea: number) => {
   const { ctx, w, h } = f;
   ctx.save();
   ctx.globalAlpha *= toIdea;
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
-  giftHand(ctx, f.handsOf('message'), GIFTS_AT.palm, f.at('handUp'), 1);
+  giftHand(ctx, hands, GIFTS_AT.palm, f.at('handUp'), 1);
 };
 
 /**
@@ -281,7 +311,7 @@ const closing = (f: RoofFrame, toIdea: number) => {
  * gift is given (and again for the woman), which comes down into `message`'s
  * layout on "order" and lights left to right as the gifts are named.
  */
-const row = (f: RoofFrame, shown: number, toIdea: number) => {
+const row = (f: RoofFrame, hands: Hands, shown: number, toIdea: number) => {
   const { ctx } = f;
   if (shown <= 0) return;
   const court = f.t >= f.mark('woman');
@@ -296,6 +326,6 @@ const row = (f: RoofFrame, shown: number, toIdea: number) => {
   const at: Pt = [lerp(bx, gx, toIdea), lerp(by, gy, toIdea)];
   ctx.save();
   ctx.globalAlpha *= shown;
-  giftRow(ctx, f.handsOf('message'), at, LIT, ALL, lerp(BAND_S, GIFTS_S, toIdea));
+  giftRow(ctx, hands, at, LIT, ALL, lerp(BAND_S, GIFTS_S, toIdea));
   ctx.restore();
 };
