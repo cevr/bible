@@ -1,11 +1,13 @@
-// The two gospel scenes of `roof`, where scripture shows the three gifts
-// given in order: the house in Capernaum, where four friends lower a
-// paralysed man through the roof (Mark 2:3–12), and the temple court, where a
-// woman taken in adultery stands alone before Jesus (John 8:3–11). `robe` and
-// `within` call them back under their icons in `roof`'s own framings (CRAFT
-// rule 8), so each set is drawn once, here, in 1920×1080 frame units, and
-// each scene passes only where its people are. Screen direction holds the
-// film's: the one receiving stands screen-left, Jesus screen-right.
+// The two gospel sets, where scripture shows the three gifts given in order:
+// the house in Capernaum (`roof`), where four friends lower a paralysed man
+// through the roof while two scribes reason on their bench (Mark 2:1–12),
+// and the temple court (`woman`), where a woman taken in adultery is brought
+// before Jesus by men holding stones, who drop them and go (John 8:2–11).
+// `look`, `robe` and `within` call them back under their icons in the
+// stories' own framings (CRAFT rule 8), so each set is drawn once, here, in
+// 1920×1080 frame units, and each scene passes only where its people are.
+// Screen direction holds the film's: the one receiving stands screen-left,
+// Jesus screen-right.
 
 import {
   type Camera,
@@ -30,6 +32,7 @@ import {
   christ,
   ground,
   glow,
+  handOf,
   mix,
   person,
   piece,
@@ -38,6 +41,7 @@ import {
   sky,
   tracePath,
 } from './kit.ts';
+import { tablets } from './law.ts';
 
 // ─── people of the gospel ────────────────────────────────────────────────────
 
@@ -127,7 +131,7 @@ const LIE = -Math.PI / 2 + 0.14;
 const JESUS_HOUSE: Pt = [1260, FLOOR];
 const JESUS_HOUSE_S = 2.1;
 
-/** Where the man walks out, bed on his shoulder (`roof`'s `went`, `within`'s callback). */
+/** Where the man walks out, bed on his shoulder (`roof`'s `went` and "Three", `within`'s callback). */
 export const WENT: Camera = { x: 430, y: 690, zoom: 1.7 };
 
 /** The four on the roof: each one's x, the side of the hole they hold from, their build and cloth. */
@@ -192,16 +196,33 @@ const ROOM_CROWD: ReadonlyArray<Onlooker> = [
     body: C.figure,
     look: [-2, 0],
   },
-  {
-    at: [1560, 912],
-    s: 1.4,
-    build: [0.95, 1.15],
-    head: headcloth(C.figureShade, 0.6),
-    body: C.figure,
-    look: [-4, 0],
-  },
-  { at: [1680, 915], s: 1.28, build: [1.05, 1], body: C.figureShade, look: [-3, 1] },
 ];
+
+/**
+ * The two scribes on their bench against the far wall, right of Jesus, in
+ * profile toward him (Mark 2:6): each one's x, build and cloth. They sit
+ * through the story; their brows come down as they reason (`doubt`), and
+ * each rests a hand on his knee, the near one's other hand at his chin.
+ */
+const SCRIBES: ReadonlyArray<{
+  readonly x: number;
+  readonly build: readonly [number, number];
+  readonly head: HeadPiece;
+  readonly body: string;
+}> = [
+  { x: 1450, build: [1.1, 1.05], head: headcloth(C.boardDeep, 0.8, C.gold), body: C.figureShade },
+  { x: 1570, build: [0.95, 1.1], head: headcloth(C.inkSoft, 0.6, C.boardShade), body: C.figure },
+];
+const SCRIBE_S = 1.3;
+/** The bench's seat top: raised along the wall, so the scribes show over the crowd's heads; their shins hang down its face. */
+const BENCH_Y = FLOOR - 150;
+/** Each scribe's hands: on his knee (the far one, over his lap), and the near one's at his chin as he reasons. */
+const ON_KNEE: GestureAt = { to: [-18, -34], reach: 1, grip: 'open' };
+const AT_CHIN: GestureAt = { to: [30, -122], reach: 0, grip: 'hold' };
+const SCRIBE_LOOK: [number, number] = [-4, 0];
+const SCRIBE: Person = { look: SCRIBE_LOOK, sit: 1, ground: 0, far: ON_KNEE };
+/** Where the scribes sit, framed (`roof`'s rack on "scribes"). */
+export const SCRIBES_AT: Camera = { x: 1420, y: 560, zoom: 2.4 };
 /** The near crowd at the frame's sides, cut off at the waist by the frame. */
 const NEAR_CROWD: ReadonlyArray<Onlooker> = [
   {
@@ -220,7 +241,7 @@ const NEAR_CROWD: ReadonlyArray<Onlooker> = [
     body: C.figure,
     look: [3, -1],
   },
-  { at: [1700, 1255], s: 2.6, build: [1.05, 0.95], body: C.figure, look: [-3, -1] },
+  { at: [1830, 1255], s: 2.6, build: [1.05, 0.95], body: C.figure, look: [-3, -1] },
   {
     at: [1910, 1240],
     s: 2.9,
@@ -281,6 +302,10 @@ export interface House {
   readonly glad: number;
   /** The crowd's wonder as he stands, 0..1. */
   readonly wonder: number;
+  /** The scribes reasoning in their hearts, brows down and a hand to the chin, 0..1. */
+  readonly doubt: number;
+  /** The four faces at the hole lit gold from below, 0..1 (`look`'s callback). */
+  readonly holeLit: number;
 }
 
 /**
@@ -439,6 +464,12 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         }),
     );
   });
+  // Faith seen: the four faces lit gold from the room below (the callback).
+  if (s.holeLit > 0) {
+    const cx = (HOLE[0] + HOLE[1]) / 2;
+    glow(ctx, cx, ROOF_TOP + SLAB, 420, C.glow, 0.9 * s.holeLit);
+    glow(ctx, cx, ROOF_TOP + SLAB, 180, C.gold, 0.5 * s.holeLit);
+  }
   ON_ROPE_R.reach = s.ropes;
   ON_ROPE_L.reach = s.ropes;
   FRIENDS.forEach((fr, i) => {
@@ -493,16 +524,16 @@ const MAN_LOOK: [number, number] = [0, 0];
  */
 const ROLL_W = 110;
 const ROLL_H = 44;
-const ON_SHOULDER: Pt = [75, -217];
+const ON_SHOULDER: Pt = [58, -222];
 const ROLL_TILT = -0.15;
-const ON_ROLL: GestureAt = { to: [56, -138], reach: 0, grip: 'hold' };
+const ON_ROLL: GestureAt = { to: [38, -128], reach: 0, grip: 'hold' };
 /**
  * Lying, his hands lie folded on his middle, in his units: left beside him,
  * the floating hands would stand out above and below his turned body. They
  * go to his sides as he rises (`reach` = 1 − rise).
  */
-const FOLDED_NEAR: GestureAt = { to: [12, -66], reach: 1, grip: 'open' };
-const FOLDED_FAR: GestureAt = { to: [-10, -58], reach: 1, grip: 'open' };
+const FOLDED_NEAR: GestureAt = { to: [14, -96], reach: 1, grip: 'open' };
+const FOLDED_FAR: GestureAt = { to: [-6, -60], reach: 1, grip: 'open' };
 /** Jesus's hand held out to the man on his bed, over the room, clear of the crowd's faces. */
 const OUT_TO_HIM: GestureAt = { to: [-104, -104], reach: 0, grip: 'open' };
 const MAN_WASH: [number, number, number] = [0, 0, 0];
@@ -538,6 +569,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     lerp(BED_X, HIP_X + (WALK_TO - HIP_X) * s.walk, s.rise),
     ROOM_PART * s.walk,
   );
+  scribes(ctx, hand, s);
 
   // Jesus, looking to the man, up at the four, and after the man as he goes.
   const up = s.lookUp * (1 - s.reach);
@@ -642,6 +674,42 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     });
 };
 
+/**
+ * The scribes on their bench: brows coming down as they reason, the near
+ * one's hand going to his chin; they turn to the man, brows up, as he stands.
+ */
+const scribes = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
+  const [first, last] = [SCRIBES[0], SCRIBES.at(-1)];
+  if (first === undefined || last === undefined) return;
+  const half = 70 * SCRIBE_S;
+  piece(
+    ctx,
+    rectShape(first.x - half, BENCH_Y, last.x - first.x + 2 * half, FLOOR - BENCH_Y + 4),
+    C.boardDeep,
+    hand('bench'),
+    { role: 'scenery', kind: 'cut', line: 3 },
+  );
+  const doubt = s.doubt * (1 - s.wonder);
+  SCRIBE_LOOK[0] = lerp(-4, -5, s.wonder);
+  SCRIBE_LOOK[1] = lerp(0.5, -0.5, s.wonder);
+  SCRIBE.nod = 3 * doubt;
+  SCRIBE.browTilt = lerp(0, -0.35, doubt) + 0.3 * s.wonder;
+  SCRIBE.browL = -1.5 * doubt + 2.5 * s.wonder;
+  SCRIBE.browR = -1.5 * doubt + 2.5 * s.wonder;
+  SCRIBE.smile = -0.5 * doubt;
+  SCRIBE.mouth = 0.5 * s.wonder;
+  AT_CHIN.reach = doubt;
+  SCRIBES.forEach((sc, i) => {
+    SCRIBE.build = sc.build;
+    SCRIBE.onHead = sc.head;
+    SCRIBE.body = sc.body;
+    SCRIBE.near = i === 0 ? AT_CHIN : undefined;
+    at(ctx, { x: sc.x, y: BENCH_Y, scale: SCRIBE_S }, () =>
+      person(ctx, SCRIBE, sub(hand('scribe'), i)),
+    );
+  });
+};
+
 // ─── the temple court ────────────────────────────────────────────────────────
 
 /** The court's floor, where the woman stands, Jesus and his scale, and the court framed wide. */
@@ -653,7 +721,7 @@ const JESUS_S = 2.3;
 /** How far left she walks out, off the frame. */
 const WOMAN_OUT = -420;
 
-/** The temple court framed wide (`roof` on "woman" and "go", `robe`'s callback). */
+/** The temple court framed wide (`woman` on "court" and "go", `robe`'s callback). */
 export const COURT_WIDE: Camera = { x: 960, y: 560, zoom: 1 };
 
 /** Jesus stooped to write: his body drawn down to this share of its height, and back up as he stands. */
@@ -670,17 +738,10 @@ const DUST_MARKS: ReadonlyArray<readonly [Pt, Pt, number]> = [
   [[1145, 972], [1175, 966], 5],
 ];
 
-/** The stones dropped in the dust about her: each one's centre, size and seed. */
-const STONES = [
-  [430, 962, 24, 17, 61],
-  [480, 985, 36, 24, 62],
-  [560, 1002, 28, 19, 63],
-  [770, 990, 32, 22, 64],
-  [840, 962, 24, 17, 65],
-  [915, 1012, 38, 25, 66],
-  [360, 1020, 30, 20, 67],
-] as const;
-const STONE_SHAPES = STONES.map(([x, y, bw, bh, seed]) => blob(x, y, bw, bh, seed));
+/** A stone as an accuser holds it, about its centre, in frame px: each its own seed. */
+const STONE_SHAPES = [61, 62, 63, 64].map((seed, i) =>
+  blob(0, 0, 30 + 6 * (i % 2), 21 + 3 * (i % 3), seed),
+);
 
 /** Her stains, in her units: each washed out as she is forgiven. */
 const WOMAN_STAINS = [
@@ -691,7 +752,15 @@ const WOMAN_STAINS = [
 const HER_VEIL = headcloth(C.boardLight, 1);
 const HER_VEIL_WHITE = headcloth(C.stone, 1);
 
-/** Those who brought her, going: each one's start and exit x, scale, build and cloth. */
+/**
+ * Those who brought her, standing round her on the court's floor, a step
+ * behind her, each with a stone in his hand: each one's place and exit x,
+ * scale, build and cloth, and where his stone lands when he drops it. They go
+ * eldest first (John 8:9), in this order: the two beside her go left, the two
+ * between her and Jesus go out right behind him. The last, nearest Jesus and
+ * drawn over the rest, so nothing covers his raised hand, holds up the
+ * charge, the law's two tablets from `word`, small.
+ */
 const ACCUSERS: ReadonlyArray<{
   readonly from: number;
   readonly to: number;
@@ -699,39 +768,71 @@ const ACCUSERS: ReadonlyArray<{
   readonly build: readonly [number, number];
   readonly head?: HeadPiece;
   readonly body: string;
+  readonly lands: Pt;
 }> = [
   {
-    from: 330,
-    to: -260,
-    s: 1.25,
+    from: 300,
+    to: -300,
+    s: 1.85,
     build: [1.2, 1.1],
     head: headcloth(C.boardDeep, 0.6),
     body: C.figureShade,
+    lands: [350, 968],
   },
   {
-    from: 520,
-    to: -140,
-    s: 1.1,
-    build: [0.9, 1.2],
+    from: 900,
+    to: 2350,
+    s: 1.75,
+    build: [0.95, 1.2],
     head: headcloth(C.inkSoft, 0.9, C.boardShade),
     body: C.figure,
+    lands: [950, 990],
   },
   {
-    from: 1420,
-    to: 2150,
-    s: 1.2,
-    build: [1.1, 0.95],
+    from: 440,
+    to: -200,
+    s: 1.7,
+    build: [0.9, 1.1],
     head: headcloth(C.figureShade, 0.4),
     body: C.figure,
+    lands: [480, 1004],
   },
-  { from: 1640, to: 2260, s: 1.05, build: [0.95, 1.05], body: C.figureShade },
+  {
+    from: 1030,
+    to: 2250,
+    s: 1.8,
+    build: [1.1, 0.95],
+    body: C.figureShade,
+    lands: [1000, 965],
+  },
 ];
-const ACCUSER_FLOOR = 905;
+/** Where they stand: a step behind her, up the floor. */
+const ACCUSER_FLOOR = COURT_FLOOR - 26;
+/** How far behind the one before him each drops his stone, and sets off, as a share of the whole. */
+const DROP_STAGGER = 0.2;
+const LEAVE_STAGGER = 0.15;
+/** The accuser who holds up the charge. */
+const CHARGER = 3;
+/** Each accuser's stone hand, held at his chest (the near hand, over the body), and the charge held up. */
+const STONE_HAND: GestureAt = { to: [34, -92], reach: 1, grip: 'hold' };
+const STONE_HAND_FAR: GestureAt = { to: [-20, -92], reach: 1, grip: 'hold' };
+const CHARGE_UP: GestureAt = { to: [58, -170], reach: 0, grip: 'hold' };
+/** An accuser's pose, rewritten for each (scratch). */
+const ACCUSER_LOOK: [number, number] = [0, 0];
+const ACCUSER: Person = { look: ACCUSER_LOOK, nod: 3, browTilt: -0.1 };
+/** The charge: the law's two tablets from `word`, small, their lines dark against the court's stone; their scale in his units, and how far above his fist their middle rides (his hand over their foot). */
+const CHARGE_S = 0.34;
+const CHARGE_ABOVE = 24;
+/** Scratch for where a stone is, in frame px. */
+const STONE_AT: [number, number] = [0, 0];
 
 /** The temple court as a scene has it this frame. */
 export interface Temple {
   readonly cam: Camera;
-  /** Those who brought her, walking out 0..1; their step's bob. */
+  /** The charge held up by one of them, 0..1; their stones dropped, one after another, 0..1 over the four. */
+  readonly charge: number;
+  readonly drop: number;
+  /** Those who brought her, walking out one after another 0..1; their step's bob. */
   readonly leave: number;
   readonly leaveBob: number;
   /** The marks he has written in the dust, 0..1; his finger to the dust 0..1 (down as he stoops to write, back as he stands). */
@@ -822,7 +923,7 @@ export const temple = (
         },
       },
       {
-        // The colonnade, and those who brought her walking out through it.
+        // The colonnade.
         z: 1.3,
         draw: () => {
           piece(ctx, rectShape(-400, 150, 2720, 50), C.boardShade, hand('lintel'), {
@@ -849,27 +950,6 @@ export const temple = (
             line: 0,
             torn: 3,
           });
-          ACCUSERS.forEach((a, i) => {
-            const x = lerp(a.from, a.to, s.leave);
-            const away = Math.sign(a.to - a.from);
-            at(
-              ctx,
-              { x, y: ACCUSER_FLOOR - (i % 2 === 0 ? s.leaveBob : 5 - s.leaveBob), scale: a.s },
-              () =>
-                person(
-                  ctx,
-                  {
-                    body: a.body,
-                    build: a.build,
-                    onHead: a.head,
-                    look: [3 * away, 1],
-                    nod: 3,
-                    browTilt: -0.1,
-                  },
-                  sub(hand('accuser'), i),
-                ),
-            );
-          });
         },
       },
       {
@@ -895,6 +975,64 @@ export const temple = (
   );
 };
 
+/**
+ * Those who brought her: each holds his stone at his chest, the last holds
+ * the charge up; each drops his stone into the dust in turn (it falls from his
+ * hand and lies where it lands) and walks out, eldest first. A stone once
+ * dropped stays in the dust after he has gone.
+ */
+const accusers = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
+  ACCUSERS.forEach((a, i) => {
+    const dropped = clamp((s.drop - DROP_STAGGER * i) / (1 - DROP_STAGGER * (ACCUSERS.length - 1)));
+    const gone = clamp((s.leave - LEAVE_STAGGER * i) / (1 - LEAVE_STAGGER * (ACCUSERS.length - 1)));
+    const x = lerp(a.from, a.to, gone);
+    const y = ACCUSER_FLOOR - (gone > 0 && gone < 1 ? s.leaveBob : 0);
+    const away = Math.sign(a.to - a.from);
+    const charger = i === CHARGER;
+    const held = charger ? STONE_HAND_FAR : STONE_HAND;
+    held.reach = 1 - dropped;
+    CHARGE_UP.reach = s.charge;
+    ACCUSER_LOOK[0] = lerp(lerp(640 < a.from ? -3 : 3, -2 * away, s.drop), 3 * away, gone);
+    ACCUSER_LOOK[1] = lerp(0.5, 2, dropped) * (1 - gone);
+    ACCUSER.body = a.body;
+    ACCUSER.build = a.build;
+    ACCUSER.onHead = a.head;
+    ACCUSER.browL = -1 * (1 - dropped);
+    ACCUSER.browR = -1 * (1 - dropped);
+    ACCUSER.browTilt = lerp(-0.3, 0.2, dropped);
+    ACCUSER.near = charger ? CHARGE_UP : held;
+    ACCUSER.far = charger ? held : undefined;
+    const me = sub(hand('accuser'), i);
+    at(ctx, { x, y, scale: a.s }, () => {
+      // The charge first, so the hand holding it up is drawn over its foot.
+      if (charger && s.charge > 0) {
+        const [cx, cy] = handOf(ACCUSER, 'near', me);
+        at(ctx, { x: cx, y: cy - CHARGE_ABOVE, scale: CHARGE_S }, () => tablets(ctx, hand));
+      }
+      person(ctx, ACCUSER, me);
+    });
+    // His stone: in his fist (showing over its top), falling from it, then
+    // lying where it landed.
+    const [hx, hy] = handOf(ACCUSER, charger ? 'far' : 'near', me);
+    const fall = clamp(3 * dropped);
+    const heldX = a.from + hx * a.s;
+    const heldY = ACCUSER_FLOOR + (hy - 9) * a.s;
+    STONE_AT[0] = lerp(heldX, a.lands[0], fall);
+    STONE_AT[1] = lerp(heldY, a.lands[1], fall * fall);
+    if (fall >= 1) ground(ctx, a.lands[0], a.lands[1] + 10, 44);
+    const stone = STONE_SHAPES[i];
+    if (stone === undefined) return;
+    at(ctx, { x: STONE_AT[0], y: STONE_AT[1], rot: 2 * fall }, () =>
+      piece(ctx, stone, C.stone, sub(hand('stone'), i), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 3,
+        shadow: 0.3,
+      }),
+    );
+  });
+};
+
 /** Her pose and his, rewritten every frame. */
 const HER_LOOK: [number, number] = [0, 0];
 const HER_WASH: [number, number, number] = [0, 0, 0];
@@ -902,8 +1040,11 @@ const HER: Person = { garment: 'robe', look: HER_LOOK, stains: WOMAN_STAINS, was
 const HIS_LOOK: [number, number] = [0, 0];
 const HIS_BUILD: [number, number] = [1, 1];
 const WRITES: GestureAt = { to: [WRITING_HAND[0], WRITING_HAND[1]], reach: 0, grip: 'point' };
-/** Standing, his open hand held out toward her, screen-left, as he tells her to go. */
-const SENDS: GestureAt = { to: [-100, -104], reach: 0, grip: 'open' };
+/**
+ * Standing, his open hand turned out toward her, screen-left, as he tells
+ * her to go: a hand's width off his side at the chest, near his body.
+ */
+const SENDS: GestureAt = { to: [-66, -98], reach: 0, grip: 'open' };
 const HIM: Person = { look: HIS_LOOK, build: HIS_BUILD, far: WRITES };
 
 const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
@@ -911,16 +1052,6 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
     role: 'scenery',
     line: 0,
     torn: 4,
-  });
-  STONE_SHAPES.forEach((stone, i) => {
-    const [x, y, bw] = STONES[i] ?? [0, 0, 0];
-    ground(ctx, x, y + 8, bw * 1.3);
-    piece(ctx, stone, C.stone, sub(hand('stone'), i), {
-      role: 'scenery',
-      kind: 'cut',
-      line: 0,
-      shadow: 0.3,
-    });
   });
   DUST_MARKS.forEach(([a, b, k], i) => {
     const drawn = clamp(s.writing * DUST_MARKS.length - i);
@@ -932,6 +1063,7 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
       sub(hand('dust'), k),
     );
   });
+  accusers(ctx, hand, s);
 
   // Jesus: stooped to the dust, writing; standing to speak.
   const stand = s.stand;
@@ -1004,8 +1136,8 @@ const RECALL_WINDOW = rounded(0, RECALL_Y, FRAME_W * RECALL_K, FRAME_H * RECALL_
 export const RECALL_RISE = 150;
 
 /**
- * A callback to `roof` under one of the three icons (CRAFT rule 8), its icon
- * left whole above it: `draw` draws a set as `roof` framed it, in frame
+ * A callback to `roof` or `woman` under one of the three icons (CRAFT rule
+ * 8), its icon left whole above it: `draw` draws a set as its story framed it, in frame
  * units, and it shows on a paper plate below the icon's centre (0, 0) in the
  * row's units, at `shown`. It is an `inset`: the set's own shot is the
  * callback's, so the scene breathes as it would without it. The row rises by
@@ -1032,12 +1164,14 @@ export const recall = (
 };
 
 /**
- * The court as `roof` leaves it on "go", framed wide, held still: those who
- * brought her gone, Jesus standing, and the woman forgiven, in white (`robe`'s
- * callback).
+ * The court as `woman` leaves it on "go", framed wide, held still: those who
+ * brought her gone, their stones in the dust, Jesus standing, and the woman
+ * forgiven, in white (`robe`'s callback).
  */
 export const COURT_FORGIVEN: Temple = {
   cam: COURT_WIDE,
+  charge: 0,
+  drop: 1,
   leave: 1,
   leaveBob: 0,
   writing: 1,
@@ -1066,7 +1200,33 @@ const WENT_HOUSE = {
   bob: 0,
   glad: 1,
   wonder: 1,
+  doubt: 1,
+  holeLit: 0,
 } satisfies House;
+
+/**
+ * The four at the hole as `roof` has them on "saw", framed on the roof, held
+ * still, the faces lit gold from below (`look`'s callback, under faith).
+ */
+export const AT_THE_HOLE: House = {
+  cam: { x: 760, y: 330, zoom: 1.5 },
+  tiles: 1,
+  lower: 0.35,
+  ropes: 1,
+  lookUp: 1,
+  reach: 0,
+  lookAfter: 0,
+  specks: 0,
+  rise: 0,
+  roll: 0,
+  steady: 0,
+  walk: 0,
+  bob: 0,
+  glad: 0,
+  wonder: 0,
+  doubt: 0,
+  holeLit: 1,
+};
 
 /**
  * The house as `roof` has it on "went", framed there, held still: the man

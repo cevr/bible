@@ -20,10 +20,12 @@ import { mirror } from './mirror.ts';
 import { name } from './name.ts';
 import { rain } from './rain.ts';
 import { robe } from './robe.ts';
+import { roof } from './roof.ts';
 import { spoke } from './spoke.ts';
 import { thesis } from './thesis.ts';
 import { title } from './title.ts';
 import { within } from './within.ts';
+import { woman } from './woman.ts';
 import { word } from './word.ts';
 
 export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift'>;
@@ -43,10 +45,12 @@ const drawings = new Map<string, Drawing>(
     name,
     rain,
     robe,
+    roof,
     spoke,
     thesis,
     title,
     within,
+    woman,
     word,
   }),
 );

@@ -1,24 +1,24 @@
-// What the three gifts look like, in scripture. The question pushes through
-// the faith icon of `message`'s row into a cardboard house in Capernaum: four
-// friends on the flat roof lift its tiles away and let a paralysed man down on
-// his bed into the packed room; Jesus looks up at the four faces in the hole
-// (faith lights in the small row of icons along the top). Close on the man as
-// the scarlet specks lift off him ("Son, your sins are forgiven": the robe
-// lights), then back as he stands, rolls up his bed and carries it out through
-// the crowd, screen-left (the heart lights). Cut to the temple court in the
-// same light: the woman stands alone in her stained garment, the stones
-// dropped in the dust about her, Jesus stooped beside the marks he writes,
-// those who brought her walking out through the colonnade. He stands and
-// asks; close on her face as she looks up ("No man, Lord": faith lights
-// again). Reverse to his face as he speaks the quotation; "Neither" lights the
-// robe and "go" the heart, and on "go" cut back wide as she walks out,
-// screen-left, upright and clean. On "order" the story gives way to the page,
-// the row flies down into `message`'s layout over the open hand, and faith,
-// forgiveness and power light left to right as they are named.
+// What the three gifts look like, in scripture: Mark 2, told and then
+// counted. The question pushes through the faith icon of `message`'s row into
+// a cardboard house in Capernaum: four friends on the flat roof lift its
+// tiles away and let a paralysed man down on his bed into the packed room;
+// Jesus looks up at the four faces in the hole. Close on the man as the
+// scarlet specks lift off him ("Son, thy sins be forgiven thee"). On
+// "scribes" the shot racks along the far wall to two scribes on their bench,
+// brows down; on "easy" back to the man, still lying there: nothing anyone
+// can see has changed. On "arise" he stands, rolls up his bed and carries it
+// out through the crowd, screen-left.
 //
-// The receiver stands screen-left and Jesus screen-right throughout. The two
-// sets (`gospel.ts`) are drawn once, so `robe` and `within` call them back in
-// these framings.
+// On "count" the small band of three icons slides in along the top, and each
+// spoken number cuts back to its moment in the story's own framing, held
+// while its icon lights: "One", the four faces at the hole (faith); "Two",
+// the man's face as the specks lift (forgiveness); "Three", the man walking
+// out with his bed (power). On "proof" a thread of light runs back along the
+// band from the heart to the robe: the walk vouching for the pardon.
+//
+// The receiver stands screen-left and Jesus screen-right throughout. The set
+// (`gospel.ts`) is drawn once, so `look` and `within` call it back in these
+// framings.
 
 import {
   type Camera,
@@ -29,18 +29,17 @@ import {
   knobCamera,
   pushInto,
   shotPath,
+  stroke,
 } from '@bible/film/canvas';
-import { lerp } from '@bible/film/core';
-import { COURT_WIDE, type House, type Temple, WENT, house, temple } from '../gospel.ts';
-
-import { C, type Hands, ICON_X, type Posed, gait } from '../kit.ts';
+import { clamp, lerp } from '@bible/film/core';
+import { type House, SCRIBES_AT, WENT, house } from '../gospel.ts';
+import { C, type Hands, ICON_X, type Posed, gait, glow } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
 const timeline = {
   // Through the faith icon of `message`'s row, into the house.
   open: { mark: 'see', dur: 0.4 },
   through: { mark: 'see', dur: 1.1, ease: 'inCubic' },
-  band: { after: 'through', dur: 0.4 },
   // Up to the roof, the tiles lifted, and the bed let down into the room.
   up: { mark: 'roof', dur: 0.9, ease: 'inOutSine' },
   tiles: { mark: 'roof', offset: 0.3, dur: 0.8 },
@@ -48,13 +47,15 @@ const timeline = {
   grasp: { with: 'lower', offset: -0.5, dur: 0.5 },
   lower: { mark: 'roof', word: 'lower', until: 'saw', ease: 'inOutSine' },
   look: { mark: 'saw', dur: 0.6, ease: 'inOutSine' },
-  faithLit: { mark: 'saw', word: 'faith', dur: 0.5 },
   // Close on the man; the specks lift off him as he is forgiven.
   push: { mark: 'son', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
   reach: { mark: 'son', dur: 0.6 },
   specks: { mark: 'son', word: 'sins', dur: 1.2, ease: 'inOutSine' },
-  robeLit: { mark: 'son', word: 'forgiven', dur: 0.5 },
   glad: { after: 'specks', dur: 0.6 },
+  // Along the far wall to the scribes, brows coming down; back to the man, unchanged.
+  rack: { mark: 'scribes', offset: -0.3, dur: 1, ease: 'inOutCubic' },
+  doubt: { mark: 'scribes', offset: 0.4, dur: 1.2 },
+  easy: { mark: 'easy', offset: -0.2, dur: 1, ease: 'inOutCubic' },
   // He stands, rolls up his bed and carries it out, screen-left.
   back: { mark: 'arise', dur: 0.9, ease: 'inOutCubic' },
   rise: { mark: 'arise', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
@@ -65,40 +66,21 @@ const timeline = {
   roll: { mark: 'arise', word: 'bed', dur: 0.8, ease: 'inOutSine' },
   // His hand rises to meet the bed as it rolls up, and steadies it on his shoulder.
   steady: { with: 'roll', dur: 0.8 },
-  walk: { mark: 'went', until: 'woman', ease: 'linear' },
-  follow: { mark: 'went', until: 'woman', ease: 'inOutSine' },
-  heartLit: { mark: 'went', dur: 0.5 },
-  // The temple court: those who brought her go, he writes, then stands and asks.
-  leave: { mark: 'woman', until: 'lord', ease: 'linear' },
-  writing: { mark: 'woman', until: 'none', ease: 'linear' },
-  // His finger goes to the dust as he writes, and comes back as he stands.
-  pen: { mark: 'woman', dur: 0.5 },
-  courtPush: { mark: 'woman', until: 'lord', ease: 'inOutSine' },
-  stand: { mark: 'none', dur: 1, ease: 'inOutSine' },
-  asks: { mark: 'none', until: 'asked', ease: 'linear' },
-  raise: { mark: 'none', dur: 0.8 },
-  // Close on her as she answers; faith lights again.
-  herFace: { mark: 'lord', offset: -0.8, dur: 0.8, ease: 'inOutCubic' },
-  lookUp: { mark: 'lord', dur: 0.6 },
-  herPush: { mark: 'lord', until: 'told', ease: 'linear' },
-  faithLit2: { mark: 'lord', dur: 0.5 },
-  // Reverse to his face as he speaks: forgiveness on "Neither", power on "go".
-  hisPush: { mark: 'told', until: 'order', ease: 'linear' },
-  speaks: { mark: 'told', word: 'Neither', until: 'order', ease: 'linear' },
-  robeLit2: { mark: 'told', word: 'Neither', dur: 0.5 },
-  heartLit2: { mark: 'told', word: 'go', dur: 0.5 },
-  // His open hand goes out to her as he speaks, and comes back as the scene leaves her.
-  sends: { mark: 'told', dur: 0.6 },
-  sent: { with: 'toIdea', dur: 0.6 },
-  // Wide as she walks out, clean.
-  wash: { mark: 'told', word: 'go', dur: 0.6 },
-  walkOut: { mark: 'told', word: 'go', offset: 0.3, dur: 2.2, ease: 'inQuad' },
-  // Back to the page: the row into `message`'s layout, lit as each is named.
-  toIdea: { mark: 'order', dur: 1.3, ease: 'inOutCubic' },
-  handUp: { with: 'toIdea', offset: 0.3, dur: 1, ease: 'outCubic' },
-  litFaith: { mark: 'order', word: 'faith', dur: 0.5 },
-  litForgiveness: { mark: 'order', word: 'forgiveness', dur: 0.5 },
-  litPower: { mark: 'order', word: 'power', dur: 0.5 },
+  walk: { mark: 'went', until: 'count', ease: 'linear' },
+  follow: { mark: 'went', dur: 1.4, ease: 'inOutSine' },
+  // The count: the band in along the top; each number cuts back to its moment
+  // and lights its icon on the number itself.
+  band: { mark: 'count', dur: 0.6, ease: 'outCubic' },
+  oneLit: { mark: 'one', dur: 0.5 },
+  oneHold: { mark: 'one', until: 'two', ease: 'linear' },
+  twoLit: { mark: 'two', dur: 0.5 },
+  twoSpecks: { mark: 'two', word: 'forgiveness', dur: 1.2, ease: 'inOutSine' },
+  twoHold: { mark: 'two', until: 'three', ease: 'linear' },
+  threeLit: { mark: 'three', dur: 0.5 },
+  threeWalk: { mark: 'three', until: 'proof', ease: 'linear' },
+  // The walk vouches for the pardon: a thread of light from the heart back to the robe.
+  proof: { mark: 'proof', dur: 1.2, ease: 'inOutSine' },
+  proofWalk: { mark: 'proof', dur: 2.4, ease: 'linear' },
 } as const;
 
 const knobs = {
@@ -109,21 +91,17 @@ const knobs = {
   upZoom: 1.5,
   room: [820, 650],
   roomZoom: 1.2,
-  saw: [990, 600],
+  saw: [990, 520],
   sawZoom: 1.25,
   // Close on the man's face on his bed (a third of the frame), then back as he stands.
   manFace: [600, 830],
   manFaceZoom: 3.4,
+  // The man still on his bed after the scribes: nothing seen has changed.
+  lying: [690, 780],
+  lyingZoom: 2.2,
   arise: [720, 690],
   ariseZoom: 1.7,
-  // The court: in toward the two of them, close on her, and the reverse on him.
-  twoShot: [980, 620],
-  twoShotZoom: 1.18,
-  herFace: [650, 600],
-  herFaceZoom: 2.3,
-  hisFace: [1310, 610],
-  hisFaceZoom: 2.3,
-  // The small row of icons along the top of the story.
+  // The small row of icons along the top, over the story.
   band: [960, 96],
 } as const;
 
@@ -139,17 +117,16 @@ const FAITH: Camera = {
 };
 /** The window into the house inside the icon's disc, in the icon's units: just inside its rim. */
 const WINDOW_R = 140;
-/** How far each close-up keeps pushing in while its face is on screen. */
-const PUSH_ON = 1.18;
-/** The band row's scale over the story. */
-const BAND_S = 0.2;
+/** How far each held close-up keeps pushing in while it is on screen. */
+const PUSH_ON = 1.12;
+/** The band row's scale over the story, and how far above the frame it waits. */
+export const BAND_S = 0.22;
+const BAND_ABOVE = -80;
 
-/** The row's glow and the story's lights, rewritten every frame. */
+/** The row's glow, rewritten every frame. */
 const LIT: [number, number, number] = [0, 0, 0];
 const ALL: readonly [number, number, number] = [1, 1, 1];
-const LOOK: [number, number] = [0, 0];
-const HER_LOOK: [number, number] = [0, 0];
-/** The house's and the court's poses, rewritten every frame. */
+/** The house's pose, rewritten every frame. */
 const CAPERNAUM: Posed<House> = {
   cam: WENT,
   tiles: 0,
@@ -166,44 +143,20 @@ const CAPERNAUM: Posed<House> = {
   bob: 0,
   glad: 0,
   wonder: 0,
-};
-const WOMAN: Posed<Temple['woman']> = {
-  walk: 0,
-  bob: 0,
-  washed: 0,
-  look: HER_LOOK,
-  bowed: 1,
-  glad: 0,
-  white: 0,
-};
-const COURT: Posed<Temple> = {
-  cam: COURT_WIDE,
-  leave: 0,
-  leaveBob: 0,
-  writing: 0,
-  writes: 0,
-  sends: 0,
-  stand: 0,
-  speak: 0,
-  look: LOOK,
-  woman: WOMAN,
+  doubt: 0,
+  holeLit: 0,
 };
 
 export const roof = drawing({
   timeline,
   knobs,
   draw: (f) => {
-    const toIdea = f.at('toIdea');
-    const message = f.handsOf('message');
-    if (f.at('through') < 1) opening(f, message);
-    else if (toIdea < 1) story(f);
-    if (toIdea > 0) closing(f, message, toIdea);
-    row(f, message, f.at('band'), toIdea);
+    if (f.at('through') < 1) opening(f, f.handsOf('message'));
+    else if (f.t < f.mark('one')) capernaum(f);
+    else replay(f);
+    band(f);
   },
 });
-
-/** The story: the house until "woman", then the temple court. */
-const story = (f: RoofFrame) => (f.t < f.mark('woman') ? capernaum(f) : court(f));
 
 /**
  * `message`'s page as it leaves it, pushing in through the faith icon: the
@@ -241,13 +194,14 @@ const opening = (f: RoofFrame, hands: Hands) => {
 /** The house in Capernaum, from the roof to the man walking out. */
 const capernaum = (f: RoofFrame) => {
   const { ctx, w, h, t } = f;
-  const walk = f.cue('walk');
   const s = CAPERNAUM;
   s.cam = shotPath(knobCamera(f.knob('wide'), f.knob('wideZoom')), [
     [f.at('up'), knobCamera(f.knob('up'), f.knob('upZoom'))],
     [f.at('lower'), knobCamera(f.knob('room'), f.knob('roomZoom'))],
     [f.at('look'), knobCamera(f.knob('saw'), f.knob('sawZoom'))],
     [f.at('push'), knobCamera(f.knob('manFace'), f.knob('manFaceZoom'))],
+    [f.at('rack'), SCRIBES_AT],
+    [f.at('easy'), knobCamera(f.knob('lying'), f.knob('lyingZoom'))],
     [f.at('back'), knobCamera(f.knob('arise'), f.knob('ariseZoom'))],
     [f.at('follow'), WENT],
   ]);
@@ -262,90 +216,103 @@ const capernaum = (f: RoofFrame) => {
   s.roll = f.at('roll');
   s.steady = f.at('steady');
   s.walk = f.at('walk');
-  s.bob = gait(t, walk);
+  s.bob = gait(t, f.cue('walk'));
   s.glad = f.at('glad');
   s.wonder = f.at('wonder');
+  s.doubt = f.at('doubt');
+  s.holeLit = 0;
   house(ctx, w, h, f.hand, s);
 };
 
-/** How far into a speaking cue the mouth moves: none at its edges, open through its middle. */
-const talking = (k: number) => Math.min(1, 4 * Math.min(k, 1 - k));
-
-/** The temple court: wide, in, close on her, the reverse on him, and wide as she goes. */
-const court = (f: RoofFrame) => {
+/**
+ * The count: each spoken number cuts back to its moment, in the framing the
+ * story gave it, held and breathing in a little while its icon lights.
+ */
+const replay = (f: RoofFrame) => {
   const { ctx, w, h, t } = f;
-  const told = t >= f.mark('told');
-  const gone = t >= f.cue('wash').start;
-  const cam = gone
-    ? COURT_WIDE
-    : told
-      ? knobCamera(f.knob('hisFace'), f.knob('hisFaceZoom') * lerp(1, PUSH_ON, f.at('hisPush')))
-      : shotPath(COURT_WIDE, [
-          [f.at('courtPush'), knobCamera(f.knob('twoShot'), f.knob('twoShotZoom'))],
-          [
-            f.at('herFace'),
-            knobCamera(
-              f.knob('herFace'),
-              f.knob('herFaceZoom') * lerp(1, PUSH_ON, f.at('herPush')),
-            ),
-          ],
-        ]);
-  const stand = f.at('stand');
-  const talk = Math.max(talking(f.at('asks')), talking(f.at('speaks')));
-  LOOK[0] = lerp(-3, -4, stand);
-  LOOK[1] = lerp(4, 0.5, stand);
-  const raise = f.at('raise');
-  const up = f.at('lookUp');
-  const walk = f.at('walkOut');
-  HER_LOOK[0] = lerp(lerp(1, 3, up), -4, walk);
-  HER_LOOK[1] = lerp(lerp(3, 0, raise), -3, up) * (1 - walk);
-  COURT.cam = cam;
-  COURT.leave = f.at('leave');
-  COURT.leaveBob = gait(t, f.cue('leave'));
-  COURT.writing = f.at('writing');
-  COURT.stand = stand;
-  COURT.writes = f.at('pen') * (1 - stand);
-  COURT.sends = f.at('sends') * (1 - f.at('sent'));
-  COURT.speak = 0.4 * talk * Math.abs(Math.sin(t * 8));
-  WOMAN.walk = walk;
-  WOMAN.bob = gait(t, f.cue('walkOut'));
-  WOMAN.washed = f.at('wash');
-  WOMAN.bowed = 1 - 0.5 * raise - 0.5 * up;
-  WOMAN.glad = f.at('wash');
-  temple(ctx, w, h, f.hand, COURT);
+  const s = CAPERNAUM;
+  // The house as the four let him down: the tiles off, the bed on the floor, the ropes held.
+  s.tiles = 1;
+  s.lower = 1;
+  s.ropes = 1;
+  s.lookUp = 1;
+  s.reach = 0;
+  s.lookAfter = 0;
+  s.specks = 0;
+  s.rise = 0;
+  s.roll = 0;
+  s.steady = 0;
+  s.walk = 0;
+  s.bob = 0;
+  s.glad = 0;
+  s.wonder = 0;
+  s.doubt = 0;
+  s.holeLit = 0;
+  if (t < f.mark('two')) {
+    // One: up on the four faces at the hole, as Jesus saw their faith, lit as its icon lights.
+    s.holeLit = f.at('oneLit');
+    s.cam = held(knobCamera(f.knob('up'), f.knob('upZoom')), f.at('oneHold'));
+  } else if (t < f.mark('three')) {
+    // Two: close on his face as the specks lift, before a word about his legs.
+    s.reach = 1;
+    s.specks = f.at('twoSpecks');
+    s.glad = clamp(2 * s.specks - 1);
+    s.cam = held(knobCamera(f.knob('manFace'), f.knob('manFaceZoom')), f.at('twoHold'));
+  } else {
+    // Three: up, and out with his bed, in front of them all.
+    s.ropes = 0;
+    s.lookAfter = 1;
+    s.specks = 1;
+    s.rise = 1;
+    s.roll = 1;
+    s.steady = 1;
+    s.glad = 1;
+    s.wonder = 1;
+    s.doubt = 1;
+    const out = t < f.mark('proof') ? f.at('threeWalk') : 1;
+    s.walk = lerp(0.1, 0.6, out) + 0.3 * f.at('proofWalk');
+    s.bob = gait(t, f.cue('threeWalk')) + gait(t, f.cue('proofWalk'));
+    s.cam = WENT;
+  }
+  house(ctx, w, h, f.hand, s);
 };
 
-/** The page again, and the open hand rising under the row. */
-const closing = (f: RoofFrame, hands: Hands, toIdea: number) => {
-  const { ctx, w, h } = f;
-  ctx.save();
-  ctx.globalAlpha *= toIdea;
-  ctx.fillStyle = C.paper;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
-  giftHand(ctx, hands, GIFTS_AT.palm, f.at('handUp'), TAKEN);
-};
+/** A framing held, breathing in by `PUSH_ON` as `k` goes 0..1. */
+const held = (cam: Camera, k: number): Camera => ({
+  x: cam.x,
+  y: cam.y,
+  zoom: (cam.zoom ?? 1) * lerp(1, PUSH_ON, k),
+});
 
 /**
- * The three icons: a small row along the top over the story, lit as each
- * gift is given (and again for the woman), which comes down into `message`'s
- * layout on "order" and lights left to right as the gifts are named.
+ * The band of three icons along the top, from "count": each lights on its
+ * spoken number and stays lit; on "proof" a thread of light runs back along
+ * the band from the heart to the robe.
  */
-const row = (f: RoofFrame, hands: Hands, shown: number, toIdea: number) => {
-  const { ctx } = f;
+const band = (f: RoofFrame) => {
+  const shown = f.at('band');
   if (shown <= 0) return;
-  const court = f.t >= f.mark('woman');
-  LIT[0] = court ? f.at('faithLit2') : f.at('faithLit');
-  LIT[1] = court ? f.at('robeLit2') : f.at('robeLit');
-  LIT[2] = court ? f.at('heartLit2') : f.at('heartLit');
-  LIT[0] = Math.max(LIT[0] * (1 - toIdea), f.at('litFaith'));
-  LIT[1] = Math.max(LIT[1] * (1 - toIdea), f.at('litForgiveness'));
-  LIT[2] = Math.max(LIT[2] * (1 - toIdea), f.at('litPower'));
+  const { ctx } = f;
+  LIT[0] = f.at('oneLit');
+  LIT[1] = f.at('twoLit');
+  LIT[2] = f.at('threeLit');
   const [bx, by] = f.knob('band');
-  const [gx, gy] = GIFTS_AT.gifts;
-  const at: Pt = [lerp(bx, gx, toIdea), lerp(by, gy, toIdea)];
-  ctx.save();
-  ctx.globalAlpha *= shown;
-  giftRow(ctx, hands, at, LIT, ALL, lerp(BAND_S, GIFTS_S, toIdea));
-  ctx.restore();
+  const at: Pt = [bx, lerp(BAND_ABOVE, by, shown)];
+  giftRow(ctx, f.hand, at, LIT, ALL, BAND_S);
+  const proof = f.at('proof');
+  if (proof <= 0) return;
+  // From the heart's disc back to the robe's, a gold thread drawn as it runs.
+  const rim = 150 * BAND_S;
+  const from = at[0] + ICON_X[2] * BAND_S - rim;
+  const x = lerp(from, at[0] + ICON_X[1] * BAND_S + rim, proof);
+  glow(ctx, x, at[1], 40, C.glow, 0.9 * (1 - 0.5 * proof));
+  stroke(
+    ctx,
+    [
+      [from, at[1]],
+      [x, at[1]],
+    ],
+    { color: C.gold, width: 5, jitter: 0.3, taper: 0.2, boil: 'crawl' },
+    f.hand('proof'),
+  );
 };

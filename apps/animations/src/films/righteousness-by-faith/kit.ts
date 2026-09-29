@@ -1128,6 +1128,22 @@ export const icons = (
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
 
+/**
+ * The icon row at the head of every section (CRAFT rule 8): one layout, so
+ * every pull-back is a true callback. Centred, full size, on the glow sky
+ * (`ICON_SKY`). `woman` lifts the row out of `message`'s open hand into it on
+ * "order"; `spoke`, `declared` and `within` open on it, lighting their gift;
+ * `centurion`, `look` and `robe` pull back to it. `close` is the row's scale
+ * where a push through one icon starts or ends, the icon filling the frame.
+ */
+export const ICON_ROW = { x: 960, y: 540, scale: 1, close: 2.3 } as const;
+export const ICON_SKY = [
+  [0, C.glow],
+  [1, C.peachLow],
+] as const;
+/** A gift lit earlier in the film, still glowing under the one the section lights. */
+export const ICON_KEPT = 0.7;
+
 /** The close-up hand's paper, lifeline and ink: the figures' own. */
 const CLOSE_UP = { skin: C.figure, crease: C.figureShade, outline: C.outline } as const;
 /** A `CloseDraw` rewritten in place, draw to draw. */

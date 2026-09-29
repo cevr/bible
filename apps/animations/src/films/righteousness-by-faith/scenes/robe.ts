@@ -13,9 +13,10 @@
 // rises where the heart is, a preview
 // of the third gift, and he looks up glad on "reclaiming". The close-up
 // holds through the quotation's last word; then, in the scene's tail, the
-// pull back to the film's three icons, the robe (forgiveness) lit; as it
-// lights, a plate under the robe calls back `roof`'s temple court, framed wide as on
-// "go", the woman forgiven and in white.
+// pull back to the icon row at the section head (`ICON_ROW`), faith still
+// glowing and the robe (forgiveness) lit; as it lights, a plate under the
+// robe calls back `woman`'s temple court, framed wide as on "go", the woman
+// forgiven and in white. `within` opens on this row.
 
 import {
   type Camera,
@@ -33,6 +34,9 @@ import {
 import { clamp, ease, lerp } from '@bible/film/core';
 import {
   C,
+  ICON_KEPT,
+  ICON_ROW,
+  ICON_SKY,
   ICON_X,
   type Person,
   type Posed,
@@ -502,14 +506,10 @@ const reclaimed = (f: RobeFrame) => {
   ctx.restore();
 };
 
-/** The icons' glow: only the robe's, forgiveness; rewritten each frame, never made per frame. */
-const ICONS_LIT: [number, number, number] = [0, 0, 0];
-const ICON_SKY = [
-  [0, C.glow],
-  [1, C.peachLow],
-] as const;
+/** The icons' glow: faith kept from its section, the robe lighting; rewritten each frame, never made per frame. */
+const ICONS_LIT: [number, number, number] = [ICON_KEPT, 0, 0];
 
-/** E: after the quotation, pull back to the three icons, landing at the frame's centre, the robe lit. */
+/** E: after the quotation, pull back to the section head's icon row, the robe lit. */
 const iconsBack = (f: RobeFrame, toIcons: number) => {
   const { ctx, w, h, hand } = f;
   const pull = f.at('pullBack');
@@ -519,11 +519,11 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
   ctx.globalAlpha *= toIcons;
   sky(ctx, w, h, ICON_SKY);
   // The row rises as the callback opens under the robe, the robe itself left whole.
-  const y = lerp(-160, 540, pull) - RECALL_RISE * forgiven;
-  at(ctx, { x: 960, y, scale: lerp(2.3, 1, pull) }, () => {
+  const y = lerp(-160, ICON_ROW.y, pull) - RECALL_RISE * forgiven;
+  at(ctx, { x: ICON_ROW.x, y, scale: lerp(ICON_ROW.close, ICON_ROW.scale, pull) }, () => {
     icons(ctx, hand, ICONS_LIT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(ctx, hand, forgiven, () => temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN)),
+      recall(ctx, hand, forgiven, () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN)),
     );
   });
   ctx.restore();

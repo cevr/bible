@@ -1,12 +1,14 @@
-// The law moves in, and the third gift: power. On the parchment page the
-// gold circle from `word`, as big as the universe, comes back around the grey
-// figure; on "never" it shrinks and settles into their chest, and on "write"
-// it is a warm heart with the two tablets inside it, still legible. On
-// "power" the pull back to the three icons, and the heart lights, calling back
-// `roof`'s house on a plate under it, the tablets left whole: the man
-// forgiven, walking out with his bed as on "went". On "not" the figure again,
-// their hands going out, and the glow runs from the heart out through the
-// shoulders to the open hands. On "become" close on the face, and the grey paper of the
+// The third gift: power, and the law moves in. The scene opens on `robe`'s
+// closing icon row (`ICON_ROW`), faith and forgiveness glowing and the woman
+// in white fading from under the robe as the row settles; on "power" the
+// heart lights. On "out" the page: the gold circle from `word`, as big as
+// the universe, comes back around the grey figure; on "never" it shrinks and
+// settles into their chest, and on "write" it is a warm heart with the two
+// tablets inside it, still legible. On "bed" the row again, the heart lit,
+// calling back `roof`'s house on a plate under it, the tablets left whole:
+// the man forgiven, walking out with his bed as on "went". On "not" the
+// figure again, their hands going out, and the glow runs straight from the
+// heart to the open hands. On "become" close on the face, and the grey paper of the
 // figure warms toward cream and gold, the gold of the word in `declared`: they
 // become what they are called. Then two panels, one after
 // the other: a closed book with a gold ribbon (the past, forgiven: "first"),
@@ -32,6 +34,9 @@ import {
   type GestureAt,
   C,
   CHEST,
+  ICON_KEPT,
+  ICON_ROW,
+  ICON_SKY,
   ICON_X,
   type Person,
   blob,
@@ -48,7 +53,7 @@ import {
   sky,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
-import { RECALL_RISE, house, recall, went } from '../gospel.ts';
+import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../gospel.ts';
 
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
@@ -58,10 +63,9 @@ const PANEL_H = 640;
 /** The page at rest: the unmoved frame (the canvas itself, so not a knob). */
 const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
 
-/** Each hand held out open at the side, and at rest; and the shoulder the glow runs through. */
+/** Each hand held out open at the side, at the heart's height. */
 const OPEN_HAND: Pt = [78, -80];
-const SHOULDER: Pt = [26, -112];
-/** How many glows light the way from the shoulder out to the hand, where an arm would be. */
+/** How many glows light the way from the heart out to each hand. */
 const RUN_STEPS = 6;
 /** The warmed figure: grey paper toward cream, touched with the word's gold. */
 const WARM_BODY = mix(C.cream, C.gold, 0.22);
@@ -71,14 +75,15 @@ const timeline = {
   ask: { mark: 'out', dur: 0.4 },
   shrink: { mark: 'never', dur: 1.5, ease: 'inOutCubic' },
   heart: { mark: 'write', offset: -0.1, dur: 0.5, ease: 'outBack' },
-  toIcons: { mark: 'power', dur: 0.3 },
-  pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
-  heartLit: { after: 'pullBack', dur: 0.4 },
-  // The callback to `roof`'s house under the heart, arriving with the pull
-  // back: he walks on until the figure comes back, just after "not", so the
-  // callback holds 1.5 s and more.
-  wentIn: { with: 'toIcons', dur: 0.3 },
-  going: { mark: 'power', until: 'not', ease: 'linear' },
+  // `robe`'s row: the woman's plate goes as the row settles, and the heart lights on "power".
+  settle: { scene: 'start', dur: 0.8, ease: 'inOutCubic' },
+  heartLit: { mark: 'power', dur: 0.5 },
+  toPage: { mark: 'out', offset: -0.3, dur: 0.4 },
+  // The row again on "bed", the callback to `roof`'s house under the heart:
+  // he walks on until the figure comes back, just after "not".
+  toIcons: { mark: 'bed', offset: -0.2, dur: 0.3 },
+  wentIn: { mark: 'bed', dur: 0.4 },
+  going: { mark: 'bed', until: 'not', ease: 'linear' },
   backIn: { mark: 'not', offset: 0.1, dur: 0.3 },
   arms: { mark: 'not', dur: 0.8, ease: 'inOutSine' },
   run: { mark: 'not', offset: 0.4, until: 'become', ease: 'inOutSine' },
@@ -106,8 +111,8 @@ export const within = drawing({
   timeline,
   knobs,
   draw: (f) => {
-    // The icons cover the page from their pull back until the figure comes back.
-    const shown = f.at('toIcons') * (1 - f.at('backIn'));
+    // The icons cover the page until "out", and again from "bed" until the figure comes back.
+    const shown = Math.max(1 - f.at('toPage'), f.at('toIcons') * (1 - f.at('backIn')));
     if (shown < 1) page(f);
     if (shown > 0) iconsShot(f, shown);
   },
@@ -180,7 +185,6 @@ const OPEN_FAR: GestureAt = { to: [-OPEN_HAND[0], OPEN_HAND[1]], reach: 0, grip:
 const OPEN_NEAR: GestureAt = { to: [OPEN_HAND[0], OPEN_HAND[1]], reach: 0, grip: 'open' };
 const LOOK: [number, number] = [0, 0];
 const POSE: Person = { look: LOOK, far: OPEN_FAR, near: OPEN_NEAR };
-const SHOULDER_AT: [number, number] = [0, 0];
 const GLOW_AT: [number, number] = [0, 0];
 
 /**
@@ -222,22 +226,21 @@ const figure = (f: WithinFrame, aside: number) => {
   running(f, open);
 };
 
-/** The glow running from the heart up through each shoulder to its open hand, over `run`. */
+/**
+ * The glow running out from the heart to each open hand, over `run`: straight
+ * from the heart to the hand, the way the power goes, never up through the
+ * shoulders along an arm that is not there.
+ */
 const running = (f: WithinFrame, open: number) => {
   const { ctx } = f;
   const run = f.at('run');
   if (run <= 0 || open <= 0) return;
   for (const side of SIDES) {
-    SHOULDER_AT[0] = side * SHOULDER[0];
-    SHOULDER_AT[1] = SHOULDER[1];
     const end = handOf(POSE, side < 0 ? 'far' : 'near', f.hand('figure'));
     for (let i = 1; i <= RUN_STEPS; i++) {
       const k = i / RUN_STEPS;
       if (k > run + 0.001) break;
-      const [x, y] =
-        k < 0.4
-          ? toward(CHEST, SHOULDER_AT, k / 0.4, GLOW_AT)
-          : toward(SHOULDER_AT, end, (k - 0.4) / 0.6, GLOW_AT);
+      const [x, y] = toward(CHEST, end, k, GLOW_AT);
       glow(ctx, x, y, 44, C.glow, 0.9 * open);
       glow(ctx, x, y, 22, C.gold, 0.6 * open);
     }
@@ -363,22 +366,32 @@ const STEM: Pt[] = [
   [0, -30],
 ];
 
-/** B: the three icons on "power", faith and forgiveness lit, the heart lighting. */
+/** The row's glow: faith kept, forgiveness settling from `robe`'s full glow, the heart lighting. */
+const LIT: [number, number, number] = [ICON_KEPT, 1, 0];
+
+/**
+ * B: the section head's icon row, as `robe` leaves it (the woman's plate
+ * under the robe going as the row settles), the heart lighting on "power";
+ * on "bed" the plate under the heart.
+ */
 const iconsShot = (f: WithinFrame, alpha: number) => {
   const { ctx, w, h } = f;
   const { hand } = f;
-  const pull = f.at('pullBack');
+  const settle = f.at('settle');
   const wentIn = f.at('wentIn');
+  const court = 1 - settle;
+  LIT[1] = lerp(1, ICON_KEPT, f.at('heartLit'));
+  LIT[2] = f.at('heartLit');
   ctx.save();
   ctx.globalAlpha *= alpha;
-  sky(ctx, w, h, [
-    [0, C.glow],
-    [1, C.peachLow],
-  ]);
-  // The row rises as the callback opens under the heart, its tablets left whole.
-  const y = lerp(-160, 540, pull) - RECALL_RISE * wentIn;
-  at(ctx, { x: 960, y, scale: lerp(2.3, 1, pull) }, () => {
-    icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]);
+  sky(ctx, w, h, ICON_SKY);
+  // The row rises as a callback opens under it, its icon left whole.
+  const y = ICON_ROW.y - RECALL_RISE * Math.max(court, wentIn);
+  at(ctx, { x: ICON_ROW.x, y, scale: ICON_ROW.scale }, () => {
+    icons(ctx, hand, LIT);
+    at(ctx, { x: ICON_X[1], y: 0 }, () =>
+      recall(ctx, hand, court, () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN)),
+    );
     at(ctx, { x: ICON_X[2], y: 0 }, () =>
       recall(ctx, hand, wentIn, () =>
         house(
