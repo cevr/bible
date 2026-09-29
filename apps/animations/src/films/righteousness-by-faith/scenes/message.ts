@@ -39,6 +39,7 @@ import {
   C,
   F,
   type ArmAt,
+  type HandPush,
   type Hands,
   type Person,
   glow,
@@ -46,6 +47,8 @@ import {
   icons,
   handCloseUp,
   person,
+  pushZoom,
+  pushedHand,
   piece,
   rounded,
   sky,
@@ -109,8 +112,10 @@ const timeline = {
   hear: { mark: 'three', offset: 0.9, dur: 0.5 },
   given: { mark: 'makes', offset: -0.6, dur: 0.8, ease: 'inOutSine' },
   warm: { after: 'given', dur: 1 },
-  // The figure lifts its open hand, and the camera pushes into it: the insert.
+  // The figure lifts its open hand, turns it palm up as it comes, and the
+  // camera pushes into it: the insert, the same hand close up.
   offer: { with: 'handIn', offset: -0.6, dur: 0.6 },
+  palmUp: { mark: 'gifts', offset: -0.7, dur: 0.3, ease: 'inOutSine' },
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
   // Close on the palm, its fingers curl a little on "gifts": the hand that takes hold of them.
   take: { mark: 'gifts', dur: 0.7, ease: 'inOutSine' },
@@ -132,8 +137,8 @@ const knobs = {
   angelAt: [1620, 330],
   emblem: [960, 190],
   // The open hand's palm, and the row of gifts laid across it.
-  palm: [960, 860],
-  gifts: [960, 875],
+  palm: [960, 720],
+  gifts: [960, 730],
 } as const;
 
 /**
@@ -233,10 +238,8 @@ export const message = drawing({
 /** The figure on the page: its scale (where it stands is the `figureAt` knob). */
 const FIGURE_S = 2.6;
 /** The open hand's scale, and the gifts' row scale across its palm (`roof` moves into and out of that row). */
-const HAND_S = 1.8;
-/** The close-up's palm middle, below its centre in its own units: it sits on the palm knob. */
-const PALM_MIDDLE = 60;
-export const GIFTS_S = 0.6;
+const HAND_S = 1.75;
+export const GIFTS_S = 0.5;
 /**
  * The sun's path across each day: the horizon's ends, and a horizon below
  * the frame, so it rises into view at dawn and sets out of it at dusk, and
@@ -287,13 +290,21 @@ const page = (f: MessageFrame) => {
 
   if (handIn > 0) {
     const close = clamp(1 - 3 * noon) * settle;
-    giftHand(
+    const [fx, fy] = f.knob('figureAt');
+    const [hx, hy] = OFFERED.to;
+    const push: HandPush = {
+      from: [fx + hx * FIGURE_S, fy + hy * FIGURE_S],
+      figureScale: FIGURE_S,
+      to: f.knob('palm'),
+      scale: HAND_S,
+    };
+    pushedHand(
       ctx,
       f.hand,
-      f.knob('palm'),
+      push,
       handIn,
       (1 - TAKE_CURL * f.at('take')) * (1 - 0.3 * close),
-      1,
+      FROM_FIGURE,
     );
     POPS[0] = f.at('faith');
     POPS[1] = f.at('forgiveness');
@@ -332,7 +343,7 @@ export const giftHand = (
   ctx.save();
   ctx.globalAlpha *= shown;
   at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () =>
-    at(ctx, { x: 0, y: -PALM_MIDDLE }, () => handCloseUp(ctx, hand, open, FROM_FIGURE)),
+    handCloseUp(ctx, hand, open, FROM_FIGURE),
   );
   ctx.restore();
 };
@@ -374,17 +385,18 @@ const sun = (
   piece(ctx, ellipseShape(x, y, 44, 44), C.gold, hand, { role: 'scenery', line: 0, shadow: 0.2 });
 };
 
-/** The page figure's open hand, lifted palm out on `offer` (its grow written each frame). */
-const OFFERED: ArmAt = { to: [46, -140], grow: 0, grip: 'palm' };
-/** How far the push into the figure's hand magnifies it: its mitten to the close-up's size. */
-const INTO_HAND = 10;
+/** The page figure's open hand, lifted palm out on `offer` and turned palm up on `palmUp` (written each frame). */
+const OFFERED: ArmAt = { to: [46, -140], grow: 0, grip: 'palm', turn: 0 };
+/** How far the push into the figure's hand magnifies it: its palm-up hand to the close-up. */
+const INTO_HAND = pushZoom(FIGURE_S, HAND_S);
 
 /**
  * The grey figure: in after the push through, looking up on "three". On
  * "makes" a word of light falls from above into their chest (God makes), and
  * from it a warmth spreads that washes the stains out, the nearest first. On
- * `offer` they lift their open hand, and on `handIn` the camera pushes into
- * it: the hand grows to the palm knob, where the close-up takes its place.
+ * `offer` they lift their open hand, turning it palm up, and on `handIn` the
+ * camera pushes into it: the hand grows to the palm knob, the close-up
+ * over it in the same shape (`pushedHand`).
  */
 const pageFigure = (f: MessageFrame, handIn: number) => {
   const { ctx } = f;
@@ -397,6 +409,7 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   const [fx, fy] = f.knob('figureAt');
   const [px, py] = f.knob('palm');
   OFFERED.grow = f.at('offer');
+  OFFERED.turn = f.at('palmUp');
   // The push: the figure magnified about its lifted hand, which slides onto the palm knob.
   const scale = FIGURE_S * shown * INTO_HAND ** handIn;
   const [hx, hy] = OFFERED.to;

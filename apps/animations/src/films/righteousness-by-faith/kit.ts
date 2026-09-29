@@ -10,6 +10,8 @@ import {
   type PieceStyle,
   type Pt,
   type StrokeStyle,
+  CLOSE_LINE,
+  CLOSE_SPAN,
   arm,
   at,
   closeHand,
@@ -916,6 +918,7 @@ export interface ArmAt extends Arm {
   readonly to: [number, number];
   grow: number;
   grip?: Grip;
+  turn?: number;
 }
 
 /** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
@@ -1005,19 +1008,86 @@ const CLOSE_UP = { skin: C.figure, crease: C.figureShade, outline: C.outline } a
 const FROM_BELOW: Pt = [0, 700];
 
 /**
- * A figure's hand close up (the engine's `closeHand`: the one mitten, big,
- * an open hand held out palm up, with its creases and lifeline), the palm's
- * middle on (0, 60), `CLOSE_SPAN` units heel to fingertips: faith, the hand
- * that takes (`look` lays the gold light in its palm, `message` and `daily`
- * the icons). `open` 1 holds it flat; toward 0 the fingers turn up over the
- * palm, which stays showing as a cup. Its arm comes into frame at `forearm`
- * (in the hand's units), from the side the figure we just saw stands on,
- * and the fingers point away from it. A close-up is only ever of a figure
- * the viewer has just seen (CRAFT rule 12).
+ * A figure's hand close up (the engine's `closeHand`: an open hand held out
+ * palm up, seen from above, with its lifeline and joint lines), the palm's
+ * middle on the origin, `CLOSE_SPAN` units heel to fingertips: faith, the
+ * hand that takes (`look` lays the gold light in its palm, `message` and
+ * `daily` the icons). `open` 1 holds it flat; toward 0 the fingers bend up
+ * and back over the palm, which stays showing as a cup. Its arm comes into
+ * frame at `forearm` (in the hand's units), from the side the figure we just
+ * saw stands on. A close-up is only ever of a figure the viewer has just
+ * seen (CRAFT rule 12): `pushedHand` pushes into it from that figure's hand.
  */
 export const handCloseUp = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
   open = 1,
   forearm: Pt = FROM_BELOW,
-) => closeHand(ctx, open, CLOSE_UP, hand('closeHand'), forearm);
+  draw: { readonly line?: number; readonly detail?: number } = {},
+) => closeHand(ctx, open, CLOSE_UP, hand('closeHand'), { forearm, ...draw });
+
+/**
+ * A close-up drawn at a figure's own hand: its scale on screen when the
+ * figure stands at `figureScale`, the size of the figure's mitten.
+ */
+const atMitten = (figureScale: number) => (figureScale * PERSON_ARM.mitten) / CLOSE_SPAN;
+
+/**
+ * How far a push magnifies a figure drawn at `figureScale` for its hand,
+ * turned palm up (`ArmAt.turn`), to become the close-up at `scale`.
+ */
+export const pushZoom = (figureScale: number, scale: number) => scale / atMitten(figureScale);
+
+/** A push from a figure's palm-up hand into its close-up, and back. */
+export interface HandPush {
+  /** The figure's hand on screen (its palm's middle, the arm's target) before the push. */
+  readonly from: Pt;
+  /** The figure's scale on screen before the push. */
+  readonly figureScale: number;
+  /** Where the close-up's palm's middle sits once pushed in, and its scale there. */
+  readonly to: Pt;
+  readonly scale: number;
+}
+
+/**
+ * The close-up `into` a push from a figure's hand (0 on the figure's own
+ * hand, turned palm up, 1 at `push.to`): the same shape all the way, grown
+ * as the push grows the figure (by `pushZoom`) and slid onto its place, its
+ * line going from the figure's to its own and its lifeline and joints coming
+ * in, so it takes the figure's hand's place with no change of shape; back
+ * out, the same in reverse. `holds` draws in the hand's units (the palm's
+ * middle on the origin), `under` the hand and `over` it: what it holds.
+ */
+export const pushedHand = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  push: HandPush,
+  into: number,
+  open: number,
+  forearm: Pt,
+  holds: { readonly under?: () => void; readonly over?: () => void } = {},
+) => {
+  if (into <= 0) return;
+  const start = atMitten(push.figureScale);
+  const scale = start * (push.scale / start) ** into;
+  const px = lerp(PERSON_ARM.line * push.figureScale, CLOSE_LINE * push.scale, into);
+  ctx.save();
+  // Over the figure's own hand at once: the two are one shape there.
+  ctx.globalAlpha *= clamp(PUSH_TAKES * into);
+  at(
+    ctx,
+    {
+      x: lerp(push.from[0], push.to[0], into),
+      y: lerp(push.from[1], push.to[1], into),
+      scale,
+    },
+    () => {
+      holds.under?.();
+      handCloseUp(ctx, hand, open, forearm, into < 1 ? { line: px / scale, detail: into } : {});
+      holds.over?.();
+    },
+  );
+  ctx.restore();
+};
+/** How soon into a push the close-up covers the figure's hand whole. */
+const PUSH_TAKES = 4;

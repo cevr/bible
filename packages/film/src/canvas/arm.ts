@@ -8,8 +8,11 @@
 // same arm however it was reached, and nothing flips: at the one place the
 // bow's side would tie, the strip is straight.
 //
-// The close-up (`closeHand`) is the same mitten, big, palm up, with the ink a
-// hand is allowed at that size: three finger creases and a lifeline.
+// The close-up (`closeHand`) is the same hand, big, palm up, with the ink a
+// hand is allowed at that size: two finger-joint lines and a lifeline. A
+// figure's own hand turns palm up into the close-up's shape (`Arm.turn`)
+// before a push into it, so the small hand and the big one are one shape at
+// two scales.
 
 import { type Hand, type Pt, spline, stroke, sub } from './ink.ts';
 import { cutout } from './cutout.ts';
@@ -28,12 +31,16 @@ export const GRIPS: ReadonlyArray<Grip> = ['open', 'hold', 'point', 'palm'];
 /**
  * One hand at work: where it goes (`to`, the mitten's centre), how far its
  * arm has grown out of the shoulder toward it (0 none, 1 there: a named
- * cue's `f.at`), and its grip (`open` unless given).
+ * cue's `f.at`), and its grip (`open` unless given). `turn` (0 unless
+ * given, a named cue's `f.at`) turns the hand palm up to receive, into the
+ * close-up's shape at the mitten's size, its palm's middle on `to` and its
+ * fingers up: a push into the hand (`closeHand`) starts from it.
  */
 export interface Arm {
   readonly to: Pt;
   readonly grow: number;
   readonly grip?: Grip;
+  readonly turn?: number;
 }
 
 /** How a figure's arms are cut, in the figure's own units. */
@@ -291,6 +298,7 @@ const place = (
   angle: number,
   size: number,
   flip: number,
+  along = 1,
 ): ReadonlyArray<Pt> => {
   const c = Math.cos(angle) * size;
   const s = Math.sin(angle) * size;
@@ -298,16 +306,18 @@ const place = (
     const u = p.unit[i];
     const o = p.at[i];
     if (u === undefined || o === undefined) continue;
+    const ux = u[0] * along;
     const uy = u[1] * flip;
-    o[0] = x + u[0] * c - uy * s;
-    o[1] = y + u[0] * s + uy * c;
+    o[0] = x + ux * c - uy * s;
+    o[1] = y + ux * s + uy * c;
   }
   return p.at;
 };
 
 /**
  * The mitten in `grip`, its centre at (x, y), pointing along `angle`,
- * `size` long, its thumb on the `flip` side (an arm's `away`).
+ * `size` long (times `along` along the fingers, as it turns), its thumb on
+ * the `flip` side (an arm's `away`).
  */
 const mitten = (
   ctx: CanvasRenderingContext2D,
@@ -318,6 +328,7 @@ const mitten = (
   flip: number,
   style: ArmStyle,
   hand: Hand,
+  along = 1,
 ) => {
   const m: Mitten = MITTENS[grip];
   const look = {
@@ -326,11 +337,110 @@ const mitten = (
     color: style.skin,
     outline: style.outline,
   } as const;
-  if (!m.thumbOver) piece(ctx, place(m.thumb, x, y, angle, size, flip), look, sub(hand, 1));
-  if (m.finger !== undefined)
-    piece(ctx, place(m.finger, x, y, angle, size, flip), look, sub(hand, 3));
-  piece(ctx, place(m.palm, x, y, angle, size, flip), look, sub(hand, 2));
-  if (m.thumbOver) piece(ctx, place(m.thumb, x, y, angle, size, flip), look, sub(hand, 1));
+  const squash = (p: Part) => place(p, x, y, angle, size, flip, along);
+  if (!m.thumbOver) piece(ctx, squash(m.thumb), look, sub(hand, 1));
+  if (m.finger !== undefined) piece(ctx, squash(m.finger), look, sub(hand, 3));
+  piece(ctx, squash(m.palm), look, sub(hand, 2));
+  if (m.thumbOver) piece(ctx, squash(m.thumb), look, sub(hand, 1));
+};
+
+/**
+ * How far a turning hand has turned (`turn` 0 its grip, 1 palm up), as a
+ * card turns: its length along the fingers narrows to `TURN_EDGE` at the
+ * half, where the grip gives way to the palm-up shape, and widens again.
+ * Written into one record every call reuses.
+ */
+export const turning = (turn: number): Turned => {
+  const t = clamp(turn);
+  TURNED.cup = t >= 0.5;
+  TURNED.along = TURN_EDGE + (1 - TURN_EDGE) * Math.abs(Math.cos(Math.PI * t));
+  return TURNED;
+};
+/** A turning hand: whether the palm-up shape shows (`cup`), and its length along the fingers as a share (`along`). */
+export interface Turned {
+  readonly cup: boolean;
+  readonly along: number;
+}
+/** A turning hand's length along its fingers at the half, as a share of its length. */
+const TURN_EDGE = 0.2;
+/** The record `turning` writes (scratch, so a frame allocates none). */
+interface TurnedAt {
+  cup: boolean;
+  along: number;
+}
+const TURNED: TurnedAt = { cup: false, along: 1 };
+
+/** The angle from `a` to `b` the short way round, radians. */
+const toward = (a: number, b: number) => {
+  const d = (((b - a) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI);
+  return d - Math.PI;
+};
+
+/**
+ * The hand at an arm's end, grown to `size`: its grip, or, turning palm up
+ * (`turn`), the close-up's shape at the mitten's size, its palm's middle on
+ * the arm's end and its fingers up, the thumb on the side away from `flip`.
+ */
+const handEnd = (
+  ctx: CanvasRenderingContext2D,
+  a: Arm,
+  end: Pt,
+  angle: number,
+  size: number,
+  flip: -1 | 1,
+  style: ArmStyle,
+  hand: Hand,
+) => {
+  const turn = clamp(a.turn ?? 0);
+  if (turn <= 0) {
+    mitten(ctx, a.grip ?? 'open', end, angle, size, flip, style, hand);
+    return;
+  }
+  const { cup, along } = turning(turn);
+  const facing = angle + toward(angle, -Math.PI / 2) * turn;
+  if (!cup) {
+    mitten(ctx, a.grip ?? 'open', end, facing, size, flip, style, hand, along);
+    return;
+  }
+  const [m0, m1, m2, m3, m4, m5] = palmUpFrame(end, facing, size, flip, along);
+  ctx.save();
+  ctx.transform(m0, m1, m2, m3, m4, m5);
+  cupped(ctx, CUP_OPEN, style, (style.line * CLOSE_SPAN) / size, 0, hand);
+  ctx.restore();
+};
+/** A figure's hand turned palm up is held flat open. */
+const CUP_OPEN = 1;
+/** The palm-up hand's frame (scratch): a canvas `transform`'s six numbers. */
+const FRAME: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
+
+/**
+ * Where a hand turned palm up is drawn: the canvas transform (`a b c d e f`,
+ * written into one buffer every call reuses) from the close-up's units (its
+ * palm's middle on the origin, fingers up −y, thumb to −x) into the arm's,
+ * the palm's middle on `end`, the fingers along `facing`, `size` long heel to
+ * fingertips (times `along` along the fingers, as it turns), the thumb on
+ * the side away from `flip` as a mitten's is.
+ */
+export const palmUpFrame = (
+  end: Pt,
+  facing: number,
+  size: number,
+  flip: -1 | 1,
+  along = 1,
+): Readonly<typeof FRAME> => {
+  const k = size / CLOSE_SPAN;
+  const sx = k * along;
+  const sy = k * flip;
+  const c = Math.cos(facing);
+  const s = Math.sin(facing);
+  // Turned a quarter so the fingers run along +x, scaled, then turned to `facing`.
+  FRAME[0] = -s * sy;
+  FRAME[1] = c * sy;
+  FRAME[2] = -c * sx;
+  FRAME[3] = -s * sx;
+  FRAME[4] = end[0];
+  FRAME[5] = end[1];
+  return FRAME;
 };
 
 /** The round patch of garment that hides the strip's cut end, so the arm grows out of the body. */
@@ -375,7 +485,7 @@ export const arm = (
     sub(hand, 9),
   );
   const end = centre[STRIP_POINTS - 1] ?? a.to;
-  mitten(ctx, a.grip ?? 'open', end, angle, style.mitten * grow, away, style, sub(hand, 3));
+  handEnd(ctx, a, end, angle, style.mitten * grow, away, style, sub(hand, 3));
 };
 
 /** Where an arm's hand is: its mitten's centre, `a.grow` of the way along its strip. */
@@ -386,160 +496,176 @@ export const handAt = (from: Pt, away: -1 | 1, a: Arm, style: ArmStyle): Pt => {
 };
 
 // ─── the close-up ────────────────────────────────────────────────────────────
-// The mitten close up is an open hand held out palm up to receive, seen from
-// in front and a little above (about ¾): the palm a wide dish, the fingers
-// one block running on from the knuckles to one soft tip edge, the thumb
-// rising off the palm's far rim at about 40° to the fingers. Palm, fingers
-// and thumb are cut as one piece: one outline round the three, no seam where
-// they join. It closes the way a hand does, not a lid: the finger block
-// turns up about the knuckles toward the viewer, foreshortening, until its
-// tip edge comes round over the palm, which stays showing under it as a cup,
-// while the thumb comes in to meet it. The arm comes into frame from below
-// on the figure's side and the fingers point away from it. The shape is a
+// The hand close up is an open hand held out palm up to receive, seen from
+// above and a little behind the wrist, as one sees one's own hand held out:
+// the viewer looks into the palm. The palm is the biggest shape, its middle
+// on the origin, where a light or the gifts are laid; the fingers are one
+// mitten block running on from the knuckles away and up the frame to one
+// soft round tip; the thumb lies low along the side, off the palm's heel, at
+// about 40° to the fingers. Palm, fingers and thumb are cut as one piece: one
+// outline round the three, no seam where they join. It closes the way a hand
+// does: the finger block bends up out of the palm about the knuckles, toward
+// the eye, foreshortening, until its round tip comes back over the palm,
+// which stays showing under it as a cup, while the thumb comes in. The block
+// is the hull of a few balls, so every edge it shows, bent or not, is round.
+// The arm comes into frame from below on the figure's side. Every shape is a
 // pure function of `open`, written into buffers this module keeps.
 
 /** How a close-up hand is cut. */
 export interface CloseStyle {
   readonly skin: string;
-  /** The lifeline's ink, softer than the outline. */
+  /** The lifeline's and the joints' ink, softer than the outline. */
   readonly crease: string;
   readonly outline: string;
 }
 
-/** The close-up's outline, px. */
-const CLOSE_LINE = 4;
-/** The close-up's size against its units, about the palm's middle (0, 60). */
-const CLOSE_SCALE = 1.2;
-const PALM_MIDDLE: Pt = [0, 60];
-/** The forearm's width at the frame's edge and at the wrist. */
-const FOREARM: readonly [number, number] = [190, 140];
-const FOREARM_AT = buffer(2 * STRIP_POINTS);
-/** Where the forearm meets the hand: under the heel of the palm. */
-const WRIST: Pt = [-150, 100];
-
-/** The knuckles, where the fingers turn: the pivot on the knuckle line's middle. */
-const KNUCKLE: Pt = [100, 62];
+/** The close-up's outline, in its units. */
+export const CLOSE_LINE = 4;
 /**
- * How far the fingers have bent up out of the palm's plane, open (a relaxed
- * hand's tips lift a little) and closed (turned back to lie across the
- * palm), radians.
+ * The view: how far the eye leans from straight down into the palm back
+ * toward the wrist, radians. A finger bent this far up out of the palm is
+ * seen at its full length; bent a right angle past it, end on.
  */
-const BEND: readonly [number, number] = [(8 * Math.PI) / 180, (170 * Math.PI) / 180];
-/** How the curl eases: a little curl already reads, a fist takes the whole range. */
-const CURL_EASE = 0.8;
-/**
- * How much of a length standing straight up out of the palm the viewer sees
- * from a little above: the ¾ view's foreshortening.
- */
-const RISE = 0.55;
-/** The bend past which the tip edge lies over the palm, and over how much more it is fully inked there. */
-const OVER_PALM = (95 * Math.PI) / 180;
-const OVER_INKED = (25 * Math.PI) / 180;
+const VIEW = (25 * Math.PI) / 180;
 
-/** The palm seen from in front and above: heel on the left, the knuckles' end on the right. */
+/** The palm seen from above: the knuckles along the top, the thumb's mound low on the left, the heel at the bottom. */
 const PALM: Pt[] = spline(
   [
-    [-212, 44],
-    [-170, -8],
-    [-60, -18],
-    [60, -12],
-    [118, 4],
-    [138, 62],
-    [122, 138],
-    [0, 146],
-    [-150, 140],
-    [-218, 100],
+    [-122, -126],
+    [-40, -134],
+    [50, -132],
+    [120, -120],
+    [148, -60],
+    [150, 20],
+    [132, 96],
+    [80, 140],
+    [0, 152],
+    [-72, 146],
+    [-128, 110],
+    [-160, 40],
+    [-162, -40],
+    [-148, -104],
   ],
   6,
   true,
 );
 
-/** The finger block: half its width, its length past the knuckles, how round its tip is, and how thick. */
-const FINGER = { half: 58, length: 196, cap: 54, thick: 44 } as const;
+/** The knuckle line's height, about which the fingers bend. */
+const KNUCKLES = -118;
 /**
- * The close-up's length open, heel to fingertips, in the units it is drawn
- * in: a scene matching it to a figure's mitten scales by the mitten's length
- * over this.
+ * The finger block, one mitten piece: balls along its middle, each `[along
+ * the fingers from the knuckles, across, radius]`. Their hull, seen, is the
+ * block: two at the knuckles, and three round its tip, the middle one a
+ * little farther, so the tip is one soft edge.
  */
-export const CLOSE_SPAN =
-  (KNUCKLE[0] + FINGER.length - Math.min(...PALM.map((p) => p[0]))) * CLOSE_SCALE;
+const FINGER_BALLS: ReadonlyArray<readonly [number, number, number]> = [
+  [0, -76, 40],
+  [0, 76, 40],
+  [90, -42, 72],
+  [90, 42, 72],
+  [102, 0, 76],
+];
+/** Where each ball shows at the current bend (scratch). */
+const BALLS_AT = buffer(FINGER_BALLS.length);
 /**
- * The finger block's palm side in its own frame (x from the knuckle line
- * along the fingers, y across, the far side −), a convex outline: from the
- * knuckle line's far end, round the one soft tip edge, to its near end. The
- * knuckle line closes it, under the palm.
+ * The block's outline, sampled at this many fixed directions, from straight
+ * down (so its seam lies on the knuckles, under the palm) round to straight
+ * down again: a closed outline ends on its start.
  */
-const FINGER_UNIT: Pt[] = (() => {
-  const { half, length, cap } = FINGER;
-  const out: Pt[] = [
-    [0, -half],
-    [length - cap, -half + 4],
-  ];
-  for (let i = 1; i < 12; i++) {
-    const a = -Math.PI / 2 + (Math.PI * i) / 12;
-    out.push([length - cap + Math.cos(a) * cap, Math.sin(a) * (half - 4)]);
-  }
-  out.push([length - cap, half - 4], [0, half]);
-  return out;
-})();
-const FACE_AT = buffer(FINGER_UNIT.length);
-/** The block's outline with its thickness: the palm side swept by the thickness (two corners more). */
-const SLAB_AT = buffer(FINGER_UNIT.length + 2);
-/** Three short creases where the fingers bend, just past the knuckles, in the finger block's frame. */
-const CREASE_UNIT: ReadonlyArray<ReadonlyArray<Pt>> = [-30, 0, 30].map((y) => [
-  [43, y - 11],
-  [46, y],
-  [43, y + 11],
-]);
-const CREASE_AT = CREASE_UNIT.map((c) => buffer(c.length));
-/** The bend over which the creases go out of sight as the palm side of the fingers turns away. */
-const CREASES_HIDE: readonly [number, number] = [(70 * Math.PI) / 180, (95 * Math.PI) / 180];
+const HULL_POINTS = 48;
+const HULL_N: ReadonlyArray<Pt> = Array.from({ length: HULL_POINTS + 1 }, (_, k): Pt => {
+  const a = Math.PI / 2 + (2 * Math.PI * k) / HULL_POINTS;
+  return [Math.cos(a), Math.sin(a)];
+});
+const FINGERS_AT = buffer(HULL_POINTS + 1);
+/**
+ * How far the fingers have bent up out of the palm, open (a relaxed hand's
+ * tips lift a little) and closed (turned back over the palm), radians.
+ */
+const BEND: readonly [number, number] = [(10 * Math.PI) / 180, (170 * Math.PI) / 180];
+/** How the curl eases: a little curl already reads, a fist takes the whole range. */
+const CURL_EASE = 0.8;
+/** The bends over which the tip comes back over the palm and its edge is inked there. */
+const OVER: readonly [number, number] = [(125 * Math.PI) / 180, (145 * Math.PI) / 180];
+/** The bends over which the joints go out of sight as the palm side of the fingers turns from the eye. */
+const CREASES_HIDE: readonly [number, number] = [(85 * Math.PI) / 180, (110 * Math.PI) / 180];
+/** How far up the frame from the knuckles a point `along` the fingers shows, bent `bend`. */
+const rise = (along: number, bend: number) => along * Math.cos(bend - VIEW);
 
-/** The thumb, off the palm's far rim: its root, length and angle open and closed. */
+/** Two soft joint lines across the fingers, `[along, across]`, the second shorter: where the block bends. */
+const JOINTS: ReadonlyArray<ReadonlyArray<readonly [number, number]>> = [
+  [
+    [38, -70],
+    [44, -35],
+    [46, 0],
+    [44, 35],
+    [38, 70],
+  ],
+  [
+    [100, -50],
+    [105, -25],
+    [106, 0],
+    [105, 25],
+    [100, 50],
+  ],
+];
+const JOINTS_AT = JOINTS.map((j) => buffer(j.length));
+
+/** The thumb, off the palm's mound: its root, length and angle (on screen, radians) open and closed. */
 const THUMB = {
   root: [
-    [-84, 10],
-    [-40, 4],
+    [-128, 30],
+    [-104, 14],
   ],
-  length: [96, 88],
-  /** Radians, on screen: open about 40° up off the fingers, closed leaning in toward them. */
-  angle: [(-40 * Math.PI) / 180, (-18 * Math.PI) / 180],
-  radius: 48,
+  length: [122, 112],
+  angle: [(-128 * Math.PI) / 180, (-98 * Math.PI) / 180],
+  radius: 42,
 } as const;
 const THUMB_POINTS = 18;
-const THUMB_AT = buffer(THUMB_POINTS);
+/** The thumb's outline, closed: its last point is its first again. */
+const THUMB_AT = buffer(THUMB_POINTS + 1);
 
-/** The lifeline, round the thumb's mound toward the heel, clear of the palm's middle. */
+/** The lifeline, round the thumb's mound from between thumb and fingers toward the wrist, clear of the palm's middle. */
 const LIFELINE: Pt[] = spline([
-  [-50, 22],
-  [-92, 52],
-  [-134, 82],
-  [-176, 100],
+  [-140, -70],
+  [-96, -24],
+  [-74, 40],
+  [-70, 118],
 ]);
+
+/** Where the forearm meets the hand, under the heel, and its width at the frame's edge and there. */
+const WRIST: Pt = [-12, 100];
+const FOREARM: readonly [number, number] = [200, 168];
+const FOREARM_AT = buffer(2 * STRIP_POINTS);
+
+/**
+ * The close-up's length open, heel to fingertips, in its units: a hand at a
+ * figure's mitten size is drawn at the mitten's length over this.
+ */
+export const CLOSE_SPAN =
+  Math.max(...PALM.map((p) => p[1])) -
+  (KNUCKLES - Math.max(...FINGER_BALLS.map(([a, , r]) => rise(a, BEND[0]) + r)));
 
 /** The close-up's shape at one `open`: every array is a buffer the next call rewrites. */
 export interface CloseShape {
   readonly palm: ReadonlyArray<Pt>;
-  /**
-   * The finger block with its thickness, as an outline that starts at the
-   * knuckle line's far end and ends at its near end: closed it is the block;
-   * open, it is every edge but the knuckle line, the ink it takes over the palm.
-   */
+  /** The finger block's outline, round everywhere. */
   readonly fingers: ReadonlyArray<Pt>;
+  /** The two joint lines across the fingers. */
   readonly creases: ReadonlyArray<ReadonlyArray<Pt>>;
-  /** 1 while the palm side of the fingers faces the viewer, going to 0 as they turn away: the creases' ink. */
+  /** 1 while the palm side of the fingers faces the eye, going to 0 as they turn away: the joints' ink. */
   readonly creaseInk: number;
   readonly thumb: ReadonlyArray<Pt>;
   /** 0 open to 1 closed: how far the fingers have bent. */
   readonly curl: number;
-  /** 0 until the fingers come back over the palm, then 1: their edge's ink there. */
+  /** 0 until the tip comes back over the palm, then 1: its edge's ink there. */
   readonly over: number;
 }
 
 const SHAPE = {
   palm: PALM,
-  fingers: SLAB_AT,
-  creases: CREASE_AT,
+  fingers: FINGERS_AT,
+  creases: JOINTS_AT,
   creaseInk: 1,
   thumb: THUMB_AT,
   curl: 0,
@@ -560,100 +686,68 @@ const capsuleInto = (out: [number, number][], a: Pt, b: Pt, r: number) => {
     q[0] = b[0] + Math.cos(t + Math.PI) * r;
     q[1] = b[1] + Math.sin(t + Math.PI) * r;
   }
-};
-
-/**
- * `unit` bent `bend` up out of the palm about the knuckle line, as the ¾
- * view sees it, into `out`: along the fingers stays along the hand (by the
- * bend's cosine) and up out of the palm shows as up the screen (by its sine,
- * foreshortened); across the fingers stays across. A linear map, so a convex
- * outline stays convex.
- */
-const bent = (out: [number, number][], unit: ReadonlyArray<Pt>, bend: number) => {
-  const c = Math.cos(bend);
-  const s = Math.sin(bend) * RISE;
-  for (let i = 0; i < unit.length; i++) {
-    const u = unit[i];
-    const o = out[i];
-    if (u === undefined || o === undefined) continue;
-    o[0] = KNUCKLE[0] + u[0] * c;
-    o[1] = KNUCKLE[1] + u[1] - u[0] * s;
+  const first = out[0];
+  const last = out[THUMB_POINTS];
+  if (first !== undefined && last !== undefined) {
+    last[0] = first[0];
+    last[1] = first[1];
   }
 };
 
 /**
- * The convex outline `face` swept along `t` (the block's thickness), into
- * `SLAB_AT`, in `face`'s order: each point whose edges both face along `t`
- * moves by it, and where they turn, the point is kept and moved both, so
- * the outline stays whole and the count is two more. Unused slots repeat the
- * last point.
+ * The hull of the finger balls at `bend`, into `FINGERS_AT`: for each fixed
+ * direction, the farthest ball's edge that way. Where the farthest ball
+ * changes, both lie on the one straight edge between them, so the outline
+ * moves smoothly as the balls do and has no corner anywhere.
  */
-const swept = (face: ReadonlyArray<Pt>, tx: number, ty: number) => {
-  const n = face.length;
-  let area = 0;
-  for (let i = 0; i < n; i++) {
-    const a = face[i];
-    const b = face[(i + 1) % n];
-    if (a !== undefined && b !== undefined) area += a[0] * b[1] - b[0] * a[1];
+const fingers = (bend: number) => {
+  for (let i = 0; i < FINGER_BALLS.length; i++) {
+    const b = FINGER_BALLS[i];
+    const o = BALLS_AT[i];
+    if (b === undefined || o === undefined) continue;
+    o[0] = b[1];
+    o[1] = KNUCKLES - rise(b[0], bend);
   }
-  const turn = area >= 0 ? 1 : -1;
-  // Whether edge `i` (from point i to i + 1) faces along t.
-  const along = (i: number) => {
-    const a = face[i];
-    const b = face[(i + 1) % n];
-    if (a === undefined || b === undefined) return false;
-    return ((b[1] - a[1]) * tx - (b[0] - a[0]) * ty) * turn > 0;
-  };
-  let k = 0;
-  const put = (p: Pt, dx: number, dy: number) => {
-    const o = SLAB_AT[k];
-    if (o === undefined) return;
-    o[0] = p[0] + dx;
-    o[1] = p[1] + dy;
-    k++;
-  };
-  for (let i = 0; i < n; i++) {
-    const p = face[i];
-    if (p === undefined) continue;
-    const before = along((i + n - 1) % n);
-    const after = along(i);
-    if (before && after) put(p, tx, ty);
-    else if (!before && !after) put(p, 0, 0);
-    else if (after) {
-      put(p, 0, 0);
-      put(p, tx, ty);
-    } else {
-      put(p, tx, ty);
-      put(p, 0, 0);
+  for (let k = 0; k < HULL_N.length; k++) {
+    const n = HULL_N[k];
+    const o = FINGERS_AT[k];
+    if (n === undefined || o === undefined) continue;
+    let best = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < FINGER_BALLS.length; i++) {
+      const c = BALLS_AT[i];
+      const r = FINGER_BALLS[i]?.[2];
+      if (c === undefined || r === undefined) continue;
+      const reach = c[0] * n[0] + c[1] * n[1] + r;
+      if (reach <= best) continue;
+      best = reach;
+      o[0] = c[0] + r * n[0];
+      o[1] = c[1] + r * n[1];
     }
   }
-  const last = SLAB_AT[Math.max(0, k - 1)];
-  for (let j = k; j < SLAB_AT.length; j++) {
-    const o = SLAB_AT[j];
-    if (o === undefined || last === undefined) continue;
-    o[0] = last[0];
-    o[1] = last[1];
-  }
 };
 
 /**
- * The close-up's shape at `open` (1 held out flat, 0 a loose fist), the
- * fingers pointing +x, in the hand's units before `CLOSE_SCALE`: the finger
- * block bent up out of the palm about the knuckles, standing (seen short,
- * and by its thickness) at a right angle and lying back across the palm past
- * it, the thumb swung in to meet it. Continuous in `open`: nothing appears
- * or jumps as the hand closes.
+ * The close-up's shape at `open` (1 held out flat, 0 a loose fist), in its
+ * units: the finger block bent up out of the palm about the knuckles, seen
+ * shorter as it stands toward the eye and lying back over the palm past it,
+ * the thumb swung in. Continuous in `open`: nothing appears or jumps as the
+ * hand closes.
  */
 export const closeShape = (open: number): CloseShape => {
   const curl = clamp(1 - open) ** CURL_EASE;
   const bend = lerp(BEND[0], BEND[1], curl);
-  bent(FACE_AT, FINGER_UNIT, bend);
-  // The back of the fingers lies the thickness behind the palm side: down and out of the palm.
-  swept(FACE_AT, FINGER.thick * Math.sin(bend), RISE * FINGER.thick * Math.cos(bend));
-  for (let k = 0; k < CREASE_UNIT.length; k++) {
-    const u = CREASE_UNIT[k];
-    const o = CREASE_AT[k];
-    if (u !== undefined && o !== undefined) bent(o, u, bend);
+  fingers(bend);
+  for (let j = 0; j < JOINTS.length; j++) {
+    const u = JOINTS[j];
+    const o = JOINTS_AT[j];
+    if (u === undefined || o === undefined) continue;
+    for (let i = 0; i < u.length; i++) {
+      const p = u[i];
+      const q = o[i];
+      if (p === undefined || q === undefined) continue;
+      q[0] = p[1];
+      q[1] = KNUCKLES - rise(p[0], bend);
+    }
   }
   const rx = lerp(THUMB.root[0][0], THUMB.root[1][0], curl);
   const ry = lerp(THUMB.root[0][1], THUMB.root[1][1], curl);
@@ -666,40 +760,37 @@ export const closeShape = (open: number): CloseShape => {
     THUMB.radius,
   );
   SHAPE.curl = curl;
-  SHAPE.over = clamp((bend - OVER_PALM) / OVER_INKED);
+  SHAPE.over = clamp((bend - OVER[0]) / (OVER[1] - OVER[0]));
   SHAPE.creaseInk = 1 - clamp((bend - CREASES_HIDE[0]) / (CREASES_HIDE[1] - CREASES_HIDE[0]));
   return SHAPE;
 };
 
+/** The paper and ink a hand turned palm up is cut from. */
+interface CupStyle {
+  readonly skin: string;
+  readonly outline: string;
+  readonly crease?: string;
+}
+
 /**
- * The mitten close up: an open hand held out palm up to receive, faith, the
- * hand that takes. Seen from in front and a little above, the palm's middle
- * on (0, 60) where a light or the gifts are laid; about 700 units wide.
- * `open` 1 holds it flat; toward 0 the fingers turn up over the palm, which
- * stays showing as a cup, and the thumb comes in to meet them: a loose fist,
- * never a lid. Close up it keeps the ink a hand is allowed: three short
- * creases where the fingers bend and a lifeline round the thumb's mound,
- * clear of the palm's middle. `forearm`, when given, is where the arm comes
- * into frame, in the hand's units: its strip runs from there up to the
- * wrist, and the fingers point away from it (an arm from the right mirrors
- * the hand).
+ * The palm-up hand at `open`, its palm's middle on the origin, in the
+ * close-up's units: one piece of `style.skin` with a `line`-wide outline,
+ * and, as `detail` goes to 1, the ink a hand has close up (the lifeline and
+ * the joints). A figure's hand turned palm up and the close-up both draw
+ * this, so they are one shape at two sizes.
  */
-export const closeHand = (
+const cupped = (
   ctx: CanvasRenderingContext2D,
   open: number,
-  style: CloseStyle,
+  style: CupStyle,
+  line: number,
+  detail: number,
   hand: Hand,
-  forearm?: Pt,
 ) => {
-  const mirror = forearm !== undefined && forearm[0] > 0;
-  ctx.save();
-  ctx.translate(PALM_MIDDLE[0], PALM_MIDDLE[1]);
-  ctx.scale(mirror ? -CLOSE_SCALE : CLOSE_SCALE, CLOSE_SCALE);
-  ctx.translate(-PALM_MIDDLE[0], -PALM_MIDDLE[1]);
   const s = closeShape(open);
   const ink = {
     color: style.outline,
-    width: 2 * CLOSE_LINE,
+    width: 2 * line,
     jitter: 0.7,
     taper: 0,
     pressure: 0.15,
@@ -713,19 +804,6 @@ export const closeHand = (
     grain: 0.5,
     boil: 'crawl',
   } as const;
-  if (forearm !== undefined) {
-    const from: Pt = [
-      PALM_MIDDLE[0] + (Math.abs(forearm[0]) - PALM_MIDDLE[0]) / CLOSE_SCALE,
-      PALM_MIDDLE[1] + (forearm[1] - PALM_MIDDLE[1]) / CLOSE_SCALE,
-    ];
-    const centre = strip([-from[0], from[1]], WRIST, 1, -1, 0);
-    piece(
-      ctx,
-      ribbon(FOREARM_AT, centre, FOREARM[0], FOREARM[1]),
-      { role: 'figure', line: CLOSE_LINE, color: style.skin, outline: style.outline },
-      sub(hand, 1),
-    );
-  }
   // One piece: each part's outline twice as wide, then every part's paper
   // over them, so only the outer half of the ink round the whole shows.
   stroke(ctx, s.thumb, ink, sub(hand, 7));
@@ -733,39 +811,84 @@ export const closeHand = (
   stroke(ctx, s.fingers, ink, sub(hand, 9));
   cutout(ctx, s.thumb, { ...paper, shadow: 0.35 }, sub(hand, 2));
   cutout(ctx, s.palm, { ...paper, shadow: 0.35 }, sub(hand, 3));
-  stroke(
-    ctx,
-    LIFELINE,
-    { color: style.crease, width: CLOSE_LINE, jitter: 0.4, taper: 0.3, boil: 'crawl' },
-    sub(hand, 4),
-  );
-  // The fingers' paper over the palm's end; as they bend up it casts on the palm.
-  cutout(ctx, s.fingers, { ...paper, shadow: 0.35 * clamp(3 * s.curl) }, sub(hand, 5));
-  // Back over the palm, their edges are inked there too (all but the knuckle line).
-  if (s.over > 0)
+  const crease = style.crease ?? style.outline;
+  if (detail > 0)
     stroke(
       ctx,
-      s.fingers,
-      { ...ink, width: CLOSE_LINE, closed: false, alpha: s.over, taper: 0.1 },
-      sub(hand, 6),
+      LIFELINE,
+      { color: crease, width: line, jitter: 0.4, taper: 0.5, alpha: detail, boil: 'crawl' },
+      sub(hand, 4),
     );
-  if (s.creaseInk > 0)
+  // The fingers' paper over the palm's top; as they bend up it casts on the palm.
+  cutout(ctx, s.fingers, { ...paper, shadow: 0.35 * s.over }, sub(hand, 5));
+  // Back over the palm, the tip's edge is inked there too; the knuckles' side never is.
+  if (s.over > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-1e4, KNUCKLES + (FINGER_BALLS[0]?.[2] ?? 0), 2e4, 2e4);
+    ctx.clip();
+    stroke(ctx, s.fingers, { ...ink, width: line, alpha: s.over }, sub(hand, 6));
+    ctx.restore();
+  }
+  const joints = detail * s.creaseInk;
+  if (joints > 0)
     for (let k = 0; k < s.creases.length; k++) {
       const c = s.creases[k];
       if (c === undefined) continue;
       stroke(
         ctx,
         c,
-        {
-          color: style.outline,
-          width: CLOSE_LINE,
-          jitter: 0.4,
-          taper: 0.5,
-          alpha: s.creaseInk,
-          boil: 'crawl',
-        },
+        { color: crease, width: 0.8 * line, jitter: 0.4, taper: 0.5, alpha: joints, boil: 'crawl' },
         sub(hand, 10 + k),
       );
     }
+};
+
+/** How a close-up is drawn beyond its shape: where its arm comes in, its line, and how much of its ink shows. */
+export interface CloseDraw {
+  /**
+   * Where the arm comes into frame, in the hand's units: its strip runs from
+   * there up to the wrist. An arm from the right (x > 0) mirrors the hand,
+   * so the thumb is always on the arm's side.
+   */
+  readonly forearm?: Pt;
+  /** The outline's width in the hand's units (a push from a figure's hand starts at the figure's line). */
+  readonly line?: number;
+  /** 0..1, how much of the lifeline and the joints show (1 close up). */
+  readonly detail?: number;
+}
+
+/**
+ * The hand close up: an open hand held out palm up to receive, faith, the
+ * hand that takes. Seen from above, the palm's middle on the origin where a
+ * light or the gifts are laid, `CLOSE_SPAN` units heel to fingertips, the
+ * fingers up the frame. `open` 1 holds it flat; toward 0 the fingers bend up
+ * and come back over the palm, which stays showing as a cup: a loose fist,
+ * never a lid. Close up it keeps the ink a hand is allowed: a lifeline round
+ * the thumb's mound and two soft joint lines across the fingers, clear of
+ * the palm's middle.
+ */
+export const closeHand = (
+  ctx: CanvasRenderingContext2D,
+  open: number,
+  style: CloseStyle,
+  hand: Hand,
+  draw: CloseDraw = {},
+) => {
+  const { forearm } = draw;
+  const line = draw.line ?? CLOSE_LINE;
+  const mirror = forearm !== undefined && forearm[0] > 0;
+  ctx.save();
+  if (mirror) ctx.scale(-1, 1);
+  if (forearm !== undefined) {
+    const centre = strip([-Math.abs(forearm[0]), forearm[1]], WRIST, 1, -1, 0);
+    piece(
+      ctx,
+      ribbon(FOREARM_AT, centre, FOREARM[0], FOREARM[1]),
+      { role: 'figure', line, color: style.skin, outline: style.outline },
+      sub(hand, 1),
+    );
+  }
+  cupped(ctx, open, style, line, draw.detail ?? 1, hand);
   ctx.restore();
 };

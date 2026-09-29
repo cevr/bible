@@ -1,5 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { type ArmStyle, type CloseShape, GRIPS, arm, closeShape, handAt, strip } from './arm.ts';
+import {
+  type ArmStyle,
+  CLOSE_SPAN,
+  type CloseShape,
+  GRIPS,
+  arm,
+  closeShape,
+  handAt,
+  palmUpFrame,
+  strip,
+  turning,
+} from './arm.ts';
 import type { Pt } from './ink.ts';
 
 const SHOULDER: Pt = [17, -111];
@@ -173,6 +184,24 @@ const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
   return hit;
 };
 
+/** The largest turn (radians) between two neighbouring edges of a closed outline: its sharpest corner. */
+const sharpest = (poly: ReadonlyArray<Pt>) => {
+  let worst = 0;
+  const n = poly.length - 1; // the last point closes onto the first
+  for (let i = 0; i < n; i++) {
+    const a = poly[(i + n - 1) % n] ?? [0, 0];
+    const b = poly[i] ?? [0, 0];
+    const c = poly[(i + 1) % n] ?? [0, 0];
+    const u = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    const v = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    const turn = Math.abs(((v - u + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    // A straight run between two balls has no corner at its ends.
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 1e-6 && Math.hypot(c[0] - b[0], c[1] - b[1]) > 1e-6)
+      worst = Math.max(worst, turn);
+  }
+  return worst;
+};
+
 interface Taken {
   readonly fingers: Pt[];
   readonly thumb: Pt[];
@@ -187,7 +216,9 @@ const take = (s: CloseShape): Taken => ({
 });
 
 /** The palm's middle, where a light or the gifts are laid. */
-const PALM_MIDDLE: Pt = [0, 60];
+const PALM_MIDDLE: Pt = [0, 0];
+const top = (pts: ReadonlyArray<Pt>) => Math.min(...pts.map((p) => p[1]));
+const bottom = (pts: ReadonlyArray<Pt>) => Math.max(...pts.map((p) => p[1]));
 
 describe('closeShape', () => {
   test('the curl is continuous: from open to closed no frame pops', () => {
@@ -201,31 +232,99 @@ describe('closeShape', () => {
       expect(apart(before.thumb, now.thumb)).toBeLessThan(4);
       for (const [k, c] of now.creases.entries())
         expect(moved(before.creases[k] ?? c, c)).toBeLessThan(4);
-      // The ink and paper that come in as the fingers lie over the palm come in gradually.
+      // The ink and paper that come in as the fingers come over the palm come in gradually.
       for (const [k, v] of now.scalars.entries())
         expect(Math.abs(v - (before.scalars[k] ?? v))).toBeLessThan(0.03);
       before = now;
     }
   });
 
-  test('open it is held out flat; closing, the fingers bend up and lie back over the palm, and the thumb comes in', () => {
+  test('open, the fingers run on up the frame past the palm; closing, they come back down over it and the thumb comes in', () => {
     const open = take(closeShape(1));
     const shut = take(closeShape(0));
     const reach = (pts: ReadonlyArray<Pt>) => Math.max(...pts.map((p) => p[0]));
-    const back = (pts: ReadonlyArray<Pt>) => Math.min(...pts.map((p) => p[0]));
-    // Open: the fingers run on past the knuckles, no ink over the palm, the creases showing.
-    expect(reach(open.fingers)).toBeGreaterThan(260);
+    // Open: the fingers run on up past the knuckles, no ink over the palm, the joints showing.
+    expect(top(open.fingers)).toBeLessThan(top(copy(closeShape(1).palm)) - 150);
     expect(open.scalars).toEqual([0, 0, 1]);
-    // Closed: the fingers lie back across the palm, their edge inked, the creases turned away.
-    expect(reach(shut.fingers)).toBeLessThan(160);
-    expect(back(shut.fingers)).toBeLessThan(0);
+    // Closed: their round tip lies back down over the palm, its edge inked, the joints turned away.
+    expect(bottom(shut.fingers)).toBeGreaterThan(0);
+    expect(top(shut.fingers)).toBeGreaterThan(top(open.fingers) + 100);
     expect(shut.scalars).toEqual([1, 1, 0]);
-    // The thumb leans in toward the fingers.
+    // The thumb comes in toward the fingers.
     expect(reach(shut.thumb)).toBeGreaterThan(reach(open.thumb));
+  });
+
+  test('the palm is the biggest shape', () => {
+    const area = (poly: ReadonlyArray<Pt>) =>
+      Math.abs(
+        poly.reduce((s, a, i) => {
+          const b = poly[(i + 1) % poly.length] ?? a;
+          return s + a[0] * b[1] - b[0] * a[1];
+        }, 0) / 2,
+      );
+    const s = closeShape(1);
+    expect(area(s.palm)).toBeGreaterThan(area(s.fingers));
+    expect(area(s.palm)).toBeGreaterThan(area(s.thumb));
+  });
+
+  test('round everywhere: no bend of the fingers shows a square corner', () => {
+    for (let open = 1; open >= 0; open -= 0.05)
+      expect(sharpest(closeShape(open).fingers)).toBeLessThan(Math.PI / 6);
   });
 
   test('a cup, not a lid: through the film deepest curl the palm middle stays uncovered', () => {
     for (let open = 1; open >= 0.45; open -= 0.01)
       expect(inside(PALM_MIDDLE, closeShape(open).fingers)).toBe(false);
+  });
+});
+
+describe('the palm-up turn', () => {
+  test('turns like a card: the length along the fingers narrows to the edge and back, the shape changing only there', () => {
+    const STEPS = 1000;
+    let before = turning(0);
+    expect(before.along).toBe(1);
+    expect(before.cup).toBe(false);
+    let edge = 1;
+    for (let i = 1; i <= STEPS; i++) {
+      const now = { ...turning(i / STEPS) };
+      expect(Math.abs(now.along - before.along)).toBeLessThan(0.01);
+      if (now.cup !== before.cup) {
+        // The grip gives way to the palm-up shape only where the hand is edge on.
+        expect(now.along).toBeLessThan(0.21);
+        edge = Math.min(edge, now.along);
+      }
+      before = now;
+    }
+    expect(edge).toBeLessThan(0.21);
+    expect(before.along).toBeCloseTo(1, 9);
+    expect(before.cup).toBe(true);
+  });
+
+  test('turned palm up, the hand is the close-up at the mitten size: its palm middle on the target, fingers up, thumb on the mitten side', () => {
+    const to: Pt = [60, -150];
+    const apply = (m: Readonly<number[]>, [x, y]: Pt): Pt => [
+      (m[0] ?? 0) * x + (m[2] ?? 0) * y + (m[4] ?? 0),
+      (m[1] ?? 0) * x + (m[3] ?? 0) * y + (m[5] ?? 0),
+    ];
+    for (const away of [1, -1] as const) {
+      const m = [...palmUpFrame(to, -Math.PI / 2, STYLE.mitten, away)];
+      // The palm's middle on the target.
+      const middle = apply(m, [0, 0]);
+      expect(middle[0]).toBeCloseTo(to[0], 9);
+      expect(middle[1]).toBeCloseTo(to[1], 9);
+      // Heel to fingertips is the mitten's length, straight up.
+      const tip = apply(m, [0, -CLOSE_SPAN]);
+      expect(tip[0]).toBeCloseTo(to[0], 9);
+      expect(tip[1]).toBeCloseTo(to[1] - STYLE.mitten, 9);
+      // The thumb (−x in the close-up) lies on the side away from the arm, as
+      // the close-up's does when its forearm comes in from that arm's side.
+      expect(Math.sign(apply(m, [-CLOSE_SPAN, 0])[0] - to[0])).toBe(-away);
+    }
+    // Still facing along the arm, the same shape: a rotation and a uniform scale.
+    const m = palmUpFrame(to, 0.4, STYLE.mitten, 1);
+    expect(Math.hypot(m[0], m[1])).toBeCloseTo(Math.hypot(m[2], m[3]), 9);
+    expect(m[0] * m[2] + m[1] * m[3]).toBeCloseTo(0, 9);
+    // Its hand is still where the arm ends: what it holds rides the palm's middle.
+    expect(handAt(SHOULDER, 1, { to, grow: 1, turn: 1 }, STYLE)).toEqual(to);
   });
 });

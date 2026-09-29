@@ -100,7 +100,7 @@ The last row is the rule that the landing is both the most saturated and the cal
   - A crowd varies silhouette, height and hat. Never clone.
 - **Hands.**
   - **Arms appear only when a hand acts.** At rest a figure is an armless bean, its hands tucked in the garment. An arm is one tapered strip of the figure's paper, grown from inside the shoulder on its action's named cue and withdrawn after (the kit's `far`/`near` arm, `{ to, grow: f.at('<cue>'), grip }`). It has no elbow and bows to the gesture's side, down and away from the body.
-  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `arm`). Close up (`handCloseUp`), it adds three finger creases and a lifeline.
+  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `arm`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`).
   - **A hand acting in front of the body is drawn over it.** The kit draws a far hand whose target lies across the garment's middle over the body; anywhere else a far arm sits behind it. `film check` warns `HandHidden` for a hand at work lost inside its own body, and `ArmPop` for an arm whose grow jumps more than 0.5 in one frame.
   - A big insert of a hand (the "hand that takes hold") is a close-up of that figure's hand: cut or push to it from the figure, then match back. It is never a prop that floats in from nowhere. _(Hibon: "the hands do so much of the talking" #26.)_
 - **Faces, staging and emotion.**

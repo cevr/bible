@@ -27,8 +27,10 @@ import {
   blob,
   glow,
   knobCamera,
-  handCloseUp,
+  type HandPush,
   person,
+  pushZoom,
+  pushedHand,
   piece,
   rounded,
   sky,
@@ -73,16 +75,24 @@ const STACK_Y = -226;
 /** Where each hand holds the bottom card: its ends, outside the head. */
 const HOLD_AT: Pt = [44, STACK_Y + 4];
 const HOLD_FAR: ArmAt = { to: [-HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold' };
-/** The near hand: on the stack, then down and open, palm out, at `OFFER_AT`. */
+/** The near hand: on the stack, then down to `OFFER_AT`, turning palm up (`palmUp`). */
 const OFFER_AT: Pt = [50, -130];
-const OPEN: ArmAt = { to: [HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold' };
-/** The close-up: where it sits, its scale, how far the push magnifies, and its palm's middle below its centre. */
-const CLOSE_AT: Pt = [960, 700];
-const CLOSE_S = 1.25;
-const INTO_HAND = 10;
-const PALM_MIDDLE = 60;
+const OPEN: ArmAt = { to: [HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold', turn: 0 };
+/** The close-up: where its palm's middle sits, and its scale. */
+const CLOSE_AT: Pt = [960, 720];
+const CLOSE_S = 1.6;
+/** The push from the figure's palm-up hand into the close-up, and how far it magnifies the figure. */
+const PUSH: HandPush = {
+  from: [FIGURE_A[0] + OFFER_AT[0] * FIGURE_A_S, FIGURE_A[1] + OFFER_AT[1] * FIGURE_A_S],
+  figureScale: FIGURE_A_S,
+  to: CLOSE_AT,
+  scale: CLOSE_S,
+};
+const INTO_HAND = pushZoom(FIGURE_A_S, CLOSE_S);
 /** Where the close-up's arm comes in: from below, a little from the left where their body is. */
 const FROM_FIGURE: Pt = [-260, 700];
+/** Where the light laid in the close-up starts, above the frame, in the hand's units. */
+const LIGHT_FROM = -680;
 /** The climber's hands on the pole, one high and one low (their x follows the pole each frame). */
 const ON_POLE_HIGH: ArmAt = { to: [0, -150], grow: 0, grip: 'hold' };
 const ON_POLE_LOW: ArmAt = { to: [0, -95], grow: 0, grip: 'hold' };
@@ -100,6 +110,8 @@ export const look = drawing({
     // pushes into it: the close-up. Once the light is laid in it, back out
     // to them holding it.
     offer: { with: 'handIn', offset: -0.5, dur: 0.5 },
+    // Coming down, the hand that held the stack turns palm up: the close-up's shape.
+    palmUp: { mark: 'hand', offset: -0.85, dur: 0.25, ease: 'inOutSine' },
     handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
     light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
     handOut: { after: 'light', dur: 0.6, ease: 'inOutCubic' },
@@ -158,7 +170,7 @@ export const look = drawing({
         OPEN.to[0] = lerp(HOLD_AT[0], OFFER_AT[0], offer);
         OPEN.to[1] = lerp(bottom + 4, OFFER_AT[1], offer);
         OPEN.grow = clamp(up + offer);
-        OPEN.grip = offer < 0.5 ? 'hold' : 'palm';
+        OPEN.turn = f.at('palmUp');
         const s = FIGURE_A_S * zoom;
         at(ctx, { x: handX - hx * s, y: handY - hy * s, scale: s }, () => {
           person(
@@ -219,28 +231,21 @@ export const look = drawing({
         ctx.restore();
       }
 
-      // Their open hand close up, palm out, and the gold light laid in it: the
-      // light comes to rest on the palm's middle, below the finger creases.
-      if (into > 0) {
-        ctx.save();
-        ctx.globalAlpha *= into;
-        at(ctx, { x: handX, y: handY, scale: CLOSE_S * INTO_HAND ** (into - 1) }, () =>
-          at(ctx, { x: 0, y: -PALM_MIDDLE }, () => {
-            handCloseUp(ctx, hand, 1, FROM_FIGURE);
-            if (light > 0) {
-              const y = lerp(-620, PALM_MIDDLE, light);
-              glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
-              glow(ctx, 0, y, 110, C.gold, 0.6);
-              piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), {
-                role: 'scenery',
-                line: 0,
-                shadow: 0.2,
-              });
-            }
-          }),
-        );
-        ctx.restore();
-      }
+      // Their own palm-up hand close up, and the gold light laid in it: the
+      // light comes down to rest on the palm's middle, clear of the lines.
+      pushedHand(ctx, f.hand, PUSH, into, 1, FROM_FIGURE, {
+        over: () => {
+          if (light <= 0) return;
+          const y = lerp(LIGHT_FROM, 0, light);
+          glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
+          glow(ctx, 0, y, 110, C.gold, 0.6);
+          piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), {
+            role: 'scenery',
+            line: 0,
+            shadow: 0.2,
+          });
+        },
+      });
     }
 
     // ── B: the camp in the desert, the serpent on the pole ───────────────────

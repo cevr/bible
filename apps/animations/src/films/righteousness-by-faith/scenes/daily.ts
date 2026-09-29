@@ -39,9 +39,9 @@ import {
   glow,
   icons,
   mix,
-  CLOSE_SPAN,
-  handCloseUp,
+  type HandPush,
   person,
+  pushedHand,
   piece,
   rounded,
   sky,
@@ -131,16 +131,22 @@ const FLOWER_HEAD = ellipseShape(0, -34, 14, 14, 16);
 /** The robed figure at the window: feet below the frame, face a third of it. */
 const AT_WINDOW: Pt = [1420, 1250];
 const WINDOW_SCALE = 4.7;
-/** Their open hand come forward in the room, close up, and its scale. */
-const HAND_AT: Pt = [880, 890];
-const HAND_SCALE = 1.05;
-/** The close-up's scale when it is their hand at the window: its mitten's size over the close-up's. */
-const AT_ARM = (22 * WINDOW_SCALE) / (CLOSE_SPAN * HAND_SCALE);
+/** The robed figure's hand at the window, open low toward it, palm up (in their units). */
+const OPEN_AT: Pt = [-70, -118];
+/** Their palm-up hand come forward in the room, close up: its palm's middle, and its scale. */
+const HAND_AT: Pt = [880, 860];
+const HAND_SCALE = 1.3;
+/** Their hand at the window coming forward to us as the close-up, and back. */
+const FORWARD: HandPush = {
+  from: [AT_WINDOW[0] + OPEN_AT[0] * WINDOW_SCALE, AT_WINDOW[1] + OPEN_AT[1] * WINDOW_SCALE],
+  figureScale: WINDOW_SCALE,
+  to: HAND_AT,
+  scale: HAND_SCALE,
+};
 /** Where the close-up's arm comes in: up from below, a little from the right, where they stand. */
 const FROM_THEM: Pt = [300, 700];
-/** The icons in the palm: their scale and where they sit on it. */
+/** The icons in the palm's middle: their scale. */
 const ICONS_IN_HAND = 0.24;
-const PALM_Y = 60;
 
 /** The working days, each a sun's arc; the Sabbath begins as the last one sets. */
 const DAYS = 6;
@@ -173,9 +179,11 @@ const timeline = {
   askAgain: { mark: 'keep', dur: 0.4 },
   through: { mark: 'will', offset: -0.35, dur: 0.6, ease: 'inCubic' },
   dawn: { mark: 'will', until: 'matter', ease: 'outQuad' },
-  // At the window they open their hand, and on "choose" it comes forward to
-  // us, close up; on "sab" it goes back to them, the gifts in it.
+  // At the window they open their hand and turn it palm up, and on "choose"
+  // it comes forward to us, close up; on "sab" it goes back to them, the
+  // gifts in it.
   reach: { mark: 'choose', offset: -0.7, dur: 0.6 },
+  palmUp: { mark: 'choose', offset: -0.4, dur: 0.3, ease: 'inOutSine' },
   handUp: { mark: 'choose', dur: 0.7, ease: 'inOutCubic' },
   handBack: { mark: 'sab', dur: 0.6, ease: 'inOutCubic' },
   lay: { mark: 'choose', offset: 0.6, dur: 1.2, ease: 'outBack', stagger: 0.6 },
@@ -214,9 +222,8 @@ const OTHER: Person = {
   near: OVER_EAR_R,
   stains: FIGURE_STAINS,
 };
-/** The robed figure's hand at the window, open low toward it, palm up (in their units). */
-const OPEN_AT: Pt = [-70, -118];
-const OPENED: ArmAt = { to: [OPEN_AT[0], OPEN_AT[1]], grow: 0, grip: 'palm' };
+/** The robed figure's hand at the window, open toward it, then turned palm up (`palmUp`). */
+const OPENED: ArmAt = { to: [OPEN_AT[0], OPEN_AT[1]], grow: 0, grip: 'palm', turn: 0 };
 /** At the window, face to the light. */
 const AT_THE_WINDOW: Person = {
   ...ROBED,
@@ -475,6 +482,7 @@ const robedAtWindow = (f: DailyFrame, day: number) => {
   // Their hand opens toward the window, gives way to the close-up as it comes
   // forward, and grows back as it returns.
   OPENED.grow = f.at('reach') * (1 - f.at('handUp') * (1 - f.at('handBack')));
+  OPENED.turn = f.at('palmUp');
   ctx.save();
   ctx.translate(AT_WINDOW[0], AT_WINDOW[1]);
   ctx.scale(WINDOW_SCALE, WINDOW_SCALE);
@@ -496,27 +504,23 @@ const inHand = (f: DailyFrame, arc: number) => {
   const working = f.at('days') > 0;
   const night = 1 - Math.sin(Math.PI * arc);
   const open = working ? 1 - 0.55 * night * night : 1;
-  const s = HAND_SCALE * AT_ARM ** (1 - up);
-  ctx.save();
-  // Seen whole once it has left their arm; it takes the mitten's place as it goes back.
-  ctx.globalAlpha *= clamp(4 * up);
-  ctx.translate(
-    lerp(AT_WINDOW[0] + OPEN_AT[0] * WINDOW_SCALE, HAND_AT[0], up),
-    lerp(AT_WINDOW[1] + OPEN_AT[1] * WINDOW_SCALE, HAND_AT[1], up),
-  );
-  ctx.scale(s, s);
-  glow(ctx, 0, PALM_Y, 260, C.glow, 0.5 * open);
-  handCloseUp(ctx, f.hand, open, FROM_THEM);
   LAID[0] = f.stagger('lay', 0, 3);
   LAID[1] = f.stagger('lay', 1, 3);
   LAID[2] = f.stagger('lay', 2, 3);
   LIT[0] = LAID[0] * open;
   LIT[1] = LAID[1] * open;
   LIT[2] = LAID[2] * open;
-  ctx.translate(0, PALM_Y);
-  ctx.scale(ICONS_IN_HAND, ICONS_IN_HAND);
-  icons(ctx, f.hand, LIT, LAID);
-  ctx.restore();
+  // Their palm-up hand at the window comes forward as the close-up, the same
+  // shape growing, and goes back into their hand the same way.
+  pushedHand(ctx, f.hand, FORWARD, up, open, FROM_THEM, {
+    under: () => glow(ctx, 0, 0, 260, C.glow, 0.5 * open),
+    over: () => {
+      ctx.save();
+      ctx.scale(ICONS_IN_HAND, ICONS_IN_HAND);
+      icons(ctx, f.hand, LIT, LAID);
+      ctx.restore();
+    },
+  });
 };
 
 /** C: the Sabbath field, the robed figure at rest against the tree, heart glowing. */
