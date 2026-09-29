@@ -104,6 +104,9 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'mirror',
+    // The v4 takes open on about 0.15 s of breath: a lead of 0.4 keeps the
+    // seams between unbroken lines near 0.55 s, as a reader would.
+    lead: 0.4,
     say: "{short}How do we measure up? Every one of us comes up short. {fig}So we do what Adam and Eve did. We sew fig leaves. {harder}We try harder. {promise}We make promises. {going}How is that going? {rags}Isaiah's verdict: “All our righteousnesses are as filthy rags.” {mirror}And the law? It is a mirror. {stain}It shows every stain, {wash}but you cannot wash your face with a mirror.",
     cite: [
       'Romans 3:23',
@@ -117,6 +120,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'message',
+    lead: 0.4,
     say: "{how}So how does anyone become righteous? {year}In Minneapolis in 1888, {two}two preachers, Ellet Waggoner and Alonzo Jones, took that question head on. {rep}Their church had a reputation: Adventists talk the law, the law, but do not preach Christ. {ew}Ellen White said God sent {precious}“a most precious message” through those two. {what}So what was the message? {answer}It was {angel}the third angel's message: {banner}the commandments of God, and the faith of Jesus. {hand}The law and the gospel, hand in hand. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
     cite: [
       'Ellen G. White, Letter 57, 1895 (TM 91–92)',
@@ -137,6 +141,7 @@ export const script: ReadonlyArray<Beat> = [
     // its own framing. The owner's handbook study reads the gifts as the
     // court's gate, altar and laver.
     id: 'roof',
+    lead: 0.4,
     say: '{see}What do these gifts look like? {roof}In Capernaum, four friends open a roof and lower a paralysed man on his bed to Jesus. {saw}Jesus saw their faith, {son}and said, “Son, thy sins be forgiven thee.” {scribes}Only God forgives sins, the scribes think. {easy}Easy to say, right? No one can see a sin forgiven. {arise}So Jesus says, arise, take up your bed, and go home. {went}And he walks out in front of them all. {count}Count what he received. {one}One: faith. They believed, and he took Jesus at his word. {two}Two: forgiveness, before a word about his legs. {three}Three: power, to get up and walk, {proof}the proof that two was real.',
     cite: ['Mark 2:1–12'],
     picture:
@@ -145,6 +150,7 @@ export const script: ReadonlyArray<Beat> = [
   {
     // John 8:2–11 told, then counted again, quicker: the viewer counts along.
     id: 'woman',
+    lead: 0.4,
     say: '{court}Then a woman is brought into the temple court, caught in adultery. {law}Moses said to stone her, they say. {dust}Jesus stoops and writes in the dust. {first}Let the one without sin throw the first stone. {leave}One by one, they go. {alone}Only the two of them are left. {none}Has no man condemned you? {lord}No man, Lord. {told}And Jesus said: “Neither do I condemn thee: go, and sin no more.” {again}Count again. {one}One: faith. She calls him Lord. {two}Two: forgiveness. No condemnation. {three}Three: power, to go and sin no more. {order}The same three, in the same order.',
     cite: ['John 8:2–11'],
     picture:
@@ -152,6 +158,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'spoke',
+    lead: 0.4,
     say: "{gift}The first gift: faith. {where}Where does it come from? {from}From God's word. {back}Jones went back to the beginning. {dark}The world starts dark and empty. {then}The psalm says, {spake}“He spake, and it was done.” {only}Jones noticed something amazing: God spoke the word only, {itself}and the word itself produced the thing.",
     cite: ['Romans 10:17', 'Genesis 1:2–3', 'Psalm 33:9', 'A. T. Jones, Lessons on Faith, 16'],
     picture:
@@ -159,6 +166,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'centurion',
+    lead: 0.4,
     // The icons light while the voice still speaks, and `look` carries on in
     // the same act: a short hold after the gift is named.
     tail: 0.6,
@@ -201,6 +209,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'exchange',
+    lead: 0.4,
     say: "But how can God make the guilty righteous {fair}and still be fair? {notes}Ellen White's answer, in 1888: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}He bore them on the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {now}Right now, she wrote, he pleads for us there.",
     cite: [
       'Ellen G. White, Ms 24, 1888',
@@ -213,6 +222,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'accuser',
+    lead: 0.4,
     say: "{zech}The prophet Zechariah saw that very court. {joshua}Joshua the high priest, {filthy}in filthy clothes, stands before the Angel, {satan}and Satan stands at his right hand to accuse him. {room}The accuser is right there. {points}He is not wrong about the clothes. {ew}Ellen White applied it to God's people {day}“in the closing up of the great day of atonement.” {angel}But the Angel, Christ himself, {silence}silences the accuser.",
     cite: ['Zechariah 3:1–2', 'Ellen G. White, Testimonies for the Church, vol. 5, 468–472'],
     picture:
@@ -220,6 +230,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'robe',
+    lead: 0.4,
     // The pull back to the three icons, forgiveness lit, comes after the
     // quotation's last word; the tail holds it and the callback to `woman`
     // under the robe for a breath, and `within` opens on the same icons.
@@ -264,6 +275,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'rain',
+    lead: 0.4,
     say: "Where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain, the Spirit's outpouring, {blot}and to the blotting out of sins in the cleansing of the sanctuary. {loud}A message for a loud voice, Ellen White said.",
     cite: [
       'A. T. Jones, The Consecrated Way to Christian Perfection, 124',
@@ -275,6 +287,7 @@ export const script: ReadonlyArray<Beat> = [
   },
   {
     id: 'name',
+    lead: 0.4,
     // The held pause before the landing's last words (CRAFT 7: about 3 s
     // with `thesis`'s lead), declared in the scene as a designed silence.
     tail: 2,

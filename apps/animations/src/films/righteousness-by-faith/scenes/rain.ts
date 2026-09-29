@@ -62,7 +62,7 @@ export const rain = drawing({
     wink: { mark: 'blot', offset: 0.9, dur: 2, ease: 'linear' },
     down: { mark: 'loud', offset: -0.9, dur: 1.4 },
     stop: { mark: 'loud', offset: -0.9, dur: 0.8 },
-    fly: { mark: 'loud', offset: -0.1, dur: 3.2, ease: 'linear' },
+    fly: { mark: 'loud', offset: -0.1, dur: 3, ease: 'linear' },
     // The angel has the banner in hand as it flies in, still off frame.
     grasp: { with: 'fly', dur: 0 },
     turn: { mark: 'loud', offset: 0.6, dur: 0.6 },
