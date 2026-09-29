@@ -1,5 +1,5 @@
 // A person's takes: recordings of the script made into takes the film uses as
-// it uses a staging take. Each recording is loaded (any format ffmpeg reads),
+// it uses a staging take. Each recording is loaded (WAV, FLAC, AIFF, M4A, MP3: `Media.load`),
 // trimmed and levelled as the staging takes are (`prepareTake`), encoded to a
 // 24-bit FLAC master (the owner's voice is the final voiceover, so nothing
 // after the recorder is lossy), transcribed through the same speech-to-text

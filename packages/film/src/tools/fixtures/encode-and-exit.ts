@@ -1,5 +1,5 @@
 // A second of tone through each extension encoder Media runs in a worker
-// (AAC), then nothing: the process must end by itself. media.test.ts runs it
+// (AAC for a film's track, FLAC for a take's master), then nothing: the process must end by itself. media.test.ts runs it
 // in its own process, since a worker that never hears its messages, or never
 // closes, holds a process open rather than failing a test.
 
@@ -15,5 +15,7 @@ Effect.runFork(
     const media = yield* Media;
     const aac = yield* media.encodeAac(pcm);
     yield* Console.log(`aac packets=${aac.packets.length}`);
+    const flac = yield* media.encodeFlac(pcm);
+    yield* Console.log(`flac bytes=${flac.length}`);
   }).pipe(Effect.provide(Layer.provideMerge(Media.layer, BunServices.layer))),
 );

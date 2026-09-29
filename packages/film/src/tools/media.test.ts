@@ -1,8 +1,10 @@
-// Media with the real mediabunny, mpg123 and AAC encoder, reading over the
-// in-memory file system and joining films on the real disk: a WAV written reads back as the same 16-bit samples, an MP3
+// Media with the real mediabunny, mpg123, FFmpeg (NodeAV) and the AAC and
+// FLAC encoders, reading over the in-memory file system and joining films on
+// the real disk: a WAV written reads back as the same 16-bit samples, an MP3
 // decodes gapless (its encoder padding trimmed, a mono file one channel), a
-// film joins from its segments with its track, and a file that is missing or
-// not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
+// person's recording (WAV, M4A, AIFF, MP3) loads and its take encodes with no
+// ffmpeg on the machine, a film joins from its segments with its track, and a
+// file that is missing or not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
 // 440 Hz, mono, 44.1 kHz, with a LAME gapless header. fixtures/segment-*.mp4
 // are fifteen frames of H.264 at 30 fps each, encoded in headless Chromium as
 // a render encodes a chunk: `a` and `b` 64 × 64, `wide` 96 × 64.
@@ -11,8 +13,18 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { ALL_FORMATS, BufferSource, EncodedPacketSink, Input } from 'mediabunny';
-import { toInt16 } from '../core/audio.ts';
+import {
+  ALL_FORMATS,
+  AudioSample,
+  AudioSampleSource,
+  BufferSource,
+  BufferTarget,
+  EncodedPacketSink,
+  Input,
+  Mp4OutputFormat,
+  Output,
+} from 'mediabunny';
+import { type Pcm, toInt16 } from '../core/audio.ts';
 import { Media, ffmpegReady } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
@@ -64,6 +76,76 @@ const MediaOnFixtures = Layer.unwrap(
  */
 const MediaOnDisk = Layer.provideMerge(Media.layer, BunServices.layer);
 
+/** A machine with no ffmpeg: any process a take's load or encode started would fail the test. */
+const noProcesses = ChildProcessSpawner.make(() => Effect.die('a take started a process'));
+
+/** Media over an in-memory disk holding the MP3 fixture, where no process can start. */
+const MediaWithoutFfmpeg = Layer.unwrap(
+  Effect.gen(function* () {
+    const tone = yield* (yield* FileSystem.FileSystem).readFile(fixture('tone.mp3'));
+    return Media.layer.pipe(
+      Layer.provideMerge(memoryFileSystem(new Map([['/tone.mp3', tone]]))),
+      Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, noProcesses)),
+    );
+  }),
+).pipe(Layer.provide(BunServices.layer));
+
+/** A sound's first channel's root mean square. */
+const rms = (pcm: Pcm) => {
+  const samples = pcm.channels[0] ?? new Float32Array();
+  return Math.sqrt(samples.reduce((sum, s) => sum + s * s, 0) / Math.max(1, samples.length));
+};
+
+/**
+ * `pcm` as an M4A: AAC in an MP4, as a phone's recorder saves it. Its
+ * samples go in a frame of priming early, so the encoder's first packet sits
+ * before zero, where the edit list skips it (as `Media.encodeAac` does).
+ */
+const m4a = (pcm: Pcm) =>
+  Effect.gen(function* () {
+    const target = new BufferTarget();
+    const output = new Output({ format: new Mp4OutputFormat(), target });
+    const source = new AudioSampleSource({ codec: 'aac', bitrate: 192_000 });
+    output.addAudioTrack(source);
+    yield* Effect.promise(() => output.start());
+    const data = new Float32Array(pcm.frames * pcm.channels.length);
+    for (const [c, plane] of pcm.channels.entries()) data.set(plane, c * pcm.frames);
+    const sample = new AudioSample({
+      data,
+      format: 'f32-planar',
+      numberOfChannels: pcm.channels.length,
+      sampleRate: pcm.rate,
+      timestamp: -1024 / pcm.rate,
+    });
+    yield* Effect.promise(() => source.add(sample));
+    sample.close();
+    yield* Effect.promise(() => output.finalize());
+    return new Uint8Array(Option.getOrThrow(Option.fromNullishOr(target.buffer)));
+  });
+
+/** One channel of 16-bit samples as an AIFF file (big-endian, its rate an 80-bit float). */
+const aiff16 = (rate: number, samples: Int16Array) => {
+  const bytes = new Uint8Array(54 + samples.length * 2);
+  const view = new DataView(bytes.buffer);
+  const tag = (at: number, id: string) => bytes.set(new TextEncoder().encode(id), at);
+  tag(0, 'FORM');
+  view.setUint32(4, bytes.length - 8);
+  tag(8, 'AIFF');
+  tag(12, 'COMM');
+  view.setUint32(16, 18);
+  view.setUint16(20, 1);
+  view.setUint32(22, samples.length);
+  view.setUint16(26, 16);
+  // The rate as an extended float: exponent, then a 64-bit mantissa with its top bit set.
+  const exponent = Math.floor(Math.log2(rate));
+  view.setUint16(28, 16383 + exponent);
+  view.setUint32(30, rate * 2 ** (31 - exponent));
+  tag(38, 'SSND');
+  view.setUint32(42, 8 + samples.length * 2);
+  for (const [i, s] of samples.entries()) view.setInt16(54 + i * 2, s);
+  return bytes;
+};
+
 /** A directory that is gone once the scope closes. */
 const tempDir = Effect.gen(function* () {
   return yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
@@ -112,22 +194,73 @@ describe('Media', () => {
     }),
   );
 
-  it.effect.layer(MediaOnDisk)(
-    'any recording loads through ffmpeg as one channel at the rate asked for',
+  it.effect.layer(MediaWithoutFfmpeg)(
+    'a recording at 48 kHz loads as one channel at the rate asked for, its top octave filtered, not folded down',
     () =>
-      Effect.scoped(
-        Effect.gen(function* () {
-          const media = yield* Media;
-          const dir = yield* tempDir;
-          const stereo = { ...second(), rate: 48000, frames: 48000 };
-          yield* media.writeWav(`${dir}/in.wav`, stereo);
-          const loaded = yield* media.load(`${dir}/in.wav`, 44100);
-          expect([loaded.rate, loaded.channels.length]).toEqual([44100, 1]);
-          expect(Math.abs(loaded.frames - 44100)).toBeLessThanOrEqual(2);
-          const missing = yield* Effect.flip(media.load(`${dir}/nowhere.m4a`, 44100));
-          expect([missing._tag, missing.op]).toEqual(['MediaFailed', 'decode']);
-        }),
-      ),
+      Effect.gen(function* () {
+        const media = yield* Media;
+        const tone = (hz: number) =>
+          Float32Array.from(
+            { length: 48000 },
+            (_, i) => Math.sin((2 * Math.PI * hz * i) / 48000) * 0.5,
+          );
+        yield* media.writeWav('/voice.wav', {
+          rate: 48000,
+          frames: 48000,
+          channels: [tone(1000), tone(1000)],
+        });
+        const voice = yield* media.load('/voice.wav', 44100);
+        expect([voice.rate, voice.channels.length]).toEqual([44100, 1]);
+        expect(Math.abs(voice.frames - 44100)).toBeLessThanOrEqual(2);
+        // Two equal sides meet at libswresample's −3 dB each (ffmpeg's `-ac 1`).
+        expect(rms(voice)).toBeCloseTo(0.5, 2);
+        // 23.5 kHz is past 44.1 kHz's limit: filtered down (to under a tenth), not folded to
+        // 20.6 kHz at nearly half its level as a linear resampler would.
+        yield* media.writeWav('/high.wav', { rate: 48000, frames: 48000, channels: [tone(23500)] });
+        expect(rms(yield* media.load('/high.wav', 44100))).toBeLessThan(0.035);
+        const missing = yield* Effect.flip(media.load('/nowhere.m4a', 44100));
+        expect([missing._tag, missing.op]).toEqual(['MediaFailed', 'read']);
+      }),
+  );
+
+  it.effect.layer(MediaWithoutFfmpeg)(
+    "an M4A (AAC) loads from its first frame: the encoder's priming is not in it",
+    () =>
+      Effect.gen(function* () {
+        const media = yield* Media;
+        // One click a quarter second into a second of silence at 48 kHz.
+        const plane = new Float32Array(48000);
+        plane[12000] = 0.9;
+        yield* (yield* FileSystem.FileSystem).writeFile(
+          '/click.m4a',
+          yield* m4a({ rate: 48000, frames: 48000, channels: [plane] }),
+        );
+        const samples = (yield* media.load('/click.m4a', 44100)).channels[0] ?? new Float32Array();
+        const peak = Math.max(...samples.map(Math.abs));
+        const loudest = samples.findIndex((s) => Math.abs(s) === peak);
+        // Frame 11025 at 44.1 kHz; the priming left in would put it 941 frames late.
+        expect(Math.abs(loudest - 11025)).toBeLessThanOrEqual(3);
+      }),
+  );
+
+  it.effect.layer(MediaWithoutFfmpeg)('an AIFF loads sample for sample', () =>
+    Effect.gen(function* () {
+      const media = yield* Media;
+      const ints = Int16Array.from({ length: 5000 }, (_, i) => Math.round(Math.sin(i / 5) * 20000));
+      yield* (yield* FileSystem.FileSystem).writeFile('/take.aiff', aiff16(44100, ints));
+      const loaded = yield* media.load('/take.aiff', 44100);
+      expect([loaded.rate, loaded.frames, loaded.channels.length]).toEqual([44100, 5000, 1]);
+      expect([...(loaded.channels[0] ?? [])]).toEqual([...ints].map((s) => s / 32768));
+    }),
+  );
+
+  it.effect.layer(MediaWithoutFfmpeg)('an MP3 at the rate asked for loads as it decodes', () =>
+    Effect.gen(function* () {
+      const media = yield* Media;
+      const loaded = yield* media.load('/tone.mp3', 44100);
+      expect([loaded.rate, loaded.frames, loaded.channels.length]).toEqual([44100, 22050, 1]);
+      expect(loaded.channels[0]).toEqual((yield* media.decode('/tone.mp3')).channels[0]);
+    }),
   );
 
   it.effect.layer(MediaOnDisk)('doctor finds ffmpeg', () => ffmpegReady());
@@ -143,31 +276,28 @@ describe('Media', () => {
           Duration.seconds(30),
         );
         expect([done.exitCode, done.stderr]).toEqual([0, '']);
-        expect(done.stdout).toMatch(/^aac packets=\d+$/m);
+        expect(done.stdout).toMatch(/^aac packets=\d+\nflac bytes=\d+$/m);
       }),
     40_000,
   );
 
-  it.effect.layer(MediaOnDisk)(
+  it.effect.layer(MediaWithoutFfmpeg)(
     "a person's take is a 24-bit FLAC master: it decodes to its samples, and measures its length",
     () =>
-      Effect.scoped(
-        Effect.gen(function* () {
-          const media = yield* Media;
-          const dir = yield* tempDir;
-          const wave = Float32Array.from({ length: 30000 }, (_, i) => Math.sin(i / 9) * 0.3);
-          const bytes = yield* media.encodeFlac({ rate: 44100, frames: 30000, channels: [wave] });
-          expect(new TextDecoder().decode(bytes.subarray(0, 4))).toBe('fLaC');
-          yield* (yield* FileSystem.FileSystem).writeFile(`${dir}/take.flac`, bytes);
-          const back = yield* media.decode(`${dir}/take.flac`);
-          expect([back.rate, back.frames, back.channels.length]).toEqual([44100, 30000, 1]);
-          // 24 bits: every sample within two 24-bit steps (16 bits would be off by ~1.5e-5).
-          const plane = back.channels[0] ?? new Float32Array();
-          const worst = wave.reduce((m, s, i) => Math.max(m, Math.abs(s - (plane[i] ?? 0))), 0);
-          expect(worst).toBeLessThan(2 ** -22);
-          expect(yield* media.duration(`${dir}/take.flac`)).toBeCloseTo(30000 / 44100, 6);
-        }),
-      ),
+      Effect.gen(function* () {
+        const media = yield* Media;
+        const wave = Float32Array.from({ length: 30000 }, (_, i) => Math.sin(i / 9) * 0.3);
+        const bytes = yield* media.encodeFlac({ rate: 44100, frames: 30000, channels: [wave] });
+        expect(new TextDecoder().decode(bytes.subarray(0, 4))).toBe('fLaC');
+        yield* (yield* FileSystem.FileSystem).writeFile('/take.flac', bytes);
+        const back = yield* media.decode('/take.flac');
+        expect([back.rate, back.frames, back.channels.length]).toEqual([44100, 30000, 1]);
+        // 24 bits: every sample within two 24-bit steps (16 bits would be off by ~1.5e-5).
+        const plane = back.channels[0] ?? new Float32Array();
+        const worst = wave.reduce((m, s, i) => Math.max(m, Math.abs(s - (plane[i] ?? 0))), 0);
+        expect(worst).toBeLessThan(2 ** -22);
+        expect(yield* media.duration('/take.flac')).toBeCloseTo(30000 / 44100, 6);
+      }),
   );
 
   it.effect.layer(MediaOnDisk)(

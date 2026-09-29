@@ -56,7 +56,7 @@ import { quotesOf } from './script-sheet.ts';
 import { type Imported, Takes } from './takes.ts';
 
 /**
- * The file a recording is written to, by its media type (ffmpeg reads it by
+ * The file a recording is written to, by its media type (`Media.load` reads it by
  * name): lossless only, since the take made from it is the film's master.
  */
 const LOSSLESS = new Map([

@@ -130,15 +130,6 @@ export const toInt16 = (pcm: Pcm): Int16Array => {
   return out;
 };
 
-/** Interleaved 32-bit float samples, as they are: nothing rounded. */
-export const toInterleaved = (pcm: Pcm): Float32Array => {
-  const n = pcm.channels.length;
-  const out = new Float32Array(pcm.frames * n);
-  for (const [c, channel] of pcm.channels.entries())
-    for (let i = 0; i < pcm.frames; i++) out[i * n + c] = channel[i] ?? 0;
-  return out;
-};
-
 /** How loud a sound is, in dBFS: its mean power and its peak (what ffmpeg's volumedetect reports). */
 export interface Levels {
   readonly mean: number;

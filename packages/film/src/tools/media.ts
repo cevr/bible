@@ -18,16 +18,22 @@
 // at the same size it kept far less grain (q23: 444 MB, 33–67% of the
 // grain, against CRF 23 tune grain's 487 MB and 75–83%).
 //
-// A person's recording comes in whatever a recorder wrote (WAV, M4A, MP3, a
-// browser's WebM/Opus) at whatever rate its microphone ran: ffmpeg reads
-// every one of them and resamples, into a WAV in a scoped temporary
-// directory that mediabunny then decodes. A person's take is the film's final
-// voice, so it leaves lossless: a 24-bit FLAC master made by ffmpeg, which
-// decodes back in-process through libFLAC (WASM), sample for sample. Staging
-// takes stay the MP3s ElevenLabs sends.
+// A person's recording comes in whatever a recorder wrote (WAV, FLAC, AIFF,
+// M4A, MP3) at whatever rate its microphone ran, and loads in-process as
+// ffmpeg loaded it, sample for sample: mediabunny opens the container and
+// decodes PCM; MP3 goes through mpg123 as above; FLAC, AAC (and Opus,
+// Vorbis) through FFmpeg's own decoders in-process (@mediabunny/server,
+// NodeAV: Bun has no WebCodecs audio decoder), an AAC's priming dropped as
+// the MP4's edit list says; AIFF, which mediabunny has no
+// reader for, is plain PCM read here (`aiff.ts`). The mixdown to one channel
+// and the rate change are libswresample's, as ffmpeg's were (`resample.ts`).
+// A person's take is the film's final voice, so it leaves lossless: a 24-bit
+// FLAC master, libFLAC's (@mediabunny/flac-encoder, WASM), which decodes back
+// sample for sample. Staging takes stay the MP3s ElevenLabs sends.
 
 import { registerAacEncoder } from '@mediabunny/aac-encoder';
-import { FLACDecoder } from '@wasm-audio-decoders/flac';
+import { registerFlacEncoder } from '@mediabunny/flac-encoder';
+import { registerMediabunnyServer } from '@mediabunny/server';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Match, Option, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import {
@@ -43,6 +49,7 @@ import {
   EncodedVideoPacketSource,
   FilePathTarget,
   FLAC,
+  FlacOutputFormat,
   Input,
   type InputAudioTrack,
   MP3,
@@ -52,17 +59,16 @@ import {
   WavOutputFormat,
 } from 'mediabunny';
 import { MPEGDecoder } from 'mpg123-decoder';
-import { type Pcm, concat, toInt16, toInterleaved } from '../core/audio.ts';
+import { type Pcm, concat, toInt16 } from '../core/audio.ts';
+import { isAiff, readAiff } from './aiff.ts';
 import { MediaFailed } from './errors.ts';
 import { collect, isNotFound } from './process.ts';
-
-/** A recorded take's master: FLAC at this many bits a sample. */
-const TAKE_BITS = 24;
+import { resample } from './resample.ts';
 
 export interface MediaService {
   /**
-   * Any sound ffmpeg reads (WAV, M4A, MP3, WebM), mixed down to one channel
-   * and resampled to `rate`, as 32-bit float.
+   * A recording (WAV, FLAC, AIFF, M4A, MP3), mixed down to one channel and
+   * resampled to `rate`, as 32-bit float.
    */
   readonly load: (file: string, rate: number) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` as a 24-bit FLAC master: a person's take, lossless. */
@@ -72,7 +78,7 @@ export interface MediaService {
    * encoder padding trimmed), anything else by its container.
    */
   readonly duration: (file: string) => Effect.Effect<number, MediaFailed>;
-  /** `file`'s first audio track (MP3, FLAC, WAV) decoded to planar PCM at its own rate. */
+  /** `file`'s first audio track (MP3, FLAC, WAV, AIFF, M4A) decoded to planar PCM at its own rate, from its first frame. */
   readonly decode: (file: string) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` written to `file` as a 16-bit WAV. */
   readonly writeWav: (file: string, pcm: Pcm) => Effect.Effect<void, MediaFailed>;
@@ -161,13 +167,14 @@ const AAC_PRIMING = 1024;
 
 /**
  * A file read and opened: its bytes, mediabunny's view of them, and what
- * decodes it: mpg123 an MP3, libFLAC a FLAC, mediabunny anything else.
+ * decodes it: mpg123 an MP3, `aiff.ts` an AIFF, mediabunny anything else (a
+ * FLAC through FFmpeg's decoder, measured as decoded).
  */
 interface Opened {
   readonly file: string;
   readonly bytes: Uint8Array;
   readonly input: Input;
-  readonly codec: 'mp3' | 'flac' | 'other';
+  readonly codec: 'mp3' | 'flac' | 'aiff' | 'other';
 }
 
 /** A promise from mediabunny or mpg123, failing as `op` on `file`. */
@@ -229,46 +236,29 @@ const decodeMp3 = (opened: Opened, track: InputAudioTrack) =>
   );
 
 /**
- * A FLAC (a person's take), decoded whole by libFLAC: Bun has no WebCodecs
- * audio decoder for mediabunny to use.
+ * One block of samples as planar PCM, less any frames before zero (an AAC
+ * encoder's priming, which the MP4's edit list skips, as ffmpeg skips it);
+ * the block is closed once copied.
  */
-const decodeFlac = (opened: Opened) =>
-  Effect.acquireUseRelease(
-    Effect.sync(() => new FLACDecoder()),
-    (decoder) =>
-      Effect.gen(function* () {
-        yield* attempt('decode', opened.file, () => decoder.ready);
-        const out = yield* attempt('decode', opened.file, () => decoder.decodeFile(opened.bytes));
-        const broken = Arr.head(out.errors);
-        if (Option.isSome(broken))
-          return yield* MediaFailed.make({
-            op: 'decode',
-            file: opened.file,
-            reason: broken.value.message,
-          });
-        const pcm: Pcm = {
-          rate: out.sampleRate,
-          frames: out.samplesDecoded,
-          channels: out.channelData.map((channel) => channel.subarray(0, out.samplesDecoded)),
-        };
-        return pcm;
-      }),
-    (decoder) => Effect.sync(() => decoder.free()),
-  );
-
-/** One block of samples as planar PCM; the block is closed once copied. */
 const planar = (file: string, track: InputAudioTrack, sample: AudioSample) =>
-  attemptSync('decode', file, (): Pcm => ({
-    rate: sample.sampleRate,
-    frames: sample.numberOfFrames,
-    channels: Array.from({ length: track.numberOfChannels }, (_, planeIndex) => {
-      const plane = new Float32Array(sample.numberOfFrames);
-      sample.copyTo(plane, { planeIndex, format: 'f32-planar' });
-      return plane;
-    }),
-  })).pipe(Effect.ensuring(Effect.sync(() => sample.close())));
+  attemptSync('decode', file, (): Pcm => {
+    const early = Math.round(-sample.timestamp * sample.sampleRate);
+    const skip = Math.min(sample.numberOfFrames, Math.max(0, early));
+    return {
+      rate: sample.sampleRate,
+      frames: sample.numberOfFrames - skip,
+      channels: Array.from({ length: track.numberOfChannels }, (_, planeIndex) => {
+        const plane = new Float32Array(sample.numberOfFrames);
+        sample.copyTo(plane, { planeIndex, format: 'f32-planar' });
+        return plane.subarray(skip);
+      }),
+    };
+  }).pipe(Effect.ensuring(Effect.sync(() => sample.close())));
 
-/** Any other sound mediabunny decodes itself (PCM in a WAV), block by block. */
+/**
+ * Any other sound, block by block: PCM (a WAV) mediabunny decodes itself;
+ * AAC, Opus and Vorbis go through @mediabunny/server's FFmpeg decoders.
+ */
 const decodeSamples = (opened: Opened, track: InputAudioTrack) =>
   Stream.fromAsyncIterable(new AudioSampleSink(track).samples(), (cause) =>
     MediaFailed.make({ op: 'decode', file: opened.file, reason: String(cause) }),
@@ -286,7 +276,10 @@ const decodeSamples = (opened: Opened, track: InputAudioTrack) =>
 
 const decodeOpened = (opened: Opened) =>
   Effect.gen(function* () {
-    if (opened.codec === 'flac') return yield* decodeFlac(opened);
+    if (opened.codec === 'aiff')
+      return yield* Effect.mapError(Effect.fromResult(readAiff(opened.bytes)), (reason) =>
+        MediaFailed.make({ op: 'decode', file: opened.file, reason }),
+      );
     const track = yield* audioTrack(opened);
     if (opened.codec === 'mp3') return yield* decodeMp3(opened, track);
     return yield* decodeSamples(opened, track);
@@ -445,6 +438,8 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
 
 /** The name a track's encode fails under: it has no file of its own. */
 const TRACK = 'the track';
+/** The name a take's master encodes under, as `takes.ts` names the file it keeps. */
+const TAKE = 'take.flac';
 
 /**
  * `pcm` through the AAC encoder into a muxer that keeps nothing, its packets
@@ -515,7 +510,7 @@ const runFfmpeg = (
     }),
   );
 
-/** Whether ffmpeg runs, for `film doctor`: a person's takes load and encode through it. */
+/** Whether ffmpeg runs, for `film doctor`: a software render's share copy is x264's, through it. */
 export const ffmpegReady = Effect.fn('Media.ffmpegReady')(function* () {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   yield* runFfmpeg(spawner, 'decode', 'ffmpeg', ['-version']);
@@ -531,7 +526,15 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       // It encodes in a worker thread, which listens on `worker_threads` under
       // Bun since mediabunny 1.61.0 (before, on `self`, where no message ever
       // arrived, and it hung).
-      yield* Effect.sync(registerAacEncoder);
+      // So is libFLAC's, for a take's master, in its own worker the same way.
+      // mediabunny takes the first coder registered that can: these two come
+      // before @mediabunny/server's FFmpeg ones, which are here for the
+      // decoders Bun lacks (AAC, Opus, Vorbis) and would otherwise encode too.
+      yield* Effect.sync(() => {
+        registerAacEncoder();
+        registerFlacEncoder();
+        registerMediabunnyServer();
+      });
 
       /** `file` read and open until the scope closes. */
       const open = (file: string) =>
@@ -547,14 +550,23 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
             Effect.sync(() => new Input({ source: new BufferSource(bytes), formats: ALL_FORMATS })),
             (opened) => Effect.sync(() => opened.dispose()),
           );
+          // mediabunny has no AIFF reader: one is read by `aiff.ts`, the Input left unread.
+          if (isAiff(bytes)) {
+            const aiff: Opened = { file, bytes, input, codec: 'aiff' };
+            return aiff;
+          }
           const format = yield* attempt('read', file, () => input.getFormat());
           // By identity: mediabunny's formats are singletons (a Match pattern would compare fields).
-          const codec = Option.getOrElse(
-            Option.orElse(
-              Option.some<Opened['codec']>('mp3').pipe(Option.filter(() => format === MP3)),
-              () => Option.some<Opened['codec']>('flac').pipe(Option.filter(() => format === FLAC)),
+          const codec = Match.value(format).pipe(
+            Match.when(
+              (f) => f === MP3,
+              (): Opened['codec'] => 'mp3',
             ),
-            (): Opened['codec'] => 'other',
+            Match.when(
+              (f) => f === FLAC,
+              (): Opened['codec'] => 'flac',
+            ),
+            Match.orElse((): Opened['codec'] => 'other'),
           );
           const opened: Opened = { file, bytes, input, codec };
           return opened;
@@ -576,21 +588,12 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         return yield* Effect.scoped(Effect.flatMap(open(file), decodeOpened));
       });
 
-      /** `pcm` as a WAV at `file`: 16-bit, or 32-bit float for a take on its way to FLAC. */
-      const writeWavAs = Effect.fn('Media.writeWavAs')(function* (
-        file: string,
-        pcm: Pcm,
-        depth: 's16' | 'f32',
-      ) {
+      const writeWav = Effect.fn('Media.writeWav')(function* (file: string, pcm: Pcm) {
         const channels = pcm.channels.length;
-        const samples = Match.value(depth).pipe(
-          Match.when('s16', () => toInt16(pcm)),
-          Match.when('f32', () => toInterleaved(pcm)),
-          Match.exhaustive,
-        );
+        const samples = toInt16(pcm);
         const target = new BufferTarget();
         const output = new Output({ format: new WavOutputFormat(), target });
-        const source = new AudioSampleSource({ codec: `pcm-${depth}` });
+        const source = new AudioSampleSource({ codec: 'pcm-s16' });
         output.addAudioTrack(source);
         const block = (at: number) =>
           Effect.acquireUseRelease(
@@ -603,7 +606,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
                     at * channels,
                     Math.min(pcm.frames, at + WRITE_BLOCK) * channels,
                   ),
-                  format: depth,
+                  format: 's16',
                   numberOfChannels: channels,
                   sampleRate: pcm.rate,
                   timestamp: at / pcm.rate,
@@ -631,8 +634,6 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
           );
       });
 
-      const writeWav = (file: string, pcm: Pcm) => writeWavAs(file, pcm, 's16');
-
       const join = Effect.fn('Media.join')(function* (film: JoinedFilm) {
         yield* joinInto(fs, film);
       });
@@ -641,70 +642,54 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         return yield* encodeTrack(pcm);
       });
 
-      const ffmpeg = (op: MediaFailed['op'], file: string, args: ReadonlyArray<string>) =>
-        runFfmpeg(spawner, op, file, args);
-
-      /** A temporary directory, gone when the scope closes. */
-      const scratch = (op: MediaFailed['op'], file: string) =>
-        fs
-          .makeTempDirectoryScoped({ prefix: 'film-media-' })
-          .pipe(Effect.mapError((error) => MediaFailed.make({ op, file, reason: error.message })));
-
       const load = Effect.fn('Media.load')(function* (file: string, rate: number) {
-        return yield* Effect.scoped(
-          Effect.gen(function* () {
-            const wav = `${yield* scratch('decode', file)}/load.wav`;
-            yield* ffmpeg('decode', file, [
-              '-i',
-              file,
-              '-vn',
-              '-ac',
-              '1',
-              '-ar',
-              String(rate),
-              '-c:a',
-              'pcm_f32le',
-              wav,
-            ]);
-            return yield* decode(wav);
-          }),
-        );
+        const recording = yield* decode(file);
+        // One channel at the rate already: nothing to convert, as ffmpeg converted nothing.
+        if (recording.channels.length === 1 && recording.rate === rate) return recording;
+        return yield* resample(file, recording, rate, 1);
       });
 
       const encodeFlac = Effect.fn('Media.encodeFlac')(function* (pcm: Pcm) {
-        return yield* Effect.scoped(
-          Effect.gen(function* () {
-            const dir = yield* scratch('encode', 'take.flac');
-            // Float in, 24 bits out: the one quantisation, 144 dB down, needs no dither.
-            yield* writeWavAs(`${dir}/take.wav`, pcm, 'f32');
-            yield* ffmpeg('encode', 'take.flac', [
-              '-i',
-              `${dir}/take.wav`,
-              '-c:a',
-              'flac',
-              '-sample_fmt',
-              's32',
-              '-bits_per_raw_sample',
-              String(TAKE_BITS),
-              '-compression_level',
-              '8',
-              `${dir}/take.flac`,
-            ]);
-            return yield* fs
-              .readFile(`${dir}/take.flac`)
-              .pipe(
-                Effect.mapError((error) =>
-                  MediaFailed.make({ op: 'encode', file: 'take.flac', reason: error.message }),
-                ),
-              );
-          }),
+        const target = new BufferTarget();
+        const output = new Output({ format: new FlacOutputFormat(), target });
+        // Float in, 24 bits out (libFLAC's depth for float samples): the one
+        // quantisation, 144 dB down, needs no dither.
+        const source = new AudioSampleSource({ codec: 'flac' });
+        output.addAudioTrack(source);
+        yield* Effect.gen(function* () {
+          yield* attempt('encode', TAKE, () => output.start());
+          for (let written = 0; written < pcm.frames; written += WRITE_BLOCK) {
+            const frames = Math.min(WRITE_BLOCK, pcm.frames - written);
+            yield* Effect.acquireUseRelease(
+              attemptSync('encode', TAKE, () => block(pcm, written, frames, written / pcm.rate)),
+              (sample) => attempt('encode', TAKE, () => source.add(sample)),
+              (sample) => Effect.sync(() => sample.close()),
+            );
+          }
+          yield* attempt('encode', TAKE, () => output.finalize());
+        }).pipe(
+          Effect.onError(() => Effect.ignore(attempt('encode', TAKE, () => output.cancel()))),
         );
+        return yield* Option.match(Option.fromNullishOr(target.buffer), {
+          onNone: () =>
+            Effect.fail(
+              MediaFailed.make({ op: 'encode', file: TAKE, reason: 'nothing was written' }),
+            ),
+          onSome: (buffer) => Effect.succeed(new Uint8Array(buffer)),
+        });
       });
 
       const shareCopy = Effect.fn('Media.shareCopy')(function* (master: string, out: string) {
         // Beside `out` until whole, so a failed or cut-off encode leaves no share behind.
         const part = `${out}.part`;
-        yield* ffmpeg('encode', out, ['-i', master, ...SHARE_X264, '-f', 'mp4', part]).pipe(
+        yield* runFfmpeg(spawner, 'encode', out, [
+          '-i',
+          master,
+          ...SHARE_X264,
+          '-f',
+          'mp4',
+          part,
+        ]).pipe(
           Effect.andThen(fs.rename(part, out)),
           Effect.mapError((error) =>
             Match.value(error).pipe(

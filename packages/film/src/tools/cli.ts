@@ -235,7 +235,11 @@ const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
         { tool: 'chromium', needed: 'render, check', run: Effect.as(browserReady, '') },
         { tool: 'encoder', needed: 'render', run: encoderCheck },
         { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
-        { tool: 'ffmpeg', needed: 'takes import, the studio', run: Effect.as(ffmpegReady(), '') },
+        {
+          tool: 'ffmpeg',
+          needed: 'the share copy of a software render',
+          run: Effect.as(ffmpegReady(), ''),
+        },
       ];
       const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
         concurrency: checks.length,
@@ -247,7 +251,7 @@ const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
     }),
   ).pipe(
     Command.withDescription(
-      'Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg',
+      "Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg (x264 for a software render's share copy)",
     ),
   );
 };
