@@ -15,7 +15,7 @@ Work rules:
 - Reductions use the deletion test: delete, and let typecheck and tests name the consumers. Caller greps cover apps/animations/ and packages/film/.
 - Pixels: a change that claims no visual change proves it. Before editing, render stills at the marks the change touches (`bun run render <film> --stills <t,…> --tag p<N>-before`, times from `bun run cues <film>`); after, the same with `--tag p<N>-after`; `cmp` each pair. A difference is either the intended change (read both images and say so) or a defect. Trash the still folders when done.
 - Timing: a change that claims no timing change diffs `bun run cues <film>` before and after.
-- Performance: a speed claim has a before/after from the bench (median of several runs, same machine). No cache that carries state between frames.
+- Performance: a speed claim has a measured before/after (median of several runs, same machine). No cache that carries state between frames.
 - Draw path (packages/film/src/canvas, the kit and scenes): plain synchronous code in the pmndrs math style (out-params, no per-point allocation); use `math` where it has the helper. Tooling: Effect, Scope, Schema, typed errors.
 - A lint guardrail is a rule in the repo's `film` oxlint plugin (`packages/film/lint/`), written with the builder from `oxlint-plugin-effect/rule-bindings` (examples: `node_modules/oxlint-plugin-effect/dist/rules/`), scoped with an `overrides` entry in `.oxlintrc.json`, with a test that is red on a fixture. A rule true of any Effect code is reported for the orchestrator as an upstream effect-oxlint candidate instead.
 - No paid API calls (narrate, score, effects). Committed takes and score keep their hashes.

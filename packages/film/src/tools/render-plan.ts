@@ -222,8 +222,8 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
 export const DRAW_WORKERS = 6;
 
 /**
- * Pages a render on the hardware encoder runs by default. `film bench
- * --workers` over frames 0–3600 with the share copy, on the M-series Mac: 4
+ * Pages a render on the hardware encoder runs by default. Renders of frames
+ * 0–3600 with the share copy, timed at each page count on the M-series Mac: 4
  * pages 69 fps, 5 79, 6 81, 7 81. Six is the knee, and its 12 encoders stay
  * under `MAX_HARDWARE_ENCODERS`.
  */
@@ -238,10 +238,10 @@ export const MAX_HARDWARE_ENCODERS = 14;
 
 /**
  * Pages a render on the software encoder runs by default, measured on the
- * Linux Workbox (16 cores, no GPU encoder) with `film bench
- * righteousness-by-faith --workers 4,6,8,10 --scene word,mirror --no-share`
- * (the software share is x264's, after the join): 4 pages 62 fps, 6 84, 8
- * 98, 10 104. Eight is the knee; the sweep is in packages/film/README.md.
+ * Linux Workbox (16 cores, no GPU encoder) by timing renders of two scenes
+ * at 4, 6, 8 and 10 pages without the share copy (the software share is
+ * x264's, after the join): 4 pages 62 fps, 6 84, 8 98, 10 104. Eight is the
+ * knee.
  */
 export const SOFTWARE_WORKERS = 8;
 

@@ -139,7 +139,7 @@ describe('Renderer', () => {
   it.live('a video makes nothing under out/<film>, tagged or not, and keeps what is there', () =>
     Effect.gen(function* () {
       const bare = setup();
-      yield* bare.render({ ...video, tag: 'bench', share: true });
+      yield* bare.render({ ...video, tag: 'trial', share: true });
       const under = (p: string) => p === '/out/test' || p.startsWith('/out/test/');
       expect([...bare.folders, ...bare.files.keys()].filter(under)).toEqual([]);
       // Its own segments folder goes too, once joined.

@@ -16,7 +16,6 @@
     "render": "bun cli.ts render",
     "lookbook": "bun cli.ts lookbook",
     "chapters": "bun cli.ts chapters",
-    "bench": "bun cli.ts bench",
     "lab": "bun cli.ts lab",
     "notes": "bun cli.ts notes",
     "typecheck": "tsc --noEmit",

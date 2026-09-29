@@ -17,7 +17,7 @@ import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
 import { labUrl } from './pages.ts';
 import { tInUrl } from './t-in-url.ts';
-import { hashFrames, lookFrames, timeFrames } from './timing.ts';
+import { lookFrames } from './look-frames.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -70,10 +70,6 @@ export interface ExportHandle {
   ): Promise<{ readonly master: string; readonly share?: string }>;
   /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
   contact(frames: ReadonlyArray<number>): Promise<string>;
-  /** Milliseconds each of `frames` takes to draw, raster included (`timeFrames`). */
-  time(frames: ReadonlyArray<number>): ReadonlyArray<number>;
-  /** A hash of each of `frames`' pixels (`hashFrames`). */
-  hash(frames: ReadonlyArray<number>): ReadonlyArray<string>;
   /**
    * `frames` drawn without captions, each shrunk to a `w` × `h` RGBA thumb
    * (end to end, base64), and the faces and hands each declared (`lookFrames`).
@@ -243,8 +239,6 @@ export const mountPlayer = (films: Films): void => {
             : { master, share: bytesBase64(chunk.share) };
         },
         contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
-        time: (frames) => timeFrames(draw, ctx, frames),
-        hash: (frames) => hashFrames(draw, ctx, frames),
         look: (frames, w, h) => {
           const drawn = lookFrames(
             (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),

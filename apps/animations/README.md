@@ -29,9 +29,6 @@ bun run render <film> --scene id[,id] ...      # a video or contact sheet over t
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
-bun run bench <film> [--hash] [--baseline | --budget]  # ms of draw per frame per scene: out/<film>/bench.json
-bun run bench <film> --workers 4,6,7 --scene id,id     # render fps per page count: out/<film>/bench.workers.json
-bun run bench <film> --workers 6 --short <id>          # the same, rendering a short
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
@@ -76,27 +73,6 @@ so a scene that reads a mark, cue or knob its film no longer has, or draws
 what a real canvas refuses (a negative arc radius), fails the gate, not the
 next render.
 
-Bench flags: `--every n` (time every nth frame, default 10), `--runs n`
-(default 3; each frame's median counts), `--scene id,id`, `--hash` (hash every
-30th frame's pixels), `--baseline` (keep the run as
-`out/<film>/bench.baseline.json`), `--budget` (fail with `BenchOverBudget` when
-a scene's median or the film's summed draw is more than 10% over the baseline,
-or with `PixelsMoved` when a hashed frame differs; a scene under 2 ms never
-fails), `--no-captions` (as `render --no-captions`; captions are drawn by
-default, as a render burns them in). The bench times each frame in one headless
-export page, the render's page with the same captions choice, with the raster
-flushed; a run always compares with a baseline on disk and logs what it finds,
-and only `--budget` fails. A baseline is per machine and per captions setting:
-against one taken on another machine or with the other setting, a run warns and
-compares nothing, and `--budget` fails with `BaselineIncomparable`. A `--hash`
-run against a baseline kept without `--hash` fails with `BaselineUnhashed`
-rather than reporting no pixels moved; a `--budget` run without `--hash` warns
-that it compared no pixels. The budget is opt-in, never in the gate. `--workers n,n` instead renders the range (`--scene`, or
-`--from/--to`) at each page count `--runs` times, as `render` would (share copy
-on unless `--no-share`), and reports the median fps. A flag the chosen leg
-would ignore (`--hash` with `--workers`, `--from` without it) fails with
-`FlagsConflict`.
-
 Render flags that would be ignored fail with `FlagsConflict` before a browser
 opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 `--scale`, `--out`, `--no-share`; `--contact` takes a range (clipped to the
@@ -106,7 +82,7 @@ page composes the sheet);
 `--scene` goes with neither `--from` nor `--to`.
 
 Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
-(pages; the knee of `bench --workers` on each encoder: 6 on the Mac's
+(pages; the measured knee on each encoder: 6 on the Mac's
 hardware encoder, 8 in software, or half the cores on a software machine with
 fewer than 16), `--scale 0.5`, `--no-captions`, `--tag name` (output
 subfolder, so parallel renders don't collide), `--out file`, `--no-share`
@@ -129,7 +105,7 @@ copy, 14 without; software: one page a core). The count is per render: on the
 Mac two renders at once (say two `--tag`s) share the hardware, so keep their
 pages together within the same 14 or they can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/` on the hardware encoder)
 until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
-(so `bench --workers` leaves only its report, and two renders at once never share segments); a failed join leaves them. A video's audio
+(so two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
 whole film to within a frame before a frame is drawn (`AudioMissing` or

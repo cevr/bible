@@ -72,14 +72,6 @@ export interface FramePage {
   readonly contact: (
     frames: ReadonlyArray<number>,
   ) => Effect.Effect<Uint8Array, PageError | PageCrashed | ContactFailed>;
-  /** Draw `frames` and return how many milliseconds each took, raster included. */
-  readonly time: (
-    frames: ReadonlyArray<number>,
-  ) => Effect.Effect<ReadonlyArray<number>, PageError | PageCrashed | FrameFailed>;
-  /** Draw `frames` and return a hash of each one's pixels. */
-  readonly hash: (
-    frames: ReadonlyArray<number>,
-  ) => Effect.Effect<ReadonlyArray<string>, PageError | PageCrashed | FrameFailed>;
   /** Draw frame `i` and return the luma (0–255) of `area`, sampled down, row by row. */
   readonly luma: (
     i: number,
@@ -421,22 +413,6 @@ const openPage = (page: Page, url: string) =>
     const batchFailed = (frames: ReadonlyArray<number>) => (reason: string) =>
       FrameFailed.make({ frame: frames[0] ?? 0, reason });
 
-    const time = (frames: ReadonlyArray<number>) =>
-      handle(
-        () => page.evaluate((all) => window.__film?.time(all), [...frames]),
-        Schema.Array(Schema.Finite),
-        SHEET_TIMEOUT,
-        batchFailed(frames),
-      );
-
-    const hash = (frames: ReadonlyArray<number>) =>
-      handle(
-        () => page.evaluate((all) => window.__film?.hash(all), [...frames]),
-        Schema.Array(Schema.String),
-        SHEET_TIMEOUT,
-        batchFailed(frames),
-      );
-
     const look = (frames: ReadonlyArray<number>, w: number, h: number) =>
       handle(
         () =>
@@ -467,8 +443,6 @@ const openPage = (page: Page, url: string) =>
       encoder,
       encode,
       contact,
-      time,
-      hash,
       look,
       luma,
     } satisfies FramePage;

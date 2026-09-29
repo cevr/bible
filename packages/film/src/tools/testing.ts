@@ -481,10 +481,6 @@ export interface FakeRenderHost {
   readonly aac?: Effect.Effect<void, MediaFailed>;
   /** What a join does once it is recorded (nothing by default). */
   readonly join?: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
-  /** How many milliseconds frame `i` takes to draw, as `time` reports it (default 10). */
-  readonly drawMs?: (i: number) => number;
-  /** The pixel hash `hash` reports for frame `i` (default `px<i>`). */
-  readonly pixels?: (i: number) => string;
   /**
    * Frame `i` as the look pass sees it: the grey its `w` × `h` thumb is filled
    * with, and the faces it declares (default mid grey, no faces).
@@ -524,8 +520,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
       ),
     );
-  const drawMs = Option.getOrElse(Option.fromNullishOr(host.drawMs), () => () => 10);
-  const pixels = Option.getOrElse(Option.fromNullishOr(host.pixels), () => (i: number) => `px${i}`);
   const looked = Option.getOrElse(Option.fromNullishOr(host.looked), () => (): FakeLook => ({
     grey: 128,
     faces: [],
@@ -635,10 +629,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                       ledger.contacts.push(frames);
                       return new Uint8Array([0xff, 0xd8]);
                     }),
-                  time: (frames: ReadonlyArray<number>) =>
-                    Effect.forEach(frames, (i) => Effect.as(frame(i), drawMs(i))),
-                  hash: (frames: ReadonlyArray<number>) =>
-                    Effect.forEach(frames, (i) => Effect.as(frame(i), pixels(i))),
                   look: (frames: ReadonlyArray<number>, w: number, h: number) =>
                     Effect.forEach(frames, (i) => Effect.as(frame(i), looked(i))).pipe(
                       Effect.map((drawn) => {

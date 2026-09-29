@@ -45,15 +45,15 @@ Reports: `<scratchpad>/film-pass<N>/<area>.md`
 
 Guardrails added:
 
-| Defect class | Check (`film/` lint rule / type / film check / bench budget) | Red on | Hash |
-| ------------ | ------------------------------------------------------------ | ------ | ---- |
+| Defect class | Check (`film/` lint rule / type / film check) | Red on | Hash |
+| ------------ | --------------------------------------------- | ------ | ---- |
 
 Counsel defects:
 
 | ID  | Defect | Red test | Status |
 | --- | ------ | -------- | ------ |
 
-Live check: `<stills cmp, cues diff, mix stems, lab drive, bench: what was compared and the result>`
+Live check: `<stills cmp, cues diff, mix stems, lab drive: what was compared and the result>`
 
 ## Close
 

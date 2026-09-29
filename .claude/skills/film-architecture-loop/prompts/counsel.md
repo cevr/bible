@@ -14,7 +14,7 @@ Real defects only, each with file:line and a concrete failure (input → wrong o
 - a type that got wider, so a wrong film compiles;
 - a guardrail that passes for the wrong reason, or a test that does;
 - a lab write-back that can land in the wrong file or leave the source unformatted;
-- a speed claim the bench does not reproduce;
+- a speed claim its own measurement does not reproduce;
 - a north star a commit quietly broke.
 
 <One numbered question per risky commit, naming the invariant that could break.>

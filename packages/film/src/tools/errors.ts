@@ -366,59 +366,6 @@ export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownSho
   }
 }
 
-/** `film bench --budget` with no baseline to hold the run against. */
-export class BaselineMissing extends Schema.TaggedError<BaselineMissing>()('BaselineMissing', {
-  file: Schema.String,
-}) {
-  override get message() {
-    return `no bench baseline at ${this.file}; run bench --baseline first`;
-  }
-}
-
-/** A bench run that cannot be held against its baseline: another machine, or the other captions setting. */
-export class BaselineIncomparable extends Schema.TaggedError<BaselineIncomparable>()(
-  'BaselineIncomparable',
-  { file: Schema.String, reason: Schema.String },
-) {
-  override get message() {
-    return `the bench baseline at ${this.file} does not compare with this run: ${this.reason}; run bench --baseline on this setup first`;
-  }
-}
-
-/** A `--hash` bench run against a baseline that kept no hashes: its pixels would pass unchecked. */
-export class BaselineUnhashed extends Schema.TaggedError<BaselineUnhashed>()('BaselineUnhashed', {
-  file: Schema.String,
-}) {
-  override get message() {
-    return `the bench baseline at ${this.file} has no pixel hashes to compare; run bench --hash --baseline first`;
-  }
-}
-
-/** A bench run more than the budget slower than its baseline, on the same machine. */
-export class BenchOverBudget extends Schema.TaggedError<BenchOverBudget>()('BenchOverBudget', {
-  /** Each measure over: a scene's median ms, or the film's summed draw seconds. */
-  slower: Schema.Array(
-    Schema.Struct({ what: Schema.String, now: Schema.Finite, before: Schema.Finite }),
-  ),
-}) {
-  override get message() {
-    const lines = this.slower.map(
-      (s) =>
-        `${s.what} ${s.now.toFixed(1)} against ${s.before.toFixed(1)} (+${((s.now / s.before - 1) * 100).toFixed(0)}%)`,
-    );
-    return `slower than the baseline by more than the budget: ${lines.join('; ')}`;
-  }
-}
-
-/** A bench run whose frames' pixels differ from the baseline's. */
-export class PixelsMoved extends Schema.TaggedError<PixelsMoved>()('PixelsMoved', {
-  frames: Schema.Array(Schema.Int),
-}) {
-  override get message() {
-    return `${this.frames.length} hashed frames differ from the baseline: ${this.frames.join(', ')}`;
-  }
-}
-
 /**
  * A video render that would open more encoders than its encoder allows at
  * once (tools/render-plan.ts, `encoderLimits`): past 14 the hardware encoder

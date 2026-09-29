@@ -305,10 +305,10 @@ to join (x264's parameter sets must then match across segments) and a render
 that no longer measures alone. Decided by subtract-before-you-add: the one
 pass stays.
 
-The software default of 8 pages is the knee of
-`bench righteousness-by-faith --workers 4,6,8,10 --scene word,mirror
---no-share` (1325 frames, 16 cores, the median of 3 runs; the share is
-x264's after the join, so the pages carry one encoder each):
+The software default of 8 pages is the knee of renders of two scenes of
+`righteousness-by-faith` without the share copy, timed at each page count
+(1325 frames, 16 cores, the median of 3 runs; the share is x264's after the
+join, so the pages carry one encoder each):
 
 | pages | 4    | 6    | 8    | 10    |
 | ----- | ---- | ---- | ---- | ----- |
@@ -416,8 +416,7 @@ declares, read from the page's `info.fps`, as the renderer does), so
 `check --short`, `cues --short` and the render cut the same frames.
 `--static` runs only what the words tell (length, first word, the loop's
 silence), probing no frames: it opens the page once, for its rate.
-`film cues --short` prints `shortReport` at that rate; `film bench --workers n --short <id>` times the same
-render. A short draws at about parity with the film per frame (~0.92× of the
+`film cues --short` prints `shortReport` at that rate. A short draws at about parity with the film per frame (~0.92× of the
 same frames as a 16:9 render, measured against one contiguous range): the
 9:16 page costs nothing extra, and saves nothing either.
 
@@ -861,7 +860,7 @@ plate itself: a storyboard scene's card (`canvas/storyboard.ts`), so its id and
 brief are checked against the card (`TextOffPlate`) and against each other
 (`TextOverlap`). The films declare the rest (righteousness-by-faith: heaven's
 banner, the court and cold labels, the thesis, message and word boards, the
-declared card; v1: the cite tab and the justified strip).
+declared card).
 With no probe attached a draw costs one WeakMap lookup, and a probed frame
 is pixel for pixel the same (it only reads the transform, `measureText` and
 the path it was going to draw). The export handle exposes it as `probe(i)`.
