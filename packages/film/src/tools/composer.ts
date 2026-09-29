@@ -6,6 +6,7 @@
 
 import { Context, Duration, Effect, FileSystem, Layer, Option, Path, Record as Rec } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { SFX_MODEL } from '../core/sfx.ts';
 import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import type { Asset, SoundManifest } from '../core/schema.ts';
 import { ContentStore, type StoreError, isStale } from './content-store.ts';
@@ -141,7 +142,14 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
                 force: forced(id),
                 stored: (m) => Option.map(Rec.get(m.effects, id), hashOf),
                 produce: elevenLabs.soundEffect(
-                  { prompt: fx.prompt, secs: fx.secs },
+                  {
+                    prompt: fx.prompt,
+                    secs: fx.secs,
+                    influence: 0.5,
+                    loop: false,
+                    model: SFX_MODEL,
+                    format: 'mp3_44100_192',
+                  },
                   path.join(film.paths.sound, file),
                 ),
                 record: (m) => ({ ...m, effects: { ...m.effects, [id]: { hash, file } } }),

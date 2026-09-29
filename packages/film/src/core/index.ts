@@ -26,3 +26,4 @@ export * from './audio.ts';
 export * from './dsp.ts';
 export * from './mix.ts';
 export * from './synth/index.ts';
+export * from './sfx.ts';

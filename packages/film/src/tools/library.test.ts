@@ -1,0 +1,307 @@
+// The sound library over a fixture library on disk (a temporary folder, one
+// generated one-shot, one generated bed, one procedural chime, one recording)
+// with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
+// the real Media. Never a real call: every paid path is counted by the fake.
+
+import { BunServices } from '@effect/platform-bun';
+import { describe, expect, it } from 'effect-bun-test';
+import {
+  ConfigProvider,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Predicate,
+  Redacted,
+} from 'effect';
+import { rng } from '../core/random.ts';
+import { soundState } from '../core/sfx.ts';
+import { ContentStore } from './content-store.ts';
+import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
+import { ElevenLabsFailed } from './errors.ts';
+import { TALLY_HEADER, SoundLibrary, talliedCredits } from './library.ts';
+import { Media } from './media.ts';
+
+const LIBRARY = `export const library = {
+  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, use: 'one-shot' },
+  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 2, loop: true, use: 'bed' },
+  'tone.chime': {
+    kind: 'procedural',
+    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },
+    variants: 3,
+    use: 'one-shot',
+  },
+  'wood.knock': {
+    kind: 'recorded',
+    licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
+    use: 'one-shot',
+  },
+};
+export const store = { folder: 'STORE', remote: { todo: 'a private repo or R2' } };
+`;
+
+/** `secs` of a seeded noise burst with a fast attack and a decay, as 16-bit little-endian mono. */
+const burst = (seed: number, secs: number): Uint8Array => {
+  const frames = Math.round(secs * 44100);
+  const r = rng(seed);
+  const bytes = new Uint8Array(frames * 2);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < frames; i++) {
+    const t = i / 44100;
+    const v = (r() * 2 - 1) * 0.3 * Math.exp(-4 * t) * Math.min(1, t * 200);
+    view.setInt16(i * 2, Math.round(v * 32767), true);
+  }
+  return bytes;
+};
+
+/** ElevenLabs that makes only sound effects, each a new burst, and counts them. */
+const fakeSfx = (calls: Array<SoundEffectRequest>) =>
+  Layer.effect(
+    ElevenLabs,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const refused = (op: string) =>
+        Effect.fail(ElevenLabsFailed.make({ op, exitCode: -1, reason: 'not in this test' }));
+      return ElevenLabs.of({
+        tts: () => refused('tts'),
+        dialogue: () => refused('dialogue'),
+        stt: () => refused('stt'),
+        composeMusic: () => refused('music'),
+        ready: Effect.void,
+        apiKey: Effect.succeed(Redacted.make('test')),
+        soundEffect: (request, out) =>
+          Effect.gen(function* () {
+            calls.push(request);
+            yield* fs.writeFile(out, burst(calls.length, request.secs));
+          }).pipe(
+            Effect.mapError((e) =>
+              ElevenLabsFailed.make({ op: 'sfx', exitCode: -1, reason: e.message }),
+            ),
+          ),
+      });
+    }),
+  );
+
+/** Where one test's fixture library lives, and the paid calls it saw. */
+class Fixture extends Context.Service<
+  Fixture,
+  {
+    readonly dir: string;
+    readonly storeDir: string;
+    readonly tally: string;
+    readonly calls: Array<SoundEffectRequest>;
+  }
+>()('test/Fixture') {}
+
+/** A fixture library in a fresh temporary folder, its store beside it, and the service over it. */
+const fixture = Layer.unwrap(
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = yield* fs.makeTempDirectoryScoped();
+    const dir = path.join(root, 'sounds');
+    const storeDir = path.join(root, 'store');
+    yield* fs.makeDirectory(dir, { recursive: true });
+    yield* fs.writeFileString(path.join(dir, 'library.ts'), LIBRARY.replace('STORE', storeDir));
+    const calls: Array<SoundEffectRequest> = [];
+    const tally = path.join(root, 'credits.tsv');
+    const config = ConfigProvider.layer(
+      ConfigProvider.fromUnknown({ FILMS_OUT: path.join(root, 'out'), HOME: root }),
+    );
+    return SoundLibrary.layer(dir).pipe(
+      Layer.provide([ContentStore.layer, fakeSfx(calls), config]),
+      Layer.provideMerge(Media.layer),
+      Layer.merge(Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls }))),
+    );
+  }),
+).pipe(Layer.provideMerge(BunServices.layer));
+
+/** A test body with the fixture's paths. */
+const withLibrary = <A, E, R>(
+  body: (at: Fixture['Service']) => Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R | Fixture> =>
+  Effect.gen(function* () {
+    return yield* body(yield* Fixture);
+  });
+
+/** A file the lock kept that is gone or not its bytes. */
+const fileBroken = Predicate.or(
+  Predicate.isTagged('SoundFileMissing'),
+  Predicate.isTagged('SoundCorrupt'),
+);
+
+const all = {
+  names: Option.none(),
+  force: false,
+  yes: true,
+  cap: Option.none(),
+  tally: Option.none(),
+};
+
+describe('SoundLibrary', () => {
+  it.effect.layer(fixture)('plans only generated sounds, by their candidates and seconds', () =>
+    withLibrary(() =>
+      Effect.gen(function* () {
+        const jobs = yield* (yield* SoundLibrary).plan(Option.none(), false);
+        expect(jobs.map((j) => [j.name, j.count, j.credits])).toEqual([
+          ['amb.court', 2, 160],
+          ['paper.slide', 4, 160],
+        ]);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)(
+    'refuses a paid make without --yes, or over the cap the tally counts',
+    () =>
+      withLibrary(({ tally, calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          const unconfirmed = yield* Effect.flip(library.make({ ...all, yes: false }));
+          expect(unconfirmed._tag).toBe('PaidUnconfirmed');
+          yield* fs.writeFileString(tally, `${TALLY_HEADER}old\tabc\t10\t39800\n`);
+          const over = yield* Effect.flip(
+            library.make({ ...all, cap: Option.some(40000), tally: Option.some(tally) }),
+          );
+          expect(over).toMatchObject({ _tag: 'CreditsOverCap', credits: 39800 + 320, cap: 40000 });
+          expect(calls).toHaveLength(0);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'makes candidates once, measured, hashed and tallied; keeps and rejects',
+    () =>
+      withLibrary(({ dir, tally, calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          const made = yield* library.make({
+            ...all,
+            cap: Option.some(40000),
+            tally: Option.some(tally),
+          });
+          expect(made).toHaveLength(6);
+          expect(calls.map((c) => [c.prompt, c.loop, c.format, c.influence])).toContainEqual([
+            'a quiet stone court',
+            true,
+            'pcm_44100',
+            0.3,
+          ]);
+          expect(talliedCredits(yield* fs.readFileString(tally))).toBe(320);
+          for (const v of made) {
+            expect(v.file).toMatch(/^files\/(paper\.slide|amb\.court)\/[0-9a-f]{12}\.flac$/);
+            expect(yield* fs.exists(`${dir}/${v.file}`)).toBe(true);
+            expect(v.loudness.momentaryMax).toBeGreaterThan(-40);
+            expect(v.licence).toBe('elevenlabs-paid-sfx');
+          }
+          // Candidates waiting for audition are not made again.
+          expect(yield* library.make(all)).toEqual([]);
+          expect(calls).toHaveLength(6);
+
+          const kept = yield* library.keep('paper.slide', [1, 3]);
+          expect(kept.variants).toHaveLength(2);
+          const rejected = yield* library.reject('paper.slide', [1]);
+          expect(rejected.candidates).toHaveLength(1);
+          expect(rejected.rejected).toHaveLength(1);
+          const missing = yield* Effect.flip(library.keep('paper.slide', [5]));
+          expect(missing._tag).toBe('CandidateMissing');
+          const loaded = yield* library.load;
+          const entry = loaded.library['paper.slide'];
+          expect(entry).toBeDefined();
+          if (entry)
+            expect(soundState(entry, Option.fromUndefinedOr(loaded.lock['paper.slide']))._tag).toBe(
+              'Current',
+            );
+          // A current sound is never generated again.
+          expect(yield* library.plan(Option.some(new Set(['paper.slide'])), false)).toEqual([]);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)('checks files by hash, and syncs them through the folder store', () =>
+    withLibrary(({ dir, storeDir }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const fs = yield* FileSystem.FileSystem;
+        yield* library.make(all);
+        yield* library.keep('paper.slide', [1]);
+        yield* library.keep('amb.court', [1]);
+        const clean = yield* library.check;
+        expect(clean.filter((f) => f._tag !== 'SoundUnmade' && f._tag !== 'LoopSeam')).toEqual([]);
+        expect(clean.filter((f) => f._tag === 'SoundUnmade').map((f) => f.name)).toEqual([
+          'wood.knock',
+        ]);
+
+        expect(yield* library.push).toEqual({ sent: 6, had: 0 });
+        expect(yield* library.push).toEqual({ sent: 0, had: 6 });
+        const lock = (yield* library.load).lock;
+        const slide = lock['paper.slide']?.variants[0]?.file ?? '';
+        const court = lock['amb.court']?.variants[0]?.file ?? '';
+        expect(yield* fs.exists(`${storeDir}/${slide}`)).toBe(true);
+        yield* fs.remove(`${dir}/${slide}`);
+        yield* fs.writeFileString(`${dir}/${court}`, 'not this');
+        const broken = yield* library.check;
+        expect(broken.map((f) => f._tag)).toEqual(
+          expect.arrayContaining(['SoundFileMissing', 'SoundCorrupt']),
+        );
+        expect(yield* library.pull).toEqual({ fetched: 2, had: 4 });
+        const mended = yield* library.check;
+        expect(mended.filter(fileBroken)).toEqual([]);
+
+        // A generated file under public/ may not be published.
+        yield* fs.makeDirectory(`${dir}/public/paper.slide`, { recursive: true });
+        yield* fs.copyFile(`${dir}/${slide}`, `${dir}/public/paper.slide/copy.flac`);
+        const leaked = yield* library.check;
+        expect(leaked.filter((f) => f._tag === 'SoundLicence')).toHaveLength(1);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)('imports a recording, trimmed, into public/ under its licence', () =>
+    withLibrary(({ dir }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const media = yield* Media;
+        const path = yield* Path.Path;
+        const source = path.join(dir, '..', 'knock.wav');
+        const frames = 44100;
+        const plane = new Float32Array(frames);
+        for (let i = 22050; i < 22050 + 2205; i++) plane[i] = 0.5 * Math.sin(i / 3);
+        yield* media.writeWav(source, { rate: 44100, frames, channels: [plane] });
+        const variant = yield* library.importFile(source, 'wood.knock');
+        expect(variant.file).toMatch(/^public\/wood\.knock\/[0-9a-f]{12}\.flac$/);
+        expect(variant.licence).toBe('CC0-1.0');
+        expect(variant.secs).toBeGreaterThan(0.05);
+        expect(variant.secs).toBeLessThan(0.1);
+        const wrong = yield* Effect.flip(library.importFile(source, 'tone.chime'));
+        expect(wrong._tag).toBe('SoundKindMismatch');
+        const check = yield* library.check;
+        expect(check.filter((f) => f._tag === 'SoundLicence')).toEqual([]);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)(
+    'auditions and renders without a paid call',
+    () =>
+      withLibrary(({ calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          const media = yield* Media;
+          const renders = yield* library.render('tone.chime', Option.none());
+          expect(renders).toHaveLength(3);
+          const heard = yield* library.audition('tone.chime', false);
+          expect(yield* fs.exists(heard)).toBe(true);
+          // Three one-second chimes, each followed by the gap.
+          expect((yield* media.decode(heard)).frames).toBe(3 * (44100 + 22050));
+          expect(calls).toHaveLength(0);
+        }),
+      ),
+    30_000,
+  );
+});

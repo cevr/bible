@@ -9,6 +9,8 @@ export * from './media.ts';
 export * from './narrator.ts';
 export * from './composer.ts';
 export * from './mixer.ts';
+export * from './library.ts';
+export * from './sound-store.ts';
 export * from './cues.ts';
 export * from './check.ts';
 export * from './checker.ts';

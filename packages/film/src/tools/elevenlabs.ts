@@ -60,6 +60,7 @@ const SoundEffectBody = Schema.fromJsonString(
     text: Schema.String,
     duration_seconds: Schema.Finite,
     prompt_influence: Schema.Finite,
+    loop: Schema.Boolean,
     model_id: Schema.String,
   }),
 );
@@ -153,6 +154,13 @@ export interface DialogueRequest {
 export interface SoundEffectRequest {
   readonly prompt: string;
   readonly secs: number;
+  /** `prompt_influence`, 0–1. */
+  readonly influence: number;
+  /** Made to loop seamlessly. */
+  readonly loop: boolean;
+  readonly model: string;
+  /** The API's `output_format`: `pcm_44100` is raw 16-bit little-endian mono. */
+  readonly format: string;
 }
 
 export interface ElevenLabsService {
@@ -388,12 +396,13 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         out: string,
       ) {
         yield* apiKey;
-        const params = yield* encodeBody('sfx', OutputParams, { output_format: OUTPUT_FORMAT });
+        const params = yield* encodeBody('sfx', OutputParams, { output_format: request.format });
         const body = yield* encodeBody('sfx', SoundEffectBody, {
           text: request.prompt,
           duration_seconds: request.secs,
-          prompt_influence: 0.5,
-          model_id: 'eleven_text_to_sound_v2',
+          prompt_influence: request.influence,
+          loop: request.loop,
+          model_id: request.model,
         });
         yield* elevenlabs('sfx', [
           'text-to-sound-effects',

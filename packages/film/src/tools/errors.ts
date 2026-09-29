@@ -16,10 +16,142 @@ export {
   ShortUnknownScene,
   UnknownCue,
   UnknownMark,
+  SoundUseMismatch,
   UnknownScene,
+  UnknownSound,
   UnknownVoice,
   WordMissing,
 } from '../core/errors.ts';
+
+// ---------------------------------------------------------------------------
+// The sound library (`sounds/`): what `sfx check` and `film check` report.
+
+/** The app has no `sounds/library.ts` where the tools look for one. */
+export class LibraryMissing extends Schema.TaggedError<LibraryMissing>()('LibraryMissing', {
+  file: Schema.String,
+}) {
+  override get message() {
+    return `no sound library at ${this.file}; declare one with defineLibrary`;
+  }
+}
+
+/** A declared sound with no kept variant: nothing plays where it is named. */
+export class SoundUnmade extends Schema.TaggedError<SoundUnmade>()('SoundUnmade', {
+  name: Schema.String,
+  /** Candidates made and waiting for `sfx keep`. */
+  candidates: Schema.Int,
+}) {
+  override get message() {
+    if (this.candidates > 0)
+      return `sound "${this.name}" has ${this.candidates} candidates and none kept; run sfx audition ${this.name}, then sfx keep`;
+    return `sound "${this.name}" has no kept variant; run sfx make ${this.name}`;
+  }
+}
+
+/** A kept variant whose file is not on disk. */
+export class SoundFileMissing extends Schema.TaggedError<SoundFileMissing>()('SoundFileMissing', {
+  name: Schema.String,
+  file: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}": ${this.file} is not on disk; run sfx pull`;
+  }
+}
+
+/** A variant's file whose bytes are not the ones the lock kept. */
+export class SoundCorrupt extends Schema.TaggedError<SoundCorrupt>()('SoundCorrupt', {
+  name: Schema.String,
+  file: Schema.String,
+  sha256: Schema.String,
+  found: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}": ${this.file} hashes ${this.found.slice(0, 12)}, the lock kept ${this.sha256.slice(0, 12)}; run sfx pull`;
+  }
+}
+
+/** Kept variants made for another request than the declaration's: they play until new ones are kept. */
+export class SoundStale extends Schema.TaggedError<SoundStale>()('SoundStale', {
+  name: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}" changed since its variants were made; they still play; run sfx make ${this.name}, then keep new ones`;
+  }
+}
+
+/** A sound file in the repo whose licence does not let it be public. */
+export class SoundLicence extends Schema.TaggedError<SoundLicence>()('SoundLicence', {
+  file: Schema.String,
+  licence: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} is ${this.licence}, which may not sit in a public repo; keep it under sounds/files (the private store)`;
+  }
+}
+
+/** A bed whose loop point is heard: a level jump or a click where it wraps. */
+export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
+  name: Schema.String,
+  variant: Schema.Int,
+  db: Schema.Finite,
+  click: Schema.Finite,
+}) {
+  override get message() {
+    return `bed "${this.name}" variant ${this.variant}: its loop point jumps ${this.db.toFixed(1)} dB with a ${this.click.toFixed(1)}x step; pick another take or trim it`;
+  }
+}
+
+/** An effect placed within `EFFECT_HOT` dB of the voice while the voice speaks. */
+export class EffectHot extends Schema.TaggedError<EffectHot>()('EffectHot', {
+  effect: Schema.String,
+  scene: Schema.String,
+  at: Schema.Finite,
+  level: Schema.Finite,
+}) {
+  override get message() {
+    return `effect "${this.effect}" at ${this.at.toFixed(2)}s (scene ${this.scene}) sits ${this.level.toFixed(1)} dB from the voice while it speaks; lower its level`;
+  }
+}
+
+/** A generated sound's candidates would cost more than the run allows. */
+export class CreditsOverCap extends Schema.TaggedError<CreditsOverCap>()('CreditsOverCap', {
+  credits: Schema.Int,
+  cap: Schema.Int,
+}) {
+  override get message() {
+    return `this make would spend ${this.credits} credits, over the cap of ${this.cap}; make fewer sounds or raise --cap`;
+  }
+}
+
+/** A paid make run without `--yes`. */
+export class PaidUnconfirmed extends Schema.TaggedError<PaidUnconfirmed>()('PaidUnconfirmed', {
+  credits: Schema.Int,
+}) {
+  override get message() {
+    return `this make would spend ${this.credits} credits; run it again with --yes`;
+  }
+}
+
+/** `sfx keep` or `reject` naming a candidate the sound does not have. */
+export class CandidateMissing extends Schema.TaggedError<CandidateMissing>()('CandidateMissing', {
+  name: Schema.String,
+  index: Schema.Int,
+  candidates: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" has ${this.candidates} candidates; there is no candidate ${this.index}`;
+  }
+}
+
+/** A command that takes one kind of sound given another (`sfx render` a generated one, `import` a procedural one). */
+export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
+  'SoundKindMismatch',
+  { name: Schema.String, kind: Schema.String, wanted: Schema.String },
+) {
+  override get message() {
+    return `sound "${this.name}" is ${this.kind}; this needs a ${this.wanted} one`;
+  }
+}
 
 export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {
   film: Schema.String,

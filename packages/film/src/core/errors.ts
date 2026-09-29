@@ -166,3 +166,25 @@ export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortS
 }
 
 export type ShortError = ShortUnknownScene | ShortUnknownMark | ShortUnknownCue | ShortSpanEmpty;
+
+/** A film names a sound the library does not declare. */
+export class UnknownSound extends Schema.TaggedError<UnknownSound>()('UnknownSound', {
+  name: Schema.String,
+  /** The library's names in the same family, or every name when the family has none. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the library has no sound "${this.name}"; it has ${this.known.join(', ') || 'none'}`;
+  }
+}
+
+/** A bed placed as a one-shot, or a one-shot laid as a bed. */
+export class SoundUseMismatch extends Schema.TaggedError<SoundUseMismatch>()('SoundUseMismatch', {
+  name: Schema.String,
+  declared: Schema.Literals(['one-shot', 'bed']),
+  placed: Schema.Literals(['one-shot', 'bed']),
+}) {
+  override get message() {
+    return `sound "${this.name}" is declared a ${this.declared}, and placed as a ${this.placed}`;
+  }
+}
