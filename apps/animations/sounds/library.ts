@@ -10,29 +10,36 @@
 //
 // The first library (audio-design §9): 30 generated one-shots, 9 generated
 // beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
-// places them, the mix sets their level against the voice.
+// places them, the mix sets their level against the voice. How to word a prompt
+// and pick its settings, from the p4-sfx2 trials: sounds/PROMPTING.md.
+//
+// Influence and candidate count follow the framework's defaults by use
+// (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
+// heard better.
 
 import { defineLibrary } from '@bible/film/core';
 
-/** A one-shot's prompt influence: follow the prompt closely, vary a little between candidates. */
-const CLOSE = 0.5;
-/** A bed's: the model's own air, a loop. */
-const AIR = 0.3;
 /** Every generated bed's length: long enough that its loop point is rarely heard. */
 const BED_SECS = 22;
 
-const oneShot = (prompt: string, secs: number) =>
-  ({ kind: 'generated', prompt, secs, influence: CLOSE, use: 'one-shot' }) as const;
+/** A setting a trial heard better than the default; absent, the default holds. */
+interface Tuned {
+  readonly influence?: number;
+  readonly secs?: number;
+}
 
-const bed = (prompt: string) =>
+const oneShot = (prompt: string, secs: number, tuned: Tuned = {}) =>
+  ({ kind: 'generated', prompt, secs, use: 'one-shot', ...tuned }) as const;
+
+const bed = (prompt: string, tuned: Tuned = {}) =>
   ({
     kind: 'generated',
     prompt,
     secs: BED_SECS,
-    influence: AIR,
     loop: true,
     use: 'bed',
     level: -30,
+    ...tuned,
   }) as const;
 
 export const library = defineLibrary({
@@ -53,22 +60,42 @@ export const library = defineLibrary({
     level: -24,
     duck: false,
   },
+  // Redone (p4-sfx2): "quiet … faint … very soft" gave near-silent room tone.
+  // The model hears a crowd when the crowd is the subject and the room its
+  // colour; at 0.6 a crowd holds steady enough to loop.
   'amb.court': bed(
-    'quiet large stone courtroom interior, distant faint murmur, very soft, no clear voices, steady',
+    'murmur of a crowd of people waiting in a large stone hall, many indistinct voices at a distance, soft echo, steady',
+    { influence: 0.6 },
   ),
   'amb.hall': bed(
     'a crowded wooden meeting hall in 1888, a low murmuring audience, benches creaking, no clear words',
+    { influence: 0.6 },
   ),
   'amb.house': bed(
     'a small packed house, many people close together, soft shuffling and low murmur, no clear words',
+    { influence: 0.6 },
   ),
+  // Redone (p4-sfx2): "quiet … far away" gave low rumble. Voices first.
   'amb.town': bed(
-    'a quiet ancient town street by day, distant voices, far footsteps, a cart far away, no clear words',
+    'people talking in a busy village market street heard from across the square, many indistinct voices, footsteps, a donkey cart, daytime, steady',
+    { influence: 0.6 },
   ),
-  'amb.garden': bed('a still garden, soft breeze in leaves, a few distant birds, gentle and calm'),
-  'amb.desert': bed('open desert, dry wind over sand, empty and wide, no birds'),
+  // Redone (p4-sfx2): birds named first and close; "leaves rustling" alone
+  // turned to wind boom.
+  'amb.garden': bed('songbirds chirping in a garden, light leaf rustle, crisp, close', {
+    influence: 0.6,
+  }),
+  // Redone (p4-sfx2): an even, constant wind loops; "wide" and "empty" gave
+  // gusts, and 30 s evens the level out between the ends.
+  'amb.desert': bed('a soft steady wind blowing over sand, constant and even, no gusts, dry', {
+    secs: 30,
+  }),
   'amb.roof': bed('rooftop wind over a sleeping city at night, faint distant town sounds, soft'),
-  'amb.dawn': bed('early dawn outdoors, first quiet birdsong, cool still air, very calm'),
+  // Redone (p4-sfx2): "first quiet birdsong … still air" came in gaps and failed
+  // the seam; ask for song that never stops.
+  'amb.dawn': bed('early morning birdsong in the distance, soft and continuous, even, calm', {
+    influence: 0.6,
+  }),
   'amb.rain': bed('steady soft rain on a tiled roof and ground, even, no thunder'),
 
   // One-shots --------------------------------------------------------------
@@ -76,8 +103,15 @@ export const library = defineLibrary({
     'a stack of paper documents dropped flat onto a wooden desk, close, dry',
     1.5,
   ),
+  // Redone (p4-sfx2): "sound block … short room" came out at −41 to −56 LUFS,
+  // starting on its peak. At 0.9 the knock is loud and clean; padded to 1.6 s
+  // it lands 20–30 ms in instead of on sample 0.
   'wood.gavel': {
-    ...oneShot('a single wooden gavel strike on a sound block, close, short room, one hit', 1.2),
+    ...oneShot(
+      'a judge bangs a wooden gavel once on a hardwood block, loud sharp knock, close, dry',
+      1.6,
+      { influence: 0.9 },
+    ),
     level: -8,
   },
   'stamp.press': oneShot(
@@ -89,26 +123,59 @@ export const library = defineLibrary({
     1,
   ),
   'paper.flip': oneShot('a single page flipped over quickly, crisp paper, close', 0.8),
-  'crowd.swell': oneShot('a crowd in a hall murmuring then rising in surprise, no clear words', 3),
+  // Redone (p4-sfx2): "murmuring then rising in surprise" gave a dense wall; one
+  // shape the model holds is a murmur that grows.
+  'crowd.swell': oneShot(
+    'a crowd murmur growing louder, many people talking at once indoors, rising excitement, no clear words',
+    3,
+    { influence: 0.5 },
+  ),
   'roof.tiles': oneShot(
     'clay roof tiles lifted and scraped aside, a few pieces clinking, outdoors',
     1.5,
   ),
   'wings.pass': oneShot('a single bird flying past close, wing flaps, no calls', 1.5),
-  'cloth.banner': oneShot('a cloth banner unfurling and snapping once in the wind', 1.5),
-  'rope.creak': oneShot('thick rope creaking under weight as something is lowered, slow', 2),
-  'mat.roll': oneShot('a woven reed sleeping mat rolled up and tied, close, soft', 1.5),
+  // Re-rolled (p4-sfx2): "unfurling … in the wind" was sub-30 Hz rumble at
+  // every influence; a flag's flutter named as crisp fabric has none.
+  'cloth.banner': oneShot(
+    'a cloth flag flapping and snapping once, crisp fabric flutter, close, dry',
+    1.5,
+  ),
+  // Re-rolled (p4-sfx2): "as something is lowered" gave a thin ratchet; the
+  // load and one long creak give a fuller one.
+  'rope.creak': oneShot(
+    'a thick hemp rope stretching under a heavy load, one slow long creak, close, dry',
+    2,
+  ),
+  // Redone (p4-sfx2): "soft" made the quietest family; name the crackle. Held
+  // to 1.2 s the rustle is dense.
+  'mat.roll': oneShot(
+    'a dry straw mat rolled up on a wooden floor, reeds crackling and rustling, close',
+    1.2,
+    { influence: 0.5 },
+  ),
   'steps.dirt': oneShot('a few slow footsteps in sandals on a dirt path, outdoors, close', 2.5),
   'dust.writing': oneShot('a finger writing slowly in dust on a stone floor, soft scratching', 2),
   'stones.dust': oneShot(
     'a few stones dropped one by one into dust on the ground, dull thuds',
     1.5,
   ),
-  'tape.measure': oneShot('a cloth measuring tape pulled out and let go, soft flutter', 1.5),
+  // Redone (p4-sfx2): "measuring tape" is a steel tape to the model, whatever the
+  // cloth; describe the ribbon, not the tool. At 1.5 s it ticked; held to
+  // 0.8 s it is a cloth swish.
+  'tape.measure': oneShot(
+    'a long soft fabric ribbon pulled quickly through fingers and flicked straight, light cloth flutter, close, dry',
+    0.8,
+    { influence: 0.5 },
+  ),
   'tablet.set': oneShot('a heavy stone tablet set down on stone, one low knock, close', 1),
+  // Redone (p4-sfx2): a count in the prompt is not heard; give each stitch its
+  // sound and room. "needle and thread" alone is a sewing machine; at 0.9 the
+  // described action gives two punches.
   'needle.thread': oneShot(
-    'a needle pulling thread through thick cloth, two slow stitches, close',
-    1.5,
+    'hand sewing thick canvas, a needle punches through and the thread is pulled tight, twice, close, dry, quiet room',
+    2,
+    { influence: 0.9 },
   ),
   'leaves.rustle': oneShot('a handful of fig leaves rustling as they are gathered, close', 2),
   'glass.scrub': oneShot('a cloth scrubbing a mirror in small circles, squeaky, close', 1.5),
@@ -117,15 +184,20 @@ export const library = defineLibrary({
     'a paper cutout swept quickly through the air past the listener, soft whoosh',
     1,
   ),
+  // Every take (three prompts, influence 0.5 and 0.7) is a low thud under the
+  // cloth; at 0.5 one came with the least of it.
   'cloth.lift': oneShot(
     'a heavy linen robe lifted from a surface, soft cloth movement, close',
     1.2,
+    { influence: 0.5 },
   ),
   'stone.roll': oneShot(
     'a large round stone rolled slowly aside in a stone groove, deep rumble',
     3,
   ),
-  'stain.hiss': oneShot('a dark stain spreading with a faint burning hiss, subtle, close', 1.5),
+  // Redone (p4-sfx2): a stain has no sound; a sizzle does. The bare noun
+  // phrase is louder and dies away; "faint steady" gave a flat hiss.
+  'stain.hiss': oneShot('water sizzle on hot metal', 1.5, { influence: 0.5 }),
   // Recorded: every generated take (8 over two rolls) was one boomy hit, never
   // steps. Two steps (2.25–4.75 s) of the recording's HQ preview.
   'steps.stone': {
@@ -179,9 +251,13 @@ export const library = defineLibrary({
   },
 });
 
-/** Where the private `files/` are kept off the repo. */
+/**
+ * Where the private `files/` are kept off the repo. Never under `~/film-media`:
+ * the renders index (`film-media`, run every minute) deletes every file there
+ * it did not mirror itself, and it emptied the first library's store that way.
+ */
 export const store = {
-  folder: '~/film-media/sounds',
+  folder: '~/film-sounds',
   remote: {
     todo: "the owner's choice (audio-design §8): a private Git repo such as cevr/bible-sounds, or a private R2 bucket keyed by sha256",
   },

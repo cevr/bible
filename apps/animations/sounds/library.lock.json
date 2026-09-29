@@ -2,17 +2,17 @@
   "amb.court": {
     "variants": [
       {
-        "request": "5685b5e6",
-        "file": "files/amb.court/a69f818aa875.flac",
-        "sha256": "a69f818aa8757ed1a634bec5302bd4773e1591ac7ddab737d65468c8404122cc",
-        "made": "2026-09-29T19:16:18.233Z",
+        "request": "56a730e9",
+        "file": "files/amb.court/fee4dc1912fb.flac",
+        "sha256": "fee4dc1912fb07beded6511ff1b6493cfad058b9028755f95dd2011e1a971646",
+        "made": "2026-09-29T20:22:54.206Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -61.3,
-          "momentaryMax": -57.8,
-          "peak": -44.4
+          "integrated": -22.4,
+          "momentaryMax": -21.3,
+          "peak": -10.9
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -50,6 +50,102 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
+      },
+      {
+        "request": "63dfbe6a",
+        "file": "files/amb.court/80a0110586a8.flac",
+        "sha256": "80a0110586a8771983e97e15ee1ba0a0045576761cd8843696516eb643a931ed",
+        "made": "2026-09-29T20:11:16.175Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -28.3,
+          "momentaryMax": -26.8,
+          "peak": -14.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "63dfbe6a",
+        "file": "files/amb.court/0accc2ee9ced.flac",
+        "sha256": "0accc2ee9ceddc44624340a902879dec849ff6dc9c38c7f79249977baa670c03",
+        "made": "2026-09-29T20:11:16.723Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -24.7,
+          "momentaryMax": -23.6,
+          "peak": -12.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "56a730e9",
+        "file": "files/amb.court/d24add291bfc.flac",
+        "sha256": "d24add291bfcc46ed925a9500a216102483b0f28f1e181178d98cd9cc110c89d",
+        "made": "2026-09-29T20:22:54.110Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -23.4,
+          "momentaryMax": -22.1,
+          "peak": -9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "2cbe26cb",
+        "file": "files/amb.court/68420be4b85f.flac",
+        "sha256": "68420be4b85fbc27a2943746f8d5822df6cf3bd53c62cd3e0f35de44bf5f3095",
+        "made": "2026-09-29T20:23:00.519Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -13.9,
+          "momentaryMax": -11.6,
+          "peak": -2.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "2cbe26cb",
+        "file": "files/amb.court/cc02056c4963.flac",
+        "sha256": "cc02056c49635d6bed06566dc5e4802bffbc8f09dd98a8ccc35eaf665cee8af8",
+        "made": "2026-09-29T20:23:00.940Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -14.6,
+          "momentaryMax": -13.6,
+          "peak": -3.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "56a730e9",
+        "file": "files/amb.court/c43281f1513a.flac",
+        "sha256": "c43281f1513a413635910c3ce31657514d1be8dacdba82ea87e4c1f65a15b253",
+        "made": "2026-09-29T20:44:20.855Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -21.6,
+          "momentaryMax": -20.1,
+          "peak": -9.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
       }
     ],
     "rejected": ["31d6b6b0d872ae61994ce166d244a85edd5d8dabc2654260a4984fd4d08f7ab9"]
@@ -57,17 +153,17 @@
   "amb.dawn": {
     "variants": [
       {
-        "request": "28c3d5fc",
-        "file": "files/amb.dawn/b9f78c742704.flac",
-        "sha256": "b9f78c74270478ed4d7e604ec003abd41a4d644f4ccba243a247580e7e0b04ee",
-        "made": "2026-09-29T19:05:51.379Z",
+        "request": "0a90d406",
+        "file": "files/amb.dawn/0d279477e743.flac",
+        "sha256": "0d279477e74335edccb1075609de0bd51b5ceb900b7faca67d1cf95fd4ae66cc",
+        "made": "2026-09-29T20:28:56.166Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -42,
-          "momentaryMax": -30.7,
-          "peak": -18.7
+          "integrated": -22.3,
+          "momentaryMax": -17.3,
+          "peak": -7.7
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -121,27 +217,129 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
-      }
-    ],
-    "rejected": []
-  },
-  "amb.desert": {
-    "variants": [
+      },
       {
-        "request": "18dd1478",
-        "file": "files/amb.desert/708390e92ba3.flac",
-        "sha256": "708390e92ba37ca137d3f054e5b9f0132d3ff9403de2347b93b11ca16d8ebdff",
-        "made": "2026-09-29T19:16:22.548Z",
+        "request": "28c3d5fc",
+        "file": "files/amb.dawn/0ced7a4f5131.flac",
+        "sha256": "0ced7a4f51312248c586349812d391133c250b18eed5f78d7eec0cd5db8fcbf6",
+        "made": "2026-09-29T20:12:02.346Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -57.4,
-          "momentaryMax": -52.9,
-          "peak": -38.7
+          "integrated": -48.9,
+          "momentaryMax": -44.8,
+          "peak": -25.2
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
+      },
+      {
+        "request": "28c3d5fc",
+        "file": "files/amb.dawn/ee497be9c26d.flac",
+        "sha256": "ee497be9c26de9b4db04fe18ae00b45bdcff9f85b9b4856098582d89351c0a9f",
+        "made": "2026-09-29T20:12:02.460Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -18.5,
+          "momentaryMax": -13.2,
+          "peak": -1.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "cd738a7b",
+        "file": "files/amb.dawn/74da83316f35.flac",
+        "sha256": "74da83316f35a47ec1230c44e9aa941de3bf19fbc5c07509143479936c8af53f",
+        "made": "2026-09-29T20:23:47.579Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -15.9,
+          "momentaryMax": -10.6,
+          "peak": -2.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "cd738a7b",
+        "file": "files/amb.dawn/7fd8baacb1e8.flac",
+        "sha256": "7fd8baacb1e8910bed186dc528a8013acb0d11dcf3cb76260e07ee23d89b98bf",
+        "made": "2026-09-29T20:23:47.660Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -42,
+          "momentaryMax": -35,
+          "peak": -14.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "0ed5bb9c",
+        "file": "files/amb.dawn/1c4ff3277113.flac",
+        "sha256": "1c4ff3277113427a68c78137fd85517298f30351d9da0b3b107974f6fe7b000d",
+        "made": "2026-09-29T20:23:54.913Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -12.5,
+          "momentaryMax": -7.7,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "0ed5bb9c",
+        "file": "files/amb.dawn/85026e8bdcf5.flac",
+        "sha256": "85026e8bdcf5a91d82d9282cb7e679b29896f42d5d726f692973721fa1be033c",
+        "made": "2026-09-29T20:23:55.519Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -19.8,
+          "momentaryMax": -13.2,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      }
+    ],
+    "rejected": [
+      "ab9bb57c76c6acfc6efeca86ecee78d709d1aa224a0d47a6d0508b222d1d0cbd",
+      "b0a74ee7a4f148de1b89cb8319cb5c3925cd320302a7482255daf8ceed3df983",
+      "69d55c87476f9f06d1c646ce4cb0e4fb87858b5edcba9ec284fc72460f76e033",
+      "24f29761ab52fcab1376390dff07157ef71f515af31594690c36849fe140a889",
+      "4bd11b1bc8897bde11b179b1e331c9efe2fb2c9746496faff619327b5666dd07"
+    ]
+  },
+  "amb.desert": {
+    "variants": [
+      {
+        "request": "30752c51",
+        "file": "files/amb.desert/1508b34aa4b7.flac",
+        "sha256": "1508b34aa4b78fb80999ec3102024ee0658a39e84474c324517e71331e63045c",
+        "made": "2026-09-29T20:23:40.515Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 30,
+        "loudness": {
+          "integrated": -49.8,
+          "momentaryMax": -48.4,
+          "peak": -37.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 1200
       }
     ],
     "candidates": [
@@ -208,24 +406,203 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
-      }
-    ],
-    "rejected": ["978f8089f368f0dbd4642af172b212cb24ac1acc203afbfe7c2bd013fb90e28e"]
-  },
-  "amb.garden": {
-    "variants": [
+      },
       {
-        "request": "6233e745",
-        "file": "files/amb.garden/c983548553a9.flac",
-        "sha256": "c983548553a92b2a05e08419743837032ff9790943515ff0f25de0e1602b93af",
-        "made": "2026-09-29T19:16:28.041Z",
+        "request": "1adf5f2e",
+        "file": "files/amb.desert/587ac420137e.flac",
+        "sha256": "587ac420137ebd8a69789b0f152404edee289b2a88510a882e8ce70075e3ff8a",
+        "made": "2026-09-29T20:11:21.091Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -48.9,
-          "momentaryMax": -39,
-          "peak": -22.1
+          "integrated": -55.1,
+          "momentaryMax": -48.7,
+          "peak": -26.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "1adf5f2e",
+        "file": "files/amb.desert/f1b88bd969a7.flac",
+        "sha256": "f1b88bd969a70c1b79d4ad9d30833fbb4b69974e1b39b566293ab3a16d57fc30",
+        "made": "2026-09-29T20:11:22.065Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -40.4,
+          "momentaryMax": -33.8,
+          "peak": -8.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "b9a96775",
+        "file": "files/amb.desert/d341a6eaea24.flac",
+        "sha256": "d341a6eaea242859653f81ca5a7f86ce0069ba276d02f1e4dbd99e9d6ce85e4b",
+        "made": "2026-09-29T20:23:20.839Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -48.5,
+          "momentaryMax": -42.3,
+          "peak": -22.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "b9a96775",
+        "file": "files/amb.desert/91c534548b69.flac",
+        "sha256": "91c534548b690b7d87929671c6e4cebdf12f9eb8b488b186de27a3cd2b939246",
+        "made": "2026-09-29T20:23:21.206Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -37.4,
+          "momentaryMax": -30.5,
+          "peak": -13.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "f1515cdb",
+        "file": "files/amb.desert/c39920e70403.flac",
+        "sha256": "c39920e70403f813c1b958afed9f3e5fcc4efe6023d41a162010bb7b9d4fc9e4",
+        "made": "2026-09-29T20:23:27.648Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -14.7,
+          "momentaryMax": -11,
+          "peak": -1.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "f1515cdb",
+        "file": "files/amb.desert/37a08b2a0328.flac",
+        "sha256": "37a08b2a03283726c086ce4aea30b07dc6dfe574d53eb5ab560104d3b3f0ae6e",
+        "made": "2026-09-29T20:23:27.930Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -13.3,
+          "momentaryMax": -5.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "2a46ceac",
+        "file": "files/amb.desert/523693260929.flac",
+        "sha256": "523693260929f7613e7d1c190239f5d118a62294fc174ca646513a6350186f38",
+        "made": "2026-09-29T20:23:32.427Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 11,
+        "loudness": {
+          "integrated": -57.5,
+          "momentaryMax": -51.8,
+          "peak": -44
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 440
+      },
+      {
+        "request": "2a46ceac",
+        "file": "files/amb.desert/5dbb985eab08.flac",
+        "sha256": "5dbb985eab08c16ad53e9cf2bf3867a159be1dea6f267a885b9019e5f022fba8",
+        "made": "2026-09-29T20:23:32.494Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 11,
+        "loudness": {
+          "integrated": -54.9,
+          "momentaryMax": -50.3,
+          "peak": -42.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 440
+      },
+      {
+        "request": "9f57ac32",
+        "file": "files/amb.desert/2161a2f68f60.flac",
+        "sha256": "2161a2f68f60fc19c523bb566b38a7d31698044b2d20be576627c094dc700f09",
+        "made": "2026-09-29T20:26:49.164Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 30,
+        "loudness": {
+          "integrated": -41.6,
+          "momentaryMax": -36,
+          "peak": -19.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 1200
+      },
+      {
+        "request": "9f57ac32",
+        "file": "files/amb.desert/44dedcc310ba.flac",
+        "sha256": "44dedcc310ba9d05d45bbc2e29559c486b00c8a6dddf0615d11c4ebcabab757d",
+        "made": "2026-09-29T20:26:49.245Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 30,
+        "loudness": {
+          "integrated": -39.7,
+          "momentaryMax": -31,
+          "peak": -11.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 1200
+      },
+      {
+        "request": "30752c51",
+        "file": "files/amb.desert/4b59726fe6d0.flac",
+        "sha256": "4b59726fe6d030dbfa585e36171eefa5ab789b1f7ce65d109bbe69e0f3269c7a",
+        "made": "2026-09-29T20:44:21.174Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 30,
+        "loudness": {
+          "integrated": -54.5,
+          "momentaryMax": -52.5,
+          "peak": -41.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 1200
+      }
+    ],
+    "rejected": [
+      "978f8089f368f0dbd4642af172b212cb24ac1acc203afbfe7c2bd013fb90e28e",
+      "9f61c53704de8e3b474daf32ceeaeaab95de88686bf054d0e4103fbff0db0608"
+    ]
+  },
+  "amb.garden": {
+    "variants": [
+      {
+        "request": "99b6a9eb",
+        "file": "files/amb.garden/db7f0fc708af.flac",
+        "sha256": "db7f0fc708af5a2c21c84b99765317c0471135968c29a658d3e849fc5e8d7b71",
+        "made": "2026-09-29T20:27:01.347Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -11.7,
+          "momentaryMax": -7.8,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -311,24 +688,123 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
-      }
-    ],
-    "rejected": []
-  },
-  "amb.hall": {
-    "variants": [
+      },
       {
-        "request": "fd4d01f3",
-        "file": "files/amb.hall/cdc53785b307.flac",
-        "sha256": "cdc53785b30705f0999aa16303d5e3aae3010a7517cf152789e8712acb288e3b",
-        "made": "2026-09-29T19:10:29.456Z",
+        "request": "292e5616",
+        "file": "files/amb.garden/42b99727f069.flac",
+        "sha256": "42b99727f0690ea9ef4eddf3e6c95073720541f6ef0b16f1fd21b8e0b5f06627",
+        "made": "2026-09-29T20:11:27.284Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -24.6,
-          "momentaryMax": -19.5,
-          "peak": -9.5
+          "integrated": -48.5,
+          "momentaryMax": -41.3,
+          "peak": -27.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "292e5616",
+        "file": "files/amb.garden/f412b4123b6b.flac",
+        "sha256": "f412b4123b6b2ec6984b9ffca0d6e139422e151da4c159cceba8acbd3d9dab5a",
+        "made": "2026-09-29T20:11:27.327Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -60.3,
+          "momentaryMax": -46.9,
+          "peak": -30.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "4efd137d",
+        "file": "files/amb.garden/75dfa5456e86.flac",
+        "sha256": "75dfa5456e86a0d9aac10e413f3e24d53f25d559c8018adf4464c7a328a14f2c",
+        "made": "2026-09-29T20:24:01.983Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -53.8,
+          "momentaryMax": -49.1,
+          "peak": -24.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "4efd137d",
+        "file": "files/amb.garden/55c204e858d3.flac",
+        "sha256": "55c204e858d382cd07e9728ba993ec2402d79d5b8fb93e2dc9b6e3252a0ca807",
+        "made": "2026-09-29T20:24:02.250Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -58.6,
+          "momentaryMax": -48.8,
+          "peak": -30.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "d5d19d54",
+        "file": "files/amb.garden/aa4e03f2137c.flac",
+        "sha256": "aa4e03f2137ce5a798b4903e1a0d9f143af0fbc51764e6b232a6b0db59d2fec9",
+        "made": "2026-09-29T20:24:09.217Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -37.3,
+          "momentaryMax": -29.4,
+          "peak": -7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "d5d19d54",
+        "file": "files/amb.garden/4bf06306e2d8.flac",
+        "sha256": "4bf06306e2d86817e71e516e8d862b16a688cce043457b6fada78fe8c8354f80",
+        "made": "2026-09-29T20:24:09.384Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -41.8,
+          "momentaryMax": -29.1,
+          "peak": -13.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      }
+    ],
+    "rejected": [
+      "281a15b4eb2c25c024173daa5d38e4a855c97bcb6aa09ddf6ce35861780c7b0f",
+      "932daf5a71706cdbb92ccf704a3c67ffb19495d834b87d147a8d3d1777e0db4a"
+    ]
+  },
+  "amb.hall": {
+    "variants": [
+      {
+        "request": "ebfc09b4",
+        "file": "files/amb.hall/cde4b095f89b.flac",
+        "sha256": "cde4b095f89bbf81082fef3439bf2ea2804bca7c7769735c4b5b9db3b2049d37",
+        "made": "2026-09-29T20:44:31.087Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -24.8,
+          "momentaryMax": -18,
+          "peak": -3.6
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -350,24 +826,40 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
-      }
-    ],
-    "rejected": []
-  },
-  "amb.house": {
-    "variants": [
+      },
       {
-        "request": "ba81b050",
-        "file": "files/amb.house/df4d6eaf2615.flac",
-        "sha256": "df4d6eaf261555f285647c92beabb9c60d773795e499565407a44e9756f46e62",
-        "made": "2026-09-29T19:10:35.074Z",
+        "request": "ebfc09b4",
+        "file": "files/amb.hall/6ccb1ea3fca0.flac",
+        "sha256": "6ccb1ea3fca04acf1217a7ff2b73b9b60a207beccdee12efa305ccc6fe575eae",
+        "made": "2026-09-29T20:44:26.188Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -39.6,
-          "momentaryMax": -31.8,
-          "peak": -12
+          "integrated": -23.8,
+          "momentaryMax": -15.1,
+          "peak": -0.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      }
+    ],
+    "rejected": ["cd3f0eaf234a9f331a827b7e029ce6bfdca53c2307fe6be7177b55e812b9e97b"]
+  },
+  "amb.house": {
+    "variants": [
+      {
+        "request": "0f4167d7",
+        "file": "files/amb.house/d595dd61c64a.flac",
+        "sha256": "d595dd61c64a8541cc4dc4f59628e54a62f247c98c05064fdc514243e4431c69",
+        "made": "2026-09-29T20:44:35.947Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -39.5,
+          "momentaryMax": -34.2,
+          "peak": -11.9
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -389,12 +881,78 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
+      },
+      {
+        "request": "0f4167d7",
+        "file": "files/amb.house/f48f89bb1687.flac",
+        "sha256": "f48f89bb16873c3d4f8dae75dcf8acff05fcf63fdb55c35f47caaa9b0b5133e8",
+        "made": "2026-09-29T20:44:35.846Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -37.2,
+          "momentaryMax": -31.4,
+          "peak": -9.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
       }
     ],
-    "rejected": []
+    "rejected": ["a0f2cb80fba157d6c44c6d50dfd709b1e12eb13ab0965e8dbc1829f630a2ea80"]
   },
   "amb.rain": {
     "variants": [
+      {
+        "request": "35cea27f",
+        "file": "files/amb.rain/bb46d6850e2c.flac",
+        "sha256": "bb46d6850e2c160b8c01174071c3a0e5e934f91d5121d2b4513dafe4a36aa0fc",
+        "made": "2026-09-29T20:48:13.842Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -19.9,
+          "momentaryMax": -18.6,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      }
+    ],
+    "candidates": [
+      {
+        "request": "35cea27f",
+        "file": "files/amb.rain/fb3affd942f0.flac",
+        "sha256": "fb3affd942f022cb32405ed0de3b71df0171ad9bc359e77f6ae6120a9416d572",
+        "made": "2026-09-29T20:48:14.343Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -18.6,
+          "momentaryMax": -17.6,
+          "peak": -1.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "35cea27f",
+        "file": "files/amb.rain/8c0086e6c979.flac",
+        "sha256": "8c0086e6c97933bb2f4ecf6723ff3dc08f1e504bd5db5ab2b6b87de79efa9073",
+        "made": "2026-09-29T20:48:19.314Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -29.2,
+          "momentaryMax": -27.3,
+          "peak": -8.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
       {
         "request": "35cea27f",
         "file": "files/amb.rain/de62f4e708ba.flac",
@@ -412,28 +970,28 @@
         "credits": 880
       }
     ],
-    "candidates": [
+    "rejected": ["2347b89062d9e98a40a79a6b0e0b8095042325ecfdcd7dca596e56624f7e7cbc"]
+  },
+  "amb.roof": {
+    "variants": [
       {
-        "request": "35cea27f",
-        "file": "files/amb.rain/2347b89062d9.flac",
-        "sha256": "2347b89062d9e98a40a79a6b0e0b8095042325ecfdcd7dca596e56624f7e7cbc",
-        "made": "2026-09-29T19:10:40.619Z",
+        "request": "9c5c60b0",
+        "file": "files/amb.roof/b41e9f5c3ddc.flac",
+        "sha256": "b41e9f5c3ddc1f851df9d220ef03e1a8cc7d0994342ac7cc5983c4602f45682e",
+        "made": "2026-09-29T20:48:01.905Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -27.7,
-          "momentaryMax": -25.4,
-          "peak": -5
+          "integrated": -42.7,
+          "momentaryMax": -41.1,
+          "peak": -29.2
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
     ],
-    "rejected": []
-  },
-  "amb.roof": {
-    "variants": [
+    "candidates": [
       {
         "request": "9c5c60b0",
         "file": "files/amb.roof/db5186b69196.flac",
@@ -451,40 +1009,26 @@
         "credits": 880
       }
     ],
-    "candidates": [
-      {
-        "request": "9c5c60b0",
-        "file": "files/amb.roof/81e156341196.flac",
-        "sha256": "81e1563411969991b259162dbdbc389668816a357fb51f522180993f38fc9452",
-        "made": "2026-09-29T19:10:44.580Z",
-        "model": "eleven_text_to_sound_v2",
-        "format": "pcm_44100",
-        "secs": 22,
-        "loudness": {
-          "integrated": -52.7,
-          "momentaryMax": -51.2,
-          "peak": -38
-        },
-        "licence": "elevenlabs-paid-sfx",
-        "credits": 880
-      }
-    ],
-    "rejected": []
+    "rejected": [
+      "81e1563411969991b259162dbdbc389668816a357fb51f522180993f38fc9452",
+      "ea28cd674c81cdf3056045763d4f055df23e8577b4e34854116b10613090fa24",
+      "e0ad918836ddaa0238d65c18907e77d15c1d35824a20cab8cb2fa494a5687ce9"
+    ]
   },
   "amb.town": {
     "variants": [
       {
-        "request": "85fcc294",
-        "file": "files/amb.town/ab2a82b2514f.flac",
-        "sha256": "ab2a82b2514fd20f7e3e0a665ed22bf1990ca3cc34d3095927c7d558154b0fab",
-        "made": "2026-09-29T19:10:49.543Z",
+        "request": "f793790f",
+        "file": "files/amb.town/80f518122c04.flac",
+        "sha256": "80f518122c045edbf1433bd09b31be1f1a8cea796ea35b526582a862d2dd52b7",
+        "made": "2026-09-29T20:23:06.498Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 22,
         "loudness": {
-          "integrated": -44.5,
-          "momentaryMax": -41.2,
-          "peak": -26
+          "integrated": -24.3,
+          "momentaryMax": -19.1,
+          "peak": -5.4
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
@@ -506,24 +1050,91 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
+      },
+      {
+        "request": "f425e0e8",
+        "file": "files/amb.town/7fad39e59317.flac",
+        "sha256": "7fad39e5931791cb66fdf9e2f52c93c010b30c7a6e73015ebef4bd2f3411a3da",
+        "made": "2026-09-29T20:11:32.088Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -27.8,
+          "momentaryMax": -24.3,
+          "peak": -9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "f425e0e8",
+        "file": "files/amb.town/36c394ad445f.flac",
+        "sha256": "36c394ad445fd00a55f2f9fde52bd1f66574403926c7b2a5135c69d7b7a6ac5b",
+        "made": "2026-09-29T20:11:32.306Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -25.5,
+          "momentaryMax": -17.9,
+          "peak": -2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "4bcbdf9d",
+        "file": "files/amb.town/0b72a685dd30.flac",
+        "sha256": "0b72a685dd303dd517552899d7b4a8d9cf65b940cc1e8a92f0cb9e45f24603da",
+        "made": "2026-09-29T20:23:14.319Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -23.8,
+          "momentaryMax": -18.7,
+          "peak": -7.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
+      },
+      {
+        "request": "4bcbdf9d",
+        "file": "files/amb.town/77abc7e19c3b.flac",
+        "sha256": "77abc7e19c3b65fb7dc40bbe848913156dbf01a30b7e4b21c859de6abe935925",
+        "made": "2026-09-29T20:23:15.176Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 22,
+        "loudness": {
+          "integrated": -21.6,
+          "momentaryMax": -13.2,
+          "peak": -4.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 880
       }
     ],
-    "rejected": []
+    "rejected": [
+      "373a3c12b95a2a5daf72e9a06b88da708b3e927c60846a7255e016fbb4cd7db7",
+      "fbec5cbf75225c855496b95d8b9c2213db3fab35b0a8ddf79d3e1539143545f3"
+    ]
   },
   "book.close": {
     "variants": [
       {
-        "request": "93a644a4",
-        "file": "files/book.close/0c400d30d9e7.flac",
-        "sha256": "0c400d30d9e7ad233ec0c98577f2126599e601515bac4d105ec10b8067007cdc",
-        "made": "2026-09-29T19:10:56.454Z",
+        "request": "fa488dc2",
+        "file": "files/book.close/258efe676b08.flac",
+        "sha256": "258efe676b083c1a48ab7e23835b85965fd215aeb20ac8a9d735a3147562384a",
+        "made": "2026-09-29T20:44:47.128Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -25,
-          "momentaryMax": -25,
-          "peak": -5
+          "integrated": -24.4,
+          "momentaryMax": -24.4,
+          "peak": -4
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
@@ -577,24 +1188,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
+      },
+      {
+        "request": "fa488dc2",
+        "file": "files/book.close/cdeb9b35714c.flac",
+        "sha256": "cdeb9b35714c9f3af7bb430db149dd1588ba911ddc2706fa440fb80087c9135e",
+        "made": "2026-09-29T20:44:43.993Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -26.5,
+          "momentaryMax": -26.5,
+          "peak": -5.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "fa488dc2",
+        "file": "files/book.close/2c3d4a89b144.flac",
+        "sha256": "2c3d4a89b1447aef0215ec6282b6f7b2974c2afc156771608f1e96e49068a81c",
+        "made": "2026-09-29T20:44:44.911Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -21.1,
+          "momentaryMax": -21.1,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
       }
     ],
-    "rejected": []
+    "rejected": [
+      "98602e207a980384e024b9eef54fa2d9a772823e9fc2ce9f0becef233625d6f7",
+      "4685fd0891f7ea1a0bab527dcb2c8a540617bfbc138a480f8ee3addbc8d9307c",
+      "60059d1d94ef4a8d62f7902647bc1bbbbd2ab4287638d37db9995bdff25e9032"
+    ]
   },
   "cloth.banner": {
     "variants": [
       {
-        "request": "3cd9f336",
-        "file": "files/cloth.banner/48c11ebed81f.flac",
-        "sha256": "48c11ebed81fd124d69220c1c5f8bdc59d04483dc2ce326956c97207cfabe6be",
-        "made": "2026-09-29T19:11:01.743Z",
+        "request": "ccd2b11a",
+        "file": "files/cloth.banner/af8a2ed53710.flac",
+        "sha256": "af8a2ed5371035c57df31a9c971a7972526c00923ef5d93d570d714134c444a8",
+        "made": "2026-09-29T20:51:45.040Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -23.9,
-          "momentaryMax": -23.9,
-          "peak": -0.1
+          "integrated": -17.9,
+          "momentaryMax": -16.2,
+          "peak": -0.2
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -648,6 +1295,182 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/a55c8054e6d6.flac",
+        "sha256": "a55c8054e6d6eadeaaf80e3bd59e3677c856b31a3bd4a268fe84a8609a245ca5",
+        "made": "2026-09-29T20:44:47.763Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -24,
+          "momentaryMax": -21.8,
+          "peak": -1.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/de8a1516c488.flac",
+        "sha256": "de8a1516c48877a3afbef8356011ddafd2605255bd617aa4019b360787098f5b",
+        "made": "2026-09-29T20:44:49.218Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -22.2,
+          "momentaryMax": -21.2,
+          "peak": -2.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/9059de62dd64.flac",
+        "sha256": "9059de62dd644dfc5a7b68c4291dd2efd369609e29b76ae2a4e048e36d4c6034",
+        "made": "2026-09-29T20:44:49.563Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -22.7,
+          "momentaryMax": -20.4,
+          "peak": -1.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/b87c2f9db469.flac",
+        "sha256": "b87c2f9db4696ce272e5aac5760d06b0efc045875446ef2fcb51389d8464873b",
+        "made": "2026-09-29T20:44:51.048Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -47.5,
+          "momentaryMax": -42.2,
+          "peak": -19.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/1df267fccf96.flac",
+        "sha256": "1df267fccf96b3db63b2a2226935e1f8a9ed62fc7ee78763ff962cf89bc2e9a3",
+        "made": "2026-09-29T20:44:51.675Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -32.6,
+          "momentaryMax": -31.6,
+          "peak": -6.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "32db20d8",
+        "file": "files/cloth.banner/5017ec4008d5.flac",
+        "sha256": "5017ec4008d51ebda0c4f7f7eb7433e1fbfe62904b9880396576076572a3c2ca",
+        "made": "2026-09-29T20:44:53.133Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -18.4,
+          "momentaryMax": -17.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "3cd9f336",
+        "file": "files/cloth.banner/0934836ad848.flac",
+        "sha256": "0934836ad84850c09cc885b341d8cba5e05299b95d7acd1ccaf26c95760dab78",
+        "made": "2026-09-29T20:50:48.551Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -22.2,
+          "momentaryMax": -21,
+          "peak": -1.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "3cd9f336",
+        "file": "files/cloth.banner/5028d5e1902f.flac",
+        "sha256": "5028d5e1902f6d2bf2d64c8a7e36d936b7ef537fbd186f3a347281462e5ab6df",
+        "made": "2026-09-29T20:50:49.361Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -34.5,
+          "momentaryMax": -33.6,
+          "peak": -17.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "3cd9f336",
+        "file": "files/cloth.banner/646735856bcd.flac",
+        "sha256": "646735856bcdbc8ec70a3ddaaf030f10190ee1fc4bf111116ea472c984f0ff42",
+        "made": "2026-09-29T20:50:50.439Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -34.9,
+          "momentaryMax": -33.8,
+          "peak": -14.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "ccd2b11a",
+        "file": "files/cloth.banner/39d4d527f921.flac",
+        "sha256": "39d4d527f921fee80790c40c54b0ac6e0643137b1c0eef0bcb1b4d46c114fa4b",
+        "made": "2026-09-29T20:51:44.795Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -21.1,
+          "momentaryMax": -19.4,
+          "peak": -0.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "ccd2b11a",
+        "file": "files/cloth.banner/be37bfa74cef.flac",
+        "sha256": "be37bfa74cef93fa1bb9dc47756269559c88f9b4bf43b6bb451c7af15dd37b73",
+        "made": "2026-09-29T20:51:47.015Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -23.3,
+          "momentaryMax": -20.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
     "rejected": []
@@ -656,16 +1479,16 @@
     "variants": [
       {
         "request": "3835c345",
-        "file": "files/cloth.lift/72702b2441c2.flac",
-        "sha256": "72702b2441c2700cdc252c96cd997acac6e42e222f6a95d8f633e27493313d01",
-        "made": "2026-09-29T19:11:04.155Z",
+        "file": "files/cloth.lift/eeb1c5579343.flac",
+        "sha256": "eeb1c557934348a76dd23d11db745a39eced41e82fb1d7f98ef9060eca7aeba2",
+        "made": "2026-09-29T20:50:43.020Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.2,
         "loudness": {
-          "integrated": -22.6,
-          "momentaryMax": -20.9,
-          "peak": -5.4
+          "integrated": -17.2,
+          "momentaryMax": -16.3,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
@@ -719,24 +1542,187 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
-      }
-    ],
-    "rejected": []
-  },
-  "cloth.settle": {
-    "variants": [
+      },
       {
-        "request": "3dda664c",
-        "file": "files/cloth.settle/c1010a307504.flac",
-        "sha256": "c1010a307504aa673f33d727040ed932fc0c1c15ce2d6044834b8990c10f2d2a",
-        "made": "2026-09-29T19:11:07.617Z",
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/1e1da517ee98.flac",
+        "sha256": "1e1da517ee98bae9aa78f2cb73fadd4f14936d84d1a434473fdc13f7b3c76e44",
+        "made": "2026-09-29T20:44:53.713Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.2,
         "loudness": {
-          "integrated": -32,
-          "momentaryMax": -30.5,
-          "peak": -10.6
+          "integrated": -19,
+          "momentaryMax": -17,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/f03cc5bc86a9.flac",
+        "sha256": "f03cc5bc86a994c7735f38510007d696a93f8af8e657316fd026e2ee20ad2a79",
+        "made": "2026-09-29T20:44:55.015Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -21.4,
+          "momentaryMax": -19,
+          "peak": -3.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/d92e946255c3.flac",
+        "sha256": "d92e946255c36d64d691b9104618e52b4941e9481c9199bfcbb5b2d036435a1d",
+        "made": "2026-09-29T20:44:55.509Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -20.5,
+          "momentaryMax": -17.6,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/0097609f36bc.flac",
+        "sha256": "0097609f36bc8b38aec4e7975c726bdaa24d0311ba319f537093cfb8c12520f9",
+        "made": "2026-09-29T20:44:56.691Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -22.4,
+          "momentaryMax": -19.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/7644992b9f64.flac",
+        "sha256": "7644992b9f64f9ed334b5d6bb8a57be09bafe9d84268a9e55ea393491ea5d0ff",
+        "made": "2026-09-29T20:44:57.283Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -23.1,
+          "momentaryMax": -18.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "42dfb2a3",
+        "file": "files/cloth.lift/d45a56014a2f.flac",
+        "sha256": "d45a56014a2f1250a6f7a82275280174ad0641697ffe43ae218c815fb49d445c",
+        "made": "2026-09-29T20:44:58.428Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -25.2,
+          "momentaryMax": -21.4,
+          "peak": -1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "1f39b2b8",
+        "file": "files/cloth.lift/9e02eaafa37e.flac",
+        "sha256": "9e02eaafa37e91e335b8e29f21d29779f4f8e54c0f28425c89c04a3083fc7b10",
+        "made": "2026-09-29T20:51:39.921Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -20.4,
+          "momentaryMax": -18,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "1f39b2b8",
+        "file": "files/cloth.lift/0e2f098cef03.flac",
+        "sha256": "0e2f098cef03589e9c7eef599ba4ad90ac470be4dfcfb23cf14b60856788201b",
+        "made": "2026-09-29T20:51:40.099Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -21.5,
+          "momentaryMax": -19,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "1f39b2b8",
+        "file": "files/cloth.lift/8403d68c421e.flac",
+        "sha256": "8403d68c421e77beef8501a3b92729a8ea455a2c19015b391b01515cfccb5aed",
+        "made": "2026-09-29T20:51:41.880Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -19.9,
+          "momentaryMax": -18.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "3835c345",
+        "file": "files/cloth.lift/72702b2441c2.flac",
+        "sha256": "72702b2441c2700cdc252c96cd997acac6e42e222f6a95d8f633e27493313d01",
+        "made": "2026-09-29T19:11:04.155Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -22.6,
+          "momentaryMax": -20.9,
+          "peak": -5.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      }
+    ],
+    "rejected": [
+      "3265eddd568bda73d2a1e23ffea8fb0c6831c14582bc4f72995d0ec4cdae96fa",
+      "28c3002ac05c1f318568b1e10b1a77aafe58e63fbdfd9ac10415fe7426516a39"
+    ]
+  },
+  "cloth.settle": {
+    "variants": [
+      {
+        "request": "45621cea",
+        "file": "files/cloth.settle/aa05bbab7184.flac",
+        "sha256": "aa05bbab7184beccfb63f8f9c83dbd953a078106591f4fd09d06132c0a939ab9",
+        "made": "2026-09-29T20:44:59.161Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -24.7,
+          "momentaryMax": -24.2,
+          "peak": -4.4
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
@@ -774,24 +1760,94 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
+      },
+      {
+        "request": "45621cea",
+        "file": "files/cloth.settle/7d337b31087c.flac",
+        "sha256": "7d337b31087cb93cc0525bbdcc7e460b42c16fbf379a5b604d7480716341c037",
+        "made": "2026-09-29T20:45:01.055Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -28.9,
+          "momentaryMax": -27.1,
+          "peak": -7.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "3dda664c",
+        "file": "files/cloth.settle/34eed0389c58.flac",
+        "sha256": "34eed0389c586d45b392a5bf7adad0c3dd84d40f8980a7c0b587602c034457a8",
+        "made": "2026-09-29T20:50:53.301Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -38.3,
+          "momentaryMax": -36.9,
+          "peak": -22
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "3dda664c",
+        "file": "files/cloth.settle/c7195897f7a8.flac",
+        "sha256": "c7195897f7a85013ccc34cc2a8f9449d6aad25bcb7c5306218f10be35fbf4369",
+        "made": "2026-09-29T20:50:53.329Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -38,
+          "momentaryMax": -35.2,
+          "peak": -17.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "3dda664c",
+        "file": "files/cloth.settle/6dd3f402544c.flac",
+        "sha256": "6dd3f402544c89b5295898cfaf65e4e64043a72fe1663a20996c053a2f0fdd5f",
+        "made": "2026-09-29T20:50:55.822Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -31.3,
+          "momentaryMax": -29.2,
+          "peak": -10.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
       }
     ],
-    "rejected": ["31b8625e0f2db1e834de04c9869bcb895604611586bbfc4769effa3d43893de3"]
+    "rejected": [
+      "31b8625e0f2db1e834de04c9869bcb895604611586bbfc4769effa3d43893de3",
+      "7509a575fdb175ca219feb4ecdafc5fc92c1354705c9835c86d3c48fc04ee4e1",
+      "561ba6d72a9b86b33ed4e4f653fd2ddc51ec4add55bd97097a637beba71d3903",
+      "715cbc3fb2464856c68cd0f0d1f1940d33cde4c1184e4b0a234639a8a8f8ee2c",
+      "0579964c581b26deff07cea46da897be2a29a517f76cad002aa796ca44bcd902"
+    ]
   },
   "coins.clatter": {
     "variants": [
       {
-        "request": "cc464dab",
-        "file": "files/coins.clatter/8e5e08625f18.flac",
-        "sha256": "8e5e08625f183004a9b7863f28bfcc4c595b224afe1ad9d17a60f7c915428765",
-        "made": "2026-09-29T19:11:11.244Z",
+        "request": "b46ceded",
+        "file": "files/coins.clatter/6f3fece2d95e.flac",
+        "sha256": "6f3fece2d95e331b1478b1f05390efddd77e6ebc72b8efdc3400355175b65c5e",
+        "made": "2026-09-29T20:45:14.088Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -19.2,
-          "momentaryMax": -17,
-          "peak": -2.2
+          "integrated": -25,
+          "momentaryMax": -22.3,
+          "peak": -5.3
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -845,24 +1901,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "b46ceded",
+        "file": "files/coins.clatter/9374236bce32.flac",
+        "sha256": "9374236bce32b0615000ada72ab03ddd2c98f9f112133fcbb15cfe8136af5f67",
+        "made": "2026-09-29T20:45:07.740Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -23.5,
+          "momentaryMax": -17.1,
+          "peak": -0.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "b46ceded",
+        "file": "files/coins.clatter/9cc29ce519e4.flac",
+        "sha256": "9cc29ce519e4151c45f94ee2d68447478c7ca7bc187f1b6d80e36e74c49dc5d7",
+        "made": "2026-09-29T20:45:14.607Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -18.8,
+          "momentaryMax": -16.2,
+          "peak": -2.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "88689656d4e018f8f1caae794f3079f5128552f5e60fd58f0b8e59d95feb921a",
+      "829fc8fe9369b9c8f4c1d29fad63b5042e4d56b102ef7d8471269624d9b0e525",
+      "33e7c39f26e32b322878ba90046c583893ce46a390924a8408e7be79621aa472"
+    ]
   },
   "crowd.swell": {
     "variants": [
       {
-        "request": "d8c33feb",
-        "file": "files/crowd.swell/d54c619df549.flac",
-        "sha256": "d54c619df549b91439941ecfbe89a95ce5e0f730b56fce53e2ddf031e2cb04c8",
-        "made": "2026-09-29T19:11:27.437Z",
+        "request": "e17915ab",
+        "file": "files/crowd.swell/79936350d057.flac",
+        "sha256": "79936350d05757afb2277293433ad5f49a7d8d00babc25f1e3a36596918428bc",
+        "made": "2026-09-29T20:11:35.653Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 3,
         "loudness": {
-          "integrated": -6.9,
-          "momentaryMax": -4.2,
-          "peak": 0
+          "integrated": -14.9,
+          "momentaryMax": -12.9,
+          "peak": -4.1
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
@@ -916,24 +2008,444 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
-      }
-    ],
-    "rejected": []
-  },
-  "dust.writing": {
-    "variants": [
+      },
       {
-        "request": "4e7be47d",
-        "file": "files/dust.writing/125ebc3cdeae.flac",
-        "sha256": "125ebc3cdeae360c4d9c86534d1c18e52861dbd5c6b56c09e1e0be5ad8d1890b",
-        "made": "2026-09-29T19:11:27.495Z",
+        "request": "e17915ab",
+        "file": "files/crowd.swell/1a80d679ad83.flac",
+        "sha256": "1a80d679ad839be466766cc13fc2a1396d62e03b2337acd8239885dff753fbb3",
+        "made": "2026-09-29T20:11:34.106Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -14.3,
+          "momentaryMax": -12.3,
+          "peak": -2.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "e17915ab",
+        "file": "files/crowd.swell/c8626829887b.flac",
+        "sha256": "c8626829887b010f933abd7ae0488489b1b1da8564900516990ce384f079f58c",
+        "made": "2026-09-29T20:11:35.913Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -18.5,
+          "momentaryMax": -15.7,
+          "peak": -5.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "e450cd99",
+        "file": "files/crowd.swell/56bca19a2515.flac",
+        "sha256": "56bca19a251527923ae910cb94e1abdf72352be079488bd8ce4d134b969fd8f0",
+        "made": "2026-09-29T20:21:57.422Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -20.4,
+          "momentaryMax": -17.7,
+          "peak": -7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "e450cd99",
+        "file": "files/crowd.swell/12aa162e0bbb.flac",
+        "sha256": "12aa162e0bbb189bf10d70e749b619f257c1505f56107de563f91283e8960114",
+        "made": "2026-09-29T20:21:57.538Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -16.4,
+          "momentaryMax": -13.7,
+          "peak": -3.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "e450cd99",
+        "file": "files/crowd.swell/56c875fd2b5e.flac",
+        "sha256": "56c875fd2b5e7614806891a64f072cf99a7b1aea85ac9dc5cd64fb20a4e9e08e",
+        "made": "2026-09-29T20:21:59.315Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -16,
+          "momentaryMax": -12.4,
+          "peak": -3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "c99fb5ed",
+        "file": "files/crowd.swell/e51323c94214.flac",
+        "sha256": "e51323c94214d94cdeca61330da12b750295169b9821a644b3399be317f6a537",
+        "made": "2026-09-29T20:22:01.751Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -15.7,
+          "momentaryMax": -12.4,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "c99fb5ed",
+        "file": "files/crowd.swell/964dc31cdc71.flac",
+        "sha256": "964dc31cdc712eb5b2388c7cc2a931cc35d60b70345920c6109f3b9b7facbbda",
+        "made": "2026-09-29T20:22:01.843Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -16.1,
+          "momentaryMax": -13.1,
+          "peak": -2.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "c99fb5ed",
+        "file": "files/crowd.swell/05635dbefb5b.flac",
+        "sha256": "05635dbefb5b0aff182ac2d9a5c2ebcb016198380c154a1fe3b61476db74b054",
+        "made": "2026-09-29T20:22:03.520Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -11,
+          "momentaryMax": -7.6,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "af1a589f",
+        "file": "files/crowd.swell/0b0dcc8db57d.flac",
+        "sha256": "0b0dcc8db57d223e7cbe2c2aa74d77e052e430b1ee7ffa30d3ad780a98ae1433",
+        "made": "2026-09-29T20:22:06.131Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -14,
+          "momentaryMax": -10.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "af1a589f",
+        "file": "files/crowd.swell/cb037cfa8f8e.flac",
+        "sha256": "cb037cfa8f8e2946c438faea95ed8b20b2ec51015da59d870f06a20a13ebeec8",
+        "made": "2026-09-29T20:22:06.148Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -13.9,
+          "momentaryMax": -10.6,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "af1a589f",
+        "file": "files/crowd.swell/b48c317f0293.flac",
+        "sha256": "b48c317f02934e91c57d503532b339c3a8a633c630921ae0c27f98c5d9d9cb6b",
+        "made": "2026-09-29T20:22:07.866Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -14.5,
+          "momentaryMax": -11.4,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "f429837e",
+        "file": "files/crowd.swell/22217c66a0c8.flac",
+        "sha256": "22217c66a0c859a1c9359363c9dcf01869cccca3432117b31d30bf8db6d98c26",
+        "made": "2026-09-29T20:22:10.332Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2,
         "loudness": {
-          "integrated": -38.8,
-          "momentaryMax": -37.7,
-          "peak": -18.7
+          "integrated": -26.8,
+          "momentaryMax": -24.4,
+          "peak": -15.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "f429837e",
+        "file": "files/crowd.swell/bc6dbb3611d8.flac",
+        "sha256": "bc6dbb3611d8235843a66a8dd26872afffd1320b5fba084085e2ed6050ccf9f3",
+        "made": "2026-09-29T20:22:10.352Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -13.2,
+          "momentaryMax": -10.8,
+          "peak": -0.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "f429837e",
+        "file": "files/crowd.swell/a28dc609f934.flac",
+        "sha256": "a28dc609f93414706f47931298772b4f9781786d2189353840952f93f7117949",
+        "made": "2026-09-29T20:22:12.510Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -25.4,
+          "momentaryMax": -24.2,
+          "peak": -13
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "eb29f05d",
+        "file": "files/crowd.swell/33806985974e.flac",
+        "sha256": "33806985974e1b9d50e867de545847f0a2591b41171322a54d31c75dd646c7ee",
+        "made": "2026-09-29T20:22:17.623Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -14,
+          "momentaryMax": -11.5,
+          "peak": -2.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      },
+      {
+        "request": "eb29f05d",
+        "file": "files/crowd.swell/b7724f9cf774.flac",
+        "sha256": "b7724f9cf77471282a9dbdcf452ff5ad85defb9dedd7399f74eee07b0306d6c9",
+        "made": "2026-09-29T20:22:17.779Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -12.1,
+          "momentaryMax": -9.1,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      },
+      {
+        "request": "eb29f05d",
+        "file": "files/crowd.swell/092586a46c4f.flac",
+        "sha256": "092586a46c4f78916301bb34a670581094ac6988061f41a52b3f1c7453f35f2e",
+        "made": "2026-09-29T20:22:20.779Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -13.3,
+          "momentaryMax": -9.3,
+          "peak": -0.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      },
+      {
+        "request": "667bcbeb",
+        "file": "files/crowd.swell/3ec439c718ea.flac",
+        "sha256": "3ec439c718ea54c134118397b12c1073712185cf6c1a9e90a943235d2b22eb9c",
+        "made": "2026-09-29T20:22:25.747Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -18.3,
+          "momentaryMax": -14.7,
+          "peak": -3.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "667bcbeb",
+        "file": "files/crowd.swell/1d063ec154d0.flac",
+        "sha256": "1d063ec154d08c06f59423624d70b50bce8c02797599e5ccd058f9b6d620c7c5",
+        "made": "2026-09-29T20:22:25.867Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -28.9,
+          "momentaryMax": -25.8,
+          "peak": -17.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "667bcbeb",
+        "file": "files/crowd.swell/419a0df7fcc2.flac",
+        "sha256": "419a0df7fcc23c694a9a427340ab977d0fba7ed6a38c5626fb3d52c3bb29db6e",
+        "made": "2026-09-29T20:22:28.683Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -31.2,
+          "momentaryMax": -28.4,
+          "peak": -20.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "5edcf68c",
+        "file": "files/crowd.swell/8c05364c4f12.flac",
+        "sha256": "8c05364c4f126e9249ec1c65f01f1188a80a93ef65a687265e26caeac7cb9093",
+        "made": "2026-09-29T20:22:32.244Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -16.9,
+          "momentaryMax": -14.4,
+          "peak": -5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "5edcf68c",
+        "file": "files/crowd.swell/d4f2755af64d.flac",
+        "sha256": "d4f2755af64d5d86f1c34c6b6f45ed5ba92ffeeec650ac7f2cd8b85d8154947a",
+        "made": "2026-09-29T20:22:32.261Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -11.6,
+          "momentaryMax": -8.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "5edcf68c",
+        "file": "files/crowd.swell/3c32f37eab8c.flac",
+        "sha256": "3c32f37eab8cab1d8597525486a9964fb9e4be0f41e2b7558e2607838dd54c24",
+        "made": "2026-09-29T20:22:34.280Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -9.7,
+          "momentaryMax": -7.1,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "847e029b",
+        "file": "files/crowd.swell/2b564b4c1599.flac",
+        "sha256": "2b564b4c159976c397d1a875839c248f43bca1e5350b83e40c4b591343320ff3",
+        "made": "2026-09-29T20:26:39.536Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -10.8,
+          "momentaryMax": -8.7,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      },
+      {
+        "request": "847e029b",
+        "file": "files/crowd.swell/1be00f607ce0.flac",
+        "sha256": "1be00f607ce06057569e42f25e4420de6df829c85222f2c3a125b2ffc2c3c073",
+        "made": "2026-09-29T20:26:39.593Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -12.2,
+          "momentaryMax": -10.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      },
+      {
+        "request": "847e029b",
+        "file": "files/crowd.swell/8fd8573c67b4.flac",
+        "sha256": "8fd8573c67b419218a356e28a09bffd7670d04381f7cebce02331fd7933f4c60",
+        "made": "2026-09-29T20:26:41.744Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 5,
+        "loudness": {
+          "integrated": -11.6,
+          "momentaryMax": -8,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 200
+      }
+    ],
+    "rejected": [
+      "0f4581326c31dcd8e85a7f0f825a66fe5cf8bef7d450ebbc39fd437f52237a69",
+      "8338ba9a59d177f14d2183932c1e65a937d3fe9e4691f080210604a0f58142af",
+      "979149b6a13a8a3eebba02e7e0ff19da8ae5120732e1053e9024b7885ff1f87f"
+    ]
+  },
+  "dust.writing": {
+    "variants": [
+      {
+        "request": "6860a3bb",
+        "file": "files/dust.writing/a82d029c90b1.flac",
+        "sha256": "a82d029c90b1de022c84c51a1a56b36a52c4f56d0eca006b65bc5002b988c2db",
+        "made": "2026-09-29T20:45:22.344Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -34.3,
+          "momentaryMax": -29.5,
+          "peak": -14.9
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
@@ -987,24 +2499,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
+      },
+      {
+        "request": "6860a3bb",
+        "file": "files/dust.writing/443c0539ea8a.flac",
+        "sha256": "443c0539ea8a104f3f0b02e5162733430cd8247d1a08f298131e55c3fa2d80cb",
+        "made": "2026-09-29T20:45:21.436Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -41.8,
+          "momentaryMax": -39.7,
+          "peak": -19.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "6860a3bb",
+        "file": "files/dust.writing/d581cea4fb10.flac",
+        "sha256": "d581cea4fb1031ea5ec334c90b31e5aae47997f3cd0f779de532ea055b9d3f33",
+        "made": "2026-09-29T20:45:25.626Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.7,
+          "momentaryMax": -26.6,
+          "peak": -15.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
-    "rejected": []
+    "rejected": [
+      "04c27e4278af85f74bd600df2c2dd08c1c3a5452288fcf519a2de29a143eb1f6",
+      "4f538bdeb5bd3a7ab7b46a4b685f36080ed937ea3deeba04edbbfb1f981ca80c",
+      "d7b2f8f2b6c1ba467347a94c4187983da4ceeb7c8d4650adb9620d67695917c8"
+    ]
   },
   "glass.scrub": {
     "variants": [
       {
-        "request": "6c706589",
-        "file": "files/glass.scrub/7b60acc58a9f.flac",
-        "sha256": "7b60acc58a9f11f059102a01484937984cacab7d80d4857a9f47767ef5489369",
-        "made": "2026-09-29T19:11:32.942Z",
+        "request": "5ce6c467",
+        "file": "files/glass.scrub/b148d7d5a8fd.flac",
+        "sha256": "b148d7d5a8fd63954e0c75951a81c3f2b365da0d2837ef4346060c142ef500e0",
+        "made": "2026-09-29T20:45:30.399Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -18.9,
-          "momentaryMax": -17.7,
-          "peak": -7.4
+          "integrated": -17,
+          "momentaryMax": -14.6,
+          "peak": -2.6
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -1058,24 +2606,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "5ce6c467",
+        "file": "files/glass.scrub/62a3102638f8.flac",
+        "sha256": "62a3102638f8a0d05354dfad33cd636acaa9d810419d5b6a19d2d9426a1f3703",
+        "made": "2026-09-29T20:45:26.012Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -19.7,
+          "momentaryMax": -17.7,
+          "peak": -8.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "5ce6c467",
+        "file": "files/glass.scrub/06734457b113.flac",
+        "sha256": "06734457b11342ca88392f749a2c78c2e6e9c4a01bdfb557f1e370f1ef83f78b",
+        "made": "2026-09-29T20:45:33.095Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -18.5,
+          "momentaryMax": -16.8,
+          "peak": -5.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "1fde68a466839f2c99453c1f9795bcc768e16bffde3c7cfeef2b78287c0e86ee",
+      "6a186cac9a23f2bb687447564e9c2df4f08d1b667527b713880f990a7f15e66e",
+      "a1ba61554d0a640e673a7e0a06180b4456cdfe019ed6b12aed47e019ab51a32f"
+    ]
   },
   "leaves.rustle": {
     "variants": [
       {
-        "request": "19a786ff",
-        "file": "files/leaves.rustle/9b1f267be0a7.flac",
-        "sha256": "9b1f267be0a7780ee1c7e5075d2e6ad0f5a7173719475f8edf6e0b1844688714",
-        "made": "2026-09-29T19:11:37.169Z",
+        "request": "e5c6a501",
+        "file": "files/leaves.rustle/a847067b01f4.flac",
+        "sha256": "a847067b01f4c9ab5c938d6ace20aec818bc2e5aa2921e64eabc18416874232f",
+        "made": "2026-09-29T20:45:35.461Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2,
         "loudness": {
-          "integrated": -23.3,
-          "momentaryMax": -20.4,
-          "peak": -8.4
+          "integrated": -16,
+          "momentaryMax": -13.7,
+          "peak": -5.6
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
@@ -1129,24 +2713,45 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
+      },
+      {
+        "request": "e5c6a501",
+        "file": "files/leaves.rustle/d76c73d5cd85.flac",
+        "sha256": "d76c73d5cd85cd8ba56433bb542dcd325614b24afa88828dd1b6fb9358481dbd",
+        "made": "2026-09-29T20:45:38.715Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -15.4,
+          "momentaryMax": -12.8,
+          "peak": -1.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
-    "rejected": []
+    "rejected": [
+      "22eba6284273933d6f746f52715703e96621a7f0fb3d817df01ee291e31d1ceb",
+      "4beda929c21494dc02c2a069f56a86bdc14b4750b941d708fd4c8471b517913c",
+      "bb3bb448ea418a456bb5537722c89e1a5b82276a77297ea1720747979d3c2813",
+      "c3eefdf5df464482ce49257ddcf820a96b4219a973a5f576d8ab4643114d9adc"
+    ]
   },
   "loom.weave": {
     "variants": [
       {
-        "request": "512e7c56",
-        "file": "files/loom.weave/ad03eeb21857.flac",
-        "sha256": "ad03eeb21857493989c43b03e949941402a2c32c19af0f5fb30117c231c1e86f",
-        "made": "2026-09-29T19:11:39.488Z",
+        "request": "c1e8c6f8",
+        "file": "files/loom.weave/ae71618fe7e0.flac",
+        "sha256": "ae71618fe7e0c8c88de26cd8990e11750ff25defe84da16b277bd208e09c4c24",
+        "made": "2026-09-29T20:45:46.839Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2.48,
         "loudness": {
-          "integrated": -26,
-          "momentaryMax": -23.8,
-          "peak": -7
+          "integrated": -22.2,
+          "momentaryMax": -21,
+          "peak": -3.5
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
@@ -1200,27 +2805,63 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
+      },
+      {
+        "request": "c1e8c6f8",
+        "file": "files/loom.weave/623671574dcb.flac",
+        "sha256": "623671574dcbd0a8ce3efa279dcf463821b113f914abfb2abf560c62b215a6fe",
+        "made": "2026-09-29T20:45:44.738Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -23.3,
+          "momentaryMax": -20.2,
+          "peak": -2.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "c1e8c6f8",
+        "file": "files/loom.weave/2db49c4767a3.flac",
+        "sha256": "2db49c4767a306359fd18a7815c1ffd6e03002cdfe70954b838dc655b36ed132",
+        "made": "2026-09-29T20:45:49.233Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -25,
+          "momentaryMax": -22.1,
+          "peak": -2.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
       }
     ],
-    "rejected": []
+    "rejected": [
+      "04466aae7b1e9840dbeeb33e54e264017e3b9abb5b703236eb6c78936612e132",
+      "2a6fe089c1336e321ee6aadf27f612d697f945354862a569adc2f6d859a71ba2",
+      "253fe675d3bd729eaaff0faa61324fe8b19fc01f309bb1485060dc6a588cd2f4"
+    ]
   },
   "mat.roll": {
     "variants": [
       {
-        "request": "d9206df6",
-        "file": "files/mat.roll/98c52b6fd33f.flac",
-        "sha256": "98c52b6fd33f6787dfad4055f4a04cf30740402782d0e6eb291f2f3b43eb7709",
-        "made": "2026-09-29T19:11:45.205Z",
+        "request": "b9798a5c",
+        "file": "files/mat.roll/7d4c1973bd12.flac",
+        "sha256": "7d4c1973bd12ef662bd81ba322a643252cfb547fdfac349057b5d9b1f2330bed",
+        "made": "2026-09-29T20:21:04.694Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
-        "secs": 1.48,
+        "secs": 1.2,
         "loudness": {
-          "integrated": -37.2,
-          "momentaryMax": -35.2,
-          "peak": -14.5
+          "integrated": -24.5,
+          "momentaryMax": -23,
+          "peak": -12.4
         },
         "licence": "elevenlabs-paid-sfx",
-        "credits": 60
+        "credits": 48
       }
     ],
     "candidates": [
@@ -1271,27 +2912,479 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "282e355b",
+        "file": "files/mat.roll/f51e1c595f6d.flac",
+        "sha256": "f51e1c595f6d17892b05757bbfd1c6ebbe6ac16a1b3f776774f585be82d77984",
+        "made": "2026-09-29T20:11:37.525Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -30.5,
+          "momentaryMax": -28.9,
+          "peak": -8.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "282e355b",
+        "file": "files/mat.roll/2585ee0fdfb2.flac",
+        "sha256": "2585ee0fdfb24675a51a76c6da0548ff9a75017049c85fcd9be2897b68d3078e",
+        "made": "2026-09-29T20:11:37.631Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.2,
+          "momentaryMax": -27.2,
+          "peak": -12.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "282e355b",
+        "file": "files/mat.roll/a6aef4a77d2b.flac",
+        "sha256": "a6aef4a77d2b85dcf1db6691e404b66887ab917bec2d7be6ac4f0fcf115d8782",
+        "made": "2026-09-29T20:11:39.584Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -19.9,
+          "momentaryMax": -17.3,
+          "peak": -6.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "282e355b",
+        "file": "files/mat.roll/3d14f09181c1.flac",
+        "sha256": "3d14f09181c1c103901d970201e33b71410e9708adde476b7e13131dd1dcc3a7",
+        "made": "2026-09-29T20:11:39.600Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -29.3,
+          "momentaryMax": -25.5,
+          "peak": -10.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "24694009",
+        "file": "files/mat.roll/7da39377920a.flac",
+        "sha256": "7da39377920a60f33c2576f136020d1fdff6340ed90c960fd6e7daa66ade2c6f",
+        "made": "2026-09-29T20:20:50.222Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.2,
+          "momentaryMax": -27.5,
+          "peak": -17.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "24694009",
+        "file": "files/mat.roll/7cf4b3bfe3b3.flac",
+        "sha256": "7cf4b3bfe3b3ac9cc29322661af4870ab0947edfbda954cb659a58268e2caa4c",
+        "made": "2026-09-29T20:20:50.385Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -38.2,
+          "momentaryMax": -36.2,
+          "peak": -21.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "24694009",
+        "file": "files/mat.roll/50c1a9d5556f.flac",
+        "sha256": "50c1a9d5556f0fc5486839a1c3885f4ab644596abdd6d87e1ae554736d0e79a5",
+        "made": "2026-09-29T20:20:52.498Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -28.3,
+          "momentaryMax": -26.6,
+          "peak": -11.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "85efa11d",
+        "file": "files/mat.roll/6bbc50b59a92.flac",
+        "sha256": "6bbc50b59a92d69e4e25e4120f421137a1a2d32286e273ae8c7e7f76ae2a69c5",
+        "made": "2026-09-29T20:20:55.221Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -33.1,
+          "momentaryMax": -31.5,
+          "peak": -15.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "85efa11d",
+        "file": "files/mat.roll/580862ad040e.flac",
+        "sha256": "580862ad040eff21da210bc209ab6b559f51a47d6a5ee80dd0a8fc29e4d75615",
+        "made": "2026-09-29T20:20:55.534Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -25.7,
+          "momentaryMax": -21.1,
+          "peak": -9.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "85efa11d",
+        "file": "files/mat.roll/389578ab444a.flac",
+        "sha256": "389578ab444a1b6b14a57321ec8eba077098786110afb4f3f078ee125e43dd16",
+        "made": "2026-09-29T20:20:57.069Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -28.1,
+          "momentaryMax": -25.6,
+          "peak": -12.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "66e2c90f",
+        "file": "files/mat.roll/0fa089f6203d.flac",
+        "sha256": "0fa089f6203dbe0ba690c8e0880df0a08b623a73366c269da010fb2b3e2d3aa6",
+        "made": "2026-09-29T20:20:59.996Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -28.9,
+          "momentaryMax": -26.7,
+          "peak": -12.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "66e2c90f",
+        "file": "files/mat.roll/4aefb73a92d0.flac",
+        "sha256": "4aefb73a92d0ad262cf083cf90f1fd0449293cfd2cfb29b170569e7c24479943",
+        "made": "2026-09-29T20:21:00.023Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -36.6,
+          "momentaryMax": -33.4,
+          "peak": -22.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "66e2c90f",
+        "file": "files/mat.roll/9698894419cf.flac",
+        "sha256": "9698894419cf4d15f9b586bd17b891f91be4a06fd0884d385e51e4ee78b42843",
+        "made": "2026-09-29T20:21:01.775Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.5,
+          "momentaryMax": -29.4,
+          "peak": -18.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "b9798a5c",
+        "file": "files/mat.roll/0d5fcfe4ca52.flac",
+        "sha256": "0d5fcfe4ca52d9ffa49184cdeac73874d3fb644353d7f7fbe719ff64f9675b93",
+        "made": "2026-09-29T20:21:04.629Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -23,
+          "momentaryMax": -21.6,
+          "peak": -8.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "314ae42e",
+        "file": "files/mat.roll/d5f99d509dc5.flac",
+        "sha256": "d5f99d509dc577a0f8f17cef10d7f8efe0519bac0e0151c50bd24f50aa6b379e",
+        "made": "2026-09-29T20:21:10.423Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -36.5,
+          "momentaryMax": -33.7,
+          "peak": -15.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "314ae42e",
+        "file": "files/mat.roll/eae241a21aea.flac",
+        "sha256": "eae241a21aea31a1ce0791f833c27c22e5e71f01f34f487b425542b0f922f835",
+        "made": "2026-09-29T20:21:10.444Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -36.1,
+          "momentaryMax": -33.6,
+          "peak": -17
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "314ae42e",
+        "file": "files/mat.roll/44a89b3a3a4b.flac",
+        "sha256": "44a89b3a3a4b176a87dded41c5ac7c15094c6ab9981dd374ff012e7e845e5dd5",
+        "made": "2026-09-29T20:21:12.299Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -39.2,
+          "momentaryMax": -35.4,
+          "peak": -15.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "ea8cf2d1",
+        "file": "files/mat.roll/6d8dbff48e97.flac",
+        "sha256": "6d8dbff48e97b0bfdecf5028dca9ed977e14f7232aabc5efa7d40431e1360f83",
+        "made": "2026-09-29T20:21:14.578Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -29,
+          "momentaryMax": -26.7,
+          "peak": -13.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "ea8cf2d1",
+        "file": "files/mat.roll/ed5220715b9a.flac",
+        "sha256": "ed5220715b9aed173c02855dcfc806490b386f6d53232d361bcea2a1dee4a9a8",
+        "made": "2026-09-29T20:21:14.716Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -27.3,
+          "momentaryMax": -25.7,
+          "peak": -13.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "ea8cf2d1",
+        "file": "files/mat.roll/77ff2b0f7073.flac",
+        "sha256": "77ff2b0f70739e253d1b949a38b8503a4ccbc373160325c7de2a470e77c583b1",
+        "made": "2026-09-29T20:21:16.179Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -23.4,
+          "momentaryMax": -20.7,
+          "peak": -9.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "fd8b8c0d",
+        "file": "files/mat.roll/deff7a5eab93.flac",
+        "sha256": "deff7a5eab937150069a3d68def77cfb2bfa66f193aa6b691faaf8fd37fa885e",
+        "made": "2026-09-29T20:21:18.869Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -33.7,
+          "momentaryMax": -30.8,
+          "peak": -13.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "fd8b8c0d",
+        "file": "files/mat.roll/bf2a7bb8920a.flac",
+        "sha256": "bf2a7bb8920a72dcae836e0a5c3bd457030d6bb0228f473f977e4b3436b00e00",
+        "made": "2026-09-29T20:21:19.033Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.6,
+          "momentaryMax": -28.5,
+          "peak": -11.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "fd8b8c0d",
+        "file": "files/mat.roll/363510cd6da5.flac",
+        "sha256": "363510cd6da5c3cb63f7acd3acb7970cf891f74c07c150fec2b59b4675ae9571",
+        "made": "2026-09-29T20:21:21.104Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -28.1,
+          "momentaryMax": -26.1,
+          "peak": -2.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "21a2657a",
+        "file": "files/mat.roll/9b774b973ca6.flac",
+        "sha256": "9b774b973ca624187e8629886d896d5e6ab410d6414947d47e61d5d5dc9e82ef",
+        "made": "2026-09-29T20:26:34.085Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -28.9,
+          "momentaryMax": -27.3,
+          "peak": -17.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "21a2657a",
+        "file": "files/mat.roll/8243a700f3c0.flac",
+        "sha256": "8243a700f3c083a26a53138c18c9c453d8048536962a5c3bcd564d6f2a2362b9",
+        "made": "2026-09-29T20:26:34.264Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -33.3,
+          "momentaryMax": -31.4,
+          "peak": -19.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "21a2657a",
+        "file": "files/mat.roll/1d3ea8f7f169.flac",
+        "sha256": "1d3ea8f7f1697a936715f5dff568c987bf1fc9f403026e7dbaf886e7902f444d",
+        "made": "2026-09-29T20:26:36.025Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -16.5,
+          "momentaryMax": -14.6,
+          "peak": -3.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "21a2657a",
+        "file": "files/mat.roll/dff91706e344.flac",
+        "sha256": "dff91706e344a46b37a762a1fbbd2a7c3b503f6892dc6b0b3b989515b83200cb",
+        "made": "2026-09-29T20:26:36.407Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -29.8,
+          "momentaryMax": -27.5,
+          "peak": -12.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "b9798a5c",
+        "file": "files/mat.roll/933079dbf25f.flac",
+        "sha256": "933079dbf25fb3113b8e7fe523ab93ec1aa1b4acb26df179a4f9f39f4af50f55",
+        "made": "2026-09-29T20:45:50.262Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -26.7,
+          "momentaryMax": -24.3,
+          "peak": -11.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
       }
     ],
-    "rejected": []
+    "rejected": [
+      "9e0b0c9778456e0fba985b8d4cf4ef8104b222e5854205a529146751fea6e8bd",
+      "8b70e4783d882e42941ad3198786be907b2ad0b851a2be1a1c09ae6468cac494",
+      "fb16facc3d3d90d5cb3490c96dc8e588fdf7553c9d50375ffead3981865b0a14"
+    ]
   },
   "needle.thread": {
     "variants": [
       {
-        "request": "ed8fa0a0",
-        "file": "files/needle.thread/b117a0460505.flac",
-        "sha256": "b117a04605059937ba41253ab5e66604e2c8141e3bc599d81cf0f45f7748ebfa",
-        "made": "2026-09-29T19:11:47.399Z",
+        "request": "ff12a0cb",
+        "file": "files/needle.thread/adefd277a5c6.flac",
+        "sha256": "adefd277a5c6445a302531a6c9876c45d547f70306af88f0aff6139dae461d26",
+        "made": "2026-09-29T20:20:28.324Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
-        "secs": 1.48,
+        "secs": 2,
         "loudness": {
-          "integrated": -32.6,
-          "momentaryMax": -30.3,
-          "peak": -9.3
+          "integrated": -16,
+          "momentaryMax": -13.3,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
-        "credits": 60
+        "credits": 80
       }
     ],
     "candidates": [
@@ -1342,24 +3435,476 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "7c8c71bf",
+        "file": "files/needle.thread/63738158f187.flac",
+        "sha256": "63738158f187d52981f6e8b1be78facb0a5d358fd530270109c8e008bd780caf",
+        "made": "2026-09-29T20:11:41.519Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -31.7,
+          "momentaryMax": -27.1,
+          "peak": -7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "7c8c71bf",
+        "file": "files/needle.thread/529c161c630b.flac",
+        "sha256": "529c161c630b0a1feb252ed091ab038a2bfaadd2f67863723e78d7d378e8b9ba",
+        "made": "2026-09-29T20:11:41.729Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -24.8,
+          "momentaryMax": -17.7,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "7c8c71bf",
+        "file": "files/needle.thread/a977b3896075.flac",
+        "sha256": "a977b3896075b65baa8594df59a0f58fc6e47503061fe0a4fa2971381fcf4e5a",
+        "made": "2026-09-29T20:11:43.475Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -22.2,
+          "momentaryMax": -21,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "7c8c71bf",
+        "file": "files/needle.thread/6d772e26dc0d.flac",
+        "sha256": "6d772e26dc0db19d252f0f24ab188dce42e0490753084ea2102b16597256d797",
+        "made": "2026-09-29T20:11:43.935Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -18.7,
+          "momentaryMax": -17.8,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "62c915d5",
+        "file": "files/needle.thread/417ec24eab30.flac",
+        "sha256": "417ec24eab300698aa04302a930e1a27c1e6a3bbe0c5556c89bab38744762e08",
+        "made": "2026-09-29T20:20:18.932Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -22.9,
+          "momentaryMax": -21.9,
+          "peak": -1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "62c915d5",
+        "file": "files/needle.thread/8365ad7741ef.flac",
+        "sha256": "8365ad7741ef4d19ef6271909868cc5e49138ce058a85191f331b9242c23bbb5",
+        "made": "2026-09-29T20:20:19.203Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -17.8,
+          "momentaryMax": -17.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "62c915d5",
+        "file": "files/needle.thread/baebb7a64a5b.flac",
+        "sha256": "baebb7a64a5b4929df5d9eb23a0e49dd4d6134e6d715e707d22db2cc9f0e6e28",
+        "made": "2026-09-29T20:20:20.908Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -19.6,
+          "momentaryMax": -19.4,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "f1da8cc1",
+        "file": "files/needle.thread/15899eb03c42.flac",
+        "sha256": "15899eb03c42aafc23602c5b4c31d6abfe28a054fb891084ad1ddbe6486fe898",
+        "made": "2026-09-29T20:20:23.623Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -23.5,
+          "momentaryMax": -18.8,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "f1da8cc1",
+        "file": "files/needle.thread/f1b47f1557a6.flac",
+        "sha256": "f1b47f1557a6e23c6aaa693463bdaeaec838e9f29ff7be9a6f1796f509119bb9",
+        "made": "2026-09-29T20:20:23.908Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -20.6,
+          "momentaryMax": -17.1,
+          "peak": -0.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "f1da8cc1",
+        "file": "files/needle.thread/67117f08e426.flac",
+        "sha256": "67117f08e4261c94eda72e79adc59dabc60a47a6b1502a8ab1240b5bca7085e1",
+        "made": "2026-09-29T20:20:25.901Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -20.2,
+          "momentaryMax": -17.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "ff12a0cb",
+        "file": "files/needle.thread/3734e098cbaf.flac",
+        "sha256": "3734e098cbaf6a12cedac790832ba9dc7253218a486d87c1c84bc0970024f521",
+        "made": "2026-09-29T20:20:28.451Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -20.9,
+          "momentaryMax": -20.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "64b87118",
+        "file": "files/needle.thread/4aaa9d12999e.flac",
+        "sha256": "4aaa9d12999e59e7d6edcd0eb7e1a4cf44dd80f0ae7838379828f3b837328719",
+        "made": "2026-09-29T20:20:32.577Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -29,
+          "momentaryMax": -26.3,
+          "peak": -7.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "64b87118",
+        "file": "files/needle.thread/cb15229a0475.flac",
+        "sha256": "cb15229a0475db61ca58b80536a0e740185de024a31090210024764e56bdb1e6",
+        "made": "2026-09-29T20:20:34.173Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -15.9,
+          "momentaryMax": -15.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "64b87118",
+        "file": "files/needle.thread/f8617db1fa10.flac",
+        "sha256": "f8617db1fa104c5b87603f1ed8c37fa1f5c9b29cf56212cacb7f8e6b6b26abe2",
+        "made": "2026-09-29T20:20:34.661Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -24.4,
+          "momentaryMax": -21.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "432eb7a2",
+        "file": "files/needle.thread/806b366c17df.flac",
+        "sha256": "806b366c17df9b1fdb60957b136b3001fadfbd47a7e88ba5719ba33e6791e955",
+        "made": "2026-09-29T20:20:37.169Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -25.1,
+          "momentaryMax": -24.2,
+          "peak": -2.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "432eb7a2",
+        "file": "files/needle.thread/4afc5b7ba06f.flac",
+        "sha256": "4afc5b7ba06f76e228f31487a25441c44028fdf5d8988f8d2039b06cfae8d18a",
+        "made": "2026-09-29T20:20:37.336Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -20.8,
+          "momentaryMax": -17.8,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "432eb7a2",
+        "file": "files/needle.thread/d0238cc1e600.flac",
+        "sha256": "d0238cc1e6000e660449da3e6b9df871c619acfe647cc6fc17d0f20a12ed5c4c",
+        "made": "2026-09-29T20:20:39.041Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -23.4,
+          "momentaryMax": -21.7,
+          "peak": -1.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "2bee9f66",
+        "file": "files/needle.thread/9cf94b24a517.flac",
+        "sha256": "9cf94b24a5171f27f0cefd52cda6bcb3aed8dcb6fecd8647c3b324daeac7b99b",
+        "made": "2026-09-29T20:20:41.343Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -11.7,
+          "momentaryMax": -10,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "2bee9f66",
+        "file": "files/needle.thread/f3e7f6e4fe3e.flac",
+        "sha256": "f3e7f6e4fe3e24a13a36451d9a6749d53b18b1d399f2c5911f4e77129965daca",
+        "made": "2026-09-29T20:20:41.536Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -7.7,
+          "momentaryMax": -6.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "2bee9f66",
+        "file": "files/needle.thread/151fb8022b98.flac",
+        "sha256": "151fb8022b98d0950701e0d37a67782f366a28d1f9dfe6f0518f046ef4762968",
+        "made": "2026-09-29T20:20:43.038Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -11.9,
+          "momentaryMax": -10.3,
+          "peak": -0.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "b4c4d133",
+        "file": "files/needle.thread/bfe5423619cb.flac",
+        "sha256": "bfe5423619cbc82727375d840fc3b29f53f1b9fa18c7675ec927ed2d731d2f50",
+        "made": "2026-09-29T20:20:45.491Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -55.2,
+          "momentaryMax": -51.9,
+          "peak": -42.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "b4c4d133",
+        "file": "files/needle.thread/a9561029935b.flac",
+        "sha256": "a9561029935b402c08f6518cdc7cb115cce3eb603b7e2a24e164327c51bd24db",
+        "made": "2026-09-29T20:20:45.515Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -38,
+          "momentaryMax": -35,
+          "peak": -25.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "b4c4d133",
+        "file": "files/needle.thread/6b17a40e2b09.flac",
+        "sha256": "6b17a40e2b09315e5d40f68383e2ed61da2415c1f67735c60f2c8a5e140ef7a9",
+        "made": "2026-09-29T20:20:47.600Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -53.1,
+          "momentaryMax": -50.6,
+          "peak": -42.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "30383b84",
+        "file": "files/needle.thread/b7a6d03929fd.flac",
+        "sha256": "b7a6d03929fdf2c26db30575a55dde451439a4484d012a7d047b9adfb193a760",
+        "made": "2026-09-29T20:26:28.885Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -20.3,
+          "momentaryMax": -18.7,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "30383b84",
+        "file": "files/needle.thread/1a363a9f7a15.flac",
+        "sha256": "1a363a9f7a15f13068b43407c5293e947b2f1a00eabf205f45ce966af2867951",
+        "made": "2026-09-29T20:26:29.082Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -20.5,
+          "momentaryMax": -19.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "30383b84",
+        "file": "files/needle.thread/a76742c20e2a.flac",
+        "sha256": "a76742c20e2a06fa19892286f4dd2186d2068892f238e9da8ba49cb57126f833",
+        "made": "2026-09-29T20:26:30.724Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -20.5,
+          "momentaryMax": -20.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "30383b84",
+        "file": "files/needle.thread/9c513cc70954.flac",
+        "sha256": "9c513cc7095486dd8cd4928d76651d5a37812e0a69aa266ef8076a99eae1a097",
+        "made": "2026-09-29T20:26:30.914Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -25.3,
+          "momentaryMax": -21.3,
+          "peak": -0.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "ff12a0cb",
+        "file": "files/needle.thread/99185ad3bfe8.flac",
+        "sha256": "99185ad3bfe8903f1e05787396f7d5cdd3327f871fb19f6f6406a3afed9ec0ef",
+        "made": "2026-09-29T20:45:54.372Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -18.9,
+          "momentaryMax": -16.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
-    "rejected": []
+    "rejected": [
+      "f0b30819aae6cb9c99390ff2eae1f7f3921af8ed5ed8cb973c91641d3e79d971",
+      "52c668ecac9cba8a619e1f9cb7fe1cfcecb1892db980f6956e5f0df706b0ba2f",
+      "938787454ddc5ef8d1bf6a18e4c159eae61fb1af23271535e75536cfe4eb0151"
+    ]
   },
   "paper.flip": {
     "variants": [
       {
-        "request": "9bf656c2",
-        "file": "files/paper.flip/110c703eb09d.flac",
-        "sha256": "110c703eb09db7b2e608f5bf329de55d7f8671cacff5171356af765f6789ff9e",
-        "made": "2026-09-29T19:11:51.162Z",
+        "request": "35540da4",
+        "file": "files/paper.flip/35f0d1727721.flac",
+        "sha256": "35f0d1727721b1f41a630a57507a38e1086cad0f5f8bbd7d7f90220d96957494",
+        "made": "2026-09-29T20:46:00.837Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 0.8,
         "loudness": {
-          "integrated": -30.8,
-          "momentaryMax": -29.3,
-          "peak": -6.7
+          "integrated": -19.9,
+          "momentaryMax": -18.9,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
@@ -1413,24 +3958,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
+      },
+      {
+        "request": "35540da4",
+        "file": "files/paper.flip/7e213b75b3d2.flac",
+        "sha256": "7e213b75b3d2085aa65af599f70e071c8e932d38a88a92200d561a626b37a868",
+        "made": "2026-09-29T20:45:59.746Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -23.2,
+          "momentaryMax": -22.1,
+          "peak": -5.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "35540da4",
+        "file": "files/paper.flip/971e1e0610b2.flac",
+        "sha256": "971e1e0610b26085462621f1bb4da1b8f06b2e592e61f802ce82d948ed7c27ea",
+        "made": "2026-09-29T20:46:01.849Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -25.9,
+          "momentaryMax": -24.8,
+          "peak": -6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
       }
     ],
-    "rejected": []
+    "rejected": [
+      "2f96aa8133de7343596474c88a4c7af3704237b1a66a49285a0ecac004f335e5",
+      "bd051c6a96dbfb240df2d2ca7610f32bcaa82dafd4bf9407fe0e076ca6e58f3e",
+      "68d39009994379a3d1f13d6d25f906c7680dab0ff9b8577e15e6030724471e4b"
+    ]
   },
   "paper.slide": {
     "variants": [
       {
-        "request": "58d84864",
-        "file": "files/paper.slide/71a924e05ab3.flac",
-        "sha256": "71a924e05ab371ec71afe0f85a73b5f5acf9a011772107cbc31f2923382bf7dd",
-        "made": "2026-09-29T19:11:55.884Z",
+        "request": "f38cb182",
+        "file": "files/paper.slide/bc97bf7b8dfc.flac",
+        "sha256": "bc97bf7b8dfc98d01304e900cd9c40cf607f12e757268749343c8f0a421d3c5d",
+        "made": "2026-09-29T20:46:08.108Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -23.6,
-          "momentaryMax": -21.7,
-          "peak": -12.6
+          "integrated": -8.2,
+          "momentaryMax": -6.5,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
@@ -1484,23 +4065,74 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
+      },
+      {
+        "request": "f38cb182",
+        "file": "files/paper.slide/c3b05b3eded2.flac",
+        "sha256": "c3b05b3eded2be85c4476d6b6164db71da8e43ca1d8f16e2738cbdf94c1508c2",
+        "made": "2026-09-29T20:46:06.526Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -10.7,
+          "momentaryMax": -9,
+          "peak": -2.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "f38cb182",
+        "file": "files/paper.slide/5e88aa81baff.flac",
+        "sha256": "5e88aa81bafffd6ff642841a51d49cfbc02679e18a52cd2f7d7052de553f2289",
+        "made": "2026-09-29T20:46:08.956Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -24.9,
+          "momentaryMax": -23.8,
+          "peak": -11.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "f38cb182",
+        "file": "files/paper.slide/e1e47423a67e.flac",
+        "sha256": "e1e47423a67eb9fe3664fe211fd2cc2f07e22f298bda3f3880bf41eeceb5edd3",
+        "made": "2026-09-29T20:46:10.772Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -6.5,
+          "momentaryMax": -4.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
       }
     ],
-    "rejected": []
+    "rejected": [
+      "7c9f0c24448202d619e54ba2b5a5b7246d418e564c58409de7af8266c5d530ef",
+      "4efb18d4867ed161ee44bab28ddaae5c56727cb32dbf883d1e6f5341e4a72f8d"
+    ]
   },
   "paper.stack": {
     "variants": [
       {
-        "request": "3fde9377",
-        "file": "files/paper.stack/b712c35140f5.flac",
-        "sha256": "b712c35140f57494fe25fbce6c71ddaacd107e7855e9056d33565a79e5b716de",
-        "made": "2026-09-29T19:12:00.521Z",
+        "request": "abad8899",
+        "file": "files/paper.stack/7a828b14894e.flac",
+        "sha256": "7a828b14894eedbbe04c7b5a875342b00fd8fa3ceb83e929c72013ec49866d1c",
+        "made": "2026-09-29T20:46:19.250Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -21.1,
-          "momentaryMax": -19.1,
+          "integrated": -17.2,
+          "momentaryMax": -14.3,
           "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
@@ -1555,22 +4187,58 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "abad8899",
+        "file": "files/paper.stack/bb0fc5a6ceae.flac",
+        "sha256": "bb0fc5a6ceaea52c6a3b03941fc9c92677cc01d3c73c974191e1ac84823fda4b",
+        "made": "2026-09-29T20:46:16.730Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -13.5,
+          "momentaryMax": -13.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "abad8899",
+        "file": "files/paper.stack/3ccc03e42f6a.flac",
+        "sha256": "3ccc03e42f6aac0240a9ae1c036a84cca467e741b9982bb3ae195a1ae399929b",
+        "made": "2026-09-29T20:46:20.031Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -20.4,
+          "momentaryMax": -17.4,
+          "peak": -0.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "d9bdc49f8bd36b1b835fdd825677ae43a391ebd70ba99b2dc03b3de607002885",
+      "b847ce0bc391b77ff326ae6bf70f159e306521d10517e13c4d340feb0f9795c4",
+      "d4500e8420f8aa7ae04ef9f9927f275d0ca0cf9717daefd0173eda247ef2d1be"
+    ]
   },
   "paper.tear": {
     "variants": [
       {
-        "request": "0f31d53c",
-        "file": "files/paper.tear/726d4b4c3bf4.flac",
-        "sha256": "726d4b4c3bf45c2adf1592a536a53bd9d511339a3b5fd1356a23db44b3ac3aa8",
-        "made": "2026-09-29T19:12:02.953Z",
+        "request": "9ff634da",
+        "file": "files/paper.tear/8f0eefc07133.flac",
+        "sha256": "8f0eefc07133c5c8147eddf260933c57eeeff79fd1ed076a06ec80ad0c577070",
+        "made": "2026-09-29T20:46:21.903Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -7.7,
+          "integrated": -7.8,
           "momentaryMax": -6,
           "peak": 0
         },
@@ -1610,24 +4278,61 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
-      }
-    ],
-    "rejected": ["7165e9840478bd70847211f5b7db5299c26755ed5930478e43b2aa84af238b6e"]
-  },
-  "paper.whoosh": {
-    "variants": [
+      },
       {
-        "request": "99e34efb",
-        "file": "files/paper.whoosh/32758ce8f8d8.flac",
-        "sha256": "32758ce8f8d8323da72cb2f00778d54235bc04e0cbe093bc3d7e3f9cb519ef55",
-        "made": "2026-09-29T19:12:07.693Z",
+        "request": "9ff634da",
+        "file": "files/paper.tear/8492c9d48ee9.flac",
+        "sha256": "8492c9d48ee979f3c32f3b72d152e3f42da4ec504818d8a0f75d725b2b0e0644",
+        "made": "2026-09-29T20:46:24.107Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -13.7,
-          "momentaryMax": -11.9,
-          "peak": -3
+          "integrated": -8,
+          "momentaryMax": -6.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "9ff634da",
+        "file": "files/paper.tear/132fdd8afe1c.flac",
+        "sha256": "132fdd8afe1cf9ef01d7a45dba53d3fc2056345d4053f3d8c684c54e3f742cab",
+        "made": "2026-09-29T20:46:25.920Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -7.6,
+          "momentaryMax": -5.8,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      }
+    ],
+    "rejected": [
+      "7165e9840478bd70847211f5b7db5299c26755ed5930478e43b2aa84af238b6e",
+      "e4c3b5f8234bd66be3ff7426617aaf47ccf55cfa6668536d21b002240f46e22f",
+      "53ec3dd83e7bc5b893e0f05e8b42bd8a4a9722419e18dcf96f9e768d776c6047",
+      "1432f6a3e549d29c0042bb39b2af452b1e4377acfb23b580272488f70602895c"
+    ]
+  },
+  "paper.whoosh": {
+    "variants": [
+      {
+        "request": "80f407bd",
+        "file": "files/paper.whoosh/b93d1ccdb3da.flac",
+        "sha256": "b93d1ccdb3da4a0cc46f5166e93973c4b55fd4a212fee3c9508a600020710b46",
+        "made": "2026-09-29T20:46:30.253Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -12,
+          "momentaryMax": -10.2,
+          "peak": -2
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
@@ -1681,24 +4386,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
+      },
+      {
+        "request": "80f407bd",
+        "file": "files/paper.whoosh/67819311a40a.flac",
+        "sha256": "67819311a40ac721007a666563407d026c7b3afec8ab172652e7a20c67506654",
+        "made": "2026-09-29T20:46:28.364Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -13.6,
+          "momentaryMax": -11.4,
+          "peak": -5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "80f407bd",
+        "file": "files/paper.whoosh/297ecc7b255f.flac",
+        "sha256": "297ecc7b255f9b5fe1b7be063e9fc4785c6ac91441426535b68da3398affc338",
+        "made": "2026-09-29T20:46:33.091Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -11.6,
+          "momentaryMax": -9.9,
+          "peak": -3.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
       }
     ],
-    "rejected": []
+    "rejected": [
+      "676c234cc12cd31bd2d51423e9cea1093ff880601796a7da7f0dca1b3999e332",
+      "6d29d15a89d3968bc8e99d92298b350c9b25c37ccff40e025ed60add70258f36",
+      "7e0d0588c035c5c977f706e0531ab482a2bcbc02fadf8bcf7f8513eecdf54442"
+    ]
   },
   "pole.creak": {
     "variants": [
       {
-        "request": "bf1f6aa4",
-        "file": "files/pole.creak/fd3f16e0dbbf.flac",
-        "sha256": "fd3f16e0dbbfe9a9196e9a68163cec7d0a79e0c711bd97380d6959c9403f9526",
-        "made": "2026-09-29T19:12:12.614Z",
+        "request": "25c1b3c2",
+        "file": "files/pole.creak/03e23b429918.flac",
+        "sha256": "03e23b4299188a95da2c83bf58a0ace66dc945d5369b4926515c1362963128b7",
+        "made": "2026-09-29T20:46:37.632Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2,
         "loudness": {
-          "integrated": -19.9,
-          "momentaryMax": -17.5,
-          "peak": -9.1
+          "integrated": -20.8,
+          "momentaryMax": -16.8,
+          "peak": -2.9
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
@@ -1752,23 +4493,59 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
+      },
+      {
+        "request": "25c1b3c2",
+        "file": "files/pole.creak/5b11d695e813.flac",
+        "sha256": "5b11d695e813c9928aef117dcf1992f100b0dc0b1fe13ef10be86127fa1924cd",
+        "made": "2026-09-29T20:46:36.214Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -27.2,
+          "momentaryMax": -24.5,
+          "peak": -6.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "25c1b3c2",
+        "file": "files/pole.creak/c1c28f5b60c5.flac",
+        "sha256": "c1c28f5b60c5d20f709dc66e5a37f238dc83305577e6a0c56de9f0f80da23a96",
+        "made": "2026-09-29T20:46:38.947Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -22.5,
+          "momentaryMax": -18.1,
+          "peak": -5.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
-    "rejected": []
+    "rejected": [
+      "4396af8f262db2f6e622fdab8fb12b174d73fe0de9d79d150f4191805480c9a4",
+      "310278c8156efa46b50eb81600f8408dbe39725ec876e2b0055e167721aeb413",
+      "b80f3cdfba7e4459d649bcfc9f056d8e086395a405de9def444c350fc174ed58"
+    ]
   },
   "roof.tiles": {
     "variants": [
       {
-        "request": "d76f2e48",
-        "file": "files/roof.tiles/6d550daf930f.flac",
-        "sha256": "6d550daf930ffa59a21ba9c1686b3290d5bc74f97c0a87e9ab045a8953053b81",
-        "made": "2026-09-29T19:12:16.349Z",
+        "request": "b3b272a6",
+        "file": "files/roof.tiles/a49c029b35cd.flac",
+        "sha256": "a49c029b35cdce2e754ab95d0243966e39c89b0ebd465a15a17685ed3d55af39",
+        "made": "2026-09-29T20:46:45.771Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -13.1,
-          "momentaryMax": -11.6,
+          "integrated": -12.6,
+          "momentaryMax": -10.5,
           "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
@@ -1823,24 +4600,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "b3b272a6",
+        "file": "files/roof.tiles/be8af4b75d09.flac",
+        "sha256": "be8af4b75d0981615b9b0884f2e02f316a1099ca42f9d89762a11dcd99b69361",
+        "made": "2026-09-29T20:46:47.193Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -16.6,
+          "momentaryMax": -12.4,
+          "peak": -1.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "b3b272a6",
+        "file": "files/roof.tiles/4887e402912f.flac",
+        "sha256": "4887e402912ff93bbdafe99b9fb80a616f6e8ffceac3fb4632abdf2be363cf08",
+        "made": "2026-09-29T20:46:50.688Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -12.2,
+          "momentaryMax": -9.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "4067b93b7323ac137f19de8dcd75e3521da77bd3bfae6835ad2c42aaf194278a",
+      "922097522e228202d09c7f069b639a2fb47ae6b63b8a3c20973eb7cf03b034a9",
+      "a8de3d0e82639cd6851aa9102382761084763f70b1a2b999969cf6a9fb1fa4be"
+    ]
   },
   "rope.creak": {
     "variants": [
       {
-        "request": "677dd9cd",
-        "file": "files/rope.creak/287330f58146.flac",
-        "sha256": "287330f5814619e5b406b0fc2ddd6627f740501ae5b6a7a34e68b06bdd115a0a",
-        "made": "2026-09-29T19:12:19.229Z",
+        "request": "a92fe2fc",
+        "file": "files/rope.creak/1fb85d78f813.flac",
+        "sha256": "1fb85d78f8138cf1b0cb6a089fa4f0b5bb52a3474c10a7012158c7aea1667a9a",
+        "made": "2026-09-29T20:53:50.483Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2,
         "loudness": {
-          "integrated": -18.2,
-          "momentaryMax": -16.3,
-          "peak": 0
+          "integrated": -18.8,
+          "momentaryMax": -17.1,
+          "peak": -1.9
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
@@ -1894,6 +4707,134 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/e3d482c0203f.flac",
+        "sha256": "e3d482c0203f760544a192cdda6cd6303badaba277c33d5a094ae8088d5414ac",
+        "made": "2026-09-29T20:46:52.831Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -19.4,
+          "momentaryMax": -15.9,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/e30d7615dd62.flac",
+        "sha256": "e30d7615dd62219af96497888334a676761b05dcb1636f16f757a7d3ee5d038a",
+        "made": "2026-09-29T20:46:53.458Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -17.2,
+          "momentaryMax": -15.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/d98be7f44c4f.flac",
+        "sha256": "d98be7f44c4f953fd2aa7e7c3cb2a7baca9173a16e91ffaca5c8f6bc3890ace4",
+        "made": "2026-09-29T20:46:55.197Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -23.4,
+          "momentaryMax": -22.1,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/b01ee4f811f5.flac",
+        "sha256": "b01ee4f811f5b972ad3b30a21933824e8b640a36efe8a88f29c8726aa3990666",
+        "made": "2026-09-29T20:46:55.840Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -17,
+          "momentaryMax": -15.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/6f1325dd12c0.flac",
+        "sha256": "6f1325dd12c04d9d30a18c369ece15a3f97c45c210772d11ee7ad5f5d4d8ebbf",
+        "made": "2026-09-29T20:46:57.664Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -19.2,
+          "momentaryMax": -17.3,
+          "peak": -0.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "648f088b",
+        "file": "files/rope.creak/dac164444c62.flac",
+        "sha256": "dac164444c62432d918d1d0321a22ca67235b50bb6c2f7affc88bda13cdef41f",
+        "made": "2026-09-29T20:46:58.280Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -16.5,
+          "momentaryMax": -13.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "a92fe2fc",
+        "file": "files/rope.creak/a7a3a678c7ac.flac",
+        "sha256": "a7a3a678c7ac896a2bdd1fc520dd047a0708db6b2fdfd5deb439f7cec3deb55c",
+        "made": "2026-09-29T20:53:50.505Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -18.6,
+          "momentaryMax": -15.4,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "a92fe2fc",
+        "file": "files/rope.creak/b3bb7a21e15d.flac",
+        "sha256": "b3bb7a21e15dad1ef13c903e8b308a1e9859de9c2293ad965858c7fa44a1a86e",
+        "made": "2026-09-29T20:53:53.402Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -20.6,
+          "momentaryMax": -17.8,
+          "peak": -1.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
     "rejected": []
@@ -1901,17 +4842,17 @@
   "snake.hiss": {
     "variants": [
       {
-        "request": "6db1769c",
-        "file": "files/snake.hiss/7c22385734f6.flac",
-        "sha256": "7c22385734f61ffc2c6e7af4da995cc32e00b037c77c19023bc301bb848f3d8c",
-        "made": "2026-09-29T19:12:25.951Z",
+        "request": "14628cba",
+        "file": "files/snake.hiss/16ab38ecd751.flac",
+        "sha256": "16ab38ecd75110007dafb4e08bfcd211dfa2229e887056ee817b6c511475b2eb",
+        "made": "2026-09-29T20:47:00.717Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2,
         "loudness": {
           "integrated": -8.6,
-          "momentaryMax": -7.1,
-          "peak": -1.3
+          "momentaryMax": -6.9,
+          "peak": -0.8
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
@@ -1965,24 +4906,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
+      },
+      {
+        "request": "14628cba",
+        "file": "files/snake.hiss/44199c1be54d.flac",
+        "sha256": "44199c1be54d52b2b61057cafb722b1d4a1d741fc79f85a1e9c25811a21e680e",
+        "made": "2026-09-29T20:47:05.213Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -10.5,
+          "momentaryMax": -8.4,
+          "peak": -2.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "14628cba",
+        "file": "files/snake.hiss/fbd3dbf60bf1.flac",
+        "sha256": "fbd3dbf60bf1882a0c6682accfb556d059ba1a68405b7a3616dd25e47c14ff74",
+        "made": "2026-09-29T20:47:05.601Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -9.2,
+          "momentaryMax": -7.6,
+          "peak": -1.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
       }
     ],
-    "rejected": []
+    "rejected": [
+      "7835727e43c930e2648cf0cf24b751cc6195ae1139d30411ede70830528a2dfd",
+      "775f9ef026a2c85cb3ac2f434e08e0e0b7915aec2066d467fadb22f1f18e64fb",
+      "704be9c9967b994812be83dc5756c0c98081162be56a14814040a40f7d036fd5"
+    ]
   },
   "stain.hiss": {
     "variants": [
       {
-        "request": "0504bd38",
-        "file": "files/stain.hiss/31755cc7868b.flac",
-        "sha256": "31755cc7868b5647ae331f1f49c7ee229e8b376c82e6a45d5f8f9d2817c12d71",
-        "made": "2026-09-29T19:12:27.972Z",
+        "request": "a4b36df2",
+        "file": "files/stain.hiss/a463fdfcc98f.flac",
+        "sha256": "a463fdfcc98f72a8c861e753e2986c0d3ef21f93c9bb6789b2e93bbe1a8ca840",
+        "made": "2026-09-29T20:21:48.984Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -21.5,
-          "momentaryMax": -17,
-          "peak": -9.7
+          "integrated": -12.4,
+          "momentaryMax": -8.3,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -2004,27 +4981,414 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "2479d132",
+        "file": "files/stain.hiss/8275ba673b6b.flac",
+        "sha256": "8275ba673b6b326e3539714a0cd09f129f09d014e41ca920ac24ceff9a15f1e6",
+        "made": "2026-09-29T20:11:45.211Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -40.4,
+          "momentaryMax": -34.9,
+          "peak": -22.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "2479d132",
+        "file": "files/stain.hiss/1529923c7f11.flac",
+        "sha256": "1529923c7f111df1fb99b0c2006baf6b98bc4df99303f3cd29d4e916589735e3",
+        "made": "2026-09-29T20:11:45.915Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -37.3,
+          "momentaryMax": -31.6,
+          "peak": -20
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "2479d132",
+        "file": "files/stain.hiss/f66b7fa8f21b.flac",
+        "sha256": "f66b7fa8f21b17304382ca51cffe78a5f6343ab3ee6534a1550c677bef9836ff",
+        "made": "2026-09-29T20:11:47.105Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -37.2,
+          "momentaryMax": -32.8,
+          "peak": -24.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "2479d132",
+        "file": "files/stain.hiss/d41d8cab30bb.flac",
+        "sha256": "d41d8cab30bbf76aff2a0873f952c838ab3244ca9bef12f2ad60baa4be7e35ab",
+        "made": "2026-09-29T20:11:47.947Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.2,
+          "momentaryMax": -34.7,
+          "peak": -26.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "715e60a0",
+        "file": "files/stain.hiss/df5292cc880d.flac",
+        "sha256": "df5292cc880d1e114fce49c5f883898e6735d02468ea020a30fe0d23353820c6",
+        "made": "2026-09-29T20:21:23.938Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -36.9,
+          "momentaryMax": -32.3,
+          "peak": -21
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "715e60a0",
+        "file": "files/stain.hiss/a5bad14b8243.flac",
+        "sha256": "a5bad14b8243002fd7a0f9f2b72fa3f62d4ad5393af043c38e39f797fe17ec53",
+        "made": "2026-09-29T20:21:23.968Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -39.3,
+          "momentaryMax": -34.2,
+          "peak": -24.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "715e60a0",
+        "file": "files/stain.hiss/0e9960fb6a7a.flac",
+        "sha256": "0e9960fb6a7aae48761e796f0b1662a4961f70f014c57221ced00b582ad5943e",
+        "made": "2026-09-29T20:21:25.963Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -31.8,
+          "momentaryMax": -26.8,
+          "peak": -16.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "57d3c054",
+        "file": "files/stain.hiss/7a0cb346cbe5.flac",
+        "sha256": "7a0cb346cbe50956208f7da70c4904ca67326a67dd38e02d8d728a61c5698d6e",
+        "made": "2026-09-29T20:21:31.003Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.4,
+          "momentaryMax": -33.5,
+          "peak": -22.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "57d3c054",
+        "file": "files/stain.hiss/61658f0f20bc.flac",
+        "sha256": "61658f0f20bc80fca8cb0a89f5e0987bf5ed590044a0333731c4fa7759e7ffbf",
+        "made": "2026-09-29T20:21:31.067Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.5,
+          "momentaryMax": -34,
+          "peak": -25.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "57d3c054",
+        "file": "files/stain.hiss/9f50a0b77bb9.flac",
+        "sha256": "9f50a0b77bb93238eb27289145944ac5ab0934fa35d89c3f8fd16d05979eac1e",
+        "made": "2026-09-29T20:21:33.103Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.3,
+          "momentaryMax": -34.6,
+          "peak": -25.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9fa9e556",
+        "file": "files/stain.hiss/b1404c0b1bb1.flac",
+        "sha256": "b1404c0b1bb148137b147de892881f5b8cc012947eebcbf8da655832725399d3",
+        "made": "2026-09-29T20:21:35.579Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -39.1,
+          "momentaryMax": -35.4,
+          "peak": -27
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9fa9e556",
+        "file": "files/stain.hiss/e1ebc1a242eb.flac",
+        "sha256": "e1ebc1a242ebda1b36dbce60db3e69bc99a0f3f39eecfb339fe8b617a3435d82",
+        "made": "2026-09-29T20:21:35.918Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -40.6,
+          "momentaryMax": -36,
+          "peak": -26.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9fa9e556",
+        "file": "files/stain.hiss/d9310d544d76.flac",
+        "sha256": "d9310d544d760d876ba76ebd5b564a0ef68a45e34cfdb376ccf0c7be9b2b5f9f",
+        "made": "2026-09-29T20:21:37.271Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -41.9,
+          "momentaryMax": -37.1,
+          "peak": -25.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9915091a",
+        "file": "files/stain.hiss/3c8e06dd6b65.flac",
+        "sha256": "3c8e06dd6b65f23dda72bf7e1658aaa5d630420b0154abaf204be2cfb26c2972",
+        "made": "2026-09-29T20:21:39.943Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -36.1,
+          "momentaryMax": -32.3,
+          "peak": -19.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "9915091a",
+        "file": "files/stain.hiss/2d8f5e578a1b.flac",
+        "sha256": "2d8f5e578a1b2d210b3a1629f21b17447a7b45946185733f02f4d964bbfb6741",
+        "made": "2026-09-29T20:21:40.212Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -41,
+          "momentaryMax": -37.6,
+          "peak": -28.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "9915091a",
+        "file": "files/stain.hiss/a0bfef589cdc.flac",
+        "sha256": "a0bfef589cdc17669c6e963fdb4ef3a02d5c3a686f97111a8a929ad1a5130b56",
+        "made": "2026-09-29T20:21:41.960Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -38.7,
+          "momentaryMax": -35,
+          "peak": -25.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "b0707b79",
+        "file": "files/stain.hiss/fd32db1e29f7.flac",
+        "sha256": "fd32db1e29f77459a01a4f3a1456bdf990f4188fe1e29bed722a4e9a6c99194e",
+        "made": "2026-09-29T20:21:44.528Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -43,
+          "momentaryMax": -38.7,
+          "peak": -28.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "b0707b79",
+        "file": "files/stain.hiss/e8d798d2003b.flac",
+        "sha256": "e8d798d2003b204278a06e440d46a8547730e7149b90694663a8457a2a58b693",
+        "made": "2026-09-29T20:21:44.590Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -41.4,
+          "momentaryMax": -35.5,
+          "peak": -25.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "b0707b79",
+        "file": "files/stain.hiss/3d669ed775e5.flac",
+        "sha256": "3d669ed775e5cef97c5ed401dd718632afb85c553bbb3851b0b036ca56f34fa2",
+        "made": "2026-09-29T20:21:46.644Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -38.4,
+          "momentaryMax": -32.1,
+          "peak": -20.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "a4b36df2",
+        "file": "files/stain.hiss/0998ea71371e.flac",
+        "sha256": "0998ea71371e18ffbc3cfe84aa9f7c10a727df9299fd96c0346f69ab239fdd54",
+        "made": "2026-09-29T20:21:48.967Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -18.4,
+          "momentaryMax": -14.8,
+          "peak": -5.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "a4b36df2",
+        "file": "files/stain.hiss/f9f078d38f79.flac",
+        "sha256": "f9f078d38f791bee6c169e07e977d17370fb796894f3586ef07cca066c64c0b6",
+        "made": "2026-09-29T20:21:50.660Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -11,
+          "momentaryMax": -7.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "221c5b52",
+        "file": "files/stain.hiss/704c993f86bf.flac",
+        "sha256": "704c993f86bf0f761caf3c989399293d8488fa1515a4a488d45dc29f7f9fd513",
+        "made": "2026-09-29T20:21:52.856Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -49.3,
+          "momentaryMax": -47,
+          "peak": -39.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "221c5b52",
+        "file": "files/stain.hiss/70f33006c92e.flac",
+        "sha256": "70f33006c92e07716cb2d5ec5346c401d9623e2fa9360087b49d43383f413cf1",
+        "made": "2026-09-29T20:21:53.092Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -49.6,
+          "momentaryMax": -47.6,
+          "peak": -40.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "221c5b52",
+        "file": "files/stain.hiss/22c9d951e0a2.flac",
+        "sha256": "22c9d951e0a25dae19fd15acb40325949d06128c94ceeaf1e52ec8b002db856b",
+        "made": "2026-09-29T20:21:54.456Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -48.1,
+          "momentaryMax": -44.3,
+          "peak": -36.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
     "rejected": [
       "e26905df7dec29e18e43db3909b5c75ec9ea196c6df42134c62cd97378d85a35",
-      "91d9f52fe6fc01c3f36dc77d9aab19847737cb99fc3c4656b7d23d37df8a65dc"
+      "91d9f52fe6fc01c3f36dc77d9aab19847737cb99fc3c4656b7d23d37df8a65dc",
+      "01d96a9ada682144a378566251328fd5d8b6aa7bc47a4cc0ac0fdda79e32112a",
+      "1d480ef0629d2e8ffd92051e27142d2e136e63e30f94e50e1ac5309bb4b56ba5",
+      "155b912c34e14efb4ad8519a43fc2346828776b7dcd23e602a245dca9b6349d1"
     ]
   },
   "stamp.press": {
     "variants": [
       {
-        "request": "db376762",
-        "file": "files/stamp.press/f407f10ea584.flac",
-        "sha256": "f407f10ea584701375bf27bc3b2871acad8b265e676000c0129d2655c9526941",
-        "made": "2026-09-29T19:12:38.771Z",
+        "request": "894e8944",
+        "file": "files/stamp.press/50876fceb9bf.flac",
+        "sha256": "50876fceb9bfcf3c0454d1b0be68052d45de1ae2fe460cba2485466a8776b34a",
+        "made": "2026-09-29T20:47:11.218Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -23.1,
-          "momentaryMax": -23.1,
-          "peak": -4.2
+          "integrated": -34.9,
+          "momentaryMax": -34.9,
+          "peak": -11.8
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
@@ -2062,24 +5426,61 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
+      },
+      {
+        "request": "894e8944",
+        "file": "files/stamp.press/e38a7a1826a1.flac",
+        "sha256": "e38a7a1826a1ec2a9afcfdb630dd0320d37c73d0f22249b520cdb0d1fb644de5",
+        "made": "2026-09-29T20:47:12.831Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -31.8,
+          "momentaryMax": -31.8,
+          "peak": -9.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "894e8944",
+        "file": "files/stamp.press/84a27602a3f7.flac",
+        "sha256": "84a27602a3f7823ce60d32a201b1e8f08d011b382811ea2e7fa12c0fca3888f2",
+        "made": "2026-09-29T20:47:14.974Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -34,
+          "momentaryMax": -34,
+          "peak": -15.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
       }
     ],
-    "rejected": ["2a3f47cef78123b8da193a851cb3270d7a18c293978740cf4bb06d8629cde6a4"]
+    "rejected": [
+      "2a3f47cef78123b8da193a851cb3270d7a18c293978740cf4bb06d8629cde6a4",
+      "88b327755ac86c3d25c8125a7f9cfcb9e868d4e3ab9ad9d05b9c06cbc028cd88",
+      "55d15ff39824279d86df9a6c24586bb4fa158afac8ab484aa2846f90879397f1",
+      "5cdabadfb70261d650d39c2bf6146889acfa7df24da70e88d371fa7636cb672c"
+    ]
   },
   "steps.dirt": {
     "variants": [
       {
-        "request": "82050ea7",
-        "file": "files/steps.dirt/36afbd36c681.flac",
-        "sha256": "36afbd36c6812399f59e1c21b3acbda88938fd1c85c38e650b80ae9c73441c7f",
-        "made": "2026-09-29T19:12:38.145Z",
+        "request": "f6277bc9",
+        "file": "files/steps.dirt/499c0e37a079.flac",
+        "sha256": "499c0e37a079f24eefb368fff1d4b9a6187e6606ca1f900e81f5016a2c14d6ae",
+        "made": "2026-09-29T20:47:16.465Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 2.48,
         "loudness": {
-          "integrated": -31.3,
-          "momentaryMax": -28.1,
-          "peak": -11.3
+          "integrated": -36.9,
+          "momentaryMax": -32.6,
+          "peak": -15.6
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
@@ -2133,9 +5534,45 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
+      },
+      {
+        "request": "f6277bc9",
+        "file": "files/steps.dirt/414f5af5bd49.flac",
+        "sha256": "414f5af5bd49d4d2ecd4a62475aee4ab86ad8f3682cfe83d7af62e13fefd7df8",
+        "made": "2026-09-29T20:47:17.388Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -37.3,
+          "momentaryMax": -33.9,
+          "peak": -15.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "f6277bc9",
+        "file": "files/steps.dirt/90f00e27194b.flac",
+        "sha256": "90f00e27194b13a09e59e003b3d7133611acdb2075d0caab77f5dfd5200f898f",
+        "made": "2026-09-29T20:47:19.207Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -37,
+          "momentaryMax": -34,
+          "peak": -19.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
       }
     ],
-    "rejected": []
+    "rejected": [
+      "47f66482ffbfcbda59fa1a0325ea6bad5d0b1a251ba699974959d83b9ecafe34",
+      "3d55fb822df0f736fcac74b578d9932355d87ab98b03aee32729f9eed4f127fa",
+      "78cae8df83d03fd894ba9dfe4d36a457809ee5ad128916cbf7e994a6af48fe0c"
+    ]
   },
   "steps.stone": {
     "variants": [
@@ -2171,17 +5608,17 @@
   "stone.roll": {
     "variants": [
       {
-        "request": "7bf331a1",
-        "file": "files/stone.roll/12139b384c94.flac",
-        "sha256": "12139b384c94b5cd7c43181b30b52691ea318b6949a6b8efd6986c046a958d7c",
-        "made": "2026-09-29T19:12:50.099Z",
+        "request": "86daf09f",
+        "file": "files/stone.roll/317a46d14817.flac",
+        "sha256": "317a46d14817314f72cd450458904df5f25f550f19e653fd963d613f33515fa9",
+        "made": "2026-09-29T20:47:22.716Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 3,
         "loudness": {
-          "integrated": -32.2,
-          "momentaryMax": -28.2,
-          "peak": -15.8
+          "integrated": -25.9,
+          "momentaryMax": -20.7,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
@@ -2235,24 +5672,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
+      },
+      {
+        "request": "86daf09f",
+        "file": "files/stone.roll/538b8e305e8d.flac",
+        "sha256": "538b8e305e8ddf41ddfbbe152d1bc1cd9dd1820f81c684f7c3553d5c16c72dc6",
+        "made": "2026-09-29T20:47:23.516Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -21.3,
+          "momentaryMax": -18.2,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
+      },
+      {
+        "request": "86daf09f",
+        "file": "files/stone.roll/78c5fb60ad24.flac",
+        "sha256": "78c5fb60ad2417cd410586d1afa83e0abe4cff79364180b1523bb03a9b8cfdb2",
+        "made": "2026-09-29T20:47:26.823Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 3,
+        "loudness": {
+          "integrated": -22.9,
+          "momentaryMax": -18.1,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 120
       }
     ],
-    "rejected": []
+    "rejected": [
+      "0cf7960afe67f24dee27510c8bc1c4cd91679f4ea6c12cf0edfced7bd0e9bc41",
+      "99f0649e947671002ec55be14ceb3f4e2f307bdfb45e9574b9262c19da8f2d3d",
+      "d6392146c4af76643b658ac1be164408ac14c8f38a905f50df89f2d4b02a3b3b"
+    ]
   },
   "stones.dust": {
     "variants": [
       {
-        "request": "bcc0569d",
-        "file": "files/stones.dust/ca4e1287e8b3.flac",
-        "sha256": "ca4e1287e8b3259fbf74829bfc2c09ff02a585c48bfb892ed01032beeddc16d0",
-        "made": "2026-09-29T19:12:54.941Z",
+        "request": "5efeeadb",
+        "file": "files/stones.dust/4552d4741f3b.flac",
+        "sha256": "4552d4741f3b91fdf5f5e52fa4185a9ac98478f4197c5c7a02a8f4e4d3d66afc",
+        "made": "2026-09-29T20:47:32.992Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -37.1,
-          "momentaryMax": -32.4,
-          "peak": -10.9
+          "integrated": -27.2,
+          "momentaryMax": -24.7,
+          "peak": -2.2
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -2306,24 +5779,60 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "5efeeadb",
+        "file": "files/stones.dust/c9b4e01d2cbb.flac",
+        "sha256": "c9b4e01d2cbb96aa16eeddbedf7a9cd08df35f9c4a5d8c745c069c455b424fe2",
+        "made": "2026-09-29T20:47:29.290Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -39.6,
+          "momentaryMax": -35.8,
+          "peak": -16.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "5efeeadb",
+        "file": "files/stones.dust/83f9270bdff2.flac",
+        "sha256": "83f9270bdff2c0635a2b917985a24dded206d66c614d34051cf91737be0102b7",
+        "made": "2026-09-29T20:47:30.549Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -35.3,
+          "momentaryMax": -34.2,
+          "peak": -12.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "36b18dcf22637d96d926815a1f45a276634318cd8f6e6a313c40efc0b306d297",
+      "5cb04c199ba0ddb4e0e41dcf27f1be8900fa7e57df2db7876a13df6af21be7f5",
+      "1bd98231cd8b990300cd1377e69c42edf1629e4cd578b9e3c5998f6fada5ca10"
+    ]
   },
   "tablet.set": {
     "variants": [
       {
-        "request": "bbca637d",
-        "file": "files/tablet.set/8db575944c79.flac",
-        "sha256": "8db575944c7948086afd30313cf030b5e37f2268942a8c0a99f8e858aa818baf",
-        "made": "2026-09-29T19:12:58.600Z",
+        "request": "d5af22bb",
+        "file": "files/tablet.set/843213be73af.flac",
+        "sha256": "843213be73af273d8edbb51174bd198d0d1e57217b0f56fc00a49ccddc06d608",
+        "made": "2026-09-29T20:47:38.826Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1,
         "loudness": {
-          "integrated": -36.8,
-          "momentaryMax": -36.8,
-          "peak": -18.9
+          "integrated": -26.7,
+          "momentaryMax": -26.7,
+          "peak": -5.1
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
@@ -2377,27 +5886,63 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
+      },
+      {
+        "request": "d5af22bb",
+        "file": "files/tablet.set/bcd8eb0a1139.flac",
+        "sha256": "bcd8eb0a11399003b9b4aed44a6e568dfe8acb186d36f2e1a6320fc1986b7bdc",
+        "made": "2026-09-29T20:47:35.268Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -24,
+          "momentaryMax": -24,
+          "peak": -2.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
+      },
+      {
+        "request": "d5af22bb",
+        "file": "files/tablet.set/4c3fcadbbb55.flac",
+        "sha256": "4c3fcadbbb558d9289222f524ce9cc7113bd8ab1f1ef262a0cda3949ad50dad7",
+        "made": "2026-09-29T20:47:40.505Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1,
+        "loudness": {
+          "integrated": -22,
+          "momentaryMax": -22,
+          "peak": -1.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 40
       }
     ],
-    "rejected": []
+    "rejected": [
+      "b691372c989f16b83fab12fb3d6f8d28c37fbd4f120a8b959e3c40a28be9271b",
+      "38b407962e2331aafe127c3d5f432a8cf58e0147ff766525422a56ddec2f1ea3",
+      "8cfedff81c182d4a63249ee157d56ea8f1e15e461d8eda9872b1361c15395e44"
+    ]
   },
   "tape.measure": {
     "variants": [
       {
-        "request": "67af14ef",
-        "file": "files/tape.measure/8f3245561f3b.flac",
-        "sha256": "8f3245561f3b8fc3316c5281cd76165e3a5f96cf7be3c33a280ed5f00422b07a",
-        "made": "2026-09-29T19:13:01.044Z",
+        "request": "b8560fa2",
+        "file": "files/tape.measure/ddbbf517edc2.flac",
+        "sha256": "ddbbf517edc21a94c25e6fc21d9d9c862cce126182c8be47180db20e7d8a62b5",
+        "made": "2026-09-29T20:20:04.027Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
-        "secs": 1.48,
+        "secs": 0.8,
         "loudness": {
-          "integrated": -28.9,
-          "momentaryMax": -25.1,
-          "peak": -11
+          "integrated": -33.8,
+          "momentaryMax": -32.4,
+          "peak": -19.7
         },
         "licence": "elevenlabs-paid-sfx",
-        "credits": 60
+        "credits": 32
       }
     ],
     "candidates": [
@@ -2448,24 +5993,478 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
-      }
-    ],
-    "rejected": []
-  },
-  "wings.pass": {
-    "variants": [
+      },
       {
-        "request": "a446d85b",
-        "file": "files/wings.pass/6028f515586a.flac",
-        "sha256": "6028f515586a2504219a9cab67f6449e7a3a666c9667344f509a784b188e0505",
-        "made": "2026-09-29T19:13:05.115Z",
+        "request": "ef34938a",
+        "file": "files/tape.measure/b0576d17f96f.flac",
+        "sha256": "b0576d17f96f828e41d831cb853948d5e89cc3c08dd70aba0883d347792f5074",
+        "made": "2026-09-29T20:11:49.171Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
         "secs": 1.48,
         "loudness": {
-          "integrated": -26.8,
-          "momentaryMax": -24.6,
-          "peak": -6.2
+          "integrated": -34.2,
+          "momentaryMax": -32.7,
+          "peak": -16.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "ef34938a",
+        "file": "files/tape.measure/6ba131fdd8c8.flac",
+        "sha256": "6ba131fdd8c862698188d9c0914d4cf52e87c074738d51407beb94d159c3e1f9",
+        "made": "2026-09-29T20:11:49.892Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -35.1,
+          "momentaryMax": -30.4,
+          "peak": -17.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "ef34938a",
+        "file": "files/tape.measure/1019d4e98408.flac",
+        "sha256": "1019d4e98408c4ac153992c308f650b6316881dcd467b54ffe96cc28d246d7e4",
+        "made": "2026-09-29T20:11:51.942Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -39.8,
+          "momentaryMax": -36.5,
+          "peak": -19.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "ef34938a",
+        "file": "files/tape.measure/a101fac6d0be.flac",
+        "sha256": "a101fac6d0bea7f154eb94e4a14183e3cae390025e287daec6aa55b915ec30b7",
+        "made": "2026-09-29T20:11:52.007Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.8,
+          "momentaryMax": -36.4,
+          "peak": -22.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "07d75a38",
+        "file": "files/tape.measure/e714ad7d1ad3.flac",
+        "sha256": "e714ad7d1ad357a8d2644827d5322d7259ae3b9e85300865a85830256c2bcce2",
+        "made": "2026-09-29T20:19:47.728Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -40.4,
+          "momentaryMax": -38.6,
+          "peak": -25.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "07d75a38",
+        "file": "files/tape.measure/52bfd90b98f1.flac",
+        "sha256": "52bfd90b98f1d06cbcadf31e5960cc9e3a8c0f6f246e0f4d811417803a97fd6c",
+        "made": "2026-09-29T20:19:47.761Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -40.3,
+          "momentaryMax": -37.3,
+          "peak": -25.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "07d75a38",
+        "file": "files/tape.measure/9876c4789bf4.flac",
+        "sha256": "9876c4789bf4b18d205decb67975bc69c2010455fd11a85a2fd5612a4c1a170a",
+        "made": "2026-09-29T20:19:50.125Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -41.6,
+          "momentaryMax": -39.6,
+          "peak": -27
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "b94aa16c",
+        "file": "files/tape.measure/c2213c2f7c70.flac",
+        "sha256": "c2213c2f7c7018ca195825c826dcdf6f1af9d2491b6fba595ca3d43de13c7969",
+        "made": "2026-09-29T20:19:52.401Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.2,
+          "momentaryMax": -36.1,
+          "peak": -24.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "b94aa16c",
+        "file": "files/tape.measure/1c264c58be82.flac",
+        "sha256": "1c264c58be82cd57fd633d3e926b15e1bfba960b9c4139831fb7f21ade9213c8",
+        "made": "2026-09-29T20:19:52.663Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -34.8,
+          "momentaryMax": -33.1,
+          "peak": -18
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "b94aa16c",
+        "file": "files/tape.measure/ef006b393d7b.flac",
+        "sha256": "ef006b393d7b19bd2e05984d36b26d1a099e574fd430fcbb24fca055003d8d41",
+        "made": "2026-09-29T20:19:54.196Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -35.8,
+          "momentaryMax": -33.1,
+          "peak": -19.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "984ab3de",
+        "file": "files/tape.measure/6b6103cfb68c.flac",
+        "sha256": "6b6103cfb68c5a354f1f1b639ea4c729a5f599204363f68f5d55809500098e3d",
+        "made": "2026-09-29T20:19:56.921Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -36,
+          "momentaryMax": -34,
+          "peak": -19.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "984ab3de",
+        "file": "files/tape.measure/d61311642bcb.flac",
+        "sha256": "d61311642bcb5c22f0b853295279c43d5032555789b71d2674af0ad03506602c",
+        "made": "2026-09-29T20:19:57.110Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -33.9,
+          "momentaryMax": -29.8,
+          "peak": -13.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "984ab3de",
+        "file": "files/tape.measure/0829be6ad916.flac",
+        "sha256": "0829be6ad91679c8fb648e2bd852682de02d4653416e15f98599dad58286822b",
+        "made": "2026-09-29T20:19:58.518Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -38.3,
+          "momentaryMax": -36.7,
+          "peak": -22.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "21a45cf1",
+        "file": "files/tape.measure/828e60839728.flac",
+        "sha256": "828e608397286e43fc46c288bde20e787903a301ef287b6b0e3ec0bd3d402ce3",
+        "made": "2026-09-29T20:20:06.349Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -41.8,
+          "momentaryMax": -38.1,
+          "peak": -25.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "21a45cf1",
+        "file": "files/tape.measure/06e1f6c10e6c.flac",
+        "sha256": "06e1f6c10e6c067bceaf0af5eb402d1ad4ee36f56ca95083e047c0db41205d08",
+        "made": "2026-09-29T20:20:06.391Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -42.7,
+          "momentaryMax": -40.1,
+          "peak": -22
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "21a45cf1",
+        "file": "files/tape.measure/be7379c689b0.flac",
+        "sha256": "be7379c689b0a37b87c8abea8ec5094f46198026ef8f10cf7af1613333898614",
+        "made": "2026-09-29T20:20:08.089Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2.48,
+        "loudness": {
+          "integrated": -40.8,
+          "momentaryMax": -37.3,
+          "peak": -26
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 100
+      },
+      {
+        "request": "293b1f13",
+        "file": "files/tape.measure/122ff0c29338.flac",
+        "sha256": "122ff0c29338582f8f5e767c10bf98e8496742cb1f147fcbabab64662a73091b",
+        "made": "2026-09-29T20:20:10.246Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -34.6,
+          "momentaryMax": -32.5,
+          "peak": -15.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "293b1f13",
+        "file": "files/tape.measure/c3ccf6106988.flac",
+        "sha256": "c3ccf6106988fc1e3602a15d5b9e1d8510fc2044162fe8e8007f58903e82991a",
+        "made": "2026-09-29T20:20:11.236Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -28.4,
+          "momentaryMax": -26.9,
+          "peak": -15.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "293b1f13",
+        "file": "files/tape.measure/20382aa13841.flac",
+        "sha256": "20382aa13841687b1c76014ea501161c171c6b2a15784c647d488dbafaed4585",
+        "made": "2026-09-29T20:20:11.935Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -30,
+          "momentaryMax": -28.4,
+          "peak": -11.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9c813cb7",
+        "file": "files/tape.measure/f945cbd69345.flac",
+        "sha256": "f945cbd69345fc069337b27de99648e846b37537b6927c65d63fa95a8c5cd035",
+        "made": "2026-09-29T20:20:14.161Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -35.2,
+          "momentaryMax": -35.1,
+          "peak": -5.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9c813cb7",
+        "file": "files/tape.measure/fa14c15d0eca.flac",
+        "sha256": "fa14c15d0eca13a314aab1d5c2b2716795ba0e8bae5c8838c7df3e5b31aeeac5",
+        "made": "2026-09-29T20:20:14.177Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -48.8,
+          "momentaryMax": -43.2,
+          "peak": -19.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "9c813cb7",
+        "file": "files/tape.measure/fa0a9ce6399a.flac",
+        "sha256": "fa0a9ce6399aa4c059a5a121d97162365e9db084953980381b54c1cd7be04e85",
+        "made": "2026-09-29T20:20:16.601Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -34.6,
+          "momentaryMax": -34.6,
+          "peak": -12
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "08917153",
+        "file": "files/tape.measure/6200291a93f2.flac",
+        "sha256": "6200291a93f27eba620797eadcff4060dbb7ad740af9f5d37776d7dea6d95ba2",
+        "made": "2026-09-29T20:26:19.443Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -36.4,
+          "momentaryMax": -36.4,
+          "peak": -13.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "08917153",
+        "file": "files/tape.measure/f52d51fd6930.flac",
+        "sha256": "f52d51fd69308d6f816e70c78e685216279932ca9ee4d9cc1b15f8af2ac00186",
+        "made": "2026-09-29T20:26:19.845Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -39.5,
+          "momentaryMax": -37.7,
+          "peak": -14.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "08917153",
+        "file": "files/tape.measure/acc6ac68f9dd.flac",
+        "sha256": "acc6ac68f9dddc35e2499a58cc2c7fb70809758f3d884726e3364d5d3355c43b",
+        "made": "2026-09-29T20:26:21.577Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -40.5,
+          "momentaryMax": -36.7,
+          "peak": -11.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "e3494786",
+        "file": "files/tape.measure/f60b21fb26ae.flac",
+        "sha256": "f60b21fb26aece4cd89b1caea2888ab9b20ab5780462f74631b35d4e49ab191c",
+        "made": "2026-09-29T20:26:24.024Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -35.1,
+          "momentaryMax": -33.6,
+          "peak": -14.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "e3494786",
+        "file": "files/tape.measure/f87b9075923f.flac",
+        "sha256": "f87b9075923f7aeed784b5dcc8faeddffa85205e67bafda4a8899f1ae4c89653",
+        "made": "2026-09-29T20:26:24.124Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -39.2,
+          "momentaryMax": -36.9,
+          "peak": -21.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      },
+      {
+        "request": "e3494786",
+        "file": "files/tape.measure/730cb03b6934.flac",
+        "sha256": "730cb03b69340c2c0c4f4b91881e5c82331d40d9c505e28c4d95240deae8f20b",
+        "made": "2026-09-29T20:26:26.206Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.8,
+        "loudness": {
+          "integrated": -42.1,
+          "momentaryMax": -41.3,
+          "peak": -25.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 32
+      }
+    ],
+    "rejected": [
+      "a86633cca9c45f95388bfa3dc55f09ba210bd8557db64f29be59371463baa42a",
+      "5f63f9e743c7d225bfe19961cbf52a8e2b500cb3d92b27a54936c72241cff80b",
+      "4fd1190cf0e0c220bef5da3c5effae8b6559d24bb9de7f37aa362a3153962a2d",
+      "85bec513b1d3c82b154ea50e2215a7f83d8ae22fb5c584a870580eec6aaa8d01",
+      "6d461a98add696178705cdf70b0c38ddf7e909dc538540dd0c7cbd122977293c"
+    ]
+  },
+  "wings.pass": {
+    "variants": [
+      {
+        "request": "0208441d",
+        "file": "files/wings.pass/38e674c5c24c.flac",
+        "sha256": "38e674c5c24c2e9decc165bd570769f71e114207cf47b68e7a041e1ce4858054",
+        "made": "2026-09-29T20:47:45.402Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -23.4,
+          "momentaryMax": -21.1,
+          "peak": -0.7
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
@@ -2519,27 +6518,111 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
+      },
+      {
+        "request": "0208441d",
+        "file": "files/wings.pass/0da151cde358.flac",
+        "sha256": "0da151cde358e8d3719486fd8fd0a888bdf3f8ff5e353e5a3690f23ab60f4e5c",
+        "made": "2026-09-29T20:47:48.230Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -21.4,
+          "momentaryMax": -19.1,
+          "peak": -2.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "0208441d",
+        "file": "files/wings.pass/889602d9d7e3.flac",
+        "sha256": "889602d9d7e3a20d90e7d71ea01a105d6618e091b9c08642f5a4b56657f02910",
+        "made": "2026-09-29T20:47:50.380Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -27.9,
+          "momentaryMax": -25.8,
+          "peak": -8.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "a446d85b",
+        "file": "files/wings.pass/894cfbad3ac7.flac",
+        "sha256": "894cfbad3ac7631fcab9e356dc88a2a255aeeb1a536554488b9077d5f63524d8",
+        "made": "2026-09-29T20:50:58.371Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -23.6,
+          "momentaryMax": -21.3,
+          "peak": -4.4
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "a446d85b",
+        "file": "files/wings.pass/7458adfbbbaf.flac",
+        "sha256": "7458adfbbbaf0ab727f191467f7f379cd20af1348124cc91413ace5cfd4fd5ef",
+        "made": "2026-09-29T20:50:58.411Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -25.1,
+          "momentaryMax": -22.3,
+          "peak": -4.3
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
+      },
+      {
+        "request": "a446d85b",
+        "file": "files/wings.pass/128988e3a00d.flac",
+        "sha256": "128988e3a00df181573437d795e0cc86bdc9ca1141b5baab632d7c4d64420c1f",
+        "made": "2026-09-29T20:51:00.583Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.48,
+        "loudness": {
+          "integrated": -32.6,
+          "momentaryMax": -30.6,
+          "peak": -12.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 60
       }
     ],
-    "rejected": []
+    "rejected": [
+      "b7dd3416337db07540661fe9e1e5551f1190710a2154a44c6b18983ac920322a",
+      "1f5d42903d1e957b9084916e35e36d41b3c0a74ca8434212d2d7ee64822e11c9",
+      "cfdaacb53ecb580e31d6cfeb9aeccd6aee2e757faf42ecb1de6790fa55833745"
+    ]
   },
   "wood.gavel": {
     "variants": [
       {
-        "request": "6fcbf142",
-        "file": "files/wood.gavel/c30f610f099f.flac",
-        "sha256": "c30f610f099fe1b0161eebb390cbfaaaec64c339075456f4c65d5d7e0b7453d2",
-        "made": "2026-09-29T19:13:18.797Z",
+        "request": "374d16ac",
+        "file": "files/wood.gavel/52145538e87d.flac",
+        "sha256": "52145538e87de0d92ffb86a4b0a22cc5ede33477b4fd91c5e0ad99b8879ba6bd",
+        "made": "2026-09-29T20:26:14.821Z",
         "model": "eleven_text_to_sound_v2",
         "format": "pcm_44100",
-        "secs": 1.2,
+        "secs": 1.6,
         "loudness": {
-          "integrated": -41.4,
-          "momentaryMax": -38.5,
-          "peak": -20.8
+          "integrated": -16.4,
+          "momentaryMax": -13.5,
+          "peak": 0
         },
         "licence": "elevenlabs-paid-sfx",
-        "credits": 48
+        "credits": 64
       }
     ],
     "candidates": [
@@ -2590,8 +6673,444 @@
         },
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
+      },
+      {
+        "request": "a243eb04",
+        "file": "files/wood.gavel/1f9c7cd56253.flac",
+        "sha256": "1f9c7cd56253f39ed218fbece589344deebf1f2fde7e6108b9bab0b1d21ec8c7",
+        "made": "2026-09-29T20:11:54.145Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -43.2,
+          "momentaryMax": -40.5,
+          "peak": -21.9
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a243eb04",
+        "file": "files/wood.gavel/0bb7f10251ce.flac",
+        "sha256": "0bb7f10251cede940c5b18ae9eb667704830d36862c1978f0f44c21c4f94f35a",
+        "made": "2026-09-29T20:11:54.230Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -50.1,
+          "momentaryMax": -47.3,
+          "peak": -30
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a243eb04",
+        "file": "files/wood.gavel/2de74447ff2c.flac",
+        "sha256": "2de74447ff2c6bb035630991c9edd12eb206246f527331dfc01a7153db4289a5",
+        "made": "2026-09-29T20:11:56.508Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -47.8,
+          "momentaryMax": -45.4,
+          "peak": -27.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a243eb04",
+        "file": "files/wood.gavel/ddbc9c808c57.flac",
+        "sha256": "ddbc9c808c57102a347edbf4d7c27c9d16734bb8e81e52450e92d0e48bb16014",
+        "made": "2026-09-29T20:11:56.659Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -42.4,
+          "momentaryMax": -38.4,
+          "peak": -20.2
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "76c1888e",
+        "file": "files/wood.gavel/bf914c6cf70c.flac",
+        "sha256": "bf914c6cf70cd3646a1ea9d51be5ca890ec10c13b586f5dc55f85f5f763d53c5",
+        "made": "2026-09-29T20:19:11.393Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -21.4,
+          "momentaryMax": -21.4,
+          "peak": -2.8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "76c1888e",
+        "file": "files/wood.gavel/7e4f547550cb.flac",
+        "sha256": "7e4f547550cb581789a759d5ff290462a199b42c23eedf0731bbfe9047b439b2",
+        "made": "2026-09-29T20:19:11.587Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -43.9,
+          "momentaryMax": -41.1,
+          "peak": -25.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "76c1888e",
+        "file": "files/wood.gavel/f972413b53b3.flac",
+        "sha256": "f972413b53b36725ab77288b8a1963feb8997dc569c20b16d840ddef578bd0a9",
+        "made": "2026-09-29T20:19:13.355Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -22.8,
+          "momentaryMax": -22.8,
+          "peak": -5.5
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "c5766522",
+        "file": "files/wood.gavel/e95669c47fca.flac",
+        "sha256": "e95669c47fcad930ee230fb16466937b2f7408280a14b08373393083fab973e8",
+        "made": "2026-09-29T20:19:16.824Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -26,
+          "momentaryMax": -23.1,
+          "peak": -6.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "c5766522",
+        "file": "files/wood.gavel/40727400e3c6.flac",
+        "sha256": "40727400e3c62532ea265495f0c9a46a01dc8d6ceb134b48d7f8bc0606804a23",
+        "made": "2026-09-29T20:19:16.847Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -15.5,
+          "momentaryMax": -15.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "c5766522",
+        "file": "files/wood.gavel/02d8c5ec8e0d.flac",
+        "sha256": "02d8c5ec8e0d533ab103791c507d50e18c05e1b587908bdb025de8322b3b6d74",
+        "made": "2026-09-29T20:19:22.215Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -32.1,
+          "momentaryMax": -29.2,
+          "peak": -12.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "d11dd528",
+        "file": "files/wood.gavel/01c1aac31b79.flac",
+        "sha256": "01c1aac31b79a01f385d1e41100e60443e3a8663096429ba25ac5343fd9b222d",
+        "made": "2026-09-29T20:19:25.229Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -24.1,
+          "momentaryMax": -24.1,
+          "peak": -8
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "d11dd528",
+        "file": "files/wood.gavel/6fdcdbddd1ee.flac",
+        "sha256": "6fdcdbddd1eef79b56ad81d95e0cabd0c0b2aa65500fa0ac0e8132019e73ca0c",
+        "made": "2026-09-29T20:19:25.331Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -17.4,
+          "momentaryMax": -14.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "d11dd528",
+        "file": "files/wood.gavel/b45c96ca8c46.flac",
+        "sha256": "b45c96ca8c4669de05d55f9c6d9367a813aaa6c571d441777bee0ac6f87dd881",
+        "made": "2026-09-29T20:19:27.375Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -14,
+          "momentaryMax": -14,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "02eb4ef9",
+        "file": "files/wood.gavel/ed892760f1c5.flac",
+        "sha256": "ed892760f1c597a5cde36192d60f1e5e3e0b5528baec897b24395888a2ffd69d",
+        "made": "2026-09-29T20:19:29.714Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.6,
+        "loudness": {
+          "integrated": -58,
+          "momentaryMax": -58,
+          "peak": -41.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 24
+      },
+      {
+        "request": "02eb4ef9",
+        "file": "files/wood.gavel/51a044e823b2.flac",
+        "sha256": "51a044e823b29a6aec2604f556ed0e768fa8ac3e0d4ac9affba52f2ffb349c60",
+        "made": "2026-09-29T20:19:29.773Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.6,
+        "loudness": {
+          "integrated": -19.5,
+          "momentaryMax": -19.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 24
+      },
+      {
+        "request": "02eb4ef9",
+        "file": "files/wood.gavel/649d82943806.flac",
+        "sha256": "649d8294380676c76086d56e441a4b19cf0118c07f9da989bbc237632a4ca757",
+        "made": "2026-09-29T20:19:31.169Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 0.6,
+        "loudness": {
+          "integrated": -47.6,
+          "momentaryMax": -47.6,
+          "peak": -28
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 24
+      },
+      {
+        "request": "37af0953",
+        "file": "files/wood.gavel/7edd42b73677.flac",
+        "sha256": "7edd42b73677986bab746f6bc4863d44f4da2d09f29d45d52f7cbf0046c6844d",
+        "made": "2026-09-29T20:19:33.719Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -15,
+          "momentaryMax": -12.3,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "37af0953",
+        "file": "files/wood.gavel/76d14a8cb181.flac",
+        "sha256": "76d14a8cb181fe1621770b8aef96dbbecc15a819affa188f2f8ca077206782ad",
+        "made": "2026-09-29T20:19:33.925Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -12.2,
+          "momentaryMax": -11.3,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "37af0953",
+        "file": "files/wood.gavel/479ef9197df4.flac",
+        "sha256": "479ef9197df4e0523a06b9a748e83bcc3bf2f346dc8fe5538d32aaa5c14a785c",
+        "made": "2026-09-29T20:19:35.535Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 2,
+        "loudness": {
+          "integrated": -41.2,
+          "momentaryMax": -38.7,
+          "peak": -23.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 80
+      },
+      {
+        "request": "61a8681d",
+        "file": "files/wood.gavel/d8e65bfd69d4.flac",
+        "sha256": "d8e65bfd69d43ed3bc2e958ed53e19f2b6d2607fb1079765cbed758d6bfb5442",
+        "made": "2026-09-29T20:19:37.753Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -49.9,
+          "momentaryMax": -46.6,
+          "peak": -34.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "61a8681d",
+        "file": "files/wood.gavel/7cf97f798fd1.flac",
+        "sha256": "7cf97f798fd166bb446239ea00dd8084ee9e72ba34cc2d72040d5c7c00c4d0c3",
+        "made": "2026-09-29T20:19:39.376Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -23.6,
+          "momentaryMax": -21,
+          "peak": -1.6
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "61a8681d",
+        "file": "files/wood.gavel/6ee1ead5e1ce.flac",
+        "sha256": "6ee1ead5e1ce4b16e3d10de148d34b9f318f74fc7ebd8765e2e496881a923e2a",
+        "made": "2026-09-29T20:19:41.200Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -42.3,
+          "momentaryMax": -38.4,
+          "peak": -26.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a7538d30",
+        "file": "files/wood.gavel/addd3e162b95.flac",
+        "sha256": "addd3e162b9565f323409051afa2bff14a5b81ef1142e49c52301e8a5399bf57",
+        "made": "2026-09-29T20:19:43.417Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -34.3,
+          "momentaryMax": -31.6,
+          "peak": -13.1
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a7538d30",
+        "file": "files/wood.gavel/957b47016e79.flac",
+        "sha256": "957b47016e791dadc09c0a0983f452adb68c483c0a2a069ce9cf064a36020548",
+        "made": "2026-09-29T20:19:43.433Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -16.5,
+          "momentaryMax": -14,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "a7538d30",
+        "file": "files/wood.gavel/de431b511ef0.flac",
+        "sha256": "de431b511ef09fc5a6b54d552c12538e3bf500643eeb228568c4502d9e5b0028",
+        "made": "2026-09-29T20:19:45.143Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.2,
+        "loudness": {
+          "integrated": -23.6,
+          "momentaryMax": -20.8,
+          "peak": -1.7
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 48
+      },
+      {
+        "request": "374d16ac",
+        "file": "files/wood.gavel/075bae963450.flac",
+        "sha256": "075bae9634501e2ac1c54cf44a737440ac415118821096e6beed134a898219b3",
+        "made": "2026-09-29T20:26:14.841Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.6,
+        "loudness": {
+          "integrated": -14.5,
+          "momentaryMax": -14.5,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 64
+      },
+      {
+        "request": "374d16ac",
+        "file": "files/wood.gavel/4f6fe4d0b1bf.flac",
+        "sha256": "4f6fe4d0b1bf838ccb9c9d1bb65e077418a6d3a96134c1519fea8d2bee1431e4",
+        "made": "2026-09-29T20:47:52.636Z",
+        "model": "eleven_text_to_sound_v2",
+        "format": "pcm_44100",
+        "secs": 1.6,
+        "loudness": {
+          "integrated": -14.4,
+          "momentaryMax": -11.6,
+          "peak": 0
+        },
+        "licence": "elevenlabs-paid-sfx",
+        "credits": 64
       }
     ],
-    "rejected": []
+    "rejected": [
+      "a51e8a2d9dc5571b9232c9b374abd92002c5df0c6656f93ea6fd2df5a5c92efa",
+      "5f0da261df55a009dd3bb35e81e5af1183457ed69c7e66de03473c532862a0e8",
+      "175eb1a2ea7522c08b178f61ec99ee14bb8b10146acddb179fa5e09a133750a9"
+    ]
   }
 }
