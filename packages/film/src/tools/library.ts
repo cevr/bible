@@ -62,7 +62,7 @@ import {
   type ApiKeyMissing,
   CandidateMissing,
   CreditsOverCap,
-  type ElevenLabsFailed,
+  ElevenLabsFailed,
   type FilmModuleInvalid,
   LibraryMissing,
   LoopSeam,
@@ -110,13 +110,27 @@ export const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   dir: loaded.paths.dir,
 });
 
-/** `pcm_44100` as the API sends it: raw 16-bit little-endian mono. */
-export const pcmFromS16 = (bytes: Uint8Array, rate: number): Pcm => {
+/**
+ * How many interleaved channels `samples` 16-bit samples hold for a sound of
+ * `secs` at `rate`: raw PCM carries no header, so the length says it. The
+ * sound model answers `pcm_44100` in stereo, so a request for 22 s sends
+ * 44 s worth of mono samples. None when neither mono nor stereo fits within
+ * a tenth.
+ */
+export const channelsFor = (samples: number, rate: number, secs: number): Option.Option<number> => {
+  const ratio = samples / (rate * secs);
+  return Option.fromUndefinedOr([1, 2].find((n) => Math.abs(ratio / n - 1) <= 0.1));
+};
+
+/** `pcm_44100` as the API sends it: raw 16-bit little-endian, `channels` interleaved. */
+export const pcmFromS16 = (bytes: Uint8Array, rate: number, channels: number): Pcm => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const frames = Math.floor(bytes.byteLength / 2);
-  const plane = new Float32Array(frames);
-  for (let i = 0; i < frames; i++) plane[i] = view.getInt16(i * 2, true) / 32768;
-  return { rate, frames, channels: [plane] };
+  const frames = Math.floor(bytes.byteLength / 2 / channels);
+  const planes = Array.from({ length: channels }, () => new Float32Array(frames));
+  for (let i = 0; i < frames; i++)
+    for (const [c, plane] of planes.entries())
+      plane[i] = view.getInt16((i * channels + c) * 2, true) / 32768;
+  return { rate, frames, channels: planes };
 };
 
 /** A recording's quiet ends cut away: from `pad` seconds before the first sample over `floor` dBFS to `pad` after the last. */
@@ -358,7 +372,8 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           Effect.gen(function* () {
             const folder = path.join(paths.files, name);
             yield* fs.makeDirectory(folder, { recursive: true });
-            const raw = yield* fs.makeTempFile({ directory: folder, prefix: '.candidate-' });
+            // Scoped: the temporary file and the folder made for it go, even when interrupted.
+            const raw = yield* fs.makeTempFileScoped({ directory: folder, prefix: '.candidate-' });
             yield* elevenLabs.soundEffect(
               {
                 prompt: entry.prompt,
@@ -373,8 +388,22 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               },
               raw,
             );
-            const pcm = pcmFromS16(yield* fs.readFile(raw), LIBRARY_RATE);
-            yield* fs.remove(raw);
+            const bytes = yield* fs.readFile(raw);
+            const channels = yield* Option.match(
+              channelsFor(bytes.byteLength / 2, LIBRARY_RATE, entry.secs),
+              {
+                onNone: () =>
+                  Effect.fail(
+                    ElevenLabsFailed.make({
+                      op: 'sfx',
+                      exitCode: 0,
+                      reason: `${bytes.byteLength} bytes of ${SFX_FORMAT} for ${entry.secs} s: neither mono nor stereo`,
+                    }),
+                  ),
+                onSome: Effect.succeed,
+              },
+            );
+            const pcm = pcmFromS16(bytes, LIBRARY_RATE, channels);
             const variant = yield* keepFile(name, pcm, 'files', {
               request: requestKey(entry),
               model: SFX_MODEL,
@@ -396,10 +425,10 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
                 ),
             });
             yield* Effect.log(
-              `sfx.made name=${name} file=${variant.file} secs=${variant.secs.toFixed(2)} credits=${credits} momentary=${variant.loudness.momentaryMax}`,
+              `sfx.made name=${name} file=${variant.file} secs=${variant.secs.toFixed(2)} channels=${channels} credits=${credits} momentary=${variant.loudness.momentaryMax}`,
             );
             return variant;
-          });
+          }).pipe(Effect.scoped);
 
         /** `pcm` kept as a 24-bit FLAC named by its hash under `<under>/<name>/`, and its lock record. */
         const keepFile = (

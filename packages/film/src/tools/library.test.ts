@@ -4,6 +4,7 @@
 // the real Media. Never a real call: every paid path is counted by the fake.
 
 import { BunServices } from '@effect/platform-bun';
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   ConfigProvider,
@@ -21,7 +22,7 @@ import { soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from './errors.ts';
-import { TALLY_HEADER, SoundLibrary, talliedCredits } from './library.ts';
+import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
 
 const LIBRARY = `export const library = {
@@ -42,16 +43,21 @@ const LIBRARY = `export const library = {
 export const store = { folder: 'STORE', remote: { todo: 'a private repo or R2' } };
 `;
 
-/** `secs` of a seeded noise burst with a fast attack and a decay, as 16-bit little-endian mono. */
+/**
+ * `secs` of a seeded noise burst with a fast attack and a decay, as 16-bit
+ * little-endian stereo interleaved (as the sound model sends `pcm_44100`), the
+ * right channel at half the left.
+ */
 const burst = (seed: number, secs: number): Uint8Array => {
   const frames = Math.round(secs * 44100);
   const r = rng(seed);
-  const bytes = new Uint8Array(frames * 2);
+  const bytes = new Uint8Array(frames * 4);
   const view = new DataView(bytes.buffer);
   for (let i = 0; i < frames; i++) {
     const t = i / 44100;
     const v = (r() * 2 - 1) * 0.3 * Math.exp(-4 * t) * Math.min(1, t * 200);
-    view.setInt16(i * 2, Math.round(v * 32767), true);
+    view.setInt16(i * 4, Math.round(v * 32767), true);
+    view.setInt16(i * 4 + 2, Math.round(v * 0.5 * 32767), true);
   }
   return bytes;
 };
@@ -140,6 +146,27 @@ const all = {
   tally: Option.none(),
 };
 
+describe('channelsFor', () => {
+  test('reads the channel count off the length of headerless PCM', () => {
+    expect(channelsFor(44100 * 22, 44100, 22)).toEqual(Option.some(1));
+    expect(channelsFor(44100 * 44, 44100, 22)).toEqual(Option.some(2));
+    expect(channelsFor(Math.round(44100 * 0.8 * 2 * 1.05), 44100, 0.8)).toEqual(Option.some(2));
+    expect(channelsFor(44100 * 3, 44100, 1)).toEqual(Option.none());
+  });
+
+  test('splits interleaved samples into planes', () => {
+    const bytes = new Uint8Array(8);
+    const view = new DataView(bytes.buffer);
+    [16384, -16384, 8192, -8192].forEach((s, i) => view.setInt16(i * 2, s, true));
+    const pcm = pcmFromS16(bytes, 44100, 2);
+    expect(pcm.frames).toBe(2);
+    expect(pcm.channels.map((p) => Array.from(p))).toEqual([
+      [0.5, 0.25],
+      [-0.5, -0.25],
+    ]);
+  });
+});
+
 describe('SoundLibrary', () => {
   it.effect.layer(fixture)('plans only generated sounds, by their candidates and seconds', () =>
     withLibrary(() =>
@@ -179,12 +206,18 @@ describe('SoundLibrary', () => {
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
+          const media = yield* Media;
           const made = yield* library.make({
             ...all,
             cap: Option.some(40000),
             tally: Option.some(tally),
           });
           expect(made).toHaveLength(6);
+          // Nothing of the downloads is left behind: only the kept FLACs.
+          for (const folder of ['paper.slide', 'amb.court'])
+            expect(
+              (yield* fs.readDirectory(`${dir}/files/${folder}`)).every((f) => f.endsWith('.flac')),
+            ).toBe(true);
           expect(calls.map((c) => [c.prompt, c.loop, c.format, c.influence])).toContainEqual([
             'a quiet stone court',
             true,
@@ -195,6 +228,14 @@ describe('SoundLibrary', () => {
           for (const v of made) {
             expect(v.file).toMatch(/^files\/(paper\.slide|amb\.court)\/[0-9a-f]{12}\.flac$/);
             expect(yield* fs.exists(`${dir}/${v.file}`)).toBe(true);
+            // Stereo bytes are read as stereo: the sound lasts what was asked, both sides kept.
+            const asked = new Map([
+              ['amb.court', 2],
+              ['paper.slide', 1],
+            ]);
+            expect(v.secs).toBe(asked.get(v.file.split('/')[1] ?? '') ?? 0);
+            const heard = yield* media.decode(`${dir}/${v.file}`);
+            expect(heard.channels).toHaveLength(2);
             expect(v.loudness.momentaryMax).toBeGreaterThan(-40);
             expect(v.licence).toBe('elevenlabs-paid-sfx');
           }
