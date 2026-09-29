@@ -69,7 +69,11 @@ library (`sounds/library.ts`, shared by every film) with a level in dB
 relative to the voice; `check` fails on a sound the library lacks
 (`UnknownSound`), one placed for the other use (`SoundUseMismatch`) or one
 not yet made (`SoundUnmade`), and warns on a stale one or an effect within
-3 dB of the voice where it speaks (`EffectHot`). A misspelt `--only` beat
+3 dB of the voice where it speaks (`EffectHot`). How to word a generated
+sound's prompt and pick its length and influence, per kind (one-shot foley,
+impacts, beds), is `sounds/PROMPTING.md`. The library's generated files sync
+with `~/film-sounds`, never a folder under `~/film-media`, whose index deletes
+files it did not mirror. A misspelt `--only` beat
 fails narrate before anything is planned with `UnknownScene`. The films are
 always `src/films`, the folder the player imports (`cli.ts` hands it and
 `sounds/` to the tools); `FILMS_OUT` overrides `out`.
