@@ -228,8 +228,8 @@ player server will not start (the encoder line then says so).
 |                  | Hardware (macOS)                    | Software (Linux, any box without a GPU encoder)                      |
 | ---------------- | ----------------------------------- | -------------------------------------------------------------------- |
 | Chromium flags   | `--enable-gpu --use-angle=metal`    | neither (`launchArgs`, `tools/browser.ts`); stills are cmp-identical |
-| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (31.6 Mbps, 1.65 GB for 7 min)    |
-| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (11.7 Mbps, 616 MB)               |
+| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min)   |
+| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)                |
 | encoders at once | 14 (past it the encoder hangs)      | one per core                                                         |
 | default pages    | 6                                   | 8, or half the cores below 16                                        |
 
@@ -314,9 +314,13 @@ x264's after the join, so the pages carry one encoder each):
 | ----- | ---- | ---- | ---- | ----- |
 | fps   | 62.4 | 84.2 | 97.9 | 104.3 |
 
-The render timed above ran at the earlier default of 6 pages; at 8 the pages
-and join take less, and the x264 pass, which does not depend on the pages,
-takes most of the time.
+The render timed above ran at the earlier default of 6 pages, before pass 2's
+look. With the fibre on the backdrop plane (the paper grain slides with the
+camera instead of a fresh screen grain each frame) the film encodes far
+smaller: righteousness-by-faith (457 s, 13712 frames) rendered in 293.5 s at
+8 pages (pages and join about 142 s, x264 151.8 s), the master 765 MB at
+13.4 Mbps and the share 126 MB at 2.2 Mbps, keeping 0.57–0.85 (master) and
+0.56–0.80 (share) of the lossless stills' grain.
 
 ## Shorts
 

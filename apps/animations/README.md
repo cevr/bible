@@ -209,7 +209,11 @@ seam between two voices is about 0.6 s; set a longer `tail` only for a pause
 the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
 seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
 with neither scene declaring it (no `tail` before it, and no `min` that
-stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. Put
+stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. A
+seam is measured from the end of the take file, not from its last voiced word,
+so silence a take carries after its line (staging takes are not trimmed as a
+person's imports are) is heard as pause but not counted: `look`'s 2 s tail
+reads as `seam=0.60` before `within`. Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
@@ -337,7 +341,7 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 [CRAFT.md](../../.claude/skills/film/CRAFT.md).
 
 **Shorts are cut from the film, not drawn again.** `shorts.ts` exports
-`shorts`, each `{ id, title, spans }`, a span being `{ scene, from, to }`
+`shorts`, each `{ id, title, hook?, spans }`, a span being `{ scene, from, to }`
 where a point is a `{ mark }`, a named `{ cue }` (its start, or its end as a
 span's `to`, or `edge` to say which) or a scene landmark
 (`{ scene: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a

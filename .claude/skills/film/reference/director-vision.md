@@ -86,7 +86,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ### Type
 
-- One serif family for the title, the word cards and the end card: cream or gold on a torn paper strip, never on a plate over the picture.
+- One serif family for the title, the word cards and the credits' name and author heads: cream or gold on a torn paper strip, never on a plate over the picture. The credits roll their sources in the body face, ink on their own torn strip at the frame's side, clear of the landing's picture.
 - Words appear on screen only as CRAFT rule 1 allows. The chapter titles live in YouTube's chapter list, not in the frame.
 
 ### Figures, scale, hands and faces

@@ -13,18 +13,18 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
   - at most one word card per act: the word, its Hebrew or Greek, and a gloss of 2 to 4 words;
   - the opening question, and its answer;
   - a quotation of 10 words or fewer, and only when the words are an object in the world: written in dust, carved, stamped;
-  - the sources, on the end card.
-- **One text element at a time.** The title and the end card are the only exceptions.
+  - the sources, in the credits that roll over the coda (rule 7).
+- **One text element at a time.** The title and the credits are the only exceptions.
 - **Narration is never typeset.** The captions ship as the `.vtt` beside the MP4, so render the master with `--no-captions`.
-- **`cite` feeds the end card and `sources.md`.** It is never an on-screen tag.
-- **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title and end card.
+- **`cite` feeds the credits and `sources.md`.** It is never an on-screen tag. The film's `credits.ts` builds the roll from the beats' `cite`s: grouped by author, each work once with its places merged ("Steps to Christ, 17, 18, 47, 70"), no locator left alone on a line.
+- **Check:** in a `--contact 6` sheet, text shows in about 8 tiles out of 58 or fewer, outside the title and the credits.
 
 ## 2. Quote less, paraphrase more
 
 - **At most one quotation per beat.** Quoted words make up 20% of the script or less; BibleProject's median is 13.5%, ours was 41%.
 - **A quotation over 25 words is a set piece.** It gets one picture per clause, in the order spoken, or one shot held throughout.
 - **Name the writer in speech.** Say "Waggoner saw that…", and paraphrase inside the quote's own words. Keep a line verbatim only where no paraphrase can carry it.
-- **Never speak chapter and verse.** The end card lists the sources.
+- **Never speak chapter and verse.** The credits list the sources.
 - **Check:** divide the words inside quotation marks in `script.ts` by all its words.
 
 ## 3. Two registers
@@ -76,6 +76,7 @@ The shape as a share of the runtime:
 | Coda                     | credits and sources roll for 20–30 s over the final pull-back; the last 5–20 s stay clear for end screens |
 
 - The landing ends on the thesis line, with a held pause of about 3 s before its last word.
+- The coda is a scene that speaks nothing and does not breathe (`drawing({ drift: 0, … })`): the credits strip arrives with its first line and leaves with its last, never showing empty, and the camera settles before the clear end.
 - **Check:** each scene's `start` from `cues`, divided by the film's length. `bun run check` warns `EndShort` under 20 s after the last word or a 5 s end card.
 
 ## 8. Repetition as layout

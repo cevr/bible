@@ -35,14 +35,15 @@ The ledger is `apps/animations/plans/architecture-loop-<date>.md`: the single so
 10. **Merge.** In the worktree: merge main, resolve there, `bun run gate > <log> 2>&1; echo "GATE EXIT $?" >> <log>`. From the repo root: `git merge --ff-only p<N>-<batch>` (bible-tools commits to main; rebase in the worktree when main moved), gate into a log, read `GATE EXIT`. Bundle the branch (`git bundle create <scratchpad>/film-pass<N>/p<N>-<batch>.bundle p<N>-<batch>`), then `git worktree remove` it by full path and delete the branch. Write the batch's ledger rows. Push only when asked. Done when the gate on main is green, the rows are written and the worktree is gone.
 
 11. **Live check.** After each merge, or a small group of merges, drive what the batch changed:
-    - Picture: `bun run check <film>`, stills at the marks the batch touched (`bun run render <film> --stills <t,…> --tag p<N>`), compared with `cmp` against the stills from before the batch; read any that differ.
+    - Picture: `bun run check <film>`, stills at the marks the batch touched (`bun run render <film> --stills <t,…> --tag p<N>`), compared with `cmp` against the stills from before the batch; read any that differ. The "before" tree is `git archive <rev> package.json tsconfig.json packages/film apps/animations` into the scratchpad, with the main checkout's root `node_modules` linked and each package's own `node_modules` copied (`cp -a`, so `@bible/film` resolves to the tree's copy). When the pass moved the clock (a re-timed script, a new scene), compare at a mark, not a second: take each tree's time from its own `cues`. To name the commit behind a difference, render every pixel-candidate commit and its first parent the same way and `cmp` each pair; a commit that only moves the clock still moves the boil and drift phase of the scenes after it.
     - Timing and sound: `bun run cues <film>` diffed against the baseline; `bun run mix <film> --stems` levels against the ledger.
     - Lab: `bun run lab <film>` in the background, then drive the changed controls with `agent-browser` (load the `agent-browser` skill); a write-back must leave a clean `git diff` after undo.
-    - Performance: rerun the rows in [`performance.md`](performance.md) the batch claimed to move.
+    - Performance: rerun the rows in [`performance.md`](performance.md) the batch claimed to move. Note `uptime` before and after; a number taken at a load average over 4 claims neither a regression nor a win.
+    - The film: on a box with no display (the Workbox), "open the MP4" is confirming the share copy and the contact sheet appear in the review page's index (`curl -s http://localhost:8229/index.json`).
 
     A defect found here becomes a live-fix batch (step 8). Done when the results match intent, the ledger has a live-check row, and every process you started is stopped.
 
-12. **Docs.** Update `apps/animations/README.md`, the `film` skill and this skill's reference files wherever the pass changed the API, the workflow or a settled decision; add re-proposable rejections to [`rejected.md`](rejected.md). Done when each describes the code as it is.
+12. **Docs.** Update `apps/animations/README.md`, `packages/film/README.md`, the `film` skill (SKILL, CRAFT and its reference files) and this skill's reference files wherever the pass changed the API, the workflow or a settled decision; add re-proposable rejections to [`rejected.md`](rejected.md). Done when each describes the code as it is.
 
 ## Guardrails
 
