@@ -5,63 +5,137 @@
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/open.mp3",
         "ms": 500,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       },
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/turn.mp3",
         "ms": 4000,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       },
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/close.mp3",
         "ms": 6600,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       }
     ],
     "music": {
       "sound": "<app>/test/fixtures/films/tiny/sound/music-596f29d1.mp3",
       "gain": 0.5
     },
-    "effects": []
+    "beds": [
+      {
+        "sound": "synth:71bed758/1",
+        "from": 3500,
+        "to": 7100,
+        "gain": 0.012302687708123811,
+        "fade": 1,
+        "duck": false
+      }
+    ],
+    "effects": [
+      {
+        "sound": "synth:da8eae94/3",
+        "ms": 3550,
+        "gain": 0.03235936569296283,
+        "pitch": 0
+      },
+      {
+        "sound": "synth:2bceadec/1",
+        "ms": 1450,
+        "gain": 0.09885530946569386,
+        "pitch": 0
+      },
+      {
+        "sound": "synth:2bceadec/2",
+        "ms": 5350,
+        "gain": 0.10232929922807542,
+        "pitch": 0
+      }
+    ]
   },
-  "effects": {
+  "made": {
     "seconds": 7.8999999999999995,
     "voice": [
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/open.mp3",
         "ms": 500,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       },
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/turn.mp3",
         "ms": 4000,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       },
       {
         "sound": "<app>/test/fixtures/films/tiny/narration/close.mp3",
         "ms": 6600,
-        "gain": 1
+        "gain": 1,
+        "pitch": 0
       }
     ],
     "music": {
       "sound": "<app>/test/fixtures/films/tiny/sound/music-596f29d1.mp3",
       "gain": 0.5
     },
+    "beds": [
+      {
+        "sound": "synth:71bed758/1",
+        "from": 3500,
+        "to": 7100,
+        "gain": 0.012302687708123811,
+        "fade": 1,
+        "duck": false
+      },
+      {
+        "sound": "<app>/test/fixtures/sounds/files/amb.hall/1.flac",
+        "from": 0,
+        "to": 4550,
+        "gain": 0.278612116862977,
+        "fade": 1,
+        "duck": true
+      }
+    ],
     "effects": [
       {
-        "sound": "<app>/test/fixtures/films/tiny/sound/sfx-page-3058a42b.mp3",
+        "sound": "synth:da8eae94/3",
         "ms": 3550,
-        "gain": 0.45
+        "gain": 0.03235936569296283,
+        "pitch": 0
       },
       {
-        "sound": "<app>/test/fixtures/films/tiny/sound/sfx-fold-6809f2bd.mp3",
+        "sound": "synth:2bceadec/1",
         "ms": 1450,
-        "gain": 0.6
+        "gain": 0.09885530946569386,
+        "pitch": 0
       },
       {
-        "sound": "<app>/test/fixtures/films/tiny/sound/sfx-fold-6809f2bd.mp3",
+        "sound": "synth:2bceadec/2",
         "ms": 5350,
-        "gain": 0.6
+        "gain": 0.10232929922807542,
+        "pitch": 0
+      },
+      {
+        "sound": "<app>/test/fixtures/sounds/files/paper.page/2.flac",
+        "ms": 4012,
+        "gain": 0.4486449948320389,
+        "pitch": -0.1518448139540851
+      },
+      {
+        "sound": "<app>/test/fixtures/sounds/files/paper.page/1.flac",
+        "ms": 6105,
+        "gain": 0.2964847384227528,
+        "pitch": 0.48364866292104125
+      },
+      {
+        "sound": "<app>/test/fixtures/sounds/files/paper.fold/1.flac",
+        "ms": 1961,
+        "gain": 0.308582083964739,
+        "pitch": -0.15073708491399884
       }
     ]
   }

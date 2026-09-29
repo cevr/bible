@@ -450,18 +450,39 @@ export const Music = Schema.Struct({
 });
 export type Music = typeof Music.Type;
 
+/**
+ * A one-shot from the app's sound library (`sounds/library.ts`), placed on
+ * each of its cues. A film names sounds, never prompts.
+ */
 export const SoundEffect = Schema.Struct({
-  prompt: Schema.String,
-  secs: Schema.Finite,
-  /** Linear gain; 1 leaves the generated level alone. */
-  gain: Schema.optionalKey(Schema.Finite),
+  /** The library's name for it: `paper.slide`. */
+  sound: Schema.String,
+  /** Its level in dB relative to the voice; else the library's, else the one-shot default. */
+  level: Schema.optionalKey(Schema.Finite),
   at: Schema.Array(Cue),
 });
 export type SoundEffect = typeof SoundEffect.Type;
 
-/** A film's music and effects (`sound.ts`). */
+/**
+ * A bed: a library sound looped from one cue to another, crossfaded into
+ * itself where it wraps, faded in and out, ducked under the voice unless the
+ * library says it sits under everything.
+ */
+export const SoundBed = Schema.Struct({
+  sound: Schema.String,
+  /** dB relative to the voice; else the library's, else the bed default. */
+  level: Schema.optionalKey(Schema.Finite),
+  from: Cue,
+  to: Cue,
+  /** Seconds each end fades over; `BED_FADE` when none. */
+  fade: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+});
+export type SoundBed = typeof SoundBed.Type;
+
+/** A film's music, beds and effects (`sound.ts`). */
 export const Sound = Schema.Struct({
   music: Schema.optionalKey(Music),
+  beds: Schema.optionalKey(Schema.Array(SoundBed)),
   effects: Schema.Record(Schema.String, SoundEffect),
 });
 export type Sound = typeof Sound.Type;
@@ -473,10 +494,9 @@ export const Asset = Schema.Struct({
 });
 export type Asset = typeof Asset.Type;
 
-/** `sound/manifest.json`: what has been generated for a film's sound. */
+/** `sound/manifest.json`: the film's generated score. Its effects and beds are the library's. */
 export const SoundManifest = Schema.Struct({
   music: Schema.optionalKey(Asset),
-  effects: Schema.Record(Schema.String, Asset),
 });
 export type SoundManifest = typeof SoundManifest.Type;
 
@@ -513,11 +533,6 @@ export const VoiceKey = Schema.fromJsonString(VoiceSettings);
 /** What the score depends on. */
 export const MusicRequestKey = Schema.fromJsonString(
   Schema.Struct({ model: MusicModel, plan: Plan }),
-);
-
-/** What an effect depends on. */
-export const EffectRequestKey = Schema.fromJsonString(
-  Schema.Struct({ prompt: Schema.String, secs: Schema.Finite }),
 );
 
 // ---------------------------------------------------------------------------

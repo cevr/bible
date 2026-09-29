@@ -133,7 +133,8 @@ const Harness = Layer.unwrap(
 
     const Platform = BunServices.layer;
     const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-    const Repo = FilmRepo.layer(root).pipe(Layer.provide([Store, Platform]));
+    const sounds = Option.some(path.join(app, 'sounds'));
+    const Repo = FilmRepo.layer(root, sounds).pipe(Layer.provide([Store, Platform]));
     const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
     const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
       Layer.provideMerge(SceneSources.layer),

@@ -1,8 +1,9 @@
-// Sound: a film's music and effects, declared as data and placed on the same
-// clock as the pictures. A music act starts at a scene; an effect fires at one
-// of a scene's named cues (the same cue its picture reads), or at a mark, so
-// re-recording a line moves its sounds with it. Pure — the score and mix
-// scripts read it without a DOM.
+// Sound: a film's music, beds and effects, declared as data and placed on the
+// same clock as the pictures. A music act starts at a scene; an effect fires
+// at one of a scene's named cues (the same cue its picture reads), or at a
+// mark, and a bed runs from one cue to another, so re-recording a line moves
+// its sounds with it. Effects and beds name sounds from the app's library
+// (`sfx.ts`). Pure — the score and mix scripts read it without a DOM.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
@@ -18,12 +19,10 @@ import { hashText } from './narration.ts';
 import {
   type Act,
   type Cue,
-  EffectRequestKey,
   type Music,
   MusicRequestKey,
   type Plan,
   type PlanChunk,
-  type SoundEffect,
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
@@ -143,6 +142,3 @@ export const musicPlan = (
 
 export const musicKey = (music: Music, plan: Plan): string =>
   hashText(Schema.encodeSync(MusicRequestKey)({ model: music.model, plan }));
-
-export const effectKey = (e: SoundEffect): string =>
-  hashText(Schema.encodeSync(EffectRequestKey)({ prompt: e.prompt, secs: e.secs }));

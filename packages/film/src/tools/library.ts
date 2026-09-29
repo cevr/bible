@@ -22,22 +22,20 @@ import {
   Layer,
   Option,
   Path,
-  Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, concat, silence, slice } from '../core/audio.ts';
 import {
   type Generated,
-  Library,
+  type Library,
   type LibraryEntry,
   type Lock,
   type LockEntry,
-  LockJson,
   type MakeJob,
   type Playable,
   SFX_FORMAT,
   SFX_MODEL,
-  SoundStoreConfig,
+  type SoundStoreConfig,
   type SoundSource,
   type Sounds,
   type Variant,
@@ -62,7 +60,7 @@ import {
   CandidateMissing,
   CreditsOverCap,
   type ElevenLabsFailed,
-  FilmModuleInvalid,
+  type FilmModuleInvalid,
   LibraryMissing,
   LoopSeam,
   type MediaFailed,
@@ -75,7 +73,7 @@ import {
   SoundUnmade,
   type UnknownSound,
 } from './errors.ts';
-import { importFilmModule } from './film-repo.ts';
+import { libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import { type SoundStoreService, expandHome, folderStore } from './sound-store.ts';
@@ -108,8 +106,6 @@ export const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   lock: loaded.lock,
   dir: loaded.paths.dir,
 });
-
-const LibraryModule = Schema.Struct({ library: Library, store: SoundStoreConfig });
 
 /** `pcm_44100` as the API sends it: raw 16-bit little-endian mono. */
 export const pcmFromS16 = (bytes: Uint8Array, rate: number): Pcm => {
@@ -311,7 +307,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const paths: SoundsPaths = {
           dir,
           module: path.join(dir, 'library.ts'),
-          lock: { file: path.join(dir, 'library.lock.json'), codec: LockJson, empty: {} },
+          lock: lockManifest(dir),
           files: path.join(dir, 'files'),
           public: path.join(dir, 'public'),
           out: path.join(outputs, 'sounds'),
@@ -320,24 +316,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const loadLibrary = Effect.fn('SoundLibrary.load')(function* () {
           if (!(yield* fs.exists(paths.module)))
             return yield* LibraryMissing.make({ file: paths.module });
-          const module = yield* Effect.tryPromise({
-            try: () => importFilmModule(paths.module),
-            catch: (cause) =>
-              FilmModuleInvalid.make({
-                film: 'sounds',
-                module: 'library.ts',
-                reason: String(cause),
-              }),
-          });
-          const declared = yield* Schema.decodeUnknownEffect(LibraryModule)(module).pipe(
-            Effect.mapError((error) =>
-              FilmModuleInvalid.make({
-                film: 'sounds',
-                module: 'library.ts',
-                reason: error.message,
-              }),
-            ),
-          );
+          const declared = yield* libraryModule(paths.module);
           const lock = yield* store.read(paths.lock);
           const loaded: LoadedLibrary = {
             paths,

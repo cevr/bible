@@ -8,6 +8,14 @@
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { type Placed, layout } from '../core/layout.ts';
 import {
+  Library,
+  type Lock,
+  LockJson,
+  NO_SOUNDS,
+  SoundStoreConfig,
+  type Sounds,
+} from '../core/sfx.ts';
+import {
   HeardAs,
   Look,
   Sound,
@@ -49,6 +57,8 @@ export interface LoadedFilm {
   readonly heardAs: HeardAs;
   /** The film's declared colour script and acts (`film.ts`'s `look`); none when it declares none. */
   readonly look: Option.Option<Look>;
+  /** The app's sound library its effects and beds name; none when the app has none. */
+  readonly sounds: Sounds;
 }
 
 export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
@@ -88,6 +98,32 @@ const ShortsModule = Schema.Struct({ shorts: Shorts });
  */
 export const importFilmModule = (file: string) => import(file);
 
+/** What an app's `sounds/library.ts` exports: its sounds, and where their private files are kept. */
+const LibraryModule = Schema.Struct({ library: Library, store: SoundStoreConfig });
+
+/** An app's `sounds/library.ts`, decoded. */
+export const libraryModule = (file: string) =>
+  Effect.tryPromise({
+    try: () => importFilmModule(file),
+    catch: (cause) =>
+      FilmModuleInvalid.make({ film: 'sounds', module: 'library.ts', reason: String(cause) }),
+  }).pipe(
+    Effect.flatMap((module) =>
+      Schema.decodeUnknownEffect(LibraryModule)(module).pipe(
+        Effect.mapError((error) =>
+          FilmModuleInvalid.make({ film: 'sounds', module: 'library.ts', reason: error.message }),
+        ),
+      ),
+    ),
+  );
+
+/** The library's lock (`library.lock.json`) in `dir`, as the content store reads and writes it. */
+export const lockManifest = (dir: string): Manifest<Lock> => ({
+  file: `${dir}/library.lock.json`,
+  codec: LockJson,
+  empty: {},
+});
+
 /** Why a film does not lay out: a word pin with no word to land on, or any other authoring error. */
 export type PlaceError = WordMissing | LayoutInvalid;
 
@@ -109,8 +145,11 @@ export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>
 export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
   '@bible/film/tools/FilmRepo',
 ) {
-  /** The repo over the films in `films`: the app's films folder, which its player imports. */
-  static readonly layer = (films: string) =>
+  /**
+   * The repo over the films in `films`: the app's films folder, which its
+   * player imports; `sounds`, the app's sound library folder, when it has one.
+   */
+  static readonly layer = (films: string, sounds: Option.Option<string> = Option.none()) =>
     Layer.effect(
       FilmRepo,
       Effect.gen(function* () {
@@ -139,7 +178,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             manifest: {
               file: path.join(sound, 'manifest.json'),
               codec: SoundManifestJson,
-              empty: { effects: {} },
+              empty: {},
             },
           };
         };
@@ -189,7 +228,30 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           let look = Option.none<Look>();
           if (yield* fs.exists(filmFile))
             look = Option.fromNullishOr((yield* loadModule(name, filmFile, FilmModule)).look);
-          return { paths: at, scenes, voice, sound, shorts, timings, manifest, heardAs, look };
+          const library = yield* loadSounds;
+          return {
+            paths: at,
+            scenes,
+            voice,
+            sound,
+            shorts,
+            timings,
+            manifest,
+            heardAs,
+            look,
+            sounds: library,
+          };
+        });
+
+        /** The app's library and its lock; none when the app keeps no `sounds/library.ts`. */
+        const loadSounds = Effect.gen(function* () {
+          const dir = Option.getOrElse(sounds, () => '');
+          const file = path.join(dir, 'library.ts');
+          if (Option.isNone(sounds) || !(yield* fs.exists(file))) return NO_SOUNDS;
+          const { library } = yield* libraryModule(file);
+          const lock = yield* store.read(lockManifest(dir));
+          const loaded: Sounds = { library, lock, dir };
+          return loaded;
         });
 
         const script = Effect.fn('FilmRepo.script')(function* (name: string) {

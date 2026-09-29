@@ -89,14 +89,23 @@ describe('film cli', () => {
     }),
   );
 
-  it.effect.layer(BunServices.layer)('score --only with a misspelt sound fails', () =>
+  it.effect.layer(BunServices.layer)(
+    'cues --sound names the library sound of each placement and each bed',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('cues', film, '--sound');
+        expect(run.exitCode).toBe(0);
+        expect(run.stdout).toContain('tone.notes');
+        expect(run.stdout).toMatch(/^bed .* room\.paper$/m);
+      }),
+    spawnBudget(1),
+  );
+
+  it.effect.layer(BunServices.layer)('score composes only the score: --only is gone', () =>
     Effect.gen(function* () {
-      const run = yield* cli('score', film, '--only', 'musik', '--dry-run');
+      const run = yield* cli('score', film, '--only', 'music', '--dry-run');
       expect(run.exitCode).not.toBe(0);
-      expect(run.out).toContain('UnknownEffect');
-      expect(run.out).toContain('"musik"');
-      // The message lists what the film does have.
-      expect(run.out).toContain('music');
+      expect(run.out).toContain('Unrecognized flag: --only');
     }),
   );
 

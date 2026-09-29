@@ -162,10 +162,10 @@ describe('scene sources', () => {
       Effect.gen(function* () {
         const check = yield* StaticCheck;
         const findings = yield* check.run(FIXTURE_FILM);
-        // No static errors; the fixture's unmade effects are warnings.
+        // No static errors; the fixture is too short for an end screen, a warning.
         expect(findings.length).toBeGreaterThan(0);
         expect(findings.filter((f) => f.level === 'error')).toEqual([]);
-        expect(findings.map((f) => f.tag)).toContain('AssetMissing');
+        expect(findings.map((f) => f.tag)).toContain('EndShort');
       }).pipe(Effect.provide(StaticCheck.layer(['bun', FIXTURE_CLI]))),
     spawnBudget(1),
   );

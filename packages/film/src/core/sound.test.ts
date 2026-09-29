@@ -5,7 +5,7 @@ import type { Music, Timings } from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from './sound.ts';
+import { actSpans, cueTime, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 /** The failure's tag, or `ok`. */
 const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>) =>
@@ -121,8 +121,5 @@ describe('sound', () => {
     const plan = Result.getOrThrow(musicPlan(music, placed));
     expect(musicKey({ ...music, gain: 0.9 }, plan)).toBe(musicKey(music, plan));
     expect(musicKey({ ...music, model: 'music_v2' }, plan)).not.toBe(musicKey(music, plan));
-    const e = { prompt: 'paper', secs: 1, at: [] };
-    expect(effectKey({ ...e, gain: 0.1 })).toBe(effectKey(e));
-    expect(effectKey({ ...e, secs: 2 })).not.toBe(effectKey(e));
   });
 });

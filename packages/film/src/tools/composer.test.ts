@@ -1,5 +1,6 @@
-// Composer with fakes: without an API key the effects are skipped with a
-// warning and the score is still made and recorded under its hash.
+// Composer with fakes: the score is made and recorded under its hash, and a
+// current score is never made again. Effects are the library's: `score`
+// never makes one.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path, Result, Schema } from 'effect';
@@ -33,9 +34,7 @@ const music: Music = {
 
 const sound: Sound = {
   music,
-  effects: {
-    page: { prompt: 'a page turns', secs: 1, at: [{ scene: 'open', offset: 1 }] },
-  },
+  effects: { page: { sound: 'paper.page', at: [{ scene: 'open', offset: 1 }] } },
 };
 
 const timings: Timings = { voice: '', scenes: {} };
@@ -50,10 +49,10 @@ describe('Composer', () => {
     Layer.provide([memoryFileSystem(files), Path.layer, fakeElevenLabs(files, calls)]),
   );
 
-  it.effect('without a key, skips the effects and still makes the music', () =>
+  it.effect('makes the score once, and never an effect', () =>
     Effect.gen(function* () {
       const film = { ...testFilm(scenes, timings), sound: Option.some(sound) };
-      yield* (yield* Composer).score(film, { only: Option.none(), dryRun: false });
+      yield* (yield* Composer).score(film, { force: false, dryRun: false });
 
       expect(calls.effects).toEqual([]);
       const plan = Result.getOrThrow(musicPlan(music, layout(scenes, timings)));
@@ -62,7 +61,11 @@ describe('Composer', () => {
       const manifest = yield* Schema.decodeEffect(SoundManifestJson)(
         new TextDecoder().decode(files.get(MANIFEST)),
       );
-      expect(manifest).toEqual({ music: { hash, file: `music-${hash}.mp3` }, effects: {} });
+      expect(manifest).toEqual({ music: { hash, file: `music-${hash}.mp3` } });
+
+      const made = { ...film, manifest };
+      yield* (yield* Composer).score(made, { force: false, dryRun: false });
+      expect(calls.music).toHaveLength(1);
     }).pipe(Effect.provide(layer)),
   );
 });

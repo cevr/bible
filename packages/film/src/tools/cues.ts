@@ -91,7 +91,7 @@ const anchorLabel = (cue: Cue): string => {
   return [anchor, edge].flatMap((part) => Option.toArray(part)).join('');
 };
 
-/** Each effect placement's film time. */
+/** Each effect placement's film time and library sound, then each bed's span. */
 export const soundReport = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
@@ -105,9 +105,17 @@ export const soundReport = (
         if (!inScene(cue.scene)) continue;
         const at = yield* cueTime(cue, placed);
         lines.push(
-          `${name.padEnd(8)} ${cue.scene.padEnd(11)} ${at.toFixed(3).padStart(8)} ${anchorLabel(cue)}`,
+          `${name.padEnd(8)} ${cue.scene.padEnd(11)} ${at.toFixed(3).padStart(8)} ${anchorLabel(cue)}  ${effect.sound}`,
         );
       }
+    for (const bed of sound.beds ?? []) {
+      if (!inScene(bed.from.scene) && !inScene(bed.to.scene)) continue;
+      const from = yield* cueTime(bed.from, placed);
+      const to = yield* cueTime(bed.to, placed);
+      lines.push(
+        `bed      ${bed.from.scene.padEnd(11)} ${range(from, to)} ${anchorLabel(bed.from)}→${bed.to.scene}${anchorLabel(bed.to)}  ${bed.sound}`,
+      );
+    }
     return lines;
   });
 

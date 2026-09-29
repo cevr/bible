@@ -17,6 +17,7 @@ import {
 import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
+import { NO_SOUNDS } from '../core/sfx.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import { unmeasured } from '../core/voiced.ts';
 import {
@@ -711,7 +712,7 @@ export const testFilm = (
     manifest: {
       file: '/films/test/sound/manifest.json',
       codec: SoundManifestJson,
-      empty: { effects: {} },
+      empty: {},
     },
   },
   scenes,
@@ -719,9 +720,10 @@ export const testFilm = (
   sound: Option.none(),
   shorts: [],
   timings,
-  manifest: { effects: {} },
+  manifest: {},
   heardAs: {},
   look: Option.none(),
+  sounds: NO_SOUNDS,
 });
 
 /**

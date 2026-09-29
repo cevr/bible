@@ -6,7 +6,7 @@
 // text cut off by the frame; and static holds, where the voice speaks over a
 // picture that does not move. Every finding is collected; none stops the others.
 
-import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
+import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
@@ -31,7 +31,15 @@ import type {
   TextBox,
   Timed,
 } from '../core/schema.ts';
-import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import {
+  type LibraryEntry,
+  type SoundUse,
+  type Sounds,
+  levelOf as soundLevel,
+  resolveUse,
+  soundState,
+} from '../core/sfx.ts';
+import { actSpans, cueTime, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type ActTooShort,
   type ArmPop,
@@ -42,6 +50,7 @@ import {
   type AudioStale,
   CueLate,
   DeadAir,
+  EffectHot,
   EndShort,
   type ColourScript,
   type CueInvalid,
@@ -50,6 +59,9 @@ import {
   InkOverText,
   PlateOffFrame,
   SeamLong,
+  SoundStale,
+  SoundUnmade,
+  type SoundUseMismatch,
   type StaticHold,
   TakeStale,
   TextOffFrame,
@@ -58,6 +70,7 @@ import {
   type UnknownCue,
   type UnknownMark,
   type UnknownScene,
+  type UnknownSound,
   type UnknownVoice,
   WordPinFar,
 } from './errors.ts';
@@ -78,6 +91,11 @@ export type StaticFinding =
   | CueInvalid
   | ActTooShort
   | UnknownVoice
+  | UnknownSound
+  | SoundUseMismatch
+  | SoundUnmade
+  | SoundStale
+  | EffectHot
   | WordPinFar
   | EndShort
   | DeadAir;
@@ -258,22 +276,93 @@ export const musicFindings = (
     },
   });
 
-/** Every effect placement names a real scene, cue or mark; every effect's asset is current. */
-export const effectFindings = (
+/**
+ * How close to the voice's level (dB) an effect may sit where the voice
+ * speaks: nearer, it competes with the words.
+ */
+export const EFFECT_HOT = 3;
+
+/** The film seconds each scene's voice speaks. */
+const speechSpans = (placed: ReadonlyArray<Placed>): ReadonlyArray<Span> =>
+  placed
+    .filter((p) => p.voice.duration > 0)
+    .map((p): Span => [p.start + p.speechStart, p.start + p.speechStart + p.voice.duration]);
+
+/** The scene playing at film second `at`. */
+const sceneAt = (placed: ReadonlyArray<Placed>, at: number): string =>
+  Option.match(
+    Arr.findLast(placed, (p) => p.start <= at + 1e-9),
+    { onNone: () => '', onSome: (p) => p.spec.id },
+  );
+
+/** A named library sound for `use`: refused (unknown, or for the other use), unmade, stale, or fine. */
+const libraryFindings = (
+  sounds: Sounds,
+  name: string,
+  use: SoundUse,
+): Result.Result<
+  { readonly entry: LibraryEntry; readonly findings: ReadonlyArray<StaticFinding> },
+  UnknownSound | SoundUseMismatch
+> =>
+  Result.map(resolveUse(sounds.library, name, use), (entry) => {
+    const state = soundState(entry, Option.fromUndefinedOr(sounds.lock[name]));
+    const findings: Array<StaticFinding> = [];
+    if (state._tag === 'Missing')
+      findings.push(SoundUnmade.make({ name, candidates: state.candidates }));
+    if (state._tag === 'Stale') findings.push(SoundStale.make({ name }));
+    return { entry, findings };
+  });
+
+/**
+ * Every bed and effect: each cue names a real scene, cue or mark; each sound
+ * is in the library, declared for how it is placed, made and current; and no
+ * effect sits within `EFFECT_HOT` dB of the voice where the voice speaks. A
+ * sound named twice is reported once.
+ */
+export const soundFindings = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
-  manifest: SoundManifest,
-): ReadonlyArray<StaticFinding> =>
-  Object.entries(sound.effects).flatMap(([id, effect]) => [
-    ...effect.at.flatMap((cue) =>
-      Result.match(cueTime(cue, placed), { onFailure: (e) => [e], onSuccess: () => [] }),
-    ),
-    ...assetFinding(
-      id,
-      Option.map(Rec.get(manifest.effects, id), (a) => a.hash),
-      effectKey(effect),
-    ),
+  sounds: Sounds,
+): ReadonlyArray<StaticFinding> => {
+  const named = new Set<string>();
+  const once = (name: string, found: ReadonlyArray<StaticFinding>) => {
+    if (named.has(name)) return [];
+    named.add(name);
+    return found;
+  };
+  const cueFindings = (cue: Sound['effects'][string]['at'][number]) =>
+    Result.match(cueTime(cue, placed), { onFailure: (e) => [e], onSuccess: () => [] });
+  const speech = speechSpans(placed);
+  const beds = (sound.beds ?? []).flatMap((bed) => [
+    ...cueFindings(bed.from),
+    ...cueFindings(bed.to),
+    ...Result.match(libraryFindings(sounds, bed.sound, 'bed'), {
+      onFailure: (e) => once(bed.sound, [e]),
+      onSuccess: ({ findings }) => once(bed.sound, findings),
+    }),
   ]);
+  const effects = Object.entries(sound.effects).flatMap(([id, effect]) => [
+    ...effect.at.flatMap(cueFindings),
+    ...Result.match(libraryFindings(sounds, effect.sound, 'one-shot'), {
+      onFailure: (e) => once(effect.sound, [e]),
+      onSuccess: ({ entry, findings }) => {
+        const level = soundLevel(entry, Option.fromUndefinedOr(effect.level));
+        const hot = effect.at.flatMap((cue) =>
+          Result.match(cueTime(cue, placed), {
+            onFailure: () => [],
+            onSuccess: (at) => {
+              if (level <= -EFFECT_HOT) return [];
+              if (!speech.some(([a, b]) => at >= a && at <= b)) return [];
+              return [EffectHot.make({ effect: id, scene: sceneAt(placed, at), at, level })];
+            },
+          }),
+        );
+        return [...once(effect.sound, findings), ...hot];
+      },
+    }),
+  ]);
+  return [...beds, ...effects];
+};
 
 const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
   switch (finding._tag) {
@@ -284,6 +373,8 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
       if (options.allowStale) return 'warning';
       return 'error';
     case 'AssetMissing':
+    case 'SoundStale':
+    case 'EffectHot':
     case 'SeamLong':
     case 'WordPinFar':
     case 'EndShort':
@@ -423,7 +514,7 @@ export const staticFindings = (
     ...Option.toArray(Option.fromNullishOr(s.music)).flatMap((m) =>
       musicFindings(m, placed, film.manifest),
     ),
-    ...effectFindings(s, placed, film.manifest),
+    ...soundFindings(s, placed, film.sounds),
   ]);
   const audio = masterFindings(film, placed, master);
   const takes = [...unknownVoices(film), ...staleTakes(film)];

@@ -473,17 +473,6 @@ export class FlagsConflict extends Schema.TaggedError<FlagsConflict>()('FlagsCon
   }
 }
 
-/** `score --only` names a sound the film does not have. */
-export class UnknownEffect extends Schema.TaggedError<UnknownEffect>()('UnknownEffect', {
-  id: Schema.String,
-  /** The sounds the film has: `music`, if it has a score, and its effect ids. */
-  known: Schema.Array(Schema.String),
-}) {
-  override get message() {
-    return `the film has no sound "${this.id}"; its sounds are ${this.known.join(', ')}`;
-  }
-}
-
 /** `--short` names a short the film's `shorts.ts` does not declare. */
 export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
   film: Schema.String,

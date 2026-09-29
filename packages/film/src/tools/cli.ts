@@ -6,7 +6,7 @@
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
 //   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
 //   film script <film> [--sheet]
-//   film score <film> [--only music|<effect>,...] [--dry-run]
+//   film score <film> [--force] [--dry-run]
 //   film mix <film> [--stems]
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
@@ -79,7 +79,6 @@ import {
   type MediaFailed,
   PreviewServerFailed,
   SoundMissing,
-  UnknownEffect,
   UnknownShort,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
@@ -315,46 +314,30 @@ const narrate = Command.make(
   }),
 ).pipe(Command.withDescription("Record a film's stale narration takes, then remix"));
 
-/** `score --only` ids the film has: `music` if it has a score, and its effects. */
-const knownSounds = (
-  loaded: LoadedFilm,
-  only: Option.Option<ReadonlySet<string>>,
-): Result.Result<void, UnknownEffect> => {
-  const known: ReadonlyArray<string> = Option.match(loaded.sound, {
-    onNone: () => [],
-    onSome: (sound) => [
-      ...Arr.filter(['music'], () => Option.isSome(Option.fromNullishOr(sound.music))),
-      ...Object.keys(sound.effects),
-    ],
-  });
-  const unknown = Option.flatMap(only, (ids) =>
-    Arr.findFirst([...ids], (id) => !known.includes(id)),
-  );
-  return Option.match(unknown, {
-    onNone: () => Result.void,
-    onSome: (id) => Result.fail(UnknownEffect.make({ id, known })),
-  });
-};
-
 const score = Command.make(
   'score',
   {
     film,
-    only: only.pipe(Flag.withDescription('regenerate just these: music, or effect ids')),
+    force: Flag.Boolean('force').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription('compose the score again even when it is current'),
+    ),
     dryRun,
   },
   Effect.fn('film.score')(function* (input) {
     const repo = yield* FilmRepo;
     const composer = yield* Composer;
     const loaded = yield* repo.load(input.film);
-    // A misspelt sound fails here rather than generating nothing.
-    yield* Effect.fromResult(knownSounds(loaded, input.only));
     if (!input.dryRun) yield* paidPreflight;
-    yield* composer.score(loaded, { only: input.only, dryRun: input.dryRun });
+    yield* composer.score(loaded, { force: input.force, dryRun: input.dryRun });
     if (input.dryRun) return;
     yield* (yield* Mixer).mix(input.film, { stems: false });
   }),
-).pipe(Command.withDescription("Generate a film's stale music and effects, then remix"));
+).pipe(
+  Command.withDescription(
+    "Compose a film's stale score, then remix (effects and beds are the library's: sfx make)",
+  ),
+);
 
 const mix = Command.make(
   'mix',
@@ -956,6 +939,8 @@ const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(P
 export interface FilmApp<E> {
   /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
   readonly films: string;
+  /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`), shared by its films. */
+  readonly sounds: string;
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /** The player in development mode with the lab's routes, served while `lab` runs. */
@@ -973,8 +958,14 @@ export interface FilmApp<E> {
  * server and the browser start only for `render` and the layout leg of
  * `check`, and stop with them; the lab server runs while `lab` does.
  */
-export const runFilmCli = <E>({ films, previewServer, labServer, self }: FilmApp<E>): void => {
-  const Repo = FilmRepo.layer(films).pipe(Layer.provide([Store, Platform]));
+export const runFilmCli = <E>({
+  films,
+  sounds,
+  previewServer,
+  labServer,
+  self,
+}: FilmApp<E>): void => {
+  const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
     Layer.provideMerge(SceneSources.layer),

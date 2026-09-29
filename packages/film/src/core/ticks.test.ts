@@ -32,8 +32,7 @@ const sound: Sound = {
   },
   effects: {
     thud: {
-      prompt: 'a thud',
-      secs: 1,
+      sound: 'hit.thud',
       at: [
         { scene: 'stamp', cue: 'slam', edge: 'end' },
         { scene: 'stamp', cue: 'missing' },

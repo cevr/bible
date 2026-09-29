@@ -51,12 +51,16 @@ line changed). Takes import flags: `--only id,id` (just these beats; one file
 not named for its beat imports as the one beat named), `--accept-mismatch id,id`,
 `--whole` (the file is one reading of the whole script, cut at the quietest
 point of the silence around each beat; a flubbed line read again keeps the
-reading that finished it). Score flags:
-`--only music,<effect>` and `--dry-run`. A misspelt `--only` id fails before
-anything is planned: `UnknownScene` for narrate, `UnknownEffect` (listing the
-film's sounds) for score. The films are always `src/films`, the
-folder the player imports (`cli.ts` hands it to the tools); `FILMS_OUT`
-overrides `out`.
+reading that finished it). Score flags: `--force` and `--dry-run`; `score`
+composes only the score. A film's beds and effects name sounds in the app's
+library (`sounds/library.ts`, shared by every film) with a level in dB
+relative to the voice; `check` fails on a sound the library lacks
+(`UnknownSound`), one placed for the other use (`SoundUseMismatch`) or one
+not yet made (`SoundUnmade`), and warns on a stale one or an effect within
+3 dB of the voice where it speaks (`EffectHot`). A misspelt `--only` beat
+fails narrate before anything is planned with `UnknownScene`. The films are
+always `src/films`, the folder the player imports (`cli.ts` hands it and
+`sounds/` to the tools); `FILMS_OUT` overrides `out`.
 
 Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes,
 sound and audio master are warnings), `--scene id,id` (probe only these

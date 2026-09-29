@@ -3,14 +3,22 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Option, Schema } from 'effect';
-import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
+import { Asset, type SoundManifest, SoundManifestJson } from '../core/schema.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { storeLayer } from './testing.ts';
 
 const manifest: Manifest<SoundManifest> = {
   file: '/films/test/sound/manifest.json',
   codec: SoundManifestJson,
-  empty: { effects: {} },
+  empty: {},
+};
+
+/** A manifest of many keyed assets, so racing updates each add their own. */
+const Assets = Schema.Struct({ assets: Schema.Record(Schema.String, Asset) });
+const assets: Manifest<typeof Assets.Type> = {
+  file: '/films/test/assets.json',
+  codec: Schema.fromJsonString(Assets),
+  empty: { assets: {} },
 };
 
 describe('ContentStore', () => {
@@ -21,14 +29,13 @@ describe('ContentStore', () => {
       yield* Effect.forEach(
         ids,
         (id) =>
-          store.update(manifest, (m) => ({
-            ...m,
-            effects: { ...m.effects, [id]: { hash: id, file: `${id}.mp3` } },
+          store.update(assets, (m) => ({
+            assets: { ...m.assets, [id]: { hash: id, file: `${id}.flac` } },
           })),
         { concurrency: ids.length },
       );
-      const stored = yield* store.read(manifest);
-      expect(Object.keys(stored.effects).toSorted()).toEqual(ids);
+      const stored = yield* store.read(assets);
+      expect(Object.keys(stored.assets).toSorted()).toEqual(ids);
     }).pipe(Effect.provide(storeLayer(new Map()))),
   );
 
@@ -41,9 +48,9 @@ describe('ContentStore', () => {
           manifest,
           hash,
           force: false,
-          stored: (m) => Option.map(Option.fromNullishOr(m.effects['page']), (a) => a.hash),
+          stored: (m) => Option.map(Option.fromNullishOr(m.music), (a) => a.hash),
           produce: Effect.sync(() => ++made),
-          record: (m) => ({ ...m, effects: { page: { hash, file: `page-${hash}.mp3` } } }),
+          record: () => ({ music: { hash, file: `music-${hash}.mp3` } }),
         });
       expect(yield* ensure('h1')).toEqual(Option.some(1));
       expect(yield* ensure('h1')).toEqual(Option.none());

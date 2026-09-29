@@ -6,12 +6,12 @@ import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Probed, Sound, Timed, Timings } from '../core/schema.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
-import { effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type FrameFinding,
   HOLD,
   type Sample,
-  effectFindings,
+  soundFindings,
   farPins,
   frameFindings,
   heldStill,
@@ -32,9 +32,11 @@ import {
   STILL_DRIFT,
   staticFindings,
   stillSpan,
+  EFFECT_HOT,
   unknownVoices,
 } from './check.ts';
 import { StaticHold } from './errors.ts';
+import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import {
   holdScenes,
   holdTimings,
@@ -806,17 +808,14 @@ describe('musicFindings', () => {
   const hash = musicKey(inOrder, Result.getOrThrow(musicPlan(inOrder, placedSound)));
 
   test('a current score is fine; a re-timed one is stale; an unmade one is missing', () => {
-    expect(
-      musicFindings(inOrder, placedSound, { music: { hash, file: 'm.mp3' }, effects: {} }),
-    ).toEqual([]);
+    expect(musicFindings(inOrder, placedSound, { music: { hash, file: 'm.mp3' } })).toEqual([]);
     const stale = musicFindings(inOrder, placedSound, {
       music: { hash: 'old', file: 'm.mp3' },
-      effects: {},
     });
     expect(stale).toMatchObject([
       { _tag: 'AssetStale', asset: 'music', stored: 'old', wanted: hash },
     ]);
-    expect(tags(musicFindings(inOrder, placedSound, { effects: {} }))).toEqual(['AssetMissing']);
+    expect(tags(musicFindings(inOrder, placedSound, {}))).toEqual(['AssetMissing']);
   });
 
   test('every act out of order or under 3 s is reported, not just the first', () => {
@@ -828,7 +827,7 @@ describe('musicFindings', () => {
         { from: 'middle', name: 'Coda', styles: [] },
       ]),
       placedSound,
-      { effects: {} },
+      {},
     );
     const acts = found.map((f) => {
       if (f._tag === 'ActTooShort') return [f._tag, f.act];
@@ -844,33 +843,106 @@ describe('musicFindings', () => {
     const found = musicFindings(
       music([{ from: 'nowhere', name: 'Lost', styles: [] }]),
       placedSound,
-      { effects: {} },
+      {},
     );
     expect(found).toMatchObject([{ _tag: 'UnknownScene', scene: 'nowhere' }]);
   });
 });
 
-describe('effectFindings', () => {
-  test('every placement naming an unknown scene, cue or mark, and every stale effect', () => {
-    const hit = { prompt: 'a hit', secs: 1, at: [{ scene: 'open', cue: 'hit' }] };
+/** A test library: made and current, stale, unmade with a candidate waiting, a bed, and a loud one. */
+const library = defineLibrary({
+  'paper.hit': { kind: 'generated', prompt: 'a hit', secs: 1, use: 'one-shot' },
+  'paper.old': { kind: 'generated', prompt: 'an old hit', secs: 1, use: 'one-shot' },
+  'paper.new': { kind: 'generated', prompt: 'a new hit', secs: 1, use: 'one-shot' },
+  'paper.loud': { kind: 'generated', prompt: 'a loud hit', secs: 1, use: 'one-shot', level: 0 },
+  'room.paper': {
+    kind: 'procedural',
+    recipe: { recipe: 'room', secs: 4 },
+    variants: 1,
+    use: 'bed',
+  },
+});
+const variant = (request: string): Variant => ({
+  request,
+  file: `files/${request}.flac`,
+  sha256: request,
+  made: '2026-09-29T00:00:00Z',
+  model: 'eleven_text_to_sound_v2',
+  format: 'pcm_44100',
+  secs: 1,
+  loudness: { integrated: -24, momentaryMax: -20, peak: -3 },
+  licence: 'elevenlabs-paid-sfx',
+  credits: 40,
+});
+const kept = (request: string) => ({ variants: [variant(request)], candidates: [], rejected: [] });
+const lock: Lock = {
+  'paper.hit': kept(requestKey(library['paper.hit'])),
+  'paper.old': kept('an-older-request'),
+  'paper.new': {
+    variants: [],
+    candidates: [variant(requestKey(library['paper.new']))],
+    rejected: [],
+  },
+  'paper.loud': kept(requestKey(library['paper.loud'])),
+};
+const sounds: Sounds = { library, lock, dir: '/lib' };
+
+describe('soundFindings', () => {
+  test('every cue naming an unknown scene, cue or mark; every sound unknown, misused, unmade or stale, once', () => {
     const sound: Sound = {
+      beds: [
+        { sound: 'room.paper', from: { scene: 'open' }, to: { scene: 'nowhere' } },
+        { sound: 'paper.hit', from: { scene: 'open' }, to: { scene: 'close' } },
+      ],
       effects: {
-        hit,
+        hit: { sound: 'paper.hit', at: [{ scene: 'open', cue: 'hit' }] },
         lost: {
-          prompt: 'lost',
-          secs: 1,
+          sound: 'paper.old',
           at: [
-            { scene: 'nowhere' },
             { scene: 'open', cue: 'nope' },
             { scene: 'open', mark: 'nope' },
           ],
         },
+        again: { sound: 'paper.old', at: [{ scene: 'close' }] },
+        fresh: { sound: 'paper.new', at: [{ scene: 'close' }] },
+        gone: { sound: 'paper.gone', at: [{ scene: 'close' }] },
+        room: { sound: 'room.paper', at: [{ scene: 'close' }] },
       },
     };
-    const found = effectFindings(sound, placedSound, {
-      effects: { hit: { hash: effectKey(hit), file: 'h.mp3' }, lost: { hash: 'x', file: 'l.mp3' } },
+    const found = soundFindings(sound, placedSound, sounds);
+    expect(tags(found)).toEqual([
+      'UnknownScene',
+      'SoundUseMismatch',
+      'UnknownCue',
+      'UnknownMark',
+      'SoundStale',
+      'SoundUnmade',
+      'UnknownSound',
+    ]);
+    expect(found.find((f) => f._tag === 'SoundUnmade')).toMatchObject({
+      name: 'paper.new',
+      candidates: 1,
     });
-    expect(tags(found)).toEqual(['UnknownScene', 'UnknownCue', 'UnknownMark', 'AssetStale']);
+  });
+
+  test('an effect within EFFECT_HOT dB of the voice is hot only where the voice speaks', () => {
+    const scenes: ReadonlyArray<Timed> = [
+      { id: 'said', say: 'Hi there.' },
+      { id: 'quiet', min: 3 },
+    ];
+    const recorded: Timings = { voice: voiceKey(testVoice), scenes: { said: take('Hi there.') } };
+    const placed = layout(scenes, recorded);
+    const speaking = Option.getOrThrow(Arr.head(placed)).speechStart + 1;
+    const at = [{ scene: 'said', offset: speaking }, { scene: 'quiet' }];
+    const hit = (effect: Sound['effects'][string]): Sound => ({ effects: { hit: effect } });
+    expect(soundFindings(hit({ sound: 'paper.hit', at }), placed, sounds)).toEqual([]);
+    expect(soundFindings(hit({ sound: 'paper.loud', at }), placed, sounds)).toMatchObject([
+      { _tag: 'EffectHot', effect: 'hit', scene: 'said', level: 0 },
+    ]);
+    const quieter = hit({ sound: 'paper.loud', level: -EFFECT_HOT, at });
+    expect(soundFindings(quieter, placed, sounds)).toEqual([]);
+    const louder = hit({ sound: 'paper.hit', level: -1, at });
+    expect(tags(soundFindings(louder, placed, sounds))).toEqual(['EffectHot']);
   });
 });
 
@@ -879,19 +951,41 @@ describe('staticFindings', () => {
     ...testFilm(soundScenes, { voice: '', scenes: {} }),
     scenes: [...soundScenes, { id: 'said', say: 'Words' }],
     sound: Option.some<Sound>({
-      effects: { hit: { prompt: 'a hit', secs: 1, at: [{ scene: 'open', cue: 'hit' }] } },
+      effects: { hit: { sound: 'paper.old', at: [{ scene: 'open', cue: 'hit' }] } },
     }),
+    sounds,
   };
   const placed = layout(film.scenes, film.timings);
 
-  test('stale work is an error, an unmade sound a warning', () => {
+  test('stale work is an error, a stale library sound a warning', () => {
     expect(
       staticFindings(film, placed, { allowStale: false }, Option.none())
         .filter(besideEnding)
         .map((r) => [r.level, r.finding._tag]),
     ).toEqual([
       ['error', 'TakeStale'],
-      ['warning', 'AssetMissing'],
+      ['warning', 'SoundStale'],
+    ]);
+  });
+
+  test('an unmade or unknown library sound is an error', () => {
+    const unmade = {
+      ...film,
+      sound: Option.some<Sound>({
+        effects: {
+          hit: { sound: 'paper.new', at: [{ scene: 'open' }] },
+          lost: { sound: 'paper.gone', at: [{ scene: 'open' }] },
+        },
+      }),
+    };
+    expect(
+      staticFindings(unmade, placed, { allowStale: true }, Option.none())
+        .filter(besideEnding)
+        .map((r) => [r.level, r.finding._tag]),
+    ).toEqual([
+      ['warning', 'TakeStale'],
+      ['error', 'SoundUnmade'],
+      ['error', 'UnknownSound'],
     ]);
   });
 

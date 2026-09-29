@@ -1,15 +1,19 @@
 // Lay a film's sound on one track: the voice takes where the film places them,
-// the score ducked under the voice, and each effect on its cue. What plays
+// the score and the library's beds ducked under the voice (room tone is not),
+// and each effect on its cue at its level relative to the voice. What plays
 // where, and the signal processing, are core (core/mix.ts); `Mixer.mix` loads
-// the film, decodes what its plan plays, renders it and writes the track: one
-// WAV that the player streams and the renderer encodes a video's audio from.
-// Remixing never calls a paid API.
+// the film and the app's library, decodes what its plan plays (a procedural
+// sound is synthesized; a library file not on disk is skipped with a hint to
+// `sfx pull`), renders it and writes the track: one WAV that the player
+// streams and the renderer encodes a video's audio from. Remixing never calls
+// a paid API.
 
 import { Context, Effect, FileSystem, Layer, Option } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels, windowLevels } from '../core/audio.ts';
 import {
   type Bed,
+  type BedSpan,
   MIX_RATE,
   type MixPlan,
   type MixPlanError,
@@ -17,6 +21,8 @@ import {
   mixPlan,
   renderMix,
 } from '../core/mix.ts';
+import type { SoundSource } from '../core/sfx.ts';
+import { synthesize } from '../core/synth/recipes.ts';
 import type { StoreError } from './content-store.ts';
 import {
   AudioMissing,
@@ -102,31 +108,65 @@ export interface MixerService {
   readonly mix: (film: string, options: MixOptions) => Effect.Effect<void, MixError>;
 }
 
-/** `plan` with every sound it plays decoded; the mix never resamples, so another rate fails. */
+/**
+ * `plan` with every sound it plays decoded (a file) or played (a recipe); the
+ * mix never resamples, so a file at another rate fails.
+ */
 export const decodePlan = (
   media: MediaService,
-  plan: MixPlan<string>,
+  plan: MixPlan<SoundSource>,
 ): Effect.Effect<MixPlan<Pcm>, MediaFailed | SampleRateMismatch> => {
-  const decodeAt = (file: string) =>
-    Effect.filterOrFail(
-      media.decode(file),
+  const decodeAt = (source: SoundSource): Effect.Effect<Pcm, MediaFailed | SampleRateMismatch> => {
+    if (source._tag === 'Synth') return Effect.sync(() => synthesize(source.recipe, source.seed));
+    return Effect.filterOrFail(
+      media.decode(source.file),
       (pcm) => pcm.rate === MIX_RATE,
-      (pcm) => SampleRateMismatch.make({ file, rate: pcm.rate, expected: MIX_RATE }),
+      (pcm) => SampleRateMismatch.make({ file: source.file, rate: pcm.rate, expected: MIX_RATE }),
     );
-  const place = (p: Placement<string>) =>
+  };
+  const place = (p: Placement<SoundSource>) =>
     Effect.map(decodeAt(p.sound), (sound): Placement<Pcm> => ({ ...p, sound }));
-  const lay = (bed: Bed<string>) =>
+  const lay = (bed: Bed<SoundSource>) =>
     Effect.map(decodeAt(bed.sound), (sound): Bed<Pcm> => ({ ...bed, sound }));
+  const span = (bed: BedSpan<SoundSource>) =>
+    Effect.map(decodeAt(bed.sound), (sound): BedSpan<Pcm> => ({ ...bed, sound }));
   return Effect.gen(function* () {
     const decoded: MixPlan<Pcm> = {
       ...plan,
       voice: yield* Effect.forEach(plan.voice, place, { concurrency: 4 }),
       music: yield* Effect.transposeOption(Option.map(plan.music, lay)),
+      beds: yield* Effect.forEach(plan.beds, span, { concurrency: 4 }),
       effects: yield* Effect.forEach(plan.effects, place, { concurrency: 4 }),
     };
     return decoded;
   });
 };
+
+/**
+ * `plan` without the library files that are not on disk (a clone that has
+ * not run `sfx pull`), each named in a warning: the mix plays what it has.
+ */
+export const presentOnly = (
+  exists: (file: string) => Effect.Effect<boolean, PlatformError>,
+  plan: MixPlan<SoundSource>,
+): Effect.Effect<MixPlan<SoundSource>, PlatformError> =>
+  Effect.gen(function* () {
+    const absent = new Set<string>();
+    const sources = [...plan.beds.map((b) => b.sound), ...plan.effects.map((e) => e.sound)];
+    for (const source of sources)
+      if (source._tag === 'File' && !absent.has(source.file) && !(yield* exists(source.file)))
+        absent.add(source.file);
+    const here = (source: SoundSource) => source._tag !== 'File' || !absent.has(source.file);
+    return {
+      ...plan,
+      beds: plan.beds.filter((b) => here(b.sound)),
+      effects: plan.effects.filter((e) => here(e.sound)),
+      warnings: [
+        ...plan.warnings,
+        ...[...absent].map((file) => `mix.missing file=${file} hint="run sfx pull"`),
+      ],
+    };
+  });
 
 /** One bus of the mix, by the name its levels log and its stem take. */
 interface Bus {
@@ -162,20 +202,24 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
-        const plan = yield* Effect.fromResult(
+        const planned = yield* Effect.fromResult(
           mixPlan({
+            film: name,
             placed,
             sound: film.sound,
             manifest: film.manifest,
+            sounds: film.sounds,
             narration: film.paths.narration,
             soundDir: film.paths.sound,
           }),
         );
+        const plan = yield* presentOnly((file) => fs.exists(file), planned);
         for (const warning of plan.warnings) yield* Effect.logWarning(warning);
         const mixed = renderMix(yield* decodePlan(media, plan));
         const buses: ReadonlyArray<Bus> = [
           { bus: 'voice', pcm: mixed.voice },
           ...Option.toArray(Option.map(mixed.music, (pcm) => ({ bus: 'music', pcm }))),
+          ...Option.toArray(Option.map(mixed.beds, (pcm) => ({ bus: 'beds', pcm }))),
           ...Option.toArray(Option.map(mixed.effects, (pcm) => ({ bus: 'effects', pcm }))),
         ];
         for (const { bus, pcm } of [{ bus: 'master', pcm: mixed.master }, ...buses]) {
@@ -194,7 +238,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
           yield* Effect.log(`mix.stems names=${buses.map(({ bus }) => bus).join(',')} dir=${dir}`);
         }
         yield* Effect.log(
-          `mix.track takes=${plan.voice.length} music=${Option.isSome(plan.music)} effects=${plan.effects.length} secs=${plan.seconds.toFixed(1)} file=${master}`,
+          `mix.track takes=${plan.voice.length} music=${Option.isSome(plan.music)} beds=${plan.beds.length} effects=${plan.effects.length} secs=${plan.seconds.toFixed(1)} file=${master}`,
         );
       });
 

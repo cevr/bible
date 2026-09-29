@@ -80,13 +80,23 @@ WebCodecs decoder for mediabunny), and the mix reads it as it reads a staging
 MP3. Staging takes stay the MP3s ElevenLabs sends.
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
-and ducked under it, the effects on their cues, summed and limited: ported
-from the ffmpeg graph it replaced, which it matched to a −98.8 dB residual)
-and writes the film's one track, `narration/full.wav` (16-bit), to
-`full.partial.wav`, renamed only once whole: a failed or interrupted mix
-leaves the previous track. It logs each bus's mean and peak dBFS
-(`mix.levels`), and `--stems` writes each bus the film's length. A sound at
-another rate fails as `SampleRateMismatch`: the mix never resamples. The
+and ducked under it, the library's beds looped over their spans, crossfaded
+where they wrap, faded at each end and ducked unless the library says not,
+the effects on their cues, summed and limited: ported from the ffmpeg graph
+it replaced, which it matched to a −98.8 dB residual) and writes the film's
+one track, `narration/full.wav` (16-bit), to `full.partial.wav`, renamed only
+once whole: a failed or interrupted mix leaves the previous track. A bed or
+effect names a library sound (`core/sfx.ts`) and a level in dB relative to
+the voice; its gain comes from the level its variant measured when made
+(one-shots by momentary max, beds by integrated loudness). An effect's
+placements rotate through the sound's variants (never the same one back to
+back while it has another), each nudged late, louder or quieter and up or
+down in pitch by the sound's jitter, seeded by the film, the effect and the
+placement, so a repeated sound never repeats exactly and a film always mixes
+the same way; a procedural variant is its recipe played with a seed. It logs
+each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
+the film's length. A file at another rate fails as `SampleRateMismatch`: the
+mix resamples only to repitch an effect's jitter. The
 player streams the WAV (the preview server answers range requests);
 `masterFinding` holds it to the film's length (`AudioMissing`, `AudioStale`);
 the renderer checks it before the first frame and `check` in its static

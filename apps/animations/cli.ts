@@ -8,6 +8,9 @@ import { type LabHandler, PreviewServer, runFilmCli } from '@bible/film/tools';
 import { Config, Effect, Layer } from 'effect';
 import { FILMS, serve } from './server.ts';
 
+/** The app's sound library, shared by its films (`sounds/library.ts`). */
+export const SOUNDS = `${import.meta.dir}/sounds`;
+
 /** The player on `port`, serving the narration under `films`, stopped with the command's scope. */
 const player = (
   port: Effect.Effect<number, Config.ConfigError>,
@@ -29,14 +32,16 @@ const labPort = Effect.gen(function* () {
 });
 
 /**
- * The CLI over the films in `films`, run by the entry at `self`. The player
- * page imports this app's registry (`src/films/index.ts`), so only the app's
- * own films render or open in the lab; the tests' fixture entry
- * (`test/fixtures/cli.ts`) drives the legs that need no page.
+ * The CLI over the films in `films` and the sound library in `sounds`, run by
+ * the entry at `self`. The player page imports this app's registry
+ * (`src/films/index.ts`), so only the app's own films render or open in the
+ * lab; the tests' fixture entry (`test/fixtures/cli.ts`) drives the legs that
+ * need no page.
  */
-export const appCli = (films: string, self: string): void =>
+export const appCli = (films: string, sounds: string, self: string): void =>
   runFilmCli({
     films,
+    sounds,
     // Any free port: nobody opens it by hand.
     previewServer: player(Effect.succeed(0), false, films),
     // A port to keep open in a tab across runs.
@@ -45,4 +50,4 @@ export const appCli = (films: string, self: string): void =>
     self: ['bun', self],
   });
 
-if (import.meta.main) appCli(FILMS, import.meta.path);
+if (import.meta.main) appCli(FILMS, SOUNDS, import.meta.path);
