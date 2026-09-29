@@ -29,30 +29,27 @@ describe('FilmRepo', () => {
     }).pipe(Effect.provide(repo));
   });
 
+  // A synthetic film on disk (`fixtures/films/sample`): its modules are
+  // imported as a real film's are, and no real film's script pins the test.
   it.effect.layer(
-    FilmRepo.layer(`${import.meta.dir}/../../../../apps/animations/src/films`).pipe(
+    FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
       Layer.provide(ContentStore.layer),
       Layer.provideMerge(BunServices.layer),
     ),
   )("reads a film's script: each beat's line and its sources", () =>
     Effect.gen(function* () {
-      const script = Option.getOrThrow(yield* (yield* FilmRepo).script('righteousness-by-faith'));
-      const cold = script.find((beat) => beat.id === 'cold');
-      expect(cold?.cite).toEqual(['Romans 4:5', 'Job 9:2']);
-      expect(cold?.say).toContain('How should man be just with God?');
+      const script = Option.getOrThrow(yield* (yield* FilmRepo).script('sample'));
+      const open = script.find((beat) => beat.id === 'open');
+      expect(open?.cite).toEqual(['Job 9:2', 'Romans 4:5']);
+      expect(open?.say).toContain('and its answer');
       expect(script.find((beat) => beat.id === 'title')?.say).toBeUndefined();
+      expect(script.find((beat) => beat.id === 'title')?.cite).toEqual([]);
       // It lists no heardAs names, so the take check has none.
-      const loaded = yield* (yield* FilmRepo).load('righteousness-by-faith');
+      const loaded = yield* (yield* FilmRepo).load('sample');
       expect(loaded.heardAs).toEqual({});
-      // Its film.ts declares the look: five acts, the first from the cold open.
+      // Its film.ts declares the look: two acts, the first from the opening.
       const look = Option.getOrThrow(loaded.look);
-      expect(look.acts.map((act) => act.from)).toEqual([
-        'cold',
-        'message',
-        'spoke',
-        'look',
-        'rain',
-      ]);
+      expect(look.acts.map((act) => act.from)).toEqual(['open', 'title']);
     }),
   );
 });
