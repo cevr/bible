@@ -209,6 +209,15 @@ const deeper = (ctx: CanvasRenderingContext2D, draw: () => void) => {
   depths.set(ctx, depth);
 };
 
+/**
+ * Draw `draw` as a picture inside the scene's frame (a callback shown in an
+ * icon, a picture in picture): whatever it frames (`camera`, `multiplane`) is
+ * the inset's own shot, never the scene's outermost, so it takes none of the
+ * scene's breath and the scene breathes as it would without it. The caller
+ * places, scales and clips the inset first.
+ */
+export const inset = (ctx: CanvasRenderingContext2D, draw: () => void) => deeper(ctx, draw);
+
 /** Draw `draw` through `cam`, telling a listener of it (as framed before its drift, `framed`) when given. */
 const shoot = (
   ctx: CanvasRenderingContext2D,

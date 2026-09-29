@@ -11,6 +11,7 @@ import {
   type Camera,
   type Pt,
   at,
+  inset,
   multiplane,
   quad,
   rectShape,
@@ -256,8 +257,6 @@ const MAN_SPECKS = [
 /** The house in Capernaum as a scene has it this frame. */
 export interface House {
   readonly cam: Camera;
-  /** How much of the film's breath the shot takes, 0..1 (a callback holds it: `0`). */
-  readonly drift?: number;
   /** The tiles over the hole: 0 laid, 1 lifted aside. */
   readonly tiles: number;
   /** The bed's way down on its ropes: 0 in the hole, 1 on the floor. */
@@ -354,7 +353,7 @@ export const house = (
         draw: () => onlookers(ctx, hand, NEAR_CROWD, 'near', s.wonder, BED_X, NEAR_PART * s.walk),
       },
     ],
-    { rest: [960, 560], haze: C.peachLow, thickness: 0.35, drift: s.drift },
+    { rest: [960, 560], haze: C.peachLow, thickness: 0.35 },
   );
 };
 
@@ -689,8 +688,6 @@ const ACCUSER_FLOOR = 905;
 /** The temple court as a scene has it this frame. */
 export interface Temple {
   readonly cam: Camera;
-  /** How much of the film's breath the shot takes, 0..1 (a callback holds it: `0`). */
-  readonly drift?: number;
   /** Those who brought her, walking out 0..1; their step's bob. */
   readonly leave: number;
   readonly leaveBob: number;
@@ -843,7 +840,7 @@ export const temple = (
           }),
       },
     ],
-    { rest: [960, 560], haze: C.peachLow, thickness: 0.35, drift: s.drift },
+    { rest: [960, 560], haze: C.peachLow, thickness: 0.35 },
   );
 };
 
@@ -935,7 +932,9 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
  * A callback to `roof` inside one of the three icons (CRAFT rule 8): `draw`
  * draws a set as `roof` framed it, in frame units, and it shows scaled by
  * `k` about the frame's centre onto the icon's centre (0, 0) in the current
- * units, clipped to `clip` (the icon's own shape), at `shown`.
+ * units, clipped to `clip` (the icon's own shape), at `shown`. It is an
+ * `inset`: the set's own shot is the callback's, so the scene breathes as it
+ * would without it.
  */
 export const recall = (
   ctx: CanvasRenderingContext2D,
@@ -954,7 +953,7 @@ export const recall = (
   ctx.globalAlpha *= shown;
   ctx.scale(k, k);
   ctx.translate(-w / 2, -h / 2);
-  draw();
+  inset(ctx, draw);
   ctx.restore();
 };
 
@@ -965,7 +964,6 @@ export const recall = (
  */
 export const COURT_FORGIVEN: Temple = {
   cam: COURT_WIDE,
-  drift: 0,
   leave: 1,
   leaveBob: 0,
   writing: 1,
@@ -982,7 +980,6 @@ export const COURT_FORGIVEN: Temple = {
  */
 export const went = (walk: number, bob: number): House => ({
   cam: WENT,
-  drift: 0,
   tiles: 1,
   lower: 1,
   lookUp: 1,

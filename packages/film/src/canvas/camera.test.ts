@@ -17,6 +17,7 @@ import {
   camera,
   driftHeld,
   hearingCameras,
+  inset,
   insideCamera,
   knobCamera,
   lerpCamera,
@@ -566,6 +567,27 @@ describe('drift', () => {
       hearingCameras(r.ctx, undefined, breathOf(0.5), () =>
         camera(r.ctx, CAM, 1920, 1080, () => undefined, 0),
       ),
+    ).toBe(true);
+  });
+
+  test("a picture in an inset frames no shot of the scene's: the scene breathes whole, the inset's cameras drift no further", () => {
+    const r = recorder();
+    const seen: Affine[] = [];
+    let outer: Affine = IDENTITY;
+    const shot = hearingCameras(r.ctx, undefined, breathOf(0.5, DRIFT, true), () => {
+      outer = r.now();
+      inset(r.ctx, () => camera(r.ctx, { x: 960, y: 540 }, 1920, 1080, () => seen.push(r.now())));
+    });
+    // Not the scene's shot: the frame stays breathed whole, and is not drawn again through it.
+    expect(shot).toBe(false);
+    // The inset's own camera, on the frame as it is, adds no second breath.
+    for (const [i, v] of (seen[0] ?? []).entries()) expect(v).toBeCloseTo(outer[i] ?? Number.NaN);
+    // And a camera after the inset is the scene's shot again.
+    expect(
+      hearingCameras(r.ctx, undefined, breathOf(0.5), () => {
+        inset(r.ctx, () => undefined);
+        camera(r.ctx, CAM, 1920, 1080, () => undefined);
+      }),
     ).toBe(true);
   });
 

@@ -523,29 +523,20 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
   const pull = f.at('pullBack');
   ICONS_LIT[1] = 0.4 + 0.6 * f.at('iconGlow');
   const forgiven = f.at('forgiven');
-  const back = () => {
-    ctx.save();
-    ctx.globalAlpha *= toIcons;
-    sky(ctx, w, h, ICON_SKY);
-    at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
-      icons(ctx, hand, ICONS_LIT);
-      at(ctx, { x: ICON_X[1], y: 0 }, () =>
-        recall(ctx, w, h, ROBE_DISC, CALLBACK_K, forgiven, () =>
-          temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN),
-        ),
-      );
-    });
-    ctx.restore();
-  };
-  // Under the callback the icons are framed as the unmoved frame, so they
-  // breathe as they did around the whole draw and the court's own shot, nested
-  // in it, holds still.
-  if (forgiven > 0) camera(ctx, FRAME, w, h, back);
-  else back();
+  ctx.save();
+  ctx.globalAlpha *= toIcons;
+  sky(ctx, w, h, ICON_SKY);
+  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
+    icons(ctx, hand, ICONS_LIT);
+    at(ctx, { x: ICON_X[1], y: 0 }, () =>
+      recall(ctx, w, h, ROBE_DISC, CALLBACK_K, forgiven, () =>
+        temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN),
+      ),
+    );
+  });
+  ctx.restore();
 };
 
 /** The robe's disc, just inside its rim, that the callback shows in; and the frame's scale in it. */
 const ROBE_DISC = ellipseShape(0, 0, 140);
 const CALLBACK_K = 0.3;
-/** The unmoved frame. */
-const FRAME: Camera = { x: 960, y: 540, zoom: 1 };

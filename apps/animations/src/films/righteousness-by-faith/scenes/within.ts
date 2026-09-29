@@ -376,34 +376,27 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   const { hand } = f;
   const pull = f.at('pullBack');
   const wentIn = f.at('wentIn');
-  const shot = () => {
-    ctx.save();
-    ctx.globalAlpha *= alpha;
-    sky(ctx, w, h, [
-      [0, C.glow],
-      [1, C.peachLow],
-    ]);
-    at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
-      icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]);
-      at(ctx, { x: ICON_X[2], y: 0 }, () =>
-        recall(ctx, w, h, HEART_WINDOW, CALLBACK_K, wentIn, () =>
-          house(
-            ctx,
-            w,
-            h,
-            f.handsOf('roof'),
-            went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
-          ),
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  sky(ctx, w, h, [
+    [0, C.glow],
+    [1, C.peachLow],
+  ]);
+  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
+    icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]);
+    at(ctx, { x: ICON_X[2], y: 0 }, () =>
+      recall(ctx, w, h, HEART_WINDOW, CALLBACK_K, wentIn, () =>
+        house(
+          ctx,
+          w,
+          h,
+          f.handsOf('roof'),
+          went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
         ),
-      );
-    });
-    ctx.restore();
-  };
-  // Under the callback the icons are framed as the unmoved frame, so they
-  // breathe as they did around the whole draw and the house's own shot,
-  // nested in it, holds still.
-  if (wentIn > 0) camera(ctx, PAGE, w, h, shot);
-  else shot();
+      ),
+    );
+  });
+  ctx.restore();
 };
 
 /** The heart, just inside its edge, that the callback shows in; and the frame's scale in it. */
