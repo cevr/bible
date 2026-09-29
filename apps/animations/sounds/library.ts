@@ -8,8 +8,8 @@
 // recipes, played from their seeds whenever they are needed. A recorded sound
 // is CC0 only, under `public/` (`sfx import`).
 //
-// The first library (audio-design §9): 31 generated one-shots, 9 generated
-// beds, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
+// The first library (audio-design §9): 30 generated one-shots, 9 generated
+// beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
 // places them, the mix sets their level against the voice.
 
 import { defineLibrary } from '@bible/film/core';
@@ -126,10 +126,17 @@ export const library = defineLibrary({
     3,
   ),
   'stain.hiss': oneShot('a dark stain spreading with a faint burning hiss, subtle, close', 1.5),
-  'steps.stone': oneShot(
-    'slow heavy footsteps on a stone floor in a large room, echoing softly',
-    2.5,
-  ),
+  // Recorded: every generated take (8 over two rolls) was one boomy hit, never
+  // steps. Two steps (2.25–4.75 s) of the recording's HQ preview.
+  'steps.stone': {
+    kind: 'recorded',
+    licence: {
+      id: 'CC0-1.0',
+      author: 'LordFluffeh',
+      source: 'https://freesound.org/people/LordFluffeh/sounds/478545/',
+    },
+    use: 'one-shot',
+  },
   'loom.weave': oneShot('a wooden hand loom, the shuttle passed and the beater pressed twice', 2.5),
   'cloth.settle': oneShot(
     'a robe settling onto shoulders, soft cloth falling into place, close',
