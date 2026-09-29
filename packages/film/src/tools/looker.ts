@@ -1,9 +1,9 @@
 // The look pass: every scene drawn small at 2 fps in a pool of headless pages
-// (the player's `look` handle), then every frame across each change of an
-// arm (the hands pass), and measured by the pure functions in `look.ts`.
+// (the player's `look` handle), then every frame across each hand's travel
+// (the hands pass), and measured by the pure functions in `look.ts`.
 // `film check` warns from it (`HeldShare`, `FaceSmall`, `ColourScript`,
-// `ArmPop`, `HandHidden`); `film lookbook` prints it. The server, the browser and the
-// pages live in one scope, as in a render.
+// `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The server,
+// the browser and the pages live in one scope, as in a render.
 
 import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
 import { Browser, type PageOpenError } from './browser.ts';
@@ -16,8 +16,9 @@ import {
   type Looked,
   THUMB_H,
   THUMB_W,
-  armPops,
-  armSpans,
+  farHands,
+  handJumps,
+  handSpans,
   hiddenHands,
   lookSamples,
   sceneLooks,
@@ -96,16 +97,18 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
             const samples = lookSamples(placed, info.fps, info.frames);
             const drawn = yield* drawAll(samples, THUMB_W, THUMB_H);
             yield* Effect.log(`look.done film=${film.paths.name} frames=${samples.length}`);
-            // Arms: every frame across each change of an arm between two samples,
-            // so a grow that jumps is seen between the frames it jumps in.
+            // Hands: every frame across each hand's travel or change of work
+            // between two samples, so a hand that jumps is seen between the
+            // frames it jumps in.
             const coarse = handsOf(samples, drawn);
-            const spans = armSpans(coarse, info.fps);
+            const spans = handSpans(coarse, info.fps);
             const fine = handsOf(spans, yield* drawAll(spans, HANDS_THUMB, HANDS_THUMB));
             yield* Effect.log(`look.hands film=${film.paths.name} frames=${spans.length}`);
             return {
               looks: sceneLooks(placed, samples, drawn, info),
               height: info.height,
-              pops: armPops(fine),
+              jumps: handJumps(fine),
+              far: farHands([...coarse, ...fine]),
               hidden: hiddenHands([...coarse, ...fine]),
             };
           }),

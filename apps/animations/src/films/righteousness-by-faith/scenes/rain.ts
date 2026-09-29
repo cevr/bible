@@ -9,7 +9,7 @@
 
 import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
 import { clamp, keys, lerp, rng } from '@bible/film/core';
-import { type ArmAt, C, blob, glow, person, piece, sky, mix } from '../kit.ts';
+import { type GestureAt, C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
 
@@ -46,7 +46,7 @@ const DROPS = (() => {
 })();
 
 /** A watcher's hand, waving up at the angel as they turn (written per watcher). */
-const WAVING: ArmAt = { to: [60, -190], grow: 0, grip: 'open' };
+const WAVING: GestureAt = { to: [60, -190], reach: 0, grip: 'open' };
 
 /** The rooftops that hold a watcher: every other block of the front row. */
 const WATCHERS = CITY_FRONT.filter((_, i) => i % 2 === 1);
@@ -125,7 +125,7 @@ export const rain = drawing({
                 cityFront(ctx, hand);
                 WATCHERS.forEach((b, i) => {
                   WAVING.to[0] = 60 + turn * Math.sin((t + i) * 9) * 18;
-                  WAVING.grow = turn;
+                  WAVING.reach = turn;
                   at(ctx, { x: b.x, y: b.top, scale: 0.9 }, () =>
                     person(
                       ctx,

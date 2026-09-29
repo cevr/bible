@@ -8,8 +8,8 @@
 // from the left, shrugging at the start and open-mouthed at the end.
 
 import {
-  type Arm,
   type Frame,
+  type Gesture,
   at,
   camera,
   drawing,
@@ -96,9 +96,9 @@ const page = (f: WordFrame) => {
   viewer(f);
 };
 
-/** The viewer's two hands at the shrug, palms up by the shoulders; their grow rewritten each frame (scratch). */
-const SHRUG_FAR: Posed<Arm> = { to: [-66, -104], grow: 0, grip: 'palm' };
-const SHRUG_NEAR: Posed<Arm> = { to: [66, -104], grow: 0, grip: 'palm' };
+/** The viewer's two hands at the shrug, palms up by the shoulders; their reach rewritten each frame (scratch). */
+const SHRUG_FAR: Posed<Gesture> = { to: [-66, -104], reach: 0, grip: 'palm' };
+const SHRUG_NEAR: Posed<Gesture> = { to: [66, -104], reach: 0, grip: 'palm' };
 
 /** The viewer's stand-in, on the left. */
 const viewer = (f: WordFrame) => {
@@ -107,9 +107,9 @@ const viewer = (f: WordFrame) => {
   const shrug = f.at('shrug') * (1 - f.at('unshrug'));
   const wonder = f.at('wonder') * (1 - f.at('drop'));
   const awe = f.at('awe');
-  // Both palms out at the shrug, the arms grown on it and withdrawn on "fair".
-  SHRUG_FAR.grow = shrug;
-  SHRUG_NEAR.grow = shrug;
+  // Both palms out at the shrug, the hands up on it and back down on "fair".
+  SHRUG_FAR.reach = shrug;
+  SHRUG_NEAR.reach = shrug;
   at(ctx, { x, y, scale: 2.6 }, () =>
     person(
       ctx,

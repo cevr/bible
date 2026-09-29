@@ -7,19 +7,21 @@ import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
 import {
-  ARM_POP,
   type Drawn,
   FACE_SHARE,
+  HAND_JUMP,
   type HandFrame,
   HELD_MAX,
+  SIZE_JUMP,
   THUMB_BYTES,
   actSpans,
   actsOf,
-  armPops,
-  armSpans,
   chapterTime,
   chapters,
   colourScript,
+  farHands,
+  handJumps,
+  handSpans,
   heldSeconds,
   heldShares,
   hiddenHands,
@@ -201,9 +203,10 @@ describe('ColourScript', () => {
   });
 
   test('the look pass reports every finding as a warning', () => {
-    const pops = armPops(popping);
+    const jumps = handJumps(popping);
+    const far = farHands(outOfReach);
     const hidden = hiddenHands(behind);
-    const found = lookFindings({ looks, height: HEIGHT, pops, hidden }, acts);
+    const found = lookFindings({ looks, height: HEIGHT, jumps, far, hidden }, acts);
     expect(found.map((r) => r.finding._tag)).toEqual([
       'HeldShare',
       'HeldShare',
@@ -211,7 +214,8 @@ describe('ColourScript', () => {
       'FaceSmall',
       'ColourScript',
       'ColourScript',
-      'ArmPop',
+      'HandJump',
+      'HandFar',
       'HandHidden',
     ]);
     expect(found.every((r) => r.level === 'warning')).toBe(true);
@@ -298,103 +302,201 @@ describe('chapters', () => {
   });
 });
 
-// Hands, as a kit's person declares them: one arm, its shoulder fixed on
-// screen unless moved, its hand out to the side.
-const armAt = (grow: number, over: Partial<HandMark> = {}): HandMark => ({
+// Hands, as a kit's person declares them: one hand 44 px long, its shoulder
+// fixed on screen unless moved, floating 60 px to the side of it at rest, a
+// reach of 240 px.
+const REST = { x: 1020, y: 520 } as const;
+const handAt = (reach: number, over: Partial<HandMark> = {}): HandMark => ({
   scene: 'held',
   side: 'near',
-  x: 1000,
-  y: 500,
+  x: REST.x,
+  y: REST.y,
   sx: 960,
   sy: 520,
-  grow,
+  tx: REST.x,
+  ty: REST.y,
+  size: 44,
+  radius: 240,
+  reach,
   inside: false,
   over: true,
   alpha: 1,
   ...over,
 });
+/** A hand `reach` of the way along an arc round its shoulder from its rest (0°) to straight up (−90°), 150 px out. */
+const onArc = (reach: number, over: Partial<HandMark> = {}): HandMark => {
+  const a = (-Math.PI / 2) * reach;
+  const r = 60 + 90 * reach;
+  return handAt(reach, {
+    x: 960 + r * Math.cos(a),
+    y: 520 + r * Math.sin(a),
+    tx: 960,
+    ty: 370,
+    ...over,
+  });
+};
 /** Frames `from`, `from + 1`… of `scene`, one per entry of `hands`, at 30 fps. */
 const run = (scene: string, from: number, hands: ReadonlyArray<ReadonlyArray<HandMark>>) =>
   hands.map((h, k): HandFrame => ({ scene, frame: from + k, T: (from + k) / FPS, hands: h }));
-// An arm that grows in one frame from nothing to whole, at frame 11.
-const popping = run('held', 10, [[armAt(0)], [armAt(1)], [armAt(1)]]);
+// A hand that goes from its rest to its work in one frame, at frame 11.
+const popping = run('held', 10, [[onArc(0)], [onArc(1)], [onArc(1)]]);
+// A hand at work on a target 1.4 times its figure's reach from its shoulder.
+const outOfReach = run('held', 10, [
+  [handAt(1, { x: 960 + 336, tx: 960 + 336 })],
+  [handAt(1, { x: 960 + 336, tx: 960 + 336 })],
+]);
 // A far hand at work inside the garment and drawn behind it.
 const behind = run('held', 10, [
-  [armAt(1, { side: 'far', inside: true, over: false })],
-  [armAt(1, { side: 'far', inside: true, over: false })],
+  [handAt(1, { side: 'far', inside: true, over: false })],
+  [handAt(1, { side: 'far', inside: true, over: false })],
 ]);
 
-describe('ArmPop', () => {
-  test('a grow that jumps by more than the limit between adjacent frames pops', () => {
-    const [pop, ...rest] = armPops(popping);
+describe('HandJump', () => {
+  test('a hand that goes from its rest to its work in one frame jumps', () => {
+    const [jump, ...rest] = handJumps(popping);
     expect(rest).toEqual([]);
-    expect(pop).toMatchObject({ scene: 'held', side: 'near', from: 0, to: 1, max: ARM_POP });
-    expect(pop?.T).toBeCloseTo(11 / FPS, 9);
+    expect(jump).toMatchObject({ scene: 'held', side: 'near', what: 'place', max: HAND_JUMP });
+    // From 60 px out at 0° to 150 px out at −90°: 174 px, about 4 of its lengths.
+    expect(jump?.by).toBeCloseTo(Math.hypot(60, 150) / 44, 6);
+    expect(jump?.T).toBeCloseTo(11 / FPS, 9);
   });
 
-  test('a grow eased over a cue never pops, however fast its middle', () => {
+  test('a hand that grows or shrinks in one frame jumps', () => {
+    const [jump, ...rest] = handJumps(run('held', 0, [[handAt(0)], [handAt(0, { size: 20 })]]));
+    expect(rest).toEqual([]);
+    expect(jump).toMatchObject({ what: 'size', max: SIZE_JUMP });
+    expect(jump?.by).toBeCloseTo(24 / 44, 6);
+  });
+
+  test('a hand eased over a cue never jumps, however fast its middle', () => {
+    // Its whole way in half a second, eased in and out.
     const eased = Array.from({ length: 16 }, (_, k) => [
-      armAt(0.5 - 0.5 * Math.cos((k / 15) * Math.PI)),
+      onArc(0.5 - 0.5 * Math.cos((k / 15) * Math.PI)),
     ]);
-    expect(armPops(run('held', 0, eased))).toEqual([]);
+    expect(handJumps(run('held', 0, eased))).toEqual([]);
+  });
+
+  test('a camera move carries a hand with its shoulder: no jump', () => {
+    const moved = run('held', 0, [
+      [onArc(1)],
+      [onArc(1, { sx: 975, sy: 535, x: 975, y: 385, tx: 975, ty: 385 })],
+    ]);
+    expect(handJumps(moved)).toEqual([]);
+  });
+
+  test('a zoom, or the whole figure popping in, scales the hand with its shoulder and reach: no jump', () => {
+    // Everything doubled about a point under the shoulder, in one frame: the
+    // hand 105 px out goes 210 px out, more than its length's 1.5 on screen.
+    const k = 2;
+    const about = (h: HandMark): HandMark => ({
+      ...h,
+      x: 960 + (h.x - 960) * k,
+      y: 540 + (h.y - 540) * k,
+      sx: 960 + (h.sx - 960) * k,
+      sy: 540 + (h.sy - 540) * k,
+      tx: 960 + (h.tx - 960) * k,
+      ty: 540 + (h.ty - 540) * k,
+      size: h.size * k,
+      radius: h.radius * k,
+    });
+    expect(handJumps(run('held', 0, [[onArc(0.5)], [about(onArc(0.5))]]))).toEqual([]);
+    // The hand alone grown as much is a jump.
+    const grown = run('held', 0, [[onArc(0.5)], [onArc(0.5, { size: 44 * 1.4 })]]);
+    expect(handJumps(grown).map((j) => j.what)).toEqual(['size']);
   });
 
   test('frames that are not adjacent, or not of one scene, are never compared', () => {
     const apart: ReadonlyArray<HandFrame> = [
-      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
-      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(0)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1)] },
     ];
-    expect(armPops(apart)).toEqual([]);
+    expect(handJumps(apart)).toEqual([]);
     const cut: ReadonlyArray<HandFrame> = [
-      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
-      { scene: 'brief', frame: 1, T: 1 / FPS, hands: [armAt(1, { scene: 'brief' })] },
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(0)] },
+      { scene: 'brief', frame: 1, T: 1 / FPS, hands: [onArc(1, { scene: 'brief' })] },
     ];
-    expect(armPops(cut)).toEqual([]);
+    expect(handJumps(cut)).toEqual([]);
   });
 
-  test('an arm of another person, or of the other side, is not the same arm', () => {
-    const elsewhere = run('held', 0, [[armAt(0)], [armAt(1, { sx: 400 })]]);
-    expect(armPops(elsewhere)).toEqual([]);
-    const other = run('held', 0, [[armAt(0)], [armAt(1, { side: 'far' })]]);
-    expect(armPops(other)).toEqual([]);
+  test('a hand of another person, or of the other side, is not the same hand', () => {
+    const elsewhere = run('held', 0, [[onArc(0)], [onArc(1, { sx: 400 })]]);
+    expect(handJumps(elsewhere)).toEqual([]);
+    const other = run('held', 0, [[onArc(0)], [onArc(1, { side: 'far' })]]);
+    expect(handJumps(other)).toEqual([]);
   });
 
-  test('an arm that pops while nobody sees it is no pop', () => {
-    expect(armPops(run('held', 0, [[armAt(0, { alpha: 0 })], [armAt(1, { alpha: 0.1 })]]))).toEqual(
-      [],
-    );
+  test('a hand that jumps while nobody sees it is no jump', () => {
+    expect(
+      handJumps(run('held', 0, [[onArc(0, { alpha: 0 })], [onArc(1, { alpha: 0.1 })]])),
+    ).toEqual([]);
   });
 });
 
-describe('armSpans', () => {
-  test('the frames between two samples across which an arm grows are drawn, each once', () => {
+describe('HandFar', () => {
+  test('a hand at work past its figure’s reach is far, once per scene and side, with the worst', () => {
+    const [far, ...rest] = farHands(outOfReach);
+    expect(rest).toEqual([]);
+    expect(far).toMatchObject({ scene: 'held', side: 'near', frames: 2 });
+    expect(far?.worst).toBeCloseTo(1.4, 9);
+    expect(far?.from).toBeCloseTo(10 / FPS, 9);
+    expect(far?.to).toBeCloseTo(11 / FPS, 9);
+  });
+
+  test('on its way out the target already counts; at rest, within reach or unseen it does not', () => {
+    const fine = run('held', 0, [
+      [handAt(0, { tx: 960 + 400 })],
+      [handAt(1, { x: 960 + 230, tx: 960 + 230 })],
+      [handAt(1, { x: 960 + 336, tx: 960 + 336, alpha: 0.2 })],
+      [handAt(1, { x: 960 + 336, tx: 960 + 336, scene: 'brief' })],
+    ]);
+    expect(farHands(fine)).toEqual([]);
+    const going = farHands(run('held', 0, [[handAt(0.3, { tx: 960 + 336 })]]));
+    expect(going).toHaveLength(1);
+  });
+});
+
+describe('handSpans', () => {
+  test('the frames between two samples across which a hand travels are drawn, each once', () => {
     const coarse: ReadonlyArray<HandFrame> = [
-      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
-      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(0.4)] },
-      { scene: 'held', frame: 30, T: 1, hands: [armAt(1)] },
-      { scene: 'held', frame: 45, T: 1.5, hands: [armAt(1)] },
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(0)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(0.4)] },
+      { scene: 'held', frame: 30, T: 1, hands: [onArc(1)] },
+      { scene: 'held', frame: 45, T: 1.5, hands: [onArc(1)] },
     ];
-    const spans = armSpans(coarse, FPS);
+    const spans = handSpans(coarse, FPS);
     expect(spans.map((s) => s.frame)).toEqual(Array.from({ length: 31 }, (_, k) => k));
     expect(spans.every((s) => s.scene === 'held')).toBe(true);
     expect(spans[30]?.T).toBeCloseTo(1, 9);
   });
 
-  test('an arm that comes grown between two samples (its person entering) is drawn too', () => {
+  test('a hand at work whose target changes between two samples is drawn across it', () => {
     const coarse: ReadonlyArray<HandFrame> = [
-      { scene: 'held', frame: 0, T: 0, hands: [] },
-      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(1)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1, { x: 1100, tx: 1100 })] },
     ];
-    expect(armSpans(coarse, FPS)).toHaveLength(16);
+    expect(handSpans(coarse, FPS)).toHaveLength(16);
   });
 
-  test('arms held still, or samples of two scenes, draw nothing more', () => {
-    const still: ReadonlyArray<HandFrame> = [
-      { scene: 'held', frame: 0, T: 0, hands: [armAt(1)] },
-      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
-      { scene: 'brief', frame: 30, T: 1, hands: [armAt(0, { scene: 'brief' })] },
+  test('a hand that comes at work between two samples (its person entering) is drawn too', () => {
+    const coarse: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1)] },
     ];
-    expect(armSpans(still, FPS)).toEqual([]);
+    expect(handSpans(coarse, FPS)).toHaveLength(16);
+  });
+
+  test('hands held at rest or at work, bobbing with the breath, or samples of two scenes, draw nothing more', () => {
+    const still: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(1)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1)] },
+      { scene: 'held', frame: 30, T: 1, hands: [handAt(0)] },
+      { scene: 'held', frame: 45, T: 1.5, hands: [handAt(0, { y: REST.y + 2 })] },
+      { scene: 'brief', frame: 60, T: 2, hands: [handAt(0, { scene: 'brief' })] },
+    ];
+    // Only its way back to rest, between frames 15 and 30, is drawn.
+    expect(handSpans(still, FPS).map((s) => s.frame)).toEqual(
+      Array.from({ length: 16 }, (_, k) => 15 + k),
+    );
   });
 });
 
@@ -407,14 +509,14 @@ describe('HandHidden', () => {
     expect(hidden?.to).toBeCloseTo(11 / FPS, 9);
   });
 
-  test('a hand drawn over its body, outside it, still growing or barely seen is not hidden', () => {
+  test('a hand drawn over its body, outside it, still on its way or barely seen is not hidden', () => {
     const fine = run('held', 0, [
-      [armAt(1, { inside: true, over: true })],
-      [armAt(1, { inside: false, over: false })],
-      [armAt(0.3, { inside: true, over: false })],
-      [armAt(0.7, { inside: true, over: false })],
-      [armAt(1, { inside: true, over: false, alpha: 0.2 })],
-      [armAt(1, { inside: true, over: false, scene: 'brief' })],
+      [handAt(1, { inside: true, over: true })],
+      [handAt(1, { inside: false, over: false })],
+      [handAt(0.3, { inside: true, over: false })],
+      [handAt(0.7, { inside: true, over: false })],
+      [handAt(1, { inside: true, over: false, alpha: 0.2 })],
+      [handAt(1, { inside: true, over: false, scene: 'brief' })],
     ]);
     expect(hiddenHands(fine)).toEqual([]);
   });

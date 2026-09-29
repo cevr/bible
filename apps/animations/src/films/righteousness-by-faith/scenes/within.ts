@@ -5,8 +5,8 @@
 // "power" the pull back to the three icons, and the heart lights, calling back
 // `roof`'s house on a plate under it, the tablets left whole: the man
 // forgiven, walking out with his bed as on "went". On "not" the figure again,
-// their arms coming out, and the glow runs from the heart along the arms to
-// the open hands. On "become" close on the face, and the grey paper of the
+// their hands going out, and the glow runs from the heart out through the
+// shoulders to the open hands. On "become" close on the face, and the grey paper of the
 // figure warms toward cream and gold, the gold of the word in `declared`: they
 // become what they are called. Then two panels, one after
 // the other: a closed book with a gold ribbon (the past, forgiven: "first"),
@@ -29,7 +29,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   CHEST,
   ICON_X,
@@ -61,7 +61,7 @@ const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
 /** Each hand held out open at the side, and at rest; and the shoulder the glow runs through. */
 const OPEN_HAND: Pt = [78, -80];
 const SHOULDER: Pt = [26, -112];
-/** How many glows light the arm from the shoulder to the hand. */
+/** How many glows light the way from the shoulder out to the hand, where an arm would be. */
 const RUN_STEPS = 6;
 /** The warmed figure: grey paper toward cream, touched with the word's gold. */
 const WARM_BODY = mix(C.cream, C.gold, 0.22);
@@ -175,9 +175,9 @@ const WORLDS = [
 ] as const;
 
 // Scratch the draw rewrites every frame, so no pose or point is made per frame.
-/** Both hands open out on `arms`, grown from the shoulders, and withdrawn on `closeOut`. */
-const OPEN_FAR: ArmAt = { to: [-OPEN_HAND[0], OPEN_HAND[1]], grow: 0, grip: 'open' };
-const OPEN_NEAR: ArmAt = { to: [OPEN_HAND[0], OPEN_HAND[1]], grow: 0, grip: 'open' };
+/** Both hands open out on `arms`, from their rest beside the body, and brought back on `closeOut`. */
+const OPEN_FAR: GestureAt = { to: [-OPEN_HAND[0], OPEN_HAND[1]], reach: 0, grip: 'open' };
+const OPEN_NEAR: GestureAt = { to: [OPEN_HAND[0], OPEN_HAND[1]], reach: 0, grip: 'open' };
 const LOOK: [number, number] = [0, 0];
 const POSE: Person = { look: LOOK, far: OPEN_FAR, near: OPEN_NEAR };
 const SHOULDER_AT: [number, number] = [0, 0];
@@ -185,7 +185,7 @@ const GLOW_AT: [number, number] = [0, 0];
 
 /**
  * The figure, in their own units: asking, then the heart in the chest; after
- * the icons, arms out with the glow running to the open hands, warming on
+ * the icons, hands out with the glow running to them open, warming on
  * "become", and the hands lowered again on "plain".
  */
 const figure = (f: WithinFrame, aside: number) => {
@@ -210,8 +210,8 @@ const figure = (f: WithinFrame, aside: number) => {
   POSE.browTilt = 0.35 * ask + 0.25 * warm;
   POSE.mouth = 0.6 * ask;
   POSE.smile = 0.55 * warm;
-  OPEN_FAR.grow = open;
-  OPEN_NEAR.grow = open;
+  OPEN_FAR.reach = open;
+  OPEN_NEAR.reach = open;
   person(ctx, POSE, hand('figure'));
   if (heart > 0)
     at(ctx, { x: CHEST[0], y: CHEST[1], scale: 0.36 * heart }, () => {
@@ -222,7 +222,7 @@ const figure = (f: WithinFrame, aside: number) => {
   running(f, open);
 };
 
-/** The glow running from the heart up each arm to its open hand, over `run`. */
+/** The glow running from the heart up through each shoulder to its open hand, over `run`. */
 const running = (f: WithinFrame, open: number) => {
   const { ctx } = f;
   const run = f.at('run');
@@ -230,7 +230,7 @@ const running = (f: WithinFrame, open: number) => {
   for (const side of SIDES) {
     SHOULDER_AT[0] = side * SHOULDER[0];
     SHOULDER_AT[1] = SHOULDER[1];
-    const end = handOf(POSE, side < 0 ? 'far' : 'near') ?? SHOULDER_AT;
+    const end = handOf(POSE, side < 0 ? 'far' : 'near', f.hand('figure'));
     for (let i = 1; i <= RUN_STEPS; i++) {
       const k = i / RUN_STEPS;
       if (k > run + 0.001) break;

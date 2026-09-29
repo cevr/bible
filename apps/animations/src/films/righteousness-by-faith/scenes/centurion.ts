@@ -22,7 +22,7 @@ import {
 } from '@bible/film/canvas';
 import { ease, lerp, rng } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   type Hands,
   type HeadPiece,
   type Person,
@@ -43,15 +43,15 @@ import {
 import { arc, flight, wordLight } from '../spoken.ts';
 
 /** The soldier's hands: out in worry, up to stop, and held open for the word after the cut. */
-const WORRIED: ArmAt = { to: [-80, -90], grow: 0, grip: 'open' };
-const STOPPING: ArmAt = { to: [84, -158], grow: 0, grip: 'palm' };
-const OPEN_FOR_WORD: ArmAt = { to: [72, -74], grow: 0, grip: 'open' };
+const WORRIED: GestureAt = { to: [-80, -90], reach: 0, grip: 'open' };
+const STOPPING: GestureAt = { to: [84, -158], reach: 0, grip: 'palm' };
+const OPEN_FOR_WORD: GestureAt = { to: [72, -74], reach: 0, grip: 'open' };
 /** The open hand as `handOf` reads it, for where the word settles. */
 const HOLDING_WORD: Person = { near: OPEN_FOR_WORD };
 /** How far above the mitten's middle the word rests, in his units. */
 const ON_PALM = 12;
 /** Jesus's hand out to the soldier as he offers to go. */
-const OFFERING: ArmAt = { to: [-118, -112], grow: 0, grip: 'open' };
+const OFFERING: GestureAt = { to: [-118, -112], reach: 0, grip: 'open' };
 
 /** The people's scale on the street. */
 const S = 2.2;
@@ -140,7 +140,7 @@ const timeline = {
   worry: { mark: 'servant', dur: 0.5 },
   offer: { mark: 'offer', dur: 0.7 },
   push: { mark: 'only', offset: -0.2, dur: 0.9 },
-  stop: { mark: 'only', offset: 0.25, dur: 0.4, ease: 'outBack' },
+  stop: { mark: 'only', offset: 0.25, dur: 0.6, ease: 'outCubic' },
   // Out over the town as he says "come", and the word leaves with it.
   pullOut: { mark: 'only', word: 'come', dur: 1.1 },
   fly: { with: 'pullOut', offset: 0.07, dur: 1.7, ease: 'inOutSine' },
@@ -235,10 +235,10 @@ const street = (f: CenturionFrame, hand: Hands) => {
   const offer = f.at('offer') * (1 - f.at('push'));
   // His hands: out in worry, then up to stop; after the cut to his hand, held
   // open for the word. Jesus's hand out as he offers to go.
-  WORRIED.grow = worry;
-  STOPPING.grow = stop;
-  OPEN_FOR_WORD.grow = open;
-  OFFERING.grow = offer;
+  WORRIED.reach = worry;
+  STOPPING.reach = stop;
+  OPEN_FOR_WORD.reach = open;
+  OFFERING.reach = offer;
 
   multiplane(
     ctx,
@@ -443,7 +443,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
           const settle = f.at('settle');
           if (inHand && settle > 0) {
             // On the open mitten, just above its middle.
-            const [px, py] = handOf(HOLDING_WORD, 'near') ?? OPEN_FOR_WORD.to;
+            const [px, py] = handOf(HOLDING_WORD, 'near', hand('soldier'));
             const palm: Pt = [SOLDIER[0] + px * S, SOLDIER[1] + (py - ON_PALM) * S];
             at(
               ctx,

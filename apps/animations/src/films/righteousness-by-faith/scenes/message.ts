@@ -38,7 +38,7 @@ import { clamp, ease, lerp } from '@bible/film/core';
 import {
   C,
   F,
-  type ArmAt,
+  type GestureAt,
   type HandPush,
   type Hands,
   type Person,
@@ -304,7 +304,7 @@ const page = (f: MessageFrame) => {
       push,
       handIn,
       (1 - TAKE_CURL * f.at('take')) * (1 - 0.3 * close),
-      FROM_FIGURE,
+      OFFERING_SIDE,
     );
     POPS[0] = f.at('faith');
     POPS[1] = f.at('forgiveness');
@@ -319,11 +319,8 @@ const TAKE_CURL = 0.15;
 /** The close-up hand once it has taken them: `roof` opens and closes on it, so the cuts match. */
 export const TAKEN = 1 - TAKE_CURL;
 
-/**
- * Where the close-up's arm comes into frame, in the hand's units: up from
- * below and a little from the left, where the page figure's body is.
- */
-const FROM_FIGURE: Pt = [-260, 700];
+/** Which of the page figure's hands the close-up is: the near one, `OFFERED`. */
+const OFFERING_SIDE = 'near';
 
 /**
  * The open hand of the answer's shape, the page figure's own hand close up,
@@ -343,7 +340,7 @@ export const giftHand = (
   ctx.save();
   ctx.globalAlpha *= shown;
   at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () =>
-    handCloseUp(ctx, hand, open, FROM_FIGURE),
+    handCloseUp(ctx, hand, open, OFFERING_SIDE),
   );
   ctx.restore();
 };
@@ -386,7 +383,7 @@ const sun = (
 };
 
 /** The page figure's open hand, lifted palm out on `offer` and turned palm up on `palmUp` (written each frame). */
-const OFFERED: ArmAt = { to: [46, -140], grow: 0, grip: 'palm', turn: 0 };
+const OFFERED: GestureAt = { to: [46, -140], reach: 0, grip: 'palm', turn: 0 };
 /** How far the push into the figure's hand magnifies it: its palm-up hand to the close-up. */
 const INTO_HAND = pushZoom(FIGURE_S, HAND_S);
 
@@ -395,7 +392,7 @@ const INTO_HAND = pushZoom(FIGURE_S, HAND_S);
  * "makes" a word of light falls from above into their chest (God makes), and
  * from it a warmth spreads that washes the stains out, the nearest first. On
  * `offer` they lift their open hand, turning it palm up, and on `handIn` the
- * camera pushes into it: the hand grows to the palm knob, the close-up
+ * camera pushes into it: the hand is magnified onto the palm knob, the close-up
  * over it in the same shape (`pushedHand`).
  */
 const pageFigure = (f: MessageFrame, handIn: number) => {
@@ -408,7 +405,7 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   const given = f.at('given');
   const [fx, fy] = f.knob('figureAt');
   const [px, py] = f.knob('palm');
-  OFFERED.grow = f.at('offer');
+  OFFERED.reach = f.at('offer');
   OFFERED.turn = f.at('palmUp');
   // The push: the figure magnified about its lifted hand, which slides onto the palm knob.
   const scale = FIGURE_S * shown * INTO_HAND ** handIn;
@@ -519,7 +516,7 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
         draw: () =>
           CROWD.forEach((seat, i) => {
             const holds = seat.side < 0 && split > 0;
-            TABLETS_UP.grow = seat.side < 0 ? split : 0;
+            TABLETS_UP.reach = seat.side < 0 ? split : 0;
             const wander = seat.side > 0 ? split * (1 - turn) : 0;
             const toward: Pt = [((960 - seat.x) / 700) * 5, -3];
             const glance: Pt = [4 * Math.sin(t * 1.7 + i * 1.3), 1];
@@ -580,12 +577,12 @@ const hairShape = ([cx, cy]: Pt, [rx, ry]: Pt, sweep: number): Pt[] =>
     true,
   );
 
-/** A crowd member's hand under the tablets they hold up on the split (its grow written per seat). */
-const TABLETS_UP: ArmAt = { to: [70, -150], grow: 0, grip: 'hold' };
+/** A crowd member's hand under the tablets they hold up on the split (its reach written per seat). */
+const TABLETS_UP: GestureAt = { to: [70, -150], reach: 0, grip: 'hold' };
 /** Waggoner's two hands on the open Bible, and Jones's lifted as he preaches. */
-const ON_BIBLE_FAR: ArmAt = { to: [-10, -86], grow: 0, grip: 'hold' };
-const ON_BIBLE_NEAR: ArmAt = { to: [30, -84], grow: 0, grip: 'hold' };
-const PREACHING: ArmAt = { to: [58, -150], grow: 0, grip: 'open' };
+const ON_BIBLE_FAR: GestureAt = { to: [-10, -86], reach: 0, grip: 'hold' };
+const ON_BIBLE_NEAR: GestureAt = { to: [30, -84], reach: 0, grip: 'hold' };
+const PREACHING: GestureAt = { to: [58, -150], reach: 0, grip: 'open' };
 
 /**
  * The two preachers, told apart by silhouette alone (no labels), after their
@@ -648,9 +645,9 @@ const preachers = (f: MessageFrame) => {
   const step = f.at('stepUp');
   const precious = f.at('precious');
   const turn = f.at('turn');
-  ON_BIBLE_FAR.grow = f.at('bible');
-  ON_BIBLE_NEAR.grow = ON_BIBLE_FAR.grow;
-  PREACHING.grow = step;
+  ON_BIBLE_FAR.reach = f.at('bible');
+  ON_BIBLE_NEAR.reach = ON_BIBLE_FAR.reach;
+  PREACHING.reach = step;
   for (const [k, [x, s, who]] of PREACHERS.entries()) {
     at(ctx, { x, y: STAGE_Y - 8 * step, scale: s }, () => {
       glow(ctx, 0, -110, 170, C.glow, 0.5 * step);

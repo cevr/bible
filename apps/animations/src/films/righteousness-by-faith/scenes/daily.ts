@@ -32,7 +32,7 @@ import { clamp, lerp } from '@bible/film/core';
 import { FIGURE_STAINS } from '../court.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath, restingField } from '../garden.ts';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   CHEST,
   type Person,
@@ -143,8 +143,6 @@ const FORWARD: HandPush = {
   to: HAND_AT,
   scale: HAND_SCALE,
 };
-/** Where the close-up's arm comes in: up from below, a little from the right, where they stand. */
-const FROM_THEM: Pt = [300, 700];
 /** The icons in the palm's middle: their scale. */
 const ICONS_IN_HAND = 0.24;
 
@@ -174,7 +172,7 @@ const timeline = {
   toGate: { mark: 'kingdom', offset: -0.2, dur: 1, ease: 'inOutCubic' },
   notes: { mark: 'kingdom', offset: 0.3, dur: 0.8 },
   other: { mark: 'joy', offset: -0.2, dur: 0.5, ease: 'outBack' },
-  ears: { mark: 'joy', offset: 0.5, dur: 0.4, ease: 'outBack' },
+  ears: { mark: 'joy', offset: 0.4, dur: 0.7, ease: 'inOutSine' },
   toFig: { mark: 'keep', offset: -0.4, dur: 0.9, ease: 'inOutCubic' },
   askAgain: { mark: 'keep', dur: 0.4 },
   through: { mark: 'will', offset: -0.35, dur: 0.6, ease: 'inCubic' },
@@ -213,9 +211,9 @@ const LOOK: [number, number] = [0, 0];
 const AT: [number, number] = [0, 0];
 const OTHER_LOOK: [number, number] = [0, 0];
 const ASKING: Person = { ...ROBED, look: LOOK };
-/** The other's hands over their ears, grown on `ears`. */
-const OVER_EAR_L: ArmAt = { to: [-40, -160], grow: 0, grip: 'open' };
-const OVER_EAR_R: ArmAt = { to: [40, -160], grow: 0, grip: 'open' };
+/** The other's hands over their ears, up on `ears`. */
+const OVER_EAR_L: GestureAt = { to: [-40, -160], reach: 0, grip: 'open' };
+const OVER_EAR_R: GestureAt = { to: [40, -160], reach: 0, grip: 'open' };
 const OTHER: Person = {
   look: OTHER_LOOK,
   far: OVER_EAR_L,
@@ -223,7 +221,13 @@ const OTHER: Person = {
   stains: FIGURE_STAINS,
 };
 /** The robed figure's hand at the window, open toward it, then turned palm up (`palmUp`). */
-const OPENED: ArmAt = { to: [OPEN_AT[0], OPEN_AT[1]], grow: 0, grip: 'palm', turn: 0 };
+const OPENED: GestureAt = {
+  to: [OPEN_AT[0], OPEN_AT[1]],
+  reach: 0,
+  grip: 'palm',
+  turn: 0,
+  lent: 0,
+};
 /** At the window, face to the light. */
 const AT_THE_WINDOW: Person = {
   ...ROBED,
@@ -331,9 +335,9 @@ const other = (f: DailyFrame) => {
   ctx.save();
   ctx.translate(x, gy);
   ctx.scale(OTHER_SCALE * pop, OTHER_SCALE * pop);
-  // Their hands grow up from the shoulders to the ears.
-  OVER_EAR_L.grow = ears;
-  OVER_EAR_R.grow = ears;
+  // Their hands go up from their sides to the ears.
+  OVER_EAR_L.reach = ears;
+  OVER_EAR_R.reach = ears;
   OTHER_LOOK[0] = lerp(-3, 0, ears);
   OTHER_LOOK[1] = -1;
   OTHER.tilt = 0.1 * ears;
@@ -479,10 +483,11 @@ const flowers = (f: DailyFrame) => {
 /** The robed figure at the window, face to the light, heart glowing. */
 const robedAtWindow = (f: DailyFrame, day: number) => {
   const { ctx } = f;
-  // Their hand opens toward the window, gives way to the close-up as it comes
-  // forward, and grows back as it returns.
-  OPENED.grow = f.at('reach') * (1 - f.at('handUp') * (1 - f.at('handBack')));
+  // Their hand opens toward the window and stays there, palm up; it gives
+  // way to the close-up as that comes forward, and takes it back as it returns.
+  OPENED.reach = f.at('reach');
   OPENED.turn = f.at('palmUp');
+  OPENED.lent = f.at('handUp') * (1 - f.at('handBack'));
   ctx.save();
   ctx.translate(AT_WINDOW[0], AT_WINDOW[1]);
   ctx.scale(WINDOW_SCALE, WINDOW_SCALE);
@@ -512,7 +517,7 @@ const inHand = (f: DailyFrame, arc: number) => {
   LIT[2] = LAID[2] * open;
   // Their palm-up hand at the window comes forward as the close-up, the same
   // shape growing, and goes back into their hand the same way.
-  pushedHand(ctx, f.hand, FORWARD, up, open, FROM_THEM, {
+  pushedHand(ctx, f.hand, FORWARD, up, open, 'far', {
     under: () => glow(ctx, 0, 0, 260, C.glow, 0.5 * open),
     over: () => {
       ctx.save();

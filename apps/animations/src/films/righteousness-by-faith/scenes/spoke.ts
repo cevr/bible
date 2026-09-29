@@ -9,7 +9,7 @@
 
 import { type Camera, type Pt, at, camera, drawing, rectShape, sub } from '@bible/film/canvas';
 import { clamp, ease, lerp } from '@bible/film/core';
-import { type ArmAt, C, person, piece, rounded } from '../kit.ts';
+import { type GestureAt, C, person, piece, rounded } from '../kit.ts';
 import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 
 /** The book the asker turns to (where the asker stands is the `figure` knob). */
@@ -19,9 +19,9 @@ const PAGE: Pt = [1360 + 150, 600];
 
 /** The unmoved frame (the canvas itself, so not a knob). */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
-/** The asker's two hands at the shrug, palms up by the shoulders (their grow written each frame). */
-const SHRUG_FAR: ArmAt = { to: [-78, -112], grow: 0, grip: 'palm' };
-const SHRUG_NEAR: ArmAt = { to: [78, -112], grow: 0, grip: 'palm' };
+/** The asker's two hands at the shrug, palms up by the shoulders (their reach written each frame). */
+const SHRUG_FAR: GestureAt = { to: [-78, -112], reach: 0, grip: 'palm' };
+const SHRUG_NEAR: GestureAt = { to: [78, -112], reach: 0, grip: 'palm' };
 
 export const spoke = drawing({
   timeline: {
@@ -55,9 +55,9 @@ export const spoke = drawing({
     if (plunge < 1) {
       const shrug = f.at('shrug') * (1 - f.at('turn'));
       const turn = f.at('turn');
-      // Both palms up at the shrug, grown on it and withdrawn as they turn to the book.
-      SHRUG_FAR.grow = shrug;
-      SHRUG_NEAR.grow = shrug;
+      // Both palms up at the shrug, up on it and back down as they turn to the book.
+      SHRUG_FAR.reach = shrug;
+      SHRUG_NEAR.reach = shrug;
       const cam: Camera = {
         x: lerp(REST.x, PAGE[0], plunge),
         y: lerp(REST.y, PAGE[1], plunge),

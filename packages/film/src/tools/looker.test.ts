@@ -20,17 +20,22 @@ const film = testFilm(holdScenes, holdTimings);
 // Each 2 fps sample flips between two greys.
 const heldFrame = (i: number) => Math.round(i / (LOOK_STEP * testExportInfo.fps)) % 2;
 
-// One arm in `held`: it pops whole at frame 20, between the 2 fps samples
-// at frames 15 and 30, and its hand is lost behind its body from then on.
+// One hand in `held`: it jumps whole from its rest to its work at frame 20,
+// between the 2 fps samples at frames 15 and 30, and is lost behind its body
+// from then on.
 const POP_FRAME = 20;
-const arm = (i: number): HandMark => ({
+const hand = (i: number): HandMark => ({
   scene: 'held',
   side: 'far',
-  x: 960,
+  x: 980 + 120 * Number(i >= POP_FRAME),
   y: 500,
   sx: 940,
   sy: 480,
-  grow: Number(i >= POP_FRAME),
+  tx: 1100,
+  ty: 500,
+  size: 44,
+  radius: 240,
+  reach: Number(i >= POP_FRAME),
   inside: true,
   over: false,
   alpha: 1,
@@ -44,7 +49,7 @@ const setup = () => {
         looked: (i) => ({
           grey: 100 + 100 * heldFrame(i),
           faces: [{ scene: 'held', x: 0, y: 0, size: 500, alpha: 1 }],
-          hands: [arm(i)],
+          hands: [hand(i)],
         }),
       }),
     ),
@@ -80,14 +85,15 @@ describe('Looker', () => {
     }),
   );
 
-  it.live('draws every frame across a change of an arm and finds the frame it pops on', () =>
+  it.live('draws every frame across a change of a hand and finds the frame it jumps on', () =>
     Effect.gen(function* () {
       const { look } = setup();
       const looked = yield* look(Option.none());
-      expect(looked.pops.map((p) => [p.scene, p.side, p.from, p.to])).toEqual([
-        ['held', 'far', 0, 1],
+      expect(looked.jumps.map((j) => [j.scene, j.side, j.what])).toEqual([
+        ['held', 'far', 'place'],
       ]);
-      expect(looked.pops[0]?.T).toBeCloseTo(POP_FRAME / testExportInfo.fps, 9);
+      expect(looked.jumps[0]?.T).toBeCloseTo(POP_FRAME / testExportInfo.fps, 9);
+      expect(looked.far).toEqual([]);
       expect(looked.hidden.map((h) => [h.scene, h.side])).toEqual([['held', 'far']]);
     }),
   );

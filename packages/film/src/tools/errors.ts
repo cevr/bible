@@ -697,29 +697,57 @@ export class FaceSmall extends Schema.TaggedError<FaceSmall>()('FaceSmall', {
   }
 }
 
+/** How a `HandJump` reads, by what jumped. */
+const JUMPED = {
+  place: (by: number) => `jumps ${by.toFixed(2)} of its length`,
+  size: (by: number) => `changes size by ${(100 * by).toFixed(0)}%`,
+} as const;
+
 /**
- * An arm pops: between two adjacent frames of a scene its grow jumps by more
- * than `max`, so the arm appears or vanishes whole instead of growing from the
- * shoulder.
+ * A hand jumps: between two adjacent frames of a scene it moves farther than
+ * `max` of its own length about its shoulder (`what: 'place'`), or its size
+ * changes by more than `max` of itself (`what: 'size'`), so it pops from one
+ * place or size to another instead of travelling there.
  */
-export class ArmPop extends Schema.TaggedError<ArmPop>()('ArmPop', {
+export class HandJump extends Schema.TaggedError<HandJump>()('HandJump', {
   scene: Schema.String,
   side: Schema.Literals(['far', 'near']),
   /** Film seconds of the second of the two frames. */
   T: Schema.Finite,
-  from: Schema.Finite,
-  to: Schema.Finite,
+  what: Schema.Literals(['place', 'size']),
+  /** How far it jumped: hand lengths moved, or the share its size changed. */
+  by: Schema.Finite,
   max: Schema.Finite,
 }) {
   override get message() {
-    return `scene "${this.scene}": the ${this.side} arm's grow jumps ${this.from.toFixed(2)} → ${this.to.toFixed(2)} in one frame at ${this.T.toFixed(2)}s, over ${this.max} (grow it on a named cue with a duration, f.at('<cue>'), never on a threshold or a switch)`;
+    const jump = JUMPED[this.what](this.by);
+    return `scene "${this.scene}": the ${this.side} hand ${jump} in one frame at ${this.T.toFixed(2)}s, over ${this.max} (move it on a named cue with a duration, f.at('<cue>'), never on a threshold, a switch of target or a cue too short for the way it travels)`;
   }
 }
 
 /**
- * An acting hand is lost in its own body: grown, seen, inside the silhouette
- * of the body it belongs to and drawn behind it, so the viewer sees an arm
- * reach into the garment and no hand.
+ * A hand works out of its figure's reach: its target lies farther from its
+ * shoulder than the figure's reach, so it would float off, away from its body.
+ */
+export class HandFar extends Schema.TaggedError<HandFar>()('HandFar', {
+  scene: Schema.String,
+  side: Schema.Literals(['far', 'near']),
+  from: Schema.Finite,
+  to: Schema.Finite,
+  /** The farthest target, as a multiple of the reach. */
+  worst: Schema.Finite,
+  /** How many drawn frames showed it out of reach. */
+  frames: Schema.Int,
+}) {
+  override get message() {
+    return `scene "${this.scene}": the ${this.side} hand works ${this.worst.toFixed(2)}× its figure's reach from its shoulder, in ${this.frames} drawn frames at ${this.from.toFixed(2)}–${this.to.toFixed(2)}s (stage what it works at, or the figure, nearer)`;
+  }
+}
+
+/**
+ * An acting hand is lost in its own body: at work, seen, inside the
+ * silhouette of the body it belongs to and drawn behind it, so the viewer
+ * sees the hand go into the garment and not come out.
  */
 export class HandHidden extends Schema.TaggedError<HandHidden>()('HandHidden', {
   scene: Schema.String,

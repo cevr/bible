@@ -1,23 +1,27 @@
-// Arms that appear only when a hand acts (DIRECTION, "Hands"). At rest a
-// figure has none: its hands are tucked in its garment. When a hand has work
-// to do, one tapered strip of the figure's paper grows out of the shoulder
-// toward the work, with no elbow, bowed down and away from the body, and the
-// one mitten sits at its end; when the work is done it withdraws. The strip
-// is a pure function of its shoulder, target, grow and side, written into
-// buffers this module keeps (no allocation a frame), so a frame draws the
-// same arm however it was reached, and nothing flips: at the one place the
-// bow's side would tie, the strip is straight.
+// Floating hands (DIRECTION, "Hands"). No arm is ever drawn: a figure's hand
+// is the one mitten, floating free near its body. At rest it floats at its
+// spot beside the body, bobbing a little with the figure's breath. When it
+// has work to do it travels there on a named cue along a soft arc round its
+// shoulder, as a hand on an unseen arm would, swings a little past its reach
+// and settles; when the work is done it travels back the same way. It never
+// goes farther from its shoulder than the figure's reach (`HandStyle.radius`:
+// `film check` flags a target past it, `HandFar`). Its grip forms as it
+// arrives. Where it is and how it is turned are pure functions of its
+// shoulder, its rest, its gesture and the breath, written into buffers this
+// module keeps (no allocation a frame), so a frame draws the same hand
+// however it was reached, and nothing flips.
 //
 // The close-up (`closeHand`) is the same hand, big, palm up, with the ink a
 // hand is allowed at that size: two finger-joint lines and a lifeline. A
-// figure's own hand turns palm up into the close-up's shape (`Arm.turn`)
-// before a push into it, so the small hand and the big one are one shape at
-// two scales.
+// figure's own hand turns palm up into the close-up's shape
+// (`Gesture.turn`) before a push into it, so the small hand and the big one
+// are one shape at two scales.
 
-import { type Hand, type Pt, spline, stroke, sub } from './ink.ts';
+import { BOIL_FPS, type Hand, type Pt, spline, stroke, sub } from './ink.ts';
 import { cutout } from './cutout.ts';
 import { PAPER_EDGES, piece } from './piece.ts';
 import { clamp, lerp } from '../core/time.ts';
+import { hash } from '../core/random.ts';
 
 /**
  * What a hand does with its mitten: `open` flat and reaching (receiving,
@@ -29,157 +33,139 @@ export type Grip = 'open' | 'hold' | 'point' | 'palm';
 export const GRIPS: ReadonlyArray<Grip> = ['open', 'hold', 'point', 'palm'];
 
 /**
- * One hand at work: where it goes (`to`, the mitten's centre), how far its
- * arm has grown out of the shoulder toward it (0 none, 1 there: a named
- * cue's `f.at`), and its grip (`open` unless given). `turn` (0 unless
- * given, a named cue's `f.at`) turns the hand palm up to receive, into the
- * close-up's shape at the mitten's size, its palm's middle on `to` and its
- * fingers up: a push into the hand (`closeHand`) starts from it.
+ * One hand at work: where it goes (`to`, the mitten's centre), how far it
+ * has travelled there from its rest (0 at rest, 1 there: a named cue's
+ * `f.at`), and its grip (`open` unless given), which forms as it arrives.
+ * `turn` (0 unless given, a named cue's `f.at`) turns the hand palm up to
+ * receive, into the close-up's shape at the mitten's size, its palm's middle
+ * on `to` and its fingers up: a push into the hand (`closeHand`) starts
+ * from it.
  */
-export interface Arm {
+export interface Gesture {
   readonly to: Pt;
-  readonly grow: number;
+  readonly reach: number;
   readonly grip?: Grip;
   readonly turn?: number;
 }
 
-/** How a figure's arms are cut, in the figure's own units. */
-export interface ArmStyle {
-  /** The strip's paper (the garment's), the mitten's, and the ink round both. */
-  readonly body: string;
+/** How a figure's hands are cut and how far they float, in the figure's own units. */
+export interface HandStyle {
+  /** The mitten's paper and the ink round it. */
   readonly skin: string;
   readonly outline: string;
-  /** The strip's width at the shoulder and at the wrist. */
-  readonly width: readonly [root: number, tip: number];
-  /**
-   * The strip's length at rest: a target nearer than this bows the strip
-   * out like a bent arm (a hand to the chin) rather than folding it; a
-   * farther one stretches it.
-   */
-  readonly length: number;
   /** The mitten's length, wrist to fingertips. */
   readonly mitten: number;
   /** The outline's width, in px. */
   readonly line: number;
+  /**
+   * The figure's reach: the farthest its hand works from its shoulder. A
+   * target past it is a staging error `film check` flags (`HandFar`); the
+   * hand is never stretched out to it.
+   */
+  readonly radius: number;
 }
 
-/** Points along a strip's centre line, shoulder to hand. */
-const STRIP_POINTS = 15;
-/** A strip is at least this many times as long as its reach, so even a straight reach keeps a little bow. */
-const SLACK = 1.06;
-/** How much of the spare length turns into bow, and how much a far reach sags. */
-const BOW_SPARE = 0.45;
-const BOW_SAG = 0.08;
-/** How far past the tie (in normal units) the bow's side is decided: nearer, the strip straightens. */
-const DECIDED = 1 / 3;
-/** How much "away from the body" counts beside "down" in choosing the bow's side. */
-const AWAY = 0.6;
+/**
+ * Where a hand belongs on its figure: the shoulder it moves round (and its
+ * reach is measured from), where it floats at rest, the side of the body it
+ * is on (`away`: −1 the far side, −x; 1 the near, +x; its thumb and its arc
+ * keep to that side), and the figure's breath now, −1..1 (`breathOf`), which
+ * it bobs with at rest.
+ */
+export interface HandRoot {
+  readonly shoulder: Pt;
+  readonly rest: Pt;
+  readonly away: -1 | 1;
+  readonly breath: number;
+}
+
+/** How long a figure's breath takes, in seconds. */
+const BREATH_PERIOD = 3.6;
+/** How far a hand at rest bobs with the breath, as a share of its mitten's length. */
+const BOB = 0.08;
+/** How far a hand swings past its reach before it settles, at most, as a share of its mitten's length. */
+const SETTLE = 0.35;
+/** The settle's shape, `sin(πs)·s³`, peaks at about this: dividing by it makes `SETTLE` its peak. */
+const SETTLE_PEAK = 0.3;
+/**
+ * Where the arc round a shoulder is cut, radians from +x: up and in, toward
+ * the head, on each side. A hand's arc never crosses it, so it goes round
+ * the outside or under, never over its own head, and a target that moves
+ * never flips the arc, short of one reached through the head.
+ */
+const CUT = { far: -Math.PI / 4, near: (-3 * Math.PI) / 4 } as const;
 
 const buffer = (n: number): [number, number][] =>
   Array.from({ length: n }, (): [number, number] => [0, 0]);
 
-/** The strip's centre line and outline, rewritten on every call. */
-const CENTRE = buffer(STRIP_POINTS);
-const OUTLINE = buffer(2 * STRIP_POINTS);
+/**
+ * A figure's breath at this frame, −1..1: a slow swell on the boil clock,
+ * its phase the figure's own (`hand`, the person's), so a crowd does not
+ * breathe as one. Both of a figure's hands take the same breath.
+ */
+export const breathOf = (hand: Hand): number =>
+  Math.sin((2 * Math.PI * hand.boil) / (BOIL_FPS * BREATH_PERIOD) + 2 * Math.PI * hash(hand.seed));
 
-/** The quadratic the current strip runs along: its control point and its end. */
-const curve = { cx: 0, cy: 0, ex: 0, ey: 0 };
+/** `a` turned into the turn [cut, cut + 2π). */
+const wrap = (a: number, cut: number) => {
+  const turn = 2 * Math.PI;
+  return cut + ((((a - cut) % turn) + turn) % turn);
+};
+
+/** Where a hand is and how it is turned (scratch, rewritten by every `place`). */
+interface Placed {
+  x: number;
+  y: number;
+  /** Radians: the way the hand points, away from its shoulder. */
+  angle: number;
+  /** How far it has travelled, 0..1. */
+  s: number;
+}
+const PLACED: Placed = { x: 0, y: 0, angle: 0, s: 0 };
 
 /**
- * Sets `curve` for a strip from `from` toward `to` on the `away` side of its
- * body: bowed down and away, and straight where the two sides tie, so the
- * bow shrinks through zero rather than flipping. `rest` is its length at rest.
+ * Where the hand of `root` is doing `g` (at rest with none): along an arc
+ * round the shoulder from its rest to `g.to`, its angle and its distance
+ * from the shoulder going over together as `g.reach` does, the way a hand on
+ * an unseen arm swings; swung a little past its reach just before it arrives
+ * and settled there; bobbing with the breath while it is at rest, still
+ * once at work. Its angle is the way from the shoulder to it.
  */
-const shape = (from: Pt, to: Pt, away: -1 | 1, rest: number) => {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const d = Math.hypot(dx, dy);
-  curve.ex = to[0];
-  curve.ey = to[1];
-  if (d < 1e-9) {
-    curve.cx = from[0];
-    curve.cy = from[1];
-    return;
+const place = (root: HandRoot, g: Gesture | undefined, mitten: number): Placed => {
+  const [sx, sy] = root.shoulder;
+  const cut = root.away === 1 ? CUT.near : CUT.far;
+  const rx = root.rest[0] - sx;
+  const ry = root.rest[1] - sy;
+  const r0 = Math.hypot(rx, ry);
+  const a0 = wrap(Math.atan2(ry, rx), cut);
+  const s = g === undefined ? 0 : clamp(g.reach);
+  PLACED.s = s;
+  if (g === undefined || s <= 0) {
+    PLACED.x = root.rest[0];
+    PLACED.y = root.rest[1] + BOB * mitten * root.breath;
+    PLACED.angle = a0;
+    return PLACED;
   }
-  // Of the two normals to the reach, the one pointing down and away.
-  let nx = -dy / d;
-  let ny = dx / d;
-  let score = ny + away * AWAY * nx;
-  if (score < 0) {
-    nx = -nx;
-    ny = -ny;
-    score = -score;
+  const tx = g.to[0] - sx;
+  const ty = g.to[1] - sy;
+  const a1 = wrap(Math.atan2(ty, tx), cut);
+  PLACED.angle = lerp(a0, a1, s);
+  if (s >= 1) {
+    PLACED.x = g.to[0];
+    PLACED.y = g.to[1];
+    return PLACED;
   }
-  const decided = Math.min(1, score / DECIDED);
-  const len = Math.max(rest, SLACK * d);
-  const bow = (BOW_SPARE * Math.sqrt(Math.max(0, len * len - d * d)) + BOW_SAG * d) * decided;
-  curve.cx = (from[0] + to[0]) / 2 + nx * bow;
-  curve.cy = (from[1] + to[1]) / 2 + ny * bow;
+  const settle = (SETTLE * mitten * Math.sin(Math.PI * s) * s ** 3) / SETTLE_PEAK;
+  const r = lerp(r0, Math.hypot(tx, ty), s) + settle;
+  PLACED.x = sx + r * Math.cos(PLACED.angle);
+  PLACED.y = sy + r * Math.sin(PLACED.angle) + BOB * mitten * root.breath * (1 - s);
+  return PLACED;
 };
 
-/**
- * The centre line of a strip from the shoulder `from` toward `to`, grown
- * `grow` of the way (0 only the shoulder, 1 the hand on `to`), for a
- * shoulder on the `away` side of its body (−1 left, 1 right): a quadratic
- * bowed down and away from the body, its length following the target. The
- * points are written into one buffer every call reuses: copy them to keep
- * them. `rest` is the strip's length at rest (`ArmStyle.length`).
- */
-export const strip = (
-  from: Pt,
-  to: Pt,
-  grow: number,
-  away: -1 | 1,
-  rest: number,
-): ReadonlyArray<Pt> => {
-  shape(from, to, away, rest);
-  const upto = clamp(grow);
-  for (let i = 0; i < STRIP_POINTS; i++) {
-    const p = CENTRE[i];
-    if (p === undefined) continue;
-    const q = (i / (STRIP_POINTS - 1)) * upto;
-    const a = (1 - q) * (1 - q);
-    const b = 2 * q * (1 - q);
-    const c = q * q;
-    p[0] = a * from[0] + b * curve.cx + c * curve.ex;
-    p[1] = a * from[1] + b * curve.cy + c * curve.ey;
-  }
-  return CENTRE;
-};
-
-/** The current strip's direction `q` along it, radians: the curve's tangent, or straight down when it has none. */
-const tangent = (from: Pt, q: number) => {
-  const tx = 2 * (1 - q) * (curve.cx - from[0]) + 2 * q * (curve.ex - curve.cx);
-  const ty = 2 * (1 - q) * (curve.cy - from[1]) + 2 * q * (curve.ey - curve.cy);
-  return Math.hypot(tx, ty) < 1e-9 ? Math.PI / 2 : Math.atan2(ty, tx);
-};
-
-/** The outline of a strip along `centre`, `root` wide at its first point to `tip` at its last, into `out`. */
-const ribbon = (
-  out: [number, number][],
-  centre: ReadonlyArray<Pt>,
-  root: number,
-  tip: number,
-): ReadonlyArray<Pt> => {
-  const n = centre.length - 1;
-  for (let i = 0; i <= n; i++) {
-    const p = centre[i];
-    const a = centre[Math.max(0, i - 1)];
-    const b = centre[Math.min(n, i + 1)];
-    const left = out[i];
-    const right = out[2 * n + 1 - i];
-    if (p === undefined || a === undefined || b === undefined) continue;
-    if (left === undefined || right === undefined) continue;
-    const len = Math.max(1e-9, Math.hypot(b[0] - a[0], b[1] - a[1]));
-    const w = lerp(root, tip, n === 0 ? 0 : i / n) / 2;
-    const nx = (-(b[1] - a[1]) / len) * w;
-    const ny = ((b[0] - a[0]) / len) * w;
-    left[0] = p[0] + nx;
-    left[1] = p[1] + ny;
-    right[0] = p[0] - nx;
-    right[1] = p[1] - ny;
-  }
-  return out;
+/** Where the hand of `root` is, doing `g` (at rest with none): its mitten's centre. Something it holds rides here. */
+export const handAt = (root: HandRoot, g: Gesture | undefined, style: HandStyle): Pt => {
+  const p = place(root, g, style.mitten);
+  return [p.x, p.y];
 };
 
 // ─── the mitten ──────────────────────────────────────────────────────────────
@@ -209,15 +195,49 @@ interface Part {
 }
 const part = (unit: ReadonlyArray<Pt>): Part => ({ unit, at: buffer(unit.length) });
 
-interface Mitten {
+/** Points round every grip's palm: the same count, so one grip turns into another point for point. */
+const PALM_POINTS = 40;
+
+/**
+ * `poly`, round the origin inside it, resampled at `n` even angles from +x:
+ * where each ray from the origin leaves it.
+ */
+const radial = (poly: ReadonlyArray<Pt>, n: number): Pt[] =>
+  Array.from({ length: n }, (_, k): Pt => {
+    const t = (2 * Math.PI * k) / n;
+    const dx = Math.cos(t);
+    const dy = Math.sin(t);
+    let far = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      if (a === undefined || b === undefined) continue;
+      const ex = b[0] - a[0];
+      const ey = b[1] - a[1];
+      const den = ex * dy - dx * ey;
+      if (Math.abs(den) < 1e-12) continue;
+      const u = (ex * a[1] - a[0] * ey) / den;
+      const v = (dx * a[1] - dy * a[0]) / den;
+      if (u > 0 && v >= 0 && v <= 1) far = Math.max(far, u);
+    }
+    return [far * dx, far * dy];
+  });
+
+/** One grip's unit shapes, each the same count of points as every other grip's. */
+interface Form {
   /** Palm and fingers, one piece. */
-  readonly palm: Part;
-  readonly thumb: Part;
-  /** A pointing forefinger, when the grip has one. */
-  readonly finger?: Part;
+  readonly palm: ReadonlyArray<Pt>;
+  readonly thumb: ReadonlyArray<Pt>;
+  /** The forefinger: a capsule for `point`, drawn in to a dot where it roots for the others. */
+  readonly finger: ReadonlyArray<Pt>;
   /** Closed, the thumb lies over the palm; open, it stands behind it. */
   readonly thumbOver: boolean;
 }
+
+/** Where a pointing forefinger roots on the fist, and where it reaches. */
+const FINGER_ROOT: Pt = [0.12, -0.14];
+const FINGER_TIP: Pt = [0.8, -0.16];
+const NO_FINGER = (): Pt[] => capsule(FINGER_ROOT, FINGER_ROOT, 0);
 
 const FIST: Pt[] = spline(
   [
@@ -250,9 +270,9 @@ const SPREAD: Pt[] = spline(
 );
 const SPREAD_THUMB = capsule([-0.12, -0.32], [-0.06, -0.72], 0.13);
 
-const MITTENS = {
+const FORMS = {
   open: {
-    palm: part(
+    palm: radial(
       spline(
         [
           [-0.5, -0.26],
@@ -268,30 +288,77 @@ const MITTENS = {
         5,
         true,
       ),
+      PALM_POINTS,
     ),
-    thumb: part(capsule([-0.2, -0.2], [0.1, -0.55], 0.12)),
+    thumb: capsule([-0.2, -0.2], [0.1, -0.55], 0.12),
+    finger: NO_FINGER(),
     thumbOver: false,
   },
   hold: {
-    palm: part(FIST),
-    thumb: part(capsule([-0.18, -0.26], [0.22, -0.28], 0.11)),
+    palm: radial(FIST, PALM_POINTS),
+    thumb: capsule([-0.18, -0.26], [0.22, -0.28], 0.11),
+    finger: NO_FINGER(),
     thumbOver: true,
   },
   point: {
-    palm: part(FIST),
-    thumb: part(capsule([-0.18, -0.26], [0.18, -0.3], 0.11)),
-    finger: part(capsule([0.12, -0.14], [0.8, -0.16], 0.11)),
+    palm: radial(FIST, PALM_POINTS),
+    thumb: capsule([-0.18, -0.26], [0.18, -0.3], 0.11),
+    finger: capsule(FINGER_ROOT, FINGER_TIP, 0.11),
     thumbOver: true,
   },
-  palm: { palm: part(SPREAD), thumb: part(SPREAD_THUMB), thumbOver: false },
-} satisfies Record<Grip, Mitten>;
+  palm: {
+    palm: radial(SPREAD, PALM_POINTS),
+    thumb: SPREAD_THUMB,
+    finger: NO_FINGER(),
+    thumbOver: false,
+  },
+} satisfies Record<Grip, Form>;
+
+/** A hand at rest holds its mitten open, and forms its grip from it as it arrives. */
+const REST_GRIP: Grip = 'open';
+/** Over which share of its travel a hand forms its grip: none by the first, all by the second. */
+const FORMING: readonly [number, number] = [0.4, 0.9];
+
+/** The mitten between two grips (scratch): its parts' unit shapes, rewritten by `formed`, and where they are laid. */
+const MORPH_UNIT = {
+  palm: buffer(PALM_POINTS),
+  thumb: buffer(FORMS.open.thumb.length),
+  finger: buffer(FORMS.open.finger.length),
+};
+const MORPH = {
+  palm: part(MORPH_UNIT.palm),
+  thumb: part(MORPH_UNIT.thumb),
+  finger: part(MORPH_UNIT.finger),
+};
+
+/** `a` to `b` at `t`, point for point, into the unit shape `out`. */
+const blend = (out: [number, number][], a: ReadonlyArray<Pt>, b: ReadonlyArray<Pt>, t: number) => {
+  for (let i = 0; i < out.length; i++) {
+    const p = a[i];
+    const q = b[i];
+    const o = out[i];
+    if (p === undefined || q === undefined || o === undefined) continue;
+    o[0] = lerp(p[0], q[0], t);
+    o[1] = lerp(p[1], q[1], t);
+  }
+};
+
+/** The mitten `form` of the way from grip `from` to grip `to`, into `MORPH`. */
+const formed = (from: Grip, to: Grip, form: number) => {
+  const a: Form = FORMS[from];
+  const b: Form = FORMS[to];
+  blend(MORPH_UNIT.palm, a.palm, b.palm, form);
+  blend(MORPH_UNIT.thumb, a.thumb, b.thumb, form);
+  blend(MORPH_UNIT.finger, a.finger, b.finger, form);
+  return form < 0.5 ? a.thumbOver : b.thumbOver;
+};
 
 /**
- * `p.unit` placed at (x, y), turned `angle`, `size` long, its −y side
- * mirrored to `flip` (so each arm keeps its thumb on one side and it never
+ * `p.unit` laid at (x, y), turned `angle`, `size` long, its −y side
+ * mirrored to `flip` (so each hand keeps its thumb on one side and it never
  * jumps), written into `p.at`.
  */
-const place = (
+const lay = (
   p: Part,
   x: number,
   y: number,
@@ -315,33 +382,36 @@ const place = (
 };
 
 /**
- * The mitten in `grip`, its centre at (x, y), pointing along `angle`,
- * `size` long (times `along` along the fingers, as it turns), its thumb on
- * the `flip` side (an arm's `away`).
+ * The mitten `form` of the way from grip `from` to grip `to`, its centre at
+ * (x, y), pointing along `angle`, `size` long (times `along` along the
+ * fingers, as it turns), its thumb on the `flip` side (its root's `away`).
  */
 const mitten = (
   ctx: CanvasRenderingContext2D,
-  grip: Grip,
+  from: Grip,
+  to: Grip,
+  form: number,
   [x, y]: Pt,
   angle: number,
   size: number,
   flip: number,
-  style: ArmStyle,
+  style: HandStyle,
   hand: Hand,
   along = 1,
 ) => {
-  const m: Mitten = MITTENS[grip];
+  const thumbOver = formed(from, to, form);
   const look = {
     role: 'figure',
     line: style.line,
     color: style.skin,
     outline: style.outline,
   } as const;
-  const squash = (p: Part) => place(p, x, y, angle, size, flip, along);
-  if (!m.thumbOver) piece(ctx, squash(m.thumb), look, sub(hand, 1));
-  if (m.finger !== undefined) piece(ctx, squash(m.finger), look, sub(hand, 3));
-  piece(ctx, squash(m.palm), look, sub(hand, 2));
-  if (m.thumbOver) piece(ctx, squash(m.thumb), look, sub(hand, 1));
+  const pointing = (from === 'point' ? 1 - form : 0) + (to === 'point' ? form : 0);
+  if (!thumbOver) piece(ctx, lay(MORPH.thumb, x, y, angle, size, flip, along), look, sub(hand, 1));
+  if (pointing > 0)
+    piece(ctx, lay(MORPH.finger, x, y, angle, size, flip, along), look, sub(hand, 3));
+  piece(ctx, lay(MORPH.palm, x, y, angle, size, flip, along), look, sub(hand, 2));
+  if (thumbOver) piece(ctx, lay(MORPH.thumb, x, y, angle, size, flip, along), look, sub(hand, 1));
 };
 
 /**
@@ -383,23 +453,26 @@ const toward = (a: number, b: number) => {
  */
 const handEnd = (
   ctx: CanvasRenderingContext2D,
-  a: Arm,
+  g: Gesture | undefined,
+  s: number,
   end: Pt,
   angle: number,
   size: number,
   flip: -1 | 1,
-  style: ArmStyle,
+  style: HandStyle,
   hand: Hand,
 ) => {
-  const turn = clamp(a.turn ?? 0);
+  const grip = g?.grip ?? REST_GRIP;
+  const form = clamp((s - FORMING[0]) / (FORMING[1] - FORMING[0]));
+  const turn = clamp(g?.turn ?? 0);
   if (turn <= 0) {
-    mitten(ctx, a.grip ?? 'open', end, angle, size, flip, style, hand);
+    mitten(ctx, REST_GRIP, grip, form, end, angle, size, flip, style, hand);
     return;
   }
   const { cup, along } = turning(turn);
   const facing = angle + toward(angle, -Math.PI / 2) * turn;
   if (!cup) {
-    mitten(ctx, a.grip ?? 'open', end, facing, size, flip, style, hand, along);
+    mitten(ctx, REST_GRIP, grip, form, end, facing, size, flip, style, hand, along);
     return;
   }
   const [m0, m1, m2, m3, m4, m5] = palmUpFrame(end, facing, size, flip, along);
@@ -443,56 +516,25 @@ export const palmUpFrame = (
   return FRAME;
 };
 
-/** The round patch of garment that hides the strip's cut end, so the arm grows out of the body. */
-const TUCK = part(
-  Array.from({ length: 20 }, (_, i): Pt => {
-    const a = (2 * Math.PI * i) / 20;
-    return [Math.cos(a), Math.sin(a)];
-  }),
-);
-/** The patch's radius, as a share of the strip's root width. */
-const TUCK_R = 0.6;
+/** Where a hand is drawn (scratch). */
+const AT: [number, number] = [0, 0];
 
 /**
- * One arm from the shoulder `from`, on the `away` side of its body, doing
- * `a`: a tapered strip of `style.body` paper grown `a.grow` of the way to
- * `a.to`, and the mitten at its end, grown with it. Nothing at `grow` 0.
+ * The hand of `root`, floating free: at rest with no gesture, doing `g`
+ * with one (see `place`), the one mitten in `style` with no arm. Its grip
+ * forms from the open rest as it arrives; `g.turn` turns it palm up.
  */
-export const arm = (
+export const floatingHand = (
   ctx: CanvasRenderingContext2D,
-  from: Pt,
-  away: -1 | 1,
-  a: Arm,
-  style: ArmStyle,
+  root: HandRoot,
+  g: Gesture | undefined,
+  style: HandStyle,
   hand: Hand,
 ) => {
-  const grow = clamp(a.grow);
-  if (grow <= 0) return;
-  const [root, tip] = style.width;
-  const centre = strip(from, a.to, grow, away, style.length);
-  const angle = tangent(from, grow);
-  const body = {
-    role: 'figure',
-    line: style.line,
-    color: style.body,
-    outline: style.outline,
-  } as const;
-  piece(ctx, ribbon(OUTLINE, centre, root, lerp(root, tip, grow)), body, sub(hand, 1));
-  piece(
-    ctx,
-    place(TUCK, from[0], from[1], 0, TUCK_R * root, 1),
-    { ...body, line: 0, shadow: 0 },
-    sub(hand, 9),
-  );
-  const end = centre[STRIP_POINTS - 1] ?? a.to;
-  handEnd(ctx, a, end, angle, style.mitten * grow, away, style, sub(hand, 3));
-};
-
-/** Where an arm's hand is: its mitten's centre, `a.grow` of the way along its strip. */
-export const handAt = (from: Pt, away: -1 | 1, a: Arm, style: ArmStyle): Pt => {
-  const centre = strip(from, a.to, clamp(a.grow), away, style.length);
-  const end = centre[STRIP_POINTS - 1] ?? from;
-  return [end[0], end[1]];
+  const p = place(root, g, style.mitten);
+  AT[0] = p.x;
+  AT[1] = p.y;
+  handEnd(ctx, g, p.s, AT, p.angle, style.mitten, root.away, style, sub(hand, 3));
 };
 
 // ─── the close-up ────────────────────────────────────────────────────────────
@@ -508,8 +550,8 @@ export const handAt = (from: Pt, away: -1 | 1, a: Arm, style: ArmStyle): Pt => {
 // the eye, foreshortening, until its round tip comes back over the palm,
 // which stays showing under it as a cup, while the thumb comes in. The block
 // is the hull of a few balls, so every edge it shows, bent or not, is round.
-// The arm comes into frame from below on the figure's side. Every shape is a
-// pure function of `open`, written into buffers this module keeps.
+// It floats in frame with no arm, as every hand does. Every shape is a pure
+// function of `open`, written into buffers this module keeps.
 
 /** How a close-up hand is cut. */
 export interface CloseStyle {
@@ -632,11 +674,6 @@ const LIFELINE: Pt[] = spline([
   [-74, 40],
   [-70, 118],
 ]);
-
-/** Where the forearm meets the hand, under the heel, and its width at the frame's edge and there. */
-const WRIST: Pt = [-12, 100];
-const FOREARM: readonly [number, number] = [200, 168];
-const FOREARM_AT = buffer(2 * STRIP_POINTS);
 
 /**
  * The close-up's length open, heel to fingertips, in its units: a hand at a
@@ -844,14 +881,14 @@ const cupped = (
     }
 };
 
-/** How a close-up is drawn beyond its shape: where its arm comes in, its line, and how much of its ink shows. */
+/** How a close-up is drawn beyond its shape: whose hand it is, its line, and how much of its ink shows. */
 export interface CloseDraw {
   /**
-   * Where the arm comes into frame, in the hand's units: its strip runs from
-   * there up to the wrist. An arm from the right (x > 0) mirrors the hand,
-   * so the thumb is always on the arm's side.
+   * Which of its figure's hands it is, as a `HandRoot`'s `away` (the near,
+   * 1, unless given): the far hand's close-up is mirrored, so its thumb lies
+   * where that hand's own thumb lies turned palm up (`palmUpFrame`).
    */
-  readonly forearm?: Pt;
+  readonly away?: -1 | 1;
   /** The outline's width in the hand's units (a push from a figure's hand starts at the figure's line). */
   readonly line?: number;
   /** 0..1, how much of the lifeline and the joints show (1 close up). */
@@ -875,20 +912,9 @@ export const closeHand = (
   hand: Hand,
   draw: CloseDraw = {},
 ) => {
-  const { forearm } = draw;
   const line = draw.line ?? CLOSE_LINE;
-  const mirror = forearm !== undefined && forearm[0] > 0;
   ctx.save();
-  if (mirror) ctx.scale(-1, 1);
-  if (forearm !== undefined) {
-    const centre = strip([-Math.abs(forearm[0]), forearm[1]], WRIST, 1, -1, 0);
-    piece(
-      ctx,
-      ribbon(FOREARM_AT, centre, FOREARM[0], FOREARM[1]),
-      { role: 'figure', line, color: style.skin, outline: style.outline },
-      sub(hand, 1),
-    );
-  }
+  if (draw.away === -1) ctx.scale(-1, 1);
   cupped(ctx, open, style, line, draw.detail ?? 1, hand);
   ctx.restore();
 };

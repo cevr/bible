@@ -21,7 +21,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   type HeadPiece,
   type Hands,
@@ -153,9 +153,9 @@ const FRIEND_S = 1.1;
 /** Where each friend's holding hand is, in their units: down toward the hole's edge. */
 const FRIEND_HOLD = 40;
 const FRIEND_HOLD_Y = -52;
-/** Each friend's hand on their rope (the near hand of those right of the hole, the far of those left): grown as they take the ropes. */
-const ON_ROPE_R: ArmAt = { to: [FRIEND_HOLD, FRIEND_HOLD_Y], grow: 0, grip: 'hold' };
-const ON_ROPE_L: ArmAt = { to: [-FRIEND_HOLD, FRIEND_HOLD_Y], grow: 0, grip: 'hold' };
+/** Each friend's hand on their rope (the near hand of those right of the hole, the far of those left): out as they take the ropes. */
+const ON_ROPE_R: GestureAt = { to: [FRIEND_HOLD, FRIEND_HOLD_Y], reach: 0, grip: 'hold' };
+const ON_ROPE_L: GestureAt = { to: [-FRIEND_HOLD, FRIEND_HOLD_Y], reach: 0, grip: 'hold' };
 
 /** The tiles over the hole, and where each is set aside once lifted. */
 const TILES: ReadonlyArray<readonly [from: number, to: Pt]> = [
@@ -263,9 +263,9 @@ export interface House {
   readonly tiles: number;
   /** The bed's way down on its ropes: 0 in the hole, 1 on the floor. */
   readonly lower: number;
-  /** The four's hands on the ropes 0..1: grown as they take them up, withdrawn (and the ropes gone) as he stands. */
+  /** The four's hands on the ropes 0..1: out as they take them up, back (and the ropes gone) as he stands. */
   readonly ropes: number;
-  /** Jesus: looking up at the four in the hole 0..1, his hand held out to the man 0..1 (grown on the word, withdrawn as the man stands), and looking after him as he goes 0..1. */
+  /** Jesus: looking up at the four in the hole 0..1, his hand held out to the man 0..1 (out on the word, back as the man stands), and looking after him as he goes 0..1. */
   readonly lookUp: number;
   readonly reach: number;
   readonly lookAfter: number;
@@ -274,7 +274,7 @@ export interface House {
   /** The man: 0 lying on his bed to 1 standing; his bed 0 flat to 1 rolled on his shoulder; 0..1 walked out left; his step's bob; glad 0..1. */
   readonly rise: number;
   readonly roll: number;
-  /** His near hand steadying the rolled bed on his shoulder, 0..1, grown as it lands there. */
+  /** His near hand steadying the rolled bed on his shoulder, 0..1, going to it as it lands there. */
   readonly steady: number;
   readonly walk: number;
   readonly bob: number;
@@ -439,8 +439,8 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         }),
     );
   });
-  ON_ROPE_R.grow = s.ropes;
-  ON_ROPE_L.grow = s.ropes;
+  ON_ROPE_R.reach = s.ropes;
+  ON_ROPE_L.reach = s.ropes;
   FRIENDS.forEach((fr, i) => {
     at(ctx, { x: fr.x, y: ROOF_TOP, scale: FRIEND_S }, () =>
       person(
@@ -495,9 +495,16 @@ const ROLL_W = 110;
 const ROLL_H = 44;
 const ON_SHOULDER: Pt = [75, -217];
 const ROLL_TILT = -0.15;
-const ON_ROLL: ArmAt = { to: [56, -138], grow: 0, grip: 'hold' };
+const ON_ROLL: GestureAt = { to: [56, -138], reach: 0, grip: 'hold' };
+/**
+ * Lying, his hands lie folded on his middle, in his units: left beside him,
+ * the floating hands would stand out above and below his turned body. They
+ * go to his sides as he rises (`reach` = 1 − rise).
+ */
+const FOLDED_NEAR: GestureAt = { to: [12, -66], reach: 1, grip: 'open' };
+const FOLDED_FAR: GestureAt = { to: [-10, -58], reach: 1, grip: 'open' };
 /** Jesus's hand held out to the man on his bed, over the room, clear of the crowd's faces. */
-const OUT_TO_HIM: ArmAt = { to: [-104, -104], grow: 0, grip: 'open' };
+const OUT_TO_HIM: GestureAt = { to: [-104, -104], reach: 0, grip: 'open' };
 const MAN_WASH: [number, number, number] = [0, 0, 0];
 const MAN: Person = { look: MAN_LOOK, stains: MAN_SPECKS, washed: MAN_WASH };
 
@@ -534,7 +541,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
 
   // Jesus, looking to the man, up at the four, and after the man as he goes.
   const up = s.lookUp * (1 - s.reach);
-  OUT_TO_HIM.grow = s.reach;
+  OUT_TO_HIM.reach = s.reach;
   at(ctx, { x: jx, y: jy, scale: JESUS_HOUSE_S }, () =>
     christ(
       ctx,
@@ -577,9 +584,12 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   MAN.browR = 2 + 1.5 * s.glad;
   MAN.browTilt = 0.35;
   MAN.mouth = 0.4 * s.glad * (1 - s.walk);
-  // His near hand steadies the rolled bed on his shoulder, grown as it lands there.
-  ON_ROLL.grow = s.steady;
-  MAN.near = ON_ROLL;
+  // His near hand steadies the rolled bed on his shoulder, going to it as it lands there.
+  ON_ROLL.reach = s.steady;
+  FOLDED_NEAR.reach = 1 - rise;
+  FOLDED_FAR.reach = 1 - rise;
+  MAN.near = s.steady > 0 ? ON_ROLL : FOLDED_NEAR;
+  MAN.far = FOLDED_FAR;
   // Once the specks start to lift, the ones in flight stand in for those on him.
   for (let i = 0; i < MAN_WASH.length; i++) MAN_WASH[i] = s.specks > 0 ? 1 : 0;
   // The bed rolled up and carried on his shoulder, behind his head and under his hand.
@@ -724,10 +734,10 @@ export interface Temple {
   /** Those who brought her, walking out 0..1; their step's bob. */
   readonly leave: number;
   readonly leaveBob: number;
-  /** The marks he has written in the dust, 0..1; his finger to the dust 0..1 (grown as he stoops to write, withdrawn as he stands). */
+  /** The marks he has written in the dust, 0..1; his finger to the dust 0..1 (down as he stoops to write, back as he stands). */
   readonly writing: number;
   readonly writes: number;
-  /** His open hand to her as he tells her to go, 0..1 (grown on the words, withdrawn as the scene leaves her). */
+  /** His open hand to her as he tells her to go, 0..1 (out on the words, back as the scene leaves her). */
   readonly sends: number;
   /** Jesus: 0 stooped to the dust to 1 standing; his mouth as he speaks; where he looks. */
   readonly stand: number;
@@ -891,9 +901,9 @@ const HER_WASH: [number, number, number] = [0, 0, 0];
 const HER: Person = { garment: 'robe', look: HER_LOOK, stains: WOMAN_STAINS, washed: HER_WASH };
 const HIS_LOOK: [number, number] = [0, 0];
 const HIS_BUILD: [number, number] = [1, 1];
-const WRITES: ArmAt = { to: [WRITING_HAND[0], WRITING_HAND[1]], grow: 0, grip: 'point' };
+const WRITES: GestureAt = { to: [WRITING_HAND[0], WRITING_HAND[1]], reach: 0, grip: 'point' };
 /** Standing, his open hand held out toward her, screen-left, as he tells her to go. */
-const SENDS: ArmAt = { to: [-100, -104], grow: 0, grip: 'open' };
+const SENDS: GestureAt = { to: [-100, -104], reach: 0, grip: 'open' };
 const HIM: Person = { look: HIS_LOOK, build: HIS_BUILD, far: WRITES };
 
 const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
@@ -931,8 +941,8 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
   HIS_LOOK[1] = s.look[1];
   HIS_BUILD[0] = lerp(STOOP[0], 1, stand);
   HIS_BUILD[1] = lerp(STOOP[1], 1, stand);
-  WRITES.grow = s.writes;
-  SENDS.grow = s.sends;
+  WRITES.reach = s.writes;
+  SENDS.reach = s.sends;
   // One far hand: the finger in the dust while he writes, open to her once he has stood and speaks.
   HIM.far = s.sends > 0 ? SENDS : WRITES;
   HIM.tilt = -0.2 * (1 - stand);

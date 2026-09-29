@@ -4,17 +4,17 @@
 // in white and gold, stands at the bench. On "Satan" a tall shadow-grey figure
 // steps up at Joshua's right hand and points, and each stain flares. On "day"
 // the camera looks up at the window, where the sun sinks low: the great day
-// closing. On "angel" Christ raises a hand; on "silence" the pointing arm
+// closing. On "angel" Christ raises a hand; on "silence" the pointing hand
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on:
 // both draw the court's `zechCourt`.
 
-import { type Arm, camera, drawing, shotPath } from '@bible/film/canvas';
+import { type Gesture, camera, drawing, shotPath } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { type Posed, knobCamera } from '../kit.ts';
 import { JOSHUA, TUNIC_STAINS, ZECH_REST as REST, courtWall, zechCourt } from '../court.ts';
 
-/** Christ's hand raised on "angel", palm out beside his head; its grow rewritten each frame (scratch). */
-const RAISED: Posed<Arm> = { to: [-78, -205], grow: 0, grip: 'palm' };
+/** Christ's hand raised on "angel", palm out beside his head; its reach rewritten each frame (scratch). */
+const RAISED: Posed<Gesture> = { to: [-78, -205], reach: 0, grip: 'palm' };
 
 export const accuser = drawing({
   timeline: {
@@ -30,7 +30,7 @@ export const accuser = drawing({
     up: { mark: 'ew', offset: 0.4, dur: 1.4, ease: 'inOutCubic' },
     sink: { mark: 'day', offset: -0.2, dur: 2.2, ease: 'inOutSine' },
     back: { mark: 'angel', offset: -1, dur: 1, ease: 'inOutCubic' },
-    raise: { mark: 'angel', offset: 0.2, dur: 0.6, ease: 'outBack' },
+    raise: { mark: 'angel', offset: 0.1, dur: 0.8, ease: 'inOutSine' },
     drop: { mark: 'silence', dur: 0.6, ease: 'inCubic' },
     shrink: { mark: 'silence', offset: 0.1, dur: 0.8 },
     lower: { mark: 'silence', offset: 0.4, dur: 0.7 },
@@ -64,10 +64,10 @@ export const accuser = drawing({
       [f.at('back'), REST],
     ]);
 
-    // His arm grows out to point at the stains on Joshua's clothes, and withdraws on "silence".
+    // His hand goes out to point at the stains on Joshua's clothes, and drops on "silence".
     const point = f.at('point') * (1 - f.at('drop'));
     const raise = f.at('raise') * (1 - f.at('lower'));
-    RAISED.grow = raise;
+    RAISED.reach = raise;
     // Joshua bows on his name and lifts his head as the accuser is silenced.
     const bow = f.at('bow') * (1 - f.at('lift'));
     // Each stain lights in 0.3 s, 0.4 s after the one before, and dims over

@@ -663,9 +663,10 @@ export type FaceMark = typeof FaceMark.Type;
 
 /**
  * A hand the probe saw (`probeHand`, called by a kit's person for each of its
- * arms every frame, grown or not): where the hand and its shoulder are on
- * screen, how far the arm has grown, whether the hand sits inside its own
- * body's silhouette and whether it is drawn over it. What `ArmPop` and
+ * hands every frame, at rest or at work): where the hand, its shoulder and
+ * its target are on screen, how big it is drawn, how far it has travelled to
+ * its work, the figure's reach, whether the hand sits inside its own body's
+ * silhouette and whether it is drawn over it. What `HandJump`, `HandFar` and
  * `HandHidden` read.
  */
 export const HandMark = Schema.Struct({
@@ -674,11 +675,18 @@ export const HandMark = Schema.Struct({
   /** The hand on screen, in canvas pixels. */
   x: Schema.Finite,
   y: Schema.Finite,
-  /** Its shoulder on screen: the same arm is found again a frame on by where it grows from. */
+  /** Its shoulder on screen: the same hand is found again a frame on by the shoulder it moves round. */
   sx: Schema.Finite,
   sy: Schema.Finite,
-  /** How far the arm has grown, 0 (no arm) to 1. */
-  grow: Schema.Finite,
+  /** Where it works (its rest when it has no work), on screen. */
+  tx: Schema.Finite,
+  ty: Schema.Finite,
+  /** The hand's length drawn on screen, wrist to fingertips, in px. */
+  size: Schema.Finite,
+  /** The figure's reach on screen, in px: the farthest a hand works from its shoulder. */
+  radius: Schema.Finite,
+  /** How far it has travelled from its rest to its work, 0 to 1. */
+  reach: Schema.Finite,
   /** The hand lies inside the silhouette of its own body (garment and head). */
   inside: Schema.Boolean,
   /** The hand is drawn over that body, not behind it. */

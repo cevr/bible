@@ -61,7 +61,7 @@ export const cold = drawing({
   timeline: {
     drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
     bow: { mark: 'did', dur: 0.35 },
-    // The judge leans in, his arm growing to the gavel; he lets it go as it comes to rest.
+    // The judge leans in, his hand going to the gavel; he lets it go as it comes to rest.
     lean: { mark: 'judge', dur: 0.4 },
     gavel: { mark: 'righteous', offset: -0.37, dur: 0.59 },
     stamp: { mark: 'righteous', offset: -0.03, dur: 0.2, ease: 'outBack' },

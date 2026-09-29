@@ -22,7 +22,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   blob,
   glow,
@@ -74,10 +74,10 @@ const FIGURE_A_S = 2.1;
 const STACK_Y = -226;
 /** Where each hand holds the bottom card: its ends, outside the head. */
 const HOLD_AT: Pt = [44, STACK_Y + 4];
-const HOLD_FAR: ArmAt = { to: [-HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold' };
+const HOLD_FAR: GestureAt = { to: [-HOLD_AT[0], HOLD_AT[1]], reach: 0, grip: 'hold' };
 /** The near hand: on the stack, then down to `OFFER_AT`, turning palm up (`palmUp`). */
 const OFFER_AT: Pt = [50, -130];
-const OPEN: ArmAt = { to: [HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold', turn: 0 };
+const OPEN: GestureAt = { to: [HOLD_AT[0], HOLD_AT[1]], reach: 0, grip: 'hold', turn: 0 };
 /** The close-up: where its palm's middle sits, and its scale. */
 const CLOSE_AT: Pt = [960, 720];
 const CLOSE_S = 1.6;
@@ -89,13 +89,11 @@ const PUSH: HandPush = {
   scale: CLOSE_S,
 };
 const INTO_HAND = pushZoom(FIGURE_A_S, CLOSE_S);
-/** Where the close-up's arm comes in: from below, a little from the left where their body is. */
-const FROM_FIGURE: Pt = [-260, 700];
 /** Where the light laid in the close-up starts, above the frame, in the hand's units. */
 const LIGHT_FROM = -680;
 /** The climber's hands on the pole, one high and one low (their x follows the pole each frame). */
-const ON_POLE_HIGH: ArmAt = { to: [0, -150], grow: 0, grip: 'hold' };
-const ON_POLE_LOW: ArmAt = { to: [0, -95], grow: 0, grip: 'hold' };
+const ON_POLE_HIGH: GestureAt = { to: [0, -150], reach: 0, grip: 'hold' };
+const ON_POLE_LOW: GestureAt = { to: [0, -95], reach: 0, grip: 'hold' };
 
 /** The pole stands this tall above the ground. */
 const POLE_H = 620;
@@ -104,8 +102,11 @@ export const look = drawing({
   timeline: {
     wonder: { mark: 'faith', dur: 0.5 },
     holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
+    // Their hands go up to where the stack comes down into them, and down once it has slid off.
+    handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
     slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
     armsDown: { after: 'slide', dur: 0.5 },
+    handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
     // As the stack goes, their near hand comes down open, and the camera
     // pushes into it: the close-up. Once the light is laid in it, back out
     // to them holding it.
@@ -120,7 +121,7 @@ export const look = drawing({
     approach: { mark: 'harder', offset: -0.6, dur: 0.7, ease: 'inOutSine' },
     climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
     // Their hands take the pole as they start to climb, and let go as they slide down.
-    grasp: { with: 'climb', dur: 0.3 },
+    grasp: { with: 'climb', dur: 0.6, ease: 'inOutSine' },
     slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
     letGo: { with: 'slideDown', dur: 0.5 },
     stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
@@ -165,11 +166,13 @@ export const look = drawing({
         const offer = f.at('offer');
         // The stack's bottom card, where both hands hold it up (over the head, never on it).
         const bottom = STACK_Y - 190 * (1 - f.at('holdUp'));
-        HOLD_FAR.to[1] = bottom + 4;
-        HOLD_FAR.grow = up * (1 - offer);
+        // The hands wait where the stack's bottom card comes to rest.
+        const holding = f.at('handsUp') * (1 - f.at('handsDown'));
+        // The far hand keeps its end up as the last of the stack slides off.
+        HOLD_FAR.reach = holding;
         OPEN.to[0] = lerp(HOLD_AT[0], OFFER_AT[0], offer);
-        OPEN.to[1] = lerp(bottom + 4, OFFER_AT[1], offer);
-        OPEN.grow = clamp(up + offer);
+        OPEN.to[1] = lerp(HOLD_AT[1], OFFER_AT[1], offer);
+        OPEN.reach = clamp(holding + offer);
         OPEN.turn = f.at('palmUp');
         const s = FIGURE_A_S * zoom;
         at(ctx, { x: handX - hx * s, y: handY - hy * s, scale: s }, () => {
@@ -233,7 +236,7 @@ export const look = drawing({
 
       // Their own palm-up hand close up, and the gold light laid in it: the
       // light comes down to rest on the palm's middle, clear of the lines.
-      pushedHand(ctx, f.hand, PUSH, into, 1, FROM_FIGURE, {
+      pushedHand(ctx, f.hand, PUSH, into, 1, 'near', {
         over: () => {
           if (light <= 0) return;
           const y = lerp(LIGHT_FROM, 0, light);
@@ -273,8 +276,8 @@ export const look = drawing({
       const strain = onPole * f.at('grasp') * (1 - f.at('letGo'));
       ON_POLE_HIGH.to[0] = (px - 8 - x) / 1.8;
       ON_POLE_LOW.to[0] = (px - 14 - x) / 1.8;
-      ON_POLE_HIGH.grow = strain;
-      ON_POLE_LOW.grow = strain;
+      ON_POLE_HIGH.reach = strain;
+      ON_POLE_LOW.reach = strain;
       const jiggle = strain * Math.sin(t * 18) * 3;
 
       ctx.save();

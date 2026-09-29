@@ -61,7 +61,7 @@ export const name = drawing({
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
     // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
     show: { mark: 'verdict', word: 'not', offset: -0.3, dur: 0.6 },
-    // The judge's arm grows to the gavel before it falls, and holds it down into `thesis`.
+    // The judge's hand goes to the gavel before it falls, and holds it down into `thesis`.
     grasp: { with: 'gavel', offset: -0.5, dur: 0.5 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
     // To the pair as "righteous" is said, a word with no mark.
@@ -142,12 +142,12 @@ export const name = drawing({
         browR: 4 * up + FIGURE_LANDED.browR * smile + 3 * hung,
         browTilt: 0.35 * up + 0.25 * hung,
         smile: FIGURE_LANDED.smile * smile,
-        // The near hand grows to the robe on "receive" and lets it go before "heart".
-        near: { to: TOUCH, grow: touch, grip: 'open' },
+        // The near hand goes to the robe on "receive" and lets it go before "heart".
+        near: { to: TOUCH, reach: touch, grip: 'open' },
       },
       advocate: {
         ...ADVOCATE_POSE,
-        far: { to: [px, py], grow: reach, grip: 'open' },
+        far: { to: [px, py], reach, grip: 'open' },
         tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch') + 0.06 * reach,
         look: [lerp(lerp(-3, 3, turn), -3, present), 1 + 2 * present],
         smile: 0.6 * smile,

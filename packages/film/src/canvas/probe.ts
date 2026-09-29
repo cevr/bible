@@ -16,7 +16,7 @@ export interface ProbeSink {
   readonly inks: InkMark[];
   /** Given, every face `probeFace` declares lands here (the look pass's `FaceSmall`). */
   readonly faces?: FaceMark[];
-  /** Given, every hand `probeHand` declares lands here (the look pass's `ArmPop`, `HandHidden`). */
+  /** Given, every hand `probeHand` declares lands here (the look pass's `HandJump`, `HandFar`, `HandHidden`). */
   readonly hands?: HandMark[];
 }
 
@@ -220,15 +220,21 @@ export const probeFace = (ctx: CanvasRenderingContext2D, x: number, y: number, h
 export const probesHands = (ctx: CanvasRenderingContext2D): boolean =>
   probes.get(ctx)?.sink.hands !== undefined;
 
-/** One arm a kit's person declares to `probeHand`, in the current transform's space. */
+/** One floating hand a kit's person declares to `probeHand`, in the current transform's space. */
 export interface HandSeen {
   readonly side: 'far' | 'near';
-  /** Where the arm grows from. */
+  /** The shoulder it floats round. */
   readonly shoulder: Point;
-  /** Where its hand is now: along the arm as far as it has grown. */
+  /** Where the hand is now. */
   readonly at: Point;
-  /** How far it has grown, 0 (no arm) to 1. */
-  readonly grow: number;
+  /** Where it works (its rest, when it has no work). */
+  readonly to: Point;
+  /** Its length, wrist to fingertips. */
+  readonly size: number;
+  /** The figure's reach: the farthest from its shoulder a hand may work. */
+  readonly radius: number;
+  /** How far it has travelled from its rest to its work, 0 to 1. */
+  readonly reach: number;
   /** Whether the hand is drawn over its own body (after it), not behind it. */
   readonly over: boolean;
   /**
@@ -240,19 +246,22 @@ export interface HandSeen {
 }
 
 /**
- * Declare an arm: a kit's person calls it for both of its arms every frame,
- * grown or not, so `film check` follows each arm's grow frame to frame
- * (`ArmPop`) and sees a hand lost behind its own body (`HandHidden`) from the
- * kit's own numbers rather than a reader spotting either in a still. Records
- * only when a probe that collects hands is attached; draws nothing.
+ * Declare a hand: a kit's person calls it for both of its hands every frame,
+ * at work or at rest, so `film check` follows each hand frame to frame
+ * (`HandJump`), sees one sent past its figure's reach (`HandFar`) and one lost
+ * behind its own body (`HandHidden`) from the kit's own numbers rather than a
+ * reader spotting any of them in a still. Records only when a probe that
+ * collects hands is attached; draws nothing.
  */
 export const probeHand = (ctx: CanvasRenderingContext2D, hand: HandSeen) => {
   const probe = probes.get(ctx);
   const hands = probe?.sink.hands;
   if (probe === undefined || hands === undefined) return;
   const map = screen(ctx, probe);
+  const scale = scaleOf(ctx);
   const [x, y] = map(hand.at[0], hand.at[1]);
   const [sx, sy] = map(hand.shoulder[0], hand.shoulder[1]);
+  const [tx, ty] = map(hand.to[0], hand.to[1]);
   hands.push({
     scene: probe.scene,
     side: hand.side,
@@ -260,7 +269,11 @@ export const probeHand = (ctx: CanvasRenderingContext2D, hand: HandSeen) => {
     y,
     sx,
     sy,
-    grow: Math.min(1, Math.max(0, hand.grow)),
+    tx,
+    ty,
+    size: hand.size * scale,
+    radius: hand.radius * scale,
+    reach: Math.min(1, Math.max(0, hand.reach)),
     inside: hand.body().some((shape) => insidePolygon(shape, hand.at)),
     over: hand.over,
     alpha: ctx.globalAlpha * probe.alpha,

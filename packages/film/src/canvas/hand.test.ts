@@ -1,147 +1,151 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  type ArmStyle,
   CLOSE_SPAN,
   type CloseShape,
   GRIPS,
-  arm,
+  type Gesture,
+  type HandRoot,
+  type HandStyle,
+  breathOf,
   closeShape,
   handAt,
   palmUpFrame,
-  strip,
   turning,
-} from './arm.ts';
-import type { Pt } from './ink.ts';
+} from './hand.ts';
+import { BOIL_FPS, type Pt } from './ink.ts';
 
 const SHOULDER: Pt = [17, -111];
-const HAND = { boil: 0, seed: 1 };
-const STYLE: ArmStyle = {
-  body: '#888888',
+/** A near hand floating at rest beside the hip, the figure's breath held. */
+const NEAR: HandRoot = { shoulder: SHOULDER, rest: [42, -50], away: 1, breath: 0 };
+const FAR: HandRoot = { shoulder: [-17, -111], rest: [-42, -50], away: -1, breath: 0 };
+const STYLE: HandStyle = {
   skin: '#999999',
   outline: '#111111',
-  width: [13, 8],
-  length: 78,
   mitten: 22,
   line: 2.5,
+  radius: 120,
 };
 
-/** A copy of the strip's centre line: `strip` writes into one buffer it reuses. */
-const centre = (to: Pt, grow: number, away: -1 | 1 = 1): Pt[] =>
-  strip(SHOULDER, to, grow, away, STYLE.length).map(([x, y]): Pt => [x, y]);
+const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
-/** The furthest any point of the centre line moved between two strips. */
+/** The furthest any point moved between two point lists, point for point. */
 const moved = (a: ReadonlyArray<Pt>, b: ReadonlyArray<Pt>) =>
   Math.max(...a.map((p, i) => Math.hypot(p[0] - (b[i]?.[0] ?? 0), p[1] - (b[i]?.[1] ?? 0))));
 
-/** A context that records every call and every write made on it. */
-const recording = () => {
-  const calls: string[] = [];
-  const ctx = new Proxy(
-    {},
-    {
-      get: (_, key) => {
-        calls.push(String(key));
-        return () => undefined;
-      },
-      set: (_, key) => {
-        calls.push(`set ${String(key)}`);
-        return true;
-      },
-    },
-  ) as CanvasRenderingContext2D;
-  return { ctx, calls };
-};
+/** The hand's path from its rest to `to`, `n` steps of reach. */
+const path = (root: HandRoot, to: Pt, n = 400, grip?: Gesture['grip']): Pt[] =>
+  Array.from({ length: n + 1 }, (_, k) => handAt(root, { to, reach: k / n, grip }, STYLE));
 
-describe('strip', () => {
-  test('never flips: a target swept across the shoulder line moves the arm a little at a time', () => {
-    // Round the shoulder at arm's length, through the tie straight out and
-    // straight up, and across the body: each small step of the target moves
-    // the strip by about as much, never by a jump.
-    const STEPS = 720;
-    for (const r of [30, 45, 70, 110]) {
-      let before = centre([SHOULDER[0] + r, SHOULDER[1]], 1);
-      for (let i = 1; i <= STEPS; i++) {
-        const a = (2 * Math.PI * i) / STEPS;
-        const to: Pt = [SHOULDER[0] + r * Math.cos(a), SHOULDER[1] + r * Math.sin(a)];
-        const now = centre(to, 1);
-        const step = r * ((2 * Math.PI) / STEPS);
-        expect(moved(before, now)).toBeLessThan(6 * step);
-        before = now;
-      }
-    }
-    // And along a straight sweep through the shoulder's own height.
-    let last = centre([SHOULDER[0] + 80, SHOULDER[1] + 40], 1);
-    for (let y = 39; y >= -40; y--) {
-      const now = centre([SHOULDER[0] + 80, SHOULDER[1] + y], 1);
-      expect(moved(last, now)).toBeLessThan(6);
-      last = now;
+/** Targets a figure's hands work at: out, up, over the head, across the chest, down across the belly, far out. */
+const TARGETS: ReadonlyArray<Pt> = [
+  [90, -60],
+  [60, -190],
+  [0, -230],
+  [-20, -85],
+  [-23, -56],
+  [118, -112],
+  [-78, -205],
+];
+
+describe('a floating hand', () => {
+  test('rests at its spot, bobbing only with the breath, and still once at work', () => {
+    expect(handAt(NEAR, undefined, STYLE)).toEqual(NEAR.rest);
+    expect(handAt(NEAR, { to: [90, -60], reach: 0 }, STYLE)).toEqual(NEAR.rest);
+    for (const breath of [-1, 1]) {
+      const [x, y] = handAt({ ...NEAR, breath }, undefined, STYLE);
+      expect(x).toBeCloseTo(NEAR.rest[0], 9);
+      // A small bob, up and down with the breath, never a drift away.
+      expect(Math.sign(y - NEAR.rest[1])).toBe(breath);
+      expect(Math.abs(y - NEAR.rest[1])).toBeLessThan(0.1 * STYLE.mitten);
+      // At work it holds still on what it works at.
+      const at = handAt({ ...NEAR, breath }, { to: [90, -60], reach: 1 }, STYLE);
+      expect(at[0]).toBeCloseTo(90, 9);
+      expect(at[1]).toBeCloseTo(-60, 9);
     }
   });
 
-  test('bows down and away from the body', () => {
-    // Straight out to the side (away +x): the strip sags below the line.
-    const out = centre([SHOULDER[0] + 60, SHOULDER[1]], 1);
-    const mid = out[Math.floor(out.length / 2)] ?? SHOULDER;
-    expect(mid[1]).toBeGreaterThan(SHOULDER[1]);
-    // Straight up: it bows away, to +x for the arm whose away side is +x, to −x for the other.
-    const up = centre([SHOULDER[0], SHOULDER[1] - 60], 1, 1);
-    expect((up[Math.floor(up.length / 2)] ?? SHOULDER)[0]).toBeGreaterThan(SHOULDER[0]);
-    const upFar = centre([SHOULDER[0], SHOULDER[1] - 60], 1, -1);
-    expect((upFar[Math.floor(upFar.length / 2)] ?? SHOULDER)[0]).toBeLessThan(SHOULDER[0]);
-    // Up and in over the head (look's stack): still out, never hooked over the head.
-    const over: Pt = [SHOULDER[0] - 20, SHOULDER[1] - 50];
-    const lifted = centre(over, 1, 1);
-    const bend = lifted[Math.floor(lifted.length / 2)] ?? SHOULDER;
-    expect(bend[0]).toBeGreaterThan((SHOULDER[0] + over[0]) / 2);
-    // Down across the belly (word's unshrug): it sags below the line, not up into the chest.
-    const across: Pt = [SHOULDER[0] - 40, SHOULDER[1] + 55];
-    const hung = centre(across, 1, 1);
-    const sag = hung[Math.floor(hung.length / 2)] ?? SHOULDER;
-    const [lx, ly] = [(SHOULDER[0] + across[0]) / 2, (SHOULDER[1] + across[1]) / 2];
-    expect(
-      (across[0] - SHOULDER[0]) * (sag[1] - ly) - (across[1] - SHOULDER[1]) * (sag[0] - lx),
-    ).toBeLessThan(0);
-  });
-
-  test('its length follows the target: grown, the hand lands on it, near or far', () => {
-    for (const d of [12, 40, 70, 120, 260]) {
-      const to: Pt = [SHOULDER[0] + d * 0.6, SHOULDER[1] - d * 0.8];
-      const tip = centre(to, 1).at(-1) ?? SHOULDER;
-      expect(tip[0]).toBeCloseTo(to[0], 6);
-      expect(tip[1]).toBeCloseTo(to[1], 6);
-    }
-  });
-
-  test('grows continuously from the shoulder: at 0 it is only the shoulder', () => {
-    const to: Pt = [90, -60];
-    for (const p of centre(to, 0)) {
-      expect(p[0]).toBeCloseTo(SHOULDER[0], 9);
-      expect(p[1]).toBeCloseTo(SHOULDER[1], 9);
-    }
-    let before = centre(to, 0);
-    for (let i = 1; i <= 100; i++) {
-      const now = centre(to, i / 100);
-      expect(moved(before, now)).toBeLessThan(2.5);
+  test('breathes slowly on the boil clock, each figure in its own phase', () => {
+    let before = breathOf({ boil: 0, seed: 7 });
+    for (let boil = 1; boil <= 10 * BOIL_FPS; boil++) {
+      const now = breathOf({ boil, seed: 7 });
+      expect(Math.abs(now)).toBeLessThanOrEqual(1);
+      expect(Math.abs(now - before)).toBeLessThan(0.2);
       before = now;
     }
-  });
-});
-
-describe('arm', () => {
-  test('grow 0 draws nothing, whatever the target', () => {
-    const { ctx, calls } = recording();
-    arm(ctx, SHOULDER, 1, { to: [90, -60], grow: 0 }, STYLE, HAND);
-    arm(ctx, SHOULDER, -1, { to: [-90, -160], grow: -0.2, grip: 'point' }, STYLE, HAND);
-    expect(calls).toEqual([]);
+    expect(breathOf({ boil: 0, seed: 7 })).not.toBeCloseTo(breathOf({ boil: 0, seed: 8 }), 3);
   });
 
-  test('its hand is on the target once grown, and part way along the strip while growing', () => {
-    for (const grip of GRIPS) {
-      const to: Pt = [90, -60];
-      expect(handAt(SHOULDER, 1, { to, grow: 1, grip }, STYLE)).toEqual(to);
-      const half = handAt(SHOULDER, 1, { to, grow: 0.5, grip }, STYLE);
-      expect(Math.hypot(half[0] - to[0], half[1] - to[1])).toBeGreaterThan(10);
-      expect(Math.hypot(half[0] - SHOULDER[0], half[1] - SHOULDER[1])).toBeGreaterThan(10);
+  test('lands on its target once it has travelled there, whatever its grip or side', () => {
+    for (const root of [NEAR, FAR])
+      for (const grip of GRIPS)
+        for (const to of TARGETS) {
+          const at = handAt(root, { to, reach: 1, grip }, STYLE);
+          expect(at[0]).toBeCloseTo(to[0], 9);
+          expect(at[1]).toBeCloseTo(to[1], 9);
+        }
+  });
+
+  test('travels a soft arc round its shoulder, never a straight line', () => {
+    const to: Pt = [60, -150];
+    const half = handAt(NEAR, { to, reach: 0.5 }, STYLE);
+    const straight: Pt = [(NEAR.rest[0] + to[0]) / 2, (NEAR.rest[1] + to[1]) / 2];
+    expect(dist(half, straight)).toBeGreaterThan(10);
+    // Swung out round the shoulder, away from the body, not in across it.
+    expect(half[0]).toBeGreaterThan(straight[0]);
+  });
+
+  test('moves a little at a time: no pop from rest to work, or back', () => {
+    for (const root of [NEAR, FAR])
+      for (const to of TARGETS) {
+        const steps = path(root, to);
+        for (let k = 1; k < steps.length; k++)
+          expect(dist(steps[k - 1] ?? to, steps[k] ?? to)).toBeLessThan(2);
+      }
+  });
+
+  test('keeps within its reach: never farther from its shoulder than its rest or its target, but for the settle', () => {
+    for (const root of [NEAR, FAR])
+      for (const to of TARGETS) {
+        const most = Math.max(dist(root.rest, root.shoulder), dist(to, root.shoulder));
+        for (const p of path(root, to))
+          expect(dist(p, root.shoulder)).toBeLessThanOrEqual(most + 0.4 * STYLE.mitten);
+      }
+  });
+
+  test('settles: swings a little past its reach just before it arrives, then lands', () => {
+    const to: Pt = [90, -60];
+    const steps = path(NEAR, to);
+    const reach = dist(to, SHOULDER);
+    const past = Math.max(...steps.slice(240).map((p) => dist(p, SHOULDER)));
+    expect(past).toBeGreaterThan(reach + 0.12 * STYLE.mitten);
+    expect(dist(steps.at(-1) ?? SHOULDER, to)).toBeLessThan(1e-9);
+  });
+
+  test('never passes over its own head', () => {
+    const HEAD: Pt = [0, -165];
+    for (const root of [NEAR, FAR])
+      for (const to of TARGETS)
+        for (const p of path(root, to)) expect(dist(p, HEAD)).toBeGreaterThan(38);
+  });
+
+  test('never flips: a target swept round the shoulder moves the hand on its way a little at a time', () => {
+    // Round the shoulder at arm's length, all but where the head is (up and
+    // in, where no hand reaches): a small step of the target moves the hand
+    // half way there by about as much, never by a jump.
+    const STEPS = 720;
+    for (const root of [NEAR, FAR]) {
+      const head = root.away === 1 ? (-3 * Math.PI) / 4 : -Math.PI / 4;
+      for (const r of [40, 70, 110]) {
+        let before: Pt | undefined;
+        for (let i = 0; i <= STEPS; i++) {
+          const a = head + 0.35 + ((2 * Math.PI - 0.7) * i) / STEPS;
+          const [sx, sy] = root.shoulder;
+          const to: Pt = [sx + r * Math.cos(a), sy + r * Math.sin(a)];
+          const now = handAt(root, { to, reach: 0.5 }, STYLE);
+          if (before !== undefined) expect(dist(before, now)).toBeLessThan(3);
+          before = now;
+        }
+      }
     }
   });
 });
@@ -324,7 +328,9 @@ describe('the palm-up turn', () => {
     const m = palmUpFrame(to, 0.4, STYLE.mitten, 1);
     expect(Math.hypot(m[0], m[1])).toBeCloseTo(Math.hypot(m[2], m[3]), 9);
     expect(m[0] * m[2] + m[1] * m[3]).toBeCloseTo(0, 9);
-    // Its hand is still where the arm ends: what it holds rides the palm's middle.
-    expect(handAt(SHOULDER, 1, { to, grow: 1, turn: 1 }, STYLE)).toEqual(to);
+    // Turned, the hand is still on its target: what it holds rides the palm's middle.
+    const turned = handAt(NEAR, { to, reach: 1, turn: 1 }, STYLE);
+    expect(turned[0]).toBeCloseTo(to[0], 9);
+    expect(turned[1]).toBeCloseTo(to[1], 9);
   });
 });

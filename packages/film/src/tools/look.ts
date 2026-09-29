@@ -2,7 +2,8 @@
 // 64×36 thumb per sample, and the faces the kit declared), measured for what a
 // viewer across the room sees. How much of a scene holds still (`HeldShare`),
 // the light of each scene and act against the film's declared colour script
-// (`ColourScript`), whether a face ever reaches human scale (`FaceSmall`), and
+// (`ColourScript`), whether a face ever reaches human scale (`FaceSmall`), how
+// the hands the kit declared move (`HandJump`, `HandFar`, `HandHidden`), and
 // the YouTube chapters the declared acts name. `looker.ts` draws the samples.
 
 import { Array as Arr, Option, Order, Result } from 'effect';
@@ -12,11 +13,12 @@ import { UnknownScene } from '../core/errors.ts';
 import { filmEnd } from '../core/sound.ts';
 import type { Reported } from './check.ts';
 import {
-  ArmPop,
   ChaptersInvalid,
   ColourScript,
   FaceSmall,
+  HandFar,
   HandHidden,
+  HandJump,
   HeldShare,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -163,12 +165,14 @@ export interface SceneLook {
   readonly face: number;
 }
 
-/** What the look pass measured: each scene's look, the frame's height in px, and the arms. */
+/** What the look pass measured: each scene's look, the frame's height in px, and the hands. */
 export interface Looked {
   readonly looks: ReadonlyArray<SceneLook>;
   readonly height: number;
-  /** Arms whose grow jumps between adjacent frames (the hands pass). */
-  readonly pops: ReadonlyArray<ArmPop>;
+  /** Hands that jump between adjacent frames (the hands pass). */
+  readonly jumps: ReadonlyArray<HandJump>;
+  /** Hands at work past their figure's reach. */
+  readonly far: ReadonlyArray<HandFar>;
   /** Acting hands lost behind their own bodies. */
   readonly hidden: ReadonlyArray<HandHidden>;
 }
@@ -275,18 +279,23 @@ export const smallFaces = (
     .filter((l) => l.judged && l.face < height * FACE_SHARE)
     .map((l) => FaceSmall.make({ scene: l.scene, largest: l.face, min: height * FACE_SHARE }));
 
-/** The most an arm's grow may change between adjacent frames: more, and the arm pops (`ArmPop`). */
-export const ARM_POP = 0.5;
+/**
+ * The most a hand may move about its shoulder between adjacent frames, in its
+ * own lengths: more, and one frame's hand no longer meets the next one's, so
+ * the eye sees it pop, not travel (`HandJump`).
+ */
+export const HAND_JUMP = 1.5;
+/** The most a hand's size may change between adjacent frames, as a share of it (`HandJump`). */
+export const SIZE_JUMP = 0.25;
 /** A hand is seen at this opacity or more. */
 export const HAND_SEEN = 0.5;
 /**
- * A hand is at work once its arm has grown this far: at its target, not on
- * its way there. A far arm grows out of its shoulder inside the garment, so
- * its hand passes through the body while it grows; that is growth (`ArmPop`
- * judges it), not a hand hidden.
+ * A hand is at work once it has travelled this far: at its target, not on
+ * its way there. A far hand going to work in front of its body passes behind
+ * it on the way; that is travel (`HandJump` judges it), not a hand hidden.
  */
 export const HAND_AT_WORK = 0.9;
-/** A hand a frame on is the same arm when its shoulder moved at most this many px. */
+/** A hand a frame on is the same hand when its shoulder moved at most this many px. */
 export const SHOULDER_MATCH = 24;
 
 /** One frame drawn for its hands: in a scene, frame `frame` at film time `T`. */
@@ -299,16 +308,16 @@ export interface HandFrame {
 
 /**
  * The frames the hands pass draws: every frame between two adjacent samples
- * of a scene across which any arm grows, withdraws, or comes or goes grown;
- * each once, in film order.
+ * of a scene across which any hand travels to or from its work, or comes or
+ * goes at work; each once, in film order. A hand bobbing at rest draws none.
  */
-export const armSpans = (
+export const handSpans = (
   frames: ReadonlyArray<HandFrame>,
   fps: number,
 ): ReadonlyArray<LookSample> => {
   const drawn = new Map<number, LookSample>();
   for (const [a, b] of pairs(frames)) {
-    if (a.scene !== b.scene || !armsChange(ownHands(a), ownHands(b))) continue;
+    if (a.scene !== b.scene || !handsTravel(ownHands(a), ownHands(b))) continue;
     for (let frame = a.frame; frame <= b.frame; frame++)
       if (!drawn.has(frame)) drawn.set(frame, { scene: a.scene, frame, T: frame / fps });
   }
@@ -318,56 +327,118 @@ export const armSpans = (
   );
 };
 
-/** Each arm whose grow jumps by more than `ARM_POP` between two adjacent frames of its scene. */
-export const armPops = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<ArmPop> =>
+/**
+ * How `now` jumped from `was`, a frame on, if it did: about its shoulder by
+ * more than `HAND_JUMP` of its length, or in size against its figure's reach
+ * by more than `SIZE_JUMP`. Both are measured in the hand's own terms, so a
+ * camera's pan or zoom, or its whole figure scaled, is no jump.
+ */
+const jumpOf = (
+  was: HandMark,
+  now: HandMark,
+): Option.Option<{
+  readonly what: HandJump['what'];
+  readonly by: number;
+  readonly max: number;
+}> => {
+  if (was.size <= 0 || now.size <= 0) return Option.none();
+  // Each frame in its figure's own measure (its reach, always longer than its
+  // hand; the hand's length when it declares none), so a zoom or the figure
+  // scaled changes nothing.
+  const wasUnit = Math.max(was.radius, was.size);
+  const nowUnit = Math.max(now.radius, now.size);
+  const length = (was.size / wasUnit + now.size / nowUnit) / 2;
+  const moved =
+    Math.hypot(
+      (now.x - now.sx) / nowUnit - (was.x - was.sx) / wasUnit,
+      (now.y - now.sy) / nowUnit - (was.y - was.sy) / wasUnit,
+    ) / length;
+  if (moved > HAND_JUMP) return Option.some({ what: 'place', by: moved, max: HAND_JUMP });
+  const was1 = was.size / wasUnit;
+  const now1 = now.size / nowUnit;
+  const grew = Math.abs(now1 - was1) / Math.max(was1, now1);
+  return Option.filter(
+    Option.some({ what: 'size' as const, by: grew, max: SIZE_JUMP }),
+    (jump) => jump.by > SIZE_JUMP,
+  );
+};
+
+/**
+ * Each hand that jumps between two adjacent frames of its scene: moves about
+ * its shoulder more than `HAND_JUMP` of its length, or changes size against
+ * its figure's reach by more than `SIZE_JUMP`. A camera's pan or zoom, or
+ * the whole figure scaled, carries hand, shoulder and reach together, so it
+ * is no jump.
+ */
+export const handJumps = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandJump> =>
   pairs(frames)
     .filter(([a, b]) => a.scene === b.scene && b.frame === a.frame + 1)
     .flatMap(([a, b]) =>
       ownHands(a).flatMap((was) =>
         Option.toArray(
           Option.filter(
-            sameArm(was, ownHands(b)),
-            (now) =>
-              Math.abs(now.grow - was.grow) > ARM_POP &&
-              Math.max(was.alpha, now.alpha) >= HAND_SEEN,
+            sameHand(was, ownHands(b)),
+            (now) => Math.max(was.alpha, now.alpha) >= HAND_SEEN,
           ),
-        ).map((now) =>
-          ArmPop.make({
-            scene: b.scene,
-            side: now.side,
-            T: b.T,
-            from: was.grow,
-            to: now.grow,
-            max: ARM_POP,
-          }),
+        ).flatMap((now) =>
+          Option.toArray(jumpOf(was, now)).map((jump) =>
+            HandJump.make({ scene: b.scene, side: now.side, T: b.T, ...jump }),
+          ),
         ),
       ),
     );
 
-/** A hand at work, seen, inside its own body and drawn behind it. */
-const hidden = (h: HandMark) =>
-  h.grow >= HAND_AT_WORK && h.alpha >= HAND_SEEN && h.inside && !h.over;
+/** One finding per scene and side from the frames whose hands `pick` keeps, with each hand's measure. */
+const perHand = (frames: ReadonlyArray<HandFrame>, pick: (h: HandMark) => Option.Option<number>) =>
+  Object.values(
+    Arr.groupBy(
+      frames.flatMap((f) =>
+        ownHands(f).flatMap((h) =>
+          Option.toArray(pick(h)).map((by) => ({ scene: f.scene, side: h.side, T: f.T, by })),
+        ),
+      ),
+      (s) => `${s.scene}\u0000${s.side}`,
+    ),
+  ).map((group) => ({
+    scene: group[0].scene,
+    side: group[0].side,
+    from: Math.min(...group.map((s) => s.T)),
+    to: Math.max(...group.map((s) => s.T)),
+    worst: Math.max(...group.map((s) => s.by)),
+    frames: group.length,
+  }));
+
+/** How far past its figure's reach a hand works, seen and on its way or at work: its target's distance over the reach. */
+const pastReach = (h: HandMark): Option.Option<number> =>
+  Option.filter(
+    Option.some(Math.hypot(h.tx - h.sx, h.ty - h.sy) / h.radius),
+    (out) => h.reach > 0 && h.alpha >= HAND_SEEN && h.radius > 0 && out > 1,
+  );
 
 /**
- * Each scene's hands at work (grown past `HAND_AT_WORK`, seen past `HAND_SEEN`) inside their
- * own body's silhouette and drawn behind it: one finding per scene and side.
+ * Each scene's hands that go to work past their figure's reach (their
+ * target farther from the shoulder than the reach), seen: one finding per
+ * scene and side, with the farthest.
  */
-export const hiddenHands = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandHidden> => {
-  const seen = frames.flatMap((f) =>
-    ownHands(f)
-      .filter(hidden)
-      .map((h) => ({ scene: f.scene, side: h.side, T: f.T })),
+export const farHands = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandFar> =>
+  perHand(frames, pastReach).map((g) => HandFar.make(g));
+
+/** A hand at work, seen, inside its own body and drawn behind it. */
+const hidden = (h: HandMark): Option.Option<number> =>
+  Option.filter(
+    Option.some(1),
+    () => h.reach >= HAND_AT_WORK && h.alpha >= HAND_SEEN && h.inside && !h.over,
   );
-  return Object.values(Arr.groupBy(seen, (s) => `${s.scene}\u0000${s.side}`)).map((group) =>
-    HandHidden.make({
-      scene: group[0].scene,
-      side: group[0].side,
-      from: Math.min(...group.map((s) => s.T)),
-      to: Math.max(...group.map((s) => s.T)),
-      frames: group.length,
-    }),
+
+/**
+ * Each scene's hands at work (travelled past `HAND_AT_WORK`, seen past
+ * `HAND_SEEN`) inside their own body's silhouette and drawn behind it: one
+ * finding per scene and side.
+ */
+export const hiddenHands = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandHidden> =>
+  perHand(frames, hidden).map(({ scene, side, from, to, frames }) =>
+    HandHidden.make({ scene, side, from, to, frames }),
   );
-};
 
 /** Each frame with the next. */
 const pairs = <A>(xs: ReadonlyArray<A>): ReadonlyArray<readonly [A, A]> => Arr.zip(xs, xs.slice(1));
@@ -375,8 +446,8 @@ const pairs = <A>(xs: ReadonlyArray<A>): ReadonlyArray<readonly [A, A]> => Arr.z
 /** A frame's hands that belong to its own scene (not the other of a transition). */
 const ownHands = (f: HandFrame) => f.hands.filter((h) => h.scene === f.scene);
 
-/** The hand among `next` that is `h`'s arm: the same side, its shoulder nearest and within `SHOULDER_MATCH`. */
-const sameArm = (h: HandMark, next: ReadonlyArray<HandMark>): Option.Option<HandMark> =>
+/** The hand among `next` that is `h`: the same side, its shoulder nearest and within `SHOULDER_MATCH`. */
+const sameHand = (h: HandMark, next: ReadonlyArray<HandMark>): Option.Option<HandMark> =>
   Arr.head(
     Arr.sort(
       next
@@ -386,17 +457,26 @@ const sameArm = (h: HandMark, next: ReadonlyArray<HandMark>): Option.Option<Hand
     ).map(([n]) => n),
   );
 
-/** A grow moved less than this is held. */
-const GROW_HELD = 1e-3;
+/** A reach moved less than this is held. */
+const REACH_HELD = 1e-3;
+/** A target moved about its shoulder less than this share of its hand's length is held. */
+const TARGET_HELD = 0.1;
 
-/** Whether any arm grows or withdraws from `was` to `now`, or one comes or goes already grown. */
-const armsChange = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>) =>
+/** Whether `h` has changed its work by `n`: travelled, or its target moved about its shoulder (a new target, what it holds moving). */
+const worksOn = (h: HandMark, n: HandMark) =>
+  Math.abs(n.reach - h.reach) > REACH_HELD ||
+  (Math.max(h.reach, n.reach) > 0 &&
+    Math.hypot(n.tx - n.sx - (h.tx - h.sx), n.ty - n.sy - (h.ty - h.sy)) >
+      TARGET_HELD * Math.max(h.size, n.size));
+
+/** Whether any hand travels or changes its work from `was` to `now`, or one comes or goes at work. */
+const handsTravel = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>) =>
   was.some((h) =>
-    Option.match(sameArm(h, now), {
-      onNone: () => h.grow > 0,
-      onSome: (n) => Math.abs(n.grow - h.grow) > GROW_HELD,
+    Option.match(sameHand(h, now), {
+      onNone: () => h.reach > 0,
+      onSome: (n) => worksOn(h, n),
     }),
-  ) || now.some((h) => h.grow > 0 && Option.isNone(sameArm(h, was)));
+  ) || now.some((h) => h.reach > 0 && Option.isNone(sameHand(h, was)));
 
 /** An act laid over the film: its declaration and the scenes it spans. */
 export interface ActSpan {
@@ -506,8 +586,9 @@ export const colourScript = (
 
 /**
  * What the look pass warns of: scenes held still, faces never at human
- * scale, and each of `acts` outside its colour script. Pass no acts for a
- * part of the film: an act measured on some of its scenes is not the act.
+ * scale, each of `acts` outside its colour script, and hands that jump, work
+ * out of reach or are lost in their bodies. Pass no acts for a part of the
+ * film: an act measured on some of its scenes is not the act.
  */
 export const lookFindings = (
   looked: Looked,
@@ -517,7 +598,8 @@ export const lookFindings = (
     ...heldShares(looked.looks),
     ...smallFaces(looked.looks, looked.height),
     ...colourScript(acts, looked.looks),
-    ...looked.pops,
+    ...looked.jumps,
+    ...looked.far,
     ...looked.hidden,
   ].map((finding) => ({ level: 'warning', finding }));
 

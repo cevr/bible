@@ -24,7 +24,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   type Person,
   blob,
@@ -51,12 +51,12 @@ const STAINS = [
 ];
 
 /** The sewer's hands: the patch held in the far hand, the needle in the near, which rises to `PROMISING` on the promise. */
-const PATCH: ArmAt = { to: [-18, -86], grow: 0, grip: 'hold' };
-const NEEDLE: ArmAt = { to: [22, -86], grow: 0, grip: 'hold' };
+const PATCH: GestureAt = { to: [-18, -86], reach: 0, grip: 'hold' };
+const NEEDLE: GestureAt = { to: [22, -86], reach: 0, grip: 'hold' };
 const PROMISING: Pt = [60, -176];
 /** The viewer's cloth hand at the glass (and its reflection's), rubbing up and down about `SCRUB_AT`. */
 const SCRUB_AT: Pt = [70, -124];
-const SCRUBBING: ArmAt = { to: [SCRUB_AT[0], SCRUB_AT[1]], grow: 0, grip: 'hold' };
+const SCRUBBING: GestureAt = { to: [SCRUB_AT[0], SCRUB_AT[1]], reach: 0, grip: 'hold' };
 const SCRUBBER: Person = { near: SCRUBBING };
 
 const timeline = {
@@ -67,16 +67,18 @@ const timeline = {
   toPatch: { mark: 'harder', dur: 0.6, ease: 'inOutSine' },
   promise: { mark: 'promise', dur: 0.4, ease: 'outBack' },
   sheepish: { mark: 'going', offset: 0.1, dur: 0.4 },
+  // The promising hand comes back down as they turn sheepish.
+  lower: { mark: 'going', dur: 0.8, ease: 'inOutSine' },
   droop: { mark: 'rags', offset: 0.3, dur: 1.2, ease: 'outCubic' },
   wide: { mark: 'rags', dur: 1.4, ease: 'inOutSine' },
   stand: { mark: 'mirror', dur: 0.5, ease: 'outBack' },
   become: { mark: 'mirror', offset: 0.6, dur: 0.8, ease: 'inOutSine' },
   flare: { mark: 'stain', dur: 0.8 },
   push: { mark: 'stain', dur: 1, ease: 'inOutSine' },
-  scrub: { mark: 'wash', offset: -0.1, dur: 0.4 },
+  scrub: { mark: 'wash', offset: -0.3, dur: 0.7, ease: 'inOutSine' },
   back: { mark: 'wash', dur: 1, ease: 'inOutSine' },
   // Once the camera is back, he glances out at us.
-  glance: { after: 'back', offset: 0.3, dur: 0.4 },
+  glance: { after: 'back', offset: 0.3, dur: 0.6 },
 } as const;
 const knobs = {
   figure: [960, 930],
@@ -125,11 +127,12 @@ const garden = (f: MirrorFrame) => {
   const stitch = Math.sin(t * 9);
   // The far hand holds the patch while they sew; the near hand stitches, then
   // rises beside the head on the promise, and both go as they turn sheepish.
-  PATCH.grow = sewing;
-  NEEDLE.to[0] = lerp(22 + 14 * stitch, PROMISING[0], promise);
-  NEEDLE.to[1] = lerp(-86 - 10 * stitch, PROMISING[1], promise);
-  NEEDLE.grow = clamp(sewing + promise);
-  NEEDLE.grip = promise < 0.5 ? 'hold' : 'palm';
+  PATCH.reach = sewing;
+  const raised = f.at('promise') * (1 - f.at('lower'));
+  NEEDLE.to[0] = lerp(22 + 14 * stitch, PROMISING[0], raised);
+  NEEDLE.to[1] = lerp(-86 - 10 * stitch, PROMISING[1], raised);
+  NEEDLE.reach = clamp(sewing + raised);
+  NEEDLE.grip = raised < 0.5 ? 'hold' : 'palm';
   multiplane(
     ctx,
     cam,
@@ -248,7 +251,7 @@ const glass = (f: MirrorFrame) => {
   ]);
   // The cloth hand grows on the scrub, rubbing, and withdraws on the glance.
   SCRUBBING.to[1] = SCRUB_AT[1] + Math.sin(t * 13) * 16 * scrub;
-  SCRUBBING.grow = scrub;
+  SCRUBBING.reach = scrub;
 
   camera(ctx, cam, w, h, () => {
     // The tablets, standing up...
@@ -347,7 +350,7 @@ const glass = (f: MirrorFrame) => {
       apron(ctx, f.hand('apron'), 4, 1, 0);
       // The cloth in the hand, grown with it.
       if (scrub > 0) {
-        const [hx, hy] = handOf(SCRUBBER, 'near') ?? SCRUB_AT;
+        const [hx, hy] = handOf(SCRUBBER, 'near', f.hand('viewer'));
         piece(ctx, blob(hx + 6 * scrub, hy, 26 * scrub, 20 * scrub, 90), C.cream, f.hand('cloth'), {
           role: 'figure',
           line: 2.5,

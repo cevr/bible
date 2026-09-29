@@ -33,7 +33,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   type Hands,
   type Person,
@@ -93,9 +93,9 @@ const NAILED = ridge(TOP) - 50;
 const UPRIGHT = rectShape(TOP - 13, ridge(TOP) - 300, 26, 310);
 const BEAM = rectShape(TOP - 150, NAILED - 118 * 1.2 - 24, 300, 24);
 const BLACK: Person = { body: C.night, shade: C.night, skin: C.night };
-/** His arms along the beam, grown as the silhouette comes up (their grow written each frame). */
-const NAILED_FAR: ArmAt = { to: [-95, -120], grow: 0 };
-const NAILED_NEAR: ArmAt = { to: [95, -120], grow: 0 };
+/** His hands out along the beam, there as the silhouette comes up (their reach written each frame). */
+const NAILED_FAR: GestureAt = { to: [-95, -120], reach: 0 };
+const NAILED_NEAR: GestureAt = { to: [95, -120], reach: 0 };
 const CRUCIFIED: Person = {
   ...BLACK,
   ground: 0,
@@ -109,12 +109,12 @@ const CRUCIFIED: Person = {
  * chest and lets it go as it lifts; his far hand takes it and holds it on his
  * shoulders up the hill. Their targets follow the cloth (written each frame).
  */
-const GIVING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
-const TAKING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
+const GIVING: GestureAt = { to: [0, 0], reach: 0, grip: 'hold' };
+const TAKING: GestureAt = { to: [0, 0], reach: 0, grip: 'hold' };
 /** The cloth's half width as it lifts: a patch off the chest, drawn out across his shoulders. */
 const clothWidth = (lift: number) => lerp(70, 120, lift);
 /** Where his hand holds it: this share of the half width toward the figure, past his own body. */
-const CLOTH_END = 0.55;
+const CLOTH_END = 0.45;
 const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
 /** The stone rolled back from the tomb, and its core. */
 const STONE = ellipseShape(0, 0, 130, 130);
@@ -135,14 +135,14 @@ const timeline = {
   back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
   walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
-  // His arms on the beam as the silhouette comes up with the dark.
-  nailed: { with: 'dark', dur: 0 },
+  // His hands out along the beam as the silhouette comes up with the dark.
+  nailed: { with: 'dark', dur: 0.9, ease: 'inOutSine' },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
   ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },
   robed: { after: 'ascend', dur: 0.5 },
   minister: { after: 'robed', dur: 0.6, ease: 'inOutSine' },
   cut: { mark: 'now', dur: 0 },
-  hands: { after: 'cut', offset: 0.2, dur: 0.6, ease: 'outBack' },
+  hands: { after: 'cut', offset: 0.1, dur: 0.8, ease: 'inOutSine' },
 } as const;
 
 const knobs = {
@@ -199,12 +199,12 @@ const hill = (f: ExchangeFrame) => {
   const clothY = lerp(from[1], shoulders[1], lift) - 120 * Math.sin(Math.PI * lift);
   GIVING.to[0] = (clothX - fx) / SCALE;
   GIVING.to[1] = (clothY - fy) / SCALE;
-  GIVING.grow = f.at('give') * (1 - f.at('letGo'));
+  GIVING.reach = f.at('give') * (1 - f.at('letGo'));
   // His hand takes the cloth by its near end, so on his shoulders it holds it clear of his body.
   const clothS = lerp(SCALE, cs, lift);
   TAKING.to[0] = (clothX - CLOTH_END * clothWidth(lift) * clothS - cx) / cs;
   TAKING.to[1] = (clothY - (cy - walking)) / cs;
-  TAKING.grow = f.at('receive') * (1 - f.at('dark'));
+  TAKING.reach = f.at('receive') * (1 - f.at('dark'));
 
   const cam = shotPath(WIDE, [
     [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'))],
@@ -333,8 +333,8 @@ const blackMoment = (f: ExchangeFrame) => {
       });
       piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
       ctx.save();
-      NAILED_FAR.grow = f.at('nailed');
-      NAILED_NEAR.grow = NAILED_FAR.grow;
+      NAILED_FAR.reach = f.at('nailed');
+      NAILED_NEAR.reach = NAILED_FAR.reach;
       ctx.translate(TOP, NAILED);
       ctx.scale(1.2, 1.2);
       person(ctx, CRUCIFIED, hand('crossed'));

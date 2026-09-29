@@ -385,8 +385,8 @@ export const declared = drawing({
             browR: 1 * doubt + 4 * up + 4 * bloom,
             browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
             mouth: 0.35 * doubt + 0.5 * bloom,
-            // Doubtful, a hand to the chin, over the chest: grown on the doubt and gone as they look up.
-            far: { to: DOUBT_AT, grow: doubt, grip: 'hold' },
+            // Doubtful, a hand to the chin, over the chest: up on the doubt and back as they look up.
+            far: { to: DOUBT_AT, reach: doubt, grip: 'hold' },
             stains: STAIN_SHAPES,
             washed: washStains(WASH, bloom),
           };

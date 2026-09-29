@@ -18,9 +18,9 @@
 // "go", the woman forgiven and in white.
 
 import {
-  type Arm,
   type Camera,
   type Frame,
+  type Gesture,
   type Pt,
   at,
   camera,
@@ -71,10 +71,10 @@ const GAVEL_LIE = -Math.PI / 2 + 0.22;
 /** Joshua's chest in the court: `JS` times the person's chest height above his feet. */
 const JOSHUA_CHEST_Y = JOSHUA[1] - 80 * JS;
 
-/** Christ's hand reaching out to Joshua on "clothe", open; its grow rewritten each frame (scratch). */
-const REACHING: Posed<Arm> = { to: [-110, -118], grow: 0, grip: 'open' };
-const reachingOut = (grow: number): Arm => {
-  REACHING.grow = grow;
+/** Christ's hand reaching out to Joshua on "clothe", open; its reach rewritten each frame (scratch). */
+const REACHING: Posed<Gesture> = { to: [-110, -118], reach: 0, grip: 'open' };
+const reachingOut = (reach: number): Gesture => {
+  REACHING.reach = reach;
   return REACHING;
 };
 

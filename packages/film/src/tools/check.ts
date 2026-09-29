@@ -43,8 +43,9 @@ import {
 import { actSpans, cueTime, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type ActTooShort,
-  type ArmPop,
+  type HandFar,
   type HandHidden,
+  type HandJump,
   AssetMissing,
   AssetStale,
   type AudioMissing,
@@ -104,7 +105,7 @@ export type StaticFinding =
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type LayoutFinding = FrameFinding | StaticHold;
 /** What the look pass measures across the film (`look.ts`): every one a warning. */
-export type LookFinding = HeldShare | ColourScript | FaceSmall | ArmPop | HandHidden;
+export type LookFinding = HeldShare | ColourScript | FaceSmall | HandJump | HandFar | HandHidden;
 export type Finding = StaticFinding | LayoutFinding | LookFinding;
 
 export type Level = 'error' | 'warning';

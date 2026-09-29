@@ -16,7 +16,7 @@ import {
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import {
-  type ArmAt,
+  type GestureAt,
   C,
   F,
   type Person,
@@ -238,12 +238,12 @@ export const sanctuary = (
 };
 
 /** The high priest's hands, lifted in pleading: their scratch, written each frame. */
-const PLEA_FAR: ArmAt = { to: [0, 0], grow: 0, grip: 'palm' };
-const PLEA_NEAR: ArmAt = { to: [0, 0], grow: 0, grip: 'palm' };
+const PLEA_FAR: GestureAt = { to: [0, 0], reach: 0, grip: 'palm' };
+const PLEA_NEAR: GestureAt = { to: [0, 0], reach: 0, grip: 'palm' };
 
 /**
  * Christ as high priest standing at `spot` in the sanctuary's units: his
- * hands grow out as `plead` goes 0..1 on the caller's cue, lifted as high as
+ * hands go up as `plead` goes 0..1 on the caller's cue, lifted as high as
  * `lift` 0..1 (a little at the altar of incense, fully before the ark);
  * `plate` 0..1 shows the breastplate.
  */
@@ -255,13 +255,13 @@ export const priestAt = (
   lift: number,
   plate: number,
 ) => {
-  for (const [arm, side] of [
+  for (const [g, side] of [
     [PLEA_FAR, -1],
     [PLEA_NEAR, 1],
   ] as const) {
-    arm.to[0] = side * lerp(46, 72, lift);
-    arm.to[1] = lerp(-110, -196, lift);
-    arm.grow = plead;
+    g.to[0] = side * lerp(46, 72, lift);
+    g.to[1] = lerp(-110, -196, lift);
+    g.reach = plead;
   }
   at(ctx, { x: spot[0], y: spot[1], scale: IN_SANCTUARY }, () =>
     highPriest(
@@ -282,7 +282,7 @@ export const priestAt = (
  * The ministry now: the sanctuary with the veil drawn up and Christ pleading
  * before the ark in the most holy place, where `exchange` leaves him and
  * `rain` looks up to him. `light` 0..1 brightens its glory; `plead` 0..1
- * grows his hands up in pleading, on the caller's cue (`exchange` raises
+ * lifts his hands in pleading, on the caller's cue (`exchange` raises
  * them after its cut; `rain` finds them raised).
  */
 export const ministry = (
@@ -294,20 +294,23 @@ export const ministry = (
 
 // ─── the angel of Rev 14 ─────────────────────────────────────────────────────
 
+/** Where `herald` hangs the banner's middle, left of the angel. */
+const BANNER_X = -800;
 /**
  * Where the angel's far hand takes the banner's leading pole, in the angel's
- * own units (`herald` hangs the banner at (-800, -150) and draws the angel at
- * 1.1, turned 0.06): the pole's centre, where the far arm reaches back to it.
+ * own units (`herald` hangs the banner at (`BANNER_X`, -150) and draws the
+ * angel at 1.1, turned 0.06): the pole's near edge, the farthest back the
+ * hand reaches.
  */
-const POLE: Pt = [-160, -127];
-/** The far hand on the pole: its scratch, its grow written each frame. */
-const ON_POLE: ArmAt = { to: [POLE[0], POLE[1]], grow: 0, grip: 'hold' };
+const POLE: Pt = [-135, -125];
+/** The far hand on the pole: its scratch, its reach written each frame. */
+const ON_POLE: GestureAt = { to: [POLE[0], POLE[1]], reach: 0, grip: 'hold' };
 
 /**
  * The angel of Rev 14, feet at the origin, flying (+x): a person in white
  * with two cut-paper wings on its back. `flap` 0..1 raises the wings;
- * `hold` 0..1 grows its far arm back to the banner's pole (`herald` passes
- * its caller's cue; 0 draws no arm).
+ * `hold` 0..1 sends its far hand back to the banner's pole (`herald` passes
+ * its caller's cue; 0 leaves it at rest).
  */
 export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number, hold: number) => {
   const wing = (side: -1 | 1) =>
@@ -332,11 +335,11 @@ export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number, 
         { role: 'figure', line: 3.5 },
       ),
     );
-  // Both wings behind the body, so the arm that holds the banner reaches
+  // Both wings behind the body, so the hand that holds the banner reaches
   // back over them to its pole.
   wing(-1);
   wing(1);
-  ON_POLE.grow = hold;
+  ON_POLE.reach = hold;
   person(
     ctx,
     {
@@ -361,7 +364,7 @@ export const BANNER = 'the commandments of God, and the faith of Jesus';
  * The angel of Rev 14 flying in with the third angel's banner trailing to its
  * left, the angel's feet at the origin. `t` (seconds) sways the banner and
  * beats the wings; `written` 0..1 writes the banner's words (0 draws none);
- * `hold` 0..1 grows the angel's arm to the banner's pole, on the caller's cue.
+ * `hold` 0..1 sends the angel's hand to the banner's pole, on the caller's cue.
  */
 export const herald = (
   ctx: CanvasRenderingContext2D,
@@ -370,7 +373,7 @@ export const herald = (
   written: number,
   hold: number,
 ) => {
-  at(ctx, { x: -800, y: -150 + Math.sin(t * 3) * 6, rot: 0.01 * Math.sin(t * 2) }, () => {
+  at(ctx, { x: BANNER_X, y: -150 + Math.sin(t * 3) * 6, rot: 0.01 * Math.sin(t * 2) }, () => {
     const banner = plate(0, 0, 1220, 110);
     piece(ctx, banner, C.cream, hand('banner'), {
       role: 'scenery',

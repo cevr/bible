@@ -145,7 +145,7 @@ describe('probeHand', () => {
     [-30, 0],
   ];
 
-  test('records each arm on screen: its hand, its shoulder, its grow, and whether its body hides it', () => {
+  test('records each hand on screen: where it is, its shoulder, its work, its size and reach, and whether its body hides it', () => {
     const ctx = placed();
     const p: Probe = { sink: { texts: [], inks: [], hands: [] }, scene: 'a', dx: 10, alpha: 0.8 };
     let asked = 0;
@@ -158,7 +158,10 @@ describe('probeHand', () => {
         side: 'far',
         shoulder: [-17, -111],
         at: [-10, -60],
-        grow: 1,
+        to: [-10, -60],
+        size: 20,
+        radius: 100,
+        reach: 1,
         over: false,
         body,
       });
@@ -166,7 +169,10 @@ describe('probeHand', () => {
         side: 'near',
         shoulder: [17, -111],
         at: [80, -60],
-        grow: 0.4,
+        to: [90, -40],
+        size: 20,
+        radius: 100,
+        reach: 1.4,
         over: true,
         body,
       });
@@ -179,7 +185,11 @@ describe('probeHand', () => {
         y: -70,
         sx: 76,
         sy: -172,
-        grow: 1,
+        tx: 90,
+        ty: -70,
+        size: 40,
+        radius: 200,
+        reach: 1,
         inside: true,
         over: false,
         alpha: 0.4,
@@ -191,7 +201,11 @@ describe('probeHand', () => {
         y: -70,
         sx: 144,
         sy: -172,
-        grow: 0.4,
+        tx: 290,
+        ty: -30,
+        size: 40,
+        radius: 200,
+        reach: 1,
         inside: false,
         over: true,
         alpha: 0.4,
@@ -211,7 +225,10 @@ describe('probeHand', () => {
       side: 'near',
       shoulder: [17, -111],
       at: [0, -60],
-      grow: 1,
+      to: [0, -60],
+      size: 20,
+      radius: 100,
+      reach: 1,
       over: false,
       body,
     } as const;

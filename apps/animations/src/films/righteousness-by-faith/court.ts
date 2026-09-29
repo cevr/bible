@@ -4,15 +4,16 @@
 // on. Every place is in 1920×1080 frame units.
 
 import {
-  type Arm,
-  type ArmStyle,
   type Camera,
+  type Gesture,
   type Hand,
+  type HandRoot,
+  type HandStyle,
   type Place,
   type Pt,
   type WriteOptions,
-  arm,
   at,
+  breathOf,
   ellipseShape,
   line,
   multiplane,
@@ -27,11 +28,12 @@ import {
   C,
   F,
   type Hands,
-  type ArmAt,
+  type GestureAt,
   type Person,
   type Posed,
   blob,
   christ,
+  figureHand,
   ground,
   glow,
   handOf,
@@ -217,7 +219,7 @@ export interface Court {
   readonly drift?: number;
   /** The gavel's angle, radians: 0.35 at rest, about 1.6 down. */
   readonly swing: number;
-  /** The judge's hand on the gavel: 0 none (the gavel stands alone), 1 his arm grown to it. */
+  /** The judge's hand on the gavel: 0 at rest on the bench (the gavel stands alone), 1 round its handle. */
   readonly held: number;
   /** The verdict label: 0 gone, 1 stamped; `pop` its scale. */
   readonly stamp: number;
@@ -288,13 +290,13 @@ export const landingCourt = (
           ground(ctx, 1180, 860, 820);
           glow(ctx, 1180, 560, 700, C.glow, 0.9 * s.gold);
           at(ctx, { x: JUDGE[0], y: JUDGE[1] }, () => {
-            piece(ctx, rounded(0, 120, 250, 120, 40), C.ink, hand('judgeRobe'), { role: 'figure' });
+            piece(ctx, JUDGE_ROBE, C.ink, hand('judgeRobe'), { role: 'figure' });
             for (const x of [-9, 9])
               piece(ctx, rounded(x, 88, 14, 30, 3), C.paper, hand(`band${x}`), {
                 role: 'figure',
                 line: 2,
               });
-            piece(ctx, ellipseShape(0, 0, 60, 65), C.figure, hand('judgeHead'), { role: 'figure' });
+            piece(ctx, JUDGE_HEAD, C.figure, hand('judgeHead'), { role: 'figure' });
             ctx.fillStyle = C.outline;
             for (const x of [-22, 22]) {
               ctx.beginPath();
@@ -368,7 +370,7 @@ export const landingCourt = (
               hand('figure'),
             ),
           );
-          giftLight(ctx, s);
+          giftLight(ctx, s, hand('christ'));
           // The light inside answers through the robe, not only on it.
           const inner = Math.max(s.heart ?? 0, s.shine);
           if (inner > 0) {
@@ -390,13 +392,13 @@ const GIVEN_AT: Pt = [-104, -80];
 const ADVOCATE_S = 1.12;
 
 /** The Advocate's gift: a light in his open hand, carried into the figure's chest (`Court.offer`, `Court.given`). */
-const giftLight = (ctx: CanvasRenderingContext2D, s: Court) => {
+const giftLight = (ctx: CanvasRenderingContext2D, s: Court, christHand: Hand) => {
   const offer = s.offer ?? 0;
   const given = s.given ?? 0;
   const alpha = offer * (1 - given * given);
   if (alpha <= 0.01) return;
   // The light rides his far hand while it is out, and goes on from where it was given.
-  const [hx, hy] = handOf(s.advocate, 'far') ?? GIVEN_AT;
+  const [hx, hy] = s.advocate.far === undefined ? GIVEN_AT : handOf(s.advocate, 'far', christHand);
   const x = lerp(ADVOCATE[0] + ADVOCATE_S * hx, HEART_IN[0], given);
   const y = lerp(ADVOCATE[1] + ADVOCATE_S * hy, HEART_IN[1], given);
   glow(ctx, x, y, 46, C.glow, 0.9 * alpha);
@@ -491,26 +493,17 @@ export const court = (ctx: CanvasRenderingContext2D, hand: Hands, sun = 0) => {
 
 /**
  * The accuser, feet at the origin, about 490 units tall: a tall angular
- * shadow-grey figure, armless until he accuses: `point` 0..1 grows his near
- * arm out of his shoulder, the film's one pointing hand, aimed ahead (+x) and
- * a little down, at the stains on Joshua's clothes.
+ * shadow-grey figure, his near hand floating at his side until he accuses:
+ * `point` 0..1 sends it out, the film's one pointing hand, aimed ahead (+x)
+ * and a little down, at the stains on Joshua's clothes.
  */
 export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) => {
   glow(ctx, 20, -300, 380, C.boardDeep, 0.4);
-  piece(
-    ctx,
-    [
-      [-40, -370],
-      [40, -370],
-      [74, -6],
-      [-74, -6],
-    ],
-    ACCUSER_GREY,
-    hand('accuserBody'),
-    { role: 'figure', line: 4 },
-  );
-  ACCUSING.grow = point;
-  arm(ctx, ACCUSER_SHOULDER, 1, ACCUSING, ACCUSER_ARM, hand('accuserArm'));
+  piece(ctx, ACCUSER_BODY, ACCUSER_GREY, hand('accuserBody'), { role: 'figure', line: 4 });
+  ACCUSING.reach = point;
+  const k = hand('accuserArm');
+  ACCUSER_ROOT.breath = breathOf(k);
+  figureHand(ctx, ACCUSER_ROOT, ACCUSING, ACCUSER_HAND, k, accuserBody);
   at(ctx, { x: 0, y: -420 }, () => {
     piece(
       ctx,
@@ -534,19 +527,36 @@ export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) =
   });
 };
 const ACCUSER_GREY = '#5f5a55';
-/** His arm, cut like a person's at his size (about 2.4 times theirs), in his grey. */
-const ACCUSER_ARM: ArmStyle = {
-  body: ACCUSER_GREY,
+/** His body, feet at the origin. */
+const ACCUSER_BODY: ReadonlyArray<Pt> = [
+  [-40, -370],
+  [40, -370],
+  [74, -6],
+  [-74, -6],
+];
+const ACCUSER_SHAPES = [ACCUSER_BODY];
+const accuserBody = () => ACCUSER_SHAPES;
+/** His hand, cut like a person's at his size (about 2.1 times theirs), in his grey, with his reach. */
+const ACCUSER_HAND: HandStyle = {
   skin: ACCUSER_GREY,
   outline: C.outline,
-  width: [26, 17],
-  length: 180,
   mitten: 46,
   line: 3.5,
+  radius: 210,
 };
-/** His near shoulder, inside the top of his body, and where his finger points: ahead and a little down. */
-const ACCUSER_SHOULDER: Pt = [20, -342];
-const ACCUSING: Posed<Arm> = { to: [168, -262], grow: 0, grip: 'point' };
+/**
+ * His near hand: the shoulder it moves round, inside the top of his body;
+ * its rest, floating beside his body at the hip; and the breath it bobs
+ * with (written each frame).
+ */
+const ACCUSER_ROOT: Posed<HandRoot> = {
+  shoulder: [20, -342],
+  rest: [90, -196],
+  away: 1,
+  breath: 0,
+};
+/** Where his finger points: ahead and a little down. */
+const ACCUSING: Posed<Gesture> = { to: [168, -262], reach: 0, grip: 'point' };
 
 export const JOSHUA: Pt = [760, 950];
 /** Joshua's scale in the court, and his helpers'. */
@@ -597,7 +607,7 @@ export interface ZechCourt {
   readonly angel: {
     readonly lift: number;
     readonly tilt: number;
-    readonly reach?: Arm;
+    readonly reach?: Gesture;
   };
   /** Joshua's pose (the turban is his); his specks' alpha; the cheek's speck, moved `dy` and faded. */
   readonly joshua: Person;
@@ -670,10 +680,14 @@ const zechJoshua = (ctx: CanvasRenderingContext2D, hand: Hands, s: ZechCourt) =>
     });
   });
 
-/** Where a helper takes hold of the tunic, in Joshua's units from its place: inside its top corner on the helper's side. */
-const TUNIC_HOLD: Pt = [38, -120];
+/**
+ * Where a helper takes hold of the tunic, in Joshua's units from its place:
+ * low on its side on the helper's side, so a helper's hand still reaches it
+ * with the tunic lifted clear over Joshua's head.
+ */
+const TUNIC_HOLD: Pt = [42, -50];
 
-/** One who stands by, whose arm grows to the tunic's shoulder on its side as `grip` goes to 1. */
+/** One who stands by, whose hand goes to the tunic's shoulder on its side as `grip` goes to 1. */
 const zechHelper = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
@@ -686,7 +700,7 @@ const zechHelper = (
   const [tx, ty] = s.tunic.at;
   HOLDING.to[0] = (tx - side * TUNIC_HOLD[0] * JS - x) / AS;
   HOLDING.to[1] = (ty + TUNIC_HOLD[1] * JS - y) / AS;
-  HOLDING.grow = grip;
+  HOLDING.reach = grip;
   HELPER.look[0] = side * 2 * grip - side * 1.5 * (1 - grip);
   HELPER.look[1] = -2 * up;
   // The helper on Joshua's left holds with its near hand, the one on his right with its far one.
@@ -695,9 +709,9 @@ const zechHelper = (
   at(ctx, { x, y, scale: AS }, () => person(ctx, HELPER, sub(hand('helper'), k)));
 };
 /** A helper's pose and its hand on the tunic, rewritten for each helper each frame (scratch). */
-const HOLDING: ArmAt = {
+const HOLDING: GestureAt = {
   to: [0, 0],
-  grow: 0,
+  reach: 0,
   grip: 'hold',
 };
 const HELPER: Posed<Person> & { look: [number, number] } = {
@@ -737,33 +751,47 @@ export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, place: Place) 
 const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
 const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
 
-/** The judge's arm, cut like a person's at his size (his head is 1.7 times theirs): his robe's ink and his grey hand. */
-const JUDGE_ARM: ArmStyle = {
-  body: C.ink,
+/** The judge's hand, cut like a person's at his size (his head is 1.7 times theirs), grey, with his reach. */
+const JUDGE_HAND: HandStyle = {
   skin: C.figure,
   outline: C.outline,
-  width: [22, 14],
-  length: 90,
   mitten: 36,
   line: 2.5,
+  radius: 170,
 };
 /** His near shoulder, inside his robe's top, from his head's centre. */
 const JUDGE_SHOULDER: Pt = [74, 70];
+/** Where his hand rests, from his head's centre: on the bench's rim, short of the gavel. */
+const JUDGE_REST: Pt = [92, 104];
+/** His robe and head, from his head's centre, as the court draws them. */
+const JUDGE_ROBE = rounded(0, 120, 250, 120, 40);
+const JUDGE_HEAD = ellipseShape(0, 0, 60, 65);
 /** How far up the handle from its foot his fist closes, so it wraps the handle and not the air under it. */
 const GAVEL_GRIP = 16;
-/** The judge's shoulder and his hand on the gavel, rewritten each frame (scratch). */
-const JUDGE_AT: [number, number] = [0, 0];
-const ON_GAVEL: ArmAt = {
+/** The judge's hand: its root and its work on the gavel, rewritten each frame (scratch). */
+const JUDGE_ROOT: Posed<HandRoot> & { shoulder: [number, number]; rest: [number, number] } = {
+  shoulder: [0, 0],
+  rest: [0, 0],
+  away: 1,
+  breath: 0,
+};
+const ON_GAVEL: GestureAt = {
   to: [0, 0],
-  grow: 0,
+  reach: 0,
   grip: 'hold',
 };
+/** His silhouette in frame units, as the court draws it. */
+const JUDGE_BODY = [JUDGE_ROBE, JUDGE_HEAD].map((shape) =>
+  shape.map(([x, y]): Pt => [JUDGE[0] + x, JUDGE[1] + y]),
+);
+const judgeBody = () => JUDGE_BODY;
 
 /**
  * The cold open's and the landing's gavel on the bench at `GAVEL`, turned
- * `rot` about its foot, and the judge's arm grown `held` of the way to it
- * (his fist round the handle's foot, over it), from his shoulder dropped
- * `dy` as he leans. The bench is drawn before it.
+ * `rot` about its foot, and the judge's hand `held` of the way from its rest
+ * on the bench's rim to it (his fist round the handle's foot, over it),
+ * moving round his shoulder dropped `dy` as he leans. The bench is drawn
+ * before it.
  */
 export const judgeGavel = (
   ctx: CanvasRenderingContext2D,
@@ -773,10 +801,14 @@ export const judgeGavel = (
   dy = 0,
 ) => {
   gavel(ctx, hand, { x: GAVEL[0], y: GAVEL[1], rot });
-  JUDGE_AT[0] = JUDGE[0] + JUDGE_SHOULDER[0];
-  JUDGE_AT[1] = JUDGE[1] + JUDGE_SHOULDER[1] + dy;
+  JUDGE_ROOT.shoulder[0] = JUDGE[0] + JUDGE_SHOULDER[0];
+  JUDGE_ROOT.shoulder[1] = JUDGE[1] + JUDGE_SHOULDER[1] + dy;
+  JUDGE_ROOT.rest[0] = JUDGE[0] + JUDGE_REST[0];
+  JUDGE_ROOT.rest[1] = JUDGE[1] + JUDGE_REST[1];
   ON_GAVEL.to[0] = GAVEL[0] + Math.sin(rot) * GAVEL_GRIP;
   ON_GAVEL.to[1] = GAVEL[1] - Math.cos(rot) * GAVEL_GRIP;
-  ON_GAVEL.grow = held;
-  arm(ctx, JUDGE_AT, 1, ON_GAVEL, JUDGE_ARM, hand('judgeArm'));
+  ON_GAVEL.reach = held;
+  const k = hand('judgeArm');
+  JUDGE_ROOT.breath = breathOf(k);
+  figureHand(ctx, JUDGE_ROOT, ON_GAVEL, JUDGE_HAND, k, judgeBody);
 };
