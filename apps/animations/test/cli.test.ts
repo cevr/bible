@@ -101,6 +101,35 @@ describe('film cli', () => {
     spawnBudget(1),
   );
 
+  it.effect.layer(BunServices.layer)(
+    'sfx list and plan read the library, free',
+    () =>
+      Effect.gen(function* () {
+        const list = yield* cli('sfx', 'list', 'tone');
+        expect(list.exitCode).toBe(0);
+        expect(list.stdout).toMatch(/^tone\.chime +procedural one-shot derived +3 /m);
+        expect(list.stdout).not.toContain('paper.page');
+        const plan = yield* cli('sfx', 'plan');
+        expect(plan.exitCode).toBe(0);
+        expect(plan.stdout).toContain('total 10 candidates, 1232 credits');
+      }),
+    spawnBudget(2),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'sfx make spends nothing without --yes, nor over --cap',
+    () =>
+      Effect.gen(function* () {
+        const unconfirmed = yield* cli('sfx', 'make');
+        expect(unconfirmed.exitCode).not.toBe(0);
+        expect(unconfirmed.out).toContain('PaidUnconfirmed');
+        const over = yield* cli('sfx', 'make', '--yes', '--cap', '100');
+        expect(over.exitCode).not.toBe(0);
+        expect(over.out).toContain('CreditsOverCap');
+      }),
+    spawnBudget(2),
+  );
+
   it.effect.layer(BunServices.layer)('score composes only the score: --only is gone', () =>
     Effect.gen(function* () {
       const run = yield* cli('score', film, '--only', 'music', '--dry-run');

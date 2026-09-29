@@ -26,6 +26,7 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, concat, silence, slice } from '../core/audio.ts';
 import {
+  AUDIO_FILE,
   type Generated,
   type Library,
   type LibraryEntry,
@@ -38,8 +39,10 @@ import {
   type SoundStoreConfig,
   type SoundSource,
   type Sounds,
+  type StagedAudio,
   type Variant,
   DEFAULT_INFLUENCE,
+  refusedAudio,
   gainFor,
   levelOf,
   lockLoudness,
@@ -257,6 +260,10 @@ export interface SoundLibraryService {
     { readonly sent: number; readonly had: number },
     LibraryError | PlatformError
   >;
+  /** Of `files` (as staged for a commit), the audio a public repo may not take (`refusedAudio`). */
+  readonly guard: (
+    files: ReadonlyArray<string>,
+  ) => Effect.Effect<ReadonlyArray<SoundLicence>, LibraryError | PlatformError>;
 }
 
 /** Every variant and candidate of every sound, with its name. */
@@ -628,7 +635,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               listed = (yield* fs.readDirectory(paths.public, { recursive: true })).map(
                 (f) => `public/${f}`,
               );
-            const audio = listed.filter((f) => /\.(flac|wav|mp3|ogg|m4a|aiff?)$/i.test(f));
+            const audio = listed.filter((f) => AUDIO_FILE.test(f));
             return audio.flatMap((file) => {
               const licence = Option.fromUndefinedOr(publicly.get(file));
               if (Option.isNone(licence))
@@ -727,6 +734,27 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         });
         const push = pushFiles();
 
+        const guard = Effect.fn('SoundLibrary.guard')(function* (files: ReadonlyArray<string>) {
+          const loaded = yield* load;
+          const staged = yield* Effect.forEach(
+            files.filter((file) => AUDIO_FILE.test(file)),
+            (file) =>
+              Effect.gen(function* () {
+                const at = path.resolve(file);
+                const under = path.relative(dir, at);
+                const audio: StagedAudio = {
+                  file,
+                  inLibrary: Option.liftPredicate(under, (r) => !r.startsWith('..')),
+                  sha256: yield* sha256(yield* fs.readFile(at)),
+                };
+                return audio;
+              }),
+          );
+          const refused = refusedAudio(loaded.lock, staged).map((r) => SoundLicence.make(r));
+          yield* Effect.log(`sfx.guard audio=${staged.length} refused=${refused.length}`);
+          return refused;
+        });
+
         return SoundLibrary.of({
           paths,
           load,
@@ -741,6 +769,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           check,
           pull,
           push,
+          guard,
         });
       }),
     );

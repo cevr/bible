@@ -9,6 +9,7 @@
     "takes": "bun cli.ts takes",
     "script": "bun cli.ts script",
     "score": "bun cli.ts score",
+    "sfx": "bun cli.ts sfx",
     "mix": "bun cli.ts mix",
     "cues": "bun cli.ts cues",
     "check": "bun cli.ts check",

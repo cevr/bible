@@ -12,10 +12,19 @@ bun run dev                                    # player at http://127.0.0.1:4400
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
-bun run score <film>                           # generate stale music + effects, remix full.wav
+bun run score <film>                           # compose the stale score, remix full.wav
+bun run sfx list [family] [--missing|--stale]  # the sound library (sounds/library.ts): kind, use, state, variants, level, loudness, source
+bun run sfx plan [name…]                       # what make would generate and its credits (free)
+bun run sfx make [name…] --yes [--cap n --tally f]  # generate candidates (paid; without --yes it prints the plan and stops)
+bun run sfx audition <name> [--candidates]     # one WAV of the variants (or candidates), levelled, 0.5 s apart
+bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected one is never offered again
+bun run sfx import <file> <name>               # a CC0 recording into a declared recorded sound (public/)
+bun run sfx render <name> [--seed n]           # a procedural sound's seeds as WAVs
+bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams
+bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
-bun run cues <film> [scene] --sound            # every effect placement's film time
+bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns StaticHold, HeldShare, FaceSmall, ColourScript, ArmPop, HandHidden, EndShort

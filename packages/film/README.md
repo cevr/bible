@@ -27,9 +27,9 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|chapters|lab|notes <film>` (and `film doctor`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, previewServer, labServer })`
-with its films folder, a scoped `PreviewServer` layer that serves its
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|chapters|lab|notes <film>` (and `film doctor`, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
+films. The app owns the entry: it calls `runFilmCli({ films, sounds, previewServer, labServer })`
+with its films folder, its sound library folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
 mode with the lab's routes mounted, because only the app can bundle its HTML
 and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
@@ -45,6 +45,18 @@ update is serialized. At most three paid jobs run at once. Failures are
 tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
 `tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
+
+`film sfx` is the app's sound library (`SoundLibrary`, `tools/library.ts`).
+`make` is its one paid command: it prints each sound's candidates and
+credits (40 a second), fails `PaidUnconfirmed` without `--yes`, and
+`CreditsOverCap` when `--cap` is under the credits it would spend plus those
+its `--tally` TSV already records; every generation is appended to the tally
+as it lands. Candidates are FLAC under the git-ignored `files/<name>/`, named
+by their hash, and wait in the lock until `keep` or `reject`. `guard` is the
+pre-commit hook's: of the staged files, it refuses any audio under `files/`,
+any copy of a variant or candidate that is not CC0 (by its sha256, wherever
+it is staged), and anything under `public/` the lock does not hold as a CC0
+variant (`SoundsRefused`).
 
 Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its

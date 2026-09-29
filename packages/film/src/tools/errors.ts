@@ -89,6 +89,25 @@ export class SoundLicence extends Schema.TaggedError<SoundLicence>()('SoundLicen
   }
 }
 
+/** `sfx guard` refused staged audio the public repo may not take. */
+export class SoundsRefused extends Schema.TaggedError<SoundsRefused>()('SoundsRefused', {
+  files: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.files.length} staged audio file(s) may not be committed: unstage them (generated sounds live in sounds/files and sync with sfx push)`;
+  }
+}
+
+/** `sfx check` found errors in the library. */
+export class LibraryCheckFailed extends Schema.TaggedError<LibraryCheckFailed>()(
+  'LibraryCheckFailed',
+  { errors: Schema.Int, warnings: Schema.Int },
+) {
+  override get message() {
+    return `sfx check failed: ${this.errors} error(s), ${this.warnings} warning(s)`;
+  }
+}
+
 /** A bed whose loop point is heard: a level jump or a click where it wraps. */
 export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   name: Schema.String,

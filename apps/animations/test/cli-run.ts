@@ -23,7 +23,7 @@ export const spawnBudget = (spawns: number, extraMs = 0) => spawns * SPAWN_MS + 
 /** The fixture CLI's entry, from the app folder. */
 export const FIXTURE_CLI = 'test/fixtures/cli.ts';
 
-/** The fixture film (`fixtures/films/tiny`): three short beats, a score and two unmade effects. */
+/** The fixture film (`fixtures/films/tiny`): three short beats, a score, and procedural room tone and effects. */
 export const FIXTURE_FILM = 'tiny';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>

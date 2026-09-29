@@ -4,7 +4,7 @@
 // prompts. A sound is generated (ElevenLabs, made once as candidates, curated,
 // then frozen: the model has no seed), procedural (a synth recipe, rendered
 // from its seed whenever it is needed, so nothing is stored), or recorded (a
-// CC0 or CC-BY file kept in the repo). Pure: names, schemas, the request hash
+// CC0 file kept in the repo). Pure: names, schemas, the request hash
 // that says whether a sound is current, which variant each placement plays and
 // its jitter, and the level arithmetic the mix gains a sound by.
 
@@ -39,8 +39,11 @@ export const Jitter = Schema.Struct({
 });
 export type Jitter = typeof Jitter.Type;
 
-/** A licence that lets a recording sit in a public repo and a monetised film. */
-export const PublicLicence = Schema.Literals(['CC0-1.0', 'CC-BY-4.0']);
+/**
+ * A licence that lets a recording sit in a public repo and a monetised film:
+ * CC0 only (the owner's rule), so no credit line is ever owed.
+ */
+export const PublicLicence = Schema.Literals(['CC0-1.0']);
 export type PublicLicence = typeof PublicLicence.Type;
 
 /** A recording's licence, its author and where it came from. */
@@ -160,7 +163,7 @@ export const SFX_FORMAT = 'pcm_44100';
 export const CREDITS_PER_SECOND = 40;
 
 /** Where a variant's licence lets it live: a paid generation stays private. */
-export const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', 'CC0-1.0', 'CC-BY-4.0']);
+export const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', 'CC0-1.0']);
 export type VariantLicence = typeof VariantLicence.Type;
 
 /** One made variant: a file named by its bytes' hash, as measured and paid for when it was made. */
@@ -543,4 +546,63 @@ export const playPlacings = (
     });
   }
   return played;
+};
+
+// ---------------------------------------------------------------------------
+// What may be committed
+
+/** A file an audio tool reads or writes, by its extension. */
+export const AUDIO_FILE = /\.(flac|wav|mp3|ogg|opus|m4a|aac|aiff?)$/i;
+
+/** An audio file staged for a commit. */
+export interface StagedAudio {
+  /** As staged (repo-relative). */
+  readonly file: string;
+  /** Its path under the library's folder (`files/…`, `public/…`), when it is under it. */
+  readonly inLibrary: Option.Option<string>;
+  readonly sha256: string;
+}
+
+/** A staged audio file the repo may not take, and why: its licence, or what it is. */
+export interface Refused {
+  readonly file: string;
+  readonly licence: string;
+}
+
+/**
+ * The staged audio files a public repo may not take: anything under the
+ * library's private `files/`; a copy (by its bytes' hash) of any variant or
+ * candidate that is not CC0, wherever it is staged; and anything under
+ * `public/` that the lock does not hold as a CC0 variant. Audio outside the
+ * library that is no copy of its sounds (a film's takes and score) is not the
+ * library's to judge.
+ */
+export const refusedAudio = (
+  lock: Lock,
+  staged: ReadonlyArray<StagedAudio>,
+): ReadonlyArray<Refused> => {
+  const made = new Map(
+    Object.entries(lock).flatMap(([name, entry]) =>
+      [...entry.variants, ...entry.candidates].map(
+        (v) => [v.sha256, { name, variant: v }] as const,
+      ),
+    ),
+  );
+  return staged.flatMap((audio): ReadonlyArray<Refused> => {
+    const under = Option.getOrElse(audio.inLibrary, () => '');
+    if (under.startsWith('files/'))
+      return [{ file: audio.file, licence: 'a generated sound (sounds/files is private)' }];
+    const copy = Option.fromUndefinedOr(made.get(audio.sha256));
+    if (Option.isSome(copy) && copy.value.variant.licence !== 'CC0-1.0')
+      return [
+        {
+          file: audio.file,
+          licence: `${copy.value.variant.licence} (a copy of ${copy.value.name})`,
+        },
+      ];
+    const cc0 = Option.exists(copy, (c) => c.variant.file === under);
+    if (under.startsWith('public/') && !cc0)
+      return [{ file: audio.file, licence: 'not a CC0 variant in the lock' }];
+    return [];
+  });
 };

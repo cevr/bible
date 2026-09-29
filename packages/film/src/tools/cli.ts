@@ -8,6 +8,7 @@
 //   film script <film> [--sheet]
 //   film score <film> [--force] [--dry-run]
 //   film mix <film> [--stems]
+//   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
 //   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
@@ -103,6 +104,8 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { sfx } from './sfx-cli.ts';
+import { SoundLibrary } from './library.ts';
 import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
@@ -972,8 +975,9 @@ export const runFilmCli = <E>({
     Layer.provide([Repo, Store, Platform]),
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
+  const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Platform]));
   const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Tools, Platform)),
+    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Platform)),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
@@ -989,6 +993,7 @@ export const runFilmCli = <E>({
       takes,
       script,
       score,
+      sfx,
       mix,
       cues(checkLayer),
       check(checkLayer),

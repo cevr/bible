@@ -286,6 +286,45 @@ describe('SoundLibrary', () => {
   );
 
   it.effect.layer(fixture)(
+    'the commit guard refuses generated audio anywhere and public audio that is no CC0 variant',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
+          const generated = (yield* library.keep('paper.slide', [1])).variants[0]?.file ?? '';
+          const leak = path.join(dir, '..', 'leak.flac');
+          yield* fs.copyFile(path.join(dir, generated), leak);
+          const take = path.join(dir, '..', 'take.wav');
+          const plane = new Float32Array(4410).map((_, i) => 0.5 * Math.sin(i / 3));
+          yield* media.writeWav(take, { rate: 44100, frames: plane.length, channels: [plane] });
+          const recorded = (yield* library.importFile(take, 'wood.knock')).file;
+          const stray = path.join(dir, 'public', 'stray.wav');
+          yield* fs.copyFile(take, stray);
+          const notes = path.join(dir, 'notes.txt');
+          yield* fs.writeFileString(notes, 'not audio');
+
+          const refused = yield* library.guard([
+            path.join(dir, generated),
+            leak,
+            path.join(dir, recorded),
+            stray,
+            take,
+            notes,
+          ]);
+          expect(refused.map((r) => [path.basename(r.file), r.licence])).toEqual([
+            [path.basename(generated), 'a generated sound (sounds/files is private)'],
+            ['leak.flac', 'elevenlabs-paid-sfx (a copy of paper.slide)'],
+            ['stray.wav', 'not a CC0 variant in the lock'],
+          ]);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
     'auditions and renders without a paid call',
     () =>
       withLibrary(({ calls }) =>
