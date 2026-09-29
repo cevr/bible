@@ -32,7 +32,7 @@ const depths = new WeakMap<CanvasRenderingContext2D, number>();
 export interface SceneBreath {
   /** How far through its scene the frame is, 0..1. */
   readonly through: number;
-  /** The film's drift (`createFilm({ drift })`): the one place a breath's size is set. */
+  /** The scene's breath: `DRIFT`, or its own (`SceneSpec.drift`). */
   readonly drift: Drift | 0;
   /** Breathe the whole draw, as a scene with no shot of its own; its shots then drift no further. */
   readonly outer: boolean;
@@ -55,9 +55,9 @@ const breaths = new WeakMap<CanvasRenderingContext2D, Breathing>();
 const drawing = new WeakSet<CanvasRenderingContext2D>();
 
 /**
- * How far a scene has breathed `through` it (0..1) under the film's `drift`:
- * 0 at its start and its end, 1 at its middle (`sin(π · through)`), and 0
- * everywhere for a film with none.
+ * How far a scene has breathed `through` it (0..1) under its `drift`: 0 at
+ * its start and its end, 1 at its middle (`sin(π · through)`), and 0
+ * everywhere for a scene held still.
  */
 export const breathAt = (drift: Drift | 0, through: number): number =>
   drift === 0 ? 0 : Math.sin(Math.PI * Math.min(1, Math.max(0, through)));
@@ -123,15 +123,15 @@ export const insideCamera = (ctx: CanvasRenderingContext2D): boolean => (depths.
  * slides right by `x` frame px at the middle of the scene, from the shot as
  * framed at its start and back to it at its end (`sin(π · through)`), so a
  * held shot is never still and every cut and callback lands where it was
- * drawn. The film sets it once (`createFilm({ drift })`); `0` is none at all,
- * for a film frozen as it was drawn.
+ * drawn. `DRIFT` is the one size every film breathes by; a scene may set its
+ * own (`SceneSpec.drift`), `0` to hold still.
  */
 export interface Drift {
   readonly zoom: number;
   readonly x: number;
 }
 
-/** A film's drift unless it sets its own: 3 % in scale (CRAFT's 1–3 %) and 24 frame px. */
+/** Every scene's drift unless it sets its own: 3 % in scale (CRAFT's 1–3 %) and 24 frame px. */
 export const DRIFT: Drift = { zoom: 0.03, x: 24 };
 
 /**

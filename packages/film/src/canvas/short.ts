@@ -295,7 +295,6 @@ export const createShort = (film: Film, declared: Short): Film => {
     sound: undefined,
     palette: film.palette,
     allRecorded: film.allRecorded,
-    drift: film.drift,
     look: film.look,
     sceneAt,
     render,

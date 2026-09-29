@@ -4,7 +4,7 @@
 // or silently in it. Laying out a film needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
-import { DRIFT } from './camera.ts';
+import type { Drift } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm } from './film.ts';
 
 const spec = (finish: FinishStyle = {}, plate?: Partial<CaptionStyle>): FilmSpec => ({
@@ -34,18 +34,15 @@ describe('createFilm finish and caption plate', () => {
     expect(createFilm(spec({ grain: 0.2 })).look.finish.grain).toBe(0.2);
   });
 
-  test('breathes by DRIFT unless the film sets its own drift, or none', () => {
-    expect(createFilm(spec()).drift).toEqual(DRIFT);
-    expect(createFilm({ ...spec(), drift: 0 }).drift).toBe(0);
-    expect(createFilm({ ...spec(), drift: { zoom: 0.01, x: 8 } }).drift).toEqual({
-      zoom: 0.01,
-      x: 8,
+  test("takes a scene's own drift, or none, and refuses one the camera cannot take", () => {
+    const drifting = (drift: Drift | 0): FilmSpec => ({
+      ...spec(),
+      scenes: [{ id: 'a', say: 'A line.', draw: () => undefined, drift }],
     });
-  });
-
-  test('refuses a drift the camera cannot take', () => {
-    expect(() => createFilm({ ...spec(), drift: { zoom: Number.NaN, x: 0 } })).toThrow('zoom');
-    expect(() => createFilm({ ...spec(), drift: { zoom: -1, x: 0 } })).toThrow('zoom');
+    expect(() => createFilm(drifting(0))).not.toThrow();
+    expect(() => createFilm(drifting({ zoom: 0.01, x: 8 }))).not.toThrow();
+    expect(() => createFilm(drifting({ zoom: Number.NaN, x: 0 }))).toThrow('zoom');
+    expect(() => createFilm(drifting({ zoom: -1, x: 0 }))).toThrow('zoom');
   });
 
   test.each([

@@ -61,8 +61,8 @@ const shot = drawing({
 });
 
 /**
- * The probe film, laid out afresh. Held still (`drift: 0`): the knob tests
- * measure where the scenes and the camera put things.
+ * The probe film, laid out afresh. Every scene held still (`drift: 0`): the
+ * knob tests measure where the scenes and the camera put things.
  */
 export const probeFilm = (): Film =>
   createFilm({
@@ -72,14 +72,14 @@ export const probeFilm = (): Film =>
     fps: 30,
     paper: { base: '#f4ecd8', tone: '#2a2520', seed: 1 },
     shade: '#000',
-    drift: 0,
     scenes: [
       {
         id: 'one',
         say: 'The ball {rise}rises slowly, and then it {fall}falls down again.',
         ...ball,
+        drift: 0,
       },
-      { id: 'two', say: 'A second scene, with nothing to move.', ...rest },
-      { id: 'three', say: 'A third scene, pushed in close on a face.', ...shot },
+      { id: 'two', say: 'A second scene, with nothing to move.', ...rest, drift: 0 },
+      { id: 'three', say: 'A third scene, pushed in close on a face.', ...shot, drift: 0 },
     ],
   });

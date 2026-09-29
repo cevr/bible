@@ -114,9 +114,9 @@ const sceneHand = (scene: string, key: string | number, boil: number): Hand => (
 export interface SceneSpec extends Timed {
   readonly draw: (f: Frame) => void;
   /**
-   * How this scene breathes (`Drift`), in place of the film's `drift`: `0`
-   * holds it still (an end card), a `Drift` sets its own size. The film's
-   * breath when it names none.
+   * How this scene breathes (`Drift`), in place of the film's `DRIFT`: `0`
+   * holds it still (an end card), a `Drift` sets its own size. `DRIFT` when
+   * it names none.
    */
   readonly drift?: Drift | 0;
 }
@@ -199,11 +199,11 @@ export const FinishStyle = Schema.Struct({
 export type FinishStyle = typeof FinishStyle.Type;
 
 /**
- * A film's breath (`Drift`): a push a share of the shot's zoom, over −1 (so
- * the shot never turns inside out), and a slide in frame px; or `0`, none.
- * Checked where the film is made (`createFilm`).
+ * A scene's own breath (`Drift`): a push a share of the shot's zoom, over −1
+ * (so the shot never turns inside out), and a slide in frame px; or `0`,
+ * none. Checked where the film is made (`createFilm`).
  */
-const FilmDrift = Schema.Union([
+const SceneDrift = Schema.Union([
   Schema.Literal(0),
   Schema.Struct({
     zoom: Schema.Finite.check(Schema.isGreaterThan(-1)),
@@ -248,11 +248,6 @@ export interface FilmSpec {
   readonly shade: string;
   /** The vignette and grain over every frame. */
   readonly finish?: FinishStyle;
-  /**
-   * How every scene breathes (`Drift`), the one place its size is set:
-   * `DRIFT` by default, `0` for none anywhere (a film frozen as it was drawn).
-   */
-  readonly drift?: Drift | 0;
   readonly scenes: ReadonlyArray<SceneSpec>;
   readonly timings?: Timings;
   readonly captions?: CaptionStyle;
@@ -334,8 +329,6 @@ export interface Film {
   /** Named colours, as declared (none when the film declares none). */
   readonly palette: Readonly<Record<string, string>>;
   readonly allRecorded: boolean;
-  /** How every scene breathes: the film's `drift`, `DRIFT` unless it set its own, `0` for none. */
-  readonly drift: Drift | 0;
   /** The sheet it is drawn on, as made: what a page cut from it (a short) is drawn on too. */
   readonly look: FilmLook;
   sceneAt(T: number): Placed<SceneSpec>;
@@ -451,12 +444,11 @@ export const createFilm = (spec: FilmSpec): Film => {
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
-  const drift: Drift | 0 = Schema.decodeSync(FilmDrift)(spec.drift ?? DRIFT);
-  /** Each scene's breath: its own `drift` where it sets one, the film's where it does not. */
+  /** Each scene's breath: its own `drift` where it sets one, `DRIFT` where it does not. */
   const drifts = new Map<string, Drift | 0>(
     placed.map((p) => [
       p.spec.id,
-      p.spec.drift === undefined ? drift : Schema.decodeSync(FilmDrift)(p.spec.drift),
+      p.spec.drift === undefined ? DRIFT : Schema.decodeSync(SceneDrift)(p.spec.drift),
     ]),
   );
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
@@ -623,7 +615,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   };
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
-  const breath: BreathNow = { through: 0, drift, outer: false, width, height };
+  const breath: BreathNow = { through: 0, drift: DRIFT, outer: false, width, height };
 
   /**
    * Scenes whose last frame framed no shot of their own: the first guess for
@@ -652,7 +644,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const { paper } = getAssets();
     const id = p.spec.id;
     breath.through = p.dur > 0 ? (T - p.start) / p.dur : 0;
-    breath.drift = drifts.get(id) ?? drift;
+    breath.drift = drifts.get(id) ?? DRIFT;
     const moving = p.spec.storyboard !== true && breathes(breath);
     breath.outer = moving && unshot.has(id);
     const sink = probe?.sink;
@@ -775,7 +767,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     sound: spec.sound,
     palette: spec.palette ?? {},
     allRecorded,
-    drift,
     look: { paper: spec.paper, shade: spec.shade, finish, short },
     sceneAt,
     render,
