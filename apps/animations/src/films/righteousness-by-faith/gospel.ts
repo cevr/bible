@@ -2,7 +2,7 @@
 // given in order: the house in Capernaum, where four friends lower a
 // paralysed man through the roof (Mark 2:3–12), and the temple court, where a
 // woman taken in adultery stands alone before Jesus (John 8:3–11). `robe` and
-// `within` call them back inside their icons in `roof`'s own framings (CRAFT
+// `within` call them back under their icons in `roof`'s own framings (CRAFT
 // rule 8), so each set is drawn once, here, in 1920×1080 frame units, and
 // each scene passes only where its people are. Screen direction holds the
 // film's: the one receiving stands screen-left, Jesus screen-right.
@@ -950,31 +950,56 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
 
 // ─── callbacks ───────────────────────────────────────────────────────────────
 
+/** The frame the sets are drawn in, and the share of it a callback shows them at: people there stand 140 px and more. */
+const FRAME_W = 1920;
+const FRAME_H = 1080;
+const RECALL_K = 0.31;
+/** The icons' disc radius (`icons`), and the gap between it and the callback's plate. */
+const ICON_R = 150;
+const RECALL_GAP = 30;
+/** The plate's rim round the picture. */
+const RECALL_RIM = 10;
+/** Where the picture's centre sits below its icon's centre. */
+const RECALL_Y = ICON_R + RECALL_GAP + RECALL_RIM + (FRAME_H * RECALL_K) / 2;
+const RECALL_PLATE = rounded(
+  0,
+  RECALL_Y,
+  FRAME_W * RECALL_K + 2 * RECALL_RIM,
+  FRAME_H * RECALL_K + 2 * RECALL_RIM,
+  22,
+);
+const RECALL_WINDOW = rounded(0, RECALL_Y, FRAME_W * RECALL_K, FRAME_H * RECALL_K, 14);
+
 /**
- * A callback to `roof` inside one of the three icons (CRAFT rule 8): `draw`
- * draws a set as `roof` framed it, in frame units, and it shows scaled by
- * `k` about the frame's centre onto the icon's centre (0, 0) in the current
- * units, clipped to `clip` (the icon's own shape), at `shown`. It is an
- * `inset`: the set's own shot is the callback's, so the scene breathes as it
- * would without it.
+ * How far the icon row rises while a callback shows under one of its icons,
+ * times the callback's `shown`, so the picture clears the captions.
+ */
+export const RECALL_RISE = 150;
+
+/**
+ * A callback to `roof` under one of the three icons (CRAFT rule 8), its icon
+ * left whole above it: `draw` draws a set as `roof` framed it, in frame
+ * units, and it shows on a paper plate below the icon's centre (0, 0) in the
+ * row's units, at `shown`. It is an `inset`: the set's own shot is the
+ * callback's, so the scene breathes as it would without it. The row rises by
+ * `RECALL_RISE` × `shown` to make room.
  */
 export const recall = (
   ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  clip: ReadonlyArray<Pt>,
-  k: number,
+  hand: Hands,
   shown: number,
   draw: () => void,
 ) => {
   if (shown <= 0) return;
   ctx.save();
-  ctx.beginPath();
-  tracePath(ctx, clip);
-  ctx.clip();
   ctx.globalAlpha *= shown;
-  ctx.scale(k, k);
-  ctx.translate(-w / 2, -h / 2);
+  piece(ctx, RECALL_PLATE, C.paper, hand('recall'), { role: 'scenery', kind: 'cut', line: 6 });
+  ctx.beginPath();
+  tracePath(ctx, RECALL_WINDOW);
+  ctx.clip();
+  ctx.translate(0, RECALL_Y);
+  ctx.scale(RECALL_K, RECALL_K);
+  ctx.translate(-FRAME_W / 2, -FRAME_H / 2);
   inset(ctx, draw);
   ctx.restore();
 };

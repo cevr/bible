@@ -3,12 +3,12 @@
 // figure; on "never" it shrinks and settles into their chest, and on "write"
 // it is a warm heart with the two tablets inside it, still legible. On
 // "power" the pull back to the three icons, and the heart lights, calling back
-// `roof`'s house inside it: the man forgiven, walking out with his bed as on
-// "went". On "not"
-// the figure again, their arms coming out, and the glow runs from the heart
-// along the arms to the open hands. On "become" close on the face, and the
-// grey paper of the figure warms toward cream and gold, the gold of the word
-// in `declared`: they become what they are called. Then two panels, one after
+// `roof`'s house on a plate under it, the tablets left whole: the man
+// forgiven, walking out with his bed as on "went". On "not" the figure again,
+// their arms coming out, and the glow runs from the heart along the arms to
+// the open hands. On "become" close on the face, and the grey paper of the
+// figure warms toward cream and gold, the gold of the word in `declared`: they
+// become what they are called. Then two panels, one after
 // the other: a closed book with a gold ribbon (the past, forgiven: "first"),
 // and a path ahead with the figure walking it and flowers springing up in
 // their footprints ("second"). The Sabbath rest is `daily`'s.
@@ -31,7 +31,6 @@ import { clamp, lerp } from '@bible/film/core';
 import {
   C,
   CHEST,
-  HEART,
   ICON_X,
   type Person,
   blob,
@@ -47,7 +46,7 @@ import {
   sky,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
-import { house, recall, went } from '../gospel.ts';
+import { RECALL_RISE, house, recall, went } from '../gospel.ts';
 
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
@@ -74,10 +73,12 @@ const timeline = {
   toIcons: { mark: 'power', dur: 0.3 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   heartLit: { after: 'pullBack', dur: 0.4 },
-  // The callback to `roof`'s house in the heart, as it lights: he walks on until the figure comes back.
-  wentIn: { with: 'heartLit', dur: 0.3 },
-  going: { after: 'pullBack', until: 'not', ease: 'linear' },
-  backIn: { mark: 'not', offset: -0.3, dur: 0.3 },
+  // The callback to `roof`'s house under the heart, arriving with the pull
+  // back: he walks on until the figure comes back, just after "not", so the
+  // callback holds 1.5 s and more.
+  wentIn: { with: 'toIcons', dur: 0.3 },
+  going: { mark: 'power', until: 'not', ease: 'linear' },
+  backIn: { mark: 'not', offset: 0.1, dur: 0.3 },
   arms: { mark: 'not', dur: 0.8, ease: 'inOutSine' },
   run: { mark: 'not', offset: 0.4, until: 'become', ease: 'inOutSine' },
   closeUp: { mark: 'become', offset: -0.3, dur: 1, ease: 'inOutCubic' },
@@ -382,10 +383,12 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
     [0, C.glow],
     [1, C.peachLow],
   ]);
-  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
+  // The row rises as the callback opens under the heart, its tablets left whole.
+  const y = lerp(-160, 540, pull) - RECALL_RISE * wentIn;
+  at(ctx, { x: 960, y, scale: lerp(2.3, 1, pull) }, () => {
     icons(ctx, hand, [0.7, 0.7, 0.4 + 0.6 * f.at('heartLit')]);
     at(ctx, { x: ICON_X[2], y: 0 }, () =>
-      recall(ctx, w, h, HEART_WINDOW, CALLBACK_K, wentIn, () =>
+      recall(ctx, hand, wentIn, () =>
         house(
           ctx,
           w,
@@ -399,8 +402,5 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   ctx.restore();
 };
 
-/** The heart, just inside its edge, that the callback shows in; and the frame's scale in it. */
-const HEART_WINDOW: ReadonlyArray<Pt> = HEART.map(([x, y]) => [0.9 * x, 0.9 * y]);
-const CALLBACK_K = 0.2;
 /** How far out he has walked as the heart lights, and by the time the figure comes back. */
 const WALKED = [0.35, 0.85] as const;

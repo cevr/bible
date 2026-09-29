@@ -14,7 +14,7 @@
 // of the third gift, and he looks up glad on "reclaiming". The close-up
 // holds through the quotation's last word; then, in the scene's tail, the
 // pull back to the film's three icons, the robe (forgiveness) lit; as it
-// lights, the robe's disc calls back `roof`'s temple court, framed wide as on
+// lights, a plate under the robe calls back `roof`'s temple court, framed wide as on
 // "go", the woman forgiven and in white.
 
 import {
@@ -55,7 +55,7 @@ import {
   gavel,
   zechCourt,
 } from '../court.ts';
-import { COURT_FORGIVEN, recall, temple } from '../gospel.ts';
+import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
 
 const LOOM: Pt = [1045, 560];
 
@@ -127,8 +127,8 @@ const timeline = {
   toIcons: { scene: 'speechEnd', dur: 0.27 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   iconGlow: { after: 'toIcons', dur: 0.6 },
-  // The callback to `roof`'s court in the robe's disc, as it lights.
-  forgiven: { with: 'iconGlow', dur: 0.4 },
+  // The callback to `roof`'s court under the robe, arriving with the pull back and held to the scene's end (the tail).
+  forgiven: { with: 'toIcons', dur: 0.3 },
 } as const;
 
 /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
@@ -526,17 +526,13 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
   ctx.save();
   ctx.globalAlpha *= toIcons;
   sky(ctx, w, h, ICON_SKY);
-  at(ctx, { x: 960, y: lerp(-160, 540, pull), scale: lerp(2.3, 1, pull) }, () => {
+  // The row rises as the callback opens under the robe, the robe itself left whole.
+  const y = lerp(-160, 540, pull) - RECALL_RISE * forgiven;
+  at(ctx, { x: 960, y, scale: lerp(2.3, 1, pull) }, () => {
     icons(ctx, hand, ICONS_LIT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(ctx, w, h, ROBE_DISC, CALLBACK_K, forgiven, () =>
-        temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN),
-      ),
+      recall(ctx, hand, forgiven, () => temple(ctx, w, h, f.handsOf('roof'), COURT_FORGIVEN)),
     );
   });
   ctx.restore();
 };
-
-/** The robe's disc, just inside its rim, that the callback shows in; and the frame's scale in it. */
-const ROBE_DISC = ellipseShape(0, 0, 140);
-const CALLBACK_K = 0.3;

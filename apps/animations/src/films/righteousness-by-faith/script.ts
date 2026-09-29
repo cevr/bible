@@ -162,8 +162,9 @@ export const script: ReadonlyArray<Beat> = [
   {
     id: 'robe',
     // The pull back to the three icons, forgiveness lit, comes after the
-    // quotation's last word; the tail holds it.
-    tail: 1.4,
+    // quotation's last word; the tail holds it and the callback to `roof`
+    // under the robe for a breath of 1.6 s.
+    tail: 1.9,
     say: "{take}He says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you anew. {loom}A robe from heaven's loom, Ellen White said, {woven}not one thread of it ours. {nicer}A cover-up, {just}just a nicer one? {no}No. {cloak}Christ gives no cloak for sin, Waggoner said. {away}He takes it away. {judicial}More than a ruling, she wrote: {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
     cite: [
       'Zechariah 3:4',
@@ -172,7 +173,7 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Thoughts From the Mount of Blessing, 114',
     ],
     picture:
-      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel rests on the bench, the ruling standing, and a warm glow begins to rise in Joshua's chest: more than the ruling. On `reclaim` close on Joshua's face at human scale; under the white robe the glow rises where the heart is, a preview of the third gift, not yet lit, and he looks up glad on `reclaiming`. After the quotation's last word, pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` on the speech's end): the robe, forgiveness, glows. Callback to `roof` (CRAFT rule 8, a graphic match in its layout): inside the glowing robe icon, for a breath, the temple court from `roof` in the same framing, the woman standing where she stood, the stones in the dust, now in white.",
+      "STORY: the same court. On `take` those standing before him lift the filthy clothes off Joshua and carry them out of the frame (Zech 3:4); on `pass` the last scarlet speck lifts from his skin. On `loom` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light (`woven`). The robe settles onto Joshua; close on his face as he looks down at it. On `nicer` the doubt: a tiny cartoon cloak hovers over a stain. On `cloak` a cross-section: under the white robe the scarlet stain itself dissolves, not covered, gone (`away`). On `judicial` the cold open's gavel rests on the bench, the ruling standing, and a warm glow begins to rise in Joshua's chest: more than the ruling. On `reclaim` close on Joshua's face at human scale; under the white robe the glow rises where the heart is, a preview of the third gift, not yet lit, and he looks up glad on `reclaiming`. After the quotation's last word, pull back to the three icons (`toIcons`, `pullBack` and `iconGlow` on the speech's end): the robe, forgiveness, glows. Callback to `roof` (CRAFT rule 8, a graphic match in its layout): under the glowing robe icon, the robe left whole above it, for a breath, the temple court from `roof` in the same framing, the woman standing where she stood, the stones in the dust, now in white.",
   },
   {
     id: 'look',
@@ -196,7 +197,7 @@ export const script: ReadonlyArray<Beat> = [
       'Ellen G. White, Steps to Christ, 18',
     ],
     picture:
-      "IDEA: the parchment page. The gold circle from `word` returns, shrinks and settles into the grey figure's chest as a warm heart with the two tablets inside it, still legible (`never` to `write`). On `power` pull back to the three icons, and the heart lights (`heartLit`, moved here from the end); callback to `roof` in its layout: inside the lit heart, for a breath, the man from Capernaum walks out through the crowd with his bed on his shoulder, as he did on `went`. On `not` the grey figure again, the glow running out from the heart along the arms to the open hands. On `become` close on the face (a third of the frame), warm; the grey paper of the figure warms toward cream, the same gold as the word from `declared`. Two panels, one after the other: a forgiven past (a closed book, `first`), and a path ahead with the figure walking it, flowers springing up in their footprints (`second`).",
+      "IDEA: the parchment page. The gold circle from `word` returns, shrinks and settles into the grey figure's chest as a warm heart with the two tablets inside it, still legible (`never` to `write`). On `power` pull back to the three icons, and the heart lights (`heartLit`, moved here from the end); callback to `roof` in its layout: under the lit heart, its tablets left whole, for a breath, the man from Capernaum walks out through the crowd with his bed on his shoulder, as he did on `went`. On `not` the grey figure again, the glow running out from the heart along the arms to the open hands. On `become` close on the face (a third of the frame), warm; the grey paper of the figure warms toward cream, the same gold as the word from `declared`. Two panels, one after the other: a forgiven past (a closed book, `first`), and a path ahead with the figure walking it, flowers springing up in their footprints (`second`).",
   },
   {
     id: 'daily',
