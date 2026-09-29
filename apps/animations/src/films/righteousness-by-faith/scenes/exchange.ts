@@ -33,6 +33,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
+  type ArmAt,
   C,
   type Hands,
   type Person,
@@ -92,14 +93,24 @@ const NAILED = ridge(TOP) - 50;
 const UPRIGHT = rectShape(TOP - 13, ridge(TOP) - 300, 26, 310);
 const BEAM = rectShape(TOP - 150, NAILED - 118 * 1.2 - 24, 300, 24);
 const BLACK: Person = { body: C.night, shade: C.night, skin: C.night };
+/** His arms along the beam, grown as the silhouette comes up (their grow written each frame). */
+const NAILED_FAR: ArmAt = { to: [-95, -120], grow: 0 };
+const NAILED_NEAR: ArmAt = { to: [95, -120], grow: 0 };
 const CRUCIFIED: Person = {
   ...BLACK,
   ground: 0,
   nod: 8,
   tilt: 0.3,
-  far: { to: [-95, -120], grow: 1 },
-  near: { to: [95, -120], grow: 1 },
+  far: NAILED_FAR,
+  near: NAILED_NEAR,
 };
+/**
+ * The cloth passing between them: the figure's near hand takes it off their
+ * chest and lets it go as it lifts; his far hand takes it and holds it on his
+ * shoulders up the hill. Their targets follow the cloth (written each frame).
+ */
+const GIVING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
+const TAKING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
 const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
 /** The stone rolled back from the tomb, and its core. */
 const STONE = ellipseShape(0, 0, 130, 130);
@@ -111,11 +122,17 @@ const timeline = {
   puzzle: { mark: 'fair', dur: 0.4 },
   walkIn: { mark: 'right', offset: -0.4, until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },
+  // The figure's hand to the cloth on their chest, it lifts across to him, and his hand takes it.
+  give: { with: 'lift', offset: -0.4, dur: 0.4 },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
+  letGo: { with: 'lift', offset: 0.5, dur: 0.5 },
+  receive: { with: 'lift', offset: 0.5, dur: 0.5 },
   // Back out on "that we might take His righteousness", and he walks up the hill.
   back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
   walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
+  // His arms on the beam as the silhouette comes up with the dark.
+  nailed: { with: 'dark', dur: 0 },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
   ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },
   robed: { after: 'ascend', dur: 0.5 },
@@ -172,6 +189,16 @@ const hill = (f: ExchangeFrame) => {
   // Each walk's steps start from its own cue, so the bob never jumps.
   const walking = gait(t, f.cue('walkIn')) + gait(t, f.cue('walkUp'));
   const shoulders: Pt = [cx, cy - walking - 118 * cs];
+  // Where the cloth is: off the figure's chest, across in an arc, onto his shoulders.
+  const from: Pt = [fx + 10, fy - 76 * SCALE];
+  const clothX = lerp(from[0], shoulders[0], lift);
+  const clothY = lerp(from[1], shoulders[1], lift) - 120 * Math.sin(Math.PI * lift);
+  GIVING.to[0] = (clothX - fx) / SCALE;
+  GIVING.to[1] = (clothY - fy) / SCALE;
+  GIVING.grow = f.at('give') * (1 - f.at('letGo'));
+  TAKING.to[0] = (clothX - cx) / cs;
+  TAKING.to[1] = (clothY - (cy - walking)) / cs;
+  TAKING.grow = f.at('receive') * (1 - f.at('dark'));
 
   const cam = shotPath(WIDE, [
     [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'))],
@@ -220,6 +247,7 @@ const hill = (f: ExchangeFrame) => {
             browL: 3 * puzzle,
             mouth: puzzle * 0.6,
             stains: lift < 0.05 ? FIGURE_STAINS : [],
+            near: GIVING,
           },
           hand('figure'),
         ),
@@ -234,6 +262,7 @@ const hill = (f: ExchangeFrame) => {
             nod: 4 * walkUp,
             look: [lerp(-3, 2, walkUp), lerp(0, -1, walkUp)],
             browTilt: 0.3,
+            far: TAKING,
           },
           hand,
         ),
@@ -241,13 +270,8 @@ const hill = (f: ExchangeFrame) => {
 
       // The scarlet cloth: lifted off the figure, onto his shoulders.
       if (lift > 0) {
-        const from: Pt = [fx + 10, fy - 76 * SCALE];
-        const p: Pt = [
-          lerp(from[0], shoulders[0], lift),
-          lerp(from[1], shoulders[1], lift) - 120 * Math.sin(Math.PI * lift),
-        ];
         const s = lerp(SCALE, cs, lift);
-        at(ctx, { x: p[0], y: p[1], scale: s, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
+        at(ctx, { x: clothX, y: clothY, scale: s, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
           piece(
             ctx,
             blob(0, 0, lerp(70, 120, lift), lerp(70, 34, lift), 31),
@@ -304,6 +328,8 @@ const blackMoment = (f: ExchangeFrame) => {
       });
       piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
       ctx.save();
+      NAILED_FAR.grow = f.at('nailed');
+      NAILED_NEAR.grow = NAILED_FAR.grow;
       ctx.translate(TOP, NAILED);
       ctx.scale(1.2, 1.2);
       person(ctx, CRUCIFIED, hand('crossed'));

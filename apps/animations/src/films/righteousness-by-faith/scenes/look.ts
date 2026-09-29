@@ -21,7 +21,18 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, knobCamera, handCloseUp, person, piece, rounded, sky } from '../kit.ts';
+import {
+  type ArmAt,
+  C,
+  blob,
+  glow,
+  knobCamera,
+  handCloseUp,
+  person,
+  piece,
+  rounded,
+  sky,
+} from '../kit.ts';
 
 /** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
@@ -54,6 +65,28 @@ const TENTS = [
   [1790, 4],
 ] as const;
 
+/** The figure on the parchment: where they stand and their scale. */
+const FIGURE_A: Pt = [820, 960];
+const FIGURE_A_S = 2.1;
+/** The stack's bottom card, held up clear over the head (its top is at -203). */
+const STACK_Y = -226;
+/** Where each hand holds the bottom card: its ends, outside the head. */
+const HOLD_AT: Pt = [44, STACK_Y + 4];
+const HOLD_FAR: ArmAt = { to: [-HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold' };
+/** The near hand: on the stack, then down and open, palm out, at `OFFER_AT`. */
+const OFFER_AT: Pt = [50, -130];
+const OPEN: ArmAt = { to: [HOLD_AT[0], HOLD_AT[1]], grow: 0, grip: 'hold' };
+/** The close-up: where it sits, its scale, how far the push magnifies, and its palm's middle below its centre. */
+const CLOSE_AT: Pt = [960, 700];
+const CLOSE_S = 1.25;
+const INTO_HAND = 10;
+const PALM_MIDDLE = 60;
+/** Where the close-up's arm comes in: from below, a little from the left where their body is. */
+const FROM_FIGURE: Pt = [-260, 700];
+/** The climber's hands on the pole, one high and one low (their x follows the pole each frame). */
+const ON_POLE_HIGH: ArmAt = { to: [0, -150], grow: 0, grip: 'hold' };
+const ON_POLE_LOW: ArmAt = { to: [0, -95], grow: 0, grip: 'hold' };
+
 /** The pole stands this tall above the ground. */
 const POLE_H = 620;
 
@@ -63,13 +96,21 @@ export const look = drawing({
     holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
     slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
     armsDown: { after: 'slide', dur: 0.5 },
-    handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'outCubic' },
+    // As the stack goes, their near hand comes down open, and the camera
+    // pushes into it: the close-up. Once the light is laid in it, back out
+    // to them holding it.
+    offer: { with: 'handIn', offset: -0.5, dur: 0.5 },
+    handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
     light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
+    handOut: { after: 'light', dur: 0.6, ease: 'inOutCubic' },
     toDesert: { mark: 'desert', offset: -0.4, dur: 0.6 },
     rise: { mark: 'pole', offset: -0.2, dur: 1.2, ease: 'outBack' },
     approach: { mark: 'harder', offset: -0.6, dur: 0.7, ease: 'inOutSine' },
     climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
+    // Their hands take the pole as they start to climb, and let go as they slide down.
+    grasp: { with: 'climb', dur: 0.3 },
     slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
+    letGo: { with: 'slideDown', dur: 0.5 },
     stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
     // Stepped back, he looks up and the camera pushes in.
     lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
@@ -95,15 +136,31 @@ export const look = drawing({
         [0, C.paper],
         [1, C.paper],
       ]);
-      const handIn = f.at('handIn');
-      if (handIn < 1) {
+      // The push into the offered hand and back out: 0 on the figure, 1 on the close-up.
+      const into = f.at('handIn') * (1 - f.at('handOut'));
+      const light = f.at('light');
+      const [hx, hy] = OFFER_AT;
+      const zoom = INTO_HAND ** into;
+      const handX = lerp(FIGURE_A[0] + hx * FIGURE_A_S, CLOSE_AT[0], into);
+      const handY = lerp(FIGURE_A[1] + hy * FIGURE_A_S, CLOSE_AT[1], into);
+      if (into < 1) {
         ctx.save();
-        ctx.globalAlpha *= 1 - handIn;
+        ctx.globalAlpha *= 1 - clamp(1.6 * into);
         const wonder = f.at('wonder');
         const up = f.at('holdUp') * (1 - f.at('armsDown'));
         const slide = f.at('slide');
         const sheepish = f.at('armsDown');
-        at(ctx, { x: 820, y: 960, scale: 2.1 }, () => {
+        const offer = f.at('offer');
+        // The stack's bottom card, where both hands hold it up (over the head, never on it).
+        const bottom = STACK_Y - 190 * (1 - f.at('holdUp'));
+        HOLD_FAR.to[1] = bottom + 4;
+        HOLD_FAR.grow = up * (1 - offer);
+        OPEN.to[0] = lerp(HOLD_AT[0], OFFER_AT[0], offer);
+        OPEN.to[1] = lerp(bottom + 4, OFFER_AT[1], offer);
+        OPEN.grow = clamp(up + offer);
+        OPEN.grip = offer < 0.5 ? 'hold' : 'palm';
+        const s = FIGURE_A_S * zoom;
+        at(ctx, { x: handX - hx * s, y: handY - hy * s, scale: s }, () => {
           person(
             ctx,
             {
@@ -111,17 +168,26 @@ export const look = drawing({
               look: [lerp(2 * wonder, 0, up) + 3 * sheepish, -4 * up + 2 * sheepish],
               browTilt: 0.35 * wonder + 0.3 * sheepish,
               browL: 3 * wonder,
-              far: { to: [lerp(-34, -30, up), lerp(-60, -178, up)], grow: 1 },
-              near: { to: [lerp(34, 30, up), lerp(-60, -178, up)], grow: 1 },
+              far: HOLD_FAR,
+              near: OPEN,
             },
             hand('figureA'),
           );
+          // Back out: the light they were given, held in their open hand.
+          if (light > 0) {
+            glow(ctx, OFFER_AT[0], OFFER_AT[1], 40, C.glow, light);
+            piece(ctx, ellipseShape(OFFER_AT[0], OFFER_AT[1], 9, 9), C.gold, hand('lightHeld'), {
+              role: 'scenery',
+              line: 0,
+              shadow: 0.2,
+            });
+          }
           // The stack: held up, then sliding off one piece at a time.
           if (up > 0 || slide > 0)
             STACK.forEach(([kind, dx], i) => {
               const fall = clamp(slide * 1.7 - i * 0.13);
               const x0 = dx;
-              const y0 = -190 - i * 22 - 190 * (1 - f.at('holdUp'));
+              const y0 = bottom - i * 22;
               const x = lerp(x0, 70 + i * 26, fall);
               const y = lerp(y0, -8, fall * fall);
               at(ctx, { x, y, rot: 1.2 * fall * (i % 2 === 0 ? 1 : -1) }, () => {
@@ -153,24 +219,26 @@ export const look = drawing({
         ctx.restore();
       }
 
-      // The open hand, palm up, and the gold light laid in it.
-      if (handIn > 0) {
-        const light = f.at('light');
+      // Their open hand close up, palm out, and the gold light laid in it: the
+      // light comes to rest on the palm's middle, below the finger creases.
+      if (into > 0) {
         ctx.save();
-        ctx.globalAlpha *= handIn;
-        at(ctx, { x: 960, y: lerp(1000, 760, handIn), scale: 1.25 }, () => {
-          handCloseUp(ctx, hand);
-          if (light > 0) {
-            const y = lerp(-620, 0, light);
-            glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
-            glow(ctx, 0, y, 110, C.gold, 0.6);
-            piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), {
-              role: 'scenery',
-              line: 0,
-              shadow: 0.2,
-            });
-          }
-        });
+        ctx.globalAlpha *= into;
+        at(ctx, { x: handX, y: handY, scale: CLOSE_S * INTO_HAND ** (into - 1) }, () =>
+          at(ctx, { x: 0, y: -PALM_MIDDLE }, () => {
+            handCloseUp(ctx, hand, 1, FROM_FIGURE);
+            if (light > 0) {
+              const y = lerp(-620, PALM_MIDDLE, light);
+              glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
+              glow(ctx, 0, y, 110, C.gold, 0.6);
+              piece(ctx, ellipseShape(0, y, 34, 34), C.gold, hand('light'), {
+                role: 'scenery',
+                line: 0,
+                shadow: 0.2,
+              });
+            }
+          }),
+        );
         ctx.restore();
       }
     }
@@ -197,7 +265,11 @@ export const look = drawing({
       const height = t > climbing.start ? tries * (1 - slideDown) : 0;
       const onPole = approach * (1 - stepBack);
       const x = lerp(lerp(fx, px - 88, approach), px - 250, stepBack);
-      const strain = onPole * (t > climbing.start ? 1 : 0) * (1 - slideDown);
+      const strain = onPole * f.at('grasp') * (1 - f.at('letGo'));
+      ON_POLE_HIGH.to[0] = (px - 8 - x) / 1.8;
+      ON_POLE_LOW.to[0] = (px - 14 - x) / 1.8;
+      ON_POLE_HIGH.grow = strain;
+      ON_POLE_LOW.grow = strain;
       const jiggle = strain * Math.sin(t * 18) * 3;
 
       ctx.save();
@@ -349,8 +421,8 @@ export const look = drawing({
                     browL: 2 * strain,
                     mouth: 0.5 * strain,
                     stains: heal < 0.5 ? BITES : [],
-                    near: strain > 0 ? { to: [(px - 8 - x) / 1.8, -150], grow: 1 } : undefined,
-                    far: strain > 0 ? { to: [(px - 14 - x) / 1.8, -95], grow: 1 } : undefined,
+                    near: ON_POLE_HIGH,
+                    far: ON_POLE_LOW,
                   },
                   hand('bitten'),
                 );

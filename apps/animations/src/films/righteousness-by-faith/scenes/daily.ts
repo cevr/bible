@@ -32,6 +32,7 @@ import { clamp, lerp } from '@bible/film/core';
 import { FIGURE_STAINS } from '../court.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath, restingField } from '../garden.ts';
 import {
+  type ArmAt,
   C,
   CHEST,
   type Person,
@@ -129,9 +130,13 @@ const FLOWER_HEAD = ellipseShape(0, -34, 14, 14, 16);
 /** The robed figure at the window: feet below the frame, face a third of it. */
 const AT_WINDOW: Pt = [1420, 1250];
 const WINDOW_SCALE = 4.7;
-/** The open hand in the room, risen, and its scale. */
+/** Their open hand come forward in the room, close up, and its scale. */
 const HAND_AT: Pt = [880, 890];
 const HAND_SCALE = 1.05;
+/** The close-up's scale when it is their hand at the window: its mitten's size over the close-up's. */
+const AT_ARM = (22 * WINDOW_SCALE) / (380 * HAND_SCALE);
+/** Where the close-up's arm comes in: up from below, a little from the right, where they stand. */
+const FROM_THEM: Pt = [300, 700];
 /** The icons in the palm: their scale and where they sit on it. */
 const ICONS_IN_HAND = 0.24;
 const PALM_Y = -20;
@@ -167,7 +172,11 @@ const timeline = {
   askAgain: { mark: 'keep', dur: 0.4 },
   through: { mark: 'will', offset: -0.35, dur: 0.6, ease: 'inCubic' },
   dawn: { mark: 'will', until: 'matter', ease: 'outQuad' },
-  handUp: { mark: 'choose', dur: 0.7, ease: 'outCubic' },
+  // At the window they open their hand, and on "choose" it comes forward to
+  // us, close up; on "sab" it goes back to them, the gifts in it.
+  reach: { mark: 'choose', offset: -0.7, dur: 0.6 },
+  handUp: { mark: 'choose', dur: 0.7, ease: 'inOutCubic' },
+  handBack: { mark: 'sab', dur: 0.6, ease: 'inOutCubic' },
   lay: { mark: 'choose', offset: 0.6, dur: 1.2, ease: 'outBack', stagger: 0.6 },
   days: { mark: 'matter', until: 'sab', ease: 'linear', stagger: 0.8 },
   sixth: { mark: 'sab', dur: 1.3, ease: 'inOutSine' },
@@ -194,18 +203,23 @@ export const daily = drawing({
 const LOOK: [number, number] = [0, 0];
 const AT: [number, number] = [0, 0];
 const OTHER_LOOK: [number, number] = [0, 0];
-const EARS_L: [number, number] = [0, 0];
-const EARS_R: [number, number] = [0, 0];
 const ASKING: Person = { ...ROBED, look: LOOK };
+/** The other's hands over their ears, grown on `ears`. */
+const OVER_EAR_L: ArmAt = { to: [-40, -160], grow: 0, grip: 'open' };
+const OVER_EAR_R: ArmAt = { to: [40, -160], grow: 0, grip: 'open' };
 const OTHER: Person = {
   look: OTHER_LOOK,
-  far: { to: EARS_L, grow: 1 },
-  near: { to: EARS_R, grow: 1 },
+  far: OVER_EAR_L,
+  near: OVER_EAR_R,
   stains: FIGURE_STAINS,
 };
+/** The robed figure's hand at the window, open low toward it, palm up (in their units). */
+const OPEN_AT: Pt = [-70, -118];
+const OPENED: ArmAt = { to: [OPEN_AT[0], OPEN_AT[1]], grow: 0, grip: 'palm' };
 /** At the window, face to the light. */
 const AT_THE_WINDOW: Person = {
   ...ROBED,
+  far: OPENED,
   tilt: -0.06,
   look: [-3, -1],
   browL: 1.5,
@@ -309,11 +323,9 @@ const other = (f: DailyFrame) => {
   ctx.save();
   ctx.translate(x, gy);
   ctx.scale(OTHER_SCALE * pop, OTHER_SCALE * pop);
-  // Their hands come up from the sides to the ears.
-  EARS_L[0] = lerp(-30, -40, ears);
-  EARS_L[1] = lerp(-58, -160, ears);
-  EARS_R[0] = lerp(30, 40, ears);
-  EARS_R[1] = lerp(-58, -160, ears);
+  // Their hands grow up from the shoulders to the ears.
+  OVER_EAR_L.grow = ears;
+  OVER_EAR_R.grow = ears;
   OTHER_LOOK[0] = lerp(-3, 0, ears);
   OTHER_LOOK[1] = -1;
   OTHER.tilt = 0.1 * ears;
@@ -459,6 +471,9 @@ const flowers = (f: DailyFrame) => {
 /** The robed figure at the window, face to the light, heart glowing. */
 const robedAtWindow = (f: DailyFrame, day: number) => {
   const { ctx } = f;
+  // Their hand opens toward the window, gives way to the close-up as it comes
+  // forward, and grows back as it returns.
+  OPENED.grow = f.at('reach') * (1 - f.at('handUp') * (1 - f.at('handBack')));
   ctx.save();
   ctx.translate(AT_WINDOW[0], AT_WINDOW[1]);
   ctx.scale(WINDOW_SCALE, WINDOW_SCALE);
@@ -474,16 +489,23 @@ const robedAtWindow = (f: DailyFrame, day: number) => {
  */
 const inHand = (f: DailyFrame, arc: number) => {
   const { ctx } = f;
-  const up = f.at('handUp');
+  // 0 their hand at the window, 1 come forward to us.
+  const up = f.at('handUp') * (1 - f.at('handBack'));
   if (up <= 0) return;
   const working = f.at('days') > 0;
   const night = 1 - Math.sin(Math.PI * arc);
   const open = working ? 1 - 0.55 * night * night : 1;
+  const s = HAND_SCALE * AT_ARM ** (1 - up);
   ctx.save();
-  ctx.translate(HAND_AT[0], lerp(1400, HAND_AT[1], up));
-  ctx.scale(HAND_SCALE, HAND_SCALE);
+  // Seen whole once it has left their arm; it takes the mitten's place as it goes back.
+  ctx.globalAlpha *= clamp(4 * up);
+  ctx.translate(
+    lerp(AT_WINDOW[0] + OPEN_AT[0] * WINDOW_SCALE, HAND_AT[0], up),
+    lerp(AT_WINDOW[1] + OPEN_AT[1] * WINDOW_SCALE, HAND_AT[1], up),
+  );
+  ctx.scale(s, s);
   glow(ctx, 0, PALM_Y, 260, C.glow, 0.5 * open);
-  handCloseUp(ctx, f.hand, open);
+  handCloseUp(ctx, f.hand, open, FROM_THEM);
   LAID[0] = f.stagger('lay', 0, 3);
   LAID[1] = f.stagger('lay', 1, 3);
   LAID[2] = f.stagger('lay', 2, 3);

@@ -29,6 +29,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
+  type ArmAt,
   C,
   CHEST,
   ICON_X,
@@ -36,6 +37,7 @@ import {
   blob,
   gait,
   glow,
+  handOf,
   knobCamera,
   heart as drawHeart,
   icons,
@@ -58,7 +60,6 @@ const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** Each hand held out open at the side, and at rest; and the shoulder the glow runs through. */
 const OPEN_HAND: Pt = [78, -80];
-const REST_HAND: Pt = [30, -58];
 const SHOULDER: Pt = [26, -112];
 /** How many glows light the arm from the shoulder to the hand. */
 const RUN_STEPS = 6;
@@ -173,19 +174,12 @@ const WORLDS = [
   [0.05, -0.7, 9],
 ] as const;
 
-/** Where the hand on `side` is as the arms open `open` 0..1 from rest, written into `out`. */
-const handAt = (side: -1 | 1, open: number, out: [number, number]): [number, number] => {
-  out[0] = side * lerp(REST_HAND[0], OPEN_HAND[0], open);
-  out[1] = lerp(REST_HAND[1], OPEN_HAND[1], open);
-  return out;
-};
-
 // Scratch the draw rewrites every frame, so no pose or point is made per frame.
-const HAND_L: [number, number] = [0, 0];
-const HAND_R: [number, number] = [0, 0];
+/** Both hands open out on `arms`, grown from the shoulders, and withdrawn on `closeOut`. */
+const OPEN_FAR: ArmAt = { to: [-OPEN_HAND[0], OPEN_HAND[1]], grow: 0, grip: 'open' };
+const OPEN_NEAR: ArmAt = { to: [OPEN_HAND[0], OPEN_HAND[1]], grow: 0, grip: 'open' };
 const LOOK: [number, number] = [0, 0];
-const POSE: Person = { look: LOOK };
-const END: [number, number] = [0, 0];
+const POSE: Person = { look: LOOK, far: OPEN_FAR, near: OPEN_NEAR };
 const SHOULDER_AT: [number, number] = [0, 0];
 const GLOW_AT: [number, number] = [0, 0];
 
@@ -203,8 +197,6 @@ const figure = (f: WithinFrame, aside: number) => {
   const warm = f.at('warm');
   const open = f.at('arms') * (1 - f.at('closeOut'));
   const settled = heart * (1 - aside) * (1 - open);
-  // After the icons the arms are there, at rest until they open out.
-  const armed = f.at('backIn') > 0;
   const body = mix(C.figure, WARM_BODY, warm);
   LOOK[0] = lerp(0, 2, ask) + 2 * aside;
   LOOK[1] = lerp(-4 * ask, 3, settled);
@@ -218,8 +210,8 @@ const figure = (f: WithinFrame, aside: number) => {
   POSE.browTilt = 0.35 * ask + 0.25 * warm;
   POSE.mouth = 0.6 * ask;
   POSE.smile = 0.55 * warm;
-  POSE.far = armed ? { to: handAt(-1, open, HAND_L), grow: 1 } : undefined;
-  POSE.near = armed ? { to: handAt(1, open, HAND_R), grow: 1 } : undefined;
+  OPEN_FAR.grow = open;
+  OPEN_NEAR.grow = open;
   person(ctx, POSE, hand('figure'));
   if (heart > 0)
     at(ctx, { x: CHEST[0], y: CHEST[1], scale: 0.36 * heart }, () => {
@@ -227,7 +219,7 @@ const figure = (f: WithinFrame, aside: number) => {
       // The icon's heart, warm, its tablets still legible.
       drawHeart(ctx, hand, mix(C.peachTop, C.gold, 0.4 * lit), true);
     });
-  if (armed) running(f, open);
+  running(f, open);
 };
 
 /** The glow running from the heart up each arm to its open hand, over `run`. */
@@ -238,7 +230,7 @@ const running = (f: WithinFrame, open: number) => {
   for (const side of SIDES) {
     SHOULDER_AT[0] = side * SHOULDER[0];
     SHOULDER_AT[1] = SHOULDER[1];
-    const end = handAt(side, open, END);
+    const end = handOf(POSE, side < 0 ? 'far' : 'near') ?? SHOULDER_AT;
     for (let i = 1; i <= RUN_STEPS; i++) {
       const k = i / RUN_STEPS;
       if (k > run + 0.001) break;
