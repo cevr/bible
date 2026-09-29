@@ -44,6 +44,8 @@ const timeline = {
   // Up to the roof, the tiles lifted, and the bed let down into the room.
   up: { mark: 'roof', dur: 0.9, ease: 'inOutSine' },
   tiles: { mark: 'roof', offset: 0.3, dur: 0.8 },
+  // The four take up the ropes, and let the bed down into the room.
+  grasp: { with: 'lower', offset: -0.5, dur: 0.5 },
   lower: { mark: 'roof', word: 'lower', until: 'saw', ease: 'inOutSine' },
   look: { mark: 'saw', dur: 0.6, ease: 'inOutSine' },
   faithLit: { mark: 'saw', word: 'faith', dur: 0.5 },
@@ -56,14 +58,21 @@ const timeline = {
   // He stands, rolls up his bed and carries it out, screen-left.
   back: { mark: 'arise', dur: 0.9, ease: 'inOutCubic' },
   rise: { mark: 'arise', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
+  // As he stands the four let the ropes go, and Jesus's held-out hand comes back.
+  letGo: { with: 'rise', dur: 0.3 },
+  withdraw: { with: 'rise', dur: 0.6 },
   wonder: { mark: 'arise', offset: 0.3, dur: 0.8 },
   roll: { mark: 'arise', word: 'bed', dur: 0.8, ease: 'inOutSine' },
+  // His hand steadies the bed as it lands on his shoulder.
+  steady: { with: 'roll', offset: 0.4, dur: 0.4 },
   walk: { mark: 'went', until: 'woman', ease: 'linear' },
   follow: { mark: 'went', until: 'woman', ease: 'inOutSine' },
   heartLit: { mark: 'went', dur: 0.5 },
   // The temple court: those who brought her go, he writes, then stands and asks.
   leave: { mark: 'woman', until: 'lord', ease: 'linear' },
   writing: { mark: 'woman', until: 'none', ease: 'linear' },
+  // His finger goes to the dust as he writes, and comes back as he stands.
+  pen: { mark: 'woman', dur: 0.5 },
   courtPush: { mark: 'woman', until: 'lord', ease: 'inOutSine' },
   stand: { mark: 'none', dur: 1, ease: 'inOutSine' },
   asks: { mark: 'none', until: 'asked', ease: 'linear' },
@@ -142,12 +151,14 @@ const CAPERNAUM: Posed<House> = {
   cam: WENT,
   tiles: 0,
   lower: 0,
+  ropes: 0,
   lookUp: 0,
   reach: 0,
   lookAfter: 0,
   specks: 0,
   rise: 0,
   roll: 0,
+  steady: 0,
   walk: 0,
   bob: 0,
   glad: 0,
@@ -167,6 +178,7 @@ const COURT: Posed<Temple> = {
   leave: 0,
   leaveBob: 0,
   writing: 0,
+  writes: 0,
   stand: 0,
   speak: 0,
   look: LOOK,
@@ -238,11 +250,13 @@ const capernaum = (f: RoofFrame) => {
   s.tiles = f.at('tiles');
   s.lower = f.at('lower');
   s.lookUp = f.at('look');
-  s.reach = f.at('reach');
+  s.ropes = f.at('grasp') * (1 - f.at('letGo'));
+  s.reach = f.at('reach') * (1 - f.at('withdraw'));
   s.lookAfter = f.at('rise');
   s.specks = f.at('specks');
   s.rise = f.at('rise');
   s.roll = f.at('roll');
+  s.steady = f.at('steady');
   s.walk = f.at('walk');
   s.bob = gait(t, walk);
   s.glad = f.at('glad');
@@ -286,6 +300,7 @@ const court = (f: RoofFrame) => {
   COURT.leaveBob = gait(t, f.cue('leave'));
   COURT.writing = f.at('writing');
   COURT.stand = stand;
+  COURT.writes = f.at('pen') * (1 - stand);
   COURT.speak = 0.4 * talk * Math.abs(Math.sin(t * 8));
   WOMAN.walk = walk;
   WOMAN.bob = gait(t, f.cue('walkOut'));

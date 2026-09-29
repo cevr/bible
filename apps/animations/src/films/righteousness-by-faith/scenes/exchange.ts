@@ -421,7 +421,7 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
       const arrived = ascend >= 1;
       at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
         sanctuary(ctx, hand, 0, 0, () => {
-          if (arrived) priestAt(ctx, hand, HOLY_PLACE, 0.35 * f.at('minister'), f.at('robed'));
+          if (arrived) priestAt(ctx, hand, HOLY_PLACE, f.at('minister'), 0.35, f.at('robed'));
         }),
       );
       // Rising with the camera from the garden to the holy place.

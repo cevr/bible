@@ -9,7 +9,7 @@
 
 import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
 import { clamp, keys, lerp, rng } from '@bible/film/core';
-import { C, blob, glow, person, piece, sky, mix } from '../kit.ts';
+import { type ArmAt, C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
 
@@ -45,11 +45,16 @@ const DROPS = (() => {
   return Array.from({ length: 160 }, () => ({ x: r() * 2200, y: r() * 1200, v: 0.8 + r() * 0.4 }));
 })();
 
+/** A watcher's hand, waving up at the angel as they turn (written per watcher). */
+const WAVING: ArmAt = { to: [60, -190], grow: 0, grip: 'open' };
+
 /** The rooftops that hold a watcher: every other block of the front row. */
 const WATCHERS = CITY_FRONT.filter((_, i) => i % 2 === 1);
 
 export const rain = drawing({
   timeline: {
+    // Christ pleads before the ark from the cut, as `exchange` left him.
+    plea: { scene: 'start', dur: 0 },
     fall: { mark: 'spirit', offset: -0.3, dur: 0.8 },
     green: { mark: 'spirit', offset: 0.2, dur: 3.6, ease: 'linear' },
     tiltUp: { mark: 'blot', offset: -0.6, dur: 1.3 },
@@ -58,6 +63,8 @@ export const rain = drawing({
     down: { mark: 'loud', offset: -0.9, dur: 1.4 },
     stop: { mark: 'loud', offset: -0.9, dur: 0.8 },
     fly: { mark: 'loud', offset: -0.1, dur: 3.2, ease: 'linear' },
+    // The angel has the banner in hand as it flies in, still off frame.
+    grasp: { with: 'fly', dur: 0 },
     turn: { mark: 'loud', offset: 0.6, dur: 0.6 },
   },
   knobs: {
@@ -100,7 +107,7 @@ export const rain = drawing({
           z: 1.3,
           draw: () =>
             at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: 0.42 }, () => {
-              ministry(ctx, hand, f.at('bright'));
+              ministry(ctx, hand, f.at('bright'), f.at('plea'));
               piece(ctx, blob(0, 40, 1400, 190, 88), C.cream, hand('cloud'), {
                 role: 'scenery',
                 line: 0,
@@ -117,7 +124,8 @@ export const rain = drawing({
                 cityBack(ctx, hand);
                 cityFront(ctx, hand);
                 WATCHERS.forEach((b, i) => {
-                  const wave = turn * Math.sin((t + i) * 9) * 18;
+                  WAVING.to[0] = 60 + turn * Math.sin((t + i) * 9) * 18;
+                  WAVING.grow = turn;
                   at(ctx, { x: b.x, y: b.top, scale: 0.9 }, () =>
                     person(
                       ctx,
@@ -127,7 +135,7 @@ export const rain = drawing({
                         browL: 3 * turn,
                         browR: 3 * turn,
                         browTilt: 0.4 * turn,
-                        near: turn > 0.05 ? { to: [60 + wave, -190], grow: 1 } : undefined,
+                        near: WAVING,
                       },
                       sub(hand('watcher'), i),
                     ),
@@ -215,7 +223,7 @@ export const rain = drawing({
       ]);
       const written = clamp((k - 0.2) / 0.12);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>
-        herald(ctx, hand, t, written),
+        herald(ctx, hand, t, written, f.at('grasp')),
       );
     }
   },

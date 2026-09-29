@@ -38,6 +38,7 @@ import { clamp, ease, lerp } from '@bible/film/core';
 import {
   C,
   F,
+  type ArmAt,
   type Hands,
   type Person,
   glow,
@@ -80,6 +81,8 @@ const CROWD: ReadonlyArray<Seat> = [
 ];
 
 const timeline = {
+  // Waggoner holds the open Bible from the cut: the hall opens on it.
+  bible: { scene: 'start', dur: 0 },
   placard: { mark: 'year', offset: 0.1, dur: 0.5, ease: 'outBack' },
   stepUp: { mark: 'two', dur: 0.6 },
   push: { mark: 'two', offset: 0.3, dur: 1.4, ease: 'inOutSine' },
@@ -93,6 +96,8 @@ const timeline = {
   toPulpit: { mark: 'answer', offset: 0.2, dur: 1.6, ease: 'inOutSine' },
   roof: { mark: 'angel', dur: 1.1, ease: 'inCubic' },
   fly: { mark: 'angel', offset: 0.4, dur: 1.5, ease: 'outCubic' },
+  // The angel has the banner in hand as it flies in, still off frame.
+  grasp: { with: 'fly', dur: 0 },
   flyOut: { mark: 'hand', offset: -0.2, dur: 0.9, ease: 'inCubic' },
   meet: { mark: 'hand', offset: 0.2, dur: 0.9, ease: 'outCubic' },
   golden: { after: 'meet', dur: 0.6 },
@@ -104,6 +109,8 @@ const timeline = {
   hear: { mark: 'three', offset: 0.9, dur: 0.5 },
   given: { mark: 'makes', offset: -0.6, dur: 0.8, ease: 'inOutSine' },
   warm: { after: 'given', dur: 1 },
+  // The figure lifts its open hand, and the camera pushes into it: the insert.
+  offer: { with: 'handIn', offset: -0.6, dur: 0.6 },
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
   // The days start on "daily" and run to the last word (`page` reads the speech's end).
   days: { mark: 'daily' },
@@ -191,7 +198,13 @@ export const message = drawing({
         ctx.save();
         ctx.globalAlpha *= 1 - Math.min(1, out * 4);
         at(ctx, { x, y }, () =>
-          herald(ctx, f.hand, t, fly < 1 ? 0 : Math.min(1, f.spoken('banner', 'hand') * 1.25)),
+          herald(
+            ctx,
+            f.hand,
+            t,
+            fly < 1 ? 0 : Math.min(1, f.spoken('banner', 'hand') * 1.25),
+            f.at('grasp'),
+          ),
         );
         ctx.restore();
       }
@@ -218,7 +231,9 @@ export const message = drawing({
 /** The figure on the page: its scale (where it stands is the `figureAt` knob). */
 const FIGURE_S = 2.6;
 /** The open hand's scale, and the gifts' row scale across its palm (`roof` moves into and out of that row). */
-const HAND_S = 2.2;
+const HAND_S = 1.8;
+/** The close-up's palm middle, below its centre in its own units: it sits on the palm knob. */
+const PALM_MIDDLE = 60;
 export const GIFTS_S = 0.6;
 /**
  * The sun's path across each day: the horizon's ends, and a horizon below
@@ -270,7 +285,7 @@ const page = (f: MessageFrame) => {
 
   if (handIn > 0) {
     const close = clamp(1 - 3 * noon) * settle;
-    giftHand(ctx, f.hand, f.knob('palm'), handIn, 1 - 0.3 * close);
+    giftHand(ctx, f.hand, f.knob('palm'), handIn, 1 - 0.3 * close, 1);
     POPS[0] = f.at('faith');
     POPS[1] = f.at('forgiveness');
     POPS[2] = f.at('power');
@@ -280,21 +295,30 @@ const page = (f: MessageFrame) => {
 };
 
 /**
- * The open hand of the answer's shape, palm up at `palm`: rising into place
- * from below as `rise` goes 0..1 (and faded in with it); `open` 1 holds the
- * fingers straight. `roof` pulls back to it where `message` leaves it.
+ * Where the close-up's arm comes into frame, in the hand's units: up from
+ * below and a little from the left, where the page figure's body is.
+ */
+const FROM_FIGURE: Pt = [-260, 700];
+
+/**
+ * The open hand of the answer's shape, the page figure's own hand close up,
+ * palm out at `palm`: faded in as `shown` goes 0..1, and risen into place
+ * from below as `rise` does (`message` pushes into it from the figure, so
+ * it does not rise; `roof` lifts it back in); `open` 1 holds the fingers
+ * straight. `roof` pulls back to it where `message` leaves it.
  */
 export const giftHand = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
   [px, py]: Pt,
-  rise: number,
+  shown: number,
   open: number,
+  rise = shown,
 ) => {
   ctx.save();
-  ctx.globalAlpha *= rise;
+  ctx.globalAlpha *= shown;
   at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () =>
-    handCloseUp(ctx, hand, open),
+    at(ctx, { x: 0, y: -PALM_MIDDLE }, () => handCloseUp(ctx, hand, open, FROM_FIGURE)),
   );
   ctx.restore();
 };
@@ -336,10 +360,17 @@ const sun = (
   piece(ctx, ellipseShape(x, y, 44, 44), C.gold, hand, { role: 'scenery', line: 0, shadow: 0.2 });
 };
 
+/** The page figure's open hand, lifted palm out on `offer` (its grow written each frame). */
+const OFFERED: ArmAt = { to: [46, -140], grow: 0, grip: 'palm' };
+/** How far the push into the figure's hand magnifies it: its mitten to the close-up's size. */
+const INTO_HAND = 10;
+
 /**
  * The grey figure: in after the push through, looking up on "three". On
  * "makes" a word of light falls from above into their chest (God makes), and
- * from it a warmth spreads that washes the stains out, the nearest first.
+ * from it a warmth spreads that washes the stains out, the nearest first. On
+ * `offer` they lift their open hand, and on `handIn` the camera pushes into
+ * it: the hand grows to the palm knob, where the close-up takes its place.
  */
 const pageFigure = (f: MessageFrame, handIn: number) => {
   const { ctx } = f;
@@ -350,9 +381,17 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
   for (let i = 0; i < WASH.length; i++) WASH[i] = clamp(2.2 * warm - (STAIN_REACH[i] ?? 0));
   const given = f.at('given');
   const [fx, fy] = f.knob('figureAt');
+  const [px, py] = f.knob('palm');
+  OFFERED.grow = f.at('offer');
+  // The push: the figure magnified about its lifted hand, which slides onto the palm knob.
+  const scale = FIGURE_S * shown * INTO_HAND ** handIn;
+  const [hx, hy] = OFFERED.to;
+  const handX = lerp(fx + hx * FIGURE_S * shown, px, handIn);
+  const handY = lerp(fy + hy * FIGURE_S * shown, py, handIn);
   ctx.save();
-  ctx.globalAlpha *= 1 - handIn;
-  at(ctx, { x: fx, y: fy, scale: FIGURE_S * shown * lerp(1, 1.4, handIn) }, () => {
+  // Gone before the push ends, so the magnified face never sits over the close-up.
+  ctx.globalAlpha *= 1 - clamp(1.6 * handIn);
+  at(ctx, { x: handX - hx * scale, y: handY - hy * scale, scale }, () => {
     person(
       ctx,
       {
@@ -365,6 +404,7 @@ const pageFigure = (f: MessageFrame, handIn: number) => {
         smile: 0.8 * warm,
         stains: FIGURE_STAINS,
         washed: WASH,
+        near: OFFERED,
       },
       f.hand('pageFigure'),
     );
@@ -452,6 +492,7 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
         draw: () =>
           CROWD.forEach((seat, i) => {
             const holds = seat.side < 0 && split > 0;
+            TABLETS_UP.grow = seat.side < 0 ? split : 0;
             const wander = seat.side > 0 ? split * (1 - turn) : 0;
             const toward: Pt = [((960 - seat.x) / 700) * 5, -3];
             const glance: Pt = [4 * Math.sin(t * 1.7 + i * 1.3), 1];
@@ -459,7 +500,6 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
               lerp(lerp(toward[0], glance[0], wander), (960 - seat.x) / 180, turn),
               lerp(lerp(toward[1], glance[1], wander), -4, turn),
             ];
-            const handR: Pt = [lerp(40, 70, split), lerp(-70, -150, split)];
             at(ctx, { x: seat.x, y: seat.y, scale: seat.s }, () => {
               person(
                 ctx,
@@ -470,7 +510,7 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
                   browR: 2 * wander + 4 * turn + 3 * curious,
                   browTilt: 0.45 * wander + 0.3 * turn + 0.3 * curious,
                   mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
-                  near: holds ? { to: handR, grow: 1 } : undefined,
+                  near: TABLETS_UP,
                 },
                 sub(f.hand('crowd'), i),
               );
@@ -512,6 +552,13 @@ const hairShape = ([cx, cy]: Pt, [rx, ry]: Pt, sweep: number): Pt[] =>
     6,
     true,
   );
+
+/** A crowd member's hand under the tablets they hold up on the split (its grow written per seat). */
+const TABLETS_UP: ArmAt = { to: [70, -150], grow: 0, grip: 'hold' };
+/** Waggoner's two hands on the open Bible, and Jones's lifted as he preaches. */
+const ON_BIBLE_FAR: ArmAt = { to: [-10, -86], grow: 0, grip: 'hold' };
+const ON_BIBLE_NEAR: ArmAt = { to: [30, -84], grow: 0, grip: 'hold' };
+const PREACHING: ArmAt = { to: [58, -150], grow: 0, grip: 'open' };
 
 /**
  * The two preachers, told apart by silhouette alone (no labels), after their
@@ -574,6 +621,9 @@ const preachers = (f: MessageFrame) => {
   const step = f.at('stepUp');
   const precious = f.at('precious');
   const turn = f.at('turn');
+  ON_BIBLE_FAR.grow = f.at('bible');
+  ON_BIBLE_NEAR.grow = ON_BIBLE_FAR.grow;
+  PREACHING.grow = step;
   for (const [k, [x, s, who]] of PREACHERS.entries()) {
     at(ctx, { x, y: STAGE_Y - 8 * step, scale: s }, () => {
       glow(ctx, 0, -110, 170, C.glow, 0.5 * step);
@@ -586,8 +636,8 @@ const preachers = (f: MessageFrame) => {
           browL: 2 * step,
           browR: 2 * step,
           browTilt: 0.1,
-          far: k === 0 ? { to: [-10, -86], grow: 1 } : undefined,
-          near: { to: k === 0 ? [30, -84] : [58, lerp(-80, -150, step)], grow: 1 },
+          far: k === 0 ? ON_BIBLE_FAR : undefined,
+          near: k === 0 ? ON_BIBLE_NEAR : PREACHING,
         },
         f.hand(`preacher${k}`),
       );
