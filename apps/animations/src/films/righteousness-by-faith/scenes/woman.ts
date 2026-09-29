@@ -10,10 +10,11 @@
 // speaks the quotation, his open hand turned toward her at his side; on "go"
 // her stain washes out, and wide as she walks out screen-left, upright.
 //
-// On "again" the band of three icons slides in along the top as in `roof`,
-// and each spoken number cuts back to its moment: "One", her face looking up
-// (faith: she calls him Lord); "Two", Jesus speaking (forgiveness); "Three",
-// her walking out upright (power). On "order" the story gives way to the
+// On "again" the band of three icons comes down as in `roof`, and each spoken
+// number cuts back to its moment as its icon pops forward: "One", her face
+// looking up, a light behind it (faith: she calls him Lord); "Two", Jesus
+// speaking (forgiveness); "Three", her walking out upright, her heart lit
+// gold (power). On "order" the story gives way to the
 // page: the band comes down into the icon row at the head of every section
 // (`ICON_ROW`), all three lit, which `spoke` opens on.
 //
@@ -30,9 +31,9 @@ import {
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { COURT_WIDE, type Temple, temple } from '../gospel.ts';
-import { ICON_ROW, ICON_SKY, type Posed, gait, sky } from '../kit.ts';
+import { ICON_ROW, ICON_SKY, type IconCount, type Posed, gait, sky } from '../kit.ts';
 import { giftRow } from './message.ts';
-import { BAND_S } from './roof.ts';
+import { BAND_S, counted } from './roof.ts';
 
 const timeline = {
   // The charge held up, and lowered as he straightens.
@@ -67,13 +68,17 @@ const timeline = {
   walkOut: { mark: 'told', word: 'go', offset: 0.3, dur: 2.2, ease: 'inQuad' },
   // The count again, each number lit on the number itself.
   band: { mark: 'again', dur: 0.6, ease: 'outCubic' },
-  oneLit: { mark: 'one', dur: 0.5 },
+  // Each number's icon pops forward, gold, on the number; the one before steps back.
+  oneLit: { mark: 'one', dur: 0.55, ease: 'outBack' },
   oneHold: { mark: 'one', until: 'two', ease: 'linear' },
-  twoLit: { mark: 'two', dur: 0.5 },
+  twoLit: { mark: 'two', dur: 0.55, ease: 'outBack' },
   twoHold: { mark: 'two', until: 'three', ease: 'linear' },
   twoSpeaks: { mark: 'two', until: 'three', ease: 'linear' },
-  threeLit: { mark: 'three', dur: 0.5 },
+  threeLit: { mark: 'three', dur: 0.55, ease: 'outBack' },
   threeWalk: { mark: 'three', until: 'order', ease: 'inQuad' },
+  // The echo of each gift in the picture: a light behind her face as she calls him Lord, her heart lit as she goes.
+  faith: { mark: 'one', offset: 0.1, dur: 0.8, ease: 'outCubic' },
+  heart: { mark: 'three', offset: 0.2, dur: 0.8, ease: 'outCubic' },
   // The same three, in the same order: the band down into the section head's row.
   toIdea: { mark: 'order', dur: 1.3, ease: 'inOutCubic' },
 } as const;
@@ -87,12 +92,12 @@ const knobs = {
   // In toward the two of them, close on her, and the reverse on him.
   twoShot: [980, 620],
   twoShotZoom: 1.18,
-  herFace: [650, 600],
+  herFace: [650, 505],
   herFaceZoom: 2.3,
-  hisFace: [1310, 610],
+  hisFace: [1310, 522],
   hisFaceZoom: 2.3,
   // The band along the top, as `roof` has it.
-  band: [960, 96],
+  band: [960, 262],
 } as const;
 
 type WomanFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -100,10 +105,12 @@ type WomanFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 /** How far each held close-up keeps pushing in while its face is on screen. */
 const PUSH_ON = 1.18;
 /** How far above the frame the band waits. */
-const BAND_ABOVE = -80;
+const BAND_ABOVE = -120;
 
-/** The row's glow, rewritten every frame. */
+/** The row's glow and lead, rewritten every frame. */
 const LIT: [number, number, number] = [0, 0, 0];
+const LEAD: [number, number, number] = [0, 0, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
 const ALL: readonly [number, number, number] = [1, 1, 1];
 /** The court's pose, rewritten every frame. */
 const LOOK: [number, number] = [0, 0];
@@ -116,6 +123,8 @@ const WOMAN: Posed<Temple['woman']> = {
   bowed: 1,
   glad: 0,
   white: 0,
+  faith: 0,
+  heart: 0,
 };
 const COURT: Posed<Temple> = {
   cam: COURT_WIDE,
@@ -194,6 +203,8 @@ const court = (f: WomanFrame) => {
   WOMAN.washed = f.at('wash');
   WOMAN.bowed = 1 - 0.5 * raise - 0.5 * up;
   WOMAN.glad = f.at('wash');
+  WOMAN.faith = 0;
+  WOMAN.heart = 0;
   temple(ctx, w, h, f.hand, COURT);
 };
 
@@ -217,13 +228,16 @@ const replay = (f: WomanFrame) => {
   LOOK[1] = 0.5;
   WOMAN.walk = 0;
   WOMAN.bob = 0;
+  WOMAN.faith = 0;
+  WOMAN.heart = 0;
   if (t < f.mark('two')) {
-    // One: her face as she looks up and calls him Lord.
+    // One: her face as she looks up and calls him Lord, a light behind it.
     HER_LOOK[0] = 3;
     HER_LOOK[1] = -3;
     WOMAN.washed = 0;
     WOMAN.bowed = 0;
     WOMAN.glad = 0;
+    WOMAN.faith = f.at('faith');
     COURT.cam = knobCamera(
       f.knob('herFace'),
       f.knob('herFaceZoom') * lerp(1, PUSH_ON, f.at('oneHold')),
@@ -246,6 +260,7 @@ const replay = (f: WomanFrame) => {
     WOMAN.glad = 1;
     WOMAN.walk = walk;
     WOMAN.bob = gait(t, f.cue('threeWalk'));
+    WOMAN.heart = f.at('heart');
     COURT.cam = COURT_WIDE;
   }
   temple(ctx, w, h, f.hand, COURT);
@@ -266,13 +281,17 @@ const row = (f: WomanFrame, toIdea: number) => {
     ctx.restore();
   }
   if (shown <= 0) return;
-  LIT[0] = f.at('oneLit');
-  LIT[1] = f.at('twoLit');
-  LIT[2] = f.at('threeLit');
+  counted(LIT, LEAD, [f.at('oneLit'), f.at('twoLit'), f.at('threeLit')]);
+  // Down into the section head's row the count lets go: all three lit, none leading, none faded.
+  for (let i = 0; i < 3; i++) {
+    LIT[i] = lerp(LIT[i] ?? 0, 1, toIdea);
+    LEAD[i] = (LEAD[i] ?? 0) * (1 - toIdea);
+  }
+  COUNT.dim = shown * (1 - toIdea);
   const [bx, by] = f.knob('band');
   const at: Pt = [
     lerp(bx, ICON_ROW.x, toIdea),
     lerp(lerp(BAND_ABOVE, by, shown), ICON_ROW.y, toIdea),
   ];
-  giftRow(ctx, f.hand, at, LIT, ALL, lerp(BAND_S, ICON_ROW.scale, toIdea));
+  giftRow(ctx, f.hand, at, LIT, ALL, lerp(BAND_S, ICON_ROW.scale, toIdea), COUNT);
 };

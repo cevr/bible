@@ -20,7 +20,7 @@ import {
   shotPath,
   sub,
 } from '@bible/film/canvas';
-import { ease, lerp, rng } from '@bible/film/core';
+import { clamp, ease, lerp, rng } from '@bible/film/core';
 import {
   type GestureAt,
   type Hands,
@@ -30,6 +30,8 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
+  type IconCount,
+  type Posed,
   christ,
   ground,
   glow,
@@ -78,6 +80,9 @@ const knobs = {
   townZoom: 0.62,
   handShot: [800, 680],
   handShotZoom: 2.3,
+  // Where faith's disc opens on the word in his hand, in frame px, and its size there.
+  iconFrom: [1410, 790],
+  iconFromZoom: 1.6,
 } as const;
 
 interface Roof {
@@ -154,16 +159,26 @@ const timeline = {
   open: { mark: 'def', dur: 0.6 },
   settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
+  // Faith's disc opens on the word in his hand and pulls back to the row's
+  // place; the robe and the heart pop in beside it as it settles, so no disc
+  // slides in cut by the frame.
   toIcons: { mark: 'gift', offset: -0.1, dur: 0.3 },
-  pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
+  pullBack: { with: 'toIcons', dur: 0.9, ease: 'inOutSine' },
+  robeIn: { with: 'pullBack', offset: 0.45, dur: 0.4, ease: 'outBack' },
+  heartIn: { with: 'pullBack', offset: 0.6, dur: 0.4, ease: 'outBack' },
   // The word-bubble lights on "faith", a word with no mark of its own.
-  faithLit: { mark: 'gift', word: 'faith', dur: 0.6 },
+  // Faith pops forward in gold on its word, the other two faded back.
+  faithLit: { mark: 'gift', word: 'faith', dur: 0.6, ease: 'outBack' },
 } as const;
 
 type CenturionFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 /** The three icons' light, faith's set each frame (a scratch tuple, so the draw allocates none). */
 const LIT: [number, number, number] = [0, 0, 0];
+const LEAD: [number, number, number] = [0, 0, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+/** Each icon's size as the row settles: faith from the word, the other two popping in. */
+const SHOWN: [number, number, number] = [1, 0, 0];
 
 export const centurion = drawing({
   knobs,
@@ -177,19 +192,26 @@ export const centurion = drawing({
     // Pull back from the gold word to the three icons; faith's lights.
     if (toIcons > 0) {
       const pull = f.at('pullBack');
+      const [fx, fy] = f.knob('iconFrom');
+      const from = f.knob('iconFromZoom');
+      SHOWN[1] = f.at('robeIn');
+      SHOWN[2] = f.at('heartIn');
       ctx.save();
       ctx.globalAlpha *= toIcons;
       sky(ctx, w, h, ICON_SKY);
       at(
         ctx,
         {
-          x: lerp(ICON_ROW.x - ICON_X[0] * ICON_ROW.close, ICON_ROW.x, pull),
-          y: ICON_ROW.y,
-          scale: lerp(ICON_ROW.close, ICON_ROW.scale, pull),
+          x: lerp(fx - ICON_X[0] * from, ICON_ROW.x, pull),
+          y: lerp(fy, ICON_ROW.y, pull),
+          scale: lerp(from, ICON_ROW.scale, pull),
         },
         () => {
-          LIT[0] = f.at('faithLit');
-          icons(ctx, hand, LIT);
+          const lit = f.at('faithLit');
+          LIT[0] = clamp(lit);
+          LEAD[0] = lit;
+          COUNT.dim = clamp(lit);
+          icons(ctx, hand, LIT, SHOWN, COUNT);
         },
       );
       ctx.restore();

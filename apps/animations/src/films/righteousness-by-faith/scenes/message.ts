@@ -45,6 +45,8 @@ import {
   type GestureAt,
   type HandPush,
   type Hands,
+  type IconCount,
+  type Three,
   type Person,
   glow,
   handOf,
@@ -469,17 +471,19 @@ export const giftHand = (
 
 /**
  * The three icons as `message` sets them across the palm, their row's centre
- * at `row`: `lit` and `shown` as `icons` reads them, `scale` the row's (the
- * palm's by default). `roof` opens through this row and pulls back into it.
+ * at `row`: `lit`, `shown` and `count` as `icons` reads them, `scale` the
+ * row's (the palm's by default). `roof` opens through this row and pulls back
+ * into it.
  */
 export const giftRow = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
   [gx, gy]: Pt,
-  lit: readonly [number, number, number],
-  shown?: readonly [number, number, number],
+  lit: Three,
+  shown?: Three,
   scale = GIFTS_S,
-) => at(ctx, { x: gx, y: gy, scale }, () => icons(ctx, hand, lit, shown));
+  count?: IconCount,
+) => at(ctx, { x: gx, y: gy, scale }, () => icons(ctx, hand, lit, shown, count));
 
 /** The sun at `k` across its day, `noon` its height 0..1, and the page dimmed by `dusk`. */
 const sun = (

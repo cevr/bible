@@ -38,6 +38,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
+  type IconCount,
   type Person,
   type Posed,
   ROBE,
@@ -130,7 +131,8 @@ const timeline = {
   glad: { mark: 'reclaiming', dur: 0.6 },
   toIcons: { scene: 'speechEnd', dur: 0.27 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
-  iconGlow: { after: 'toIcons', dur: 0.6 },
+  // The robe pops forward in gold as the row settles, the heart faded back.
+  iconGlow: { after: 'toIcons', dur: 0.6, ease: 'outBack' },
   // The callback to `roof`'s court under the robe, arriving with the pull back and held to the scene's end (the tail).
   forgiven: { with: 'toIcons', dur: 0.3 },
 } as const;
@@ -508,12 +510,17 @@ const reclaimed = (f: RobeFrame) => {
 
 /** The icons' glow: faith kept from its section, the robe lighting; rewritten each frame, never made per frame. */
 const ICONS_LIT: [number, number, number] = [ICON_KEPT, 0, 0];
+/** The robe leading as it lights, the heart faded. */
+const ICONS_LEAD: [number, number, number] = [0, 0, 0];
+const ICONS_COUNT: Posed<IconCount> = { lead: ICONS_LEAD, dim: 1 };
 
-/** E: after the quotation, pull back to the section head's icon row, the robe lit. */
+/** E: after the quotation, pull back to the section head's icon row, the robe lit and leading. */
 const iconsBack = (f: RobeFrame, toIcons: number) => {
   const { ctx, w, h, hand } = f;
   const pull = f.at('pullBack');
-  ICONS_LIT[1] = 0.4 + 0.6 * f.at('iconGlow');
+  const glowing = f.at('iconGlow');
+  ICONS_LIT[1] = 0.4 + 0.6 * clamp(glowing);
+  ICONS_LEAD[1] = glowing;
   const forgiven = f.at('forgiven');
   ctx.save();
   ctx.globalAlpha *= toIcons;
@@ -521,9 +528,15 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
   // The row rises as the callback opens under the robe, the robe itself left whole.
   const y = lerp(-160, ICON_ROW.y, pull) - RECALL_RISE * forgiven;
   at(ctx, { x: ICON_ROW.x, y, scale: lerp(ICON_ROW.close, ICON_ROW.scale, pull) }, () => {
-    icons(ctx, hand, ICONS_LIT);
+    icons(ctx, hand, ICONS_LIT, undefined, ICONS_COUNT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(ctx, hand, forgiven, () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN)),
+      recall(
+        ctx,
+        hand,
+        forgiven,
+        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
+        ICONS_LEAD[1],
+      ),
     );
   });
   ctx.restore();

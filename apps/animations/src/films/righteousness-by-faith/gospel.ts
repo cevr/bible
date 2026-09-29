@@ -25,6 +25,9 @@ import { clamp, lerp } from '@bible/film/core';
 import {
   type GestureAt,
   C,
+  CHEST,
+  HEART,
+  ICON_LEAD,
   type HeadPiece,
   type Hands,
   type Person,
@@ -306,6 +309,9 @@ export interface House {
   readonly doubt: number;
   /** The four faces at the hole lit gold from below, 0..1 (`look`'s callback). */
   readonly holeLit: number;
+  /** The count's echoes of its icons on the man: his garment gone white, the robe, 0..1; his heart lit gold, 0..1. */
+  readonly robed: number;
+  readonly heart: number;
 }
 
 /**
@@ -538,6 +544,26 @@ const FOLDED_FAR: GestureAt = { to: [-6, -60], reach: 1, grip: 'open' };
 const OUT_TO_HIM: GestureAt = { to: [-104, -104], reach: 0, grip: 'open' };
 const MAN_WASH: [number, number, number] = [0, 0, 0];
 const MAN: Person = { look: MAN_LOOK, stains: MAN_SPECKS, washed: MAN_WASH };
+/** His garment and its shade, out of white and in it (the count's robe). */
+const MAN_BODY = [C.figure, C.robe] as const;
+const MAN_SHADE = [C.figureShade, mix(C.figureShade, C.robe, 0.8)] as const;
+
+/**
+ * A heart lit gold from inside, on a person's chest in their units (`CHEST`),
+ * `lit` 0..1: the heart icon's gift, echoed on the one who received it.
+ */
+export const litHeart = (ctx: CanvasRenderingContext2D, hand: Hands, lit: number) => {
+  const [cx, cy] = CHEST;
+  glow(ctx, cx, cy, 90, C.glow, 0.9 * lit);
+  at(ctx, { x: cx, y: cy, scale: 0.2 * lerp(0.6, 1, lit) }, () =>
+    piece(ctx, HEART, C.gold, hand('litHeart'), {
+      role: 'figure',
+      line: 5,
+      shadow: 0.2,
+      alpha: clamp(2 * lit),
+    }),
+  );
+};
 
 /** The room: its walls and floor, the crowd at the back, the bed and the man, and Jesus. */
 const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
@@ -624,6 +650,9 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   MAN.far = FOLDED_FAR;
   // Once the specks start to lift, the ones in flight stand in for those on him.
   for (let i = 0; i < MAN_WASH.length; i++) MAN_WASH[i] = s.specks > 0 ? 1 : 0;
+  // The count's robe: his garment going white.
+  MAN.body = inWhite(MAN_BODY, s.robed);
+  MAN.shade = inWhite(MAN_SHADE, s.robed);
   // The bed rolled up and carried on his shoulder, behind his head and under his hand.
   if (s.roll > 0) {
     const onShoulder = clamp(2 * s.roll - 1);
@@ -645,7 +674,11 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     );
   }
   at(ctx, { x: hx, y: hy, rot: lerp(LIE, 0, rise) }, () =>
-    at(ctx, { x: 0, y: HIP_STAND, scale: MAN_S }, () => person(ctx, MAN, hand('man'))),
+    at(ctx, { x: 0, y: HIP_STAND, scale: MAN_S }, () => {
+      person(ctx, MAN, hand('man'));
+      // The count's heart: lit gold from inside, on his chest.
+      if (s.heart > 0) litHeart(ctx, hand, s.heart);
+    }),
   );
   // The specks lift off him and go.
   if (s.specks > 0 && s.specks < 1)
@@ -853,6 +886,9 @@ export interface Temple {
     readonly bowed: number;
     readonly glad: number;
     readonly white: number;
+    /** The count's echoes of its icons on her: a light behind her face as she calls him Lord (faith), her heart lit gold (power), 0..1. */
+    readonly faith: number;
+    readonly heart: number;
   };
 }
 
@@ -1102,10 +1138,18 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
   HER.browR = 3 * (1 - wm.bowed);
   HER.smile = 0.7 * wm.glad;
   const [wx, wy] = WOMAN_AT;
-  at(ctx, { x: lerp(wx, WOMAN_OUT, wm.walk), y: wy - wm.bob, scale: WOMAN_S }, () =>
-    person(ctx, HER, hand('woman')),
-  );
+  at(ctx, { x: lerp(wx, WOMAN_OUT, wm.walk), y: wy - wm.bob, scale: WOMAN_S }, () => {
+    // The count's faith: a light behind her face as she looks up and calls him Lord.
+    if (wm.faith > 0) {
+      glow(ctx, FACE_LIGHT[0], FACE_LIGHT[1], 150, C.glow, 0.95 * wm.faith);
+      glow(ctx, FACE_LIGHT[0], FACE_LIGHT[1], 80, C.gold, 0.45 * wm.faith);
+    }
+    person(ctx, HER, hand('woman'));
+    if (wm.heart > 0) litHeart(ctx, hand, wm.heart);
+  });
 };
+/** Where the light of her faith sits behind her head, in her units: up and toward him. */
+const FACE_LIGHT: Pt = [30, -190];
 
 // ─── callbacks ───────────────────────────────────────────────────────────────
 
@@ -1141,16 +1185,19 @@ export const RECALL_RISE = 150;
  * units, and it shows on a paper plate below the icon's centre (0, 0) in the
  * row's units, at `shown`. It is an `inset`: the set's own shot is the
  * callback's, so the scene breathes as it would without it. The row rises by
- * `RECALL_RISE` × `shown` to make room.
+ * `RECALL_RISE` × `shown` to make room. `lead` is the icon's lead on the row
+ * (`IconCount`): the plate sits that much lower, clear of the grown disc.
  */
 export const recall = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
   shown: number,
   draw: () => void,
+  lead = 0,
 ) => {
   if (shown <= 0) return;
   ctx.save();
+  ctx.translate(0, ICON_R * ICON_LEAD * Math.max(0, lead));
   ctx.globalAlpha *= shown;
   piece(ctx, RECALL_PLATE, C.paper, hand('recall'), { role: 'scenery', kind: 'cut', line: 6 });
   ctx.beginPath();
@@ -1180,7 +1227,17 @@ export const COURT_FORGIVEN: Temple = {
   stand: 1,
   speak: 0,
   look: [-4, 0.5],
-  woman: { walk: 0, bob: 0, washed: 1, look: [3, 0], bowed: 0, glad: 1, white: 1 },
+  woman: {
+    walk: 0,
+    bob: 0,
+    washed: 1,
+    look: [3, 0],
+    bowed: 0,
+    glad: 1,
+    white: 1,
+    faith: 0,
+    heart: 0,
+  },
 };
 
 /** `went`'s house, its walk and bob rewritten every frame. */
@@ -1202,6 +1259,8 @@ const WENT_HOUSE = {
   wonder: 1,
   doubt: 1,
   holeLit: 0,
+  robed: 0,
+  heart: 0,
 } satisfies House;
 
 /**
@@ -1226,6 +1285,8 @@ export const AT_THE_HOLE: House = {
   wonder: 0,
   doubt: 0,
   holeLit: 1,
+  robed: 0,
+  heart: 0,
 };
 
 /**

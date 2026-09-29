@@ -77,6 +77,7 @@ export const sound: Sound = {
         cue('woman', 'oneLit'),
         cue('woman', 'twoLit'),
         cue('woman', 'threeLit'),
+        cue('spoke', 'lead'),
         cue('centurion', 'faithLit'),
         cue('look', 'iconGlow'),
         cue('declared', 'robeLit'),

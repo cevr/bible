@@ -9,12 +9,15 @@
 // can see has changed. On "arise" he stands, rolls up his bed and carries it
 // out through the crowd, screen-left.
 //
-// On "count" the small band of three icons slides in along the top, and each
-// spoken number cuts back to its moment in the story's own framing, held
-// while its icon lights: "One", the four faces at the hole (faith); "Two",
-// the man's face as the specks lift (forgiveness); "Three", the man walking
-// out with his bed (power). On "proof" a thread of light runs back along the
-// band from the heart to the robe: the walk vouching for the pardon.
+// On "count" the band of three icons comes down into the upper frame, all
+// three faded, and each spoken number cuts back to its moment in the story's
+// own framing while its icon pops forward on a gold rim (the one before steps
+// back to kept), and the gift shows in the picture too: "One", the four faces
+// at the hole, lit gold (faith); "Two", the man's face as the specks lift and
+// his garment goes white, the robe (forgiveness); "Three", the man walking
+// out with his bed, his heart lit gold (power). On "proof" a thread of light
+// runs back along the band from the heart to the robe: the walk vouching for
+// the pardon.
 //
 // The receiver stands screen-left and Jesus screen-right throughout. The set
 // (`gospel.ts`) is drawn once, so `look` and `within` call it back in these
@@ -33,7 +36,18 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { type House, SCRIBES_AT, WENT, house } from '../gospel.ts';
-import { C, type Hands, ICON_X, type Posed, gait, glow } from '../kit.ts';
+import {
+  C,
+  type Hands,
+  type IconCount,
+  ICON_KEPT,
+  ICON_LEAD,
+  ICON_X,
+  type Posed,
+  type Three,
+  gait,
+  glow,
+} from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
 const timeline = {
@@ -71,13 +85,17 @@ const timeline = {
   // The count: the band in along the top; each number cuts back to its moment
   // and lights its icon on the number itself.
   band: { mark: 'count', dur: 0.6, ease: 'outCubic' },
-  oneLit: { mark: 'one', dur: 0.5 },
+  // Each number's icon pops forward, gold, on the number; the one before steps back.
+  oneLit: { mark: 'one', dur: 0.55, ease: 'outBack' },
   oneHold: { mark: 'one', until: 'two', ease: 'linear' },
-  twoLit: { mark: 'two', dur: 0.5 },
+  twoLit: { mark: 'two', dur: 0.55, ease: 'outBack' },
   twoSpecks: { mark: 'two', word: 'forgiveness', dur: 1.2, ease: 'inOutSine' },
   twoHold: { mark: 'two', until: 'three', ease: 'linear' },
-  threeLit: { mark: 'three', dur: 0.5 },
+  threeLit: { mark: 'three', dur: 0.55, ease: 'outBack' },
   threeWalk: { mark: 'three', until: 'proof', ease: 'linear' },
+  // The echo of each gift in the picture: the robe over him as the specks lift, the heart as he stands.
+  robed: { with: 'twoSpecks', dur: 1.2, ease: 'inOutSine' },
+  heart: { mark: 'three', offset: 0.2, dur: 0.8, ease: 'outCubic' },
   // The walk vouches for the pardon: a thread of light from the heart back to the robe.
   proof: { mark: 'proof', dur: 1.2, ease: 'inOutSine' },
   proofWalk: { mark: 'proof', dur: 1.6, ease: 'linear' },
@@ -94,15 +112,15 @@ const knobs = {
   saw: [990, 520],
   sawZoom: 1.25,
   // Close on the man's face on his bed (a third of the frame), then back as he stands.
-  manFace: [600, 830],
+  manFace: [600, 808],
   manFaceZoom: 3.4,
   // The man still on his bed after the scribes: nothing seen has changed.
   lying: [690, 780],
   lyingZoom: 2.2,
   arise: [720, 690],
   ariseZoom: 1.7,
-  // The small row of icons along the top, over the story.
-  band: [960, 96],
+  // The row of icons along the top, over the story.
+  band: [960, 262],
 } as const;
 
 type RoofFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -120,12 +138,32 @@ const WINDOW_R = 140;
 /** How far each held close-up keeps pushing in while it is on screen. */
 const PUSH_ON = 1.12;
 /** The band row's scale over the story, and how far above the frame it waits. */
-export const BAND_S = 0.22;
-const BAND_ABOVE = -80;
+export const BAND_S = 0.32;
+const BAND_ABOVE = -120;
 
-/** The row's glow, rewritten every frame. */
+/** The row's glow and lead, rewritten every frame. */
 const LIT: [number, number, number] = [0, 0, 0];
+const LEAD: [number, number, number] = [0, 0, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
 const ALL: readonly [number, number, number] = [1, 1, 1];
+
+/**
+ * The count's light on the band, from its three numbers' cues (`roof` and
+ * `woman` count alike): each icon leads from its number until the next, then
+ * steps back to kept; the unlit fade by `dim` while the band is up.
+ */
+export const counted = (
+  lit: [number, number, number],
+  lead: [number, number, number],
+  [one, two, three]: Three,
+) => {
+  lit[0] = clamp(one) * lerp(1, ICON_KEPT, clamp(two));
+  lit[1] = clamp(two) * lerp(1, ICON_KEPT, clamp(three));
+  lit[2] = clamp(three);
+  lead[0] = one * (1 - clamp(two));
+  lead[1] = two * (1 - clamp(three));
+  lead[2] = three;
+};
 /** The house's pose, rewritten every frame. */
 const CAPERNAUM: Posed<House> = {
   cam: WENT,
@@ -145,6 +183,8 @@ const CAPERNAUM: Posed<House> = {
   wonder: 0,
   doubt: 0,
   holeLit: 0,
+  robed: 0,
+  heart: 0,
 };
 
 export const roof = drawing({
@@ -221,6 +261,8 @@ const capernaum = (f: RoofFrame) => {
   s.wonder = f.at('wonder');
   s.doubt = f.at('doubt');
   s.holeLit = 0;
+  s.robed = 0;
+  s.heart = 0;
   house(ctx, w, h, f.hand, s);
 };
 
@@ -248,17 +290,23 @@ const replay = (f: RoofFrame) => {
   s.wonder = 0;
   s.doubt = 0;
   s.holeLit = 0;
+  s.robed = 0;
+  s.heart = 0;
   if (t < f.mark('two')) {
     // One: up on the four faces at the hole, as Jesus saw their faith, lit as its icon lights.
     s.holeLit = f.at('oneLit');
     s.cam = held(knobCamera(f.knob('up'), f.knob('upZoom')), f.at('oneHold'));
   } else if (t < f.mark('three')) {
-    // Two: close on his face as the specks lift, before a word about his legs.
+    // Two: close on his face as the specks lift, and the robe comes over him.
     s.reach = 1;
     s.specks = f.at('twoSpecks');
+    s.robed = f.at('robed');
     s.glad = clamp(2 * s.specks - 1);
     s.cam = held(knobCamera(f.knob('manFace'), f.knob('manFaceZoom')), f.at('twoHold'));
   } else {
+    // The robe he was given, and his heart lit as he stands.
+    s.robed = 1;
+    s.heart = f.at('heart');
     // Three: up, and out with his bed, in front of them all.
     s.ropes = 0;
     s.lookAfter = 1;
@@ -285,25 +333,25 @@ const held = (cam: Camera, k: number): Camera => ({
 });
 
 /**
- * The band of three icons along the top, from "count": each lights on its
- * spoken number and stays lit; on "proof" a thread of light runs back along
- * the band from the heart to the robe.
+ * The band of three icons along the top, from "count", the unlit faded: each
+ * pops forward in gold on its spoken number and steps back to kept on the
+ * next; on "proof" a thread of light runs back along the band from the heart
+ * to the robe.
  */
 const band = (f: RoofFrame) => {
   const shown = f.at('band');
   if (shown <= 0) return;
   const { ctx } = f;
-  LIT[0] = f.at('oneLit');
-  LIT[1] = f.at('twoLit');
-  LIT[2] = f.at('threeLit');
+  counted(LIT, LEAD, [f.at('oneLit'), f.at('twoLit'), f.at('threeLit')]);
+  COUNT.dim = shown;
   const [bx, by] = f.knob('band');
   const at: Pt = [bx, lerp(BAND_ABOVE, by, shown)];
-  giftRow(ctx, f.hand, at, LIT, ALL, BAND_S);
+  giftRow(ctx, f.hand, at, LIT, ALL, BAND_S, COUNT);
   const proof = f.at('proof');
   if (proof <= 0) return;
-  // From the heart's disc back to the robe's, a gold thread drawn as it runs.
+  // From the heart's disc (leading, so grown) back to the robe's, a gold thread drawn as it runs.
   const rim = 150 * BAND_S;
-  const from = at[0] + ICON_X[2] * BAND_S - rim;
+  const from = at[0] + ICON_X[2] * BAND_S - rim * (1 + ICON_LEAD * clamp(LEAD[2]));
   const x = lerp(from, at[0] + ICON_X[1] * BAND_S + rim, proof);
   glow(ctx, x, at[1], 40, C.glow, 0.9 * (1 - 0.5 * proof));
   stroke(

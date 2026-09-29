@@ -38,7 +38,9 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
+  type IconCount,
   type Person,
+  type Posed,
   blob,
   gait,
   glow,
@@ -77,7 +79,7 @@ const timeline = {
   heart: { mark: 'write', offset: -0.1, dur: 0.5, ease: 'outBack' },
   // `robe`'s row: the woman's plate goes as the row settles, and the heart lights on "power".
   settle: { scene: 'start', dur: 0.8, ease: 'inOutCubic' },
-  heartLit: { mark: 'power', dur: 0.5 },
+  heartLit: { mark: 'power', dur: 0.55, ease: 'outBack' },
   toPage: { mark: 'out', offset: -0.3, dur: 0.4 },
   // The row again on "bed", the callback to `roof`'s house under the heart:
   // he walks on until the figure comes back, just after "not".
@@ -197,7 +199,7 @@ const figure = (f: WithinFrame, aside: number) => {
   const { hand } = f;
   const ask = f.at('ask') * (1 - f.at('heart'));
   const heart = f.at('heart');
-  const lit = f.at('heartLit');
+  const lit = clamp(f.at('heartLit'));
   const warm = f.at('warm');
   const open = f.at('arms') * (1 - f.at('closeOut'));
   const settled = heart * (1 - aside) * (1 - open);
@@ -368,6 +370,9 @@ const STEM: Pt[] = [
 
 /** The row's glow: faith kept, forgiveness settling from `robe`'s full glow, the heart lighting. */
 const LIT: [number, number, number] = [ICON_KEPT, 1, 0];
+/** The robe leading as `robe` left it, until the heart pops forward on "power"; the unlit faded. */
+const LEAD: [number, number, number] = [0, 1, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 1 };
 
 /**
  * B: the section head's icon row, as `robe` leaves it (the woman's plate
@@ -380,27 +385,41 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   const settle = f.at('settle');
   const wentIn = f.at('wentIn');
   const court = 1 - settle;
-  LIT[1] = lerp(1, ICON_KEPT, f.at('heartLit'));
-  LIT[2] = f.at('heartLit');
+  const heart = f.at('heartLit');
+  LIT[1] = lerp(1, ICON_KEPT, clamp(heart));
+  LIT[2] = clamp(heart);
+  LEAD[1] = 1 - clamp(heart);
+  LEAD[2] = heart;
   ctx.save();
   ctx.globalAlpha *= alpha;
   sky(ctx, w, h, ICON_SKY);
   // The row rises as a callback opens under it, its icon left whole.
   const y = ICON_ROW.y - RECALL_RISE * Math.max(court, wentIn);
   at(ctx, { x: ICON_ROW.x, y, scale: ICON_ROW.scale }, () => {
-    icons(ctx, hand, LIT);
+    icons(ctx, hand, LIT, undefined, COUNT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(ctx, hand, court, () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN)),
+      recall(
+        ctx,
+        hand,
+        court,
+        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
+        LEAD[1],
+      ),
     );
     at(ctx, { x: ICON_X[2], y: 0 }, () =>
-      recall(ctx, hand, wentIn, () =>
-        house(
-          ctx,
-          w,
-          h,
-          f.handsOf('roof'),
-          went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
-        ),
+      recall(
+        ctx,
+        hand,
+        wentIn,
+        () =>
+          house(
+            ctx,
+            w,
+            h,
+            f.handsOf('roof'),
+            went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
+          ),
+        LEAD[2],
       ),
     );
   });

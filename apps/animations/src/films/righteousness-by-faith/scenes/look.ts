@@ -31,6 +31,8 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
+  type IconCount,
+  type Posed,
   blob,
   glow,
   icons,
@@ -145,7 +147,8 @@ const timeline = {
   // hole in the roof, lit gold (the callback to `roof`).
   toIcons: { scene: 'speechEnd', offset: 0.1, dur: 0.4 },
   pullBack: { scene: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
-  iconGlow: { scene: 'speechEnd', offset: 0.3, dur: 0.6 },
+  // Faith pops forward in gold as the row settles, the other two faded back.
+  iconGlow: { scene: 'speechEnd', offset: 0.3, dur: 0.6, ease: 'outBack' },
   hole: { scene: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
   holeOut: { scene: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
 } as const;
@@ -477,8 +480,10 @@ export const look = drawing({
   },
 });
 
-/** The row's glow: faith lit, the other two not yet (rewritten every frame). */
-const LIT: [number, number, number] = [0, 0, 0];
+/** The row's glow: faith lit, the other two not yet; faith leads and they fade (rewritten every frame). */
+const LIT: [number, number, number] = [1, 0, 0];
+const LEAD: [number, number, number] = [0, 0, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
 
 /**
  * After the last word: faith's icon, close, pulls back to the section head's
@@ -490,7 +495,8 @@ const row = (f: LookFrame, shown: number) => {
   const { ctx, w, h } = f;
   const pull = f.at('pullBack');
   const hole = f.at('hole') * (1 - f.at('holeOut'));
-  LIT[0] = 1 + 0.5 * Math.sin(Math.PI * f.at('iconGlow'));
+  LEAD[0] = f.at('iconGlow');
+  COUNT.dim = Math.min(1, LEAD[0]);
   ctx.save();
   ctx.globalAlpha *= shown;
   sky(ctx, w, h, ICON_SKY);
@@ -503,9 +509,9 @@ const row = (f: LookFrame, shown: number) => {
       scale,
     },
     () => {
-      icons(ctx, f.hand, LIT);
+      icons(ctx, f.hand, LIT, undefined, COUNT);
       at(ctx, { x: ICON_X[0], y: 0 }, () =>
-        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf('roof'), AT_THE_HOLE)),
+        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf('roof'), AT_THE_HOLE), LEAD[0]),
       );
     },
   );

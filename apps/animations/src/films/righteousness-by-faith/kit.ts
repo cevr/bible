@@ -1088,45 +1088,91 @@ export const CHEST: Pt = [0, -80];
 /** The three icons' centres, relative to the row's centre. */
 export const ICON_X = [-440, 0, 440] as const;
 
+/** Each of the three icons' value: word, robe, heart. */
+export type Three = readonly [number, number, number];
+const EVERY: Three = [1, 1, 1];
+
+/**
+ * Where the eye goes on the row: the one language every count and every
+ * section head lights a gift in. `lead` is each icon's lead 0..1 (an
+ * `outBack` cue overshoots it, so the icon pops): a leading icon grows by
+ * `ICON_LEAD`, sits on a gold rim with gold light behind it, and is drawn
+ * over its neighbours. `dim` 0..1 is how far every icon neither leading nor
+ * lit (its glow under `ICON_KEPT`) fades back into the page, by up to
+ * `ICON_DIM`.
+ */
+export interface IconCount {
+  readonly lead: Three;
+  readonly dim: number;
+}
+/** How much bigger the leading icon grows. */
+export const ICON_LEAD = 0.55;
+/** How far an unlit icon fades while the row counts. */
+export const ICON_DIM = 0.62;
+const NO_COUNT: IconCount = { lead: [0, 0, 0], dim: 0 };
+
 /**
  * The film's three icons in a row centred on the origin, the answer's shape
  * (`message`): a gold word-bubble (God declares), a white robe (clothes) and
  * a heart with two tablets (changes). `lit` is each icon's glow alpha 0..1
  * (0 draws none): the turn the film is on. `shown` scales each icon about its
- * centre as it pops in (0 draws none).
+ * centre as it pops in (0 draws none). `count` says which icon leads and how
+ * far the unlit fade (`IconCount`); by default none leads and none fades.
  */
 export const icons = (
   ctx: CanvasRenderingContext2D,
   hand: Hands,
-  lit: readonly [number, number, number],
-  shown: readonly [number, number, number] = [1, 1, 1],
+  lit: Three,
+  shown: Three = EVERY,
+  count: IconCount = NO_COUNT,
 ) => {
-  const disc = (i: 0 | 1 | 2, key: string, inner: () => void) => {
+  const disc = (i: 0 | 1 | 2) => {
     if (shown[i] <= 0) return;
-    at(ctx, { x: ICON_X[i], y: 0, scale: shown[i] }, () => {
-      piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand(key), {
+    const lead = Math.max(0, count.lead[i]);
+    const fade = count.dim * ICON_DIM * clamp(1 - Math.max(lead, lit[i] / ICON_KEPT));
+    ctx.save();
+    ctx.globalAlpha *= 1 - fade;
+    at(ctx, { x: ICON_X[i], y: 0, scale: shown[i] * (1 + ICON_LEAD * lead) }, () => {
+      if (lead > 0) {
+        const on = Math.min(1, lead);
+        glow(ctx, 0, 0, 360, C.gold, 0.6 * on);
+        piece(ctx, ellipseShape(0, 0, 172, 172), C.gold, hand(RIM_KEYS[i]), {
+          role: 'scenery',
+          kind: 'cut',
+          line: 4,
+          alpha: on,
+        });
+      }
+      piece(ctx, ellipseShape(0, 0, 150, 150), C.paper, hand(DISC_KEYS[i]), {
         role: 'scenery',
         kind: 'cut',
         line: 6,
       });
       if (lit[i] > 0) glow(ctx, 0, 0, 260, C.glow, lit[i]);
-      inner();
+      INNER[i]?.(ctx, hand);
     });
+    ctx.restore();
   };
-  disc(0, 'iconWord', () =>
+  // The leading icons last, over their neighbours as they grow.
+  for (const i of ORDER) if (count.lead[i] <= 0) disc(i);
+  for (const i of ORDER) if (count.lead[i] > 0) disc(i);
+};
+const ORDER = [0, 1, 2] as const;
+const DISC_KEYS = ['iconWord', 'iconRobe', 'iconHeart'] as const;
+const RIM_KEYS = ['iconWordRim', 'iconRobeRim', 'iconHeartRim'] as const;
+const INNER: ReadonlyArray<(ctx: CanvasRenderingContext2D, hand: Hands) => void> = [
+  (ctx, hand) =>
     bubble(ctx, hand('bubble'), (i) => sub(hand('lines'), i), {
       fill: C.gold,
       ink: C.ink,
       shadow: 0.35,
     }),
-  );
-  disc(1, 'iconRobe', () =>
+  (ctx, hand) =>
     at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
       piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { role: 'scenery', kind: 'cut', line: 18 }),
     ),
-  );
-  disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
-};
+  (ctx, hand) => heart(ctx, hand, C.boardLight, false),
+];
 
 /**
  * The icon row at the head of every section (CRAFT rule 8): one layout, so

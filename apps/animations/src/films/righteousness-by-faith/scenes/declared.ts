@@ -34,8 +34,11 @@ import {
   type Person,
   C,
   F,
+  ICON_KEPT,
   ICON_ROW,
   ICON_SKY,
+  type IconCount,
+  type Posed,
   blob,
   clipToGarment,
   glow,
@@ -282,8 +285,14 @@ const washStains = (out: number[], bloom: number) => {
 const clothAt = (bloom: number) =>
   CLOTH_WARMS[Math.round(clamp(bloom) * (CLOTH_WARMS.length - 1))] ?? C.figure;
 
-/** The row's glow (the robe's written each frame), and how far above the frame it lifts to. */
+/**
+ * The row's glow and lead, written each frame: faith leading as `look` left
+ * it, then on "now" stepping back to kept as the robe pops forward; the heart
+ * faded. And how far above the frame the row lifts to.
+ */
 const ROW_LIT: [number, number, number] = [1, 0, 0];
+const ROW_LEAD: [number, number, number] = [1, 0, 0];
+const ROW_COUNT: Posed<IconCount> = { lead: ROW_LEAD, dim: 1 };
 const ROW_GONE = -320;
 
 /** Where the doubtful hand goes: under the chin, in front of the body. */
@@ -293,7 +302,7 @@ export const declared = drawing({
   timeline: {
     // It opens on the row `look` left, faith glowing; on "now" the robe lights
     // beside it, and the row lifts off the top as the parchment comes forward.
-    robeLit: { mark: 'now', offset: 0.4, dur: 0.7 },
+    robeLit: { mark: 'now', offset: 0.4, dur: 0.7, ease: 'outBack' },
     lift: { mark: 'paul', offset: -0.5, dur: 0.9, ease: 'inCubic' },
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
     greek: { mark: 'justified', offset: 0.5, dur: 0.5 },
@@ -437,9 +446,13 @@ export const declared = drawing({
       ctx.globalAlpha *= 1 - lift;
       sky(ctx, w, h, ICON_SKY);
       ctx.restore();
-      ROW_LIT[1] = f.at('robeLit');
+      const robe = f.at('robeLit');
+      ROW_LIT[0] = lerp(1, ICON_KEPT, clamp(robe));
+      ROW_LIT[1] = clamp(robe);
+      ROW_LEAD[0] = 1 - clamp(robe);
+      ROW_LEAD[1] = robe;
       at(ctx, { x: ICON_ROW.x, y: lerp(ICON_ROW.y, ROW_GONE, lift), scale: ICON_ROW.scale }, () =>
-        icons(ctx, f.hand, ROW_LIT),
+        icons(ctx, f.hand, ROW_LIT, undefined, ROW_COUNT),
       );
     }
   },

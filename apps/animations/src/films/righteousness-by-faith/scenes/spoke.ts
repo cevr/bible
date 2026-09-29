@@ -1,6 +1,6 @@
 // The spoken word. It opens on the section head's row, where `woman` left it,
-// all three lit. On "gift" the gold word-bubble (faith) pulses and the other
-// two dim; on "where" the grey figure beside the row looks at it, curious and
+// all three lit. On "gift" the gold word-bubble (faith) pops forward on a gold
+// rim and the other two fade back; on "where" the grey figure beside the row looks at it, curious and
 // palms up. On "from" the camera pushes through the word-bubble into its
 // gold, and an open book comes up out of it; on "back" its pages turn to the
 // beginning, a dark page. The camera pushes through that page into the dark
@@ -28,6 +28,8 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
+  type IconCount,
+  type Posed,
   glow,
   icons,
   person,
@@ -53,16 +55,15 @@ const FAITH: Camera = {
 /** The asker's two hands at the question, palms up by the shoulders (their reach written each frame). */
 const SHRUG_FAR: GestureAt = { to: [-78, -112], reach: 0, grip: 'palm' };
 const SHRUG_NEAR: GestureAt = { to: [78, -112], reach: 0, grip: 'palm' };
-/** The row's glow and each icon's size, rewritten every frame. */
+/** The row's glow and which icon leads, rewritten every frame. */
 const LIT: [number, number, number] = [1, 1, 1];
-const SHOWN: [number, number, number] = [1, 0, 0];
-const OTHERS: readonly [number, number, number] = [0, 1, 1];
-/** How far the other two fade as faith is singled out. */
-const DIMMED = 0.6;
+const LEAD: [number, number, number] = [0, 0, 0];
+const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
 
 export const spoke = drawing({
   timeline: {
-    gift: { mark: 'gift', offset: 0.2, dur: 1.6, ease: 'inOutSine' },
+    // Faith pops forward in gold, the other two fade back: the section's gift.
+    lead: { mark: 'gift', offset: 0.1, dur: 0.6, ease: 'outBack' },
     dim: { mark: 'gift', offset: 0.1, dur: 0.6 },
     curious: { mark: 'where', offset: -0.2, dur: 0.5 },
     shrug: { mark: 'where', offset: 0.1, dur: 0.5 },
@@ -96,27 +97,19 @@ export const spoke = drawing({
     if (into < 1) {
       sky(ctx, w, h, ICON_SKY);
       const cam = shotPath(REST, [[into, FAITH, pushInto]]);
-      const gift = f.at('gift');
       const dim = f.at('dim');
-      LIT[0] = 1 + 0.6 * Math.sin(Math.PI * gift);
       LIT[1] = 1 - dim;
       LIT[2] = 1 - dim;
-      SHOWN[0] = 1 + 0.08 * Math.sin(Math.PI * gift);
+      LEAD[0] = f.at('lead');
+      COUNT.dim = dim;
       const curious = f.at('curious');
       const shrug = f.at('shrug') * (1 - f.at('unshrug'));
       SHRUG_FAR.reach = shrug;
       SHRUG_NEAR.reach = shrug;
       camera(ctx, cam, w, h, () => {
-        at(ctx, { x: ICON_ROW.x, y: ICON_ROW.y, scale: ICON_ROW.scale }, () => {
-          // Faith's gold swells behind it as it pulses.
-          glow(ctx, ICON_X[0], 0, 340, C.gold, 0.55 * Math.sin(Math.PI * gift) + 0.2 * dim);
-          // The other two dim back into the page.
-          ctx.save();
-          ctx.globalAlpha *= 1 - DIMMED * dim;
-          icons(ctx, f.hand, LIT, OTHERS);
-          ctx.restore();
-          icons(ctx, f.hand, LIT, SHOWN);
-        });
+        at(ctx, { x: ICON_ROW.x, y: ICON_ROW.y, scale: ICON_ROW.scale }, () =>
+          icons(ctx, f.hand, LIT, undefined, COUNT),
+        );
         const [fx, fy] = f.knob('figure');
         at(ctx, { x: fx, y: fy, scale: 1.7 }, () =>
           person(
