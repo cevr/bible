@@ -276,7 +276,7 @@ export const script: ReadonlyArray<Beat> = [
   {
     id: 'rain',
     lead: 0.4,
-    say: "Where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain, the Spirit's outpouring, {blot}and to the blotting out of sins in the cleansing of the sanctuary. {loud}A message for a loud voice, Ellen White said.",
+    say: "Where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain. The Spirit's outpouring. {blot}And to the blotting out of sins, in the cleansing of the sanctuary. {loud}A message for a loud voice, Ellen White said.",
     cite: [
       'A. T. Jones, The Consecrated Way to Christian Perfection, 124',
       'Acts 3:19',
