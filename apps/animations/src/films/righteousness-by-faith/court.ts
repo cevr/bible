@@ -44,7 +44,7 @@ import {
   mix,
   turban,
 } from './kit.ts';
-import { arc, flight, wordLight } from './spoken.ts';
+import { arc, flight } from './spoken.ts';
 
 // ─── the cold open's court, and the landing's ───────────────────────────────
 
@@ -413,20 +413,44 @@ const giftLight = (ctx: CanvasRenderingContext2D, s: Court, christHand: Hand) =>
   glow(ctx, x, y, 46, C.glow, 0.9 * alpha);
   glow(ctx, x, y, 16, C.gold, 0.9 * alpha);
 };
-/** Where the word of light starts, above the court, in frame units. */
-const WORD_FROM: Pt = [260, -160];
+/** How far above the frame the word of light starts, and how far to the side of the hand it comes from. */
+const WORD_ABOVE = -160;
+const WORD_SIDE = 90;
+/** The share of its flight after which the word melts into gold light in the hand. */
+const WORD_MELT = 0.7;
 
-/** Faith: the word of light, down into the figure's open hand and resting there (`Court.word`, `Court.wordKept`). */
+/**
+ * Faith: the word of light comes down from above into the figure's open hand
+ * (no trail), melts into gold light as it lands, and rests there as light
+ * (`Court.word`, `Court.wordKept`).
+ */
 const wordInHand = (ctx: CanvasRenderingContext2D, s: Court, figure: Hand) => {
   const word = s.word ?? 0;
   const kept = s.wordKept ?? 1;
   if (word <= 0 || kept <= 0.01) return;
   const [hx, hy] = handOf(s.figure, 'near', figure);
   const to: Pt = [ACCUSED[0] + hx, ACCUSED[1] + hy - 14];
+  const melt = clamp((word - WORD_MELT) / (1 - WORD_MELT));
   ctx.save();
   ctx.globalAlpha *= kept;
-  if (word < 1) flight(ctx, arc(WORD_FROM, to, 120), word, sub(figure, 700), 0.3);
-  else at(ctx, { x: to[0], y: to[1] }, () => wordLight(ctx, sub(figure, 700), 0.3));
+  if (melt < 1) {
+    ctx.save();
+    ctx.globalAlpha *= 1 - melt;
+    flight(
+      ctx,
+      arc([to[0] + WORD_SIDE, WORD_ABOVE], to, 40),
+      word,
+      sub(figure, 700),
+      0.3 * (1 - 0.5 * melt),
+      false,
+    );
+    ctx.restore();
+  }
+  if (melt > 0) {
+    glow(ctx, to[0], to[1], 90, C.glow, 0.95 * melt);
+    glow(ctx, to[0], to[1], 36, C.gold, 0.95 * melt);
+    glow(ctx, to[0], to[1], 12, C.glow, melt);
+  }
   ctx.restore();
 };
 

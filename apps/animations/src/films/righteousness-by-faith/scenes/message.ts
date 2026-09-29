@@ -189,8 +189,13 @@ const LIT_WINDOW: Pt = [1180, 560];
 const LIT_WINDOW_SHAPE = tabletShape(150, 330);
 /** The dark windows either side of it. */
 const DARK_WINDOWS = [720, 900] as const;
-/** Where the camera ends the push: through the window, its arch past the frame's corners. */
-const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] + 20, zoom: 9 };
+/**
+ * Where the camera ends the push: on the centre of the window's arch (its
+ * round top, `LIT_WINDOW_SHAPE`'s circle, 75 px across its radius), so the
+ * push reads as the arch opening, close enough that the arch's circle is past
+ * the frame's corners (75 × 16 = 1200 > the half-diagonal, 1101).
+ */
+const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] - 90, zoom: 16 };
 const OUTSIDE: Camera = { x: 960, y: 560, zoom: 1 };
 /** The figure from `mirror`, small and screen-left, in the rags of their own sewing. */
 const LOOKER: Pt = [330, HALL_GROUND + 20];

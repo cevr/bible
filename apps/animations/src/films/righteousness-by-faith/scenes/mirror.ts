@@ -65,7 +65,8 @@ const timeline = {
   leaves: { mark: 'fig', offset: 0.4, dur: 2, ease: 'linear' },
   patches: { mark: 'harder', dur: 1.1, ease: 'linear' },
   toPatch: { mark: 'harder', dur: 0.6, ease: 'inOutSine' },
-  promise: { mark: 'promise', dur: 0.4, ease: 'outBack' },
+  // The needle hand rises beside the head: a travel of 0.7 s, landing on the word, never a jump.
+  promise: { mark: 'promise', offset: -0.3, dur: 0.7, ease: 'inOutSine' },
   sheepish: { mark: 'going', offset: 0.1, dur: 0.4 },
   // The promising hand comes back down as they turn sheepish.
   lower: { mark: 'going', dur: 0.8, ease: 'inOutSine' },

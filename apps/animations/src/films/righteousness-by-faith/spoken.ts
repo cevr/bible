@@ -37,7 +37,8 @@ export const arc = (from: Pt, to: Pt, lift: number): Pt[] =>
 /**
  * A word in flight along `path`, `p` 0..1 of the way: a trail of light behind
  * it that fades from the tail, and the word itself at the head, tipped along
- * its heading like a paper plane. Draws nothing at 0.
+ * its heading like a paper plane. Draws nothing at 0. `trail` false flies it
+ * with no trail, a light on its own (the landing's word into the open hand).
  */
 export const flight = (
   ctx: CanvasRenderingContext2D,
@@ -45,11 +46,19 @@ export const flight = (
   p: number,
   hand: Hand,
   size = 0.6,
+  trail = true,
 ) => {
   if (p <= 0) return;
   const drawn = trim(path, length(path) * clamp(p));
   const head = drawn.at(-1) ?? path[0] ?? [0, 0];
   const prev = drawn.at(-4) ?? drawn[0] ?? head;
+  const heading = Math.atan2(head[1] - prev[1], head[0] - prev[0]);
+  if (!trail) {
+    at(ctx, { x: head[0], y: head[1], rot: 0.35 * Math.sin(heading) }, () =>
+      wordLight(ctx, hand, size),
+    );
+    return;
+  }
   const tail = drawn.slice(Math.max(0, drawn.length - 22));
   stroke(
     ctx,
@@ -63,7 +72,6 @@ export const flight = (
     { color: C.gold, width: 12 * size, taper: 0.9, jitter: 0.4, alpha: 0.8 },
     sub(hand, 2),
   );
-  const heading = Math.atan2(head[1] - prev[1], head[0] - prev[0]);
   at(ctx, { x: head[0], y: head[1], rot: 0.35 * Math.sin(heading) }, () =>
     wordLight(ctx, hand, size),
   );
