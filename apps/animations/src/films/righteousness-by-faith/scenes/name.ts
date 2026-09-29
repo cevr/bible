@@ -2,10 +2,11 @@
 // same framing), now standing in the cardboard world under the landing sky.
 // The figure stands where they stood as the accused, in the white robe, and
 // Christ stands beside them as Advocate. Job's question writes itself above
-// the bench again; on "receive" the figure touches the robe's sleeve. On
-// "heart" they let it go and the Advocate reaches out: a light in his open
-// hand passes into their chest and glows there, through the robe; he draws
-// his hand back on "taking". On "every" a sun
+// the bench again. On "taking" the figure's open hand turns palm up and a
+// gold word of light comes down into it (faith); on "receive" that hand goes
+// to the robe's sleeve. On "heart" they let it go and the Advocate reaches
+// out: a light in his open hand passes into their chest and glows there,
+// through the robe, and he draws his hand back. On "every" a sun
 // passes over the court: every day. The gavel falls softly on "verdict"; on
 // "not a cover-up" the Advocate opens his hand to the light in the figure's
 // chest, the evidence, and the figure looks down at it. On "real" the cold
@@ -18,7 +19,7 @@
 import { type Pt, drawing, shotPath } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
-import { knobCamera } from '../kit.ts';
+import { type GestureAt, type Posed, knobCamera } from '../kit.ts';
 import {
   ADVOCATE_POSE,
   FIGURE_LANDED,
@@ -34,6 +35,17 @@ import {
 
 /** Where the figure's near hand touches the robe on "receive": its own chest, on its own side. */
 const TOUCH: Pt = [8, -80];
+/** Where it holds the word, out palm up in front of them, in their units. */
+const HELD_OUT: Pt = [44, -112];
+/** The near hand: palm up for the word, morphing to open on the sleeve (written each frame). */
+const NEAR: Posed<GestureAt> = {
+  to: [HELD_OUT[0], HELD_OUT[1]],
+  reach: 0,
+  grip: 'open',
+  was: 'palm',
+  change: 0,
+  turn: 0,
+};
 
 /** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
 const SWING: ReadonlyArray<Key> = [
@@ -50,13 +62,19 @@ export const name = drawing({
     back: { mark: 'verdict', offset: -0.9, dur: 0.9 },
     lookUp: { mark: 'how', dur: 0.5 },
     questionOut: { mark: 'receive', offset: -0.6, dur: 0.4 },
-    touch: { mark: 'receive', offset: -0.1, dur: 0.6 },
+    // On "taking" their near hand opens palm up and a gold word of light comes
+    // down into it: faith, taking God at his word. On "receive" the hand, the
+    // word fading in it, goes to the robe's sleeve.
+    palm: { mark: 'taking', offset: -0.3, dur: 0.5, ease: 'inOutSine' },
+    word: { mark: 'taking', offset: -0.1, dur: 1, ease: 'inOutSine' },
+    wordOut: { mark: 'receive', offset: 0.1, dur: 0.5 },
+    touch: { mark: 'receive', offset: -0.2, dur: 0.6, ease: 'inOutSine' },
     // The figure lets go of the robe before the heart comes: the new heart is given, not raised.
     release: { mark: 'heart', offset: -0.5, dur: 0.4 },
     give: { mark: 'heart', offset: -0.4, dur: 0.5 },
     pass: { mark: 'heart', offset: 0.1, dur: 0.5, ease: 'inOutSine' },
     heart: { mark: 'heart', offset: 0.35, dur: 0.8, ease: 'outCubic' },
-    withdraw: { mark: 'taking', offset: 0.2, dur: 0.6 },
+    withdraw: { mark: 'heart', offset: 1, dur: 0.6 },
     sun: { mark: 'every', offset: -0.3, until: 'verdict', ease: 'inOutSine' },
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
     // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
@@ -94,6 +112,13 @@ export const name = drawing({
 
     const up = f.at('lookUp') * (1 - f.at('turn'));
     const touch = f.at('touch') * (1 - f.at('release'));
+    // The near hand: out palm up for the word, then over to the sleeve, then down.
+    const move = f.at('touch');
+    NEAR.to[0] = lerp(HELD_OUT[0], TOUCH[0], move);
+    NEAR.to[1] = lerp(HELD_OUT[1], TOUCH[1], move);
+    NEAR.reach = f.at('palm') * (1 - f.at('release'));
+    NEAR.turn = 1 - move;
+    NEAR.change = move;
     const turn = f.at('turn');
     // A soft fall: the same arc as the cold open, landing without the bounce.
     const swing = f.keys('gavel', SWING);
@@ -128,6 +153,8 @@ export const name = drawing({
       shine: 0.9 * f.at('shine'),
       heart: 0.55 * f.at('heart') + 0.35 * present,
       offer: f.at('give'),
+      word: f.at('word'),
+      wordKept: 1 - f.at('wordOut'),
       given: f.at('pass'),
       sun: f.at('sun'),
       figure: {
@@ -143,7 +170,7 @@ export const name = drawing({
         browTilt: 0.35 * up + 0.25 * hung,
         smile: FIGURE_LANDED.smile * smile,
         // The near hand goes to the robe on "receive" and lets it go before "heart".
-        near: { to: TOUCH, reach: touch, grip: 'open' },
+        near: NEAR,
       },
       advocate: {
         ...ADVOCATE_POSE,

@@ -1209,7 +1209,7 @@ const WENT_HOUSE = {
  * still, the faces lit gold from below (`look`'s callback, under faith).
  */
 export const AT_THE_HOLE: House = {
-  cam: { x: 760, y: 330, zoom: 1.5 },
+  cam: { x: 740, y: 240, zoom: 2.2 },
   tiles: 1,
   lower: 0.35,
   ropes: 1,

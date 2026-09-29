@@ -1,4 +1,6 @@
-// Declared. The page, close on the viewer's figure in their stained garment,
+// Declared. It opens on the row `look` left, faith glowing; on "now" the
+// robe lights beside it and the row lifts off the top. Then the page, close
+// on the viewer's figure in their stained garment,
 // and the act's one word card: JUSTIFY, δικαιόω, made righteous. The
 // figure looks down at the card, doubtful (`still`). On `cover` the card
 // goes and the cold open's hollow verdict drifts in over the figure's head,
@@ -32,13 +34,17 @@ import {
   type Person,
   C,
   F,
+  ICON_ROW,
+  ICON_SKY,
   blob,
   clipToGarment,
   glow,
+  icons,
   knobCamera,
   mix,
   person,
   piece,
+  sky,
 } from '../kit.ts';
 import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../court.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
@@ -276,11 +282,19 @@ const washStains = (out: number[], bloom: number) => {
 const clothAt = (bloom: number) =>
   CLOTH_WARMS[Math.round(clamp(bloom) * (CLOTH_WARMS.length - 1))] ?? C.figure;
 
+/** The row's glow (the robe's written each frame), and how far above the frame it lifts to. */
+const ROW_LIT: [number, number, number] = [1, 0, 0];
+const ROW_GONE = -320;
+
 /** Where the doubtful hand goes: under the chin, in front of the body. */
 const DOUBT_AT: Pt = [-10, -100];
 
 export const declared = drawing({
   timeline: {
+    // It opens on the row `look` left, faith glowing; on "now" the robe lights
+    // beside it, and the row lifts off the top as the parchment comes forward.
+    robeLit: { mark: 'now', offset: 0.4, dur: 0.7 },
+    lift: { mark: 'paul', offset: -0.5, dur: 0.9, ease: 'inCubic' },
     cardIn: { mark: 'justified', offset: -0.3, dur: 0.4, ease: 'outBack' },
     greek: { mark: 'justified', offset: 0.5, dur: 0.5 },
     madeLine: { after: 'greek', dur: 0.5 },
@@ -415,5 +429,18 @@ export const declared = drawing({
           ]);
       },
     );
+
+    // The section head's row, where `look` left it, until it lifts away.
+    const lift = f.at('lift');
+    if (lift < 1) {
+      ctx.save();
+      ctx.globalAlpha *= 1 - lift;
+      sky(ctx, w, h, ICON_SKY);
+      ctx.restore();
+      ROW_LIT[1] = f.at('robeLit');
+      at(ctx, { x: ICON_ROW.x, y: lerp(ICON_ROW.y, ROW_GONE, lift), scale: ICON_ROW.scale }, () =>
+        icons(ctx, f.hand, ROW_LIT),
+      );
+    }
   },
 });

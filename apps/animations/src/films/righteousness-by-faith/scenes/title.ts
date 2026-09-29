@@ -1,12 +1,25 @@
 // The title: a teal sky over a cardboard city that rises into place, the name
 // of the film settling above it, and one small grey figure on a rooftop who
 // looks up at it. The camera tilts up a little, so the two rows of buildings
-// part in depth.
+// part in depth. `word` opens on a match cut from the name (`NAME`).
 
 import { at, drawing, multiplane, write } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { ROOF, cityBack, cityFront } from '../city.ts';
 import { C, F, glow, person, sky } from '../kit.ts';
+
+/**
+ * The film's name as it settles: its words, where it rests (the line's
+ * centre and baseline, in frame px) and its type. `word` opens on a match
+ * cut from it: its first word drops onto the page from exactly here.
+ */
+export const NAME = {
+  first: 'Righteousness',
+  rest: ' by Faith',
+  x: 960,
+  y: 415,
+  style: { family: F.display, size: 132, weight: 700, color: C.cream, align: 'center' },
+} as const;
 
 export const title = drawing({
   timeline: {
@@ -64,10 +77,10 @@ export const title = drawing({
     ctx.shadowOffsetY = 8;
     write(
       ctx,
-      'Righteousness by Faith',
-      960,
-      lerp(445, 415, settle),
-      { family: F.display, size: 132, weight: 700, color: C.cream, align: 'center' },
+      NAME.first + NAME.rest,
+      NAME.x,
+      lerp(NAME.y + 30, NAME.y, settle),
+      NAME.style,
       f.hand('title'),
       { alpha: settle, boil: 0.4 },
     );

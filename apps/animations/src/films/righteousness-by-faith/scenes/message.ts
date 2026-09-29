@@ -1,6 +1,8 @@
-// The message: Minneapolis, 1888. A cardboard meeting hall in warm peach
-// light, two preachers at the front, the congregation in rows before
-// them. On "reputation" the crowd splits: half hold small stone tablets up,
+// The message: Minneapolis, 1888. On "how" the grey figure from `mirror`,
+// small in the rags of their own sewing, looks up at the one lit window of a
+// cardboard meeting hall at dusk; on "year" the camera pushes through the
+// window into the hall in warm peach light, two preachers at the front, the
+// congregation in rows before them. On "reputation" the crowd splits: half hold small stone tablets up,
 // half look about for something missing. On the answer ("It was") every face
 // turns to a gold light rising behind the pulpit; the tablets stay up, the law
 // is not dropped. On "angel" the roof lifts off the diorama and the angel of
@@ -21,6 +23,7 @@ import {
   type Hand,
   type Pt,
   at,
+  camera,
   drawing,
   ellipse,
   ellipseShape,
@@ -28,6 +31,7 @@ import {
   spline,
   multiplane,
   probePlate,
+  pushInto,
   rectShape,
   shotPath,
   stroke,
@@ -43,6 +47,7 @@ import {
   type Hands,
   type Person,
   glow,
+  handOf,
   knobCamera,
   icons,
   handCloseUp,
@@ -55,6 +60,7 @@ import {
   plate,
 } from '../kit.ts';
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
+import { apron } from '../garden.ts';
 import { herald } from '../heaven.ts';
 import { arc, flight } from '../spoken.ts';
 import { crossShape, tabletShape, tablets } from '../law.ts';
@@ -84,9 +90,13 @@ const CROWD: ReadonlyArray<Seat> = [
 ];
 
 const timeline = {
+  // Outside the hall at dusk, the figure from `mirror` looks up at its one
+  // lit window; on "year" the camera pushes through the window into the hall.
+  lookUp: { mark: 'how', offset: 0.3, dur: 0.8, ease: 'inOutSine' },
+  window: { mark: 'year', offset: -0.3, dur: 1.3, ease: 'inCubic' },
   // Waggoner holds the open Bible from the cut: the hall opens on it.
   bible: { scene: 'start', dur: 0 },
-  placard: { mark: 'year', offset: 0.1, dur: 0.5, ease: 'outBack' },
+  placard: { after: 'window', dur: 0.5, ease: 'outBack' },
   stepUp: { mark: 'two', dur: 0.6 },
   push: { mark: 'two', offset: 0.3, dur: 1.4, ease: 'inOutSine' },
   placardOut: { mark: 'two', offset: 0.1, dur: 0.4 },
@@ -170,6 +180,116 @@ const hallWindow = (ctx: CanvasRenderingContext2D, hand: Hand, x: number, y: num
   });
 };
 
+/** The hall from outside at dusk: its front, where it stands, and its one lit window (centre and size), which the camera pushes through. */
+const HALL_FRONT = { x: 600, y: 330, w: 900, h: 600 } as const;
+const HALL_GROUND = 930;
+const LIT_WINDOW: Pt = [1180, 560];
+const LIT_WINDOW_SHAPE = tabletShape(150, 330);
+/** The dark windows either side of it. */
+const DARK_WINDOWS = [720, 900] as const;
+/** Where the camera ends the push: through the window, its arch past the frame's corners. */
+const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] + 20, zoom: 9 };
+const OUTSIDE: Camera = { x: 960, y: 560, zoom: 1 };
+/** The figure from `mirror`, small and screen-left, in the rags of their own sewing. */
+const LOOKER: Pt = [330, HALL_GROUND + 20];
+const LOOKER_S = 1.7;
+const LOOKER_LOOK: [number, number] = [0, 0];
+const LOOKER_P: Person = { look: LOOKER_LOOK };
+
+/**
+ * Outside the hall at dusk (`how`): the figure from `mirror`, small at the
+ * left, looks up at the one lit window; on "year" the camera pushes through
+ * it (`into` 0..1), the hall showing inside the window's arch, until the arch
+ * is past the frame's edges and the hall is all there is (`inside`).
+ */
+const outside = (f: MessageFrame, into: number, inside: () => void) => {
+  const { ctx, w, h } = f;
+  sky(ctx, w, h, [
+    [0, C.sunsetTop],
+    [0.7, C.peachTop],
+    [1, C.peachLow],
+  ]);
+  const cam = shotPath(OUTSIDE, [[into, THROUGH_WINDOW, pushInto]]);
+  const up = f.at('lookUp');
+  LOOKER_LOOK[0] = lerp(2, 4, up);
+  LOOKER_LOOK[1] = lerp(1, -4, up);
+  camera(
+    ctx,
+    cam,
+    w,
+    h,
+    () => {
+      piece(ctx, rectShape(-800, HALL_GROUND, 3500, 600), C.boardShade, f.hand('street'), {
+        role: 'scenery',
+        line: 0,
+        torn: 4,
+      });
+      const { x, y, w: fw, h: fh } = HALL_FRONT;
+      piece(ctx, rectShape(x, y, fw, fh), C.board, f.hand('front'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 0,
+        torn: 3,
+        shadow: 0.4,
+      });
+      piece(
+        ctx,
+        [
+          [x - 40, y + 4],
+          [x + fw / 2, y - 190],
+          [x + fw + 40, y + 4],
+        ],
+        C.boardDeep,
+        f.hand('gable'),
+        { role: 'scenery', kind: 'cut', line: 0, torn: 2 },
+      );
+      DARK_WINDOWS.forEach((wx, i) =>
+        at(ctx, { x: wx, y: LIT_WINDOW[1] }, () =>
+          piece(ctx, LIT_WINDOW_SHAPE, C.boardDeep, sub(f.hand('darkWindow'), i), {
+            role: 'scenery',
+            kind: 'cut',
+            line: 4,
+          }),
+        ),
+      );
+      piece(ctx, rounded(1380, HALL_GROUND - 130, 120, 260, 10), C.boardDeep, f.hand('hallDoor'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 4,
+      });
+      glow(ctx, LIT_WINDOW[0], LIT_WINDOW[1], 320, C.glow, 0.7);
+      at(ctx, { x: LOOKER[0], y: LOOKER[1], scale: LOOKER_S }, () => {
+        person(
+          ctx,
+          { ...LOOKER_P, tilt: -0.14 * up, browL: 2.5 * up, browR: 3 * up, browTilt: 0.3 * up },
+          f.hand('looker'),
+        );
+        apron(ctx, f.hand('lookerApron'), 4, 1, 0);
+      });
+    },
+    0,
+  );
+  // The window's arch, in frame px, and the hall inside it.
+  ctx.save();
+  const zoom = cam.zoom ?? 1;
+  ctx.beginPath();
+  let first = true;
+  for (const [px, py] of LIT_WINDOW_SHAPE) {
+    const sx = w / 2 + (LIT_WINDOW[0] + px - cam.x) * zoom;
+    const sy = h / 2 + (LIT_WINDOW[1] + py - cam.y) * zoom;
+    if (first) ctx.moveTo(sx, sy);
+    else ctx.lineTo(sx, sy);
+    first = false;
+  }
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = C.peachTop;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalAlpha *= clamp(2 * into);
+  inside();
+  ctx.restore();
+};
+
 export const message = drawing({
   timeline,
   knobs,
@@ -191,7 +311,9 @@ export const message = drawing({
       ]);
       const roof = f.at('roof');
       const up: Camera = { ...cam, y: cam.y - 60 * roof, zoom: lerp(cam.zoom ?? 1, 1, roof) };
-      hall(f, up, roof);
+      const into = f.at('window');
+      if (into < 1) outside(f, into, () => hall(f, up, roof));
+      else hall(f, up, roof);
 
       // The angel of Rev 14, with the message on its banner.
       const [ax, ay] = f.knob('angelAt');
@@ -524,24 +646,25 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
               lerp(lerp(toward[0], glance[0], wander), (960 - seat.x) / 180, turn),
               lerp(lerp(toward[1], glance[1], wander), -4, turn),
             ];
+            const who: Person = {
+              look,
+              tilt: 0.12 * wander * Math.sin(t * 1.1 + i) + turn * ((960 - seat.x) / 4000),
+              browL: 3 * wander + 3 * turn + 2 * curious,
+              browR: 2 * wander + 4 * turn + 3 * curious,
+              browTilt: 0.45 * wander + 0.3 * turn + 0.3 * curious,
+              mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
+              near: TABLETS_UP,
+            };
+            const me = sub(f.hand('crowd'), i);
             at(ctx, { x: seat.x, y: seat.y, scale: seat.s }, () => {
-              person(
-                ctx,
-                {
-                  look,
-                  tilt: 0.12 * wander * Math.sin(t * 1.1 + i) + turn * ((960 - seat.x) / 4000),
-                  browL: 3 * wander + 3 * turn + 2 * curious,
-                  browR: 2 * wander + 4 * turn + 3 * curious,
-                  browTilt: 0.45 * wander + 0.3 * turn + 0.3 * curious,
-                  mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
-                  near: TABLETS_UP,
-                },
-                sub(f.hand('crowd'), i),
-              );
-              if (holds)
-                at(ctx, { x: 74, y: -176 * split - 70 * (1 - split), scale: 0.3 * split }, () =>
+              // The tablets first, riding on the hand, so the hand is drawn over their foot.
+              if (holds) {
+                const [hx, hy] = handOf(who, 'near', me);
+                at(ctx, { x: hx, y: hy - TABLETS_ABOVE * split, scale: TABLETS_S * split }, () =>
                   tablets(ctx, (k) => sub(f.hand(k), i)),
                 );
+              }
+              person(ctx, who, me);
             });
           }),
       },
@@ -579,6 +702,9 @@ const hairShape = ([cx, cy]: Pt, [rx, ry]: Pt, sweep: number): Pt[] =>
 
 /** A crowd member's hand under the tablets they hold up on the split (its reach written per seat). */
 const TABLETS_UP: GestureAt = { to: [70, -150], reach: 0, grip: 'hold' };
+/** The tablets they hold: their scale, and how far above the fist their middle rides (half their height, less the fingers over the foot). */
+const TABLETS_S = 0.3;
+const TABLETS_ABOVE = 22;
 /** Waggoner's two hands on the open Bible, and Jones's lifted as he preaches. */
 const ON_BIBLE_FAR: GestureAt = { to: [-10, -86], reach: 0, grip: 'hold' };
 const ON_BIBLE_NEAR: GestureAt = { to: [30, -84], reach: 0, grip: 'hold' };

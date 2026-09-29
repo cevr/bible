@@ -76,7 +76,7 @@ const GAVEL_LIE = -Math.PI / 2 + 0.22;
 const JOSHUA_CHEST_Y = JOSHUA[1] - 80 * JS;
 
 /** Christ's hand reaching out to Joshua on "clothe", open; its reach rewritten each frame (scratch). */
-const REACHING: Posed<Gesture> = { to: [-110, -118], reach: 0, grip: 'open' };
+const REACHING: Posed<Gesture> = { to: [-64, -108], reach: 0, grip: 'open' };
 const reachingOut = (reach: number): Gesture => {
   REACHING.reach = reach;
   return REACHING;

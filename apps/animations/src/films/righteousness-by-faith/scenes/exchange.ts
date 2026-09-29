@@ -1,8 +1,8 @@
 // The exchange: a sunset path at the foot of a cardboard hill, the sun
 // sinking toward the hilltop from the first words to "cross". The grey figure
 // from the cold open, the same stains on their garment, turns toward the hill
-// and asks how God can be fair; on "right" Jesus walks up to them, and the
-// camera closes on both faces. On "took" the scarlet lifts off the figure as
+// and asks how God can be fair; on "fair" Jesus walks up to them, and on
+// "treated" the camera closes on both faces. On "took" the scarlet lifts off the figure as
 // a cloth and settles on his shoulders, and he carries it up the hill. On
 // "cross" the film's one black moment: the hill, the cross and the figure in
 // silhouette against the last red of the sky. On "rose" dawn: the empty tomb,

@@ -1,4 +1,6 @@
-// The word: righteousness, on the parchment page. A word card, which flips to
+// The word: righteousness, on the parchment page, opened on a match cut from
+// the title: its first word drops from where the title left it and lands as
+// the word card, the rest of the name falling away. The card flips to
 // its plain meaning, right doing; a measuring tape drops and hangs there,
 // asking by whose measure. Then the answer: the two tablets set down and
 // their ten lines light gold as the psalm is read, their glow rising into a
@@ -14,6 +16,7 @@ import {
   camera,
   drawing,
   line,
+  measure,
   probePlate,
   stroke,
   write,
@@ -22,6 +25,7 @@ import {
 import { clamp, hash2, lerp } from '@bible/film/core';
 import { C, F, type Posed, ground, glow, person, piece, rounded, plate } from '../kit.ts';
 import { planet, ring, star, tablets } from '../law.ts';
+import { NAME } from './title.ts';
 
 const WORD_CARD = 'Righteousness';
 const MEANING = 'right doing';
@@ -37,7 +41,12 @@ const SKY: ReadonlyArray<readonly [number, number, number, string]> = [
 ];
 
 const timeline = {
-  card: { scene: 'start', offset: 0.3, dur: 0.5, ease: 'outBack' },
+  // The match cut: the title's first word, where the title left it, drops
+  // onto the page and lands as the card's word; the rest of the name falls away.
+  match: { scene: 'start', offset: 0.2, dur: 0.9, ease: 'inOutCubic' },
+  fall: { scene: 'start', dur: 0.6, ease: 'inQuad' },
+  // The card comes up under the word as it lands.
+  card: { after: 'match', offset: -0.3, dur: 0.3, ease: 'outCubic' },
   shrug: { mark: 'church', offset: 0.2, dur: 0.4, ease: 'outBack' },
   unshrug: { mark: 'fair', dur: 0.5 },
   flip: { mark: 'right', offset: -0.1, dur: 0.5, ease: 'inOutSine' },
@@ -83,6 +92,7 @@ const page = (f: WordFrame) => {
   universe(f, lx, ly);
 
   card(f);
+  matchCut(f);
   tape(f);
 
   const drop = f.at('drop');
@@ -138,35 +148,86 @@ const card = (f: WordFrame) => {
   const flip = f.at('flip');
   const turned = flip >= 0.5;
   const text = turned ? MEANING : WORD_CARD;
-  at(ctx, { x, y: y - 500 * f.at('cardOut'), scale: show, rot: -0.02 }, () => {
-    ctx.save();
-    ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(flip * Math.PI))));
-    const board = plate(0, 0, 820, 210);
-    piece(ctx, board, C.cream, f.hand('card'), {
-      role: 'scenery',
-      kind: 'cut',
-      line: 4,
-      torn: 2,
-    });
-    probePlate(ctx, board, () =>
-      write(
-        ctx,
-        text,
-        0,
-        34,
-        {
-          family: turned ? F.hand : F.display,
-          size: turned ? 120 : 104,
-          weight: turned ? 400 : 700,
-          color: turned ? C.inkSoft : C.ink,
-          align: 'center',
-        },
-        f.hand(turned ? 'meaning' : 'word'),
-        { boil: 0.4 },
-      ),
-    );
-    ctx.restore();
-  });
+  // It comes up under the landing word, fading in at nearly its size (never a speck over the word).
+  at(
+    ctx,
+    {
+      x,
+      y: y - 300 * f.at('cardOut'),
+      scale: lerp(0.92, 1, f.at('card')) * (1 - 0.6 * f.at('cardOut')),
+      rot: CARD_TILT,
+    },
+    () => {
+      ctx.save();
+      ctx.globalAlpha *= show;
+      ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(flip * Math.PI))));
+      const board = plate(0, 0, 820, 210);
+      piece(ctx, board, C.cream, f.hand('card'), {
+        role: 'scenery',
+        kind: 'cut',
+        line: 4,
+        torn: 2,
+      });
+      // The word is the title's, still in flight, until it lands.
+      if (f.at('match') >= 1)
+        probePlate(ctx, board, () =>
+          write(
+            ctx,
+            text,
+            0,
+            CARD_BASELINE,
+            {
+              family: turned ? F.hand : F.display,
+              size: turned ? 120 : CARD_SIZE,
+              weight: turned ? 400 : 700,
+              color: turned ? C.inkSoft : C.ink,
+              align: 'center',
+            },
+            f.hand(turned ? 'meaning' : 'word'),
+            { boil: 0.4 },
+          ),
+        );
+      ctx.restore();
+    },
+  );
+};
+
+/** The card's word: its size, its baseline below the card's centre, and the card's tilt. */
+const CARD_SIZE = 104;
+const CARD_BASELINE = 34;
+const CARD_TILT = -0.02;
+
+/**
+ * The match cut from the title: its first word, in the ink it has on the
+ * page, starts exactly where the title left it and lands as the card's word,
+ * shrinking to the card's size; the rest of the name falls off the page.
+ */
+const matchCut = (f: WordFrame) => {
+  const match = f.at('match');
+  if (match >= 1) return;
+  const { ctx } = f;
+  const style = { ...NAME.style, color: C.ink, align: 'left' } as const;
+  const firstW = measure(ctx, NAME.first, style);
+  const fullW = measure(ctx, NAME.first + NAME.rest, style);
+  const left = NAME.x - fullW / 2;
+  const [cx, cy] = f.knob('card');
+  const k = CARD_SIZE / NAME.style.size;
+  at(
+    ctx,
+    {
+      x: lerp(left + firstW / 2, cx, match),
+      y: lerp(NAME.y, cy + CARD_BASELINE, match),
+      rot: CARD_TILT * match,
+      scale: lerp(1, k, match),
+    },
+    () =>
+      write(ctx, NAME.first, 0, 0, { ...style, align: 'center' }, f.hand('word'), { boil: 0.4 }),
+  );
+  const fall = f.at('fall');
+  if (fall >= 1) return;
+  at(ctx, { x: left + firstW, y: NAME.y + 900 * fall * fall, rot: 0.25 * fall }, () =>
+    write(ctx, NAME.rest, 0, 0, style, f.hand('titleRest'), { alpha: 1 - fall, boil: 0.4 }),
+  );
 };
 
 /** The measuring tape that drops and hangs: by whose measure? */

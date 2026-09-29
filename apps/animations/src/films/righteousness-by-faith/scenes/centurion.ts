@@ -27,6 +27,8 @@ import {
   type HeadPiece,
   type Person,
   C,
+  ICON_ROW,
+  ICON_SKY,
   ICON_X,
   christ,
   ground,
@@ -163,9 +165,6 @@ type CenturionFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 /** The three icons' light, faith's set each frame (a scratch tuple, so the draw allocates none). */
 const LIT: [number, number, number] = [0, 0, 0];
 
-/** How close the pull back starts: on the gold word-bubble, faith's icon, filling the frame. */
-const ICONS_CLOSE = 2.3;
-
 export const centurion = drawing({
   knobs,
   timeline,
@@ -180,16 +179,13 @@ export const centurion = drawing({
       const pull = f.at('pullBack');
       ctx.save();
       ctx.globalAlpha *= toIcons;
-      sky(ctx, w, h, [
-        [0, C.glow],
-        [1, C.peachLow],
-      ]);
+      sky(ctx, w, h, ICON_SKY);
       at(
         ctx,
         {
-          x: lerp(960 - ICON_X[0] * ICONS_CLOSE, 960, pull),
-          y: 540,
-          scale: lerp(ICONS_CLOSE, 1, pull),
+          x: lerp(ICON_ROW.x - ICON_X[0] * ICON_ROW.close, ICON_ROW.x, pull),
+          y: ICON_ROW.y,
+          scale: lerp(ICON_ROW.close, ICON_ROW.scale, pull),
         },
         () => {
           LIT[0] = f.at('faithLit');

@@ -1,6 +1,6 @@
 // Daily: sanctification is the daily choice to keep receiving the gifts, and
 // the Sabbath is rest in His works, not ours. First the parchment: the robed
-// figure from `robe`, heart glowing, asks "am I done?"; on "kingdom" the
+// figure from `robe`, heart glowing, asks "am I done?"; on "joy" the
 // camera pans to a gold city gate with light and small music notes drifting
 // out; on "joy" a small grey figure stands beside it in the cold open's
 // scarlet stains, the film's picture of sin, hands over ears, the notes

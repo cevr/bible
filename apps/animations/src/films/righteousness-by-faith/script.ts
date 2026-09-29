@@ -184,7 +184,7 @@ export const script: ReadonlyArray<Beat> = [
     id: 'look',
     // A pause after the key quotation (CRAFT rule 9): the pull back to the
     // icons and the callback to `roof`'s four faces at the hole.
-    tail: 1.2,
+    tail: 2.8,
     say: '{faith}So what does faith do? {saviour}Faith is not our Saviour, Ellen White said. It earns nothing. {hand}It is the hand that takes hold of Christ. {desert}Remember Israel, bitten by snakes? {pole}Whoever looked at the serpent on the pole lived. {harder}We still make it harder. {climb}She put it so simply: “Do not climb the pole, but only look. I present Christ to you. Look and live.”',
     cite: [
       'Ellen G. White, The Desire of Ages, 175',

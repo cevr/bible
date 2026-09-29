@@ -5,10 +5,13 @@
 // sky, scarlet paper snakes in the sand, a bitten figure. The bronze serpent
 // rises on its pole; the figure tries to climb it, straining, slipping; then
 // stops, slides down, steps back and simply looks up, and the camera closes
-// on their face as the bites fade and the light reaches them.
+// on their face as the bites fade and the light reaches them. After the last
+// word, faith's icon pulls back to the section head's row, glowing, and for a
+// breath the four faces at the hole in `roof` show under it, lit gold.
 
 import {
   type Camera,
+  type Frame,
   type Pt,
   at,
   drawing,
@@ -21,11 +24,16 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
+import { AT_THE_HOLE, RECALL_RISE, house, recall } from '../gospel.ts';
 import {
   type GestureAt,
   C,
+  ICON_ROW,
+  ICON_SKY,
+  ICON_X,
   blob,
   glow,
+  icons,
   knobCamera,
   type HandPush,
   person,
@@ -94,50 +102,66 @@ const LIGHT_FROM = -680;
 /** The climber's hands on the pole, one high and one low (their x follows the pole each frame). */
 const ON_POLE_HIGH: GestureAt = { to: [0, -150], reach: 0, grip: 'hold' };
 const ON_POLE_LOW: GestureAt = { to: [0, -95], reach: 0, grip: 'hold' };
+/** Their hands as they look up, together at the chest (reach written each frame). */
+const AT_CHEST_NEAR: GestureAt = { to: [16, -104], reach: 0, grip: 'open' };
+const AT_CHEST_FAR: GestureAt = { to: [-12, -100], reach: 0, grip: 'open' };
 
 /** The pole stands this tall above the ground. */
 const POLE_H = 620;
 
+const timeline = {
+  wonder: { mark: 'faith', dur: 0.5 },
+  holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
+  // Their hands go up to where the stack comes down into them, and down once it has slid off.
+  handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
+  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
+  armsDown: { after: 'slide', dur: 0.5 },
+  handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
+  // As the stack goes, their near hand comes down open, and the camera
+  // pushes into it: the close-up. Once the light is laid in it, back out
+  // to them holding it.
+  offer: { with: 'handIn', offset: -0.5, dur: 0.5 },
+  // Coming down, the hand that held the stack turns palm up: the close-up's shape.
+  palmUp: { mark: 'hand', offset: -0.85, dur: 0.25, ease: 'inOutSine' },
+  handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
+  light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
+  handOut: { after: 'light', dur: 0.6, ease: 'inOutCubic' },
+  toDesert: { mark: 'desert', offset: -0.4, dur: 0.6 },
+  rise: { mark: 'pole', offset: -0.2, dur: 1.2, ease: 'outBack' },
+  approach: { mark: 'harder', offset: -0.6, dur: 0.7, ease: 'inOutSine' },
+  climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
+  // Their hands take the pole as they start to climb, and let go as they slide down.
+  grasp: { with: 'climb', dur: 0.6, ease: 'inOutSine' },
+  slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
+  letGo: { with: 'slideDown', dur: 0.5 },
+  stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
+  // Stepped back, he looks up and the camera pushes in.
+  lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
+  push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
+  // Healed on "I present Christ".
+  heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
+  // After the last word: the face gives way to faith's icon close, pulled back
+  // to the row, faith glowing; for a breath, under it, the four faces at the
+  // hole in the roof, lit gold (the callback to `roof`).
+  toIcons: { scene: 'speechEnd', offset: 0.1, dur: 0.4 },
+  pullBack: { scene: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
+  iconGlow: { scene: 'speechEnd', offset: 0.3, dur: 0.6 },
+  hole: { scene: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
+  holeOut: { scene: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
+} as const;
+const knobs = {
+  pole: [1180, 930],
+  figure: [760, 930],
+  // Close on the face looking up at the serpent.
+  face: [1060, 600],
+  faceZoom: 2,
+} as const;
+
+type LookFrame = Frame<keyof typeof timeline & string, typeof knobs>;
+
 export const look = drawing({
-  timeline: {
-    wonder: { mark: 'faith', dur: 0.5 },
-    holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
-    // Their hands go up to where the stack comes down into them, and down once it has slid off.
-    handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
-    slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
-    armsDown: { after: 'slide', dur: 0.5 },
-    handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
-    // As the stack goes, their near hand comes down open, and the camera
-    // pushes into it: the close-up. Once the light is laid in it, back out
-    // to them holding it.
-    offer: { with: 'handIn', offset: -0.5, dur: 0.5 },
-    // Coming down, the hand that held the stack turns palm up: the close-up's shape.
-    palmUp: { mark: 'hand', offset: -0.85, dur: 0.25, ease: 'inOutSine' },
-    handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
-    light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
-    handOut: { after: 'light', dur: 0.6, ease: 'inOutCubic' },
-    toDesert: { mark: 'desert', offset: -0.4, dur: 0.6 },
-    rise: { mark: 'pole', offset: -0.2, dur: 1.2, ease: 'outBack' },
-    approach: { mark: 'harder', offset: -0.6, dur: 0.7, ease: 'inOutSine' },
-    climb: { mark: 'harder', offset: 0.2, dur: 2.2 },
-    // Their hands take the pole as they start to climb, and let go as they slide down.
-    grasp: { with: 'climb', dur: 0.6, ease: 'inOutSine' },
-    slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
-    letGo: { with: 'slideDown', dur: 0.5 },
-    stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
-    // Stepped back, he looks up and the camera pushes in.
-    lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
-    push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
-    // Healed on "I present Christ".
-    heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
-  },
-  knobs: {
-    pole: [1180, 930],
-    figure: [760, 930],
-    // Close on the face looking up at the serpent.
-    face: [1060, 600],
-    faceZoom: 2,
-  },
+  timeline,
+  knobs,
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
@@ -252,7 +276,8 @@ export const look = drawing({
     }
 
     // ── B: the camp in the desert, the serpent on the pole ───────────────────
-    if (toDesert > 0) {
+    // Once the row covers it, the camp is no longer drawn.
+    if (toDesert > 0 && f.at('toIcons') < 1) {
       const [px, py] = f.knob('pole');
       const [fx, fy] = f.knob('figure');
       const rise = f.at('rise');
@@ -279,6 +304,9 @@ export const look = drawing({
       ON_POLE_HIGH.reach = strain;
       ON_POLE_LOW.reach = strain;
       const jiggle = strain * Math.sin(t * 18) * 3;
+      // Looking up, their hands come together at the chest: in the close-up, never cut by its frame.
+      AT_CHEST_NEAR.reach = lookUp;
+      AT_CHEST_FAR.reach = lookUp;
 
       ctx.save();
       ctx.globalAlpha *= toDesert;
@@ -429,8 +457,8 @@ export const look = drawing({
                     browL: 2 * strain,
                     mouth: 0.5 * strain,
                     stains: heal < 0.5 ? BITES : [],
-                    near: ON_POLE_HIGH,
-                    far: ON_POLE_LOW,
+                    near: lookUp > 0 ? AT_CHEST_NEAR : ON_POLE_HIGH,
+                    far: lookUp > 0 ? AT_CHEST_FAR : ON_POLE_LOW,
                   },
                   hand('bitten'),
                 );
@@ -442,5 +470,44 @@ export const look = drawing({
       );
       ctx.restore();
     }
+
+    // ── C: back to the row, and the four faces at the hole ─────────────────
+    const toIcons = f.at('toIcons');
+    if (toIcons > 0) row(f, toIcons);
   },
 });
+
+/** The row's glow: faith lit, the other two not yet (rewritten every frame). */
+const LIT: [number, number, number] = [0, 0, 0];
+
+/**
+ * After the last word: faith's icon, close, pulls back to the section head's
+ * row, its gold glowing; for a breath the four faces at the hole in the roof
+ * show under it, lit gold from below (`roof`'s callback), and go as the row
+ * settles for `declared` to open on.
+ */
+const row = (f: LookFrame, shown: number) => {
+  const { ctx, w, h } = f;
+  const pull = f.at('pullBack');
+  const hole = f.at('hole') * (1 - f.at('holeOut'));
+  LIT[0] = 1 + 0.5 * Math.sin(Math.PI * f.at('iconGlow'));
+  ctx.save();
+  ctx.globalAlpha *= shown;
+  sky(ctx, w, h, ICON_SKY);
+  const scale = lerp(ICON_ROW.close, ICON_ROW.scale, pull);
+  at(
+    ctx,
+    {
+      x: lerp(ICON_ROW.x - ICON_X[0] * ICON_ROW.close, ICON_ROW.x, pull),
+      y: ICON_ROW.y - RECALL_RISE * hole * scale,
+      scale,
+    },
+    () => {
+      icons(ctx, f.hand, LIT);
+      at(ctx, { x: ICON_X[0], y: 0 }, () =>
+        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf('roof'), AT_THE_HOLE)),
+      );
+    },
+  );
+  ctx.restore();
+};

@@ -80,7 +80,7 @@ const timeline = {
   threeWalk: { mark: 'three', until: 'proof', ease: 'linear' },
   // The walk vouches for the pardon: a thread of light from the heart back to the robe.
   proof: { mark: 'proof', dur: 1.2, ease: 'inOutSine' },
-  proofWalk: { mark: 'proof', dur: 2.4, ease: 'linear' },
+  proofWalk: { mark: 'proof', dur: 1.6, ease: 'linear' },
 } as const;
 
 const knobs = {

@@ -44,6 +44,7 @@ import {
   mix,
   turban,
 } from './kit.ts';
+import { arc, flight, wordLight } from './spoken.ts';
 
 // ─── the cold open's court, and the landing's ───────────────────────────────
 
@@ -236,6 +237,13 @@ export interface Court {
    */
   readonly offer?: number;
   readonly given?: number;
+  /**
+   * The word taken at its word (faith): `word` 0..1 carries a gold word of
+   * light down from above the court into the figure's open near hand, where
+   * it rests glowing; `wordKept` 1..0 fades it there.
+   */
+  readonly word?: number;
+  readonly wordKept?: number;
   /** A sun's pass over the court, 0 rising behind the left pillar to 1 set behind the bench; none outside 0..1. */
   readonly sun?: number;
   /** The bench's gold: 0 cardboard, 1 glowing. */
@@ -371,6 +379,7 @@ export const landingCourt = (
             ),
           );
           giftLight(ctx, s, hand('christ'));
+          wordInHand(ctx, s, hand('figure'));
           // The light inside answers through the robe, not only on it.
           const inner = Math.max(s.heart ?? 0, s.shine);
           if (inner > 0) {
@@ -404,6 +413,23 @@ const giftLight = (ctx: CanvasRenderingContext2D, s: Court, christHand: Hand) =>
   glow(ctx, x, y, 46, C.glow, 0.9 * alpha);
   glow(ctx, x, y, 16, C.gold, 0.9 * alpha);
 };
+/** Where the word of light starts, above the court, in frame units. */
+const WORD_FROM: Pt = [260, -160];
+
+/** Faith: the word of light, down into the figure's open hand and resting there (`Court.word`, `Court.wordKept`). */
+const wordInHand = (ctx: CanvasRenderingContext2D, s: Court, figure: Hand) => {
+  const word = s.word ?? 0;
+  const kept = s.wordKept ?? 1;
+  if (word <= 0 || kept <= 0.01) return;
+  const [hx, hy] = handOf(s.figure, 'near', figure);
+  const to: Pt = [ACCUSED[0] + hx, ACCUSED[1] + hy - 14];
+  ctx.save();
+  ctx.globalAlpha *= kept;
+  if (word < 1) flight(ctx, arc(WORD_FROM, to, 120), word, sub(figure, 700), 0.3);
+  else at(ctx, { x: to[0], y: to[1] }, () => wordLight(ctx, sub(figure, 700), 0.3));
+  ctx.restore();
+};
+
 /** The sun's pass behind the court, on the pillars' plane: rising behind the left pillar, its height, set behind the bench. */
 const SUN_FROM: Pt = [470, 600];
 const SUN_TO: Pt = [990, 600];
