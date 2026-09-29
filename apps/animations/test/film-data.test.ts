@@ -1,6 +1,8 @@
-// The committed film data is the contract the Schemas must keep: paid takes and
-// the score are keyed by these files and hashes, so a codec or key change that
-// moved a single byte would orphan them.
+// Committed film data is the contract the Schemas and keys must keep: paid
+// takes and the score are keyed by these files and hashes, so a codec or key
+// change that moved a single byte would orphan them. The codecs and keys are
+// held on the fixture film (`fixtures/films/tiny`), pinned to the values it
+// was committed with; the live film's own data is checked for being current.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -13,27 +15,38 @@ import {
   musicKey,
   musicPlan,
   parse,
+  takeScript,
   voiceKey,
 } from '@bible/film/core';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { FILMS } from '../server.ts';
 import { firstCut } from '../src/films/righteousness-by-faith-v1/film.ts';
-import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
-import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
-import { voice } from '../src/films/righteousness-by-faith-v1/voice.ts';
+import { scenes as liveScenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
+import { voice as liveVoice } from '../src/films/righteousness-by-faith/voice.ts';
+import { FIXTURE_FILMS } from './fixtures/cli.ts';
+import { scenes } from './fixtures/films/tiny/scenes/index.ts';
+import { sound } from './fixtures/films/tiny/sound.ts';
+import { voice } from './fixtures/films/tiny/voice.ts';
 
-const readFilmFile = Effect.fn('test.readFilmFile')(function* (file: string) {
+/** A file of the film at `root`/`film`, as committed. */
+const readFilmFile = Effect.fn('test.readFilmFile')(function* (
+  root: string,
+  film: string,
+  file: string,
+) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  return yield* fs.readFileString(
-    path.join(import.meta.dir, '..', 'src', 'films', 'righteousness-by-faith-v1', file),
-  );
+  return yield* fs.readFileString(path.join(root, film, file));
 });
 
-describe('righteousness-by-faith-v1 data', () => {
+const fixture = (file: string) => readFilmFile(FIXTURE_FILMS, 'tiny', file);
+const live = (file: string) => readFilmFile(FILMS, 'righteousness-by-faith', file);
+
+describe('film data codecs and keys (fixture film)', () => {
   it.effect.layer(BunServices.layer)('timings.json decodes and re-encodes byte for byte', () =>
     Effect.gen(function* () {
-      const text = yield* readFilmFile('narration/timings.json');
+      const text = yield* fixture('narration/timings.json');
       const timings = yield* Schema.decodeEffect(TimingsJson)(text);
       expect(yield* Schema.encodeEffect(TimingsJson)(timings)).toBe(text);
     }),
@@ -41,40 +54,63 @@ describe('righteousness-by-faith-v1 data', () => {
 
   it.effect.layer(BunServices.layer)('manifest.json decodes and re-encodes byte for byte', () =>
     Effect.gen(function* () {
-      const text = yield* readFilmFile('sound/manifest.json');
+      const text = yield* fixture('sound/manifest.json');
       const manifest = yield* Schema.decodeEffect(SoundManifestJson)(text);
       expect(yield* Schema.encodeEffect(SoundManifestJson)(manifest)).toBe(text);
     }),
   );
 
-  it.effect.layer(BunServices.layer)('the voice and every take keep their recorded keys', () =>
+  it.effect.layer(BunServices.layer)('the voice and every take keep their committed keys', () =>
     Effect.gen(function* () {
       const timings = yield* Schema.decodeEffect(TimingsJson)(
-        yield* readFilmFile('narration/timings.json'),
+        yield* fixture('narration/timings.json'),
       );
       expect(voiceKey(yield* Schema.decodeEffect(Voice)(voice))).toBe(timings.voice);
-      // A take recorded before the tools moved: its hash is pinned, not recomputed.
-      expect(timings.scenes['1888']?.hash).toBe('175db6d2');
-      for (const scene of scenes) {
-        const take = Option.fromNullishOr(timings.scenes[scene.id]);
-        if (Option.isSome(take))
-          expect(take.value.hash).toBe(hashText(parse(scene.say ?? '').spoken));
-      }
+      // Pinned, not recomputed: a change to the take hash would orphan every take.
+      expect(timings.scenes['open']?.hash).toBe('af95d9f8');
+      for (const scene of scenes)
+        expect(timings.scenes[scene.id]?.hash).toBe(hashText(parse(scene.say ?? '').spoken));
     }),
   );
 
   it.effect.layer(BunServices.layer)('the score keeps the key of its committed asset', () =>
     Effect.gen(function* () {
       const timings = yield* Schema.decodeEffect(TimingsJson)(
-        yield* readFilmFile('narration/timings.json'),
+        yield* fixture('narration/timings.json'),
       );
       const decoded = yield* Schema.decodeEffect(Sound)(sound);
       const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.music));
       const plan = yield* Effect.fromResult(musicPlan(music, layout(scenes, timings)));
-      expect(musicKey(music, plan)).toBe('be8be957');
+      expect(musicKey(music, plan)).toBe('596f29d1');
+    }),
+  );
+});
+
+describe('righteousness-by-faith data', () => {
+  it.effect.layer(BunServices.layer)('timings.json decodes and re-encodes byte for byte', () =>
+    Effect.gen(function* () {
+      const text = yield* live('narration/timings.json');
+      const timings = yield* Schema.decodeEffect(TimingsJson)(text);
+      expect(yield* Schema.encodeEffect(TimingsJson)(timings)).toBe(text);
     }),
   );
 
+  it.effect.layer(BunServices.layer)('every take is current for its voice and its words', () =>
+    Effect.gen(function* () {
+      const timings = yield* Schema.decodeEffect(TimingsJson)(
+        yield* live('narration/timings.json'),
+      );
+      expect(voiceKey(yield* Schema.decodeEffect(Voice)(liveVoice))).toBe(timings.voice);
+      for (const scene of liveScenes) {
+        const take = Option.fromNullishOr(timings.scenes[scene.id]);
+        if (Option.isSome(take))
+          expect(take.value.hash).toBe(hashText(takeScript(parse(scene.say ?? ''))));
+      }
+    }),
+  );
+});
+
+describe('righteousness-by-faith-v1 settings', () => {
   // The first cut is the frozen A/B reference: an engine default that moves
   // (the screen grain, the scenes' breath) must not move its pixels, so the
   // film declares the settings it was drawn with.

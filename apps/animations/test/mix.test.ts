@@ -1,10 +1,11 @@
-// This film's mix. The plan is pinned to the decisions the pre-Effect ffmpeg
-// graph made (fixtures/mix-plan.json, converted from its argv; `<app>` stands
-// for this app's directory): voice and score as committed, and with every
-// effect generated so each cue's placement is checked too. The track is
-// pinned to the master ffmpeg n9.0.1 mixed from the same takes and score
-// (fixtures/mix-levels.json: mean and peak dBFS per 10-second window), which
-// the TypeScript mix matched to a −98.8 dB residual, never more than 1 LSB.
+// The mix, on the fixture film (`fixtures/films/tiny`). The plan is pinned
+// (fixtures/mix-plan.json; `<app>` stands for this app's directory): voice and
+// score as committed, and with every effect generated so each cue's placement
+// (a scene offset, a cue's start, a cue's end) is checked too. The track is
+// pinned to the levels this mix made of the fixture's takes and score
+// (fixtures/mix-levels.json: mean and peak dBFS per 1-second window), so a
+// change that moves the mixed sound is seen. (The mix matched ffmpeg n9.0.1's
+// master to a −98.8 dB residual when it replaced the ffmpeg graph.)
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -21,8 +22,8 @@ import {
 import { Media, decodePlan } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
-import { scenes } from '../src/films/righteousness-by-faith-v1/scenes/index.ts';
-import { sound } from '../src/films/righteousness-by-faith-v1/sound.ts';
+import { scenes } from './fixtures/films/tiny/scenes/index.ts';
+import { sound } from './fixtures/films/tiny/sound.ts';
 
 const Placed = Schema.Struct({ sound: Schema.String, ms: Schema.Int, gain: Schema.Finite });
 const Plan = Schema.Struct({
@@ -40,9 +41,9 @@ const Levels = Schema.fromJsonString(
   }),
 );
 
-const FILM = 'src/films/righteousness-by-faith-v1';
+const FILM = 'test/fixtures/films/tiny';
 
-/** The ffmpeg master's levels hold to this, in dB: far above an LSB, far below anything audible. */
+/** The pinned levels hold to this, in dB: far above an LSB, far below anything audible. */
 const LEVEL_TOLERANCE = 0.01;
 
 const load = Effect.fn('test.load')(function* () {
@@ -73,7 +74,7 @@ const plan = (placed: ReturnType<typeof layout>, manifest: SoundManifest, dir: s
     }),
   );
 
-/** A plan as the fixture pins it: each start to the millisecond, as the ffmpeg graph placed it. */
+/** A plan as the fixture pins it: each start to the millisecond. */
 const pinned = (made: MixPlan<string>): typeof Plan.Type => ({
   seconds: made.seconds,
   voice: made.voice.map((p) => ({ sound: p.sound, ms: Math.round(p.at * 1000), gain: p.gain })),
@@ -110,7 +111,7 @@ describe('mix', () => {
   );
 
   it.effect.layer(Layer.provideMerge(Media.layer, BunServices.layer))(
-    'the track: the levels of the master ffmpeg mixed, window by window',
+    'the track: the pinned levels, window by window',
     () =>
       Effect.gen(function* () {
         const { placed, manifest, golden, app } = yield* load();

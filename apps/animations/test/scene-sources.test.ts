@@ -4,7 +4,9 @@
 // scene files are exactly as oxfmt leaves them (so a lab write, which runs
 // oxfmt on the file, changes nothing but the value it writes). The films are
 // the registry's (`src/films/index.ts`): a film added there is covered here
-// without a line of this file changing.
+// without a line of this file changing. What the locator and the lab's check
+// do beyond that is tested on the fixture film (`fixtures/films/tiny`), never
+// on a real one.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -22,13 +24,13 @@ import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } fr
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { FILMS } from '../server.ts';
 import { films } from '../src/films/index.ts';
-import { spawnBudget } from './cli-run.ts';
+import { FIXTURE_FILM, spawnBudget } from './cli-run.ts';
+import { FIXTURE_FILMS } from './fixtures/cli.ts';
 
 /** Every film the player and the renderer know: the registry's keys, never a list kept here. */
 const FILM_NAMES = Object.keys(films);
-/** The film the checks of one service (not of every film) run on. */
-const FILM = 'righteousness-by-faith-v1';
-const CLI = new URL('../cli.ts', import.meta.url).pathname;
+/** The fixture CLI, as the lab's check runs it. */
+const FIXTURE_CLI = new URL('./fixtures/cli.ts', import.meta.url).pathname;
 
 /** A film's `scenes/index.ts`: each scene's id, and its timeline and knobs where it declares them. */
 const ScenesModule = Schema.Struct({
@@ -42,68 +44,74 @@ const ScenesModule = Schema.Struct({
 });
 type Scene = (typeof ScenesModule.Type)['scenes'][number];
 
-/** The film's scenes, from its `scenes/index.ts` in the films folder the tools read. */
-const scenesOf = Effect.fn('test.scenesOf')(function* (film: string) {
+/** The film's scenes, from its `scenes/index.ts` in the films folder `root`. */
+const scenesOf = Effect.fn('test.scenesOf')(function* (root: string, film: string) {
   const path = yield* Path.Path;
   const module = yield* Effect.promise(() =>
-    importFilmModule(path.join(FILMS, film, 'scenes', 'index.ts')),
+    importFilmModule(path.join(root, film, 'scenes', 'index.ts')),
   );
   return (yield* Schema.decodeUnknownEffect(ScenesModule)(module)).scenes;
 });
 
-const Sources = SceneSources.layer.pipe(
-  Layer.provide(FilmRepo.layer(FILMS)),
-  Layer.provide(ContentStore.layer),
-  Layer.provideMerge(BunServices.layer),
-);
+/** The locator over the films folder `root`. */
+const sourcesOver = (root: string) =>
+  SceneSources.layer.pipe(
+    Layer.provide(FilmRepo.layer(root)),
+    Layer.provide(ContentStore.layer),
+    Layer.provideMerge(BunServices.layer),
+  );
+const Sources = sourcesOver(FILMS);
+const FixtureSources = sourcesOver(FIXTURE_FILMS);
+
+/**
+ * Every scene of `film` (under `root`) with a timeline or knobs resolves to
+ * one literal in a file under its `scenes/`, its timeline and knobs literals
+ * where the scene has them; the sites, for what a test asks further.
+ */
+const resolvesToOneLiteral = Effect.fn('test.resolvesToOneLiteral')(function* (
+  root: string,
+  film: string,
+) {
+  const sources = yield* SceneSources;
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const scenes = yield* scenesOf(root, film);
+  const located = yield* sources.locate(film);
+  expect(located.unlocated.map((u) => u.message)).toEqual([]);
+  const declares = (s: Scene, key: 'timeline' | 'knobs') => Predicate.hasProperty(s, key);
+  const editable = scenes.filter((s) => declares(s, 'timeline') || declares(s, 'knobs'));
+  expect([...located.sites.keys()].sort()).toEqual(editable.map((s) => s.id).sort());
+  for (const scene of editable) {
+    const site = Option.getOrThrow(Option.fromUndefinedOr(located.sites.get(scene.id)));
+    const source = yield* fs.readFileString(site.file);
+    const program = Result.getOrThrow(parseModule(site.file, source));
+    const calls = drawingSites(source, program).filter((d) => d.exports.includes(site.exportName));
+    // Exactly one call, and its timeline and knobs are literals where the scene has them.
+    expect(calls).toHaveLength(1);
+    const [call] = calls;
+    const slot = (key: 'timeline' | 'knobs'): Slot['_tag'] =>
+      Option.match(Option.liftPredicate(scene, Predicate.hasProperty(key)), {
+        onNone: () => 'Absent',
+        onSome: () => 'Literal',
+      });
+    expect(call?.timeline._tag).toBe(slot('timeline'));
+    expect(call?.knobs._tag).toBe(slot('knobs'));
+    expect(path.dirname(site.file)).toBe(path.join(root, film, 'scenes'));
+  }
+  return located.sites;
+});
 
 describe('scene sources', () => {
   it.effect('the registry names the films these tests cover', () =>
     Effect.sync(() => {
-      expect(FILM_NAMES).toContain(FILM);
-      expect(FILM_NAMES.length).toBeGreaterThan(1);
+      expect(FILM_NAMES.length).toBeGreaterThan(0);
     }),
   );
 
   for (const film of FILM_NAMES)
     it.effect.layer(Sources)(
       `${film}: every scene with a timeline or knobs resolves to one literal`,
-      () =>
-        Effect.gen(function* () {
-          const sources = yield* SceneSources;
-          const fs = yield* FileSystem.FileSystem;
-          const path = yield* Path.Path;
-          const scenes = yield* scenesOf(film);
-          const located = yield* sources.locate(film);
-          expect(located.unlocated.map((u) => u.message)).toEqual([]);
-          const declares = (s: Scene, key: 'timeline' | 'knobs') => Predicate.hasProperty(s, key);
-          const editable = scenes.filter((s) => declares(s, 'timeline') || declares(s, 'knobs'));
-          expect([...located.sites.keys()].sort()).toEqual(editable.map((s) => s.id).sort());
-          for (const scene of editable) {
-            const site = Option.getOrThrow(Option.fromUndefinedOr(located.sites.get(scene.id)));
-            const source = yield* fs.readFileString(site.file);
-            const program = Result.getOrThrow(parseModule(site.file, source));
-            const calls = drawingSites(source, program).filter((d) =>
-              d.exports.includes(site.exportName),
-            );
-            // Exactly one call, and its timeline and knobs are literals where the scene has them.
-            expect(calls).toHaveLength(1);
-            const [call] = calls;
-            const slot = (key: 'timeline' | 'knobs'): Slot['_tag'] =>
-              Option.match(Option.liftPredicate(scene, Predicate.hasProperty(key)), {
-                onNone: () => 'Absent',
-                onSome: () => 'Literal',
-              });
-            expect(call?.timeline._tag).toBe(slot('timeline'));
-            expect(call?.knobs._tag).toBe(slot('knobs'));
-            expect(path.dirname(site.file)).toBe(path.join(FILMS, film, 'scenes'));
-          }
-          // The v1 hand scene is exported as `hand_`, renamed `hand` by the registry chain.
-          if (film === FILM)
-            expect(located.sites.get('hand')).toMatchObject({
-              file: path.join(FILMS, FILM, 'scenes', 'hand.ts'),
-            });
-        }),
+      () => Effect.asVoid(resolvesToOneLiteral(FILMS, film)),
     );
 
   for (const film of FILM_NAMES)
@@ -121,25 +129,44 @@ describe('scene sources', () => {
       spawnBudget(1),
     );
 
-  it.effect.layer(Sources)('a scene with nothing to edit is refused by name', () =>
-    Effect.gen(function* () {
-      const error = yield* Effect.flip((yield* SceneSources).site(FILM, 'no-such-scene'));
-      expect(error._tag).toBe('SceneNotLocated');
-    }),
-  );
-
-  it.effect.layer(Sources)(
-    "the lab's check runs this CLI fresh and reads its findings",
+  it.effect.layer(FixtureSources)(
+    'a scene exported under another name is found through the registry that renames it',
     () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
+        const sites = yield* resolvesToOneLiteral(FIXTURE_FILMS, FIXTURE_FILM);
+        // `turn_` in beats.ts, named `turn` by the fixture's registry.
+        expect(sites.get('turn')).toMatchObject({
+          file: path.join(FIXTURE_FILMS, FIXTURE_FILM, 'scenes', 'beats.ts'),
+          exportName: 'turn_',
+        });
+      }),
+  );
+
+  it.effect.layer(FixtureSources)('a scene with nothing to edit is refused by name', () =>
+    Effect.gen(function* () {
+      const sources = yield* SceneSources;
+      expect((yield* Effect.flip(sources.site(FIXTURE_FILM, 'no-such-scene')))._tag).toBe(
+        'SceneNotLocated',
+      );
+      // `close` draws with no timeline or knobs: nothing for the lab to write.
+      expect((yield* Effect.flip(sources.site(FIXTURE_FILM, 'close')))._tag).toBe(
+        'SceneNotLocated',
+      );
+    }),
+  );
+
+  it.effect.layer(FixtureSources)(
+    "the lab's check runs its CLI fresh and reads its findings",
+    () =>
+      Effect.gen(function* () {
         const check = yield* StaticCheck;
-        const findings = yield* check.run(FILM);
-        // The gate holds the film at no static errors; its unmade sounds are warnings.
+        const findings = yield* check.run(FIXTURE_FILM);
+        // No static errors; the fixture's unmade effects are warnings.
         expect(findings.length).toBeGreaterThan(0);
         expect(findings.filter((f) => f.level === 'error')).toEqual([]);
-        expect(path.basename(CLI)).toBe('cli.ts');
-      }).pipe(Effect.provide(StaticCheck.layer(['bun', CLI]))),
+        expect(findings.map((f) => f.tag)).toContain('AssetMissing');
+      }).pipe(Effect.provide(StaticCheck.layer(['bun', FIXTURE_CLI]))),
     spawnBudget(1),
   );
 });

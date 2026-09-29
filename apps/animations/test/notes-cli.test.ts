@@ -19,15 +19,15 @@ import {
   Stream,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { SPAWN_MS, appDir, runCli, spawnBudget } from './cli-run.ts';
+import { FIXTURE_CLI, FIXTURE_FILM, SPAWN_MS, appDir, runCli, spawnBudget } from './cli-run.ts';
 
-const film = 'righteousness-by-faith-v1';
+const film = FIXTURE_FILM;
 
-/** `bun cli.ts ...args` with notes under `lab`: its exit code and everything it printed. */
+/** The fixture CLI with `...args` and notes under `lab`: its exit code and everything it printed. */
 const cli = (lab: string, ...args: ReadonlyArray<string>) => runCli({ FILMS_LAB: lab }, args);
 
 /**
- * `bun cli.ts notes <film> --watch ...flags` with notes under `lab`, running
+ * The fixture CLI's `notes <film> --watch ...flags` with notes under `lab`, running
  * until the test's scope ends: `next(n)` is the next `n` lines it prints, as
  * it prints them (none if a spawn's budget passes first). A test reads the
  * watch's first line before it makes a change, so what the watch saw at start
@@ -39,7 +39,7 @@ const watchCli = Effect.fn('test.watchCli')(function* (
 ) {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const watch = yield* spawner.spawn(
-    ChildProcess.make('bun', ['cli.ts', 'notes', film, '--watch', ...flags], {
+    ChildProcess.make('bun', [FIXTURE_CLI, 'notes', film, '--watch', ...flags], {
       cwd: yield* appDir,
       env: { FILMS_LAB: lab },
       extendEnv: true,
@@ -85,16 +85,16 @@ const labDir = Effect.gen(function* () {
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
 
-/** A note as the lab saves one: in the hand scene, boxed, nearest the topple cue. */
-const handNote = Effect.fn('test.handNote')(function* (words: string) {
+/** A note as the lab saves one: in the turn scene, boxed, nearest the fold cue. */
+const cardNote = Effect.fn('test.cardNote')(function* (words: string) {
   return yield* (yield* NotesStore).add(
     film,
     {
-      scene: 'hand',
-      T: 230.38,
-      frame: 6911,
-      cue: { name: 'topple', edge: 'end' },
-      mark: 'earns',
+      scene: 'turn',
+      T: 5.35,
+      frame: 160,
+      cue: { name: 'fold', edge: 'end' },
+      mark: 'page',
       box: { x: 860, y: 640, w: 200, h: 120 },
       text: words,
     },
@@ -114,11 +114,11 @@ describe('film notes', () => {
         // No notes: only the cursor a watch resumes from.
         expect(empty.stdout).toBe('cursor seq=0\n');
 
-        yield* handNote('the hand sits too low');
+        yield* cardNote('the card sits too low');
         const listed = yield* cli(lab, 'notes', film);
         expect(listed.exitCode).toBe(0);
         expect(listed.stdout.trim().split('\n')).toEqual([
-          `note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=earns box=860,640,200x120 replies=0 still=${lab}/${film}/stills/n1.png text="the hand sits too low"`,
+          `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 cue=fold:end mark=page box=860,640,200x120 replies=0 still=${lab}/${film}/stills/n1.png text="the card sits too low"`,
           'cursor seq=1',
         ]);
 
@@ -155,7 +155,7 @@ describe('film notes', () => {
       Effect.gen(function* () {
         const notes = yield* NotesStore;
         const lab = yield* labDir;
-        yield* handNote('the hand sits too low');
+        yield* cardNote('the card sits too low');
         // The agent's first reply: its cursor is 0, and the only note is the one it answers,
         // whose line it already printed.
         const first = yield* cli(lab, 'notes', 'reply', film, 'n1', 'raised it');
@@ -167,8 +167,8 @@ describe('film notes', () => {
         // While the agent worked: a user reply on the first note, and two new notes (a note's
         // id is its change number: n4, n5).
         yield* notes.reply(film, 'n1', { by: 'user', text: 'lower still', still: Option.none() });
-        yield* handNote('and the cup');
-        yield* handNote('and the saucer');
+        yield* cardNote('and the cup');
+        yield* cardNote('and the saucer');
         const second = yield* cli(lab, 'notes', 'reply', film, 'n4', 'moved the cup');
         const lines = second.stdout.trim().split('\n');
         // The note it answered, then what came past its last reply (seq 2) but that one, then
@@ -198,11 +198,11 @@ describe('film notes', () => {
         const notes = yield* NotesStore;
         const lab = yield* labDir;
         // One note before the watch starts: it is not new, so it is not printed.
-        yield* handNote('before');
+        yield* cardNote('before');
         const watch = yield* watchCli(lab);
         // The cursor it starts from, read before anything changes.
         expect(yield* watch.next(1)).toEqual(['watch since=1']);
-        yield* handNote('after');
+        yield* cardNote('after');
         yield* notes.reply(film, 'n1', { by: 'agent', text: 'mine', still: Option.none() });
         yield* notes.reply(film, 'n2', { by: 'user', text: 'and lower', still: Option.none() });
         // Each line carries its own change number.
@@ -220,12 +220,12 @@ describe('film notes', () => {
       Effect.gen(function* () {
         const notes = yield* NotesStore;
         const lab = yield* labDir;
-        yield* handNote('seen by the list');
+        yield* cardNote('seen by the list');
         const listed = yield* cli(lab, 'notes', film);
         const cursor = /^cursor seq=(\d+)$/m.exec(listed.stdout)?.[1];
         expect(cursor).toBe('1');
         // Made after the list, before the watch starts: the gap a Monitor used to fall into.
-        yield* handNote('made in the gap');
+        yield* cardNote('made in the gap');
         yield* notes.reply(film, 'n2', { by: 'user', text: 'and this', still: Option.none() });
         const watch = yield* watchCli(lab, '--since', `${cursor}`);
         expect((yield* watch.next(3)).map(head3)).toEqual([
