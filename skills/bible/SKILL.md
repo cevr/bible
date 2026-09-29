@@ -45,6 +45,14 @@ below first. Every output interprets Scripture by **Miller's Rules** and
 draws only on the **EGW + SDA-pioneer (incl. William Miller) corpus** —
 historic pioneer Adventism, not modern Adventism.
 
+## Corpus, not memory (paramount)
+
+Generate against the corpus, never against training data. Every verse, quote, refcode, date, attribution and every doctrinal framing in an output comes from what the `bible` CLI printed in this session (KJV, EGW, pioneers, commentary, Strong's). Training data carries mainstream and modern framings, misremembered wording and wrong references; the corpus is the pioneer record.
+
+- **Fetch, then write.** Each quote and reference in the output was printed by a `bible` command in this session and is copied verbatim with its refcode.
+- **Frame from the corpus.** What a doctrine is and what it includes (for example, whether justification only declares or also makes righteous) comes from the pioneers read in context, never from a familiar summary. Where the familiar summary and the corpus differ, follow the corpus and say so.
+- **A gap stays a gap.** What the corpus does not hold is marked unsupported in the output; memory never fills it.
+
 ## Topic Index
 
 | File                           | Output            | Output dir                        | Filename pattern  |
