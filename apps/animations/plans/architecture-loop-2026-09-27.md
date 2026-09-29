@@ -294,7 +294,7 @@ Owner: "many arms facing the wrong way, janky actions … a minimal style that o
 | Batch   | Items                                                                                                                                                                            | State                      |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | p3-arms | engine `arm.ts` (grow strip, one mitten with grips, `closeHand`); kit `near`/`far`; every scene on cues; 5 missing arms; `ArmPop`/`HandHidden`; director-vision Hands + CRAFT 12 | merged 6aa94803 (owner OK) |
-| p3-hand | the close-up hand, second pass: a top-down palm, the small hand turns palm-up before the push, soft creases                                                                      | running                    |
+| p3-hand | the close-up hand, second pass: a top-down palm, the small hand turns palm-up before the push, soft creases                                                                      | merged 1e19ad0b (owner OK) |
 
 Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 2,489 frames; HeldShare no scene worse than main (robe 75→71, roof 36→32); FaceSmall unchanged; bench median 53.6 → 53.3 ms (load 5–8), spoke +8 % on a rerun.
 
