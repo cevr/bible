@@ -304,6 +304,20 @@ export interface SceneVoice {
   readonly recorded: boolean;
 }
 
+/**
+ * Where a scene's voice stops speaking, in seconds from its start: the end of
+ * the last word heard, so silence a take trails is not counted as speech.
+ * The take's length when it has no words.
+ */
+export const lastVoiced = (voice: SceneVoice): number =>
+  Math.min(
+    voice.duration,
+    Option.getOrElse(
+      Arr.last(voice.words.map((w) => w.voiced.end).toSorted((a, b) => a - b)),
+      () => voice.duration,
+    ),
+  );
+
 /** The voice for one scene: recorded when the take matches the text, estimated otherwise. */
 export const voiceFor = (id: string, text: string, timings: Timings | undefined): SceneVoice => {
   const parsed = parse(text);

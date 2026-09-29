@@ -128,17 +128,39 @@ export const TimingsJson = Schema.String.pipe(
 /** Voice settings as the API takes them: named numbers. */
 const VoiceSettings = Schema.Record(Schema.String, Schema.Finite);
 
-/** One voice reads every line, through text-to-speech. */
-export const Reader = Schema.Struct({
-  voiceId: Schema.String,
-  model: Schema.Literals([
-    'eleven_v3',
-    'eleven_multilingual_v2',
-    'eleven_flash_v2_5',
-    'eleven_turbo_v2_5',
-  ]),
-  settings: VoiceSettings,
-});
+/**
+ * Settings a model reads, and nothing else: the API ignores a key it does not
+ * know, so a slider the model lacks would change the take's key and nothing
+ * in the take. Each is a number from 0 to 1.
+ */
+const settingsOnly = (model: string, keys: ReadonlyArray<string>) =>
+  Schema.makeFilter((settings: Readonly<Record<string, number>>) => {
+    const entries = Object.entries(settings);
+    const unknown = entries.filter(([key]) => !keys.includes(key)).map(([key]) => key);
+    if (unknown.length > 0) {
+      return `${model} takes ${keys.join(' and ')} only, not ${unknown.join(', ')}`;
+    }
+    const out = entries.filter(([, value]) => value < 0 || value > 1).map(([key]) => key);
+    return out.length === 0 || `${out.join(', ')} must be from 0 to 1`;
+  });
+
+/**
+ * One voice reads every line, through text-to-speech. `eleven_v4` has two
+ * sliders, `stability` and `similarity_boost` (no style, no speed); the
+ * earlier models take any setting the API names.
+ */
+export const Reader = Schema.Union([
+  Schema.Struct({
+    voiceId: Schema.String,
+    model: Schema.Literals(['eleven_v3', 'eleven_multilingual_v2', 'eleven_flash_v2_5']),
+    settings: VoiceSettings,
+  }),
+  Schema.Struct({
+    voiceId: Schema.String,
+    model: Schema.Literal('eleven_v4'),
+    settings: VoiceSettings.check(settingsOnly('eleven_v4', ['stability', 'similarity_boost'])),
+  }),
+]);
 export type Reader = typeof Reader.Type;
 
 /** One voice of a cast: the name a line hands over to with `{@name}`. */
@@ -148,12 +170,19 @@ export type CastVoice = typeof CastVoice.Type;
 /**
  * Voices in conversation, every take read through text-to-dialogue, so a
  * question and its answer share one take. The first voice reads until a line
- * hands over to another. The endpoint takes one setting, `stability`, for the
- * whole take.
+ * hands over to another. The endpoint takes two settings for the whole take:
+ * `stability`, and `similarity` (how close to the source voice; the API's
+ * default is 0.75 when it is left out).
  */
 export const Cast = Schema.Struct({
-  model: Schema.Literal('eleven_v3'),
-  settings: Schema.Struct({ stability: Schema.Finite }),
+  model: Schema.Literals(['eleven_v3', 'eleven_v4']),
+  settings: VoiceSettings.check(
+    Schema.makeFilter(
+      (settings: Readonly<Record<string, number>>) =>
+        'stability' in settings || 'a cast needs stability',
+    ),
+    settingsOnly('text-to-dialogue', ['stability', 'similarity']),
+  ),
   voices: Schema.NonEmptyArray(CastVoice),
 }).check(
   Schema.makeFilter((cast) => {

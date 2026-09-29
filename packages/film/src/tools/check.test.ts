@@ -766,6 +766,18 @@ describe('longSeams', () => {
     expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM);
   });
 
+  test("a seam runs from the last word heard, so a take's silent tail is counted", () => {
+    const spoken = spokenTake('One two three four.');
+    // The take trails 2 s of silence after its last word (heard to 1.9 s).
+    const trailing = { ...spoken, duration: spoken.duration + 2 };
+    const timings: Timings = { voice: voiceKey(testVoice), scenes: { a: trailing, b: spoken } };
+    const [a, b] = layout([said('a'), said('b')], timings);
+    expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM + 2);
+    expect(longSeams(layout([said('a'), said('b')], timings))).toMatchObject([
+      { _tag: 'SeamLong', from: 'a', to: 'b' },
+    ]);
+  });
+
   test('a scene with no words between two voices is a pause of its own', () => {
     const placed = layout([said('a'), { id: 'title', min: 3 }, said('b')], noTakes);
     expect(longSeams(placed)).toEqual([]);

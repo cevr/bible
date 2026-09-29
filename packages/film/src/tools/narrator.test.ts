@@ -151,6 +151,34 @@ describe('Narrator', () => {
     }),
   );
 
+  it.effect("a staged take's silent tail is trimmed, as an import's is, into a FLAC", () =>
+    Effect.gen(function* () {
+      // The take speaks from 0.07 s to 1.2 s, then trails 1.8 s of silence.
+      const rate = 8000;
+      const voice = Float32Array.from(
+        { length: 3 * rate },
+        (_, i) =>
+          Number(i >= 0.07 * rate && i < 1.2 * rate) *
+          0.3 *
+          Math.sin((2 * Math.PI * 220 * i) / rate),
+      );
+      const { files, layer } = setup(recorded, new Map(), {
+        rate,
+        frames: voice.length,
+        channels: [voice],
+      });
+      const after = yield* narrate(layer);
+      const take = after.scenes['b'];
+      expect(take?.file).toMatch(/^b\.[0-9a-f]{12}\.flac$/);
+      expect(take?.duration).toBeCloseTo(1.2, 1);
+      expect(files.has(`/films/test/narration/${take?.file}`)).toBe(true);
+      // The MP3 it was trimmed from is not kept.
+      const mp3s = [...files.keys()].filter((f) => /\/narration\/b\.[0-9a-f]{12}\.mp3$/.test(f));
+      expect(mp3s).toEqual([]);
+      for (const w of take?.words ?? []) expect(w.end).toBeLessThanOrEqual(take?.duration ?? 0);
+    }),
+  );
+
   it.effect('skips every beat whose hash is unchanged', () =>
     Effect.gen(function* () {
       const current: Timings = {

@@ -40,6 +40,7 @@ import {
   voiceKey,
   wordsFromAlignment,
 } from '../core/narration.ts';
+import { trimTail } from '../core/recording.ts';
 import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
 import { voicedWords } from '../core/voiced.ts';
@@ -347,15 +348,33 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
           if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
+        // Seconds of silence after the last word are trimmed, as an import's
+        // are: the trimmed take is a FLAC of what ElevenLabs sent (never
+        // re-encoded lossy), and the MP3 it replaces goes with the sweep.
+        const sent = yield* media.decode(take);
+        const kept = yield* Option.match(trimTail(sent), {
+          onNone: () => Effect.succeed({ file, duration, pcm: sent }),
+          onSome: (trimmed) =>
+            Effect.gen(function* () {
+              const flac = yield* media.encodeFlac(trimmed);
+              const trimmedFile = takeFile(beat.id, flac, '.flac');
+              yield* store.writeFile(path.join(film.paths.narration, trimmedFile), flac);
+              const secs = trimmed.frames / trimmed.rate;
+              yield* Effect.log(
+                `narrate.trimmed id=${beat.id} tail=${(duration - secs).toFixed(2)} file=${trimmedFile}`,
+              );
+              return { file: trimmedFile, duration: secs, pcm: trimmed };
+            }),
+        });
         // Where each word is heard, read from the take as it will be mixed.
-        const voiced = voicedWords(heldInside(words, duration), yield* media.decode(take));
+        const voiced = voicedWords(heldInside(words, kept.duration), kept.pcm);
         // The commit: timings.json is replaced whole, naming the new take.
         yield* store.update(
           film.paths.timings,
           withTake(plan.voice, beat.id, {
             hash: hashText(beat.script),
-            file,
-            duration,
+            file: kept.file,
+            duration: kept.duration,
             words: voiced,
             source: 'elevenlabs',
           }),

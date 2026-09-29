@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { type Pcm, concat, levels } from './audio.ts';
-import { TAKE_LEVEL, TAKE_PAD, prepareTake, speechLevel } from './recording.ts';
+import {
+  TAKE_LEVEL,
+  TAKE_PAD,
+  TAKE_TAIL_SLACK,
+  prepareTake,
+  speechLevel,
+  trimTail,
+} from './recording.ts';
 
 const RATE = 48000;
 
@@ -104,5 +111,25 @@ describe('prepareTake', () => {
   test('a recording of only the room is no take, not the room raised 70 dB', () => {
     const hiss = Float32Array.from({ length: RATE }, (_, i) => ((i % 7) - 3) * 1e-5);
     expect(Option.isNone(prepareTake({ rate: RATE, frames: RATE, channels: [hiss] }))).toBe(true);
+  });
+});
+
+describe('trimTail', () => {
+  test("a staging take's trailing silence is cut at its last speech; its lead and level stay", () => {
+    const sent = recording(0.07, 2, 2, 0.3);
+    const take = Option.getOrThrow(trimTail(sent));
+    expect(Math.abs(secs(take) - (0.07 + 2 + TAKE_PAD.tail))).toBeLessThan(0.011);
+    expect(levels(take).peak).toBeCloseTo(levels(sent).peak, 1);
+    const plane = take.channels[0] ?? new Float32Array();
+    expect(plane.findIndex((x) => Math.abs(x) > 0.05) / RATE).toBeCloseTo(0.07, 2);
+  });
+
+  test('a take that ends on its speech, within the slack, is kept as sent', () => {
+    expect(Option.isNone(trimTail(recording(0.07, 2, TAKE_TAIL_SLACK / 2, 0.3)))).toBe(true);
+  });
+
+  test('a take with no speech is kept as sent', () => {
+    const silent: Pcm = { rate: RATE, frames: RATE, channels: [new Float32Array(RATE)] };
+    expect(Option.isNone(trimTail(silent))).toBe(true);
   });
 });

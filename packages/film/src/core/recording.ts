@@ -114,16 +114,14 @@ const speechRuns = (
 };
 
 /**
- * The recording as a take: one channel at its own rate, from `TAKE_PAD.lead`
- * before the first speech to `TAKE_PAD.tail` after the last (a click or tap
- * outside the speech trimmed with the silence), faded over `TAKE_FADE` at
- * both ends, and made louder or quieter by one gain: to `TAKE_LEVEL.speech`,
- * or less when that would take its peak past `TAKE_LEVEL.ceiling`. Nothing
- * limits or compresses it, so the voice keeps its own dynamics. None when no
- * speech in it reaches `TAKE_FLOOR`.
+ * Where the speech in a mono recording starts and ends, in frames: the first
+ * and last run of sound within `TAKE_GATE` of its loudest speech that lasts
+ * (a click or tap outside it is not speech). None when no speech in it
+ * reaches `TAKE_FLOOR`.
  */
-export const prepareTake = (recording: Pcm): Option.Option<Pcm> => {
-  const mono = toMono(recording);
+const speechBounds = (
+  mono: Pcm,
+): Option.Option<{ readonly onset: number; readonly end: number }> => {
   const window = Math.max(1, Math.round(TAKE_WINDOW * mono.rate));
   const level = [...windowLevels(Arr.getUnsafe(mono.channels, 0), window)];
   const hold = Math.round(TAKE_HOLD / TAKE_WINDOW);
@@ -134,13 +132,49 @@ export const prepareTake = (recording: Pcm): Option.Option<Pcm> => {
   );
   if (!(loudest >= TAKE_FLOOR)) return Option.none();
   const runs = speechRuns(level, loudest - TAKE_GATE, hold, min);
-  const first = Arr.head(runs);
-  const last = Arr.last(runs);
-  if (Option.isNone(first) || Option.isNone(last)) return Option.none();
+  return Option.zipWith(Arr.head(runs), Arr.last(runs), (first, last) => ({
+    onset: first.from * window,
+    end: Math.min(mono.frames, last.to * window),
+  }));
+};
+
+/**
+ * Silence after a staging take's last speech, in seconds, that is left as
+ * ElevenLabs sent it: more is trimmed (`trimTail`).
+ */
+export const TAKE_TAIL_SLACK = 0.1;
+
+/**
+ * A staging take with the silence after its last speech trimmed to
+ * `TAKE_PAD.tail`, as `prepareTake` trims a recording's, faded over
+ * `TAKE_FADE`: a take that trails seconds of silence would hold its scene
+ * and the next voice back by them. Its lead and level are ElevenLabs' own,
+ * kept. None when it ends within `TAKE_TAIL_SLACK` of its speech, or holds
+ * none: the take is kept as it was sent.
+ */
+export const trimTail = (take: Pcm): Option.Option<Pcm> =>
+  Option.flatMap(speechBounds(toMono(take)), ({ end }) => {
+    const to = Math.min(take.frames, end + Math.round(TAKE_PAD.tail * take.rate));
+    if (take.frames - to <= TAKE_TAIL_SLACK * take.rate) return Option.none();
+    return Option.some(fadeEdges(slice(take, 0, to), TAKE_FADE));
+  });
+
+/**
+ * The recording as a take: one channel at its own rate, from `TAKE_PAD.lead`
+ * before the first speech to `TAKE_PAD.tail` after the last (a click or tap
+ * outside the speech trimmed with the silence), faded over `TAKE_FADE` at
+ * both ends, and made louder or quieter by one gain: to `TAKE_LEVEL.speech`,
+ * or less when that would take its peak past `TAKE_LEVEL.ceiling`. Nothing
+ * limits or compresses it, so the voice keeps its own dynamics. None when no
+ * speech in it reaches `TAKE_FLOOR`.
+ */
+export const prepareTake = (recording: Pcm): Option.Option<Pcm> => {
+  const mono = toMono(recording);
+  const bounds = speechBounds(mono);
+  if (Option.isNone(bounds)) return Option.none();
+  const { onset, end } = bounds.value;
   const lead = Math.round(TAKE_PAD.lead * mono.rate);
   const tail = Math.round(TAKE_PAD.tail * mono.rate);
-  const onset = first.value.from * window;
-  const end = Math.min(mono.frames, last.value.to * window);
   const from = Math.max(0, onset - lead);
   const to = Math.min(mono.frames, end + tail);
   // A recording that starts or stops on a word gets the rest of its padding in silence.

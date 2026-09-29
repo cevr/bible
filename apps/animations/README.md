@@ -219,13 +219,24 @@ probe cannot see, reads as still: look before pinning.
 (`{ voiceId, model, settings }`, recorded through text-to-speech), and the
 narrator asks the viewer's question too (the film skill's CRAFT.md, rule 6).
 The engine can also read a cast
-(`{ model: 'eleven_v3', settings: { stability }, voices: [{ name, voiceId }, …] }`),
+(`{ model: 'eleven_v4', settings: { stability, similarity? }, voices: [{ name, voiceId }, …] }`),
 recording each beat as one text-to-dialogue take in which the first voice
 reads until a line hands over with `{@name}` before a word. Like a mark, a
 turn is not spoken, but moving one re-records the beat; a turn to a voice the
 cast lacks fails `narrate` and `check` with `UnknownVoice`; captions never run
-a line across two voices, and each voice's first line opens with a dash. No
-film uses one.
+a line across two voices, and each voice's first line opens with a dash. A
+one-voice cast is how a film reads through text-to-dialogue.
+
+Settings are the model's own: `eleven_v4` has two sliders, `stability` and
+similarity (`similarity` in a cast, `similarity_boost` for a reader), each
+0–1, and no style or speed, so a film that names another setting on v4 fails
+to load rather than paying for a slider the model ignores. A reader on v3 or
+v4 reads each line alone; earlier models hear the neighbouring lines.
+
+A staging take's tail is trimmed when it arrives: `narrate` cuts silence past
+the last word the way `takes import` does (a trimmed take is kept as FLAC),
+and `check`'s `SeamLong` and `cues` measure a seam from the last voiced word,
+not the file's end.
 
 **A moment is declared once.** When something besides the drawing reads a
 moment (a sound, another cue), name it in the scene's `timeline`, anchored to

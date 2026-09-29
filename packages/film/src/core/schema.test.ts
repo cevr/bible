@@ -6,6 +6,7 @@ import {
   Timed,
   Timings,
   TimingsJson,
+  Voice,
   type VoiceTiming,
   type TakeWord,
 } from './schema.ts';
@@ -156,5 +157,34 @@ describe('CuePatch', () => {
     expect(decodes('{"dur":1,"until":"gift"}')).toBe(false);
     expect(decodes('{"dur":-1}')).toBe(false);
     expect(decodes('{}')).toBe(false);
+  });
+});
+
+describe('Voice', () => {
+  const loads = (json: string) =>
+    Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(Voice))(json));
+  const reader = (model: string, settings: string) =>
+    loads(`{"voiceId":"r","model":"${model}","settings":${settings}}`);
+  const cast = (model: string, settings: string) =>
+    loads(`{"model":"${model}","settings":${settings},"voices":[{"name":"lead","voiceId":"L"}]}`);
+
+  test('a v4 reader takes stability and similarity_boost, and no style or speed', () => {
+    expect(reader('eleven_v4', '{"stability":0.5,"similarity_boost":0.75}')).toBe(true);
+    expect(reader('eleven_v4', '{"stability":0.5,"style":0}')).toBe(false);
+    expect(reader('eleven_v4', '{"stability":0.5,"speed":1}')).toBe(false);
+    expect(reader('eleven_v4', '{"stability":1.5}')).toBe(false);
+  });
+
+  test('an earlier reader takes any setting the API names', () => {
+    expect(reader('eleven_v3', '{"stability":0.5,"style":0}')).toBe(true);
+    expect(reader('eleven_turbo_v2_5', '{"stability":0.5}')).toBe(false);
+  });
+
+  test('a cast takes stability and an optional similarity, on v3 or v4', () => {
+    expect(cast('eleven_v4', '{"stability":0.5}')).toBe(true);
+    expect(cast('eleven_v4', '{"stability":0.5,"similarity":0.75}')).toBe(true);
+    expect(cast('eleven_v3', '{"stability":0.5}')).toBe(true);
+    expect(cast('eleven_v4', '{"similarity":0.75}')).toBe(false);
+    expect(cast('eleven_v4', '{"stability":0.5,"speed":1}')).toBe(false);
   });
 });

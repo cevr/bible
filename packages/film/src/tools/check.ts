@@ -14,6 +14,7 @@ import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
+  lastVoiced,
   linesOf,
   parse,
   takeScript,
@@ -173,10 +174,14 @@ export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> 
  */
 export const MAX_SEAM = MIN_LEAD + DEFAULT_TAIL;
 
-/** The pause from `p`'s last word to `q`'s first, when both speak and `q` follows `p`. */
+/**
+ * The pause from `p`'s last word to `q`'s voice, when both speak and `q`
+ * follows `p`: from where `p`'s last word is heard (`lastVoiced`), so the
+ * silence a take trails counts as the pause it is.
+ */
 export const seamAfter = (p: Placed, q: Placed): Option.Option<number> => {
   if (p.voice.duration <= 0 || q.voice.duration <= 0) return Option.none();
-  return Option.some(p.dur - (p.speechStart + p.voice.duration) + q.speechStart);
+  return Option.some(p.dur - (p.speechStart + lastVoiced(p.voice)) + q.speechStart);
 };
 
 /**
