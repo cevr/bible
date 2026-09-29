@@ -99,10 +99,12 @@ The last row is the rule that the landing is both the most saturated and the cal
   - Once per beat, a face fills at least ⅓ of frame height (CRAFT 5).
   - A crowd varies silhouette, height and hat. Never clone.
 - **Hands.**
-  - **Arms appear only when a hand acts.** At rest a figure is an armless bean, its hands tucked in the garment. An arm is one tapered strip of the figure's paper, grown from inside the shoulder on its action's named cue and withdrawn after (the kit's `far`/`near` arm, `{ to, grow: f.at('<cue>'), grip }`). It has no elbow and bows to the gesture's side, down and away from the body.
-  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `arm`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`).
-  - **A hand acting in front of the body is drawn over it.** The kit draws a far hand whose target lies across the garment's middle over the body; anywhere else a far arm sits behind it. `film check` warns `HandHidden` for a hand at work lost inside its own body, and `ArmPop` for an arm whose grow jumps more than 0.5 in one frame.
-  - A big insert of a hand (the "hand that takes hold") is a close-up of that figure's hand: cut or push to it from the figure, then match back. It is never a prop that floats in from nowhere. _(Hibon: "the hands do so much of the talking" #26.)_
+  - **No arms: floating hands.** A figure's two hands float near its body, and no arm is ever drawn, close up or wide. At rest they float beside the body at hip height and bob with the breath, so a figure is never a handless pillar and a hand never pops in (owner's pick, 2026-09-29: hands hidden until acting read as armless stubs, and every entrance was a hand from nothing). A lying figure folds them on its middle.
+  - **A hand travels on an arc.** On its action's named cue (the kit's `far`/`near`, `{ to, reach: f.at('<cue>'), grip }`) it swings about the shoulder along a soft arc bowed away from the head, eased, and settles on arrival; never a straight lerp and never a pop. Give a travel at least 0.6 s.
+  - **The kit owns the reach.** A person's hand works within its reach (the kit's radius about the shoulder, scaled with the build); a target past it is a staging fault, not a stretch. Bring the prop or the figure closer.
+  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `floatingHand`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`). The close-up has no forearm: the push grows the figure's own hand into it and shrinks it back onto the hand.
+  - **The kit owns draw order.** A far hand working in front of the body is drawn over it; at rest and anywhere else it tucks behind. `film check` warns `HandHidden` for a hand at work lost inside its own body, `HandJump` for a hand that moves more than 1.5 of its length, or changes size by a quarter, in one frame, and `HandFar` for a hand sent past its figure's reach.
+  - A big insert of a hand (the "hand that takes hold") is a close-up of that figure's hand: push to it from the figure's hand, then match back. It is never a prop that floats in from nowhere. _(Hibon: "the hands do so much of the talking" #26.)_
 - **Faces, staging and emotion.**
   - Use profile or three-quarter for dialogue.
   - Keep faces hidden or small in the problem, and give the close-up to the answer. _(BibleProject Redemption #18.)_
@@ -157,7 +159,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 - Use pure black, except the cross; use more than three accents, or let anything but gold glow.
 - Hold a picture still for more than 4 s while someone speaks. _(#1.)_
 - Clone a crowd, float a giant hand in from nowhere, or mix hand designs.
-- Draw an arm with nothing to do, or pop an arm in or out in one frame.
+- Draw an arm or a forearm, anywhere, at any scale. Move a hand in a straight lerp, pop it to a new place in one frame, or send it past its reach.
 - Gild a joint or a hand: gold is the word.
 - Draw God the Father as a figure. Show anything the topic's MUST NOT SAY-OR-SHOW forbids. _(frame.)_
 - Leave dead air: silence below −60 dBFS that no one designed. End on a 3 s card.
