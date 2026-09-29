@@ -1,10 +1,10 @@
 // The credits, over the landing's last shot: the camera goes on easing back
 // from where `thesis` leaves the city, the two of them still sitting together
 // on the rooftop, while the film's name and its sources roll up a torn paper
-// strip at the left. The sources are each beat's `cite`, by author. Then the
-// strip goes and the city holds, clear, for the end screens. It does not
-// breathe: the film has stopped breathing by its last card, and the pull back
-// is its only move.
+// strip at the left. The sources are each beat's `cite`, by author and work
+// (`credits.ts`). Then the strip goes and the city holds, clear, for the end
+// screens. It does not breathe: the film has stopped breathing by its last
+// card, and the pull back is its only move.
 
 import {
   type Camera,
@@ -18,79 +18,7 @@ import {
 import { clamp } from '@bible/film/core';
 import { landingSky, rooftop } from '../city.ts';
 import { C, F, glow, piece } from '../kit.ts';
-import { script } from '../script.ts';
-
-/** The authors the sources are grouped under, in the order the credits give them, after scripture. */
-const AUTHORS = [
-  'Ellen G. White',
-  'E. J. Waggoner',
-  'A. T. Jones',
-  'Fundamental Principles of the Seventh-day Adventists',
-] as const;
-/** How the script cites the 1889 statement. */
-const PRINCIPLES = 'Fundamental Principles';
-
-/** The widest line on the strip, in characters of the body type. */
-const MEASURE = 38;
-
-/** `parts` joined by `sep` into lines no longer than `MEASURE` characters, never breaking a part. */
-const wrap = (parts: ReadonlyArray<string>, sep: string): string[] => {
-  const lines: string[] = [];
-  let line = '';
-  for (const part of parts) {
-    const next = line === '' ? part : `${line}${sep}${part}`;
-    if (next.length > MEASURE && line !== '') {
-      lines.push(line);
-      line = part;
-    } else line = next;
-  }
-  if (line !== '') lines.push(line);
-  return lines;
-};
-/** `text` broken at spaces. */
-const words = (text: string) => wrap(text.split(' '), ' ');
-
-/** One line of the roll: its text, its type, and the space above it. */
-interface Credit {
-  readonly text: string;
-  readonly kind: 'name' | 'head' | 'item';
-  readonly gap: number;
-}
-
-/** Every cite in the script, once each, in the order the film first cites it. */
-const CITES = [...new Set(script.flatMap((b) => b.cite ?? []))];
-
-/** A cite as the credits give it: its author (none for scripture) and the work it names. */
-interface Source {
-  readonly author: string | undefined;
-  readonly work: string;
-}
-
-/** A cite's author and the work it names. */
-const authorOf = (cite: string): Source => {
-  if (cite.startsWith(PRINCIPLES))
-    return { author: AUTHORS[3], work: cite.slice(PRINCIPLES.length + 1) };
-  for (const author of AUTHORS)
-    if (cite.startsWith(`${author}, `)) return { author, work: cite.slice(author.length + 2) };
-  return { author: undefined, work: cite };
-};
-
-/** The roll: the film's name, then scripture, then each author's works, as the script cites them. */
-const CREDITS: ReadonlyArray<Credit> = (() => {
-  const out: Credit[] = [{ text: 'Righteousness by Faith', kind: 'name', gap: 0 }];
-  const scripture = CITES.filter((c) => authorOf(c).author === undefined);
-  out.push({ text: 'Scripture (King James Version)', kind: 'head', gap: 70 });
-  for (const line of wrap(scripture, ' · ')) out.push({ text: line, kind: 'item', gap: 0 });
-  for (const author of AUTHORS) {
-    const works = CITES.map(authorOf).filter((c) => c.author === author);
-    if (works.length === 0) continue;
-    for (const [j, line] of words(author).entries())
-      out.push({ text: line, kind: 'head', gap: j === 0 ? 46 : 0 });
-    for (const { work } of works)
-      for (const line of words(work)) out.push({ text: line, kind: 'item', gap: 0 });
-  }
-  return out;
-})();
+import { CREDITS } from '../credits.ts';
 
 const STYLES = {
   name: { family: F.display, size: 52, weight: 700, color: C.ink, align: 'center' },
