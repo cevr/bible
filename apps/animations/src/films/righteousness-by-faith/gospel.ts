@@ -477,7 +477,17 @@ const ropes = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
 
 /** The man's pose, rewritten every frame. */
 const MAN_LOOK: [number, number] = [0, 0];
-const MAN_HAND: [number, number] = [0, 0];
+/**
+ * The rolled bed on his shoulder: its size, where its centre rides from his
+ * feet in frame px (on his near shoulder, `MAN_S` × the body's shoulder top,
+ * trailing behind his head as he walks out left), its tilt, and his hand
+ * steadying its front, in his units.
+ */
+const ROLL_W = 110;
+const ROLL_H = 44;
+const ON_SHOULDER: Pt = [75, -217];
+const ROLL_TILT = -0.15;
+const ROLL_HAND: Pt = [56, -138];
 const MAN_WASH: [number, number, number] = [0, 0, 0];
 const MAN: Person = { look: MAN_LOOK, stains: MAN_SPECKS, washed: MAN_WASH };
 
@@ -557,12 +567,30 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   MAN.browR = 2 + 1.5 * s.glad;
   MAN.browTilt = 0.35;
   MAN.mouth = 0.4 * s.glad * (1 - s.walk);
-  // Carrying the rolled bed on his shoulder.
-  MAN_HAND[0] = 34;
-  MAN_HAND[1] = -132;
-  MAN.handR = s.roll > 0.5 ? MAN_HAND : undefined;
+  // His near hand steadies the rolled bed on his shoulder.
+  MAN.handR = s.roll > 0.5 ? ROLL_HAND : undefined;
   // Once the specks start to lift, the ones in flight stand in for those on him.
   for (let i = 0; i < MAN_WASH.length; i++) MAN_WASH[i] = s.specks > 0 ? 1 : 0;
+  // The bed rolled up and carried on his shoulder, behind his head and under his hand.
+  if (s.roll > 0) {
+    const onShoulder = clamp(2 * s.roll - 1);
+    at(
+      ctx,
+      {
+        x: lerp(BED_X, hx + ON_SHOULDER[0], onShoulder),
+        y: lerp(y, FLOOR + ON_SHOULDER[1] - s.bob, onShoulder),
+        rot: ROLL_TILT * onShoulder,
+      },
+      () =>
+        piece(
+          ctx,
+          rounded(0, 0, lerp(BED_W, ROLL_W, clamp(2 * s.roll)), lerp(BED_H, ROLL_H, s.roll), 20),
+          C.boardDeep,
+          hand('roll'),
+          { role: 'figure', line: 3 },
+        ),
+    );
+  }
   at(ctx, { x: hx, y: hy, rot: lerp(LIE, 0, rise) }, () =>
     at(ctx, { x: 0, y: HIP_STAND, scale: MAN_S }, () => person(ctx, MAN, hand('man'))),
   );
@@ -591,22 +619,6 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
       line: 3,
       alpha: blanket,
     });
-  // The bed rolled up and carried on his shoulder.
-  if (s.roll > 0) {
-    const onShoulder = clamp(2 * s.roll - 1);
-    const rx = lerp(BED_X, hx + 30, onShoulder);
-    const ry = lerp(y, FLOOR - 172 - s.bob, onShoulder);
-    piece(
-      ctx,
-      rounded(rx, ry, lerp(BED_W, 110, clamp(2 * s.roll)), lerp(BED_H, 44, s.roll), 20),
-      C.boardDeep,
-      hand('roll'),
-      {
-        role: 'figure',
-        line: 3,
-      },
-    );
-  }
 };
 
 // ─── the temple court ────────────────────────────────────────────────────────
