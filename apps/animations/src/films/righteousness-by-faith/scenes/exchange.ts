@@ -97,8 +97,8 @@ const CRUCIFIED: Person = {
   ground: 0,
   nod: 8,
   tilt: 0.3,
-  handL: [-95, -120],
-  handR: [95, -120],
+  far: { to: [-95, -120], grow: 1 },
+  near: { to: [95, -120], grow: 1 },
 };
 const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
 /** The stone rolled back from the tomb, and its core. */

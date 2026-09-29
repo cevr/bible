@@ -21,7 +21,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, blob, glow, knobCamera, openHand, person, piece, rounded, sky } from '../kit.ts';
+import { C, blob, glow, knobCamera, handCloseUp, person, piece, rounded, sky } from '../kit.ts';
 
 /** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
 const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
@@ -111,8 +111,8 @@ export const look = drawing({
               look: [lerp(2 * wonder, 0, up) + 3 * sheepish, -4 * up + 2 * sheepish],
               browTilt: 0.35 * wonder + 0.3 * sheepish,
               browL: 3 * wonder,
-              handL: [lerp(-34, -30, up), lerp(-60, -178, up)],
-              handR: [lerp(34, 30, up), lerp(-60, -178, up)],
+              far: { to: [lerp(-34, -30, up), lerp(-60, -178, up)], grow: 1 },
+              near: { to: [lerp(34, 30, up), lerp(-60, -178, up)], grow: 1 },
             },
             hand('figureA'),
           );
@@ -159,7 +159,7 @@ export const look = drawing({
         ctx.save();
         ctx.globalAlpha *= handIn;
         at(ctx, { x: 960, y: lerp(1000, 760, handIn), scale: 1.25 }, () => {
-          openHand(ctx, hand);
+          handCloseUp(ctx, hand);
           if (light > 0) {
             const y = lerp(-620, 0, light);
             glow(ctx, 0, y, 260, C.glow, 0.5 + 0.5 * light);
@@ -349,8 +349,8 @@ export const look = drawing({
                     browL: 2 * strain,
                     mouth: 0.5 * strain,
                     stains: heal < 0.5 ? BITES : [],
-                    handR: strain > 0 ? [(px - 8 - x) / 1.8, -150] : undefined,
-                    handL: strain > 0 ? [(px - 14 - x) / 1.8, -95] : undefined,
+                    near: strain > 0 ? { to: [(px - 8 - x) / 1.8, -150], grow: 1 } : undefined,
+                    far: strain > 0 ? { to: [(px - 14 - x) / 1.8, -95], grow: 1 } : undefined,
                   },
                   hand('bitten'),
                 );

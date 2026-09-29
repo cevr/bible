@@ -218,8 +218,8 @@ const figure = (f: WithinFrame, aside: number) => {
   POSE.browTilt = 0.35 * ask + 0.25 * warm;
   POSE.mouth = 0.6 * ask;
   POSE.smile = 0.55 * warm;
-  POSE.handL = armed ? handAt(-1, open, HAND_L) : undefined;
-  POSE.handR = armed ? handAt(1, open, HAND_R) : undefined;
+  POSE.far = armed ? { to: handAt(-1, open, HAND_L), grow: 1 } : undefined;
+  POSE.near = armed ? { to: handAt(1, open, HAND_R), grow: 1 } : undefined;
   person(ctx, POSE, hand('figure'));
   if (heart > 0)
     at(ctx, { x: CHEST[0], y: CHEST[1], scale: 0.36 * heart }, () => {

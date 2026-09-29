@@ -31,9 +31,9 @@ import {
   shotPath,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { COURT_WIDE, type House, type Posed, type Temple, WENT, house, temple } from '../gospel.ts';
+import { COURT_WIDE, type House, type Temple, WENT, house, temple } from '../gospel.ts';
 
-import { C, type Hands, ICON_X, gait } from '../kit.ts';
+import { C, type Hands, ICON_X, type Posed, gait } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, giftHand, giftRow } from './message.ts';
 
 const timeline = {

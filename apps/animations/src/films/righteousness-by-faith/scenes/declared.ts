@@ -382,8 +382,8 @@ export const declared = drawing({
             browR: 1 * doubt + 4 * up + 4 * bloom,
             browTilt: 0.45 * doubt + 0.3 * up + 0.1 * bloom,
             mouth: 0.35 * doubt + 0.5 * bloom,
-            handL: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)],
-            handR: [36, -40],
+            far: { to: [lerp(-36, -14, doubt), lerp(-40, -84, doubt)], grow: 1 },
+            near: { to: [36, -40], grow: 1 },
             stains: STAIN_SHAPES,
             washed: washStains(WASH, bloom),
           };

@@ -254,13 +254,6 @@ const MAN_SPECKS = [
   blob(14, -40, 12, 10, 53),
 ];
 
-/**
- * A scene's pose written in place every frame: `House` or `Temple` with its
- * fields writable, so a scene keeps one at module scope and draws with no
- * allocation.
- */
-export type Posed<T> = { -readonly [K in keyof T]: T[K] };
-
 /** The house in Capernaum as a scene has it this frame. */
 export interface House {
   readonly cam: Camera;
@@ -452,7 +445,7 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
           nod: 3,
           browTilt: 0.3,
           smile: 0.4 * s.lower,
-          ...(fr.side < 0 ? { handR: HOLD_R } : { handL: HOLD_L }),
+          ...(fr.side < 0 ? { near: { to: HOLD_R, grow: 1 } } : { far: { to: HOLD_L, grow: 1 } }),
         },
         sub(hand('friend'), i),
       ),
@@ -541,8 +534,8 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         browL: 2 * up,
         browR: 2 * up,
         smile: 0.3 + 0.3 * s.lookAfter,
-        handL: [lerp(-30, -104, s.reach), lerp(-58, -104, s.reach)],
-        handR: [30, -58],
+        far: { to: [lerp(-30, -104, s.reach), lerp(-58, -104, s.reach)], grow: 1 },
+        near: { to: [30, -58], grow: 1 },
       },
       hand,
     ),
@@ -575,7 +568,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   MAN.browTilt = 0.35;
   MAN.mouth = 0.4 * s.glad * (1 - s.walk);
   // His near hand steadies the rolled bed on his shoulder.
-  MAN.handR = s.roll > 0.5 ? ROLL_HAND : undefined;
+  MAN.near = s.roll > 0.5 ? { to: ROLL_HAND, grow: 1 } : undefined;
   // Once the specks start to lift, the ones in flight stand in for those on him.
   for (let i = 0; i < MAN_WASH.length; i++) MAN_WASH[i] = s.specks > 0 ? 1 : 0;
   // The bed rolled up and carried on his shoulder, behind his head and under his hand.
@@ -885,7 +878,12 @@ const HER: Person = { garment: 'robe', look: HER_LOOK, stains: WOMAN_STAINS, was
 const HIS_LOOK: [number, number] = [0, 0];
 const HIS_BUILD: [number, number] = [1, 1];
 const HIS_HAND: [number, number] = [0, 0];
-const HIM: Person = { look: HIS_LOOK, build: HIS_BUILD, handL: HIS_HAND, handR: [30, -58] };
+const HIM: Person = {
+  look: HIS_LOOK,
+  build: HIS_BUILD,
+  far: { to: HIS_HAND, grow: 1 },
+  near: { to: [30, -58], grow: 1 },
+};
 
 const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
   piece(ctx, rectShape(-800, COURT_FLOOR - 40, 3500, 700), COURT_GROUND, hand('floor'), {

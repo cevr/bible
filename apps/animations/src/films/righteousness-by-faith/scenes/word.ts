@@ -8,8 +8,8 @@
 // from the left, shrugging at the start and open-mouthed at the end.
 
 import {
+  type Arm,
   type Frame,
-  type Pt,
   at,
   camera,
   drawing,
@@ -20,7 +20,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { C, F, ground, glow, person, piece, rounded, plate } from '../kit.ts';
+import { C, F, type Posed, ground, glow, person, piece, rounded, plate } from '../kit.ts';
 import { planet, ring, star, tablets } from '../law.ts';
 
 const WORD_CARD = 'Righteousness';
@@ -96,6 +96,10 @@ const page = (f: WordFrame) => {
   viewer(f);
 };
 
+/** The viewer's two hands at the shrug, palms up by the shoulders; their grow rewritten each frame (scratch). */
+const SHRUG_FAR: Posed<Arm> = { to: [-66, -104], grow: 0, grip: 'palm' };
+const SHRUG_NEAR: Posed<Arm> = { to: [66, -104], grow: 0, grip: 'palm' };
+
 /** The viewer's stand-in, on the left. */
 const viewer = (f: WordFrame) => {
   const { ctx } = f;
@@ -103,8 +107,9 @@ const viewer = (f: WordFrame) => {
   const shrug = f.at('shrug') * (1 - f.at('unshrug'));
   const wonder = f.at('wonder') * (1 - f.at('drop'));
   const awe = f.at('awe');
-  const handL: Pt = [lerp(-30, -66, shrug), lerp(-58, -104, shrug)];
-  const handR: Pt = [lerp(30, 66, shrug), lerp(-58, -104, shrug)];
+  // Both palms out at the shrug, the arms grown on it and withdrawn on "fair".
+  SHRUG_FAR.grow = shrug;
+  SHRUG_NEAR.grow = shrug;
   at(ctx, { x, y, scale: 2.6 }, () =>
     person(
       ctx,
@@ -116,8 +121,8 @@ const viewer = (f: WordFrame) => {
         browR: 5 * shrug + 4 * wonder + 5 * awe,
         browTilt: 0.35 * shrug + 0.4 * wonder + 0.3 * awe,
         mouth: Math.max(0.35 * shrug, awe),
-        handL: shrug > 0.02 ? handL : undefined,
-        handR: shrug > 0.02 ? handR : undefined,
+        far: SHRUG_FAR,
+        near: SHRUG_NEAR,
       },
       f.hand('viewer'),
     ),

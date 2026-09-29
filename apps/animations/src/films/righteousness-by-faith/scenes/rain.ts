@@ -127,7 +127,7 @@ export const rain = drawing({
                         browL: 3 * turn,
                         browR: 3 * turn,
                         browTilt: 0.4 * turn,
-                        handR: turn > 0.05 ? [60 + wave, -190] : undefined,
+                        near: turn > 0.05 ? { to: [60 + wave, -190], grow: 1 } : undefined,
                       },
                       sub(hand('watcher'), i),
                     ),

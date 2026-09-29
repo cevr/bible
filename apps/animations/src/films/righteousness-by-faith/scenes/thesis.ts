@@ -40,6 +40,8 @@ export const thesis = drawing({
     answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
     // The gavel lifts back from where `name` laid it down.
     gavel: { scene: 'start', dur: 2, ease: 'linear' },
+    // The judge, who held it down through `name`'s last line, lets it go once it stands again.
+    letGo: { after: 'gavel', dur: 0.5 },
     // A pause the script means: the answer stands alone on screen while the
     // music rises, then lets go. What follows it hangs off it.
     textOut: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
@@ -87,6 +89,7 @@ export const thesis = drawing({
         // The landing's last line: the one place besides the cross the camera sits still.
         drift: 0,
         swing: GAVEL_DOWN - (GAVEL_DOWN - GAVEL_REST) * f.at('gavel'),
+        held: 1 - f.at('letGo'),
         stamp: 0,
         pop: 1,
         gold: 1,

@@ -152,10 +152,16 @@ const garden = (f: MirrorFrame) => {
                 browR: -1 * sewing + 3 * promise + 5 * sheepish + 4 * droop,
                 browTilt: -0.25 * sewing + 0.45 * sheepish + 0.4 * droop,
                 mouth: 0.4 * droop,
-                handL: sewing > 0.05 ? [-28, -84] : undefined,
-                handR:
+                far: sewing > 0.05 ? { to: [-28, -84], grow: 1 } : undefined,
+                near:
                   sewing + promise > 0.05
-                    ? [lerp(22 + 14 * stitch, 40, promise), lerp(-86 - 10 * stitch, -184, promise)]
+                    ? {
+                        to: [
+                          lerp(22 + 14 * stitch, 40, promise),
+                          lerp(-86 - 10 * stitch, -184, promise),
+                        ],
+                        grow: 1,
+                      }
                     : undefined,
               },
               f.hand('sewer'),
@@ -265,7 +271,7 @@ const glass = (f: MirrorFrame) => {
             {
               look: [lerp(5, 0, glance), lerp(0, 2, glance)],
               stains: STAINS,
-              handR: scrub > 0.05 ? handR : undefined,
+              near: scrub > 0.05 ? { to: handR, grow: 1 } : undefined,
             },
             f.hand('reflection'),
           );
@@ -313,7 +319,7 @@ const glass = (f: MirrorFrame) => {
           browR: 4 * flare - 1.5 * glance,
           browTilt: 0.4 * flare * (1 - glance) - 0.3 * glance,
           mouth: 0.5 * flare * (1 - scrub),
-          handR: scrub > 0.05 ? handR : undefined,
+          near: scrub > 0.05 ? { to: handR, grow: 1 } : undefined,
         },
         f.hand('viewer'),
       );

@@ -38,7 +38,7 @@ import {
   glow,
   icons,
   mix,
-  openHand,
+  handCloseUp,
   person,
   piece,
   rounded,
@@ -199,8 +199,8 @@ const EARS_R: [number, number] = [0, 0];
 const ASKING: Person = { ...ROBED, look: LOOK };
 const OTHER: Person = {
   look: OTHER_LOOK,
-  handL: EARS_L,
-  handR: EARS_R,
+  far: { to: EARS_L, grow: 1 },
+  near: { to: EARS_R, grow: 1 },
   stains: FIGURE_STAINS,
 };
 /** At the window, face to the light. */
@@ -483,7 +483,7 @@ const inHand = (f: DailyFrame, arc: number) => {
   ctx.translate(HAND_AT[0], lerp(1400, HAND_AT[1], up));
   ctx.scale(HAND_SCALE, HAND_SCALE);
   glow(ctx, 0, PALM_Y, 260, C.glow, 0.5 * open);
-  openHand(ctx, f.hand, open);
+  handCloseUp(ctx, f.hand, open);
   LAID[0] = f.stagger('lay', 0, 3);
   LAID[1] = f.stagger('lay', 1, 3);
   LAID[2] = f.stagger('lay', 2, 3);

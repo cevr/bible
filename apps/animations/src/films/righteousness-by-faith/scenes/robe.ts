@@ -18,6 +18,7 @@
 // "go", the woman forgiven and in white.
 
 import {
+  type Arm,
   type Camera,
   type Frame,
   type Pt,
@@ -34,6 +35,7 @@ import {
   C,
   ICON_X,
   type Person,
+  type Posed,
   ROBE,
   blob,
   gait,
@@ -45,16 +47,7 @@ import {
   sky,
   turban,
 } from '../kit.ts';
-import {
-  ANGEL_HAND,
-  COURT_BENCH,
-  JOSHUA,
-  JS,
-  ZECH_REST,
-  courtWall,
-  gavel,
-  zechCourt,
-} from '../court.ts';
+import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
 import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
 
 const LOOM: Pt = [1045, 560];
@@ -77,6 +70,13 @@ const GAVEL_ON: Pt = [COURT_BENCH[0], COURT_BENCH[1] - 36];
 const GAVEL_LIE = -Math.PI / 2 + 0.22;
 /** Joshua's chest in the court: `JS` times the person's chest height above his feet. */
 const JOSHUA_CHEST_Y = JOSHUA[1] - 80 * JS;
+
+/** Christ's hand reaching out to Joshua on "clothe", open; its grow rewritten each frame (scratch). */
+const REACHING: Posed<Arm> = { to: [-110, -118], grow: 0, grip: 'open' };
+const reachingOut = (grow: number): Arm => {
+  REACHING.grow = grow;
+  return REACHING;
+};
 
 /** A little loom, as a shape of light. */
 const loomFrame = (
@@ -177,12 +177,8 @@ const courtWide = (f: RobeFrame) => {
     zechCourt(ctx, hand, {
       sun: 0,
       accuser: { enter: 1, shrink: 1, point: 0 },
-      // Christ, in white and gold, reaching out on "clothe".
-      angel: {
-        lift: 0,
-        tilt: -0.06 * reachOut,
-        hand: [lerp(ANGEL_HAND[0], -110, reachOut), lerp(ANGEL_HAND[1], -118, reachOut)],
-      },
+      // Christ, in white and gold, reaching out to Joshua on "clothe".
+      angel: { lift: 0, tilt: -0.06 * reachOut, reach: reachingOut(reachOut) },
       // Joshua, the specks going from his skin.
       joshua: { tilt: 0.1 * (1 - pass), look: [2 * reachOut, 0], browTilt: 0.2 + 0.3 * pass },
       specks: 1 - f.at('specks'),
@@ -456,11 +452,7 @@ const judged = (f: RobeFrame) => {
       zechCourt(ctx, hand, {
         sun: 0,
         accuser: { enter: 1, shrink: 1, point: 0 },
-        angel: {
-          lift: 0,
-          tilt: 0,
-          hand: ANGEL_HAND,
-        },
+        angel: { lift: 0, tilt: 0 },
         joshua: {
           body: C.robe,
           shade: C.robe,

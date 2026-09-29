@@ -15,12 +15,11 @@
 // from inside the figure. On "jer" the bench itself goes gold, and the word
 // gives way to the name in `thesis`.
 
-import { drawing, shotPath } from '@bible/film/canvas';
+import { type Pt, drawing, shotPath } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
 import { landingSky } from '../city.ts';
 import { knobCamera } from '../kit.ts';
 import {
-  ADVOCATE_HAND,
   ADVOCATE_POSE,
   FIGURE_LANDED,
   GAVEL_DOWN,
@@ -32,6 +31,9 @@ import {
   landingCourt,
   question,
 } from '../court.ts';
+
+/** Where the figure's near hand touches the robe on "receive": its own chest, on its own side. */
+const TOUCH: Pt = [8, -80];
 
 /** The gavel's soft fall across its cue: the cold open's arc, landing without the bounce. */
 const SWING: ReadonlyArray<Key> = [
@@ -59,6 +61,8 @@ export const name = drawing({
     turn: { mark: 'verdict', offset: -0.2, dur: 0.4 },
     // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
     show: { mark: 'verdict', word: 'not', offset: -0.3, dur: 0.6 },
+    // The judge's arm grows to the gavel before it falls, and holds it down into `thesis`.
+    grasp: { with: 'gavel', offset: -0.5, dur: 0.5 },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
     // To the pair as "righteous" is said, a word with no mark.
     toPair: { mark: 'verdict', word: 'righteous', offset: 0.35, dur: 0.9 },
@@ -115,6 +119,7 @@ export const name = drawing({
         [f.at('toBench'), WIDE],
       ]),
       swing,
+      held: f.at('grasp'),
       stamp: Math.max(f.at('hollow'), f.at('stamp')) * (1 - f.at('stampOut')),
       pop,
       fill: f.at('land'),
@@ -137,11 +142,12 @@ export const name = drawing({
         browR: 4 * up + FIGURE_LANDED.browR * smile + 3 * hung,
         browTilt: 0.35 * up + 0.25 * hung,
         smile: FIGURE_LANDED.smile * smile,
-        handR: touch > 0.01 ? [lerp(40, -24, touch), lerp(-60, -76, touch)] : undefined,
+        // The near hand grows to the robe on "receive" and lets it go before "heart".
+        near: { to: TOUCH, grow: touch, grip: 'open' },
       },
       advocate: {
         ...ADVOCATE_POSE,
-        handL: [lerp(ADVOCATE_HAND[0], px, reach), lerp(ADVOCATE_HAND[1], py, reach)],
+        far: { to: [px, py], grow: reach, grip: 'open' },
         tilt: -0.06 + 0.1 * (1 - turn) * f.at('touch') + 0.06 * reach,
         look: [lerp(lerp(-3, 3, turn), -3, present), 1 + 2 * present],
         smile: 0.6 * smile,

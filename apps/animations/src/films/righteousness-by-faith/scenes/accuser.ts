@@ -8,20 +8,13 @@
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on:
 // both draw the court's `zechCourt`.
 
-import { type Pt, camera, drawing, shotPath } from '@bible/film/canvas';
+import { type Arm, camera, drawing, shotPath } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { knobCamera } from '../kit.ts';
-import {
-  ANGEL_HAND,
-  JOSHUA,
-  TUNIC_STAINS,
-  ZECH_REST as REST,
-  courtWall,
-  zechCourt,
-} from '../court.ts';
+import { type Posed, knobCamera } from '../kit.ts';
+import { JOSHUA, TUNIC_STAINS, ZECH_REST as REST, courtWall, zechCourt } from '../court.ts';
 
-/** Christ's near hand raised (at rest it is the court's `ANGEL_HAND`, as `robe` opens). */
-const HAND_UP: Pt = [-78, -205];
+/** Christ's hand raised on "angel", palm out beside his head; its grow rewritten each frame (scratch). */
+const RAISED: Posed<Arm> = { to: [-78, -205], grow: 0, grip: 'palm' };
 
 export const accuser = drawing({
   timeline: {
@@ -71,9 +64,10 @@ export const accuser = drawing({
       [f.at('back'), REST],
     ]);
 
-    // Aimed a little down, at the stains on his clothes.
-    const point = 0.7 * f.at('point') * (1 - f.at('drop'));
+    // His arm grows out to point at the stains on Joshua's clothes, and withdraws on "silence".
+    const point = f.at('point') * (1 - f.at('drop'));
     const raise = f.at('raise') * (1 - f.at('lower'));
+    RAISED.grow = raise;
     // Joshua bows on his name and lifts his head as the accuser is silenced.
     const bow = f.at('bow') * (1 - f.at('lift'));
     // Each stain lights in 0.3 s, 0.4 s after the one before, and dims over
@@ -91,7 +85,7 @@ export const accuser = drawing({
         angel: {
           lift: raise,
           tilt: -0.05 * raise,
-          hand: [lerp(ANGEL_HAND[0], HAND_UP[0], raise), lerp(ANGEL_HAND[1], HAND_UP[1], raise)],
+          reach: RAISED,
         },
         // Joshua, head bowed, the specks on his skin.
         joshua: { tilt: 0.1, nod: 7 * bow, look: [0, 3 * bow], browTilt: 0.2 + 0.2 * bow },

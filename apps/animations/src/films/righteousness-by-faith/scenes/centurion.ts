@@ -385,10 +385,13 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 browR: 2 * stop + 2 * worry,
                 browTilt: 0.45 * worry + 0.2 * stop,
                 mouth: 0.5 * stop,
-                handL: [lerp(-36, -80, worry), lerp(-40, -90, worry)],
-                handR: inHand
-                  ? [lerp(40, 72, open), lerp(-40, -74, open)]
-                  : [lerp(40, 84, stop), lerp(-40, -158, stop)],
+                far: { to: [lerp(-36, -80, worry), lerp(-40, -90, worry)], grow: 1 },
+                near: {
+                  to: inHand
+                    ? [lerp(40, 72, open), lerp(-40, -74, open)]
+                    : [lerp(40, 84, stop), lerp(-40, -158, stop)],
+                  grow: 1,
+                },
               },
               hand('soldier'),
             );
@@ -407,8 +410,8 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 tilt: -0.05 * offer,
                 look: [-3, 1],
                 browTilt: 0.15,
-                handL: [lerp(-36, -118, offer), lerp(-40, -112, offer)],
-                handR: [34, -44],
+                far: { to: [lerp(-36, -118, offer), lerp(-40, -112, offer)], grow: 1 },
+                near: { to: [34, -44], grow: 1 },
               },
               hand,
             ),

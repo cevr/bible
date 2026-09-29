@@ -27,14 +27,13 @@ import {
   type Stamp,
   ACCUSED,
   FIGURE_STAINS,
-  GAVEL,
   GAVEL_REST,
   JUDGE,
   REST,
   STAMP_POP,
   WIDE,
   benchStamp,
-  gavel,
+  judgeGavel,
   question,
 } from '../court.ts';
 
@@ -62,6 +61,7 @@ export const cold = drawing({
   timeline: {
     drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 },
     bow: { mark: 'did', dur: 0.35 },
+    // The judge leans in, his arm growing to the gavel; he lets it go as it comes to rest.
     lean: { mark: 'judge', dur: 0.4 },
     gavel: { mark: 'righteous', offset: -0.37, dur: 0.59 },
     stamp: { mark: 'righteous', offset: -0.03, dur: 0.2, ease: 'outBack' },
@@ -210,7 +210,7 @@ export const cold = drawing({
               kind: 'cut',
               line: 2,
             });
-            gavel(ctx, f.hand, { x: GAVEL[0], y: GAVEL[1], rot: swing }, true);
+            judgeGavel(ctx, f.hand, swing, lean, 10 * lean);
             // The verdict, stamped on a torn label across the bench.
             benchStamp(ctx, f.hand, verdict, popScale);
           },

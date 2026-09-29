@@ -3,18 +3,22 @@
 // glows, the stains. Scenes place them; nothing here reads the clock.
 
 import {
+  type Arm,
+  type ArmStyle,
   type Hand,
   type PieceStyle,
   type Pt,
   type StrokeStyle,
+  arm,
   at,
+  closeHand,
+  handAt,
   piece as paperPiece,
   cutout,
   ground,
   ellipseShape,
   probeFace,
   quad,
-  reach,
   rectShape,
   spline,
   stroke,
@@ -256,9 +260,15 @@ export interface Person {
   /** A moustache, 0 none to 1 a full handlebar (held there), in `hair` (the outline ink unless given). */
   moustache?: number;
   hair?: string;
-  /** Hands, in the person's units, when they reach for something; no arm otherwise. */
-  handL?: Pt;
-  handR?: Pt;
+  /**
+   * A hand at work, on the far side (−x: behind the body, or over it when it
+   * works in front of the body) and on the near side (+x, over it): its
+   * target in the person's units, how far its arm has grown (a named cue's
+   * `f.at`) and its grip. No hand, no arm: at rest the hands are tucked in
+   * the garment (DIRECTION, Figures → Hands).
+   */
+  far?: Arm;
+  near?: Arm;
   /** Stains on the garment: blob outlines in the person's units. */
   stains?: ReadonlyArray<ReadonlyArray<Pt>>;
   /**
@@ -285,8 +295,8 @@ const HEAD: Pt = [0, -165];
 const HEAD_RX = 35;
 const HEAD_RY = 38;
 const HEAD_R: Pt = [HEAD_RX, HEAD_RY];
-const SHOULDER_Y = -116;
-const ARM = [36, 34];
+/** Where an arm grows from, inside the garment's top: the near shoulder (the far one is its mirror). */
+const SHOULDER: Pt = [17, -111];
 /** How far the body drops onto its seat when sitting: the legs' height. */
 const SEAT = 22;
 
@@ -670,35 +680,56 @@ const garment = (
   ctx.restore();
 };
 
-/** One arm from its shoulder on a body of build (bw, bh) to `target`, when it reaches. */
-const arm = (
+/** A person's arms: a strip 13 units wide at the shoulder to 8 at the wrist, 78 long at rest, and a 22-unit mitten. */
+export const PERSON_ARM = { width: [13, 8], length: 78, mitten: 22, line: 2.5 } as const;
+/** The arm style a person draws with, its colours rewritten per person (scratch, so the draw allocates none). */
+const ARM_STYLE: PersonArmStyle = {
+  ...PERSON_ARM,
+  body: C.figure,
+  skin: C.figure,
+  outline: C.outline,
+};
+/** An arm style whose colours a person rewrites as it draws. */
+interface PersonArmStyle extends ArmStyle {
+  body: string;
+  skin: string;
+}
+/** Each shoulder, with its build (scratch). */
+const SHOULDER_AT: [number, number] = [0, 0];
+
+/**
+ * Whether a hand's target lies in front of the body's middle: across the
+ * garment below the shoulders, where a far hand at work must be drawn over
+ * the body or be lost behind it (declared's doubt at the chest).
+ */
+const inFront = ([x, y]: Pt, [bw, bh]: readonly [number, number]) =>
+  Math.abs(x) < 26 * bw && y > -126 * bh && y < -8 * bh;
+
+/** One arm from the shoulder on `side` of a body of build (bw, bh), doing `a`. */
+const personArm = (
   ctx: CanvasRenderingContext2D,
   side: -1 | 1,
-  target: Pt | undefined,
+  a: Arm,
   [bw, bh]: readonly [number, number],
-  colours: readonly [body: string, skin: string],
   hand: Hand,
-  k: number,
 ) => {
-  if (target === undefined) return;
-  const path = spline(reach([side * 26 * bw, SHOULDER_Y * bh], target, ARM, side), 8);
-  stroke(
-    ctx,
-    path,
-    { color: C.outline, width: 17, taper: 0, jitter: 0.5, boil: 'crawl' },
-    sub(hand, k),
-  );
-  stroke(
-    ctx,
-    path,
-    { color: colours[0], width: 12, taper: 0, jitter: 0.5, boil: 'crawl' },
-    sub(hand, k + 1),
-  );
-  const [hx, hy] = path.at(-1) ?? target;
-  piece(ctx, ellipseShape(hx, hy, 8, 8, 20), colours[1], sub(hand, k + 2), {
-    role: 'figure',
-    line: 2.5,
-  });
+  SHOULDER_AT[0] = side * SHOULDER[0] * bw;
+  SHOULDER_AT[1] = SHOULDER[1] * bh;
+  arm(ctx, SHOULDER_AT, side, a, ARM_STYLE, sub(hand, side === 1 ? 50 : 40));
+};
+
+/**
+ * Where a person's hand on `side` is, in their units: its mitten's centre,
+ * as far along its arm as the arm has grown (something held in it rides
+ * there); none when that hand is not at work.
+ */
+export const handOf = (p: Person, side: 'far' | 'near'): Pt | undefined => {
+  const a = p[side];
+  if (a === undefined) return undefined;
+  const [bw, bh] = buildOf(p);
+  const away = side === 'near' ? 1 : -1;
+  const [x, y] = handAt([away * SHOULDER[0] * bw, SHOULDER[1] * bh], away, a, ARM_STYLE);
+  return [x, y + SEAT * clamp(p.sit ?? 0) * bh];
 };
 
 /** How wide the contact shadow under a standing person spreads, by garment: past the robe's hem, or the tunic and feet. */
@@ -723,10 +754,16 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
     ctx.restore();
   }
 
-  // The far arm behind the body, the near one over it.
-  frameOf(ctx, drop);
-  arm(ctx, -1, p.handL, build, colours, hand, 40);
-  ctx.restore();
+  // The far arm behind the body (or over it, working in front of it), the near one over it.
+  ARM_STYLE.body = colours[0];
+  ARM_STYLE.skin = colours[1];
+  const far = p.far;
+  const farFront = far !== undefined && inFront(far.to, build);
+  if (far !== undefined && !farFront) {
+    frameOf(ctx, drop);
+    personArm(ctx, -1, far, build, hand);
+    ctx.restore();
+  }
   // A build stretches the body from the feet; the head rides its neck.
   frameOf(ctx, 0, bw, bh);
   legs(ctx, sit, p.shade ?? C.figureShade, hand);
@@ -735,8 +772,9 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   garment(ctx, p, sit, colours[0], hand);
   ctx.restore();
   frameOf(ctx, drop);
+  if (far !== undefined && farFront) personArm(ctx, -1, far, build, hand);
   head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
-  arm(ctx, 1, p.handR, build, colours, hand, 50);
+  if (p.near !== undefined) personArm(ctx, 1, p.near, build, hand);
   ctx.restore();
 };
 
@@ -816,6 +854,19 @@ export const gait = (t: number, walk: { readonly start: number; readonly end: nu
 // the same layout (CRAFT rule 8). Each takes a `hand` for its keys, so boil
 // seeds stay the scene's own. Sets live in their own modules: court.ts,
 // heaven.ts, city.ts, law.ts, garden.ts, spoken.ts, gospel.ts.
+
+/**
+ * A pose written in place every frame (a `House`, a `Temple`, a hand's
+ * `Arm`) with its fields writable, so a scene keeps one at module scope and
+ * draws with no allocation.
+ */
+export type Posed<T> = { -readonly [K in keyof T]: T[K] };
+
+/** A hand at work whose target and grow a scene rewrites in place every frame (scratch, so the draw allocates none). */
+export interface ArmAt extends Arm {
+  readonly to: [number, number];
+  grow: number;
+}
 
 /** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
 export type Hands = (k: string) => Hand;
@@ -898,50 +949,23 @@ export const icons = (
   disc(2, 'iconHeart', () => heart(ctx, hand, C.boardLight, false));
 };
 
-/** The open hand's four fingers: each one's x across the palm and its seed. */
-const FINGERS = [
-  [-105, 1],
-  [-37, 2],
-  [33, 3],
-  [100, 4],
-] as const;
-const WRIST = rounded(20, 190, 170, 260, 50);
-const FINGER = rounded(0, 0, 58, 120, 28);
-const PALM = rounded(0, 20, 310, 170, 80);
-const THUMB = rounded(0, 0, 56, 130, 28);
-const CREASE = spline([
-  [-90, 50],
-  [0, 30],
-  [90, 55],
-]);
+/** The close-up hand's paper, lifeline and ink: the figures' own. */
+const CLOSE_UP = { skin: C.figure, crease: C.figureShade, outline: C.outline } as const;
+/** Where a close-up's arm comes into frame, by default: straight up from under it. */
+const FROM_BELOW: Pt = [0, 700];
 
 /**
- * The open hand, palm up, the palm's centre near (0, 0), about 390 units
- * wide: faith, the hand that takes (`look` lays the gold light in it, `daily`
- * the icons). `open` 1 holds the fingers straight; toward 0 they curl
- * down toward the palm, as a hand closes.
+ * A figure's hand close up (the engine's `closeHand`: the one mitten, big,
+ * palm up, with its creases and lifeline), its centre on the origin, about
+ * 300 units wide: faith, the hand that takes (`look` lays the gold light in
+ * it, `daily` the icons). `open` 1 holds the fingers straight; toward 0 they
+ * fold forward over the palm. Its arm comes into frame at `forearm` (in the
+ * hand's units), from the side the figure we just saw stands on. A close-up
+ * is only ever of a figure the viewer has just seen (CRAFT rule 12).
  */
-export const openHand = (ctx: CanvasRenderingContext2D, hand: Hands, open = 1) => {
-  piece(ctx, WRIST, C.figure, hand('wrist'), { role: 'figure', line: 4 });
-  const curl = lerp(0.45, 1, clamp(open));
-  for (const [x, k] of FINGERS) {
-    ctx.save();
-    ctx.translate(x, lerp(-10, -80, curl));
-    ctx.rotate(x * 0.0012);
-    ctx.scale(1, curl);
-    piece(ctx, FINGER, C.figure, sub(hand('finger'), k), { role: 'figure', line: 4 });
-    ctx.restore();
-  }
-  piece(ctx, PALM, C.figure, hand('palm'), { role: 'figure', line: 4 });
-  ctx.save();
-  ctx.translate(-165, 10);
-  ctx.rotate(-0.9);
-  piece(ctx, THUMB, C.figure, hand('thumb'), { role: 'figure', line: 4 });
-  ctx.restore();
-  stroke(
-    ctx,
-    CREASE,
-    { color: C.figureShade, width: 4, jitter: 0.4, boil: 'crawl' },
-    hand('crease'),
-  );
-};
+export const handCloseUp = (
+  ctx: CanvasRenderingContext2D,
+  hand: Hands,
+  open = 1,
+  forearm: Pt = FROM_BELOW,
+) => closeHand(ctx, open, CLOSE_UP, hand('closeHand'), forearm);

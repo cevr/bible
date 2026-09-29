@@ -253,8 +253,8 @@ export const priestAt = (
       {
         look: [3, -1 - 2 * raised],
         browTilt: 0.3 + 0.2 * raised,
-        handL: [lerp(-30, -72, raised), lerp(-58, -196, raised)],
-        handR: [lerp(30, 72, raised), lerp(-58, -196, raised)],
+        far: { to: [lerp(-30, -72, raised), lerp(-58, -196, raised)], grow: 1 },
+        near: { to: [lerp(30, 72, raised), lerp(-58, -196, raised)], grow: 1 },
       },
       hand,
       plate,
@@ -311,8 +311,8 @@ export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number) 
       tilt: 0.08,
       look: [4, -1],
       browTilt: 0.1,
-      handR: [66, -120],
-      handL: [50, -100],
+      near: { to: [66, -120], grow: 1 },
+      far: { to: [50, -100], grow: 1 },
     },
     hand('angel'),
   );

@@ -43,7 +43,7 @@ import {
   glow,
   knobCamera,
   icons,
-  openHand,
+  handCloseUp,
   person,
   piece,
   rounded,
@@ -293,7 +293,9 @@ export const giftHand = (
 ) => {
   ctx.save();
   ctx.globalAlpha *= rise;
-  at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () => openHand(ctx, hand, open));
+  at(ctx, { x: px, y: lerp(py + 400, py, rise), scale: HAND_S }, () =>
+    handCloseUp(ctx, hand, open),
+  );
   ctx.restore();
 };
 
@@ -468,7 +470,7 @@ const hall = (f: MessageFrame, cam: Camera, roof: number) => {
                   browR: 2 * wander + 4 * turn + 3 * curious,
                   browTilt: 0.45 * wander + 0.3 * turn + 0.3 * curious,
                   mouth: 0.6 * turn * (i % 3 === 0 ? 1 : 0),
-                  handR: holds ? handR : undefined,
+                  near: holds ? { to: handR, grow: 1 } : undefined,
                 },
                 sub(f.hand('crowd'), i),
               );
@@ -584,8 +586,8 @@ const preachers = (f: MessageFrame) => {
           browL: 2 * step,
           browR: 2 * step,
           browTilt: 0.1,
-          handL: k === 0 ? [-10, -86] : undefined,
-          handR: k === 0 ? [30, -84] : [58, lerp(-80, -150, step)],
+          far: k === 0 ? { to: [-10, -86], grow: 1 } : undefined,
+          near: { to: k === 0 ? [30, -84] : [58, lerp(-80, -150, step)], grow: 1 },
         },
         f.hand(`preacher${k}`),
       );
