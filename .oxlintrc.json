@@ -268,11 +268,8 @@
       }
     },
     {
-      // The `film` plugin's guardrails (packages/film/lint/), on every film
-      // but the frozen first cut: righteousness-by-faith-v1 is kept as it was
-      // made and gets no new rules (ledger 2026-09-27, Pass 1 decisions).
+      // The `film` plugin's guardrails (packages/film/lint/), on every film.
       "files": ["**/apps/animations/src/films/**/*.ts"],
-      "excludeFiles": ["**/apps/animations/src/films/righteousness-by-faith-v1/**"],
       "rules": {
         "film/drawing-literal": "error",
         "film/no-hand-timed-seconds": "error",

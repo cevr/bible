@@ -1,7 +1,7 @@
 # Righteousness by faith (1889 Principle XVIII + the 1888 message)
 
 Scope: the pioneer frame for the film _Righteousness by Faith_. These quotes deliberately cover what
-the first cut's `apps/animations/src/films/righteousness-by-faith-v1/sources.md` does NOT already have: the 1889 principle itself, the law and the
+the film's first cut did not source: the 1889 principle itself, the law and the
 Sabbath after justification, Christ's present priesthood, the day-of-atonement setting of Zech 3, and
 the latter rain / cleansing link. The Principle II note on the atonement (FP1889 147.3) is in
 [nature-of-christ.md](nature-of-christ.md), because both of the `exchange` beat's problems hang on Principle II.

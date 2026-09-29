@@ -1,6 +1,6 @@
 # BibleProject study: direction and clarity for the film skill
 
-Sixteen BibleProject films were measured and read frame by frame against their transcripts. They are all 10 videos in the Sermon on the Mount playlist (`PLH0Szn1yYNefD9pHcnyRivKRGpYGc2yfB`) and 6 films from other series, each chosen for a contrasting style. The comparison is with the first cut of our film `righteousness-by-faith` (kept as `src/films/righteousness-by-faith-v1`), using its script, `pass1-sheet.jpg` and the render `out/righteousness-by-faith.mp4` (25 Sep, 20:56; now `out/righteousness-by-faith-v1.mp4`). That render was measured with the same tools.
+Sixteen BibleProject films were measured and read frame by frame against their transcripts. They are all 10 videos in the Sermon on the Mount playlist (`PLH0Szn1yYNefD9pHcnyRivKRGpYGc2yfB`) and 6 films from other series, each chosen for a contrasting style. The comparison is with the first cut of our film `righteousness-by-faith` (25 Sep; since rebuilt, and the first cut is no longer kept), using its script and its render, measured with the same tools.
 
 **Evidence.** The working files (contact sheets, transcripts, measurement tables) were scratch and were not kept; the videos were deleted after measuring. Every timestamp points into the public video by its YouTube id (`PqEi 1:38` is `https://youtu.be/PqEiqCuIsvw?t=98`).
 

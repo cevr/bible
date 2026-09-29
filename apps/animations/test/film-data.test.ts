@@ -21,7 +21,6 @@ import {
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { FILMS } from '../server.ts';
-import { firstCut } from '../src/films/righteousness-by-faith-v1/film.ts';
 import { scenes as liveScenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
 import { voice as liveVoice } from '../src/films/righteousness-by-faith/voice.ts';
 import { FIXTURE_FILMS } from './fixtures/cli.ts';
@@ -106,19 +105,6 @@ describe('righteousness-by-faith data', () => {
         if (Option.isSome(take))
           expect(take.value.hash).toBe(hashText(takeScript(parse(scene.say ?? ''))));
       }
-    }),
-  );
-});
-
-describe('righteousness-by-faith-v1 settings', () => {
-  // The first cut is the frozen A/B reference: an engine default that moves
-  // (the screen grain, the scenes' breath) must not move its pixels, so the
-  // film declares the settings it was drawn with.
-  it.effect('draws with the screen grain and the stillness it was cut with', () =>
-    Effect.sync(() => {
-      const made = firstCut();
-      expect(made.look.finish.grain).toBe(0.09);
-      expect(made.drift).toBe(0);
     }),
   );
 });
