@@ -228,8 +228,18 @@ const RequestKey = Schema.fromJsonString(
   ]),
 );
 
-/** `prompt_influence` when a sound names none (the API's default). */
-export const DEFAULT_INFLUENCE = 0.3;
+/**
+ * `prompt_influence` when a sound names none, by use. Measured (p4-sfx2, one
+ * axis at a time): a one-shot keeps to its prompt, at full level and dry, only
+ * from 0.7 up (a gavel at 0.5 came out 20–30 dB quieter, with its energy under
+ * 30 Hz); a bed keeps the model's own air at the API's 0.3, and a crowd bed
+ * loops cleaner at 0.6 (its declaration names that).
+ */
+export const DEFAULT_INFLUENCE = { 'one-shot': 0.7, bed: 0.3 } satisfies Record<SoundUse, number>;
+
+/** The `prompt_influence` a generated sound is made with: its own, or its use's default. */
+export const influenceOf = (entry: Generated): number =>
+  Option.getOrElse(Option.fromUndefinedOr(entry.influence), () => DEFAULT_INFLUENCE[entry.use]);
 
 /** The hash of what a declaration asks for: the lock's `request` against it says whether a sound is current. */
 export const requestKey = (entry: LibraryEntry): string => {
@@ -240,10 +250,7 @@ export const requestKey = (entry: LibraryEntry): string => {
           kind: 'generated',
           prompt: entry.prompt,
           secs: entry.secs,
-          influence: Option.getOrElse(
-            Option.fromUndefinedOr(entry.influence),
-            () => DEFAULT_INFLUENCE,
-          ),
+          influence: influenceOf(entry),
           loop: entry.loop === true,
           model: SFX_MODEL,
           format: SFX_FORMAT,
@@ -297,7 +304,9 @@ export const variantCount = (entry: LibraryEntry, lock: Option.Option<LockEntry>
 };
 
 /** How many candidates a generated sound is made as, when it names no number. */
-export const DEFAULT_CANDIDATES = { 'one-shot': 4, bed: 2 } satisfies Record<SoundUse, number>;
+// About a third of the sweet-spot takes were usable (p4-sfx2): six one-shots,
+// or three beds, give one usable take nearly always.
+export const DEFAULT_CANDIDATES = { 'one-shot': 6, bed: 3 } satisfies Record<SoundUse, number>;
 
 export const candidatesOf = (entry: Generated): number =>
   Option.getOrElse(Option.fromUndefinedOr(entry.candidates), () => DEFAULT_CANDIDATES[entry.use]);
@@ -351,6 +360,29 @@ const makeJob = (
   if (count === 0) return [];
   return [{ name, entry, count, credits: count * creditsOf(entry) }];
 };
+
+/** Settings a trial (`sfx try`) makes a generated sound with in place of its declaration's. */
+export interface Trial {
+  readonly prompt: Option.Option<string>;
+  readonly secs: Option.Option<number>;
+  readonly influence: Option.Option<number>;
+}
+
+/**
+ * `entry` with a trial's settings over its own, checked as a declaration is
+ * (`Generated`): its candidates are made and wait under this request, and
+ * become keepable when the declaration is changed to say the same.
+ */
+export const trialEntry = (entry: Generated, trial: Trial) =>
+  Schema.decodeResult(Generated)({
+    ...entry,
+    ...Option.match(trial.prompt, { onNone: () => ({}), onSome: (prompt) => ({ prompt }) }),
+    ...Option.match(trial.secs, { onNone: () => ({}), onSome: (secs) => ({ secs }) }),
+    ...Option.match(trial.influence, {
+      onNone: () => ({}),
+      onSome: (influence) => ({ influence }),
+    }),
+  });
 
 // ---------------------------------------------------------------------------
 // Lookup

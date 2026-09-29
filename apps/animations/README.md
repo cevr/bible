@@ -16,6 +16,7 @@ bun run score <film>                           # compose the stale score, remix 
 bun run sfx list [family] [--missing|--stale]  # the sound library (sounds/library.ts): kind, use, state, variants, level, loudness, source
 bun run sfx plan [name…]                       # what make would generate and its credits (free)
 bun run sfx make [name…] --yes [--cap n --tally f]  # generate candidates (paid; without --yes it prints the plan and stops)
+bun run sfx try <name> [--prompt p --secs s --influence i --count n] --yes  # candidates with other settings (paid); keepable once library.ts says the same
 bun run sfx audition <name> [--candidates]     # one WAV of the variants (or candidates), levelled, 0.5 s apart
 bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected one is never offered again
 bun run sfx keep <name> <n…> --replace         # keep candidates in place of the kept variants (those wait again)

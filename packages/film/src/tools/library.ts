@@ -40,8 +40,11 @@ import {
   type SoundSource,
   type Sounds,
   type StagedAudio,
+  type Trial,
   type Variant,
-  DEFAULT_INFLUENCE,
+  creditsOf,
+  trialEntry,
+  influenceOf,
   refusedAudio,
   gainFor,
   levelOf,
@@ -75,6 +78,7 @@ import {
   SoundStale,
   SoundUnmade,
   StoreCopyFailed,
+  TrialInvalid,
   type UnknownSound,
   VariantMissing,
 } from './errors.ts';
@@ -174,11 +178,15 @@ export const talliedCredits = (text: string): number =>
 
 export const TALLY_HEADER = 'name\tvariant\tseconds\tcredits\n';
 
-export interface MakeOptions {
+export interface MakeOptions extends SpendOptions {
   /** Just these sounds; every declared one otherwise. */
   readonly names: Option.Option<ReadonlySet<string>>;
   /** A full set of candidates again, even for a current sound. */
   readonly force: boolean;
+}
+
+/** How a paid run may spend: confirmed, under a cap, tallied. */
+export interface SpendOptions {
   /** Spend: without it, `make` prints the plan and refuses a paid run. */
   readonly yes: boolean;
   /** The most credits spent in all, counting what the tally already records. */
@@ -218,11 +226,21 @@ export type MakeError =
   | MediaFailed
   | PlatformError;
 
-/** What `push` did: the files it copied, those the store already held, and the lock's total. */
+/** What `push` did: the files it copied, those the store already held, those it had nowhere, and the lock's total. */
 export interface PushReport {
   readonly sent: ReadonlyArray<string>;
   readonly had: number;
+  /** Lock files neither here with their bytes nor in the store: lost unless a copy exists elsewhere. */
+  readonly missing: ReadonlyArray<string>;
   readonly total: number;
+}
+
+/** What `pull` did: how many files it fetched, how many were here, and those the store lacks. */
+export interface PullReport {
+  readonly fetched: number;
+  readonly had: number;
+  /** Lock files the store does not hold with their bytes, and not here either. */
+  readonly missing: ReadonlyArray<string>;
 }
 
 export interface SoundLibraryService {
@@ -235,6 +253,20 @@ export interface SoundLibraryService {
   ) => Effect.Effect<ReadonlyArray<MakeJob>, LibraryError>;
   /** Generate the planned candidates (paid), each measured, hashed and recorded as it lands. */
   readonly make: (options: MakeOptions) => Effect.Effect<ReadonlyArray<Variant>, MakeError>;
+  /**
+   * `count` candidates of a generated sound made with a trial's settings over
+   * its declaration's (paid, as `make`). They wait under their own request:
+   * keepable once the declaration says the same.
+   */
+  readonly trial: (
+    name: string,
+    trial: Trial,
+    count: number,
+    options: SpendOptions,
+  ) => Effect.Effect<
+    ReadonlyArray<Variant>,
+    MakeError | UnknownSound | SoundKindMismatch | TrialInvalid
+  >;
   /**
    * Move candidates (1-based, among those for the current request) into the
    * variants that play: beside the kept ones, or with `replace` in their place
@@ -283,15 +315,13 @@ export interface SoundLibraryService {
     ReadonlyArray<LibraryFinding>,
     LibraryError | MediaFailed | PlatformError
   >;
-  /** Bring every lock file missing (or not its hash) under `files/` back from the store. */
-  readonly pull: Effect.Effect<
-    { readonly fetched: number; readonly had: number },
-    LibraryError | PlatformError
-  >;
+  /** Bring every lock file missing (or not its hash) under `files/` back from the store; name those it lacks. */
+  readonly pull: Effect.Effect<PullReport, LibraryError | PlatformError>;
   /**
    * Copy every lock file under `files/` the store lacks (or holds with other
    * bytes) into it, each read back by hash. `sent` names the files copied,
-   * `had` counts those the store already held, `total` the lock's files.
+   * `had` counts those the store already held, `missing` names those found
+   * nowhere, `total` the lock's files.
    */
   readonly push: Effect.Effect<PushReport, LibraryError | PlatformError | StoreCopyFailed>;
   /** Of `files` (as staged for a commit), the audio a public repo may not take (`refusedAudio`). */
@@ -398,10 +428,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               {
                 prompt: entry.prompt,
                 secs: entry.secs,
-                influence: Option.getOrElse(
-                  Option.fromUndefinedOr(entry.influence),
-                  () => DEFAULT_INFLUENCE,
-                ),
+                influence: influenceOf(entry),
                 loop: entry.loop === true,
                 model: SFX_MODEL,
                 format: SFX_FORMAT,
@@ -445,7 +472,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
                 ),
             });
             yield* Effect.log(
-              `sfx.made name=${name} file=${variant.file} secs=${variant.secs.toFixed(2)} channels=${channels} credits=${credits} momentary=${variant.loudness.momentaryMax}`,
+              `sfx.made name=${name} file=${variant.file} secs=${variant.secs.toFixed(2)} influence=${influenceOf(entry)} channels=${channels} credits=${credits} momentary=${variant.loudness.momentaryMax}`,
             );
             return variant;
           }).pipe(Effect.scoped);
@@ -475,7 +502,41 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const make = Effect.fn('SoundLibrary.make')(function* (options: MakeOptions) {
           const loaded = yield* load;
-          const jobs = makePlan(loaded.library, loaded.lock, options.names, options.force);
+          return yield* spend(
+            makePlan(loaded.library, loaded.lock, options.names, options.force),
+            options,
+          );
+        });
+
+        const trial = Effect.fn('SoundLibrary.trial')(function* (
+          name: string,
+          settings: Trial,
+          count: number,
+          options: SpendOptions,
+        ) {
+          const loaded = yield* load;
+          const declared = yield* entryOf(loaded, name);
+          if (declared.kind !== 'generated')
+            return yield* SoundKindMismatch.make({
+              name,
+              kind: declared.kind,
+              wanted: 'generated',
+            });
+          const entry = yield* Effect.mapError(
+            Effect.fromResult(trialEntry(declared, settings)),
+            (issue) => TrialInvalid.make({ name, reason: String(issue) }),
+          );
+          yield* Effect.log(
+            `sfx.trial name=${name} secs=${entry.secs} influence=${influenceOf(entry)} count=${count} prompt="${entry.prompt}"`,
+          );
+          return yield* spend([{ name, entry, count, credits: count * creditsOf(entry) }], options);
+        });
+
+        /** Generate `jobs` (paid): refused without `yes` or over the cap the tally counts, each tallied as it lands. */
+        const spend = Effect.fn('SoundLibrary.spend')(function* (
+          jobs: ReadonlyArray<MakeJob>,
+          options: SpendOptions,
+        ) {
           const credits = jobs.reduce((sum, job) => sum + job.credits, 0);
           for (const job of jobs)
             yield* Effect.log(
@@ -783,35 +844,57 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           const remote = storeOf(loaded);
           let fetched = 0;
           let had = 0;
+          const missing: Array<string> = [];
           for (const { variant } of privateFiles(loaded.lock)) {
             const at = path.join(dir, variant.file);
-            const present =
-              (yield* fs.exists(at)) && (yield* sha256(yield* fs.readFile(at))) === variant.sha256;
-            if (present) {
+            if (yield* holdsHere(variant)) {
               had++;
+              continue;
+            }
+            if (!(yield* holdsIn(remote, variant))) {
+              missing.push(variant.file);
+              yield* Effect.logWarning(`sfx.pull.missing file=${variant.file}`);
               continue;
             }
             yield* remote.get(variant.file, at);
             fetched++;
           }
           yield* Effect.log(
-            `sfx.pull store=${remote.where} fetched=${fetched} had=${had} todo="${loaded.store.remote.todo}"`,
+            `sfx.pull store=${remote.where} fetched=${fetched} had=${had} missing=${missing.length} todo="${loaded.store.remote.todo}"`,
           );
-          return { fetched, had };
+          const report: PullReport = { fetched, had, missing };
+          return report;
         });
         const pull = pullFiles();
+
+        /** Whether `files/` here holds `variant`'s bytes. */
+        const holdsHere = (variant: Variant) =>
+          Effect.gen(function* () {
+            const at = path.join(dir, variant.file);
+            if (!(yield* fs.exists(at))) return false;
+            return (yield* sha256(yield* fs.readFile(at))) === variant.sha256;
+          });
+
+        /** Whether the store holds `variant`'s bytes. */
+        const holdsIn = (remote: SoundStoreService, variant: Variant) =>
+          Effect.map(remote.hashOf(variant.file), (h) => Option.contains(h, variant.sha256));
 
         const pushFiles = Effect.fn('SoundLibrary.push')(function* () {
           const loaded = yield* load;
           const remote = storeOf(loaded);
           const files = privateFiles(loaded.lock);
           const sent: Array<string> = [];
+          const missing: Array<string> = [];
           let had = 0;
-          const holds = (variant: Variant) =>
-            Effect.map(remote.hashOf(variant.file), (h) => Option.contains(h, variant.sha256));
+          const holds = (variant: Variant) => holdsIn(remote, variant);
           for (const { variant } of files) {
             if (yield* holds(variant)) {
               had++;
+              continue;
+            }
+            if (!(yield* holdsHere(variant))) {
+              missing.push(variant.file);
+              yield* Effect.logWarning(`sfx.push.missing file=${variant.file}`);
               continue;
             }
             yield* remote.put(variant.file, path.join(dir, variant.file));
@@ -821,9 +904,9 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             yield* Effect.log(`sfx.push.sent file=${variant.file}`);
           }
           yield* Effect.log(
-            `sfx.push store=${remote.where} sent=${sent.length} had=${had} total=${files.length} todo="${loaded.store.remote.todo}"`,
+            `sfx.push store=${remote.where} sent=${sent.length} had=${had} missing=${missing.length} total=${files.length} todo="${loaded.store.remote.todo}"`,
           );
-          const report: PushReport = { sent, had, total: files.length };
+          const report: PushReport = { sent, had, missing, total: files.length };
           return report;
         });
         const push = pushFiles();
@@ -854,6 +937,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           load,
           plan,
           make,
+          trial,
           keep,
           unkeep,
           reject,

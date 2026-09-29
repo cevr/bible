@@ -9,6 +9,7 @@
 //   film sfx list [family] [--missing | --stale]
 //   film sfx plan [name…] [--force]
 //   film sfx make [name…] [--force] [--yes] [--cap n] [--tally file]
+//   film sfx try <name> [--prompt p] [--secs s] [--influence i] [--count n] [--yes] [--cap n] [--tally file]
 //   film sfx audition <name> [--candidates]
 //   film sfx keep <name> <n…> [--replace]
 //   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
@@ -166,24 +167,24 @@ const plan = Command.make(
   Command.withDescription('What make would generate and what it would cost, in credits (free)'),
 );
 
+const spendFlags = {
+  yes: Flag.Boolean('yes').pipe(
+    Flag.withDefault(false),
+    Flag.withDescription('spend the credits the plan prints'),
+  ),
+  cap: Flag.Int('cap').pipe(
+    Flag.optional,
+    Flag.withDescription('the most credits spent in all, counting what --tally records'),
+  ),
+  tally: Flag.String('tally').pipe(
+    Flag.optional,
+    Flag.withDescription('a TSV each generation is appended to: name, variant, seconds, credits'),
+  ),
+};
+
 const make = Command.make(
   'make',
-  {
-    names,
-    force,
-    yes: Flag.Boolean('yes').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription('spend the credits the plan prints'),
-    ),
-    cap: Flag.Int('cap').pipe(
-      Flag.optional,
-      Flag.withDescription('the most credits spent in all, counting what --tally records'),
-    ),
-    tally: Flag.String('tally').pipe(
-      Flag.optional,
-      Flag.withDescription('a TSV each generation is appended to: name, variant, seconds, credits'),
-    ),
-  },
+  { names, force, ...spendFlags },
   Effect.fn('film.sfx.make')(function* (input) {
     const library = yield* SoundLibrary;
     const chosen = namesOf(input.names);
@@ -202,6 +203,46 @@ const make = Command.make(
 ).pipe(
   Command.withDescription(
     'Generate candidates for the missing or stale generated sounds (paid: prints the plan, spends only with --yes)',
+  ),
+);
+
+const tryCommand = Command.make(
+  'try',
+  {
+    name,
+    prompt: Flag.String('prompt').pipe(
+      Flag.optional,
+      Flag.withDescription('the prompt in place of the declared one'),
+    ),
+    secs: Flag.Finite('secs').pipe(
+      Flag.optional,
+      Flag.withDescription('the length, in seconds (0.5–30), in place of the declared one'),
+    ),
+    influence: Flag.Finite('influence').pipe(
+      Flag.optional,
+      Flag.withDescription('prompt_influence (0–1) in place of the declared one'),
+    ),
+    count: Flag.Int('count').pipe(
+      Flag.withDefault(2),
+      Flag.withDescription('how many candidates to make'),
+    ),
+    ...spendFlags,
+  },
+  Effect.fn('film.sfx.try')(function* (input) {
+    const made = yield* (yield* SoundLibrary).trial(
+      input.name,
+      { prompt: input.prompt, secs: input.secs, influence: input.influence },
+      input.count,
+      { yes: input.yes, cap: input.cap, tally: input.tally },
+    );
+    for (const v of made)
+      yield* Console.log(
+        `made  ${v.file}  ${v.secs.toFixed(2)}s  ${v.credits} credits  request=${v.request.slice(0, 12)}`,
+      );
+  }),
+).pipe(
+  Command.withDescription(
+    "Candidates made with other settings than the declaration's (paid, as make): they wait under their own request, keepable once the declaration says the same",
   ),
 );
 
@@ -340,8 +381,9 @@ const pull = Command.make(
   'pull',
   {},
   Effect.fn('film.sfx.pull')(function* () {
-    const { fetched, had } = yield* (yield* SoundLibrary).pull;
-    yield* Console.log(`pulled ${fetched}, had ${had}`);
+    const { fetched, had, missing } = yield* (yield* SoundLibrary).pull;
+    for (const file of missing) yield* Console.log(`missing  ${file}  (not in the store)`);
+    yield* Console.log(`pulled ${fetched}, had ${had}, missing ${missing.length}`);
   }),
 ).pipe(Command.withDescription("Bring the lock's generated files back from the store"));
 
@@ -349,9 +391,13 @@ const push = Command.make(
   'push',
   {},
   Effect.fn('film.sfx.push')(function* () {
-    const { sent, had, total } = yield* (yield* SoundLibrary).push;
+    const { sent, had, missing, total } = yield* (yield* SoundLibrary).push;
     for (const file of sent) yield* Console.log(`sent  ${file}`);
-    yield* Console.log(`pushed ${sent.length}, had ${had}, of ${total} in the lock`);
+    for (const file of missing)
+      yield* Console.log(`missing  ${file}  (not here, not in the store)`);
+    yield* Console.log(
+      `pushed ${sent.length}, had ${had}, missing ${missing.length}, of ${total} in the lock`,
+    );
   }),
 ).pipe(
   Command.withDescription(
@@ -385,6 +431,7 @@ export const sfx = Command.make('sfx').pipe(
     list,
     plan,
     make,
+    tryCommand,
     audition,
     keep,
     unkeep,

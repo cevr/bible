@@ -56,7 +56,16 @@ by their hash, and wait in the lock until `keep` or `reject`; `keep --replace`
 keeps them in place of the kept variants, and `unkeep` sends kept variants
 back to wait (the lock is only ever written by these commands). `push` copies
 each private file the store lacks, or holds with other bytes, reads it back by
-hash (`StoreCopyFailed` otherwise), and names every file it sent. `guard` is the
+hash (`StoreCopyFailed` otherwise), and names every file it sent; `push` and
+`pull` name each lock file they find nowhere (`missing`) rather than fail on
+it. `try <name> --prompt/--secs/--influence --count n` is `make` for other
+settings than the declaration's (paid, capped and tallied the same): its
+candidates wait under their own request, and become keepable when the
+declaration is changed to say the same (`TrialInvalid` for settings no
+declaration could take). A sound that names no `influence` is made at its
+use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
+as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the p4-sfx2
+sweet-spot runs. `guard` is the
 pre-commit hook's: of the staged files, it refuses any audio under `files/`,
 any copy of a variant or candidate that is not CC0 (by its sha256, wherever
 it is staged), and anything under `public/` the lock does not hold as a CC0

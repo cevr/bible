@@ -18,7 +18,7 @@ import {
   Redacted,
 } from 'effect';
 import { rng } from '../core/random.ts';
-import { soundState } from '../core/sfx.ts';
+import { pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from './errors.ts';
@@ -26,8 +26,8 @@ import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } f
 import { Media } from './media.ts';
 
 const LIBRARY = `export const library = {
-  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, use: 'one-shot' },
-  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 2, loop: true, use: 'bed' },
+  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, candidates: 4, use: 'one-shot' },
+  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 2, loop: true, candidates: 2, use: 'bed' },
   'tone.chime': {
     kind: 'procedural',
     recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },
@@ -264,6 +264,64 @@ describe('SoundLibrary', () => {
   );
 
   it.effect.layer(fixture)(
+    'a trial makes candidates under other settings, keepable once the declaration says the same',
+    () =>
+      withLibrary(({ tally, calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          const trial = {
+            influence: Option.some(0.9),
+            secs: Option.some(0.8),
+            prompt: Option.none(),
+          };
+          const spend = { yes: true, cap: Option.some(1000), tally: Option.some(tally) };
+          const over = yield* Effect.flip(
+            library.trial('paper.slide', trial, 3, { ...spend, cap: Option.some(50) }),
+          );
+          expect(over._tag).toBe('CreditsOverCap');
+          const made = yield* library.trial('paper.slide', trial, 3, spend);
+          expect(made).toHaveLength(3);
+          expect(calls.map((c) => [c.prompt, c.secs, c.influence])).toEqual(
+            Array.from({ length: 3 }, () => ['paper slides on a desk', 0.8, 0.9]),
+          );
+          expect(talliedCredits(yield* fs.readFileString(tally))).toBe(3 * 32);
+          // The declaration still asks for its own settings: the trial's candidates do not wait for it.
+          const declared = yield* library.plan(Option.some(new Set(['paper.slide'])), false);
+          expect(declared.map((j) => j.count)).toEqual([4]);
+          const unkeepable = yield* Effect.flip(library.keep('paper.slide', [1]));
+          expect(unkeepable._tag).toBe('CandidateMissing');
+          // Declared as the trial was made (the next run imports the edited
+          // library.ts), its candidates are the ones that wait, and keep takes them.
+          const loaded = yield* library.load;
+          const declaredAsTried = {
+            kind: 'generated',
+            prompt: 'paper slides on a desk',
+            secs: 0.8,
+            influence: 0.9,
+            use: 'one-shot',
+          } as const;
+          const waiting = pendingOf(
+            declaredAsTried,
+            Option.fromUndefinedOr(loaded.lock['paper.slide']),
+          );
+          // Candidates land in the lock as each call finishes, so compare as sets.
+          expect(waiting.map((v) => v.sha256).toSorted()).toEqual(
+            made.map((v) => v.sha256).toSorted(),
+          );
+          expect(made.every((v) => v.request === requestKey(declaredAsTried))).toBe(true);
+          const wrong = yield* Effect.flip(library.trial('tone.chime', trial, 1, spend));
+          expect(wrong._tag).toBe('SoundKindMismatch');
+          const tooLong = yield* Effect.flip(
+            library.trial('paper.slide', { ...trial, secs: Option.some(40) }, 1, spend),
+          );
+          expect(tooLong._tag).toBe('TrialInvalid');
+          expect(calls).toHaveLength(3);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
     'unkeeps a kept variant back to waiting, and keeps in place of the kept ones with replace',
     () =>
       withLibrary(() =>
@@ -300,9 +358,9 @@ describe('SoundLibrary', () => {
   );
 
   it.effect.layer(fixture)(
-    'push names each file it sends, and sends again a store copy that is not its bytes',
+    'push names each file it sends, sends again a store copy that is not its bytes, and names a file lost everywhere',
     () =>
-      withLibrary(({ storeDir }) =>
+      withLibrary(({ dir, storeDir }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
@@ -311,13 +369,20 @@ describe('SoundLibrary', () => {
           const files = Object.values(lock).flatMap((e) => e.candidates.map((v) => v.file));
           const first = yield* library.push;
           expect([...first.sent].sort()).toEqual([...files].sort());
-          expect(first).toMatchObject({ had: 0, total: 6 });
+          expect(first).toMatchObject({ had: 0, missing: [], total: 6 });
           const broken = files[0] ?? '';
+          const gone = files[1] ?? '';
+          const lost = files[2] ?? '';
           yield* fs.writeFileString(`${storeDir}/${broken}`, 'half a file');
-          yield* fs.remove(`${storeDir}/${files[1] ?? ''}`);
+          yield* fs.remove(`${storeDir}/${gone}`);
+          yield* fs.remove(`${storeDir}/${lost}`);
+          yield* fs.remove(`${dir}/${lost}`);
           const again = yield* library.push;
-          expect([...again.sent].sort()).toEqual([broken, files[1] ?? ''].sort());
-          expect(again).toMatchObject({ had: 4, total: 6 });
+          expect([...again.sent].sort()).toEqual([broken, gone].sort());
+          expect(again).toMatchObject({ had: 3, missing: [lost], total: 6 });
+          // Pull names the file the store lacks, and brings back the rest.
+          yield* fs.remove(`${dir}/${gone}`);
+          expect(yield* library.pull).toEqual({ fetched: 1, had: 4, missing: [lost] });
         }),
       ),
   );
@@ -337,7 +402,7 @@ describe('SoundLibrary', () => {
         ]);
 
         expect(yield* library.push).toMatchObject({ had: 0, total: 6 });
-        expect(yield* library.push).toEqual({ sent: [], had: 6, total: 6 });
+        expect(yield* library.push).toEqual({ sent: [], had: 6, missing: [], total: 6 });
         const lock = (yield* library.load).lock;
         const slide = lock['paper.slide']?.variants[0]?.file ?? '';
         const court = lock['amb.court']?.variants[0]?.file ?? '';
@@ -348,7 +413,7 @@ describe('SoundLibrary', () => {
         expect(broken.map((f) => f._tag)).toEqual(
           expect.arrayContaining(['SoundFileMissing', 'SoundCorrupt']),
         );
-        expect(yield* library.pull).toEqual({ fetched: 2, had: 4 });
+        expect(yield* library.pull).toEqual({ fetched: 2, had: 4, missing: [] });
         const mended = yield* library.check;
         expect(mended.filter(fileBroken)).toEqual([]);
 

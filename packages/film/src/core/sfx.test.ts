@@ -8,7 +8,9 @@ import {
   type Variant,
   SILENT,
   VOICE_LEVEL,
+  candidatesOf,
   creditsOf,
+  influenceOf,
   defineLibrary,
   gainFor,
   jitterOf,
@@ -64,8 +66,22 @@ describe('requestKey', () => {
     expect(requestKey({ ...slide, prompt: 'another' })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, secs: 2 })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, influence: 0.9 })).not.toBe(requestKey(slide));
-    // The API's default influence is the same request as naming it.
-    expect(requestKey({ ...slide, influence: 0.3 })).toBe(requestKey(slide));
+    // The default influence for its use is the same request as naming it.
+    expect(requestKey({ ...slide, influence: 0.7 })).toBe(requestKey(slide));
+    const court = library['amb.court'];
+    expect(requestKey({ ...court, influence: 0.3 })).toBe(requestKey(court));
+  });
+
+  // The sweet-spot runs (p4-sfx2): a one-shot followed its prompt closely only
+  // from 0.7 up (a gavel at 0.5 came out 20–30 dB quieter and boomy); a bed
+  // keeps the model's own air. About a third of the takes were usable, so a
+  // one-shot is made as 6 and a bed as 3.
+  test('a one-shot defaults to influence 0.7 and 6 candidates, a bed to 0.3 and 3', () => {
+    expect(influenceOf(library['paper.slide'])).toBe(0.7);
+    expect(influenceOf(library['amb.court'])).toBe(0.3);
+    expect(influenceOf({ ...library['paper.slide'], influence: 0.5 })).toBe(0.5);
+    expect(candidatesOf(library['paper.slide'])).toBe(6);
+    expect(candidatesOf(library['amb.court'])).toBe(3);
   });
 
   test('a recipe is its request', () => {

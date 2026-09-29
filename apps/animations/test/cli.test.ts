@@ -111,7 +111,8 @@ describe('film cli', () => {
         expect(list.stdout).not.toContain('paper.page');
         const plan = yield* cli('sfx', 'plan');
         expect(plan.exitCode).toBe(0);
-        expect(plan.stdout).toContain('total 10 candidates, 1232 credits');
+        // 3 beds × 12 s + 6 × 0.7 s + 6 × 1 s at 40 credits a second (the default candidates by use).
+        expect(plan.stdout).toContain('total 15 candidates, 1848 credits');
       }),
     spawnBudget(2),
   );

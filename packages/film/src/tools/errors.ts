@@ -173,6 +173,16 @@ export class VariantMissing extends Schema.TaggedError<VariantMissing>()('Varian
   }
 }
 
+/** `sfx try` settings no declaration could take (a length outside 0.5–30 s, an influence outside 0–1, an empty prompt). */
+export class TrialInvalid extends Schema.TaggedError<TrialInvalid>()('TrialInvalid', {
+  name: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}": the trial's settings are not a declaration: ${this.reason}`;
+  }
+}
+
 /** `sfx push` copied a file into the store, and the store then did not hold its bytes. */
 export class StoreCopyFailed extends Schema.TaggedError<StoreCopyFailed>()('StoreCopyFailed', {
   file: Schema.String,
