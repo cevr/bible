@@ -28,12 +28,11 @@ const STYLES = {
 /** Each line's height by its type. */
 const LEADING = { name: 72, head: 46, item: 38 } as const;
 
-/** Each line's baseline down the roll from its top, and the roll's height. */
+/** Each line's baseline down the roll from its top. */
 const BASELINES = CREDITS.reduce<number[]>((ys, c, i) => {
   ys.push((i === 0 ? 0 : (ys[i - 1] ?? 0)) + c.gap + LEADING[c.kind]);
   return ys;
 }, []);
-const ROLL_H = (BASELINES[BASELINES.length - 1] ?? 0) + 40;
 
 /** The torn paper strip the credits roll up, at the frame's left, clear of the rooftop. */
 const STRIP = { x: 90, y: 70, w: 700, h: 940 } as const;
@@ -41,6 +40,17 @@ const STRIP_SHAPE = rectShape(STRIP.x, STRIP.y, STRIP.w, STRIP.h);
 /** How far inside the strip's top and bottom a line fades out, and the margin it never crosses. */
 const FADE = 90;
 const MARGIN = 24;
+
+/**
+ * Where the roll's top stands as it starts and as it ends. It starts with the
+ * film's name just risen through the bottom fade, whole, as the strip arrives,
+ * and ends with the last line whole just under the top fade, as the strip
+ * goes: never a moment of empty plate.
+ */
+const LAST = CREDITS.length - 1;
+const TOP_FROM = STRIP.y + STRIP.h - MARGIN - FADE - (BASELINES[0] ?? 0);
+const TOP_TO =
+  STRIP.y + MARGIN + FADE + STYLES[CREDITS[LAST]?.kind ?? 'item'].size - (BASELINES[LAST] ?? 0);
 
 export const end = drawing({
   drift: 0,
@@ -80,9 +90,10 @@ export const end = drawing({
       torn: 3,
       shadow: 0.5,
     });
-    // The roll starts below the strip and ends above it; a line shows only
-    // while it is wholly on the strip, fading at its top and bottom.
-    const top = STRIP.y + STRIP.h - f.at('roll') * (ROLL_H + STRIP.h);
+    // The roll rises from its first line at the bottom to its last at the
+    // top; a line shows only while it is wholly on the strip, fading at its
+    // top and bottom.
+    const top = TOP_FROM + f.at('roll') * (TOP_TO - TOP_FROM);
     const cx = STRIP.x + STRIP.w / 2;
     probePlate(ctx, STRIP_SHAPE, () =>
       CREDITS.forEach((c, i) => {
