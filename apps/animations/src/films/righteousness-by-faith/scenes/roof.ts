@@ -65,7 +65,7 @@ const timeline = {
   writing: { mark: 'woman', until: 'none', ease: 'linear' },
   courtPush: { mark: 'woman', until: 'lord', ease: 'inOutSine' },
   stand: { mark: 'none', dur: 1, ease: 'inOutSine' },
-  asks: { mark: 'none', dur: 1.8, ease: 'linear' },
+  asks: { mark: 'none', until: 'asked', ease: 'linear' },
   raise: { mark: 'none', dur: 0.8 },
   // Close on her as she answers; faith lights again.
   herFace: { mark: 'lord', offset: -0.8, dur: 0.8, ease: 'inOutCubic' },
@@ -74,7 +74,7 @@ const timeline = {
   faithLit2: { mark: 'lord', dur: 0.5 },
   // Reverse to his face as he speaks: forgiveness on "Neither", power on "go".
   hisPush: { mark: 'told', until: 'order', ease: 'linear' },
-  speaks: { mark: 'told', word: 'Neither', dur: 3.2, ease: 'linear' },
+  speaks: { mark: 'told', word: 'Neither', until: 'order', ease: 'linear' },
   robeLit2: { mark: 'told', word: 'Neither', dur: 0.5 },
   heartLit2: { mark: 'told', word: 'go', dur: 0.5 },
   // Wide as she walks out, clean.
