@@ -11,6 +11,7 @@ import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
+import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
   linesOf,
@@ -33,6 +34,8 @@ import type {
 import { actSpans, cueTime, effectKey, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   type ActTooShort,
+  type ArmPop,
+  type HandHidden,
   AssetMissing,
   AssetStale,
   type AudioMissing,
@@ -82,7 +85,7 @@ export type StaticFinding =
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type LayoutFinding = FrameFinding | StaticHold;
 /** What the look pass measures across the film (`look.ts`): every one a warning. */
-export type LookFinding = HeldShare | ColourScript | FaceSmall;
+export type LookFinding = HeldShare | ColourScript | FaceSmall | ArmPop | HandHidden;
 export type Finding = StaticFinding | LayoutFinding | LookFinding;
 
 export type Level = 'error' | 'warning';
@@ -583,15 +586,6 @@ export const UNDER_ALPHA = 0.5;
 export const TEXTURE_WIDTH = 1 / 3;
 /** Along a crossing, the check looks for a plate over the stroke every this many pixels. */
 const CROSS_STEP = 2;
-
-/** Whether `p` lies inside the polygon `poly` (even-odd; any winding, convex or not). */
-export const insidePolygon = (poly: ReadonlyArray<Point>, p: Point): boolean =>
-  poly.reduce((inside, a, i) => {
-    const b = Arr.getUnsafe(poly, (i + poly.length - 1) % poly.length);
-    const crosses =
-      a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0];
-    return crosses !== inside;
-  }, false);
 
 /**
  * The part of the segment `p` → `q` inside the convex polygon `poly`, as the

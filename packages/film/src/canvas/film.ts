@@ -413,6 +413,26 @@ const shortOf = (declared: ShortStyle = {}, shade: string): ShortLook => {
   };
 };
 
+/** How much a probe's sink held before a scene drew into it (scratch, one draw at a time). */
+const SINK_MARK = { texts: 0, inks: 0, faces: 0, hands: 0 };
+
+/** Mark how much `sink` holds now, so a draw made again can let the first go. */
+const markSink = (sink: ProbeSink | undefined) => {
+  SINK_MARK.texts = sink?.texts.length ?? 0;
+  SINK_MARK.inks = sink?.inks.length ?? 0;
+  SINK_MARK.faces = sink?.faces?.length ?? 0;
+  SINK_MARK.hands = sink?.hands?.length ?? 0;
+};
+
+/** Let go of everything `sink` took since `markSink`. */
+const rewindSink = (sink: ProbeSink | undefined) => {
+  if (sink === undefined) return;
+  sink.texts.length = SINK_MARK.texts;
+  sink.inks.length = SINK_MARK.inks;
+  if (sink.faces !== undefined) sink.faces.length = SINK_MARK.faces;
+  if (sink.hands !== undefined) sink.hands.length = SINK_MARK.hands;
+};
+
 /** The breath a scene draw is given (`SceneBreath`), rewritten for each draw. */
 interface BreathNow {
   through: number;
@@ -636,9 +656,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const moving = p.spec.storyboard !== true && breathes(breath);
     breath.outer = moving && unshot.has(id);
     const sink = probe?.sink;
-    const texts = sink?.texts.length ?? 0;
-    const inks = sink?.inks.length ?? 0;
-    const faces = sink?.faces?.length ?? 0;
+    markSink(sink);
     const read = reads?.list.length ?? 0;
     ctx.drawImage(paper, 0, 0);
     let shot = false;
@@ -648,11 +666,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     if (!moving) return;
     // Guessed whole but it framed a shot, or guessed a shot and it framed none: draw it the other way.
     if (shot === breath.outer) {
-      if (sink !== undefined) {
-        sink.texts.length = texts;
-        sink.inks.length = inks;
-        if (sink.faces !== undefined) sink.faces.length = faces;
-      }
+      rewindSink(sink);
       if (reads !== undefined) reads.list.length = read;
       breath.outer = !shot;
       ctx.drawImage(paper, 0, 0);

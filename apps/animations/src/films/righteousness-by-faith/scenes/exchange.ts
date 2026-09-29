@@ -111,6 +111,10 @@ const CRUCIFIED: Person = {
  */
 const GIVING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
 const TAKING: ArmAt = { to: [0, 0], grow: 0, grip: 'hold' };
+/** The cloth's half width as it lifts: a patch off the chest, drawn out across his shoulders. */
+const clothWidth = (lift: number) => lerp(70, 120, lift);
+/** Where his hand holds it: this share of the half width toward the figure, past his own body. */
+const CLOTH_END = 0.55;
 const WATCHING: Person = { ...BLACK, tilt: -0.14, look: [3, -4] };
 /** The stone rolled back from the tomb, and its core. */
 const STONE = ellipseShape(0, 0, 130, 130);
@@ -196,7 +200,9 @@ const hill = (f: ExchangeFrame) => {
   GIVING.to[0] = (clothX - fx) / SCALE;
   GIVING.to[1] = (clothY - fy) / SCALE;
   GIVING.grow = f.at('give') * (1 - f.at('letGo'));
-  TAKING.to[0] = (clothX - cx) / cs;
+  // His hand takes the cloth by its near end, so on his shoulders it holds it clear of his body.
+  const clothS = lerp(SCALE, cs, lift);
+  TAKING.to[0] = (clothX - CLOTH_END * clothWidth(lift) * clothS - cx) / cs;
   TAKING.to[1] = (clothY - (cy - walking)) / cs;
   TAKING.grow = f.at('receive') * (1 - f.at('dark'));
 
@@ -270,11 +276,10 @@ const hill = (f: ExchangeFrame) => {
 
       // The scarlet cloth: lifted off the figure, onto his shoulders.
       if (lift > 0) {
-        const s = lerp(SCALE, cs, lift);
-        at(ctx, { x: clothX, y: clothY, scale: s, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
+        at(ctx, { x: clothX, y: clothY, scale: clothS, rot: 0.3 * Math.sin(Math.PI * lift) }, () =>
           piece(
             ctx,
-            blob(0, 0, lerp(70, 120, lift), lerp(70, 34, lift), 31),
+            blob(0, 0, clothWidth(lift), lerp(70, 34, lift), 31),
             C.scarlet,
             hand('cloth'),
             { role: 'figure', line: 2.5, torn: 2.5 },

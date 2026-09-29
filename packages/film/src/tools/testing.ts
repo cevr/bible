@@ -24,6 +24,7 @@ import {
   type VoiceTiming,
   SoundManifestJson,
   type FaceMark,
+  type HandMark,
   type InkMark,
   type Probed,
   type TextBox,
@@ -454,6 +455,7 @@ export const testExportInfo: ExportInfo = {
 export interface FakeLook {
   readonly grey: number;
   readonly faces: ReadonlyArray<FaceMark>;
+  readonly hands?: ReadonlyArray<HandMark>;
 }
 
 export interface FakeRenderHost {
@@ -644,7 +646,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
                         drawn.forEach(({ grey }, k) => {
                           thumbs.fill(grey, k * w * h * 4, (k + 1) * w * h * 4);
                         });
-                        return { thumbs, faces: drawn.map((d) => d.faces) };
+                        return {
+                          thumbs,
+                          faces: drawn.map((d) => d.faces),
+                          hands: drawn.map((d) => d.hands ?? []),
+                        };
                       }),
                     ),
                   luma: (i: number, area: LumaArea) =>

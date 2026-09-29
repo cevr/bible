@@ -7,14 +7,17 @@
 // `measureText`), so a probed frame is pixel for pixel the frame it would have
 // been.
 
-import type { FaceMark, InkMark, Point, TextBox } from '../core/schema.ts';
+import { insidePolygon } from '../core/polygon.ts';
+import type { FaceMark, HandMark, InkMark, Point, TextBox } from '../core/schema.ts';
 
-/** What one probed frame collects: text and ink, in the order drawn, and faces when asked. */
+/** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
   readonly texts: TextBox[];
   readonly inks: InkMark[];
   /** Given, every face `probeFace` declares lands here (the look pass's `FaceSmall`). */
   readonly faces?: FaceMark[];
+  /** Given, every hand `probeHand` declares lands here (the look pass's `ArmPop`, `HandHidden`). */
+  readonly hands?: HandMark[];
 }
 
 /** Where text and ink drawn into a context land on screen, and whose they are. */
@@ -206,6 +209,60 @@ export const probeFace = (ctx: CanvasRenderingContext2D, x: number, y: number, h
     x: sx,
     y: sy,
     size: height * scaleOf(ctx),
+    alpha: ctx.globalAlpha * probe.alpha,
+  });
+};
+
+/**
+ * Whether a probe that collects hands is attached to `ctx`: a kit asks before
+ * working out where its hands are, so a frame nobody probes pays one lookup.
+ */
+export const probesHands = (ctx: CanvasRenderingContext2D): boolean =>
+  probes.get(ctx)?.sink.hands !== undefined;
+
+/** One arm a kit's person declares to `probeHand`, in the current transform's space. */
+export interface HandSeen {
+  readonly side: 'far' | 'near';
+  /** Where the arm grows from. */
+  readonly shoulder: Point;
+  /** Where its hand is now: along the arm as far as it has grown. */
+  readonly at: Point;
+  /** How far it has grown, 0 (no arm) to 1. */
+  readonly grow: number;
+  /** Whether the hand is drawn over its own body (after it), not behind it. */
+  readonly over: boolean;
+  /**
+   * The body's silhouette, one shape or several (garment, head), in the same
+   * space; asked only while a probe collects hands, so an unprobed frame
+   * builds none.
+   */
+  readonly body: () => ReadonlyArray<ReadonlyArray<Point>>;
+}
+
+/**
+ * Declare an arm: a kit's person calls it for both of its arms every frame,
+ * grown or not, so `film check` follows each arm's grow frame to frame
+ * (`ArmPop`) and sees a hand lost behind its own body (`HandHidden`) from the
+ * kit's own numbers rather than a reader spotting either in a still. Records
+ * only when a probe that collects hands is attached; draws nothing.
+ */
+export const probeHand = (ctx: CanvasRenderingContext2D, hand: HandSeen) => {
+  const probe = probes.get(ctx);
+  const hands = probe?.sink.hands;
+  if (probe === undefined || hands === undefined) return;
+  const map = screen(ctx, probe);
+  const [x, y] = map(hand.at[0], hand.at[1]);
+  const [sx, sy] = map(hand.shoulder[0], hand.shoulder[1]);
+  hands.push({
+    scene: probe.scene,
+    side: hand.side,
+    x,
+    y,
+    sx,
+    sy,
+    grow: Math.min(1, Math.max(0, hand.grow)),
+    inside: hand.body().some((shape) => insidePolygon(shape, hand.at)),
+    over: hand.over,
     alpha: ctx.globalAlpha * probe.alpha,
   });
 };

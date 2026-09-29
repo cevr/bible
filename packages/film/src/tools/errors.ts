@@ -611,6 +611,43 @@ export class FaceSmall extends Schema.TaggedError<FaceSmall>()('FaceSmall', {
 }
 
 /**
+ * An arm pops: between two adjacent frames of a scene its grow jumps by more
+ * than `max`, so the arm appears or vanishes whole instead of growing from the
+ * shoulder.
+ */
+export class ArmPop extends Schema.TaggedError<ArmPop>()('ArmPop', {
+  scene: Schema.String,
+  side: Schema.Literals(['far', 'near']),
+  /** Film seconds of the second of the two frames. */
+  T: Schema.Finite,
+  from: Schema.Finite,
+  to: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": the ${this.side} arm's grow jumps ${this.from.toFixed(2)} → ${this.to.toFixed(2)} in one frame at ${this.T.toFixed(2)}s, over ${this.max} (grow it on a named cue with a duration, f.at('<cue>'), never on a threshold or a switch)`;
+  }
+}
+
+/**
+ * An acting hand is lost in its own body: grown, seen, inside the silhouette
+ * of the body it belongs to and drawn behind it, so the viewer sees an arm
+ * reach into the garment and no hand.
+ */
+export class HandHidden extends Schema.TaggedError<HandHidden>()('HandHidden', {
+  scene: Schema.String,
+  side: Schema.Literals(['far', 'near']),
+  from: Schema.Finite,
+  to: Schema.Finite,
+  /** How many drawn frames showed it hidden. */
+  frames: Schema.Int,
+}) {
+  override get message() {
+    return `scene "${this.scene}": the ${this.side} hand acts inside its own body and is drawn behind it, in ${this.frames} drawn frames at ${this.from.toFixed(2)}–${this.to.toFixed(2)}s (move its target clear of the body, or into the garment's middle, where the kit draws it over)`;
+  }
+}
+
+/**
  * The film's ending leaves YouTube no room: the stretch after the last word is
  * under `min` seconds (credits and music alone), or the end card is.
  */

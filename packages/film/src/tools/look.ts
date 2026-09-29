@@ -5,13 +5,20 @@
 // (`ColourScript`), whether a face ever reaches human scale (`FaceSmall`), and
 // the YouTube chapters the declared acts name. `looker.ts` draws the samples.
 
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Option, Order, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import type { FaceMark, Look, LookAct } from '../core/schema.ts';
+import type { FaceMark, HandMark, Look, LookAct } from '../core/schema.ts';
 import { UnknownScene } from '../core/errors.ts';
 import { filmEnd } from '../core/sound.ts';
 import type { Reported } from './check.ts';
-import { ChaptersInvalid, ColourScript, FaceSmall, HeldShare } from './errors.ts';
+import {
+  ArmPop,
+  ChaptersInvalid,
+  ColourScript,
+  FaceSmall,
+  HandHidden,
+  HeldShare,
+} from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 
 /** A thumb's size: the research's measure (a 64×36 grey frame, research #1). */
@@ -42,10 +49,11 @@ export interface LookSample {
   readonly T: number;
 }
 
-/** A drawn sample: its thumb (RGBA, `THUMB_BYTES`) and the faces it declared. */
+/** A drawn sample: its thumb (RGBA, `THUMB_BYTES`) and the faces and hands it declared. */
 export interface Drawn {
   readonly thumb: Uint8Array;
   readonly faces: ReadonlyArray<FaceMark>;
+  readonly hands: ReadonlyArray<HandMark>;
 }
 
 /** Every scene's samples, `LOOK_STEP` apart from its start, in film order. */
@@ -155,10 +163,14 @@ export interface SceneLook {
   readonly face: number;
 }
 
-/** What the look pass measured: each scene's look, and the frame's height in px. */
+/** What the look pass measured: each scene's look, the frame's height in px, and the arms. */
 export interface Looked {
   readonly looks: ReadonlyArray<SceneLook>;
   readonly height: number;
+  /** Arms whose grow jumps between adjacent frames (the hands pass). */
+  readonly pops: ReadonlyArray<ArmPop>;
+  /** Acting hands lost behind their own bodies. */
+  readonly hidden: ReadonlyArray<HandHidden>;
 }
 
 /**
@@ -262,6 +274,129 @@ export const smallFaces = (
   looks
     .filter((l) => l.judged && l.face < height * FACE_SHARE)
     .map((l) => FaceSmall.make({ scene: l.scene, largest: l.face, min: height * FACE_SHARE }));
+
+/** The most an arm's grow may change between adjacent frames: more, and the arm pops (`ArmPop`). */
+export const ARM_POP = 0.5;
+/** A hand is seen at this opacity or more. */
+export const HAND_SEEN = 0.5;
+/**
+ * A hand is at work once its arm has grown this far: at its target, not on
+ * its way there. A far arm grows out of its shoulder inside the garment, so
+ * its hand passes through the body while it grows; that is growth (`ArmPop`
+ * judges it), not a hand hidden.
+ */
+export const HAND_AT_WORK = 0.9;
+/** A hand a frame on is the same arm when its shoulder moved at most this many px. */
+export const SHOULDER_MATCH = 24;
+
+/** One frame drawn for its hands: in a scene, frame `frame` at film time `T`. */
+export interface HandFrame {
+  readonly scene: string;
+  readonly frame: number;
+  readonly T: number;
+  readonly hands: ReadonlyArray<HandMark>;
+}
+
+/**
+ * The frames the hands pass draws: every frame between two adjacent samples
+ * of a scene across which any arm grows, withdraws, or comes or goes grown;
+ * each once, in film order.
+ */
+export const armSpans = (
+  frames: ReadonlyArray<HandFrame>,
+  fps: number,
+): ReadonlyArray<LookSample> => {
+  const drawn = new Map<number, LookSample>();
+  for (const [a, b] of pairs(frames)) {
+    if (a.scene !== b.scene || !armsChange(ownHands(a), ownHands(b))) continue;
+    for (let frame = a.frame; frame <= b.frame; frame++)
+      if (!drawn.has(frame)) drawn.set(frame, { scene: a.scene, frame, T: frame / fps });
+  }
+  return Arr.sort(
+    [...drawn.values()],
+    Order.mapInput(Order.Number, (s: LookSample) => s.frame),
+  );
+};
+
+/** Each arm whose grow jumps by more than `ARM_POP` between two adjacent frames of its scene. */
+export const armPops = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<ArmPop> =>
+  pairs(frames)
+    .filter(([a, b]) => a.scene === b.scene && b.frame === a.frame + 1)
+    .flatMap(([a, b]) =>
+      ownHands(a).flatMap((was) =>
+        Option.toArray(
+          Option.filter(
+            sameArm(was, ownHands(b)),
+            (now) =>
+              Math.abs(now.grow - was.grow) > ARM_POP &&
+              Math.max(was.alpha, now.alpha) >= HAND_SEEN,
+          ),
+        ).map((now) =>
+          ArmPop.make({
+            scene: b.scene,
+            side: now.side,
+            T: b.T,
+            from: was.grow,
+            to: now.grow,
+            max: ARM_POP,
+          }),
+        ),
+      ),
+    );
+
+/** A hand at work, seen, inside its own body and drawn behind it. */
+const hidden = (h: HandMark) =>
+  h.grow >= HAND_AT_WORK && h.alpha >= HAND_SEEN && h.inside && !h.over;
+
+/**
+ * Each scene's hands at work (grown past `HAND_AT_WORK`, seen past `HAND_SEEN`) inside their
+ * own body's silhouette and drawn behind it: one finding per scene and side.
+ */
+export const hiddenHands = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandHidden> => {
+  const seen = frames.flatMap((f) =>
+    ownHands(f)
+      .filter(hidden)
+      .map((h) => ({ scene: f.scene, side: h.side, T: f.T })),
+  );
+  return Object.values(Arr.groupBy(seen, (s) => `${s.scene}\u0000${s.side}`)).map((group) =>
+    HandHidden.make({
+      scene: group[0].scene,
+      side: group[0].side,
+      from: Math.min(...group.map((s) => s.T)),
+      to: Math.max(...group.map((s) => s.T)),
+      frames: group.length,
+    }),
+  );
+};
+
+/** Each frame with the next. */
+const pairs = <A>(xs: ReadonlyArray<A>): ReadonlyArray<readonly [A, A]> => Arr.zip(xs, xs.slice(1));
+
+/** A frame's hands that belong to its own scene (not the other of a transition). */
+const ownHands = (f: HandFrame) => f.hands.filter((h) => h.scene === f.scene);
+
+/** The hand among `next` that is `h`'s arm: the same side, its shoulder nearest and within `SHOULDER_MATCH`. */
+const sameArm = (h: HandMark, next: ReadonlyArray<HandMark>): Option.Option<HandMark> =>
+  Arr.head(
+    Arr.sort(
+      next
+        .map((n) => [n, Math.hypot(n.sx - h.sx, n.sy - h.sy)] as const)
+        .filter(([n, d]) => n.side === h.side && d <= SHOULDER_MATCH),
+      Order.mapInput(Order.Number, ([, d]: readonly [HandMark, number]) => d),
+    ).map(([n]) => n),
+  );
+
+/** A grow moved less than this is held. */
+const GROW_HELD = 1e-3;
+
+/** Whether any arm grows or withdraws from `was` to `now`, or one comes or goes already grown. */
+const armsChange = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>) =>
+  was.some((h) =>
+    Option.match(sameArm(h, now), {
+      onNone: () => h.grow > 0,
+      onSome: (n) => Math.abs(n.grow - h.grow) > GROW_HELD,
+    }),
+  ) || now.some((h) => h.grow > 0 && Option.isNone(sameArm(h, was)));
 
 /** An act laid over the film: its declaration and the scenes it spans. */
 export interface ActSpan {
@@ -382,6 +517,8 @@ export const lookFindings = (
     ...heldShares(looked.looks),
     ...smallFaces(looked.looks, looked.height),
     ...colourScript(acts, looked.looks),
+    ...looked.pops,
+    ...looked.hidden,
   ].map((finding) => ({ level: 'warning', finding }));
 
 const pct = (x: number) => `${Math.round(x * 100)}%`.padStart(4);

@@ -99,7 +99,9 @@ The last row is the rule that the landing is both the most saturated and the cal
   - Once per beat, a face fills at least ⅓ of frame height (CRAFT 5).
   - A crowd varies silhouette, height and hat. Never clone.
 - **Hands.**
-  - One hand design at every scale: a mitten silhouette with a thumb, drawn by the kit's `reach` from the figure's own arm.
+  - **Arms appear only when a hand acts.** At rest a figure is an armless bean, its hands tucked in the garment. An arm is one tapered strip of the figure's paper, grown from inside the shoulder on its action's named cue and withdrawn after (the kit's `far`/`near` arm, `{ to, grow: f.at('<cue>'), grip }`). It has no elbow and bows to the gesture's side, down and away from the body.
+  - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `arm`). Close up (`handCloseUp`), it adds three finger creases and a lifeline.
+  - **A hand acting in front of the body is drawn over it.** The kit draws a far hand whose target lies across the garment's middle over the body; anywhere else a far arm sits behind it. `film check` warns `HandHidden` for a hand at work lost inside its own body, and `ArmPop` for an arm whose grow jumps more than 0.5 in one frame.
   - A big insert of a hand (the "hand that takes hold") is a close-up of that figure's hand: cut or push to it from the figure, then match back. It is never a prop that floats in from nowhere. _(Hibon: "the hands do so much of the talking" #26.)_
 - **Faces, staging and emotion.**
   - Use profile or three-quarter for dialogue.
@@ -155,6 +157,8 @@ The last row is the rule that the landing is both the most saturated and the cal
 - Use pure black, except the cross; use more than three accents, or let anything but gold glow.
 - Hold a picture still for more than 4 s while someone speaks. _(#1.)_
 - Clone a crowd, float a giant hand in from nowhere, or mix hand designs.
+- Draw an arm with nothing to do, or pop an arm in or out in one frame.
+- Gild a joint or a hand: gold is the word.
 - Draw God the Father as a figure. Show anything the topic's MUST NOT SAY-OR-SHOW forbids. _(frame.)_
 - Leave dead air: silence below −60 dBFS that no one designed. End on a 3 s card.
 - Trade the look for speed. Performance and reuse live in the framework; a pixel-moving change needs the owner's approval. _(Owner rule.)_

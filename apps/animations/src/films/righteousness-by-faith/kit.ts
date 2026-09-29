@@ -19,6 +19,8 @@ import {
   ground,
   ellipseShape,
   probeFace,
+  probeHand,
+  probesHands,
   quad,
   rectShape,
   spline,
@@ -776,7 +778,53 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   if (far !== undefined && farFront) personArm(ctx, -1, far, build, hand);
   head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
   if (p.near !== undefined) personArm(ctx, 1, p.near, build, hand);
+  if (probesHands(ctx)) {
+    declareArm(ctx, p, 'far', farFront, sit, drop);
+    declareArm(ctx, p, 'near', true, sit, drop);
+  }
   ctx.restore();
+};
+
+/** An arm that is not there: grown 0, its hand at the shoulder. */
+const NO_ARM = (to: Pt): Arm => ({ to, grow: 0 });
+
+/**
+ * Tell a check probing hands where the arm on `side` is, in the arm's frame
+ * (dropped `drop` onto a seat): its shoulder, its hand, its grow, whether it
+ * is drawn `over` the body, and the body's silhouette (the garment as built
+ * and folded, and the head), grown or not, so `film check` follows every arm
+ * frame to frame (`ArmPop`) and sees a hand lost behind its own body
+ * (`HandHidden`). Only called while a probe collects hands.
+ */
+const declareArm = (
+  ctx: CanvasRenderingContext2D,
+  p: Person,
+  side: 'far' | 'near',
+  over: boolean,
+  sit: number,
+  drop: number,
+) => {
+  const [bw, bh] = buildOf(p);
+  const away = side === 'near' ? 1 : -1;
+  const shoulder: Pt = [away * SHOULDER[0] * bw, SHOULDER[1] * bh];
+  const a = p[side] ?? NO_ARM(shoulder);
+  probeHand(ctx, {
+    side,
+    shoulder,
+    at: handAt(shoulder, away, a, ARM_STYLE),
+    grow: a.grow,
+    over,
+    body: () => {
+      const robe = p.garment === 'robe';
+      const [dy, sx, sy] = sit > 0 ? foldOf(robe, sit) : ([0, 1, 1] as const);
+      const garment = (robe ? ROBE_SHAPE : TUNIC_SHAPE).map(([x, y]): Pt => [
+        bw * sx * x,
+        bh * (dy + sy * y) - drop,
+      ]);
+      const lift = NECK[1] * (bh - 1) + (p.nod ?? 0);
+      return [garment, ellipseShape(HEAD[0], HEAD[1] + lift, HEAD_RX, HEAD_RY)];
+    },
+  });
 };
 
 /**

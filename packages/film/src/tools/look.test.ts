@@ -5,19 +5,24 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
-import type { FaceMark, Look, Timed } from '../core/schema.ts';
+import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
 import {
+  ARM_POP,
   type Drawn,
   FACE_SHARE,
+  type HandFrame,
   HELD_MAX,
   THUMB_BYTES,
   actSpans,
   actsOf,
+  armPops,
+  armSpans,
   chapterTime,
   chapters,
   colourScript,
   heldSeconds,
   heldShares,
+  hiddenHands,
   lookFindings,
   lookLines,
   lookSamples,
@@ -44,9 +49,10 @@ const face = (scene: string, size: number, alpha = 1): FaceMark => ({
 const placed = layout(holdScenes, holdTimings);
 const samples = lookSamples(placed, FPS, 1_000_000);
 const drawn = samples.map((s, k): Drawn => {
-  if (s.scene === 'held') return { thumb: thumb(128), faces: [face('held', 400)] };
-  if (s.scene === 'brief') return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)] };
-  return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)] };
+  if (s.scene === 'held') return { thumb: thumb(128), faces: [face('held', 400)], hands: [] };
+  if (s.scene === 'brief')
+    return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)], hands: [] };
+  return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)], hands: [] };
 });
 const looks = sceneLooks(placed, samples, drawn, FRAME);
 const lookOf = (scene: string) => looks.find((l) => l.scene === scene);
@@ -101,7 +107,7 @@ describe('HeldShare', () => {
     const still = sceneLooks(
       quiet,
       at,
-      at.map(() => ({ thumb: thumb(90), faces: [] })),
+      at.map(() => ({ thumb: thumb(90), faces: [], hands: [] })),
       FRAME,
     );
     expect(still[0]?.judged).toBe(false);
@@ -132,9 +138,14 @@ describe('FaceSmall', () => {
     const shifted = samples.map((s, k): Drawn => {
       const at = off[k % off.length] ?? off[0];
       if (s.scene === 'held')
-        return { thumb: thumb(128), faces: [{ ...face('held', 400), x: at[0], y: at[1] }] };
-      if (s.scene === 'brief') return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)] };
-      return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)] };
+        return {
+          thumb: thumb(128),
+          faces: [{ ...face('held', 400), x: at[0], y: at[1] }],
+          hands: [],
+        };
+      if (s.scene === 'brief')
+        return { thumb: thumb((k % 2) * 255), faces: [face('brief', 100)], hands: [] };
+      return { thumb: thumb(200), faces: [face('ambient', 500, 0.2)], hands: [] };
     });
     const seen = sceneLooks(placed, samples, shifted, FRAME);
     expect(seen.map((l) => [l.scene, l.face])).toEqual([
@@ -149,6 +160,7 @@ describe('FaceSmall', () => {
       samples.map((): Drawn => ({
         thumb: thumb(1),
         faces: [{ ...face('held', 400), x: WIDTH, y: HEIGHT }],
+        hands: [],
       })),
       FRAME,
     );
@@ -189,7 +201,9 @@ describe('ColourScript', () => {
   });
 
   test('the look pass reports every finding as a warning', () => {
-    const found = lookFindings({ looks, height: HEIGHT }, acts);
+    const pops = armPops(popping);
+    const hidden = hiddenHands(behind);
+    const found = lookFindings({ looks, height: HEIGHT, pops, hidden }, acts);
     expect(found.map((r) => r.finding._tag)).toEqual([
       'HeldShare',
       'HeldShare',
@@ -197,6 +211,8 @@ describe('ColourScript', () => {
       'FaceSmall',
       'ColourScript',
       'ColourScript',
+      'ArmPop',
+      'HandHidden',
     ]);
     expect(found.every((r) => r.level === 'warning')).toBe(true);
   });
@@ -279,5 +295,127 @@ describe('chapters', () => {
     );
     const brief = chapters('f', acts, tight);
     expect(Result.isFailure(brief) && brief.failure.reason).toContain('"Why?" runs under 10s');
+  });
+});
+
+// Hands, as a kit's person declares them: one arm, its shoulder fixed on
+// screen unless moved, its hand out to the side.
+const armAt = (grow: number, over: Partial<HandMark> = {}): HandMark => ({
+  scene: 'held',
+  side: 'near',
+  x: 1000,
+  y: 500,
+  sx: 960,
+  sy: 520,
+  grow,
+  inside: false,
+  over: true,
+  alpha: 1,
+  ...over,
+});
+/** Frames `from`, `from + 1`… of `scene`, one per entry of `hands`, at 30 fps. */
+const run = (scene: string, from: number, hands: ReadonlyArray<ReadonlyArray<HandMark>>) =>
+  hands.map((h, k): HandFrame => ({ scene, frame: from + k, T: (from + k) / FPS, hands: h }));
+// An arm that grows in one frame from nothing to whole, at frame 11.
+const popping = run('held', 10, [[armAt(0)], [armAt(1)], [armAt(1)]]);
+// A far hand at work inside the garment and drawn behind it.
+const behind = run('held', 10, [
+  [armAt(1, { side: 'far', inside: true, over: false })],
+  [armAt(1, { side: 'far', inside: true, over: false })],
+]);
+
+describe('ArmPop', () => {
+  test('a grow that jumps by more than the limit between adjacent frames pops', () => {
+    const [pop, ...rest] = armPops(popping);
+    expect(rest).toEqual([]);
+    expect(pop).toMatchObject({ scene: 'held', side: 'near', from: 0, to: 1, max: ARM_POP });
+    expect(pop?.T).toBeCloseTo(11 / FPS, 9);
+  });
+
+  test('a grow eased over a cue never pops, however fast its middle', () => {
+    const eased = Array.from({ length: 16 }, (_, k) => [
+      armAt(0.5 - 0.5 * Math.cos((k / 15) * Math.PI)),
+    ]);
+    expect(armPops(run('held', 0, eased))).toEqual([]);
+  });
+
+  test('frames that are not adjacent, or not of one scene, are never compared', () => {
+    const apart: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
+    ];
+    expect(armPops(apart)).toEqual([]);
+    const cut: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
+      { scene: 'brief', frame: 1, T: 1 / FPS, hands: [armAt(1, { scene: 'brief' })] },
+    ];
+    expect(armPops(cut)).toEqual([]);
+  });
+
+  test('an arm of another person, or of the other side, is not the same arm', () => {
+    const elsewhere = run('held', 0, [[armAt(0)], [armAt(1, { sx: 400 })]]);
+    expect(armPops(elsewhere)).toEqual([]);
+    const other = run('held', 0, [[armAt(0)], [armAt(1, { side: 'far' })]]);
+    expect(armPops(other)).toEqual([]);
+  });
+
+  test('an arm that pops while nobody sees it is no pop', () => {
+    expect(armPops(run('held', 0, [[armAt(0, { alpha: 0 })], [armAt(1, { alpha: 0.1 })]]))).toEqual(
+      [],
+    );
+  });
+});
+
+describe('armSpans', () => {
+  test('the frames between two samples across which an arm grows are drawn, each once', () => {
+    const coarse: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [armAt(0)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(0.4)] },
+      { scene: 'held', frame: 30, T: 1, hands: [armAt(1)] },
+      { scene: 'held', frame: 45, T: 1.5, hands: [armAt(1)] },
+    ];
+    const spans = armSpans(coarse, FPS);
+    expect(spans.map((s) => s.frame)).toEqual(Array.from({ length: 31 }, (_, k) => k));
+    expect(spans.every((s) => s.scene === 'held')).toBe(true);
+    expect(spans[30]?.T).toBeCloseTo(1, 9);
+  });
+
+  test('an arm that comes grown between two samples (its person entering) is drawn too', () => {
+    const coarse: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
+    ];
+    expect(armSpans(coarse, FPS)).toHaveLength(16);
+  });
+
+  test('arms held still, or samples of two scenes, draw nothing more', () => {
+    const still: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [armAt(1)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [armAt(1)] },
+      { scene: 'brief', frame: 30, T: 1, hands: [armAt(0, { scene: 'brief' })] },
+    ];
+    expect(armSpans(still, FPS)).toEqual([]);
+  });
+});
+
+describe('HandHidden', () => {
+  test('an acting hand inside its body and drawn behind it is hidden, once per scene and side', () => {
+    const [hidden, ...rest] = hiddenHands(behind);
+    expect(rest).toEqual([]);
+    expect(hidden).toMatchObject({ scene: 'held', side: 'far', frames: 2 });
+    expect(hidden?.from).toBeCloseTo(10 / FPS, 9);
+    expect(hidden?.to).toBeCloseTo(11 / FPS, 9);
+  });
+
+  test('a hand drawn over its body, outside it, still growing or barely seen is not hidden', () => {
+    const fine = run('held', 0, [
+      [armAt(1, { inside: true, over: true })],
+      [armAt(1, { inside: false, over: false })],
+      [armAt(0.3, { inside: true, over: false })],
+      [armAt(0.7, { inside: true, over: false })],
+      [armAt(1, { inside: true, over: false, alpha: 0.2 })],
+      [armAt(1, { inside: true, over: false, scene: 'brief' })],
+    ]);
+    expect(hiddenHands(fine)).toEqual([]);
   });
 });

@@ -130,7 +130,7 @@ A paper theatre lit from behind.
 - **4–6 hues per scene,** from the film's palette.
 - **Paper on every shape:** its edge (cut or torn, chosen by what it is), a shadow on the sheet under it, grain that travels with it.
 - **Ink only for figures and features:** eyes, brows, mouths, hand creases, a prop's letters. Scenery has no outline.
-- **One hand design,** from the figure's own arm. A big hand is only a close-up of a figure we have seen.
+- **One hand design, a mitten with a thumb, from the figure's own arm, which appears only while the hand acts.** A big hand is only a close-up of a figure we have seen.
 - **A crowd is never cloned:** vary height, silhouette and hat.
 - **Screen direction is fixed per role** for the whole film; it crosses once, on purpose, at the turn.
 - **Check:** the look-book, its per-scene numbers (luma, saturation, top hues), and the stills at full size.

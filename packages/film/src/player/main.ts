@@ -6,7 +6,7 @@
 
 import type { Film, KnobRead } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
-import type { FaceMark, Probed } from '../core/schema.ts';
+import type { FaceMark, HandMark, Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { composeContact } from './contact.ts';
@@ -76,13 +76,17 @@ export interface ExportHandle {
   hash(frames: ReadonlyArray<number>): ReadonlyArray<string>;
   /**
    * `frames` drawn without captions, each shrunk to a `w` × `h` RGBA thumb
-   * (end to end, base64), and the faces each declared (`lookFrames`).
+   * (end to end, base64), and the faces and hands each declared (`lookFrames`).
    */
   look(
     frames: ReadonlyArray<number>,
     w: number,
     h: number,
-  ): { readonly thumbs: string; readonly faces: ReadonlyArray<ReadonlyArray<FaceMark>> };
+  ): {
+    readonly thumbs: string;
+    readonly faces: ReadonlyArray<ReadonlyArray<FaceMark>>;
+    readonly hands: ReadonlyArray<ReadonlyArray<HandMark>>;
+  };
 }
 
 declare global {
@@ -249,7 +253,7 @@ export const mountPlayer = (films: Films): void => {
             w,
             h,
           );
-          return { thumbs: bytesBase64(drawn.thumbs), faces: drawn.faces };
+          return { thumbs: bytesBase64(drawn.thumbs), faces: drawn.faces, hands: drawn.hands };
         },
       };
       return;

@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option } from 'effect';
+import type { HandMark } from '../core/schema.ts';
 import { LOOK_STEP } from './look.ts';
 import { Looker } from './looker.ts';
 import {
@@ -19,6 +20,22 @@ const film = testFilm(holdScenes, holdTimings);
 // Each 2 fps sample flips between two greys.
 const heldFrame = (i: number) => Math.round(i / (LOOK_STEP * testExportInfo.fps)) % 2;
 
+// One arm in `held`: it pops whole at frame 20, between the 2 fps samples
+// at frames 15 and 30, and its hand is lost behind its body from then on.
+const POP_FRAME = 20;
+const arm = (i: number): HandMark => ({
+  scene: 'held',
+  side: 'far',
+  x: 960,
+  y: 500,
+  sx: 940,
+  sy: 480,
+  grow: Number(i >= POP_FRAME),
+  inside: true,
+  over: false,
+  alpha: 1,
+});
+
 const setup = () => {
   const ledger = emptyLedger();
   const layer = Looker.layer.pipe(
@@ -27,6 +44,7 @@ const setup = () => {
         looked: (i) => ({
           grey: 100 + 100 * heldFrame(i),
           faces: [{ scene: 'held', x: 0, y: 0, size: 500, alpha: 1 }],
+          hands: [arm(i)],
         }),
       }),
     ),
@@ -59,6 +77,18 @@ describe('Looker', () => {
       const { look } = setup();
       const looked = yield* look(Option.some(new Set(['brief'])));
       expect(looked.looks.map((l) => l.scene)).toEqual(['brief']);
+    }),
+  );
+
+  it.live('draws every frame across a change of an arm and finds the frame it pops on', () =>
+    Effect.gen(function* () {
+      const { look } = setup();
+      const looked = yield* look(Option.none());
+      expect(looked.pops.map((p) => [p.scene, p.side, p.from, p.to])).toEqual([
+        ['held', 'far', 0, 1],
+      ]);
+      expect(looked.pops[0]?.T).toBeCloseTo(POP_FRAME / testExportInfo.fps, 9);
+      expect(looked.hidden.map((h) => [h.scene, h.side])).toEqual([['held', 'far']]);
     }),
   );
 });

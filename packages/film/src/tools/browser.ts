@@ -18,7 +18,7 @@ import {
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
 import { type Encoder, EncoderChoice } from '../core/encoder.ts';
-import { ExportInfo, FaceMark, Probed } from '../core/schema.ts';
+import { ExportInfo, FaceMark, HandMark, Probed } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,
@@ -96,10 +96,11 @@ export interface FramePage {
   ) => Effect.Effect<LookedFrames, PageError | PageCrashed | FrameFailed>;
 }
 
-/** The look pass's frames: thumbs end to end, and each frame's faces. */
+/** The look pass's frames: thumbs end to end, and each frame's faces and hands. */
 export const LookedFrames = Schema.Struct({
   thumbs: Schema.Uint8ArrayFromBase64,
   faces: Schema.Array(Schema.Array(FaceMark)),
+  hands: Schema.Array(Schema.Array(HandMark)),
 });
 export type LookedFrames = typeof LookedFrames.Type;
 
