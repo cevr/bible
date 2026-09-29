@@ -36,7 +36,7 @@ export const F = fonts;
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** A framing from its knobs: the framework's, so every film's scenes name it from their kit. */
-export { ground, knobCamera } from '@bible/film/canvas';
+export { CLOSE_SPAN, ground, knobCamera } from '@bible/film/canvas';
 
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [
@@ -1006,12 +1006,14 @@ const FROM_BELOW: Pt = [0, 700];
 
 /**
  * A figure's hand close up (the engine's `closeHand`: the one mitten, big,
- * palm up, with its creases and lifeline), its centre on the origin, about
- * 300 units wide: faith, the hand that takes (`look` lays the gold light in
- * it, `daily` the icons). `open` 1 holds the fingers straight; toward 0 they
- * fold forward over the palm. Its arm comes into frame at `forearm` (in the
- * hand's units), from the side the figure we just saw stands on. A close-up
- * is only ever of a figure the viewer has just seen (CRAFT rule 12).
+ * an open hand held out palm up, with its creases and lifeline), the palm's
+ * middle on (0, 60), `CLOSE_SPAN` units heel to fingertips: faith, the hand
+ * that takes (`look` lays the gold light in its palm, `message` and `daily`
+ * the icons). `open` 1 holds it flat; toward 0 the fingers turn up over the
+ * palm, which stays showing as a cup. Its arm comes into frame at `forearm`
+ * (in the hand's units), from the side the figure we just saw stands on,
+ * and the fingers point away from it. A close-up is only ever of a figure
+ * the viewer has just seen (CRAFT rule 12).
  */
 export const handCloseUp = (
   ctx: CanvasRenderingContext2D,

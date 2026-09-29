@@ -39,6 +39,7 @@ import {
   glow,
   icons,
   mix,
+  CLOSE_SPAN,
   handCloseUp,
   person,
   piece,
@@ -134,12 +135,12 @@ const WINDOW_SCALE = 4.7;
 const HAND_AT: Pt = [880, 890];
 const HAND_SCALE = 1.05;
 /** The close-up's scale when it is their hand at the window: its mitten's size over the close-up's. */
-const AT_ARM = (22 * WINDOW_SCALE) / (380 * HAND_SCALE);
+const AT_ARM = (22 * WINDOW_SCALE) / (CLOSE_SPAN * HAND_SCALE);
 /** Where the close-up's arm comes in: up from below, a little from the right, where they stand. */
 const FROM_THEM: Pt = [300, 700];
 /** The icons in the palm: their scale and where they sit on it. */
 const ICONS_IN_HAND = 0.24;
-const PALM_Y = -20;
+const PALM_Y = 60;
 
 /** The working days, each a sun's arc; the Sabbath begins as the last one sets. */
 const DAYS = 6;

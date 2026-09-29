@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { type ArmStyle, GRIPS, arm, handAt, strip } from './arm.ts';
+import { type ArmStyle, type CloseShape, GRIPS, arm, closeShape, handAt, strip } from './arm.ts';
 import type { Pt } from './ink.ts';
 
 const SHOULDER: Pt = [17, -111];
@@ -132,5 +132,100 @@ describe('arm', () => {
       expect(Math.hypot(half[0] - to[0], half[1] - to[1])).toBeGreaterThan(10);
       expect(Math.hypot(half[0] - SHOULDER[0], half[1] - SHOULDER[1])).toBeGreaterThan(10);
     }
+  });
+});
+
+/** A copy of an outline: `closeShape` writes into buffers it reuses. */
+const copy = (pts: ReadonlyArray<Pt>): Pt[] => pts.map(([x, y]): Pt => [x, y]);
+
+/** The nearest distance from `p` to the closed outline `poly`. */
+const toOutline = (p: Pt, poly: ReadonlyArray<Pt>) => {
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i] ?? p;
+    const b = poly[(i + 1) % poly.length] ?? p;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l2 = dx * dx + dy * dy;
+    const t =
+      l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2));
+    best = Math.min(best, Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy));
+  }
+  return best;
+};
+
+/** How far apart two closed outlines are as shapes (however their points are numbered): the farther of the two one-way distances. */
+const apart = (a: ReadonlyArray<Pt>, b: ReadonlyArray<Pt>) =>
+  Math.max(...a.map((p) => toOutline(p, b)), ...b.map((p) => toOutline(p, a)));
+
+/** Whether `p` lies inside the closed outline `poly`. */
+const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i] ?? p;
+    const b = poly[j] ?? p;
+    if (
+      a[1] > p[1] !== b[1] > p[1] &&
+      p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]
+    )
+      hit = !hit;
+  }
+  return hit;
+};
+
+interface Taken {
+  readonly fingers: Pt[];
+  readonly thumb: Pt[];
+  readonly creases: Pt[][];
+  readonly scalars: readonly number[];
+}
+const take = (s: CloseShape): Taken => ({
+  fingers: copy(s.fingers),
+  thumb: copy(s.thumb),
+  creases: s.creases.map(copy),
+  scalars: [s.curl, s.over, s.creaseInk],
+});
+
+/** The palm's middle, where a light or the gifts are laid. */
+const PALM_MIDDLE: Pt = [0, 60];
+
+describe('closeShape', () => {
+  test('the curl is continuous: from open to closed no frame pops', () => {
+    // A hand closing over two seconds at 60 fps moves 1/120 of the range a
+    // frame; step ten times finer and nothing may move more than a few units.
+    const STEPS = 1200;
+    let before = take(closeShape(1));
+    for (let i = 1; i <= STEPS; i++) {
+      const now = take(closeShape(1 - i / STEPS));
+      expect(apart(before.fingers, now.fingers)).toBeLessThan(4);
+      expect(apart(before.thumb, now.thumb)).toBeLessThan(4);
+      for (const [k, c] of now.creases.entries())
+        expect(moved(before.creases[k] ?? c, c)).toBeLessThan(4);
+      // The ink and paper that come in as the fingers lie over the palm come in gradually.
+      for (const [k, v] of now.scalars.entries())
+        expect(Math.abs(v - (before.scalars[k] ?? v))).toBeLessThan(0.03);
+      before = now;
+    }
+  });
+
+  test('open it is held out flat; closing, the fingers bend up and lie back over the palm, and the thumb comes in', () => {
+    const open = take(closeShape(1));
+    const shut = take(closeShape(0));
+    const reach = (pts: ReadonlyArray<Pt>) => Math.max(...pts.map((p) => p[0]));
+    const back = (pts: ReadonlyArray<Pt>) => Math.min(...pts.map((p) => p[0]));
+    // Open: the fingers run on past the knuckles, no ink over the palm, the creases showing.
+    expect(reach(open.fingers)).toBeGreaterThan(260);
+    expect(open.scalars).toEqual([0, 0, 1]);
+    // Closed: the fingers lie back across the palm, their edge inked, the creases turned away.
+    expect(reach(shut.fingers)).toBeLessThan(160);
+    expect(back(shut.fingers)).toBeLessThan(0);
+    expect(shut.scalars).toEqual([1, 1, 0]);
+    // The thumb leans in toward the fingers.
+    expect(reach(shut.thumb)).toBeGreaterThan(reach(open.thumb));
+  });
+
+  test('a cup, not a lid: through the film deepest curl the palm middle stays uncovered', () => {
+    for (let open = 1; open >= 0.45; open -= 0.01)
+      expect(inside(PALM_MIDDLE, closeShape(open).fingers)).toBe(false);
   });
 });
