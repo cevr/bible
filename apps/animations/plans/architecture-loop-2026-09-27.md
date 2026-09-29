@@ -298,6 +298,10 @@ Owner: "many arms facing the wrong way, janky actions … a minimal style that o
 
 Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 2,489 frames; HeldShare no scene worse than main (robe 75→71, roof 36→32); FaceSmall unchanged; bench median 53.6 → 53.3 ms (load 5–8), spoke +8 % on a rerun.
 
+## Pass 4
+
+- Batch proofs no longer include the bench or the v1 `cmp`: the owner removed the film bench and the frozen first cut (2026-09-29, p4-frame).
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
