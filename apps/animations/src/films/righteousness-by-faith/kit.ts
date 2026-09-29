@@ -169,7 +169,7 @@ export const bubble = (
 };
 
 /** The icon's heart, centred on (0, 0), about 190 units wide (`within` shows a callback inside it). */
-export const HEART: Pt[] = [
+export const HEART: ReadonlyArray<Pt> = [
   [0, -54],
   [40, -94],
   [96, -60],
