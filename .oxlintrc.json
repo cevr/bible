@@ -203,6 +203,16 @@
       }
     },
     {
+      // The procedural synth's sample loops (packages/film/src/core/synth):
+      // typed arrays indexed with `?? 0` and per-sample branches, as the mix's
+      // dsp.ts and audio.ts. Recipes stay pure functions of their seed.
+      "files": ["**/packages/film/src/core/synth/**/*.ts"],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
       // The easing helpers the draw path calls every frame: ternaries and
       // `?? default` as the draw path, nothing else.
       "files": ["**/packages/film/src/core/time.ts"],
