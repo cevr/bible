@@ -1,11 +1,12 @@
 // Every beat of the script paired with its drawing. Beats without a drawing
 // yet play as storyboard cards, so the whole film is watchable from day one.
 // The script owns what is said and how it is timed; a drawing owns only its
-// picture: `draw`, and the cues and knobs it reads. Imports nothing that
-// touches the DOM at module load: the narrate script reads this to lay out
-// the audio track.
+// picture: `draw`, and the cues and knobs it reads. Each is lit by its act's
+// light (`light.ts`, the colour script). Imports nothing that touches the DOM
+// at module load: the narrate script reads this to lay out the audio track.
 
 import { type SceneSpec, storyboard } from '@bible/film/canvas';
+import { lights } from '../light.ts';
 import { script } from '../script.ts';
 import { accuser } from './accuser.ts';
 import { centurion } from './centurion.ts';
@@ -57,7 +58,11 @@ const drawings = new Map<string, Drawing>(
 
 // The script's timing is spread last, so a storyboard card's own entrance
 // holds only where the script names none.
-export const scenes: SceneSpec[] = script.map(({ cite: _cite, picture, ...timed }) => ({
-  ...(drawings.get(timed.id) ?? storyboard(timed.id, picture)),
-  ...timed,
-}));
+export const scenes: SceneSpec[] = script.map(({ cite: _cite, picture, ...timed }) => {
+  const light = lights.get(timed.id);
+  return {
+    ...(drawings.get(timed.id) ?? storyboard(timed.id, picture)),
+    ...(light === undefined ? {} : { light }),
+    ...timed,
+  };
+});
