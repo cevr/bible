@@ -9,6 +9,7 @@ import {
   breathOf,
   closeShape,
   handAt,
+  handShape,
   palmUpFrame,
   turning,
 } from './hand.ts';
@@ -147,6 +148,60 @@ describe('a floating hand', () => {
         }
       }
     }
+  });
+});
+
+/** A copy of a mitten's palm outline: `handShape` writes into a buffer it reuses. */
+const shapeOf = (g: Gesture | undefined, s: number): Pt[] =>
+  handShape(g, s).map(([x, y]): Pt => [x, y]);
+
+describe("a hand's grip", () => {
+  const TO: Pt = [90, -60];
+  /** In unit shape: a step moving any point more than this is a frame that swaps a grip. */
+  const STEP = 0.02;
+
+  test('forms from the open rest as it arrives, as before, when it names no grip it was', () => {
+    for (const grip of GRIPS) {
+      expect(shapeOf({ to: TO, reach: 0, grip }, 0)).toEqual(shapeOf(undefined, 0));
+      expect(shapeOf({ to: TO, reach: 1, grip }, 1)).toEqual(
+        shapeOf({ to: TO, reach: 1, grip: 'hold', was: grip, change: 0 }, 1),
+      );
+    }
+  });
+
+  test('morphs from the grip it was into its new one, point for point, never swapped in a frame', () => {
+    const N = 100;
+    for (const was of GRIPS)
+      for (const grip of GRIPS) {
+        const start = shapeOf({ to: TO, reach: 1, grip: was }, 1);
+        const end = shapeOf({ to: TO, reach: 1, grip }, 1);
+        let before = shapeOf({ to: TO, reach: 1, grip, was, change: 0 }, 1);
+        expect(before).toEqual(start);
+        for (let k = 1; k <= N; k++) {
+          const now = shapeOf({ to: TO, reach: 1, grip, was, change: k / N }, 1);
+          expect(moved(before, now)).toBeLessThan(STEP);
+          before = now;
+        }
+        expect(moved(before, end)).toBeLessThan(1e-9);
+      }
+  });
+
+  test('stays smooth whichever way the hand goes: arriving, changing, and going home changed', () => {
+    // Out to its work holding, the grip changes to open, then back home: the
+    // travel and the change each move the mitten a little a frame.
+    const N = 100;
+    const frames: Array<[number, number]> = [
+      ...Array.from({ length: N + 1 }, (_, k): [number, number] => [k / N, 0]),
+      ...Array.from({ length: N + 1 }, (_, k): [number, number] => [1, k / N]),
+      ...Array.from({ length: N + 1 }, (_, k): [number, number] => [1 - k / N, 1]),
+    ];
+    let before: Pt[] | undefined;
+    for (const [reach, change] of frames) {
+      const now = shapeOf({ to: TO, reach, grip: 'open', was: 'point', change }, reach);
+      if (before !== undefined) expect(moved(before, now)).toBeLessThan(STEP * 2);
+      before = now;
+    }
+    expect(moved(before ?? [], shapeOf(undefined, 0))).toBeLessThan(1e-9);
   });
 });
 

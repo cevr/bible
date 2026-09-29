@@ -40,12 +40,20 @@ export const GRIPS: ReadonlyArray<Grip> = ['open', 'hold', 'point', 'palm'];
  * receive, into the close-up's shape at the mitten's size, its palm's middle
  * on `to` and its fingers up: a push into the hand (`closeHand`) starts
  * from it.
+ *
+ * A hand at work that changes its grip mid-act (a finger writing, then the
+ * hand opening to send) names the grip it held as `was` and how far it has
+ * changed as `change` (a named cue's `f.at`): it arrives forming `was`, then
+ * morphs from `was` into `grip`, point for point, as `change` goes 0 to 1. It
+ * never swaps one grip for another in a frame.
  */
 export interface Gesture {
   readonly to: Pt;
   readonly reach: number;
   readonly grip?: Grip;
   readonly turn?: number;
+  readonly was?: Grip;
+  readonly change?: number;
 }
 
 /** How a figure's hands are cut and how far they float, in the figure's own units. */
@@ -353,6 +361,48 @@ const formed = (from: Grip, to: Grip, form: number) => {
   return form < 0.5 ? a.thumbOver : b.thumbOver;
 };
 
+/** How a hand's mitten is formed this frame (scratch, rewritten by `shaped`). */
+interface Shaped {
+  thumbOver: boolean;
+  /** How much of a forefinger shows, 0..1. */
+  pointing: number;
+}
+const SHAPED: Shaped = { thumbOver: false, pointing: 0 };
+
+/**
+ * The mitten of a hand doing `g`, `s` of the way to its target, into
+ * `MORPH_UNIT`: the grip it works with (`grip`, or, while it changes, `was`
+ * morphing into `grip` as `change` goes 0 to 1), formed from the open rest
+ * as it arrives (over `FORMING`). Every input moves every point smoothly, so
+ * no grip ever swaps in a frame, whichever way the hand is going.
+ */
+const shaped = (g: Gesture | undefined, s: number): Shaped => {
+  const grip = g?.grip ?? REST_GRIP;
+  const was = g?.was ?? grip;
+  const change = g?.was === undefined ? 1 : clamp(g.change ?? 0);
+  const arrived = clamp((s - FORMING[0]) / (FORMING[1] - FORMING[0]));
+  const working = formed(was, grip, change);
+  const rest: Form = FORMS[REST_GRIP];
+  blend(MORPH_UNIT.palm, rest.palm, MORPH_UNIT.palm, arrived);
+  blend(MORPH_UNIT.thumb, rest.thumb, MORPH_UNIT.thumb, arrived);
+  blend(MORPH_UNIT.finger, rest.finger, MORPH_UNIT.finger, arrived);
+  SHAPED.thumbOver = arrived < 0.5 ? rest.thumbOver : working;
+  SHAPED.pointing =
+    arrived * ((was === 'point' ? 1 - change : 0) + (grip === 'point' ? change : 0));
+  return SHAPED;
+};
+
+/**
+ * The outline of the palm and fingers of a hand doing `g`, `s` of the way to
+ * its target, in its unit shape (pointing +x from its centre, `PALM_POINTS`
+ * points): the tests read it to know a grip changes smoothly. The buffer is
+ * rewritten by the next call.
+ */
+export const handShape = (g: Gesture | undefined, s: number): ReadonlyArray<Pt> => {
+  shaped(g, s);
+  return MORPH_UNIT.palm;
+};
+
 /**
  * `p.unit` laid at (x, y), turned `angle`, `size` long, its −y side
  * mirrored to `flip` (so each hand keeps its thumb on one side and it never
@@ -382,15 +432,14 @@ const lay = (
 };
 
 /**
- * The mitten `form` of the way from grip `from` to grip `to`, its centre at
- * (x, y), pointing along `angle`, `size` long (times `along` along the
- * fingers, as it turns), its thumb on the `flip` side (its root's `away`).
+ * The mitten of a hand doing `g`, `s` of the way there (see `shaped`), its
+ * centre at (x, y), pointing along `angle`, `size` long (times `along` along
+ * the fingers, as it turns), its thumb on the `flip` side (its root's `away`).
  */
 const mitten = (
   ctx: CanvasRenderingContext2D,
-  from: Grip,
-  to: Grip,
-  form: number,
+  g: Gesture | undefined,
+  s: number,
   [x, y]: Pt,
   angle: number,
   size: number,
@@ -399,14 +448,13 @@ const mitten = (
   hand: Hand,
   along = 1,
 ) => {
-  const thumbOver = formed(from, to, form);
+  const { thumbOver, pointing } = shaped(g, s);
   const look = {
     role: 'figure',
     line: style.line,
     color: style.skin,
     outline: style.outline,
   } as const;
-  const pointing = (from === 'point' ? 1 - form : 0) + (to === 'point' ? form : 0);
   if (!thumbOver) piece(ctx, lay(MORPH.thumb, x, y, angle, size, flip, along), look, sub(hand, 1));
   if (pointing > 0)
     piece(ctx, lay(MORPH.finger, x, y, angle, size, flip, along), look, sub(hand, 3));
@@ -462,17 +510,15 @@ const handEnd = (
   style: HandStyle,
   hand: Hand,
 ) => {
-  const grip = g?.grip ?? REST_GRIP;
-  const form = clamp((s - FORMING[0]) / (FORMING[1] - FORMING[0]));
   const turn = clamp(g?.turn ?? 0);
   if (turn <= 0) {
-    mitten(ctx, REST_GRIP, grip, form, end, angle, size, flip, style, hand);
+    mitten(ctx, g, s, end, angle, size, flip, style, hand);
     return;
   }
   const { cup, along } = turning(turn);
   const facing = angle + toward(angle, -Math.PI / 2) * turn;
   if (!cup) {
-    mitten(ctx, REST_GRIP, grip, form, end, facing, size, flip, style, hand, along);
+    mitten(ctx, g, s, end, facing, size, flip, style, hand, along);
     return;
   }
   const [m0, m1, m2, m3, m4, m5] = palmUpFrame(end, facing, size, flip, along);
