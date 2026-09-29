@@ -112,6 +112,8 @@ const timeline = {
   // The figure lifts its open hand, and the camera pushes into it: the insert.
   offer: { with: 'handIn', offset: -0.6, dur: 0.6 },
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
+  // Close on the palm, its fingers curl a little on "gifts": the hand that takes hold of them.
+  take: { mark: 'gifts', dur: 0.7, ease: 'inOutSine' },
   // The days start on "daily" and run to the last word (`page` reads the speech's end).
   days: { mark: 'daily' },
 } as const;
@@ -285,7 +287,14 @@ const page = (f: MessageFrame) => {
 
   if (handIn > 0) {
     const close = clamp(1 - 3 * noon) * settle;
-    giftHand(ctx, f.hand, f.knob('palm'), handIn, 1 - 0.3 * close, 1);
+    giftHand(
+      ctx,
+      f.hand,
+      f.knob('palm'),
+      handIn,
+      (1 - TAKE_CURL * f.at('take')) * (1 - 0.3 * close),
+      1,
+    );
     POPS[0] = f.at('faith');
     POPS[1] = f.at('forgiveness');
     POPS[2] = f.at('power');
@@ -293,6 +302,11 @@ const page = (f: MessageFrame) => {
     giftRow(ctx, f.hand, f.knob('gifts'), LIT, POPS);
   }
 };
+
+/** How far the close-up's fingers curl as it takes the gifts: a hold, never a fist that hides them. */
+const TAKE_CURL = 0.15;
+/** The close-up hand once it has taken them: `roof` opens and closes on it, so the cuts match. */
+export const TAKEN = 1 - TAKE_CURL;
 
 /**
  * Where the close-up's arm comes into frame, in the hand's units: up from

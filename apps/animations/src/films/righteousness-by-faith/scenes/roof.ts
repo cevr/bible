@@ -34,7 +34,7 @@ import { lerp } from '@bible/film/core';
 import { COURT_WIDE, type House, type Temple, WENT, house, temple } from '../gospel.ts';
 
 import { C, type Hands, ICON_X, type Posed, gait } from '../kit.ts';
-import { GIFTS_AT, GIFTS_S, giftHand, giftRow } from './message.ts';
+import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
 const timeline = {
   // Through the faith icon of `message`'s row, into the house.
@@ -63,8 +63,8 @@ const timeline = {
   withdraw: { with: 'rise', dur: 0.6 },
   wonder: { mark: 'arise', offset: 0.3, dur: 0.8 },
   roll: { mark: 'arise', word: 'bed', dur: 0.8, ease: 'inOutSine' },
-  // His hand steadies the bed as it lands on his shoulder.
-  steady: { with: 'roll', offset: 0.4, dur: 0.4 },
+  // His hand rises to meet the bed as it rolls up, and steadies it on his shoulder.
+  steady: { with: 'roll', dur: 0.8 },
   walk: { mark: 'went', until: 'woman', ease: 'linear' },
   follow: { mark: 'went', until: 'woman', ease: 'inOutSine' },
   heartLit: { mark: 'went', dur: 0.5 },
@@ -87,6 +87,9 @@ const timeline = {
   speaks: { mark: 'told', word: 'Neither', until: 'order', ease: 'linear' },
   robeLit2: { mark: 'told', word: 'Neither', dur: 0.5 },
   heartLit2: { mark: 'told', word: 'go', dur: 0.5 },
+  // His open hand goes out to her as he speaks, and comes back as the scene leaves her.
+  sends: { mark: 'told', dur: 0.6 },
+  sent: { with: 'toIdea', dur: 0.6 },
   // Wide as she walks out, clean.
   wash: { mark: 'told', word: 'go', dur: 0.6 },
   walkOut: { mark: 'told', word: 'go', offset: 0.3, dur: 2.2, ease: 'inQuad' },
@@ -179,6 +182,7 @@ const COURT: Posed<Temple> = {
   leaveBob: 0,
   writing: 0,
   writes: 0,
+  sends: 0,
   stand: 0,
   speak: 0,
   look: LOOK,
@@ -213,7 +217,7 @@ const opening = (f: RoofFrame, hands: Hands) => {
   // A push fourteen times over: `pushInto` keeps the disc in frame all the way.
   const cam = shotPath(PAGE, [[f.at('through'), FAITH, pushInto]]);
   camera(ctx, cam, w, h, () => {
-    giftHand(ctx, hands, GIFTS_AT.palm, 1, 1);
+    giftHand(ctx, hands, GIFTS_AT.palm, 1, TAKEN);
     giftRow(ctx, hands, GIFTS_AT.gifts, ALL, ALL);
   });
   const open = f.at('open');
@@ -301,6 +305,7 @@ const court = (f: RoofFrame) => {
   COURT.writing = f.at('writing');
   COURT.stand = stand;
   COURT.writes = f.at('pen') * (1 - stand);
+  COURT.sends = f.at('sends') * (1 - f.at('sent'));
   COURT.speak = 0.4 * talk * Math.abs(Math.sin(t * 8));
   WOMAN.walk = walk;
   WOMAN.bob = gait(t, f.cue('walkOut'));
@@ -318,7 +323,7 @@ const closing = (f: RoofFrame, hands: Hands, toIdea: number) => {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
-  giftHand(ctx, hands, GIFTS_AT.palm, f.at('handUp'), 1);
+  giftHand(ctx, hands, GIFTS_AT.palm, f.at('handUp'), TAKEN);
 };
 
 /**

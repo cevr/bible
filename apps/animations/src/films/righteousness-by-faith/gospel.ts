@@ -727,6 +727,8 @@ export interface Temple {
   /** The marks he has written in the dust, 0..1; his finger to the dust 0..1 (grown as he stoops to write, withdrawn as he stands). */
   readonly writing: number;
   readonly writes: number;
+  /** His open hand to her as he tells her to go, 0..1 (grown on the words, withdrawn as the scene leaves her). */
+  readonly sends: number;
   /** Jesus: 0 stooped to the dust to 1 standing; his mouth as he speaks; where he looks. */
   readonly stand: number;
   readonly speak: number;
@@ -890,6 +892,8 @@ const HER: Person = { garment: 'robe', look: HER_LOOK, stains: WOMAN_STAINS, was
 const HIS_LOOK: [number, number] = [0, 0];
 const HIS_BUILD: [number, number] = [1, 1];
 const WRITES: ArmAt = { to: [WRITING_HAND[0], WRITING_HAND[1]], grow: 0, grip: 'point' };
+/** Standing, his open hand held out toward her, screen-left, as he tells her to go. */
+const SENDS: ArmAt = { to: [-100, -104], grow: 0, grip: 'open' };
 const HIM: Person = { look: HIS_LOOK, build: HIS_BUILD, far: WRITES };
 
 const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
@@ -928,6 +932,9 @@ const court = (ctx: CanvasRenderingContext2D, hand: Hands, s: Temple) => {
   HIS_BUILD[0] = lerp(STOOP[0], 1, stand);
   HIS_BUILD[1] = lerp(STOOP[1], 1, stand);
   WRITES.grow = s.writes;
+  SENDS.grow = s.sends;
+  // One far hand: the finger in the dust while he writes, open to her once he has stood and speaks.
+  HIM.far = s.sends > 0 ? SENDS : WRITES;
   HIM.tilt = -0.2 * (1 - stand);
   HIM.nod = 6 * (1 - stand);
   HIM.browTilt = 0.2;
@@ -1025,6 +1032,7 @@ export const COURT_FORGIVEN: Temple = {
   leaveBob: 0,
   writing: 1,
   writes: 0,
+  sends: 0,
   stand: 1,
   speak: 0,
   look: [-4, 0.5],
