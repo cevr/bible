@@ -528,8 +528,9 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       const fs = yield* FileSystem.FileSystem;
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       // Bun has no AAC of its own; this one is mediabunny's to use from here on.
-      // Its worker is patched (patches/): under Bun it listened on `self`,
-      // where no message ever arrives, and hung.
+      // It encodes in a worker thread, which listens on `worker_threads` under
+      // Bun since mediabunny 1.61.0 (before, on `self`, where no message ever
+      // arrived, and it hung).
       yield* Effect.sync(registerAacEncoder);
 
       /** `file` read and open until the scope closes. */

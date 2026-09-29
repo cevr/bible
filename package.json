@@ -78,7 +78,6 @@
     "vite-plugin-solid": "3.0.0-next.27"
   },
   "patchedDependencies": {
-    "@mediabunny/aac-encoder@1.60.0": "patches/@mediabunny%2Faac-encoder@1.60.0.patch",
     "@effect/sql-sqlite-bun@4.0.0-rc.115": "patches/@effect%2Fsql-sqlite-bun@4.0.0-rc.115.patch"
   }
 }

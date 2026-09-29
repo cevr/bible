@@ -9,10 +9,12 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { Duration, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { ALL_FORMATS, BufferSource, EncodedPacketSink, Input } from 'mediabunny';
 import { toInt16 } from '../core/audio.ts';
 import { Media, ffmpegReady } from './media.ts';
+import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 /** What a joined film holds: each track's kind and codec, every packet's time, and its length. */
@@ -129,6 +131,22 @@ describe('Media', () => {
   );
 
   it.effect.layer(MediaOnDisk)('doctor finds ffmpeg', () => ffmpegReady());
+
+  it.live.layer(MediaOnDisk)(
+    'the extension encoders run in their workers and the process ends by itself',
+    () =>
+      Effect.gen(function* () {
+        const done = yield* collectWithin(
+          yield* ChildProcessSpawner.ChildProcessSpawner,
+          'encode-and-exit',
+          ChildProcess.make('bun', [fixture('encode-and-exit.ts')]),
+          Duration.seconds(30),
+        );
+        expect([done.exitCode, done.stderr]).toEqual([0, '']);
+        expect(done.stdout).toMatch(/^aac packets=\d+$/m);
+      }),
+    40_000,
+  );
 
   it.effect.layer(MediaOnDisk)(
     "a person's take is a 24-bit FLAC master: it decodes to its samples, and measures its length",
