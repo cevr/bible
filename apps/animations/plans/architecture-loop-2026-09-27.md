@@ -348,6 +348,28 @@ Owner questions: FL5 (`lead: 0.4` ×11 would re-key the paid score), R11, PF5-2 
 | A    | p6-films  | nine hand framings → knobs + lint, `sync: 'onset'`, cue-remap lint, film P3s                                                 | merged 46f91638: nine hand framings → knobs/shotPath/pushOn + `film/framing-is-a-knob` (cues identical), `sync: 'onset'` (5 placements move earlier by their onset; LeadIn 5 → 0; clips SP/montages/p6-onset for the owner), `film/no-cue-remap` (3 sites → declared cues, `inSine`), `until` on a landmark, KnobRepeated keys point+zoom, kit re-export gone (27 scenes import the engine), `handsOf` takes the drawing, woman → COURT_GONE, fixture film through `scenesOf`; new owner pair roof.wide ↔ message.outside                                                         |
 | B    | p6-core   | movements through stretchesOf, a film that won't lay out reports its address, findings addressed by Address, `check --draw`  | merged ac3c8342: movements through `stretchesOf`, one point-id codec (core/point.ts), findings addressed by `Address` and a film that won't lay out is a finding, `planOf` failure a value, export-handle wire beside it (`Asset` gone), `Hex` colours, branded `Heard` seconds (cues identical), DurOnWord warning (RBF 19), `film check --draw` = draw + purity + InkOverFace (RBF 10 scenes, for the owner), core names its 53 exports under the guard, `withdraw`/`said` in core, render variants carry `staleBy`; one say route rejected (act/film say cascades need Stamps) |
 | B    | p6-page   | the project page updates in place, withdraw an approval, clips from this checkout's record, a layer's card once, one card    | merged 5e85cc4b: the project page updates in place (a half-typed comment and a playing clip survive), a comment = 0 fresh processes (was 4), a pick 1 check (was 2), Approve/Withdraw/Comment one `Say` (+ `film project withdraw`), Undo names its step, clips from this checkout's catalogue record with `stale:sound` words, a layer's card once where it belongs (page 34,000 → 13,557 px), `approveAll` gone, review derived files via `writeWhole`, a lab cue write judged fresh (422 → 200 on a renamed mark), 30 lab exports private; screenshots SP/montages/p6-page     |
+| —    | p6-ci     | `bun run ci` takes a short sha                                                                                               | merged b137fad9 (c3426ea8): resolves a short sha or ref to the full sha gh matches                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+CI, pass 6 (`bun run ci 3c4d886d..f922c2d4`):
+
+```
+ci failure run=36760052995 sha=2417cadf failed="test (film 1/3) in Run bun x turbo run test --filter=@bible/film --output-logs=new-only -- --shard=1/3: failure after 47 s"
+ci success run=36763943935 sha=1bf22b75
+ci success run=36763953349 sha=ebe1443b
+ci success run=36765535468 sha=bf3654ea
+ci success run=36765555752 sha=793a7f91
+ci success run=36767804309 sha=1bed1ff8
+ci success run=36767814830 sha=6632ceca
+ci success run=36768364626 sha=dfddb12e
+ci success run=36768419688 sha=23bfa3e7
+ci success run=36768548455 sha=46f91638
+ci success run=36768557158 sha=afdf932d
+ci cancelled run=36769762208 sha=b137fad9 failed="test (animations) in Install ffmpeg: cancelled after 1016 s"
+ci success run=36774621216 sha=5e85cc4b
+ci success run=36774668988 sha=b336f0e0
+ci success run=36776979850 sha=ac3c8342
+ci success run=36776988875 sha=f922c2d4
+```
 
 ## Pass 7 (2026-09-30)
 
@@ -357,13 +379,13 @@ Owner questions: FL5 (`lead: 0.4` ×11 would re-key the paid score), R11, PF5-2 
 - CI on pass 6's pushed commits: every merge and ledger commit success, except b137fad9 (p6-ci) cancelled by the ffmpeg install hang.
 - Triage: `SP/film-pass7/triage.md`.
 
-| Wave | Batch    | Items                                                                                                                             | Result |
-| ---- | -------- | --------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| A    | p7-media | ffmpeg → mediabunny (re-mux, stills, phone copy, share copy), every render output written whole, excerpts never the film's render |        |
-| A    | p7-core  | `--scene a,c` never draws b, studio reading declared once, the review stamp covers the sound library, Stamps reads once           |        |
-| A    | p7-guard | CI installs never hang, the loop records CI, one settled-read module + lint, spawn budgets enforced, doc names checked            |        |
-| A    | p7-page  | the set page shows a stale render, a failed say keeps the comment, act/film Withdraw                                              |        |
-| A    | p7-films | InkOverFace only for faces in frame, CueTwin, framing lint sees spread cameras, one unmoved camera                                |        |
+| Wave | Batch    | Items                                                                                                                             | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---- | -------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A    | p7-media | ffmpeg → mediabunny (re-mux, stills, phone copy, share copy), every render output written whole, excerpts never the film's render | merged 22bcd9ed: no ffmpeg CLI (share and phone copies via in-process x264 through node-av under mediabunny, stills via jpeg.ts, re-mux by packet copy; CI ffmpeg step gone; `no-ffmpeg.test.ts`); every render output written whole (a failed join keeps the old film); `--from/--to` needs `--out`; a run that draws nothing opens no browser; master + stamp one step under the lock; share clips for the owner in SP/montages/p7-media                                                 |
+| A    | p7-core  | `--scene a,c` never draws b, studio reading declared once, the review stamp covers the sound library, Stamps reads once           | merged bffe0b3c: a Scenes address with a gap is `ScenesApart`; the studio reading declared once (`wirePart` gone); point refs round-trip (property test); address-schema leaf module (suspend gone); the film stamp covers sounds/library.ts; Stamps reads each file once (1,514 → 149 reads); FreshFilm one `ask`; stale-lock break never clobbers a third writer                                                                                                                         |
+| A    | p7-guard | CI installs never hang, the loop records CI, one settled-read module + lint, spawn budgets enforced, doc names checked            | merged 0e41a6ad: Chromium apt step has a 6-min limit and one retry, a red verdict names its step; `bun run ci <a>..<b>` reads a range and the loop records it; one settled-read module (lab/fixtures/settled.ts) + `film/no-read-once` (28 reads converted); `film/spawn-budget` (8 tests budgeted); docs.test checks routes, rules, scripts, paths, flags and findings named in the docs (11 drifts fixed); import direction held by no-restricted-imports; package tests default to 20 s |
+| A    | p7-page  | the set page shows a stale render, a failed say keeps the comment, act/film Withdraw                                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| A    | p7-films | InkOverFace only for faces in frame, CueTwin, framing lint sees spread cameras, one unmoved camera                                | merged 8fdce7ef: InkOverFace only on faces in frame (shared `seenFace`; woman 104 → 1 frame, roof 206 → 49); `CueTwin` warning (RBF 4 twins collapsed, cues otherwise identical); framing lint reads spread cameras (message roofRise/roofZoom knobs); `UNMOVED` declared once; every-scene-draws through `drawLeg`; one refusing ElevenLabs (`@bible/film/testing`); `handsOf` takes the drawing only; 31 set-file exports private                                                        |
 
 ## Close
 
