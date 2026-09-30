@@ -10,7 +10,6 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
 import { ReviewFileUnknown } from '../../core/refusals.ts';
 import {
   type FakeRoute,
@@ -21,7 +20,16 @@ import {
   route,
   text,
 } from '../fixtures/harness.ts';
-import { countIs, textHas, textIs, textsAre, until, waitFor } from '../fixtures/settled.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+  textsAre,
+  until,
+  waitFor,
+} from '../fixtures/settled.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
@@ -104,9 +112,6 @@ const routes: ReadonlyArray<FakeRoute> = [
 
 const SET = '?folder=out%2Fart&set=render%3Aroof';
 
-const evaluate = <A>(page: Page, script: string) =>
-  Effect.promise(() => page.evaluate(script) as Promise<A>);
-
 describe('the review page', () => {
   it.live(
     'lists the folders, filters them, and opens one: its set, its loose video, its doc',
@@ -124,22 +129,15 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
         yield* textHas(page, 'a.rv-card', 'compare 3');
         yield* textHas(page, '.rv-card', 'walk.mp4');
-        expect(
-          yield* evaluate<string>(
-            page,
-            "document.querySelector('.rv-tall track').getAttribute('src')",
-          ),
-        ).toBe('/review/files/out/art/walk.vtt');
+        yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');
         yield* Effect.promise(() => page.click('.rv-doc summary'));
         yield* waitFor(page, '.rv-doc .rv-note li b');
-        const doc = yield* evaluate<string>(
+        yield* evaluates(
           page,
-          "document.querySelector('.rv-doc .rv-note').innerHTML",
+          "document.querySelector('.rv-doc .rv-note').innerHTML.includes('&lt;script&gt;bad()&lt;/script&gt;')",
+          true,
         );
-        expect(doc).toContain('&lt;script&gt;bad()&lt;/script&gt;');
-        expect(
-          yield* evaluate<number>(page, "document.querySelectorAll('.rv-note script').length"),
-        ).toBe(0);
+        yield* countIs(page, '.rv-note script', 0);
         yield* Effect.promise(() => page.goBack());
         yield* textHas(page, '.rv-h', 'Renders');
         expect(errors).toEqual([]);
@@ -153,16 +151,12 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { search: SET });
         yield* waitFor(page, '.rv-transport');
-        expect(
-          yield* evaluate<number>(page, "document.querySelectorAll('.rv-card video').length"),
-        ).toBe(3);
+        yield* countIs(page, '.rv-card video', 3);
         // A is heard first: the only unmuted video, its card lit.
         const heard =
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).filter((c) => !c.querySelector('video').muted).map((c) => c.dataset.id).join()";
         yield* until(page, `${heard} === 'A'`);
-        expect(
-          yield* evaluate<string>(page, "document.querySelector('.rv-audible').dataset.id"),
-        ).toBe('A');
+        yield* attributeIs(page, '.rv-audible', 'data-id', 'A');
         yield* Effect.promise(() => page.click('.rv-card[data-id="C"] .rv-sound'));
         yield* until(page, `${heard} === 'C'`);
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
@@ -183,12 +177,11 @@ describe('the review page', () => {
         );
         yield* Effect.promise(() => page.click('.rv-seg button[data-rate="0.5"]'));
         yield* waitFor(page, '.rv-seg button[data-rate="0.5"][aria-pressed="true"]');
-        expect(
-          yield* evaluate<ReadonlyArray<number>>(
-            page,
-            "Array.from(document.querySelectorAll('.rv-card video')).map((v) => v.playbackRate)",
-          ),
-        ).toEqual([0.5, 0.5, 0.5]);
+        yield* evaluates(
+          page,
+          "Array.from(document.querySelectorAll('.rv-card video')).map((v) => v.playbackRate)",
+          [0.5, 0.5, 0.5],
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -214,9 +207,7 @@ describe('the review page', () => {
 
         yield* Effect.promise(() => page.click('.rv-views button[data-view="moments"]'));
         yield* waitFor(page, 'button[data-moment="0"][aria-pressed="true"]');
-        expect(
-          yield* evaluate<boolean>(page, "document.querySelector('.rv-transport') === null"),
-        ).toBe(true);
+        yield* countIs(page, '.rv-transport', 0);
         const frames =
           "Array.from(document.querySelectorAll('.rv-card img')).map((i) => new URL(i.src).searchParams.get('t')).join()";
         yield* until(page, `${frames} === '1,1,1'`);
@@ -302,14 +293,13 @@ describe('the review page', () => {
           viewport: { width: 390, height: 844 },
         });
         yield* waitFor(page, '.rv-transport');
-        const lefts = yield* evaluate<ReadonlyArray<number>>(
+        // Every card starts at one left edge: one column.
+        yield* evaluates(
           page,
-          "Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => Math.round(c.getBoundingClientRect().left))",
+          "new Set(Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => Math.round(c.getBoundingClientRect().left))).size",
+          1,
         );
-        expect(new Set(lefts).size).toBe(1);
-        expect(
-          yield* evaluate<boolean>(page, 'document.documentElement.scrollWidth <= innerWidth'),
-        ).toBe(true);
+        yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -1568,11 +1568,14 @@ field that is not there. Write `(line) => Console.log(line)`.
 `film/no-read-once` (`lint/no-read-once.ts`) holds the lab's browser tests
 (`*.dom.test.ts`): a test waits for the value it asserts through
 `src/lab/fixtures/settled.ts` (`textIs`, `textHas`, `textsAre`,
-`attributeIs`, `attributesAre`, `valueIs`, `countIs`, `waitFor`, `attached`,
-`until`), and a read that times out fails naming what it wanted and what the
-page last showed. A one-shot read (`textContent()`, `inputValue()`, `$eval`,
-`$$eval`, `isVisible()`, and `getAttribute()` or `count()` on the page or a
-locator) takes whatever the page had drawn at that instant, and is refused.
+`attributeIs`, `attributesAre`, `valueIs`, `countIs`, `evaluates` for a
+script's answer, `waitFor`, `attached`, `until`), and a read that times out
+fails naming what it wanted and what the page last showed. A one-shot read
+(`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
+`getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
+whose answer `expect` asserts) takes whatever the page had drawn at that
+instant, and is refused. An `evaluate` run for what it does is an action; one
+whose answer a binding keeps is not seen.
 `film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
 `packages/film` and `apps/animations/test`: a test whose body spawns a process
 (`ChildProcess.make`, `Bun.spawn`, `Bun.spawnSync`, `runCli`, or a function of

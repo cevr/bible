@@ -3,7 +3,8 @@
 // (a status line mid-update, a list read again after a write) is never taken
 // as its answer. A read that times out fails naming what it wanted and what the
 // page last showed. `film/no-read-once` refuses a one-shot read (`textContent`,
-// `inputValue`, `getAttribute`, `$eval`, …) in a `*.dom.test.ts`.
+// `inputValue`, `getAttribute`, `$eval`, an asserted `evaluate`, …) in a
+// `*.dom.test.ts`.
 
 import { Effect, Predicate, Schema } from 'effect';
 import type { Page } from 'playwright-core';
@@ -56,21 +57,31 @@ const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 const lookIn = (probe: Probe, field: 'now' | 'settled') => `${LOOK}(${json(probe)}).${field}`;
 
-/** Wait until the page shows what `probe` wants; a timeout fails naming what it last showed. */
-const settle = (page: Page, probe: Probe) =>
-  Effect.tryPromise(() => page.waitForFunction(lookIn(probe, 'settled'))).pipe(
+/**
+ * Wait until `settled`, run in the page, is true; a timeout fails with `failure`
+ * of what `now`, run in the page, answers then, written as JSON.
+ */
+const waitOr = (
+  page: Page,
+  check: { readonly settled: string; readonly now: string },
+  failure: (now: string) => string,
+) =>
+  Effect.tryPromise(() => page.waitForFunction(check.settled)).pipe(
     Effect.catch(() =>
       Effect.flatMap(
-        Effect.promise(() => page.evaluate(lookIn(probe, 'now'))),
-        (now) =>
-          Effect.die(
-            new Error(
-              `${probe.selector} never settled: wanted ${json(probe.want)}, last read ${json(now)}`,
-            ),
-          ),
+        Effect.promise(() => page.evaluate<string>(`JSON.stringify(${check.now})`)),
+        (now) => Effect.die(new Error(failure(now))),
       ),
     ),
     Effect.asVoid,
+  );
+
+/** Wait until the page shows what `probe` wants; a timeout fails naming what it last showed. */
+const settle = (page: Page, probe: Probe) =>
+  waitOr(
+    page,
+    { settled: lookIn(probe, 'settled'), now: lookIn(probe, 'now') },
+    (now) => `${probe.selector} never settled: wanted ${json(probe.want)}, last read ${now}`,
   );
 
 const TEXT: Read = { _tag: 'Text' };
@@ -124,6 +135,21 @@ export const waitFor = (page: Page, selector: string) =>
 /** Wait until `selector` is in the page, shown or not (a hidden composer, a folded row). */
 export const attached = (page: Page, selector: string) =>
   Effect.promise(() => page.waitForSelector(selector, { state: 'attached' }));
+
+/** What a script run in the page can be waited on to answer. */
+type Answer = boolean | number | string | ReadonlyArray<boolean | number | string>;
+
+/**
+ * Wait until `script`, an expression run in the page, answers `want`, compared
+ * as JSON (a flag, a number, a string, a list); a timeout fails naming what it
+ * last answered.
+ */
+export const evaluates = (page: Page, script: string, want: Answer) =>
+  waitOr(
+    page,
+    { settled: `JSON.stringify(${script}) === ${json(json(want))}`, now: script },
+    (now) => `${script} never answered ${json(want)}: last answered ${now}`,
+  );
 
 /** Wait until `check`, run in the page, is true. */
 export const until = (page: Page, check: string) =>
