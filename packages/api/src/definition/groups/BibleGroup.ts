@@ -6,7 +6,7 @@
  * - Getting a chapter with verses
  * - Searching verses
  */
-import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
+import { HttpApiEndpoint, HttpApiGroup } from 'effect/http-api';
 import { Effect, Schema as S } from 'effect';
 
 // ============================================================================

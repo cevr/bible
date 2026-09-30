@@ -100,10 +100,10 @@ const queryOptionalLegacyTable = (
   sql: string,
 ): Effect.Effect<ReadonlyArray<SqliteRow>, unknown> =>
   database.query(sql).pipe(
-    Effect.catch((cause) => {
-      if (String(cause).includes('no such table')) return Effect.succeed([]);
-      return Effect.fail(cause);
-    }),
+    Effect.catchIf(
+      (cause) => String(cause).includes('no such table'),
+      () => Effect.succeed([]),
+    ),
   );
 
 const snapshotLegacyWebStateEffect = (

@@ -1,4 +1,4 @@
-import { Flag } from 'effect/unstable/cli';
+import { Flag } from 'effect/cli';
 
 export const file = Flag.File('file').pipe(
   Flag.withAlias('f'),

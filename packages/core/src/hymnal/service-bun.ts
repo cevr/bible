@@ -90,10 +90,7 @@ export const layerHymnalBun: Layer.Layer<
         catch: (cause) => HymnalError.make({ operation: 'getHymn', cause }),
       });
 
-      return yield* Option.match(hymn, {
-        onNone: () => Effect.fail(HymnNotFoundError.make({ id })),
-        onSome: Effect.succeed,
-      });
+      return yield* Effect.fromOption(hymn, () => HymnNotFoundError.make({ id }));
     });
 
     const getCategories = Effect.try({

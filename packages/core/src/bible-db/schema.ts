@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
-import type * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import type * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 /** Canonical unified Bible schema, shared by desktop initialization and sync tooling. */
 export const BIBLE_SCHEMA_STATEMENTS = [

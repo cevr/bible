@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
+import * as SqlClient from 'effect/sql/SqlClient';
 
 import { SqliteDatabaseError, type SqliteDatabase } from './sqlite-database.js';
 import { layerWorkerSqlClient } from './worker-sql-client.js';

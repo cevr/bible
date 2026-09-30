@@ -160,7 +160,7 @@ const filmOf = Effect.fn('test.filmOf')(function* (film: string) {
 const drawAt = (film: ReturnType<typeof createFilm>, T: number) =>
   Effect.sync(() => film.render(nullContext(), T, { captions: true })).pipe(
     Effect.as(Option.none<string>()),
-    Effect.catchDefect((defect) => Effect.succeed(Option.some(String(defect)))),
+    Effect.catchDefect((defect) => Effect.succeedSome(String(defect))),
   );
 
 describe('every scene draws', () => {

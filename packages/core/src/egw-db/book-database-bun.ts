@@ -9,7 +9,7 @@
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Config, Effect, FileSystem, Layer, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import type { SqlError } from 'effect/sql/SqlError';
 
 import { EGWParagraphDatabase } from './book-database.js';
 

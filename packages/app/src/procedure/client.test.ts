@@ -8,7 +8,7 @@ import {
 } from '@bible/core/procedure';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Schema, Stream } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 const connection = RuntimeConnection.make({
   protocolVersion: CURRENT_PROTOCOL_VERSION,

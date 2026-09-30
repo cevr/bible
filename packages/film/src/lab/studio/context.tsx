@@ -12,10 +12,17 @@ import { Loading, Show } from '@solidjs/web';
 import { Cause, Effect, Layer, Option, Stream } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
-import * as Atom from 'effect/unstable/reactivity/Atom';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, createSignal, useContext } from 'solid-js';
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  untrack,
+  useContext,
+} from 'solid-js';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
@@ -184,7 +191,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   // An import that settles (answered, or read back from the attempts) reads
   // the beats and the beat's attempts again;
   // a microphone opened names the devices (their labels come with permission).
-  let was = recorder()._tag;
+  let was = untrack(() => recorder()._tag);
   createEffect(
     () => recorder()._tag,
     (tag) => {

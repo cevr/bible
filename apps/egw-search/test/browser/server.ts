@@ -23,8 +23,8 @@ import {
   HttpServer,
   HttpServerResponse,
   HttpStaticServer,
-} from 'effect/unstable/http';
-import { HttpApiBuilder } from 'effect/unstable/httpapi';
+} from 'effect/http';
+import { HttpApiBuilder } from 'effect/http-api';
 
 import {
   NO_SELECTION,

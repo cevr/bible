@@ -94,13 +94,7 @@ const makeProvenanceStore = (
 ): NativeFileArtifactProvenanceStore => {
   let current = seed;
   return {
-    read: () =>
-      Effect.suspend(() =>
-        Option.match(current, {
-          onNone: () => Effect.fail('provenance is unavailable'),
-          onSome: Effect.succeed,
-        }),
-      ),
+    read: () => Effect.suspend(() => Effect.fromOption(current, () => 'provenance is unavailable')),
     write: (_filename, provenance) =>
       Effect.sync(() => {
         current = Option.some(provenance);

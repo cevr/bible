@@ -1,6 +1,6 @@
 import { syncEgwCorpus, type EgwSyncProgress } from '@bible/core/corpus-supply';
 import { Console, Effect } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 
 import { CliProcess } from '../../services/process.js';
 import { encodeJson } from './format.js';

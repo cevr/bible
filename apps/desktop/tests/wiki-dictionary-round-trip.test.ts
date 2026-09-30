@@ -36,12 +36,8 @@ import { DANIEL_8_9, PHRASE_FIXTURE_DICTIONARY } from '@bible/core/wiki/testing'
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Schema } from 'effect';
 import type { Scope } from 'effect';
-import type {
-  FromClientEncoded,
-  FromServerEncoded,
-  RequestEncoded,
-} from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
+import type { FromClientEncoded, FromServerEncoded, RequestEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
 
 import {
   layerDesktopProcedureServer,

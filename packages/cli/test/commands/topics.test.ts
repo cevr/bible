@@ -42,7 +42,7 @@ import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedu
 import { procedureDependencies } from '@bible/core/procedure/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Schema } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { topicsStatus, topicsUpdate } from '../../src/commands/topics.js';
 import { ContentLayer } from '../../src/commands/topics-layer.js';
@@ -110,13 +110,10 @@ const makeOfferingHost = (destination: string) => {
     // and for the same reason.
     provenanceStore: {
       read: () =>
-        Option.match(provenance, {
-          // Absence is the store's failure channel, as it is for the shipped
-          // sidecar and SQLite stores: a file with no provenance is a file this
-          // host has not installed.
-          onNone: () => Effect.fail('no provenance is recorded'),
-          onSome: Effect.succeed,
-        }),
+        // Absence is the store's failure channel, as it is for the shipped
+        // sidecar and SQLite stores: a file with no provenance is a file this
+        // host has not installed.
+        Effect.fromOption(provenance, () => 'no provenance is recorded'),
       write: (_file, written) =>
         Effect.sync(() => {
           provenance = Option.some(written);

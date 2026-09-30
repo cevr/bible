@@ -272,11 +272,9 @@ export class NotesStore extends Context.Service<NotesStore, NotesStoreService>()
 
       /** The note `id` in `file`, or `NoteNotFound` listing the ones there are. */
       const find = (film: string, file: NotesFile, id: string) =>
-        Option.match(noteById(file, id), {
-          onNone: () =>
-            Effect.fail(NoteNotFound.make({ film, id, known: file.notes.map((n) => n.id) })),
-          onSome: Effect.succeed,
-        });
+        Effect.fromOption(noteById(file, id), () =>
+          NoteNotFound.make({ film, id, known: file.notes.map((n) => n.id) }),
+        );
 
       /** The note `id` as a change left it. */
       const after = (film: string, file: NotesFile, id: string) =>

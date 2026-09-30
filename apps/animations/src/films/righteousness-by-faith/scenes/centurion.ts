@@ -133,11 +133,11 @@ const CREST_UNDER: Pt[] = Array.from({ length: 13 }, (_, i): Pt => {
  */
 const helmet: HeadPiece = (ctx, [cx, cy], _r, hand, hands) => {
   const crest = [...shifted(CREST_TOP, cx, cy - 46), ...shifted(CREST_UNDER, cx, cy - 44)];
-  piece(ctx, crest, C.sunsetLow, hands?.('crest') ?? sub(hand, 30), {
+  piece(ctx, crest, C.cutRust, hands?.('crest') ?? sub(hand, 30), {
     role: 'figure',
     line: 2.5,
   });
-  piece(ctx, shifted(DOME, cx, cy - 33), C.boardDeep, hands?.('helmet') ?? sub(hand, 31), {
+  piece(ctx, shifted(DOME, cx, cy - 33), C.cutDeep, hands?.('helmet') ?? sub(hand, 31), {
     role: 'figure',
     line: 3,
   });
@@ -406,7 +406,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
                 [62, -6],
                 [-62, -6],
               ],
-              C.sunsetLow,
+              C.cutRust,
               hand('cape'),
               { role: 'figure', line: 3 },
             );
@@ -428,7 +428,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
               },
               hand('soldier'),
             );
-            piece(ctx, rounded(0, -58, 70, 10, 4), C.boardDeep, hand('belt'), {
+            piece(ctx, rounded(0, -58, 70, 10, 4), C.cutDeep, hand('belt'), {
               role: 'figure',
               line: 2,
             });

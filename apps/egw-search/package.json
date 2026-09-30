@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
-    "alchemy": "2.0.0-beta.79",
-    "concurrently": "^9.1.2",
-    "vite": "^8.2.2",
+    "alchemy": "https://pkg.alchemy.run/alchemy/-/0b74dc88ad083e12082d7d84a7e46b4e7094ae17db987b4e799159402d4930ab.tgz",
+    "concurrently": "^10.0.5",
+    "vite": "^8.3.1",
     "vite-plugin-solid": "catalog:"
   }
 }

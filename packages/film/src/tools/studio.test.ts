@@ -5,7 +5,8 @@
 // listed and played back. No network, no ffmpeg.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Encoding, Layer, Option, Path, Schema } from 'effect';
+import { Effect, Layer, Option, Path, Schema } from 'effect';
+import { Base64 } from 'effect/encoding';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import {
@@ -111,7 +112,7 @@ const get = (path: string) => new Request(at(path), { method: 'GET' });
 
 /** A recording as the page posts it: what it says is its bytes, as the fake media reads them. */
 const recording = (said: string, extra = '') =>
-  `{"audio":"${Encoding.encodeBase64(said)}","type":"audio/wav"${extra}}`;
+  `{"audio":"${Base64.encode(said)}","type":"audio/wav"${extra}}`;
 
 const said = new Map([
   ['a', 'Hello world.'],
@@ -244,7 +245,7 @@ describe('studio routes', () => {
           const refused = yield* call(
             post(
               '/lab/test/studio/takes/a',
-              `{"audio":"${Encoding.encodeBase64('Hello world.')}","type":"${lossy}"}`,
+              `{"audio":"${Base64.encode('Hello world.')}","type":"${lossy}"}`,
             ),
           );
           expect([refused.status, (refused.body as { _tag: string })._tag]).toEqual([
@@ -256,7 +257,7 @@ describe('studio routes', () => {
           (yield* call(
             post(
               '/lab/test/studio/takes/a',
-              `{"audio":"${Encoding.encodeBase64('Hello world.')}","type":"audio/flac"}`,
+              `{"audio":"${Base64.encode('Hello world.')}","type":"audio/flac"}`,
             ),
           )).status,
         ).toBe(200);
@@ -377,11 +378,12 @@ describe('studio routes', () => {
     return Effect.gen(function* () {
       // One studio, as the lab runs it, taking two posts at once.
       const studio = yield* studioHandler('test');
-      const answers = yield* Effect.all(
+      const answers = yield* Effect.forEach(
         [
           post('/lab/test/studio/takes/a', recording('Hello world.')),
           post('/lab/test/studio/takes/b', recording('He said be still to them.')),
-        ].map((request) => Effect.promise(() => studio(request, bound))),
+        ],
+        (request) => Effect.promise(() => studio(request, bound)),
         { concurrency: 2 },
       );
       expect(answers.map((a) => a.status)).toEqual([200, 200]);

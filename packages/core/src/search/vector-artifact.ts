@@ -157,7 +157,7 @@ export class VectorIndexBytes extends Context.Service<VectorIndexBytes, VectorIn
   static readonly None: Layer.Layer<VectorIndexBytes> = Layer.succeed(
     VectorIndexBytes,
     VectorIndexBytes.of({
-      read: Effect.succeed(Option.none()),
+      read: Effect.succeedNone,
     }),
   );
 
@@ -165,10 +165,7 @@ export class VectorIndexBytes extends Context.Service<VectorIndexBytes, VectorIn
    *  Named `layerOf` rather than `of` because `Context.Service` reserves `of`
    *  for constructing the service value itself. */
   static layerOf = (bytes: ArrayBuffer): Layer.Layer<VectorIndexBytes> =>
-    Layer.succeed(
-      VectorIndexBytes,
-      VectorIndexBytes.of({ read: Effect.succeed(Option.some(bytes)) }),
-    );
+    Layer.succeed(VectorIndexBytes, VectorIndexBytes.of({ read: Effect.succeedSome(bytes) }));
 }
 
 /** The installed index, or §9.6's reason there is none.

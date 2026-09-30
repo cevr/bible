@@ -1,7 +1,7 @@
 /** Keynote slide deck CLI commands. */
 
 import { Console, Effect } from 'effect';
-import { Command } from 'effect/unstable/cli';
+import { Command } from 'effect/cli';
 
 import { slidesBuild } from './slides/build.js';
 import { slidesInsert } from './slides/insert.js';

@@ -40,8 +40,8 @@ import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
-import type { Rpc, RpcGroup } from 'effect/unstable/rpc';
-import { RpcTest } from 'effect/unstable/rpc';
+import type { Rpc, RpcGroup } from 'effect/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { BibleProcedureGroup } from './group.js';
 import { BibleProcedureHandlers } from './handlers.js';
@@ -229,9 +229,7 @@ const Dependencies = Layer.mergeAll(
   Layer.succeed(
     ReadingContinuityRuntime,
     ReadingContinuityRuntime.of({
-      get: Effect.succeed(
-        Option.some({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
-      ),
+      get: Effect.succeedSome({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
       record: () =>
         Effect.succeed({
           _tag: 'MutationCommit',

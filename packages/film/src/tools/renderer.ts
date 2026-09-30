@@ -163,8 +163,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const shortOn = (placed: ReadonlyArray<Placed>, cut: Cut, fps: number) =>
         Cut.$match(cut, {
           Whole: () => Effect.succeedNone,
-          Short: ({ short }) =>
-            Effect.map(Effect.fromResult(resolveShort(placed, short, fps)), Option.some),
+          Short: ({ short }) => Effect.asSome(Effect.fromResult(resolveShort(placed, short, fps))),
         });
 
       const video = Effect.fnUntraced(function* (
@@ -259,7 +258,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
                 ),
               ),
               Effect.flatMap(media.encodeAac),
-              Effect.map(Option.some),
+              Effect.asSome,
             ),
         });
 

@@ -1,5 +1,5 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Command } from 'effect/unstable/cli';
+import { Command } from 'effect/cli';
 import {
   ConfigProvider,
   Console,

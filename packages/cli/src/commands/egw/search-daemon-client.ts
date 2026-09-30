@@ -11,8 +11,8 @@
 import { MODEL_FINGERPRINT, SearchService, type SearchQuery } from '@bible/core/search';
 import { BunSocket } from '@effect/platform-bun';
 import { Effect, Layer, Option, Schema } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { RpcClient, RpcSerialization } from 'effect/unstable/rpc';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { RpcClient, RpcSerialization } from 'effect/rpc';
 
 import { selfInvocation } from '../../lib/paths.js';
 import { SearchDaemonGroup, type SearchDaemonStatus } from './search-daemon-protocol.js';

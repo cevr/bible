@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect } from 'effect';
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http';
+import { FetchHttpClient, HttpClient } from 'effect/http';
 import { serve } from '../server.ts';
 
 /** The server `serve` starts, stopped when the test's scope closes. */

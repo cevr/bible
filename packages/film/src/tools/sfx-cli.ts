@@ -20,7 +20,7 @@
 //   film sfx guard <file…>         (the pre-commit hook: staged audio the repo may not take)
 
 import { Console, Effect, Option, Schema } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import {
   type LibraryEntry,
   type LockEntry,

@@ -5,7 +5,7 @@ import { CorpusSupply, layerEgwWritingsAssetSource } from '@bible/core/corpus-su
 import { WritingsService } from '@bible/core/writings/service';
 import { BunServices } from '@effect/platform-bun';
 import { Layer } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 
 const AuthLayer = EGWAuth.layerLiveFs().pipe(Layer.provide(FetchHttpClient.layer));
 

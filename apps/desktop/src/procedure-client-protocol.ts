@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, Queue, Schema } from 'effect';
-import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
-import { RpcClientDefect, RpcClientError } from 'effect/unstable/rpc/RpcClientError';
+import type { FromClientEncoded, FromServerEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
+import { RpcClientDefect, RpcClientError } from 'effect/rpc/RpcClientError';
 
 const protocolFailure = (message: string, cause: unknown): RpcClientError =>
   RpcClientError.make({ reason: RpcClientDefect.make({ message, cause }) });

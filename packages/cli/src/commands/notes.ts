@@ -1,4 +1,4 @@
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 import { Console, Effect, FileSystem, Option } from 'effect';
 
 import { file, files, folder, json, noteId } from '~/src/lib/content/options';

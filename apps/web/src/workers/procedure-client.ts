@@ -6,7 +6,7 @@ import {
   type ActiveProcedureHost,
 } from '@bible/app/procedure';
 import { Effect, Layer } from 'effect';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
+import * as RpcClient from 'effect/rpc/RpcClient';
 
 import type { ProcedureWorkerEndpoint } from './procedure-worker-protocol.js';
 import { connectProcedureWorker } from './procedure-worker-protocol.js';

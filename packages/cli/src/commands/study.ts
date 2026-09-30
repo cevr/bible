@@ -43,7 +43,7 @@ import {
   Schema,
   SchemaGetter,
 } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 const JsonString = Schema.Unknown.pipe(
   Schema.encodeTo(Schema.String, {

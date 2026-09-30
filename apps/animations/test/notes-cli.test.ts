@@ -18,7 +18,7 @@ import {
   Queue,
   Stream,
 } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { FIXTURE_CLI, FIXTURE_FILM, SPAWN_MS, appDir, runCli, spawnBudget } from './cli-run.ts';
 
 const film = FIXTURE_FILM;

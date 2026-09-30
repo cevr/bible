@@ -27,7 +27,7 @@ import {
   CONTENT_MANIFEST_MAX_BYTES,
   CONTENT_MANIFEST_PROXY_PATH,
 } from '@bible/core/content-update';
-import { FetchHttpClient, HttpServerResponse } from 'effect/unstable/http';
+import { FetchHttpClient, HttpServerResponse } from 'effect/http';
 
 import { contentManifestResponse } from '../../server/content-manifest-proxy.js';
 import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedure';
@@ -36,9 +36,9 @@ import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunn
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
-import type { FromClientEncoded, RequestEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
-import * as RpcServer from 'effect/unstable/rpc/RpcServer';
+import type { FromClientEncoded, RequestEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
+import * as RpcServer from 'effect/rpc/RpcServer';
 
 import { layerWebProcedureTransport } from './procedure-client.js';
 

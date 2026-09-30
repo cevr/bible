@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 import { readTopicsSchemaMajor } from '../corpus-supply/file-artifact.js';
 import { TopicId } from '../topics/model.js';
@@ -338,17 +338,13 @@ const readSchemaMajor = (
     Effect.flatMap((rows) =>
       Option.fromNullishOr(rows[0]).pipe(
         Option.flatMap((row) => readTopicsSchemaMajor(row.value)),
-        Option.match({
-          onNone: () =>
-            Effect.fail(
-              WikiUnavailableError.make({
-                operation,
-                category: 'corrupt',
-                message: 'Topics Artifact has no readable schema_major',
-              }),
-            ),
-          onSome: Effect.succeed,
-        }),
+        Effect.fromOption(() =>
+          WikiUnavailableError.make({
+            operation,
+            category: 'corrupt',
+            message: 'Topics Artifact has no readable schema_major',
+          }),
+        ),
       ),
     ),
   );
@@ -651,7 +647,7 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
             unavailable: Option.some('artifact-not-installed'),
           }),
         ),
-        availability: Effect.succeed(Option.some('artifact-not-installed')),
+        availability: Effect.succeedSome('artifact-not-installed'),
       });
     }),
   );

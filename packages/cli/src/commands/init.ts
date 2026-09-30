@@ -27,8 +27,8 @@ import {
   verifyTopicsDatabase,
 } from '@bible/core/corpus-supply/bun';
 import { Config, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { Command, Flag } from 'effect/cli';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 
 import { packagedDataCandidates } from '~/src/lib/paths';
 
@@ -120,7 +120,7 @@ const ensureArtifacts = (bibleDir: string, path: Path.Path, force: boolean) => {
     // Writings-style catch-and-warn (§3.5): a missing topics artifact leaves
     // the wiki on catalog pages, which is a degraded feature, not a failed init.
     const topics = yield* corpus.ensure({ target: Target.topics(), refresh: force }).pipe(
-      Effect.map(Option.some),
+      Effect.asSome,
       Effect.orElseSucceed(() => Option.none<CorpusSupplyReceipt>()),
     );
     return { bible, topics };

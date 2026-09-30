@@ -16,7 +16,6 @@
 import {
   Array as Arr,
   Effect,
-  Encoding,
   FileSystem,
   Option,
   Path,
@@ -25,7 +24,8 @@ import {
   Semaphore,
   String as Str,
 } from 'effect';
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
+import { Base64 } from 'effect/encoding';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type TakeState, hashText, takeState, voiceKey } from '../core/narration.ts';
 import { labBase, type VoiceTiming } from '../core/schema.ts';
 import { type Part, type SheetBeat, sheetBeats } from '../core/sheet.ts';
@@ -313,7 +313,7 @@ export const studioRoutes = (film: string) => {
         Effect.gen(function* () {
           const beat = yield* beatParam;
           const post = yield* HttpServerRequest.schemaBodyJson(TakePost);
-          const bytes = yield* Effect.fromResult(Encoding.decodeBase64(post.audio)).pipe(
+          const bytes = yield* Effect.fromResult(Base64.decode(post.audio)).pipe(
             Effect.mapError(() => AudioInvalid.make({ reason: 'the audio is not base64' })),
           );
           const extension = yield* Effect.fromResult(extensionOf(post.type));

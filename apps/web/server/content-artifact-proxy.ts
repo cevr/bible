@@ -27,7 +27,7 @@ import {
   redirectTarget,
 } from '@bible/core/content-update';
 import { Data, Effect, Option, Stream } from 'effect';
-import { HttpServerResponse } from 'effect/unstable/http';
+import { HttpServerResponse } from 'effect/http';
 
 /** Every way of not reaching an artifact, as one declared failure — the same
  *  shape and the same reason as the manifest route's. */

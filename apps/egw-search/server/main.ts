@@ -36,10 +36,10 @@ import {
   HttpRouter,
   HttpServer,
   HttpStaticServer,
-} from 'effect/unstable/http';
-import { HttpApiBuilder } from 'effect/unstable/httpapi';
-import { SqlClient } from 'effect/unstable/sql';
-import { OtlpSerialization, OtlpTracer } from 'effect/unstable/observability';
+} from 'effect/http';
+import { HttpApiBuilder } from 'effect/http-api';
+import { SqlClient } from 'effect/sql';
+import { OtlpSerialization, OtlpTracer } from 'effect/observability';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {

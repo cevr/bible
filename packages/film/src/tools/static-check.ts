@@ -6,7 +6,7 @@
 // encoded by `CheckLineJson` and decoded here by the same schema.
 
 import { Context, Duration, Effect, Layer, Schema } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { CheckLine } from '../core/schema.ts';
 import { StaticCheckFailed } from './errors.ts';
 import { collectWithin } from './process.ts';

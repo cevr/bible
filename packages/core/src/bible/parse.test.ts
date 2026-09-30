@@ -208,19 +208,19 @@ describe('Bible books data (core)', () => {
 
   describe('BIBLE_BOOK_ALIASES', () => {
     it('should include common abbreviations', () => {
-      expect(BIBLE_BOOK_ALIASES['gen']).toBe(1);
-      expect(BIBLE_BOOK_ALIASES['genesis']).toBe(1);
-      expect(BIBLE_BOOK_ALIASES['john']).toBe(43);
-      expect(BIBLE_BOOK_ALIASES['jn']).toBe(43);
-      expect(BIBLE_BOOK_ALIASES['rev']).toBe(66);
+      expect(BIBLE_BOOK_ALIASES.get('gen')).toBe(1);
+      expect(BIBLE_BOOK_ALIASES.get('genesis')).toBe(1);
+      expect(BIBLE_BOOK_ALIASES.get('john')).toBe(43);
+      expect(BIBLE_BOOK_ALIASES.get('jn')).toBe(43);
+      expect(BIBLE_BOOK_ALIASES.get('rev')).toBe(66);
     });
 
     it('should include numbered book aliases', () => {
-      expect(BIBLE_BOOK_ALIASES['1sam']).toBe(9);
-      expect(BIBLE_BOOK_ALIASES['1 sam']).toBe(9);
-      expect(BIBLE_BOOK_ALIASES['1 samuel']).toBe(9);
-      expect(BIBLE_BOOK_ALIASES['1cor']).toBe(46);
-      expect(BIBLE_BOOK_ALIASES['1 cor']).toBe(46);
+      expect(BIBLE_BOOK_ALIASES.get('1sam')).toBe(9);
+      expect(BIBLE_BOOK_ALIASES.get('1 sam')).toBe(9);
+      expect(BIBLE_BOOK_ALIASES.get('1 samuel')).toBe(9);
+      expect(BIBLE_BOOK_ALIASES.get('1cor')).toBe(46);
+      expect(BIBLE_BOOK_ALIASES.get('1 cor')).toBe(46);
     });
   });
 

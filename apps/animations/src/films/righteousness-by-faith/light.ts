@@ -12,21 +12,38 @@
 //     weaves, so the robe is white again when it settles on him;
 //   - power: early gold morning, warm cream;
 //   - landing: teal day, the lightest touch.
+// As the ground lifts (`GROUND` in palette.ts), each light lifts with it: its
+// edge rises toward its colour by the lift, so the corners fall less far, and
+// its colour rises toward white by half the lift, so a deep light (sunset)
+// tints the page less. The valley's lights take only part of the lift, so the
+// valley rises by about as much as the acts round it and stays as far below
+// them. Every act gets lighter and their order and gaps hold.
 
 import type { Frame, Light } from '@bible/film/canvas';
+import { LIFT, mix } from './palette.ts';
 
 /** How much of the first light is left once `robe`'s loom has woven: the rest is day. */
 const WOVEN = 0.5;
 
+/** The share of the lift the valley's lights (sunset, first light) take. */
+const VALLEY = 0.5;
+
+/** A light of `color` falling to `edge` at the corners, both raised by `share` of the ground's lift. */
+const lit = (color: string, edge: string, share = 1): Light => {
+  const lift = LIFT * share;
+  const raised = mix(color, '#ffffff', lift / 2);
+  return { color: raised, edge: mix(edge, raised, lift) };
+};
+
 /** The lights, by the act that owns them. */
 export const LIGHT = {
-  room: { color: '#e6e6e6', edge: '#a9adb4' },
-  dusk: { color: '#f2f2f4', edge: '#cccfd8' },
-  haze: { color: '#e6e8f0', edge: '#aab2c8' },
-  sunset: { color: '#c8ac9a', edge: '#3e3034' },
-  firstLight: { color: '#d2ccc8', edge: '#4a4652' },
-  morning: { color: '#f0eadf', edge: '#b6aa98' },
-  day: { color: '#f6f8f7', edge: '#d6e0dd' },
+  room: lit('#e6e6e6', '#a9adb4'),
+  dusk: lit('#f2f2f4', '#cccfd8'),
+  haze: lit('#e6e8f0', '#aab2c8'),
+  sunset: lit('#c8ac9a', '#3e3034', VALLEY),
+  firstLight: lit('#d2ccc8', '#4a4652', VALLEY),
+  morning: lit('#f0eadf', '#b6aa98'),
+  day: lit('#f6f8f7', '#d6e0dd'),
 } as const satisfies Record<string, Light>;
 
 /** `robe`'s first light, its amount rewritten each frame (scratch). */

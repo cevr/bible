@@ -1,6 +1,6 @@
 import type { FileSystem } from 'effect';
 import { Layer, Path } from 'effect';
-import type { HttpClient } from 'effect/unstable/http';
+import type { HttpClient } from 'effect/http';
 
 import type { AI } from '../../src/services/ai.js';
 import type { AppleScript } from '../../src/services/apple-script.js';

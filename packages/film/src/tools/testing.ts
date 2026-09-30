@@ -5,7 +5,6 @@
 import {
   Array as Arr,
   Effect,
-  Encoding,
   Exit,
   FileSystem,
   Layer,
@@ -14,6 +13,7 @@ import {
   Redacted,
   Schema,
 } from 'effect';
+import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -98,10 +98,7 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
           [...files.keys()].some((f) => f.startsWith(`${path}/`)),
       ),
     readFile: (path) =>
-      Option.match(Option.fromNullishOr(files.get(path)), {
-        onNone: () => Effect.fail(notFound('readFile', path)),
-        onSome: Effect.succeed,
-      }),
+      Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('readFile', path)),
     readFileString: (path) =>
       Option.match(Option.fromNullishOr(files.get(path)), {
         onNone: () => Effect.fail(notFound('readFileString', path)),
@@ -268,7 +265,7 @@ export const fakeElevenLabs = (
         Effect.sync(() => {
           calls.tts.push(request);
           return {
-            audio_base64: Encoding.encodeBase64(request.text + ' '.repeat(calls.tts.length)),
+            audio_base64: Base64.encode(request.text + ' '.repeat(calls.tts.length)),
             alignment: aligned([...request.text]),
           };
         }),
@@ -280,7 +277,7 @@ export const fakeElevenLabs = (
             request.lines.slice(0, i).reduce((n, line) => n + [...line.text].length, 0),
           );
           return {
-            audio_base64: Encoding.encodeBase64(said + ' '.repeat(calls.dialogue.length)),
+            audio_base64: Base64.encode(said + ' '.repeat(calls.dialogue.length)),
             alignment: aligned(request.lines.flatMap((line) => [...line.text])),
             voice_segments: request.lines.map((line, i) => ({
               character_start_index: starts[i] ?? 0,
@@ -513,17 +510,12 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<Encoder, EncoderMissing> =>
     Effect.sync(() => void ledger.encoderAsked.push(candidates.map((c) => c._tag))).pipe(
       Effect.andThen(
-        Option.match(
+        Effect.fromOption(
           Arr.findFirst(candidates, (c) => has.includes(c._tag)),
-          {
-            onNone: () =>
-              Effect.fail(
-                EncoderMissing.make({
-                  reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
-                }),
-              ),
-            onSome: (found) => Effect.succeed(found),
-          },
+          () =>
+            EncoderMissing.make({
+              reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
+            }),
         ),
       ),
     );

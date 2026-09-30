@@ -15,8 +15,8 @@ import {
   HttpServer,
   HttpServerRequest,
   HttpServerResponse,
-} from 'effect/unstable/http';
-import { HttpApiBuilder, HttpApiScalar } from 'effect/unstable/httpapi';
+} from 'effect/http';
+import { HttpApiBuilder, HttpApiScalar } from 'effect/http-api';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Option, type Config } from 'effect';
 import { mkdirSync } from 'fs';
@@ -130,7 +130,7 @@ const proxyRelease = Effect.fn('web.proxyRelease')(function* (
   label: string,
 ) {
   const upstream = yield* Effect.tryPromise(() => fetch(release.url)).pipe(
-    Effect.map(Option.some),
+    Effect.asSome,
     Effect.orElseSucceed(() => Option.none<Response>()),
   );
   const upstreamBody = upstream.pipe(
@@ -206,7 +206,7 @@ const writeSyncState = Effect.fn('web.writeSyncState')(function* (
   deviceId: string,
 ) {
   const buf = yield* request.arrayBuffer.pipe(
-    Effect.map(Option.some),
+    Effect.asSome,
     Effect.orElseSucceed(() => Option.none<ArrayBuffer>()),
   );
   const body = Option.filter(

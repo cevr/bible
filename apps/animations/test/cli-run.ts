@@ -12,7 +12,7 @@
 // it still fails a CLI that hangs, and no longer fails a loaded machine.
 
 import { Effect, Path, Stream } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 /** The time one CLI spawn may take, in milliseconds (see above). */
 export const SPAWN_MS = 10_000;

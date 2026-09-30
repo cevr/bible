@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Effect, Layer, Option } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import {
   SearchParagraphHit,
