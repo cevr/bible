@@ -6,7 +6,7 @@ import { Predicate, Result, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
-import { sceneCaptions } from '../core/captions.ts';
+import { type CaptionCue, sceneCaptions } from '../core/captions.ts';
 import {
   type Placed,
   everyTakeRecorded,
@@ -657,6 +657,9 @@ export const createFilm = (spec: FilmSpec): Film => {
   const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) =>
     edits?.get(p.spec.id) ?? p;
 
+  /** Each scene's captions, built once from its words: a captioned frame only finds its line. */
+  const captionsOf = new Map(placed.map((p) => [p, sceneCaptions(p)]));
+
   const localWords = new Map(
     placed.map((p) => [
       p,
@@ -900,7 +903,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       const style = captions;
       const voice = probe(cur, 0, 1);
       probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
-        caption(ctx, cur, local, width, height, style),
+        caption(ctx, captionsOf.get(cur) ?? [], local - cur.speechStart, width, height, style),
       );
     }
     ctx.restore();
@@ -961,16 +964,16 @@ const inkWipe = (
   ctx.restore();
 };
 
+/** The caption of `cues` spoken at `t` (speech-relative) on its plate, if one is. */
 const caption = (
   ctx: CanvasRenderingContext2D,
-  p: Placed<SceneSpec>,
-  local: number,
+  cues: ReadonlyArray<CaptionCue>,
+  t: number,
   w: number,
   h: number,
   style: Required<CaptionStyle>,
 ) => {
-  const t = local - p.speechStart;
-  const line = sceneCaptions(p).find((c) => t >= c.start && t < c.end);
+  const line = cues.find((c) => t >= c.start && t < c.end);
   if (line === undefined) return;
   const text = line.text;
   ctx.save();
