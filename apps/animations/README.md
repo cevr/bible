@@ -42,12 +42,17 @@ bun run check <film> --static --allow-stale    # the files alone: no mix, no bro
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{scene,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
-bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
+bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
-bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills); --act name for one act
-bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
-bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
+bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/film/main/stills/t0003.00.png ...
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes in out/<film>/scenes/<id>[+<id>]/ (not --stills); --act name for one act (acts/<act>/)
+bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
+bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
+bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
+bun run project <film> [--variant v] [--json]  # every scene: its render current, stale or missing, approved or not, its comments
+bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force)
+bun run project approve <film> --scene id | --all  # approve one scene's render, or every current one; a re-render leaves the approval stale
+bun run project comment <film> <scene> "text"  # a comment on the scene's render as it is now
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> picks its options (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
@@ -124,9 +129,9 @@ page composes the sheet);
 Render flags: `--from/--to` seconds, `--scene id,id` or `--act name`, `--workers n`
 (pages; the measured knee on each encoder: 6 on the Mac's
 hardware encoder, 8 in software, or half the cores on a software machine with
-fewer than 16), `--scale 0.5`, `--no-captions`, `--tag name` (output
-subfolder, so parallel renders don't collide), `--out file`, `--no-share`
-(skip the smaller copy to send, `<out>.share.mp4`), `--encoder
+fewer than 16), `--scale 0.5`, `--no-captions`, `--variant name` (the render
+beside `main` at the same address, so parallel renders don't collide), `--out file` (a file outside the
+project folder, not catalogued), `--no-share` (skip the smaller copy to send, `<clip>.share.mp4`), `--encoder
 hardware|software`.
 A first page chooses the H.264 encoder once and every page uses it; the
 render logs `render.encoder kind=…` and `bun run doctor` prints the same
@@ -142,9 +147,9 @@ On hardware past 14 at once the encoder hangs; on software more encoders than
 cores only thrash. So a render that would need more fails with
 `TooManyEncoders` before it draws (hardware: at most 7 pages with the share
 copy, 14 without; software: one page a core). The count is per render: on the
-Mac two renders at once (say two `--tag`s) share the hardware, so keep their
+Mac two renders at once (say two `--variant`s) share the hardware, so keep their
 pages together within the same 14 or they can hang with no error. Each chunk lands in a folder of the render's own in the system's temp folder (`film-segments-*`, with `share/` on the hardware encoder)
-until the film is joined, then it goes: a video makes nothing under `out/<film>/`, whatever its `--tag`
+until the film is joined, then it goes: a video leaves no segments under `out/<film>/`, whatever its `--variant`
 (so two renders at once never share segments); a failed join leaves them. A video's audio
 is encoded to AAC once, beside the pages, and the video and its share copy
 take the same packets. It comes from the film's track `narration/full.wav`, which must cover the
