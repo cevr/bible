@@ -20,9 +20,10 @@
 //   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
 //   film render <film> [--stills t,t | --contact secs] [--scene id,id | --act name | --from s --to s]
-//                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
+//                      [--workers n] [--scale k] [--no-captions] [--variant name] [--out file]
 //                      [--no-share] [--encoder hardware|software] [--short id]
-//   film lookbook <film> [--captions] [--tag name]
+//   film project <film> [--variant name] [--json]     (project-cli.ts: render, approve, comment)
+//   film lookbook <film> [--captions] [--variant name]
 //   film chapters <film>
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
@@ -104,6 +105,9 @@ import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
+import { RenderCatalogue } from './catalogue.ts';
+import { project, renderAndRecord, variantFlag } from './project-cli.ts';
+import { Stamps, stampOf } from './stamp.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 
 const film = Argument.String('film').pipe(
@@ -674,15 +678,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.withDefault(true),
         Flag.withDescription('burn the captions in (--no-captions to leave them out)'),
       ),
-      tag: Flag.String('tag').pipe(
-        Flag.withDefault(''),
-        Flag.withDescription(
-          'output subfolder under out/<film>, so parallel renders do not collide',
-        ),
-      ),
+      variant: variantFlag,
       out: Flag.String('out').pipe(
         Flag.optional,
-        Flag.withDescription('the video file (default out/<film>.mp4)'),
+        Flag.withDescription(
+          'write the video to this file instead, outside the project folder and its catalogue (default out/<film>/<address>/<variant>.mp4)',
+        ),
       ),
       share: Flag.Boolean('share').pipe(
         Flag.optional,
@@ -699,7 +700,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       ),
       short: short.pipe(
         Flag.withDescription(
-          'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>.mp4 (--from/--to in its seconds)',
+          'render this short instead: its spans back to back at 1080×1920, to out/<film>/shorts/<id>/<variant>.mp4 (--from/--to in its seconds)',
         ),
       ),
     },
@@ -712,9 +713,11 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         onNone: () => Effect.succeedNone,
         onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
       });
+      // What it draws, stamped before the first frame: the sources as they stand now.
+      const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), scope);
       const job = yield* Effect.fromResult(
         jobOf({
-          tag: input.tag,
+          variant: input.variant,
           captions: input.captions,
           workers: input.workers,
           stills,
@@ -728,11 +731,11 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           encoder: input.encoder,
         }),
       );
-      yield* (yield* Renderer).render(loaded, job);
+      yield* renderAndRecord(loaded, scope, job, stamp);
     }, Effect.provide(renderLayer)),
   ).pipe(
     Command.withDescription(
-      'Render a film to out/<film>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short)',
+      "Render a film, an act or scenes to its project folder, out/<film>/<address>/<variant>.mp4 (+ .vtt captions), stills, or a contact sheet; or one of its shorts (--short); each recorded in the folder's catalogue.json",
     ),
   );
 
@@ -745,28 +748,33 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
         Flag.withDefault(false),
         Flag.withDescription('burn the captions into the stills (off: the look, not the words)'),
       ),
-      tag: Flag.String('tag').pipe(
-        Flag.withDefault(''),
-        Flag.withDescription('output subfolder under out/<film> (default: out/<film> itself)'),
-      ),
+      variant: variantFlag,
     },
     Effect.fn('film.lookbook')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
-      const whole = yield* scopeOf(loaded, yield* placeFilm(loaded), {
+      const placed = yield* placeFilm(loaded);
+      const whole = yield* scopeOf(loaded, placed, {
         act: Option.none(),
         scene: Option.none(),
         short: Option.none(),
       });
-      yield* (yield* Renderer).render(
+      const stamp = stampOf(yield* (yield* Stamps).scenes(loaded, placed), whole);
+      yield* renderAndRecord(
         loaded,
-        RenderJob.LookBook({ tag: input.tag, captions: input.captions }),
+        whole,
+        RenderJob.LookBook({
+          address: whole.address,
+          variant: input.variant,
+          captions: input.captions,
+        }),
+        stamp,
       );
       const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole);
       for (const line of lookLines(looked.looks, whole.acts)) yield* Console.log(line);
     }, Effect.provide(lookLayer)),
   ).pipe(
     Command.withDescription(
-      "Write out/<film>/lookbook.jpg (every scene's stills at its cue edges and 60% point, labelled, with the palette) and print each scene's and act's light, held share and largest face",
+      "Write out/<film>/film/<variant>/lookbook.jpg (every scene's stills at its cue edges and 60% point, labelled, with the palette) and print each scene's and act's light, held share and largest face",
     ),
   );
 
@@ -991,11 +999,13 @@ export const runFilmCli = <E>({
 }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer, Stamps.layer).pipe(
     Layer.provideMerge(SourceWriter.layer),
     Layer.provideMerge(SceneSources.layer),
     Layer.provide([Repo, Store, Platform]),
   );
+  // Each film's project folder: its renders, and the owner's approvals and comments on them.
+  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide(Platform));
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
   // The review reads a film's options, and makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
@@ -1021,6 +1031,7 @@ export const runFilmCli = <E>({
             Store,
             Tools,
             Reviewed,
+            Catalogue,
             Fresh,
             Platform,
           ),
@@ -1049,6 +1060,7 @@ export const runFilmCli = <E>({
       cues(checkLayer),
       check(checkLayer),
       render(renderLayer),
+      project(renderLayer),
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),

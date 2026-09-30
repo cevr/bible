@@ -8,12 +8,15 @@ import {
   type HandStyle,
   breathOf,
   closeShape,
+  floatingHand,
   handAt,
   handShape,
   palmUpFrame,
   turning,
 } from './hand.ts';
 import { BOIL_FPS, type Pt } from './ink.ts';
+import { recorder, withDom } from './fixtures/stand-in.ts';
+import { type ProbeSink, probing } from './probe.ts';
 
 const SHOULDER: Pt = [17, -111];
 /** A near hand floating at rest beside the hip, the figure's breath held. */
@@ -387,5 +390,60 @@ describe('the palm-up turn', () => {
     const turned = handAt(NEAR, { to, reach: 1, turn: 1 }, STYLE);
     expect(turned[0]).toBeCloseTo(to[0], 9);
     expect(turned[1]).toBeCloseTo(to[1], 9);
+  });
+});
+
+describe('floatingHand declares itself', () => {
+  /** The hands a check probing hands collects from one `floatingHand` draw. */
+  const declared = (g: Gesture | undefined, seen?: Parameters<typeof floatingHand>[5], alpha = 1) =>
+    withDom(() => {
+      const { ctx } = recorder();
+      ctx.globalAlpha = alpha;
+      const sink: ProbeSink = { texts: [], inks: [], hands: [] };
+      probing(ctx, { sink, scene: 'a', dx: 0, alpha: 1 }, () =>
+        floatingHand(ctx, NEAR, g, STYLE, { boil: 0, seed: 1 }, seen),
+      );
+      return sink.hands ?? [];
+    });
+  const BODY = {
+    over: false,
+    body: () => [
+      [
+        [0, -200],
+        [30, -200],
+        [30, 0],
+        [0, 0],
+      ] as Pt[],
+    ],
+  };
+
+  test('given its body, a hand drawn straight from a scene is followed by the check', () => {
+    const to: Pt = [120, -150];
+    const [hand, ...more] = declared({ to, reach: 1 }, BODY);
+    expect(more).toEqual([]);
+    const at = handAt(NEAR, { to, reach: 1 }, STYLE);
+    expect(hand).toMatchObject({
+      scene: 'a',
+      side: 'near',
+      x: at[0],
+      y: at[1],
+      sx: SHOULDER[0],
+      sy: SHOULDER[1],
+      tx: to[0],
+      ty: to[1],
+      size: STYLE.mitten,
+      radius: STYLE.radius,
+      reach: 1,
+      over: false,
+    });
+  });
+
+  test('at rest it works at its rest; hidden by the alpha it is still declared, at that alpha', () => {
+    const [hand] = declared(undefined, BODY, 0);
+    expect(hand).toMatchObject({ tx: 42, ty: -50, reach: 0, alpha: 0 });
+  });
+
+  test('without a body it declares nothing', () => {
+    expect(declared({ to: [120, -150], reach: 1 })).toEqual([]);
   });
 });

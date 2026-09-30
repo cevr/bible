@@ -264,7 +264,28 @@ export const makeLight = (w: number, h: number, color: string, edge: string): HT
   return c;
 };
 
-/** Multiply the frame by a sheet from `makeVignette`, or from `makeLight` at `amount`. */
+/**
+ * One `w` × `h` sheet that multiplies a frame as `first` at `amount` and
+ * then `second` do (`shadeBy` each in turn), in one pass: both multiplied
+ * over white. Each channel rounds once more to 8 bits, so a frame shaded by
+ * it can differ from the two passes by 1/255.
+ */
+export const makeProduct = (
+  w: number,
+  h: number,
+  first: HTMLCanvasElement,
+  amount: number,
+  second: HTMLCanvasElement,
+): HTMLCanvasElement => {
+  const { c, ctx } = offscreen(w, h);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+  shadeBy(ctx, first, amount);
+  shadeBy(ctx, second);
+  return c;
+};
+
+/** Multiply the frame by a sheet from `makeVignette`, from `makeLight` at `amount`, or from `makeProduct`. */
 export const shadeBy = (ctx: CanvasRenderingContext2D, sheet: HTMLCanvasElement, amount = 1) => {
   ctx.save();
   ctx.globalAlpha = amount;

@@ -11,7 +11,7 @@ import {
   MIN_CHUNK_FRAMES,
   SOFTWARE_WORKERS,
   contactTimes,
-  cutBase,
+  renderPaths,
   cutPage,
   encoderLimits,
   flagConflicts,
@@ -50,7 +50,7 @@ const scoped = (address: Address) => Result.getOrThrow(resolveAddress(threeScene
 const bc = scoped({ _tag: 'Scenes', ids: ['b', 'c'] });
 
 const flags = {
-  tag: 't',
+  variant: 'main',
   captions: true,
   workers: Option.none(),
   stills: Option.none(),
@@ -133,7 +133,7 @@ describe('jobOf', () => {
     expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ cut: Cut.Whole() });
   });
 
-  test('a short draws on its own page and writes under out/<film>/shorts', () => {
+  test('a short draws on its own page', () => {
     const short = Cut.Short({
       short: {
         id: 'cut',
@@ -143,8 +143,32 @@ describe('jobOf', () => {
     });
     expect(cutPage('film', Cut.Whole())).toBe('film');
     expect(cutPage('film', short)).toBe('film/shorts/cut');
-    expect(cutBase('/out/film', Cut.Whole())).toBe('/out/film');
-    expect(cutBase('/out/film', short)).toBe('/out/film/shorts/cut');
+  });
+
+  test("a render's files go in the project folder by its address and variant", () => {
+    expect(renderPaths('/out/f', { _tag: 'Film' }, 'main')).toEqual({
+      clip: '/out/f/film/main.mp4',
+      dir: '/out/f/film/main',
+    });
+    expect(renderPaths('/out/f', { _tag: 'Scenes', ids: ['cold'] }, 'ink').clip).toBe(
+      '/out/f/scenes/cold/ink.mp4',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Scenes', ids: ['a', 'b'] }, 'main').clip).toBe(
+      '/out/f/scenes/a+b/main.mp4',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Act', act: 'cold open' }, 'main').dir).toBe(
+      '/out/f/acts/cold-open/main',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Short', id: 'verdict' }, 'main').clip).toBe(
+      '/out/f/shorts/verdict/main.mp4',
+    );
+  });
+
+  test('the job carries its address and variant', () => {
+    expect(Result.getOrThrow(jobOf({ ...flags, scope: bc, variant: 'ink' }))).toMatchObject({
+      address: { _tag: 'Scenes', ids: ['b', 'c'] },
+      variant: 'ink',
+    });
   });
 
   test('a needs rule fails only without its partner', () => {

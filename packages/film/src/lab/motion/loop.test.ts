@@ -38,6 +38,7 @@ const fakes = () => {
     unpreview: () => Effect.void,
     timelineOf: () => ({}),
     knobsOf: () => ({}),
+    cuesOf: () => new Map(),
     holdT: Effect.void,
     reload: Effect.die('not asked'),
     settle: Effect.void,

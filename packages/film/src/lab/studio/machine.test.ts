@@ -121,6 +121,7 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused
     unpreview: () => Effect.die('not asked'),
     timelineOf: () => ({}),
     knobsOf: () => ({}),
+    cuesOf: () => new Map(),
     holdT: say('holdT'),
     reload: say('reload'),
     settle: say('settle'),

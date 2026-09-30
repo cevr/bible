@@ -1,24 +1,38 @@
-// The review over a synthetic tree: sets found by name (a share copy standing
-// in for its master), a manifest's say, refs that never leave their root, and
-// derived files (lengths, frames, phone copies) made once, whole, through a
-// stand-in Media that copies and counts instead (`reviewMedia`).
+// The review over a synthetic tree: a project folder listed by its catalogue
+// (a set per address, the approval as its verdict, the film's pictures), a
+// montage by its manifest (the sets, variants, videos, images and docs it
+// names, a share copy standing in for its master), refs that never leave
+// their root nor answer a file no record names, and derived files (lengths,
+// frames, phone copies) made once, whole, through a stand-in Media that
+// copies and counts instead (`reviewMedia`).
 
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Option, Path, Schedule, Schema } from 'effect';
+import { type Address, sceneAddress } from '../core/address.ts';
+import {
+  type Catalogue,
+  CatalogueJson,
+  type Render,
+  approve,
+  comment,
+  emptyCatalogue,
+  recordRender,
+} from '../core/catalogue.ts';
 import { ReviewManifestJson } from '../core/schema.ts';
 import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
   type Found,
   Review,
-  assembleFolder,
-  kindOf,
+  montageFolder,
+  namesInMontage,
+  namesInProject,
   parseRoots,
   pathOf,
+  projectFolder,
   refOf,
-  splitName,
 } from './review.ts';
 
 const found = (name: string, mtime = 1, size = 10): Found => ({
@@ -29,34 +43,40 @@ const found = (name: string, mtime = 1, size = 10): Found => ({
   mtime,
 });
 
-describe('review names', () => {
-  test('reads a clip, its variant and whether it is a share copy', () => {
-    expect(splitName('roof.A-current.share.mp4')).toEqual({
-      clip: 'roof',
-      variant: Option.some('A-current'),
-      share: true,
-    });
-    expect(splitName('roof.B.v2.mp4')).toEqual({
-      clip: 'roof',
-      variant: Option.some('B.v2'),
-      share: false,
-    });
-    expect(splitName('film.share.mp4')).toEqual({
-      clip: 'film',
-      variant: Option.none(),
-      share: true,
-    });
-  });
+/** A folder's files as found: each of `names` there, at the mtime its place gives it. */
+const lookAmong =
+  (names: ReadonlyArray<string>, size = 10, folder = 'out/art') =>
+  (name: string) =>
+    Option.map(
+      Option.liftPredicate(names.indexOf(name), (i) => i >= 0),
+      (i) => ({
+        ...found(name, i + 1, size),
+        ref: `${folder}/${name}`,
+      }),
+    );
 
-  test('shows videos, images, docs and chapter lists; not logs or partial files', () => {
-    expect(kindOf('a.mp4')).toEqual(Option.some('video'));
-    expect(kindOf('a.PNG')).toEqual(Option.some('image'));
-    expect(kindOf('notes.md')).toEqual(Option.some('doc'));
-    expect(kindOf('film.chapters.txt')).toEqual(Option.some('doc'));
-    expect(kindOf('render.log.txt')).toEqual(Option.none());
-    expect(kindOf('film.part.mp4')).toEqual(Option.none());
-    expect(kindOf('film.json')).toEqual(Option.none());
-  });
+/** A video render of `address`'s `variant`, drawn from sources `key`, its files under `folder`. */
+const videoRender = (
+  address: Address,
+  folder: string,
+  variant = 'main',
+  key = 'k1',
+  from = 0,
+): Render => ({
+  address,
+  variant,
+  kind: 'video',
+  settings: { scale: 0.5, captions: true },
+  stamp: { commit: Option.some('0123456789abcdef'), key },
+  span: Option.some({ from, to: from + 4 }),
+  files: {
+    clip: Option.some(`${folder}/${variant}.mp4`),
+    share: Option.some(`${folder}/${variant}.share.mp4`),
+    captions: Option.some(`${folder}/${variant}.vtt`),
+    chapters: Option.none(),
+    images: [],
+  },
+  at: 1,
 });
 
 describe('review roots and refs', () => {
@@ -92,7 +112,9 @@ describe('review roots and refs', () => {
 const MANIFEST = `{
   "title": "Art 3",
   "blurb": "six looks",
-  "docs": ["../brief.md"],
+  "docs": ["../brief.md", "check.log"],
+  "images": ["compare.jpg"],
+  "videos": ["film.mp4"],
   "sets": {
     "roof": {
       "title": "The roof",
@@ -100,81 +122,84 @@ const MANIFEST = `{
       "start": 2,
       "moments": [1, 3],
       "variants": {
+        "A": {},
         "B": { "label": "Bold", "tag": "ink", "verdict": "keep", "notes": "b.md" },
         "C": { "file": "../other/roof.C.mp4" }
       }
     },
-    "lone": {}
+    "lone": { "order": ["X"] },
+    "gone": { "order": ["Y"] }
   }
 }`;
 
-describe('a review folder', () => {
-  test('sets videos by clip, a share copy standing in for its master, the rest listed newest first', () => {
-    const folder = assembleFolder({
-      ref: 'out/art',
-      found: [
-        found('roof.A.mp4', 1),
-        found('roof.A.share.mp4', 2),
-        found('roof.B.mp4', 3),
-        found('lone.X.mp4', 4),
-        found('film.mp4', 5),
-        found('still.png', 6),
-        found('notes.md', 7),
-      ],
-      manifest: Option.none(),
-      named: new Map(),
-      phone: () => 'none',
-    });
-    expect(folder.sets.map((s) => [s.clip, s.variants.map((v) => [v.id, v.video.name])])).toEqual([
-      [
-        'roof',
-        [
-          ['A', 'roof.A.share.mp4'],
-          ['B', 'roof.B.mp4'],
-        ],
-      ],
+describe('a montage', () => {
+  const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
+
+  test('names every file it may show: a variant with no file by its share copy, then its master', () => {
+    expect(namesInMontage(manifest)).toEqual([
+      '../brief.md',
+      'check.log',
+      'compare.jpg',
+      'film.mp4',
+      '../other/roof.C.mp4',
+      'roof.B.share.mp4',
+      'roof.B.mp4',
+      'b.md',
+      'roof.A.share.mp4',
+      'roof.A.mp4',
+      'lone.X.share.mp4',
+      'lone.X.mp4',
+      'gone.Y.share.mp4',
+      'gone.Y.mp4',
     ]);
-    // A clip with one variant is no set: it is listed with the folder.
-    expect(folder.videos.map((v) => v.name)).toEqual(['film.mp4', 'lone.X.mp4']);
-    expect(folder.images.map((i) => i.name)).toEqual(['still.png']);
-    expect(folder.docs.map((d) => d.name)).toEqual(['notes.md']);
-    expect(folder.mtime).toBe(7);
-    expect(folder.title).toEqual(Option.none());
   });
 
-  test('follows its manifest: titles, order, labels, verdicts, notes and a variant from elsewhere', () => {
-    const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
+  test('lists what its manifest names: titles, order, labels, verdicts, notes, a variant from elsewhere', () => {
     const elsewhere: Found = {
       ...found('roof.C.mp4'),
       path: '/r/other/roof.C.mp4',
       ref: 'out/other/roof.C.mp4',
     };
-    const folder = assembleFolder({
+    const there = lookAmong([
+      'roof.A.mp4',
+      'roof.A.share.mp4',
+      'roof.B.mp4',
+      'lone.X.mp4',
+      'film.mp4',
+      'compare.jpg',
+      'check.log',
+      'b.md',
+      // A file the manifest does not name is not shown.
+      'stray.mp4',
+    ]);
+    const folder = montageFolder({
       ref: 'out/art',
-      found: [found('roof.A.mp4'), found('roof.B.mp4'), found('lone.X.mp4'), found('b.md')],
-      manifest: Option.some(manifest),
-      named: new Map([
-        ['../other/roof.C.mp4', elsewhere],
-        ['b.md', found('b.md')],
-        ['../brief.md', { ...found('brief.md'), path: '/r/brief.md', ref: 'out/brief.md' }],
-      ]),
+      record: manifest,
+      look: (name) => {
+        if (name === '../other/roof.C.mp4') return Option.some(elsewhere);
+        if (name === '../brief.md')
+          return Option.some({ ...found('brief.md'), path: '/r/brief.md', ref: 'out/brief.md' });
+        return there(name);
+      },
       phone: (v) => {
         if (v.name === 'roof.B.mp4') return 'ready';
         return 'none';
       },
+      maxVideo: 1000,
     });
     expect(folder.title).toEqual(Option.some('Art 3'));
     expect(folder.blurb).toEqual(Option.some('six looks'));
-    const [lone, roof] = folder.sets;
-    // A manifest entry makes a set of one.
-    expect(lone?.variants.map((v) => v.id)).toEqual(['X']);
+    // A set whose videos are not there is left out.
+    expect(folder.sets.map((s) => s.clip)).toEqual(['lone', 'roof']);
+    const roof = folder.sets[1];
     expect(roof?.title).toBe('The roof');
     expect(roof?.start).toBe(2);
     expect(roof?.moments).toEqual(Option.some([1, 3]));
+    // Its order first, then the rest by name; a share copy stands in for its master.
     expect(roof?.variants.map((v) => [v.id, v.label, v.video.ref, v.video.phone])).toEqual([
       ['C', 'C', 'out/other/roof.C.mp4', 'none'],
       ['B', 'Bold', 'out/art/roof.B.mp4', 'ready'],
-      ['A', 'A', 'out/art/roof.A.mp4', 'none'],
+      ['A', 'A', 'out/art/roof.A.share.mp4', 'none'],
     ]);
     const bold = roof?.variants[1];
     expect(bold?.tag).toEqual(Option.some('ink'));
@@ -182,8 +207,93 @@ describe('a review folder', () => {
     expect(Option.map(bold?.notes ?? Option.none(), (n) => n.ref)).toEqual(
       Option.some('out/art/b.md'),
     );
-    expect(folder.videos).toEqual([]);
-    expect(folder.docs.map((d) => d.ref).toSorted()).toEqual(['out/art/b.md', 'out/brief.md']);
+    expect(folder.videos.map((v) => v.name)).toEqual(['film.mp4']);
+    expect(folder.images.map((i) => i.name)).toEqual(['compare.jpg']);
+    expect(folder.docs.map((d) => d.ref).toSorted()).toEqual(['out/art/check.log', 'out/brief.md']);
+  });
+});
+
+describe('a project folder', () => {
+  const cold = videoRender(sceneAddress('cold'), 'scenes/cold', 'main', 'k1', 0);
+  const coldInk = videoRender(sceneAddress('cold'), 'scenes/cold', 'ink', 'k1', 0);
+  const roof = videoRender(sceneAddress('roof'), 'scenes/roof', 'main', 'k2', 8);
+  const film = videoRender({ _tag: 'Film' }, 'film');
+  const short = videoRender({ _tag: 'Short', id: 'verdict' }, 'shorts/verdict');
+  const stills: Render = {
+    ...film,
+    kind: 'stills',
+    variant: 'g',
+    files: {
+      clip: Option.none(),
+      share: Option.none(),
+      captions: Option.none(),
+      chapters: Option.none(),
+      images: ['film/g/stills/t0001.00.png'],
+    },
+  };
+  const approvedCold = approve(
+    [roof, short, coldInk, film, cold, stills].reduce(recordRender, emptyCatalogue('f')),
+    cold,
+    1,
+  );
+  const catalogue: Catalogue = comment(
+    recordRender(approvedCold, { ...roof }),
+    roof,
+    'the hand jumps',
+    'c1',
+    2,
+  );
+
+  test('lists a set per address, the film first, then film order, then shorts; main first', () => {
+    const folder = projectFolder({
+      ref: 'out/f',
+      record: catalogue,
+      look: lookAmong(namesInProject(catalogue), 10, 'out/f'),
+      phone: () => 'none',
+      maxVideo: 1000,
+    });
+    expect(folder.title).toEqual(Option.some('f'));
+    expect(folder.blurb).toEqual(Option.some('6 renders, 1 approved'));
+    expect(folder.sets.map((s) => [s.title, s.variants.map((v) => v.id)])).toEqual([
+      ['film', ['main']],
+      ['scene cold', ['main', 'ink']],
+      ['scene roof', ['main']],
+      ['short verdict', ['main']],
+    ]);
+    const [, coldSet, roofSet] = folder.sets;
+    // The share copy plays; the approval is the verdict; the tag says scale, commit and comments.
+    expect(coldSet?.variants[0]?.video.ref).toBe('out/f/scenes/cold/main.share.mp4');
+    expect(coldSet?.variants[0]?.verdict).toEqual(Option.some('approved'));
+    expect(coldSet?.variants[1]?.verdict).toEqual(Option.none());
+    expect(roofSet?.variants[0]?.tag).toEqual(Option.some('scale 0.5 · 0123456 · 1 comment'));
+    expect(folder.images.map((i) => i.ref)).toEqual(['out/f/film/g/stills/t0001.00.png']);
+    expect(folder.docs.length).toBe(5);
+  });
+
+  test('an approval given on an earlier render reads as such once the scene is rendered again', () => {
+    const again = recordRender(
+      catalogue,
+      videoRender(sceneAddress('cold'), 'scenes/cold', 'main', 'k9'),
+    );
+    const folder = projectFolder({
+      ref: 'out/f',
+      record: again,
+      look: lookAmong(namesInProject(again), 10, 'out/f'),
+      phone: () => 'none',
+      maxVideo: 1000,
+    });
+    expect(folder.sets[1]?.variants[0]?.verdict).toEqual(Option.some('approved an earlier render'));
+  });
+
+  test('a render whose files are gone, or too big to stream, is left out', () => {
+    const folder = projectFolder({
+      ref: 'out/f',
+      record: catalogue,
+      look: lookAmong(['scenes/roof/main.mp4'], 2000, 'out/f'),
+      phone: () => 'none',
+      maxVideo: 1000,
+    });
+    expect(folder.sets).toEqual([]);
   });
 });
 
@@ -191,10 +301,19 @@ describe('a review folder', () => {
 class Spawned extends Context.Service<Spawned, Array<string>>()('test/Spawned') {}
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
+/** A catalogue of film `f`: its whole film (two variants) and one scene, as `out/f` holds them. */
+const PROJECT = emptyCatalogue('f');
+const projectCatalogue = [
+  videoRender({ _tag: 'Film' }, 'film', 'main'),
+  { ...videoRender({ _tag: 'Film' }, 'film', 'wide'), at: 5 },
+  videoRender(sceneAddress('a'), 'scenes/a'),
+].reduce(recordRender, PROJECT);
+
 /**
- * The review over a fresh tree (`out/art` with a set of two, a big lone
- * video, a manifest; `out/elsewhere`), ffprobe answering 12.5 s and ffmpeg
- * copying its input to its output.
+ * The review over a fresh tree: `out/art`, a montage (a set of two, a big
+ * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
+ * with its catalogue; ffprobe answering 12.5 s and ffmpeg copying its input
+ * to its output.
  */
 const fixture = (phoneCopies: boolean) =>
   Layer.unwrap(
@@ -203,20 +322,30 @@ const fixture = (phoneCopies: boolean) =>
       const path = yield* Path.Path;
       const dir = yield* fs.makeTempDirectoryScoped();
       const out = path.join(dir, 'out');
-      yield* fs.makeDirectory(path.join(out, 'art', 'stills'), { recursive: true });
-      yield* fs.makeDirectory(path.join(out, 'elsewhere'), { recursive: true });
-      yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), 'a'.repeat(10));
-      yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'b'.repeat(10));
-      yield* fs.writeFileString(path.join(out, 'art', 'big.mp4'), 'x'.repeat(200));
-      yield* fs.writeFileString(path.join(out, 'art', 'stills', 'roof.C.mp4'), 'c');
-      yield* fs.writeFileString(path.join(out, 'elsewhere', 'roof.D.mp4'), 'd'.repeat(10));
+      const write = (rel: string, text: string) =>
+        Effect.gen(function* () {
+          const file = path.join(out, ...rel.split('/'));
+          yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+          yield* fs.writeFileString(file, text);
+        });
+      yield* write('art/roof.A.mp4', 'a'.repeat(10));
+      yield* write('art/roof.B.mp4', 'b'.repeat(10));
+      yield* write('art/big.mp4', 'x'.repeat(200));
+      yield* write('art/stills/roof.C.mp4', 'c');
+      yield* write('elsewhere/roof.D.mp4', 'd'.repeat(10));
       yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 's');
-      yield* fs.writeFileString(
-        path.join(out, 'art', 'review.json'),
-        '{ "title": "Art", "sets": { "roof": { "variants": { "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
+      yield* write(
+        'art/review.json',
+        '{ "title": "Art", "videos": ["big.mp4"], "sets": { "roof": { "order": ["A", "B"], "variants": { "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
       );
-      // A frame of the log the review's page reads: listed nowhere, never served.
-      yield* fs.writeFileString(path.join(out, 'art', 'render.log'), 'a log');
+      // A log beside the renders: named by no record, never served.
+      yield* write('art/render.log', 'a log');
+      for (const name of ['film/main', 'film/wide', 'scenes/a/main']) {
+        yield* write(`f/${name}.mp4`, 'm'.repeat(10));
+        yield* write(`f/${name}.share.mp4`, 's'.repeat(10));
+        yield* write(`f/${name}.vtt`, 'WEBVTT');
+      }
+      yield* write('f/catalogue.json', yield* Schema.encodeEffect(CatalogueJson)(projectCatalogue));
       const spawned: Array<string> = [];
       return Review.layer({
         roots: [{ label: 'out', path: out }],
@@ -236,9 +365,10 @@ const writeText = (file: string, text: string) =>
   Effect.flatMap(FileSystem.FileSystem, (fs) => fs.writeFileString(file, text));
 
 describe('the review service', () => {
-  it.effect('indexes the roots: sets, what is in no set, a variant pulled from elsewhere', () =>
+  it.effect('indexes the roots by their records: a montage, and a project by its catalogue', () =>
     Effect.gen(function* () {
       const { folders } = yield* (yield* Review).index(false);
+      expect(folders.map((f) => f.ref).toSorted()).toEqual(['out/art', 'out/f']);
       const art = folders.find((f) => f.ref === 'out/art');
       expect(art?.title).toEqual(Option.some('Art'));
       expect(art?.sets[0]?.variants.map((v) => v.video.ref)).toEqual([
@@ -246,8 +376,24 @@ describe('the review service', () => {
         'out/art/roof.B.mp4',
         'out/elsewhere/roof.D.mp4',
       ]);
-      // stills/ is not walked; the big video waits for its phone copy.
+      // The big video waits for its phone copy.
       expect(art?.videos.map((v) => [v.name, v.phone])).toEqual([['big.mp4', 'pending']]);
+      const project = folders.find((f) => f.ref === 'out/f');
+      expect(project?.sets.map((s) => [s.title, s.variants.map((v) => v.video.ref)])).toEqual([
+        ['film', ['out/f/film/main.share.mp4', 'out/f/film/wide.share.mp4']],
+        ['scene a', ['out/f/scenes/a/main.share.mp4']],
+      ]);
+    }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect("a film's pictures are its whole-film renders, newest first: never a scene's", () =>
+    Effect.gen(function* () {
+      const review = yield* Review;
+      expect((yield* review.pictures('f')).map((v) => v.ref)).toEqual([
+        'out/f/film/wide.share.mp4',
+        'out/f/film/main.share.mp4',
+      ]);
+      expect(yield* review.pictures('other')).toEqual([]);
     }).pipe(Effect.provide(fixture(false))),
   );
 
@@ -263,10 +409,11 @@ describe('the review service', () => {
         'out/art',
         'out/art/none.mp4',
         'nowhere/x.mp4',
-        // There, inside the root, but nothing the index lists: a manifest, a log, a working still.
+        // There, inside the root, but nothing a record names: the records, a log, a stray video.
         'out/art/review.json',
         'out/art/render.log',
         'out/art/stills/roof.C.mp4',
+        'out/f/catalogue.json',
       ]) {
         const failed = yield* Effect.flip(review.resolve(ref));
         expect(failed._tag).toBe('ReviewFileUnknown');
@@ -354,7 +501,9 @@ describe('the review service', () => {
       const review = yield* Review;
       const path = yield* Path.Path;
       yield* review.index(false);
-      yield* writeText(path.join(yield* Root, 'out', 'art', 'new.mp4'), 'n');
+      const art = path.join(yield* Root, 'out', 'art');
+      yield* writeText(path.join(art, 'new.mp4'), 'n');
+      yield* writeText(path.join(art, 'review.json'), '{ "videos": ["new.mp4"] }');
       const stale = yield* review.index(false);
       expect(stale.folders.flatMap((f) => f.videos).some((v) => v.name === 'new.mp4')).toBe(false);
       const fresh = yield* review.index(true);

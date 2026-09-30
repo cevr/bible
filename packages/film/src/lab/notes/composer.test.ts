@@ -44,6 +44,7 @@ const fakes = (add: Effect.Effect<Note, LabFailure> = Effect.succeed(made)) => {
     unpreview: () => Effect.die('not asked'),
     timelineOf: () => ({}),
     knobsOf: () => ({}),
+    cuesOf: () => new Map(),
     holdT: Effect.die('not asked'),
     reload: Effect.die('not asked'),
     settle: Effect.die('not asked'),

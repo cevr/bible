@@ -289,11 +289,17 @@ describe('multiplane', () => {
     const fibre = fibresOf(r)[0];
     const period = fibre !== undefined && isPattern(fibre.style) ? fibre.style.tile.width : 0;
     expect(Math.abs(period - FIBRE_SIZE * k)).toBeLessThanOrEqual(0.5);
-    // And holds the point's own place in the backdrop's world, scaled with it.
+    // And shows the point's own place in the tile under it, scaled with it,
+    // within the rounded period's drift (`fibre.test.ts` bounds it frame-wide).
     const [, , , , ox = 0, oy = 0] = fibre?.m ?? IDENTITY;
-    const wrap = (n: number) => ((n % period) + period) % period;
-    expect(Math.abs(wrap(at[0] - ox) - wrap(1000 * k))).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(wrap(at[1] - oy) - wrap(500 * k))).toBeLessThanOrEqual(0.5);
+    const wrap = (n: number, p: number) => ((n % p) + p) % p;
+    const own = (n: number) => (wrap(n, FIBRE_SIZE) / FIBRE_SIZE) * period;
+    const off = (laid: number, n: number) => {
+      const d = Math.abs(wrap(laid, period) - own(n));
+      return Math.min(d, period - d);
+    };
+    expect(off(at[0] - ox, 1000)).toBeLessThanOrEqual(2);
+    expect(off(at[1] - oy, 500)).toBeLessThanOrEqual(2);
   });
 
   test('lays the fibre through the backdrop plane itself when the camera turns', () => {

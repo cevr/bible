@@ -104,7 +104,10 @@ const fixture = Layer.unwrap(
     yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
-    yield* fs.writeFileString(path.join(out, 'art', 'review.json'), '{ "title": "Art" }');
+    yield* fs.writeFileString(
+      path.join(out, 'art', 'review.json'),
+      '{ "title": "Art", "docs": ["roof.vtt"], "sets": { "roof": { "order": ["A", "B"] } } }',
+    );
     yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
     const films = path.join(dir, 'films');
     yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });

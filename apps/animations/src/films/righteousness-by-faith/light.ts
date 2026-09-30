@@ -19,11 +19,11 @@
 // valley rises by about as much as the acts round it and stays as far below
 // them. Every act gets lighter and their order and gaps hold.
 
-import type { Frame, Light } from '@bible/film/canvas';
+import { type Frame, type Light, mix } from '@bible/film/canvas';
 import { membersOf } from '@bible/film/core';
 import { Option, Result } from 'effect';
 import { type ActName, look } from './acts.ts';
-import { LIFT, mix } from './palette.ts';
+import { LIFT } from './palette.ts';
 import { script } from './script.ts';
 
 /** How much of the first light is left once `robe`'s loom has woven: the rest is day. */
