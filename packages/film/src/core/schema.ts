@@ -4,7 +4,7 @@
 // from these, so a decoded file and a hand-written film module share one
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
-import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
+import { Array as Arr, Effect, Option, Schema, SchemaTransformation } from 'effect';
 import type { ease } from './time.ts';
 
 /**
@@ -939,8 +939,16 @@ export type CheckLine = typeof CheckLine.Type;
  */
 export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
 
-/** One change the lab made to a scene file, as a page is told of it. */
-const LabStep = Schema.Struct({ scene: Schema.String, file: Schema.String, target: Schema.String });
+/**
+ * One change the lab made to a file, as a page is told of it: a scene's (its
+ * cue or knob) or a film's (its score's pick, its library's takes), named by
+ * the scene when there is one.
+ */
+const LabStep = Schema.Struct({
+  scene: Schema.optionalKey(Schema.String),
+  file: Schema.String,
+  target: Schema.String,
+});
 
 /**
  * `GET /lab/<film>/check`: `film check --static` now; the lab's latest change
@@ -1007,7 +1015,8 @@ export type HeadSource = typeof HeadSource.Type;
 
 /** What a lab write (or its undo) answers: what the file now declares, and the check after it. */
 export const LabWrite = Schema.Struct({
-  scene: Schema.String,
+  /** The scene the write changed; none for a film's own file (its score's pick, the library's lock). */
+  scene: Schema.optionalKey(Schema.String),
   file: Schema.String,
   /** What changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
   target: Schema.String,
@@ -1023,3 +1032,231 @@ export const LabWrite = Schema.Struct({
   findings: Schema.Array(CheckLine),
 });
 export type LabWrite = typeof LabWrite.Type;
+
+// ---------------------------------------------------------------------------
+// Review: the options a film (or a sketchbook) is choosing between, compared
+// in sync, and the one picked. An option is a `Choice` in code (`Option` is
+// Effect's): a choice point with named variants, each with media to compare.
+// Its kind says how it is picked. A render set is reviewed only. A score's
+// options pick the one the mix plays (`play` in `sound.ts`). A library
+// sound's takes are kept or rejected (`library.lock.json`). A look (a style
+// at named levels) joins the union when it has a pick to write.
+
+/**
+ * A file the review serves where it lies, named by `ref`: its review root's
+ * label, then its path under that root (`out/art3/roof.A.share.mp4`). Every
+ * review route takes a ref, never a path on the box.
+ */
+export const ReviewFile = Schema.Struct({
+  ref: Schema.String,
+  name: Schema.String,
+  size: Schema.Finite,
+  /** Last modified, ms since the epoch. */
+  mtime: Schema.Finite,
+});
+export type ReviewFile = typeof ReviewFile.Type;
+
+/**
+ * A video, and its 720p phone copy's state: only a big video gets one (a
+ * phone streams it in place of the master), made in the background.
+ */
+export const ReviewVideo = Schema.Struct({
+  ...ReviewFile.fields,
+  phone: Schema.Literals(['none', 'pending', 'ready']),
+});
+export type ReviewVideo = typeof ReviewVideo.Type;
+
+/** A key a JSON file may leave out, read as an `Option`. */
+const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
+
+/** A key a JSON file may leave out, read as `fallback` when it does. */
+const orElse = <S extends Schema.Top>(schema: S, fallback: S['Encoded']) =>
+  schema.pipe(Schema.withDecodingDefaultKey(Effect.succeed(fallback)));
+
+const ManifestVariant = Schema.Struct({
+  label: maybe(Schema.String),
+  /** A line under the label: what the variant is. */
+  tag: maybe(Schema.String),
+  verdict: maybe(Schema.String),
+  /** A markdown file of notes, relative to the folder. */
+  notes: maybe(Schema.String),
+  /** The video, relative to the folder, when it is not `<clip>.<id>.mp4` beside it. */
+  file: maybe(Schema.String),
+});
+
+const ManifestSet = Schema.Struct({
+  title: maybe(Schema.String),
+  /** Variant ids, first to last; the rest follow by name. */
+  order: orElse(Schema.Array(Schema.String), []),
+  /** Where every video starts, in seconds. */
+  start: orElse(Seconds, 0),
+  /** The instants the Moments view shows; five spread over the first variant otherwise. */
+  moments: maybe(Schema.Array(Seconds)),
+  variants: orElse(Schema.Record(Schema.String, ManifestVariant), {}),
+});
+
+/**
+ * A folder's optional `review.json`: a title and a line for the folder, docs,
+ * and per comparison set (by clip) its title, order, start, moments, and each
+ * variant's label, tag, verdict, notes, or file when it lies elsewhere. Every
+ * key may be left out.
+ */
+export const ReviewManifest = Schema.Struct({
+  title: maybe(Schema.String),
+  blurb: maybe(Schema.String),
+  /** Markdown files, relative to the folder, shown with it. */
+  docs: orElse(Schema.Array(Schema.String), []),
+  sets: orElse(Schema.Record(Schema.String, ManifestSet), {}),
+});
+export type ReviewManifest = typeof ReviewManifest.Type;
+
+export const ReviewManifestJson = Schema.fromJsonString(ReviewManifest);
+
+/** One variant of a render set: a video, with what the manifest says of it. */
+export const RenderVariant = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  tag: maybe(Schema.String),
+  verdict: maybe(Schema.String),
+  notes: maybe(ReviewFile),
+  video: ReviewVideo,
+});
+export type RenderVariant = typeof RenderVariant.Type;
+
+/**
+ * A comparison set: the videos in one folder named `<clip>.<variant>[.share].mp4`
+ * (a share copy standing in for its master), with the manifest's say. Reviewed
+ * only: nothing in source picks one.
+ */
+export const RenderChoice = Schema.TaggedStruct('RenderChoice', {
+  clip: Schema.String,
+  title: Schema.String,
+  start: Seconds,
+  moments: maybe(Schema.Array(Seconds)),
+  variants: Schema.Array(RenderVariant),
+});
+export type RenderChoice = typeof RenderChoice.Type;
+
+/** A folder of renders: its comparison sets, and what is in no set. */
+export const ReviewFolder = Schema.Struct({
+  /** The folder's ref: its root's label, then its path under the root. */
+  ref: Schema.String,
+  title: maybe(Schema.String),
+  blurb: maybe(Schema.String),
+  /** Its newest file's mtime. */
+  mtime: Schema.Finite,
+  sets: Schema.Array(RenderChoice),
+  videos: Schema.Array(ReviewVideo),
+  images: Schema.Array(ReviewFile),
+  docs: Schema.Array(ReviewFile),
+});
+export type ReviewFolder = typeof ReviewFolder.Type;
+
+/** `GET /review/index`: every folder under the roots with something to review, newest first. */
+export const ReviewIndex = Schema.Struct({ folders: Schema.Array(ReviewFolder) });
+export type ReviewIndex = typeof ReviewIndex.Type;
+
+/** `GET /review/duration`: a video's length. */
+export const ReviewDuration = Schema.Struct({ seconds: Seconds });
+export type ReviewDuration = typeof ReviewDuration.Type;
+
+/**
+ * Where a score option stands in the film's store: `current` (composed for
+ * the acts and timing as they are), `stale` (composed before they changed:
+ * it still plays) or `missing` (never composed here: nothing to hear).
+ */
+export const ScoreState = Schema.Literals(['current', 'stale', 'missing']);
+export type ScoreState = typeof ScoreState.Type;
+
+/** One of the film's score options: its musical language, its acts, its state. */
+export const ScoreVariant = Schema.Struct({
+  /** The option's name in `sound.ts`. */
+  id: Schema.String,
+  styles: Schema.Array(Schema.String),
+  acts: Schema.Array(Act),
+  state: ScoreState,
+});
+export type ScoreVariant = typeof ScoreVariant.Type;
+
+/** The film's score options, the one `play` names picked: each heard as the film's whole mix. */
+export const ScoreChoice = Schema.TaggedStruct('ScoreChoice', {
+  /** The option the film's mix plays (`play`). */
+  picked: Schema.String,
+  variants: Schema.Array(ScoreVariant),
+});
+export type ScoreChoice = typeof ScoreChoice.Type;
+
+/** A take of a library sound: kept (it plays), or a candidate waiting to be kept or rejected. */
+export const EffectTakeState = Schema.Literals(['kept', 'candidate']);
+export type EffectTakeState = typeof EffectTakeState.Type;
+
+export const EffectTake = Schema.Struct({
+  /** Its sha256: the lock's name for it, wherever it waits. */
+  id: Schema.String,
+  state: EffectTakeState,
+  /** 1-based among the kept variants, or among the candidates, as `sfx keep` and `unkeep` count. */
+  index: Schema.Int,
+  secs: Seconds,
+  /** Its loudest 400 ms, LUFS. */
+  loudest: Schema.Finite,
+  made: Schema.String,
+  /** Made for the declaration as it reads now (else for an older one). */
+  current: Schema.Boolean,
+});
+export type EffectTake = typeof EffectTake.Type;
+
+/** One place the film plays an effect: its name in `sound.ts`, its scene, its film time. */
+export const EffectPlacement = Schema.Struct({
+  effect: Schema.String,
+  scene: Schema.String,
+  at: Seconds,
+});
+export type EffectPlacement = typeof EffectPlacement.Type;
+
+/**
+ * A library sound the film's effects play: its kept variants (the picks: they
+ * rotate through its placements) and its candidates, each heard alone and in
+ * place.
+ */
+export const EffectChoice = Schema.TaggedStruct('EffectChoice', {
+  /** The library's name for it: `paper.slide`. */
+  sound: Schema.String,
+  placements: Schema.Array(EffectPlacement),
+  takes: Schema.Array(EffectTake),
+});
+export type EffectChoice = typeof EffectChoice.Type;
+
+/** A film's choice point: a score to play, a sound's takes to keep. */
+export const FilmChoice = Schema.Union([ScoreChoice, EffectChoice]).pipe(
+  Schema.toTaggedUnion('_tag'),
+);
+export type FilmChoice = typeof FilmChoice.Type;
+
+/** `GET /lab/<film>/options`: the film's choices. */
+export const FilmChoices = Schema.Struct({
+  film: Schema.String,
+  choices: Schema.Array(FilmChoice),
+});
+export type FilmChoices = typeof FilmChoices.Type;
+
+/** `POST /lab/<film>/options/score/pick`: play `option` (`play` in `sound.ts`). */
+export const ScorePick = Schema.Struct({ option: Schema.String });
+export type ScorePick = typeof ScorePick.Type;
+
+/** What becomes of a take: kept (it plays), unkept (it waits again) or rejected (never offered again). */
+export const TakeAct = Schema.Literals(['keep', 'unkeep', 'reject']);
+export type TakeAct = typeof TakeAct.Type;
+
+/** `POST /lab/<film>/options/effect/:sound/takes`: a take kept, unkept or rejected. */
+export const TakeCuration = Schema.Struct({ take: Schema.String, act: TakeAct });
+export type TakeCuration = typeof TakeCuration.Type;
+
+/** What a pick answers: the file it changed, the film's choices as they now stand, and the check after it. */
+export const ChoiceWrite = Schema.Struct({
+  file: Schema.String,
+  /** What changed: `score play piano`, `sound paper.slide keep 3f2a…`. */
+  target: Schema.String,
+  choices: FilmChoices,
+  findings: Schema.Array(CheckLine),
+});
+export type ChoiceWrite = typeof ChoiceWrite.Type;

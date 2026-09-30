@@ -21,6 +21,13 @@ export * from './renderer.ts';
 export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';
+export {
+  Review,
+  type ReviewConfig,
+  type ReviewRoot,
+  type ReviewService,
+  parseRoots,
+} from './review.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

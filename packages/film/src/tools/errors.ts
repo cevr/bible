@@ -1113,6 +1113,33 @@ export class SourceChanged extends Schema.TaggedError<SourceChanged>()('SourceCh
   }
 }
 
+// ---------------------------------------------------------------------------
+// Review: the box's renders, served where they lie.
+
+/** A ref that names no file under the review's roots (an unknown root, a path out of it, or nothing there). */
+export class ReviewFileUnknown extends Schema.TaggedError<ReviewFileUnknown>()(
+  'ReviewFileUnknown',
+  { ref: Schema.String },
+) {
+  override get message() {
+    return `no file ${this.ref} under the review's roots`;
+  }
+}
+
+/**
+ * A derived file the review makes (a frame, a length, a phone copy, a mix)
+ * that ffmpeg or ffprobe did not make, or its cache could not keep.
+ */
+export class ReviewToolFailed extends Schema.TaggedError<ReviewToolFailed>()('ReviewToolFailed', {
+  tool: Schema.Literals(['ffmpeg', 'ffprobe', 'cache']),
+  ref: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.tool} failed on ${this.ref}: ${this.reason}`;
+  }
+}
+
 /** A child process that ran past its time limit, and was stopped. */
 export class ProcessTimedOut extends Schema.TaggedError<ProcessTimedOut>()('ProcessTimedOut', {
   command: Schema.String,
