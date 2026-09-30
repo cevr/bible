@@ -12,6 +12,7 @@ import {
   everyTakeRecorded,
   layout,
   sceneClock,
+  sceneIndexAt,
   transitionDur,
 } from '../core/layout.ts';
 import type {
@@ -319,7 +320,7 @@ interface Reads {
   readonly direct: boolean;
 }
 
-/** A scene's timeline or knobs, standing in for its drawing's while the lab previews an edit. */
+/** A scene's timeline or knobs, standing in for its drawing's in a frame the lab draws with it. */
 export interface SceneEdit {
   readonly timeline?: Timeline;
   readonly knobs?: Knobs;
@@ -328,10 +329,12 @@ export interface SceneEdit {
 export interface RenderOptions {
   readonly captions?: boolean;
   /**
-   * Draw `scene` with this edit's timeline and knobs for this frame only, in
-   * place of its drawing's and any preview (the lab's compare with HEAD).
+   * Draw each scene named here with its edit's timeline and knobs in place of
+   * its drawing's, for this frame only (resolved on the scene's own clock, as
+   * `layout()` resolves them): the lab's live preview of a drag, and its
+   * compare with HEAD. Nothing is kept: the next frame draws what it is given.
    */
-  readonly edit?: { readonly scene: string; readonly edit: SceneEdit };
+  readonly edits?: ReadonlyMap<string, SceneEdit>;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
   /**
@@ -359,14 +362,11 @@ export interface Film {
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
   /**
-   * Draw `scene` with `edit`'s timeline and knobs in place of its drawing's
-   * (resolved on the scene's own clock, as `layout()` resolves them) until
-   * called again with `undefined`. The lab's live preview of a drag; nothing
-   * is written. Returns the scene's cues as they now resolve.
+   * A scene's cues as a frame draws them with `edit` (`RenderOptions.edits`),
+   * or as laid out with none. Throws what `layout()` would for a timeline
+   * that cannot resolve.
    */
-  preview(scene: string, edit: SceneEdit | undefined): ReadonlyMap<string, ResolvedCue>;
-  /** A scene's cues as the frame draws them: previewed, or as laid out. */
-  cuesOf(scene: string): ReadonlyMap<string, ResolvedCue>;
+  cuesOf(scene: string, edit?: SceneEdit): ReadonlyMap<string, ResolvedCue>;
 }
 
 /** A film's paper, shade and finish, every finish value at its default where it declares none. */
@@ -559,14 +559,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     }
   };
 
+  /** The scene playing at `T`, as the layout attributes it (`sceneIndexAt`): no allocation, for every frame. */
   const sceneAt = (T: number): Placed<SceneSpec> => {
-    for (let i = placed.length - 1; i >= 0; i--) {
-      const p = placed[i];
-      if (p !== undefined && T >= p.start) return p;
-    }
-    const first = placed[0];
-    if (first === undefined) throw new Error('film has no scenes');
-    return first;
+    const p = placed[sceneIndexAt(placed, T)];
+    if (p === undefined) throw new Error('film has no scenes');
+    return p;
   };
 
   /** Every scene's id, for `f.handsOf`. */
@@ -593,21 +590,33 @@ export const createFilm = (spec: FilmSpec): Film => {
     knobs: edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs)),
   });
 
-  /** The lab's previewed cues and knobs, by scene. */
-  const previews = new Map<string, Shown>();
-
-  const preview = (scene: string, edit: SceneEdit | undefined) => {
-    const p = placedOf(scene);
-    if (edit === undefined) {
-      previews.delete(scene);
-      return p.cues;
-    }
+  /**
+   * Each edit as resolved for its scene: a frame keyed by the edit value it
+   * was handed, so a drag's frames resolve its timeline once and a new edit
+   * (a new value) resolves again. Nothing here is what the film shows; the
+   * caller's edits are.
+   */
+  const resolved = new WeakMap<
+    SceneEdit,
+    { readonly p: Placed<SceneSpec>; readonly shown: Shown }
+  >();
+  const shownWith = (p: Placed<SceneSpec>, edit: SceneEdit): Shown => {
+    const hit = resolved.get(edit);
+    if (hit !== undefined && hit.p === p) return hit.shown;
     const shown = resolveEdit(p, edit);
-    previews.set(scene, shown);
-    return shown.cues;
+    resolved.set(edit, { p, shown });
+    return shown;
+  };
+  /** Scene `p` as `edits` show it: its edit's cues and knobs, or its own. */
+  const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, SceneEdit> | undefined) => {
+    const edit = edits?.get(p.spec.id);
+    return edit === undefined ? p : shownWith(p, edit);
   };
 
-  const cuesOf = (scene: string) => previews.get(scene)?.cues ?? placedOf(scene).cues;
+  const cuesOf = (scene: string, edit?: SceneEdit) => {
+    const p = placedOf(scene);
+    return edit === undefined ? p.cues : shownWith(p, edit).cues;
+  };
 
   const localWords = new Map(
     placed.map((p) => [
@@ -626,7 +635,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     reads: Reads | undefined,
-    override: { readonly scene: string; readonly shown: Shown } | undefined,
+    edits: ReadonlyMap<string, SceneEdit> | undefined,
   ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
@@ -640,7 +649,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       }
       unframed.length = 0;
     };
-    const shown = override?.scene === p.spec.id ? override.shown : (previews.get(p.spec.id) ?? p);
+    const shown = shownOf(p, edits);
     const frame: Frame = {
       ctx,
       w: width,
@@ -736,7 +745,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    override: { readonly scene: string; readonly shown: Shown } | undefined,
+    edits: ReadonlyMap<string, SceneEdit> | undefined,
   ) => {
     const { paper } = getAssets();
     const id = p.spec.id;
@@ -750,7 +759,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.drawImage(paper, 0, 0);
     let shot = false;
     probing(ctx, probe, () => {
-      shot = drawScene(ctx, p, T, boil, reads, override);
+      shot = drawScene(ctx, p, T, boil, reads, edits);
     });
     // Guessed whole but it framed a shot, or guessed a shot and it framed none: draw it the other way.
     if (moving && shot === breath.outer) {
@@ -758,7 +767,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       if (reads !== undefined) reads.list.length = read;
       breath.outer = !shot;
       ctx.drawImage(paper, 0, 0);
-      probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, override));
+      probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, edits));
     }
     if (moving && shot) unshot.delete(id);
     else if (moving) unshot.add(id);
@@ -772,12 +781,12 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    override: { readonly scene: string; readonly shown: Shown } | undefined,
+    edits: ReadonlyMap<string, SceneEdit> | undefined,
   ) => {
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
-    sheet(target.ctx, p, T, boil, probe, reads, override);
+    sheet(target.ctx, p, T, boil, probe, reads, edits);
     if (drawnLight !== undefined) lightUp(target.ctx, drawnLight);
     return target.c;
   };
@@ -792,11 +801,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const local = T - cur.start;
     const sink = opts.probe;
     const knobs = opts.knobs;
-    const edited = opts.edit;
-    const override =
-      edited === undefined
-        ? undefined
-        : { scene: edited.scene, shown: resolveEdit(placedOf(edited.scene), edited.edit) };
+    const edits = opts.edits;
     /** Knob reads straight onto the frame, or from a transition's layer. */
     const reads = (direct: boolean): Reads | undefined =>
       knobs === undefined ? undefined : { list: knobs, direct };
@@ -807,7 +812,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
-      sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), override);
+      sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
       // The scene's light over its page and all on it, with the vignette.
       lightAndVignette(ctx, drawnLight, drawnFixed);
     } else {
@@ -816,7 +821,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       const dir = enter.kind === 'pan' ? (enter.dir ?? 1) : 1;
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
-      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), override);
+      const out = layer(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), edits);
       const inn = layer(
         b,
         cur,
@@ -824,7 +829,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         boil,
         probe(cur, enter.kind === 'pan' ? dx + dir * width : 0, 1 - fading * (1 - p)),
         reads(false),
-        override,
+        edits,
       );
       switch (enter.kind) {
         case 'fade':
@@ -869,7 +874,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     look: { paper: spec.paper, shade: spec.shade, finish, short },
     sceneAt,
     render,
-    preview,
     cuesOf,
   };
 };
