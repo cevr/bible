@@ -560,15 +560,23 @@ export class AudioMissing extends Schema.TaggedError<AudioMissing>()('AudioMissi
   }
 }
 
-/** The audio master is not as long as the film: a mix was cut short, or made for another cut. */
+/**
+ * The audio master is not this film's: not as long as the film (`length`: a
+ * mix was cut short, or made for another cut), or as long but mixed for
+ * another plan than the film's now (another score option, a new take, a
+ * moved effect), or never stamped with one.
+ */
 export class AudioStale extends Schema.TaggedError<AudioStale>()('AudioStale', {
   file: Schema.String,
+  reason: Schema.Literals(['length', 'mixed for another plan']),
   /** The master's measured length, in seconds. */
   length: Schema.Finite,
   /** The film's length, in seconds. */
   film: Schema.Finite,
 }) {
   override get message() {
+    if (this.reason === 'mixed for another plan')
+      return `the audio master ${this.file} was mixed for another plan than the film's now (its takes, score option, sounds or levels have changed); run mix to rebuild it (no API calls)`;
     return `the audio master ${this.file} runs ${this.length.toFixed(3)}s, the film ${this.film.toFixed(3)}s; run mix to rebuild it (no API calls)`;
   }
 }

@@ -8,6 +8,9 @@ import type { Timed } from '../core/schema.ts';
 import { DEAD_MAX, deadAir, designedSilences, endShort, staticFindings } from './check.ts';
 import { holdScenes, holdTimings, testFilm } from './testing.ts';
 
+/** No track on disk, and no plan key: what a check before any mix sees. */
+const NO_MASTER = { master: Option.none(), key: Option.none() };
+
 const WINDOW = 0.05;
 /** `secs` of master at `db`, in `WINDOW` windows. */
 const level = (db: number, secs: number) =>
@@ -31,7 +34,7 @@ describe('EndShort', () => {
   test('the check warns of it', () => {
     const film = testFilm(holdScenes, holdTimings);
     const placed = layout(holdScenes, holdTimings);
-    const found = staticFindings(film, placed, { allowStale: false }, Option.none());
+    const found = staticFindings(film, placed, { allowStale: false }, NO_MASTER);
     expect(found.filter((r) => r.finding._tag === 'EndShort').map((r) => r.level)).toEqual([
       'warning',
       'warning',

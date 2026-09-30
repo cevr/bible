@@ -3,17 +3,17 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, Layer, Option } from 'effect';
+import { Effect, Fiber, Layer, Option, Result, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
 import { layout } from '../core/layout.ts';
-import { MIX_RATE } from '../core/mix.ts';
+import { MIX_RATE, mixKey } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { filmEnd } from '../core/sound.ts';
 import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
-import { Mixer } from './mixer.ts';
+import { MasterStampJson, Mixer, planOf } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
 import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
@@ -26,6 +26,7 @@ const timings: Timings = {
 };
 const film = testFilm(scenes, timings);
 const TRACK = '/films/test/narration/full.wav';
+const STAMP = '/films/test/narration/full.json';
 const TAKE = '/films/test/narration/a.mp3';
 
 type Finish = 'done' | 'fail' | 'hang';
@@ -99,6 +100,20 @@ describe('Mixer', () => {
     }),
   );
 
+  it.effect('beside the track, the mix stamps the key of the plan it played: the film’s now', () =>
+    Effect.gen(function* () {
+      const { mix, read } = setup('done');
+      yield* mix();
+      const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
+      // The film has no score or library sound to be missing: its plan is the one `mix` played.
+      const now = planOf(film, layout(scenes, timings), {
+        score: Option.none(),
+        take: Option.none(),
+      });
+      expect(stamp.key).toBe(mixKey(Result.getOrThrow(now)));
+    }),
+  );
+
   it.effect('with stems, each bus is written beside the render', () =>
     Effect.gen(function* () {
       const { files, mix, read } = setup('done');
@@ -112,10 +127,11 @@ describe('Mixer', () => {
 
   it.effect('a failed mix leaves the previous track', () =>
     Effect.gen(function* () {
-      const { mix, read, partials } = setup('fail');
+      const { files, mix, read, partials } = setup('fail');
       const error = yield* Effect.flip(mix());
       expect(error._tag).toBe('MediaFailed');
       expect(read(TRACK)).toBe('old');
+      expect(files.has(STAMP)).toBe(false);
       expect(partials()).toEqual([]);
     }),
   );

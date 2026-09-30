@@ -1,7 +1,8 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
-// of order, stale takes and sounds, an audio master missing or not as long as
-// the film, a line handed to a voice the cast lacks) and the layout findings in what a probed frame reports: text over
+// of order, stale takes and sounds, an audio master missing, not as long as
+// the film or mixed for another plan, a line handed to a voice the cast lacks)
+// and the layout findings in what a probed frame reports: text over
 // text, text off the frame, brush strokes across text, and a plate carrying
 // text cut off by the frame; and static holds, where the voice speaks over a
 // picture that does not move. Every finding is collected; none stops the others.
@@ -82,7 +83,7 @@ import {
   WordPinFar,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { masterFile, masterFinding } from './mixer.ts';
+import { type Master, masterFile, masterFinding } from './mixer.ts';
 
 export type StaticFinding =
   | CueLate
@@ -415,15 +416,29 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
  */
 export const MASTER_TOLERANCE = 1 / 60;
 
-/** Once every take is recorded the film has a mixed track, and its master must cover the film. */
+/** The track on disk (`readMaster`), and the key of the plan the film mixes to now (`planKey`). */
+export interface MasterAudio {
+  readonly master: Option.Option<Master>;
+  readonly key: Option.Option<string>;
+}
+
+/**
+ * Once every take is recorded the film has a mixed track, and its master must
+ * cover the film and be mixed for the plan the film plays now.
+ */
 export const masterFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  length: Option.Option<number>,
+  audio: MasterAudio,
 ): ReadonlyArray<AudioMissing | AudioStale> => {
   if (!everyTakeRecorded(placed)) return [];
   return Option.toArray(
-    masterFinding(masterFile(film.paths), length, filmEnd(placed), MASTER_TOLERANCE),
+    masterFinding(
+      masterFile(film.paths),
+      audio.master,
+      { seconds: filmEnd(placed), key: audio.key },
+      MASTER_TOLERANCE,
+    ),
   );
 };
 
@@ -524,14 +539,14 @@ export const deadAir = (
 };
 
 /**
- * Everything the check finds without drawing a frame. `master` is the audio
- * master's measured length, or none when there is no master.
+ * Everything the check finds without drawing a frame or mixing: `audio` is
+ * the master on disk and the key of the plan the film mixes to now.
  */
 export const staticFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
   options: CheckOptions,
-  master: Option.Option<number>,
+  audio: MasterAudio,
 ): ReadonlyArray<Reported> => {
   const sound = Option.toArray(film.sound).flatMap((s) => [
     ...Option.toArray(Option.fromNullishOr(s.score)).flatMap((score) =>
@@ -539,7 +554,7 @@ export const staticFindings = (
     ),
     ...soundFindings(s, placed, film.sounds),
   ]);
-  const audio = masterFindings(film, placed, master);
+  const master = masterFindings(film, placed, audio);
   const takes = [...unknownVoices(film), ...staleTakes(film)];
   return [
     ...lateCues(placed),
@@ -547,7 +562,7 @@ export const staticFindings = (
     ...farPins(placed),
     ...takes,
     ...sound,
-    ...audio,
+    ...master,
     ...endShort(placed),
   ].map((finding) => ({
     level: levelOf(finding, options),

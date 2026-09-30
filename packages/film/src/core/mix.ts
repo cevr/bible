@@ -9,7 +9,7 @@
 // Effects and beds name sounds from the app's library (`sfx.ts`), levelled in
 // dB relative to the voice's speech level by what each variant measured.
 
-import { Option, Result } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import { type Pcm, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
 import {
@@ -23,7 +23,8 @@ import {
   type UnknownSound,
 } from './errors.ts';
 import type { Placed } from './layout.ts';
-import { takeLift } from './recording.ts';
+import { hashText } from './narration.ts';
+import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundManifest } from './schema.ts';
 import {
   type Placing,
@@ -37,9 +38,10 @@ import {
   playPlacings,
   playablesOf,
   resolveUse,
+  sourceLabel,
   soundState,
 } from './sfx.ts';
-import { aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
+import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
 import { cueTime, filmEnd, musicKey, musicPlan, playedOption } from './sound.ts';
 
@@ -323,6 +325,52 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
 
     return { seconds: filmEnd(placed), voice, score: played, beds, effects, warnings };
   });
+
+/**
+ * A sound as the key reads it: a file by its name, which carries its content
+ * hash (a take's `<scene>.<hash>`, a score's `<option>-<hash>`, a library
+ * variant's sha256), so the key reads the same in every checkout; a recipe by
+ * its request and seed.
+ */
+const soundKey = (source: SoundSource): string => {
+  if (source._tag === 'File') return source.file.slice(source.file.lastIndexOf('/') + 1);
+  return sourceLabel(source);
+};
+
+/** A key's fields as one line of JSON. */
+const KeyJson = Schema.fromJsonString(Schema.Json);
+
+/**
+ * What a mix of `plan` sounds like, as one hash: every sound it plays, where,
+ * how loud and at what pitch, the score option and its levels, and the
+ * levels `renderMix` masters, fades and ducks by. Two plans with one key mix
+ * to the same track; `mix` writes the key beside the master, so a master
+ * mixed for another plan (another score option, a new take, a moved effect)
+ * is known stale although it is as long as the film. Warnings are not heard.
+ */
+export const mixKey = (plan: MixPlan<SoundSource>): string =>
+  hashText(
+    Schema.encodeSync(KeyJson)({
+      levels: {
+        MASTER,
+        LIMIT: { ...LIMIT },
+        BED_DUCK: { ...BED_DUCK },
+        MUSIC_FADE_IN,
+        MUSIC_FADE_OUT,
+        BED_FADE,
+        BED_CROSSFADE,
+        SCORE,
+        TAKE_LEVEL,
+      },
+      seconds: plan.seconds,
+      voice: plan.voice.map((t) => [t.name, soundKey(t.sound), t.at, t.gain, t.pitch, t.staged]),
+      score: Option.getOrNull(
+        Option.map(plan.score, (s) => [s.option, soundKey(s.sound), s.under, s.alone]),
+      ),
+      beds: plan.beds.map((b) => [soundKey(b.sound), b.from, b.to, b.gain, b.fade, b.duck]),
+      effects: plan.effects.map((e) => [e.name, soundKey(e.sound), e.at, e.gain, e.pitch]),
+    }),
+  );
 
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
 export interface Mixed {

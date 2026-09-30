@@ -125,7 +125,11 @@ where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited: ported from the ffmpeg graph
 it replaced, which it matched to a −98.8 dB residual) and writes the film's
 one track, `narration/full.wav` (16-bit), to `full.partial.wav`, renamed only
-once whole: a failed or interrupted mix leaves the previous track. A bed or
+once whole: a failed or interrupted mix leaves the previous track. Beside it,
+once it is whole, `full.json` stamps the key of the plan it played
+(`mixKey`: every sound it plays by its file name, which carries its hash, or
+its recipe, with where, how loud and at what pitch, the score option and its
+levels, and the levels it masters, fades and ducks by). A bed or
 effect names a library sound (`core/sfx.ts`) and a level in dB relative to
 the voice; its gain comes from the level its variant measured when made
 (one-shots by momentary max, beds by integrated loudness). An effect's
@@ -138,9 +142,10 @@ each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The
 player streams the WAV (the preview server answers range requests);
-`masterFinding` holds it to the film's length (`AudioMissing`, `AudioStale`);
-the renderer checks it before the first frame and `check` in its static
-leg.
+`masterFinding` holds it to the film's length and to the plan the film
+mixes to now (`AudioMissing`; `AudioStale`, `length` or `mixed for another
+plan`, which an unstamped track is too): the renderer checks it before the
+first frame and `check` in its static leg.
 
 `narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
 only by rewriting `timings.json`, so no crash leaves a take and its timings
@@ -944,8 +949,9 @@ what a review used to find by eye:
   out of film order or under 3 s (`ActTooShort`); a take that is missing or
   was recorded for other text or another voice (`TakeStale`); a generated
   sound whose request hash has moved (`AssetStale`); once every take is
-  recorded, an audio master that is missing (`AudioMissing`) or not the
-  film's length (`AudioStale`). `--allow-stale` reports stale takes, sounds
+  recorded, an audio master that is missing (`AudioMissing`), not the
+  film's length or mixed for another plan than the film's now (`AudioStale`:
+  a score pick, a re-take or a moved effect since the last `mix`). `--allow-stale` reports stale takes, sounds
   and master as warnings. `--scene id,id` limits the layout leg; an id the
   film lacks fails with `UnknownScene`. A sound never generated
   (`AssetMissing`) is always a warning: the mix plays without it.
@@ -998,8 +1004,9 @@ what a review used to find by eye:
   undeclared motion needs the frames.
 - **The ending and the air** (static): the stretch after the last word under
   20 s, or an end card (a last scene that speaks nothing) under 5 s, is an
-  `EndShort` warning. Once the master covers the film, it is read mono at
-  16 kHz in 50 ms windows: a run under −60 dBFS longer than 1.5 s is
+  `EndShort` warning. Once every take is recorded, the mix the film makes
+  now is rendered in memory (not read from `full.wav`, which may be stale)
+  and read mono in 50 ms windows: a run under −60 dBFS longer than 1.5 s is
   `DeadAir`, an error, less any span a cue declares with `silence: true`
   (`{ scene: 'start', offset: 2, dur: 3, silence: true }`), the designed
   silences the script means.

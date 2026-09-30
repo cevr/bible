@@ -48,6 +48,7 @@ import {
 import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
+import { toMono, windowLevels } from '../core/audio.ts';
 import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
@@ -65,7 +66,6 @@ import {
   deadAir,
   designedSilences,
   layoutLevel,
-  masterFindings,
   staticFindings,
 } from './check.ts';
 import { Checker } from './checker.ts';
@@ -88,7 +88,7 @@ import {
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media, ffmpegReady } from './media.ts';
-import { Mixer, masterFile, masterLevels, measureMaster } from './mixer.ts';
+import { Mixer, planKey, readMaster } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
@@ -636,26 +636,26 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
             Effect.map((picked) => Option.some(new Set(picked.map((p) => p.spec.id)))),
           ),
       });
-      const master = yield* measureMaster(
-        yield* FileSystem.FileSystem,
-        yield* Media,
-        masterFile(loaded.paths),
-      );
+      const audio = {
+        master: yield* readMaster(yield* FileSystem.FileSystem, yield* Media, loaded.paths),
+        key: yield* planKey(loaded, placed),
+      };
       const found: Array<Reported> = [
-        ...staticFindings(loaded, placed, { allowStale: input.allowStale }, master),
+        ...staticFindings(loaded, placed, { allowStale: input.allowStale }, audio),
       ];
-      // Dead air is read from a master that covers this film; a missing or
-      // stale one is its own finding.
-      if (everyTakeRecorded(placed) && masterFindings(loaded, placed, master).length === 0) {
-        const levels = yield* masterLevels(yield* Media, masterFile(loaded.paths), DEAD_WINDOW);
-        for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
-          found.push({ level: 'error', finding });
-        // The balance is measured on the mix itself, bus by bus, as `mix` makes it.
+      // Dead air and the balance are measured on the mix the film makes now,
+      // in memory, bus by bus as `mix` makes it: the master on disk may be
+      // stale (its own finding above).
+      if (everyTakeRecorded(placed)) {
         const { plan, mixed } = yield* (yield* Mixer).render(input.film, {
           warn: false,
           score: Option.none(),
           take: Option.none(),
         });
+        const mono = Arr.getUnsafe(toMono(mixed.master).channels, 0);
+        const levels = windowLevels(mono, Math.round(DEAD_WINDOW * mixed.master.rate));
+        for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
+          found.push({ level: 'error', finding });
         for (const finding of balanceFindings(placed, plan, mixed))
           found.push({ level: 'warning', finding });
       }

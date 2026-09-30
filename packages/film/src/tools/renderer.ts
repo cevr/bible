@@ -49,7 +49,7 @@ import {
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { filmChapters } from './look.ts';
 import { Media } from './media.ts';
-import { masterFile, masterFinding, measureMaster } from './mixer.ts';
+import { masterFile, masterFinding, planKey, readMaster } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
   type AudioCut,
@@ -203,9 +203,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         // The film declares its track only once every take is recorded (a
         // short's page declares none: it plays the film's under its spans).
-        // Before a frame is drawn, its master must be there and cover the
-        // whole film to within a frame: a mix cut short would otherwise mux
-        // silence.
+        // Before a frame is drawn, its master must be there, cover the whole
+        // film to within a frame and be mixed for the plan the film plays
+        // now: a mix cut short would otherwise mux silence, and one made
+        // before a score pick or a re-take the wrong sound.
         const recorded = Option.match(where.short, {
           onNone: () => Option.isSome(Option.fromNullishOr(info.audio)),
           onSome: () => everyTakeRecorded(where.placed),
@@ -221,12 +222,15 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           }),
         );
         if (Option.isSome(audio)) {
-          const length = yield* measureMaster(fs, media, audio.value.file);
-          const filmLength = Option.match(where.short, {
+          const master = yield* readMaster(fs, media, film.paths);
+          const seconds = Option.match(where.short, {
             onNone: () => info.duration,
             onSome: () => filmEnd(where.placed),
           });
-          const finding = masterFinding(audio.value.file, length, filmLength, 1 / info.fps);
+          const key = yield* planKey(film, where.placed).pipe(
+            Effect.provideService(FileSystem.FileSystem, fs),
+          );
+          const finding = masterFinding(audio.value.file, master, { seconds, key }, 1 / info.fps);
           if (Option.isSome(finding)) return yield* finding.value;
         }
 
