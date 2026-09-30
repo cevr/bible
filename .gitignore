@@ -203,3 +203,7 @@ apps/animations/lab/
 
 # Written by the CLI tests (a local .bible home).
 packages/cli/.bible/
+
+# The Tried Gold site build (apps/triedgold/build), written by `react-router build`
+# and bundled into the Railway image by apps/triedgold/alchemy.run.ts.
+apps/triedgold/build/
