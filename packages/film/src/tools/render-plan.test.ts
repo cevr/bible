@@ -11,7 +11,7 @@ import {
   MIN_CHUNK_FRAMES,
   SOFTWARE_WORKERS,
   contactTimes,
-  cutBase,
+  renderPaths,
   cutPage,
   encoderLimits,
   flagConflicts,
@@ -50,7 +50,7 @@ const scoped = (address: Address) => Result.getOrThrow(resolveAddress(threeScene
 const bc = scoped({ _tag: 'Scenes', ids: ['b', 'c'] });
 
 const flags = {
-  tag: 't',
+  variant: 'main',
   captions: true,
   workers: Option.none(),
   stills: Option.none(),
@@ -133,7 +133,7 @@ describe('jobOf', () => {
     expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ cut: Cut.Whole() });
   });
 
-  test('a short draws on its own page and writes under out/<film>/shorts', () => {
+  test('a short draws on its own page', () => {
     const short = Cut.Short({
       short: {
         id: 'cut',
@@ -143,8 +143,32 @@ describe('jobOf', () => {
     });
     expect(cutPage('film', Cut.Whole())).toBe('film');
     expect(cutPage('film', short)).toBe('film/shorts/cut');
-    expect(cutBase('/out/film', Cut.Whole())).toBe('/out/film');
-    expect(cutBase('/out/film', short)).toBe('/out/film/shorts/cut');
+  });
+
+  test("a render's files go in the project folder by its address and variant", () => {
+    expect(renderPaths('/out/f', { _tag: 'Film' }, 'main')).toEqual({
+      clip: '/out/f/film/main.mp4',
+      dir: '/out/f/film/main',
+    });
+    expect(renderPaths('/out/f', { _tag: 'Scenes', ids: ['cold'] }, 'ink').clip).toBe(
+      '/out/f/scenes/cold/ink.mp4',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Scenes', ids: ['a', 'b'] }, 'main').clip).toBe(
+      '/out/f/scenes/a+b/main.mp4',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Act', act: 'cold open' }, 'main').dir).toBe(
+      '/out/f/acts/cold-open/main',
+    );
+    expect(renderPaths('/out/f', { _tag: 'Short', id: 'verdict' }, 'main').clip).toBe(
+      '/out/f/shorts/verdict/main.mp4',
+    );
+  });
+
+  test('the job carries its address and variant', () => {
+    expect(Result.getOrThrow(jobOf({ ...flags, scope: bc, variant: 'ink' }))).toMatchObject({
+      address: { _tag: 'Scenes', ids: ['b', 'c'] },
+      variant: 'ink',
+    });
   });
 
   test('a needs rule fails only without its partner', () => {
@@ -166,26 +190,46 @@ describe('planChunks', () => {
     }
   });
 
-  test('about four chunks per page, so an idle page always has one to pull', () => {
-    expect(planChunks(0, 2400, 4)).toHaveLength(16);
-    expect(planChunks(0, 3000, 6)).toHaveLength(24);
+  /** The frames in each chunk, in order. */
+  const sizes = (from: number, to: number, workers: number) =>
+    planChunks(from, to, workers).map((c) => c.to - c.from);
+
+  test('about four chunks per page, then a tail that halves', () => {
+    // 150 frames a chunk for 4 pages, the last 448 frames as four of 75 and four of 37.
+    const all = sizes(0, 2400, 4);
+    expect(all.slice(-8)).toEqual([75, 75, 75, 75, 37, 37, 37, 37]);
+    const head = all.slice(0, -8);
+    expect(head).toHaveLength(14);
+    expect(head.every((n) => n === 139 || n === 140)).toBe(true);
+  });
+
+  test('the last chunks the pages pull are the smallest, so the pages finish together', () => {
+    // The whole righteousness-by-faith film on 8 pages: 59 of 238–239, then eight each of 120, 60 and 30.
+    const all = sizes(0, 15_776, 8);
+    expect(all.slice(-24)).toEqual([
+      ...Array.from({ length: 8 }, () => 120),
+      ...Array.from({ length: 8 }, () => 60),
+      ...Array.from({ length: 8 }, () => 30),
+    ]);
+    expect(all.slice(0, -24).every((n) => n >= 238 && n <= MAX_CHUNK_FRAMES)).toBe(true);
   });
 
   test('never over eight seconds of frames, however few the pages', () => {
-    const chunks = planChunks(0, 10_499, 6);
-    expect(chunks).toHaveLength(Math.ceil(10_499 / MAX_CHUNK_FRAMES));
-    expect(chunks.every((c) => c.to - c.from <= MAX_CHUNK_FRAMES)).toBe(true);
+    expect(sizes(0, 10_499, 6).every((n) => n <= MAX_CHUNK_FRAMES)).toBe(true);
+    expect(sizes(0, 10_499, 1).every((n) => n <= MAX_CHUNK_FRAMES)).toBe(true);
   });
 
   test('never under a second of frames', () => {
-    const chunks = planChunks(3600, 4200, 4);
-    expect(
-      chunks.every((c, k, all) => k === all.length - 1 || c.to - c.from >= MIN_CHUNK_FRAMES),
-    ).toBe(true);
-    expect(planChunks(0, 45, 8).map((c) => [c.from, c.to])).toEqual([
-      [0, 30],
-      [30, 45],
-    ]);
+    for (const [from, to, workers] of [
+      [3600, 4200, 4],
+      [0, 10_499, 6],
+      [0, 1000, 8],
+      [0, 2413, 4],
+      [0, 61, 1],
+    ] as const)
+      expect(sizes(from, to, workers).every((n) => n >= MIN_CHUNK_FRAMES)).toBe(true);
+    // Too short for two chunks of a second: one chunk.
+    expect(sizes(0, 45, 8)).toEqual([45]);
   });
 
   test('an empty range has no chunks', () => {

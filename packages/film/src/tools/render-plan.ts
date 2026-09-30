@@ -4,14 +4,17 @@
 
 import { Array as Arr, Data, Match, Option, Result } from 'effect';
 import type { Address, Scope } from '../core/address.ts';
+import type { RenderKind } from '../core/catalogue.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import type { ExportInfo, Short } from '../core/schema.ts';
 import { type FilmPiece, shortKey } from '../core/shorts.ts';
 
 interface JobBase {
-  /** Output subfolder under `out/<film>`, so parallel renders do not collide. */
-  readonly tag: string;
+  /** The part of the film it draws: where its files go in the project folder (`renderPaths`). */
+  readonly address: Address;
+  /** Which of the address's renders it is (`Variant`): its files are named for it. */
+  readonly variant: string;
   /** Burn the captions in. */
   readonly captions: boolean;
 }
@@ -35,16 +38,67 @@ export const cutPage = (film: string, cut: Cut): string =>
     Short: ({ short }) => shortKey(film, short.id),
   });
 
+/** `name` as one folder name: lower case, each run of other than letters, digits, `.` and `_` a `-`. */
+const slug = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9._]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 /**
- * Where a cut's outputs go, from the film's `out/<film>`: the video beside it
- * as `<base>.mp4` and its stills and sheets in `<base>/<tag>`. A short's base
- * is `out/<film>/shorts/<id>`.
+ * The folder an address's renders go in, under the project folder: `film`,
+ * `acts/<act>`, `scenes/<id>[+<id>…]` or `shorts/<id>`. Written only: the
+ * catalogue records every file, so nothing reads a path back.
  */
-export const cutBase = (out: string, cut: Cut): string =>
-  Cut.$match(cut, {
-    Whole: () => out,
-    Short: ({ short }) => `${out}/shorts/${short.id}`,
+export const addressFolder = (address: Address): string =>
+  Match.valueTags(address, {
+    Film: () => 'film',
+    Act: ({ act }) => `acts/${slug(act)}`,
+    Scenes: ({ ids }) => `scenes/${ids.map(slug).join('+')}`,
+    Short: ({ id }) => `shorts/${id}`,
   });
+
+/** Where one render's files go in the film's project folder (`out/<film>`). */
+export interface RenderPaths {
+  /** `<address>/<variant>.mp4`; its share copy, captions and chapters beside it (`shareName`, `captionsName`, `chaptersName`). */
+  readonly clip: string;
+  /** `<address>/<variant>/`: its stills (`stills/`), contact sheet and look-book. */
+  readonly dir: string;
+}
+
+/** The files of `address`'s `variant` render under `project`. */
+export const renderPaths = (project: string, address: Address, variant: string): RenderPaths => {
+  const folder = `${project}/${addressFolder(address)}`;
+  return { clip: `${folder}/${variant}.mp4`, dir: `${folder}/${variant}` };
+};
+
+/** The captions beside a video: `main.mp4` → `main.vtt`. */
+export const captionsName = (video: string): string => `${video.replace(/\.[^./]+$/, '')}.vtt`;
+
+/** The YouTube chapters beside a video: `main.mp4` → `main.chapters.txt`. */
+export const chaptersName = (video: string): string =>
+  `${video.replace(/\.[^./]+$/, '')}.chapters.txt`;
+
+/** What a render wrote, by path: what the catalogue records of it. */
+export interface RenderOutput {
+  readonly kind: RenderKind;
+  readonly clip: Option.Option<string>;
+  readonly share: Option.Option<string>;
+  readonly captions: Option.Option<string>;
+  readonly chapters: Option.Option<string>;
+  /** Stills (in time order), a contact sheet or a look-book. */
+  readonly images: ReadonlyArray<string>;
+}
+
+/** What an image job wrote: its images and nothing else. */
+export const imagesOutput = (kind: RenderKind, images: ReadonlyArray<string>): RenderOutput => ({
+  kind,
+  clip: Option.none(),
+  share: Option.none(),
+  captions: Option.none(),
+  chapters: Option.none(),
+  images,
+});
 
 /** A render: the film as video, a few stills, a contact sheet, or its look-book. */
 export type RenderJob = Data.TaggedEnum<{
@@ -55,7 +109,10 @@ export type RenderJob = Data.TaggedEnum<{
     readonly from: Option.Option<number>;
     readonly to: Option.Option<number>;
     readonly scale: number;
-    /** Default `out/<film>.mp4`. */
+    /**
+     * `--out`: a file of the caller's, outside the project folder and so not
+     * recorded in its catalogue. None writes `renderPaths(…).clip`.
+     */
     readonly out: Option.Option<string>;
     /**
      * Also a small copy to send, `shareName(out)`: encoded in the same pass
@@ -149,7 +206,7 @@ const addressFlag = (address: Address): Option.Option<string> =>
 
 /** `film render`'s flags, parsed; `scope` is the address (`--act`, `--scene`, `--short`) resolved against the layout. */
 export interface RenderFlags {
-  readonly tag: string;
+  readonly variant: string;
   readonly captions: boolean;
   /** `--workers`; none takes the job's default (`DRAW_WORKERS`, or the encoder's). */
   readonly workers: Option.Option<number>;
@@ -187,7 +244,8 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
   ]);
   const workers = Option.map(flags.workers, (n) => Math.max(1, n));
   const base = {
-    tag: flags.tag,
+    address: flags.scope.address,
+    variant: flags.variant,
     captions: flags.captions,
     cut: Option.match(flags.scope.short, {
       onNone: () => Cut.Whole(),
@@ -336,18 +394,60 @@ export const MIN_CHUNK_FRAMES = 30;
  */
 export const MAX_CHUNK_FRAMES = 240;
 
-/** Split `[start, end)` into in-order chunks for `workers` pages to pull from a queue. */
+/**
+ * `frames` split into as many near-equal chunks as `size` needs, each at most
+ * `size`, and none under `MIN_CHUNK_FRAMES` where there are frames for it.
+ */
+const evenly = (frames: number, size: number): ReadonlyArray<number> => {
+  const n = Math.max(1, Math.min(Math.ceil(frames / size), Math.floor(frames / MIN_CHUNK_FRAMES)));
+  return Arr.makeBy(n, (k) => Math.floor(((k + 1) * frames) / n) - Math.floor((k * frames) / n));
+};
+
+/**
+ * The tail's chunks, in the order the pages pull them: `pages` of half
+ * `size`, then `pages` of a quarter, and so on while a chunk keeps a second
+ * of frames. Frame costs vary twentyfold between scenes, so one full chunk
+ * pulled last can hold every other page idle; halving them makes the last
+ * chunk each page pulls its smallest, and the pages finish together.
+ */
+const tailSizes = (size: number, pages: number): ReadonlyArray<number> =>
+  Arr.unfold(Math.floor(size / 2), (n) =>
+    Option.map(
+      Option.liftPredicate(n, (k) => k >= MIN_CHUNK_FRAMES),
+      (k): readonly [ReadonlyArray<number>, number] => [
+        Arr.makeBy(pages, () => k),
+        Math.floor(k / 2),
+      ],
+    ),
+  ).flat();
+
+/** `frames` as chunk sizes, in order: `size` and under, then the tail; evenly when too short for it. */
+const chunkSizes = (frames: number, size: number, pages: number): ReadonlyArray<number> => {
+  const tail = tailSizes(size, pages);
+  const head = frames - tail.reduce((sum, n) => sum + n, 0);
+  if (head < MIN_CHUNK_FRAMES) return evenly(frames, size);
+  return [...evenly(head, size), ...tail];
+};
+
+/**
+ * Split `[start, end)` into in-order chunks for `workers` pages to pull from
+ * a queue: about four a page of `size` frames, then the halving tail
+ * (`tailSizes`). A range too short for the tail splits evenly.
+ */
 export const planChunks = (start: number, end: number, workers: number): ReadonlyArray<Chunk> => {
   const frames = end - start;
   if (frames <= 0) return [];
+  const pages = Math.max(1, workers);
   const size = Math.min(
     MAX_CHUNK_FRAMES,
-    Math.max(MIN_CHUNK_FRAMES, Math.ceil(frames / (Math.max(1, workers) * CHUNKS_PER_WORKER))),
+    Math.max(MIN_CHUNK_FRAMES, Math.ceil(frames / (pages * CHUNKS_PER_WORKER))),
   );
-  return Arr.makeBy(Math.ceil(frames / size), (index) => ({
+  const sizes = chunkSizes(frames, size, pages);
+  const ends = Arr.scan(sizes, start, (at, n) => at + n);
+  return Arr.makeBy(sizes.length, (index) => ({
     index,
-    from: start + index * size,
-    to: Math.min(end, start + (index + 1) * size),
+    from: ends[index] ?? start,
+    to: ends[index + 1] ?? end,
   }));
 };
 

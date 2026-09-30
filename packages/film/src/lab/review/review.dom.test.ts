@@ -212,12 +212,12 @@ describe('the review page', () => {
         ).toBe(true);
         const frames =
           "Array.from(document.querySelectorAll('.rv-card img')).map((i) => new URL(i.src).searchParams.get('t')).join()";
-        yield* until(page, `${frames} === '1.00,1.00,1.00'`);
+        yield* until(page, `${frames} === '1,1,1'`);
         yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
-        yield* until(page, `${frames} === '5.00,5.00,5.00'`);
+        yield* until(page, `${frames} === '5,5,5'`);
         yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
         yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
-        yield* until(page, `${frames} === '19.00,19.00,19.00'`);
+        yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search.endsWith('&view=moments&m=4')");
         yield* Effect.promise(() => page.click('.rv-card img'));
         yield* waitFor(page, '.rv-lightbox');

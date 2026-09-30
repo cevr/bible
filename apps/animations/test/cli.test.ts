@@ -6,7 +6,8 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { ProjectJson } from '@bible/film/core';
+import { Effect, FileSystem, Schema } from 'effect';
 import { FIXTURE_FILM, runCli, spawnBudget } from './cli-run.ts';
 
 const film = FIXTURE_FILM;
@@ -191,12 +192,43 @@ describe('film cli', () => {
           '3',
           '--scene',
           'open',
-          '--tag',
+          '--variant',
           'p1-t5',
         );
         expect(run.exitCode).not.toBe(0);
         expect(run.out).toContain('FlagsConflict');
         expect(run.out).not.toContain('render.still');
       }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'project lists every scene, none rendered yet, and refuses a comment on a scene with no render',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const out = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
+          const listed = yield* runCli({ FILMS_OUT: out }, ['project', film, '--json']);
+          expect(listed.exitCode).toBe(0);
+          const project = yield* Schema.decodeEffect(ProjectJson)(listed.stdout.trim());
+          expect(project.scenes.map((s) => [s.scene, s.state, s.approval])).toEqual([
+            ['open', 'missing', 'none'],
+            ['turn', 'missing', 'none'],
+            ['close', 'missing', 'none'],
+          ]);
+          const said = yield* runCli({ FILMS_OUT: out }, [
+            'project',
+            'comment',
+            film,
+            'turn',
+            'too slow',
+          ]);
+          expect(said.exitCode).not.toBe(0);
+          expect(said.out).toContain('SceneNotRendered');
+          const bad = yield* runCli({ FILMS_OUT: out }, ['render', film, '--variant', 'Not Safe']);
+          expect(bad.exitCode).not.toBe(0);
+          expect(bad.out).not.toContain('render.encoder');
+        }),
+      ),
+    spawnBudget(3),
   );
 });

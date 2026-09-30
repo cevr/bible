@@ -11,6 +11,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import {
+  CatalogueJson,
   type FilmChoice,
   type LockEntry,
   LockJson,
@@ -145,9 +146,36 @@ const fixture = Layer.unwrap(
         '',
       ].join('\n'),
     );
-    // A render of the film, for the picture its options are heard against.
-    yield* fs.makeDirectory(path.join(out, 'tiny'), { recursive: true });
-    yield* fs.writeFileString(path.join(out, 'tiny', 'tiny.mp4'), 'not really a video');
+    // A render of the film, for the picture its options are heard against:
+    // its file in the project folder, and the catalogue's record of it.
+    yield* fs.makeDirectory(path.join(out, 'tiny', 'film'), { recursive: true });
+    yield* fs.writeFileString(path.join(out, 'tiny', 'film', 'main.mp4'), 'not really a video');
+    yield* fs.writeFileString(
+      path.join(out, 'tiny', 'catalogue.json'),
+      yield* Schema.encodeEffect(CatalogueJson)({
+        film: 'tiny',
+        renders: [
+          {
+            address: { _tag: 'Film' },
+            variant: 'main',
+            kind: 'video',
+            settings: { scale: 1, captions: true },
+            stamp: { commit: Option.none(), key: 'k' },
+            span: Option.none(),
+            files: {
+              clip: Option.some('film/main.mp4'),
+              share: Option.none(),
+              captions: Option.none(),
+              chapters: Option.none(),
+              images: [],
+            },
+            at: 1,
+          },
+        ],
+        approvals: [],
+        comments: [],
+      }),
+    );
     const Platform = BunServices.layer;
     const Store = ContentStore.layer.pipe(Layer.provide(Platform));
     const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
@@ -211,7 +239,7 @@ describe("a film's choices", () => {
         expect(yield* FilmRepo.use((repo) => repo.names)).toEqual(['tiny']);
         const tiny = yield* filmNamed('tiny');
         const listed = yield* (yield* Choices).list(tiny);
-        expect(listed.pictures.map((p) => p.ref)).toEqual(['out/tiny/tiny.mp4']);
+        expect(listed.pictures.map((p) => p.ref)).toEqual(['out/tiny/film/main.mp4']);
         const [score, effect] = listed.choices;
         expect(score).toMatchObject({ _tag: 'ScoreChoice', picked: 'piano' });
         expect(score?._tag === 'ScoreChoice' && score.variants.map((v) => [v.id, v.state])).toEqual(

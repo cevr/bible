@@ -14,8 +14,8 @@ import {
   LabWrite,
   ReviewDuration,
   ReviewIndex,
-  reviewFileUrl,
 } from '../core/schema.ts';
+import { Refusal, ReviewHttpApi, reviewFileUrl, routesOf } from '../core/api.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
@@ -23,7 +23,7 @@ import { reviewHandler, refFromUrl } from './review-http.ts';
 import { Review } from './review.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
-import { reviewMedia } from './testing.ts';
+import { foreignRequests, reviewMedia } from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
@@ -104,7 +104,10 @@ const fixture = Layer.unwrap(
     yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
-    yield* fs.writeFileString(path.join(out, 'art', 'review.json'), '{ "title": "Art" }');
+    yield* fs.writeFileString(
+      path.join(out, 'art', 'review.json'),
+      '{ "title": "Art", "docs": ["roof.vtt"], "sets": { "roof": { "order": ["A", "B"] } } }',
+    );
     yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
     const films = path.join(dir, 'films');
     yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });
@@ -144,6 +147,9 @@ const ask = (request: Request) =>
   });
 
 const body = (response: Response) => Effect.promise(() => response.text());
+
+/** A refusal's JSON, decoded as the page decodes it. */
+const refusalOf = Schema.decodeSync(Schema.fromJsonString(Refusal));
 
 describe('review routes', () => {
   test('reads a ref from a files URL, each segment decoded', () => {
@@ -238,6 +244,19 @@ describe('review routes', () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
+  it.effect('every route the review API declares answers a foreign Host 403', () =>
+    Effect.gen(function* () {
+      const routes = routesOf(ReviewHttpApi);
+      expect(routes.length).toBeGreaterThan(10);
+      for (const request of foreignRequests(routes, 'http://127.0.0.1:8229', 'f')) {
+        const res = yield* ask(request);
+        const refusal = yield* Effect.promise(() => res.json());
+        const route = `${request.method} ${new URL(request.url).pathname}`;
+        expect([route, res.status, refusal._tag]).toEqual([route, 403, 'RequestRefused']);
+      }
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
   it.effect("passes the app's page the rest, behind the same hosts", () =>
     Effect.gen(function* () {
       for (const path of ['/', '/chunk-a1.js', '/films/tiny/narration/s1.mp3']) {
@@ -269,7 +288,11 @@ describe("a film's options", () => {
       expect(choices).toEqual(CHOICES);
       const unknown = yield* ask(get('/lab/nope/options'));
       expect(unknown.status).toBe(404);
-      expect(yield* body(unknown)).toBe('FilmUnknown: no film "nope" (the films: f)');
+      expect(refusalOf(yield* body(unknown))).toMatchObject({
+        _tag: 'FilmUnknown',
+        film: 'nope',
+        known: ['f'],
+      });
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
@@ -282,7 +305,11 @@ describe("a film's options", () => {
           const text = yield* body(answer);
           expect([film, route, answer.status]).toEqual([film, route, 404]);
           // Only the name as asked, and the films there are: no folder of the server's.
-          expect(text).toBe(`FilmUnknown: no film "${decodeURIComponent(film)}" (the films: f)`);
+          expect(refusalOf(text)).toMatchObject({
+            _tag: 'FilmUnknown',
+            film: decodeURIComponent(film),
+            known: ['f'],
+          });
         }
       const undo = yield* ask(
         new Request('http://127.0.0.1:8229/lab/..%2Fbeside/undo', {

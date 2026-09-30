@@ -2,14 +2,15 @@
 // text probe on, in a pool of headless pages, and the pure detectors in
 // `check.ts` read the boxes it reports. Then it probes across each stretch the
 // static leg names as a hold candidate, to tell a still picture from motion
-// no cue declares. The server, the browser and the pages live in one scope, as
+// no cue declares. The pages are a pool of `Pages`, in the check's scope, as
 // in a render.
 
-import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
+import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
 import type { Scope } from '../core/address.ts';
 import type { Interval } from '../core/time.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { ShortError } from '../core/errors.ts';
+import type { LumaArea } from '../core/export-handle.ts';
 import type { Probed, Short } from '../core/schema.ts';
 import {
   type ResolvedShort,
@@ -20,7 +21,7 @@ import {
   resolveShort,
   shortKey,
 } from '../core/shorts.ts';
-import { Browser, type FramePage, type LumaArea, type PageOpenError } from './browser.ts';
+import { type PageOpenError, lumaOf } from './browser.ts';
 import {
   loopPicture,
   lumaDiff,
@@ -49,7 +50,7 @@ import {
 import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
 import { type LayoutFinding, type ShortFinding, StaticHold } from './findings.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
-import { PreviewServer } from './preview-server.ts';
+import { type ExportPages, Pages } from './pages.ts';
 
 export type LayoutCheckError = PageOpenError | PageError | PageCrashed | FrameFailed | PlaceError;
 
@@ -64,16 +65,16 @@ type ProbeFrame = (
   i: number,
 ) => Effect.Effect<Probed, PageOpenError | PageError | PageCrashed | FrameFailed>;
 
-/** Probe frames on `pool`, each at most once however many runs reach it: `seen` keeps them. */
+/** Probe frames on `pages`, each at most once however many runs reach it: `seen` keeps them. */
 const probedOnce =
-  (pool: Pool.Pool<FramePage, PageOpenError>, seen: Map<number, Probed>): ProbeFrame =>
+  (pages: ExportPages, seen: Map<number, Probed>): ProbeFrame =>
   (i) =>
     Option.match(Option.fromNullishOr(seen.get(i)), {
       onSome: (probed) => Effect.succeed(probed),
       onNone: () =>
-        Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.probe(i))).pipe(
-          Effect.tap((probed) => Effect.sync(() => void seen.set(i, probed))),
-        ),
+        pages
+          .call('probe', i)
+          .pipe(Effect.tap((probed) => Effect.sync(() => void seen.set(i, probed)))),
     });
 
 /** What probing across one hold candidate found, and how many frames it drew. */
@@ -115,14 +116,14 @@ const reach = (
  * found. Most candidates that move show it at their grid.
  */
 const confirmHold = (
-  pool: Pool.Pool<FramePage, PageOpenError>,
+  pages: ExportPages,
   workers: number,
   fps: number,
   hold: HoldCandidate,
 ): Effect.Effect<HoldProbe, PageOpenError | PageError | PageCrashed | FrameFailed> =>
   Effect.gen(function* () {
     const seen = new Map<number, Probed>();
-    const probeAt = probedOnce(pool, seen);
+    const probeAt = probedOnce(pages, seen);
     const ticks = holdTicks(hold, fps);
     const grid = holdGrid(ticks);
     // The grid first, as many at once as there are pages.
@@ -189,34 +190,35 @@ export interface CheckerService {
 export class Checker extends Context.Service<Checker, CheckerService>()(
   '@bible/film/tools/Checker',
 ) {
+  /** On pages of its own (`Pages`), in the `Browser`, on the app's `PreviewServer`. */
   static readonly layer = Layer.effect(
     Checker,
     Effect.gen(function* () {
-      const browser = yield* Browser;
-      const server = yield* PreviewServer;
+      const pages = yield* Pages;
 
       const layout = Effect.fn('Checker.layout')(function* (
         film: LoadedFilm,
         options: LayoutCheckOptions,
       ) {
         const placed = yield* placeFilm(film);
-        const url = `${server.url}?film=${encodeURIComponent(film.paths.name)}&export`;
         return yield* Effect.scoped(
           Effect.gen(function* () {
             const workers = Math.max(1, options.workers);
-            const pool = yield* Pool.make({ acquire: browser.open(url), size: workers });
-            const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+            const pool = yield* pages.open(film.paths.name, { workers, captions: true });
+            const info = pool.info;
             const chosen = new Set(options.scope.scenes.map((p) => p.spec.id));
             const samples = layoutSamples(placed, info.fps).filter((s) => chosen.has(s.scene));
             const probe = (sample: Sample) =>
-              Effect.scoped(
+              pool.use((page) =>
                 Effect.gen(function* () {
-                  const page = yield* Pool.get(pool);
-                  const probed = yield* page.probe(sample.frame);
+                  const probed = yield* page.call('probe', sample.frame);
                   // A plate past an edge may be moving: only then is the next frame worth drawing.
                   if (platesOffFrame(sample, probed, info).length === 0)
                     return frameFindings(sample, probed, info);
-                  const next = yield* page.probe(Math.min(sample.frame + 1, info.frames - 1));
+                  const next = yield* page.call(
+                    'probe',
+                    Math.min(sample.frame + 1, info.frames - 1),
+                  );
                   return frameFindings(sample, probed, info, next);
                 }),
               );
@@ -251,10 +253,11 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
         workers: number,
       ) {
         const placed = yield* placeFilm(film);
-        const key = shortKey(film.paths.name, declared.id);
-        const url = `${server.url}?film=${encodeURIComponent(key)}&export`;
-        const pool = yield* Pool.make({ acquire: browser.open(url), size: Math.max(1, workers) });
-        const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+        const pool = yield* pages.open(shortKey(film.paths.name, declared.id), {
+          workers,
+          captions: true,
+        });
+        const info = pool.info;
         const cut = yield* Effect.fromResult(resolveShort(placed, declared, info.fps));
         return { pool, info, cut, phrases: shortPhrases(placed, cut) };
       });
@@ -277,12 +280,11 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             if (options.static) return words;
             // The short's page is named for the short: the film's title and size are on the film's page.
             const { title, band } = yield* Effect.map(
-              browser.open(`${server.url}?film=${encodeURIComponent(name)}&export`),
-              (page) => ({ title: page.title, band: bandOf(page.info) }),
+              pages.open(name, { workers: 1, captions: true }),
+              (whole) => ({ title: whole.title, band: bandOf(whole.info) }),
             );
             const k = info.width / SHORT_WIDTH;
-            const probeAt = (i: number) =>
-              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.probe(i)));
+            const probeAt = (i: number) => pool.call('probe', i);
             const frames = zoneFrames(cut, phrases);
             const probed = yield* Effect.forEach(frames, probeAt, { concurrency: workers });
             const unsafe = mergeUnsafe(
@@ -304,8 +306,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
               h: band.height,
               ...SHORT_RULES.loopGrid,
             };
-            const lumaAt = (i: number) =>
-              Effect.scoped(Effect.flatMap(Pool.get(pool), (page) => page.luma(i, frame)));
+            const lumaAt = (i: number) => pool.use((page) => lumaOf(page, i, frame));
             const [first, last] = yield* Effect.all([lumaAt(0), lumaAt(info.frames - 1)], {
               concurrency: 2,
             });
@@ -326,5 +327,5 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
 
       return Checker.of({ layout, cut, short });
     }),
-  );
+  ).pipe(Layer.provide(Pages.layer));
 }

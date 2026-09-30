@@ -15,7 +15,7 @@
 // (the copy's films folder, to read what the studio wrote); `POST
 // /lab/harness/stop` stops it, removing the copy.
 
-import { BunRuntime, BunServices } from '@effect/platform-bun';
+import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   ApiKeyMissing,
   ContentStore,
@@ -33,8 +33,6 @@ import {
   Takes,
   beatsOf,
   labHandler,
-  studioHandler,
-  withStudio,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path } from 'effect';
 import { serve } from '../../server.ts';
@@ -132,7 +130,7 @@ const Harness = Layer.unwrap(
     yield* fs.copy(path.join(app, 'src', 'films', film), path.join(root, film));
     const misheard = new Set<string>();
 
-    const Platform = BunServices.layer;
+    const Platform = BunHttpPlatform.layer.pipe(Layer.provideMerge(BunServices.layer));
     const Store = ContentStore.layer.pipe(Layer.provide(Platform));
     const sounds = Option.some(path.join(app, 'sounds'));
     const Repo = FilmRepo.layer(root, sounds).pipe(Layer.provide([Store, Platform]));
@@ -156,7 +154,7 @@ const Harness = Layer.unwrap(
     const Server = Layer.effectDiscard(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
-        const lab = withStudio(film, yield* labHandler(film), yield* studioHandler(film));
+        const lab = yield* labHandler(film);
         const server = yield* Effect.acquireRelease(
           Effect.sync(() => serve(port, true, withControl(misheard, root, lab), root)),
           (s) => Effect.promise(() => s.stop(true)),

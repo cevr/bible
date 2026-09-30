@@ -1,8 +1,13 @@
-// Headless Chromium, as a service: the Playwright glue, and nothing else.
-// The browser is launched when the layer is built and closed when its scope
-// closes; each page lives in the scope that opened it. Everything the film does
-// wrong in a page arrives as a typed failure: an uncaught error (`pageerror`)
-// is `PageError`, a dead renderer process is `PageCrashed`.
+// Headless Chromium, as a service: the Playwright glue, and the one typed
+// path every call on an export page takes (`framePage`). The browser is
+// launched when the layer is built and closed when its scope closes; each
+// page lives in the scope that opened it. A call names one of the handle's
+// calls (`ExportCalls`, core/export-handle.ts), its answer is decoded by that
+// call's schema, and its failure is that call's own error (`CALLS`). Playwright
+// and the test fake (tools/testing.ts) are the two ways a call reaches a page
+// (`Invoke`). Everything the film does wrong in a page arrives as a typed
+// failure: an uncaught error (`pageerror`) is `PageError`, a dead renderer
+// process is `PageCrashed`.
 
 import {
   Array as Arr,
@@ -17,8 +22,15 @@ import {
   type Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
-import { type Encoder, EncoderChoice } from '../core/encoder.ts';
-import { ExportInfo, FaceMark, HandMark, Probed } from '../core/schema.ts';
+import {
+  type CallAnswers,
+  type CallArgs,
+  type ExportCall,
+  ExportAnswers,
+  type LumaArea,
+  type WireAnswers,
+} from '../core/export-handle.ts';
+import { ExportInfo } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,
@@ -32,79 +44,116 @@ import {
   PageLoadFailed,
 } from './errors.ts';
 
-export type FrameFormat = 'image/png' | 'image/jpeg';
+/**
+ * A call the page did not answer, and why: how an adapter reports it, before
+ * `framePage` names it as the call's own error.
+ */
+export class CallRefused extends Schema.TaggedError<CallRefused>()('CallRefused', {
+  reason: Schema.String,
+}) {}
+
+/** The error each call fails with, beside the page's own (`PageError`, `PageCrashed`). */
+export interface CallErrors {
+  readonly frame: FrameFailed;
+  readonly probe: FrameFailed;
+  readonly lookbook: LookbookFailed;
+  readonly encoder: EncoderMissing;
+  readonly encode: EncodeFailed;
+  readonly contact: ContactFailed;
+  readonly look: FrameFailed;
+  readonly luma: FrameFailed;
+  readonly drawTimes: FrameFailed;
+}
+
+/** How long a call may take, and the error its failure is, from its arguments and the reason. */
+interface CallPolicy<K extends ExportCall> {
+  readonly timeout: Duration.Duration;
+  readonly fail: (args: CallArgs[K], reason: string) => CallErrors[K];
+}
+
+/** A frame that takes longer than this has hung. */
+const FRAME_TIMEOUT = Duration.minutes(2);
+/** The look-book, the contact sheet and a batch of frames draw many frames in one call. */
+const SHEET_TIMEOUT = Duration.minutes(5);
+/** A chunk draws and encodes a few hundred frames in one call. */
+const ENCODE_TIMEOUT = Duration.minutes(5);
+
+/** A failed batch of frames names its first. */
+const batchFailed = (
+  [frames]: readonly [ReadonlyArray<number>, ...ReadonlyArray<unknown>],
+  reason: string,
+) => FrameFailed.make({ frame: frames[0] ?? 0, reason });
+
+/** Every call's policy, call by call. */
+type CallPolicies = { readonly [K in ExportCall]: CallPolicy<K> };
+
+const CALLS: CallPolicies = {
+  frame: { timeout: FRAME_TIMEOUT, fail: ([frame], reason) => FrameFailed.make({ frame, reason }) },
+  probe: { timeout: FRAME_TIMEOUT, fail: ([frame], reason) => FrameFailed.make({ frame, reason }) },
+  lookbook: { timeout: SHEET_TIMEOUT, fail: (_, reason) => LookbookFailed.make({ reason }) },
+  encoder: { timeout: FRAME_TIMEOUT, fail: (_, reason) => EncoderMissing.make({ reason }) },
+  encode: {
+    timeout: ENCODE_TIMEOUT,
+    fail: ([from, to], reason) => EncodeFailed.make({ from, to, reason }),
+  },
+  contact: { timeout: SHEET_TIMEOUT, fail: (_, reason) => ContactFailed.make({ reason }) },
+  look: { timeout: SHEET_TIMEOUT, fail: batchFailed },
+  luma: { timeout: FRAME_TIMEOUT, fail: ([frame], reason) => FrameFailed.make({ frame, reason }) },
+  drawTimes: { timeout: SHEET_TIMEOUT, fail: batchFailed },
+};
+
+/**
+ * How an adapter reaches a page's handle: call `name` with `args` and hand
+ * back its answer as it crossed (undecoded), within `timeout`; a call the
+ * page did not answer is `CallRefused`.
+ */
+export type Invoke = <K extends ExportCall>(
+  name: K,
+  args: CallArgs[K],
+  timeout: Duration.Duration,
+) => Effect.Effect<unknown, PageError | PageCrashed | CallRefused>;
 
 /** One player page in export mode. */
 export interface FramePage {
   readonly info: ExportInfo;
   /** The page's title: the film's (or the short's) title, as the player sets it. */
   readonly title: string;
-  /** Draw frame `i` and return it encoded. */
-  readonly frame: (
-    i: number,
-    format: FrameFormat,
-  ) => Effect.Effect<Uint8Array, PageError | PageCrashed | FrameFailed>;
-  /** Draw frame `i` with the probe on and return every line of text and mark of ink it drew. */
-  readonly probe: (i: number) => Effect.Effect<Probed, PageError | PageCrashed | FrameFailed>;
-  /** Compose the film's look-book and return it as a JPEG. */
-  readonly lookbook: Effect.Effect<Uint8Array, PageError | PageCrashed | LookbookFailed>;
-  /**
-   * The first of `candidates` the page can encode the film with at `scale`,
-   * its share copy included when `share`; `EncoderMissing` when none can.
-   */
-  readonly encoder: (
-    scale: number,
-    share: boolean,
-    candidates: ReadonlyArray<Encoder>,
-  ) => Effect.Effect<Encoder, PageError | PageCrashed | EncoderMissing>;
-  /**
-   * Draw frames `[from, to)` and return them encoded by `encoder` as an H.264
-   * MP4 at `scale`, its first frame at 0, and with `share` a small copy
-   * encoded in the same pass.
-   */
-  readonly encode: (
-    chunk: { readonly from: number; readonly to: number },
-    scale: number,
-    share: boolean,
-    encoder: Encoder,
-  ) => Effect.Effect<EncodedChunk, PageError | PageCrashed | EncodeFailed>;
-  /** Draw `frames` and return them tiled into the contact sheet, as a JPEG. */
-  readonly contact: (
-    frames: ReadonlyArray<number>,
-  ) => Effect.Effect<Uint8Array, PageError | PageCrashed | ContactFailed>;
-  /** Draw frame `i` and return the luma (0–255) of `area`, sampled down, row by row. */
-  readonly luma: (
-    i: number,
-    area: LumaArea,
-  ) => Effect.Effect<ReadonlyArray<number>, PageError | PageCrashed | FrameFailed>;
-  /**
-   * Draw `frames` without captions and return each as a `w` × `h` RGBA thumb
-   * (end to end) with the faces it declared: the look pass.
-   */
-  readonly look: (
-    frames: ReadonlyArray<number>,
-    w: number,
-    h: number,
-  ) => Effect.Effect<LookedFrames, PageError | PageCrashed | FrameFailed>;
+  /** Call the export handle's `name` with `args`: its answer decoded, or the call's own error. */
+  readonly call: <K extends ExportCall>(
+    name: K,
+    ...args: CallArgs[K]
+  ) => Effect.Effect<CallAnswers[K], PageError | PageCrashed | CallErrors[K]>;
 }
 
-/** The look pass's frames: thumbs end to end, and each frame's faces and hands. */
-export const LookedFrames = Schema.Struct({
-  thumbs: Schema.Uint8ArrayFromBase64,
-  faces: Schema.Array(Schema.Array(FaceMark)),
-  hands: Schema.Array(Schema.Array(HandMark)),
+/** `name`'s answer schema, typed as its call's (`CallAnswers[K]`). */
+const answerOf = <K extends ExportCall>(
+  answers: { readonly [P in K]: Schema.Codec<CallAnswers[P], WireAnswers[P]> },
+  name: K,
+): Schema.Codec<CallAnswers[K], WireAnswers[K]> => answers[name];
+
+/**
+ * A page reached through `invoke`: every answer decoded by its call's schema
+ * (`ExportCalls`), every failure the call's own error (`CALLS`), saying why.
+ * An answer that does not decode (the handle is gone, or answered something
+ * else) fails the call too.
+ */
+export const framePage = (info: ExportInfo, title: string, invoke: Invoke): FramePage => ({
+  info,
+  title,
+  call: <K extends ExportCall>(name: K, ...args: CallArgs[K]) => {
+    const policy: CallPolicy<K> = CALLS[name];
+    const answer = answerOf(ExportAnswers, name);
+    const failed = (reason: string) => policy.fail(args, reason);
+    return invoke(name, args, policy.timeout).pipe(
+      Effect.catchTag('CallRefused', (refused) => Effect.fail(failed(refused.reason))),
+      Effect.flatMap((wire) =>
+        Schema.decodeUnknownEffect(answer)(wire).pipe(
+          Effect.mapError((error) => failed(`the export handle answered: ${error.message}`)),
+        ),
+      ),
+    );
+  },
 });
-export type LookedFrames = typeof LookedFrames.Type;
-
-/** A rectangle of a frame in canvas px, and the grid its luma is sampled down to. */
-export interface LumaArea {
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-  readonly cols: number;
-  readonly rows: number;
-}
 
 /**
  * A frame's luma as a page hands it back: one value per cell of `area`'s
@@ -120,53 +169,17 @@ export const lumaGrid = (area: LumaArea) =>
     ),
   );
 
-/**
- * Runs in the page: frame `n` as the export handle encodes it (PNG, so
- * lossless), cropped to the area, scaled down to its grid and read back as
- * Rec. 709 luma. The player is not touched; this reads what it hands out.
- */
-const lumaInPage = ([n, area]: readonly [number, LumaArea]) =>
-  window.__film
-    ?.frame(n, 'image/png')
-    .then((b64) => {
-      // Base64 by hand: the page has no module to import a decoder from.
-      const table = new Int16Array(128).fill(-1);
-      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-      for (let i = 0; i < alphabet.length; i++) table[alphabet.charCodeAt(i)] = i;
-      const bytes = new Uint8Array(Math.floor((b64.length * 3) / 4));
-      let acc = 0;
-      let bits = 0;
-      let at = 0;
-      for (let i = 0; i < b64.length; i++) {
-        const v = table[b64.charCodeAt(i) & 127] ?? -1;
-        if (v < 0) continue;
-        acc = ((acc << 6) | v) & 0xffffff;
-        bits += 6;
-        if (bits >= 8) {
-          bits -= 8;
-          bytes[at++] = (acc >> bits) & 0xff;
-        }
-      }
-      return new Blob([bytes.subarray(0, at)], { type: 'image/png' });
-    })
-    .then((png) =>
-      createImageBitmap(png, area.x, area.y, area.w, area.h, {
-        resizeWidth: area.cols,
-        resizeHeight: area.rows,
-        resizeQuality: 'medium',
-      }),
-    )
-    .then((bitmap) => {
-      const ctx = new OffscreenCanvas(area.cols, area.rows).getContext('2d');
-      // No canvas to sample on: an empty read, which `lumaGrid` refuses as a failed frame.
-      if (!ctx) return [];
-      ctx.drawImage(bitmap, 0, 0);
-      const d = ctx.getImageData(0, 0, area.cols, area.rows).data;
-      const out: number[] = [];
-      for (let i = 0; i < d.length; i += 4)
-        out.push(0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0));
-      return out;
-    });
+/** Frame `i`'s luma over `area` on `page` (`luma`), one value per cell of its grid (`lumaGrid`). */
+export const lumaOf = (page: FramePage, i: number, area: LumaArea) =>
+  page
+    .call('luma', i, area)
+    .pipe(
+      Effect.flatMap((cells) =>
+        Schema.decodeEffect(lumaGrid(area))(cells).pipe(
+          Effect.mapError((error) => FrameFailed.make({ frame: i, reason: error.message })),
+        ),
+      ),
+    );
 
 export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
 
@@ -177,12 +190,6 @@ export interface BrowserService {
 
 /** How long the player may take to load its fonts and film. */
 const LOAD_TIMEOUT_MS = 60_000;
-/** A frame that takes longer than this has hung. */
-const FRAME_TIMEOUT = Duration.minutes(2);
-/** The look-book and the contact sheet draw many frames in one call. */
-const SHEET_TIMEOUT = Duration.minutes(5);
-/** A chunk draws and encodes a few hundred frames in one call. */
-const ENCODE_TIMEOUT = Duration.minutes(5);
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
 
@@ -235,13 +242,6 @@ const launch = Effect.gen(function* () {
   });
 });
 
-/** A chunk from the page (`player/encode.ts`): the master, and the share copy if asked for. */
-const EncodedChunk = Schema.Struct({
-  master: Schema.Uint8ArrayFromBase64,
-  share: Schema.OptionFromOptionalKey(Schema.Uint8ArrayFromBase64),
-});
-export type EncodedChunk = typeof EncodedChunk.Type;
-
 const openPage = (page: Page, url: string) =>
   Effect.gen(function* () {
     const broken = yield* Deferred.make<never, PageError | PageCrashed>();
@@ -281,171 +281,34 @@ const openPage = (page: Page, url: string) =>
     // The player names the page after the film it mounted.
     const title = yield* guarded(Effect.tryPromise({ try: () => page.title(), catch: loadFailed }));
     const reported = yield* guarded(
-      Effect.tryPromise({
-        try: () =>
-          page.evaluate(() => {
-            const film = window.__film;
-            return (
-              film && {
-                width: film.width,
-                height: film.height,
-                fps: film.fps,
-                duration: film.duration,
-                frames: film.frames,
-                audio: film.audio,
-              }
-            );
-          }),
-        catch: loadFailed,
-      }),
+      Effect.tryPromise({ try: () => page.evaluate(() => window.__film?.info), catch: loadFailed }),
     );
     const info = yield* Schema.decodeUnknownEffect(ExportInfo)(reported).pipe(
       Effect.mapError((error) => PageLoadFailed.make({ url, reason: error.message })),
     );
 
-    /**
-     * A handle call, its answer decoded by `schema`; `fail` says what failed,
-     * and it fails too if the call outlasts `timeout`, or the answer does not
-     * decode (the handle is gone, or answered something else), saying why.
-     */
-    const handle = <A, E>(
-      call: () => Promise<unknown>,
-      schema: Schema.Decoder<A>,
-      timeout: Duration.Duration,
-      fail: (reason: string) => E,
-    ) =>
+    /** A call through Playwright: the arguments cross into the page, the answer back. */
+    const invoke: Invoke = (name, args, timeout) =>
       guarded(
-        Effect.tryPromise({ try: call, catch: (cause) => fail(String(cause)) }).pipe(
+        Effect.tryPromise({
+          try: () =>
+            page.evaluate(
+              ([n, a]) => {
+                const handle = window.__film;
+                return handle && Reflect.apply(handle[n], handle, a);
+              },
+              [name, args] satisfies [ExportCall, ReadonlyArray<unknown>],
+            ),
+          catch: (cause) => CallRefused.make({ reason: String(cause) }),
+        }).pipe(
           Effect.timeoutOrElse({
             duration: timeout,
-            orElse: () => Effect.fail(fail('timed out')),
-          }),
-        ),
-      ).pipe(
-        Effect.flatMap((answer) =>
-          Schema.decodeUnknownEffect(schema)(answer).pipe(
-            Effect.mapError((error) => fail(`the export handle answered: ${error.message}`)),
-          ),
-        ),
-      );
-
-    /** A handle call that hands back bytes as base64. */
-    const bytes = <E>(
-      call: () => Promise<unknown>,
-      timeout: Duration.Duration,
-      fail: (reason: string) => E,
-    ) => handle(call, Schema.Uint8ArrayFromBase64, timeout, fail);
-
-    const frame = (i: number, format: FrameFormat) =>
-      bytes(
-        () =>
-          page.evaluate(([n, type]) => window.__film?.frame(n, type), [i, format] satisfies [
-            number,
-            FrameFormat,
-          ]),
-        FRAME_TIMEOUT,
-        (reason) => FrameFailed.make({ frame: i, reason }),
-      );
-
-    const probe = (i: number) =>
-      handle(
-        () => page.evaluate((n) => window.__film?.probe(n), i),
-        Probed,
-        FRAME_TIMEOUT,
-        (reason) => FrameFailed.make({ frame: i, reason }),
-      );
-
-    const lookbook = bytes(
-      () => page.evaluate(() => window.__film?.lookbook('image/jpeg')),
-      SHEET_TIMEOUT,
-      (reason) => LookbookFailed.make({ reason }),
-    );
-
-    const encoder = (scale: number, share: boolean, candidates: ReadonlyArray<Encoder>) =>
-      handle(
-        () =>
-          page.evaluate(([k, copy, allowed]) => window.__film?.encoder(k, copy, allowed), [
-            scale,
-            share,
-            [...candidates],
-          ] satisfies [number, boolean, Array<Encoder>]),
-        EncoderChoice,
-        FRAME_TIMEOUT,
-        (reason) => EncoderMissing.make({ reason }),
-      ).pipe(
-        Effect.flatMap((choice) =>
-          EncoderChoice.match(choice, {
-            Hardware: (found) => Effect.succeed<Encoder>(found),
-            Software: (found) => Effect.succeed<Encoder>(found),
-            Missing: ({ reason }) => Effect.fail(EncoderMissing.make({ reason })),
+            orElse: () => Effect.fail(CallRefused.make({ reason: 'timed out' })),
           }),
         ),
       );
 
-    const encode = (
-      chunk: { readonly from: number; readonly to: number },
-      scale: number,
-      share: boolean,
-      encoder: Encoder,
-    ) =>
-      handle(
-        () =>
-          page.evaluate(([from, to, k, copy, by]) => window.__film?.encode(from, to, k, copy, by), [
-            chunk.from,
-            chunk.to,
-            scale,
-            share,
-            encoder,
-          ] satisfies [number, number, number, boolean, Encoder]),
-        EncodedChunk,
-        ENCODE_TIMEOUT,
-        (reason) => EncodeFailed.make({ from: chunk.from, to: chunk.to, reason }),
-      );
-
-    const contact = (frames: ReadonlyArray<number>) =>
-      bytes(
-        () => page.evaluate((all) => window.__film?.contact(all), [...frames]),
-        SHEET_TIMEOUT,
-        (reason) => ContactFailed.make({ reason }),
-      );
-
-    /** A failed batch of frames names its first. */
-    const batchFailed = (frames: ReadonlyArray<number>) => (reason: string) =>
-      FrameFailed.make({ frame: frames[0] ?? 0, reason });
-
-    const look = (frames: ReadonlyArray<number>, w: number, h: number) =>
-      handle(
-        () =>
-          page.evaluate(([all, tw, th]) => window.__film?.look(all, tw, th), [
-            [...frames],
-            w,
-            h,
-          ] satisfies [number[], number, number]),
-        LookedFrames,
-        SHEET_TIMEOUT,
-        batchFailed(frames),
-      );
-
-    const luma = (i: number, area: LumaArea) =>
-      handle(
-        () => page.evaluate(lumaInPage, [i, area] satisfies [number, LumaArea]),
-        lumaGrid(area),
-        FRAME_TIMEOUT,
-        (reason) => FrameFailed.make({ frame: i, reason }),
-      );
-
-    return {
-      info,
-      title,
-      frame,
-      probe,
-      lookbook,
-      encoder,
-      encode,
-      contact,
-      look,
-      luma,
-    } satisfies FramePage;
+    return framePage(info, title, invoke);
   });
 
 /** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */

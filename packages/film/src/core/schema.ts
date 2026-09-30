@@ -995,51 +995,6 @@ export const CheckLine = Schema.Struct({
 export type CheckLine = typeof CheckLine.Type;
 
 /**
- * The lab API's root for one film: every route is under `/lab/<film>/`, so a
- * page for another film cannot read or write this one's (the server answers
- * 409 for a film it does not serve).
- */
-export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
-
-/** Where the review serves a file by its ref, and its phone copy. */
-export const REVIEW_FILES = '/review/files/';
-export const REVIEW_PHONE = '/review/phone/';
-
-/** A ref as a URL path: each segment encoded, the slashes kept. */
-const refPath = (ref: string) =>
-  ref
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-
-/** The review's URL for a file, by its ref. */
-export const reviewFileUrl = (ref: string): string => `${REVIEW_FILES}${refPath(ref)}`;
-
-/** The review's URL for a video's 720p phone copy, by its ref. */
-export const reviewPhoneUrl = (ref: string): string => `${REVIEW_PHONE}${refPath(ref)}`;
-
-/** The review's URL for a frame of a video, `w` px wide, at `t` s (10% in when none). */
-export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number): string => {
-  const at = Option.match(t, { onNone: () => '', onSome: (s) => `&t=${s.toFixed(2)}` });
-  return `/review/frame?ref=${encodeURIComponent(ref)}&w=${Math.round(w)}${at}`;
-};
-
-/** A film's options (`GET`), under its lab base. */
-export const optionsUrl = (film: string): string => `${labBase(film)}/options`;
-
-/** The film's whole mix with the score option `option` playing (an m4a). */
-export const scoreMixUrl = (film: string, option: string): string =>
-  `${optionsUrl(film)}/score/${encodeURIComponent(option)}/mix`;
-
-/** A library sound's take (by its sha256) alone: its file as the library keeps it. */
-export const takeAudioUrl = (film: string, sound: string, take: string): string =>
-  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/audio`;
-
-/** The film's whole mix with `sound` playing only this take at each of its placements (an m4a). */
-export const takeMixUrl = (film: string, sound: string, take: string): string =>
-  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/mix`;
-
-/**
  * One change the lab made to a file, as a page is told of it: a scene's (its
  * cue or knob) or a film's (its score's pick, its library's takes), named by
  * the scene when there is one.
@@ -1180,7 +1135,10 @@ const ManifestVariant = Schema.Struct({
   verdict: maybe(Schema.String),
   /** A markdown file of notes, relative to the folder. */
   notes: maybe(Schema.String),
-  /** The video, relative to the folder, when it is not `<clip>.<id>.mp4` beside it. */
+  /**
+   * The video, relative to the folder, when it is not beside it as
+   * `<clip>.<id>.share.mp4` (preferred) or `<clip>.<id>.mp4`.
+   */
   file: maybe(Schema.String),
 });
 
@@ -1196,16 +1154,23 @@ const ManifestSet = Schema.Struct({
 });
 
 /**
- * A folder's optional `review.json`: a title and a line for the folder, docs,
- * and per comparison set (by clip) its title, order, start, moments, and each
- * variant's label, tag, verdict, notes, or file when it lies elsewhere. Every
- * key may be left out.
+ * A montage's `review.json`: the record the review lists a folder of
+ * hand-made clips by (a film's renders are listed by their catalogue). A
+ * title and a line for the folder, the videos, images and docs it shows, and
+ * per comparison set (by clip) its title, order, start, moments, and each
+ * variant's label, tag, verdict, notes, or file when it lies elsewhere. A set
+ * lists the variants its `order` and `variants` name. Every key may be left
+ * out; a file it does not name is not shown.
  */
 export const ReviewManifest = Schema.Struct({
   title: maybe(Schema.String),
   blurb: maybe(Schema.String),
-  /** Markdown files, relative to the folder, shown with it. */
+  /** Text files (markdown, logs), relative to the folder, shown with it. */
   docs: orElse(Schema.Array(Schema.String), []),
+  /** Images, relative to the folder, shown with it. */
+  images: orElse(Schema.Array(Schema.String), []),
+  /** Videos in no set, relative to the folder, shown with it. */
+  videos: orElse(Schema.Array(Schema.String), []),
   sets: orElse(Schema.Record(Schema.String, ManifestSet), {}),
 });
 export type ReviewManifest = typeof ReviewManifest.Type;
@@ -1224,9 +1189,10 @@ export const RenderVariant = Schema.Struct({
 export type RenderVariant = typeof RenderVariant.Type;
 
 /**
- * A comparison set: the videos in one folder named `<clip>.<variant>[.share].mp4`
- * (a share copy standing in for its master), with the manifest's say. Reviewed
- * only: nothing in source picks one.
+ * A comparison set: one address's renders, a variant each, from a project's
+ * catalogue (the approval as the verdict), or a clip's variants a montage's
+ * manifest names, with its say. A share copy stands in for its master.
+ * Reviewed only: nothing in source picks one.
  */
 export const RenderChoice = Schema.TaggedStruct('RenderChoice', {
   clip: Schema.String,
@@ -1340,9 +1306,10 @@ export type FilmChoice = typeof FilmChoice.Type;
 export const FilmChoices = Schema.Struct({
   film: Schema.String,
   /**
-   * The film's renders under the review's roots, newest first: the picture
-   * each option's mix is heard against (its own sound muted). None until the
-   * film is rendered.
+   * The film's whole-film renders under the review's roots, newest first, as
+   * its project folders' catalogues record them: the picture each option's
+   * mix is heard against (its own sound muted). None until the whole film is
+   * rendered.
    */
   pictures: Schema.Array(ReviewVideo),
   choices: Schema.Array(FilmChoice),

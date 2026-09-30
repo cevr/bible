@@ -16,9 +16,8 @@ import {
   type ReviewVideo,
   type ScoreVariant,
   type TakeAct,
-  scoreMixUrl,
-  takeAudioUrl,
 } from '../../../core/schema.ts';
+import { scoreMixUrl, takeAudioUrl } from '../../../core/api.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoUrl } from '../format.ts';
 import { SyncEvent, timeText } from '../machine.ts';

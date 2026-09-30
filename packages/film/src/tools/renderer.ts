@@ -3,12 +3,11 @@
 // into chunks on a queue that idle pages pull from, each page drawing and
 // encoding its chunk to its own H.264 segment, then the segments join in
 // order (copied, not re-encoded) with the audio cut from the lossless master
-// and encoded to AAC. The server, the browser and every page live in one
-// scope: a failure, or Ctrl-C, closes them all.
+// and encoded to AAC. The server, the browser and every page (a pool of
+// `Pages`) live in one scope: a failure, or Ctrl-C, closes them all.
 
 import { availableParallelism } from 'node:os';
 import {
-  Array as Arr,
   Clock,
   Context,
   Effect,
@@ -17,26 +16,31 @@ import {
   Match,
   Option,
   Path,
-  Pool,
   Ref,
   Result,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { splice } from '../core/audio.ts';
-import { encoderCandidates, encoderName, sharesInPage } from '../core/encoder.ts';
+import {
+  type Encoder,
+  EncoderChoice,
+  encoderCandidates,
+  encoderName,
+  sharesInPage,
+} from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
+import type { ChunkTiming } from '../core/export-handle.ts';
 import type { ShortError } from '../core/errors.ts';
 import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
-import type { ExportInfo } from '../core/schema.ts';
 import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
-import { Browser, type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
+import { type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
 import {
   type AudioMissing,
   type AudioStale,
   type BrowserMissing,
   type ContactFailed,
   type EncodeFailed,
-  type EncoderMissing,
+  EncoderMissing,
   type FrameFailed,
   type LookbookFailed,
   type MediaFailed,
@@ -49,6 +53,7 @@ import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { filmChapters } from './look.ts';
 import { Media } from './media.ts';
 import { masterFile, masterFinding, planKey, readMaster } from './mixer.ts';
+import { type ExportPages, Pages } from './pages.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
   type AudioCut,
@@ -56,14 +61,18 @@ import {
   Cut,
   JOIN_FADE,
   RenderJob,
+  type RenderOutput,
+  captionsName,
+  chaptersName,
   contactSheetName,
-  cutBase,
   cutPage,
+  imagesOutput,
   lookbookName,
   contactTimes,
   frameAt,
   frameSpan,
   planChunks,
+  renderPaths,
   segmentName,
   shareName,
   encoderLimits,
@@ -88,6 +97,26 @@ export const Platform = Context.Reference<string>('@bible/film/tools/Platform', 
   defaultValue: () => process.platform,
 });
 
+/**
+ * The first of `candidates` `page` can encode the film with at `scale`, its
+ * share copy included when `share`; `EncoderMissing` when none can.
+ */
+const pageEncoder = (
+  page: FramePage,
+  scale: number,
+  share: boolean,
+  candidates: ReadonlyArray<Encoder>,
+) =>
+  page.call('encoder', scale, share, candidates).pipe(
+    Effect.flatMap((choice) =>
+      EncoderChoice.match(choice, {
+        Hardware: (found) => Effect.succeed<Encoder>(found),
+        Software: (found) => Effect.succeed<Encoder>(found),
+        Missing: ({ reason }) => Effect.fail(EncoderMissing.make({ reason })),
+      }),
+    ),
+  );
+
 /** How the doctor's encoder check can fail. */
 export type EncoderReadyError = PageOpenError | PageError | PageCrashed | EncoderMissing;
 
@@ -108,7 +137,7 @@ export const encoderReady: Effect.Effect<
     const browser = yield* makeBrowser;
     const page = yield* browser.open(`${server.url}?export`);
     const candidates = encoderCandidates(yield* Platform, Option.none());
-    const encoder = yield* page.encoder(1, true, candidates);
+    const encoder = yield* pageEncoder(page, 1, true, candidates);
     const cores = yield* Cores;
     const { workers, max } = encoderLimits(encoder, cores);
     return `${encoderName(encoder)} H.264, ${workers} pages by default, at most ${max} encoders at once (${cores} cores)`;
@@ -133,17 +162,54 @@ export type RenderError =
   | ShortError
   | PlatformError;
 
-/** Where a render's outputs go, and the film and short it draws. */
+/**
+ * Where a chunk's page time went, in ms: drawing its frames, encoding them
+ * (the rest of the page's call) and carrying the bytes out of the page (the
+ * call's wall time past the page's own), over its `frames`.
+ */
+interface ChunkTime {
+  readonly frames: number;
+  readonly draw: number;
+  readonly encode: number;
+  readonly transfer: number;
+}
+
+const noTime: ChunkTime = { frames: 0, draw: 0, encode: 0, transfer: 0 };
+
+/** `chunk`'s time from the page's own account (`ChunkTiming`) and the call's `wall` ms. */
+const chunkTime = (chunk: Chunk, timing: ChunkTiming, wall: number): ChunkTime => ({
+  frames: chunk.to - chunk.from,
+  draw: timing.draw,
+  encode: timing.page - timing.draw,
+  transfer: Math.max(0, wall - timing.page),
+});
+
+const addTime = (a: ChunkTime, b: ChunkTime): ChunkTime => ({
+  frames: a.frames + b.frames,
+  draw: a.draw + b.draw,
+  encode: a.encode + b.encode,
+  transfer: a.transfer + b.transfer,
+});
+
+/** A log line's ms a frame, drawing, encoding and in transfer: `draw_ms=… encode_ms=… transfer_ms=…`. */
+const perFrame = (t: ChunkTime): string => {
+  const each = (ms: number) => (ms / Math.max(1, t.frames)).toFixed(1);
+  return `draw_ms=${each(t.draw)} encode_ms=${each(t.encode)} transfer_ms=${each(t.transfer)}`;
+};
+
+/** The film and short a render draws. */
 interface Where {
-  /** `out/<film>`, or a short's `out/<film>/shorts/<id>` (`cutBase`). */
-  readonly base: string;
   readonly placed: ReadonlyArray<Placed>;
   /** The short, resolved on the page's frames, when the render is one. */
   readonly short: Option.Option<ResolvedShort>;
 }
 
 export interface RendererService {
-  readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<void, RenderError>;
+  /**
+   * Draw `job` into the film's project folder (`renderPaths`), or a video to
+   * its `--out`, and say what it wrote.
+   */
+  readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
 }
 
 export class Renderer extends Context.Service<Renderer, RendererService>()(
@@ -155,8 +221,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const media = yield* Media;
-      const browser = yield* Browser;
-      const server = yield* PreviewServer;
+      const pages = yield* Pages;
 
       /** The short on a page's clock: the same spans, on the same frames, it draws. */
       const shortOn = (placed: ReadonlyArray<Placed>, cut: Cut, fps: number) =>
@@ -168,35 +233,35 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const video = Effect.fnUntraced(function* (
         film: LoadedFilm,
         job: Extract<RenderJob, { _tag: 'Video' }>,
-        url: string,
+        page: string,
         placed: ReadonlyArray<Placed>,
-        base: string,
+        clip: string,
       ) {
         // One page first says what the render draws and which encoder every
         // page encodes with: the pages, and the encoders they may run, are
         // sized from that choice before the pool opens.
         const { info, short, scale, encoder } = yield* Effect.scoped(
           Effect.gen(function* () {
-            const page = yield* browser.open(url);
-            const found = yield* shortOn(placed, job.cut, page.info.fps);
+            const first = yield* pages.open(page, { workers: 1, captions: job.captions });
+            const found = yield* shortOn(placed, job.cut, first.info.fps);
             // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
             const k = Option.match(found, {
               onNone: () => job.scale,
-              onSome: () => shortPage(page.info.width).scale * job.scale,
+              onSome: () => shortPage(first.info.width).scale * job.scale,
             });
             // Before a frame is drawn: a browser that cannot encode the film with
             // one of the encoders this platform allows fails here.
             const candidates = encoderCandidates(yield* Platform, job.encoder);
-            const by = yield* page.encoder(k, job.share, candidates);
-            return { info: page.info, short: found, scale: k, encoder: by };
+            const by = yield* first.use((one) => pageEncoder(one, k, job.share, candidates));
+            return { info: first.info, short: found, scale: k, encoder: by };
           }),
         );
-        const where: Where = { base, placed, short };
+        const where: Where = { placed, short };
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const total = end - start;
-        const target = Option.getOrElse(job.out, () => `${where.base}.mp4`);
+        const target = Option.getOrElse(job.out, () => clip);
         yield* fs.makeDirectory(path.dirname(target), { recursive: true });
         const range = { from: start / info.fps, to: end / info.fps };
 
@@ -243,7 +308,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.log(
           `render.encoder kind=${encoderName(encoder)} workers=${workers} encoders=${encoders} cores=${cores}`,
         );
-        const pool = yield* Pool.make({ acquire: browser.open(url), size: workers });
+        const pool = yield* pages.open(page, { workers, captions: job.captions });
 
         // The track, cut and encoded once beside the pages; both joins copy its packets.
         const aac = Option.match(audio, {
@@ -278,14 +343,15 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         if (shareInPage) yield* fs.makeDirectory(shareDir);
         const chunks = planChunks(start, end, workers);
         const began = yield* Clock.currentTimeMillis;
-        const done = yield* Ref.make(0);
-        const progress = (frames: number) =>
+        const done = yield* Ref.make(noTime);
+        /** A chunk done: the render's progress, and where this chunk's time went a frame. */
+        const progress = (chunk: Chunk, spent: ChunkTime) =>
           Effect.gen(function* () {
-            const n = yield* Ref.updateAndGet(done, (k) => k + frames);
+            const sum = yield* Ref.updateAndGet(done, (was) => addTime(was, spent));
             const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
-            const rate = n / secs;
+            const rate = sum.frames / secs;
             yield* Effect.log(
-              `render.progress frames=${n}/${total} fps=${rate.toFixed(1)} eta=${((total - n) / rate).toFixed(0)}s`,
+              `render.progress frames=${sum.frames}/${total} fps=${rate.toFixed(1)} eta=${((total - sum.frames) / rate).toFixed(0)}s chunk=${chunk.index} ${perFrame(spent)}`,
             );
           });
 
@@ -295,30 +361,38 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
          * chunk retried once on a fresh one.
          */
         const encode = (chunk: Chunk) =>
-          Effect.scoped(
-            Effect.gen(function* () {
-              const page = yield* Pool.get(pool);
-              const encoded = yield* page
-                .encode(chunk, scale, job.share, encoder)
-                .pipe(Effect.tapErrorTag('PageCrashed', () => Pool.invalidate(pool, page)));
-              const at = (chunk.from - start) / info.fps;
-              const file = path.join(segDir, segmentName(chunk));
-              yield* fs.writeFile(file, encoded.master);
-              const copy = path.join(shareDir, segmentName(chunk));
-              const share = yield* Option.match(encoded.share, {
-                onNone: () => Effect.succeedNone,
-                onSome: (bytes) =>
-                  Effect.as(fs.writeFile(copy, bytes), Option.some({ file: copy, at })),
-              });
-              yield* progress(chunk.to - chunk.from);
-              return { master: { file, at }, share };
-            }),
-          ).pipe(
-            Effect.tapErrorTag('PageCrashed', (error) =>
-              Effect.logWarning(`render.retry chunk=${chunk.index} reason="${error.reason}"`),
-            ),
-            Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
-          );
+          pool
+            .use((one) =>
+              Effect.gen(function* () {
+                const sent = yield* Clock.currentTimeMillis;
+                const encoded = yield* one.call(
+                  'encode',
+                  chunk.from,
+                  chunk.to,
+                  scale,
+                  job.share,
+                  encoder,
+                );
+                const wall = (yield* Clock.currentTimeMillis) - sent;
+                const at = (chunk.from - start) / info.fps;
+                const file = path.join(segDir, segmentName(chunk));
+                yield* fs.writeFile(file, encoded.master);
+                const copy = path.join(shareDir, segmentName(chunk));
+                const share = yield* Option.match(encoded.share, {
+                  onNone: () => Effect.succeedNone,
+                  onSome: (bytes) =>
+                    Effect.as(fs.writeFile(copy, bytes), Option.some({ file: copy, at })),
+                });
+                yield* progress(chunk, chunkTime(chunk, encoded.timing, wall));
+                return { master: { file, at }, share };
+              }),
+            )
+            .pipe(
+              Effect.tapErrorTag('PageCrashed', (error) =>
+                Effect.logWarning(`render.retry chunk=${chunk.index} reason="${error.reason}"`),
+              ),
+              Effect.retry({ times: 1, while: (error) => error._tag === 'PageCrashed' }),
+            );
 
         // One structured run: the first failure, a page's or the track's, stops the other.
         const [encoded, track] = yield* Effect.all(
@@ -357,86 +431,115 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             ),
         });
 
-        const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
+        const captions = captionsName(target);
         const cues = Option.match(where.short, {
           onNone: () => filmCaptions(where.placed, range),
           onSome: (short) => shortCaptions(where.placed, short, range),
         });
         yield* fs.writeFileString(captions, webVtt(cues));
         // The whole film of a film that declares a look also gets its YouTube chapters.
-        if (
+        const whole =
           Option.isNone(where.short) &&
           start === 0 &&
           end === info.frames &&
-          Option.isSome(film.look)
-        )
-          yield* Result.match(filmChapters(film, where.placed), {
-            onFailure: (error) => Effect.logWarning(`render.chapters skipped: ${error.message}`),
-            onSuccess: (lines) => {
-              const file = `${target.replace(/\.[^./]+$/, '')}.chapters.txt`;
-              return Effect.andThen(fs.writeFileString(file, `${lines.join('\n')}\n`), () =>
-                Effect.log(`render.chapters count=${lines.length} file=${file}`),
-              );
-            },
-          });
+          Option.isSome(film.look);
+        const chapters = yield* Option.match(
+          Option.liftPredicate(film, () => whole),
+          {
+            onNone: () => Effect.succeedNone,
+            onSome: (declared) =>
+              Result.match(filmChapters(declared, where.placed), {
+                onFailure: (error) =>
+                  Effect.as(
+                    Effect.logWarning(`render.chapters skipped: ${error.message}`),
+                    Option.none<string>(),
+                  ),
+                onSuccess: (lines) => {
+                  const file = chaptersName(target);
+                  return fs
+                    .writeFileString(file, `${lines.join('\n')}\n`)
+                    .pipe(
+                      Effect.andThen(
+                        Effect.log(`render.chapters count=${lines.length} file=${file}`),
+                      ),
+                      Effect.as(Option.some(file)),
+                    );
+                },
+              }),
+          },
+        );
 
         const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
+        const spent = yield* Ref.get(done);
         yield* Effect.log(
-          `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} file=${target} share=${Option.getOrElse(shared, () => 'none')} captions=${captions}`,
+          `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} ${perFrame(spent)} file=${target} share=${Option.getOrElse(shared, () => 'none')} captions=${captions}`,
         );
+        const written: RenderOutput = {
+          kind: 'video',
+          clip: Option.some(target),
+          share: shared,
+          captions: Option.some(captions),
+          chapters,
+          images: [],
+        };
+        return written;
       }, Effect.scoped);
 
       const stills = Effect.fnUntraced(function* (
         job: Extract<RenderJob, { _tag: 'Stills' }>,
-        pool: Pool.Pool<FramePage, PageOpenError>,
-        info: ExportInfo,
+        pool: ExportPages,
         dir: string,
       ) {
         const stillDir = path.join(dir, 'stills');
         yield* fs.makeDirectory(stillDir, { recursive: true });
-        yield* Effect.forEach(
+        const files = yield* Effect.forEach(
           job.times,
           (t) =>
-            Effect.scoped(
-              Effect.gen(function* () {
-                const page = yield* Pool.get(pool);
-                const file = path.join(stillDir, stillName(t));
-                yield* fs.writeFile(file, yield* page.frame(frameAt(info, t), 'image/png'));
-                yield* Effect.log(`render.still t=${t} file=${file}`);
-              }),
-            ),
-          { concurrency: job.workers, discard: true },
+            Effect.gen(function* () {
+              const file = path.join(stillDir, stillName(t));
+              yield* fs.writeFile(
+                file,
+                yield* pool.call('frame', frameAt(pool.info, t), 'image/png'),
+              );
+              yield* Effect.log(`render.still t=${t} file=${file}`);
+              return file;
+            }),
+          { concurrency: job.workers },
         );
+        return imagesOutput('stills', files.toSorted());
       });
 
       const contact = Effect.fnUntraced(function* (
         job: Extract<RenderJob, { _tag: 'Contact' }>,
-        pool: Pool.Pool<FramePage, PageOpenError>,
-        info: ExportInfo,
+        pool: ExportPages,
         dir: string,
       ) {
+        const { info } = pool;
         // Clipped to the film as a video's range is, so no frame repeats at either end.
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const times = contactTimes(start / info.fps, end / info.fps, job.every);
-        const page = yield* Pool.get(pool);
         const sheet = path.join(dir, contactSheetName);
-        yield* fs.writeFile(sheet, yield* page.contact(times.map((t) => frameAt(info, t))));
+        yield* fs.writeFile(
+          sheet,
+          yield* pool.call(
+            'contact',
+            times.map((t) => frameAt(info, t)),
+          ),
+        );
         yield* Effect.log(
           `render.contact frames=${times.length} every=${job.every}s file=${sheet}`,
         );
-      }, Effect.scoped);
+        return imagesOutput('contact', [sheet]);
+      });
 
-      const lookbook = Effect.fnUntraced(function* (
-        pool: Pool.Pool<FramePage, PageOpenError>,
-        dir: string,
-      ) {
-        const page = yield* Pool.get(pool);
+      const lookbook = Effect.fnUntraced(function* (pool: ExportPages, dir: string) {
         const file = path.join(dir, lookbookName);
-        yield* fs.writeFile(file, yield* page.lookbook);
+        yield* fs.writeFile(file, yield* pool.call('lookbook', 'image/jpeg'));
         yield* Effect.log(`render.lookbook file=${file}`);
-      }, Effect.scoped);
+        return imagesOutput('lookbook', [file]);
+      });
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
         const cut = RenderJob.$match(job, {
@@ -446,49 +549,36 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           LookBook: () => Cut.Whole(),
         });
         const placed = yield* placeFilm(film);
-        const query = [
-          `film=${encodeURIComponent(cutPage(film.paths.name, cut))}`,
-          'export',
-          ...Arr.filter(['captions=0'], () => !job.captions),
-        ];
-        const url = `${server.url}?${query.join('&')}`;
-        const base = cutBase(film.paths.out, cut);
-        const dir = path.join(base, job.tag);
+        const page = cutPage(film.paths.name, cut);
+        const where = renderPaths(film.paths.out, job.address, job.variant);
+        const dir = where.dir;
 
-        /** A job drawn on `pages` pages that encode nothing, handed the pool and the film's info. */
+        /** A job drawn on `workers` pages that encode nothing, handed the pool. */
         const drawn = <E>(
-          pages: number,
-          run: (
-            pool: Pool.Pool<FramePage, PageOpenError>,
-            info: ExportInfo,
-          ) => Effect.Effect<void, E>,
+          workers: number,
+          run: (pool: ExportPages) => Effect.Effect<RenderOutput, E>,
         ) =>
           Effect.scoped(
             Effect.gen(function* () {
               yield* fs.makeDirectory(dir, { recursive: true });
-              const pool = yield* Pool.make({
-                acquire: browser.open(url),
-                size: Math.max(1, pages),
-              });
-              const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+              const pool = yield* pages.open(page, { workers, captions: job.captions });
               // A short's spans must resolve on the page's frames, as a video's do.
-              yield* shortOn(placed, cut, info.fps);
-              yield* run(pool, info);
+              yield* shortOn(placed, cut, pool.info.fps);
+              return yield* run(pool);
             }),
           );
 
-        yield* RenderJob.$match(job, {
-          // A video writes nothing under `dir`: its segments are its own, and its file is `--out`.
-          Video: (v) => video(film, v, url, placed, base),
-          Stills: (s) =>
-            drawn(Math.min(s.workers, s.times.length), (pool, info) => stills(s, pool, info, dir)),
+        return yield* RenderJob.$match(job, {
+          // A video writes its file (`--out`, else its clip) and what goes beside it; its segments are its own.
+          Video: (v) => video(film, v, page, placed, where.clip),
+          Stills: (s) => drawn(Math.min(s.workers, s.times.length), (pool) => stills(s, pool, dir)),
           // One page composes the whole sheet.
-          Contact: (c) => drawn(1, (pool, info) => contact(c, pool, info, dir)),
+          Contact: (c) => drawn(1, (pool) => contact(c, pool, dir)),
           LookBook: () => drawn(1, (pool) => lookbook(pool, dir)),
         });
       });
 
       return Renderer.of({ render });
     }),
-  );
+  ).pipe(Layer.provide(Pages.layer));
 }

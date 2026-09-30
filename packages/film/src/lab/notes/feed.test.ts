@@ -10,7 +10,8 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertPath, simulate } from 'effect-machine';
 import { TestClock } from 'effect/testing';
 import type { Note, NotesFile, NotesWait } from '../../core/schema.ts';
-import { LabRefused, NotesApi, type NotesCalls } from '../api.ts';
+import { ServerFailed } from '../../core/api.ts';
+import { type LabFailure, NotesApi, type NotesCalls } from '../api.ts';
 import { FeedEvent, FeedState, RETRY_MS, feedMachine, feedText } from './feed.ts';
 
 const note = (id: string, text = 'the ball rises too early'): Note => ({
@@ -28,17 +29,14 @@ const note = (id: string, text = 'the ball rises too early'): Note => ({
   createdAt: '2026-09-28T00:00:00.000Z',
 });
 
-const refused = LabRefused.make({
-  status: 503,
-  message: 'StoreFailed: notes.json is being written',
-});
+const refused = ServerFailed.make({ tag: 'StoreFailed', reason: 'notes.json is being written' });
 
 /**
  * A notes API whose reads answer `reads` in turn (the last one again after),
  * and whose waits answer `waits` in turn, then never. It keeps what was asked.
  */
 const fake = (
-  reads: ReadonlyArray<Effect.Effect<NotesFile, LabRefused>>,
+  reads: ReadonlyArray<Effect.Effect<NotesFile, LabFailure>>,
   waits: ReadonlyArray<NotesWait> = [],
 ) => {
   const asked: Array<string> = [];

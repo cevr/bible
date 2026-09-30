@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
+import { HttpPlatform } from 'effect/http';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import {
@@ -14,20 +15,23 @@ import {
   STUDIO_IMPORT_WAIT_S,
   StudioAttempts,
   StudioBeats,
-  StudioRefusal,
   StudioTake,
 } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
+import { TakeMismatch } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
+import { labHandler } from './lab.ts';
 import { Mixer } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
-import { STUDIO_MAX_BODY, studioHandler } from './studio.ts';
+import { NotesStore } from './notes-store.ts';
+import { STUDIO_MAX_BODY } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
   emptyCalls,
   fakeElevenLabs,
   fakeMedia,
   memoryFileSystem,
+  noSource,
   storeLayer,
   testFilm,
   testVoice,
@@ -92,9 +96,10 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
     fakeElevenLabs(files, emptyCalls(), { recorded }),
     fakeMedia(files),
   );
-  const layer = Layer.mergeAll(Takes.layer, repo).pipe(
+  // The lab's handler serves the studio: its notes and source services only have to exist.
+  const layer = Layer.mergeAll(Takes.layer, repo, NotesStore.layer, noSource).pipe(
     Layer.provideMerge(storeLayer(files)),
-    Layer.provideMerge(Layer.mergeAll(base, mixer)),
+    Layer.provideMerge(Layer.mergeAll(base, mixer, HttpPlatform.layer.pipe(Layer.provide(base)))),
   );
   return { files, mixes, layer };
 };
@@ -122,7 +127,7 @@ const said = new Map([
 
 const call = (request: Request) =>
   Effect.gen(function* () {
-    const studio = yield* studioHandler('test');
+    const studio = yield* labHandler('test');
     const res = yield* Effect.promise(() => studio(request, bound));
     const type = res.headers.get('content-type');
     const raw = yield* Effect.promise(() => res.text());
@@ -191,10 +196,10 @@ describe('studio routes', () => {
           post('/lab/test/studio/takes/b', recording('He said be still to them.')),
         );
         expect(refused.status).toBe(422);
-        const why = yield* Schema.decodeUnknownEffect(StudioRefusal)(refused.body);
+        const why = yield* Schema.decodeUnknownEffect(TakeMismatch)(refused.body);
         expect(why).toMatchObject({
           _tag: 'TakeMismatch',
-          beat: 'b',
+          id: 'b',
           heard: 'He said nothing at all today.',
         });
         expect(why.wer).toBeGreaterThan(0.08);
@@ -348,7 +353,7 @@ describe('studio routes', () => {
           }
         }
         const server = new Held();
-        const studio = yield* studioHandler('test');
+        const studio = yield* labHandler('test');
         yield* Effect.promise(() =>
           studio(post('/lab/test/studio/takes/a', recording('Hello world.')), server),
         );
@@ -378,7 +383,7 @@ describe('studio routes', () => {
     );
     return Effect.gen(function* () {
       // One studio, as the lab runs it, taking two posts at once.
-      const studio = yield* studioHandler('test');
+      const studio = yield* labHandler('test');
       const answers = yield* Effect.forEach(
         [
           post('/lab/test/studio/takes/a', recording('Hello world.')),
@@ -397,7 +402,7 @@ describe('studio routes', () => {
     }).pipe(Effect.scoped, Effect.provide(Layer.merge(layer, slowMixer)));
   });
 
-  it.effect('answers only the lab page, for its film: another origin 403, another film 409', () => {
+  it.effect('answers only the lab page, for its film: another origin 403, another film 404', () => {
     const { files, layer } = setup(said);
     return Effect.gen(function* () {
       const foreign = post('/lab/test/studio/takes/a', recording('Hello world.'), {
@@ -406,7 +411,7 @@ describe('studio routes', () => {
       expect((yield* call(foreign)).status).toBe(403);
       expect(
         (yield* call(post('/lab/other/studio/takes/a', recording('Hello world.')))).status,
-      ).toBe(409);
+      ).toBe(404);
       expect([...files.keys()].some((f) => f.includes('/attempts/'))).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });

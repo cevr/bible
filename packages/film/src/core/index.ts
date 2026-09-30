@@ -17,6 +17,7 @@ export * from './timeline.ts';
 export * from './layout.ts';
 export * from './acts.ts';
 export * from './address.ts';
+export * from './catalogue.ts';
 export * from './shorts.ts';
 export * from './captions.ts';
 export * from './phrases.ts';

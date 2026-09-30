@@ -8,7 +8,8 @@
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { type Asked, hold, json, openLab, route, sourceOne, text } from '../fixtures/harness.ts';
+import { SourceRefused } from '../../core/refusals.ts';
+import { type Asked, hold, json, openLab, refused, route, sourceOne } from '../fixtures/harness.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
@@ -94,8 +95,13 @@ describe('the cue strip', () => {
 
   it.live('a write the server refuses shows its text', () =>
     Effect.gen(function* () {
-      const refusal = 'SourceRefused: rise has a computed offset';
-      const { page } = yield* openLab([route('POST', /^\/cues\//, () => text(refusal, 409))], {
+      const failure = SourceRefused.make({
+        file: 'scenes/one.ts',
+        target: 'cue rise offset',
+        reason: 'rise has a computed offset',
+      });
+      const refusal = failure.message;
+      const { page } = yield* openLab([route('POST', /^\/cues\//, () => refused(failure))], {
         hash: '#1',
       });
       yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));

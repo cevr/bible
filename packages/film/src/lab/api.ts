@@ -1,54 +1,55 @@
-// The lab API as the page's machines call it: every route of `/lab/<film>/`
-// through Effect's HttpClient, each body encoded and each answer decoded by
-// the route's Schema. A refusal is the server's own text (`SourceRefused: …`),
-// which the panel shows as it is; a request that never reached the server, or
-// an answer that does not decode, says so in its own words. The scene source
-// routes are `LabApi`; the notes routes are `NotesApi`.
+// The lab API as the page's machines call it: a client derived from the
+// routes' one declaration (`LabHttpApi` in `core/api.ts`), so each body is
+// encoded and each answer decoded by the route's own Schema. A refusal is
+// the server's own failure class (`SourceRefused`, `NoteNotFound`, …), its
+// message the words the panel shows; a request that never reached the
+// server, or an answer that does not decode, is LabUnreachable in its own
+// words. The scene source routes are `LabApi`; the notes routes `NotesApi`.
 
-import { Cause, Context, Effect, Layer, Result, Schema } from 'effect';
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
+import { Cause, Context, Effect, Layer, Predicate, Schema } from 'effect';
+import { FetchHttpClient } from 'effect/http';
+import { HttpApiClient } from 'effect/http-api';
+import { LabHttpApi, type Refusal, isRefusal } from '../core/api.ts';
 import {
-  CheckReport,
-  CuePatch,
-  HeadSource,
+  type CheckReport,
+  type CuePatch,
+  type HeadSource,
   type Knob,
-  KnobPatch,
-  LabWrite,
-  Note,
-  NotePost,
-  NotesFile,
-  NotesWait,
-  ReplyPost,
-  SceneSource,
+  type LabWrite,
+  type Note,
+  type NotePost as NotePostSchema,
+  type NotesFile,
+  type NotesWait,
+  type SceneSource,
 } from '../core/schema.ts';
-
-/** The server answered, and said no: its status and its text, as it words it. */
-export class LabRefused extends Schema.TaggedError<LabRefused>()('LabRefused', {
-  status: Schema.Finite,
-  message: Schema.String,
-}) {}
 
 /** The request did not reach the server, or its answer did not decode. */
 export class LabUnreachable extends Schema.TaggedError<LabUnreachable>()('LabUnreachable', {
   message: Schema.String,
 }) {}
 
-export type LabFailure = LabRefused | LabUnreachable;
+/** A call that failed: the server said no (its own failure), or could not be heard. */
+export type LabFailure = Refusal | LabUnreachable;
 
-/** The server's words without their tag (`SceneNotFound: …` reads `…`). */
-export const untagged = (message: string): string => message.replace(/^\w+: /, '');
+/**
+ * A call through a derived client as the page takes it: the server's refusal
+ * as it is, anything else (the request failed, the answer did not decode)
+ * LabUnreachable with its words.
+ */
+export const heard = <A, E extends { readonly message: string }, R>(
+  self: Effect.Effect<A, E, R>,
+): Effect.Effect<A, LabFailure, R> =>
+  Effect.mapError(self, (error): LabFailure => {
+    if (isRefusal(error)) return error;
+    return LabUnreachable.make({ message: error.message });
+  });
 
-/** A failed call, in the server's words without its tag. */
+/** A failed call, in the words its failure gives. */
 export const reasonOf = (cause: Cause.Cause<unknown>): string => {
   const squashed = Cause.squash(cause);
-  const text = Result.match(
-    Schema.decodeUnknownResult(Schema.Struct({ message: Schema.String }))(squashed),
-    {
-      onFailure: () => String(squashed),
-      onSuccess: (e) => e.message,
-    },
-  );
-  return untagged(text);
+  if (Predicate.hasProperty(squashed, 'message') && Predicate.isString(squashed.message))
+    return squashed.message;
+  return String(squashed);
 };
 
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
@@ -81,7 +82,7 @@ export interface LabCalls {
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
 
 /** A new note as the page posts it: the draft and the frame's still, as bytes. */
-export type NotePost = typeof NotePost.Type;
+export type NotePost = typeof NotePostSchema.Type;
 
 /** The film's notes: read, long-polled, added to and answered. */
 export interface NotesCalls {
@@ -101,87 +102,42 @@ export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/fi
 /** How long one wait for the notes holds on the server, in seconds. */
 export const WAIT_S = 55;
 
-const unreachable = (cause: { readonly message: string }) =>
-  LabUnreachable.make({ message: cause.message });
+/** The lab's client on `origin`: every group of `LabHttpApi`. */
+export const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
 
-/** A 2xx answer decoded by `schema`; any other, its text as the refusal. */
-const answer =
-  <S extends Schema.Constraint>(schema: S) =>
-  (res: HttpClientResponse.HttpClientResponse) => {
-    if (res.status >= 200 && res.status < 300)
-      return Effect.mapError(HttpClientResponse.schemaBodyJson(schema)(res), unreachable);
-    return res.text.pipe(
-      Effect.mapError(unreachable),
-      Effect.flatMap((text) =>
-        Effect.fail(LabRefused.make({ status: res.status, message: text || `${res.status}` })),
-      ),
-    );
-  };
-
-const NoBody = Schema.Struct({});
-const Empty = {};
-
-/**
- * A client of the routes under `base` (`labBase(film)`) on `origin`, through
- * `HttpClient`, every answer decoded by its schema. Writes are same-origin
- * JSON, as the server admits them.
- */
-export const labClient = Effect.fn('lab.api.client')(function* (origin: string, base: string) {
-  const client = (yield* HttpClient.HttpClient).pipe(
-    HttpClient.mapRequest(HttpClientRequest.prependUrl(`${origin}${base}`)),
-  );
-  const get = <S extends Schema.Constraint>(path: string, schema: S) =>
-    client.get(path).pipe(Effect.mapError(unreachable), Effect.flatMap(answer(schema)));
-  const post = <B extends Schema.Constraint, S extends Schema.Constraint>(
-    path: string,
-    bodySchema: B,
-    body: B['Type'],
-    schema: S,
-  ) =>
-    HttpClientRequest.post(path).pipe(
-      HttpClientRequest.schemaBodyJson(bodySchema)(body),
-      Effect.mapError(unreachable),
-      Effect.flatMap((req) => Effect.mapError(client.execute(req), unreachable)),
-      Effect.flatMap(answer(schema)),
-    );
-  return { get, post };
-});
-
-/** A path of `parts`, each one encoded. */
-const at = (...parts: ReadonlyArray<string>) =>
-  `/${parts.map((p) => encodeURIComponent(p)).join('/')}`;
-
-/** The scene source routes under `base` (`labBase(film)`) on `origin`. */
-export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, base: string) {
-  const { get, post } = yield* labClient(origin, base);
+/** The scene source routes for `film` on `origin`. */
+export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: string) {
+  const client = yield* labClient(origin);
   const api: LabCalls = {
-    source: (scene) => get(`${at('scenes', scene)}/source`, SceneSource),
-    head: (scene) => get(`${at('scenes', scene)}/head`, HeadSource),
-    check: get('/check', CheckReport),
-    writeCue: (scene, cue, patch) => post(at('cues', scene, cue), CuePatch, patch, LabWrite),
+    source: (scene) => heard(client.scenes.source({ params: { film, scene } })),
+    head: (scene) => heard(client.scenes.head({ params: { film, scene } })),
+    check: heard(client.steps.check({ params: { film } })),
+    writeCue: (scene, cue, patch) =>
+      heard(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
     writeKnob: (scene, knob, value) =>
-      post(at('knobs', scene, knob), KnobPatch, { value }, LabWrite),
-    step: (verb) => post(`/${verb}`, NoBody, Empty, LabWrite),
+      heard(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
+    step: (verb) => heard(client.steps[verb]({ params: { film }, payload: {} })),
   };
   return api;
 });
 
-/** The notes routes under `base` on `origin`. */
-export const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, base: string) {
-  const { get, post } = yield* labClient(origin, base);
+/** The notes routes for `film` on `origin`. */
+export const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film: string) {
+  const client = yield* labClient(origin);
   const api: NotesCalls = {
-    notes: get('/notes', NotesFile),
-    wait: (since) => get(`/notes/wait?since=${since}&timeout=${WAIT_S}`, NotesWait),
-    add: (note) => post('/notes', NotePost, note, Note),
-    reply: (id, text) => post(`${at('notes', id)}/reply`, ReplyPost, { text }, Note),
-    resolve: (id) => post(`${at('notes', id)}/resolve`, NoBody, Empty, Note),
+    notes: heard(client.notes.list({ params: { film } })),
+    wait: (since) =>
+      heard(client.notes.wait({ params: { film }, query: { since, timeout: WAIT_S } })),
+    add: (note) => heard(client.notes.add({ params: { film }, payload: note })),
+    reply: (id, text) => heard(client.notes.reply({ params: { film, id }, payload: { text } })),
+    resolve: (id) => heard(client.notes.resolve({ params: { film, id }, payload: {} })),
   };
   return api;
 });
 
-/** The lab API for the film at `base`, on the page's own origin, over `fetch`. */
-export const labApiLayer = (origin: string, base: string): Layer.Layer<LabApi | NotesApi> =>
+/** The lab API for `film`, on the page's own origin, over `fetch`. */
+export const labApiLayer = (origin: string, film: string): Layer.Layer<LabApi | NotesApi> =>
   Layer.mergeAll(
-    Layer.effect(LabApi, makeLabApi(origin, base)),
-    Layer.effect(NotesApi, makeNotesApi(origin, base)),
+    Layer.effect(LabApi, makeLabApi(origin, film)),
+    Layer.effect(NotesApi, makeNotesApi(origin, film)),
   ).pipe(Layer.provide(FetchHttpClient.layer));

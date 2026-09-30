@@ -16,7 +16,7 @@
 import { Duration, Effect, Match, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { Note, NotesFile } from '../../core/schema.ts';
-import { type LabFailure, NotesApi, untagged } from '../api.ts';
+import { type LabFailure, NotesApi } from '../api.ts';
 
 /** How long a lost feed waits before it connects again. */
 export const RETRY_MS = 2000;
@@ -64,8 +64,7 @@ const follow = (cursor: number) =>
     }),
   );
 
-const dropped = (e: { readonly message: string }) =>
-  FeedEvent.Dropped({ reason: untagged(e.message) });
+const dropped = (e: { readonly message: string }) => FeedEvent.Dropped({ reason: e.message });
 
 export const feedMachine = Machine.make({
   state: FeedState,

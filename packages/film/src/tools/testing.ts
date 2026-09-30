@@ -12,9 +12,11 @@ import {
   Path,
   Redacted,
   Result,
+  Schema,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
+import type { Route } from '../core/api.ts';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { NO_SOUNDS } from '../core/sfx.ts';
@@ -36,12 +38,19 @@ import {
 } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
-import { Browser, type LumaArea } from './browser.ts';
-import { type Encoder, sharesInPage } from '../core/encoder.ts';
+import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
+import {
+  type CallAnswers,
+  type CallArgs,
+  type ExportCall,
+  ExportAnswers,
+  type LumaArea,
+} from '../core/export-handle.ts';
+import { type Encoder, type EncoderChoice, sharesInPage } from '../core/encoder.ts';
 import {
   ApiKeyMissing,
-  EncodeFailed,
-  EncoderMissing,
+  type EncodeFailed,
+  type EncoderMissing,
   type FrameFailed,
   type PageCrashed,
   type PageError,
@@ -49,7 +58,14 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
+import { Mixer } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
+import { SceneHead } from './scene-head.ts';
+import { SceneSources } from './scene-sources.ts';
+import { SceneWriter } from './scene-writer.ts';
+import { SourceWriter } from './source-writer.ts';
+import { StaticCheck } from './static-check.ts';
+import { Takes } from './takes.ts';
 
 const notFound = (method: string, path: string) =>
   PlatformError.systemError({
@@ -183,6 +199,88 @@ export const memoryFileSystem = (
   files: Map<string, Uint8Array>,
   folders: Set<string> = new Set(),
 ) => FileSystem.layerNoop(memoryOps(files, folders));
+
+/**
+ * A request for each of `routes` as a page on a foreign Host would send it:
+ * every `:film` naming `film`, every other param and a trailing `*` naming
+ * `x`, a write with a JSON body; the URL on `origin`.
+ */
+export const foreignRequests = (
+  routes: ReadonlyArray<Route>,
+  origin: string,
+  film: string,
+): ReadonlyArray<Request> =>
+  routes.map((route) => {
+    const path = route.path
+      .split('/')
+      .map((segment) => {
+        if (segment === ':film') return film;
+        if (segment.startsWith(':') || segment === '*') return 'x';
+        return segment;
+      })
+      .join('/');
+    const headers = { host: 'evil.example:4401', 'content-type': 'application/json' };
+    if (route.method === 'GET') return new Request(`${origin}${path}`, { headers });
+    return new Request(`${origin}${path}`, { method: route.method, headers, body: '{}' });
+  });
+
+const unusedSource = Effect.die('the scene source is not called here');
+
+/**
+ * The scene source's services where a test calls none of its routes: the
+ * lab's handler serves them too, so they only have to exist.
+ */
+export const noSource = Layer.mergeAll(
+  Layer.succeed(
+    SceneSources,
+    SceneSources.of({
+      locate: () => unusedSource,
+      site: () => unusedSource,
+      writable: () => unusedSource,
+      editable: () => unusedSource,
+    }),
+  ),
+  Layer.succeed(
+    SceneWriter,
+    SceneWriter.of({ setCue: () => unusedSource, setKnob: () => unusedSource }),
+  ),
+  Layer.succeed(
+    SourceWriter,
+    SourceWriter.of({
+      write: () => unusedSource,
+      around: () => unusedSource,
+      undo: () => unusedSource,
+      redo: () => unusedSource,
+      history: () => unusedSource,
+    }),
+  ),
+  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unusedSource })),
+  Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
+);
+
+/**
+ * The studio's services where a test calls none of its routes: the lab's
+ * handler serves the studio too, so they only have to exist.
+ */
+export const noStudio = Layer.mergeAll(
+  Layer.succeed(
+    Takes,
+    Takes.of({
+      importPath: () => Effect.die('the studio is not called here'),
+      importBeat: () => Effect.die('the studio is not called here'),
+      attempts: () => Effect.die('the studio is not called here'),
+      attemptFile: () => Effect.die('the studio is not called here'),
+      keepAttempt: () => Effect.die('the studio is not called here'),
+    }),
+  ),
+  Layer.succeed(
+    Mixer,
+    Mixer.of({
+      mix: () => Effect.die('the studio is not called here'),
+      render: () => Effect.die('the studio is not called here'),
+    }),
+  ),
+);
 
 /**
  * `files`, whose `nth` write, rename or remove (counting from 1) fails as a
@@ -462,6 +560,35 @@ export const fakeMedia = (
     }),
   );
 
+/** How a fake page answers the export handle's calls: decoded answers, or the failure a page would give. */
+export type FakeHandle = {
+  readonly [K in ExportCall]: (
+    ...args: CallArgs[K]
+  ) => Effect.Effect<
+    CallAnswers[K],
+    PageError | PageCrashed | FrameFailed | EncodeFailed | EncoderMissing
+  >;
+};
+
+/**
+ * `handle` behind the same path Playwright takes (`Invoke`): each answer
+ * encoded by its call's schema as the page would hand it across, a failure
+ * the page itself gives kept, any other refused with its message.
+ */
+const fakeInvoke =
+  (handle: FakeHandle): Invoke =>
+  (name, args) =>
+    handle[name](...args).pipe(
+      Effect.flatMap((answer) =>
+        Schema.encodeEffect(ExportAnswers[name])(answer).pipe(Effect.orDie),
+      ),
+      Effect.catchTags({
+        FrameFailed: ({ reason }) => Effect.fail(CallRefused.make({ reason })),
+        EncodeFailed: ({ reason }) => Effect.fail(CallRefused.make({ reason })),
+        EncoderMissing: ({ reason }) => Effect.fail(CallRefused.make({ reason })),
+      }),
+    );
+
 /** Everything the fake render host opened and closed, so a test can check nothing leaked. */
 export interface RenderLedger {
   readonly server: { started: number; stopped: number };
@@ -568,18 +695,18 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     (): ReadonlyArray<Encoder['_tag']> => ['Hardware', 'Software'],
   );
   /** The first of `candidates` this browser has, as a page chooses. */
-  const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<Encoder, EncoderMissing> =>
-    Effect.sync(() => void ledger.encoderAsked.push(candidates.map((c) => c._tag))).pipe(
-      Effect.andThen(
-        Effect.fromOption(
-          Arr.findFirst(candidates, (c) => has.includes(c._tag)),
-          () =>
-            EncoderMissing.make({
-              reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
-            }),
-        ),
-      ),
-    );
+  /** The first of `candidates` this browser has, as a page chooses; `Missing` when it has none. */
+  const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<EncoderChoice> =>
+    Effect.sync(() => {
+      ledger.encoderAsked.push(candidates.map((c) => c._tag));
+      return Option.getOrElse(
+        Arr.findFirst(candidates, (c): boolean => has.includes(c._tag)),
+        (): EncoderChoice => ({
+          _tag: 'Missing',
+          reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
+        }),
+      );
+    });
   const looked = Option.getOrElse(Option.fromNullishOr(host.looked), () => (): FakeLook => ({
     grey: 128,
     faces: [],
@@ -599,6 +726,86 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       () => Effect.sync(() => void (ledger.server.stopped += 1)),
     ),
   );
+  /** Page number `page`'s handle: frames of one byte each, every call recorded in `ledger`. */
+  const handleOf = (page: number): FakeHandle => {
+    const frame = (i: number) =>
+      Effect.sleep('1 millis').pipe(
+        Effect.andThen(draw(i, page)),
+        Effect.map(() => {
+          ledger.frames.push(i);
+          return new Uint8Array([i % 256]);
+        }),
+      );
+    return {
+      frame,
+      probe: (i) =>
+        Effect.sleep('1 millis').pipe(
+          Effect.andThen(probe(i)),
+          Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
+        ),
+      lookbook: () =>
+        Effect.sync(() => {
+          ledger.lookbooks.composed += 1;
+          return new Uint8Array([0xff, 0xd8]);
+        }),
+      encoder: (_scale, _share, candidates) => encoder(candidates),
+      encode: (from, to, _scale, share, by) =>
+        Effect.acquireUseRelease(
+          Effect.sync(() => {
+            ledger.encoders.spawned += 1;
+            ledger.encodedBy.push(by._tag);
+          }),
+          () =>
+            Effect.forEach(
+              Array.from({ length: to - from }, (_, k) => from + k),
+              frame,
+              { discard: true },
+            ),
+          (_, exit) =>
+            Effect.sync(() =>
+              Exit.match(exit, {
+                onSuccess: () => void (ledger.encoders.finished += 1),
+                onFailure: () => void (ledger.encoders.killed += 1),
+              }),
+            ),
+        ).pipe(
+          Effect.as({
+            master: text(`mp4 ${from}-${to}`),
+            // As the page: only the hardware encoder makes the share copy beside the master.
+            share: Option.filter(
+              Option.some(text(`share ${from}-${to}`)),
+              () => share && sharesInPage(by),
+            ),
+            timing: { draw: to - from, page: 2 * (to - from) },
+          }),
+        ),
+      contact: (frames) =>
+        Effect.sync(() => {
+          ledger.contacts.push(frames);
+          return new Uint8Array([0xff, 0xd8]);
+        }),
+      look: (frames, w, h) =>
+        Effect.forEach(frames, (i) => Effect.as(frame(i), looked(i))).pipe(
+          Effect.map((drawn) => {
+            const thumbs = new Uint8Array(frames.length * w * h * 4);
+            drawn.forEach(({ grey }, k) => {
+              thumbs.fill(grey, k * w * h * 4, (k + 1) * w * h * 4);
+            });
+            return {
+              thumbs,
+              faces: drawn.map((d) => d.faces),
+              hands: drawn.map((d) => d.hands ?? []),
+            };
+          }),
+        ),
+      luma: (i, area) =>
+        Effect.as(
+          frame(i),
+          Array.from({ length: area.cols * area.rows }, () => luma(i, area)),
+        ),
+      drawTimes: (frames) => Effect.forEach(frames, (i) => Effect.as(frame(i), 1)),
+    };
+  };
   const browser = Layer.effect(
     Browser,
     Effect.acquireRelease(
@@ -614,102 +821,16 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
               }),
               () => Effect.sync(() => void (ledger.pages.closed += 1)),
             ).pipe(
-              Effect.map((page) => {
-                const frame = (i: number) =>
-                  Effect.sleep('1 millis').pipe(
-                    Effect.andThen(draw(i, page)),
-                    Effect.map(() => {
-                      ledger.frames.push(i);
-                      return new Uint8Array([i % 256]);
-                    }),
-                  );
-                return {
-                  info: Option.getOrElse(
+              Effect.map((page) =>
+                framePage(
+                  Option.getOrElse(
                     Option.flatMap(Option.fromNullishOr(host.infoAt), (at) => at(url)),
                     () => info,
                   ),
-                  title: 'Test film',
-                  frame,
-                  probe: (i: number) =>
-                    Effect.sleep('1 millis').pipe(
-                      Effect.andThen(probe(i)),
-                      Effect.tap(() => Effect.sync(() => void ledger.frames.push(i))),
-                    ),
-                  lookbook: Effect.sync(() => {
-                    ledger.lookbooks.composed += 1;
-                    return new Uint8Array([0xff, 0xd8]);
-                  }),
-                  encoder: (_scale: number, _share: boolean, candidates: ReadonlyArray<Encoder>) =>
-                    encoder(candidates),
-                  encode: (
-                    chunk: { readonly from: number; readonly to: number },
-                    _scale: number,
-                    share: boolean,
-                    by: Encoder,
-                  ) =>
-                    Effect.acquireUseRelease(
-                      Effect.sync(() => {
-                        ledger.encoders.spawned += 1;
-                        ledger.encodedBy.push(by._tag);
-                      }),
-                      () =>
-                        Effect.forEach(
-                          Array.from({ length: chunk.to - chunk.from }, (_, k) => chunk.from + k),
-                          frame,
-                          { discard: true },
-                        ),
-                      (_, exit) =>
-                        Effect.sync(() =>
-                          Exit.match(exit, {
-                            onSuccess: () => void (ledger.encoders.finished += 1),
-                            onFailure: () => void (ledger.encoders.killed += 1),
-                          }),
-                        ),
-                    ).pipe(
-                      Effect.catchTag('FrameFailed', (error) =>
-                        Effect.fail(
-                          EncodeFailed.make({
-                            from: chunk.from,
-                            to: chunk.to,
-                            reason: error.reason,
-                          }),
-                        ),
-                      ),
-                      Effect.as({
-                        master: text(`mp4 ${chunk.from}-${chunk.to}`),
-                        // As the page: only the hardware encoder makes the share copy beside the master.
-                        share: Option.filter(
-                          Option.some(text(`share ${chunk.from}-${chunk.to}`)),
-                          () => share && sharesInPage(by),
-                        ),
-                      }),
-                    ),
-                  contact: (frames: ReadonlyArray<number>) =>
-                    Effect.sync(() => {
-                      ledger.contacts.push(frames);
-                      return new Uint8Array([0xff, 0xd8]);
-                    }),
-                  look: (frames: ReadonlyArray<number>, w: number, h: number) =>
-                    Effect.forEach(frames, (i) => Effect.as(frame(i), looked(i))).pipe(
-                      Effect.map((drawn) => {
-                        const thumbs = new Uint8Array(frames.length * w * h * 4);
-                        drawn.forEach(({ grey }, k) => {
-                          thumbs.fill(grey, k * w * h * 4, (k + 1) * w * h * 4);
-                        });
-                        return {
-                          thumbs,
-                          faces: drawn.map((d) => d.faces),
-                          hands: drawn.map((d) => d.hands ?? []),
-                        };
-                      }),
-                    ),
-                  luma: (i: number, area: LumaArea) =>
-                    Effect.as(
-                      frame(i),
-                      Array.from({ length: area.cols * area.rows }, () => luma(i, area)),
-                    ),
-                };
-              }),
+                  'Test film',
+                  fakeInvoke(handleOf(page)),
+                ),
+              ),
             ),
         });
       }),
