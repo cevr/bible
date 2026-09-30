@@ -33,6 +33,7 @@ export interface Asked {
 export type Answer =
   | { readonly _tag: 'Json'; readonly status: number; readonly json: Json }
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
+  | { readonly _tag: 'File'; readonly path: string }
   | { readonly _tag: 'Hold' };
 
 export const json = (value: Json, status = 200): Answer => ({
@@ -47,6 +48,8 @@ export const text = (value: string, status: number): Answer => ({
 });
 /** Never answered: a long-poll that is still waiting. */
 export const hold: Answer = { _tag: 'Hold' };
+/** A file on disk, its type read from its name (a fixture video). */
+export const file = (path: string): Answer => ({ _tag: 'File', path });
 
 /** A fake lab route: the method, the path under `/lab/probe` it matches, and its answer. */
 export interface FakeRoute {
@@ -131,22 +134,26 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
 ];
 
-/** The lab page's script, bundled for the browser with Solid's compiler. */
-const bundle = Effect.promise(() =>
-  Bun.build({
-    entrypoints: [`${import.meta.dir}/lab-page.ts`],
-    target: 'browser',
-    format: 'iife',
-    plugins: [solidPlugin],
-  }),
-).pipe(
-  Effect.flatMap((built) =>
-    Option.match(Option.fromUndefinedOr(built.outputs[0]), {
-      onNone: () => Effect.die(`lab page did not bundle: ${built.logs.join('\n')}`),
-      onSome: (out) => Effect.promise(() => out.text()),
+/** A page's script (`entry`, beside this file), bundled for the browser with Solid's compiler. */
+const bundleOf = (entry: string) =>
+  Effect.promise(() =>
+    Bun.build({
+      entrypoints: [`${import.meta.dir}/${entry}`],
+      target: 'browser',
+      format: 'iife',
+      plugins: [solidPlugin],
     }),
-  ),
-);
+  ).pipe(
+    Effect.flatMap((built) =>
+      Option.match(Option.fromUndefinedOr(built.outputs[0]), {
+        onNone: () => Effect.die(`${entry} did not bundle: ${built.logs.join('\n')}`),
+        onSome: (out) => Effect.promise(() => out.text()),
+      }),
+    ),
+  );
+
+/** The lab page's script. */
+const bundle = bundleOf('lab-page.ts');
 
 const css = FileSystem.FileSystem.use((fs) =>
   fs.readFileString(`${import.meta.dir}/../../player/player.css`),
@@ -163,6 +170,7 @@ const bodyOf = (r: Route): Option.Option<Json> =>
 
 const answer = (r: Route, found: Answer) => {
   if (found._tag === 'Hold') return;
+  if (found._tag === 'File') return r.fulfill({ path: found.path });
   if (found._tag === 'Text')
     return r.fulfill({ status: found.status, contentType: 'text/plain', body: found.text });
   return r.fulfill({ status: found.status, json: found.json });
@@ -257,6 +265,67 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     tab.goto(`${ORIGIN}/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`),
   );
   yield* Effect.promise(() => tab.waitForSelector('.lab-panel'));
+  const open: OpenLab = { page: tab, asked, errors };
+  return open;
+});
+
+/** The review page's script. */
+const reviewBundle = bundleOf('review-page.ts');
+
+const reviewPage = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body><script src="/review.js"></script></body></html>`;
+
+/** Where the review opens, and how wide its window is (a phone's, or a desk's). */
+export interface ReviewAt {
+  readonly search?: string;
+  readonly viewport?: { readonly width: number; readonly height: number };
+}
+
+/**
+ * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
+ * at `search`, with `routes` answering its requests by their whole path
+ * (`/review/index`, `/review/files/…`): what none answers is a 404. The
+ * browser plays media without a gesture, and closes with the scope.
+ */
+export const openReview = Effect.fn('lab.fixture.review')(function* (
+  routes: ReadonlyArray<FakeRoute>,
+  at: ReviewAt = {},
+) {
+  const script = yield* reviewBundle;
+  const browser = yield* Effect.acquireRelease(
+    Effect.promise(() =>
+      chromium.launch({
+        args: ['--disable-accelerated-2d-canvas', '--autoplay-policy=no-user-gesture-required'],
+      }),
+    ),
+    (b) => Effect.promise(() => b.close()),
+  );
+  const tab = yield* Effect.promise(() =>
+    browser.newPage({ viewport: at.viewport ?? { width: 1400, height: 900 } }),
+  );
+  const asked: Array<Asked> = [];
+  const errors: Array<string> = [];
+  tab.on('pageerror', (e) => errors.push(String(e)));
+  yield* Effect.promise(() =>
+    tab.route(`${ORIGIN}/**`, (r) => {
+      const url = new URL(r.request().url());
+      if (url.pathname === '/') return r.fulfill({ contentType: 'text/html', body: reviewPage });
+      if (url.pathname === '/review.js')
+        return r.fulfill({ contentType: 'text/javascript', body: script });
+      const request: Asked = {
+        method: r.request().method(),
+        path: `${url.pathname}${url.search}`,
+        body: bodyOf(r),
+      };
+      asked.push(request);
+      const found = routes.find((f) => f.method === request.method && f.path.test(request.path));
+      return Option.match(Option.fromUndefinedOr(found), {
+        onNone: () => r.fulfill({ status: 404, body: 'no fake route' }),
+        onSome: (f) => answer(r, f.answer(request)),
+      });
+    }),
+  );
+  yield* Effect.promise(() => tab.goto(`${ORIGIN}/${at.search ?? ''}`));
+  yield* Effect.promise(() => tab.waitForSelector('.rv-main'));
   const open: OpenLab = { page: tab, asked, errors };
   return open;
 });

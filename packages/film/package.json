@@ -10,6 +10,7 @@
     "./player.css": "./src/player/player.css",
     "./tools": "./src/tools/index.ts",
     "./lab": "./src/lab/index.ts",
+    "./review": "./src/lab/review/index.ts",
     "./solid-plugin": "./src/tools/solid-plugin.ts"
   },
   "scripts": {

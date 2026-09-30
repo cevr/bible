@@ -8,6 +8,7 @@ import { Option } from 'effect';
 import { join, normalize } from 'node:path';
 import index from './index.html';
 import labPage from './lab.html';
+import reviewPage from './review.html';
 
 /** The films folder: the player imports its registry, and the film CLI reads each film here. */
 export const FILMS = join(import.meta.dir, 'src/films');
@@ -75,9 +76,10 @@ const narration =
   };
 
 /**
- * The review on `hostname`:`port`: its routes (the framework's handler, which
- * answers only the hosts it is told) at /review/* and each film's options at
- * /lab/*, and the narration its film pages play. No scene editor, no studio.
+ * The review on `hostname`:`port`: its page at / (a folder, a set or a view
+ * is in the query), its routes (the framework's handler, which answers only
+ * the hosts it is told) at /review/* and each film's options at /lab/*, and
+ * the narration its film pages play. No scene editor, no studio.
  */
 export const serveReview = (port: number, hostname: string, review: Handler, films: string) =>
   Bun.serve({
@@ -86,6 +88,7 @@ export const serveReview = (port: number, hostname: string, review: Handler, fil
     development: false,
     idleTimeout: IDLE_SECONDS,
     routes: {
+      '/': reviewPage,
       '/review/*': review,
       '/lab/*': review,
       '/films/*': narration(films),
