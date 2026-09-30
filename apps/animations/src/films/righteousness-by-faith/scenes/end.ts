@@ -14,10 +14,11 @@ import {
   rectShape,
   shotPath,
   write,
+  glow,
 } from '@bible/film/canvas';
 import { clamp } from '@bible/film/core';
 import { landingSky, rooftop } from '../city.ts';
-import { C, F, glow, piece } from '../kit.ts';
+import { C, F, piece } from '../kit.ts';
 import { CREDITS } from '../credits.ts';
 import { thesis } from './thesis.ts';
 

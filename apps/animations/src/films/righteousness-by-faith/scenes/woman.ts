@@ -29,10 +29,12 @@ import {
   knobCamera,
   pushOn,
   shotPath,
+  type Posed,
+  sky,
 } from '@bible/film/canvas';
-import { lerp } from '@bible/film/core';
+import { lerp, gait } from '@bible/film/core';
 import { COURT_WIDE, type Temple, temple } from '../gospel.ts';
-import { ICON_ROW, ICON_SKY, type IconCount, type Posed, gait, sky } from '../kit.ts';
+import { ICON_ROW, ICON_SKY, type IconCount } from '../kit.ts';
 import { giftRow } from './message.ts';
 import { BAND_S, counted, roof } from './roof.ts';
 

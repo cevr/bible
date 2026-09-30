@@ -21,6 +21,10 @@ import {
   rectShape,
   shotPath,
   sub,
+  type Posed,
+  glow,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -30,13 +34,9 @@ import {
   ICON_SKY,
   ICON_X,
   type IconCount,
-  type Posed,
-  glow,
   icons,
   person,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 

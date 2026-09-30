@@ -5,9 +5,18 @@
 // the figure in the robe and Christ sit together on the same rooftop the
 // title's figure stood on, under the landing sky.
 
-import { type Camera, drawing, probePlate, rectShape, shotPath, write } from '@bible/film/canvas';
+import {
+  type Camera,
+  drawing,
+  probePlate,
+  rectShape,
+  shotPath,
+  write,
+  glow,
+  knobCamera,
+} from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { C, F, glow, knobCamera, piece } from '../kit.ts';
+import { C, F, piece } from '../kit.ts';
 import { ROOF, landingSky, rooftop } from '../city.ts';
 import {
   ADVOCATE_POSE,

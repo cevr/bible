@@ -14,9 +14,12 @@ import {
   stroke,
   trim,
   sub,
+  blob,
+  glow,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, ease, lerp, staggered } from '@bible/film/core';
-import { C, blob, bubble, glow, piece, sky, type Hands } from './kit.ts';
+import { C, bubble, piece, type Hands } from './kit.ts';
 import { tree } from './garden.ts';
 
 /**

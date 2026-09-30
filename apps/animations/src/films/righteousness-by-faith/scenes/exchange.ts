@@ -30,24 +30,15 @@ import {
   rectShape,
   shotPath,
   sub,
-} from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
-import {
-  type GestureAt,
-  C,
-  type Hands,
-  type Person,
   blob,
-  christ,
-  gait,
   glow,
   knobCamera,
   mix,
-  person,
-  piece,
   rounded,
   sky,
-} from '../kit.ts';
+} from '@bible/film/canvas';
+import { clamp, lerp, gait } from '@bible/film/core';
+import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
 

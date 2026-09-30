@@ -34,22 +34,13 @@ import {
   pushInto,
   shotPath,
   stroke,
-} from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
-import { type House, SCRIBES_AT, WENT, house } from '../gospel.ts';
-import {
-  C,
-  type Hands,
-  type IconCount,
-  ICON_KEPT,
-  ICON_LEAD,
-  ICON_X,
   type Posed,
-  type Three,
-  gait,
   glow,
   reset,
-} from '../kit.ts';
+} from '@bible/film/canvas';
+import { clamp, lerp, gait } from '@bible/film/core';
+import { type House, SCRIBES_AT, WENT, house } from '../gospel.ts';
+import { C, type Hands, type IconCount, ICON_KEPT, ICON_LEAD, ICON_X, type Three } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
 const timeline = {

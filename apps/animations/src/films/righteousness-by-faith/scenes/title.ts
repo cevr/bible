@@ -3,10 +3,10 @@
 // looks up at it. The camera tilts up a little, so the two rows of buildings
 // part in depth. `word` opens on a match cut from the name (`NAME`).
 
-import { at, drawing, multiplane, write } from '@bible/film/canvas';
+import { at, drawing, multiplane, write, glow, sky } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { ROOF, cityBack, cityFront } from '../city.ts';
-import { C, F, glow, person, sky } from '../kit.ts';
+import { C, F, person } from '../kit.ts';
 import { TITLE } from '../script.ts';
 
 /** Where the film's name splits: its first word drops into `word`. */

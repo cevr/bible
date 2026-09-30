@@ -19,6 +19,12 @@ import {
   rectShape,
   shotPath,
   sub,
+  type Posed,
+  ground,
+  glow,
+  rounded,
+  knobCamera,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp, rng } from '@bible/film/core';
 import {
@@ -31,18 +37,12 @@ import {
   ICON_SKY,
   ICON_X,
   type IconCount,
-  type Posed,
   christ,
-  ground,
-  glow,
   handOf,
   icons,
   person,
   piece,
-  rounded,
   shifted,
-  knobCamera,
-  sky,
 } from '../kit.ts';
 import { arc, flight, wordLight } from '../spoken.ts';
 

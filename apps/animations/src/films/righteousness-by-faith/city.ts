@@ -1,9 +1,9 @@
 // The film's cardboard city under the teal sky: the title's, and the
 // landing's (`rain`, `thesis`), one layout from the same rows and seeds.
 
-import { type Camera, type Pt, at, multiplane, rectShape } from '@bible/film/canvas';
+import { type Camera, type Pt, at, multiplane, rectShape, sky } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { C, type Hands, christ, person, piece, sky } from './kit.ts';
+import { C, type Hands, christ, person, piece } from './kit.ts';
 
 /** The landing sky: teal at the top warming to yellow at the horizon. */
 export const landingSky = (ctx: CanvasRenderingContext2D, w: number, h: number) =>

@@ -27,6 +27,10 @@ import {
   spline,
   stroke,
   sub,
+  glow,
+  mix,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { FIGURE_STAINS } from '../court.ts';
@@ -36,15 +40,11 @@ import {
   C,
   CHEST,
   type Person,
-  glow,
   icons,
-  mix,
   type HandPush,
   person,
   pushedHand,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 
 // ─── A: the parchment ────────────────────────────────────────────────────────

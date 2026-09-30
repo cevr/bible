@@ -37,6 +37,11 @@ import {
   stroke,
   write,
   sub,
+  glow,
+  knobCamera,
+  rounded,
+  sky,
+  plate,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -48,18 +53,13 @@ import {
   type IconCount,
   type Three,
   type Person,
-  glow,
   handOf,
-  knobCamera,
   icons,
   handCloseUp,
   person,
   pushZoom,
   pushedHand,
   piece,
-  rounded,
-  sky,
-  plate,
 } from '../kit.ts';
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { apron } from '../garden.ts';

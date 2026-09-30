@@ -27,6 +27,12 @@ import {
   rectShape,
   shotPath,
   write,
+  type Posed,
+  blob,
+  glow,
+  knobCamera,
+  mix,
+  sky,
 } from '@bible/film/canvas';
 import { type Key, clamp, ease, lerp } from '@bible/film/core';
 import {
@@ -38,16 +44,10 @@ import {
   ICON_ROW,
   ICON_SKY,
   type IconCount,
-  type Posed,
-  blob,
   clipToGarment,
-  glow,
   icons,
-  knobCamera,
-  mix,
   person,
   piece,
-  sky,
 } from '../kit.ts';
 import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../court.ts';
 import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';

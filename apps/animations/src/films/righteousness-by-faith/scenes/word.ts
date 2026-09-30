@@ -21,9 +21,14 @@ import {
   stroke,
   write,
   sub,
+  type Posed,
+  ground,
+  glow,
+  rounded,
+  plate,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { C, F, type Posed, ground, glow, person, piece, rounded, plate } from '../kit.ts';
+import { C, F, person, piece } from '../kit.ts';
 import { planet, ring, star, tablets } from '../law.ts';
 import { NAME } from './title.ts';
 

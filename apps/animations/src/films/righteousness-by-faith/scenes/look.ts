@@ -22,6 +22,12 @@ import {
   spline,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  knobCamera,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { AT_THE_HOLE, RECALL_RISE, house, recall } from '../gospel.ts';
@@ -32,18 +38,12 @@ import {
   ICON_SKY,
   ICON_X,
   type IconCount,
-  type Posed,
-  blob,
-  glow,
   icons,
-  knobCamera,
   type HandPush,
   person,
   pushZoom,
   pushedHand,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 
 /** The desert wide: the unmoved frame (the canvas itself, so not a knob). */

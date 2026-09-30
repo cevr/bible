@@ -32,8 +32,13 @@ import {
   shotPath,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, ease, lerp, gait } from '@bible/film/core';
 import {
   C,
   ICON_KEPT,
@@ -42,16 +47,10 @@ import {
   ICON_X,
   type IconCount,
   type Person,
-  type Posed,
   ROBE,
-  blob,
-  gait,
-  glow,
   icons,
   person,
   piece,
-  rounded,
-  sky,
   turban,
 } from '../kit.ts';
 import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';

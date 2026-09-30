@@ -28,8 +28,15 @@ import {
   shotPath,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  knobCamera,
+  mix,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
+import { clamp, lerp, gait } from '@bible/film/core';
 import {
   type GestureAt,
   C,
@@ -40,19 +47,11 @@ import {
   ICON_X,
   type IconCount,
   type Person,
-  type Posed,
-  blob,
-  gait,
-  glow,
   handOf,
-  knobCamera,
   heart as drawHeart,
   icons,
-  mix,
   person,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../gospel.ts';

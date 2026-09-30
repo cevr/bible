@@ -24,6 +24,13 @@ import {
   stroke,
   write,
   sub,
+  type Posed,
+  blob,
+  ground,
+  glow,
+  rounded,
+  sky,
+  mix,
 } from '@bible/film/canvas';
 import { type Key, clamp, lerp } from '@bible/film/core';
 import {
@@ -32,17 +39,10 @@ import {
   type Hands,
   type GestureAt,
   type Person,
-  type Posed,
-  blob,
   christ,
-  ground,
-  glow,
   handOf,
   person,
   piece,
-  rounded,
-  sky,
-  mix,
   turban,
 } from './kit.ts';
 import { arc, flight } from './spoken.ts';

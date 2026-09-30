@@ -20,9 +20,12 @@ import {
   shotPath,
   stroke,
   sub,
+  ground,
+  knobCamera,
+  rounded,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, ground, knobCamera, person, piece, rounded } from '../kit.ts';
+import { C, person, piece } from '../kit.ts';
 import {
   type Stamp,
   ACCUSED,

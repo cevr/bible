@@ -20,6 +20,12 @@ import {
   spline,
   stroke,
   sub,
+  blob,
+  ground,
+  glow,
+  mix,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp, staggered } from '@bible/film/core';
 import {
@@ -31,17 +37,11 @@ import {
   type HeadPiece,
   type Hands,
   type Person,
-  blob,
   christ,
-  ground,
-  glow,
   handOf,
-  mix,
   person,
   piece,
-  rounded,
   shifted,
-  sky,
   tracePath,
 } from './kit.ts';
 import { tablets } from './law.ts';
