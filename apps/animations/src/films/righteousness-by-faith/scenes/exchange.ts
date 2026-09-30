@@ -112,6 +112,8 @@ const timeline = {
   // The figure's hand to the cloth on their chest, it lifts across to him, and his hand takes it.
   give: { with: 'lift', dur: 0.4, ends: true },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
+  // The figure's stains go with the cloth as it starts to lift (lift's inOutSine at 0.05).
+  unstained: { with: 'lift', offset: 0.172, dur: 0 },
   // Halfway through the lift one hand lets the cloth go as the other takes it.
   letGo: { with: 'lift', offset: 0.5, dur: 0.5 },
   // Back out on "that we might take His righteousness", and he walks up the hill.
@@ -238,7 +240,7 @@ const hill = (f: ExchangeFrame) => {
             browTilt: 0.35 * puzzle + 0.3 * after,
             browL: 3 * puzzle,
             mouth: puzzle * 0.6,
-            stains: lift < 0.05 ? FIGURE_STAINS : [],
+            stains: f.at('unstained') > 0 ? [] : FIGURE_STAINS,
             near: GIVING,
           },
           hand('figure'),

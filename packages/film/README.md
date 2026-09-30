@@ -1550,7 +1550,11 @@ fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
 `clamp(3 * x - 2)` or `clamp((x - 0.75) / 0.25)` over a cue's progress `x`
 (`f.at(cue)` or a const bound to one): the part is a cue of its own,
 `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
-which the lab can reach.
+which the lab can reach. It refuses a step part way through a cue the same
+way, `x < k` (`<=`, `>`, `>=`, either way round) with `k` between 0.02 and
+0.98: the instant is a cue of no length, `{ with: 'flip', offset: 0.25, dur:
+0 }`, read as `f.at('turned') > 0`. A comparison nearer 0 or 1 asks whether
+the cue has begun, is seen or is done, and passes.
 `film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
 files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
 blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,

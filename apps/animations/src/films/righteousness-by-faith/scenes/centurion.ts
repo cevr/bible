@@ -159,6 +159,8 @@ const timeline = {
   // Landed by the bed, the word's light fades.
   landed: { after: 'fly', dur: 1.5, ease: 'linear' },
   sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
+  // As the servant starts to sit up, the colour comes back to the face (sit's outBack at 0.3).
+  colour: { with: 'sit', offset: 0.056, dur: 0 },
   toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
   handShot: { mark: 'room', word: 'room', dur: 1.2, ease: 'outCubic' },
   open: { mark: 'def', dur: 0.6 },
@@ -381,7 +383,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
               person(
                 ctx,
                 {
-                  skin: sit > 0.3 ? C.figure : C.figureShade,
+                  skin: f.at('colour') > 0 ? C.figure : C.figureShade,
                   body: C.figure,
                   // In bed: the blanket and the bed carry the shadows.
                   ground: 0,

@@ -27,6 +27,16 @@ export const scene = drawing({
       clamp(grow * 2),
       clamp(answer * grow),
       passed(answer),
+      answer < 0.5, // RED film/no-cue-remap
+      f.at('answer') >= 0.3, // RED film/no-cue-remap
+      0.5 > answer, // RED film/no-cue-remap
+      answer > SHARE, // RED film/no-cue-remap
+      answer < 0.05, // RED film/no-cue-remap
+      f.at('answerIn') > 0,
+      answer >= 1,
+      answer <= 0.01,
+      answer > 0.99,
+      grow < 0.5,
     ];
   },
 });

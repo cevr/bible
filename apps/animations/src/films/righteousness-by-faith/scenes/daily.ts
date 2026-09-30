@@ -58,8 +58,6 @@ const OTHER_SCALE = 1.5;
 
 /** How far the push through the heart zooms in. */
 const THROUGH_ZOOM = 9;
-/** How far into the push the room starts to come through the glow. */
-const THROUGH_CUT = 0.4;
 
 /** The gate's pieces, its sill at (0, 0). */
 const PILLAR = rounded(0, -260, 96, 520, 10);
@@ -177,6 +175,8 @@ const timeline = {
   toFig: { mark: 'keep', offset: -0.4, dur: 0.9, ease: 'inOutCubic' },
   askAgain: { mark: 'keep', dur: 0.4 },
   through: { mark: 'will', offset: -0.35, dur: 0.6, ease: 'inCubic' },
+  // The room comes through the glow over the push's last stretch.
+  roomIn: { after: 'through', dur: 0.16, ends: true, ease: 'linear' },
   dawn: { mark: 'will', until: 'matter', ease: 'outQuad' },
   // At the window they open their hand and turn it palm up, and on "choose"
   // it comes forward to us, close up; on "sab" it goes back to them, the
@@ -201,8 +201,9 @@ export const daily = drawing({
   draw: (f) => {
     const through = f.at('through');
     const field = f.at('field');
+    const roomIn = f.at('roomIn');
     if (through < 1) page(f, through);
-    if (through > THROUGH_CUT && field < 1) room(f, (through - THROUGH_CUT) / (1 - THROUGH_CUT));
+    if (roomIn > 0 && field < 1) room(f, roomIn);
     if (field > 0) sabbath(f, field);
   },
 });

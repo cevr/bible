@@ -78,6 +78,9 @@ export const spoke = drawing({
     gold: { after: 'into', dur: 0.1, ends: true, ease: 'linear' },
     bookIn: { after: 'into', offset: -0.1, dur: 0.6, ease: 'outBack' },
     bookOpen: { mark: 'back', offset: 0.1, dur: 0.6 },
+    // Its two halves: the clasp fades as the cover starts to widen, then the pages spread.
+    unclasp: { with: 'bookOpen', dur: 0.3, ease: 'inCubic' },
+    pages: { after: 'unclasp', dur: 0.3, ease: 'outCubic' },
     plunge: { mark: 'dark', offset: -1, dur: 1.1, ease: 'inCubic' },
     // The dark page fills the frame as the camera goes through it.
     night: { after: 'plunge', dur: 0.12, ends: true, ease: 'linear' },
@@ -85,6 +88,8 @@ export const spoke = drawing({
     drift: { after: 'plunge', dur: 10.4, ease: 'linear' },
     flight: { mark: 'then', offset: 0.1, dur: 1.3, ease: 'inOutSine' },
     burst: { after: 'flight', dur: 0.6, ease: 'outCubic' },
+    // The flying word is gone into the sun once the burst is half out (its outCubic's half).
+    becomesSun: { with: 'burst', offset: 0.124, dur: 0 },
     flood: { mark: 'spake', offset: -0.5, dur: 1.4 },
     day: { after: 'flood', dur: 1.4 },
     land: { mark: 'spake', dur: 1.9, ease: 'linear' },
@@ -180,15 +185,16 @@ export const spoke = drawing({
               kind: 'cut',
               line: 4,
             });
-            if (open < 0.5)
+            const unclasp = f.at('unclasp');
+            const k = f.at('pages');
+            if (unclasp < 1)
               piece(ctx, rounded(0, 0, 150, 200, 8), C.cream, hand('clasp'), {
                 role: 'scenery',
                 kind: 'cut',
                 line: 3,
-                alpha: 1 - open * 2,
+                alpha: 1 - unclasp,
               });
-            else {
-              const k = (open - 0.5) * 2;
+            if (k > 0) {
               piece(ctx, rectShape(-210, -135, 200 * k, 270), C.cream, hand('left'), {
                 role: 'scenery',
                 kind: 'cut',
@@ -243,7 +249,8 @@ export const spoke = drawing({
 
       // The word flies in and becomes the sun.
       const fly = f.at('flight');
-      if (f.at('burst') < 0.5) flight(ctx, arc(f.knob('from'), SUN, 260), fly, hand('word'), 0.7);
+      if (f.at('becomesSun') <= 0)
+        flight(ctx, arc(f.knob('from'), SUN, 260), fly, hand('word'), 0.7);
 
       // A word comes down from the sun and hangs; the tree rises to meet it.
       const hang = f.at('hang');
