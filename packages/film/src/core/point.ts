@@ -7,8 +7,9 @@
 // `render:<address key>` for an address's render set and `render:<clip>`
 // for a montage's; `level:bed:<index>:<sound>`, `level:effect:<name>`,
 // `level:score:under|alone` and `level:const:<NAME>` for a sound layer's
-// level. A montage clip is named by its file, never `film`, `act:…`,
-// `scenes:…` or `short:…`, so a `render:` id reads back as the one it was.
+// level. Every name is non-empty, and a montage clip (named by its file) is
+// never `film`, `act:…`, `scenes:…` or `short:…` (`Clip` refuses it), so
+// every ref the schema admits reads back from its id as itself.
 
 import {
   Array as Arr,
@@ -21,10 +22,16 @@ import {
 } from 'effect';
 import { Address, addressKey } from './address.ts';
 
+/** A name inside a point's id: never empty, so the id reads back as the point. */
+const Name = Schema.NonEmptyString;
+
 /** A layer of the film's sound whose level `sound.ts` sets. */
 export const SoundLayer = Schema.Union([
-  Schema.TaggedStruct('Bed', { index: Schema.Int, sound: Schema.String }),
-  Schema.TaggedStruct('Effect', { name: Schema.String }),
+  Schema.TaggedStruct('Bed', {
+    index: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    sound: Name,
+  }),
+  Schema.TaggedStruct('Effect', { name: Name }),
   Schema.TaggedStruct('Score', { which: Schema.Literals(['under', 'alone']) }),
 ]);
 export type SoundLayer = typeof SoundLayer.Type;
@@ -32,18 +39,46 @@ export type SoundLayer = typeof SoundLayer.Type;
 /** What a level knob writes: one layer's own level, or a constant layers share. */
 export const LevelTarget = Schema.Union([
   Schema.TaggedStruct('Layer', { layer: SoundLayer }),
-  Schema.TaggedStruct('Const', { name: Schema.String }),
+  Schema.TaggedStruct('Const', { name: Name }),
 ]);
 export type LevelTarget = typeof LevelTarget.Type;
+
+/** An address key read back (`addressKey`), when `key` is one. */
+const addressOfKey = (key: string): Option.Option<Address> => {
+  if (key === 'film') return Option.some({ _tag: 'Film' });
+  const [kind = '', ...rest] = key.split(':');
+  const name = rest.join(':');
+  if (name === '') return Option.none();
+  if (kind === 'act') return Option.some({ _tag: 'Act', act: name });
+  if (kind === 'short') return Option.some({ _tag: 'Short', id: name });
+  if (kind !== 'scenes') return Option.none();
+  const ids = name.split(',');
+  if (!Arr.isReadonlyArrayNonEmpty(ids)) return Option.none();
+  return Option.some({ _tag: 'Scenes', ids });
+};
+
+/**
+ * A montage's clip, named by its file: never empty, and never an address key
+ * (`film`, `act:…`, `scenes:…`, `short:…`), so its `render:` id reads back
+ * as a montage.
+ */
+const Clip = Name.check(
+  Schema.makeFilter((clip: string) =>
+    Option.match(addressOfKey(clip), {
+      onNone: () => true,
+      onSome: () => `a montage clip is not named like an address ("${clip}")`,
+    }),
+  ),
+);
 
 /** Which choice point: an address's render set, a montage's, the score, a take, a voice, a look or a level. */
 export const PointRef = Schema.Union([
   Schema.TaggedStruct('Render', { address: Address }),
-  Schema.TaggedStruct('Montage', { clip: Schema.String }),
+  Schema.TaggedStruct('Montage', { clip: Clip }),
   Schema.TaggedStruct('Score', {}),
-  Schema.TaggedStruct('Take', { sound: Schema.String }),
-  Schema.TaggedStruct('Voice', { beat: Schema.String }),
-  Schema.TaggedStruct('Look', { name: Schema.String }),
+  Schema.TaggedStruct('Take', { sound: Name }),
+  Schema.TaggedStruct('Voice', { beat: Name }),
+  Schema.TaggedStruct('Look', { name: Name }),
   Schema.TaggedStruct('Level', { target: LevelTarget }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type PointRef = typeof PointRef.Type;
@@ -70,20 +105,6 @@ const encode = (ref: PointRef): string =>
     Look: ({ name }) => `look:${name}`,
     Level: ({ target }) => `level:${levelText(target)}`,
   });
-
-/** An address key read back (`addressKey`), when `key` is one. */
-const addressOfKey = (key: string): Option.Option<Address> => {
-  if (key === 'film') return Option.some({ _tag: 'Film' });
-  const [kind = '', ...rest] = key.split(':');
-  const name = rest.join(':');
-  if (name === '') return Option.none();
-  if (kind === 'act') return Option.some({ _tag: 'Act', act: name });
-  if (kind === 'short') return Option.some({ _tag: 'Short', id: name });
-  if (kind !== 'scenes') return Option.none();
-  const ids = name.split(',');
-  if (!Arr.isReadonlyArrayNonEmpty(ids)) return Option.none();
-  return Option.some({ _tag: 'Scenes', ids });
-};
 
 /** A level id's target (`bed:3:amb.hall`), when it names one. */
 const levelOf = (text: string): Option.Option<LevelTarget> => {

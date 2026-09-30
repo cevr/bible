@@ -21,16 +21,19 @@ import type { Act, Look, Short } from './schema.ts';
 import { resolveShort } from './shorts.ts';
 import { FILM_FPS, type Interval } from './time.ts';
 
+/** A scene's id as an address names it: never empty, and without the `,` that joins a key's ids. */
+const SceneName = Schema.NonEmptyString.check(Schema.isPattern(/^[^,]*$/));
+
 const FilmPart = Schema.TaggedStruct('Film', {});
-const ActPart = Schema.TaggedStruct('Act', { act: Schema.String });
-const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(Schema.String) });
+const ActPart = Schema.TaggedStruct('Act', { act: Schema.NonEmptyString });
+const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(SceneName) });
 
 /** Which part of a film: the whole, one act, some scenes (in the order named), or one short. */
 export const Address = Schema.Union([
   FilmPart,
   ActPart,
   ScenesPart,
-  Schema.TaggedStruct('Short', { id: Schema.String }),
+  Schema.TaggedStruct('Short', { id: Schema.NonEmptyString }),
 ]);
 export type Address = typeof Address.Type;
 
