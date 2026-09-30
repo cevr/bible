@@ -810,6 +810,27 @@ export type Act = typeof Act.Type;
 export const Look = Schema.Struct({ acts: Schema.Array(Act) });
 export type Look = typeof Look.Type;
 
+/**
+ * A look the film chooses between at named levels (the ground's lift: `now`,
+ * `light`, `lighter`): each level's value, and `play`, the one the film is
+ * drawn at. The review compares them and a pick rewrites `play`.
+ */
+export const LookOption = Schema.Struct({
+  options: Schema.Record(Schema.String, Schema.Finite),
+  play: Schema.String,
+}).check(
+  Schema.makeFilter(
+    (look) =>
+      Object.hasOwn(look.options, look.play) ||
+      `plays "${look.play}", which is none of its levels (${Object.keys(look.options).join(', ')})`,
+  ),
+);
+export type LookOption = typeof LookOption.Type;
+
+/** A film's look options by name (`export const looks` in `palette.ts`). */
+export const Looks = Schema.Record(Schema.String, LookOption);
+export type Looks = typeof Looks.Type;
+
 // ---------------------------------------------------------------------------
 // Lab notes: what a viewer marks on a frame in the lab (`film lab`), and the
 // thread the agent answers it in. `lab/<film>/notes.json` holds them; stills sit

@@ -903,6 +903,7 @@ export const testFilm = (
   manifest: {},
   heardAs: {},
   look: Option.none(),
+  looks: {},
   sounds: NO_SOUNDS,
 });
 
