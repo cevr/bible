@@ -141,8 +141,9 @@ const wrap = (n: number, period: number) => ((n % period) + period) % period;
  * laid at a whole-pixel offset, so the software canvas never resamples it:
  * 6–8 ms a 1080p frame against about 20 ms through the plane's transform.
  * The period rounds to a whole px, so the grain sits within half a px a tile
- * of the plane's own scale. A turned camera lays it through the plane's
- * transform, sampled nearest.
+ * of the plane's own scale, counted from the tile corner nearest the
+ * camera's point: at most about 2 px at the frame's edge at any zoom. A
+ * turned camera lays it through the plane's transform, sampled nearest.
  */
 export const planeFibre = (
   ctx: CanvasRenderingContext2D,
@@ -163,9 +164,14 @@ export const planeFibre = (
     const period = Math.max(8, Math.round(FIBRE_SIZE * zoom * m.a));
     const pattern = patternOf(ctx, scaledTile(period));
     if (pattern !== null) {
-      // Where the plane's world origin lands, in device px.
-      const ox = Math.round(wrap(m.a * (w / 2 - zoom * view.x) + m.e, period));
-      const oy = Math.round(wrap(m.d * (h / 2 - zoom * view.y) + m.f, period));
+      // Where the tile corner nearest the camera's point lands, in device px:
+      // the rounded period's error grows from there, so it stays small across
+      // the frame wherever the camera looks, and a new period moves the grain
+      // least where the eye is.
+      const cx = Math.round(view.x / FIBRE_SIZE) * FIBRE_SIZE;
+      const cy = Math.round(view.y / FIBRE_SIZE) * FIBRE_SIZE;
+      const ox = Math.round(wrap(m.a * (w / 2 + zoom * (cx - view.x)) + m.e, period));
+      const oy = Math.round(wrap(m.d * (h / 2 + zoom * (cy - view.y)) + m.f, period));
       ctx.setTransform(1, 0, 0, 1, ox, oy);
       ctx.fillStyle = pattern;
       ctx.fillRect(m.e - ox, m.f - oy, m.a * w, m.d * h);
