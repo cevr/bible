@@ -13,7 +13,9 @@
 //
 // A failure crosses as its own class, JSON with its `_tag`, at the status
 // `Refusals` gives it: the one status table. Anything a handler fails with
-// that is not a Refusal answers 500 as ServerFailed, with its tag and words.
+// that is not a Refusal answers 500 as ServerFailed, with its tag and words;
+// a request whose params, query or body does not decode answers 400 as
+// RequestInvalid, naming the part and why.
 //
 // To add an endpoint: declare it in its group below with `error: Refusals`
 // (a new failure class goes into `Refusals` with its status), implement it
@@ -95,6 +97,19 @@ export class RequestRefused extends Schema.TaggedError<RequestRefused>()('Reques
   }
 }
 
+/**
+ * A request whose params, query or body does not decode as its route
+ * declares: which part, and the schema's words for why.
+ */
+export class RequestInvalid extends Schema.TaggedError<RequestInvalid>()('RequestInvalid', {
+  part: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the request's ${this.part.toLowerCase()} does not decode: ${this.reason}`;
+  }
+}
+
 /** A write whose body is not JSON: a cross-site form can post text/plain without a preflight. */
 export class WriteNotJson extends Schema.TaggedError<WriteNotJson>()('WriteNotJson', {
   type: Schema.String,
@@ -146,6 +161,7 @@ export const Refusals = [
   AttemptUnknown.pipe(status(404)),
   UnknownScene.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
+  RequestInvalid.pipe(status(400)),
   RequestRefused.pipe(status(403)),
   UndoUnavailable.pipe(status(409)),
   RedoUnavailable.pipe(status(409)),

@@ -680,7 +680,10 @@ the one status table (`statusOf` reads it). It crosses as its JSON with its
 page's client decodes it into the same class, so its `message` reads the
 same on both ends. A handler's failure that is not a Refusal answers 500 as
 `ServerFailed` (its tag and words), logged `api.request.failed`; a param, a
-query or a body that does not decode is an empty 400. On the page a call
+query or a body that does not decode is a 400 `RequestInvalid` naming the
+part and the schema's words (`{"_tag":"RequestInvalid","part":"Payload",
+"reason":"Expected \"pick\" | \"unpick\" | \"reject\" at [\"verb\"]"}`),
+answered by the gate (HttpApi itself would answer an empty 400). On the page a call
 fails with `LabFailure`: the server's Refusal, or `LabUnreachable` (no
 answer, or one that does not decode).
 
