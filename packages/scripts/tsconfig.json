@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/checkpoint.ts", "src/checkpoint/**/*.ts", "src/topics-compiler/**/*.ts"]
+  "include": [
+    "src/checkpoint.ts",
+    "src/typecheck-inputs.ts",
+    "src/typecheck-inputs/**/*.ts",
+    "src/checkpoint/**/*.ts",
+    "src/topics-compiler/**/*.ts"
+  ]
 }

@@ -30,7 +30,7 @@ Promoting is a one-line change the agent makes when a note asks to tweak somethi
 The lab saves by rewriting the `timeline`/`knobs` object literal in the scene's `.ts` file (oxc-parser for
 positions + a string splice; values only, formatting by oxfmt). No `tweaks.json` layer, so there is never a
 second place a value lives (Theatre's absolute-time JSON was rejected for exactly this). Bun HMR reloads the
-scene; the git diff is the record of what changed; the golden/`film check` loop verifies it.
+scene; the git diff is the record of what changed, and the review; `film check` verifies it.
 
 ## The app: `film lab <film>`
 
@@ -42,7 +42,7 @@ A Bun server (reuses the app's PreviewServer + HMR) serving the player with a la
   draggable handles on the canvas.
 - **Motion tools**: loop A–B, 0.25×/0.5× playback, step by frame, onion skin (±N frames ghosted), a motion
   trail for a knob-driven object.
-- **Compare**: split or blink view — current vs. HEAD (render HEAD in a second page) or vs. golden.
+- **Compare**: split or blink view — current vs. HEAD (render HEAD in a second page).
 - **Notes**: click the canvas (optionally drag a box) at any frame → a note `{id, film, scene, T, frame, cue?,
 box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animations/lab/<film>/notes.json` +
   `stills/` (gitignored). Status: open → agent-replied → resolved; replies thread under the note. Notes show as
@@ -55,7 +55,7 @@ box?, text, still}`. The still is the exact frame PNG. Stored in `apps/animation
 - Every note hands the agent the frame, the still, the scene, the nearest cue/mark, and the box → it reads the
   still, makes the change (promote to a knob/cue if needed), re-renders the same frame, attaches the after-still
   to the reply. The human sees before/after in the lab.
-- Instruments the agent already owns: `film check`, stills at cues, golden diff, contact sheets, `film cues`.
+- Instruments the agent already owns: `film check`, stills at cues, contact sheets, `film cues`.
   The film skill gets a "lab loop" section.
 
 ## Build order (each a commit that passes the gate)
@@ -111,7 +111,6 @@ Not built; each waits for a need.
   key-colour regions (Ruiz's magenta hair) become knobs, so a character is recoloured without regenerating.
 - **A props-and-figures sheet.** The look-book shows scenes at their moments; a sheet of every kit prop and
   figure drawn alone, at one scale, would check consistency before any scene uses them.
-- **Compare vs golden**, beside compare vs HEAD (the golden stills already exist; the lab would load one).
 - **Compare a code change.** Compare draws HEAD's data through today's code; a code change needs HEAD's
   bundle in a second page.
 - **A motion trail** for a knob-driven object (the path its handle takes across a cue), next to the onion

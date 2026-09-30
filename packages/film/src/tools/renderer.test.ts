@@ -2,7 +2,7 @@
 // or recovers every resource the render opened. No Chromium, no encoder.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
 import { MediaFailed, PageCrashed, PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -285,10 +285,11 @@ describe('Renderer', () => {
 
   it.live('an interrupt closes every page, encoder, the browser and the server', () =>
     Effect.gen(function* () {
-      const { ledger, render } = setup();
+      // Interrupted once a page is drawing a frame: the render is under way.
+      const drawing = yield* Deferred.make<void>();
+      const { ledger, render } = setup({ frame: () => Deferred.done(drawing, Exit.void) });
       const fiber = yield* Effect.forkChild(render(video));
-      yield* Effect.sleep('30 millis');
-      expect(ledger.frames.length).toBeGreaterThan(0);
+      yield* Deferred.await(drawing);
       yield* Fiber.interrupt(fiber);
       expect(ledger.encoders.killed).toBeGreaterThan(0);
       expectAllClosed(ledger);
