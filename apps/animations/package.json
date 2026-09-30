@@ -15,6 +15,7 @@
     "check": "bun cli.ts check",
     "doctor": "bun cli.ts doctor",
     "render": "bun cli.ts render",
+    "project": "bun cli.ts project",
     "lookbook": "bun cli.ts lookbook",
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",

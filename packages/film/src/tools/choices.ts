@@ -30,7 +30,6 @@ import {
   FileSystem,
   Layer,
   Option,
-  Order,
   Path,
   Result,
   Scope,
@@ -46,7 +45,6 @@ import type {
   EffectTake,
   FilmChoice,
   FilmChoices,
-  ReviewVideo,
   ScoreChoice,
   ScoreState,
   SoundEffect,
@@ -323,29 +321,10 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
 
       const soundFile = (film: FilmName) => path.join(repo.paths(film).dir, 'sound.ts');
 
-      /** The film's renders under the review's roots, newest first: its folder's, or named for it. */
-      const pictures = Effect.fn('Choices.pictures')(function* (film: FilmName) {
-        const index = yield* review.index(false);
-        const videos = index.folders.flatMap((folder): ReadonlyArray<ReviewVideo> => {
-          const named = Arr.last(folder.ref.split('/')).pipe(
-            Option.exists((last) => last === film),
-          );
-          const all = [
-            ...folder.videos,
-            ...folder.sets.flatMap((s) => s.variants.map((v) => v.video)),
-          ];
-          if (named) return all;
-          return all.filter((v) => v.name.startsWith(`${film}.`) || v.name.startsWith(`${film}-`));
-        });
-        return Arr.sort(
-          Arr.dedupeWith(videos, (a, b) => a.ref === b.ref),
-          Order.flip(Order.mapInput(Order.Number, (v: ReviewVideo) => v.mtime)),
-        );
-      });
-
       const list = Effect.fn('Choices.list')(function* (film: FilmName) {
         const choices = yield* fresh.choices(film);
-        const result: FilmChoices = { film, pictures: yield* pictures(film), choices };
+        // The film's whole-film renders, by its catalogues: a scene or a short is never its picture.
+        const result: FilmChoices = { film, pictures: yield* review.pictures(film), choices };
         return result;
       });
 

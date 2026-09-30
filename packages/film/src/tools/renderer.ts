@@ -62,14 +62,18 @@ import {
   Cut,
   JOIN_FADE,
   RenderJob,
+  type RenderOutput,
+  captionsName,
+  chaptersName,
   contactSheetName,
-  cutBase,
   cutPage,
+  imagesOutput,
   lookbookName,
   contactTimes,
   frameAt,
   frameSpan,
   planChunks,
+  renderPaths,
   segmentName,
   shareName,
   encoderLimits,
@@ -194,17 +198,19 @@ const perFrame = (t: ChunkTime): string => {
   return `draw_ms=${each(t.draw)} encode_ms=${each(t.encode)} transfer_ms=${each(t.transfer)}`;
 };
 
-/** Where a render's outputs go, and the film and short it draws. */
+/** The film and short a render draws. */
 interface Where {
-  /** `out/<film>`, or a short's `out/<film>/shorts/<id>` (`cutBase`). */
-  readonly base: string;
   readonly placed: ReadonlyArray<Placed>;
   /** The short, resolved on the page's frames, when the render is one. */
   readonly short: Option.Option<ResolvedShort>;
 }
 
 export interface RendererService {
-  readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<void, RenderError>;
+  /**
+   * Draw `job` into the film's project folder (`renderPaths`), or a video to
+   * its `--out`, and say what it wrote.
+   */
+  readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
 }
 
 export class Renderer extends Context.Service<Renderer, RendererService>()(
@@ -230,7 +236,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         job: Extract<RenderJob, { _tag: 'Video' }>,
         page: string,
         placed: ReadonlyArray<Placed>,
-        base: string,
+        clip: string,
       ) {
         // One page first says what the render draws and which encoder every
         // page encodes with: the pages, and the encoders they may run, are
@@ -251,12 +257,12 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             return { info: first.info, short: found, scale: k, encoder: by };
           }),
         );
-        const where: Where = { base, placed, short };
+        const where: Where = { placed, short };
         const { start, end } = frameSpan(info, job.from, job.to);
         if (end <= start)
           return yield* RangeEmpty.make({ from: start / info.fps, to: end / info.fps });
         const total = end - start;
-        const target = Option.getOrElse(job.out, () => `${where.base}.mp4`);
+        const target = Option.getOrElse(job.out, () => clip);
         yield* fs.makeDirectory(path.dirname(target), { recursive: true });
         const range = { from: start / info.fps, to: end / info.fps };
 
@@ -426,34 +432,58 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             ),
         });
 
-        const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
+        const captions = captionsName(target);
         const cues = Option.match(where.short, {
           onNone: () => filmCaptions(where.placed, range),
           onSome: (short) => shortCaptions(where.placed, short, range),
         });
         yield* fs.writeFileString(captions, webVtt(cues));
         // The whole film of a film that declares a look also gets its YouTube chapters.
-        if (
+        const whole =
           Option.isNone(where.short) &&
           start === 0 &&
           end === info.frames &&
-          Option.isSome(film.look)
-        )
-          yield* Result.match(filmChapters(film, where.placed), {
-            onFailure: (error) => Effect.logWarning(`render.chapters skipped: ${error.message}`),
-            onSuccess: (lines) => {
-              const file = `${target.replace(/\.[^./]+$/, '')}.chapters.txt`;
-              return Effect.andThen(fs.writeFileString(file, `${lines.join('\n')}\n`), () =>
-                Effect.log(`render.chapters count=${lines.length} file=${file}`),
-              );
-            },
-          });
+          Option.isSome(film.look);
+        const chapters = yield* Option.match(
+          Option.liftPredicate(film, () => whole),
+          {
+            onNone: () => Effect.succeedNone,
+            onSome: (declared) =>
+              Result.match(filmChapters(declared, where.placed), {
+                onFailure: (error) =>
+                  Effect.as(
+                    Effect.logWarning(`render.chapters skipped: ${error.message}`),
+                    Option.none<string>(),
+                  ),
+                onSuccess: (lines) => {
+                  const file = chaptersName(target);
+                  return fs
+                    .writeFileString(file, `${lines.join('\n')}\n`)
+                    .pipe(
+                      Effect.andThen(
+                        Effect.log(`render.chapters count=${lines.length} file=${file}`),
+                      ),
+                      Effect.as(Option.some(file)),
+                    );
+                },
+              }),
+          },
+        );
 
         const secs = ((yield* Clock.currentTimeMillis) - began) / 1000;
         const spent = yield* Ref.get(done);
         yield* Effect.log(
           `render.done frames=${total} chunks=${chunks.length} audio=${Option.isSome(audio)} secs=${secs.toFixed(1)} fps=${(total / secs).toFixed(1)} ${perFrame(spent)} file=${target} share=${Option.getOrElse(shared, () => 'none')} captions=${captions}`,
         );
+        const written: RenderOutput = {
+          kind: 'video',
+          clip: Option.some(target),
+          share: shared,
+          captions: Option.some(captions),
+          chapters,
+          images: [],
+        };
+        return written;
       }, Effect.scoped);
 
       const stills = Effect.fnUntraced(function* (
@@ -463,7 +493,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       ) {
         const stillDir = path.join(dir, 'stills');
         yield* fs.makeDirectory(stillDir, { recursive: true });
-        yield* Effect.forEach(
+        const files = yield* Effect.forEach(
           job.times,
           (t) =>
             Effect.gen(function* () {
@@ -473,9 +503,11 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
                 yield* pool.call('frame', frameAt(pool.info, t), 'image/png'),
               );
               yield* Effect.log(`render.still t=${t} file=${file}`);
+              return file;
             }),
-          { concurrency: job.workers, discard: true },
+          { concurrency: job.workers },
         );
+        return imagesOutput('stills', files.toSorted());
       });
 
       const contact = Effect.fnUntraced(function* (
@@ -500,12 +532,14 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.log(
           `render.contact frames=${times.length} every=${job.every}s file=${sheet}`,
         );
+        return imagesOutput('contact', [sheet]);
       });
 
       const lookbook = Effect.fnUntraced(function* (pool: ExportPages, dir: string) {
         const file = path.join(dir, lookbookName);
         yield* fs.writeFile(file, yield* pool.call('lookbook', 'image/jpeg'));
         yield* Effect.log(`render.lookbook file=${file}`);
+        return imagesOutput('lookbook', [file]);
       });
 
       const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
@@ -517,24 +551,27 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         });
         const placed = yield* placeFilm(film);
         const page = cutPage(film.paths.name, cut);
-        const base = cutBase(film.paths.out, cut);
-        const dir = path.join(base, job.tag);
+        const where = renderPaths(film.paths.out, job.address, job.variant);
+        const dir = where.dir;
 
         /** A job drawn on `workers` pages that encode nothing, handed the pool. */
-        const drawn = <E>(workers: number, run: (pool: ExportPages) => Effect.Effect<void, E>) =>
+        const drawn = <E>(
+          workers: number,
+          run: (pool: ExportPages) => Effect.Effect<RenderOutput, E>,
+        ) =>
           Effect.scoped(
             Effect.gen(function* () {
               yield* fs.makeDirectory(dir, { recursive: true });
               const pool = yield* pages.open(page, { workers, captions: job.captions });
               // A short's spans must resolve on the page's frames, as a video's do.
               yield* shortOn(placed, cut, pool.info.fps);
-              yield* run(pool);
+              return yield* run(pool);
             }),
           );
 
-        yield* RenderJob.$match(job, {
-          // A video writes nothing under `dir`: its segments are its own, and its file is `--out`.
-          Video: (v) => video(film, v, page, placed, base),
+        return yield* RenderJob.$match(job, {
+          // A video writes its file (`--out`, else its clip) and what goes beside it; its segments are its own.
+          Video: (v) => video(film, v, page, placed, where.clip),
           Stills: (s) => drawn(Math.min(s.workers, s.times.length), (pool) => stills(s, pool, dir)),
           // One page composes the whole sheet.
           Contact: (c) => drawn(1, (pool) => contact(c, pool, dir)),

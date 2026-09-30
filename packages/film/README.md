@@ -14,7 +14,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `@bible/film/stand-in`     | The one stand-in 2D context for tests (bun has no canvas): `recorder` keeps the transform, alpha, composite and fill style and records each fill and image, and with `onCall` tells a test of every call and property set (how `every-scene-draws` logs a frame to check it is pure); each canvas it makes carries its number (`isStandInCanvas`, `made`); `withDom`/`standInDom` put up a document whose canvases are stand-ins; it refuses what a real canvas refuses (a negative radius, a colour stop off 0..1). The framework's canvas tests and a film's `every-scene-draws` draw into it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy, and the review's stills and phone copies), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through the app's private store), MediaStore (`media-store.ts`: the store interface, `put`/`get`/`hashOf`/`list`/`read` with a byte range, and the folder store), `r2-store.ts` (the R2 store, SigV4 in `sigv4.ts` through `HttpClient`), PrivateStore (`private-store.ts`: the store `library.ts` declares, reached with the `FILM_STORE_*` key read as `Config.Redacted`), Browser, Pages (`pages.ts`: the export page pool check, look and render share), PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead, StaticCheck; and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked, each read in a fresh process through `FreshFilm`, `choices-process.ts`, and `film options`, `choices-cli.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy, and the review's stills and phone copies), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through the app's private store), MediaStore (`media-store.ts`: the store interface, `put`/`get`/`hashOf`/`list`/`read` with a byte range, and the folder store), `r2-store.ts` (the R2 store, SigV4 in `sigv4.ts` through `HttpClient`), PrivateStore (`private-store.ts`: the store `library.ts` declares, reached with the `FILM_STORE_*` key read as `Config.Redacted`), Browser, Pages (`pages.ts`: the export page pool check, look and render share), PreviewServer, Renderer (`render-plan.ts` is its pure plan), RenderCatalogue (`catalogue.ts`: a film's `catalogue.json`; the domain is `core/catalogue.ts`), Stamps (`stamp.ts`: each scene's content key), `film project` (`project-cli.ts`), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead, StaticCheck; and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked, each read in a fresh process through `FreshFilm`, `choices-process.ts`, and `film options`, `choices-cli.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ## Data
 
@@ -28,7 +28,7 @@ taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|chapters|lab|notes <film>` (and `film doctor`, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|project|chapters|lab|notes <film>` (and `film doctor`, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, sounds, previewServer, labServer })`
 with its films folder, its sound library folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
@@ -272,13 +272,63 @@ its chunk and encodes it with the browser's H.264 encoder through mediabunny
 (and, unless `--no-share`, a share copy from a second encoder in the same
 pass), and a chunk whose page crashes is retried once on a new page. Which
 encoder is data, chosen once (below). `Media.join` joins the segments in order with the track cut from
-`full.wav` under the range and encoded to AAC, and `out/<film>.vtt` is written
+`full.wav` under the range and encoded to AAC, and the captions (`main.vtt`) are written
 beside the MP4 from `captionCues`, the same line timing the burned-in captions
 use. Segments are written to a temp folder of the render's own (`makeTempDirectory`), removed once joined;
-a video writes nothing under `out/<film>/`, whatever its tag. A
+a video leaves no segments under `out/<film>/`, whatever its variant. A
 contact sheet is composed in one page (`player/contact.ts`). An
 uncaught error in the page is a `PageError`, never a log line. A missing
 browser is `BrowserMissing`, whose message is the install command.
+
+## Project folder
+
+A film's renders live in its project folder, `out/<film>` (git-ignored, never
+under `~/film-media`), one folder per address and one name per variant:
+
+```
+out/<film>/
+  catalogue.json                  what every file here is (RenderCatalogue)
+  film/main.mp4                   the whole film: .share.mp4, .vtt, .chapters.txt beside it
+  film/main/stills/t0003.00.png   its stills; contact.jpg and lookbook.jpg in the same folder
+  acts/<act>/main.mp4
+  scenes/<id>[+<id>]/<variant>.mp4
+  shorts/<id>/main.mp4
+```
+
+`--variant <name>` (default `main`) renders beside `main` at the same address:
+a look or score option, a lab note's `lab-<id>`. `--out file` writes a video
+outside the folder and is not catalogued.
+
+**The catalogue** (`core/catalogue.ts`, kept by `tools/catalogue.ts`) records
+each render's address, variant, kind (video, stills, contact, look-book),
+settings (scale, captions), files and **stamp**: the git commit (none outside
+a checkout) and a content key. A render's slot is its address, variant and
+kind; a new render of a slot replaces the record before it. **Stamps**
+(`tools/stamp.ts`) keys each scene by what its frames are drawn from: its own
+module and all it imports (relative and workspace imports; not packages under
+`node_modules`), the film's frame (`film.ts`, the scene registry and all they
+import, with the registry's imports of the other scenes cut, and
+`@bible/film/player`), its beat as laid out and its take's timing, and, for a
+scene entering on a transition, the previous scene's own modules. An
+address's key hashes its scenes' keys. The key leaves out the audio (`mix` has
+its own staleness check) and what a frame fetches at run time.
+
+**`film project`** reviews a film scene by scene. `film project <film>
+[--variant v] [--json]` lists every scene in film order: its render `current`
+(drawn from the sources as they are), `stale` or `missing`; its approval
+`approved`, `stale` (given on an earlier render) or `none`; and its comments,
+each marked when it was made on an earlier render. `film project render
+<film> [--scene id,id] [--scale s] [--variant v] [--force]` renders each scene
+on its own into `scenes/<id>/` and skips one whose render is current at the
+same settings. `film project approve <film> --scene id | --all` approves one
+scene's render, or every current one (a stale or missing scene is left, and
+named). `film project comment <film> <scene> "text"` records a comment on the
+scene's render as it is now. Approvals and comments are keyed by address,
+variant and the stamp's key: a re-render leaves an approval in place, stale,
+and a render that returns to the approved sources is approved again. Each
+write reads the file, changes it and writes it back whole (a temp name, then a
+rename), one at a time in a process; two processes writing one film's
+catalogue at the same instant can lose the earlier write.
 
 ## Encoders
 
@@ -429,7 +479,7 @@ style (`ShortStyle` on `FilmSpec.short`: the hook's and captions' fonts and
 colours, sizes in 1080×1920 px, checked by `createFilm`). The
 renderer resolves the short again on the page's fps, cuts `full.wav` to its
 pieces (`splice`, a `JOIN_FADE` of 10 ms each side of a join only), and
-writes `out/<film>/shorts/<id>.mp4` and `<id>.vtt` (`shortCaptions`: the
+writes `out/<film>/shorts/<id>/main.mp4` and `main.vtt` (`shortCaptions`: the
 phrases the page burns in, as it shows them).
 
 A short's captions are phrases, not the film's lines (`core/phrases.ts`):
@@ -816,9 +866,9 @@ stills at every cue's start and end and its 60% point (`sceneMoments`, the
 moments `film check` samples, less the marks), each labelled with the cue
 and time. The page composes it with `film.render`, so the lab shows it live
 (`?film=<film>&lookbook`, a still opening that frame in the lab) and
-`film lookbook <film> [--captions] [--tag t]` asks one export page for the
-same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`) and writes
-`out/<film>/lookbook.jpg`. It is the first page to read for a new film
+`film lookbook <film> [--captions] [--variant v]` asks one export page for the
+same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`), writes
+`out/<film>/film/<variant>/lookbook.jpg` and records it in the catalogue. It is the first page to read for a new film
 and the consistency reference while its scenes are built. The command then
 runs the look pass (below) and prints one line per scene (held share and
 longest held run, largest face, mean luma, dark share, saturation and top
@@ -842,7 +892,7 @@ frame and the vignette go on in turn.
 **Chapters.** An act of the film's `look` that names a `chapter` (the
 narrator's question, in the viewer's words) starts a YouTube chapter at its
 first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
-whole-film `render` writes them beside the video as `<out>.chapters.txt`.
+whole-film `render` writes them beside the video as `main.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
 `ChaptersInvalid` (a render logs the reason and writes none).
 
@@ -858,18 +908,24 @@ options in `lab/review/options/`), dark and made for a phone first.
 compare. Its kind says how it is picked (`core/schema.ts`; `Choice` in code,
 since `Option` is Effect's):
 
-| Kind            | Schema         | Variants                                         | Picked by                                                   |
-| --------------- | -------------- | ------------------------------------------------ | ----------------------------------------------------------- |
-| a render set    | `RenderChoice` | `<clip>.<variant>[.share].mp4` in one folder     | nobody: reviewed only                                       |
-| a score         | `ScoreChoice`  | `sound.ts`'s `score.options`, each the whole mix | `play` in `sound.ts`                                        |
-| a sound's takes | `EffectChoice` | a library sound's kept variants and candidates   | the library's keep, unkeep and reject (`library.lock.json`) |
-| a look          | (deferred)     | a style at named levels                          | joins the union when it has a pick to write                 |
+| Kind            | Schema         | Variants                                                            | Picked by                                                   |
+| --------------- | -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------- |
+| a render set    | `RenderChoice` | an address's renders in the catalogue, or a montage's `review.json` | nobody: reviewed only                                       |
+| a score         | `ScoreChoice`  | `sound.ts`'s `score.options`, each the whole mix                    | `play` in `sound.ts`                                        |
+| a sound's takes | `EffectChoice` | a library sound's kept variants and candidates                      | the library's keep, unkeep and reject (`library.lock.json`) |
+| a look          | (deferred)     | a style at named levels                                             | joins the union when it has a pick to write                 |
 
-**Sets are found by name.** Videos named `<clip>.<variant>[.share].mp4` in
-one folder form a set (a share copy stands in for its master). An optional
-`review.json` in the folder (`ReviewManifest`) adds a title and a line, docs,
-and per set a title, order, start, moments, and each variant's label, tag,
-verdict, notes, or file when it lies elsewhere. Every key may be left out.
+**Sets are found by record, never by name.** A folder is listed only when a
+record says what its files are. A film's project folder (`out/<film>`) holds
+`catalogue.json`: each address the catalogue has renders of is a set, its
+variants that address's renders (`main` first, a share copy in place of its
+master), each with its stamp and the owner's approval. A montage folder (say a
+look explored by hand) holds `review.json` (`ReviewManifest`), which names its
+files: `videos` and `images` (loose files to show), `docs`, and per set a title,
+order, start, moments, and each variant's label, tag, verdict, notes and
+`file` (by default `<clip>.<variant>.share.mp4`, then `<clip>.<variant>.mp4`).
+A file neither record names is not listed; nothing reads a file name back.
+A film's page plays its newest whole-film render as the catalogue records it.
 
 **The roots.** `FILM_REVIEW_ROOTS` (comma-separated, each `label=path` or a
 bare path) replaces the app's own roots (every checkout's `out/`);
