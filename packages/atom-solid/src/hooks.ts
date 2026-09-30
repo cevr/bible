@@ -53,7 +53,14 @@ import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type * as AtomRef from 'effect/reactivity/AtomRef';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, createRenderEffect, createSignal, useContext } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createRenderEffect,
+  createSignal,
+  untrack,
+  useContext,
+} from 'solid-js';
 
 import { RegistryContext } from './registry-context.js';
 
@@ -223,6 +230,16 @@ interface SetterOptions<R, Mode extends SetterMode> {
     | undefined;
 }
 
+/**
+ * The current atom, read untracked: a setter or a refresh is a command, so a
+ * call from an effect callback or a handler tracks nothing (Solid's
+ * development build warns `STRICT_READ_UNTRACKED` on a tracked read there).
+ */
+const untrackedMemo = <A>(atom: () => A): (() => A) => {
+  const memo = createMemo(atom);
+  return () => untrack(memo);
+};
+
 const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
   if (Exit.isSuccess(exit)) return exit.value;
   throw Cause.squash(exit.cause);
@@ -233,7 +250,7 @@ function setAtom<R, W, Mode extends SetterMode>(
   atom: () => Atom.Writable<R, W>,
   options?: SetterOptions<R, Mode>,
 ): AtomSetter<R, W, Mode> {
-  const memo = createMemo(atom);
+  const memo = untrackedMemo(atom);
   if (options?.mode === 'promise' || options?.mode === 'promiseExit') {
     const mode = options.mode;
     const write = (
@@ -300,7 +317,7 @@ export const useAtomSet = <R, W, Mode extends SetterMode = never>(
 export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): (() => void) => {
   const registry = useContext(RegistryContext);
   mountAtom(registry, atom);
-  const memo = createMemo(atom);
+  const memo = untrackedMemo(atom);
   return () => registry.refresh(memo());
 };
 

@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Cause, Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import * as AtomRef from 'effect/reactivity/AtomRef';
-import { createRenderEffect, createRoot, createSignal, DEV, flush, resolve } from 'solid-js';
+import {
+  createEffect,
+  createRenderEffect,
+  createRoot,
+  createSignal,
+  DEV,
+  OBSERVE,
+  flush,
+  resolve,
+} from 'solid-js';
 
 import {
   useAtom,
@@ -858,6 +867,35 @@ describe('Solid development mode', () => {
     expect(DEV).toBeDefined();
     return Effect.void;
   });
+
+  test('a setter or a refresh called in an effect callback reads nothing tracked', () =>
+    Effect.gen(function* () {
+      const findings = yield* Effect.acquireRelease(
+        Effect.map(Effect.fromOption(Option.fromUndefinedOr(OBSERVE)), (o) =>
+          o.diagnostics.capture(),
+        ),
+        (capture) => Effect.sync(() => capture.stop()),
+      );
+      const counter = Atom.make(0);
+      const other = Atom.make(0);
+      const mounted = mount(() => {
+        const set = useAtomSet(() => counter);
+        const refresh = useAtomRefresh(() => other);
+        const [tick, setTick] = createSignal(0);
+        createEffect(tick, (n) => {
+          if (n === 0) return;
+          set(n);
+          refresh();
+        });
+        return { setTick };
+      });
+      yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
+      yield* settle;
+      mounted.result.setTick(1);
+      yield* settle;
+      expect(mounted.registry.get(counter)).toBe(1);
+      expect(findings.events.map((e) => e.code)).toEqual([]);
+    }));
 
   test('accepts an owned-scope write when the signal declares ownedWrite', () =>
     Effect.gen(function* () {

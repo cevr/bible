@@ -26,6 +26,7 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   useContext,
 } from 'solid-js';
 import { type Steps, choiceMixUrl } from '../../../core/api.ts';
@@ -136,6 +137,8 @@ const FilmBody = (
   }>,
 ) => {
   const film = props.atoms.film;
+  // The choices as first read seed the body once; each later answer updates `choices`.
+  const first = untrack(() => props.first);
   const syncAtom = ActorAtom.make(props.actor);
   const sync = useAtomValue(() => syncAtom);
   const send = useAtomSet(() => syncAtom);
@@ -150,7 +153,7 @@ const FilmBody = (
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
   // The choices as last answered: the first read, a read again after an undo or a redo, or a write's answer.
-  const [choices, setChoices] = createSignal(props.first);
+  const [choices, setChoices] = createSignal(first);
   createEffect(choicesResult, (result) => {
     if (result.waiting) return;
     Option.map(AsyncResult.value(result), setChoices);
@@ -181,14 +184,14 @@ const FilmBody = (
   });
 
   const [pictureRef, setPictureRef] = createSignal(
-    Option.map(Option.fromUndefinedOr(props.first.pictures[0]), (p) => p.ref),
+    Option.map(Option.fromUndefinedOr(first.pictures[0]), (p) => p.ref),
   );
   const picture = createMemo(() =>
     Option.flatMap(pictureRef(), (ref) =>
       Option.fromUndefinedOr(choices().pictures.find((p) => p.ref === ref)),
     ),
   );
-  const [heard, setHeard] = createSignal<Heard>(firstHeard(props.first));
+  const [heard, setHeard] = createSignal<Heard>(firstHeard(first));
   const mix = createMemo(() => mixOf(film, heard(), version()));
   createEffect(
     () => trackOf(film, heard(), version()),
@@ -275,7 +278,7 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   // The page opens on the choices as first read; a later read (after a write) updates them in place.
   const [opened, setOpened] = createSignal(Option.none<FilmChoices>());
   createEffect(first, (result) => {
-    if (Option.isSome(opened())) return;
+    if (Option.isSome(untrack(opened))) return;
     setOpened(AsyncResult.value(result));
   });
   return (

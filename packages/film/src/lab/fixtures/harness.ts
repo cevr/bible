@@ -188,12 +188,24 @@ const answer = (r: Route, found: Answer) => {
   return r.fulfill({ status: found.status, json: found.json });
 };
 
-/** The lab open in a fresh page: the page, what it asked of the API, and any page errors. */
+/**
+ * The lab open in a fresh page: the page, what it asked of the API, and any
+ * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
+ * warning is a read or a write the page does not mean).
+ */
 export interface OpenLab {
   readonly page: Page;
   readonly asked: ReadonlyArray<Asked>;
   readonly errors: ReadonlyArray<string>;
 }
+
+/** Collect `tab`'s errors into `errors`: what it throws, and each reactivity diagnostic it warns. */
+const collectErrors = (tab: Page, errors: Array<string>) => {
+  tab.on('pageerror', (e) => errors.push(String(e)));
+  tab.on('console', (m) => {
+    if (m.type() === 'warning' && m.text().startsWith('[STRICT_')) errors.push(m.text());
+  });
+};
 
 /**
  * A microphone for the page: the browser's fake device playing `wav`, and
@@ -251,7 +263,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   );
   const asked: Array<Asked> = [];
   const errors: Array<string> = [];
-  tab.on('pageerror', (e) => errors.push(String(e)));
+  collectErrors(tab, errors);
   const all = [...routes, ...defaults];
   yield* Effect.promise(() =>
     tab.route(`${ORIGIN}/**`, (r) => {
@@ -322,7 +334,7 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   );
   const asked: Array<Asked> = [];
   const errors: Array<string> = [];
-  tab.on('pageerror', (e) => errors.push(String(e)));
+  collectErrors(tab, errors);
   yield* Effect.promise(() =>
     tab.route(`${ORIGIN}/**`, (r) => {
       const url = new URL(r.request().url());
