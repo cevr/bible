@@ -53,7 +53,9 @@ describe('loops', () => {
       const playing = yield* Effect.promise(() => page.textContent('[data-act="play"]'));
       expect(playing).toBe('❚❚');
       // Played on past B by the page's clock: the loop has come round again inside the range.
+      // Then a few frames more, past the quarter second `#T` is written at most once in.
       yield* Effect.promise(() => page.clock.fastForward(2500));
+      yield* Effect.promise(() => page.clock.runFor(300));
       const T = yield* shownT(page);
       expect(T).toBeGreaterThan(1);
       expect(T).toBeLessThanOrEqual(2);

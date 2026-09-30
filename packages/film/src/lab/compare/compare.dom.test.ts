@@ -18,10 +18,13 @@ const compareSays = (page: Page, part: string) =>
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
-const clipOf = (page: Page) =>
+/** Wait until HEAD's layer is clipped to `want`: the layer is painted on the next animation frame. */
+const clipIs = (page: Page, want: string) =>
   Effect.promise(() =>
-    page.evaluate(
-      () => document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.style.clipPath ?? '',
+    page.waitForFunction(
+      (clip) =>
+        document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.style.clipPath === clip,
+      want,
     ),
   );
 
@@ -33,7 +36,7 @@ describe('compare with HEAD', () => {
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'scenes/one.ts at HEAD');
       yield* Effect.promise(() => page.waitForSelector('canvas.lab-compare:not([hidden])'));
-      expect(yield* clipOf(page)).toBe('inset(0px 50% 0px 0px)');
+      yield* clipIs(page, 'inset(0px 50% 0px 0px)');
       const grip = yield* Effect.promise(() =>
         page.locator('.lab-divider circle').boundingBox(),
       ).pipe(Effect.flatMap(Effect.fromNullishOr), Effect.orDie);
@@ -47,7 +50,7 @@ describe('compare with HEAD', () => {
       yield* Effect.promise(() => page.mouse.down());
       yield* Effect.promise(() => page.mouse.move(frame.x + frame.width * 0.25, y, { steps: 4 }));
       yield* Effect.promise(() => page.mouse.up());
-      expect(yield* clipOf(page)).toBe('inset(0px 75% 0px 0px)');
+      yield* clipIs(page, 'inset(0px 75% 0px 0px)');
       expect(asked.filter((a) => a.path === '/scenes/one/head')).toHaveLength(1);
       expect(asked.filter((a) => a.path === '/notes' && a.method === 'POST')).toEqual([]);
       expect(errors).toEqual([]);
