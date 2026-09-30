@@ -619,7 +619,8 @@ machine and actions, never the machine's state: the editor's `status` and
 component matches a state's tag, and a renamed state touches only its
 module. The browser tests (`lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chromium with the lab API faked
-(`lab/fixtures/harness.ts`).
+(`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
+retry or a loop's playback is moved on with `page.clock`, not waited out.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
