@@ -1,12 +1,13 @@
-// The repo's `film` oxlint plugin: guardrails for the film draw path that are
-// true of its syntax, read as `film/<rule>`. The root `.oxlintrc.json` loads
-// it as a local `.ts` (`jsPlugins`) and turns each rule on for the films it
-// governs with an `overrides` entry.
+// The repo's `film` oxlint plugin: guardrails for the films and the film
+// tools that are true of their syntax, read as `film/<rule>`. The root
+// `.oxlintrc.json` loads it as a local `.ts` (`jsPlugins`) and turns each rule
+// on for the paths it governs with an `overrides` entry.
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
+import { noPointFreeLog } from './no-point-free-log.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
 
@@ -16,6 +17,7 @@ export default Plugin.define({
     'drawing-literal': drawingLiteral,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
+    'no-point-free-log': noPointFreeLog,
     'no-unprobed-ink': noUnprobedInk,
     'span-ends-on-anchor': spanEndsOnAnchor,
   },

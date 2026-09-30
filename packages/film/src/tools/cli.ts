@@ -873,7 +873,7 @@ const notesReply = Command.make(
     const news = eventsSince(yield* store.read(input.film), cursor);
     for (const event of news.events)
       if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
-        yield* Effect.forEach(Option.toArray(eventLine(at, event)), Console.log);
+        yield* Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line));
     yield* Console.log(cursorLine(news.cursor));
   }),
 ).pipe(
@@ -931,7 +931,7 @@ const notes = Command.make(
       store.wait(input.film, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
           Effect.forEach(waited.events, (event) =>
-            Effect.forEach(Option.toArray(eventLine(at, event)), Console.log),
+            Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line)),
           ),
         ),
         Effect.flatMap((waited) => watch(waited.cursor)),

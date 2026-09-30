@@ -3,16 +3,15 @@
 ## Baseline
 
 - HEAD: `<hash>`
-- Source lines (`packages/film/src`, `apps/animations/src`): `<n>`
-- Film audio (`mix --stems`, mean dB): voice `<n>`, music under speech `<n>`, music between lines `<n>`
+- Source lines (the count in SKILL.md step 1): `<n>`
 - Look-book: `<path>`
 
 ## Performance
 
-Measured per `.claude/skills/film-architecture-loop/performance.md`; medians of several runs on one machine.
+Measured per `.claude/skills/film-architecture-loop/performance.md`; medians of several runs on one machine, with `uptime`.
 
-| Measure | Film / scene | Before | After | Budget |
-| ------- | ------------ | ------ | ----- | ------ |
+| Measure | Film / scene | Before | After | Load |
+| ------- | ------------ | ------ | ----- | ---- |
 
 ## Coverage
 
@@ -45,20 +44,22 @@ Reports: `<scratchpad>/film-pass<N>/<area>.md`
 
 Guardrails added:
 
-| Defect class | Check (`film/` lint rule / type / film check) | Red on | Hash |
-| ------------ | --------------------------------------------- | ------ | ---- |
+| Defect class | Check (`film/` lint rule / effect lint rule / type / film check / test / CI step) | Red on | Hash |
+| ------------ | --------------------------------------------------------------------------------- | ------ | ---- |
 
 Counsel defects:
 
 | ID  | Defect | Red test | Status |
 | --- | ------ | -------- | ------ |
 
-Live check: `<check, cues diff, mix stems, lab drive, stills for the owner's review: what was run and the result>`
+CI: one `bun run ci <sha>` line per commit pushed to main; a red run is a finding with its run id.
+
+Live check: `<check, cues diff, mix, lab drive, stills for the owner's review: what was run and the result>`
 
 ## Close
 
 - Unswept directories: `<none>`
 - Open review items: `<none>`
 - Largest sweep finding: `<lines of value>`
-- Performance: `<every budget met, or the measure that misses>`
+- Performance: `<no measured saving left over its threshold, or the measure that has one>`
 - Structural change named by the loop reader: `<none>`

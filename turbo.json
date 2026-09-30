@@ -38,10 +38,6 @@
       "outputs": [],
       "cache": false
     },
-    "lint": {
-      "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
-      "outputs": []
-    },
     "dev": {
       "cache": false,
       "persistent": true

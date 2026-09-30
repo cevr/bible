@@ -8,20 +8,27 @@
 import { describe, expect, test } from 'bun:test';
 import { type NarrationAudio, narration } from './narration.ts';
 
-/** An audio element that records what it was asked, and rejects each play with `refuse` when set. */
+/**
+ * An audio element that records what it was asked, and rejects each play
+ * with `refuse` when set. `answered` settles once the narration has heard
+ * every play's answer: its reactions run after the narration's own.
+ */
 const fakeAudio = (refuse?: string) => {
   const asked: Array<string> = [];
+  const plays: Array<Promise<void>> = [];
   const events = new EventTarget();
   const el: NarrationAudio & { paused: boolean; fire: (type: string) => void } = {
     currentTime: 0,
     paused: true,
     play: () => {
       asked.push('play');
-      if (refuse === undefined) {
-        el.paused = false;
-        return Promise.resolve();
-      }
-      return Promise.reject(new DOMException('refused', refuse));
+      if (refuse === undefined) el.paused = false;
+      const play =
+        refuse === undefined
+          ? Promise.resolve()
+          : Promise.reject(new DOMException('refused', refuse));
+      plays.push(play);
+      return play;
     },
     pause: () => {
       asked.push('pause');
@@ -30,10 +37,9 @@ const fakeAudio = (refuse?: string) => {
     addEventListener: (type, listener) => events.addEventListener(type, listener),
     fire: (type) => events.dispatchEvent(new Event(type)),
   };
-  return { el, asked };
+  const answered = () => Promise.allSettled(plays);
+  return { el, asked, answered };
 };
-
-const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe('the narration', () => {
   test('a film with no master has nothing to play', () => {
@@ -57,23 +63,23 @@ describe('the narration', () => {
   });
 
   test('a master the element cannot play goes missing on its first play, once', async () => {
-    const { el, asked } = fakeAudio('NotSupportedError');
+    const { el, asked, answered } = fakeAudio('NotSupportedError');
     const n = narration('/a.wav', () => el);
     el.fire('canplay');
     expect(n.ready()).toBe(true);
     n.play(() => 0);
-    await settle();
+    await answered();
     expect(n.state()._tag).toBe('Missing');
     n.play(() => 0);
     expect(asked).toEqual(['play']);
   });
 
   test('a play refused until a click is blocked, and the next play tries again', async () => {
-    const { el, asked } = fakeAudio('NotAllowedError');
+    const { el, asked, answered } = fakeAudio('NotAllowedError');
     const n = narration('/a.wav', () => el);
     el.fire('canplay');
     n.play(() => 0);
-    await settle();
+    await answered();
     expect(n.state()._tag).toBe('Blocked');
     expect(n.ready()).toBe(false);
     n.play(() => 0);
@@ -104,11 +110,11 @@ describe('the narration', () => {
   });
 
   test('a play cut short by a pause is no failure', async () => {
-    const { el } = fakeAudio('AbortError');
+    const { el, answered } = fakeAudio('AbortError');
     const n = narration('/a.wav', () => el);
     el.fire('canplay');
     n.play(() => 0);
-    await settle();
+    await answered();
     expect(n.state()._tag).toBe('Ready');
   });
 });
