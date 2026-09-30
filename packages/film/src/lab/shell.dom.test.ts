@@ -79,4 +79,59 @@ describe('the lab shell', () => {
       expect(next).toBe('lab-strip-slot');
     }).pipe(Effect.scoped),
   );
+
+  it.live('a scene of many cues scrolls its strip, and the film keeps its size', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab();
+      yield* Effect.promise(() => page.setViewportSize({ width: 1440, height: 900 }));
+      yield* Effect.promise(() => page.waitForSelector('.lab-strip-row'));
+      // 35 cue rows, as roof's busiest scene has: the probe's own rows, copied.
+      yield* Effect.promise(() =>
+        page.$eval('.lab-strip-rows', (rows) => {
+          const row = rows.querySelector('.lab-strip-row');
+          for (let i = rows.querySelectorAll('.lab-strip-row').length; i < 35; i++)
+            if (row) rows.append(row.cloneNode(true));
+        }),
+      );
+      const width = (sel: string) =>
+        Effect.promise(() => page.$eval(sel, (el) => el.getBoundingClientRect().width));
+      const canvas = yield* width('.stage canvas');
+      const column = yield* width('.stage');
+      // Scrolled to its end, the strip still shows the words row at its top.
+      const strip = (yield* Effect.promise(() =>
+        page.$eval('.lab-strip-scroll', (scroller) => {
+          scroller.scrollTop = scroller.scrollHeight;
+          const words = scroller.querySelector('.lab-strip-words')?.getBoundingClientRect().top;
+          return {
+            scrolls: scroller.scrollHeight > scroller.clientHeight,
+            wordsAtTop:
+              Math.round(words ?? -1) === Math.round(scroller.getBoundingClientRect().top),
+          };
+        }),
+      )) as { scrolls: boolean; wordsAtTop: boolean };
+      const box = { canvas, column, ...strip };
+      expect(box.canvas).toBeGreaterThanOrEqual(box.column / 2);
+      expect(box.scrolls).toBe(true);
+      expect(box.wordsAtTop).toBe(true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('Play at the end of the film starts it over', () =>
+    Effect.gen(function* () {
+      // Past the end: the player shows the last frame.
+      const { page } = yield* openLab([], { hash: '#999' });
+      const t = () =>
+        Effect.promise(() => page.evaluate(() => Number(location.hash.slice(1)))).pipe(
+          Effect.map((n) => Math.round(n * 10) / 10),
+        );
+      const end = yield* t();
+      expect(end).toBeGreaterThan(1);
+      yield* Effect.promise(() => page.keyboard.press(' '));
+      yield* Effect.promise(() => page.clock.runFor(500));
+      yield* Effect.promise(() => page.keyboard.press(' '));
+      const played = yield* t();
+      expect(played).toBeGreaterThan(0);
+      expect(played).toBeLessThan(end);
+    }).pipe(Effect.scoped),
+  );
 });

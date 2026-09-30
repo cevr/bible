@@ -147,24 +147,27 @@ export const Strip = () => {
             <div class="lab-strip-head">
               {`${p().spec.id} · ${p().dur.toFixed(2)}s · ${file()}`}
             </div>
-            <div
-              class="lab-strip-rows"
-              ref={(el: HTMLDivElement) => {
-                rows = Option.some(el);
-              }}
-            >
-              <Words placed={p()} />
-              <For each={cues()} keyed={([name]) => name}>
-                {(entry) => (
-                  <CueRow placed={p()} name={entry()[0]} cue={entry()[1]} rows={() => rows} />
-                )}
-              </For>
+            {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
+            <div class="lab-strip-scroll">
               <div
-                class="lab-strip-playhead"
-                style={{
-                  left: pct(p(), Math.max(0, Math.min(p().dur, lab.T() - p().start))),
+                class="lab-strip-rows"
+                ref={(el: HTMLDivElement) => {
+                  rows = Option.some(el);
                 }}
-              />
+              >
+                <Words placed={p()} />
+                <For each={cues()} keyed={([name]) => name}>
+                  {(entry) => (
+                    <CueRow placed={p()} name={entry()[0]} cue={entry()[1]} rows={() => rows} />
+                  )}
+                </For>
+                <div
+                  class="lab-strip-playhead"
+                  style={{
+                    left: pct(p(), Math.max(0, Math.min(p().dur, lab.T() - p().start))),
+                  }}
+                />
+              </div>
             </div>
           </div>
         );

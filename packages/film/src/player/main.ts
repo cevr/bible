@@ -393,6 +393,8 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
 
   const toggle = () => {
     playing = !playing;
+    // Play at the film's last frame starts it over: from its loop's start, in a loop.
+    if (playing && T >= film.duration - 1 / film.fps) T = loop === undefined ? 0 : loop.from;
     rebase();
     if (playing) requestAnimationFrame(tick);
     draw();
