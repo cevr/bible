@@ -26,7 +26,7 @@ import {
 import { type Placed, filmEnd } from './layout.ts';
 import { hashText } from './narration.ts';
 import { TAKE_LEVEL, takeLift } from './recording.ts';
-import type { Sound, SoundManifest } from './schema.ts';
+import type { Sound, SoundEffect, SoundManifest } from './schema.ts';
 import {
   type Placing,
   type Playable,
@@ -182,13 +182,16 @@ const variantsFor = (
 interface Pending extends Placing {
   readonly playables: ReadonlyArray<Playable>;
   readonly level: number;
-  readonly sync: 'start' | 'hit';
+  readonly sync: Sync;
 }
 
-/** How far before its cue a variant starts: its hit, for a `sync: 'hit'` placement. */
+/** What a placement lands on its cue (`SoundEffect.sync`). */
+type Sync = NonNullable<SoundEffect['sync']>;
+
+/** How far before its cue a variant starts: its onset or its hit, as the placement syncs it. */
 const leadOf = (p: Pending, playable: Playable): number => {
   if (p.sync === 'start') return 0;
-  return Option.getOrElse(playable.hit, () => 0);
+  return Option.getOrElse(playable[p.sync], () => 0);
 };
 
 /** Each effect on each of its cues, its variant chosen and nudged, levelled against the voice. */
@@ -201,7 +204,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
       if (playables.length === 0) continue;
       const level = levelOf(entry, Option.fromUndefinedOr(fx.level));
       const sync = fx.sync ?? 'start';
-      if (sync === 'hit' && playables.some((p) => Option.isNone(p.hit)))
+      if (sync !== 'start' && playables.some((p) => Option.isNone(p[sync])))
         warnings.push(`mix.unsynced sound=${fx.sound} hint="run sfx describe"`);
       for (const cue of fx.at)
         pending.push({

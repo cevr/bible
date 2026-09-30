@@ -1054,6 +1054,37 @@ describe('soundFindings', () => {
     });
   });
 
+  test("a placement that lands a late-starting take's first sample on its cue is heard late; one synced to its onset or hit is not", () => {
+    const slow = { ...variant(requestKey(library['paper.hit'])), onset: 0.12, hit: 0.7 };
+    const tight = { ...variant(requestKey(library['paper.hit'])), onset: 0.01, hit: 0.05 };
+    const timed: Sounds = {
+      ...sounds,
+      lock: { ...lock, 'paper.hit': { variants: [tight, slow], candidates: [], rejected: [] } },
+    };
+    const at = [{ scene: 'open', cue: 'hit' }];
+    const found = soundFindings(
+      {
+        effects: {
+          steps: { sound: 'paper.hit', at },
+          walk: { sound: 'paper.hit', at, sync: 'onset' },
+          tap: { sound: 'paper.hit', at, sync: 'hit' },
+        },
+      },
+      placedSound,
+      timed,
+    );
+    expect(found).toMatchObject([
+      { _tag: 'LeadIn', effect: 'steps', name: 'paper.hit', variant: 2, onset: 0.12, hit: 0.7 },
+    ]);
+    // A tight take is heard on its cue.
+    expect(
+      soundFindings({ effects: { steps: { sound: 'paper.hit', at } } }, placedSound, {
+        ...sounds,
+        lock: { ...lock, 'paper.hit': { variants: [tight], candidates: [], rejected: [] } },
+      }),
+    ).toEqual([]);
+  });
+
   test('a loud effect is not judged here: its level is measured on the mix', () => {
     const at = [{ scene: 'open', cue: 'hit' }];
     expect(

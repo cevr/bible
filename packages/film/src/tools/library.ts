@@ -49,7 +49,6 @@ import {
   refusedAudio,
   gainFor,
   levelOf,
-  LEAD_IN,
   lockLoudness,
   lockTiming,
   makePlan,
@@ -72,7 +71,6 @@ import {
   CreditsOverCap,
   ElevenLabsFailed,
   type FilmModuleInvalid,
-  LeadIn,
   LibraryMissing,
   LoopSeam,
   type MediaFailed,
@@ -213,7 +211,6 @@ export type LibraryFinding =
   | SoundCorrupt
   | SoundLicence
   | LoopSeam
-  | LeadIn
   | TimingUnrecorded;
 
 export const libraryLevel = (finding: LibraryFinding): 'error' | 'warning' => {
@@ -802,6 +799,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             playables = pendingOf(entry, record).map((v) => ({
               source: { _tag: 'File', file: path.join(dir, v.file) },
               loudness: v.loudness,
+              onset: Option.fromUndefinedOr(v.onset),
               hit: Option.fromUndefinedOr(v.hit),
             }));
           yield* fs.makeDirectory(paths.out, { recursive: true });
@@ -874,7 +872,11 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             });
           });
 
-        /** A one-shot's kept takes whose timing is unrecorded, or whose sound starts late. */
+        /**
+         * A one-shot's kept takes whose timing is unrecorded. (A take that
+         * starts late is heard late only where a film places its first
+         * sample on a cue: the film's check says so, `LeadIn`.)
+         */
         const timingFindings = (
           name: string,
           entry: LibraryEntry,
@@ -884,13 +886,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           return kept.flatMap((v, i): ReadonlyArray<LibraryFinding> =>
             Option.match(timingOf(v), {
               onNone: () => [TimingUnrecorded.make({ name, variant: i + 1 })],
-              onSome: ({ onset, hit }) =>
-                Option.toArray(
-                  Option.map(
-                    Option.liftPredicate(onset, (s) => s > LEAD_IN),
-                    () => LeadIn.make({ name, variant: i + 1, onset, hit }),
-                  ),
-                ),
+              onSome: () => [],
             }),
           );
         };

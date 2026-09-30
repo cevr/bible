@@ -141,13 +141,16 @@ back while it has another), each nudged late, louder or quieter and up or
 down in pitch by the sound's jitter, seeded by the film, the effect and the
 placement, so a repeated sound never repeats exactly and a film always mixes
 the same way; a procedural variant is its recipe played with a seed. A
-placement meets its cue with the variant's start, or with its hit for an
-effect that says `sync: 'hit'`: the lock's `Variant` carries `onset` and
-`hit` (`describeSound` in `core/synth/analyse.ts`, recorded on keep and by
-`SoundLibrary.describe`, `sfx describe`), a procedural one is measured from
-its seed, and the mix starts each variant its hit early (`mix.unsynced`
-warns where a take has none recorded). `sfx check` warns `TimingUnrecorded`
-and `LeadIn` (a one-shot whose onset is past `LEAD_IN`, 0.05 s). It logs
+placement meets its cue with the variant's start, with its onset for an
+effect that says `sync: 'onset'` (a sustained sound), or with its hit for
+one that says `sync: 'hit'` (an impact): the lock's `Variant` carries
+`onset` and `hit` (`describeSound` in `core/synth/analyse.ts`, recorded on
+keep and by `SoundLibrary.describe`, `sfx describe`), a procedural one is
+measured from its seed, and the mix starts each variant that much early
+(`mix.unsynced` warns where a take has none recorded). `sfx check` warns
+`TimingUnrecorded`; the film's check warns `LeadIn` on an effect placed from
+its first sample whose kept take's onset is past `LEAD_IN`, 0.05 s (the
+placement's finding, since only it can say `sync`). It logs
 each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The

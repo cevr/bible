@@ -418,12 +418,15 @@ scene's voice starts (never `offset: 0.4`, a copy of the scene's `lead`). A
 sound at a scene's start names that landmark too (`{ scene, at: 'start' }`),
 so a timeline, a short and the sound spell a point one way. A one-shot whose
 loudest moment is its event (a stack settling, a page landing) says
-`sync: 'hit'` and anchors on the cue where the picture lands: the lock
-records each take's `onset` and `hit` (seconds into its file, measured when
-kept, or by `sfx describe`), and the mix starts each take its own hit early,
-so a re-rolled take stays on the picture. Never an `offset: -0.3` sized to
-one take's lead-in; `sfx check` warns `LeadIn` on a take whose sound starts
-more than 0.05 s in. A point names one
+`sync: 'hit'` and anchors on the cue where the picture lands; a sustained
+one (steps, a creak, a whoosh) says `sync: 'onset'`, so its sound, not its
+file's silent lead-in, begins on the cue (its hit may be a second in, and
+hit-sync would start it that early). The lock records each take's `onset`
+and `hit` (seconds into its file, measured when kept, or by `sfx describe`),
+and the mix starts each take its own onset or hit early, so a re-rolled take
+stays on the picture. Never an `offset: -0.3` sized to one take's lead-in;
+`check` warns `LeadIn` on an effect placed from its first sample (no `sync`)
+whose take starts more than 0.05 s in. A point names one
 anchor: a cue and a mark together do not compile. `score` sends each option's
 movements as one timed ElevenLabs composition plan (music v2 enforces the
 section lengths, so the score turns where the film does). Movements are the

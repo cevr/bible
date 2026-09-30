@@ -46,9 +46,11 @@ import type {
   TextBox,
 } from '../core/schema.ts';
 import {
+  LEAD_IN,
   type LibraryEntry,
   type SoundUse,
   type Sounds,
+  playablesOf,
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
@@ -61,7 +63,7 @@ import type {
   UnknownSound,
   UnknownVoice,
 } from '../core/errors.ts';
-import { type AudioMissing, type AudioStale, SoundStale, SoundUnmade } from './errors.ts';
+import { type AudioMissing, type AudioStale, LeadIn, SoundStale, SoundUnmade } from './errors.ts';
 import {
   AssetMissing,
   AssetStale,
@@ -339,10 +341,42 @@ const libraryFindings = (
   });
 
 /**
+ * An effect that lands its takes' first sample on its cue (`sync: 'start'`)
+ * heard late there: the kept take whose sound starts latest past `LEAD_IN`.
+ * A placement synced to its onset or hit lands that moment instead, so the
+ * finding is the placement's, not the take's.
+ */
+const leadIn = (
+  effect: string,
+  placing: Sound['effects'][string],
+  entry: LibraryEntry,
+  sounds: Sounds,
+): ReadonlyArray<LeadIn> => {
+  if ((placing.sync ?? 'start') !== 'start') return [];
+  const late = playablesOf(sounds, placing.sound, entry).flatMap((p, i) =>
+    Option.toArray(
+      Option.map(
+        Option.filter(Option.all({ onset: p.onset, hit: p.hit }), ({ onset }) => onset > LEAD_IN),
+        (timing) => ({ variant: i + 1, ...timing }),
+      ),
+    ),
+  );
+  return Option.toArray(
+    Option.map(Arr.last(Arr.sort(late, lateOrder)), (take) =>
+      LeadIn.make({ effect, name: placing.sound, ...take }),
+    ),
+  );
+};
+
+/** Takes by onset, latest last. */
+const lateOrder = Order.mapInput(Order.Number, (t: { readonly onset: number }) => t.onset);
+
+/**
  * Every bed and effect: each cue names a real scene, cue or mark; each sound
  * is in the library, declared for how it is placed, made and current. A
- * sound named twice is reported once. (How loud each plays against the voice
- * is measured on the mix: `balanceFindings`.)
+ * sound named twice is reported once. An effect placed from its first sample
+ * whose take starts late is heard late on its cue (`LeadIn`). (How loud each
+ * plays against the voice is measured on the mix: `balanceFindings`.)
  */
 export const soundFindings = (
   sound: Sound,
@@ -365,11 +399,14 @@ export const soundFindings = (
       onSuccess: ({ findings }) => once(bed.sound, findings),
     }),
   ]);
-  const effects = Object.values(sound.effects).flatMap((effect) => [
+  const effects = Object.entries(sound.effects).flatMap(([id, effect]) => [
     ...effect.at.flatMap(cueFindings),
     ...Result.match(libraryFindings(sounds, effect.sound, 'one-shot'), {
       onFailure: (e) => once(effect.sound, [e]),
-      onSuccess: ({ findings }) => once(effect.sound, findings),
+      onSuccess: ({ entry, findings }) => [
+        ...once(effect.sound, findings),
+        ...leadIn(id, effect, entry, sounds),
+      ],
     }),
   ]);
   return [...beds, ...effects];

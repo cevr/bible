@@ -552,10 +552,7 @@ describe('SoundLibrary', () => {
           const kept = (yield* library.load).lock['paper.slide']?.variants[0];
           // The fixture's burst rises within 5 ms and is loudest in its second 10 ms.
           expect(kept).toMatchObject({ onset: 0, hit: 0.01 });
-          const timing = Predicate.or(
-            Predicate.isTagged('TimingUnrecorded'),
-            Predicate.isTagged('LeadIn'),
-          );
+          const timing = Predicate.isTagged('TimingUnrecorded');
           expect((yield* library.check).filter(timing)).toEqual([]);
 
           // A lock written before takes were described: check says so, describe mends it.
