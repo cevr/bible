@@ -2,11 +2,14 @@
 //
 // Nothing is copied. Each review root (a checkout's `out/`, a scratchpad's
 // montages) is read in place; a file is named by its ref, its root's label
-// and its path under the root, so a route never takes a path on the box. The
-// only files the review writes are derived ones (a frame, a 720p phone copy
-// of a big video, a score option's mix) in its cache, keyed by the source's
-// path and mtime (or, for a mix, its plan), each made once, whole or not at
-// all (written beside its name, then renamed into place).
+// and its path under the root, so a route never takes a path on the box, and
+// a ref answers only what the index would list: a video, an image or a doc
+// (`kindOf`) where a walk looks, or a file a manifest names. The only files
+// the review writes are derived ones (a frame, a 720p phone copy of a big
+// video, a score option's mix) in its cache, keyed by the source's path and
+// mtime (or, for a mix, its plan), each made once, whole or not at all
+// (written beside its name, then renamed into place). Lengths, frames and
+// phone copies are the Media service's (`media.ts`).
 //
 // Videos that share a folder and a clip name (`<clip>.<variant>[.share].mp4`)
 // form one comparison set, a share copy standing in for its master; a set
@@ -20,7 +23,6 @@ import {
   Clock,
   Config,
   Context,
-  Crypto,
   Duration,
   Effect,
   FileSystem,
@@ -34,7 +36,6 @@ import {
   Schema,
   Semaphore,
 } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import type {
   RenderChoice,
   RenderVariant,
@@ -45,9 +46,9 @@ import type {
   ReviewVideo,
 } from '../core/schema.ts';
 import { ReviewManifestJson } from '../core/schema.ts';
-import { ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
-import { hex } from './library.ts';
-import { collectWithin, isNotFound } from './process.ts';
+import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
+import { cacheKey } from './digest.ts';
+import { Media } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
 export interface ReviewRoot {
@@ -363,16 +364,16 @@ export interface ReviewService {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;
-  /** The file `ref` names: inside its root, there, a file. */
+  /** The file `ref` names: inside its root, there, a file the index lists. */
   readonly resolve: (ref: string) => Effect.Effect<string, ReviewFileUnknown>;
-  /** A video's length in seconds (ffprobe), kept per path and mtime. */
-  readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | ReviewToolFailed>;
+  /** A video's length in seconds (its container's index), kept per path and mtime. */
+  readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | MediaFailed>;
   /** A JPEG of the video at `at` seconds (10% in when none), `width` wide, from the cache. */
   readonly frame: (
     ref: string,
     at: Option.Option<number>,
     width: number,
-  ) => Effect.Effect<string, ReviewFileUnknown | ReviewToolFailed>;
+  ) => Effect.Effect<string, ReviewFileUnknown | ReviewToolFailed | MediaFailed>;
   /** The video's 720p phone copy, when it is made. */
   readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
   /**
@@ -384,40 +385,18 @@ export interface ReviewService {
     name: string,
     make: (temporary: string) => Effect.Effect<void, E, R>,
   ) => Effect.Effect<string, E | ReviewToolFailed, R>;
-  /** `ffmpeg <args>` to its end, failing as `ReviewToolFailed` on `ref`. */
-  readonly ffmpeg: (
-    ref: string,
-    args: ReadonlyArray<string>,
-    limit: Duration.Duration,
-  ) => Effect.Effect<void, ReviewToolFailed>;
 }
 
-type Tool = ReviewToolFailed['tool'];
-
-const PHONE_ARGS = [
-  '-vf',
-  'scale=-2:720',
-  '-c:v',
-  'libx264',
-  '-preset',
-  'medium',
-  '-crf',
-  '23',
-  '-maxrate',
-  '3000k',
-  '-bufsize',
-  '6000k',
-  '-pix_fmt',
-  'yuv420p',
-  '-c:a',
-  'aac',
-  '-b:a',
-  '128k',
-  '-movflags',
-  '+faststart',
+/** Every file ref a folder of the index lists: its sets' videos and notes, and what is in no set. */
+const refsIn = (folder: ReviewFolder): ReadonlyArray<string> => [
+  ...folder.sets.flatMap((set) =>
+    set.variants.flatMap((v) => [
+      v.video.ref,
+      ...Option.toArray(Option.map(v.notes, (n) => n.ref)),
+    ]),
+  ),
+  ...[...folder.videos, ...folder.images, ...folder.docs].map((f) => f.ref),
 ];
-
-const QUIET = ['-hide_banner', '-v', 'error', '-nostdin', '-y'];
 
 export class Review extends Context.Service<Review, ReviewService>()('@bible/film/tools/Review') {
   static readonly layer = (config: ReviewConfig) =>
@@ -426,17 +405,10 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-        const crypto = yield* Crypto.Crypto;
+        const media = yield* Media;
         const roots = config.roots.map((root) => ({ ...root, path: path.resolve(root.path) }));
         const cacheFailed = (name: string) => (error: { readonly message: string }) =>
           ReviewToolFailed.make({ tool: 'cache', ref: name, reason: error.message });
-
-        const keyOf = (parts: ReadonlyArray<string | number>) =>
-          crypto.digest('SHA-1', new TextEncoder().encode(parts.join('|'))).pipe(
-            Effect.map((bytes) => hex(bytes).slice(0, 20)),
-            Effect.orDie,
-          );
 
         const statOf = (file: string) =>
           fs.stat(file).pipe(
@@ -465,6 +437,17 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           });
         });
 
+        /**
+         * Whether the index would list `found` (at `ref`): a video, an image or
+         * a doc where a walk looks, or a file a folder's manifest names.
+         */
+        const listed = Effect.fn('Review.listed')(function* (ref: string, found: Found) {
+          const rel = ref.split('/').slice(1).join('/');
+          if (Option.isSome(kindOf(found.name)) && walked(rel)) return true;
+          const { folders } = yield* Effect.suspend(() => index(false));
+          return folders.some((folder) => refsIn(folder).includes(ref));
+        });
+
         const resolve = Effect.fn('Review.resolve')(function* (ref: string) {
           const unknown = ReviewFileUnknown.make({ ref });
           const at = pathOf(roots, ref, path);
@@ -480,38 +463,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const inside = Option.exists(real, (r) => Option.isSome(refOf(realRoots, r, path)));
           const found = yield* foundAt(at.value);
           if (!inside || Option.isNone(found)) return yield* unknown;
+          if (!(yield* listed(ref, found.value))) return yield* unknown;
           return at.value;
         });
-
-        const run = (
-          tool: Exclude<Tool, 'cache'>,
-          ref: string,
-          command: ChildProcess.Command,
-          limit: Duration.Duration,
-        ) =>
-          collectWithin(spawner, tool, command, limit).pipe(
-            Effect.mapError((error) => {
-              let reason = error.message;
-              if (error._tag === 'PlatformError' && isNotFound(error))
-                reason = `${tool} is not on PATH`;
-              return ReviewToolFailed.make({ tool, ref, reason });
-            }),
-            Effect.filterOrFail(
-              (done) => done.exitCode === 0,
-              (done) =>
-                ReviewToolFailed.make({
-                  tool,
-                  ref,
-                  reason: [done.stderr.trim(), `exit ${done.exitCode}`].filter(Boolean).join(': '),
-                }),
-            ),
-            Effect.map((done) => done.stdout),
-          );
-
-        const ffmpeg = (ref: string, args: ReadonlyArray<string>, limit: Duration.Duration) =>
-          run('ffmpeg', ref, ChildProcess.make('ffmpeg', [...QUIET, ...args]), limit).pipe(
-            Effect.asVoid,
-          );
 
         // One maker per name at a time: a second ask waits, then finds the file made.
         const locks = new Map<string, Semaphore.Semaphore>();
@@ -550,37 +504,13 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         };
 
         const durations = new Map<string, number>();
-        const probe = Effect.fn('Review.probe')(function* (ref: string, file: string) {
-          const out = yield* run(
-            'ffprobe',
-            ref,
-            ChildProcess.make('ffprobe', [
-              '-v',
-              'error',
-              '-show_entries',
-              'format=duration',
-              '-of',
-              'csv=p=0',
-              file,
-            ]),
-            Duration.seconds(30),
-          );
-          const seconds = Number(out.trim());
-          if (!Number.isFinite(seconds) || seconds < 0 || out.trim().length === 0)
-            return yield* ReviewToolFailed.make({
-              tool: 'ffprobe',
-              ref,
-              reason: `no duration in "${out.trim()}"`,
-            });
-          return seconds;
-        });
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
           const file = yield* resolve(ref);
           const key = `${file}|${yield* mtimeOf(file)}`;
           const had = Option.fromUndefinedOr(durations.get(key));
           if (Option.isSome(had)) return had.value;
-          const seconds = yield* probe(ref, file);
+          const seconds = yield* media.duration(file);
           durations.set(key, seconds);
           return seconds;
         });
@@ -589,7 +519,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           file: string,
           rest: ReadonlyArray<string | number>,
         ) {
-          return yield* keyOf([file, yield* mtimeOf(file), ...rest]);
+          return cacheKey([file, yield* mtimeOf(file), ...rest]);
         });
 
         const frame = Effect.fn('Review.frame')(function* (
@@ -602,10 +532,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           if (Option.isSome(at)) t = at.value;
           else t = (yield* duration(ref)) * 0.1;
           const w = Math.round(Math.min(1920, Math.max(160, width)));
-          const key = yield* sourceKey(file, [t.toFixed(2), w]);
-          const args = ['-ss', t.toFixed(3), '-i', file, '-frames:v', '1', '-vf', `scale=${w}:-2`];
+          const key = yield* sourceKey(file, [t.toFixed(3), w]);
           return yield* derive(`frames/${key}.jpg`, (temporary) =>
-            ffmpeg(ref, [...args, '-q:v', '3', temporary], Duration.minutes(1)),
+            media.still(file, t, w, temporary),
           );
         });
 
@@ -634,20 +563,15 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           function* (video: Found) {
             const out = yield* phonePath(video.path);
             const name = path.relative(config.cache, out);
-            const nice = ['-n', '15', 'ffmpeg', ...QUIET, '-i', video.path, ...PHONE_ARGS];
-            yield* derive(name, (temporary) =>
-              run(
-                'ffmpeg',
-                video.ref,
-                ChildProcess.make('nice', [...nice, temporary]),
-                Duration.minutes(30),
-              ),
-            );
+            yield* derive(name, (temporary) => media.phoneCopy(video.path, temporary));
             yield* Effect.log(`review.phone.made ref=${video.ref}`);
           },
-          Effect.catchTag('ReviewToolFailed', (error) =>
-            Effect.logWarning(`review.phone.failed reason="${error.message}"`),
-          ),
+          Effect.catchTags({
+            ReviewToolFailed: (error) =>
+              Effect.logWarning(`review.phone.failed reason="${error.message}"`),
+            MediaFailed: (error) =>
+              Effect.logWarning(`review.phone.failed reason="${error.message}"`),
+          }),
         );
         const drain = Effect.forever(
           Effect.flatMap(Queue.take(queue), (video) =>
@@ -757,7 +681,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return made;
         });
 
-        return Review.of({ roots, index, resolve, duration, frame, phone, derive, ffmpeg });
+        return Review.of({ roots, index, resolve, duration, frame, phone, derive });
       }),
     );
 

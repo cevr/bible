@@ -29,3 +29,4 @@ export * from './dsp.ts';
 export * from './mix.ts';
 export * from './synth/index.ts';
 export * from './sfx.ts';
+export * from './store.ts';

@@ -115,39 +115,6 @@ export type Library = typeof Library.Type;
 /** Declare a library: the identity, typed, so a film's app gets its checks at the declaration. */
 export const defineLibrary = <const L extends Library>(library: L): L => library;
 
-/** A store that is a folder (`~/` is the home folder): each key a file at that path under it. */
-export const FolderStoreConfig = Schema.Struct({
-  kind: Schema.tag('folder'),
-  folder: Schema.String,
-});
-export type FolderStoreConfig = typeof FolderStoreConfig.Type;
-
-/**
- * A private Cloudflare R2 bucket, reached over its S3 API. The account and
- * the bucket-scoped key come from the environment (`FILM_STORE_*`), never
- * from here: this file is public.
- */
-export const R2StoreConfig = Schema.Struct({
-  kind: Schema.tag('r2'),
-  bucket: Schema.String,
-  /** Where the bucket's data is held; its endpoint follows (`default` when absent). */
-  jurisdiction: Schema.optionalKey(Schema.Literals(['default', 'eu', 'fedramp'])),
-});
-export type R2StoreConfig = typeof R2StoreConfig.Type;
-
-/**
- * Where the private media is kept off the repo: the library's generated
- * files (`files/…`), the films' scores (`scores/<film>/…`) and review renders
- * (`renders/…`). `sfx pull`/`push` and `media pull`/`push` sync with it.
- * Generated sounds cannot be made again (the model has no seed), so a lost
- * disk without a store loses them.
- */
-export const StoreConfig = Schema.Union([FolderStoreConfig, R2StoreConfig]);
-export type StoreConfig = typeof StoreConfig.Type;
-
-/** Declare the store: the identity, typed, so an app gets its checks at the declaration. */
-export const defineStore = <const S extends StoreConfig>(store: S): S => store;
-
 // ---------------------------------------------------------------------------
 // What was made (`library.lock.json`)
 

@@ -7,7 +7,6 @@ import { BunServices, BunHttpPlatform } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   CheckReport,
   ChoiceWrite,
@@ -19,12 +18,12 @@ import {
 } from '../core/schema.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
-import { FilmNotFound } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { reviewHandler, refFromUrl } from './review-http.ts';
 import { Review } from './review.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
+import { reviewMedia } from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
@@ -44,79 +43,75 @@ const CHOICES: FilmChoices = {
   ],
 };
 
-const PICK: Change = {
+/** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
+const pickIn = (films: string): Change => ({
   film: 'f',
   scene: Option.none(),
-  file: '/films/f/sound.ts',
+  file: `${films}/f/sound.ts`,
   target: 'score play bright',
   before: "play: 'warm'",
   after: "play: 'bright'",
-};
+});
 
 const unused = Effect.die('not used by the review routes');
 
-/** Film `f`'s choices, or `FilmNotFound`. */
-const listed = (film: string) => {
-  if (film === 'f') return Effect.succeed(CHOICES);
-  return Effect.fail(FilmNotFound.make({ film, dir: `/films/${film}` }));
-};
-
 /**
- * Film `f`'s services, faked: its choices, a pick of `bright` that lands, an
- * undo of it, and a check with nothing to say. Every other film is unknown.
+ * Film `f`'s services, faked over a films folder that holds only `f`: its
+ * choices, a pick of `bright` that lands, an undo of it, and a check with
+ * nothing to say. Every other name is no film of the app's.
  */
-const filmServices = Layer.mergeAll(
-  Layer.succeed(
-    Choices,
-    Choices.of({
-      list: listed,
-      pickScore: (_, option) =>
-        Effect.succeed({
-          file: PICK.file,
-          target: `score play ${option}`,
-          change: Option.some(PICK),
-        }),
-      curate: () => unused,
-      scoreMix: () => unused,
-      takeAudio: () => unused,
-      takeMix: () => unused,
-    }),
-  ),
-  Layer.succeed(
-    SourceWriter,
-    SourceWriter.of({
-      write: () => unused,
-      around: () => unused,
-      undo: () => Effect.succeed({ ...PICK, target: `undo ${PICK.target}` }),
-      redo: () => unused,
-      history: () =>
-        Effect.succeed({ undo: Option.none(), redo: Option.some(PICK), latest: Option.none() }),
-    }),
-  ),
-  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => Effect.succeed([]) })),
-  FilmRepo.layer('/films').pipe(Layer.provide(ContentStore.layer)),
-);
+const filmServices = (films: string, PICK = pickIn(films)) =>
+  Layer.mergeAll(
+    Layer.succeed(
+      Choices,
+      Choices.of({
+        list: () => Effect.succeed(CHOICES),
+        pickScore: (_, option) =>
+          Effect.succeed({
+            file: PICK.file,
+            target: `score play ${option}`,
+            change: Option.some(PICK),
+          }),
+        curate: () => unused,
+        scoreMix: () => unused,
+        takeAudio: () => unused,
+        takeMix: () => unused,
+      }),
+    ),
+    Layer.succeed(
+      SourceWriter,
+      SourceWriter.of({
+        write: () => unused,
+        around: () => unused,
+        undo: () => Effect.succeed({ ...PICK, target: `undo ${PICK.target}` }),
+        redo: () => unused,
+        history: () =>
+          Effect.succeed({ undo: Option.none(), redo: Option.some(PICK), latest: Option.none() }),
+      }),
+    ),
+    Layer.succeed(StaticCheck, StaticCheck.of({ run: () => Effect.succeed([]) })),
+    FilmRepo.layer(films).pipe(Layer.provide(ContentStore.layer)),
+  );
 
-/** The review over `out/art` (a set of two), ffprobe answering 12.5 s and ffmpeg copying. */
+/** The review over `out/art` (a set of two), its videos 12.5 s long and a frame the video copied. */
 const fixture = Layer.unwrap(
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const real = yield* ChildProcessSpawner.ChildProcessSpawner;
     const dir = yield* fs.makeTempDirectoryScoped();
     const out = path.join(dir, 'out');
     yield* fs.makeDirectory(path.join(out, 'art'), { recursive: true });
     yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
+    yield* fs.writeFileString(path.join(out, 'art', 'review.json'), '{ "title": "Art" }');
     yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
-    const spawner = ChildProcessSpawner.make((command) => {
-      if (command._tag !== 'StandardCommand') return real.spawn(command);
-      if (command.command === 'ffprobe') return real.spawn(ChildProcess.make('echo', ['12.5']));
-      const args = command.args;
-      const input = args[args.indexOf('-i') + 1] ?? '';
-      return real.spawn(ChildProcess.make('cp', [input, args.at(-1) ?? '']));
-    });
+    const films = path.join(dir, 'films');
+    yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });
+    yield* fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), 'export {};\n');
+    // A folder beside the films, reached by a path that climbs out: never a film.
+    yield* fs.makeDirectory(path.join(dir, 'beside', 'scenes'), { recursive: true });
+    yield* fs.writeFileString(path.join(dir, 'beside', 'scenes', 'index.ts'), 'export {};\n');
     return Review.layer({
       roots: [{ label: 'out', path: out }],
       cache: path.join(dir, 'cache'),
@@ -124,9 +119,9 @@ const fixture = Layer.unwrap(
       maxVideo: 10_000,
       phoneCopies: false,
     }).pipe(
-      Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
+      Layer.provide(reviewMedia([])),
       Layer.merge(Layer.succeed(Root, dir)),
-      Layer.merge(filmServices),
+      Layer.merge(filmServices(films)),
     );
   }),
 ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
@@ -201,13 +196,15 @@ describe('review routes', () => {
   );
 
   it.effect(
-    'a ref out of its root, or naming nothing, is a 404; a phone copy not made yet too',
+    'a ref out of its root, naming nothing or nothing listed, is a 404; a phone copy not made yet too',
     () =>
       Effect.gen(function* () {
         for (const path of [
           '/review/files/out/../secret.mp4',
           '/review/files/out/%2E%2E/secret.mp4',
           '/review/files/out/art/none.mp4',
+          // There, but nothing the index lists.
+          '/review/files/out/art/review.json',
           '/review/files/elsewhere/x.mp4',
           '/review/phone/out/art/roof.A.mp4',
           '/review/duration?ref=out/../secret.mp4',
@@ -272,7 +269,29 @@ describe("a film's options", () => {
       expect(choices).toEqual(CHOICES);
       const unknown = yield* ask(get('/lab/nope/options'));
       expect(unknown.status).toBe(404);
-      expect(yield* body(unknown)).toContain('FilmNotFound');
+      expect(yield* body(unknown)).toBe('FilmUnknown: no film "nope" (the films: f)');
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a film named by a path is no film: 404, its answer naming no folder of its own', () =>
+    Effect.gen(function* () {
+      const dir = yield* Root;
+      for (const film of ['..%2Fbeside', '%2E%2E%2Fbeside', encodeURIComponent(`${dir}/films/f`)])
+        for (const route of ['options', 'check', 'options/score/warm/mix']) {
+          const answer = yield* ask(get(`/lab/${film}/${route}`));
+          const text = yield* body(answer);
+          expect([film, route, answer.status]).toEqual([film, route, 404]);
+          // Only the name as asked, and the films there are: no folder of the server's.
+          expect(text).toBe(`FilmUnknown: no film "${decodeURIComponent(film)}" (the films: f)`);
+        }
+      const undo = yield* ask(
+        new Request('http://127.0.0.1:8229/lab/..%2Fbeside/undo', {
+          method: 'POST',
+          headers: { host: 'box.example:8229', 'content-type': 'application/json' },
+          body: '{}',
+        }),
+      );
+      expect(undo.status).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 

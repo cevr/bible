@@ -5,9 +5,20 @@
 // imports, so the tools and the page never read two different films; stems
 // and other outputs go under `FILMS_OUT` (default `<cwd>/out`).
 
-import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import {
+  Array as Arr,
+  Config,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
 import { type LayoutError, type Placed, layout } from '../core/layout.ts';
-import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds, StoreConfig } from '../core/sfx.ts';
+import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds } from '../core/sfx.ts';
+import { StoreConfig } from '../core/store.ts';
 import {
   HeardAs,
   Look,
@@ -56,6 +67,24 @@ export interface LoadedFilm {
 }
 
 export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
+
+/**
+ * A film's name as a request gives it, checked against the films folder: one
+ * of its films (`FilmRepo.named`), never a path. A route that takes a film
+ * takes this, so `../` or an absolute path reaches no module.
+ */
+export const FilmName = Schema.String.pipe(Schema.brand('FilmName'));
+export type FilmName = typeof FilmName.Type;
+
+/** A name that is none of the films in the folder: answered with the films there are, no path. */
+export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown', {
+  film: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `no film "${this.film}" (the films: ${this.known.join(', ') || 'none'})`;
+  }
+}
 
 export interface FilmRepoService {
   readonly paths: (film: string) => FilmPaths;
@@ -131,6 +160,20 @@ export type PlaceError = LayoutError;
 /** Lay the film out; an authoring error fails as itself, naming its scene and cue. */
 export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, PlaceError> =>
   Effect.fromResult(layout(film.scenes, film.timings));
+
+const asFilmName = Schema.decodeSync(FilmName);
+
+/** `name` as one of the films in the repo's folder, or `FilmUnknown` naming the films there are. */
+export const filmNamed = Effect.fn('FilmRepo.named')(function* (name: string) {
+  const known = yield* (yield* FilmRepo).names;
+  return yield* Effect.fromOption(
+    Option.map(
+      Arr.findFirst(known, (film) => film === name),
+      asFilmName,
+    ),
+    () => FilmUnknown.make({ film: name, known }),
+  );
+});
 
 export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
   '@bible/film/tools/FilmRepo',
@@ -253,27 +296,6 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });
 
-        const readScores = Effect.fn('FilmRepo.scores')(function* () {
-          const names: Array<string> = [];
-          if (yield* fs.exists(films))
-            for (const entry of yield* fs.readDirectory(films))
-              if ((yield* fs.stat(path.join(films, entry))).type === 'Directory') names.push(entry);
-          const files: Array<PrivateFile> = [];
-          for (const name of names.toSorted()) {
-            const at = paths(name);
-            const manifest = yield* store.read(at.manifest);
-            for (const asset of Object.values(manifest.scores ?? {}))
-              files.push({
-                key: scoreKey(name, asset.file),
-                file: path.join(at.sound, asset.file),
-                sha256: asset.sha256,
-              });
-          }
-          const found: Scores = { files, dirs: names.map((name) => paths(name).sound) };
-          return found;
-        });
-        const scores = readScores();
-
         const names = fs.readDirectory(films).pipe(
           Effect.flatMap((entries) =>
             // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
@@ -286,6 +308,24 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           Effect.map((found) => [...found].sort()),
           Effect.orElseSucceed((): ReadonlyArray<string> => []),
         );
+
+        const readScores = Effect.fn('FilmRepo.scores')(function* () {
+          const found = yield* names;
+          const files: Array<PrivateFile> = [];
+          for (const name of found) {
+            const at = paths(name);
+            const manifest = yield* store.read(at.manifest);
+            for (const asset of Object.values(manifest.scores ?? {}))
+              files.push({
+                key: scoreKey(name, asset.file),
+                file: path.join(at.sound, asset.file),
+                sha256: asset.sha256,
+              });
+          }
+          const scores: Scores = { files, dirs: found.map((name) => paths(name).sound) };
+          return scores;
+        });
+        const scores = readScores();
 
         return FilmRepo.of({ paths, load, script, scores, names });
       }),

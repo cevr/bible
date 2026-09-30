@@ -4,12 +4,14 @@
 // and Bun strips the types that remain. The app's `bunfig.toml` names this
 // plugin under `[serve.static]`, so the lab page's bundle is built with it; the
 // render page imports no `.tsx`, so it never runs there. The DOM tests bundle
-// their fixtures with it too.
+// their fixtures with it too. A module is only read, so a load runs with the
+// file system alone, built once for the plugin: the whole platform per load
+// (a terminal each) put a listener on stdin for every module of a bundle.
 
-import { BunServices } from '@effect/platform-bun';
+import { BunFileSystem } from '@effect/platform-bun';
 import { transform } from '@solidjs/compiler';
 import type { BunPlugin } from 'bun';
-import { Effect, FileSystem } from 'effect';
+import { Effect, FileSystem, ManagedRuntime } from 'effect';
 
 /** A `.tsx` module as the bundler loads it: Solid's DOM output, types still in. */
 const compile = Effect.fn('solid.compile')(function* (path: string) {
@@ -19,13 +21,11 @@ const compile = Effect.fn('solid.compile')(function* (path: string) {
   return { contents: out.code, loader: 'ts' as const };
 });
 
-const run = (path: string) =>
-  Effect.runPromise(compile(path).pipe(Effect.provide(BunServices.layer)));
-
 export const solidPlugin: BunPlugin = {
   name: 'solid-jsx',
   setup(build) {
-    build.onLoad({ filter: /\.tsx$/ }, (args) => run(args.path));
+    const runtime = ManagedRuntime.make(BunFileSystem.layer);
+    build.onLoad({ filter: /\.tsx$/ }, (args) => runtime.runPromise(compile(args.path)));
   },
 };
 

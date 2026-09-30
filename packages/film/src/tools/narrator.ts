@@ -13,7 +13,6 @@
 // (a take never made current, a take replaced, a partial write) the timings
 // name nowhere, and the next run removes it.
 
-import { createHash } from 'node:crypto';
 import {
   Array as Arr,
   Context,
@@ -45,6 +44,7 @@ import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/
 import { lineError } from '../core/spoken.ts';
 import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
+import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type AlignmentMismatch,
@@ -227,8 +227,7 @@ export const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
 export type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
 
 /** Twelve hex digits of the SHA-256 of `bytes`: a file named by what it holds. */
-export const contentHash = (bytes: Uint8Array): string =>
-  createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+export const contentHash = (bytes: Uint8Array): string => sha256Hex(bytes).slice(0, 12);
 
 /** A new take's file name: `<beat>.<hash of its audio><ext>`, never the name of another take. */
 export const takeFile = (id: string, audio: Uint8Array, ext: TakeExtension = '.mp3'): string =>

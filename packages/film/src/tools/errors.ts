@@ -290,16 +290,6 @@ export class FileInvalid extends Schema.TaggedError<FileInvalid>()('FileInvalid'
   }
 }
 
-/** `layout()` refused the film: a duplicate scene, an unknown mark or cue in a timeline, a cycle. */
-export class LayoutInvalid extends Schema.TaggedError<LayoutInvalid>()('LayoutInvalid', {
-  film: Schema.String,
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `film "${this.film}" does not lay out: ${this.reason}`;
-  }
-}
-
 export class SoundMissing extends Schema.TaggedError<SoundMissing>()('SoundMissing', {
   film: Schema.String,
 }) {

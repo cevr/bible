@@ -118,21 +118,31 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('the segments go once the film is joined, and stay when the join fails', () =>
+  it.live('the segments go with the render: joined, failed or interrupted', () =>
     Effect.gen(function* () {
-      const segments = (files: Map<string, Uint8Array>) =>
-        [...files.keys()].filter((f) => f.includes('/segments/') || f.includes('/share/'));
+      const left = (run: {
+        readonly files: Map<string, Uint8Array>;
+        readonly folders: Set<string>;
+      }) =>
+        [...run.folders, ...run.files.keys()].filter((f) => f.startsWith('/tmp/film-segments-'));
       const done = setup();
       yield* done.render({ ...video, share: true });
       expect(done.ledger.joins.length).toBe(2);
-      expect(segments(done.files)).toEqual([]);
+      expect(left(done)).toEqual([]);
 
       const failed = setup({
         join: () => Effect.fail(MediaFailed.make({ op: 'join', file: 'x', reason: 'no' })),
       });
       const exit = yield* Effect.exit(failed.render({ ...video, share: true }));
       expect(Exit.isFailure(exit)).toBe(true);
-      expect(segments(failed.files).length).toBe(32);
+      expect(left(failed)).toEqual([]);
+
+      const cut = setup();
+      const fiber = yield* Effect.forkChild(cut.render(video));
+      yield* Effect.sleep('30 millis');
+      expect(left(cut).length).toBeGreaterThan(0);
+      yield* Fiber.interrupt(fiber);
+      expect(left(cut)).toEqual([]);
     }),
   );
 
