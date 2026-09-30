@@ -599,12 +599,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         const file = masterFile(film.paths);
         const mix = yield* checkedMaster(film, placed, filmEnd(placed), 1 / FILM_FPS);
         const track = yield* trackOf({ file, pieces: video.pieces });
-        yield* media.remux(video.clip, track);
-        // The share copy takes the clip's new track, as a render's x264 share does.
-        yield* Option.match(video.share, {
-          onNone: () => Effect.void,
-          onSome: (share) => media.copySound(share, video.clip),
-        });
+        // The share copy takes the same track, as a render gives both.
+        yield* Effect.forEach([video.clip, ...Option.toArray(video.share)], (file) =>
+          media.remux(file, track),
+        );
         yield* Effect.log(
           `render.remux frames_drawn=0 pieces=${video.pieces.length} mix=${Option.getOrElse(mix, () => 'none').slice(0, 12)} file=${video.clip} share=${Option.getOrElse(video.share, () => 'none')}`,
         );

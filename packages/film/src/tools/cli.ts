@@ -71,12 +71,11 @@ import {
   CheckFailed,
   CuesLate,
   type ElevenLabsFailed,
-  type MediaFailed,
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { Media, ffmpegReady } from './media.ts';
+import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
@@ -179,7 +178,6 @@ type ToolError =
   | BrowserMissing
   | BrowserFailed
   | ElevenLabsFailed
-  | MediaFailed
   | EncoderReadyError
   | PreviewServerFailed;
 /** What a doctor check needs from the platform. */
@@ -231,11 +229,6 @@ const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
         { tool: 'chromium', needed: 'render, check', run: Effect.as(browserReady, '') },
         { tool: 'encoder', needed: 'render', run: encoderCheck },
         { tool: 'elevenlabs', needed: 'narrate, score', run: Effect.as(elevenLabs.ready, '') },
-        {
-          tool: 'ffmpeg',
-          needed: 'the share copy of a software render',
-          run: Effect.as(ffmpegReady(), ''),
-        },
       ];
       const results = yield* Effect.forEach(checks, (c) => Effect.result(c.run), {
         concurrency: checks.length,
@@ -247,7 +240,7 @@ const doctor = <E, R>(previewServer: Layer.Layer<PreviewServer, E, R>) => {
     }),
   ).pipe(
     Command.withDescription(
-      "Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, the elevenlabs CLI and its login, and ffmpeg (x264 for a software render's share copy)",
+      'Check the tools the film commands need: headless Chromium and the H.264 encoder it renders with, and the elevenlabs CLI and its login',
     ),
   );
 };

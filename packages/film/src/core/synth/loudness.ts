@@ -6,7 +6,7 @@
 // apart, ungated), which is how a one-shot is levelled; `peak` is the sample
 // peak. The filters are the RBJ biquads at the standard's analog parameters,
 // so any rate measures alike (pyloudnorm's approach; within 0.1 dB of
-// ffmpeg's ebur128 on the prototype's sounds). Pure.
+// libebur128 on the prototype's sounds). Pure.
 
 import type { Pcm } from '../audio.ts';
 import { type Coefficients, runBiquad } from './signal.ts';
@@ -27,8 +27,8 @@ const RELATIVE_GATE = -10;
 
 /**
  * The K-weighting's two stages at `rate`, designed from the standard's analog
- * parameters by the bilinear transform as libebur128 (and ffmpeg's ebur128)
- * does: the shelf, then the RLB high-pass.
+ * parameters by the bilinear transform as libebur128 does: the shelf, then
+ * the RLB high-pass.
  */
 const kWeighting = (rate: number): ReadonlyArray<Coefficients> => {
   const shelf = (() => {
