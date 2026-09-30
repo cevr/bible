@@ -1165,7 +1165,10 @@ const ManifestVariant = Schema.Struct({
   verdict: maybe(Schema.String),
   /** A markdown file of notes, relative to the folder. */
   notes: maybe(Schema.String),
-  /** The video, relative to the folder, when it is not `<clip>.<id>.mp4` beside it. */
+  /**
+   * The video, relative to the folder, when it is not beside it as
+   * `<clip>.<id>.share.mp4` (preferred) or `<clip>.<id>.mp4`.
+   */
   file: maybe(Schema.String),
 });
 
@@ -1181,16 +1184,23 @@ const ManifestSet = Schema.Struct({
 });
 
 /**
- * A folder's optional `review.json`: a title and a line for the folder, docs,
- * and per comparison set (by clip) its title, order, start, moments, and each
- * variant's label, tag, verdict, notes, or file when it lies elsewhere. Every
- * key may be left out.
+ * A montage's `review.json`: the record the review lists a folder of
+ * hand-made clips by (a film's renders are listed by their catalogue). A
+ * title and a line for the folder, the videos, images and docs it shows, and
+ * per comparison set (by clip) its title, order, start, moments, and each
+ * variant's label, tag, verdict, notes, or file when it lies elsewhere. A set
+ * lists the variants its `order` and `variants` name. Every key may be left
+ * out; a file it does not name is not shown.
  */
 export const ReviewManifest = Schema.Struct({
   title: maybe(Schema.String),
   blurb: maybe(Schema.String),
-  /** Markdown files, relative to the folder, shown with it. */
+  /** Text files (markdown, logs), relative to the folder, shown with it. */
   docs: orElse(Schema.Array(Schema.String), []),
+  /** Images, relative to the folder, shown with it. */
+  images: orElse(Schema.Array(Schema.String), []),
+  /** Videos in no set, relative to the folder, shown with it. */
+  videos: orElse(Schema.Array(Schema.String), []),
   sets: orElse(Schema.Record(Schema.String, ManifestSet), {}),
 });
 export type ReviewManifest = typeof ReviewManifest.Type;
@@ -1209,9 +1219,10 @@ export const RenderVariant = Schema.Struct({
 export type RenderVariant = typeof RenderVariant.Type;
 
 /**
- * A comparison set: the videos in one folder named `<clip>.<variant>[.share].mp4`
- * (a share copy standing in for its master), with the manifest's say. Reviewed
- * only: nothing in source picks one.
+ * A comparison set: one address's renders, a variant each, from a project's
+ * catalogue (the approval as the verdict), or a clip's variants a montage's
+ * manifest names, with its say. A share copy stands in for its master.
+ * Reviewed only: nothing in source picks one.
  */
 export const RenderChoice = Schema.TaggedStruct('RenderChoice', {
   clip: Schema.String,
@@ -1325,9 +1336,10 @@ export type FilmChoice = typeof FilmChoice.Type;
 export const FilmChoices = Schema.Struct({
   film: Schema.String,
   /**
-   * The film's renders under the review's roots, newest first: the picture
-   * each option's mix is heard against (its own sound muted). None until the
-   * film is rendered.
+   * The film's whole-film renders under the review's roots, newest first, as
+   * its project folders' catalogues record them: the picture each option's
+   * mix is heard against (its own sound muted). None until the whole film is
+   * rendered.
    */
   pictures: Schema.Array(ReviewVideo),
   choices: Schema.Array(FilmChoice),
