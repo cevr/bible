@@ -1,4 +1,4 @@
-import { Command } from 'effect/unstable/cli';
+import { Command } from 'effect/cli';
 import { Effect, FileSystem, Option, Path } from 'effect';
 
 import { MessagesConfig } from '~/src/lib/content/configs';

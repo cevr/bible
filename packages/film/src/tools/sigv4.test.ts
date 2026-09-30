@@ -5,7 +5,8 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Crypto, DateTime, Effect, Encoding, Redacted } from 'effect';
+import { Crypto, DateTime, Effect, Redacted } from 'effect';
+import { Hex } from 'effect/encoding';
 import { EMPTY_SHA256, encodeKey, hmacSha256, signS3, type S3Request } from './sigv4.ts';
 
 const credentials = {
@@ -80,7 +81,7 @@ describe('SigV4', () => {
         text.encode('Jefe'),
         text.encode('what do ya want for nothing?'),
       );
-      expect(Encoding.encodeHex(short)).toBe(
+      expect(Hex.encode(short)).toBe(
         '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843',
       );
       const long = yield* hmacSha256(
@@ -88,7 +89,7 @@ describe('SigV4', () => {
         new Uint8Array(131).fill(0xaa),
         text.encode('Test Using Larger Than Block-Size Key - Hash Key First'),
       );
-      expect(Encoding.encodeHex(long)).toBe(
+      expect(Hex.encode(long)).toBe(
         '60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54',
       );
     }).pipe(Effect.provide(BunServices.layer)),

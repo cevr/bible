@@ -1,0 +1,19 @@
+{
+  "scores": {
+    "piano": {
+      "hash": "ad3d886a",
+      "file": "piano-ad3d886a.mp3",
+      "sha256": "275fd0e5a16d7da80b54e26e527ba8cc3b2cdcd0af9e34e9a2d01718a549f0e6"
+    },
+    "ensemble": {
+      "hash": "9ae0005a",
+      "file": "ensemble-9ae0005a.mp3",
+      "sha256": "18f3cb6b10eaefc058455ed2c797883059ed97540c092554f1717813408a25c6"
+    },
+    "ambient": {
+      "hash": "738ff1e8",
+      "file": "ambient-738ff1e8.mp3",
+      "sha256": "648ce70104e017a4cfe6c0cd8da54d0b5f04be88d271cd3bfa357c31fe1e3b42"
+    }
+  }
+}

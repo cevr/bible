@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["bun", "vite/client"],
+    "rootDirs": [".", "./.react-router/types"],
+    "paths": {
+      "~/*": ["./app/*"]
+    },
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts",
+    "infra/**/*.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    ".react-router/types/**/*",
+    "server.ts",
+    "alchemy.run.ts",
+    "react-router.config.ts",
+    "vite.config.ts"
+  ],
+  "exclude": ["node_modules", "build"]
+}

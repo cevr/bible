@@ -301,6 +301,12 @@ Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 
 ## Pass 4
 
 - Batch proofs no longer include the bench or the v1 `cmp`: the owner removed the film bench and the frozen first cut (2026-09-29, p4-frame).
+- Art round 3 (2026-09-30): five directions redrawn from scratch on roof and declared — G stick, H shadow puppet, I picture book, J geometric, K one line (branches `art3-G…K`, bundles `SP/film-pass4/art3-<X>.bundle`, never merged; notes in `SP/film-pass4/art3/`, sheet and recommendation in `SP/film-pass4/art/recommend-3.md`). **Owner kept the current cut paper (A)**, asked for a lighter ground, then compared now / light / lighter and **kept now**.
+- p4-light (b33da3e7..98afd3ab, merged 2026-09-30): figures' clothes get their own `cut` chipboard; the ground lift is one named level (`GROUND` in palette.ts: `now` 0, `light` 0.5, `lighter` 0.75) with `now` chosen, so stills match the old ground byte for byte; declared's "Righteous" cover-up label is laid opaque on the chest instead of a see-through ghost (`Stamp.laid`). Check unchanged (18 HeldShare, 10 FaceSmall; DeadAir from the 99 unkept candidates missing in the store).
+- deps-latest (0680bf77..6dbbd4f5, merged 2026-09-30): every package to the newest release on its channel — Effect 4.0.0-rc.118 (`effect/unstable/*` imports moved), Solid 2.0.0-rc.11 and router next.31, electron 44, lint/format tooling. Workarounds: `patches/effect-machine@0.27.0.patch`, egw-search's alchemy from a preview tarball. Gate 29/29 after rebasing on e81b3e8c; stills at 5/40/90/150/220/300 s byte-identical to main. `dev:web`'s API still fails on an empty `~/.bible/egw-paragraphs.db` (pre-existing).
+- Hooks (2026-09-30): pre-commit lints and formats the staged files only (under 5 s, the owner's budget); the full gate leaves the hooks for CI (owner: "never prepush").
+- p4-score (8b8f4d28..494f7f41, merged 2026-09-30, a provisional yes): RBF scored three ways (piano, ensemble, ambient), `play` piano until the owner picks in the lab; the mix masters to −18 LUFS; the last act runs past the end. Open: the low end barely swells under mirror and exchange (0–3 dB against ~15).
+- p4-review (dfee482c..04912013, merged 2026-09-30): the review and options page in the lab (Effect routes, Solid 2 page), serving renders, score options and sound takes with picks written back and undone; `film-review.service` on :8229 runs from the main checkout, every path behind the Host check.
 
 ## Close
 

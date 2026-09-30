@@ -32,7 +32,7 @@ import {
   sub,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { fonts, palette } from './palette.ts';
+import { fonts, mix, palette } from './palette.ts';
 
 export const C = palette;
 export const F = fonts;
@@ -58,16 +58,7 @@ export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
   rectShape(x - w / 2, y - h / 2, w, h);
 
 /** A colour between two hex colours. */
-export const mix = (a: string, b: string, t: number): string => {
-  const ch = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-  const k = Math.min(1, Math.max(0, t));
-  const out = [0, 1, 2].map((i) =>
-    Math.round(lerp(ch(a, i), ch(b, i), k))
-      .toString(16)
-      .padStart(2, '0'),
-  );
-  return `#${out.join('')}`;
-};
+export { mix } from './palette.ts';
 
 // ─── shapes ──────────────────────────────────────────────────────────────────
 
@@ -1171,7 +1162,7 @@ const INNER: ReadonlyArray<(ctx: CanvasRenderingContext2D, hand: Hands) => void>
     at(ctx, { x: 0, y: 10, scale: 0.26 }, () =>
       piece(ctx, ROBE, C.robe, hand('iconRobeShape'), { role: 'scenery', kind: 'cut', line: 18 }),
     ),
-  (ctx, hand) => heart(ctx, hand, C.boardLight, false),
+  (ctx, hand) => heart(ctx, hand, C.cutLight, false),
 ];
 
 /**

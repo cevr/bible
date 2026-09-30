@@ -7,7 +7,7 @@
 import { Option } from 'effect';
 import type { SceneEdit } from '../../canvas/film.ts';
 import type { HeadSource, Knobs, Timeline } from '../../core/schema.ts';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type LabFailure, reasonOf } from '../api.ts';
 import type { CompareMode } from './machine.ts';
 

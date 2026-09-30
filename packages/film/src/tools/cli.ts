@@ -6,8 +6,8 @@
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
 //   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
 //   film script <film> [--sheet]
-//   film score <film> [--force] [--dry-run]
-//   film mix <film> [--stems]
+//   film score <film> [--option name] [--force] [--dry-run] [--cap credits] [--tally file.tsv]
+//   film mix <film> [--stems] [--score option]
 //   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
 //   film media push <file…> [--under dir] | pull <key…> [--to dir] | list [prefix]  (media-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
@@ -15,6 +15,7 @@
 //   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
+//   film review                     (every render compared in sync, each film's options: FILM_REVIEW_*)
 //   film notes <film> [--watch] [--since n]
 //   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
@@ -27,7 +28,7 @@
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
 
-import { BunRuntime, BunServices } from '@effect/platform-bun';
+import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Cause,
@@ -44,9 +45,9 @@ import {
   Schema,
   Stdio,
 } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
-import { FetchHttpClient } from 'effect/unstable/http';
-import type { ChildProcessSpawner } from 'effect/unstable/process';
+import { Argument, Command, Flag } from 'effect/cli';
+import { FetchHttpClient } from 'effect/http';
+import type { ChildProcessSpawner } from 'effect/process';
 import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
@@ -91,7 +92,9 @@ import { Mixer, masterFile, masterLevels, measureMaster } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
-import { labHandler } from './lab.ts';
+import { type LabHandler, labHandler } from './lab.ts';
+import { Review, type ReviewRoot } from './review.ts';
+import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { studioHandler, withStudio } from './studio.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
@@ -108,6 +111,8 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { media } from './media-cli.ts';
+import { SourceWriter } from './source-writer.ts';
+import { Choices } from './choices.ts';
 import { sfx } from './sfx-cli.ts';
 import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
@@ -523,10 +528,9 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         return;
       }
       if (input.sound) {
-        const sound = yield* Option.match(loaded.sound, {
-          onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
-          onSome: Effect.succeed,
-        });
+        const sound = yield* Effect.fromOption(loaded.sound, () =>
+          SoundMissing.make({ film: input.film }),
+        );
         const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
         for (const line of lines) yield* Console.log(line);
         return;
@@ -650,6 +654,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         const { plan, mixed } = yield* (yield* Mixer).render(input.film, {
           warn: false,
           score: Option.none(),
+          take: Option.none(),
         });
         for (const finding of balanceFindings(placed, plan, mixed))
           found.push({ level: 'warning', finding });
@@ -761,13 +766,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       // `--scene` sets the range from the film's own layout.
       const span = yield* Option.match(input.scene, {
         onNone: () => Effect.succeedNone,
-        onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
+        onSome: (ids) => Effect.asSome(Effect.fromResult(sceneSpan(placed, ids))),
       });
       const cut = yield* pickShort(loaded, placed, input.short);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
-        onSome: (list) =>
-          Effect.map(Schema.decodeEffect(Seconds)(list.split(',')), (times) => Option.some(times)),
+        onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
       });
       const job = yield* Effect.fromResult(
         jobOf({
@@ -865,6 +869,25 @@ const lab = <E>(labServer: LabServer<E>) =>
     ),
   );
 
+const review = <E>(reviewServer: LabServer<E>, reviewPage: Effect.Effect<LabHandler, E>) =>
+  Command.make(
+    'review',
+    {},
+    Effect.fn('film.review')(function* () {
+      const handler = yield* reviewHandler(yield* reviewAllowed, yield* reviewPage);
+      const server = Context.get(yield* Layer.build(reviewServer(handler)), PreviewServer);
+      const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
+      yield* Console.log(server.url);
+      yield* Effect.log(`review.ready url=${server.url} roots=${roots.join(',')}`);
+      // Until Ctrl-C (or the unit stops): the scope then stops the server and the handler.
+      return yield* Effect.never;
+    }, Effect.scoped),
+  ).pipe(
+    Command.withDescription(
+      "Serve the review: every render under the review roots, compared in sync, and each film's options to pick from (Ctrl-C stops it)",
+    ),
+  );
+
 const noteId = Argument.String('id').pipe(Argument.withDescription('the note, e.g. n3'));
 
 const notesReply = Command.make(
@@ -890,7 +913,7 @@ const notesReply = Command.make(
     const at = store.paths(input.film);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
-      onSome: (file) => Effect.map(fs.readFile(file), Option.some),
+      onSome: (file) => Effect.asSome(fs.readFile(file)),
     });
     // Where the agent left off, read before its reply moves it.
     const cursor = yield* Option.match(input.since, {
@@ -991,6 +1014,22 @@ export interface FilmApp<E> {
   /** The player in development mode with the lab's routes, served while `lab` runs. */
   readonly labServer: LabServer<E>;
   /**
+   * The review, served while `review` runs: its server (on the host and port
+   * the app chooses, answering every request with the handler it is given),
+   * its page (made when `review` starts: a handler for the page, its assets
+   * and what else the app serves, asked only once the review admits the
+   * request), and the roots it reads when `FILM_REVIEW_ROOTS` names none.
+   */
+  readonly review: {
+    readonly server: LabServer<E>;
+    readonly page: Effect.Effect<LabHandler, E>;
+    readonly roots: Effect.Effect<
+      ReadonlyArray<ReviewRoot>,
+      never,
+      FileSystem.FileSystem | Path.Path
+    >;
+  };
+  /**
    * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
    * runs `check --static` through it in a fresh process after each write, so
    * the check reads the scene files as the write left them.
@@ -1008,20 +1047,42 @@ export const runFilmCli = <E>({
   sounds,
   previewServer,
   labServer,
+  review: reviewApp,
   self,
 }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+    Layer.provideMerge(SourceWriter.layer),
     Layer.provideMerge(SceneSources.layer),
     Layer.provide([Repo, Store, Platform]),
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
-  const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
+  const Reviewed = Review.layerConfig(reviewApp.roots).pipe(
+    Layer.provideMerge(BunHttpPlatform.layer),
+    Layer.provide(Platform),
+  );
+  const Services = Choices.layer.pipe(
+    // The review hears each option in the mix, and writes a pick through the source writer.
     Layer.provideMerge(
-      Layer.mergeAll(Repo, Notes, Source, Check, Library, Private, Store, Tools, Platform),
+      Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
+        Layer.provideMerge(
+          Layer.mergeAll(
+            Repo,
+            Notes,
+            Source,
+            Check,
+            Library,
+            Private,
+            Store,
+            Tools,
+            Reviewed,
+            Platform,
+          ),
+        ),
+      ),
     ),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
@@ -1048,6 +1109,7 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labServer),
+      review(reviewApp.server, reviewApp.page),
       notes,
     ]),
   );

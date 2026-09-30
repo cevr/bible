@@ -19,7 +19,7 @@ import { BunFileSystem } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
 import { Effect, FileSystem, Layer, Option, Schema, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type { CrossReference } from '../bible-db/bible-database.js';

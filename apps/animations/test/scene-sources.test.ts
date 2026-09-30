@@ -21,7 +21,7 @@ import {
 } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { FILMS } from '../server.ts';
 import { films } from '../src/films/index.ts';
 import { FIXTURE_FILM, spawnBudget } from './cli-run.ts';

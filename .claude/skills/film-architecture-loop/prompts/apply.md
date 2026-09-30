@@ -13,7 +13,7 @@ Commit plan: <one numbered item per commit with its subject. Order: guardrail fi
 Work rules:
 - Bugs are red first: the test fails on the unfixed code, quoted. A new guardrail is red first too: it fires on the defect before the fix.
 - Reductions use the deletion test: delete, and let typecheck and tests name the consumers. Caller greps cover apps/animations/ and packages/film/.
-- Pixels: a change that claims no visual change proves it. Before editing, render stills at the marks the change touches (`bun run render <film> --stills <t,…> --tag p<N>-before`, times from `bun run cues <film>`); after, the same with `--tag p<N>-after`; `cmp` each pair. A difference is either the intended change (read both images and say so) or a defect. Trash the still folders when done.
+- Pixels: a change is reviewed by its diff; the code says what a frame draws. A new scene, look or score renders stills at its marks (`bun run render <film> --stills <t,…> --tag p<N>`, times from `bun run cues <film>`) for the owner to review; name them in the report.
 - Timing: a change that claims no timing change diffs `bun run cues <film>` before and after.
 - Performance: a speed claim has a measured before/after (median of several runs, same machine). No cache that carries state between frames.
 - Draw path (packages/film/src/canvas, the kit and scenes): plain synchronous code in the pmndrs math style (out-params, no per-point allocation); use `math` where it has the helper. Tooling: Effect, Scope, Schema, typed errors.

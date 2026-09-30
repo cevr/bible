@@ -3,7 +3,7 @@
  *
  * Delegates to core BibleService for all operations.
  */
-import { HttpApiBuilder } from 'effect/unstable/httpapi';
+import { HttpApiBuilder } from 'effect/http-api';
 import { Effect, Option, Predicate } from 'effect';
 
 import { BibleToolsApi, BookNotFoundError, ChapterNotFoundError, DatabaseError } from '@bible/api';

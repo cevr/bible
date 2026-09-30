@@ -12,7 +12,7 @@
  */
 
 import { Cause, Context, Effect, Layer, Option, Predicate, Result, Schema } from 'effect';
-import * as SqlError from 'effect/unstable/sql/SqlError';
+import * as SqlError from 'effect/sql/SqlError';
 
 import { getBibleBook, getBibleBookByName } from '../bible/canon.js';
 import {
@@ -693,7 +693,7 @@ const writingsHits = (
       Effect.orElseSucceed((): readonly WikiWritingsHit[] => []),
     );
   const matches = sources.writings.searchCount(query, { scope }).pipe(
-    Effect.map(Option.some),
+    Effect.asSome,
     Effect.orElseSucceed(() => Option.none<number>()),
   );
   return Effect.all([hits, matches], { concurrency: 'unbounded' }).pipe(

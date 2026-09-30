@@ -53,7 +53,7 @@ Counsel defects:
 | ID  | Defect | Red test | Status |
 | --- | ------ | -------- | ------ |
 
-Live check: `<stills cmp, cues diff, mix stems, lab drive: what was compared and the result>`
+Live check: `<check, cues diff, mix stems, lab drive, stills for the owner's review: what was run and the result>`
 
 ## Close
 

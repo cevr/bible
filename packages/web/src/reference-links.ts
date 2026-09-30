@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const BIBLE_BOOK_PATTERN = Object.keys(BIBLE_BOOK_ALIASES)
+const BIBLE_BOOK_PATTERN = [...BIBLE_BOOK_ALIASES.keys()]
   .sort((left, right) => right.length - left.length)
   .map(escapeRegex)
   .join('|');

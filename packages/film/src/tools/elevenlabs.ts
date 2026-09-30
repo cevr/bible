@@ -17,7 +17,7 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import type { Line } from '../core/narration.ts';
 import { type Cast, MusicModel, Plan, type Reader, type Word } from '../core/schema.ts';
 import { ApiKeyMissing, ElevenLabsFailed, SttUntimed } from './errors.ts';

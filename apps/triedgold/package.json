@@ -1,0 +1,47 @@
+{
+  "name": "@bible/triedgold",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#server-build": {
+      "types": "./src/server/server-build.d.ts",
+      "default": "./build/server/index.js"
+    }
+  },
+  "exports": {
+    "./brand": "./src/brand.ts"
+  },
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "NODE_ENV=production bun server.ts",
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "test": "bun test tests/",
+    "plan": "react-router build && alchemy plan alchemy.run.ts --stage prod",
+    "deploy": "react-router build && alchemy deploy alchemy.run.ts --stage prod",
+    "test:deploy": "react-router build && bun test ./tests/deploy.integration.ts"
+  },
+  "dependencies": {
+    "@react-router/node": "8.4.0",
+    "effect": "catalog:",
+    "isbot": "5.2.2",
+    "lucide-react": "1.49.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.4.0"
+  },
+  "devDependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "@react-router/dev": "8.4.0",
+    "@tailwindcss/typography": "0.5.20",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "alchemy": "https://pkg.alchemy.run/alchemy/-/0b74dc88ad083e12082d7d84a7e46b4e7094ae17db987b4e799159402d4930ab.tgz",
+    "effect-bun-test": "catalog:",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.1"
+  }
+}

@@ -3,8 +3,8 @@
  * Adapted from Spotify client patterns with Effect-TS
  */
 
-import type { HttpClientError } from 'effect/unstable/http';
-import { HttpClient, HttpClientRequest, HttpClientResponse, UrlParams } from 'effect/unstable/http';
+import type { HttpClientError } from 'effect/http';
+import { HttpClient, HttpClientRequest, HttpClientResponse, UrlParams } from 'effect/http';
 import {
   Config,
   Context,
@@ -191,13 +191,14 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
       const absoluteUrlHttpClient = createHttpClient(false);
 
       /**
-       * Retry schedule with exponential backoff
+       * Retry policy with exponential backoff
        * Maximum 2 retries (1 initial attempt + 2 retries)
        * Exponential delays: 100ms, 200ms
        */
-      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(
-        Schedule.upTo({ times: 2 }),
-      );
+      const retryPolicy = {
+        schedule: Schedule.exponential(Duration.millis(100)),
+        times: 2,
+      };
 
       // Paginated response schema
       const PaginatedResponse = Schema.Struct({
@@ -233,7 +234,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
               cause: error,
             }),
           ),
-          Effect.retry(retrySchedule),
+          Effect.retry(retryPolicy),
         );
 
       /**
@@ -252,13 +253,13 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         getLanguages: Effect.gen(function* () {
           const response = yield* httpClient.get('/content/languages');
           return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Language))(response);
-        }).pipe(Effect.retry(retrySchedule)),
+        }).pipe(Effect.retry(retryPolicy)),
 
         getFoldersByLanguage: (languageCode: string) =>
           Effect.gen(function* () {
             const response = yield* httpClient.get(`/content/languages/${languageCode}/folders`);
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Folder))(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getBooksByFolder: (folderId: number, params: Partial<Schemas.BooksQueryParams> = {}) =>
           Effect.gen(function* () {
@@ -275,7 +276,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
             const response = yield* httpClient.get(endpoint);
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Book))(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getBooks: (
           params: Partial<Schemas.BooksQueryParams> = {},
@@ -327,7 +328,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
                     cause: error,
                   }),
                 ),
-                Effect.retry(retrySchedule),
+                Effect.retry(retryPolicy),
               ),
             ).pipe(Stream.flatMap((books) => Stream.fromIterable(books)));
           }
@@ -348,7 +349,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
             const response = yield* httpClient.get(endpoint);
             return yield* HttpClientResponse.schemaBodyJson(Schemas.Book)(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getBookToc: (bookId: number) =>
           Effect.gen(function* () {
@@ -370,7 +371,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
               ),
             );
             return parsed;
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getChapterContent: (
           bookId: number,
@@ -402,13 +403,13 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             return yield* HttpClientResponse.schemaBodyJson(
               Schema.Array(Schemas.ParagraphFromHtml),
             )(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         downloadBook: (bookId: number) =>
           Effect.gen(function* () {
             const response = yield* httpClient.get(`/content/books/${bookId}/download`);
             return yield* response.arrayBuffer;
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         search: (params: Schemas.SearchParams) =>
           Effect.gen(function* () {
@@ -425,7 +426,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             const endpoint = `/search?${urlParams.toString()}`;
             const response = yield* httpClient.get(endpoint);
             return yield* HttpClientResponse.schemaBodyJson(Schemas.SearchResponse)(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getSuggestions: (query: string, limit: number = 10) =>
           Effect.gen(function* () {
@@ -433,7 +434,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
               `/suggestions?query=${encodeURIComponent(query)}&limit=${limit}`,
             );
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
-          }).pipe(Effect.retry(retrySchedule)),
+          }).pipe(Effect.retry(retryPolicy)),
 
         getBookCoverUrl: (bookId: number, size: 'small' | 'large' = 'small') =>
           Effect.succeed(`${baseUrl}/covers/${bookId}?size=${size}`),
@@ -441,7 +442,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         getMirrors: Effect.gen(function* () {
           const response = yield* httpClient.get('/content/mirrors');
           return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
-        }).pipe(Effect.retry(retrySchedule)),
+        }).pipe(Effect.retry(retryPolicy)),
       });
     }),
   );

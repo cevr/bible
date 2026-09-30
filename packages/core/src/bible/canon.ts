@@ -11,252 +11,253 @@ import { Book, type Reference as BibleReference, bookNumber, chapterNumber } fro
 
 /**
  * Book name aliases for reference parsing
- * Maps lowercase aliases to book numbers (1-66)
+ * Maps lowercase aliases to book numbers (1-66). A Map, not an object, so a
+ * lookup by user input never reaches an inherited key such as `constructor`.
  */
-type BibleBookAliasMap = Readonly<Record<string, number>>;
-
-export const BIBLE_BOOK_ALIASES: BibleBookAliasMap = {
-  // Genesis
-  gen: 1,
-  genesis: 1,
-  // Exodus
-  exod: 2,
-  exo: 2,
-  exodus: 2,
-  ex: 2,
-  // Leviticus
-  lev: 3,
-  leviticus: 3,
-  // Numbers
-  num: 4,
-  numbers: 4,
-  // Deuteronomy
-  deut: 5,
-  deuteronomy: 5,
-  // Joshua
-  josh: 6,
-  joshua: 6,
-  // Judges
-  judg: 7,
-  judges: 7,
-  // Ruth
-  ruth: 8,
-  // 1 Samuel
-  '1sam': 9,
-  '1samuel': 9,
-  '1 sam': 9,
-  '1 samuel': 9,
-  // 2 Samuel
-  '2sam': 10,
-  '2samuel': 10,
-  '2 sam': 10,
-  '2 samuel': 10,
-  // 1 Kings
-  '1kgs': 11,
-  '1kings': 11,
-  '1 kgs': 11,
-  '1 kings': 11,
-  // 2 Kings
-  '2kgs': 12,
-  '2kings': 12,
-  '2 kgs': 12,
-  '2 kings': 12,
-  // 1 Chronicles
-  '1chr': 13,
-  '1chronicles': 13,
-  '1 chr': 13,
-  '1 chronicles': 13,
-  '1 chron': 13,
-  // 2 Chronicles
-  '2chr': 14,
-  '2chronicles': 14,
-  '2 chr': 14,
-  '2 chronicles': 14,
-  '2 chron': 14,
-  // Ezra
-  ezra: 15,
-  // Nehemiah
-  neh: 16,
-  nehemiah: 16,
-  // Esther
-  esth: 17,
-  esther: 17,
-  // Job
-  job: 18,
-  // Psalms
-  ps: 19,
-  psalm: 19,
-  psalms: 19,
-  psa: 19,
-  // Proverbs
-  prov: 20,
-  proverbs: 20,
-  // Ecclesiastes
-  eccl: 21,
-  ecclesiastes: 21,
-  ecc: 21,
-  // Song of Solomon
-  song: 22,
-  'song of solomon': 22,
-  sos: 22,
-  'song of songs': 22,
-  // Isaiah
-  isa: 23,
-  isaiah: 23,
-  // Jeremiah
-  jer: 24,
-  jeremiah: 24,
-  // Lamentations
-  lam: 25,
-  lamentations: 25,
-  // Ezekiel
-  ezek: 26,
-  eze: 26,
-  ezekiel: 26,
-  // Daniel
-  dan: 27,
-  daniel: 27,
-  // Hosea
-  hos: 28,
-  hosea: 28,
-  // Joel
-  joel: 29,
-  // Amos
-  amos: 30,
-  // Obadiah
-  obad: 31,
-  obadiah: 31,
-  // Jonah
-  jonah: 32,
-  // Micah
-  mic: 33,
-  micah: 33,
-  // Nahum
-  nah: 34,
-  nahum: 34,
-  // Habakkuk
-  hab: 35,
-  habakkuk: 35,
-  // Zephaniah
-  zeph: 36,
-  zephaniah: 36,
-  // Haggai
-  hag: 37,
-  haggai: 37,
-  // Zechariah
-  zech: 38,
-  zechariah: 38,
-  // Malachi
-  mal: 39,
-  malachi: 39,
-  // Matthew
-  matt: 40,
-  matthew: 40,
-  mt: 40,
-  // Mark
-  mark: 41,
-  mk: 41,
-  // Luke
-  luke: 42,
-  lk: 42,
-  // John
-  john: 43,
-  jn: 43,
-  // Acts
-  acts: 44,
-  // Romans
-  rom: 45,
-  romans: 45,
-  // 1 Corinthians
-  '1cor': 46,
-  '1corinthians': 46,
-  '1 cor': 46,
-  '1 corinthians': 46,
-  // 2 Corinthians
-  '2cor': 47,
-  '2corinthians': 47,
-  '2 cor': 47,
-  '2 corinthians': 47,
-  // Galatians
-  gal: 48,
-  galatians: 48,
-  // Ephesians
-  eph: 49,
-  ephesians: 49,
-  // Philippians
-  phil: 50,
-  philippians: 50,
-  // Colossians
-  col: 51,
-  colossians: 51,
-  // 1 Thessalonians
-  '1thess': 52,
-  '1th': 52,
-  '1thessalonians': 52,
-  '1 th': 52,
-  '1 thess': 52,
-  '1 thessalonians': 52,
-  // 2 Thessalonians
-  '2thess': 53,
-  '2th': 53,
-  '2thessalonians': 53,
-  '2 th': 53,
-  '2 thess': 53,
-  '2 thessalonians': 53,
-  // 1 Timothy
-  '1tim': 54,
-  '1timothy': 54,
-  '1 tim': 54,
-  '1 timothy': 54,
-  // 2 Timothy
-  '2tim': 55,
-  '2timothy': 55,
-  '2 tim': 55,
-  '2 timothy': 55,
-  // Titus
-  titus: 56,
-  tit: 56,
-  // Philemon
-  phlm: 57,
-  philemon: 57,
-  // Hebrews
-  heb: 58,
-  hebrews: 58,
-  // James
-  jas: 59,
-  james: 59,
-  // 1 Peter
-  '1pet': 60,
-  '1peter': 60,
-  '1 pet': 60,
-  '1 peter': 60,
-  // 2 Peter
-  '2pet': 61,
-  '2peter': 61,
-  '2 pet': 61,
-  '2 peter': 61,
-  // 1 John
-  '1jn': 62,
-  '1john': 62,
-  '1 jn': 62,
-  '1 john': 62,
-  // 2 John
-  '2jn': 63,
-  '2john': 63,
-  '2 jn': 63,
-  '2 john': 63,
-  // 3 John
-  '3jn': 64,
-  '3john': 64,
-  '3 jn': 64,
-  '3 john': 64,
-  // Jude
-  jude: 65,
-  // Revelation
-  rev: 66,
-  revelation: 66,
-  'the revelation': 66,
-};
+export const BIBLE_BOOK_ALIASES: ReadonlyMap<string, number> = new Map(
+  Object.entries({
+    // Genesis
+    gen: 1,
+    genesis: 1,
+    // Exodus
+    exod: 2,
+    exo: 2,
+    exodus: 2,
+    ex: 2,
+    // Leviticus
+    lev: 3,
+    leviticus: 3,
+    // Numbers
+    num: 4,
+    numbers: 4,
+    // Deuteronomy
+    deut: 5,
+    deuteronomy: 5,
+    // Joshua
+    josh: 6,
+    joshua: 6,
+    // Judges
+    judg: 7,
+    judges: 7,
+    // Ruth
+    ruth: 8,
+    // 1 Samuel
+    '1sam': 9,
+    '1samuel': 9,
+    '1 sam': 9,
+    '1 samuel': 9,
+    // 2 Samuel
+    '2sam': 10,
+    '2samuel': 10,
+    '2 sam': 10,
+    '2 samuel': 10,
+    // 1 Kings
+    '1kgs': 11,
+    '1kings': 11,
+    '1 kgs': 11,
+    '1 kings': 11,
+    // 2 Kings
+    '2kgs': 12,
+    '2kings': 12,
+    '2 kgs': 12,
+    '2 kings': 12,
+    // 1 Chronicles
+    '1chr': 13,
+    '1chronicles': 13,
+    '1 chr': 13,
+    '1 chronicles': 13,
+    '1 chron': 13,
+    // 2 Chronicles
+    '2chr': 14,
+    '2chronicles': 14,
+    '2 chr': 14,
+    '2 chronicles': 14,
+    '2 chron': 14,
+    // Ezra
+    ezra: 15,
+    // Nehemiah
+    neh: 16,
+    nehemiah: 16,
+    // Esther
+    esth: 17,
+    esther: 17,
+    // Job
+    job: 18,
+    // Psalms
+    ps: 19,
+    psalm: 19,
+    psalms: 19,
+    psa: 19,
+    // Proverbs
+    prov: 20,
+    proverbs: 20,
+    // Ecclesiastes
+    eccl: 21,
+    ecclesiastes: 21,
+    ecc: 21,
+    // Song of Solomon
+    song: 22,
+    'song of solomon': 22,
+    sos: 22,
+    'song of songs': 22,
+    // Isaiah
+    isa: 23,
+    isaiah: 23,
+    // Jeremiah
+    jer: 24,
+    jeremiah: 24,
+    // Lamentations
+    lam: 25,
+    lamentations: 25,
+    // Ezekiel
+    ezek: 26,
+    eze: 26,
+    ezekiel: 26,
+    // Daniel
+    dan: 27,
+    daniel: 27,
+    // Hosea
+    hos: 28,
+    hosea: 28,
+    // Joel
+    joel: 29,
+    // Amos
+    amos: 30,
+    // Obadiah
+    obad: 31,
+    obadiah: 31,
+    // Jonah
+    jonah: 32,
+    // Micah
+    mic: 33,
+    micah: 33,
+    // Nahum
+    nah: 34,
+    nahum: 34,
+    // Habakkuk
+    hab: 35,
+    habakkuk: 35,
+    // Zephaniah
+    zeph: 36,
+    zephaniah: 36,
+    // Haggai
+    hag: 37,
+    haggai: 37,
+    // Zechariah
+    zech: 38,
+    zechariah: 38,
+    // Malachi
+    mal: 39,
+    malachi: 39,
+    // Matthew
+    matt: 40,
+    matthew: 40,
+    mt: 40,
+    // Mark
+    mark: 41,
+    mk: 41,
+    // Luke
+    luke: 42,
+    lk: 42,
+    // John
+    john: 43,
+    jn: 43,
+    // Acts
+    acts: 44,
+    // Romans
+    rom: 45,
+    romans: 45,
+    // 1 Corinthians
+    '1cor': 46,
+    '1corinthians': 46,
+    '1 cor': 46,
+    '1 corinthians': 46,
+    // 2 Corinthians
+    '2cor': 47,
+    '2corinthians': 47,
+    '2 cor': 47,
+    '2 corinthians': 47,
+    // Galatians
+    gal: 48,
+    galatians: 48,
+    // Ephesians
+    eph: 49,
+    ephesians: 49,
+    // Philippians
+    phil: 50,
+    philippians: 50,
+    // Colossians
+    col: 51,
+    colossians: 51,
+    // 1 Thessalonians
+    '1thess': 52,
+    '1th': 52,
+    '1thessalonians': 52,
+    '1 th': 52,
+    '1 thess': 52,
+    '1 thessalonians': 52,
+    // 2 Thessalonians
+    '2thess': 53,
+    '2th': 53,
+    '2thessalonians': 53,
+    '2 th': 53,
+    '2 thess': 53,
+    '2 thessalonians': 53,
+    // 1 Timothy
+    '1tim': 54,
+    '1timothy': 54,
+    '1 tim': 54,
+    '1 timothy': 54,
+    // 2 Timothy
+    '2tim': 55,
+    '2timothy': 55,
+    '2 tim': 55,
+    '2 timothy': 55,
+    // Titus
+    titus: 56,
+    tit: 56,
+    // Philemon
+    phlm: 57,
+    philemon: 57,
+    // Hebrews
+    heb: 58,
+    hebrews: 58,
+    // James
+    jas: 59,
+    james: 59,
+    // 1 Peter
+    '1pet': 60,
+    '1peter': 60,
+    '1 pet': 60,
+    '1 peter': 60,
+    // 2 Peter
+    '2pet': 61,
+    '2peter': 61,
+    '2 pet': 61,
+    '2 peter': 61,
+    // 1 John
+    '1jn': 62,
+    '1john': 62,
+    '1 jn': 62,
+    '1 john': 62,
+    // 2 John
+    '2jn': 63,
+    '2john': 63,
+    '2 jn': 63,
+    '2 john': 63,
+    // 3 John
+    '3jn': 64,
+    '3john': 64,
+    '3 jn': 64,
+    '3 john': 64,
+    // Jude
+    jude: 65,
+    // Revelation
+    rev: 66,
+    revelation: 66,
+    'the revelation': 66,
+  }),
+);
 
 /**
  * All 66 books of the Bible with metadata
@@ -350,13 +351,11 @@ const BOOK_BY_NUMBER = new Map<number, Book>(BIBLE_BOOKS.map((b) => [b.number, b
 
 const BOOK_BY_NAME = new Map<string, Book>([
   ...BIBLE_BOOKS.map((b): readonly [string, Book] => [b.name.toLowerCase(), b]),
-  ...Object.entries(BIBLE_BOOK_ALIASES).flatMap(
-    ([alias, num]): readonly (readonly [string, Book])[] => {
-      const book = BOOK_BY_NUMBER.get(num);
-      if (!book) return [];
-      return [[alias, book]];
-    },
-  ),
+  ...[...BIBLE_BOOK_ALIASES].flatMap(([alias, num]): readonly (readonly [string, Book])[] => {
+    const book = BOOK_BY_NUMBER.get(num);
+    if (!book) return [];
+    return [[alias, book]];
+  }),
 ]);
 
 export function getBibleBook(bookNumber: number): Option.Option<Book> {

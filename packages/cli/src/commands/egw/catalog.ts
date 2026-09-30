@@ -1,6 +1,6 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { Console, Effect, Stream } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 
 import { encodeJson } from './format.js';
 import { FullLayer } from './layers.js';

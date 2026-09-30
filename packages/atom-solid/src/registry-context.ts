@@ -8,7 +8,7 @@
  * computations in the same owner tree read and write the same atom state.
  */
 
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type { ParentProps } from 'solid-js';
 import { createComponent, createContext, onCleanup } from 'solid-js';
 

@@ -65,7 +65,7 @@ export interface Editable {
   readonly knobs: ReadonlyArray<EditableKnob>;
 }
 
-interface Splice {
+export interface Splice {
   readonly start: number;
   readonly end: number;
   readonly text: string;
@@ -84,7 +84,7 @@ export const roundValue = (v: number): number => Math.round(v * 1000) / 1000 + 0
 const numberText = (v: number) => String(roundValue(v));
 
 /** A single-quoted string literal. */
-const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
+export const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
 
 const refuse = <A>(file: string, target: string, reason: string): Result.Result<A, SourceRefused> =>
   Result.fail(SourceRefused.make({ file, target, reason }));
@@ -115,7 +115,7 @@ const keyName = (p: ObjectProperty): Option.Option<string> => {
  * The property `name` of an object literal, when there is one. Refused when
  * the object could hide it: a spread, a computed key, or the key twice.
  */
-const propertyOf = (
+export const propertyOf = (
   file: string,
   target: string,
   obj: ObjectExpression,
@@ -180,13 +180,13 @@ const isStringLiteral = (e: Expression) => Option.isSome(stringOf(e));
 const isKnobLiteral = (e: Expression) => isNumberLiteral(e) || Option.isSome(pointOf(e));
 
 /** A property's value, unless it is a shorthand (`{ palm }`: a name, not a literal). */
-const valueOf = (p: ObjectProperty): Option.Option<Expression> => {
+export const valueOf = (p: ObjectProperty): Option.Option<Expression> => {
   if (p.shorthand) return Option.none();
   return Option.some(p.value);
 };
 
 /** The variable declarations at the top of a module, with `export const` unwrapped. */
-const declarations = (program: Program) =>
+export const declarations = (program: Program) =>
   program.body.flatMap((s: Statement) => {
     if (s.type === 'VariableDeclaration') return [{ exported: false, decl: s }];
     if (s.type === 'ExportNamedDeclaration' && s.declaration?.type === 'VariableDeclaration')
@@ -226,7 +226,7 @@ const exportedAs = (program: Program): ReadonlyMap<string, ReadonlyArray<string>
 };
 
 /** An object literal, seen through `as const` and `satisfies`. */
-const objectOf = (e: Expression): Option.Option<ObjectExpression> => {
+export const objectOf = (e: Expression): Option.Option<ObjectExpression> => {
   if (e.type === 'ObjectExpression') return Option.some(e);
   if (e.type === 'TSAsExpression' || e.type === 'TSSatisfiesExpression')
     return objectOf(e.expression);
@@ -562,7 +562,7 @@ const applySplices = (source: string, splices: ReadonlyArray<Splice>) =>
     .reduce((text, s) => text.slice(0, s.start) + s.text + text.slice(s.end), source);
 
 /** The new source, once it still parses. */
-const spliced = (file: string, source: string, splices: ReadonlyArray<Splice>) => {
+export const spliced = (file: string, source: string, splices: ReadonlyArray<Splice>) => {
   const next = applySplices(source, splices);
   return Result.map(parseModule(file, next), () => next);
 };

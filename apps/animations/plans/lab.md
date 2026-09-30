@@ -84,6 +84,25 @@ All five batches are built.
   still → change → same-frame render → reply with the after-still → resolve on the user's OK, motion,
   compare, `git diff` review, check after edits) and both READMEs.
 
+## The review: options compared, one picked (built)
+
+The owner asked to prototype so a film can "pick between different options moving forward, styles, sound
+effects, musical scores". `film review` (`packages/film` README, **Review**) is where that happens, beside
+the lab:
+
+- **One Option domain** (`core/schema.ts`): a choice point with named variants, each with media to compare;
+  its kind says how it is picked. A render set (videos named `<clip>.<variant>.mp4`, plus an optional
+  `review.json`) is reviewed only. A score's options pick `play` in `sound.ts`. A library sound's takes are
+  kept, unkept or rejected in `library.lock.json`. A look (a style at named levels) waits for its first
+  pick to write; its montages already review as a render set.
+- **Picks keep this plan's rule**: each lands in source, in exactly one place, never in a sidecar. The one
+  `SourceWriter` the lab's cue and knob writes use makes them (read, edit, oxfmt, verify, compare and swap,
+  check), with per-film undo and redo.
+- **No per-placement pin.** A take is picked for its sound, so the lock stays the one place a sound's picks
+  live; a moment that needs its own take is its own library sound.
+- **Its own surface.** The review answers a phone on the box's names (`FILM_REVIEW_HOSTS`), same-origin JSON
+  writes only; the scene editor, the notes and the studio stay on the lab's loopback server.
+
 ## Later
 
 Not built; each waits for a need.

@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* The colours come from `src/brand.ts`: `root.tsx` writes them as `--tg-*`
+   custom properties (light, and dark under prefers-color-scheme), and these
+   utilities read them. Nothing here names a hex value. */
+@theme inline {
+  --color-ground: var(--tg-ground);
+  --color-surface: var(--tg-surface);
+  --color-ink: var(--tg-ink);
+  --color-muted: var(--tg-muted);
+  --color-accent: var(--tg-accent);
+  --color-gold: var(--tg-gold);
+  --color-rule: var(--tg-rule);
+}
+
+@theme {
+  --font-sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Cormorant Garamond', ui-serif, Georgia, serif;
+}
+
+body {
+  background-color: var(--tg-ground);
+  color: var(--tg-ink);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+}

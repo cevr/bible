@@ -6,7 +6,7 @@
 // touches it never needs its credentials.
 
 import { Config, Context, Crypto, Effect, FileSystem, Layer, Option, Path, Redacted } from 'effect';
-import { HttpClient } from 'effect/unstable/http';
+import { HttpClient } from 'effect/http';
 import type { R2StoreConfig, StoreConfig } from '../core/sfx.ts';
 import { type FilmModuleInvalid, StoreCredentialsMissing } from './errors.ts';
 import { libraryModule } from './film-repo.ts';

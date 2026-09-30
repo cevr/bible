@@ -32,7 +32,7 @@ import {
 } from '@bible/core/corpus-supply';
 import { Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { HttpServerResponse } from 'effect/unstable/http';
+import { HttpServerResponse } from 'effect/http';
 
 import {
   artifactRequestFrom,

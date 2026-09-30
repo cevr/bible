@@ -1,6 +1,6 @@
 import type * as PlatformError from 'effect/PlatformError';
 import { Effect, Layer, Path, Context } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { getCliRoot } from '~/src/lib/paths';
 

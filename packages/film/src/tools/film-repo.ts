@@ -69,6 +69,8 @@ export interface FilmRepoService {
    * each film's `sound/` folder (the pre-commit guard refuses audio there).
    */
   readonly scores: Effect.Effect<Scores, StoreError>;
+  /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
+  readonly names: Effect.Effect<ReadonlyArray<string>>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
@@ -283,7 +285,20 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
         });
         const scores = readScores();
 
-        return FilmRepo.of({ paths, load, script, scores });
+        const names = fs.readDirectory(films).pipe(
+          Effect.flatMap((entries) =>
+            // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
+            Effect.filter(entries, (name) =>
+              fs
+                .exists(path.join(films, name, 'scenes', 'index.ts'))
+                .pipe(Effect.orElseSucceed(() => false)),
+            ),
+          ),
+          Effect.map((found) => [...found].sort()),
+          Effect.orElseSucceed((): ReadonlyArray<string> => []),
+        );
+
+        return FilmRepo.of({ paths, load, script, scores, names });
       }),
     );
 }

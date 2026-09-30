@@ -145,16 +145,16 @@ const FRIENDS: ReadonlyArray<{
   readonly head?: HeadPiece;
   readonly body: string;
 }> = [
-  { x: 400, side: -1, build: [1.1, 0.95], head: headcloth(C.boardShade, 0.7), body: C.figure },
+  { x: 400, side: -1, build: [1.1, 0.95], head: headcloth(C.cutShade, 0.7), body: C.figure },
   {
     x: 495,
     side: -1,
     build: [0.9, 1.15],
-    head: headcloth(C.stone, 0.4, C.boardDeep),
+    head: headcloth(C.stone, 0.4, C.cutDeep),
     body: C.figureShade,
   },
   { x: 985, side: 1, build: [1.2, 0.9], body: C.figure },
-  { x: 1080, side: 1, build: [0.95, 1.05], head: headcloth(C.boardLight, 0.9), body: C.figure },
+  { x: 1080, side: 1, build: [0.95, 1.05], head: headcloth(C.cutLight, 0.9), body: C.figure },
 ];
 const FRIEND_S = 1.1;
 /** Where each friend's holding hand is, in their units: down toward the hole's edge. */
@@ -178,7 +178,7 @@ const ROOM_CROWD: ReadonlyArray<Onlooker> = [
     at: [300, 912],
     s: 1.3,
     build: [1.1, 1],
-    head: headcloth(C.boardShade, 0.8),
+    head: headcloth(C.cutShade, 0.8),
     body: C.figure,
     look: [3, 1],
   },
@@ -187,7 +187,7 @@ const ROOM_CROWD: ReadonlyArray<Onlooker> = [
     at: [960, 910],
     s: 1.35,
     build: [1, 0.95],
-    head: headcloth(C.stone, 0.5, C.boardDeep),
+    head: headcloth(C.stone, 0.5, C.cutDeep),
     body: C.figure,
     look: [-3, 1],
   },
@@ -195,7 +195,7 @@ const ROOM_CROWD: ReadonlyArray<Onlooker> = [
     at: [1085, 914],
     s: 1.25,
     build: [1.15, 0.9],
-    head: headcloth(C.boardLight, 1),
+    head: headcloth(C.cutLight, 1),
     body: C.figure,
     look: [-2, 0],
   },
@@ -213,8 +213,8 @@ const SCRIBES: ReadonlyArray<{
   readonly head: HeadPiece;
   readonly body: string;
 }> = [
-  { x: 1450, build: [1.1, 1.05], head: headcloth(C.boardDeep, 0.8, C.gold), body: C.figureShade },
-  { x: 1570, build: [0.95, 1.1], head: headcloth(C.inkSoft, 0.6, C.boardShade), body: C.figure },
+  { x: 1450, build: [1.1, 1.05], head: headcloth(C.cutDeep, 0.8, C.gold), body: C.figureShade },
+  { x: 1570, build: [0.95, 1.1], head: headcloth(C.inkSoft, 0.6, C.cutShade), body: C.figure },
 ];
 const SCRIBE_S = 1.3;
 /** The bench's seat top: raised along the wall, so the scribes show over the crowd's heads; their shins hang down its face. */
@@ -232,7 +232,7 @@ const NEAR_CROWD: ReadonlyArray<Onlooker> = [
     at: [30, 1240],
     s: 2.8,
     build: [1.1, 1],
-    head: headcloth(C.boardShade, 0.9),
+    head: headcloth(C.cutShade, 0.9),
     body: C.figureShade,
     look: [4, 0],
   },
@@ -249,7 +249,7 @@ const NEAR_CROWD: ReadonlyArray<Onlooker> = [
     at: [1910, 1240],
     s: 2.9,
     build: [0.9, 1.05],
-    head: headcloth(C.boardLight, 0.7, C.boardShade),
+    head: headcloth(C.cutLight, 0.7, C.cutShade),
     body: C.figureShade,
     look: [-4, 0],
   },
@@ -514,7 +514,7 @@ const ropes = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         [fr.x - fr.side * FRIEND_HOLD * FRIEND_S, ROOF_TOP + FRIEND_HOLD_Y * FRIEND_S],
         [BED_X + fr.side * (BED_W / 2 - 18 - 14 * (i % 2)), y - 6],
       ],
-      { color: C.boardDeep, width: 3, jitter: 0.4, taper: 0, alpha: shown, boil: 'crawl' },
+      { color: C.cutDeep, width: 3, jitter: 0.4, taper: 0, alpha: shown, boil: 'crawl' },
       sub(hand('rope'), i),
     ),
   );
@@ -621,7 +621,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   const flat = 1 - s.roll;
   if (flat > 0.02) {
     if (s.lower >= 1 && s.rise <= 0) ground(ctx, BED_X, FLOOR - 2, BED_W + 40);
-    piece(ctx, rounded(BED_X, y, lerp(90, BED_W, flat), BED_H, 12), C.boardDeep, hand('bed'), {
+    piece(ctx, rounded(BED_X, y, lerp(90, BED_W, flat), BED_H, 12), C.cutDeep, hand('bed'), {
       role: 'scenery',
       kind: 'cut',
       line: 3,
@@ -667,7 +667,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
         piece(
           ctx,
           rounded(0, 0, lerp(BED_W, ROLL_W, clamp(2 * s.roll)), lerp(BED_H, ROLL_H, s.roll), 20),
-          C.boardDeep,
+          C.cutDeep,
           hand('roll'),
           { role: 'figure', line: 3 },
         ),
@@ -782,7 +782,7 @@ const WOMAN_STAINS = [
   blob(-16, -54, 18, 20, 72),
   blob(16, -30, 16, 13, 73),
 ];
-const HER_VEIL = headcloth(C.boardLight, 1);
+const HER_VEIL = headcloth(C.cutLight, 1);
 const HER_VEIL_WHITE = headcloth(C.stone, 1);
 
 /**
@@ -808,7 +808,7 @@ const ACCUSERS: ReadonlyArray<{
     to: -300,
     s: 1.85,
     build: [1.2, 1.1],
-    head: headcloth(C.boardDeep, 0.6),
+    head: headcloth(C.cutDeep, 0.6),
     body: C.figureShade,
     lands: [350, 968],
   },
@@ -817,7 +817,7 @@ const ACCUSERS: ReadonlyArray<{
     to: 2350,
     s: 1.75,
     build: [0.95, 1.2],
-    head: headcloth(C.inkSoft, 0.9, C.boardShade),
+    head: headcloth(C.inkSoft, 0.9, C.cutShade),
     body: C.figure,
     lands: [950, 990],
   },

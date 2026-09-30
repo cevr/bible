@@ -56,7 +56,7 @@ Counsel's cross-check agreed on the scale: 6–7 ns against 1.1–1.4 ns direct,
 - Optimizing without a measurement, or on a scene nobody watches: rank by (ms of that scene × its frames) ÷ risk.
 - A cache that makes frame N depend on frame N−1 (breaks scrubbing and parallel chunks).
 - Measuring the dev server instead of the headless render path, or one run instead of the median of several.
-- A change that is faster but moves a pixel: `cmp` the stills.
+- A change that is faster because it draws something else: that is a change to the look, proposed in the ledger (above), and its diff shows it.
 
 ## Report
 

@@ -35,6 +35,14 @@ export const MIN_CHUNK_MS = 3000;
 /** The API refuses chunks longer than this. */
 export const MAX_CHUNK_MS = 120_000;
 
+/**
+ * Seconds the score's last act is composed past the film's end. A composed
+ * ending decays to silence on its own; landing it after the cut means the
+ * film's last seconds hear the mix's fade-out over music still playing, not
+ * dead air (the mix trims the tail).
+ */
+export const MUSIC_TAIL = 6;
+
 /** One option of a score, by its name. */
 export interface ScoreOption {
   readonly name: string;
@@ -122,7 +130,7 @@ export interface ActSpan {
 
 /**
  * Each act's length, from its scene to the next act's (the last to the film's
- * end), with `ActTooShort` or `ActTooLong` in place of an act outside the
+ * end and `MUSIC_TAIL` past it), with `ActTooShort` or `ActTooLong` in place of an act outside the
  * API's chunk lengths; or, when any act names no scene, every such act.
  */
 export const actSpans = (
@@ -134,7 +142,7 @@ export const actSpans = (
 > => {
   const [unknown, starts] = Arr.partition(music.acts, (act, i) => actStart(act, i, placed));
   if (Arr.isReadonlyArrayNonEmpty(unknown)) return Result.fail(unknown);
-  const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
+  const bounds = [...starts, filmEnd(placed) + MUSIC_TAIL].map((s) => Math.round(s * 1000));
   return Result.succeed(
     music.acts.map((act, i): Result.Result<ActSpan, ActLength> => {
       const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);

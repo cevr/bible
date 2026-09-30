@@ -7,7 +7,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
@@ -18,6 +18,7 @@ import { collect } from './process.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
 import { sceneFixture } from './testing.ts';
 
@@ -50,6 +51,7 @@ const brokenRepo = (films: string) =>
           ),
         script: repo.script,
         scores: repo.scores,
+        names: repo.names,
       }),
     ),
   ).pipe(Layer.provide(FilmRepo.layer(films)));
@@ -63,6 +65,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
       const films = yield* sceneFixture(root);
       return Layer.mergeAll(
         Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+          Layer.provideMerge(SourceWriter.layer),
           Layer.provideMerge(SceneSources.layer),
           Layer.provideMerge(repoOver(films)),
         ),

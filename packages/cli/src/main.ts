@@ -4,10 +4,10 @@
  * The Effect command graph owns the non-interactive command surface.
  */
 
-import { Command } from 'effect/unstable/cli';
+import { Command } from 'effect/cli';
 import { BunServices, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 
 import { rootCommand } from './commands/root.js';
 import { printSummary, trace, traceEffect } from './instrumentation/trace.js';

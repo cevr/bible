@@ -61,6 +61,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
       load: () => Effect.succeed(film),
       script: () => Effect.succeedNone,
       scores: Effect.succeed(NO_SCORES),
+      names: Effect.succeed([]),
     }),
   );
   const media = Layer.effect(

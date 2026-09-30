@@ -3,8 +3,8 @@
 // with hot reload; `bun run lab` runs it in development mode with the lab's
 // page at /lab and its routes (the film framework's handler) at /lab/*.
 
-import type { LabBound } from '@bible/film/tools';
-import { Option } from 'effect';
+import { type LabBound, type LabHandler, ReviewPageFailed } from '@bible/film/tools';
+import { Effect, Option } from 'effect';
 import { join, normalize } from 'node:path';
 import index from './index.html';
 import labPage from './lab.html';
@@ -20,6 +20,8 @@ export const HOST = '127.0.0.1';
 
 /** A wait on `/lab/<film>/notes/wait` holds up to 60 s: the connection must outlive it. */
 const IDLE_SECONDS = 75;
+/** Bun's longest idle timeout. A mix a page stops waiting for runs on and is found made next time. */
+const REVIEW_IDLE_SECONDS = 255;
 
 type Handler = (req: Request, server: LabBound) => Response | Promise<Response>;
 
@@ -49,25 +51,106 @@ export const serve = (port: number, development: boolean, lab?: Handler, films: 
     routes: {
       '/': index,
       ...labRoutes(Option.fromUndefinedOr(lab)),
-      // Narration takes: /films/<film>/narration/<file>. The studio rewrites
-      // them in place (a take kept, the track remixed), so the browser asks
-      // again on every load rather than play a take it cached.
-      '/films/*': (req) => {
-        const rel = normalize(
-          decodeURIComponent(new URL(req.url).pathname.slice('/films/'.length)),
-        );
-        if (rel.startsWith('..') || !rel.includes('/narration/'))
-          return new Response('not found', { status: 404 });
-        const file = Bun.file(join(films, rel));
-        return file
-          .exists()
-          .then((ok) =>
-            ok
-              ? new Response(file, { headers: { 'Cache-Control': 'no-cache' } })
-              : new Response('not found', { status: 404 }),
-          );
-      },
+      '/films/*': narration(films),
     },
+  });
+
+/**
+ * Narration takes: /films/<film>/narration/<file>. The studio rewrites them
+ * in place (a take kept, the track remixed), so the browser asks again on
+ * every load rather than play a take it cached.
+ */
+const spoken = (films: string, pathname: string) =>
+  Effect.gen(function* () {
+    const rel = normalize(decodeURIComponent(pathname.slice('/films/'.length)));
+    if (rel.startsWith('..') || !rel.includes('/narration/'))
+      return new Response('not found', { status: 404 });
+    const file = Bun.file(join(films, rel));
+    if (!(yield* Effect.promise(() => file.exists())))
+      return new Response('not found', { status: 404 });
+    return new Response(file, { headers: { 'Cache-Control': 'no-cache' } });
+  });
+
+const narration =
+  (films: string): Handler =>
+  (req) =>
+    Effect.runPromise(spoken(films, new URL(req.url).pathname));
+
+/** The review page's source, built in this process (`reviewPage`). */
+const REVIEW_HTML = join(import.meta.dir, 'review.html');
+
+/** The built review page by the path it is asked for: `/` its HTML, `/chunk-….js` its script. */
+type BuiltPage = ReadonlyMap<string, Blob>;
+
+/** A built file's path as the page asks for it (`./review.html` is `/`). */
+const pagePath = (file: string) => {
+  const name = file.replace(/^\.\//, '');
+  if (name === 'review.html') return '/';
+  return `/${name}`;
+};
+
+/**
+ * The review page, its script bundled with the lab's Solid plugin as the page
+ * server bundles an HTML import, but in this process: each file is then
+ * answered by a handler behind the review's `admit`, not by a route Bun
+ * serves on its own.
+ */
+const buildReviewPage = Effect.gen(function* () {
+  const { solidPlugin } = yield* Effect.promise(() => import('@bible/film/solid-plugin'));
+  const out = yield* Effect.tryPromise({
+    try: () =>
+      Bun.build({
+        entrypoints: [REVIEW_HTML],
+        plugins: [solidPlugin],
+        target: 'browser',
+        minify: true,
+      }),
+    catch: (cause) => ReviewPageFailed.make({ reason: String(cause) }),
+  });
+  if (!out.success)
+    return yield* ReviewPageFailed.make({ reason: out.logs.map(String).join('; ') });
+  return new Map(out.outputs.map((file) => [pagePath(file.path), file])) satisfies BuiltPage;
+});
+
+/** A built file, the HTML asked again each load, the script (named by its hash) kept. */
+const builtFile = (files: BuiltPage, pathname: string) =>
+  Option.match(Option.fromUndefinedOr(files.get(pathname)), {
+    onNone: () => new Response('not found', { status: 404 }),
+    onSome: (file) => {
+      if (pathname === '/') return new Response(file, { headers: { 'Cache-Control': 'no-cache' } });
+      return new Response(file, { headers: { 'Cache-Control': 'max-age=31536000, immutable' } });
+    },
+  });
+
+/**
+ * What the review serves beside its routes, once its handler has admitted the
+ * request: its page at / (a folder, a set or a film is in the query), the
+ * page's script, and the narration its film pages play. Built when `review`
+ * starts, so a page that does not build stops the command
+ * (`ReviewPageFailed`) rather than a request.
+ */
+export const reviewPage = (films: string) =>
+  Effect.map(buildReviewPage, (files): LabHandler => (req) => {
+    const { pathname } = new URL(req.url);
+    if (pathname.startsWith('/films/')) return Effect.runPromise(spoken(films, pathname));
+    return Effect.runPromise(Effect.sync(() => builtFile(files, pathname)));
+  });
+
+/**
+ * The review on `hostname`:`port`: every request goes to `review`, the
+ * framework's handler, which admits it (only the hosts it is told) before its
+ * routes answer /review/* and /lab/* and the app's page (`reviewPage`) the
+ * rest. No route here answers on its own, so no path skips the Host check.
+ * No scene editor, no studio.
+ */
+export const serveReview = (port: number, hostname: string, review: Handler) =>
+  Bun.serve({
+    hostname,
+    port,
+    development: false,
+    // A film's first mix renders the whole film before it answers: as long as Bun allows.
+    idleTimeout: REVIEW_IDLE_SECONDS,
+    fetch: (req, server) => review(req, server),
   });
 
 if (import.meta.main) {

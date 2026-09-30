@@ -10,7 +10,7 @@
 // `read` with a byte range), not through this command.
 
 import { Config, Console, Crypto, Effect, FileSystem, Option, Path } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import { StoreCopyFailed } from './errors.ts';
 import { RENDERS, renderKey } from './media-store.ts';
 import { PrivateStore } from './private-store.ts';

@@ -17,11 +17,11 @@
 
 import { BibleProcedureGroup } from '@bible/core/procedure';
 import { Context, Effect, Layer } from 'effect';
-import * as Atom from 'effect/unstable/reactivity/Atom';
-import * as AtomRpc from 'effect/unstable/reactivity/AtomRpc';
-import type * as RpcClient from 'effect/unstable/rpc/RpcClient';
-import type { RpcClientError } from 'effect/unstable/rpc/RpcClientError';
-import type { RpcGroup } from 'effect/unstable/rpc';
+import * as Atom from 'effect/reactivity/Atom';
+import * as AtomRpc from 'effect/reactivity/AtomRpc';
+import type * as RpcClient from 'effect/rpc/RpcClient';
+import type { RpcClientError } from 'effect/rpc/RpcClientError';
+import type { RpcGroup } from 'effect/rpc';
 
 type ReadingRpcs = RpcGroup.Rpcs<typeof BibleProcedureGroup>;
 

@@ -730,12 +730,12 @@ const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
     740,
     1.75,
     {
-      body: C.boardDeep,
+      body: C.cutDeep,
       build: [1.05, 0.95],
-      hair: C.boardShade,
+      hair: C.cutShade,
       moustache: 0.35,
       onHead: (ctx, c, r, hand) => {
-        piece(ctx, hairShape(c, r, 0), C.boardShade, sub(hand, 85), {
+        piece(ctx, hairShape(c, r, 0), C.cutShade, sub(hand, 85), {
           role: 'figure',
           line: 2.5,
           shadow: 0.1,
@@ -762,10 +762,10 @@ const PREACHERS: ReadonlyArray<readonly [x: number, s: number, who: Person]> = [
     {
       body: C.inkSoft,
       build: [0.9, 1.15],
-      hair: C.boardDeep,
+      hair: C.cutDeep,
       moustache: 1,
       onHead: (ctx, c, r, hand) =>
-        piece(ctx, hairShape(c, r, 1), C.boardDeep, sub(hand, 85), {
+        piece(ctx, hairShape(c, r, 1), C.cutDeep, sub(hand, 85), {
           role: 'figure',
           line: 2.5,
           shadow: 0.1,

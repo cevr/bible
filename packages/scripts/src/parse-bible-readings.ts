@@ -3,7 +3,7 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { Argument, Command } from 'effect/unstable/cli';
+import { Argument, Command } from 'effect/cli';
 import { PDFParse } from 'pdf-parse';
 
 const pdfPathArgument = Argument.File('pdf-path').pipe(

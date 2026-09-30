@@ -6,13 +6,16 @@
 
 import { Array as Arr } from 'effect';
 import type { Pcm } from './audio.ts';
-import { type Placement, repitch } from './mix.ts';
+import { MASTER, type Placement, repitch } from './mix.ts';
 
 export const BALANCE = {
   /** The voice's level at its 70th percentile over `levelWindow`s, in dBFS (CRAFT rule 10). */
   voice: -17,
-  /** The master's integrated loudness, in LUFS (CRAFT rule 10). */
-  master: -18,
+  /**
+   * The master's integrated loudness, in LUFS (CRAFT rule 10): the mix masters
+   * to it, so a miss means headroom held the lift back (a peak too hot).
+   */
+  master: MASTER.loudness,
   /**
    * How far either may sit from its target, in dB: a clean gain to the
    * speech level can be held 1–2 dB short by a take's own peaks (the ceiling).

@@ -12,18 +12,9 @@
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { makeLocalState } from 'alchemy/State';
-import {
-  Console,
-  Crypto,
-  Effect,
-  Encoding,
-  FileSystem,
-  Option,
-  Path,
-  Redacted,
-  Schema,
-} from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Console, Crypto, Effect, FileSystem, Option, Path, Redacted, Schema } from 'effect';
+import { Hex } from 'effect/encoding';
+import { Command, Flag } from 'effect/cli';
 
 /** The stack `alchemy.run.ts` declares. */
 export const STACK = 'film-store';
@@ -87,7 +78,7 @@ const keys = Command.make(
     const found = Option.fromNullishOr(raw);
     if (Option.isNone(found)) return yield* StoreNotDeployed.make({ stage: input.stage });
     const outputs = yield* Schema.decodeUnknownEffect(StoreOutputs)(found.value);
-    const secret = Encoding.encodeHex(
+    const secret = Hex.encode(
       yield* crypto.digest('SHA-256', new TextEncoder().encode(Redacted.value(outputs.token))),
     );
     const file = path.resolve(input.env);

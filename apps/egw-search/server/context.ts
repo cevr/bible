@@ -22,7 +22,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { readerUrl, type ContextParagraph } from './api.js';
 

@@ -29,56 +29,56 @@
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run lint && bun run fmt\" \"turbo run gate\" && bun run test:perf",
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
-    "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch"
+    "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch --force"
   },
   "dependencies": {
     "@solid-primitives/refs": "^1.1.4"
   },
   "devDependencies": {
-    "@effect/tsgo": "^0.36.5",
-    "@types/bun": "1.4.0",
+    "@effect/tsgo": "^0.47.0",
+    "@types/bun": "1.4.2",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "agent-tail-core": "^0.4.0",
     "concurrently": "^10.0.5",
     "effect": "catalog:",
     "effect-bun-test": "0.3.0",
-    "lefthook": "^2.1.10",
-    "oxfmt": "^0.64.0",
-    "oxlint": "^1.79.0",
-    "oxlint-plugin-effect": "0.13.0",
-    "railway": "^3.11.0",
-    "turbo": "^2.10.11",
+    "lefthook": "^2.1.15",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "oxlint-plugin-effect": "0.17.0",
+    "railway": "^3.12.0",
+    "turbo": "^2.11.5",
     "typescript": "^7.0.2",
     "vite-plugin-agent-tail": "^0.4.0"
   },
   "overrides": {
-    "@effect/ai-anthropic": "4.0.0-rc.115",
-    "@effect/ai-openai": "4.0.0-rc.115",
-    "@effect/platform-node-shared": "4.0.0-rc.115",
-    "effect": "4.0.0-rc.115"
+    "@effect/ai-anthropic": "4.0.0-rc.118",
+    "@effect/ai-openai": "4.0.0-rc.118",
+    "@effect/platform-node-shared": "4.0.0-rc.118",
+    "effect": "4.0.0-rc.118"
   },
   "packageManager": "bun@1.4.2",
   "catalog": {
-    "@effect/ai-anthropic": "4.0.0-rc.115",
-    "@effect/ai-openai": "4.0.0-rc.115",
-    "@effect/platform-browser": "4.0.0-rc.115",
-    "@effect/platform-bun": "4.0.0-rc.115",
-    "@effect/platform-node": "4.0.0-rc.115",
-    "@effect/sql-sqlite-bun": "4.0.0-rc.115",
-    "@effect/sql-sqlite-node": "4.0.0-rc.115",
-    "@effect/vitest": "4.0.0-rc.115",
-    "@solidjs/compiler": "2.0.0-rc.9",
-    "@solidjs/router": "2.0.0-next.17",
-    "@solidjs/web": "2.0.0-rc.9",
-    "@types/bun": "1.4.0",
+    "@effect/ai-anthropic": "4.0.0-rc.118",
+    "@effect/ai-openai": "4.0.0-rc.118",
+    "@effect/platform-browser": "4.0.0-rc.118",
+    "@effect/platform-bun": "4.0.0-rc.118",
+    "@effect/platform-node": "4.0.0-rc.118",
+    "@effect/sql-sqlite-bun": "4.0.0-rc.118",
+    "@effect/sql-sqlite-node": "4.0.0-rc.118",
+    "@effect/vitest": "4.0.0-rc.118",
+    "@solidjs/compiler": "2.0.0-rc.11",
+    "@solidjs/router": "2.0.0-next.31",
+    "@solidjs/web": "2.0.0-rc.11",
+    "@types/bun": "1.4.2",
     "drizzle-orm": "1.0.0-rc.4",
-    "effect": "4.0.0-rc.115",
+    "effect": "4.0.0-rc.118",
     "effect-bun-test": "0.3.0",
     "effect-machine": "0.27.0",
-    "solid-js": "2.0.0-rc.9",
+    "solid-js": "2.0.0-rc.11",
     "vite-plugin-solid": "3.0.0-next.27"
   },
   "patchedDependencies": {
-    "@effect/sql-sqlite-bun@4.0.0-rc.115": "patches/@effect%2Fsql-sqlite-bun@4.0.0-rc.115.patch"
+    "effect-machine@0.27.0": "patches/effect-machine@0.27.0.patch"
   }
 }

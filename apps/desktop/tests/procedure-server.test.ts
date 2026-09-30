@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Option, Queue } from 'effect';
-import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcServer from 'effect/unstable/rpc/RpcServer';
+import type { FromClientEncoded, FromServerEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcServer from 'effect/rpc/RpcServer';
 
 import {
   layerDesktopProcedureProtocol,

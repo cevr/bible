@@ -1,0 +1,163 @@
+// The review page's entry (`/`, `film review`): the header (where the page is,
+// and its tools), the page itself, and the lightbox, in Solid 2 over the
+// review's routes on the page's own origin.
+
+import { For, Show, render } from '@solidjs/web';
+import { Effect, Match, Option } from 'effect';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import { createEffect } from 'solid-js';
+import type { ReviewIndex } from '../../core/schema.ts';
+import { Root, useReview } from './context.tsx';
+import { folderTitle, pressed } from './format.ts';
+import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { FilmPage } from './options/section.tsx';
+import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
+import { REVIEW_CSS } from './style.ts';
+
+/** The trail to `place`: each step's title, and where it goes (none for the page itself). */
+interface Crumb {
+  readonly title: string;
+  readonly place: Option.Option<ReviewPlace>;
+}
+
+/** The trail to `place`, titled from the index once read. */
+export const crumbsOf = (
+  place: ReviewPlace,
+  index: Option.Option<ReviewIndex>,
+): ReadonlyArray<Crumb> => {
+  const folderAt = (ref: string) =>
+    Option.flatMap(index, (i) => Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref)));
+  const folder = (ref: string) =>
+    Option.getOrElse(Option.map(folderAt(ref), folderTitle), () => ref);
+  const set = (ref: string, clip: string) =>
+    Option.getOrElse(
+      Option.flatMap(folderAt(ref), (f) =>
+        Option.map(Option.fromUndefinedOr(f.sets.find((s) => s.clip === clip)), (s) => s.title),
+      ),
+      () => clip,
+    );
+  return Match.value(place).pipe(
+    Match.tagsExhaustive({
+      Home: (): ReadonlyArray<Crumb> => [],
+      Folder: (p): ReadonlyArray<Crumb> => [{ title: folder(p.folder), place: Option.none() }],
+      Set: (p): ReadonlyArray<Crumb> => [
+        { title: folder(p.folder), place: Option.some(Place.Folder({ folder: p.folder })) },
+        { title: set(p.folder, p.clip), place: Option.none() },
+      ],
+      Film: (p): ReadonlyArray<Crumb> => [{ title: `${p.film} · options`, place: Option.none() }],
+    }),
+  );
+};
+
+const Header = () => {
+  const { state, actions } = useReview();
+  const crumbs = () => crumbsOf(state.place(), AsyncResult.value(state.index()));
+  createEffect(crumbs, (trail) => {
+    document.title = [...trail.map((c) => c.title).toReversed(), 'Film review'].join(' · ');
+  });
+  const go = (place: ReviewPlace) => (e: MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    actions.go(place);
+  };
+  return (
+    <header class="rv-header">
+      <nav class="rv-crumbs">
+        <a href={location.pathname} onClick={go(Place.Home())}>
+          <b>Film review</b>
+        </a>
+        <For each={crumbs()}>
+          {(crumb) => (
+            <>
+              <span class="rv-hint">/</span>
+              {Option.match(crumb.place, {
+                onNone: () => <b>{crumb.title}</b>,
+                onSome: (place) => (
+                  <a href={`${location.pathname}${searchOf(place)}`} onClick={go(place)}>
+                    {crumb.title}
+                  </a>
+                ),
+              })}
+            </>
+          )}
+        </For>
+      </nav>
+      <span class="rv-spacer" />
+      <div class="rv-row rv-tools">
+        <Show when={state.place()._tag === 'Home'} fallback={<QualityToggle />}>
+          <input
+            type="search"
+            class="rv-filter"
+            placeholder="Filter folders"
+            value={state.filter()}
+            onInput={(e) => actions.filter(e.currentTarget.value)}
+          />
+          <button
+            type="button"
+            class="rv-chip"
+            data-act="refresh"
+            aria-busy={pressed(AsyncResult.isWaiting(state.index()))}
+            onClick={actions.refresh}
+          >
+            Refresh
+          </button>
+        </Show>
+      </div>
+    </header>
+  );
+};
+
+const Page = () => {
+  const { state } = useReview();
+  return (
+    <main class="rv-main">
+      {Match.value(state.place()).pipe(
+        Match.tagsExhaustive({
+          Home: () => <Home />,
+          Folder: (p) => <FolderPage folder={p.folder} />,
+          Set: (p) => <SetPage folder={p.folder} clip={p.clip} />,
+          Film: (p) => <FilmPage film={p.film} />,
+        }),
+      )}
+    </main>
+  );
+};
+
+const Lightbox = () => {
+  const { state, actions } = useReview();
+  return (
+    <Show when={Option.getOrUndefined(state.lightbox())}>
+      {(src) => (
+        <div class="rv-lightbox" onClick={() => actions.show(Option.none())}>
+          <img src={src()} alt="" />
+        </div>
+      )}
+    </Show>
+  );
+};
+
+/** The review: its header, the page it is on, and the lightbox. */
+export const ReviewPage = (props: { readonly origin: string }) => (
+  <Root origin={props.origin}>
+    <Header />
+    <Page />
+    <Lightbox />
+  </Root>
+);
+
+/** Mount the review into the page, with its styles, over the page's own origin. */
+export const mountReview = (): void => {
+  Effect.runSync(
+    Effect.gen(function* () {
+      const style = document.createElement('style');
+      style.textContent = REVIEW_CSS;
+      document.head.append(style);
+      document.body.classList.add('rv');
+      const host = document.createElement('div');
+      host.className = 'rv-root';
+      document.body.append(host);
+      render(() => <ReviewPage origin={location.origin} />, host);
+      yield* Effect.logInfo(`review.mounted search=${location.search}`);
+    }),
+  );
+};

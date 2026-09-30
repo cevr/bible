@@ -249,9 +249,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
           return yield* Option.match(row, {
             onNone: () => Effect.succeed(Option.none<Paragraph>()),
             onSome: (value) =>
-              makeParagraph(foundPublication, value, 'read-paragraphs').pipe(
-                Effect.map(Option.some),
-              ),
+              makeParagraph(foundPublication, value, 'read-paragraphs').pipe(Effect.asSome),
           });
         });
 

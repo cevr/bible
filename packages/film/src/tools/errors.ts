@@ -158,7 +158,7 @@ export class MasterLoudness extends Schema.TaggedError<MasterLoudness>()('Master
   tolerance: Schema.Finite,
 }) {
   override get message() {
-    return `the master measures ${this.loudness.toFixed(1)} LUFS, outside ${this.target} ± ${this.tolerance}: balance the voice first, then the beds, music and effects against it`;
+    return `the master measures ${this.loudness.toFixed(1)} LUFS, outside ${this.target} ± ${this.tolerance}: the mix masters to ${this.target}, so a peak held the lift back (see mix.master gain); find the hot peak on its bus (an effect or a take) and lower it`;
   }
 }
 
@@ -463,6 +463,15 @@ export class PreviewServerFailed extends Schema.TaggedError<PreviewServerFailed>
 ) {
   override get message() {
     return `the player server did not start: ${this.reason}`;
+  }
+}
+
+/** The app's review page did not build, so `review` does not start. */
+export class ReviewPageFailed extends Schema.TaggedError<ReviewPageFailed>()('ReviewPageFailed', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the review page did not build: ${this.reason}`;
   }
 }
 
@@ -1138,6 +1147,69 @@ export class SourceChanged extends Schema.TaggedError<SourceChanged>()('SourceCh
 }) {
   override get message() {
     return `${this.file} changed on disk while the lab was writing ${this.target}; it was left as it is now: reload and write again`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Review: the box's renders, served where they lie.
+
+/** A ref that names no file under the review's roots (an unknown root, a path out of it, or nothing there). */
+export class ReviewFileUnknown extends Schema.TaggedError<ReviewFileUnknown>()(
+  'ReviewFileUnknown',
+  { ref: Schema.String },
+) {
+  override get message() {
+    return `no file ${this.ref} under the review's roots`;
+  }
+}
+
+/** A pick naming a score option, or a library sound, the film does not offer. */
+export class ChoiceUnknown extends Schema.TaggedError<ChoiceUnknown>()('ChoiceUnknown', {
+  film: Schema.String,
+  kind: Schema.Literals(['score option', 'sound']),
+  name: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const known = this.known.join(', ') || 'none';
+    return `film "${this.film}" has no ${this.kind} "${this.name}" to choose (it has: ${known})`;
+  }
+}
+
+/** A take act its take's state does not allow: only a waiting take is kept or rejected, only a kept one unkept. */
+export class TakeActRefused extends Schema.TaggedError<TakeActRefused>()('TakeActRefused', {
+  sound: Schema.String,
+  take: Schema.String,
+  /** What was asked, as it would read done: `kept`, `unkept`, `rejected`. */
+  act: Schema.String,
+  state: Schema.String,
+}) {
+  override get message() {
+    return `take ${this.take.slice(0, 12)} of "${this.sound}" is ${this.state}: it cannot be ${this.act}`;
+  }
+}
+
+/** A take named by its sha256 that a sound has neither kept nor waiting. */
+export class TakeUnknown extends Schema.TaggedError<TakeUnknown>()('TakeUnknown', {
+  sound: Schema.String,
+  take: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.sound}" has no kept or waiting take ${this.take.slice(0, 12)}`;
+  }
+}
+
+/**
+ * A derived file the review makes (a frame, a length, a phone copy, a mix)
+ * that ffmpeg or ffprobe did not make, or its cache could not keep.
+ */
+export class ReviewToolFailed extends Schema.TaggedError<ReviewToolFailed>()('ReviewToolFailed', {
+  tool: Schema.Literals(['ffmpeg', 'ffprobe', 'cache']),
+  ref: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.tool} failed on ${this.ref}: ${this.reason}`;
   }
 }
 

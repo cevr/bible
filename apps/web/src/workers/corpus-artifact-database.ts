@@ -26,7 +26,7 @@ import {
 } from '@bible/core/corpus-supply';
 import { CONTENT_ARTIFACT_PROXY_PATH } from '@bible/core/content-update';
 import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
-import { HttpClient } from 'effect/unstable/http';
+import { HttpClient } from 'effect/http';
 import * as SQLite from 'wa-sqlite';
 
 import type { CorpusGenerationStore } from './corpus-generation-store.js';

@@ -10,7 +10,7 @@
  */
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Cause, Clock, Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 export interface WarmRequest {
   readonly filename: string;

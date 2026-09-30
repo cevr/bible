@@ -23,11 +23,22 @@ export * from './renderer.ts';
 export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';
+export * from './choices.ts';
+export { editPlay, readPlay } from './sound-source.ts';
+export {
+  Review,
+  type ReviewConfig,
+  type ReviewRoot,
+  type ReviewService,
+  parseRoots,
+} from './review.ts';
+export { reviewAllowed, reviewHandler, reviewRoutes } from './review-http.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
+export * from './source-writer.ts';
 export * from './static-check.ts';
 export * from './takes.ts';
 export * from './studio.ts';

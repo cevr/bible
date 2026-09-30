@@ -75,7 +75,9 @@
     "**/*.d.ts",
     "**/outputs/**",
     "**/lint/fixtures/**",
-    "**/.alchemy/**"
+    "**/.alchemy/**",
+    "apps/triedgold/build/**",
+    "apps/triedgold/.react-router/**"
   ],
   "overrides": [
     {

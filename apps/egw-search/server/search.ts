@@ -11,7 +11,7 @@
  */
 
 import { Cause, Effect, Option, Result } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 
 import { SearchQuery, SearchService, type SearchResult } from '@bible/core/search';
 import type { CorpusFilter } from '@bible/core/writings';
@@ -107,13 +107,14 @@ const queryOne = (
     );
     return Option.some(result);
   }).pipe(
-    Effect.catchCause((cause) => {
-      if (Cause.hasInterruptsOnly(cause)) return Effect.failCause(cause);
-      return Effect.logError('search.failed').pipe(
-        Effect.annotateLogs({ cause: String(cause) }),
-        Effect.andThen(Effect.fail(SearchFailed.make({ message: 'search failed' }))),
-      );
-    }),
+    Effect.catchCauseIf(
+      (cause) => !Cause.hasInterruptsOnly(cause),
+      (cause) =>
+        Effect.logError('search.failed').pipe(
+          Effect.annotateLogs({ cause: String(cause) }),
+          Effect.andThen(Effect.fail(SearchFailed.make({ message: 'search failed' }))),
+        ),
+    ),
   );
 
 const distinct = (values: readonly string[]): readonly string[] => [...new Set(values)];

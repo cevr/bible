@@ -21,7 +21,7 @@ import {
   Redacted,
   Stream,
 } from 'effect';
-import { HttpClient, type HttpClientRequest, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, type HttpClientRequest, HttpClientResponse } from 'effect/http';
 import type { StoreFailed } from './errors.ts';
 import { type MediaStoreService, folderStore } from './media-store.ts';
 import { PrivateStore, R2_ENV } from './private-store.ts';

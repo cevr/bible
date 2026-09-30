@@ -1,0 +1,107 @@
+diff --git a/dist/atom.d.ts b/dist/atom.d.ts
+index 872791add3d5a6d6813fc3b29dc9230b918e1034..0bfe233721bba24cc3c7371a18a7b80652bde327 100644
+--- a/dist/atom.d.ts
++++ b/dist/atom.d.ts
+@@ -1,7 +1,7 @@
+ import { ActorLifecycle, ActorRef, ActorSystemKey, ActorSystemService, TransitionInfo } from "./actor.js";
+ import * as Option from "effect/Option";
+-import * as Atom from "effect/unstable/reactivity/Atom";
+-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
++import * as Atom from "effect/reactivity/Atom";
++import * as AsyncResult from "effect/reactivity/AsyncResult";
+ import * as Cause from "effect/Cause";
+ //#region src/atom.d.ts
+ /**
+diff --git a/dist/atom.js b/dist/atom.js
+index 95a990351f0da972696dc59a6a058c8ae7dfd0ce..3d43bc6a760ad39586162b53108faf88072eadaa 100644
+--- a/dist/atom.js
++++ b/dist/atom.js
+@@ -1,8 +1,8 @@
+ import { Match } from "effect";
+ import { dual } from "effect/Function";
+ import * as Option$1 from "effect/Option";
+-import * as Atom from "effect/unstable/reactivity/Atom";
+-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
++import * as Atom from "effect/reactivity/Atom";
++import * as AsyncResult from "effect/reactivity/AsyncResult";
+ //#region src/atom.ts
+ /**
+ * Effect Atom integration for actors.
+diff --git a/dist/cluster/entity-actor-ref.d.ts b/dist/cluster/entity-actor-ref.d.ts
+index d4376951bb186074d036dc343cc26ccfd229c377..460c8167deb3f9de61e4a1b98c6845916afbd074 100644
+--- a/dist/cluster/entity-actor-ref.d.ts
++++ b/dist/cluster/entity-actor-ref.d.ts
+@@ -2,7 +2,7 @@ import { ExtractReply, ReplyTypeBrand } from "../internal/brands.js";
+ import { ActorStoppedError, NoReplyError } from "../errors.js";
+ import { EntityRpcs } from "./to-entity.js";
+ import { Effect, Schema, Stream } from "effect";
+-import { RpcClient } from "effect/unstable/rpc";
++import { RpcClient } from "effect/rpc";
+ //#region src/cluster/entity-actor-ref.d.ts
+ /**
+  * Typed client wrapper for remote entity machines.
+diff --git a/dist/cluster/entity-machine.d.ts b/dist/cluster/entity-machine.d.ts
+index 5c7191f492064cc3a4f87446b2a1978625148753..0028f131801aa63cb1cb5513ec481134b23a513e 100644
+--- a/dist/cluster/entity-machine.d.ts
++++ b/dist/cluster/entity-machine.d.ts
+@@ -1,8 +1,8 @@
+ import { Machine } from "../machine.js";
+ import { EntityPersistenceConfig } from "./persistence.js";
+ import { Duration, Layer, Schedule } from "effect";
+-import { Entity } from "effect/unstable/cluster";
+-import { Rpc } from "effect/unstable/rpc";
++import { Entity } from "effect/cluster";
++import { Rpc } from "effect/rpc";
+ //#region src/cluster/entity-machine.d.ts
+ /**
+  * Options for EntityMachine.layer
+diff --git a/dist/cluster/entity-machine.js b/dist/cluster/entity-machine.js
+index 8ec374259c9698ab037f13f953abcd44f8e8b682..d31e4714a32a4913e9e67a6fb9da4706a4e278fc 100644
+--- a/dist/cluster/entity-machine.js
++++ b/dist/cluster/entity-machine.js
+@@ -5,7 +5,7 @@ import { ActorSystem, makeSystem } from "../actor.js";
+ import { replay } from "../machine.js";
+ import { PersistenceAdapter } from "./persistence.js";
+ import { Clock, Effect, Option, Queue, Ref, Stream, SubscriptionRef } from "effect";
+-import { Entity } from "effect/unstable/cluster";
++import { Entity } from "effect/cluster";
+ //#region src/cluster/entity-machine.ts
+ /**
+ * EntityMachine adapter - wires a machine to a cluster Entity layer.
+diff --git a/dist/cluster/to-entity.d.ts b/dist/cluster/to-entity.d.ts
+index d775923472a70c01f24727689abf00a9bcb149ef..d57d5ed35cbe775311da192eedee46c0b4865dd2 100644
+--- a/dist/cluster/to-entity.d.ts
++++ b/dist/cluster/to-entity.d.ts
+@@ -1,8 +1,8 @@
+ import { MachineEventSchema, MachineStateSchema } from "../schema.js";
+ import { Machine } from "../machine.js";
+ import { Schema } from "effect";
+-import { Entity } from "effect/unstable/cluster";
+-import { Rpc } from "effect/unstable/rpc";
++import { Entity } from "effect/cluster";
++import { Rpc } from "effect/rpc";
+ //#region src/cluster/to-entity.d.ts
+ /**
+  * Options for toEntity.
+@@ -21,7 +21,7 @@ declare const makeEntityProtocol: <StateSchema extends Schema.Top, EventSchema e
+   event: EventSchema;
+ } extends (infer T_1) ? T_1 extends {
+   event: EventSchema;
+-} ? T_1 extends Schema.Struct.Fields ? Schema.Struct<T_1> : T_1 : never : never, StateSchema, Schema.Never, never, never> | Rpc.Rpc<"WatchState", Schema.Void, import("effect/unstable/rpc/RpcSchema").Stream<StateSchema, Schema.Never>, Schema.Never, never, never>)[];
++} ? T_1 extends Schema.Struct.Fields ? Schema.Struct<T_1> : T_1 : never : never, StateSchema, Schema.Never, never, never> | Rpc.Rpc<"WatchState", Schema.Void, import("effect/rpc/RpcSchema").Stream<StateSchema, Schema.Never>, Schema.Never, never, never>)[];
+ /** RPC protocol owned by `toEntity`. */
+ export type EntityRpcs<StateSchema extends Schema.Top, EventSchema extends Schema.Top> = ReturnType<typeof makeEntityProtocol<StateSchema, EventSchema>>[number];
+ /**
+diff --git a/dist/cluster/to-entity.js b/dist/cluster/to-entity.js
+index 5f4ca8de320bbeaa63ced456a29981c778a89ca4..6b4978b3f47b065bbfa0da2cb131a4d8838fba72 100644
+--- a/dist/cluster/to-entity.js
++++ b/dist/cluster/to-entity.js
+@@ -1,6 +1,6 @@
+ import { Schema } from "effect";
+-import { Entity } from "effect/unstable/cluster";
+-import { Rpc } from "effect/unstable/rpc";
++import { Entity } from "effect/cluster";
++import { Rpc } from "effect/rpc";
+ //#region src/cluster/to-entity.ts
+ /**
+ * Generate Entity definition from a machine.

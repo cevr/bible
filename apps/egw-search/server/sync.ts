@@ -47,8 +47,8 @@ import {
 } from '@bible/core/corpus-supply';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Cron, DateTime, Duration, Effect, Layer, Option, Schedule } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
-import type { SqlClient } from 'effect/unstable/sql';
+import { FetchHttpClient } from 'effect/http';
+import type { SqlClient } from 'effect/sql';
 
 /** Sundays at 05:00 Toronto time — the low-traffic window, and far enough from
  *  midnight that a run crossing a DST boundary still lands on a real hour. */

@@ -6,12 +6,7 @@
 // routes are `LabApi`; the notes routes are `NotesApi`.
 
 import { Cause, Context, Effect, Layer, Result, Schema } from 'effect';
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-  HttpClientResponse,
-} from 'effect/unstable/http';
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
 import {
   CheckReport,
   CuePatch,

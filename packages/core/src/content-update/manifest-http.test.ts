@@ -16,7 +16,7 @@
 
 import { Effect, Fiber, Layer, Option } from 'effect';
 import * as TestClock from 'effect/testing/TestClock';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {

@@ -4,7 +4,8 @@
 // (RFC 2104), so signing needs no host crypto and no SDK. Checked against the
 // signatures AWS publishes for its S3 examples (`sigv4.test.ts`).
 
-import { type Crypto, DateTime, Effect, Encoding, Order, Redacted } from 'effect';
+import { type Crypto, DateTime, Effect, Order, Redacted } from 'effect';
+import { Hex } from 'effect/encoding';
 import type { PlatformError } from 'effect/PlatformError';
 
 /** An S3 key pair. The secret stays `Redacted` until the signing key is derived. */
@@ -72,8 +73,7 @@ export const hmacSha256 = Effect.fnUntraced(function* (
 export const sha256Hex = (
   crypto: Crypto.Crypto,
   bytes: Uint8Array,
-): Effect.Effect<string, PlatformError> =>
-  Effect.map(crypto.digest('SHA-256', bytes), Encoding.encodeHex);
+): Effect.Effect<string, PlatformError> => Effect.map(crypto.digest('SHA-256', bytes), Hex.encode);
 
 /** `20130524T000000Z`: the moment as SigV4 stamps it. */
 export const amzDate = (at: DateTime.Utc): string =>
@@ -128,7 +128,7 @@ export const signS3 = Effect.fnUntraced(function* (
   let key: Uint8Array = text.encode(`AWS4${Redacted.value(credentials.secretAccessKey)}`);
   for (const part of [day, region, 's3', 'aws4_request'])
     key = yield* hmacSha256(crypto, key, text.encode(part));
-  const signature = Encoding.encodeHex(yield* hmacSha256(crypto, key, text.encode(toSign)));
+  const signature = Hex.encode(yield* hmacSha256(crypto, key, text.encode(toSign)));
   const signed = canonical.split('\n').at(-2) ?? '';
   return {
     'x-amz-date': stamp,

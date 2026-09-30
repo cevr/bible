@@ -27,7 +27,7 @@ import {
   HttpClient as Client,
   HttpClientRequest,
   type HttpClientResponse,
-} from 'effect/unstable/http';
+} from 'effect/http';
 import type { R2StoreConfig } from '../core/sfx.ts';
 import { StoreFailed } from './errors.ts';
 import {

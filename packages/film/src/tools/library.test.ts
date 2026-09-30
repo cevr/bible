@@ -26,7 +26,7 @@ import { ElevenLabsFailed } from './errors.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
 import { PrivateStore } from './private-store.ts';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 import { NO_SCORES, type Scores } from './media-store.ts';
 
 const LIBRARY = `export const library = {

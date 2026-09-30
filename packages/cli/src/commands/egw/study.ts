@@ -3,7 +3,7 @@ import { CorpusSupply, Target } from '@bible/core/corpus-supply';
 import { publicationId, type SearchHit } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Console, Effect, FileSystem, Option, Result, Stream } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 import { paragraphRefcode } from './format.js';
 import { FullLayer } from './layers.js';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Fiber } from 'effect';
-import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
+import type { FromClientEncoded, FromServerEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
 
 import { layerDesktopProcedureTransport } from '../src/procedure-client-protocol.js';
 

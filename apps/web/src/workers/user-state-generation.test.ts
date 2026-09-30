@@ -87,7 +87,7 @@ describe('web canonical generation lifecycle', () => {
     Effect.gen(function* () {
       const events: string[] = [];
       const marker = makeGenerationMarkerStore({
-        read: () => Effect.succeed(Option.some(generation)),
+        read: () => Effect.succeedSome(generation),
         write: () => Effect.sync(() => events.push('activate')).pipe(Effect.asVoid),
       });
       const adapter = makeCanonicalGenerationAdapter({
