@@ -38,10 +38,10 @@ bun run cues <film> [scene]                    # scene times, {mark} times, name
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium and its H.264 encoder, elevenlabs CLI + login: ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir, DrawThrew, FrameImpure (fails on any); warns SeamLong, AssetMissing, SoundStale, LeadIn, WordPinFar, DurOnWord, Storyboard, KnobRepeated, MasterLoudness, EffectHot, InkOverFace, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir, DrawThrew, FrameImpure (fails on any); warns SeamLong, AssetMissing, SoundStale, LeadIn, WordPinFar, DurOnWord, CueTwin, Storyboard, KnobRepeated, MasterLoudness, EffectHot, InkOverFace, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
-bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace), no browser
+bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace on a face the viewer sees), no browser
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{part,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
@@ -378,11 +378,11 @@ move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 constant. A framing is knobs too: a point and a zoom (and a tilt),
 `face: [800, 610], faceZoom: 1.22`, made a camera in the draw with
 `knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`); the lab gives that pair a reticle. Only the unmoved
-frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
+frame (`UNMOVED` from `@bible/film/canvas`, the canvas itself), a framing derived from another
 constant and one shared across scenes (in a set file) stay code; a framing
-written out in a scene or blended by hand with `lerp` fails `film/framing-is-a-knob`,
+written out in a scene or blended by hand with `lerp` (a camera spread from another, `{ ...cam, zoom: lerp(cam.zoom, 1, t) }`, included) fails `film/framing-is-a-knob`,
 and `film check`'s `KnobRepeated` compares a framing by its point and zoom. A push is a `shotPath` stop
-to a knob camera, `shotPath(REST, [[f.at('plunge'), knobCamera(f.knob('page'),
+to a knob camera, `shotPath(UNMOVED, [[f.at('plunge'), knobCamera(f.knob('page'),
 f.knob('pageZoom')), pushInto]])`, never a zoom eased again by hand
 (`film/no-ease-on-cue`); a held close-up that keeps pushing in is
 `pushOn(cam, f.knob('pushOn'), f.at('hold'))`, its push a number knob. Read a position knob
@@ -617,9 +617,9 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`. A callback, or a shot
-carried over a cut, draws another scene's paper with `f.handsOf(message)` (found by its drawing, so a mistyped scene fails to compile; an id string works too):
+carried over a cut, draws another scene's paper with `f.handsOf(message)` (found by its drawing, so a mistyped scene fails to compile):
 that scene's hands as its own `f.hand` gives them, boiling on this frame's
-tick; a scene the film lacks throws, naming it. It frames what that scene
+tick; a drawing no scene of the film draws throws, naming the scene that asked. It frames what that scene
 framed with its knobs, `f.knobsOf(thesis)('city')` (found by its drawing,
 typed by its knobs, a lab edit to them included), never a copy of the point.
 

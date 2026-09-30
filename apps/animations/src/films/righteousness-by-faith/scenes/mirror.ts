@@ -9,7 +9,6 @@
 // mirror a look.
 
 import {
-  type Camera,
   type Frame,
   type Pt,
   at,
@@ -26,14 +25,12 @@ import {
   glow,
   knobCamera,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { type GestureAt, C, type Person, handOf, person, piece } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
-
-/** The garden's rest: the unmoved frame (the canvas itself, so not a knob). */
-const GARDEN: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** The stains the leaves hide and the mirror shows, in a person's units. */
 const STAINS = [
@@ -110,10 +107,10 @@ const garden = (f: MirrorFrame) => {
     [0, C.peachTop],
     [1, C.peachLow],
   ]);
-  const cam = shotPath(GARDEN, [
+  const cam = shotPath(UNMOVED, [
     [f.at('toSew'), knobCamera(f.knob('sew'), f.knob('sewZoom'))],
     [f.at('toPatch'), knobCamera(f.knob('patch'), f.knob('patchZoom'))],
-    [f.at('wide'), GARDEN],
+    [f.at('wide'), UNMOVED],
   ]);
   const sewing = f.at('toSew') * (1 - f.at('promise'));
   const promise = f.at('promise') * (1 - f.at('sheepish'));

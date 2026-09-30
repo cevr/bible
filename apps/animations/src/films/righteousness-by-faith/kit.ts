@@ -40,7 +40,7 @@ export const C = palette;
 export const F = fonts;
 
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
-export const BUBBLE: Pt[] = [
+const BUBBLE: Pt[] = [
   [-80, -48],
   [80, -48],
   [80, 40],
@@ -53,7 +53,7 @@ export const BUBBLE: Pt[] = [
 // ─── paper pieces ────────────────────────────────────────────────────────────
 
 /** How one piece of this film's paper is made: its role, and whatever it names over the role's. */
-export type PieceOpts = Omit<PieceStyle, 'color' | 'outline'> & { readonly outline?: string };
+type PieceOpts = Omit<PieceStyle, 'color' | 'outline'> & { readonly outline?: string };
 
 /**
  * One piece of the film's paper in `color` (the engine's `piece`): a figure's
@@ -138,7 +138,7 @@ export const heart = (
  * hand gives way as the close-up takes its place, and comes back as the
  * close-up shrinks onto it, so the one hand is never shown twice.
  */
-export interface PersonGesture extends Gesture {
+interface PersonGesture extends Gesture {
   readonly lent?: number;
 }
 
@@ -486,7 +486,7 @@ const BUILD_MIN = 0.6;
 const BUILD_MAX = 1.5;
 
 /** The person's build, each factor held in [BUILD_MIN, BUILD_MAX]. */
-export const buildOf = (p: Person): readonly [number, number] =>
+const buildOf = (p: Person): readonly [number, number] =>
   p.build === undefined
     ? UNBUILT
     : [clamp(p.build[0], BUILD_MIN, BUILD_MAX), clamp(p.build[1], BUILD_MIN, BUILD_MAX)];
@@ -516,7 +516,7 @@ const foldOf = (robe: boolean, sit: number): readonly [dy: number, sx: number, s
  * their build and sit, and the garment's width there as a multiple: so
  * something worn on it (Christ's sash) stays on it.
  */
-export const onGarment = (p: Person, y: number): readonly [sx: number, y: number] => {
+const onGarment = (p: Person, y: number): readonly [sx: number, y: number] => {
   const [bw, bh] = buildOf(p);
   const sit = clamp(p.sit ?? 0);
   if (sit <= 0) return [bw, bh * y];
@@ -609,7 +609,7 @@ const garment = (ctx: CanvasRenderingContext2D, p: Person, sit: number, body: He
  * The reach is a short arm's and a hand's length: about the shoulder to the
  * hip, or a hand's width above the head.
  */
-export const PERSON_HAND = { mitten: 22, line: 2.5, radius: 120 } as const;
+const PERSON_HAND = { mitten: 22, line: 2.5, radius: 120 } as const;
 /** A `HandStyle` rewritten in place, frame to frame. */
 interface ScratchStyle {
   skin: string;
@@ -954,7 +954,7 @@ export interface IconCount {
 /** How much bigger the leading icon grows. */
 export const ICON_LEAD = 0.55;
 /** How far an unlit icon fades while the row counts. */
-export const ICON_DIM = 0.62;
+const ICON_DIM = 0.62;
 const NO_COUNT: IconCount = { lead: [0, 0, 0], dim: 0 };
 
 /**

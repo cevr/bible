@@ -10,7 +10,6 @@
 // from the left, shrugging at the start and open-mouthed at the end.
 
 import {
-  type Camera,
   type Frame,
   type Gesture,
   at,
@@ -29,6 +28,7 @@ import {
   plate,
   knobCamera,
   shotPath,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
 import { C, F, person, piece } from '../kit.ts';
@@ -81,9 +81,6 @@ const knobs = {
   wideZoom: 0.92,
 } as const;
 
-/** The unmoved frame (the canvas itself, so not a knob). */
-const REST: Camera = { x: 960, y: 540, zoom: 1 };
-
 type WordFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 export const word = drawing({
@@ -91,7 +88,7 @@ export const word = drawing({
   knobs,
   draw: (f) => {
     const { ctx, w, h } = f;
-    const cam = shotPath(REST, [
+    const cam = shotPath(UNMOVED, [
       [f.at('lean'), knobCamera(f.knob('lean'), f.knob('leanZoom'))],
       [f.at('wide'), knobCamera(f.knob('wide'), f.knob('wideZoom'))],
     ]);

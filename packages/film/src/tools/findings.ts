@@ -149,6 +149,23 @@ export class KnobRepeated extends Schema.TaggedError<KnobRepeated>()('KnobRepeat
   }
 }
 
+/**
+ * A cue declared twice for the same moment: another cue of its scene has the
+ * same edges on the same anchors (a `with` it at its length is the same) and
+ * the same ease, so the two differ only by name, and a lab drag of one leaves
+ * the other behind. Read the first one where both are read.
+ */
+export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
+  scene: Schema.String,
+  cue: Schema.String,
+  /** The earlier cue it repeats. */
+  twin: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same anchor, offset, length and ease); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
+  }
+}
+
 /** A named cue that ends after its scene does. */
 export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
   scene: Schema.String,
@@ -661,6 +678,7 @@ export type StaticFinding =
   | LeadIn
   | WordPinFar
   | DurOnWord
+  | CueTwin
   | Storyboard
   | KnobRepeated
   | EndShort;
@@ -742,6 +760,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       LeadIn: warning,
       WordPinFar: warning,
       DurOnWord: warning,
+      CueTwin: warning,
       Storyboard: warning,
       KnobRepeated: warning,
       EndShort: warning,
@@ -837,6 +856,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       LeadIn: none,
       WordPinFar: scene,
       DurOnWord: scene,
+      CueTwin: scene,
       Storyboard: scene,
       KnobRepeated: scene,
       EndShort: none,

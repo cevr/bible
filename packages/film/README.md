@@ -55,7 +55,9 @@ tagged errors (`ApiKeyMissing`, `EncoderMissing`, ...) in `tools/errors.ts`,
 and the refusals a page shows in their own words (`TakeMismatch`, ...) in
 `core/refusals.ts`; `film check`'s findings, with their levels and addresses,
 are in `tools/findings.ts`. Logs are `Effect.log` lines `event key=value`.
-`tools/testing.ts` has the in-memory doubles the tool tests use.
+`tools/testing.ts` has the in-memory doubles the tool tests use (the app's
+tests import them as `@bible/film/testing`: `refusingElevenLabs` refuses every
+call).
 
 `film sfx` is the app's sound library (`SoundLibrary`, `tools/library.ts`).
 `make` is its one paid command: it prints each sound's candidates and
@@ -1291,8 +1293,9 @@ the lab runs after each write. `--sound` adds the sound leg, still with no
 browser. `--draw` adds the draw leg instead: `DrawThrew` (a scene that
 throws), `FrameImpure` (a cue start or 60% point that, drawn after the frame
 after it and after the frame before it, leaves different calls), and the
-warning `InkOverFace` (a visible stroke or line of text drawn after a face,
-through `FACE_CORE` of its radius; a kit declares a face with `probeFace`
+warning `InkOverFace` (a visible stroke or line of text drawn after a face the
+viewer sees, `seenFace`: its scene's own, mostly opaque, centred on the frame,
+the one rule `FaceSmall` measures by too; through `FACE_CORE` of its radius; a kit declares a face with `probeFace`
 once its person is drawn, so the person's own features, headwear and hands
 come before it; fills, the caption and a stroke that `marks` a line are not
 read, and a gradient glow is invisible to the probe). With neither, all of them run. Every finding comes back in one
@@ -1497,7 +1500,7 @@ cue already are. A span that `ends: true` ends at its anchor and starts its
 `dur` before it. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
-`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. It warns `DurOnWord` (`durOnWords`) where a `dur` of `DUR_MIN` (1 s) or more puts its hand-sized edge (its end, or with `ends` its start) within `DUR_ON_WORD` (80 ms) of a phrase edge of its take (a word heard after, or before, a pause of `PHRASE_GAP` or more, or the take's first or last word): a length sized to this take. It is a report only; the fix is `until` a mark or a word pin. A line that never says it
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. It warns `DurOnWord` (`durOnWords`) where a `dur` of `DUR_MIN` (1 s) or more puts its hand-sized edge (its end, or with `ends` its start) within `DUR_ON_WORD` (80 ms) of a phrase edge of its take (a word heard after, or before, a pause of `PHRASE_GAP` or more, or the take's first or last word): a length sized to this take. It is a report only; the fix is `until` a mark or a word pin. It warns `CueTwin` (`cueTwins`) where a scene declares one moment twice: two cues with the same edges on the same anchors (each `with` and `after` followed to the mark or landmark under it, so `{ with: 'dark', dur: 0.9 }` at `dark`'s length and ease is `dark`) and the same ease, stagger and silence; read the first where both are read. A line that never says it
 there fails the layout with `WordMissing` (`core/errors.ts`), which the tools'
 `placeFilm` fails with as itself (`PlaceError = LayoutError`),
 so `film check` and every tool refuse the film by name; there is no fall back
@@ -1538,9 +1541,10 @@ which the lab can reach.
 `film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
 files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
 blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,
-ARK_IN, …)`): a framing is knobs read with `knobCamera`, a move a
+ARK_IN, …)`, a camera spread from another with a field blended over it,
+`{ ...cam, zoom: lerp(cam.zoom, 1, roof) }`): a framing is knobs read with `knobCamera`, a move a
 `shotPath` of them, a held push `pushOn` with a number knob. The unmoved
-frame and a framing derived from the scene's geometry (a point that is not
+frame (`UNMOVED`, `canvas/camera.ts`, whose numbers the rule reads) and a framing derived from the scene's geometry (a point that is not
 two numbers) pass; one shared across scenes lives in a set file.
 `film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
 over all of `packages/film` and `apps/animations`: a variadic logger
@@ -1598,7 +1602,7 @@ fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
 tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, and `canvas` no `player`, `tools` or `lab`.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
-frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)` (or its id). Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
+frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
 bun run gate   # repo root, as CI: lint, format check, the repo guards, every package's typecheck, build and tests, then the perf tests

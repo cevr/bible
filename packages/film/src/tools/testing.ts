@@ -57,7 +57,7 @@ import {
   MediaFailed,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { FreshProcessFailed } from '../core/refusals.ts';
+import { ElevenLabsFailed, FreshProcessFailed } from '../core/refusals.ts';
 import { cueOf } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';
@@ -398,6 +398,23 @@ export const heardAt = (said: string) =>
     .split(/\s+/)
     .filter((w) => w.length > 0)
     .map((w, i) => ({ text: w, start: i * 0.5, end: i * 0.5 + 0.4, type: 'word' }));
+
+/** ElevenLabs that refuses every call, paid or not: for a test in which nothing may reach the API. */
+export const refusingElevenLabs = Layer.succeed(
+  ElevenLabs,
+  ElevenLabs.of({
+    tts: () => Effect.fail(ElevenLabsFailed.make({ op: 'tts', exitCode: -1, reason: 'refused' })),
+    dialogue: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'dialogue', exitCode: -1, reason: 'refused' })),
+    stt: () => Effect.fail(ElevenLabsFailed.make({ op: 'stt', exitCode: -1, reason: 'refused' })),
+    composeMusic: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'music', exitCode: -1, reason: 'refused' })),
+    soundEffect: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'sfx', exitCode: -1, reason: 'refused' })),
+    ready: Effect.void,
+    apiKey: Effect.succeed(Redacted.make('never used')),
+  }),
+);
 
 /**
  * Speech comes back aligned one character per 0.05 s, and its "audio" is the

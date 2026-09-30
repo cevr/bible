@@ -14,8 +14,9 @@
 //             (tools/draw-check.ts), which draws every scene into it
 //   core      films, their kits, the app's sound library and tests: the
 //             clock, the script and sound schemas, the mix plan
-// `tools`, `lab` and `review` are not guarded here: the tooling entries are
-// read by the CLI, and the framework reads each core module by its path.
+// `tools`, `lab`, `review` and `testing` (the tools' test doubles) are not
+// guarded here: the tooling entries are read by the CLI and the tests, and
+// the framework reads each core module by its path.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

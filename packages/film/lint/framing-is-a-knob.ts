@@ -11,7 +11,9 @@
 // 1. a camera-shaped object literal (plain `x`, `y` and `zoom` keys) whose
 //    point is written out, `x` and `y` both numbers (written, or module
 //    consts holding one), other than the unmoved frame (960, 540, zoom 1);
-// 2. such a literal with any of `x`, `y` or `zoom` blended by hand,
+// 2. such a literal, or one spread from another camera that writes any of
+//    `x`, `y` or `zoom` over it (`{ ...cam, zoom: lerp(cam.zoom, 1, roof) }`),
+//    with any of them blended by hand,
 //    `lerp(a, b, …)` whose `a` or `b` is a number (the unmoved frame's
 //    included: a blend from it is a `shotPath` from `REST`) or an element of
 //    a module const's number tuple (`JUDGED_ZOOM[0]`);
@@ -30,17 +32,22 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
+import { UNMOVED } from '../src/canvas/camera.ts';
 import { declared, memberName, numberOf, programOf, property } from './nodes.ts';
 
-/** The unmoved frame: the canvas itself. */
-const UNMOVED: Readonly<Record<'x' | 'y' | 'zoom', number>> = { x: 960, y: 540, zoom: 1 };
+/** The unmoved frame's `x`, `y` and `zoom`: the engine's `UNMOVED`, the canvas itself. */
+const UNMOVED_AT: Readonly<Record<'x' | 'y' | 'zoom', number>> = {
+  x: UNMOVED.x,
+  y: UNMOVED.y,
+  zoom: UNMOVED.zoom ?? 1,
+};
 
 const KEYS = ['x', 'y', 'zoom'] as const;
 type Key = (typeof KEYS)[number];
 
 /** A number written out or a module const naming one, other than the unmoved frame's `key`. */
 const handWritten = (n: ESTree.Node, key: Key): boolean =>
-  Option.exists(numberOf(n), (v) => v !== UNMOVED[key]);
+  Option.exists(numberOf(n), (v) => v !== UNMOVED_AT[key]);
 
 /** A declarator's initializer, without its `as const`. */
 const initOf = (d: ESTree.VariableDeclarator): Option.Option<ESTree.Node> =>
@@ -109,9 +116,35 @@ const handFraming = (fields: ReadonlyArray<readonly [Key, ESTree.Node]>): boolea
   return written && fields.some(([key, value]) => handWritten(value, key));
 };
 
-/** The fields of a camera-shaped literal, when it is one. */
-const cameraFields = (n: ESTree.ObjectExpression) =>
-  Option.all(KEYS.map((key) => Option.map(property(n, key), (p) => [key, p.value] as const)));
+/** A camera-shaped literal's fields, and whether it writes all three (a spread may carry the rest). */
+interface CameraFields {
+  readonly fields: ReadonlyArray<readonly [Key, ESTree.Node]>;
+  readonly whole: boolean;
+}
+
+/**
+ * The fields of a camera-shaped literal, when it is one: `x`, `y` and `zoom`
+ * all written, or a spread of another camera with any of them written over it
+ * (`{ ...cam, y: cam.y - 60 * roof }`).
+ */
+const cameraFields = (n: ESTree.ObjectExpression): Option.Option<CameraFields> => {
+  const fields = KEYS.flatMap((key) =>
+    Option.toArray(Option.map(property(n, key), (p) => [key, p.value] as const)),
+  );
+  const whole = fields.length === KEYS.length;
+  const spread = n.properties.some((p) => p.type === 'SpreadElement');
+  return Option.liftPredicate({ fields, whole }, () => whole || (spread && fields.length > 0));
+};
+
+/**
+ * Whether a camera literal is a hand framing: all three written, a point
+ * written out or a blend by hand; spread from another camera, a blend by hand
+ * of what it writes over it (its point is the other camera's, so derived).
+ */
+const handCamera = ({ fields, whole }: CameraFields): boolean => {
+  if (whole) return handFraming(fields);
+  return fields.some(([, value]) => handBlend(value));
+};
 
 /** `cam.zoom = lerp(…, 2.75, …)`: a scratch camera's zoom blended by hand. */
 const zoomBlend = (n: ESTree.AssignmentExpression): boolean =>
@@ -137,8 +170,8 @@ export const framingIsAKnob = Rule.define({
       Visitor.on('ObjectExpression', (node) =>
         Option.match(cameraFields(node), {
           onNone: () => Effect.void,
-          onSome: (fields) =>
-            Effect.asVoid(Effect.when(report(node), Effect.succeed(handFraming(fields)))),
+          onSome: (camera) =>
+            Effect.asVoid(Effect.when(report(node), Effect.succeed(handCamera(camera)))),
         }),
       ),
       Visitor.on('AssignmentExpression', (node) =>

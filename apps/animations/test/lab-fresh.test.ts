@@ -9,8 +9,6 @@ import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { LabWrite, StudioBeats } from '@bible/film/core';
 import {
   ContentStore,
-  ElevenLabs,
-  ElevenLabsFailed,
   FilmRepo,
   FreshFilm,
   Media,
@@ -23,36 +21,10 @@ import {
   Takes,
   labHandler,
 } from '@bible/film/tools';
+import { refusingElevenLabs } from '@bible/film/testing';
 import { describe, expect, it } from 'effect-bun-test';
-import {
-  ConfigProvider,
-  Context,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Redacted,
-  Schema,
-} from 'effect';
+import { ConfigProvider, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { spawnBudget } from './cli-run.ts';
-
-/** ElevenLabs that refuses everything: nothing here may reach a paid API. */
-const refusing = Layer.succeed(
-  ElevenLabs,
-  ElevenLabs.of({
-    tts: () => Effect.fail(ElevenLabsFailed.make({ op: 'tts', exitCode: -1, reason: 'no' })),
-    dialogue: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'dialogue', exitCode: -1, reason: 'no' })),
-    stt: () => Effect.fail(ElevenLabsFailed.make({ op: 'stt', exitCode: -1, reason: 'no' })),
-    composeMusic: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'music', exitCode: -1, reason: 'no' })),
-    soundEffect: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'sfx', exitCode: -1, reason: 'no' })),
-    ready: Effect.void,
-    apiKey: Effect.succeed(Redacted.make('never used')),
-  }),
-);
 
 /** Where one test's copy of the films lives. */
 class Copy extends Context.Service<Copy, string>()('test/LabCopy') {}
@@ -99,7 +71,7 @@ const fixture = Layer.unwrap(
     const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(
       Layer.provide([Store, Platform, Outputs]),
     );
-    const Tools = Layer.mergeAll(refusing, Media.layer).pipe(Layer.provide(Platform));
+    const Tools = Layer.mergeAll(refusingElevenLabs, Media.layer).pipe(Layer.provide(Platform));
     const Fresh = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
     const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
       Layer.provideMerge(SourceWriter.layer),

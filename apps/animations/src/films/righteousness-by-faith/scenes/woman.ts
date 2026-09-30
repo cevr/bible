@@ -76,8 +76,8 @@ const timeline = {
   oneLit: { mark: 'one', dur: 0.55, ease: 'outBack' },
   oneHold: { mark: 'one', until: 'two', ease: 'linear' },
   twoLit: { mark: 'two', dur: 0.55, ease: 'outBack' },
+  // Held from two to three: the push onto his face, and his talking as he speaks.
   twoHold: { mark: 'two', until: 'three', ease: 'linear' },
-  twoSpeaks: { mark: 'two', until: 'three', ease: 'linear' },
   threeLit: { mark: 'three', dur: 0.55, ease: 'outBack' },
   threeWalk: { mark: 'three', until: 'order', ease: 'inQuad' },
   // The echo of each gift in the picture: a light behind her face as she calls him Lord, her heart lit as she goes.
@@ -248,7 +248,7 @@ const replay = (f: WomanFrame) => {
   } else if (t < f.mark('three')) {
     // Two: his face as he speaks, his hand turned toward her.
     COURT.sends = 1;
-    COURT.speak = 0.4 * talking(f.at('twoSpeaks')) * Math.abs(Math.sin(t * 8));
+    COURT.speak = 0.4 * talking(f.at('twoHold')) * Math.abs(Math.sin(t * 8));
     COURT.cam = pushOn(
       knobCamera(f.knob('hisFace'), f.knob('hisFaceZoom')),
       f.knob('pushOn'),

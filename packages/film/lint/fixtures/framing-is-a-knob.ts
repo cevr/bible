@@ -29,6 +29,13 @@ export const scene = drawing({
       { x: lerp(960, 1060, lean), y: 540, zoom: 1 }, // RED film/framing-is-a-knob
       { x, y, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], lean) }, // RED film/framing-is-a-knob
       { x, y, zoom: f.knob('faceZoom') * lerp(1, 1.12, f.at('hold')) }, // RED film/framing-is-a-knob
+      { ...REST, y: REST.y - 60 * lean, zoom: lerp(REST.zoom ?? 1, 1, lean) }, // RED film/framing-is-a-knob
+      {
+        ...REST,
+        y: REST.y - f.knob('pushOn') * lean,
+        zoom: lerp(REST.zoom ?? 1, f.knob('faceZoom'), lean),
+      },
+      { ...REST, rot: 0.1 },
       shotPath(REST, [[lean, knobCamera(f.knob('face'), f.knob('faceZoom'))]]),
       pushOn(knobCamera(f.knob('face'), f.knob('faceZoom')), f.knob('pushOn'), f.at('hold')),
       FACE,

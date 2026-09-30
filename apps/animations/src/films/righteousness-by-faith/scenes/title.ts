@@ -4,7 +4,6 @@
 // part in depth. `word` opens on a match cut from the name (`NAME`).
 
 import {
-  type Camera,
   at,
   drawing,
   knobCamera,
@@ -13,6 +12,7 @@ import {
   write,
   glow,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { ROOF, cityBack, cityFront } from '../city.ts';
@@ -34,9 +34,6 @@ export const NAME = {
   y: 415,
   style: { family: F.display, size: 132, weight: 700, color: C.cream, align: 'center' },
 } as const;
-
-/** The unmoved frame (the canvas itself, so not a knob): where the tilt comes to rest. */
-const REST: Camera = { x: 960, y: 540, zoom: 1 };
 
 export const title = drawing({
   timeline: {
@@ -62,7 +59,7 @@ export const title = drawing({
     ]);
     glow(ctx, 960, 380, 750, C.glow, 0.55);
 
-    const tilt = shotPath(knobCamera(f.knob('low'), f.knob('lowZoom')), [[f.at('tilt'), REST]]);
+    const tilt = shotPath(knobCamera(f.knob('low'), f.knob('lowZoom')), [[f.at('tilt'), UNMOVED]]);
     multiplane(ctx, tilt, w, h, [
       {
         z: 1.6,

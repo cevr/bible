@@ -120,10 +120,11 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * Another scene's hands, as its own `f.hand` gives them there, boiling on
    * this frame's tick: a callback or a shot carried over a cut draws that
    * scene's paper torn as it was, not a new sheet. The scene is found by its
-   * drawing, as `f.knobsOf` finds it (`f.handsOf(thesis)`), or by its id.
-   * Throws, naming it, for a scene the film lacks.
+   * drawing, as `f.knobsOf` finds it (`f.handsOf(thesis)`), so a mistyped
+   * scene fails to compile. Throws, naming it, for a drawing no scene of the
+   * film draws, or that more than one does.
    */
-  handsOf(scene: string | KnobsOwner<Knobs>): (key: string | number) => Hand;
+  handsOf(of: KnobsOwner<Knobs>): (key: string | number) => Hand;
   /**
    * Another scene's knobs, as that scene reads them on this frame (a lab
    * edit to them included), found by its drawing: a callback that frames
@@ -627,9 +628,17 @@ export const createFilm = (spec: FilmSpec): Film => {
     return p;
   };
 
+  /** The scenes each drawing draws, gathered once: what `f.knobsOf` and `f.handsOf` look a drawing up in. */
+  const drawnScenes = new Map<(f: never) => void, Array<Placed<SceneSpec>>>();
+  for (const q of placed) {
+    const same = drawnScenes.get(q.spec.draw);
+    if (same === undefined) drawnScenes.set(q.spec.draw, [q]);
+    else same.push(q);
+  }
+
   /** The one scene `draw` draws, for `f.knobsOf` and `f.handsOf`; `by` names the scene that asked. */
   const drawnBy = (draw: (f: never) => void, by: string) => {
-    const found = placed.filter((q) => q.spec.draw === draw);
+    const found = drawnScenes.get(draw) ?? [];
     const one = found[0];
     if (one === undefined || found.length > 1)
       throw new Error(
@@ -637,9 +646,6 @@ export const createFilm = (spec: FilmSpec): Film => {
       );
     return one;
   };
-
-  /** Every scene's id, for `f.handsOf`. */
-  const ids = new Set(placed.map((p) => p.spec.id));
 
   const edit = (scene: string, e: SceneEdit): Result.Result<ShownEdit, EditError> =>
     Result.flatMap(sceneOf(placed, scene), (p) =>
@@ -730,10 +736,8 @@ export const createFilm = (spec: FilmSpec): Film => {
         return k;
       },
       hand: (key) => sceneHand(p.spec.id, key, boil),
-      handsOf: (scene) => {
-        const id = Predicate.isString(scene) ? scene : drawnBy(scene.draw, p.spec.id).spec.id;
-        if (!ids.has(id))
-          throw new Error(`scene ${p.spec.id}: film has no scene "${id}" to take hands from`);
+      handsOf: (of) => {
+        const id = drawnBy(of.draw, p.spec.id).spec.id;
         return (key) => sceneHand(id, key, boil);
       },
       knobsOf: <K extends Knobs>(of: KnobsOwner<K>) => {

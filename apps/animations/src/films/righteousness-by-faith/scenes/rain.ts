@@ -8,7 +8,6 @@
 // flies across again, and figures on the rooftops turn to look and wave.
 
 import {
-  type Camera,
   type Pt,
   at,
   drawing,
@@ -21,14 +20,12 @@ import {
   glow,
   sky,
   mix,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { type Key, keys, lerp, rng } from '@bible/film/core';
 import { type GestureAt, C, person, piece } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
-
-/** The unmoved frame (the canvas itself, so not a knob). */
-const REST: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** Where the sanctuary floats, on the far plane. */
 const SANCTUARY: Pt = [960, -110];
@@ -111,7 +108,7 @@ export const rain = drawing({
     const hand = (k: string) => f.hand(k);
     const up = f.at('tiltUp') * (1 - f.at('down'));
     const down = f.at('down');
-    const cam = shotPath(REST, [
+    const cam = shotPath(UNMOVED, [
       [up, knobCamera(f.knob('up'), f.knob('upZoom'))],
       [down, knobCamera(f.knob('city'), f.knob('cityZoom'))],
     ]);
@@ -210,7 +207,7 @@ export const rain = drawing({
             }),
         },
       ],
-      { rest: [REST.x, REST.y], haze: C.tealLow, thickness: 0.35 },
+      { rest: [UNMOVED.x, UNMOVED.y], haze: C.tealLow, thickness: 0.35 },
     );
 
     // The rain, silver and gold, over everything near. Texture, not ink the
