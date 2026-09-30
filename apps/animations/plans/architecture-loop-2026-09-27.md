@@ -349,6 +349,22 @@ Owner questions: FL5 (`lead: 0.4` ×11 would re-key the paid score), R11, PF5-2 
 | B    | p6-core   | movements through stretchesOf, a film that won't lay out reports its address, findings addressed by Address, `check --draw`  | merged ac3c8342: movements through `stretchesOf`, one point-id codec (core/point.ts), findings addressed by `Address` and a film that won't lay out is a finding, `planOf` failure a value, export-handle wire beside it (`Asset` gone), `Hex` colours, branded `Heard` seconds (cues identical), DurOnWord warning (RBF 19), `film check --draw` = draw + purity + InkOverFace (RBF 10 scenes, for the owner), core names its 53 exports under the guard, `withdraw`/`said` in core, render variants carry `staleBy`; one say route rejected (act/film say cascades need Stamps) |
 | B    | p6-page   | the project page updates in place, withdraw an approval, clips from this checkout's record, a layer's card once, one card    | merged 5e85cc4b: the project page updates in place (a half-typed comment and a playing clip survive), a comment = 0 fresh processes (was 4), a pick 1 check (was 2), Approve/Withdraw/Comment one `Say` (+ `film project withdraw`), Undo names its step, clips from this checkout's catalogue record with `stale:sound` words, a layer's card once where it belongs (page 34,000 → 13,557 px), `approveAll` gone, review derived files via `writeWhole`, a lab cue write judged fresh (422 → 200 on a renamed mark), 30 lab exports private; screenshots SP/montages/p6-page     |
 
+## Pass 7 (2026-09-30)
+
+- Baseline: main f922c2d4. Six sweeps (core, engine, tools, lab, films, guardrails), reports in `SP/film-pass7/`.
+- Findings: 1 P1 (CI's apt installs of ffmpeg and Chromium's libraries hang: run 36769762208 on b137fad9 cancelled after 1016 s in "Install ffmpeg"), 13 P2, the rest P3. Engine: only polish. Not closed.
+- Owner direction: media work uses mediabunny only; the ffmpeg CLI goes (its four uses: sound re-mux, review stills, phone copy, software share copy).
+- CI on pass 6's pushed commits: every merge and ledger commit success, except b137fad9 (p6-ci) cancelled by the ffmpeg install hang.
+- Triage: `SP/film-pass7/triage.md`.
+
+| Wave | Batch    | Items                                                                                                                             | Result |
+| ---- | -------- | --------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| A    | p7-media | ffmpeg → mediabunny (re-mux, stills, phone copy, share copy), every render output written whole, excerpts never the film's render |        |
+| A    | p7-core  | `--scene a,c` never draws b, studio reading declared once, the review stamp covers the sound library, Stamps reads once           |        |
+| A    | p7-guard | CI installs never hang, the loop records CI, one settled-read module + lint, spawn budgets enforced, doc names checked            |        |
+| A    | p7-page  | the set page shows a stale render, a failed say keeps the comment, act/film Withdraw                                              |        |
+| A    | p7-films | InkOverFace only for faces in frame, CueTwin, framing lint sees spread cameras, one unmoved camera                                |        |
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
