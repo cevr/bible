@@ -7,15 +7,13 @@
 // so a score that swells where the voice rests is not turned down for it.
 // Pure: the mix builds the envelope from its voice bus.
 
-import { type Pcm, concat, slice } from './audio.ts';
+import { type Pcm, SPEECH_GATE, concat, slice, windowPowers } from './audio.ts';
 import { loudness } from './synth/loudness.ts';
 import type { Interval } from './time.ts';
 
 export const SCORE = {
-  /** The voice is read in windows this long (seconds)… */
+  /** The voice is read in windows this long (seconds); one under `SPEECH_GATE` is no one speaking. */
   window: 0.1,
-  /** …and a window quieter than this (dBFS, sides summed) is no one speaking. */
-  gate: -50,
   /** A pause at least this long (seconds) lets the score play alone. */
   alone: 3,
   /** The score waits this long after the voice stops before it rises, and is down this long before it speaks. */
@@ -25,20 +23,17 @@ export const SCORE = {
 } as const;
 
 /**
- * Where the voice speaks: each run of windows over the gate, in film seconds
- * (the last window may end past the voice's end; it is cut there).
+ * Where the voice speaks: each run of windows over `SPEECH_GATE`, in film
+ * seconds (the last window may be short; a span in it ends at the voice's end).
  */
 export const speechSpans = (voice: Pcm): ReadonlyArray<Interval> => {
   const size = Math.max(1, Math.round(SCORE.window * voice.rate));
   const end = voice.frames / voice.rate;
+  const levels = windowPowers(voice, size);
   const spans: Array<Interval> = [];
   let open = -1;
-  for (let w = 0; w * size < voice.frames; w++) {
-    let power = 0;
-    const last = Math.min(voice.frames, (w + 1) * size);
-    for (const plane of voice.channels)
-      for (let i = w * size; i < last; i++) power += (plane[i] ?? 0) ** 2;
-    const speaking = 10 * Math.log10(power / size) > SCORE.gate;
+  for (const [w, level] of levels.entries()) {
+    const speaking = level > SPEECH_GATE;
     if (speaking && open < 0) open = w;
     if (!speaking && open >= 0) {
       spans.push({ from: (open * size) / voice.rate, to: (w * size) / voice.rate });

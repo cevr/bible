@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, Exit, Layer, Option, Result } from 'effect';
+import { type Address, resolveAddress } from '../core/address.ts';
 import { layout } from '../core/layout.ts';
 import type { Short, Timed } from '../core/schema.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
@@ -36,9 +37,20 @@ const samples = layoutSamples(Result.getOrThrow(layout(scenes, film.timings)), t
 const setup = (host: FakeRenderHost = {}, checked: LoadedFilm = film) => {
   const ledger = emptyLedger();
   const layer = Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)));
-  const check = (only: Option.Option<ReadonlySet<string>> = Option.none()) =>
+  const check = (address: Address = { _tag: 'Film' }) =>
     Effect.gen(function* () {
-      return yield* (yield* Checker).layout(checked, { workers: 2, scenes: only });
+      const scope = Result.getOrThrow(
+        resolveAddress(
+          {
+            name: checked.paths.name,
+            placed: Result.getOrThrow(layout(checked.scenes, checked.timings)),
+            look: Option.none(),
+            shorts: [],
+          },
+          address,
+        ),
+      );
+      return yield* (yield* Checker).layout(checked, { workers: 2, scope });
     }).pipe(Effect.provide(layer));
   return { ledger, check };
 };
@@ -75,7 +87,7 @@ describe('Checker', () => {
   it.live('--scene probes only those scenes', () =>
     Effect.gen(function* () {
       const { ledger, check } = setup();
-      yield* check(Option.some(new Set(['b'])));
+      yield* check({ _tag: 'Scenes', ids: ['b'] });
       expect(ledger.frames).toEqual(samples.filter((s) => s.scene === 'b').map((s) => s.frame));
     }),
   );

@@ -1,9 +1,11 @@
 // `film check --static` for the lab, after each write to a scene file. It runs
 // the film CLI again in a fresh process: this process imported the film's
 // modules once, at start, so only a new process reads the scene files as the
-// write left them. The static leg is cheap (no browser; about a quarter
-// second). It runs with `--json`, so each line it prints is one finding,
-// encoded by `CheckLineJson` and decoded here by the same schema.
+// write left them. The static leg reads files only: no mix and no browser
+// (`staticLeg` needs FileSystem and Media, not Mixer). On righteousness-by-faith
+// it takes about 2 s of CPU and at most 0.3 GB. It runs with `--json`, so each
+// line it prints is one finding (with its address), encoded by `CheckLineJson`
+// and decoded here by the same schema.
 
 import { Context, Duration, Effect, Layer, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
@@ -17,8 +19,8 @@ export interface StaticCheckService {
 }
 
 /**
- * The longest one check may take. It runs in about a quarter second; a lab
- * request waits on it, so one that hangs is stopped and reported.
+ * The longest one check may take. It runs in a few seconds; a lab request
+ * waits on it, so one that hangs is stopped and reported.
  */
 export const CHECK_LIMIT = Duration.seconds(30);
 

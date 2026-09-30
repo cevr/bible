@@ -46,6 +46,31 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
+    'an unknown film fails with its message, and no stack',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('check', 'nofilm', '--static');
+        expect(run.exitCode).not.toBe(0);
+        expect(run.out).toContain('FilmNotFound: no film "nofilm"');
+        expect(run.out).not.toContain('    at ');
+      }),
+    spawnBudget(1),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'render with an unknown act fails with its message, and no stack, before a browser opens',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('render', film, '--act', 'nope');
+        expect(run.exitCode).not.toBe(0);
+        expect(run.out).toContain('UnknownAct: the film has no act "nope"');
+        expect(run.out).not.toContain('    at ');
+        expect(run.out).not.toContain('render.still');
+      }),
+    spawnBudget(1),
+  );
+
+  it.effect.layer(BunServices.layer)(
     'cues with a misspelt scene fails',
     () =>
       Effect.gen(function* () {

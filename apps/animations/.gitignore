@@ -3,6 +3,8 @@ out/
 # The mixed track (16-bit WAV) — rebuilt from the committed takes, score and
 # effects by `bun run mix`. The player streams it; the renderer encodes from it.
 src/films/*/narration/full.wav
+# What the track was mixed from (`mixKey`), written beside it by the same mix.
+src/films/*/narration/full.json
 # Writes in flight: a file lands as `<file>.partial` (takes, timings, sound) or
 # `full.partial.wav` (the mix) and is renamed only once whole. A crash can
 # leave one; `narrate` removes them, with any take the timings no longer name.

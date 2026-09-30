@@ -61,10 +61,11 @@ import {
   requestKey,
 } from '../core/sfx.ts';
 import { type ScoreOptionState, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { type ChoicesProcessFailed, FreshFilm } from './choices-process.ts';
+import { FreshFilm } from './choices-process.ts';
 import { cacheKey } from './digest.ts';
 import {
   ChoiceUnknown,
+  type ChoicesProcessFailed,
   type FormatFailed,
   type ReviewToolFailed,
   type SourceRefused,

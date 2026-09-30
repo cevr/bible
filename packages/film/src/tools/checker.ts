@@ -6,6 +6,8 @@
 // in a render.
 
 import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
+import type { Scope } from '../core/address.ts';
+import type { Interval } from '../core/time.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { ShortError } from '../core/errors.ts';
 import type { Probed, Short } from '../core/schema.ts';
@@ -20,7 +22,6 @@ import {
 } from '../core/shorts.ts';
 import { Browser, type FramePage, type LumaArea, type PageOpenError } from './browser.ts';
 import {
-  type ShortFinding,
   loopPicture,
   lumaDiff,
   mergeUnsafe,
@@ -34,7 +35,6 @@ import {
 import {
   HOLD,
   type HoldCandidate,
-  type LayoutFinding,
   type Sample,
   frameFindings,
   heldStill,
@@ -46,7 +46,8 @@ import {
   layoutSamples,
   mergeFindings,
 } from './check.ts';
-import { type FrameFailed, type PageCrashed, type PageError, StaticHold } from './errors.ts';
+import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
+import { type LayoutFinding, type ShortFinding, StaticHold } from './findings.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
 
@@ -55,16 +56,9 @@ export type LayoutCheckError = PageOpenError | PageError | PageCrashed | FrameFa
 export interface LayoutCheckOptions {
   /** Pages probing at once. */
   readonly workers: number;
-  /** Only these scenes. */
-  readonly scenes: Option.Option<ReadonlySet<string>>;
+  /** The part of the film probed (`resolveAddress`): every scene for the whole film. */
+  readonly scope: Scope;
 }
-
-/** Whether the check probes `scene`: every scene, or only those `--scene` names. */
-const chosen = (options: LayoutCheckOptions, scene: string) =>
-  Option.match(options.scenes, {
-    onNone: () => true,
-    onSome: (ids) => ids.has(scene),
-  });
 
 type ProbeFrame = (
   i: number,
@@ -133,7 +127,7 @@ const confirmHold = (
     const grid = holdGrid(ticks);
     // The grid first, as many at once as there are pages.
     yield* Effect.forEach(grid, probeAt, { concurrency: workers, discard: true });
-    let longest: readonly [number, number] = [hold.from, hold.from];
+    let longest: Interval = { from: hold.from, to: hold.from };
     let reached = -1;
     for (const [tick, next] of Arr.zip(grid, grid.slice(1))) {
       // A grid tick inside the run found last would only find it again.
@@ -145,9 +139,9 @@ const confirmHold = (
       const lo = yield* reach(probeAt, workers, anchor, tick, ticks.slice(0, at).reverse());
       const run = stillSpan(hold, ticks, lo, hi, fps);
       reached = hi;
-      if (run[1] - run[0] > longest[1] - longest[0]) longest = run;
+      if (run.to - run.from > longest.to - longest.from) longest = run;
     }
-    const [from, to] = longest;
+    const { from, to } = longest;
     if (to - from <= HOLD + 1e-9) return { holds: [], frames: seen.size };
     return {
       holds: [StaticHold.make({ scene: hold.scene, from, to, max: HOLD })],
@@ -212,7 +206,8 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             const workers = Math.max(1, options.workers);
             const pool = yield* Pool.make({ acquire: browser.open(url), size: workers });
             const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
-            const samples = layoutSamples(placed, info.fps).filter((s) => chosen(options, s.scene));
+            const chosen = new Set(options.scope.scenes.map((p) => p.spec.id));
+            const samples = layoutSamples(placed, info.fps).filter((s) => chosen.has(s.scene));
             const probe = (sample: Sample) =>
               Effect.scoped(
                 Effect.gen(function* () {
@@ -230,7 +225,7 @@ export class Checker extends Context.Service<Checker, CheckerService>()(
             yield* Effect.log(
               `check.layout film=${film.paths.name} frames=${samples.length} findings=${findings.length}`,
             );
-            const candidates = holdCandidates(placed).filter((c) => chosen(options, c.scene));
+            const candidates = holdCandidates(placed).filter((c) => chosen.has(c.scene));
             const probed = yield* Effect.forEach(
               candidates,
               (hold) => confirmHold(pool, workers, info.fps, hold),

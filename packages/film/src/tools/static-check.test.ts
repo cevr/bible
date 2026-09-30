@@ -16,12 +16,13 @@ const error = {
   level: 'error',
   tag: 'CueLate',
   message: 'scene "hand": cue "topple" ends at 12.40s, after the scene (12.10s)',
+  address: { scene: 'hand' },
 } as const;
 
 const encode = Schema.encodeSync(CheckLineJson);
 
 describe('static check lines', () => {
-  it.effect('each line is one finding, as the CLI encodes it', () =>
+  it.effect('each line is one finding, as the CLI encodes it, its address when it has one', () =>
     Effect.gen(function* () {
       const out = [encode(warning), encode(error), ''].join('\n');
       expect(yield* checkLines(out)).toEqual([warning, error]);

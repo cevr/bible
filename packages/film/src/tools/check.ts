@@ -1,26 +1,34 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
-// of order, stale takes and sounds, an audio master missing or not as long as
-// the film, a line handed to a voice the cast lacks) and the layout findings in what a probed frame reports: text over
-// text, text off the frame, brush strokes across text, and a plate carrying
-// text cut off by the frame; and static holds, where the voice speaks over a
-// picture that does not move. Every finding is collected; none stops the others.
+// of order, stale takes and sounds, an audio master missing, not as long as
+// the film or mixed for another plan, a line handed to a voice the cast lacks);
+// what the mix the film makes now fails (dead air, the balance); the layout
+// findings in what a probed frame reports: text over text, text off the
+// frame, brush strokes across text, and a plate carrying text cut off by the
+// frame; and static holds, where the voice speaks over a picture that does not
+// move. Every finding is collected; none stops the others. The findings, their
+// levels and addresses are in findings.ts; the legs that run these in film-check.ts.
 
 import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
-import type { Pcm } from '../core/audio.ts';
-import { BALANCE, hotEffects, voiceLevel } from '../core/balance.ts';
+import { type Pcm, windowPowers } from '../core/audio.ts';
+import { BALANCE, hotEffects } from '../core/balance.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { Placed } from '../core/layout.ts';
-import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
+import {
+  DEFAULT_TAIL,
+  MIN_LEAD,
+  everyTakeRecorded,
+  sceneAt,
+  transitionDur,
+} from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
   lastVoiced,
   linesOf,
-  parse,
   takeScript,
   takeState,
   voiceKey,
@@ -34,7 +42,6 @@ import type {
   Sound,
   SoundManifest,
   TextBox,
-  Timed,
 } from '../core/schema.ts';
 import {
   type LibraryEntry,
@@ -43,98 +50,45 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
+import { cueTime, filmEnd, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import type { Interval } from '../core/time.ts';
+import type {
+  MovementLength,
+  SoundUseMismatch,
+  UnknownScene,
+  UnknownSound,
+  UnknownVoice,
+} from '../core/errors.ts';
+import { type AudioMissing, type AudioStale, SoundStale, SoundUnmade } from './errors.ts';
 import {
-  cueTime,
-  filmEnd,
-  musicKey,
-  movementSpans,
-  musicPlan,
-  scoreOptions,
-} from '../core/sound.ts';
-import {
-  type MovementLength,
-  type HandFar,
-  type HandHidden,
-  type HandJump,
   AssetMissing,
   AssetStale,
-  type AudioMissing,
-  type AudioStale,
   CueLate,
   DeadAir,
   EffectHot,
   EndShort,
-  MasterLoudness,
-  VoiceLevel,
-  type ColourScript,
-  type CueInvalid,
-  type FaceSmall,
-  type HeldShare,
+  type FrameFinding,
   InkOverText,
+  MasterLoudness,
+  type MixFinding,
   PlateOffFrame,
+  type Reported as Levelled,
   SeamLong,
-  SoundStale,
-  SoundUnmade,
-  type SoundUseMismatch,
-  type StaticHold,
+  type StaticFinding,
   TakeStale,
   TextOffFrame,
   TextOffPlate,
   TextOverlap,
-  type UnknownCue,
-  type UnknownMark,
-  type UnknownScene,
-  type UnknownSound,
-  type UnknownVoice,
-  type WordMissing,
   WordPinFar,
-} from './errors.ts';
+} from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { masterFile, masterFinding } from './mixer.ts';
+import { type Master, masterFile, masterFinding } from './mixer.ts';
 
-export type StaticFinding =
-  | CueLate
-  | SeamLong
-  | TakeStale
-  | AssetStale
-  | AssetMissing
-  | AudioMissing
-  | AudioStale
-  | UnknownScene
-  | UnknownCue
-  | UnknownMark
-  | WordMissing
-  | CueInvalid
-  | MovementLength
-  | UnknownVoice
-  | UnknownSound
-  | SoundUseMismatch
-  | SoundUnmade
-  | SoundStale
-  | EffectHot
-  | WordPinFar
-  | EndShort
-  | DeadAir
-  | VoiceLevel
-  | MasterLoudness;
-/** What one probed frame shows wrong. */
-export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
-export type LayoutFinding = FrameFinding | StaticHold;
-/** What the look pass measures across the film (`look.ts`): every one a warning. */
-export type LookFinding = HeldShare | ColourScript | FaceSmall | HandJump | HandFar | HandHidden;
-export type Finding = StaticFinding | LayoutFinding | LookFinding;
-
-export type Level = 'error' | 'warning';
-
-export interface Reported {
-  readonly level: Level;
-  readonly finding: Finding;
-}
-
-export interface CheckOptions {
-  /** Report stale takes and stale sounds as warnings: work in progress, not a broken film. */
-  readonly allowStale: boolean;
-}
+/**
+ * A finding and its level, as the look pass (`lookFindings`) hands them back;
+ * the check re-levels and addresses them with `report`.
+ */
+export type Reported = Pick<Levelled, 'level' | 'finding'>;
 
 // ---------------------------------------------------------------------------
 // Static
@@ -231,105 +185,77 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     });
   });
 
-/** A scene's line read; one that does not parse is the layout's `LineError`, so it reads as silent here. */
-const said = (scene: Timed) =>
-  Result.getOrElse(
-    parse(
-      scene.id,
-      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
-    ),
-    () => ({
-      spoken: '',
-      marks: new Map<string, number>(),
-      turns: [],
-    }),
-  );
-
 /**
  * Beats with words whose take is missing or was recorded for other text,
  * other turns or another voice (a person's take is read by no staging voice).
+ * Each line is read as the layout placed it (`voice`: its words and turns).
  */
-export const staleTakes = (film: LoadedFilm): ReadonlyArray<TakeStale> => {
+export const staleTakes = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): ReadonlyArray<TakeStale> => {
   const voice = voiceKey(film.voice);
-  return film.scenes.flatMap((scene) => {
-    const parsed = said(scene);
-    if (parsed.spoken.length === 0) return [];
-    const state = takeState(scene.id, takeScript(parsed), film.timings, voice);
+  return placed.flatMap((p) => {
+    if (p.voice.spoken.length === 0) return [];
+    const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice);
     if (state._tag !== 'Stale') return [];
-    return [TakeStale.make({ scene: scene.id, reason: state.reason, recorded: state.recorded })];
+    return [TakeStale.make({ scene: p.spec.id, reason: state.reason, recorded: state.recorded })];
   });
 };
 
 /** Lines handed to a voice the film's cast does not have: `narrate` would refuse them. */
-export const unknownVoices = (film: LoadedFilm): ReadonlyArray<UnknownVoice> =>
-  film.scenes.flatMap((scene) =>
-    Result.match(linesOf(scene.id, said(scene), film.voice), {
+export const unknownVoices = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): ReadonlyArray<UnknownVoice> =>
+  placed.flatMap((p) =>
+    Result.match(linesOf(p.spec.id, p.voice, film.voice), {
       onFailure: (error) => [error],
       onSuccess: () => [],
     }),
   );
 
 /** A generated asset against the hash its request has now. */
-const assetFinding = (
-  asset: string,
-  stored: Option.Option<string>,
-  wanted: string,
-): ReadonlyArray<AssetStale | AssetMissing> =>
-  Option.match(stored, {
-    onNone: () => [AssetMissing.make({ asset })],
-    onSome: (hash) => {
-      if (hash === wanted) return [];
-      return [AssetStale.make({ asset, stored: hash, wanted })];
-    },
-  });
-
 /**
- * Each score option's movements: each names a scene, and each runs in film order
- * for as long as the API's chunks may last (`movementSpans`, every failure rather
- * than the first). Only a plan that holds is checked for a stale option
- * (asset `score.<option>`).
+ * Each score option's movements: each names a scene, and each runs in film
+ * order for as long as the API's chunks may last (`movementSpans`, every
+ * failure rather than the first). Only movements that hold are checked for
+ * the option's state (`scoreOptionState`, asset `score.<option>`): missing,
+ * or composed for another plan.
  */
 export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
 ): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> =>
-  scoreOptions(score).flatMap(({ name, music }) =>
-    Result.match(movementSpans(music, placed), {
-      onFailure: (
-        unknown,
-      ): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => unknown,
-      onSuccess: (spans) => {
-        const wrong = Arr.getFailures(spans);
-        if (wrong.length > 0) return wrong;
-        return Result.match(musicPlan(music, placed), {
-          onFailure: (error) => [error],
-          onSuccess: (plan) =>
-            assetFinding(
-              `score.${name}`,
-              Option.map(Option.fromUndefinedOr(manifest.scores?.[name]), (a) => a.hash),
-              musicKey(music, plan),
-            ),
-        });
-      },
-    }),
+  scoreOptions(score).flatMap(
+    (option): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => {
+      const movements = Result.match(movementSpans(option.music, placed), {
+        onFailure: (unknown): ReadonlyArray<UnknownScene | MovementLength> => unknown,
+        onSuccess: (spans) => Arr.getFailures(spans),
+      });
+      if (movements.length > 0) return movements;
+      const asset = `score.${option.name}`;
+      const state = scoreOptionState(option, placed, manifest);
+      if (state._tag === 'Missing') return [AssetMissing.make({ asset })];
+      if (state._tag === 'Current') return [];
+      if (state.why._tag !== 'Retimed') return [state.why];
+      return [AssetStale.make({ asset, stored: state.asset.hash, wanted: state.why.key })];
+    },
   );
 
 /**
- * The mix measured against the film's sound rules: the voice's level and the
- * master's loudness off their targets, and each effect that crowds the voice
- * around it (`hotEffects`: its loudest 50 ms, as the mix plays it).
+ * The mix measured against the film's sound rules: the master's loudness off
+ * its target, and each effect that crowds the voice around it (`hotEffects`:
+ * its loudest 50 ms, as the mix plays it).
  */
 export const balanceFindings = (
   placed: ReadonlyArray<Placed>,
   plan: MixPlan<Pcm>,
   mixed: Mixed,
-): ReadonlyArray<VoiceLevel | MasterLoudness | EffectHot> => {
+): ReadonlyArray<MasterLoudness | EffectHot> => {
   const { tolerance } = BALANCE;
-  const found: Array<VoiceLevel | MasterLoudness | EffectHot> = [];
-  const voice = voiceLevel(mixed.voice);
-  if (Number.isFinite(voice) && Math.abs(voice - BALANCE.voice) > tolerance)
-    found.push(VoiceLevel.make({ level: voice, target: BALANCE.voice, tolerance }));
+  const found: Array<MasterLoudness | EffectHot> = [];
   const master = loudness(mixed.master).integrated;
   if (Number.isFinite(master) && Math.abs(master - BALANCE.master) > tolerance)
     found.push(MasterLoudness.make({ loudness: master, target: BALANCE.master, tolerance }));
@@ -337,20 +263,16 @@ export const balanceFindings = (
     found.push(
       EffectHot.make({
         effect: hot.name,
-        scene: sceneAt(placed, hot.at),
+        scene: Option.match(sceneAt(placed, hot.at), {
+          onNone: () => '',
+          onSome: (p) => p.spec.id,
+        }),
         at: hot.at,
         over: hot.over,
       }),
     );
   return found;
 };
-
-/** The scene playing at film second `at`. */
-const sceneAt = (placed: ReadonlyArray<Placed>, at: number): string =>
-  Option.match(
-    Arr.findLast(placed, (p) => p.start <= at + 1e-9),
-    { onNone: () => '', onSome: (p) => p.spec.id },
-  );
 
 /** A named library sound for `use`: refused (unknown, or for the other use), unmade, stale, or fine. */
 const libraryFindings = (
@@ -407,28 +329,6 @@ export const soundFindings = (
   return [...beds, ...effects];
 };
 
-const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
-  switch (finding._tag) {
-    case 'TakeStale':
-    case 'AssetStale':
-    case 'AudioStale':
-    case 'AudioMissing':
-      if (options.allowStale) return 'warning';
-      return 'error';
-    case 'AssetMissing':
-    case 'SoundStale':
-    case 'EffectHot':
-    case 'VoiceLevel':
-    case 'MasterLoudness':
-    case 'SeamLong':
-    case 'WordPinFar':
-    case 'EndShort':
-      return 'warning';
-    default:
-      return 'error';
-  }
-};
-
 /**
  * How far the audio master may differ from the film's length. The check does
  * not know the film's frame rate, so it holds the master to a frame at 60 fps,
@@ -437,15 +337,29 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
  */
 export const MASTER_TOLERANCE = 1 / 60;
 
-/** Once every take is recorded the film has a mixed track, and its master must cover the film. */
+/** The track on disk (`readMaster`), and the key of the plan the film mixes to now (`planKey`). */
+export interface MasterAudio {
+  readonly master: Option.Option<Master>;
+  readonly key: Option.Option<string>;
+}
+
+/**
+ * Once every take is recorded the film has a mixed track, and its master must
+ * cover the film and be mixed for the plan the film plays now.
+ */
 export const masterFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  length: Option.Option<number>,
+  audio: MasterAudio,
 ): ReadonlyArray<AudioMissing | AudioStale> => {
   if (!everyTakeRecorded(placed)) return [];
   return Option.toArray(
-    masterFinding(masterFile(film.paths), length, filmEnd(placed), MASTER_TOLERANCE),
+    masterFinding(
+      masterFile(film.paths),
+      audio.master,
+      { seconds: filmEnd(placed), key: audio.key },
+      MASTER_TOLERANCE,
+    ),
   );
 };
 
@@ -488,33 +402,33 @@ export const endShort = (placed: ReadonlyArray<Placed>): ReadonlyArray<EndShort>
 export const DEAD_FLOOR = -60;
 /** A silence longer than this, in seconds, that no cue declares is dead air. */
 export const DEAD_MAX = 1.5;
-/** The master's level is read in windows this long, in seconds. */
+/** The master's level is read in windows this long, in seconds, its sides' power summed (`windowPowers`). */
 export const DEAD_WINDOW = 0.05;
 
 /** The film seconds every cue declared `silence: true` spans. */
-export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Span> =>
+export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Interval> =>
   placed.flatMap((p) =>
     Object.entries(p.spec.timeline ?? {})
       .filter(([, span]) => span.silence === true)
       .flatMap(([name]) =>
-        Option.toArray(Option.fromNullishOr(p.cues.get(name))).map((c): Span => [
-          p.start + c.start,
-          p.start + c.end,
-        ]),
+        Option.toArray(Option.fromNullishOr(p.cues.get(name))).map((c): Interval => ({
+          from: p.start + c.start,
+          to: p.start + c.end,
+        })),
       ),
   );
 
 /** `run` less every span of `cut`, in order. */
-const without = (run: Span, cut: ReadonlyArray<Span>): ReadonlyArray<Span> =>
-  cut.reduce<ReadonlyArray<Span>>(
-    (pieces, [a, b]) =>
-      pieces.flatMap(([from, to]): ReadonlyArray<Span> => {
-        if (b <= from || a >= to) return [[from, to]];
-        const kept: ReadonlyArray<Span> = [
-          [from, a],
-          [b, to],
+const without = (run: Interval, cut: ReadonlyArray<Interval>): ReadonlyArray<Interval> =>
+  cut.reduce<ReadonlyArray<Interval>>(
+    (pieces, gone) =>
+      pieces.flatMap((piece): ReadonlyArray<Interval> => {
+        if (gone.to <= piece.from || gone.from >= piece.to) return [piece];
+        const kept: ReadonlyArray<Interval> = [
+          { from: piece.from, to: gone.from },
+          { from: gone.to, to: piece.to },
         ];
-        return kept.filter(([x, y]) => y > x);
+        return kept.filter((k) => k.to > k.from);
       }),
     [run],
   );
@@ -527,54 +441,68 @@ const without = (run: Span, cut: ReadonlyArray<Span>): ReadonlyArray<Span> =>
 export const deadAir = (
   levels: ArrayLike<number>,
   window: number,
-  designed: ReadonlyArray<Span>,
+  designed: ReadonlyArray<Interval>,
 ): ReadonlyArray<DeadAir> => {
-  const runs: Span[] = [];
+  const runs: Interval[] = [];
   let from = -1;
   for (let i = 0; i <= levels.length; i++) {
     const quiet = i < levels.length && (levels[i] ?? 0) < DEAD_FLOOR;
     if (quiet && from < 0) from = i;
     if (!quiet && from >= 0) {
-      runs.push([from * window, i * window]);
+      runs.push({ from: from * window, to: i * window });
       from = -1;
     }
   }
   return runs
     .flatMap((run) => without(run, designed))
-    .filter(([a, b]) => b - a > DEAD_MAX)
-    .map(([a, b]) => DeadAir.make({ from: a, to: b, floor: DEAD_FLOOR, max: DEAD_MAX }));
+    .filter((run) => run.to - run.from > DEAD_MAX)
+    .map((run) => DeadAir.make({ ...run, floor: DEAD_FLOOR, max: DEAD_MAX }));
 };
 
 /**
- * Everything the check finds without drawing a frame. `master` is the audio
- * master's measured length, or none when there is no master.
+ * Everything the check finds without drawing a frame or mixing: `audio` is
+ * the master on disk and the key of the plan the film mixes to now. `report`
+ * levels and addresses them.
  */
 export const staticFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  options: CheckOptions,
-  master: Option.Option<number>,
-): ReadonlyArray<Reported> => {
+  audio: MasterAudio,
+): ReadonlyArray<StaticFinding> => {
   const sound = Option.toArray(film.sound).flatMap((s) => [
     ...Option.toArray(Option.fromNullishOr(s.score)).flatMap((score) =>
       musicFindings(score, placed, film.manifest),
     ),
     ...soundFindings(s, placed, film.sounds),
   ]);
-  const audio = masterFindings(film, placed, master);
-  const takes = [...unknownVoices(film), ...staleTakes(film)];
+  const master = masterFindings(film, placed, audio);
+  const takes = [...unknownVoices(film, placed), ...staleTakes(film, placed)];
   return [
     ...lateCues(placed),
     ...longSeams(placed),
     ...farPins(placed),
     ...takes,
     ...sound,
-    ...audio,
+    ...master,
     ...endShort(placed),
-  ].map((finding) => ({
-    level: levelOf(finding, options),
-    finding,
-  }));
+  ];
+};
+
+/**
+ * What the mix the film makes now (`Mixer.render`, in memory) fails: dead air
+ * in its master, read in `DEAD_WINDOW` windows as a listener hears it, and
+ * the balance.
+ */
+export const mixFindings = (
+  placed: ReadonlyArray<Placed>,
+  plan: MixPlan<Pcm>,
+  mixed: Mixed,
+): ReadonlyArray<MixFinding> => {
+  const levels = windowPowers(mixed.master, Math.round(DEAD_WINDOW * mixed.master.rate));
+  return [
+    ...deadAir(levels, DEAD_WINDOW, designedSilences(placed)),
+    ...balanceFindings(placed, plan, mixed),
+  ];
 };
 
 // ---------------------------------------------------------------------------
@@ -1143,12 +1071,6 @@ export const mergeFindings = (
   return [...merged.values()];
 };
 
-/** Every layout finding is an error but a static hold, which asks for a look (the owner, 2026-09-27). */
-export const layoutLevel = (finding: LayoutFinding): Level => {
-  if (finding._tag === 'StaticHold') return 'warning';
-  return 'error';
-};
-
 // ---------------------------------------------------------------------------
 // Holds
 
@@ -1179,42 +1101,39 @@ export interface HoldCandidate {
   readonly to: number;
 }
 
-type Span = readonly [from: number, to: number];
-
 /** Scene-local spans in which the scene declares motion: each cue, and its entering transition. */
-const busySpans = (p: Placed): ReadonlyArray<Span> => {
-  const cues = [...p.cues.values()].map((c): Span => [c.start, c.end]);
+const busySpans = (p: Placed): ReadonlyArray<Interval> => {
+  const cues = [...p.cues.values()].map((c): Interval => ({ from: c.start, to: c.end }));
   // The first scene has nothing to arrive from.
   const arriving = Math.min(p.index, 1) * transitionDur(p.spec.enter);
   if (arriving <= 0) return cues;
-  return [[0, arriving], ...cues];
+  return [{ from: 0, to: arriving }, ...cues];
 };
 
 /** Scene-local: from the first word's start to the last word's end. */
-const spokenSpan = (p: Placed): Option.Option<Span> =>
-  Option.zipWith(Arr.head(p.voice.words), Arr.last(p.voice.words), (first, last): Span => [
-    p.speechStart + first.start,
-    p.speechStart + last.end,
-  ]);
+const spokenSpan = (p: Placed): Option.Option<Interval> =>
+  Option.zipWith(Arr.head(p.voice.words), Arr.last(p.voice.words), (first, last): Interval => ({
+    from: p.speechStart + first.start,
+    to: p.speechStart + last.end,
+  }));
 
 /** The parts of `within` that no span of `busy` covers. */
-const gapsIn = (within: Span, busy: ReadonlyArray<Span>): ReadonlyArray<Span> => {
-  const [from, to] = within;
+const gapsIn = (within: Interval, busy: ReadonlyArray<Interval>): ReadonlyArray<Interval> => {
   const sorted = Arr.sort(
     busy,
-    Order.mapInput(Order.Number, (s: Span) => s[0]),
+    Order.mapInput(Order.Number, (s: Interval) => s.from),
   );
-  const swept = sorted.reduce<{ readonly gaps: ReadonlyArray<Span>; readonly at: number }>(
-    ({ gaps, at }, [start, end]) => {
-      const until = Math.min(start, to);
-      const next = Math.max(at, end);
-      if (until > at) return { gaps: [...gaps, [at, until]], at: next };
+  const swept = sorted.reduce<{ readonly gaps: ReadonlyArray<Interval>; readonly at: number }>(
+    ({ gaps, at }, span) => {
+      const until = Math.min(span.from, within.to);
+      const next = Math.max(at, span.to);
+      if (until > at) return { gaps: [...gaps, { from: at, to: until }], at: next };
       return { gaps, at: next };
     },
-    { gaps: [], at: from },
+    { gaps: [], at: within.from },
   );
-  if (swept.at >= to) return swept.gaps;
-  return [...swept.gaps, [swept.at, to]];
+  if (swept.at >= within.to) return swept.gaps;
+  return [...swept.gaps, { from: swept.at, to: within.to }];
 };
 
 /**
@@ -1229,8 +1148,8 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
     return Option.match(spokenSpan(p), {
       onNone: () => [],
       onSome: (spoken) => {
-        const gaps = gapsIn(spoken, busySpans(p)).filter(([a, b]) => b - a > HOLD + 1e-9);
-        return gaps.map(([a, b]) => ({ scene: p.spec.id, from: p.start + a, to: p.start + b }));
+        const gaps = gapsIn(spoken, busySpans(p)).filter((g) => g.to - g.from > HOLD + 1e-9);
+        return gaps.map((g) => ({ scene: p.spec.id, from: p.start + g.from, to: p.start + g.to }));
       },
     });
   });
@@ -1240,10 +1159,7 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
  * from its first frame to its last. Nothing faster than the boil can be told
  * from it, and a sway slower than it is sampled at more than one phase.
  */
-export const holdTicks = (
-  hold: Pick<HoldCandidate, 'from' | 'to'>,
-  fps: number,
-): ReadonlyArray<number> => {
+export const holdTicks = (hold: Interval, fps: number): ReadonlyArray<number> => {
   const first = Math.ceil(hold.from * fps - 1e-6);
   const last = Math.ceil(hold.to * fps - 1e-6) - 1;
   const per = fps / BOIL_FPS;
@@ -1272,17 +1188,17 @@ export const holdGrid = (ticks: ReadonlyArray<number>): ReadonlyArray<number> =>
  * to its edge.
  */
 export const stillSpan = (
-  hold: Pick<HoldCandidate, 'from' | 'to'>,
+  hold: Interval,
   ticks: ReadonlyArray<number>,
   lo: number,
   hi: number,
   fps: number,
-): Span => {
+): Interval => {
   const edge = (end: Option.Option<number>, tick: number, whole: number) => {
     if (Option.exists(end, (f) => f === tick)) return whole;
     return tick / fps;
   };
-  return [edge(Arr.head(ticks), lo, hold.from), edge(Arr.last(ticks), hi, hold.to)];
+  return { from: edge(Arr.head(ticks), lo, hold.from), to: edge(Arr.last(ticks), hi, hold.to) };
 };
 
 type Mark = {

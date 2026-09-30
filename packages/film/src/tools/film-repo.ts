@@ -32,7 +32,7 @@ import {
   Voice,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmNotFound } from './errors.ts';
+import { FilmModuleInvalid, FilmNotFound, FilmUnknown } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -75,16 +75,6 @@ export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
  */
 export const FilmName = Schema.String.pipe(Schema.brand('FilmName'));
 export type FilmName = typeof FilmName.Type;
-
-/** A name that is none of the films in the folder: answered with the films there are, no path. */
-export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown', {
-  film: Schema.String,
-  known: Schema.Array(Schema.String),
-}) {
-  override get message() {
-    return `no film "${this.film}" (the films: ${this.known.join(', ') || 'none'})`;
-  }
-}
 
 export interface FilmRepoService {
   readonly paths: (film: string) => FilmPaths;

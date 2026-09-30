@@ -2,10 +2,12 @@
 // or recovers every resource the render opened. No Chromium, no encoder.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
 import { MediaFailed, PageCrashed, PageError } from './errors.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import { type LoadedFilm, placeFilm } from './film-repo.ts';
+import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
+import { mixKey } from '../core/mix.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
 import { Cores, Platform, Renderer } from './renderer.ts';
 import {
@@ -20,6 +22,21 @@ import {
 } from './testing.ts';
 
 const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
+
+/** The film's own plan: no score option or take in place of its own. */
+const NOW = { score: Option.none<string>(), take: Option.none() };
+
+/** The film's track as `mix` leaves it: the WAV, and its stamp for the plan the film plays now. */
+const mixed = (files: Map<string, Uint8Array>, rendered: LoadedFilm = film) =>
+  Effect.gen(function* () {
+    files.set(masterFile(rendered.paths), text('pcm'));
+    // A test film plays no file that could be missing: its plan is the one `mix` played.
+    const plan = planOf(rendered, yield* placeFilm(rendered), NOW);
+    const stamp = yield* Schema.encodeEffect(MasterStampJson)({
+      key: mixKey(Result.getOrThrow(plan)),
+    });
+    files.set(stampFile(rendered.paths), text(stamp));
+  });
 
 /** The whole 20 s test film on four pages: 600 frames in 16 chunks. */
 const video = RenderJob.Video({
@@ -137,9 +154,11 @@ describe('Renderer', () => {
       expect(Exit.isFailure(exit)).toBe(true);
       expect(left(failed)).toEqual([]);
 
-      const cut = setup();
+      // Interrupted once a page is drawing a frame: its segments are being written.
+      const drawing = yield* Deferred.make<void>();
+      const cut = setup({ frame: () => Deferred.done(drawing, Exit.void) });
       const fiber = yield* Effect.forkChild(cut.render(video));
-      yield* Effect.sleep('30 millis');
+      yield* Deferred.await(drawing);
       expect(left(cut).length).toBeGreaterThan(0);
       yield* Fiber.interrupt(fiber);
       expect(left(cut)).toEqual([]);
@@ -416,14 +435,13 @@ describe('Renderer', () => {
 
   describe('with the mixed track', () => {
     const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.wav' };
-    const MASTER = '/films/test/narration/full.wav';
     const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
       Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));
 
     it.live('joins the master under the film when it covers it', () =>
       Effect.gen(function* () {
         const { ledger, files, render } = setup({ info });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         yield* render(video);
         expect(ledger.aac).toEqual([20 * 44100]);
         expect(Option.isSome(ledger.joins[0]?.audio ?? Option.none())).toBe(true);
@@ -434,7 +452,7 @@ describe('Renderer', () => {
     it.live('a range takes the master under that range only', () =>
       Effect.gen(function* () {
         const { ledger, files, render } = setup({ info });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         yield* render({ ...video, from: Option.some(2), to: Option.some(5) });
         const [join] = ledger.joins;
         expect(join?.frames).toBe(90);
@@ -454,7 +472,7 @@ describe('Renderer', () => {
               Effect.sync(() => i === 100),
             ),
         });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('PageError'));
         expect(ledger.aacInterrupted.count).toBe(1);
@@ -468,7 +486,7 @@ describe('Renderer', () => {
           aac: Effect.fail(MediaFailed.make({ op: 'encode', file: 'the track', reason: 'no' })),
           frame: () => Effect.sleep('5 millis'),
         });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('MediaFailed'));
         expect(ledger.frames.length).toBeLessThan(600);
@@ -479,7 +497,7 @@ describe('Renderer', () => {
     it.live('a share copy joins the same track: it is encoded once', () =>
       Effect.gen(function* () {
         const { ledger, files, render } = setup({ info });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         yield* render({ ...video, share: true });
         expect(ledger.aac).toEqual([20 * 44100]);
         const [master, share] = ledger.joins.map((j) => Option.getOrThrow(j.audio));
@@ -491,12 +509,26 @@ describe('Renderer', () => {
       Effect.gen(function* () {
         // An interrupted mix left 12 s of a 20 s film.
         const { ledger, files, render } = setup({ info, master: 12 });
-        files.set(MASTER, text('pcm'));
+        yield* mixed(files);
         const exit = yield* Effect.exit(render(video));
         expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
         expect(ledger.frames).toEqual([]);
         expect(ledger.joins).toEqual([]);
       }),
+    );
+
+    it.live(
+      'a master as long as the film but mixed for another plan fails before a frame is drawn',
+      () =>
+        Effect.gen(function* () {
+          // Mixed before a score pick, a re-take of the same length or a moved effect.
+          const { ledger, files, render } = setup({ info });
+          yield* mixed(files);
+          files.set(stampFile(film.paths), text('{\n  "key": "another plan"\n}\n'));
+          const exit = yield* Effect.exit(render(video));
+          expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
+          expect(ledger.frames).toEqual([]);
+        }),
     );
 
     it.live('no master fails before a frame is drawn', () =>
@@ -531,13 +563,13 @@ describe('Renderer', () => {
     });
     /** The short's page: 9:16 at the film's density, 10 s. */
     const page: ExportInfo = { width: 1920, height: 3414, fps: 30, duration: 10, frames: 300 };
-    const MASTER = '/films/test/narration/full.wav';
 
     it.live(
       'renders its page to out/<film>/shorts/<id>.mp4 at 1080×1920, with its spans of the track',
       () =>
         Effect.gen(function* () {
-          const files = new Map<string, Uint8Array>([[MASTER, text('pcm')]]);
+          const files = new Map<string, Uint8Array>();
+          yield* mixed(files, three);
           const { ledger, render } = setup({ info: page, master: 15 }, files, three);
           yield* render({ ...video, cut: short });
           expect(ledger.urls[0]).toBe('http://preview.test/?film=test%2Fshorts%2Fcut&export');
@@ -553,7 +585,8 @@ describe('Renderer', () => {
 
     it.live("a short's stills land in its own folder", () =>
       Effect.gen(function* () {
-        const files = new Map<string, Uint8Array>([[MASTER, text('pcm')]]);
+        const files = new Map<string, Uint8Array>();
+        yield* mixed(files, three);
         const { render } = setup({ info: page, master: 15 }, files, three);
         yield* render(
           RenderJob.Stills({ tag: 'g', captions: true, workers: 1, times: [1], cut: short }),

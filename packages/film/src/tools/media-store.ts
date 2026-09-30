@@ -15,7 +15,7 @@
 // reader could see it, and each key carries its bytes' sha256, so `hashOf`
 // answers without reading them.
 
-import { Effect, type FileSystem, Option, type Path, Schema, Stream } from 'effect';
+import { Effect, type FileSystem, Option, type Path, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { sha256OfFile } from './digest.ts';
 import { StoreFailed } from './errors.ts';
@@ -108,17 +108,6 @@ export const renderKey = (
       return `${RENDERS}${rel.split(path.sep).join('/')}`;
     },
   });
-
-/** A push to a key the store already holds with other bytes: refused, so nothing kept is replaced unasked. */
-export class StoreKeyTaken extends Schema.TaggedError<StoreKeyTaken>()('StoreKeyTaken', {
-  key: Schema.String,
-  file: Schema.String,
-  store: Schema.String,
-}) {
-  override get message() {
-    return `the store at ${this.store} holds other bytes as ${this.key}; ${this.file} was not sent (--replace sends it over them, or --under keeps it in its own folder)`;
-  }
-}
 
 /** `~/…` under `home`; any other path as it is. */
 export const expandHome = (file: string, home: string): string => {

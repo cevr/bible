@@ -10,6 +10,7 @@ import {
   MIX_RATE,
   type MixPlan,
   loopFill,
+  mixKey,
   mixPlan,
   renderMix,
   repitch,
@@ -20,10 +21,12 @@ import { musicKey, musicPlan } from './sound.ts';
 import {
   type Lock,
   NO_SOUNDS,
+  type SoundSource,
   type Sounds,
   VOICE_LEVEL,
   type Variant,
   defineLibrary,
+  fileSource,
   requestKey,
   sourceLabel,
 } from './sfx.ts';
@@ -290,12 +293,33 @@ describe('mixPlan', () => {
       Option.some('s/pads-0.mp3'),
     );
     expect(pads.warnings).toEqual([
-      'mix.stale asset=score.pads hint="acts or timing changed; run score to compose it again"',
+      'mix.stale asset=score.pads why=Retimed hint="movements or timing changed; run score to compose it again"',
     ]);
     const lost = mixPlan({ ...input, manifest, sound: scored, play: Option.some('organ') });
     expect(Result.match(lost, { onSuccess: () => 'none', onFailure: (e) => e._tag })).toBe(
       'ScoreUnknown',
     );
+  });
+
+  test('an option whose movements no longer hold still plays, with a warning naming why', () => {
+    const lost: Score = {
+      ...score,
+      options: {
+        piano: {
+          ...option(['felt piano']),
+          movements: [{ from: 'gone', name: 'Open', styles: [] }],
+        },
+      },
+    };
+    const planned = Result.getOrThrow(
+      mixPlan({ ...input, manifest, sound: Option.some<Sound>({ score: lost, effects: {} }) }),
+    );
+    expect(Option.map(planned.score, (s) => sourceLabel(s.sound))).toEqual(
+      Option.some('s/piano-1.mp3'),
+    );
+    expect(planned.warnings).toEqual([
+      'mix.stale asset=score.piano why=UnknownScene hint="movements or timing changed; run score to compose it again"',
+    ]);
   });
 
   test('no score declared, no warning', () => {
@@ -428,5 +452,75 @@ describe('mixPlan', () => {
         });
       expect([failed(wrong), failed(typo)]).toEqual(['SoundUseMismatch', 'UnknownSound']);
     });
+  });
+});
+
+describe('mixKey', () => {
+  const planned: MixPlan<SoundSource> = {
+    seconds: 30,
+    voice: [
+      {
+        name: 'a',
+        sound: fileSource('/box/narration/a.1f33612e28ca.flac'),
+        at: 1,
+        gain: 1,
+        pitch: 0,
+        staged: false,
+      },
+    ],
+    score: Option.some({
+      option: 'piano',
+      sound: fileSource('/box/sound/piano-ad3d886a.mp3'),
+      under: -18,
+      alone: -6,
+    }),
+    beds: [],
+    effects: [
+      {
+        name: 'stamp',
+        sound: fileSource('/box/sounds/files/wood.gavel/4e8f0c5d585f.flac'),
+        at: 4,
+        gain: 0.5,
+        pitch: 0.2,
+      },
+    ],
+    warnings: [],
+  };
+
+  test('the same plan keys the same, in any checkout: a file is keyed by its name, which carries its hash', () => {
+    const elsewhere: MixPlan<SoundSource> = {
+      ...planned,
+      voice: planned.voice.map((t) => ({
+        ...t,
+        sound: fileSource('/other/checkout/narration/a.1f33612e28ca.flac'),
+      })),
+      warnings: ['mix.stale sound=x'],
+    };
+    expect(mixKey(elsewhere)).toBe(mixKey(planned));
+  });
+
+  test('another score option, a new take, or an effect moved or louder is another plan', () => {
+    const keys = [
+      mixKey(planned),
+      mixKey({
+        ...planned,
+        score: Option.map(planned.score, (s) => ({
+          ...s,
+          option: 'ensemble',
+          sound: fileSource('/box/sound/ensemble-9ae0005a.mp3'),
+        })),
+      }),
+      mixKey({
+        ...planned,
+        voice: planned.voice.map((t) => ({
+          ...t,
+          sound: fileSource('/box/narration/a.0000aaaa1111.flac'),
+        })),
+      }),
+      mixKey({ ...planned, effects: planned.effects.map((e) => ({ ...e, at: 4.5 })) }),
+      mixKey({ ...planned, effects: planned.effects.map((e) => ({ ...e, gain: 0.6 })) }),
+      mixKey({ ...planned, score: Option.none() }),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

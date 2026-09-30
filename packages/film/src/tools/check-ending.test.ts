@@ -6,7 +6,11 @@ import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
 import type { Timed } from '../core/schema.ts';
 import { DEAD_MAX, deadAir, designedSilences, endShort, staticFindings } from './check.ts';
+import { report } from './findings.ts';
 import { holdScenes, holdTimings, testFilm } from './testing.ts';
+
+/** No track on disk, and no plan key: what a check before any mix sees. */
+const NO_MASTER = { master: Option.none(), key: Option.none() };
 
 const WINDOW = 0.05;
 /** `secs` of master at `db`, in `WINDOW` windows. */
@@ -31,7 +35,7 @@ describe('EndShort', () => {
   test('the check warns of it', () => {
     const film = testFilm(holdScenes, holdTimings);
     const placed = Result.getOrThrow(layout(holdScenes, holdTimings));
-    const found = staticFindings(film, placed, { allowStale: false }, Option.none());
+    const found = report(staticFindings(film, placed, NO_MASTER), { allowStale: false }).findings;
     expect(found.filter((r) => r.finding._tag === 'EndShort').map((r) => r.level)).toEqual([
       'warning',
       'warning',
@@ -53,7 +57,7 @@ describe('DeadAir', () => {
 
   test('a cue marked silence: true declares its span, and only it', () => {
     expect(designedSilences(Result.getOrThrow(layout(scenes, { voice: '', scenes: {} })))).toEqual([
-      [1, 3],
+      { from: 1, to: 3 },
     ]);
   });
 
@@ -71,12 +75,12 @@ describe('DeadAir', () => {
       [],
     );
     const levels = [...level(-20, 1), ...level(-80, 2), ...level(-20, 1)];
-    expect(deadAir(levels, WINDOW, [[1.2, 2.9]])).toEqual([]);
+    expect(deadAir(levels, WINDOW, [{ from: 1.2, to: 2.9 }])).toEqual([]);
   });
 
   test('a designed silence inside a longer quiet run leaves what is left over', () => {
     const levels = [...level(-80, 6)];
-    const found = deadAir(levels, WINDOW, [[1, 3]]);
+    const found = deadAir(levels, WINDOW, [{ from: 1, to: 3 }]);
     expect(found.map((f) => [f.from, f.to])).toEqual([[3, expect.closeTo(6)]]);
   });
 });

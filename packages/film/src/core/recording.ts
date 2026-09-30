@@ -18,7 +18,7 @@ import {
   silence,
   slice,
   toMono,
-  windowLevels,
+  windowPowers,
 } from './audio.ts';
 
 /**
@@ -74,9 +74,7 @@ export const TAKE_FADE = 0.005;
  */
 export const speechLevel = (pcm: Pcm): number => {
   const window = Math.max(1, Math.round(TAKE_WINDOW * pcm.rate));
-  const powers = [...windowLevels(Arr.getUnsafe(toMono(pcm).channels, 0), window)].map(
-    (db) => 10 ** (db / 10),
-  );
+  const powers = [...windowPowers(toMono(pcm), window)].map((db) => 10 ** (db / 10));
   const db = (p: number) => 10 * Math.log10(p);
   const meanOf = (ps: ReadonlyArray<number>) =>
     ps.reduce((sum, p) => sum + p, 0) / Math.max(1, ps.length);
@@ -123,7 +121,7 @@ const speechBounds = (
   mono: Pcm,
 ): Option.Option<{ readonly onset: number; readonly end: number }> => {
   const window = Math.max(1, Math.round(TAKE_WINDOW * mono.rate));
-  const level = [...windowLevels(Arr.getUnsafe(mono.channels, 0), window)];
+  const level = [...windowPowers(mono, window)];
   const hold = Math.round(TAKE_HOLD / TAKE_WINDOW);
   const min = Math.round(TAKE_MIN_SPEECH / TAKE_WINDOW);
   // The loudest speech, not the loudest click: only sound that lasts counts.

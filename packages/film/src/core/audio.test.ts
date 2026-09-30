@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { concat, levels, silence, slice, splice, toInt16, toStereo } from './audio.ts';
+import {
+  concat,
+  levels,
+  silence,
+  slice,
+  splice,
+  toInt16,
+  toStereo,
+  windowPowers,
+} from './audio.ts';
 
 const pcm = (...channels: ReadonlyArray<ReadonlyArray<number>>) => ({
   rate: 44100,
@@ -109,5 +118,24 @@ describe('splice', () => {
     ).toBe(true);
     expect(out[9]).toBeLessThan(0.3);
     expect(out[10]).toBeLessThan(0.3);
+  });
+});
+
+describe('windowPowers', () => {
+  test('a mono take played at −3 dB a side reads as the take itself', () => {
+    const take = pcm([0.5, 0.5, 0.5, 0.5]);
+    const [alone] = windowPowers(take, 2);
+    const [sides] = windowPowers(toStereo(take), 2);
+    expect(sides).toBeCloseTo(alone ?? 0, 5);
+    expect(alone).toBeCloseTo(20 * Math.log10(0.5), 5);
+  });
+
+  test('the last window is measured over its own length; a span reads only its frames', () => {
+    const tone = pcm([0, 0, 0, 0, 1]);
+    const all = windowPowers(tone, 2);
+    expect(all.length).toBe(3);
+    expect([all[0], all[1]]).toEqual([Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]);
+    expect(all[2]).toBeCloseTo(0, 5);
+    expect([...windowPowers(tone, 2, 3, 5)].map((db) => Math.round(db))).toEqual([-3]);
   });
 });
