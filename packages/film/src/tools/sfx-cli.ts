@@ -2,7 +2,8 @@
 // but `make` is free: `list`, `plan`, `check` and `guard` read the library and
 // its lock; `audition` and `render` write WAVs under `<FILMS_OUT>/sounds`;
 // `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
-// private `files/` with the store. `make` is the one paid command: it prints
+// private `files/` (and the films' scores) with the store; `push --from` sends
+// from an older folder store too (the move to R2). `make` is the one paid command: it prints
 // its plan and cost, and spends only with `--yes`, under `--cap` counting what
 // `--tally` already records.
 //
@@ -16,7 +17,7 @@
 //   film sfx import <file> <name>
 //   film sfx render <name> [--seed n]
 //   film sfx check [--json]
-//   film sfx pull                  film sfx push
+//   film sfx pull                  film sfx push [--from folder]
 //   film sfx guard <file…>         (the pre-commit hook: staged audio the repo may not take)
 
 import { Console, Effect, Option, Schema } from 'effect';
@@ -395,13 +396,22 @@ const pull = Command.make(
 
 const push = Command.make(
   'push',
-  {},
-  Effect.fn('film.sfx.push')(function* () {
+  {
+    from: Flag.String('from').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        'a folder store (an older one, e.g. ~/film-sounds) to send each file from when it is not here; nothing is deleted from it',
+      ),
+    ),
+  },
+  Effect.fn('film.sfx.push')(function* (input) {
     const scores = yield* (yield* FilmRepo).scores;
-    const { sent, had, missing, total } = yield* (yield* SoundLibrary).push(scores);
+    const { sent, had, missing, total } = yield* (yield* SoundLibrary).push(scores, input.from);
     for (const file of sent) yield* Console.log(`sent  ${file}`);
-    for (const file of missing)
-      yield* Console.log(`missing  ${file}  (not here, not in the store)`);
+    let nowhere = 'not here, not in the store';
+    if (Option.isSome(input.from))
+      nowhere = `not here, not in ${input.from.value}, not in the store`;
+    for (const file of missing) yield* Console.log(`missing  ${file}  (${nowhere})`);
     yield* Console.log(
       `pushed ${sent.length}, had ${had}, missing ${missing.length}, of ${total} private files`,
     );

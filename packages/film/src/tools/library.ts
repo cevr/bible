@@ -36,7 +36,6 @@ import {
   type Playable,
   SFX_FORMAT,
   SFX_MODEL,
-  type SoundStoreConfig,
   type SoundSource,
   type Sounds,
   type StagedAudio,
@@ -78,6 +77,7 @@ import {
   SoundStale,
   SoundUnmade,
   StoreCopyFailed,
+  type StoreFailed,
   TrialInvalid,
   type UnknownSound,
   VariantMissing,
@@ -86,12 +86,12 @@ import { libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import {
+  type MediaStoreService,
   type PrivateFile,
   type Scores,
-  type SoundStoreService,
   expandHome,
-  folderStore,
-} from './sound-store.ts';
+} from './media-store.ts';
+import { PrivateStore, type StoreUnavailable } from './private-store.ts';
 
 /** Every path the library touches. */
 export interface SoundsPaths {
@@ -112,7 +112,6 @@ export interface LoadedLibrary {
   readonly paths: SoundsPaths;
   readonly library: Library;
   readonly lock: Lock;
-  readonly store: SoundStoreConfig;
 }
 
 /** What a mix reads of a loaded library. */
@@ -325,16 +324,25 @@ export interface SoundLibraryService {
    * Bring every private file missing here (or not its hash) back from the
    * store: the lock's under `files/`, and the films' `scores`; name those it lacks.
    */
-  readonly pull: (scores: Scores) => Effect.Effect<PullReport, LibraryError | PlatformError>;
+  readonly pull: (
+    scores: Scores,
+  ) => Effect.Effect<PullReport, LibraryError | PlatformError | StoreFailed | StoreUnavailable>;
   /**
    * Copy every private file the store lacks (or holds with other bytes) into
    * it, each read back by hash: the lock's under `files/`, and the films'
-   * `scores`. `sent` names the files copied, `had` counts those the store
-   * already held, `missing` names those found nowhere, `total` all of them.
+   * `scores`. A file is sent from here, or else from the folder `from` (an
+   * older folder store, at the same key), when either holds its bytes; it is
+   * never deleted from either. `sent` names the files copied, `had` counts
+   * those the store already held, `missing` names those found nowhere,
+   * `total` all of them.
    */
   readonly push: (
     scores: Scores,
-  ) => Effect.Effect<PushReport, LibraryError | PlatformError | StoreCopyFailed>;
+    from: Option.Option<string>,
+  ) => Effect.Effect<
+    PushReport,
+    LibraryError | PlatformError | StoreCopyFailed | StoreFailed | StoreUnavailable
+  >;
   /** Of `files` (as staged for a commit), the audio a public repo may not take (`refusedAudio`). */
   readonly guard: (
     files: ReadonlyArray<string>,
@@ -381,6 +389,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
         const crypto = yield* Crypto.Crypto;
+        const privateStore = yield* PrivateStore;
         const sha256 = (bytes: Uint8Array) => Effect.map(crypto.digest('SHA-256', bytes), hex);
         const outputs = yield* Config.String('FILMS_OUT').pipe(
           Config.withDefault(path.resolve('out')),
@@ -405,7 +414,6 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             paths,
             library: declared.library,
             lock,
-            store: declared.store,
           };
           return loaded;
         });
@@ -844,9 +852,6 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         });
         const check = checkLibrary();
 
-        const storeOf = (loaded: LoadedLibrary): SoundStoreService =>
-          folderStore(fs, path, expandHome(loaded.store.folder, home), sha256);
-
         /**
          * Every private file the store keeps: each lock file under `files/`
          * (its key is that path), then each film's score.
@@ -864,7 +869,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const pullFiles = Effect.fn('SoundLibrary.pull')(function* (scores: Scores) {
           const loaded = yield* load;
-          const remote = storeOf(loaded);
+          const remote = yield* privateStore.store;
           let fetched = 0;
           let had = 0;
           const missing: Array<string> = [];
@@ -882,26 +887,42 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             fetched++;
           }
           yield* Effect.log(
-            `sfx.pull store=${remote.where} fetched=${fetched} had=${had} missing=${missing.length} todo="${loaded.store.remote.todo}"`,
+            `sfx.pull store=${remote.where} fetched=${fetched} had=${had} missing=${missing.length}`,
           );
           const report: PullReport = { fetched, had, missing };
           return report;
         });
 
-        /** Whether the file is here with its bytes. */
-        const holdsHere = (file: PrivateFile) =>
+        /** Whether the file at `at` is there with the bytes hashed `sha`. */
+        const holdsAt = (at: string, sha: string) =>
           Effect.gen(function* () {
-            if (!(yield* fs.exists(file.file))) return false;
-            return (yield* sha256(yield* fs.readFile(file.file))) === file.sha256;
+            if (!(yield* fs.exists(at))) return false;
+            return (yield* sha256(yield* fs.readFile(at))) === sha;
           });
 
+        /** Whether the file is here with its bytes. */
+        const holdsHere = (file: PrivateFile) => holdsAt(file.file, file.sha256);
+
         /** Whether the store holds the file's bytes. */
-        const holdsIn = (remote: SoundStoreService, file: PrivateFile) =>
+        const holdsIn = (remote: MediaStoreService, file: PrivateFile) =>
           Effect.map(remote.hashOf(file.key), (h) => Option.contains(h, file.sha256));
 
-        const pushFiles = Effect.fn('SoundLibrary.push')(function* (scores: Scores) {
+        /** Where the file's bytes can be sent from: here, else the folder `from` at its key. */
+        const sourceOf = (file: PrivateFile, from: Option.Option<string>) =>
+          Effect.gen(function* () {
+            if (yield* holdsHere(file)) return Option.some(file.file);
+            if (Option.isNone(from)) return Option.none<string>();
+            const at = path.join(expandHome(from.value, home), file.key);
+            if (yield* holdsAt(at, file.sha256)) return Option.some(at);
+            return Option.none<string>();
+          });
+
+        const pushFiles = Effect.fn('SoundLibrary.push')(function* (
+          scores: Scores,
+          from: Option.Option<string>,
+        ) {
           const loaded = yield* load;
-          const remote = storeOf(loaded);
+          const remote = yield* privateStore.store;
           const files = privateFiles(loaded.lock, scores);
           const sent: Array<string> = [];
           const missing: Array<string> = [];
@@ -911,19 +932,20 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               had++;
               continue;
             }
-            if (!(yield* holdsHere(file))) {
+            const source = yield* sourceOf(file, from);
+            if (Option.isNone(source)) {
               missing.push(file.key);
               yield* Effect.logWarning(`sfx.push.missing file=${file.key}`);
               continue;
             }
-            yield* remote.put(file.key, file.file);
+            yield* remote.put(file.key, source.value);
             if (!(yield* holdsIn(remote, file)))
               return yield* StoreCopyFailed.make({ file: file.key, store: remote.where });
             sent.push(file.key);
             yield* Effect.log(`sfx.push.sent file=${file.key}`);
           }
           yield* Effect.log(
-            `sfx.push store=${remote.where} sent=${sent.length} had=${had} missing=${missing.length} total=${files.length} todo="${loaded.store.remote.todo}"`,
+            `sfx.push store=${remote.where} sent=${sent.length} had=${had} missing=${missing.length} total=${files.length}`,
           );
           const report: PushReport = { sent, had, missing, total: files.length };
           return report;

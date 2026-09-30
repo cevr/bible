@@ -49,7 +49,4 @@ export const library = defineLibrary({
   },
 });
 
-export const store = {
-  folder: '~/film-media/fixture-sounds',
-  remote: { todo: 'the fixture library has no remote' },
-};
+export const store = { kind: 'folder', folder: '~/film-media/fixture-sounds' };

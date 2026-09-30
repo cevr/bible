@@ -19,7 +19,7 @@ import {
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
-import { NO_SCORES } from './sound-store.ts';
+import { NO_SCORES } from './media-store.ts';
 import { STUDIO_MAX_BODY, studioHandler } from './studio.ts';
 import { Takes } from './takes.ts';
 import {

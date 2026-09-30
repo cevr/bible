@@ -9,6 +9,7 @@
 //   film score <film> [--force] [--dry-run]
 //   film mix <film> [--stems]
 //   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
+//   film media push <file…> [--under dir] | pull <key…> [--to dir] | list [prefix]  (media-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
 //   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
@@ -44,6 +45,7 @@ import {
   Stdio,
 } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { FetchHttpClient } from 'effect/unstable/http';
 import type { ChildProcessSpawner } from 'effect/unstable/process';
 import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
@@ -105,7 +107,9 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { media } from './media-cli.ts';
 import { sfx } from './sfx-cli.ts';
+import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
 import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
@@ -360,7 +364,7 @@ const score = Command.make(
     });
     if (input.dryRun) return;
     // Generated music may not sit in the public repo: into the private store at once.
-    yield* (yield* SoundLibrary).push(yield* repo.scores);
+    yield* (yield* SoundLibrary).push(yield* repo.scores, Option.none());
     yield* (yield* Mixer).mix(input.film, { stems: false, score: Option.none() });
   }),
 ).pipe(
@@ -1013,9 +1017,12 @@ export const runFilmCli = <E>({
     Layer.provide([Repo, Store, Platform]),
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
-  const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Platform]));
+  const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
+  const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
   const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Platform)),
+    Layer.provideMerge(
+      Layer.mergeAll(Repo, Notes, Source, Check, Library, Private, Store, Tools, Platform),
+    ),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
@@ -1032,6 +1039,7 @@ export const runFilmCli = <E>({
       script,
       score,
       sfx,
+      media,
       mix,
       cues(checkLayer),
       check(checkLayer),

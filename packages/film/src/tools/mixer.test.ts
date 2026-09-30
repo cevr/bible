@@ -14,7 +14,7 @@ import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
-import { NO_SCORES } from './sound-store.ts';
+import { NO_SCORES } from './media-store.ts';
 import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello.', min: 5 }];

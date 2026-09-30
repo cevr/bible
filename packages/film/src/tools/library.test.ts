@@ -25,7 +25,9 @@ import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from './errors.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
-import { NO_SCORES, type Scores } from './sound-store.ts';
+import { PrivateStore } from './private-store.ts';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { NO_SCORES, type Scores } from './media-store.ts';
 
 const LIBRARY = `export const library = {
   'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, candidates: 4, use: 'one-shot' },
@@ -42,7 +44,7 @@ const LIBRARY = `export const library = {
     use: 'one-shot',
   },
 };
-export const store = { folder: 'STORE', remote: { todo: 'a private repo or R2' } };
+export const store = { kind: 'folder', folder: 'STORE' };
 `;
 
 /**
@@ -118,8 +120,10 @@ const fixture = Layer.unwrap(
     const config = ConfigProvider.layer(
       ConfigProvider.fromUnknown({ FILMS_OUT: path.join(root, 'out'), HOME: root }),
     );
+    // The store the fixture's library.ts declares: a folder beside it.
+    const store = PrivateStore.layer(dir).pipe(Layer.provide([FetchHttpClient.layer, config]));
     return SoundLibrary.layer(dir).pipe(
-      Layer.provide([ContentStore.layer, fakeSfx(calls), config]),
+      Layer.provide([ContentStore.layer, fakeSfx(calls), store, config]),
       Layer.provideMerge(Media.layer),
       Layer.merge(Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls }))),
     );
@@ -369,7 +373,7 @@ describe('SoundLibrary', () => {
           yield* library.make(all);
           const lock = (yield* library.load).lock;
           const files = Object.values(lock).flatMap((e) => e.candidates.map((v) => v.file));
-          const first = yield* library.push(NO_SCORES);
+          const first = yield* library.push(NO_SCORES, Option.none());
           expect([...first.sent].sort()).toEqual([...files].sort());
           expect(first).toMatchObject({ had: 0, missing: [], total: 6 });
           const broken = files[0] ?? '';
@@ -379,7 +383,7 @@ describe('SoundLibrary', () => {
           yield* fs.remove(`${storeDir}/${gone}`);
           yield* fs.remove(`${storeDir}/${lost}`);
           yield* fs.remove(`${dir}/${lost}`);
-          const again = yield* library.push(NO_SCORES);
+          const again = yield* library.push(NO_SCORES, Option.none());
           expect([...again.sent].sort()).toEqual([broken, gone].sort());
           expect(again).toMatchObject({ had: 3, missing: [lost], total: 6 });
           // Pull names the file the store lacks, and brings back the rest.
@@ -400,12 +404,53 @@ describe('SoundLibrary', () => {
             ],
             dirs: [`${dir}/../films/f/sound`],
           };
-          const sent = yield* library.push(scores);
+          const sent = yield* library.push(scores, Option.none());
           expect(sent.sent).toEqual(['scores/f/piano-1.mp3']);
           expect(yield* fs.readFileString(`${storeDir}/scores/f/piano-1.mp3`)).toBe('a score');
           yield* fs.remove(score);
           expect(yield* library.pull(scores)).toEqual({ fetched: 1, had: 5, missing: [lost] });
           expect(yield* fs.readFileString(score)).toBe('a score');
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'push --from moves an older folder store into the store, names what neither holds, deletes nothing, and runs again as a no-op',
+    () =>
+      withLibrary(({ dir, storeDir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          yield* library.make(all);
+          const lock = (yield* library.load).lock;
+          const files = Object.values(lock)
+            .flatMap((e) => e.candidates.map((v) => v.file))
+            .toSorted();
+          // The files live only in an older folder store; one of them nowhere at all.
+          const old = `${dir}/../old-store`;
+          for (const file of files) {
+            yield* fs.makeDirectory(`${old}/${file.split('/').slice(0, -1).join('/')}`, {
+              recursive: true,
+            });
+            yield* fs.rename(`${dir}/${file}`, `${old}/${file}`);
+          }
+          const lost = files[0] ?? '';
+          yield* fs.remove(`${old}/${lost}`);
+          // And one of them there with other bytes: not its hash, so not sent.
+          const bent = files[1] ?? '';
+          yield* fs.writeFileString(`${old}/${bent}`, 'not these bytes');
+
+          const moved = yield* library.push(NO_SCORES, Option.some(old));
+          expect([...moved.sent].sort()).toEqual(files.slice(2));
+          expect([...moved.missing].sort()).toEqual([lost, bent].sort());
+          expect(moved).toMatchObject({ had: 0, total: files.length });
+          for (const file of files.slice(2)) {
+            expect(yield* fs.exists(`${storeDir}/${file}`)).toBe(true);
+            expect(yield* fs.exists(`${old}/${file}`)).toBe(true);
+          }
+          const again = yield* library.push(NO_SCORES, Option.some(old));
+          expect(again).toMatchObject({ sent: [], had: files.length - 2, total: files.length });
+          expect([...again.missing].sort()).toEqual([lost, bent].sort());
         }),
       ),
   );
@@ -424,8 +469,13 @@ describe('SoundLibrary', () => {
           'wood.knock',
         ]);
 
-        expect(yield* library.push(NO_SCORES)).toMatchObject({ had: 0, total: 6 });
-        expect(yield* library.push(NO_SCORES)).toEqual({ sent: [], had: 6, missing: [], total: 6 });
+        expect(yield* library.push(NO_SCORES, Option.none())).toMatchObject({ had: 0, total: 6 });
+        expect(yield* library.push(NO_SCORES, Option.none())).toEqual({
+          sent: [],
+          had: 6,
+          missing: [],
+          total: 6,
+        });
         const lock = (yield* library.load).lock;
         const slide = lock['paper.slide']?.variants[0]?.file ?? '';
         const court = lock['amb.court']?.variants[0]?.file ?? '';

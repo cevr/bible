@@ -17,7 +17,7 @@
 // (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
 // heard better.
 
-import { defineLibrary } from '@bible/film/core';
+import { defineLibrary, defineStore } from '@bible/film/core';
 
 /** Every generated bed's length: long enough that its loop point is rarely heard. */
 const BED_SECS = 22;
@@ -252,13 +252,16 @@ export const library = defineLibrary({
 });
 
 /**
- * Where the private `files/` are kept off the repo. Never under `~/film-media`:
- * the renders index (`film-media`, run every minute) deletes every file there
- * it did not mirror itself, and it emptied the first library's store that way.
+ * Where the private media is kept off the repo: the library's `files/`, the
+ * films' scores (`scores/<film>/`) and review renders (`renders/`). Never a
+ * folder under `~/film-media`: the renders index (`film-media`, run every
+ * minute) deletes every file there it did not mirror itself, and it emptied
+ * the first library's store that way.
+ *
+ * The owner chose a private R2 bucket (`film-store`, declared in
+ * `../alchemy.run.ts`). Until it is deployed this stays the folder; the move
+ * is this line becoming `defineStore({ kind: 'r2', bucket: 'film-store' })`,
+ * then `bun run store:keys` and `bun run sfx push --from ~/film-sounds`
+ * (README, "The private store").
  */
-export const store = {
-  folder: '~/film-sounds',
-  remote: {
-    todo: "the owner's choice (audio-design §8): a private Git repo such as cevr/bible-sounds, or a private R2 bucket keyed by sha256",
-  },
-};
+export const store = defineStore({ kind: 'folder', folder: '~/film-sounds' });

@@ -7,14 +7,7 @@
 
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { type Placed, layout } from '../core/layout.ts';
-import {
-  Library,
-  type Lock,
-  LockJson,
-  NO_SOUNDS,
-  SoundStoreConfig,
-  type Sounds,
-} from '../core/sfx.ts';
+import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds, StoreConfig } from '../core/sfx.ts';
 import {
   HeardAs,
   Look,
@@ -29,7 +22,7 @@ import {
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { FilmModuleInvalid, FilmNotFound, LayoutInvalid, WordMissing } from './errors.ts';
-import { type PrivateFile, type Scores, scoreKey } from './sound-store.ts';
+import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
 export interface FilmPaths {
@@ -105,7 +98,7 @@ const ShortsModule = Schema.Struct({ shorts: Shorts });
 export const importFilmModule = (file: string) => import(file);
 
 /** What an app's `sounds/library.ts` exports: its sounds, and where their private files are kept. */
-const LibraryModule = Schema.Struct({ library: Library, store: SoundStoreConfig });
+const LibraryModule = Schema.Struct({ library: Library, store: StoreConfig });
 
 /** An app's `sounds/library.ts`, decoded. */
 export const libraryModule = (file: string) =>

@@ -223,6 +223,34 @@ export class StoreCopyFailed extends Schema.TaggedError<StoreCopyFailed>()('Stor
   }
 }
 
+/**
+ * The private store could not do `op` on `key`: a file it could not read or
+ * write, an answer from R2 other than the one asked for (its status and S3
+ * error code), or bytes that are not the hash they were stored under.
+ */
+export class StoreFailed extends Schema.TaggedError<StoreFailed>()('StoreFailed', {
+  store: Schema.String,
+  op: Schema.String,
+  key: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the store at ${this.store} could not ${this.op} ${this.key}: ${this.reason}`;
+  }
+}
+
+/** The store is an R2 bucket and the environment lacks what reaches it (names only; values are never read into a message). */
+export class StoreCredentialsMissing extends Schema.TaggedError<StoreCredentialsMissing>()(
+  'StoreCredentialsMissing',
+  { bucket: Schema.String, missing: Schema.Array(Schema.String) },
+) {
+  override get message() {
+    let verb = 'are';
+    if (this.missing.length === 1) verb = 'is';
+    return `the store is the R2 bucket ${this.bucket}, and ${this.missing.join(', ')} ${verb} not set: after the stack is deployed, \`bun run store:keys\` in apps/animations writes them to its .env`;
+  }
+}
+
 /** A command that takes one kind of sound given another (`sfx render` a generated one, `import` a procedural one). */
 export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   'SoundKindMismatch',
