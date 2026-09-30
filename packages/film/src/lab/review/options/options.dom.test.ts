@@ -1,13 +1,16 @@
-// A film's options in a browser, its routes faked over a synthetic film of
-// three score options and one library sound: home links the film; its page
-// puts the render on the clock and one mix heard over it (🔊 swaps it: a
-// score option's, a take's in place); Pick writes `play` and the page reads
-// the film again (the pick shown, Undo offered, the check after it); a take
-// is kept; Undo is sent to the film's own route; a placement jumps the clock;
-// a mix whose first load failed is heard once its retry lands; and a phone's
-// width scrolls nothing sideways.
+// A film's choices in a browser, its routes faked over a synthetic film with
+// a score of three options, one library sound's takes, a look and a level:
+// home links the film; its page puts the render on the clock and one mix
+// heard over it (🔊 swaps it: a score option's, a take's in place); Pick
+// writes `play`, the page reads the film again (the pick shown, Undo
+// offered, the check after it) and runs the sound check, showing its
+// findings; a take is kept; a look picked; a level's knob set; a variant
+// approved and commented on; Undo is sent to the film's own route; a mark
+// jumps the clock; a mix whose first load failed is heard once its retry
+// lands; and a phone's width scrolls nothing sideways. Every wait is on the
+// page (a selector, a condition) or its clock, never a fixed time.
 
-import { Effect, FileSystem, Option } from 'effect';
+import { Effect, FileSystem, Option, Schema } from 'effect';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
@@ -24,62 +27,174 @@ import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
 
-const variant = (id: string, state: string): Json => ({
-  id,
-  styles: [`${id} style`],
-  movements: [],
-  state,
-});
-
-const take = (id: string, state: string, index: number): Json => ({
-  id,
-  state,
-  index,
-  secs: 1.5,
-  loudest: -18,
-  made: '2026-09-01',
-  current: true,
-});
+/** A posted body as its JSON text. */
+const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 const KEPT = 'a'.repeat(64);
 const WAITING = 'b'.repeat(64);
 
-const choices = (picked: string): Json => ({
+interface VariantFields {
+  readonly state?: string;
+  readonly picked?: boolean;
+  readonly verbs?: ReadonlyArray<string>;
+  readonly media?: Json;
+  readonly approval?: string;
+  readonly comments?: ReadonlyArray<Json>;
+}
+
+/** A variant as the server encodes it. */
+const variant = (id: string, fields: VariantFields = {}): Json => ({
+  id,
+  label: id.slice(0, 12),
+  lines: [`${id.slice(0, 12)} line`],
+  state: fields.state ?? 'current',
+  picked: fields.picked ?? false,
+  verbs: fields.verbs ?? [],
+  media: fields.media ?? { _tag: 'Heard', alone: false, inPlace: true },
+  key: id,
+  approval: fields.approval ?? 'none',
+  comments: fields.comments ?? [],
+});
+
+/** A point as the server encodes it. */
+const point = (
+  id: string,
+  kind: string,
+  address: Json,
+  variants: ReadonlyArray<Json>,
+  more: { readonly marks?: ReadonlyArray<Json>; readonly knob?: Json } = {},
+): Json => ({
+  id,
+  kind,
+  address,
+  title: id,
+  lines: [],
+  start: 0,
+  marks: more.marks ?? [],
+  ...Option.match(Option.fromUndefinedOr(more.knob), {
+    onNone: () => ({}),
+    onSome: (knob) => ({ knob }),
+  }),
+  variants,
+});
+
+const FILM_AT: Json = { _tag: 'Film' };
+const OPEN_AT: Json = { _tag: 'Scenes', ids: ['open'] };
+
+/** The fake film's state: what it plays, and what was said. */
+interface Toy {
+  picked: string;
+  look: string;
+  level: number;
+  approved: boolean;
+  said: ReadonlyArray<string>;
+}
+
+const SCORE_STATES = new Map([
+  ['strings', 'current'],
+  ['piano', 'stale'],
+  ['choir', 'missing'],
+]);
+
+/** What was said of the strings option, as the server lists it. */
+const saidOf = (toy: Toy): ReadonlyArray<Json> =>
+  toy.said.map((t, i) => ({
+    id: `c${i + 1}`,
+    address: FILM_AT,
+    point: 'score',
+    variant: 'strings',
+    key: 'strings',
+    text: t,
+    at: i,
+    onThis: true,
+  }));
+
+const scoreOption = (toy: Toy, id: string): Json => {
+  const own = id === 'strings';
+  return variant(id, {
+    state: SCORE_STATES.get(id),
+    picked: id === toy.picked,
+    verbs: [id].filter((v) => v !== toy.picked && v !== 'choir').map(() => 'pick'),
+    media: { _tag: 'Heard', alone: false, inPlace: id !== 'choir' },
+    approval: [own && toy.approved].filter(Boolean).map(() => 'approved')[0] ?? 'none',
+    comments: [own].filter(Boolean).flatMap(() => saidOf(toy)),
+  });
+};
+
+const choices = (toy: Toy): Json => ({
   film: 'toy',
   pictures: [{ ref: 'out/toy/toy.mp4', name: 'toy.mp4', size: 2048, mtime: 0, phone: 'none' }],
-  choices: [
-    {
-      _tag: 'ScoreChoice',
-      picked,
-      variants: [
-        variant('strings', 'current'),
-        variant('piano', 'stale'),
-        variant('choir', 'missing'),
+  points: [
+    point(
+      'score',
+      'score',
+      FILM_AT,
+      ['strings', 'piano', 'choir'].map((id) => scoreOption(toy, id)),
+    ),
+    point(
+      'look:ground',
+      'look',
+      FILM_AT,
+      ['now', 'light'].map((id) =>
+        variant(id, {
+          picked: id === toy.look,
+          verbs: [id].filter((v) => v !== toy.look).map(() => 'pick'),
+          media: { _tag: 'Unseen' },
+        }),
+      ),
+    ),
+    point(
+      'take:paper.page',
+      'take',
+      OPEN_AT,
+      [
+        variant(KEPT, {
+          picked: true,
+          verbs: ['unpick'],
+          media: { _tag: 'Heard', alone: true, inPlace: true },
+        }),
+        variant(WAITING, {
+          verbs: ['pick', 'reject'],
+          media: { _tag: 'Heard', alone: true, inPlace: true },
+        }),
       ],
-    },
-    {
-      _tag: 'EffectChoice',
-      sound: 'paper.page',
-      placements: [{ effect: 'hush', scene: 'open', at: 2 }],
-      takes: [take(KEPT, 'kept', 1), take(WAITING, 'candidate', 1)],
-    },
+      { marks: [{ t: 2, label: 'hush · open' }] },
+    ),
+    point('level:const:PAPER', 'level', OPEN_AT, [], {
+      knob: { value: toy.level, min: -40, max: 0, step: 0.5, unit: 'dB' },
+    }),
   ],
 });
 
-/** The fake film: what it plays, and whether a write stands to be undone. */
+/** The text of a posted body, when it has one. */
+const bodyText = (body: Option.Option<Json>): string =>
+  Option.getOrElse(Option.map(body, jsonText), () => '');
+
+/** The fake film: its choices, its writes, its check and its sound check. */
 const fakeFilm = () => {
-  let picked = 'strings';
+  const toy: Toy = { picked: 'strings', look: 'now', level: -24, approved: false, said: [] };
   let undo = Option.none<string>();
   const wrote = (target: string, file: string): Json => ({
     file,
     target,
-    choices: choices(picked),
+    choices: choices(toy),
     findings: [],
   });
   const routes: ReadonlyArray<FakeRoute> = [
     route('GET', /^\/review\/index/, () => json({ folders: [] })),
     route('GET', /^\/review\/films$/, () => json({ films: ['toy'] })),
-    route('GET', /^\/lab\/toy\/options$/, () => json(choices(picked))),
+    route('GET', /^\/lab\/toy\/choices$/, () => json(choices(toy))),
+    route('GET', /^\/lab\/toy\/choices\/check$/, () =>
+      json({
+        findings: [
+          {
+            level: 'warning',
+            tag: 'Balance',
+            message: `the score sits under the voice at ${toy.picked}`,
+          },
+        ],
+      }),
+    ),
     route('GET', /^\/lab\/toy\/check$/, () =>
       json({
         findings: Option.match(undo, {
@@ -92,16 +207,32 @@ const fakeFilm = () => {
         }),
       }),
     ),
-    route('POST', /^\/lab\/toy\/options\/score\/pick$/, () => {
-      picked = 'piano';
+    route('POST', /^\/lab\/toy\/choices\/pick$/, (asked) => {
+      const body = bodyText(asked.body);
+      if (body.includes('look:ground')) {
+        toy.look = 'light';
+        return json(wrote('look ground play light', 'palette.ts'));
+      }
+      if (body.includes('take:paper.page'))
+        return json(wrote('sound paper.page keep bbbbbbbbbbbb', '../../sounds/library.lock.json'));
+      toy.picked = 'piano';
       undo = Option.some('score play piano');
       return json(wrote('score play piano', 'sound.ts'));
     }),
-    route('POST', /^\/lab\/toy\/options\/effect\/paper\.page\/takes$/, () =>
-      json(wrote('sound paper.page keep bbbbbbbbbbbb', '../../sounds/library.lock.json')),
-    ),
+    route('POST', /^\/lab\/toy\/choices\/knob$/, () => {
+      toy.level = -20;
+      return json(wrote('level:const:PAPER -20', 'sound.ts'));
+    }),
+    route('POST', /^\/lab\/toy\/choices\/approve$/, () => {
+      toy.approved = true;
+      return json(choices(toy));
+    }),
+    route('POST', /^\/lab\/toy\/choices\/comment$/, () => {
+      toy.said = [...toy.said, 'warmer in the close'];
+      return json(choices(toy));
+    }),
     route('POST', /^\/lab\/toy\/undo$/, () => {
-      picked = 'strings';
+      toy.picked = 'strings';
       undo = Option.none();
       return json({ file: 'sound.ts', target: 'undo score play piano', findings: [] });
     }),
@@ -123,18 +254,30 @@ const evaluate = <A>(page: Page, script: string) =>
 
 const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
 
-describe("a film's options", () => {
+/** A variant's element by its point and id. */
+const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
+
+/** The body a POST to `path` carried. */
+const posted = (
+  asked: ReadonlyArray<{ readonly path: string; readonly body: Option.Option<Json> }>,
+  path: string,
+) =>
+  Option.getOrUndefined(
+    Option.flatMap(Option.fromUndefinedOr(asked.find((a) => a.path === path)), (a) => a.body),
+  );
+
+describe("a film's choices", () => {
   it.live(
     'home links the film; its page hears the picked option over the render, and 🔊 swaps it',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        yield* click(page, 'a.rv-chip >> text=toy · options');
+        yield* click(page, 'a.rv-chip >> text=toy · choices');
         yield* until(page, "location.search === '?film=toy'");
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
         // The picked option is heard first; the picture's own sound is muted.
-        yield* until(page, `${MIX}.startsWith('/lab/toy/options/score/strings/mix')`);
+        yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
         expect(
           yield* evaluate<boolean>(page, "document.querySelector('.rv-picture video').muted"),
         ).toBe(true);
@@ -142,24 +285,30 @@ describe("a film's options", () => {
         expect(
           yield* evaluate<boolean>(
             page,
-            'document.querySelector(\'[data-option="choir"] [data-act="hear"]\').disabled',
+            `document.querySelector('${at('score', 'choir')} [data-act="hear"]') === null`,
           ),
         ).toBe(true);
-        yield* click(page, '[data-option="piano"] [data-act="hear"]');
-        yield* until(page, `${MIX}.startsWith('/lab/toy/options/score/piano/mix')`);
-        yield* waitFor(page, '[data-option="piano"] [data-act="hear"][aria-pressed="true"]');
-        // A take in place.
-        yield* click(page, `[data-take="${WAITING}"] [data-act="hear"]`);
+        yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
+        yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=piano')`);
+        yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
+        // A take in place, and alone.
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear"]`);
         yield* until(
           page,
-          `${MIX}.startsWith('/lab/toy/options/effect/paper.page/takes/${WAITING}/mix')`,
+          `${MIX}.startsWith('/lab/toy/choices/mix?point=take%3Apaper.page&variant=${WAITING}')`,
         );
+        expect(
+          yield* evaluate<string>(
+            page,
+            `document.querySelector('${at('take:paper.page', WAITING)} audio').getAttribute('src')`,
+          ),
+        ).toBe(`/lab/toy/choices/alone?point=take%3Apaper.page&variant=${WAITING}`);
         // The picture's own sound: no mix, the picture heard.
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
         yield* until(page, "document.querySelector('.rv-picture video').muted === false");
-        // A placement jumps the clock to it.
-        yield* click(page, '[data-sound="paper.page"] button[data-at="2"]');
+        // A mark jumps the clock to it.
+        yield* click(page, '[data-point="take:paper.page"] button[data-at="2"]');
         yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -167,56 +316,110 @@ describe("a film's options", () => {
   );
 
   it.live(
-    'a pick is written and read back, a take kept, and Undo sent to the film',
+    'a pick is written and read back, the sound check shown after it, a take kept, and Undo sent',
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { search: FILM });
-        yield* waitFor(page, '[data-option="strings"] .rv-badge');
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
-        yield* click(page, '[data-option="piano"] [data-act="pick"]');
-        yield* waitFor(page, '[data-option="piano"] .rv-badge');
+        // No sound check before a pick.
+        expect(asked.some((a) => a.path === '/lab/toy/choices/check')).toBe(false);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
         yield* until(
           page,
           "document.querySelector('.rv-status').textContent.includes('score play piano')",
         );
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
-        yield* until(
-          page,
-          'document.querySelector(\'.rv-findings li[data-level="warning"]\') !== null',
-        );
-        const pick = asked.find((a) => a.path === '/lab/toy/options/score/pick');
-        expect(
-          Option.getOrUndefined(Option.flatMap(Option.fromUndefinedOr(pick), (a) => a.body)),
-        ).toEqual({
-          option: 'piano',
+        expect(posted(asked, '/lab/toy/choices/pick')).toEqual({
+          point: 'score',
+          variant: 'piano',
+          verb: 'pick',
         });
+        // The sound check runs after the pick, and its findings are shown.
+        yield* waitFor(page, '[data-check="sound check"] summary[data-findings="1"]');
+        expect(
+          yield* evaluate<string>(
+            page,
+            'document.querySelector(\'[data-check="sound check"] li\').textContent',
+          ),
+        ).toContain('the score sits under the voice at piano');
         // Every mix is asked for again once the source has changed.
-        yield* until(page, `${MIX}.endsWith('?v=1')`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
 
-        yield* click(page, `[data-take="${WAITING}"] [data-act="keep"]`);
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="pick"]`);
         yield* until(
           page,
           "document.querySelector('.rv-status').textContent.includes('sound paper.page keep')",
         );
-        const keep = asked.find((a) => a.path === '/lab/toy/options/effect/paper.page/takes');
-        expect(
-          Option.getOrUndefined(Option.flatMap(Option.fromUndefinedOr(keep), (a) => a.body)),
-        ).toEqual({
-          take: WAITING,
-          act: 'keep',
-        });
-        // A kept take can only be unkept.
+        // A kept take can only be unkept (and approved).
         expect(
           yield* evaluate<string>(
             page,
-            `Array.from(document.querySelectorAll('[data-take="${KEPT}"] .rv-chip')).map((b) => b.dataset.act).join()`,
+            `Array.from(document.querySelectorAll('${at('take:paper.page', KEPT)} button.rv-chip')).map((b) => b.dataset.act).join()`,
           ),
-        ).toBe('unkeep');
+        ).toBe('unpick,approve,comment');
 
         yield* click(page, '[data-act="undo"]');
-        yield* waitFor(page, '[data-option="strings"] .rv-badge');
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
         expect(asked.some((a) => a.method === 'POST' && a.path === '/lab/toy/undo')).toBe(true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a look is picked, a level's knob set, and a variant approved and commented on",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        yield* waitFor(page, `${at('look:ground', 'now')} .rv-badge`);
+        yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('look:ground', 'light')} .rv-badge`);
+        expect(posted(asked, '/lab/toy/choices/pick')).toEqual({
+          point: 'look:ground',
+          variant: 'light',
+          verb: 'pick',
+        });
+
+        // The knob is written on release.
+        yield* Effect.promise(() =>
+          page.evaluate(`(() => {
+            const input = document.querySelector('[data-knob="level:const:PAPER"] input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`),
+        );
+        yield* until(
+          page,
+          "document.querySelector('.rv-status').textContent.includes('level:const:PAPER -20')",
+        );
+        expect(posted(asked, '/lab/toy/choices/knob')).toEqual({
+          point: 'level:const:PAPER',
+          value: -20,
+        });
+
+        yield* click(page, `${at('score', 'strings')} [data-act="approve"]`);
+        yield* waitFor(
+          page,
+          `${at('score', 'strings')} [data-act="approve"][data-approval="approved"]`,
+        );
+        expect(posted(asked, '/lab/toy/choices/approve')).toEqual({
+          point: 'score',
+          variant: 'strings',
+        });
+        yield* Effect.promise(() =>
+          page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close'),
+        );
+        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        expect(posted(asked, '/lab/toy/choices/comment')).toEqual({
+          point: 'score',
+          variant: 'strings',
+          text: 'warmer in the close',
+        });
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -235,7 +438,7 @@ describe("a film's options", () => {
         const routes: ReadonlyArray<FakeRoute> = [
           route('GET', /^\/review\/files\/out\/toy\/toy\.mp4/, () => file(wav)),
           // The first ask is cut off while the mix renders; the retry finds it made.
-          route('GET', /^\/lab\/toy\/options\/score\/strings\/mix/, () => {
+          route('GET', /^\/lab\/toy\/choices\/mix\?point=score&variant=strings/, () => {
             asks += 1;
             if (asks === 1) return text('the connection dropped', 502);
             return file(wav);
@@ -243,13 +446,12 @@ describe("a film's options", () => {
           ...fakeFilm(),
         ];
         const { page, errors } = yield* openReview(routes, { search: FILM });
-        // The page's timers from here on are the test's: the retry's wait is run through.
-        yield* Effect.promise(() => page.clock.install());
         yield* waitFor(page, '.rv-picture video');
-        yield* until(page, `${MIX}.startsWith('/lab/toy/options/score/strings/mix')`);
+        yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
         yield* until(page, "document.querySelector('audio.rv-mix').error !== null");
         yield* Effect.promise(() => page.keyboard.press('Space'));
         yield* until(page, "document.querySelector('.rv-picture video').paused === false");
+        // The retry's wait is run through on the page's clock.
         yield* Effect.promise(() => page.clock.runFor(5_000));
         yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");
         expect(asks).toBe(2);
@@ -268,7 +470,7 @@ describe("a film's options", () => {
           search: FILM,
           viewport: { width: 390, height: 844 },
         });
-        yield* waitFor(page, '[data-sound="paper.page"]');
+        yield* waitFor(page, '[data-point="take:paper.page"]');
         expect(
           yield* evaluate<boolean>(page, 'document.documentElement.scrollWidth <= innerWidth'),
         ).toBe(true);

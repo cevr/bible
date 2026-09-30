@@ -301,7 +301,8 @@ export interface ReviewAt {
  * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
  * at `search`, with `routes` answering its requests by their whole path
  * (`/review/index`, `/review/files/…`): what none answers is a 404. The
- * browser plays media without a gesture, and closes with the scope.
+ * browser plays media without a gesture, its clock is the test's, and it
+ * closes with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
@@ -341,6 +342,9 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
       });
     }),
   );
+  // The page's clock is the test's, as the lab's is: it runs on with real
+  // time, and a test moves it on (`page.clock.runFor`) rather than waiting.
+  yield* Effect.promise(() => tab.clock.install());
   yield* Effect.promise(() => tab.goto(`${ORIGIN}/${at.search ?? ''}`));
   yield* Effect.promise(() => tab.waitForSelector('.rv-main'));
   const open: OpenLab = { page: tab, asked, errors };

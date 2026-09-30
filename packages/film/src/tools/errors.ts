@@ -31,11 +31,12 @@ export {
   AttemptUnknown,
   AudioInvalid,
   BodyTooLarge,
-  ChoicesProcessFailed,
+  CatalogueInvalid,
   ChoiceUnknown,
   ElevenLabsFailed,
   FilmNotFound,
   FilmUnknown,
+  FreshProcessFailed,
   HeadUnavailable,
   MediaFailed,
   NoteNotFound,
@@ -46,16 +47,18 @@ export {
   ReviewFileUnknown,
   ReviewToolFailed,
   SceneNotLocated,
+  SceneNotRendered,
   SourceChanged,
   SourceRefused,
   SourceShared,
   StillUnknown,
   SttUntimed,
-  TakeActRefused,
   TakeMismatch,
   TakeUnknown,
   TimelineUnresolved,
   UndoUnavailable,
+  VariantUnknown,
+  VerbRefused,
 } from '../core/refusals.ts';
 
 // The look pass's findings, for the modules that import them from here; they
@@ -569,27 +572,6 @@ export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('Writ
 
 // ---------------------------------------------------------------------------
 // Review: the box's renders, served where they lie.
-
-/** A project folder's `catalogue.json` that does not decode. */
-export class CatalogueInvalid extends Schema.TaggedError<CatalogueInvalid>()('CatalogueInvalid', {
-  file: Schema.String,
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `the render catalogue ${this.file} does not read: ${this.reason}`;
-  }
-}
-
-/** An approval or comment on a scene the project holds no render of. */
-export class SceneNotRendered extends Schema.TaggedError<SceneNotRendered>()('SceneNotRendered', {
-  film: Schema.String,
-  scene: Schema.String,
-  variant: Schema.String,
-}) {
-  override get message() {
-    return `${this.film} has no render of scene ${this.scene} (variant ${this.variant}) to review; run film project render ${this.film} first`;
-  }
-}
 
 /** `film project approve` with neither the scenes to approve nor `--all`. */
 export class ApprovalUnnamed extends Schema.TaggedError<ApprovalUnnamed>()('ApprovalUnnamed', {

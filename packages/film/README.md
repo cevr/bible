@@ -320,10 +320,13 @@ its own staleness check) and what a frame fetches at run time.
 each marked when it was made on an earlier render. `film project render
 <film> [--scene id,id] [--scale s] [--variant v] [--force]` renders each scene
 on its own into `scenes/<id>/` and skips one whose render is current at the
-same settings. `film project approve <film> --scene id | --all` approves one
-scene's render, or every current one (a stale or missing scene is left, and
-named). `film project comment <film> <scene> "text"` records a comment on the
-scene's render as it is now. Approvals and comments are keyed by address,
+same settings. `film project approve <film> --scene id,id | --act name |
+--all` approves the scenes' renders, an act's current scenes, or every current
+scene (a stale or missing scene is left, and named). `film project comment
+<film> "text" [--scene id | --act name]` records a comment on a scene's render
+as it is now, on an act, or (with neither) on the whole film. With `--json`
+each prints the project (`ProjectRead`) as one line, or its refusal
+(`FreshRefused`), which is how the review runs it. Approvals and comments are keyed by address,
 variant and the stamp's key: a re-render leaves an approval in place, stale,
 and a render that returns to the approved sources is approved again. Each
 write reads the file, changes it and writes it back whole (a temp name, then a
@@ -611,17 +614,18 @@ The lab's and the review's routes are declared once, as Effect `HttpApi`s,
 in `core/api.ts`: every path, its params, query, body and answer, and every
 failure with its status. Both ends derive from that declaration: the
 servers' handlers (`HttpApiBuilder.group` in `tools/lab.ts`, `studio.ts`,
-`steps-http.ts`, `review-http.ts`, `choices-http.ts`) and the pages'
+`steps-http.ts`, `review-http.ts`, `choices-http.ts`, `project-http.ts`)
+and the pages'
 clients (`HttpApiClient` in `lab/api.ts`, `lab/studio/api.ts`,
 `lab/review/api.ts`, `lab/review/options/api.ts`) with the URLs a page puts
 in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
-`reviewPhoneUrl`, `reviewFrameUrl`, `scoreMixUrl`, `takeAudioUrl`,
-`takeMixUrl`, from `urlBuilder`).
+`reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
+`urlBuilder`).
 
 | API             | Served by                        | Groups                                                                             |
 | --------------- | -------------------------------- | ---------------------------------------------------------------------------------- |
 | `LabHttpApi`    | `film lab <film>` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio` |
-| `ReviewHttpApi` | `film review` (`reviewHandler`)  | `review` (index, file, phone, frame, duration), `options`, `steps`                 |
+| `ReviewHttpApi` | `film review` (`reviewHandler`)  | `review` (index, file, phone, frame, duration), `choices`, `project`, `steps`      |
 
 **Failures cross as themselves.** A failure a route answers is one of
 `Refusals` (`core/api.ts`; the classes are `core/refusals.ts` and
@@ -671,15 +675,16 @@ answered(Effect.gen(…)))`, naming the film with `named(params.film)`.
 4. The foreign-Host test covers it by itself; add a test of what it answers.
 
 For example, the review's project routes (`GET /review/project/<film>?variant=`
-answering a `Project`; `POST /review/project/<film>/approve` `{scene, variant?}`,
-`…/approve-all` `{variant?}` and `…/comment` `{scene, text, variant?}`, each
-answering the fresh `Project`) are one group: a `project` group in
-`core/api.ts` with those four endpoints, added to `ReviewHttpApi` (its
-`/review/project` paths fall under the API's prefixes by themselves);
-one `HttpApiBuilder.group(ReviewHttpApi, 'project', …)` whose handlers run
-`film project <film> --variant v --json` (or the write) in a fresh process,
-as `FreshFilm` does, and decode its `Project`; its layer joins the
-`Layer.mergeAll` in `reviewHandler`; and the page calls `client.project.<name>`.
+answering a `Project`; `POST /review/project/<film>/approve` `{address,
+variant?}`, `…/approve-all` `{variant?}` and `…/comment` `{address, text,
+variant?}`, each answering the fresh `Project`) are one group: `ProjectGroup`
+in `core/api.ts`, added to `ReviewHttpApi` (its `/review/project` paths fall
+under the API's prefixes by themselves). `projectGroup` (`tools/project-http.ts`) runs `film project …
+--json` in a fresh process (`FreshFilm.project`) and decodes its `Project`,
+or its refusal into the refusal's own class and status; a comment's text
+goes after `--`, so one starting with a dash is never a flag. Its layer
+joins the `Layer.mergeAll` in `reviewHandler`, and the page calls
+`client.project.<name>` (`lab/review/options/api.ts`).
 
 ### Studio
 
@@ -985,16 +990,29 @@ is one Effect-native server (`tools/review.ts`, `review-http.ts`,
 `choices.ts`, `choices-http.ts`) and one Solid 2 page (`lab/review/`, its
 options in `lab/review/options/`), dark and made for a phone first.
 
-**An option is a choice point with named variants**, each with media to
-compare. Its kind says how it is picked (`core/schema.ts`; `Choice` in code,
-since `Option` is Effect's):
+**A choice point** (`ChoicePoint`, `core/choice.ts`) is the one shape:
+at an address in the film, variants to compare, pick, comment on and
+approve. Each variant has a state (`current`, `stale`, `missing`), whether
+it is picked, the verbs its state allows (`pick`, `unpick`, `reject`), its
+media (`Seen`: a video; `Heard`: alone and/or in the film's whole mix;
+`Unseen`), the key the owner's say is given on, and that say (approval and
+comments, from the catalogue). A level point has a knob instead of
+variants. One adapter per kind lists them (`tools/choice-points.ts`, render
+sets in `tools/review.ts`), and one dispatch lands each verb
+(`tools/choices.ts`):
 
-| Kind            | Schema         | Variants                                                            | Picked by                                                   |
-| --------------- | -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------- |
-| a render set    | `RenderChoice` | an address's renders in the catalogue, or a montage's `review.json` | nobody: reviewed only                                       |
-| a score         | `ScoreChoice`  | `sound.ts`'s `score.options`, each the whole mix                    | `play` in `sound.ts`                                        |
-| a sound's takes | `EffectChoice` | a library sound's kept variants and candidates                      | the library's keep, unkeep and reject (`library.lock.json`) |
-| a look          | (deferred)     | a style at named levels                                             | joins the union when it has a pick to write                 |
+| Kind     | Id                                                   | Variants                                                            | A pick lands in                                               |
+| -------- | ---------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `render` | `render:<address>`                                   | an address's renders in the catalogue, or a montage's `review.json` | nothing: approved and commented only                          |
+| `score`  | `score`                                              | `sound.ts`'s `score.options`, each heard as the whole mix           | `play` in `sound.ts`                                          |
+| `take`   | `take:<sound>`                                       | a library sound's kept takes and candidates, at the scenes it plays | the library's keep, unkeep, reject (`library.lock.json`)      |
+| `voice`  | `voice:<beat>`                                       | a beat's recorded attempts, newest first; the timings' take picked  | the timings, kept by `film options keep-voice` (then remixed) |
+| `look`   | `look:<name>`                                        | `looks.<name>.options` in `palette.ts` (`ground`: now, light, …)    | `looks.<name>.play` in `palette.ts`                           |
+| `level`  | `level:<bed\|effect\|score>:…`, `level:const:<name>` | none: a knob, in dB, per literal `sound.ts` writes a level with     | that literal (a constant layers share is one knob for all)    |
+
+A look's options are levels a scene reads (`ground`: the paper's ground, `now`
+at 0 drawing today's film); a render of another level is a render variant
+(`--variant light`). A computed level (`PAPER - 2`) is a fixed knob, named why.
 
 **Sets are found by record, never by name.** A folder is listed only when a
 record says what its files are. A film's project folder (`out/<film>`) holds
@@ -1016,26 +1034,29 @@ Derived files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
-| Route                                                       | What it answers                                                    |
-| ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| `GET /review/index[?fresh]`                                 | `ReviewIndex`: every folder with something to review, newest first |
-| `GET /review/files/<ref>`, `/review/phone/<ref>`            | the file, or its phone copy, byte ranges answered 206              |
-| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`     | a JPEG of a video at `t` s, `w` px wide; its length                |
-| `GET /review/films`                                         | `ReviewFilms`: the app's films                                     |
-| `GET /lab/<film>/options`                                   | `FilmChoices`: the film's renders (the pictures) and its choices   |
-| `POST /lab/<film>/options/score/pick`                       | `ScorePick` → `ChoiceWrite`: `play` written                        |
-| `GET /lab/<film>/options/score/<option>/mix`                | the film's whole mix with that option playing (m4a)                |
-| `GET /lab/<film>/options/effect/<sound>/takes/<take>/audio` | the take alone                                                     |
-| `GET /lab/<film>/options/effect/<sound>/takes/<take>/mix`   | the film's whole mix with only that take at every placement (m4a)  |
-| `POST /lab/<film>/options/effect/<sound>/takes`             | `TakeCuration` (`keep`, `unkeep`, `reject`) → `ChoiceWrite`        |
-| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`   | the lab's own, for the film named                                  |
+| Route                                                                        | What it answers                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `GET /review/index[?fresh]`                                                  | `ReviewIndex`: every folder with something to review, newest first |
+| `GET /review/files/<ref>`, `/review/phone/<ref>`                             | the file, or its phone copy, byte ranges answered 206              |
+| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`                      | a JPEG of a video at `t` s, `w` px wide; its length                |
+| `GET /review/films`                                                          | `ReviewFilms`: the app's films                                     |
+| `GET /lab/<film>/choices`                                                    | `FilmChoices`: the film's renders (the pictures) and its points    |
+| `POST /lab/<film>/choices/pick`                                              | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                |
+| `POST /lab/<film>/choices/knob`                                              | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written     |
+| `POST /lab/<film>/choices/approve`, `…/comment`                              | `{point, variant[, text]}` → `FilmChoices`, the say recorded       |
+| `GET /lab/<film>/choices/alone?point=&variant=`                              | the variant's own file (a take, a voice attempt)                   |
+| `GET /lab/<film>/choices/mix?point=&variant=`                                | the film's whole mix with that variant in place (m4a)              |
+| `GET /lab/<film>/choices/check`                                              | `SoundCheck`: `film check --sound` as the film now stands          |
+| `GET /review/project/<film>`; `POST …/approve`, `…/approve-all`, `…/comment` | `Project`, read or written by a fresh `film project` (above)       |
+| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`                    | the lab's own, for the film named                                  |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
 file, makes the new text, formats it with oxfmt through stdin, verifies it
 (the edit reads back as meant), and swaps it in only if the file is still as
-it was read (compare and swap), then runs `check --static`. A score pick
-splices the one `play` string literal (`sound-source.ts`, through oxc); a
+it was read (compare and swap), then runs `check --static`. A score or look
+pick splices the one `play` string literal, and a knob its one level
+literal (`choice-source.ts`, through oxc); a
 take's act runs the library's own `keep`, `unkeep` or `reject` on the lock,
 the writer recording the lock's bytes before and after and leaving the lock
 as oxfmt does (the library's own JSON writer spreads short arrays the
@@ -1067,7 +1088,7 @@ asks again when its load fails. Their URLs name the option, not the source, so t
 are served `no-cache` and revalidated; the page asks again after each write
 (`?v=`). The review imports no film itself: a process keeps the modules it
 imported as they were, so each read of a film's options, and each mix, runs
-the film CLI again (`film options list|mix`, `FreshFilm` in
+the film CLI again (`film options list|mix|keep-voice`, `FreshFilm` in
 `choices-process.ts`, through the app's `self`), and a hand edit to
 `sound.ts` shows on the next read. A film is named in a route as one of the
 app's films (`filmNamed`): any other name is a 404 listing the films, never
@@ -1095,7 +1116,7 @@ scene writes.
 
 **The page** (`lab/review/`): `<Review.Root>` holds the runtime (the review's
 routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
-`?film=`; kept in the URL, so Back and a reload work), the index, the films,
+`?film=`, `?project=`; kept in the URL, so Back and a reload work), the index, the films,
 the quality (720p or the file) and the lightbox. A set's page holds two
 effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
 `Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
@@ -1104,10 +1125,23 @@ that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
 puts its newest render on that player, muted, and one `<audio>` of the mix
-heard over it: 🔊 on a score option or a take ("in place") swaps it, and it
-joins where the clock stands. A sound's placements jump the clock there.
-Pick, Keep, Unkeep and Reject write; Undo and Redo name what they would do;
-the film's check shows under them after every write.
+heard over it: 🔊 on a variant heard in place (a score option, a take) swaps
+it, and it joins where the clock stands. A point's marks jump the clock
+there. Every point is one card (`options/choice.tsx`): its variants with
+their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
+approve and a line to comment; a level point's knob is a slider, written on
+release. Undo and Redo name what they would do; the film's static check shows
+under them after every write, and after a pick or a knob `film check --sound`
+runs (`GET …/choices/check`) and its findings show beside it.
+
+The project view (`?project=<film>`, `options/project.tsx`) is the film by its
+address tree: the film's comments and choice points, then each act (its
+comments, "Approve the act's current scenes", its points) and its scenes; each
+scene its render (the render set at its address in the index), its state, its
+approval, its comments, an approve (a current render only) and a line to
+comment, and the points that play in it (a take, a level, a voice). "Approve
+all current" approves every current scene. Each say answers the fresh
+`Project`, which the page shows; a pick reads it again.
 
 ## Check
 

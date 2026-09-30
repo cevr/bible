@@ -19,8 +19,10 @@ import {
   comment,
   emptyCatalogue,
   recordRender,
+  subjectOf,
 } from '../core/catalogue.ts';
-import { ReviewManifestJson } from '../core/schema.ts';
+import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
+import { ReviewManifestJson } from '../core/review.ts';
 import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
@@ -34,6 +36,24 @@ import {
   projectFolder,
   refOf,
 } from './review.ts';
+
+/** A seen variant's video ref: what the review plays for it. */
+const seenRef = (v: Option.Option<ChoiceVariant>): Option.Option<string> =>
+  Option.flatMap(v, (variant) =>
+    VariantMedia.match(variant.media, {
+      Seen: ({ video }) => Option.some(video.ref),
+      Heard: () => Option.none(),
+      Unseen: () => Option.none(),
+    }),
+  );
+
+/** A seen variant's video, its ref and phone copy state. */
+const phoneOf = (v: ChoiceVariant): Option.Option<string> =>
+  VariantMedia.match(v.media, {
+    Seen: ({ video }) => Option.some(video.phone),
+    Heard: () => Option.none(),
+    Unseen: () => Option.none(),
+  });
 
 const found = (name: string, mtime = 1, size = 10): Found => ({
   path: `/r/art/${name}`,
@@ -190,20 +210,23 @@ describe('a montage', () => {
     expect(folder.title).toEqual(Option.some('Art 3'));
     expect(folder.blurb).toEqual(Option.some('six looks'));
     // A set whose videos are not there is left out.
-    expect(folder.sets.map((s) => s.clip)).toEqual(['lone', 'roof']);
+    expect(folder.sets.map((s) => s.id)).toEqual(['render:lone', 'render:roof']);
+    expect(folder.sets.every((s) => s.kind === 'render' && Option.isNone(s.address))).toBe(true);
     const roof = folder.sets[1];
     expect(roof?.title).toBe('The roof');
     expect(roof?.start).toBe(2);
     expect(roof?.moments).toEqual(Option.some([1, 3]));
     // Its order first, then the rest by name; a share copy stands in for its master.
-    expect(roof?.variants.map((v) => [v.id, v.label, v.video.ref, v.video.phone])).toEqual([
-      ['C', 'C', 'out/other/roof.C.mp4', 'none'],
-      ['B', 'Bold', 'out/art/roof.B.mp4', 'ready'],
-      ['A', 'A', 'out/art/roof.A.share.mp4', 'none'],
-    ]);
+    expect(roof?.variants.map((v) => [v.id, v.label, seenRef(Option.some(v)), phoneOf(v)])).toEqual(
+      [
+        ['C', 'C', Option.some('out/other/roof.C.mp4'), Option.some('none')],
+        ['B', 'Bold', Option.some('out/art/roof.B.mp4'), Option.some('ready')],
+        ['A', 'A', Option.some('out/art/roof.A.share.mp4'), Option.some('none')],
+      ],
+    );
     const bold = roof?.variants[1];
-    expect(bold?.tag).toEqual(Option.some('ink'));
-    expect(bold?.verdict).toEqual(Option.some('keep'));
+    // Its tag and verdict are its lines.
+    expect(bold?.lines).toEqual(['ink', 'keep']);
     expect(Option.map(bold?.notes ?? Option.none(), (n) => n.ref)).toEqual(
       Option.some('out/art/b.md'),
     );
@@ -233,14 +256,13 @@ describe('a project folder', () => {
   };
   const approvedCold = approve(
     [roof, short, coldInk, film, cold, stills].reduce(recordRender, emptyCatalogue('f')),
-    cold,
+    subjectOf(cold),
     1,
   );
   const catalogue: Catalogue = comment(
     recordRender(approvedCold, { ...roof }),
-    roof,
+    subjectOf(roof),
     'the hand jumps',
-    'c1',
     2,
   );
 
@@ -261,11 +283,19 @@ describe('a project folder', () => {
       ['short verdict', ['main']],
     ]);
     const [, coldSet, roofSet] = folder.sets;
-    // The share copy plays; the approval is the verdict; the tag says scale, commit and comments.
-    expect(coldSet?.variants[0]?.video.ref).toBe('out/f/scenes/cold/main.share.mp4');
-    expect(coldSet?.variants[0]?.verdict).toEqual(Option.some('approved'));
-    expect(coldSet?.variants[1]?.verdict).toEqual(Option.none());
-    expect(roofSet?.variants[0]?.tag).toEqual(Option.some('scale 0.5 · 0123456 · 1 comment'));
+    // Each set is the render choice point at its address.
+    expect(coldSet?.id).toBe('render:scenes:cold');
+    expect(coldSet?.address).toEqual(Option.some(sceneAddress('cold')));
+    // The share copy plays; the owner's approval and comments are on each variant; a line says scale, commit and comments.
+    expect(seenRef(Option.fromNullishOr(coldSet?.variants[0]))).toEqual(
+      Option.some('out/f/scenes/cold/main.share.mp4'),
+    );
+    expect(coldSet?.variants[0]?.approval).toBe('approved');
+    expect(coldSet?.variants[1]?.approval).toBe('none');
+    expect(roofSet?.variants[0]?.lines).toEqual(['scale 0.5 · 0123456 · 1 comment']);
+    expect(roofSet?.variants[0]?.comments.map((c) => [c.text, c.onThis])).toEqual([
+      ['the hand jumps', true],
+    ]);
     expect(folder.images.map((i) => i.ref)).toEqual(['out/f/film/g/stills/t0001.00.png']);
     expect(folder.docs.length).toBe(5);
   });
@@ -282,7 +312,7 @@ describe('a project folder', () => {
       phone: () => 'none',
       maxVideo: 1000,
     });
-    expect(folder.sets[1]?.variants[0]?.verdict).toEqual(Option.some('approved an earlier render'));
+    expect(folder.sets[1]?.variants[0]?.approval).toBe('stale');
   });
 
   test('a render whose files are gone, or too big to stream, is left out', () => {
@@ -371,15 +401,20 @@ describe('the review service', () => {
       expect(folders.map((f) => f.ref).toSorted()).toEqual(['out/art', 'out/f']);
       const art = folders.find((f) => f.ref === 'out/art');
       expect(art?.title).toEqual(Option.some('Art'));
-      expect(art?.sets[0]?.variants.map((v) => v.video.ref)).toEqual([
-        'out/art/roof.A.mp4',
-        'out/art/roof.B.mp4',
-        'out/elsewhere/roof.D.mp4',
+      expect(art?.sets[0]?.variants.map((v) => seenRef(Option.some(v)))).toEqual([
+        Option.some('out/art/roof.A.mp4'),
+        Option.some('out/art/roof.B.mp4'),
+        Option.some('out/elsewhere/roof.D.mp4'),
       ]);
       // The big video waits for its phone copy.
       expect(art?.videos.map((v) => [v.name, v.phone])).toEqual([['big.mp4', 'pending']]);
       const project = folders.find((f) => f.ref === 'out/f');
-      expect(project?.sets.map((s) => [s.title, s.variants.map((v) => v.video.ref)])).toEqual([
+      expect(
+        project?.sets.map((s) => [
+          s.title,
+          s.variants.map((v) => Option.getOrElse(seenRef(Option.some(v)), () => '')),
+        ]),
+      ).toEqual([
         ['film', ['out/f/film/main.share.mp4', 'out/f/film/wide.share.mp4']],
         ['scene a', ['out/f/scenes/a/main.share.mp4']],
       ]);

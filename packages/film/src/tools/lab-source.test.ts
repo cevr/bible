@@ -36,6 +36,7 @@ const fakeCheck = Layer.succeed(
         checks.push(film);
         return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
       }),
+    sound: () => Effect.succeed([]),
   }),
 );
 

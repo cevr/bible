@@ -9,7 +9,7 @@ import { Context, Effect, Layer } from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import { Refusal, ReviewHttpApi, reviewFileUrl } from '../../core/api.ts';
-import type { ReviewIndex } from '../../core/schema.ts';
+import type { ReviewIndex } from '../../core/review.ts';
 import { type LabFailure, heard } from '../api.ts';
 
 export interface ReviewCalls {

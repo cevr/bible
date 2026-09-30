@@ -11,18 +11,19 @@ import { Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createMemo, createSignal, onCleanup } from 'solid-js';
 import {
-  type RenderChoice,
-  type RenderVariant,
-  type ReviewFile,
-  type ReviewFolder,
-  type ReviewIndex,
-  type ReviewVideo,
-} from '../../core/schema.ts';
+  type ChoicePoint,
+  type SeenPoint,
+  type SeenVariant,
+  seenPoint,
+  seenVariants,
+} from '../../core/choice.ts';
+import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import type { LabFailure } from '../api.ts';
 import { SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
+  approvalText,
   captionsFor,
   countsText,
   folderMatches,
@@ -121,7 +122,7 @@ const Strip = (props: { readonly refs: ReadonlyArray<string> }) => (
 const posterRefs = (folder: ReviewFolder): ReadonlyArray<string> =>
   Option.getOrElse(
     Option.map(Option.fromUndefinedOr(folder.sets[0]), (set) =>
-      set.variants.map((v) => v.video.ref),
+      seenVariants(set).map((v) => v.video.ref),
     ),
     () => folder.videos.slice(0, 1).map((v) => v.ref),
   );
@@ -168,7 +169,7 @@ const Section = (props: {
   </Show>
 );
 
-/** The app's films, each a link to its options (none shown when the review serves no films). */
+/** The app's films, each a link to its choices and its project (none when the review serves no films). */
 const Films = () => {
   const { state } = useReview();
   const films = () =>
@@ -181,9 +182,14 @@ const Films = () => {
       <div class="rv-row rv-films">
         <For each={films()}>
           {(film) => (
-            <Go class="rv-chip" place={Place.Film({ film })}>
-              {film} · options
-            </Go>
+            <>
+              <Go class="rv-chip" place={Place.Project({ film })}>
+                {film} · project
+              </Go>
+              <Go class="rv-chip" place={Place.Film({ film })}>
+                {film} · choices
+              </Go>
+            </>
           )}
         </For>
       </div>
@@ -304,9 +310,9 @@ const LooseVideo = (props: {
   );
 };
 
-const SetCard = (props: { readonly folder: ReviewFolder; readonly set: RenderChoice }) => (
-  <Go class="rv-card" place={Place.Set({ folder: props.folder.ref, clip: props.set.clip })}>
-    <Strip refs={props.set.variants.map((v) => v.video.ref)} />
+const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
+  <Go class="rv-card" place={Place.Set({ folder: props.folder.ref, point: props.set.id })}>
+    <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
     <div class="rv-body">
       <b>{props.set.title}</b>
       <span class="rv-badge">compare {props.set.variants.length}</span>
@@ -517,10 +523,10 @@ export const Transport = (props: {
   );
 };
 
-const letterOf = (set: RenderChoice, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
+const letterOf = (set: SeenPoint, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
 
 /** A variant's video on the set's clock, and the 🔊 that makes it the one heard. */
-const VariantCard = (props: { readonly variant: RenderVariant }) => {
+const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { state } = useReview();
   const { set, sync, send, driver } = useSet();
   const audible = () => sync().audible === props.variant.id;
@@ -537,8 +543,8 @@ const VariantCard = (props: { readonly variant: RenderVariant }) => {
       <div class="rv-cap">
         <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
         <span class="rv-name">{props.variant.label}</span>
-        <span class="rv-tag" title={Option.getOrElse(props.variant.tag, () => '')}>
-          {Option.getOrElse(props.variant.tag, () => '')}
+        <span class="rv-tag" title={props.variant.lines.join(' · ')}>
+          {props.variant.lines.join(' · ')}
         </span>
         <button
           type="button"
@@ -597,10 +603,10 @@ const PairView = (props: { readonly other: string }) => {
       </div>
       <div class="rv-grid rv-two">
         <Show when={first} keyed>
-          {(variant: RenderVariant) => <VariantCard variant={variant} />}
+          {(variant: SeenVariant) => <VariantCard variant={variant} />}
         </Show>
         <Show when={Option.getOrUndefined(other())} keyed>
-          {(variant: RenderVariant) => <VariantCard variant={variant} />}
+          {(variant: SeenVariant) => <VariantCard variant={variant} />}
         </Show>
       </div>
     </>
@@ -659,7 +665,7 @@ const MomentsView = (props: { readonly index: number }) => {
                     <div class="rv-cap">
                       <span class="rv-letter">{letterOf(set, variant.id)}</span>
                       <span class="rv-name">{variant.label}</span>
-                      <span class="rv-tag">{Option.getOrElse(variant.tag, () => '')}</span>
+                      <span class="rv-tag">{variant.lines.join(' · ')}</span>
                     </div>
                   </div>
                 )}
@@ -684,13 +690,8 @@ const NotesView = () => {
               <b>
                 {letterOf(set, variant.id)} · {variant.label}
               </b>
-              {Option.getOrElse(
-                Option.map(variant.verdict, (v) => ` — ${v}`),
-                () => '',
-              )}
-              <Show when={Option.getOrUndefined(variant.tag)}>
-                {(tag) => <div class="rv-hint">{tag()}</div>}
-              </Show>
+              {approvalText(variant.approval)}
+              <For each={variant.lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
             </div>
             <Show
               when={Option.getOrUndefined(variant.notes)}
@@ -735,7 +736,7 @@ const SetBody = () => {
   );
 };
 
-export const SetPage = (props: { readonly folder: string; readonly clip: string }) => (
+export const SetPage = (props: { readonly folder: string; readonly point: string }) => (
   <WithIndex>
     {(index) => (
       <Show
@@ -745,12 +746,12 @@ export const SetPage = (props: { readonly folder: string; readonly clip: string 
       >
         {(folder: ReviewFolder) => (
           <Show
-            when={folder.sets.find((s) => s.clip === props.clip)}
+            when={folder.sets.find((s) => s.id === props.point)}
             keyed
             fallback={<Missing what="comparison" />}
           >
-            {(set: RenderChoice) => (
-              <SetProvider folder={folder} set={set}>
+            {(set: ChoicePoint) => (
+              <SetProvider folder={folder} set={seenPoint(set)}>
                 <div class="rv-tools rv-set-tools">
                   <ViewTabs />
                 </div>

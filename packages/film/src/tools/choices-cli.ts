@@ -1,98 +1,163 @@
-// `film options`: a film's choices read, and a mix of one made, in this
-// process, as its sources stand on disk. The review runs these in a fresh
-// process (`FreshFilm`, `choices-process.ts`) because its own imports of the
-// film are as they were at its start. Each prints one line of JSON
-// (`OptionsLine`) on stdout; logs go to stderr.
+// `film options`: a film's choice points read, a mix of one variant made, and
+// a beat's attempt kept, in this process, as the film's sources stand on
+// disk. The review runs these in a fresh process (`FreshFilm`,
+// `choices-process.ts`) because its own imports of the film are as they were
+// at its start. Each prints one line of JSON (`FreshLine`) on stdout: its
+// answer, or the refusal it failed with; logs go to stderr.
 //
 //   film options list <film>
-//       the film's choice points: its score's options, the library sounds it places
-//   film options mix <film> [--score option] [--take sound:sha256] --to <file.m4a>
-//       the film's whole mix with that option, or that take at every placement
-//       of its sound, written as an m4a
+//       the film's choice points (`choice-points.ts`): score, looks, takes,
+//       voices, levels, each with the owner's approvals and comments
+//   film options mix <film> --point <id> --variant <id> --to <file.m4a>
+//       the film's whole mix with that variant in place (a score option, a
+//       take at every placement of its sound), written as an m4a
+//   film options keep-voice <film> <beat> <file>
+//       the beat's attempt `file` kept as its take, and the track remixed
 
-import { Console, Effect, Option, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
+import { pointName } from '../core/choice.ts';
+import { hashText } from '../core/narration.ts';
+import { RenderCatalogue } from './catalogue.ts';
+import { type BeatAttempts, filmPoints } from './choice-points.ts';
 import {
+  OptionsKept,
   OptionsListed,
   OptionsMixed,
-  type OptionsLine,
-  OptionsLineJson,
+  answering,
+  printLine,
+  refuseWith,
 } from './choices-process.ts';
-import { filmChoices, offeredOption, offeredTake } from './choices.ts';
-import { type ChoiceUnknown, type TakeUnknown } from './errors.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import { offered } from './choices.ts';
+import { VerbRefused } from './errors.ts';
+import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
-import { Mixer, type TakeInPlace } from './mixer.ts';
+import { Mixer } from './mixer.ts';
+import { beatsOf } from './narrator.ts';
+import { Takes } from './takes.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
 );
 
-const encodeLine = Schema.encodeEffect(OptionsLineJson);
+/** Each beat's attempts, and the hash of its line as it reads now. */
+const beatAttempts = Effect.fn('film.options.beats')(function* (loaded: LoadedFilm) {
+  const takes = yield* Takes;
+  const beats = yield* Effect.fromResult(beatsOf(loaded));
+  return yield* Effect.forEach(beats, (beat) =>
+    Effect.map(takes.attempts(loaded, beat.id), (attempts): BeatAttempts => ({
+      beat: beat.id,
+      hash: hashText(beat.script),
+      attempts,
+    })),
+  );
+});
 
-/** Print `line`, the command's answer, as one line of JSON. */
-const answer = (line: OptionsLine) => Effect.flatMap(encodeLine(line), Console.log);
+/** `sound.ts` beside the film: its path and text, when it has one. */
+const soundSource = Effect.fn('film.options.soundSource')(function* (loaded: LoadedFilm) {
+  const fs = yield* FileSystem.FileSystem;
+  const file = (yield* Path.Path).join(loaded.paths.dir, 'sound.ts');
+  if (!(yield* fs.exists(file))) return Option.none();
+  return Option.some({ file, text: yield* fs.readFileString(file) });
+});
 
-/** Print a choice the film lacks as the answer, then fail with it (exit 1). */
-const refuse = (error: ChoiceUnknown | TakeUnknown) =>
-  Effect.andThen(answer(error), Effect.fail(error));
-
-/** `sound:sha256` as a take in place, or the text as given when it has no colon. */
-const takeIn = (given: string): TakeInPlace => {
-  const at = given.lastIndexOf(':');
-  return { sound: given.slice(0, Math.max(0, at)), take: given.slice(at + 1) };
-};
+/** The film's choice points as its sources stand, with the catalogue's say on each variant. */
+const pointsOf = Effect.fn('film.options.points')(function* (loaded: LoadedFilm) {
+  return filmPoints({
+    loaded,
+    placed: yield* placeFilm(loaded),
+    soundSource: yield* soundSource(loaded),
+    beats: yield* beatAttempts(loaded),
+    catalogue: Option.some(yield* (yield* RenderCatalogue).read(loaded.paths)),
+  });
+});
 
 const list = Command.make(
   'list',
   { film },
   Effect.fn('film.options.list')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
-    const choices = filmChoices(loaded, yield* placeFilm(loaded));
-    yield* answer(OptionsListed.make({ choices }));
+    yield* printLine(OptionsListed.make({ points: yield* answering(pointsOf(loaded)) }));
   }),
-).pipe(Command.withDescription("The film's choices as its sources stand, as one line of JSON"));
+).pipe(
+  Command.withDescription("The film's choice points as its sources stand, as one line of JSON"),
+);
 
 const mix = Command.make(
   'mix',
   {
     film,
-    score: Flag.String('score').pipe(
-      Flag.optional,
-      Flag.withDescription('play this score option in place of the one the score names'),
-    ),
-    take: Flag.String('take').pipe(
-      Flag.optional,
-      Flag.withDescription('play this take (sound:sha256) at every placement of its sound'),
+    point: Flag.String('point').pipe(Flag.withDescription('the choice point: score, take:<sound>')),
+    variant: Flag.String('variant').pipe(
+      Flag.withDescription('the variant to play: a score option, a take sha256'),
     ),
     to: Flag.String('to').pipe(Flag.withDescription('the m4a to write')),
   },
   Effect.fn('film.options.mix')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
-    const choices = filmChoices(loaded, yield* placeFilm(loaded));
-    const take = Option.map(input.take, takeIn);
-    // The option or take is checked against the film as it stands before a mix is rendered.
-    for (const option of Option.toArray(input.score)) {
-      const offered = offeredOption(input.film, choices, option);
-      if (offered._tag === 'Failure') return yield* refuse(offered.failure);
-    }
-    for (const t of Option.toArray(take)) {
-      const offered = offeredTake(input.film, choices, t.sound, t.take);
-      if (offered._tag === 'Failure') return yield* refuse(offered.failure);
-    }
+    // The point and variant are checked against the film as it stands before a mix is rendered.
+    const found = offered(
+      input.film,
+      yield* answering(pointsOf(loaded)),
+      input.point,
+      input.variant,
+    );
+    if (Result.isFailure(found)) return yield* refuseWith(found.failure);
+    const { point, variant } = found.success;
+    if (point.kind !== 'score' && point.kind !== 'take')
+      return yield* refuseWith(
+        VerbRefused.make({
+          point: point.id,
+          variant: variant.id,
+          verb: 'hear in place',
+          reason: `a ${point.kind} is not heard in the mix`,
+        }),
+      );
     const { mixed } = yield* (yield* Mixer).render(input.film, {
       warn: false,
-      score: input.score,
-      take,
+      score: Option.liftPredicate(variant.id, () => point.kind === 'score'),
+      take: Option.liftPredicate(
+        { sound: pointName(point), take: variant.id },
+        () => point.kind === 'take',
+      ),
     });
     yield* (yield* Media).writeAac(input.to, mixed.master);
-    yield* answer(OptionsMixed.make({}));
+    yield* printLine(OptionsMixed.make({}));
   }),
-).pipe(Command.withDescription("The film's whole mix with one option or take in place, as an m4a"));
+).pipe(Command.withDescription("The film's whole mix with one variant in place, as an m4a"));
+
+const keepVoice = Command.make(
+  'keep-voice',
+  {
+    film,
+    beat: Argument.String('beat').pipe(Argument.withDescription('the beat, a scene id')),
+    file: Argument.String('file').pipe(
+      Argument.withDescription('the attempt to keep, as its beat lists it'),
+    ),
+  },
+  Effect.fn('film.options.keepVoice')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    yield* answering(
+      (yield* Takes).keepAttempt(loaded, input.beat, input.file, { acceptMismatch: false }),
+    );
+    // The track is remixed with the take; a failed mix leaves the take kept and says why.
+    const mixed = yield* (yield* Mixer)
+      .mix(input.film, { stems: false, score: Option.none() })
+      .pipe(
+        Effect.as(true),
+        Effect.catch((error) =>
+          Effect.logWarning(
+            `options.keep-voice.mix.failed film=${input.film} tag=${error._tag} reason=${error.message}`,
+          ).pipe(Effect.as(false)),
+        ),
+      );
+    yield* printLine(OptionsKept.make({ mixed }));
+  }),
+).pipe(Command.withDescription("Keep a beat's attempt as its take, and remix the track"));
 
 export const options = Command.make('options').pipe(
   Command.withDescription(
-    "A film's choices and their mixes, read fresh from disk (what `film review` asks)",
+    "A film's choices, their mixes and a voice kept, read fresh from disk (what `film review` asks)",
   ),
-  Command.withSubcommands([list, mix]),
+  Command.withSubcommands([list, mix, keepVoice]),
 );

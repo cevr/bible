@@ -4,7 +4,7 @@
 
 import { Option } from 'effect';
 import { describe, expect, test } from 'bun:test';
-import type { ReviewFolder, ReviewVideo } from '../../core/schema.ts';
+import type { ReviewFolder, ReviewVideo } from '../../core/review.ts';
 import { agoText, captionsFor, countsText, folderMatches, sizeText, videoUrl } from './format.ts';
 import { ViewState } from './machine.ts';
 import { escapeHtml, markdownHtml } from './markdown.ts';
@@ -15,7 +15,9 @@ describe('the place in the URL', () => {
     for (const place of [
       ReviewPlace.Home(),
       ReviewPlace.Folder({ folder: 'out/art 3' }),
-      ReviewPlace.Set({ folder: 'out/art 3', clip: 'roof&sky' }),
+      ReviewPlace.Set({ folder: 'out/art 3', point: 'render:scenes:roof&sky' }),
+      ReviewPlace.Film({ film: 'righteousness-by-faith' }),
+      ReviewPlace.Project({ film: 'righteousness-by-faith' }),
     ])
       expect(placeOf(searchOf(place))).toEqual(place);
     expect(searchOf(ReviewPlace.Home())).toBe('');

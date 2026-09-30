@@ -1,36 +1,26 @@
-// A film's options page (`?film=<film>`): the film's newest render on the
-// synced player with the sound heard over it, the score's options (each
-// heard as the film's whole mix, one picked: `play` in `sound.ts`), each
-// library sound's takes (heard alone, or in place in the film's mix; kept,
-// unkept or rejected in the library's lock), and the film's undo, redo and
-// check after every write.
+// A film's choices page (`?film=<film>`): the film's newest render on the
+// synced player with the sound heard over it, and every choice point the
+// film has (`core/choice.ts`), a card each (`choice.tsx`), by kind: the
+// score's options (`play` in `sound.ts`), its looks (`looks` in
+// `palette.ts`), each library sound's takes (the library's lock), each
+// beat's recorded voice, and each sound layer's level (a knob). Undo, redo
+// and the film's check follow every write; after a pick or a knob the sound
+// check runs (`film check --sound`: dead air, balance against the picked
+// score) and its findings are shown.
 
 import { For, Show } from '@solidjs/web';
 import { onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import {
-  type EffectChoice,
-  type EffectTake,
-  type ScoreChoice,
-  type ReviewVideo,
-  type ScoreVariant,
-  type TakeAct,
-} from '../../../core/schema.ts';
-import { scoreMixUrl, takeAudioUrl } from '../../../core/api.ts';
+import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
+import type { ReviewVideo } from '../../../core/review.ts';
+import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoUrl } from '../format.ts';
-import { SyncEvent, timeText } from '../machine.ts';
 import { Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { FilmProvider, Heard, PICTURE, failedText, sameHeard, useFilm } from './context.tsx';
-
-/** What a score option's badge says of it. */
-const STATE_TEXT = {
-  current: 'composed',
-  stale: 'stale: composed before the acts changed',
-  missing: 'not composed here',
-} as const;
+import { ChoiceCard, HearButton } from './choice.tsx';
+import { FilmProvider, Heard, PICTURE, failedText, useFilm } from './context.tsx';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -39,27 +29,8 @@ const pictureLabel = (p: ReviewVideo): string => {
   return `${dir} · ${sizeText(p.size)}`;
 };
 
-/** The 🔊 that makes `heard` the sound over the picture. */
-const HearButton = (props: { readonly heard: Heard; readonly disabled?: boolean }) => {
-  const { heard, hear } = useFilm();
-  const on = () => sameHeard(heard(), props.heard);
-  return (
-    <button
-      type="button"
-      class={['rv-sound', { on: on() }]}
-      data-act="hear"
-      title="Hear this over the picture"
-      aria-pressed={pressed(on())}
-      disabled={props.disabled}
-      onClick={() => hear(props.heard)}
-    >
-      🔊
-    </button>
-  );
-};
-
 /** The render the sound plays over, on the clock, and the one `<audio>` heard with it. */
-const Player = () => {
+export const Player = () => {
   const { state } = useReview();
   const { choices, picture, choosePicture, mix, driver, sync, send } = useFilm();
   const mixes = () => Option.toArray(mix());
@@ -155,169 +126,8 @@ const Mix = (props: { readonly src: string }) => {
   return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };
 
-const ScoreCard = (props: { readonly score: ScoreChoice; readonly variant: ScoreVariant }) => {
-  const { film, write, picture } = useFilm();
-  const picked = () => props.variant.id === props.score.picked;
-  const missing = props.variant.state === 'missing';
-  return (
-    <div class={['rv-card rv-option', { 'rv-audible': picked() }]} data-option={props.variant.id}>
-      <div class="rv-cap">
-        <span class="rv-name">{props.variant.id}</span>
-        <Show when={picked()}>
-          <span class="rv-badge">picked</span>
-        </Show>
-        <span class="rv-tag" data-state={props.variant.state}>
-          {STATE_TEXT[props.variant.state]}
-        </span>
-        <HearButton heard={Heard.Score({ option: props.variant.id })} disabled={missing} />
-      </div>
-      <div class="rv-body">
-        <div class="rv-meta">{props.variant.styles.join(' · ')}</div>
-        <div class="rv-meta">
-          {props.variant.movements.length} movement
-          {Match.value(props.variant.movements.length === 1).pipe(
-            Match.when(true, () => ''),
-            Match.orElse(() => 's'),
-          )}
-        </div>
-        <Show when={Option.isNone(picture()) && !missing}>
-          <audio controls preload="none" src={scoreMixUrl(film, props.variant.id)} />
-        </Show>
-        <div class="rv-row">
-          <button
-            type="button"
-            class="rv-chip"
-            data-act="pick"
-            aria-pressed={pressed(picked())}
-            disabled={picked()}
-            onClick={() => write(ChoiceAct.Pick({ option: props.variant.id }))}
-          >
-            {Match.value(picked()).pipe(
-              Match.when(true, () => 'Played'),
-              Match.orElse(() => 'Pick'),
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ScoreSection = (props: { readonly score: ScoreChoice }) => (
-  <>
-    <h2 class="rv-h">
-      Score{' '}
-      <small>
-        {props.score.variants.length} options · plays {props.score.picked}
-      </small>
-    </h2>
-    <div class="rv-grid">
-      <For each={props.score.variants}>
-        {(variant) => <ScoreCard score={props.score} variant={variant} />}
-      </For>
-    </div>
-  </>
-);
-
-/** What can become of a take: a kept one waits again; a candidate is kept or rejected. */
-const actsFor = (take: EffectTake): ReadonlyArray<TakeAct> => {
-  if (take.state === 'kept') return ['unkeep'];
-  return ['keep', 'reject'];
-};
-
-const ACT_TITLES = { keep: 'Keep', unkeep: 'Unkeep', reject: 'Reject' } as const;
-
-const TakeRow = (props: { readonly effect: EffectChoice; readonly take: EffectTake }) => {
-  const { film, write } = useFilm();
-  return (
-    <div class="rv-take" data-take={props.take.id} data-state={props.take.state}>
-      <div class="rv-row">
-        <span class="rv-letter">{props.take.index}</span>
-        <span class="rv-name">{props.take.state}</span>
-        <span class="rv-tag">
-          {props.take.secs.toFixed(1)} s · {props.take.loudest.toFixed(1)} LUFS ·{' '}
-          {props.take.made.slice(0, 10)}
-          {Match.value(props.take.current).pipe(
-            Match.when(true, () => ''),
-            Match.orElse(() => ' · for an older declaration'),
-          )}
-        </span>
-      </div>
-      <div class="rv-row">
-        <audio
-          controls
-          preload="none"
-          src={takeAudioUrl(film, props.effect.sound, props.take.id)}
-        />
-        <span class="rv-hint">in place</span>
-        <HearButton heard={Heard.Take({ sound: props.effect.sound, take: props.take.id })} />
-        <For each={actsFor(props.take)}>
-          {(act) => (
-            <button
-              type="button"
-              class="rv-chip"
-              data-act={act}
-              onClick={() =>
-                write(ChoiceAct.Take({ sound: props.effect.sound, take: props.take.id, act }))
-              }
-            >
-              {ACT_TITLES[act]}
-            </button>
-          )}
-        </For>
-      </div>
-    </div>
-  );
-};
-
-const EffectCard = (props: { readonly effect: EffectChoice }) => {
-  const { send, picture } = useFilm();
-  const jump = (t: number) => {
-    send(SyncEvent.ScrubMoved({ t }));
-    send(SyncEvent.ScrubReleased);
-  };
-  return (
-    <div class="rv-card rv-option" data-sound={props.effect.sound}>
-      <div class="rv-cap">
-        <span class="rv-name">{props.effect.sound}</span>
-        <span class="rv-tag">
-          {props.effect.takes.filter((t) => t.state === 'kept').length} kept ·{' '}
-          {props.effect.takes.filter((t) => t.state === 'candidate').length} waiting
-        </span>
-      </div>
-      <div class="rv-body">
-        <Show when={props.effect.placements.length > 0}>
-          <div class="rv-row rv-pick">
-            <span class="rv-hint">Plays at:</span>
-            <For each={props.effect.placements}>
-              {(p) => (
-                <button
-                  type="button"
-                  class="rv-chip"
-                  data-at={String(p.at)}
-                  disabled={Option.isNone(picture())}
-                  title={`${p.effect} in ${p.scene}`}
-                  onClick={() => jump(p.at)}
-                >
-                  {timeText(p.at)} · {p.scene}
-                </button>
-              )}
-            </For>
-          </div>
-        </Show>
-        <For each={props.effect.takes}>
-          {(take) => <TakeRow effect={props.effect} take={take} />}
-        </For>
-        <Show when={props.effect.takes.length === 0}>
-          <p class="rv-hint">No takes yet: `film sfx` makes them.</p>
-        </Show>
-      </div>
-    </div>
-  );
-};
-
 /** Undo, redo, what the last write did, and the film's check after it. */
-const WriteBar = () => {
+export const WriteBar = () => {
   const { check, wrote, write } = useFilm();
   const report = () => AsyncResult.value(check());
   const step = (which: 'undo' | 'redo') =>
@@ -375,53 +185,116 @@ const WriteBar = () => {
         </span>
       </div>
       {/* The check folds away: its findings are read when asked for, not over the player. */}
-      <details class="rv-check">
-        <summary class="rv-hint" data-findings={String(findings().length)}>
-          {Match.value(findings().length).pipe(
-            Match.when(0, () => 'check: clean'),
-            Match.when(1, () => 'check: 1 finding'),
-            Match.orElse((n) => `check: ${n} findings`),
-          )}
-        </summary>
-        <ul class="rv-findings">
-          <For each={findings()}>
-            {(f) => (
-              <li data-level={f.level}>
-                <b>{f.tag}</b> {f.message}
-              </li>
-            )}
-          </For>
-        </ul>
-      </details>
+      <Findings name="check" findings={findings()} />
+      <SoundFindings />
     </section>
   );
 };
 
+/** `n` findings as a summary says them. */
+const findingsText = (name: string, n: number) =>
+  Match.value(n).pipe(
+    Match.when(0, () => `${name}: clean`),
+    Match.when(1, () => `${name}: 1 finding`),
+    Match.orElse((count) => `${name}: ${count} findings`),
+  );
+
+/** A check's findings, folded away under their count. */
+const Findings = (props: {
+  readonly name: string;
+  readonly findings: ReadonlyArray<CheckLine>;
+}) => (
+  <details class="rv-check" data-check={props.name}>
+    <summary class="rv-hint" data-findings={String(props.findings.length)}>
+      {findingsText(props.name, props.findings.length)}
+    </summary>
+    <ul class="rv-findings">
+      <For each={props.findings}>
+        {(f) => (
+          <li data-level={f.level}>
+            <b>{f.tag}</b> {f.message}
+          </li>
+        )}
+      </For>
+    </ul>
+  </details>
+);
+
+/** The sound check after the last pick or knob: running, its findings, or why it could not run. */
+const SoundFindings = () => {
+  const { soundCheck } = useFilm();
+  // Read again as the check runs and answers.
+  const shown = () =>
+    Match.value(soundCheck()).pipe(
+      Match.when(
+        (r) => r.waiting,
+        () => (
+          <p class="rv-hint" data-check="sound" aria-busy="true">
+            sound check: hearing the mix…
+          </p>
+        ),
+      ),
+      Match.orElse((r) =>
+        AsyncResult.match(r, {
+          onInitial: () => <></>,
+          onSuccess: (s) => <Findings name="sound check" findings={s.value.findings} />,
+          onFailure: () => (
+            <p class="rv-hint" data-check="sound" data-failed="true">
+              sound check: {failedText(r)}
+            </p>
+          ),
+        }),
+      ),
+    );
+  return <>{shown()}</>;
+};
+
+/** Each kind's heading, in the order the page shows them. */
+const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }> = [
+  { kind: 'score', title: 'Score' },
+  { kind: 'look', title: 'Looks' },
+  { kind: 'take', title: 'Sounds' },
+  { kind: 'voice', title: 'Voice' },
+  { kind: 'level', title: 'Levels' },
+];
+
+/** A heading and a card for each of `points`. */
+export const ChoiceSection = (props: {
+  readonly title: string;
+  readonly points: ReadonlyArray<ChoicePoint>;
+}) => (
+  <Show when={props.points.length > 0}>
+    <h2 class="rv-h">
+      {props.title} <small>{props.points.length}</small>
+    </h2>
+    <div class="rv-grid rv-wide">
+      <For each={props.points}>{(point) => <ChoiceCard point={point} />}</For>
+    </div>
+  </Show>
+);
+
 const FilmBody = () => {
   const { choices } = useFilm();
-  const scores = () => choices().choices.filter((c) => c._tag === 'ScoreChoice');
-  const effects = () => choices().choices.filter((c) => c._tag === 'EffectChoice');
   return (
     <>
       <WriteBar />
       <Player />
-      <For each={scores()}>{(score) => <ScoreSection score={score} />}</For>
-      <Show when={effects().length > 0}>
-        <h2 class="rv-h">
-          Sounds <small>{effects().length}</small>
-        </h2>
-        <div class="rv-grid rv-wide">
-          <For each={effects()}>{(effect) => <EffectCard effect={effect} />}</For>
-        </div>
-      </Show>
-      <Show when={choices().choices.length === 0}>
-        <p class="empty">This film has no score options or library sounds to choose between.</p>
+      <For each={KINDS}>
+        {(k) => (
+          <ChoiceSection
+            title={k.title}
+            points={choices().points.filter((p) => p.kind === k.kind)}
+          />
+        )}
+      </For>
+      <Show when={choices().points.length === 0}>
+        <p class="empty">This film has nothing to choose between.</p>
       </Show>
     </>
   );
 };
 
-/** A film's options: its score's and its sounds', picked here and written to its source. */
+/** A film's choices: every choice point it has, picked here and written to its source. */
 export const FilmPage = (props: { readonly film: string }) => (
   <FilmProvider film={props.film}>
     <FilmBody />

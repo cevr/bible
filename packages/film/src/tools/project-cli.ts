@@ -5,50 +5,51 @@
 // (`core/catalogue.ts`, `catalogue.ts`), each on the render it was given on.
 //
 //   film project <film> [--variant v] [--json]
-//       each scene: current, stale or missing; approved, stale or not; its comments
+//       the film's comments, then each act (its comments) and its scenes: each
+//       scene current, stale or missing; approved, stale or not; its comments
 //   film project render <film> [--variant v] [--scene id,id] [--scale k] [--no-captions]
 //                              [--no-share] [--workers n] [--encoder e] [--force]
 //       render every scene (or those named) that is not current, each to scenes/<id>/<variant>.mp4
-//   film project approve <film> (--scene id,id | --all) [--variant v] [--json]
-//       approve those scenes' renders as they are stamped, or every current scene
-//   film project comment <film> <scene> <text> [--variant v]
-//       say something of one scene's render
+//   film project approve <film> (--scene id,id | --act name | --all) [--variant v] [--json]
+//       approve those scenes' renders as they are stamped, an act's current
+//       scenes, or every current scene
+//   film project comment <film> <text> [--scene id | --act name] [--variant v] [--json]
+//       say something of one scene's render, an act or the whole film
 //
-// `--json` prints the project (`Project`) as one line: what the review's page
-// reads.
+// `--json` prints the project as it leaves it (`ProjectRead`, `choices-process.ts`)
+// as one line, or the refusal it failed with: what the review's project
+// routes read, each in a fresh process.
 
-import {
-  Array as Arr,
-  Clock,
-  Console,
-  Effect,
-  type Layer,
-  Match,
-  Option,
-  Path,
-  Schema,
-} from 'effect';
+import { Array as Arr, Clock, Console, Effect, type Layer, Match, Option, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { type Scope, resolveAddress, sceneAddress } from '../core/address.ts';
+import { type Scope, addressKey, resolveAddress, sceneAddress } from '../core/address.ts';
 import {
+  type ActKey,
   type Catalogue,
+  type Keyed,
   MAIN_VARIANT,
   type Project,
-  ProjectJson,
   type ProjectScene,
-  type Stamp,
   RenderVariantName,
+  type SaidComment,
+  type SceneKey,
+  type Stamp,
   approve,
   approveCurrent,
   comment,
   needsRender,
+  nextCommentId,
+  partSubject,
   projectOf,
   renderIn,
   sceneSlot,
+  subjectOf,
 } from '../core/catalogue.ts';
+import { UnknownAct } from '../core/errors.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import type { Placed } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
+import { ProjectRead, answering, printLine } from './choices-process.ts';
 import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, flagConflicts, jobOf } from './render-plan.ts';
@@ -103,38 +104,74 @@ export const renderAndRecord = Effect.fn('film.renderAndRecord')(function* (
   return output;
 });
 
-/** The film loaded and laid out, with its scenes' keys now. */
+/** The film loaded and laid out, with its scenes' keys now and its address tree keyed. */
 const keyed = Effect.fn('film.project.keyed')(function* (name: string) {
   const loaded = yield* (yield* FilmRepo).load(name);
   const placed = yield* placeFilm(loaded);
   const keys = yield* (yield* Stamps).scenes(loaded, placed);
-  return { loaded, placed, keys };
+  const addressable = { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts };
+  const whole = yield* Effect.fromResult(resolveAddress(addressable, { _tag: 'Film' }));
+  const acts = yield* Effect.forEach(whole.acts, (act) =>
+    Effect.map(
+      Effect.fromResult(resolveAddress(addressable, { _tag: 'Act', act: act.part.name })),
+      (scope): ActKey => ({
+        act: act.part.name,
+        scenes: scope.scenes.map((p) => p.spec.id),
+        key: stampOf(keys, scope).key,
+      }),
+    ),
+  );
+  const tree: Keyed = { key: stampOf(keys, whole).key, acts, scenes: sceneKeys(keys, placed) };
+  return { loaded, placed, keys, tree };
 });
 
 /** Each scene with its own stamp's key: what the project compares its renders with. */
 const sceneKeys = (keys: SceneKeys, placed: ReadonlyArray<Placed>) =>
   sceneStamps(keys, placed).map(({ scene, stamp }) => ({ scene, key: stamp.key }));
 
+/** What was said, a line each, marked when it was said of an earlier version. */
+const saidLines = (comments: ReadonlyArray<SaidComment>, indent: string): string =>
+  comments
+    .map((c) => `\n${indent}${Arr.filter(['(earlier) '], () => !c.onThis).join('')}${c.text}`)
+    .join('');
+
 /** One scene of the project as a line: its state, its approval, its comments, its clip. */
 const sceneLine = (scene: ProjectScene): string => {
   const clip = Option.flatMap(scene.render, (r) => r.files.clip);
-  const said = scene.comments.map(
-    (c) => `\n    ${Arr.filter(['(earlier) '], () => !c.onThisRender).join('')}${c.text}`,
-  );
-  return `${scene.scene.padEnd(16)} ${scene.state.padEnd(8)} ${scene.approval.padEnd(9)}${Option.match(
+  return `  ${scene.scene.padEnd(16)} ${scene.state.padEnd(8)} ${scene.approval.padEnd(9)}${Option.match(
     clip,
     { onNone: () => '', onSome: (file) => ` ${file}` },
-  )}${said.join('')}`;
+  )}${saidLines(scene.comments, '      ')}`;
 };
 
-/** Print the project: one line of JSON, or a line a scene. */
+/** The project as lines: the film's comments, then each act with its comments and its scenes. */
+const projectLines = (project: Project): ReadonlyArray<string> => {
+  const inActs = new Set(project.acts.flatMap((a) => a.scenes));
+  const scenesOf = (ids: ReadonlyArray<string>) =>
+    project.scenes.filter((s) => ids.includes(s.scene)).map(sceneLine);
+  const loose = project.scenes.filter((s) => !inActs.has(s.scene)).map((s) => s.scene);
+  return [
+    `${project.film} (${project.variant})${saidLines(project.comments, '    ')}`,
+    ...project.acts.flatMap((act) => [
+      `${act.name}${saidLines(act.comments, '    ')}`,
+      ...scenesOf(act.scenes),
+    ]),
+    ...scenesOf(loose),
+  ];
+};
+
+/** Print the project: one line of JSON (`ProjectRead`, what the review reads), or its lines. */
 const show = (project: Project, asJson: boolean) =>
   Match.value(asJson).pipe(
-    Match.when(true, () => Effect.flatMap(Schema.encodeEffect(ProjectJson)(project), Console.log)),
-    Match.orElse(() =>
-      Effect.forEach(project.scenes, (scene) => Console.log(sceneLine(scene)), { discard: true }),
-    ),
+    Match.when(true, () => printLine(ProjectRead.make({ project }))),
+    Match.orElse(() => Effect.forEach(projectLines(project), Console.log, { discard: true })),
   );
+
+/** `effect`, its refusals printed as the answer when the run answers in JSON (the review's read). */
+const answeringIf = <A, E, R>(asJson: boolean, effect: Effect.Effect<A, E, R>) => {
+  if (asJson) return answering(effect);
+  return effect;
+};
 
 /** The film's scenes named by `ids` (every one when none), each checked against the layout. */
 const scenesNamed = (
@@ -153,13 +190,20 @@ const scenesNamed = (
       ),
   );
 
+/** The act `name` of the keyed film, or `UnknownAct` naming the acts it has. */
+const actNamed = (tree: Keyed, name: string) =>
+  Effect.fromOption(
+    Arr.findFirst(tree.acts, (a) => a.act === name),
+    () => UnknownAct.make({ act: name, known: tree.acts.map((a) => a.act) }),
+  );
+
 const status = Command.make(
   'project',
   { film, variant: variantFlag, json },
   Effect.fn('film.project')(function* (input) {
-    const { loaded, placed, keys } = yield* keyed(input.film);
-    const catalogue = yield* (yield* RenderCatalogue).read(loaded.paths);
-    yield* show(projectOf(catalogue, sceneKeys(keys, placed), input.variant), input.json);
+    const { loaded, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const catalogue = yield* answeringIf(input.json, (yield* RenderCatalogue).read(loaded.paths));
+    yield* show(projectOf(catalogue, tree, input.variant), input.json);
   }),
 );
 
@@ -255,6 +299,10 @@ const approveScenes = Command.make(
     film,
     variant: variantFlag,
     scene: sceneIds.pipe(Flag.withDescription("approve these scenes' renders (id,id)")),
+    act: Flag.String('act').pipe(
+      Flag.optional,
+      Flag.withDescription('approve every scene of this act whose render is current'),
+    ),
     all: Flag.Boolean('all').pipe(
       Flag.withDefault(false),
       Flag.withDescription('approve every scene whose render is current'),
@@ -267,75 +315,116 @@ const approveScenes = Command.make(
         new Set([
           ...Arr.filter(['all'], () => input.all),
           ...Option.toArray(Option.as(input.scene, 'scene')),
+          ...Option.toArray(Option.as(input.act, 'act')),
         ]),
-        [['all', 'excludes', 'scene', 'approve the scenes named or every current one, not both']],
+        [
+          ['all', 'excludes', 'scene', 'approve the scenes named or every current one, not both'],
+          ['all', 'excludes', 'act', "approve an act's current scenes or every one, not both"],
+          ['act', 'excludes', 'scene', 'approve the scenes named or an act, not both'],
+        ],
       ),
     );
-    const { loaded, placed, keys } = yield* keyed(input.film);
+    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
     const catalogues = yield* RenderCatalogue;
     const at = yield* Clock.currentTimeMillis;
-    const scenes = sceneKeys(keys, placed);
-    const approved = yield* Option.match(input.scene, {
-      onNone: () =>
-        Match.value(input.all).pipe(
-          Match.when(true, () =>
-            catalogues.update(loaded.paths, (catalogue) => {
-              const done = approveCurrent(catalogue, scenes, input.variant, at);
-              return [done.approved, done.catalogue] as const;
-            }),
-          ),
-          Match.orElse(() => Effect.fail(ApprovalUnnamed.make({ film: input.film }))),
-        ),
-      onSome: (ids) =>
-        Effect.gen(function* () {
-          yield* scenesNamed(loaded, placed, Option.some(ids));
-          const catalogue = yield* catalogues.read(loaded.paths);
-          const renders = yield* Effect.forEach(ids, (id) =>
-            renderOf(catalogue, input.film, id, input.variant),
-          );
-          return yield* catalogues.update(
-            loaded.paths,
-            (now) => [ids, renders.reduce((cat, render) => approve(cat, render, at), now)] as const,
-          );
-        }),
+    /** Every current scene of `scenes` approved, in one update. */
+    const current = (scenes: ReadonlyArray<SceneKey>) =>
+      catalogues.update(loaded.paths, (catalogue) => {
+        const done = approveCurrent(catalogue, scenes, input.variant, at);
+        return [done.approved, done.catalogue] as const;
+      });
+    const named = (ids: ReadonlyArray<string>) =>
+      Effect.gen(function* () {
+        yield* scenesNamed(loaded, placed, Option.some(ids));
+        const catalogue = yield* catalogues.read(loaded.paths);
+        const renders = yield* Effect.forEach(ids, (id) =>
+          renderOf(catalogue, input.film, id, input.variant),
+        );
+        return yield* catalogues.update(
+          loaded.paths,
+          (now) =>
+            [
+              ids,
+              renders.reduce((cat, render) => approve(cat, subjectOf(render), at), now),
+            ] as const,
+        );
+      });
+    const inAct = (name: string) =>
+      Effect.flatMap(actNamed(tree, name), (act) =>
+        current(tree.scenes.filter((s) => act.scenes.includes(s.scene))),
+      );
+    const which = Effect.gen(function* () {
+      if (Option.isSome(input.scene)) return yield* named(input.scene.value);
+      if (Option.isSome(input.act)) return yield* inAct(input.act.value);
+      if (input.all) return yield* current(tree.scenes);
+      return yield* ApprovalUnnamed.make({ film: input.film });
     });
+    const approved = yield* answeringIf(input.json, which);
     yield* Effect.log(`project.approve film=${input.film} scenes=${approved.join(',')}`);
     const catalogue = yield* catalogues.read(loaded.paths);
-    yield* show(projectOf(catalogue, scenes, input.variant), input.json);
+    yield* show(projectOf(catalogue, tree, input.variant), input.json);
   }),
 ).pipe(
   Command.withDescription(
-    "Approve scenes' renders as they are stamped (--scene id,id), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
+    "Approve scenes' renders as they are stamped (--scene id,id), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
   ),
 );
 
-const commentScene = Command.make(
+const commentOn = Command.make(
   'comment',
   {
     film,
-    scene: Argument.String('scene').pipe(Argument.withDescription('the scene, by id')),
-    text: Argument.String('text').pipe(Argument.withDescription('what to say of its render')),
+    text: Argument.String('text').pipe(Argument.withDescription('what to say')),
+    scene: Flag.String('scene').pipe(
+      Flag.optional,
+      Flag.withDescription("say it of this scene's render (by id)"),
+    ),
+    act: Flag.String('act').pipe(
+      Flag.optional,
+      Flag.withDescription('say it of this act as it is now'),
+    ),
     variant: variantFlag,
+    json,
   },
   Effect.fn('film.project.comment')(function* (input) {
-    const loaded = yield* (yield* FilmRepo).load(input.film);
+    yield* Effect.fromResult(
+      flagConflicts(
+        new Set([
+          ...Option.toArray(Option.as(input.scene, 'scene')),
+          ...Option.toArray(Option.as(input.act, 'act')),
+        ]),
+        [['act', 'excludes', 'scene', 'say it of a scene or of an act, not both']],
+      ),
+    );
+    const { loaded, tree } = yield* answeringIf(input.json, keyed(input.film));
     const at = yield* Clock.currentTimeMillis;
     const catalogues = yield* RenderCatalogue;
-    const render = yield* renderOf(
-      yield* catalogues.read(loaded.paths),
-      input.film,
-      input.scene,
-      input.variant,
-    );
-    const said = yield* catalogues.update(loaded.paths, (catalogue) => {
-      const id = `c${catalogue.comments.length + 1}`;
-      return [id, comment(catalogue, render, input.text, id, at)] as const;
+    // A scene's comment is on its render as stamped; an act's or the film's on it as it is now.
+    const about = Effect.gen(function* () {
+      if (Option.isSome(input.scene)) {
+        const catalogue = yield* catalogues.read(loaded.paths);
+        return subjectOf(yield* renderOf(catalogue, input.film, input.scene.value, input.variant));
+      }
+      if (Option.isSome(input.act)) {
+        const act = yield* actNamed(tree, input.act.value);
+        return partSubject({ _tag: 'Act', act: act.act }, input.variant, act.key);
+      }
+      return partSubject({ _tag: 'Film' }, input.variant, tree.key);
     });
-    yield* Console.log(`${said} ${input.scene} ${input.text}`);
+    const subject = yield* answeringIf(input.json, about);
+    const said = yield* catalogues.update(
+      loaded.paths,
+      (catalogue) =>
+        [nextCommentId(catalogue), comment(catalogue, subject, input.text, at)] as const,
+    );
+    yield* Effect.log(
+      `project.comment film=${input.film} id=${said} at=${addressKey(subject.address)}`,
+    );
+    yield* show(projectOf(yield* catalogues.read(loaded.paths), tree, input.variant), input.json);
   }),
 ).pipe(
   Command.withDescription(
-    "Say something of one scene's render, kept with the render it was said on",
+    "Say something of one scene's render (--scene), an act (--act) or the whole film, kept with the version it was said on",
   ),
 );
 
@@ -345,5 +434,5 @@ export const project = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     Command.withDescription(
       "A film's project folder scene by scene: each scene's render (current, stale or missing), its approval and its comments",
     ),
-    Command.withSubcommands([renderScenes(renderLayer), approveScenes, commentScene]),
+    Command.withSubcommands([renderScenes(renderLayer), approveScenes, commentOn]),
   );

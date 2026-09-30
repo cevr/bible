@@ -1,14 +1,15 @@
 // The lab's and the review's HTTP routes, declared once: every path, its
 // params, query, body and answer, and every failure with its status. The
 // servers derive their handlers from it (`tools/lab.ts`, `tools/studio.ts`,
-// `tools/review-http.ts`, `tools/choices-http.ts`, composed in
-// `tools/api-server.ts`), and the pages their clients and URLs (`lab/api.ts`
-// and its siblings), so a route cannot be written two ways.
+// `tools/review-http.ts`, `tools/choices-http.ts`, `tools/project-http.ts`,
+// composed in `tools/api-server.ts`), and the pages their clients and URLs
+// (`lab/api.ts` and its siblings), so a route cannot be written two ways.
 //
 // Two APIs share the groups: the lab (`film lab <film>`: notes, scene source,
-// steps, studio) and the review (`film review`: review, options, steps).
-// Every film route is under `/lab/<film>/`; a film the server does not serve
-// is a 404 FilmUnknown.
+// steps, studio) and the review (`film review`: review, choices, project,
+// steps). Every film route is under `/lab/<film>/`, but the project's, under
+// `/review/project/<film>`; a film the server does not serve is a 404
+// FilmUnknown.
 //
 // A failure crosses as its own class, JSON with its `_tag`, at the status
 // `Refusals` gives it: the one status table. Anything a handler fails with
@@ -27,16 +28,29 @@ import {
   HttpApiGroup,
   HttpApiSchema,
 } from 'effect/http-api';
-import { UnknownScene, UnknownVoice } from './errors.ts';
+import { Address } from './address.ts';
+import { Project } from './catalogue.ts';
+import {
+  ApprovePost,
+  CommentPost,
+  ChoiceWrite,
+  FilmChoices,
+  KnobPost,
+  PickPost,
+  SoundCheck,
+} from './choice.ts';
+import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
+import { ReviewDuration, ReviewFilms, ReviewIndex } from './review.ts';
 import {
   AttemptUnknown,
   AudioInvalid,
   BodyTooLarge,
-  ChoicesProcessFailed,
+  CatalogueInvalid,
   ChoiceUnknown,
   ElevenLabsFailed,
   FilmNotFound,
   FilmUnknown,
+  FreshProcessFailed,
   HeadUnavailable,
   MediaFailed,
   NoteNotFound,
@@ -47,22 +61,22 @@ import {
   ReviewFileUnknown,
   ReviewToolFailed,
   SceneNotLocated,
+  SceneNotRendered,
   SourceChanged,
   SourceRefused,
   SourceShared,
   StillUnknown,
   SttUntimed,
-  TakeActRefused,
   TakeMismatch,
   TakeUnknown,
   TimelineUnresolved,
   UndoUnavailable,
+  VariantUnknown,
+  VerbRefused,
 } from './refusals.ts';
 import {
   CheckReport,
-  ChoiceWrite,
   CuePatch,
-  FilmChoices,
   HeadSource,
   KnobPatch,
   LabWrite,
@@ -71,12 +85,7 @@ import {
   NotesFile,
   NotesWait,
   ReplyPost,
-  ReviewDuration,
-  ReviewFilms,
-  ReviewIndex,
   SceneSource,
-  ScorePick,
-  TakeCuration,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
 
@@ -125,8 +134,8 @@ const status = HttpApiSchema.status;
 /**
  * Every failure a route answers with, at its status: a thing the film or the
  * review does not have 404; a request that is not one 400; another site or
- * host 403; a write against a newer file, or a take act its state refuses,
- * 409; a body over the limit 413; a body of the wrong type 415; an edit or a
+ * host 403; a write against a newer file, or a verb its variant's state
+ * refuses, 409; a body over the limit 413; a body of the wrong type 415; an edit or a
  * take the lab will not make 422; a tool or a service that failed 502; the
  * rest 500.
  */
@@ -137,7 +146,10 @@ export const Refusals = [
   FilmNotFound.pipe(status(404)),
   FilmUnknown.pipe(status(404)),
   ChoiceUnknown.pipe(status(404)),
+  VariantUnknown.pipe(status(404)),
   TakeUnknown.pipe(status(404)),
+  SceneNotRendered.pipe(status(404)),
+  UnknownAct.pipe(status(404)),
   ReviewFileUnknown.pipe(status(404)),
   PhoneCopyUnmade.pipe(status(404)),
   StillUnknown.pipe(status(404)),
@@ -148,7 +160,7 @@ export const Refusals = [
   UndoUnavailable.pipe(status(409)),
   RedoUnavailable.pipe(status(409)),
   SourceChanged.pipe(status(409)),
-  TakeActRefused.pipe(status(409)),
+  VerbRefused.pipe(status(409)),
   BodyTooLarge.pipe(status(413)),
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
@@ -160,9 +172,10 @@ export const Refusals = [
   UnknownVoice.pipe(status(422)),
   ReviewToolFailed.pipe(status(502)),
   MediaFailed.pipe(status(502)),
-  ChoicesProcessFailed.pipe(status(502)),
+  FreshProcessFailed.pipe(status(502)),
   ElevenLabsFailed.pipe(status(502)),
   SttUntimed.pipe(status(502)),
+  CatalogueInvalid.pipe(status(500)),
   ServerFailed.pipe(status(500)),
 ] as const;
 
@@ -344,44 +357,106 @@ export class ReviewGroup extends HttpApiGroup.make('review').add(
   }),
 ) {}
 
-/** A film's options: listed, picked, and heard in the film's mix. */
-export class OptionsGroup extends HttpApiGroup.make('options').add(
+/**
+ * A film's choice points (`choice.ts`): listed, a variant picked (or
+ * unpicked, or rejected), a level knob set, a variant approved or commented
+ * on, each variant heard alone or in the film's mix, and the film's sound
+ * checked after a pick.
+ */
+export class ChoicesGroup extends HttpApiGroup.make('choices').add(
   HttpApiEndpoint.get('films', '/review/films', { success: ReviewFilms, error: Refusals }),
-  HttpApiEndpoint.get('list', '/lab/:film/options', {
+  HttpApiEndpoint.get('list', '/lab/:film/choices', {
     params: film,
     success: FilmChoices,
     error: Refusals,
   }),
-  /** A score option played (`play` in sound.ts). */
-  HttpApiEndpoint.post('pickScore', '/lab/:film/options/score/pick', {
+  /** A verb on a variant: the pick lands where the film declares it. */
+  HttpApiEndpoint.post('pick', '/lab/:film/choices/pick', {
     params: film,
-    payload: ScorePick,
+    payload: PickPost,
     success: ChoiceWrite,
     error: Refusals,
   }),
-  /** The film's mix with that option (m4a). */
-  HttpApiEndpoint.get('scoreMix', '/lab/:film/options/score/:option/mix', {
-    params: { ...film, option: Schema.String },
-    success: FileBytes,
-    error: Refusals,
-  }),
-  /** A library sound's take alone. */
-  HttpApiEndpoint.get('takeAudio', '/lab/:film/options/effect/:sound/takes/:take/audio', {
-    params: { ...film, sound: Schema.String, take: Schema.String },
-    success: FileBytes,
-    error: Refusals,
-  }),
-  /** The film's mix with that take in place (m4a). */
-  HttpApiEndpoint.get('takeMix', '/lab/:film/options/effect/:sound/takes/:take/mix', {
-    params: { ...film, sound: Schema.String, take: Schema.String },
-    success: FileBytes,
-    error: Refusals,
-  }),
-  /** A take kept, unkept or rejected. */
-  HttpApiEndpoint.post('curate', '/lab/:film/options/effect/:sound/takes', {
-    params: { ...film, sound: Schema.String },
-    payload: TakeCuration,
+  /** A level point's knob written into `sound.ts`. */
+  HttpApiEndpoint.post('knob', '/lab/:film/choices/knob', {
+    params: film,
+    payload: KnobPost,
     success: ChoiceWrite,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('approve', '/lab/:film/choices/approve', {
+    params: film,
+    payload: ApprovePost,
+    success: FilmChoices,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('comment', '/lab/:film/choices/comment', {
+    params: film,
+    payload: CommentPost,
+    success: FilmChoices,
+    error: Refusals,
+  }),
+  /** A variant's own file: a take, an attempt. */
+  HttpApiEndpoint.get('alone', '/lab/:film/choices/alone', {
+    params: film,
+    query: { point: Schema.String, variant: Schema.String },
+    success: FileBytes,
+    error: Refusals,
+  }),
+  /** The film's whole mix with the variant in place (m4a): a score option, a take. */
+  HttpApiEndpoint.get('mix', '/lab/:film/choices/mix', {
+    params: film,
+    query: { point: Schema.String, variant: Schema.String },
+    success: FileBytes,
+    error: Refusals,
+  }),
+  /** `film check --sound` now: dead air and balance in the mix the film makes as it stands. */
+  HttpApiEndpoint.get('soundCheck', '/lab/:film/choices/check', {
+    params: film,
+    success: SoundCheck,
+    error: Refusals,
+  }),
+) {}
+
+/** Which render of each scene a project call is about (`main` when none). */
+const variantField = { variant: Schema.optionalKey(Schema.String) };
+
+/**
+ * A film's project folder by its address tree (`catalogue.ts`): each scene's
+ * render, its state and the owner's say; approvals (of scenes, an act's
+ * current scenes, or every current scene) and comments. Each call runs `film
+ * project` in a fresh process and answers the project as it now stands.
+ */
+export class ProjectGroup extends HttpApiGroup.make('project').add(
+  HttpApiEndpoint.get('get', '/review/project/:film', {
+    params: film,
+    query: variantField,
+    success: Project,
+    error: Refusals,
+  }),
+  /** The scenes named approved as they are rendered, or an act's current scenes. */
+  HttpApiEndpoint.post('approve', '/review/project/:film/approve', {
+    params: film,
+    payload: Schema.Struct({ address: Address, ...variantField }),
+    success: Project,
+    error: Refusals,
+  }),
+  /** Every scene whose render is current approved. */
+  HttpApiEndpoint.post('approveAll', '/review/project/:film/approve-all', {
+    params: film,
+    payload: Schema.Struct(variantField),
+    success: Project,
+    error: Refusals,
+  }),
+  /** Something said of a scene's render, an act or the whole film. */
+  HttpApiEndpoint.post('comment', '/review/project/:film/comment', {
+    params: film,
+    payload: Schema.Struct({
+      address: Address,
+      text: Schema.String.check(Schema.isNonEmpty()),
+      ...variantField,
+    }),
+    success: Project,
     error: Refusals,
   }),
 ) {}
@@ -396,7 +471,8 @@ export class LabHttpApi extends HttpApi.make('lab')
 /** The review's API, served by `film review`. */
 export class ReviewHttpApi extends HttpApi.make('review')
   .add(ReviewGroup)
-  .add(OptionsGroup)
+  .add(ChoicesGroup)
+  .add(ProjectGroup)
   .add(StepsGroup) {}
 
 /** A route an API declares: its method and its path, `:param`s and a trailing `*` as declared. */
@@ -458,14 +534,10 @@ export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number)
   return reviewUrls.review.frame({ query: { ref, w: Math.round(w), ...at } });
 };
 
-/** The film's whole mix with the score option `option` playing (an m4a). */
-export const scoreMixUrl = (film: string, option: string): string =>
-  reviewUrls.options.scoreMix({ params: { film, option } });
+/** A variant of a choice point heard alone: a take's file, an attempt's. */
+export const choiceAloneUrl = (film: string, point: string, variant: string): string =>
+  reviewUrls.choices.alone({ params: { film }, query: { point, variant } });
 
-/** A library sound's take (by its sha256) alone: its file as the library keeps it. */
-export const takeAudioUrl = (film: string, sound: string, take: string): string =>
-  reviewUrls.options.takeAudio({ params: { film, sound, take } });
-
-/** The film's whole mix with `sound` playing only this take at each of its placements (an m4a). */
-export const takeMixUrl = (film: string, sound: string, take: string): string =>
-  reviewUrls.options.takeMix({ params: { film, sound, take } });
+/** The film's whole mix with a variant of a choice point in place (an m4a). */
+export const choiceMixUrl = (film: string, point: string, variant: string): string =>
+  reviewUrls.choices.mix({ params: { film }, query: { point, variant } });
