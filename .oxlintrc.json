@@ -312,6 +312,53 @@
       }
     },
     {
+      // The purity rule (packages/film/README.md): core imports none of the
+      // film's other layers, and the engine neither the player nor the tools.
+      "files": ["**/packages/film/src/core/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/canvas/**",
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/*"
+                ],
+                "message": "core never imports canvas, player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/packages/film/src/canvas/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/player",
+                  "@bible/film/tools",
+                  "@bible/film/lab"
+                ],
+                "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       // A lab browser test waits for the value it asserts, never reads the
       // page once (packages/film/lint/no-read-once.ts, lab/fixtures/settled.ts).
       "files": ["**/*.dom.test.ts"],
