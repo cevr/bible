@@ -41,7 +41,12 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-key: typecheck
-      - run: bun x turbo run typecheck build --output-logs=errors-only
+      - run: bun x turbo run typecheck --output-logs=errors-only
+      # Skipped here: the Sure Word site's build (@bible/site) links EGW
+      # references through the owner's EGW corpus (~/.bible/egw-paragraphs.db),
+      # which is private. Its output ships committed in packages/web/dist, and
+      # its tests run in the test job.
+      - run: bun x turbo run build --filter=!@bible/site --output-logs=errors-only
 
   test:
     name: test (${{ matrix.name }})
@@ -73,6 +78,7 @@ jobs:
             model: true
           - name: animations
             filters: --filter=@bible/animations
+            browser: true
             ffmpeg: true
           - name: apps and packages
             filters: --filter=!@bible/film --filter=!@bible/core --filter=!@bible/animations
