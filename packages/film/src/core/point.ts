@@ -136,13 +136,11 @@ export const PointId = Schema.String.pipe(
     PointRef,
     SchemaTransformation.transformEffect({
       decode: (id: string) =>
-        Option.match(decode(id), {
-          onNone: () =>
-            Effect.fail(
-              new SchemaIssue.InvalidValue({ message: `no choice point is "${id}"` }, id),
-            ),
-          onSome: (ref) => Effect.succeed(ref),
-        }),
+        Effect.fromOption(decode(id)).pipe(
+          Effect.mapError(
+            () => new SchemaIssue.InvalidValue({ message: `no choice point is "${id}"` }, id),
+          ),
+        ),
       encode: (ref: PointRef) => Effect.succeed(encode(ref)),
     }),
   ),

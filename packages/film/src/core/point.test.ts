@@ -47,7 +47,7 @@ describe('the choice point id', () => {
 
   test('a string that names no point does not decode', () => {
     for (const id of ['', 'take:', 'nothing:x', 'level:bed:x:amb', 'level:score:loud', 'level:'])
-      expect(Result.isFailure(Schema.decodeUnknownResult(PointId)(id))).toBe(true);
+      expect(Result.isFailure(Schema.decodeResult(PointId)(id))).toBe(true);
   });
 
   test('a catalogue with a say on each kind of point keeps its bytes', () => {
