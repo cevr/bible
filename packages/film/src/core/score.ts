@@ -9,6 +9,7 @@
 
 import { type Pcm, concat, slice } from './audio.ts';
 import { loudness } from './synth/loudness.ts';
+import type { Interval } from './time.ts';
 
 export const SCORE = {
   /** The voice is read in windows this long (seconds)… */
@@ -23,20 +24,14 @@ export const SCORE = {
   ramp: 1,
 } as const;
 
-/** A stretch of film time, in seconds. */
-export interface Span {
-  readonly from: number;
-  readonly to: number;
-}
-
 /**
  * Where the voice speaks: each run of windows over the gate, in film seconds
  * (the last window may end past the voice's end; it is cut there).
  */
-export const speechSpans = (voice: Pcm): ReadonlyArray<Span> => {
+export const speechSpans = (voice: Pcm): ReadonlyArray<Interval> => {
   const size = Math.max(1, Math.round(SCORE.window * voice.rate));
   const end = voice.frames / voice.rate;
-  const spans: Array<Span> = [];
+  const spans: Array<Interval> = [];
   let open = -1;
   for (let w = 0; w * size < voice.frames; w++) {
     let power = 0;
@@ -60,13 +55,16 @@ export const speechSpans = (voice: Pcm): ReadonlyArray<Span> => {
  * it (none where the film ends without one).
  */
 export interface Alone {
-  readonly hold: Span;
+  readonly hold: Interval;
   readonly rise: boolean;
   readonly fall: boolean;
 }
 
 /** Each pause in `speech` long enough for the score to play alone, over a film `seconds` long. */
-export const aloneSpans = (speech: ReadonlyArray<Span>, seconds: number): ReadonlyArray<Alone> => {
+export const aloneSpans = (
+  speech: ReadonlyArray<Interval>,
+  seconds: number,
+): ReadonlyArray<Alone> => {
   const bounds = [{ from: 0, to: 0 }, ...speech, { from: seconds, to: seconds }];
   const out: Array<Alone> = [];
   for (let k = 0; k + 1 < bounds.length; k++) {
