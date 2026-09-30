@@ -40,6 +40,7 @@ import {
   Logger,
   Option,
   Path,
+  Predicate,
   Result,
   Runtime,
   Schema,
@@ -1094,10 +1095,27 @@ export const runFilmCli = <E>({
   );
 };
 
+/**
+ * A failure as the CLI reports it: a typed error by its tag and message only
+ * (its stack is where Schema built the error, not where the run went wrong);
+ * a defect, or anything but an Error, as the whole cause, stack included.
+ */
+const reportOf = (cause: Cause.Cause<unknown>): unknown =>
+  Option.match(
+    Option.filter(
+      Cause.findErrorOption(cause),
+      (error) => !Cause.hasDies(cause) && Predicate.isError(error),
+    ),
+    {
+      onNone: () => cause,
+      onSome: (error) => String(error),
+    },
+  );
+
 /** What runMain reports of a failure (not an interrupt, nor an error marked unreported), as an error log. */
 const reportFailure = (cause: Cause.Cause<unknown>) =>
   Effect.when(
-    Effect.logError(cause),
+    Effect.logError(reportOf(cause)),
     Effect.sync(
       () => !Cause.hasInterruptsOnly(cause) && Runtime.getErrorReported(Cause.squash(cause)),
     ),

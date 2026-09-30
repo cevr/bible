@@ -35,7 +35,8 @@ mode with the lab's routes mounted, because only the app can bundle its HTML
 and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
 key=value`) go to stderr, a failed command's report too (logged under the
 same logger before the runtime exits, not by `runMain`'s own reporter, which
-would print to stdout); stdout carries only what a command prints, so a
+would print to stdout; a typed failure as its tag and message, a defect with
+its stack); stdout carries only what a command prints, so a
 failing `check --json` still prints only findings. The player imports the same folder, so the tools
 and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
