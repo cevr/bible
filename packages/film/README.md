@@ -1524,6 +1524,13 @@ field that is not there. Write `(line) => Console.log(line)`.
 page last showed. A one-shot read (`textContent()`, `inputValue()`, `$eval`,
 `$$eval`, `isVisible()`, and `getAttribute()` or `count()` on the page or a
 locator) takes whatever the page had drawn at that instant, and is refused.
+`film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
+`packages/film` and `apps/animations/test`: a test whose body spawns a process
+(`ChildProcess.make`, `Bun.spawn`, `Bun.spawnSync`, `runCli`, or a function of
+the same file that does) gives its timeout as its last argument
+(`spawnBudget(n)` from `apps/animations/test/cli-run.ts`, or milliseconds): a
+cold start's time is the machine's, and bun's default 5 s fails a loaded one.
+A spawn inside a service the test provides is not seen.
 
 ## Knobs
 

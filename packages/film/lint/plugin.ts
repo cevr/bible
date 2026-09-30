@@ -13,6 +13,7 @@ import { noPointFreeLog } from './no-point-free-log.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
+import { spawnBudget } from './spawn-budget.ts';
 
 export default Plugin.define({
   name: 'film',
@@ -26,5 +27,6 @@ export default Plugin.define({
     'no-read-once': noReadOnce,
     'no-unprobed-ink': noUnprobedInk,
     'span-ends-on-anchor': spanEndsOnAnchor,
+    'spawn-budget': spawnBudget,
   },
 });

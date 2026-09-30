@@ -320,6 +320,13 @@
       }
     },
     {
+      // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
+      "files": ["**/packages/film/**/*.test.ts", "**/apps/animations/test/**/*.test.ts"],
+      "rules": {
+        "film/spawn-budget": "error"
+      }
+    },
+    {
       // A film's scene registry builds each SceneSpec with its optional `say`.
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {
