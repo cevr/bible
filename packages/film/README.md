@@ -1507,9 +1507,10 @@ which the lab can reach.
 `film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
 files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
 blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,
-ARK_IN, …)`): a framing is knobs read with `knobCamera`, a move a
+ARK_IN, …)`, a camera spread from another with a field blended over it,
+`{ ...cam, zoom: lerp(cam.zoom, 1, roof) }`): a framing is knobs read with `knobCamera`, a move a
 `shotPath` of them, a held push `pushOn` with a number knob. The unmoved
-frame and a framing derived from the scene's geometry (a point that is not
+frame (`UNMOVED`, `canvas/camera.ts`, whose numbers the rule reads) and a framing derived from the scene's geometry (a point that is not
 two numbers) pass; one shared across scenes lives in a set file.
 `film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
 over all of `packages/film` and `apps/animations`: a variadic logger

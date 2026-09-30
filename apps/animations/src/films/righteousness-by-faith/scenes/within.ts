@@ -16,7 +16,6 @@
 // their footprints ("second"). The Sabbath rest is `daily`'s.
 
 import {
-  type Camera,
   type Frame,
   type Pt,
   at,
@@ -35,6 +34,7 @@ import {
   mix,
   rounded,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp, gait } from '@bible/film/core';
 import {
@@ -62,9 +62,6 @@ import { woman } from './woman.ts';
 const PANEL: Pt = [1260, 520];
 const PANEL_W = 900;
 const PANEL_H = 640;
-
-/** The page at rest: the unmoved frame (the canvas itself, so not a knob). */
-const PAGE: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** Each hand held out open at the side, at the heart's height. */
 const OPEN_HAND: Pt = [78, -80];
@@ -130,9 +127,9 @@ const page = (f: WithinFrame) => {
     [0, C.paper],
     [1, C.paper],
   ]);
-  const cam = shotPath(PAGE, [
+  const cam = shotPath(UNMOVED, [
     [f.at('closeUp'), knobCamera(f.knob('face'), f.knob('faceZoom'))],
-    [f.at('closeOut'), PAGE],
+    [f.at('closeOut'), UNMOVED],
   ]);
   camera(ctx, cam, w, h, () => {
     const aside = f.at('aside');

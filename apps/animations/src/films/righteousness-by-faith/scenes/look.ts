@@ -28,6 +28,7 @@ import {
   knobCamera,
   rounded,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { AT_THE_HOLE, type House, RECALL_RISE, house, recall } from '../gospel.ts';
@@ -46,9 +47,6 @@ import {
   pushedHand,
   piece,
 } from '../kit.ts';
-
-/** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
-const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** What the figure holds up to pay with, bottom to top: a kind and its offset. */
 const STACK = [
@@ -325,7 +323,7 @@ export const look = drawing({
       ]);
       multiplane(
         ctx,
-        shotPath(WIDE, [[f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))]]),
+        shotPath(UNMOVED, [[f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))]]),
         w,
         h,
         [

@@ -37,6 +37,7 @@ import {
   type Posed,
   glow,
   reset,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp, gait } from '@bible/film/core';
 import { type House, WENT, house } from '../gospel.ts';
@@ -82,8 +83,8 @@ const timeline = {
   oneLit: { mark: 'one', dur: 0.55, ease: 'outBack' },
   oneHold: { mark: 'one', until: 'two', ease: 'linear' },
   twoLit: { mark: 'two', dur: 0.55, ease: 'outBack' },
-  twoSpecks: { mark: 'two', word: 'forgiveness', dur: 1.2, ease: 'inOutSine' },
   // The specks lift off him on "forgiveness", and the robe comes over him with them.
+  twoSpecks: { mark: 'two', word: 'forgiveness', dur: 1.2, ease: 'inOutSine' },
   twoHold: { mark: 'two', until: 'three', ease: 'linear' },
   threeLit: { mark: 'three', dur: 0.55, ease: 'outBack' },
   threeWalk: { mark: 'three', until: 'proof', ease: 'linear' },
@@ -123,8 +124,6 @@ const knobs = {
 
 type RoofFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
-/** The page at rest, where `message` leaves it: the unmoved frame. */
-const PAGE = { x: 960, y: 540, zoom: 1 } as const;
 /** Where the push through the faith icon ends: on its disc in `message`'s row, close enough that the disc is past the frame's corners. */
 const FAITH: Camera = {
   x: GIFTS_AT.gifts[0] + ICON_X[0] * GIFTS_S,
@@ -204,7 +203,7 @@ const opening = (f: RoofFrame, hands: Hands) => {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, w, h);
   // A push fourteen times over: `pushInto` keeps the disc in frame all the way.
-  const cam = shotPath(PAGE, [[f.at('through'), FAITH, pushInto]]);
+  const cam = shotPath(UNMOVED, [[f.at('through'), FAITH, pushInto]]);
   camera(ctx, cam, w, h, () => {
     giftHand(ctx, hands, GIFTS_AT.palm, 1, TAKEN);
     giftRow(ctx, hands, GIFTS_AT.gifts, ALL, ALL);

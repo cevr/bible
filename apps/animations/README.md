@@ -374,11 +374,11 @@ move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 constant. A framing is knobs too: a point and a zoom (and a tilt),
 `face: [800, 610], faceZoom: 1.22`, made a camera in the draw with
 `knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`); the lab gives that pair a reticle. Only the unmoved
-frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
+frame (`UNMOVED` from `@bible/film/canvas`, the canvas itself), a framing derived from another
 constant and one shared across scenes (in a set file) stay code; a framing
-written out in a scene or blended by hand with `lerp` fails `film/framing-is-a-knob`,
+written out in a scene or blended by hand with `lerp` (a camera spread from another, `{ ...cam, zoom: lerp(cam.zoom, 1, t) }`, included) fails `film/framing-is-a-knob`,
 and `film check`'s `KnobRepeated` compares a framing by its point and zoom. A push is a `shotPath` stop
-to a knob camera, `shotPath(REST, [[f.at('plunge'), knobCamera(f.knob('page'),
+to a knob camera, `shotPath(UNMOVED, [[f.at('plunge'), knobCamera(f.knob('page'),
 f.knob('pageZoom')), pushInto]])`, never a zoom eased again by hand
 (`film/no-ease-on-cue`); a held close-up that keeps pushing in is
 `pushOn(cam, f.knob('pushOn'), f.at('hold'))`, its push a number knob. Read a position knob

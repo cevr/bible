@@ -31,6 +31,7 @@ import {
   rounded,
   sky,
   mix,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { type Key, clamp, lerp } from '@bible/film/core';
 import {
@@ -643,7 +644,7 @@ export const CHEEK: Pt = [-19, -160];
 export const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
 
 /** The frame `accuser` ends on and `robe` opens on: the whole court. */
-export const ZECH_REST: Camera = { x: 960, y: 540, zoom: 1 };
+export const ZECH_REST = UNMOVED;
 /** Where the accuser stands once he has stepped up (he steps in from off the left), and his scale there. */
 export const ACCUSER_AT: Pt = [300, 950];
 const ACCUSER_FROM = -260;
