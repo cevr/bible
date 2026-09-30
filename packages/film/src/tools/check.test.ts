@@ -738,6 +738,19 @@ describe('storyboards and repeated knobs', () => {
     ]);
     expect(repeatedKnobs(placed)[0]?.message).toContain('f.knobsOf(a)');
   });
+
+  test('a framing (a point with its `<name>Zoom`) repeats only when its zoom does too', () => {
+    const framed = (id: string, knobs: Timed['knobs']): Timed => ({ id, say: 'One.', knobs });
+    const scenes = [
+      framed('a', { wide: [960, 560], wideZoom: 1 }),
+      framed('b', { rest: [960, 560], restZoom: 1.1 }),
+      framed('c', { back: [960, 560], backZoom: 1 }),
+    ];
+    const found = repeatedKnobs(Result.getOrThrow(layout(scenes, noTakes)));
+    expect(found.map((f) => [f.scene, f.knob, f.of, f.ofKnob])).toEqual([
+      ['c', 'back', 'a', 'wide'],
+    ]);
+  });
 });
 
 describe('farPins', () => {

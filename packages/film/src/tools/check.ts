@@ -37,6 +37,7 @@ import {
 } from '../core/narration.ts';
 import type {
   InkMark,
+  Knob,
   Score,
   Point,
   Probed,
@@ -133,16 +134,32 @@ export const storyboards = (placed: ReadonlyArray<Placed>): ReadonlyArray<Storyb
     .map((p) => Storyboard.make({ scene: p.spec.id }));
 
 /**
+ * What a point knob holds, as `repeatedKnobs` compares it: its point, and
+ * for a framing (a point `name` with a number `<name>Zoom`, as `knobCamera`
+ * reads them) its zoom too, so two framings that share a point at different
+ * zooms are two framings.
+ */
+const knobKey = (
+  knobs: ReadonlyMap<string, Knob>,
+  knob: string,
+  point: readonly [number, number],
+): string => {
+  const zoom = knobs.get(`${knob}Zoom`);
+  if (Predicate.isNumber(zoom)) return `${point.join(',')}×${zoom}`;
+  return point.join(',');
+};
+
+/**
  * Point knobs a later scene writes with the value an earlier scene's knob
- * holds (`KnobRepeated`): the first scene to write a point owns it. A number
- * knob is left out: a zoom of 1 is no callback.
+ * holds (`KnobRepeated`): the first scene to write a point (a framing's point
+ * and zoom) owns it. A number knob is left out: a zoom of 1 is no callback.
  */
 export const repeatedKnobs = (placed: ReadonlyArray<Placed>): ReadonlyArray<KnobRepeated> => {
   const owners = new Map<string, { readonly scene: string; readonly knob: string }>();
   return placed.flatMap((p) =>
     [...p.knobs].flatMap(([knob, value]) => {
       if (Predicate.isNumber(value)) return [];
-      const key = value.join(',');
+      const key = knobKey(p.knobs, knob, value);
       return Option.match(Option.fromUndefinedOr(owners.get(key)), {
         onNone: () => {
           owners.set(key, { scene: p.spec.id, knob });
