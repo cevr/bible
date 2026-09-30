@@ -53,7 +53,9 @@ tagged errors (`ApiKeyMissing`, `EncoderMissing`, ...) in `tools/errors.ts`,
 and the refusals a page shows in their own words (`TakeMismatch`, ...) in
 `core/refusals.ts`; `film check`'s findings, with their levels and addresses,
 are in `tools/findings.ts`. Logs are `Effect.log` lines `event key=value`.
-`tools/testing.ts` has the in-memory doubles the tool tests use.
+`tools/testing.ts` has the in-memory doubles the tool tests use (the app's
+tests import them as `@bible/film/testing`: `refusingElevenLabs` refuses every
+call).
 
 `film sfx` is the app's sound library (`SoundLibrary`, `tools/library.ts`).
 `make` is its one paid command: it prints each sound's candidates and

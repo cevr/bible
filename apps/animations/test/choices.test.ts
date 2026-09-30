@@ -25,8 +25,6 @@ import {
 import {
   Choices,
   ContentStore,
-  ElevenLabs,
-  ElevenLabsFailed,
   FilmFolder,
   FilmRepo,
   FreshFilm,
@@ -39,18 +37,9 @@ import {
   Takes,
   filmNamed,
 } from '@bible/film/tools';
+import { refusingElevenLabs } from '@bible/film/testing';
 import { describe, expect, it } from 'effect-bun-test';
-import {
-  ConfigProvider,
-  Context,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Redacted,
-  Schema,
-} from 'effect';
+import { ConfigProvider, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { spawnBudget } from './cli-run.ts';
 
@@ -106,23 +95,6 @@ const variant = (file: string, sha256: string, request: string): Variant => ({
   licence: 'elevenlabs-paid-sfx',
   credits: 40,
 });
-
-/** ElevenLabs that refuses everything: nothing here may reach a paid API. */
-const refusing = Layer.succeed(
-  ElevenLabs,
-  ElevenLabs.of({
-    tts: () => Effect.fail(ElevenLabsFailed.make({ op: 'tts', exitCode: -1, reason: 'no' })),
-    dialogue: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'dialogue', exitCode: -1, reason: 'no' })),
-    stt: () => Effect.fail(ElevenLabsFailed.make({ op: 'stt', exitCode: -1, reason: 'no' })),
-    composeMusic: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'music', exitCode: -1, reason: 'no' })),
-    soundEffect: () =>
-      Effect.fail(ElevenLabsFailed.make({ op: 'sfx', exitCode: -1, reason: 'no' })),
-    ready: Effect.void,
-    apiKey: Effect.succeed(Redacted.make('never used')),
-  }),
-);
 
 /** The copy, made under the app's `out/` (so its modules import the framework), and the services over it. */
 const fixture = Layer.unwrap(
@@ -201,7 +173,7 @@ const fixture = Layer.unwrap(
     const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(
       Layer.provide([Store, Platform, Outputs]),
     );
-    const Tools = Layer.mergeAll(refusing, Media.layer).pipe(Layer.provide(Platform));
+    const Tools = Layer.mergeAll(refusingElevenLabs, Media.layer).pipe(Layer.provide(Platform));
     // The fixture library declares a folder store, so no key and no network.
     const Private = PrivateStore.layer(sounds).pipe(
       Layer.provide([FetchHttpClient.layer, Platform]),

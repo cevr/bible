@@ -2,9 +2,8 @@
 // process, as its page builds it (the film's own `film()` from its committed
 // timings, drawn by the compositor), at its first frame, each cue's edges and
 // midpoint, its 60% point and its last frame. A scene that reads a mark, a
-// cue or a knob its film no longer has throws at draw time (4f46add3 was a
-// `declared` card reading `{declared}` after the revised script removed the
-// mark): `DrawThrew`.
+// cue or a knob its film no longer has (a card reading a mark a revised
+// script removed) throws at draw time: `DrawThrew`.
 //
 // Bun has no canvas, so each frame is drawn into the framework's stand-in
 // context (`canvas/fixtures/stand-in.ts`), keeping nothing: every call it does
@@ -16,7 +15,8 @@
 // of a cue) still needs a render to find.
 //
 // Every sampled frame is also pure: a function of its time, not of what the
-// film drew before (ab75a2a1, 5da347fd). Where a cue starts and at each
+// film drew before (a scene easing from a value it kept from the last
+// frame). Where a cue starts and at each
 // scene's 60% point, the frame is drawn after the frame after it, and again
 // after the frame before it, into a context that logs every call; the two
 // logs must be the same, else `FrameImpure`. Those draws are that moment's
