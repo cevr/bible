@@ -666,7 +666,8 @@ over the one reading the tools use too: a beat's `Line`s
 A take not kept answers its failure as the whole API does (below): a
 `TakeMismatch` carries the beat (`id`), the `script`, what was `heard`, the
 `wer` and the `attempt` it saved, which `keep` with `acceptMismatch` makes
-the take ("accept anyway"); the panel shows each as a `StudioRefusal`.
+the take ("accept anyway"); the panel's recorder holds the failure itself
+and reads the attempt off the `TakeMismatch`.
 A body that is not a recording, or of a media type the studio is not told how to
 read (`AudioInvalid`), is a 400; a lossy one (`audio/webm`, `ogg`, `mp4`,
 `aac`, `mpeg`: what MediaRecorder makes) a 415 `RecordingLossy`, since the

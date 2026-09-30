@@ -26,15 +26,13 @@
 
 import { Clock, Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import {
-  STUDIO_IMPORT_WAIT_S,
-  type StudioAttempt,
-  StudioRefusal,
-  type StudioTake,
-} from '../../core/studio.ts';
+import { Refusal } from '../../core/api.ts';
+import { TakeMismatch } from '../../core/refusals.ts';
+import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioTake } from '../../core/studio.ts';
+import { LabUnreachable } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { StudioApi, StudioRefused, minutes, takeLimit } from './api.ts';
-import { Capture, MicLost } from './capture.ts';
+import { StudioApi, TakeTooLong, minutes, takeLimit } from './api.ts';
+import { Capture, CaptureFailed, MicDenied, MicLost } from './capture.ts';
 import { encodeWav } from './wav.ts';
 
 /** The count-in: this many seconds, one shown each second, before the recording starts. */
@@ -62,6 +60,27 @@ export const Kept = Schema.Struct({
   mix: Schema.Literals(['mixed', 'failed', 'unanswered']),
 });
 export type Kept = typeof Kept.Type;
+
+/** An import that got no answer, nor an answer from the attempts, in the owner's words. */
+export class ImportUnanswered extends Schema.TaggedError<ImportUnanswered>()('ImportUnanswered', {
+  message: Schema.String,
+}) {}
+
+/**
+ * Why the recorder kept no take: the studio's own refusal (a TakeMismatch
+ * with the attempt it saved), the lab not reached, a take too long, the
+ * microphone's or the capture's failure, or an import that got no answer.
+ */
+const RecorderRefusal = Schema.Union([
+  Refusal,
+  LabUnreachable,
+  TakeTooLong,
+  MicDenied,
+  CaptureFailed,
+  MicLost,
+  ImportUnanswered,
+]);
+type RecorderRefusal = typeof RecorderRefusal.Type;
 
 /** What an import sends: the recording made just now, or an attempt the server keeps. */
 const Work = Schema.Union([
@@ -97,7 +116,7 @@ export const RecorderState = State({
    */
   Checking: { beat: Schema.String, work: Work, since: Schema.Finite },
   /** Refused: the server's words (or the browser's, for the microphone), and the recording to retry. */
-  Failed: { beat: Schema.String, refusal: StudioRefusal, wav: Schema.Option(Wav) },
+  Failed: { beat: Schema.String, refusal: RecorderRefusal, wav: Schema.Option(Wav) },
 });
 export type RecorderState = typeof RecorderState.Type;
 
@@ -117,7 +136,7 @@ export const RecorderEvent = Event({
   Submit: {},
   Discard: {},
   Imported: { kept: Kept },
-  Refused: { refusal: StudioRefusal },
+  Refused: { refusal: RecorderRefusal },
   /** STUDIO_IMPORT_WAIT_S passed with no answer. */
   ImportUnanswered: {},
   AcceptAnyway: {},
@@ -126,15 +145,11 @@ export const RecorderEvent = Event({
 });
 export type RecorderEvent = typeof RecorderEvent.Type;
 
-/** A failure of the page's own (the microphone, the capture) as the panel shows a refusal. */
-const localRefusal = (e: { readonly _tag: string; readonly message: string }): StudioRefusal => ({
-  _tag: e._tag,
-  message: e.message,
-});
-
 /** The attempt a TakeMismatch saved, which Accept anyway keeps. */
-export const mismatchAttempt = (refusal: StudioRefusal): Option.Option<string> =>
-  Option.filter(Option.fromUndefinedOr(refusal.attempt), () => refusal._tag === 'TakeMismatch');
+export const mismatchAttempt = (refusal: RecorderRefusal): Option.Option<string> =>
+  Option.flatMap(Option.liftPredicate(refusal, Schema.is(TakeMismatch)), (mismatch) =>
+    Option.fromUndefinedOr(mismatch.attempt),
+  );
 
 /** The recording a state holds for a later Retry: the one under review, or kept by a refusal. */
 const heldWav = (state: RecorderState): Option.Option<typeof Wav.Type> =>
@@ -157,10 +172,8 @@ const arm = (beat: string, device: Option.Option<string>, wav: Option.Option<typ
     return yield* (yield* Capture).open(device).pipe(
       Effect.as(RecorderState.CountIn({ beat, n: COUNT_IN })),
       Effect.catchTags({
-        MicDenied: (e) =>
-          Effect.succeed(RecorderState.Failed({ beat, refusal: localRefusal(e), wav })),
-        CaptureFailed: (e) =>
-          Effect.succeed(RecorderState.Failed({ beat, refusal: localRefusal(e), wav })),
+        MicDenied: (e) => Effect.succeed(RecorderState.Failed({ beat, refusal: e, wav })),
+        CaptureFailed: (e) => Effect.succeed(RecorderState.Failed({ beat, refusal: e, wav })),
       }),
     );
   });
@@ -183,7 +196,7 @@ const stopped = (beat: string, then: (wav: typeof Wav.Type) => RecorderState) =>
       Effect.map((pcm) => then(encodeWav(pcm))),
       Effect.catchTag('CaptureFailed', (e) =>
         capture.close.pipe(
-          Effect.as(RecorderState.Failed({ beat, refusal: localRefusal(e), wav: Option.none() })),
+          Effect.as(RecorderState.Failed({ beat, refusal: e, wav: Option.none() })),
         ),
       ),
     );
@@ -217,7 +230,7 @@ const WAITED = minutes(STUDIO_IMPORT_WAIT_S);
 const SLACK_MS = 10_000;
 
 /** An import that got no answer, in the owner's words. */
-const unanswered = (message: string): StudioRefusal => ({ _tag: 'ImportUnanswered', message });
+const unanswered = (message: string) => ImportUnanswered.make({ message });
 
 /**
  * What became of `work`, from the beat's `attempts` as the server lists them
@@ -316,7 +329,7 @@ export const recorderMachine = (beat: string) =>
               Effect.as(
                 RecorderState.Failed({
                   beat: state.beat,
-                  refusal: localRefusal(e),
+                  refusal: e,
                   wav: Option.none(),
                 }),
               ),
@@ -344,7 +357,7 @@ export const recorderMachine = (beat: string) =>
       stopped(state.beat, (wav) =>
         RecorderState.Failed({
           beat: state.beat,
-          refusal: localRefusal(MicLost.make({})),
+          refusal: MicLost.make({}),
           wav: Option.some(wav),
         }),
       ),
@@ -357,7 +370,7 @@ export const recorderMachine = (beat: string) =>
     )
     .task(RecorderState.Importing, ({ state }) => send(state.beat, state.work), {
       onSuccess: (take) => RecorderEvent.Imported({ kept: keptOf(take) }),
-      onFailure: (e) => RecorderEvent.Refused({ refusal: e.refusal }),
+      onFailure: (refusal) => RecorderEvent.Refused({ refusal }),
     })
     .on(
       [RecorderState.Importing, RecorderState.Checking],
@@ -396,12 +409,7 @@ export const recorderMachine = (beat: string) =>
         StudioApi.use((api) => api.attempts(state.beat)).pipe(
           Effect.timeoutOrElse({
             duration: CHECK_WAIT,
-            orElse: () =>
-              Effect.fail(
-                StudioRefused.make({
-                  refusal: { _tag: 'LabUnreachable', message: 'no answer to that either' },
-                }),
-              ),
+            orElse: () => Effect.fail(LabUnreachable.make({ message: 'no answer to that either' })),
           }),
           Effect.map((listed) => settle(state.work, state.since, listed.attempts)),
         ),

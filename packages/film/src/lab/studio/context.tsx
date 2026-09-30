@@ -25,9 +25,10 @@ import {
 } from 'solid-js';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
+import type { LabFailure } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
-import { StudioApi, type StudioRefused, studioApiLayer } from './api.ts';
+import { StudioApi, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
 import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
@@ -124,11 +125,11 @@ type StudioRuntime = Atom.AtomRuntime<StudioApi | Capture | Stage>;
 
 interface Reads {
   readonly runtime: StudioRuntime;
-  readonly beats: Atom.Atom<AsyncResult.AsyncResult<StudioBeats, StudioRefused>>;
+  readonly beats: Atom.Atom<AsyncResult.AsyncResult<StudioBeats, LabFailure>>;
 }
 
 /** A failed read in the server's words. */
-const refusalText = (cause: Cause.Cause<StudioRefused>): string =>
+const refusalText = (cause: Cause.Cause<LabFailure>): string =>
   Option.match(Cause.findErrorOption(cause), {
     onNone: () => Cause.pretty(cause),
     onSome: (e) => e.message,
@@ -324,7 +325,7 @@ const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Re
 
 /** The beat the recorder starts on: the one remembered, while the server lists it, else the first. */
 const startBeat = (
-  beats: AsyncResult.AsyncResult<StudioBeats, StudioRefused>,
+  beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>,
   remembered: Option.Option<string>,
 ) =>
   Option.flatMap(AsyncResult.value(beats), (b) =>
@@ -340,7 +341,7 @@ const startBeat = (
   );
 
 /** Why there is no recorder yet: the beats are being read, refused, or none has a line. */
-const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, StudioRefused>) =>
+const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
   AsyncResult.match(beats, {
     onInitial: () => 'reading the beats…',
     onSuccess: () => 'no beat has a line to record',

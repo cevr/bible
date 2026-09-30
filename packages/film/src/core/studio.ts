@@ -139,19 +139,3 @@ export const StudioAttempts = Schema.Struct({
   attempts: Schema.Array(StudioAttempt),
 });
 export type StudioAttempts = typeof StudioAttempts.Type;
-
-/**
- * What the studio answers when it does not keep a take: the failure's tag and
- * message, and for a `TakeMismatch` what was heard and the attempt it saved,
- * which `keep` with `acceptMismatch` makes the take.
- */
-export const StudioRefusal = Schema.Struct({
-  _tag: Schema.String,
-  message: Schema.String,
-  beat: Schema.optionalKey(Schema.String),
-  script: Schema.optionalKey(Schema.String),
-  heard: Schema.optionalKey(Schema.String),
-  wer: Schema.optionalKey(Schema.Finite),
-  attempt: Schema.optionalKey(Schema.String),
-});
-export type StudioRefusal = typeof StudioRefusal.Type;

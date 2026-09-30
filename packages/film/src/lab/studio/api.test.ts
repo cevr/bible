@@ -5,6 +5,7 @@
 // so in time, not bytes.
 
 import { describe, expect, test } from 'bun:test';
+import { BodyTooLarge, SttUntimed } from '../../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../../core/studio.ts';
 import { takeBody, takeLimit, tooLong } from './api.ts';
 import { encodeWav } from './wav.ts';
@@ -28,14 +29,10 @@ describe('the take limit', () => {
 
   test('a take refused as too large says how long it is and how long a take may be', () => {
     const wav = encodeWav({ rate: 44100, samples: new Float32Array(44100 * 400) });
-    expect(
-      tooLong(wav)({ _tag: 'BodyTooLarge', message: 'the request body is over 67108864 bytes' }),
-    ).toEqual({
-      _tag: 'BodyTooLarge',
-      message:
-        'the take is 6 min 40 s long, and at 44.1 kHz the lab takes at most 6 min 20 s: record the beat in a shorter take',
-    });
-    const other = { _tag: 'TakeMismatch', message: 'heard otherwise' };
-    expect(tooLong(wav)(other)).toEqual(other);
+    expect(tooLong(wav)(BodyTooLarge.make({ limit: STUDIO_MAX_BODY })).message).toBe(
+      'the take is 6 min 40 s long, and at 44.1 kHz the lab takes at most 6 min 20 s: record the beat in a shorter take',
+    );
+    const other = SttUntimed.make({ file: 'a.wav', heard: 3 });
+    expect(tooLong(wav)(other)).toBe(other);
   });
 });

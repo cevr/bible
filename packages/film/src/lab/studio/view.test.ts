@@ -5,7 +5,8 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
-import type { StudioAttempt, StudioBeat, StudioRefusal } from '../../core/studio.ts';
+import { SttUntimed, TakeMismatch } from '../../core/refusals.ts';
+import type { StudioAttempt, StudioBeat } from '../../core/studio.ts';
 import { RecorderEvent, RecorderState } from './machine.ts';
 import {
   attemptLine,
@@ -24,15 +25,15 @@ import {
 import { encodeWav } from './wav.ts';
 
 const wav = encodeWav({ rate: 48000, samples: new Float32Array(48000 * 2.5) });
-const mismatch: StudioRefusal = {
-  _tag: 'TakeMismatch',
-  message: 'TakeMismatch: thesis was heard as "the law is light" (40.0% of words differ)',
+const mismatch = TakeMismatch.make({
+  id: 'thesis',
+  script: 'the law is right',
   heard: 'the law is light',
   wer: 0.4,
   attempt: 'thesis.ab12.flac',
-};
+});
 const idle = RecorderState.Idle({ beat: 'a', kept: Option.none() });
-const failed = (refusal: StudioRefusal) =>
+const failed = (refusal: TakeMismatch | SttUntimed) =>
   RecorderState.Failed({ beat: 'a', refusal, wav: Option.some(wav) });
 
 const acts = (state: RecorderState) => controlsOf(state).map((c) => c.act);
@@ -48,10 +49,7 @@ describe('controlsOf', () => {
     expect(acts(RecorderState.Review({ beat: 'a', wav }))).toEqual(['submit', 'retake', 'discard']);
     expect(acts(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } }))).toEqual([]);
     expect(acts(failed(mismatch))).toEqual(['acceptAnyway', 'arm', 'retry']);
-    expect(acts(failed({ _tag: 'SttUntimed', message: 'no words timed' }))).toEqual([
-      'arm',
-      'retry',
-    ]);
+    expect(acts(failed(SttUntimed.make({ file: 'a.wav', heard: 2 })))).toEqual(['arm', 'retry']);
   });
 
   test('each control names its key', () => {
@@ -172,8 +170,8 @@ describe('statusOf', () => {
     expect(statusOf(failed(mismatch), Option.none())).toBe(
       `${mismatch.message}\nAccept anyway (K) keeps it as the take; Record (R) reads it again`,
     );
-    const lost = { _tag: 'SttUntimed', message: 'no words timed' };
-    expect(statusOf(failed(lost), Option.none())).toBe('no words timed');
+    const lost = SttUntimed.make({ file: 'a.wav', heard: 2 });
+    expect(statusOf(failed(lost), Option.none())).toBe(lost.message);
   });
 });
 

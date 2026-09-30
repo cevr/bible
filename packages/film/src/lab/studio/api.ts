@@ -1,70 +1,56 @@
 // The studio's routes as the recorder calls them, through the client derived
 // from the lab API (`StudioGroup` in `core/api.ts`): each body encoded and
-// each answer decoded by the `core/studio.ts` Schemas. A failure becomes the
-// StudioRefusal the panel shows: the server's own (its tag, its words, and
-// for a TakeMismatch the attempt it saved), or a request that never reached
-// the server in its own words, so the panel always has a refusal to show.
+// each answer decoded by the `core/studio.ts` Schemas. A failure is the
+// server's own refusal as it is (a TakeMismatch with what it heard and the
+// attempt it saved), a request that never reached the server in its own
+// words (LabUnreachable), or a take too long for the route, said in time.
 
-import { Context, Effect, Layer, Option, Schema } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { FetchHttpClient } from 'effect/http';
 import {
   STUDIO_MAX_BODY,
   type StudioAttempts,
   type StudioBeats,
-  StudioRefusal,
   type StudioTake,
   TakePost,
 } from '../../core/studio.ts';
 import { type LabFailure, heard, labClient } from '../api.ts';
 import { BYTES_PER_SAMPLE, WAV_HEADER_BYTES, wavBytes, wavRate, wavSeconds } from './wav.ts';
 
-/** The studio said no, or could not be reached: the refusal to show. */
-export class StudioRefused extends Schema.TaggedError<StudioRefused>()('StudioRefused', {
-  refusal: StudioRefusal,
+/** A take the studio refused as too large, said in time rather than bytes. */
+export class TakeTooLong extends Schema.TaggedError<TakeTooLong>()('TakeTooLong', {
+  /** The take's length, in seconds. */
+  seconds: Schema.Finite,
+  /** Its capture rate, in Hz. */
+  rate: Schema.Finite,
 }) {
   override get message() {
-    return this.refusal.message;
+    return `the take is ${minutes(this.seconds)} long, and at ${this.rate / 1000} kHz the lab takes at most ${minutes(takeLimit(this.rate).seconds)}: record the beat in a shorter take`;
   }
 }
 
+/** Why a studio call gave no answer: the server's refusal, the lab not reached, or a take too long. */
+export type StudioFailure = LabFailure | TakeTooLong;
+
 export interface StudioCalls {
   /** Every beat with a line: its sheet text and where its take stands. */
-  readonly beats: Effect.Effect<StudioBeats, StudioRefused>;
+  readonly beats: Effect.Effect<StudioBeats, LabFailure>;
   /** A beat's recordings, newest first. */
-  readonly attempts: (beat: string) => Effect.Effect<StudioAttempts, StudioRefused>;
+  readonly attempts: (beat: string) => Effect.Effect<StudioAttempts, LabFailure>;
   /** A recording (a 24-bit WAV) made the beat's take. */
-  readonly take: (beat: string, wav: Uint8Array) => Effect.Effect<StudioTake, StudioRefused>;
+  readonly take: (beat: string, wav: Uint8Array) => Effect.Effect<StudioTake, StudioFailure>;
   /** An earlier attempt made the beat's take; `acceptMismatch` keeps one heard as something else. */
   readonly keep: (
     beat: string,
     file: string,
     acceptMismatch: boolean,
-  ) => Effect.Effect<StudioTake, StudioRefused>;
+  ) => Effect.Effect<StudioTake, LabFailure>;
 }
 
 export class StudioApi extends Context.Service<StudioApi, StudioCalls>()(
   '@bible/film/lab/StudioApi',
 ) {}
-
-/** A failed call as the refusal it shows: a TakeMismatch with what it heard and the attempt it saved. */
-export const refusalOf = (failure: LabFailure): StudioRefused => {
-  if (failure._tag !== 'TakeMismatch')
-    return StudioRefused.make({ refusal: { _tag: failure._tag, message: failure.message } });
-  const heard: StudioRefusal = {
-    _tag: failure._tag,
-    message: failure.message,
-    beat: failure.id,
-    script: failure.script,
-    heard: failure.heard,
-    wer: failure.wer,
-  };
-  const refusal = Option.match(Option.fromUndefinedOr(failure.attempt), {
-    onNone: () => heard,
-    onSome: (attempt): StudioRefusal => ({ ...heard, attempt }),
-  });
-  return StudioRefused.make({ refusal });
-};
 
 /** The type a take is posted as. */
 const WAV_TYPE = 'audio/wav';
@@ -107,37 +93,26 @@ export const minutes = (seconds: number): string => {
 /** A refusal of `wav` as too large, in time rather than bytes; any other as it is. */
 export const tooLong =
   (wav: Uint8Array) =>
-  (refusal: StudioRefusal): StudioRefusal => {
-    if (refusal._tag !== 'BodyTooLarge') return refusal;
-    const rate = wavRate(wav);
-    return {
-      ...refusal,
-      message: `the take is ${minutes(wavSeconds(wav))} long, and at ${rate / 1000} kHz the lab takes at most ${minutes(takeLimit(rate).seconds)}: record the beat in a shorter take`,
-    };
+  (failure: LabFailure): StudioFailure => {
+    if (failure._tag !== 'BodyTooLarge') return failure;
+    return TakeTooLong.make({ seconds: wavSeconds(wav), rate: wavRate(wav) });
   };
 
 /** The studio's routes for `film` on `origin`. */
 const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, film: string) {
   const client = (yield* labClient(origin)).studio;
   const api: StudioCalls = {
-    beats: heard(client.beats({ params: { film } })).pipe(Effect.mapError(refusalOf)),
-    attempts: (beat) =>
-      heard(client.attempts({ params: { film, beat } })).pipe(Effect.mapError(refusalOf)),
+    beats: heard(client.beats({ params: { film } })),
+    attempts: (beat) => heard(client.attempts({ params: { film, beat } })),
     take: (beat, wav) =>
       heard(
         client.take({
           params: { film, beat },
           payload: { audio: Base64.encode(wav), type: WAV_TYPE },
         }),
-      ).pipe(
-        Effect.mapError((failure) =>
-          StudioRefused.make({ refusal: tooLong(wav)(refusalOf(failure).refusal) }),
-        ),
-      ),
+      ).pipe(Effect.mapError(tooLong(wav))),
     keep: (beat, file, acceptMismatch) =>
-      heard(client.keep({ params: { film, beat }, payload: { file, acceptMismatch } })).pipe(
-        Effect.mapError(refusalOf),
-      ),
+      heard(client.keep({ params: { film, beat }, payload: { file, acceptMismatch } })),
   };
   return api;
 });
