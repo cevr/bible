@@ -1,8 +1,9 @@
 // The preview as the lab's machines drive it: an edit shown in memory (the
 // scene's timeline or knobs standing in for its drawing's until the write
 // lands and the page reloads), held here and handed to the player whole
-// (`Player.showEdits`), which draws every frame with it (`RenderOptions.edits`); and the clock's `#T`
-// held at the frame a write is asked at, then let go. `#T` keeps its one
+// (`Player.showEdits`), which draws every frame with it
+// (`RenderOptions.edits`); and the clock's `#T` held at the frame a write is
+// asked at, then let go. `#T` keeps its one
 // owner (`tInUrl`, behind `Player.holdT` and `Player.settle`); nothing here
 // writes the URL. A write the film's code does not import (a take's audio
 // and timings, which the player fetches once) reloads the page itself, at
