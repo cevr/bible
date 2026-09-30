@@ -7,7 +7,7 @@ Read-only review of `<base>..HEAD` in <worktree path> (the @bible/film framework
 
 Real defects only, each with file:line and a concrete failure (input → wrong output):
 - a frame that now depends on an earlier frame, the wall clock or unseeded randomness, or a cache across frames;
-- a pixel or a time that moved where the commit claims none (stills with `cmp`, `bun run cues` diffed);
+- a draw or a time that moved where the commit claims none (read in the diff; `bun run cues` diffed);
 - a committed asset (take, score, effect) whose hash changed;
 - a scope, page, server or child process that no longer closes on failure or interrupt;
 - a boundary (file, lab request, script data) that now accepts malformed input without a decode error;
