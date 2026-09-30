@@ -288,6 +288,19 @@
       }
     },
     {
+      // A variadic logger handed point-free to a callback passed an index
+      // prints the index after each line (packages/film/lint/no-point-free-log.ts).
+      "files": [
+        "**/packages/film/**/*.ts",
+        "**/packages/film/**/*.tsx",
+        "**/apps/animations/**/*.ts",
+        "**/apps/animations/**/*.tsx"
+      ],
+      "rules": {
+        "film/no-point-free-log": "error"
+      }
+    },
+    {
       // A film's scene registry builds each SceneSpec with its optional `say`.
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {

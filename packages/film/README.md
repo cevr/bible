@@ -1393,6 +1393,12 @@ that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
 second curve is one the lab's picker cannot change, and a push whose zoom
 takes it runs on another clock than its x and y. A push is a `shotPath` stop
 with `pushInto`; another curve is its own cue or `f.keys`.
+`film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
+over all of `packages/film` and `apps/animations`: a variadic logger
+(`Console.*`, `console.*`, `Effect.log*`) handed point-free to a callback that
+is passed an index (`Effect.forEach(lines, Console.log)`, `xs.map(console.log)`)
+prints the index after each line, so a reader of `film notes --watch` gets a
+field that is not there. Write `(line) => Console.log(line)`.
 
 ## Knobs
 
