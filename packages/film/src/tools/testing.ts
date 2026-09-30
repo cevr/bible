@@ -2,17 +2,7 @@
 // a browser and its pages that answer from memory and count their calls. No
 // network, no Chromium, no credits.
 
-import {
-  Array as Arr,
-  Effect,
-  Exit,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Redacted,
-  Schema,
-} from 'effect';
+import { Array as Arr, Effect, Exit, FileSystem, Layer, Option, Path, Redacted } from 'effect';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
@@ -776,25 +766,6 @@ export const longHoldTimings: Timings = {
   voice: voiceKey(testVoice),
   scenes: { long: spokenTake(TWENTY) },
 };
-
-/**
- * A stand-in 2D context (bun has no canvas) that the kit can draw a stroke or
- * a cutout into, under a transform that scales by `zoom`: drawing does
- * nothing, and the probe reads the transform and the opacity.
- */
-export const stubContext = (zoom: number): CanvasRenderingContext2D =>
-  Schema.decodeSync(Schema.Any)({
-    globalAlpha: 1,
-    fillStyle: '#000',
-    getTransform: () => ({ a: zoom, b: 0, c: 0, d: zoom, e: 0, f: 0 }),
-    save: () => {},
-    restore: () => {},
-    beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
-    closePath: () => {},
-    fill: () => {},
-  });
 
 export const storeLayer = (files: Map<string, Uint8Array>) =>
   ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));

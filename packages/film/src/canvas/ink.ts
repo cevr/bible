@@ -70,23 +70,6 @@ export const quad = (a: Pt, c: Pt, b: Pt, n = 24): Pt[] => {
   return out;
 };
 
-export const cubic = (a: Pt, c1: Pt, c2: Pt, b: Pt, n = 32): Pt[] => {
-  const out: Pt[] = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const u = 1 - t;
-    const w0 = u * u * u;
-    const w1 = 3 * u * u * t;
-    const w2 = 3 * u * t * t;
-    const w3 = t * t * t;
-    out.push([
-      w0 * a[0] + w1 * c1[0] + w2 * c2[0] + w3 * b[0],
-      w0 * a[1] + w1 * c1[1] + w2 * c2[1] + w3 * b[1],
-    ]);
-  }
-  return out;
-};
-
 /** A smooth curve through every given point (Catmull-Rom). */
 export const spline = (pts: Path, perSeg = 12, closed = false): Pt[] => {
   const n = pts.length;
