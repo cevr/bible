@@ -28,6 +28,8 @@
     "effect": "catalog:"
   },
   "devDependencies": {
+    "@effect/platform-node": "catalog:",
+    "alchemy": "2.0.0-beta.79",
     "effect-bun-test": "catalog:"
   }
 }
