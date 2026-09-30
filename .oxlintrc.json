@@ -226,10 +226,12 @@
     },
     {
       // The engine's thrown Errors: a programming mistake (a film with no
-      // scenes, a missing cue, knob or mark, no 2d context) that must stop the
-      // render. They live in the engine, never in a film; the probe test
-      // throws inside a draw to prove the probe comes off.
+      // scenes, a missing cue, knob or mark, no 2d context, a colour that is
+      // not hex) that must stop the render. They live in the engine, never in
+      // a film; the probe test throws inside a draw to prove the probe comes
+      // off.
       "files": [
+        "**/packages/film/src/canvas/colour.ts",
         "**/packages/film/src/canvas/film.ts",
         "**/packages/film/src/canvas/paper.ts",
         "**/packages/film/src/canvas/probe.test.ts"

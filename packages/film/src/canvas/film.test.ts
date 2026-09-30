@@ -4,6 +4,7 @@
 // or silently in it. Laying out a film needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
+import { Result } from 'effect';
 import type { Drift } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
@@ -93,10 +94,11 @@ describe('an edit is a value a frame draws with', () => {
 
   test('draws the edit it is handed, and the frame after with none draws the scene as declared', () => {
     const { film, seen } = seeing();
+    const shown = Result.getOrThrow(film.edit('a', edit));
     withDom(
       () => {
         film.render(recorder().ctx, 0.5);
-        film.render(recorder().ctx, 0.5, { edits: new Map([['a', edit]]) });
+        film.render(recorder().ctx, 0.5, { edits: new Map([['a', shown]]) });
         film.render(recorder().ctx, 0.5);
       },
       { record: false },
@@ -109,10 +111,20 @@ describe('an edit is a value a frame draws with', () => {
     expect(after).toEqual(declared);
   });
 
-  test("a scene's cues with an edit, and as laid out without one", () => {
+  test("an edit resolves on the scene's clock, keeping what it does not name", () => {
     const { film } = seeing();
-    expect(film.cuesOf('a', edit).get('go')).toMatchObject({ start: 0, end: 1 });
-    expect(film.cuesOf('a').get('go')).toMatchObject({ start: 0, end: 2 });
+    const shown = Result.getOrThrow(film.edit('a', { timeline: edit.timeline }));
+    expect(shown.cues.get('go')).toMatchObject({ start: 0, end: 1 });
+    expect(shown.knobs.get('x')).toBe(3);
+    expect(film.placed[0]?.cues.get('go')).toMatchObject({ start: 0, end: 2 });
+  });
+
+  test('an edit that does not resolve is a value naming why, never a throw', () => {
+    const { film } = seeing();
+    const missing = film.edit('a', { timeline: { go: { mark: 'there', dur: 1 } } });
+    expect(Result.isFailure(missing) && missing.failure.message).toContain('has no mark {there}');
+    const unknown = film.edit('nowhere', edit);
+    expect(Result.isFailure(unknown) && unknown.failure._tag).toBe('UnknownScene');
   });
 });
 
@@ -145,7 +157,9 @@ describe("a callback reads another scene's knobs", () => {
       () => {
         film.render(recorder().ctx, T + 0.1);
         film.render(recorder().ctx, T + 0.1, {
-          edits: new Map([['city', { knobs: { at: [1000, 500], zoom: 2 } }]]),
+          edits: new Map([
+            ['city', Result.getOrThrow(film.edit('city', { knobs: { at: [1000, 500], zoom: 2 } }))],
+          ]),
         });
       },
       { record: false },

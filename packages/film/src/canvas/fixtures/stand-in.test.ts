@@ -20,4 +20,20 @@ describe('the stand-in context', () => {
     expect(() => g.addColorStop(1.2, '#000')).toThrow('IndexSizeError');
     expect(() => g.addColorStop(1, '#000')).not.toThrow();
   });
+
+  test('refuses a stop colour made of NaN or undefined, as addColorStop does', () => {
+    const { ctx } = recorder();
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    expect(() => g.addColorStop(1, 'rgba(NaN, NaN, 48, 0)')).toThrow('SyntaxError');
+    expect(() => g.addColorStop(0, '#NaNNaN30')).toThrow('SyntaxError');
+    expect(() => g.addColorStop(0, 'undefined')).toThrow('SyntaxError');
+    expect(() => g.addColorStop(0, 'rgba(230, 179, 71, 0)')).not.toThrow();
+  });
+
+  test('refuses a non-finite gradient coordinate, as a canvas does', () => {
+    const { ctx } = recorder();
+    expect(() => ctx.createLinearGradient(0, Number.NaN, 0, 10)).toThrow('TypeError');
+    expect(() => ctx.createRadialGradient(0, 0, 0, Infinity, 0, 1)).toThrow('TypeError');
+    expect(() => ctx.createLinearGradient(0, 0, 0, 10)).not.toThrow();
+  });
 });

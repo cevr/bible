@@ -3,8 +3,10 @@
 // that will not load (a film made before its mix, whose `full.wav` is not
 // there yet) or that the element cannot play is `Missing`, found once, and
 // the preview then plays on its own clock and never asks it to play again. A
-// play the browser refuses until the viewer clicks is `Blocked`, and the next
-// play (a click) tries again. A play a pause cut short (`AbortError`) is the
+// play asked while it loads is remembered and starts once it can, from where
+// the preview's clock is then; a pause takes it back. A play the browser
+// refuses until the viewer clicks is `Blocked`, and the next play (a click)
+// tries again. A play a pause cut short (`AbortError`) is the
 // element doing as asked, not a failure. Framework-free: the render page
 // loads this.
 
@@ -32,8 +34,11 @@ export interface Narration {
   /** Where the narration is, while it plays: the clock to follow. */
   readonly playingAt: () => number | undefined;
   readonly seek: (t: number) => void;
-  /** Play from where it is, when it can; a refusal becomes its state. */
-  readonly play: () => void;
+  /**
+   * Play from `at()`, the preview's clock: now when it can, or once it has
+   * loaded when asked while it loads. A refusal becomes its state.
+   */
+  readonly play: (at: () => number) => void;
   readonly pause: () => void;
 }
 
@@ -66,8 +71,18 @@ export const narration = (
   };
   const missing = () => become({ _tag: 'Missing', reason: `no narration at ${src}` });
   audio.addEventListener('error', missing);
+  /** A play asked while loading: the clock to start from once it can. */
+  let wanted: (() => number) | undefined;
+  const start = (at: () => number) => {
+    audio.currentTime = at();
+    audio.play().then(undefined, refused);
+  };
   audio.addEventListener('canplay', () => {
-    if (state._tag === 'Loading') become({ _tag: 'Ready' });
+    if (state._tag !== 'Loading') return;
+    become({ _tag: 'Ready' });
+    const at = wanted;
+    wanted = undefined;
+    if (at !== undefined) start(at);
   });
   /** What a refused play means: the rejection is classified here, once. */
   const refused = (e: unknown) => {
@@ -84,12 +99,16 @@ export const narration = (
     seek: (t) => {
       audio.currentTime = t;
     },
-    play: () => {
+    play: (at) => {
+      if (state._tag === 'Loading') wanted = at;
       if (state._tag !== 'Ready' && state._tag !== 'Blocked') return;
       if (state._tag === 'Blocked') become({ _tag: 'Ready' });
-      audio.play().then(undefined, refused);
+      start(at);
     },
-    pause: () => audio.pause(),
+    pause: () => {
+      wanted = undefined;
+      audio.pause();
+    },
   };
 };
 

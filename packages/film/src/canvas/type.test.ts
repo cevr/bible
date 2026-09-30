@@ -3,7 +3,7 @@
 // tracked, and with combining marks kept on their letter.
 
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { recorder } from './fixtures/stand-in.ts';
 import { type Probe, probing } from './probe.ts';
 import { measure, write } from './type.ts';
 
@@ -17,23 +17,8 @@ const kerned = (font: string, text: string) => {
   return width;
 };
 
-/**
- * A stand-in context (bun has no canvas): it measures with `kerned` in its
- * current font and ignores every draw call.
- */
-const context = (): CanvasRenderingContext2D => {
-  const state = { font: '10px x', globalAlpha: 1 };
-  const ctx = new Proxy(state, {
-    get: (target, key) =>
-      key === 'measureText'
-        ? (text: string) => ({ width: kerned(target.font, text) })
-        : key in target
-          ? target[key as keyof typeof target]
-          : () => undefined,
-    set: (target, key, value) => Reflect.set(target, key, value),
-  });
-  return Schema.decodeSync(Schema.Any)(ctx);
-};
+/** The stand-in, measuring with `kerned` in its current font. */
+const context = (): CanvasRenderingContext2D => recorder(1920, 1080, { measure: kerned }).ctx;
 
 const hand = { boil: 0, seed: 1 };
 
@@ -53,35 +38,26 @@ describe('measure', () => {
 });
 
 /**
- * A stand-in context that counts the glyphs filled and outlined and the clips
- * set, and keeps each outline's width; it reads as an identity transform so a
- * probe can map what it records.
+ * The stand-in, measuring with `kerned`, counting the glyphs filled and
+ * outlined and the clips set (`onCall`), and keeping each outline's width.
  */
 const counting = () => {
   const drawn = { fill: 0, outline: 0, clips: 0 };
   const widths: number[] = [];
-  const state = { font: '10px x', globalAlpha: 1, lineWidth: 1 };
-  const ctx = new Proxy(state, {
-    get: (target, key) => {
-      if (key === 'measureText')
-        return (text: string) => ({
-          width: kerned(target.font, text),
-          actualBoundingBoxAscent: 30,
-          actualBoundingBoxDescent: 8,
-        });
-      if (key === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-      if (key === 'fillText') return () => drawn.fill++;
-      if (key === 'strokeText')
-        return () => {
-          drawn.outline++;
-          widths.push(target.lineWidth);
-        };
-      if (key === 'clip') return () => drawn.clips++;
-      return key in target ? target[key as keyof typeof target] : () => undefined;
+  let lineWidth = 1;
+  const { ctx } = recorder(1920, 1080, {
+    measure: kerned,
+    onCall: (key, args) => {
+      if (key === 'lineWidth') lineWidth = Number(args[0]);
+      if (key === 'fillText') drawn.fill++;
+      if (key === 'strokeText') {
+        drawn.outline++;
+        widths.push(lineWidth);
+      }
+      if (key === 'clip') drawn.clips++;
     },
-    set: (target, key, value) => Reflect.set(target, key, value),
   });
-  return { ctx: Schema.decodeSync(Schema.Any)(ctx), drawn, widths };
+  return { ctx, drawn, widths };
 };
 
 const probe = (): Probe => ({ sink: { texts: [], inks: [] }, scene: 'a', dx: 0, alpha: 1 });
