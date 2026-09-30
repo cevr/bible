@@ -1615,7 +1615,7 @@ a knob draws the same frame; it is what lets the lab tweak it.
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, and `canvas` no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, `canvas` no `player`, `tools` or `lab`, and `player` no `tools` or `lab`.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

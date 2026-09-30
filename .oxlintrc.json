@@ -376,6 +376,22 @@
       }
     },
     {
+      "files": ["**/packages/film/src/player/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/tools/**", "**/lab/**", "@bible/film/tools", "@bible/film/lab"],
+                "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       // A lab browser test waits for the value it asserts, never reads the
       // page once (packages/film/lint/no-read-once.ts, lab/fixtures/settled.ts).
       "files": ["**/*.dom.test.ts"],
