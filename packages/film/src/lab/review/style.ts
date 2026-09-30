@@ -109,6 +109,24 @@ a.rv-card:hover { border-color: var(--rv-dim); }
 .rv-doc summary { padding: 10px 14px; cursor: pointer; }
 .rv-doc .rv-note { border: 0; border-top: 1px solid var(--rv-line); border-radius: 0; }
 .rv .empty { color: var(--rv-dim); padding: 40px 0; text-align: center; }
+.rv button:disabled { opacity: 0.45; cursor: default; }
+.rv-picture { margin-bottom: 14px; }
+.rv-picture video { max-height: 62vh; }
+.rv-option .rv-body { display: flex; flex-direction: column; gap: 8px; }
+.rv-option audio, .rv-take audio { width: 100%; max-width: 320px; height: 36px; }
+.rv-take { border-top: 1px solid var(--rv-line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.rv-take[data-state="kept"] .rv-letter { background: var(--rv-gold); }
+.rv-tag[data-state="stale"] { color: var(--rv-gold); }
+.rv-writes {
+  background: var(--rv-panel); border: 1px solid var(--rv-line); border-radius: var(--rv-radius);
+  padding: 8px 12px; margin-bottom: 14px;
+}
+.rv-status { min-width: 0; overflow-wrap: anywhere; }
+.rv-status[data-failed="true"] { color: #e0705a; }
+.rv-findings { margin: 8px 0 0; padding-left: 18px; font-size: 12px; }
+.rv-findings li[data-level="error"] b { color: #e0705a; }
+.rv-findings li[data-level="warning"] b { color: var(--rv-gold); }
+.rv-films { margin-bottom: 4px; }
 @media (max-width: 600px) {
   .rv-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
   .rv-main { padding: 12px 10px 60px; }

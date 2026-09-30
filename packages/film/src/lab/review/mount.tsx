@@ -10,6 +10,7 @@ import type { ReviewIndex } from '../../core/schema.ts';
 import { Root, useReview } from './context.tsx';
 import { folderTitle, pressed } from './format.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 
@@ -43,6 +44,7 @@ export const crumbsOf = (
         { title: folder(p.folder), place: Option.some(Place.Folder({ folder: p.folder })) },
         { title: set(p.folder, p.clip), place: Option.none() },
       ],
+      Film: (p): ReadonlyArray<Crumb> => [{ title: `${p.film} · options`, place: Option.none() }],
     }),
   );
 };
@@ -114,6 +116,7 @@ const Page = () => {
           Home: () => <Home />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} clip={p.clip} />,
+          Film: (p) => <FilmPage film={p.film} />,
         }),
       )}
     </main>

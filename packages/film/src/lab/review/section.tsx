@@ -9,7 +9,7 @@ import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Match, Option } from 'effect';
 import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
-import { createMemo, createSignal, onCleanup } from 'solid-js';
+import { type Accessor, createMemo, createSignal, onCleanup } from 'solid-js';
 import {
   type RenderChoice,
   type RenderVariant,
@@ -36,6 +36,7 @@ import {
 import {
   Rate,
   SyncEvent,
+  type SyncState,
   ViewEvent,
   ViewName,
   clockText,
@@ -168,6 +169,29 @@ const Section = (props: {
   </Show>
 );
 
+/** The app's films, each a link to its options (none shown when the review serves no films). */
+const Films = () => {
+  const { state } = useReview();
+  const films = () =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(state.films()), (f) => f.films),
+      () => [],
+    ).filter((film) => film.toLowerCase().includes(state.filter().toLowerCase()));
+  return (
+    <Section title="Films" count={films().length}>
+      <div class="rv-row rv-films">
+        <For each={films()}>
+          {(film) => (
+            <Go class="rv-chip" place={Place.Film({ film })}>
+              {film} · options
+            </Go>
+          )}
+        </For>
+      </div>
+    </Section>
+  );
+};
+
 /** Every folder with something to review: comparisons first, then the rest; filtered by name. */
 export const Home = () => {
   const { state } = useReview();
@@ -181,6 +205,7 @@ export const Home = () => {
         const rest = createMemo(() => shown().filter((f) => f.sets.length === 0));
         return (
           <>
+            <Films />
             <Section title="Comparisons" count={sets().length}>
               <div class="rv-grid">
                 <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
@@ -438,8 +463,14 @@ export const ViewTabs = () => {
 const RATE_TITLES = { 0.5: '½×', 1: '1×' } as const;
 
 /** Play and pause, the time, one scrub bar for every video, and the rate. */
-const Transport = () => {
-  const { sync, send } = useSet();
+/** The synced player's controls: play, the clock, a scrub over every track, the rate, and a line of keys. */
+export const Transport = (props: {
+  readonly sync: Accessor<SyncState>;
+  readonly send: (event: SyncEvent) => void;
+  readonly hint: string;
+}) => {
+  const { sync } = props;
+  const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   return (
     <section class="rv-transport">
@@ -482,7 +513,7 @@ const Transport = () => {
           )}
         </For>
       </div>
-      <span class="rv-hint rv-keys">space · ←/→ 2 s · 🔊 picks whose sound you hear</span>
+      <span class="rv-hint rv-keys">{props.hint}</span>
     </section>
   );
 };
@@ -683,11 +714,15 @@ const NotesView = () => {
 
 /** The set's page: the transport over the view it shows. */
 const SetBody = () => {
-  const { view } = useSet();
+  const { view, sync, send } = useSet();
   return (
     <>
       <Show when={playsIn(viewNameOf(view()))}>
-        <Transport />
+        <Transport
+          sync={sync}
+          send={send.sync}
+          hint="space · ←/→ 2 s · 🔊 picks whose sound you hear"
+        />
       </Show>
       {Match.value(view()).pipe(
         Match.tagsExhaustive({

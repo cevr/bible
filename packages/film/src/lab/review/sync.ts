@@ -1,4 +1,4 @@
-// The synced player's driver: the `<video>`s of a set, made to do what the
+// The synced player's driver: the `<video>`s (and `<audio>`s) of a set, made to do what the
 // machine's state says, and what they do told back to it as events. The
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
@@ -26,7 +26,7 @@ export const drifted = (video: number, t: number): boolean => Math.abs(video - t
 
 export interface SyncDriver {
   /** A variant's video joins the set: it takes the clock, the rate and the sound as they are. */
-  readonly attach: (id: string, video: HTMLVideoElement) => void;
+  readonly attach: (id: string, video: HTMLMediaElement) => void;
   /** Its card is gone. */
   readonly detach: (id: string) => void;
   /** The machine's state, made so. */
@@ -36,7 +36,7 @@ export interface SyncDriver {
 }
 
 interface Attached {
-  readonly video: HTMLVideoElement;
+  readonly video: HTMLMediaElement;
   readonly listening: AbortController;
 }
 
@@ -62,7 +62,7 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
    * Play `video`; a browser that will not play sound unasked plays it muted
    * (any other refusal, a pause before it started, is left as it is).
    */
-  const play = (video: HTMLVideoElement) =>
+  const play = (video: HTMLMediaElement) =>
     Effect.runFork(
       Effect.tryPromise(() => video.play()).pipe(
         Effect.catch((error) => {
@@ -133,7 +133,7 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
     halt();
   };
 
-  const attach = (id: string, video: HTMLVideoElement) => {
+  const attach = (id: string, video: HTMLMediaElement) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.listening.abort());
     const listening = new AbortController();
     const signal = listening.signal;

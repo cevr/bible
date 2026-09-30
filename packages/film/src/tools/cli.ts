@@ -108,6 +108,8 @@ import {
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { SourceWriter } from './source-writer.ts';
+import { Choices } from './choices.ts';
 import { sfx } from './sfx-cli.ts';
 import { SoundLibrary } from './library.ts';
 import { shortLevel } from './short-check.ts';
@@ -649,6 +651,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         const { plan, mixed } = yield* (yield* Mixer).render(input.film, {
           warn: false,
           score: Option.none(),
+          take: Option.none(),
         });
         for (const finding of balanceFindings(placed, plan, mixed))
           found.push({ level: 'warning', finding });
@@ -1045,6 +1048,7 @@ export const runFilmCli = <E>({
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+    Layer.provideMerge(SourceWriter.layer),
     Layer.provideMerge(SceneSources.layer),
     Layer.provide([Repo, Store, Platform]),
   );
@@ -1054,9 +1058,14 @@ export const runFilmCli = <E>({
     Layer.provideMerge(BunHttpPlatform.layer),
     Layer.provide(Platform),
   );
-  const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
+  const Services = Choices.layer.pipe(
+    // The review hears each option in the mix, and writes a pick through the source writer.
     Layer.provideMerge(
-      Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Reviewed, Platform),
+      Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
+        Layer.provideMerge(
+          Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Reviewed, Platform),
+        ),
+      ),
     ),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));

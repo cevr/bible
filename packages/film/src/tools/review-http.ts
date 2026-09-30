@@ -15,7 +15,7 @@
 // as JSON (`admit`).
 
 import type { FileSystem, Path } from 'effect';
-import { Config, Effect, Option, Result, Schema } from 'effect';
+import { Config, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { HttpPlatform } from 'effect/unstable/http';
 import {
   HttpRouter,
@@ -24,7 +24,12 @@ import {
   HttpStaticServer,
 } from 'effect/unstable/http';
 import { REVIEW_FILES, REVIEW_PHONE, ReviewDuration, ReviewIndex } from '../core/schema.ts';
-import { type Allowed, type LabHandler, admit, refuse } from './lab.ts';
+import { choiceRoutes } from './choices-http.ts';
+import type { Choices } from './choices.ts';
+import type { FilmRepo } from './film-repo.ts';
+import { type Allowed, type LabHandler, admit, refuse, statusOf as labStatusOf } from './lab.ts';
+import type { SourceWriter } from './source-writer.ts';
+import type { StaticCheck } from './static-check.ts';
 import { Review } from './review.ts';
 
 const FrameQuery = Schema.Struct({
@@ -71,13 +76,14 @@ export const serveFile = Effect.fn('review.serveFile')(function* (
 /**
  * The status a failure answers with: a ref naming nothing 404 (the static
  * server's own `HttpServerError` too: a file gone since it resolved), a bad
- * query 400, a frame or length ffmpeg could not make 502, the rest 500.
+ * query 400, a frame or length ffmpeg could not make 502; a film route's
+ * failures as the lab answers them (`lab.ts`).
  */
 const statusOf = (tag: string) => {
   if (tag === 'ReviewFileUnknown' || tag === 'HttpServerError') return 404;
   if (tag === 'SchemaError') return 400;
   if (tag === 'ReviewToolFailed') return 502;
-  return 500;
+  return labStatusOf(tag);
 };
 
 /** Answer every failure a route can have with its status and message, logged. */
@@ -188,10 +194,21 @@ export const reviewAllowed = Config.String('FILM_REVIEW_HOSTS').pipe(
  */
 export const reviewHandler = Effect.fn('film.review.handler')(function* (allowed: Allowed) {
   const services = yield* Effect.context<
-    Review | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
+    | Review
+    | FileSystem.FileSystem
+    | Path.Path
+    | HttpPlatform.HttpPlatform
+    | Choices
+    | FilmRepo
+    | SourceWriter
+    | StaticCheck
   >();
   const { handler } = yield* Effect.acquireRelease(
-    Effect.sync(() => HttpRouter.toWebHandler(reviewRoutes, { disableLogger: true })),
+    Effect.sync(() =>
+      HttpRouter.toWebHandler(Layer.mergeAll(reviewRoutes, choiceRoutes(answered, serveFile)), {
+        disableLogger: true,
+      }),
+    ),
     (web) => Effect.promise(() => web.dispose()),
   );
   const review: LabHandler = (request, server) =>

@@ -1,7 +1,8 @@
 // Where the review page is, read from and written to its URL, so a link (or
 // a reload, or Back) opens the same place: every folder (`/`), one folder
 // (`?folder=<ref>`), one comparison set in it (`&set=<clip>`) and the view
-// it shows (`&view=pair&other=<id>`, `&view=moments&m=<n>`).
+// it shows (`&view=pair&other=<id>`, `&view=moments&m=<n>`), or one film's
+// options (`?film=<film>`).
 
 import { Data, Match, Option } from 'effect';
 import { type ViewName, ViewState, viewNameOf } from './machine.ts';
@@ -10,21 +11,27 @@ export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
   Folder: { readonly folder: string };
   Set: { readonly folder: string; readonly clip: string };
+  /** A film's options: its score's, its sounds' takes. */
+  Film: { readonly film: string };
 }>;
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
 const param = (params: URLSearchParams, name: string): Option.Option<string> =>
   Option.filter(Option.fromNullishOr(params.get(name)), (v) => v !== '');
 
-/** The place a search string (`?folder=…&set=…`) names; home when it names none. */
+/** The place a search string (`?folder=…&set=…`, `?film=…`) names; home when it names none. */
 export const placeOf = (search: string): ReviewPlace => {
   const params = new URLSearchParams(search);
-  return Option.match(param(params, 'folder'), {
-    onNone: () => ReviewPlace.Home(),
-    onSome: (folder) =>
-      Option.match(param(params, 'set'), {
-        onNone: () => ReviewPlace.Folder({ folder }),
-        onSome: (clip) => ReviewPlace.Set({ folder, clip }),
+  return Option.match(param(params, 'film'), {
+    onSome: (film) => ReviewPlace.Film({ film }),
+    onNone: () =>
+      Option.match(param(params, 'folder'), {
+        onNone: () => ReviewPlace.Home(),
+        onSome: (folder) =>
+          Option.match(param(params, 'set'), {
+            onNone: () => ReviewPlace.Folder({ folder }),
+            onSome: (clip) => ReviewPlace.Set({ folder, clip }),
+          }),
       }),
   });
 };
@@ -36,6 +43,7 @@ export const searchOf = (place: ReviewPlace): string => {
       Home: () => new URLSearchParams(),
       Folder: (p) => new URLSearchParams({ folder: p.folder }),
       Set: (p) => new URLSearchParams({ folder: p.folder, set: p.clip }),
+      Film: (p) => new URLSearchParams({ film: p.film }),
     }),
   );
   const text = params.toString();

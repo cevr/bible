@@ -8,11 +8,94 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
-import { ReviewDuration, ReviewIndex, reviewFileUrl } from '../core/schema.ts';
+import {
+  CheckReport,
+  ChoiceWrite,
+  FilmChoices,
+  LabWrite,
+  ReviewDuration,
+  ReviewIndex,
+  reviewFileUrl,
+} from '../core/schema.ts';
+import { Choices } from './choices.ts';
+import { ContentStore } from './content-store.ts';
+import { FilmNotFound } from './errors.ts';
+import { FilmRepo } from './film-repo.ts';
 import { reviewHandler, refFromUrl } from './review-http.ts';
 import { Review } from './review.ts';
+import { type Change, SourceWriter } from './source-writer.ts';
+import { StaticCheck } from './static-check.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
+
+/** Film `f`'s choices: one score of two options, `warm` playing. */
+const CHOICES: FilmChoices = {
+  film: 'f',
+  pictures: [],
+  choices: [
+    {
+      _tag: 'ScoreChoice',
+      picked: 'warm',
+      variants: [
+        { id: 'warm', styles: ['felt piano'], acts: [], state: 'current' },
+        { id: 'bright', styles: ['strings'], acts: [], state: 'missing' },
+      ],
+    },
+  ],
+};
+
+const PICK: Change = {
+  film: 'f',
+  scene: Option.none(),
+  file: '/films/f/sound.ts',
+  target: 'score play bright',
+  before: "play: 'warm'",
+  after: "play: 'bright'",
+};
+
+const unused = Effect.die('not used by the review routes');
+
+/** Film `f`'s choices, or `FilmNotFound`. */
+const listed = (film: string) => {
+  if (film === 'f') return Effect.succeed(CHOICES);
+  return Effect.fail(FilmNotFound.make({ film, dir: `/films/${film}` }));
+};
+
+/**
+ * Film `f`'s services, faked: its choices, a pick of `bright` that lands, an
+ * undo of it, and a check with nothing to say. Every other film is unknown.
+ */
+const filmServices = Layer.mergeAll(
+  Layer.succeed(
+    Choices,
+    Choices.of({
+      list: listed,
+      pickScore: (_, option) =>
+        Effect.succeed({
+          file: PICK.file,
+          target: `score play ${option}`,
+          change: Option.some(PICK),
+        }),
+      curate: () => unused,
+      scoreMix: () => unused,
+      takeAudio: () => unused,
+      takeMix: () => unused,
+    }),
+  ),
+  Layer.succeed(
+    SourceWriter,
+    SourceWriter.of({
+      write: () => unused,
+      around: () => unused,
+      undo: () => Effect.succeed({ ...PICK, target: `undo ${PICK.target}` }),
+      redo: () => unused,
+      history: () =>
+        Effect.succeed({ undo: Option.none(), redo: Option.some(PICK), latest: Option.none() }),
+    }),
+  ),
+  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => Effect.succeed([]) })),
+  FilmRepo.layer('/films').pipe(Layer.provide(ContentStore.layer)),
+);
 
 /** The review over `out/art` (a set of two), ffprobe answering 12.5 s and ffmpeg copying. */
 const fixture = Layer.unwrap(
@@ -42,6 +125,7 @@ const fixture = Layer.unwrap(
     }).pipe(
       Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
       Layer.merge(Layer.succeed(Root, dir)),
+      Layer.merge(filmServices),
     );
   }),
 ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
@@ -147,6 +231,74 @@ describe('review routes', () => {
         });
       expect((yield* ask(write('https://box.example:8229'))).status).toBe(404);
       expect((yield* ask(write('https://evil.example'))).status).toBe(403);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+});
+
+/** A pick as the review's page sends it through the proxy: JSON, from `origin`. */
+const pick = (film: string, body: string, origin: string, type = 'application/json') =>
+  new Request(`http://127.0.0.1:8229/lab/${film}/options/score/pick`, {
+    method: 'POST',
+    headers: { host: 'box.example:8229', origin, 'content-type': type },
+    body,
+  });
+
+describe("a film's options", () => {
+  it.effect('are listed for any film the app has; an unknown one is 404', () =>
+    Effect.gen(function* () {
+      const listed = yield* ask(get('/lab/f/options'));
+      expect(listed.status).toBe(200);
+      const choices = yield* Schema.decodeEffect(Schema.fromJsonString(FilmChoices))(
+        yield* body(listed),
+      );
+      expect(choices).toEqual(CHOICES);
+      const unknown = yield* ask(get('/lab/nope/options'));
+      expect(unknown.status).toBe(404);
+      expect(yield* body(unknown)).toContain('FilmNotFound');
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("a pick is answered with the file it changed, the choices, and the film's check", () =>
+    Effect.gen(function* () {
+      const picked = yield* ask(pick('f', '{"option":"bright"}', 'https://box.example:8229'));
+      expect(picked.status).toBe(200);
+      const answer = yield* Schema.decodeEffect(Schema.fromJsonString(ChoiceWrite))(
+        yield* body(picked),
+      );
+      expect(answer).toEqual({
+        file: 'sound.ts',
+        target: 'score play bright',
+        choices: CHOICES,
+        findings: [],
+      });
+      // The film's undo is the lab's: the pick put back, and what Redo would make again.
+      const undo = new Request('http://127.0.0.1:8229/lab/f/undo', {
+        method: 'POST',
+        headers: { host: 'box.example:8229', 'content-type': 'application/json' },
+        body: '{}',
+      });
+      const undone = yield* Schema.decodeEffect(Schema.fromJsonString(LabWrite))(
+        yield* body(yield* ask(undo)),
+      );
+      expect(undone).toEqual({ file: 'sound.ts', target: 'undo score play bright', findings: [] });
+      const check = yield* Schema.decodeEffect(Schema.fromJsonString(CheckReport))(
+        yield* body(yield* ask(get('/lab/f/check'))),
+      );
+      expect(check).toEqual({
+        findings: [],
+        redo: { file: 'sound.ts', target: 'score play bright' },
+      });
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a pick from another site, or not as JSON, is refused before it runs', () =>
+    Effect.gen(function* () {
+      const cross = yield* ask(pick('f', '{"option":"bright"}', 'https://evil.example'));
+      expect(cross.status).toBe(403);
+      const form = yield* ask(pick('f', 'option=bright', 'https://box.example:8229', 'text/plain'));
+      expect(form.status).toBe(415);
+      const bad = yield* ask(pick('f', '{"choice":"bright"}', 'https://box.example:8229'));
+      expect(bad.status).toBe(400);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 });

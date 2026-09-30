@@ -9,7 +9,7 @@
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Result } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels, windowLevels } from '../core/audio.ts';
 import {
@@ -24,7 +24,7 @@ import {
   mixPlan,
   renderMix,
 } from '../core/mix.ts';
-import type { SoundSource } from '../core/sfx.ts';
+import type { SoundSource, Sounds } from '../core/sfx.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import type { StoreError } from './content-store.ts';
 import {
@@ -34,6 +34,7 @@ import {
   type FilmNotFound,
   type MediaFailed,
   SampleRateMismatch,
+  TakeUnknown,
 } from './errors.ts';
 import { type FilmPaths, FilmRepo, type PlaceError, placeFilm } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
@@ -102,7 +103,8 @@ export type MixError =
   | FilmModuleInvalid
   | StoreError
   | MediaFailed
-  | SampleRateMismatch;
+  | SampleRateMismatch
+  | TakeUnknown;
 
 /** What a mix is rendered from beyond the film. */
 export interface RenderOptions {
@@ -110,7 +112,34 @@ export interface RenderOptions {
   readonly warn: boolean;
   /** The score option to play in place of the one the score names. */
   readonly score: Option.Option<string>;
+  /** One take of a library sound to play at each of its placements, in place of its kept ones. */
+  readonly take: Option.Option<TakeInPlace>;
 }
+
+/** A take of a library sound, by its sha256, heard where the film plays that sound. */
+export interface TakeInPlace {
+  readonly sound: string;
+  readonly take: string;
+}
+
+/**
+ * `sounds` with `sound` playing only the take `take` names (kept or waiting),
+ * at every placement; `TakeUnknown` when it has no such take.
+ */
+export const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sounds, TakeUnknown> => {
+  const entry = Option.fromUndefinedOr(sounds.lock[take.sound]);
+  const found = Option.flatMap(entry, (e) =>
+    Option.fromUndefinedOr([...e.variants, ...e.candidates].find((v) => v.sha256 === take.take)),
+  );
+  return Option.match(Option.all([entry, found]), {
+    onNone: () => Result.fail(TakeUnknown.make(take)),
+    onSome: ([e, variant]) =>
+      Result.succeed({
+        ...sounds,
+        lock: { ...sounds.lock, [take.sound]: { ...e, variants: [variant] } },
+      }),
+  });
+};
 
 /** A mix rendered in memory, and the decoded plan it played. */
 export interface Rendered {
@@ -236,13 +265,17 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const render = Effect.fn('Mixer.render')(function* (name: string, options: RenderOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
+        const sounds = yield* Option.match(options.take, {
+          onNone: () => Effect.succeed(film.sounds),
+          onSome: (take) => Effect.fromResult(withTake(film.sounds, take)),
+        });
         const planned = yield* Effect.fromResult(
           mixPlan({
             film: name,
             placed,
             sound: film.sound,
             manifest: film.manifest,
-            sounds: film.sounds,
+            sounds,
             narration: film.paths.narration,
             soundDir: film.paths.sound,
             play: options.score,
@@ -257,7 +290,11 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
 
       const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
         const film = yield* repo.load(name);
-        const { plan, mixed } = yield* render(name, { warn: true, score: options.score });
+        const { plan, mixed } = yield* render(name, {
+          warn: true,
+          score: options.score,
+          take: Option.none(),
+        });
         const option = Option.map(plan.score, (s) => s.option);
         const music = Option.match(option, {
           onNone: () => 'music',

@@ -21,6 +21,8 @@ export * from './renderer.ts';
 export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';
+export * from './choices.ts';
+export { editPlay, readPlay } from './sound-source.ts';
 export {
   Review,
   type ReviewConfig,
@@ -34,6 +36,7 @@ export * from './scene-source.ts';
 export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
+export * from './source-writer.ts';
 export * from './static-check.ts';
 export * from './takes.ts';
 export * from './studio.ts';

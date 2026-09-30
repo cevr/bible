@@ -74,6 +74,7 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
         load: () => Effect.map(store.read(film.paths.timings), (timings) => ({ ...film, timings })),
         script: () => Effect.succeedNone,
         scores: Effect.succeed(NO_SCORES),
+        names: Effect.succeed([]),
       });
     }),
   );

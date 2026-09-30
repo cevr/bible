@@ -14,7 +14,7 @@ import {
   useAtomValue,
 } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Clock, Effect, Option, Result } from 'effect';
+import { Clock, Effect, Layer, Option, Result } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
@@ -28,11 +28,12 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import type { RenderChoice, ReviewFolder, ReviewIndex } from '../../core/schema.ts';
+import type { RenderChoice, ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/schema.ts';
 import type { LabFailure } from '../api.ts';
 import { localStore } from '../studio/mic-choice.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
+import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import {
   STEP_S,
   type SyncActor,
@@ -56,6 +57,8 @@ export interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
   /** Every folder with something to review, as last read. */
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
+  /** The app's films, each with options to pick from. */
+  readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
   /** What the home page's filter holds. */
   readonly filter: Accessor<string>;
@@ -79,7 +82,7 @@ export interface ReviewMeta {
   readonly duration: (ref: string) => Loaded<number>;
   /** A doc's text, read once per ref. */
   readonly text: (ref: string) => Loaded<string>;
-  readonly runtime: Atom.AtomRuntime<ReviewApi>;
+  readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi>;
   /** Now, in ms: what a card's age is counted from. */
   readonly now: () => number;
 }
@@ -124,7 +127,10 @@ const firstQuality = (): Quality =>
 
 /** The review page: its runtime, place, index and choices, around `children`. */
 export const Root = (props: ParentProps<{ readonly origin: string }>) => {
-  const runtime = Atom.runtime(reviewApiLayer(props.origin));
+  const runtime = Atom.runtime(
+    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer(props.origin)),
+  );
+  const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
   // A refresh asks the server to walk its roots again; a first read takes its cache.
   let fresh = false;
   const indexAtom = runtime.atom(
@@ -158,8 +164,9 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
   const Inner = (inner: ParentProps) => {
     const index = useAtomValue(() => indexAtom);
     const refreshIndex = useAtomRefresh(() => indexAtom);
+    const films = useAtomValue(() => filmsAtom);
     const value: ReviewContextValue = {
-      state: { place, index, quality, filter, lightbox },
+      state: { place, index, films, quality, filter, lightbox },
       actions: {
         go: (next) => {
           const search = searchOf(next);
@@ -225,13 +232,13 @@ interface SetActors {
 const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
 
 /** ←/→: a step back or on. */
-const ARROWS = new Map([
+export const ARROWS = new Map([
   ['ArrowRight', 1],
   ['ArrowLeft', -1],
 ]);
 
 /** Whether a key press belongs to a field (typing), not to the player. */
-const typing = (target: EventTarget) =>
+export const typing = (target: EventTarget) =>
   target instanceof HTMLInputElement ||
   target instanceof HTMLTextAreaElement ||
   target instanceof HTMLSelectElement;

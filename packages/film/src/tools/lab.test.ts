@@ -12,6 +12,7 @@ import { NotesStore } from './notes-store.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
+import { SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -34,9 +35,16 @@ const noSource = Layer.mergeAll(
     SceneWriter.of({
       setCue: () => unused,
       setKnob: () => unused,
-      undo: unused,
-      redo: unused,
-      history: unused,
+    }),
+  ),
+  Layer.succeed(
+    SourceWriter,
+    SourceWriter.of({
+      write: () => unused,
+      around: () => unused,
+      undo: () => unused,
+      redo: () => unused,
+      history: () => unused,
     }),
   ),
   Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unused })),

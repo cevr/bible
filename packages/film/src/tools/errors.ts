@@ -1126,6 +1126,42 @@ export class ReviewFileUnknown extends Schema.TaggedError<ReviewFileUnknown>()(
   }
 }
 
+/** A pick naming a score option, or a library sound, the film does not offer. */
+export class ChoiceUnknown extends Schema.TaggedError<ChoiceUnknown>()('ChoiceUnknown', {
+  film: Schema.String,
+  kind: Schema.Literals(['score option', 'sound']),
+  name: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const known = this.known.join(', ') || 'none';
+    return `film "${this.film}" has no ${this.kind} "${this.name}" to choose (it has: ${known})`;
+  }
+}
+
+/** A take act its take's state does not allow: only a waiting take is kept or rejected, only a kept one unkept. */
+export class TakeActRefused extends Schema.TaggedError<TakeActRefused>()('TakeActRefused', {
+  sound: Schema.String,
+  take: Schema.String,
+  /** What was asked, as it would read done: `kept`, `unkept`, `rejected`. */
+  act: Schema.String,
+  state: Schema.String,
+}) {
+  override get message() {
+    return `take ${this.take.slice(0, 12)} of "${this.sound}" is ${this.state}: it cannot be ${this.act}`;
+  }
+}
+
+/** A take named by its sha256 that a sound has neither kept nor waiting. */
+export class TakeUnknown extends Schema.TaggedError<TakeUnknown>()('TakeUnknown', {
+  sound: Schema.String,
+  take: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.sound}" has no kept or waiting take ${this.take.slice(0, 12)}`;
+  }
+}
+
 /**
  * A derived file the review makes (a frame, a length, a phone copy, a mix)
  * that ffmpeg or ffprobe did not make, or its cache could not keep.

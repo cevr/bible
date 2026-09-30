@@ -962,6 +962,21 @@ export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number)
   return `/review/frame?ref=${encodeURIComponent(ref)}&w=${Math.round(w)}${at}`;
 };
 
+/** A film's options (`GET`), under its lab base. */
+export const optionsUrl = (film: string): string => `${labBase(film)}/options`;
+
+/** The film's whole mix with the score option `option` playing (an m4a). */
+export const scoreMixUrl = (film: string, option: string): string =>
+  `${optionsUrl(film)}/score/${encodeURIComponent(option)}/mix`;
+
+/** A library sound's take (by its sha256) alone: its file as the library keeps it. */
+export const takeAudioUrl = (film: string, sound: string, take: string): string =>
+  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/audio`;
+
+/** The film's whole mix with `sound` playing only this take at each of its placements (an m4a). */
+export const takeMixUrl = (film: string, sound: string, take: string): string =>
+  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/mix`;
+
 /**
  * One change the lab made to a file, as a page is told of it: a scene's (its
  * cue or knob) or a film's (its score's pick, its library's takes), named by
@@ -1183,6 +1198,10 @@ export type ReviewIndex = typeof ReviewIndex.Type;
 export const ReviewDuration = Schema.Struct({ seconds: Seconds });
 export type ReviewDuration = typeof ReviewDuration.Type;
 
+/** `GET /review/films`: the app's films, each with options to pick from at `?film=<film>`. */
+export const ReviewFilms = Schema.Struct({ films: Schema.Array(Schema.String) });
+export type ReviewFilms = typeof ReviewFilms.Type;
+
 /**
  * Where a score option stands in the film's store: `current` (composed for
  * the acts and timing as they are), `stale` (composed before they changed:
@@ -1258,6 +1277,12 @@ export type FilmChoice = typeof FilmChoice.Type;
 /** `GET /lab/<film>/options`: the film's choices. */
 export const FilmChoices = Schema.Struct({
   film: Schema.String,
+  /**
+   * The film's renders under the review's roots, newest first: the picture
+   * each option's mix is heard against (its own sound muted). None until the
+   * film is rendered.
+   */
+  pictures: Schema.Array(ReviewVideo),
   choices: Schema.Array(FilmChoice),
 });
 export type FilmChoices = typeof FilmChoices.Type;

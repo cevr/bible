@@ -68,7 +68,8 @@ import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
-import { SceneWriter, type Written } from './scene-writer.ts';
+import { SceneWriter } from './scene-writer.ts';
+import { type Change, SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
 
 /** Where the server that mounts the lab listens: Bun hands each route its server. */
@@ -193,21 +194,38 @@ const sourceJson = HttpServerResponse.schemaJson(SceneSource);
 const checkJson = HttpServerResponse.schemaJson(CheckReport);
 const headJson = HttpServerResponse.schemaJson(HeadSource);
 
+/** Failures that name something the film does not have. */
+const NOT_FOUND: ReadonlyArray<string> = [
+  'NoteNotFound',
+  'SceneNotLocated',
+  'HeadUnavailable',
+  'FilmNotFound',
+  'ChoiceUnknown',
+  'TakeUnknown',
+];
+/** Failures of a write or an undo against the state the file or a take is in. */
+const CONFLICT: ReadonlyArray<string> = [
+  'UndoUnavailable',
+  'RedoUnavailable',
+  'SourceChanged',
+  'TakeActRefused',
+];
+
 /**
  * The status a failure answers with: a missing note or scene 404, a bad
  * request 400, an edit the lab will not make 422, a write or an undo with
  * something newer in the file (or nothing to undo) 409, the rest 500.
  */
-const statusOf = (tag: string) => {
-  if (tag === 'NoteNotFound' || tag === 'SceneNotLocated' || tag === 'HeadUnavailable') return 404;
+export const statusOf = (tag: string) => {
+  if (NOT_FOUND.includes(tag)) return 404;
   if (tag === 'SchemaError' || tag === 'HttpServerError') return 400;
   if (tag === 'SourceRefused' || tag === 'SourceShared' || tag === 'TimelineUnresolved') return 422;
-  if (tag === 'UndoUnavailable' || tag === 'RedoUnavailable' || tag === 'SourceChanged') return 409;
+  if (CONFLICT.includes(tag)) return 409;
   return 500;
 };
 
 /** `film check --static` as the lab shows it: a check that cannot run is itself a finding. */
-const findings = Effect.fn('lab.findings')(function* (film: string) {
+export const findings = Effect.fn('lab.findings')(function* (film: string) {
   const check = yield* StaticCheck;
   return yield* check.run(film).pipe(
     Effect.catchTag('StaticCheckFailed', (error) => {
@@ -241,10 +259,14 @@ const resolveCue = Effect.fn('lab.resolveCue')(function* (
   });
 });
 
+/** A change's scene as an answer names it: none for a film's own file. */
+export const sceneField = (change: Change) =>
+  Option.match(change.scene, { onNone: () => ({}), onSome: (scene) => ({ scene }) });
+
 /** What a write answers: the file relative to the film, the value as the file now reads, the check. */
 const answer = Effect.fn('lab.answer')(function* (
   film: string,
-  written: Written,
+  written: Change,
   read: Effect.Effect<
     Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob'>>,
     never,
@@ -255,7 +277,7 @@ const answer = Effect.fn('lab.answer')(function* (
   const dir = (yield* FilmRepo).paths(film).dir;
   const found = yield* findings(film);
   return yield* writeJson({
-    scene: written.scene,
+    ...sceneField(written),
     file: path.relative(dir, written.file),
     target: written.target,
     ...(yield* read),
@@ -278,6 +300,41 @@ const handled = <E extends { readonly _tag: string; readonly message: string }, 
       ),
     ),
   );
+
+/** `POST …/undo`: put the film's newest change back, answered as a write is. */
+export const undone = (film: string) =>
+  Effect.gen(function* () {
+    const change = yield* (yield* SourceWriter).undo(film);
+    return yield* answer(film, change, Effect.succeed({}));
+  });
+
+/** `POST …/redo`: make the film's newest undone change again, answered as a write is. */
+export const redone = (film: string) =>
+  Effect.gen(function* () {
+    const change = yield* (yield* SourceWriter).redo(film);
+    return yield* answer(film, change, Effect.succeed({}));
+  });
+
+/** `GET …/check`: the film's check now, its latest change, and what Undo and Redo would do. */
+export const checked = (film: string) =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const dir = (yield* FilmRepo).paths(film).dir;
+    const history = yield* (yield* SourceWriter).history(film);
+    const step = (key: 'latest' | 'undo' | 'redo') =>
+      Option.match(history[key], {
+        onNone: () => ({}),
+        onSome: (c) => ({
+          [key]: { ...sceneField(c), file: path.relative(dir, c.file), target: c.target },
+        }),
+      });
+    return yield* checkJson({
+      findings: yield* findings(film),
+      ...step('latest'),
+      ...step('undo'),
+      ...step('redo'),
+    });
+  });
 
 /** The routes over one film's notes. */
 export const labRoutes = (film: string) => {
@@ -440,50 +497,9 @@ export const labRoutes = (film: string) => {
         }),
       ),
     ),
-    HttpRouter.route(
-      'POST',
-      `${base}/undo`,
-      handled(
-        Effect.gen(function* () {
-          const written = yield* (yield* SceneWriter).undo;
-          return yield* answer(film, written, Effect.succeed({}));
-        }),
-      ),
-    ),
-    HttpRouter.route(
-      'POST',
-      `${base}/redo`,
-      handled(
-        Effect.gen(function* () {
-          const written = yield* (yield* SceneWriter).redo;
-          return yield* answer(film, written, Effect.succeed({}));
-        }),
-      ),
-    ),
-    HttpRouter.route(
-      'GET',
-      `${base}/check`,
-      handled(
-        Effect.gen(function* () {
-          const path = yield* Path.Path;
-          const dir = (yield* FilmRepo).paths(film).dir;
-          const history = yield* (yield* SceneWriter).history;
-          const step = (key: 'latest' | 'undo' | 'redo') =>
-            Option.match(history[key], {
-              onNone: () => ({}),
-              onSome: (w) => ({
-                [key]: { scene: w.scene, file: path.relative(dir, w.file), target: w.target },
-              }),
-            });
-          return yield* checkJson({
-            findings: yield* findings(film),
-            ...step('latest'),
-            ...step('undo'),
-            ...step('redo'),
-          });
-        }),
-      ),
-    ),
+    HttpRouter.route('POST', `${base}/undo`, handled(undone(film))),
+    HttpRouter.route('POST', `${base}/redo`, handled(redone(film))),
+    HttpRouter.route('GET', `${base}/check`, handled(checked(film))),
   ]);
 };
 
@@ -500,6 +516,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     | FilmRepo
     | SceneSources
     | SceneWriter
+    | SourceWriter
     | SceneHead
     | StaticCheck
   >();

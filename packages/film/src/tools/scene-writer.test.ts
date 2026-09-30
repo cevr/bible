@@ -21,13 +21,14 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { SceneSources } from './scene-sources.ts';
+import { SceneWriter } from './scene-writer.ts';
 import {
   FORMAT_LIMIT,
-  SceneWriter,
+  SourceWriter,
   UNDO_DEPTH,
   emptyHistory,
-  recordWrite,
-} from './scene-writer.ts';
+  recordChange,
+} from './source-writer.ts';
 import { sceneFixture } from './testing.ts';
 
 /** The fixture's hand scene: a fresh copy per test. */
@@ -63,6 +64,7 @@ const fixtureWith = (
         ),
       );
       return SceneWriter.layer.pipe(
+        Layer.provideMerge(SourceWriter.layer),
         Layer.provideMerge(SceneSources.layer),
         Layer.provide(FilmRepo.layer(films)),
         Layer.provide(ContentStore.layer),
@@ -126,7 +128,8 @@ describe('scene writer', () => {
           "topple: { mark: 'earns', offset: 0.4,",
         ),
       );
-      expect(written).toMatchObject({ scene: 'hand', target: 'cue topple offset', before, after });
+      expect(written).toMatchObject({ film: 'f', target: 'cue topple offset', before, after });
+      expect(written.scene).toEqual(Option.some('hand'));
     }).pipe(Effect.provide(fixture)),
   );
 
@@ -185,10 +188,11 @@ describe('scene writer', () => {
     }).pipe(Effect.provide(fixture)),
   );
 
-  it.effect('undoes writes newest first and redoes them, byte for byte', () =>
+  it.effect('undoes the film writes newest first and redoes them, byte for byte', () =>
     Effect.gen(function* () {
       const writer = yield* SceneWriter;
-      const targets = Effect.map(writer.history, (h) => ({
+      const source = yield* SourceWriter;
+      const targets = Effect.map(source.history('f'), (h) => ({
         undo: Option.map(h.undo, (w) => w.target),
         redo: Option.map(h.redo, (w) => w.target),
         latest: Option.map(h.latest, (w) => w.target),
@@ -204,9 +208,9 @@ describe('scene writer', () => {
         latest: Option.some('knob palm'),
       });
       // Undo twice: the knob, then the ease.
-      expect((yield* writer.undo).target).toBe('undo knob palm');
+      expect((yield* source.undo('f')).target).toBe('undo knob palm');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* writer.undo).target).toBe('undo cue topple ease');
+      expect((yield* source.undo('f')).target).toBe('undo cue topple ease');
       expect(yield* read()).toBe(before);
       // A page reloaded by the undo learns what it did here.
       expect(yield* targets).toEqual({
@@ -214,35 +218,36 @@ describe('scene writer', () => {
         redo: Option.some('cue topple ease'),
         latest: Option.some('undo cue topple ease'),
       });
-      expect((yield* Effect.flip(writer.undo))._tag).toBe('UndoUnavailable');
+      expect((yield* Effect.flip(source.undo('f')))._tag).toBe('UndoUnavailable');
       // Redo twice: the ease, then the knob.
-      expect((yield* writer.redo).target).toBe('redo cue topple ease');
+      expect((yield* source.redo('f')).target).toBe('redo cue topple ease');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* writer.redo).target).toBe('redo knob palm');
+      expect((yield* source.redo('f')).target).toBe('redo knob palm');
       expect(yield* read()).toBe(afterKnob);
-      expect((yield* Effect.flip(writer.redo))._tag).toBe('RedoUnavailable');
+      expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
       // A new write after an undo drops what could be redone.
-      yield* writer.undo;
+      yield* source.undo('f');
       yield* writer.setKnob('f', 'hand', 'palm', [3, 4]);
-      expect((yield* Effect.flip(writer.redo))._tag).toBe('RedoUnavailable');
+      expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
     }).pipe(Effect.provide(fixture)),
   );
 
   it.effect('neither undo nor redo runs over a change made since', () =>
     Effect.gen(function* () {
       const writer = yield* SceneWriter;
+      const source = yield* SourceWriter;
       const fs = yield* FileSystem.FileSystem;
       yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
       yield* fs.writeFileString(yield* HandFile, `${yield* read()}// edited by hand\n`);
       const edited = yield* read();
-      const refused = yield* Effect.flip(writer.undo);
+      const refused = yield* Effect.flip(source.undo('f'));
       expect(refused.message).toContain('has changed since the lab wrote knob palm');
       expect(yield* read()).toBe(edited);
       // The editor's line taken out again: the undo runs, and the redo is refused over a new one.
       yield* fs.writeFileString(yield* HandFile, edited.replace('// edited by hand\n', ''));
-      yield* writer.undo;
+      yield* source.undo('f');
       yield* fs.writeFileString(yield* HandFile, `${yield* read()}// edited by hand\n`);
-      const redo = yield* Effect.flip(writer.redo);
+      const redo = yield* Effect.flip(source.redo('f'));
       expect(redo.message).toContain('has changed since the lab undid knob palm');
     }).pipe(Effect.provide(fixture)),
   );
@@ -250,15 +255,15 @@ describe('scene writer', () => {
   it.effect('the undo stack keeps the newest writes, up to its depth', () =>
     Effect.sync(() => {
       const w = (n: number) => ({
-        scene: 's',
+        film: 'f',
+        scene: Option.some('s'),
         file: 'f.ts',
-        exportName: 's',
         target: `knob k${n}`,
         before: `${n - 1}`,
         after: `${n}`,
       });
       let history = emptyHistory;
-      for (const n of [1, 2, 3, 4, 5]) history = recordWrite(history, w(n), 3);
+      for (const n of [1, 2, 3, 4, 5]) history = recordChange(history, w(n), 3);
       expect(history.undos.map((x) => x.target)).toEqual(['knob k3', 'knob k4', 'knob k5']);
       expect(UNDO_DEPTH).toBeGreaterThanOrEqual(20);
     }),

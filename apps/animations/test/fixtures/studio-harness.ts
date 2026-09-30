@@ -28,6 +28,7 @@ import {
   SceneHead,
   SceneSources,
   SceneWriter,
+  SourceWriter,
   StaticCheck,
   Takes,
   beatsOf,
@@ -137,6 +138,7 @@ const Harness = Layer.unwrap(
     const Repo = FilmRepo.layer(root, sounds).pipe(Layer.provide([Store, Platform]));
     const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
     const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+      Layer.provideMerge(SourceWriter.layer),
       Layer.provideMerge(SceneSources.layer),
       Layer.provide([Repo, Store, Platform]),
     );
