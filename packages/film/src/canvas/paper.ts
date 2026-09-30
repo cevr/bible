@@ -29,6 +29,33 @@ export const offscreen = (w: number, h: number): Offscreen => {
   return { c, ctx };
 };
 
+/** One repeating pattern per context and tile, made once. */
+const patterns = new WeakMap<
+  CanvasRenderingContext2D,
+  WeakMap<HTMLCanvasElement, CanvasPattern | null>
+>();
+
+/**
+ * `ctx`'s repeating pattern of `tile`, made the first time it is asked for
+ * and kept while both live. A draw that places the pattern sets its transform
+ * before every fill, so a pattern kept across draws lands where a new one would.
+ */
+export const patternOf = (
+  ctx: CanvasRenderingContext2D,
+  tile: HTMLCanvasElement,
+): CanvasPattern | null => {
+  let mine = patterns.get(ctx);
+  if (mine === undefined) {
+    mine = new WeakMap();
+    patterns.set(ctx, mine);
+  }
+  const have = mine.get(tile);
+  if (have !== undefined) return have;
+  const made = ctx.createPattern(tile, 'repeat');
+  mine.set(tile, made);
+  return made;
+};
+
 /** A full-frame sheet: base colour, soft mottling, fibres, and flecks. */
 export const makePaper = (w: number, h: number, style: PaperStyle): HTMLCanvasElement => {
   const { c, ctx } = offscreen(w, h);

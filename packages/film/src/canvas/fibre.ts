@@ -9,7 +9,7 @@
 
 import { rng } from '../core/random.ts';
 import type { Camera } from './camera.ts';
-import { offscreen } from './paper.ts';
+import { offscreen, patternOf } from './paper.ts';
 
 /** The tile's side in px. */
 export const FIBRE_SIZE = 320;
@@ -106,25 +106,6 @@ const scaledTile = (period: number): HTMLCanvasElement => {
   }
   scaled.set(period, c);
   return c;
-};
-
-/** One repeating pattern per context and tile, made once. */
-const patterns = new WeakMap<
-  CanvasRenderingContext2D,
-  WeakMap<HTMLCanvasElement, CanvasPattern | null>
->();
-
-const patternOf = (ctx: CanvasRenderingContext2D, tileOf: HTMLCanvasElement) => {
-  let mine = patterns.get(ctx);
-  if (mine === undefined) {
-    mine = new WeakMap();
-    patterns.set(ctx, mine);
-  }
-  const have = mine.get(tileOf);
-  if (have !== undefined) return have;
-  const made = ctx.createPattern(tileOf, 'repeat');
-  mine.set(tileOf, made);
-  return made;
 };
 
 /** `n` wrapped into [0, period). */

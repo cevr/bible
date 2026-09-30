@@ -503,35 +503,26 @@ const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
   return canvas;
 };
 
-/** The globals the stand-in DOM replaces, as they were. */
+/** The global the stand-in DOM replaces, as it was. */
 interface Globals {
   readonly document: unknown;
-  readonly matrix: unknown;
 }
 
 const putUp = (options: StandInOptions) =>
   Effect.sync((): Globals => {
-    const before = {
-      document: Reflect.get(globalThis, 'document'),
-      matrix: Reflect.get(globalThis, 'DOMMatrix'),
-    };
+    const before = { document: Reflect.get(globalThis, 'document') };
     Reflect.set(globalThis, 'document', { createElement: () => standInCanvas(options) });
-    Reflect.set(globalThis, 'DOMMatrix', function DOMMatrix() {
-      return nothing;
-    });
     return before;
   });
 
 const takeDown = (before: Globals) =>
   Effect.sync(() => {
     Reflect.set(globalThis, 'document', before.document);
-    Reflect.set(globalThis, 'DOMMatrix', before.matrix);
   });
 
 /**
- * A document whose canvases are stand-ins (and a `DOMMatrix` that answers
- * `nothing`), for everything a film makes off the page, put back when the
- * scope closes.
+ * A document whose canvases are stand-ins, for everything a film makes off
+ * the page, put back when the scope closes.
  */
 export const standInDom = (options: StandInOptions = {}): Effect.Effect<void, never, Scope.Scope> =>
   Effect.asVoid(Effect.acquireRelease(putUp(options), takeDown));
