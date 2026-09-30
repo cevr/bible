@@ -10,7 +10,7 @@
 import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import type { Pcm } from '../core/audio.ts';
-import { BALANCE, hotEffects, voiceLevel } from '../core/balance.ts';
+import { BALANCE, hotEffects } from '../core/balance.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { Placed } from '../core/layout.ts';
@@ -59,7 +59,6 @@ import {
   EffectHot,
   EndShort,
   MasterLoudness,
-  VoiceLevel,
   type ColourScript,
   type CueInvalid,
   type FaceSmall,
@@ -107,7 +106,6 @@ export type StaticFinding =
   | WordPinFar
   | EndShort
   | DeadAir
-  | VoiceLevel
   | MasterLoudness;
 /** What one probed frame shows wrong. */
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
@@ -295,20 +293,17 @@ export const musicFindings = (
   );
 
 /**
- * The mix measured against the film's sound rules: the voice's level and the
- * master's loudness off their targets, and each effect that crowds the voice
- * around it (`hotEffects`: its loudest 50 ms, as the mix plays it).
+ * The mix measured against the film's sound rules: the master's loudness off
+ * its target, and each effect that crowds the voice around it (`hotEffects`:
+ * its loudest 50 ms, as the mix plays it).
  */
 export const balanceFindings = (
   placed: ReadonlyArray<Placed>,
   plan: MixPlan<Pcm>,
   mixed: Mixed,
-): ReadonlyArray<VoiceLevel | MasterLoudness | EffectHot> => {
+): ReadonlyArray<MasterLoudness | EffectHot> => {
   const { tolerance } = BALANCE;
-  const found: Array<VoiceLevel | MasterLoudness | EffectHot> = [];
-  const voice = voiceLevel(mixed.voice);
-  if (Number.isFinite(voice) && Math.abs(voice - BALANCE.voice) > tolerance)
-    found.push(VoiceLevel.make({ level: voice, target: BALANCE.voice, tolerance }));
+  const found: Array<MasterLoudness | EffectHot> = [];
   const master = loudness(mixed.master).integrated;
   if (Number.isFinite(master) && Math.abs(master - BALANCE.master) > tolerance)
     found.push(MasterLoudness.make({ loudness: master, target: BALANCE.master, tolerance }));
@@ -397,7 +392,6 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
     case 'AssetMissing':
     case 'SoundStale':
     case 'EffectHot':
-    case 'VoiceLevel':
     case 'MasterLoudness':
     case 'SeamLong':
     case 'WordPinFar':

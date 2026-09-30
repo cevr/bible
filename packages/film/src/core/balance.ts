@@ -1,28 +1,21 @@
-// How a mix measures against the film's sound rules (CRAFT rule 10): the
-// voice's level, and each effect against the voice around it. A bus is read
-// as a listener hears it: its sides' power summed, so a take played mono at
-// −3 dB a side reads as the take itself (and as BS.1770 sums them). Pure: the
-// check renders the mix and hands its buses here.
+// How a mix measures against the film's sound rules (CRAFT rule 10): each
+// effect against the voice around it. A bus is read as a listener hears it:
+// its sides' power summed, so a take played mono at −3 dB a side reads as the
+// take itself (and as BS.1770 sums them). Pure: the check renders the mix and
+// hands its buses here.
 
 import { Array as Arr } from 'effect';
 import type { Pcm } from './audio.ts';
 import { MASTER, type Placement, repitch } from './mix.ts';
 
 export const BALANCE = {
-  /** The voice's level at its 70th percentile over `levelWindow`s, in dBFS (CRAFT rule 10). */
-  voice: -17,
   /**
    * The master's integrated loudness, in LUFS (CRAFT rule 10): the mix masters
    * to it, so a miss means headroom held the lift back (a peak too hot).
    */
   master: MASTER.loudness,
-  /**
-   * How far either may sit from its target, in dB: a clean gain to the
-   * speech level can be held 1–2 dB short by a take's own peaks (the ceiling).
-   */
+  /** How far the master may sit from its loudness, in dB. */
   tolerance: 3,
-  /** The window the voice's level is read over, in seconds (BS.1770's block). */
-  levelWindow: 0.4,
   /** A window quieter than this, in dBFS, is a pause, not the voice. */
   gate: -50,
   /** How close under the voice (dB) an effect's loudest moment may come where the voice speaks. */
@@ -55,15 +48,6 @@ const percentile = (values: ReadonlyArray<number>, p: number): number => {
   const sorted = values.toSorted((a, b) => a - b);
   return sorted[Math.floor((sorted.length - 1) * p)] ?? Number.NEGATIVE_INFINITY;
 };
-
-/** The voice's level: the 70th percentile of its `levelWindow`s over the gate, in dBFS. */
-export const voiceLevel = (voice: Pcm): number =>
-  percentile(
-    windowPowers(voice, 0, voice.frames / voice.rate, BALANCE.levelWindow).filter(
-      (db) => db > BALANCE.gate,
-    ),
-    0.7,
-  );
 
 /** An effect whose loudest `hotWindow` comes within `BALANCE.hot` dB under the voice around it. */
 export interface HotEffect {

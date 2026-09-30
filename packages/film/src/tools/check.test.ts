@@ -38,6 +38,7 @@ import {
 } from './check.ts';
 import type { Pcm } from '../core/audio.ts';
 import { BALANCE } from '../core/balance.ts';
+import { TAKE_LEVEL } from '../core/recording.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { type AudioStale, StaticHold } from './errors.ts';
 import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
@@ -991,19 +992,19 @@ describe('balanceFindings', () => {
     return balanceFindings(placed, plan, mixed);
   };
 
-  test('a voice and master on target find nothing', () => {
-    expect(mixOf(tone(10, BALANCE.voice))).toEqual([]);
+  test('a master at its loudness finds nothing', () => {
+    expect(mixOf(tone(10, TAKE_LEVEL.speech))).toEqual([]);
   });
 
-  test('a voice under target is a VoiceLevel, and its master a MasterLoudness', () => {
-    const found = mixOf(tone(10, BALANCE.voice - BALANCE.tolerance - 2));
-    expect(tags(found)).toEqual(['VoiceLevel', 'MasterLoudness']);
-    expect(found[0]).toMatchObject({ target: BALANCE.voice });
+  test('a master under its loudness (a peak held the lift back) is a MasterLoudness', () => {
+    const found = mixOf(tone(10, TAKE_LEVEL.speech - BALANCE.tolerance - 2));
+    expect(tags(found)).toEqual(['MasterLoudness']);
+    expect(found[0]).toMatchObject({ target: BALANCE.master });
   });
 
   test('an effect whose 50 ms hit sits over the voice around it is an EffectHot, named', () => {
-    const thud = tone(0.05, BALANCE.voice + 6).channels[0] ?? new Float32Array();
-    const found = mixOf(tone(10, BALANCE.voice), [
+    const thud = tone(0.05, TAKE_LEVEL.speech + 6).channels[0] ?? new Float32Array();
+    const found = mixOf(tone(10, TAKE_LEVEL.speech), [
       {
         name: 'cloth',
         sound: { rate: RATE, frames: thud.length, channels: [thud] },

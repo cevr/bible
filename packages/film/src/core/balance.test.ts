@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { Pcm } from './audio.ts';
-import { BALANCE, hotEffects, voiceLevel } from './balance.ts';
+import { BALANCE, hotEffects } from './balance.ts';
 import type { Placement } from './mix.ts';
 
 const RATE = 44100;
@@ -42,16 +42,6 @@ const place = (name: string, sound: Pcm, at: number, gain = 1): Placement<Pcm> =
   at,
   gain,
   pitch: 0,
-});
-
-describe('voiceLevel', () => {
-  test('the voice bus reads as the take it plays: both sides’ power summed, its 70th percentile', () => {
-    expect(voiceLevel(bus(10, tone(6, -17), 2))).toBeCloseTo(-17, 1);
-  });
-
-  test('silence between the lines is left out', () => {
-    expect(voiceLevel(bus(60, tone(3, -20), 1))).toBeCloseTo(-20, 1);
-  });
 });
 
 describe('hotEffects', () => {

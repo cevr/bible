@@ -140,17 +140,6 @@ export class EffectHot extends Schema.TaggedError<EffectHot>()('EffectHot', {
   }
 }
 
-/** The voice bus's level (its 70th percentile) off the film's target. */
-export class VoiceLevel extends Schema.TaggedError<VoiceLevel>()('VoiceLevel', {
-  level: Schema.Finite,
-  target: Schema.Finite,
-  tolerance: Schema.Finite,
-}) {
-  override get message() {
-    return `the voice sits at ${this.level.toFixed(1)} dBFS (70th percentile), outside ${this.target} ± ${this.tolerance} dB: level the takes (a staging take is levelled in the mix; a person's on import)`;
-  }
-}
-
 /** The master's integrated loudness off the film's target. */
 export class MasterLoudness extends Schema.TaggedError<MasterLoudness>()('MasterLoudness', {
   loudness: Schema.Finite,
