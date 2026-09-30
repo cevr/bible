@@ -7,7 +7,7 @@ name: gate
 on:
   pull_request:
   push:
-    branches: [main, ci-gate]
+    branches: [main]
 
 concurrency:
   group: gate-${{ github.ref }}
