@@ -3,13 +3,28 @@
 // people are grey paper. Scarlet is sin (Isa 1:18), white the robe, gold the
 // word and God's presence.
 
+import { lerp } from '@bible/film/core';
+
+/** A colour between two hex colours. */
+export const mix = (a: string, b: string, t: number): string => {
+  const ch = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const k = Math.min(1, Math.max(0, t));
+  const out = [0, 1, 2].map((i) =>
+    Math.round(lerp(ch(a, i), ch(b, i), k))
+      .toString(16)
+      .padStart(2, '0'),
+  );
+  return `#${out.join('')}`;
+};
+
 export const palette = {
   // IDEA: the parchment page and its ink.
   paper: '#eeddc8',
   paperTone: '#8c7f71',
   ink: '#332b23',
   inkSoft: '#665d52',
-  // STORY: chipboard, lit and shaded.
+  // STORY: chipboard, lit and shaded: the walls, floors, houses and props the
+  // people stand among.
   board: '#ab8163',
   boardLight: '#c49a78',
   boardShade: '#83644b',
@@ -18,6 +33,13 @@ export const palette = {
   figure: '#b7b2a8',
   figureShade: '#8f8a80',
   outline: '#2b2622',
+  // Chipboard cut for what the people wear and carry (hair, headcloths, a
+  // tunic, a helmet and cape, the gavel, the pallet), apart from the world's.
+  cut: '#ab8163',
+  cutLight: '#c49a78',
+  cutShade: '#83644b',
+  cutDeep: '#423123',
+  cutRust: '#8a4736',
   // The meaning colours.
   scarlet: '#ce0914',
   scarletShade: '#a4070e',

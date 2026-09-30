@@ -772,7 +772,7 @@ const HELPER: Posed<Person> & { look: [number, number] } = {
 
 /** The filthy tunic in Joshua's units; `flare` 0..1 per stain lights it scarlet. */
 export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: number) => number) => {
-  piece(ctx, TUNIC, C.boardShade, hand('tunic'), { role: 'figure', torn: 2.5, line: 2 });
+  piece(ctx, TUNIC, C.cutShade, hand('tunic'), { role: 'figure', torn: 2.5, line: 2 });
   TUNIC_STAINS.forEach((stain, i) => {
     const lit = flare(i);
     if (lit > 0) {
@@ -796,7 +796,7 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
 export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, place: Place) =>
   at(ctx, place, () => {
     piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { role: 'figure', line: 2 });
-    piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { role: 'figure', line: 2.5 });
+    piece(ctx, GAVEL_HEAD, C.cutDeep, hand('gavelHead'), { role: 'figure', line: 2.5 });
   });
 const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
 const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);
