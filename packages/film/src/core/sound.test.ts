@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
-import { layout } from './layout.ts';
+import { filmEnd, layout } from './layout.ts';
 import { UnknownCue, UnknownMark } from './errors.ts';
 import { Cue, type Music, Score, type Timings } from './schema.ts';
 import {
@@ -8,7 +8,6 @@ import {
   MUSIC_TAIL,
   movementSpans,
   cueTime,
-  filmEnd,
   musicKey,
   musicPlan,
   playedOption,
@@ -58,7 +57,9 @@ describe('sound', () => {
     expect(
       Result.getOrThrow(cueTime({ scene: 'a', mark: 'live', offset: 0.25 }, placed)),
     ).toBeCloseTo(0.5 + live + 0.25);
-    expect(Result.getOrThrow(cueTime({ scene: 'c' }, placed))).toBe(placed[2]?.start ?? NaN);
+    expect(Result.getOrThrow(cueTime({ scene: 'c', at: 'start' }, placed))).toBe(
+      placed[2]?.start ?? NaN,
+    );
   });
 
   test('a named cue lands on the start or end of the cue the picture reads', () => {
@@ -87,7 +88,7 @@ describe('sound', () => {
   });
 
   test('an unknown scene, mark or cue is an authoring error naming what the scene has', () => {
-    expect(outcome(cueTime({ scene: 'z' }, placed))).toBe('UnknownScene');
+    expect(outcome(cueTime({ scene: 'z', at: 'start' }, placed))).toBe('UnknownScene');
     expect(Result.getFailure(cueTime({ scene: 'a', mark: 'nope' }, placed))).toEqual(
       Option.some(UnknownMark.make({ scene: 'a', mark: 'nope', by: 'sound', known: ['live'] })),
     );

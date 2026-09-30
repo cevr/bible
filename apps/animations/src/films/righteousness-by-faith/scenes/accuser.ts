@@ -18,7 +18,7 @@ const RAISED: Posed<Gesture> = { to: [-78, -205], reach: 0, grip: 'palm' };
 
 export const accuser = drawing({
   timeline: {
-    down: { scene: 'start', dur: 3.1, ease: 'inOutSine' },
+    down: { at: 'start', dur: 3.1, ease: 'inOutSine' },
     bow: { mark: 'joshua', dur: 0.6 },
     push: { mark: 'filthy', offset: -0.2, dur: 0.9, ease: 'inOutCubic' },
     enter: { mark: 'satan', offset: -0.2, dur: 1.2, ease: 'outCubic' },

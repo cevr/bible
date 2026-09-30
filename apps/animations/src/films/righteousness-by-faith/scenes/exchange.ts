@@ -121,8 +121,8 @@ const STONE = ellipseShape(0, 0, 130, 130);
 const STONE_CORE = ellipseShape(0, 0, 60, 60);
 
 const timeline = {
-  turn: { scene: 'speech', dur: 0.6 },
-  sun: { scene: 'speech', until: 'cross', ease: 'linear' },
+  turn: { at: 'speech', dur: 0.6 },
+  sun: { at: 'speech', until: 'cross', ease: 'linear' },
   puzzle: { mark: 'fair', dur: 0.4 },
   walkIn: { mark: 'fair', word: 'fair', until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },

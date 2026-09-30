@@ -306,3 +306,13 @@ export class SoundUseMismatch extends Schema.TaggedError<SoundUseMismatch>()('So
     return `sound "${this.name}" is declared a ${this.declared}, and placed as a ${this.placed}`;
   }
 }
+
+/** A film's timings file is there, but the page could not fetch or read it. */
+export class NarrationUnreadable extends Schema.TaggedError<NarrationUnreadable>()(
+  'NarrationUnreadable',
+  { film: Schema.String, url: Schema.String, reason: Schema.String },
+) {
+  override get message() {
+    return `film "${this.film}": its narration timings at ${this.url} cannot be read (${this.reason}); the page will not lay the film out on estimates the tools do not use`;
+  }
+}

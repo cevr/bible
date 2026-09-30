@@ -31,9 +31,8 @@ import {
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { ChunkTiming } from '../core/export-handle.ts';
 import type { ShortError } from '../core/errors.ts';
-import { type Placed, everyTakeRecorded } from '../core/layout.ts';
+import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
 import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
-import { filmEnd } from '../core/sound.ts';
 import { type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
 import {
   type AudioMissing,

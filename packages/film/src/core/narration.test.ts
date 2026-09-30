@@ -7,6 +7,8 @@ import type { Timings, Cast, Reader } from './schema.ts';
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
 import {
+  endsClause,
+  endsSentence,
   estimate,
   hashText,
   linesOf,
@@ -27,6 +29,21 @@ describe('narration', () => {
     expect(p.spoken).toBe('God spoke, and it was so.');
     expect(p.marks.get('speak')).toBe(1);
     expect(p.marks.get('so')).toBe(3);
+  });
+
+  test('one rule says where a sentence or a clause ends, whatever quote or bracket closes it', () => {
+    for (const w of ['so.', 'so?', 'so!', 'so.”', "so.'", 'so.)', 'so.]', 'so."'])
+      expect([w, endsSentence(w)]).toEqual([w, true]);
+    for (const w of ['so,', 'so;', 'so:', 'so—', 'so–', 'so…', "so,'", 'so,]'])
+      expect([w, endsClause(w), endsSentence(w)]).toEqual([w, true, false]);
+    expect(endsSentence('so')).toBe(false);
+    // The estimate pauses on the same ends: longer after a sentence than a clause.
+    const gap = (text: string) => {
+      const [a, b] = estimate(text);
+      return (b?.start ?? 0) - (a?.end ?? 0);
+    };
+    expect(gap("one.' two")).toBeGreaterThan(gap('one… two'));
+    expect(gap('one… two')).toBeGreaterThan(gap('one two'));
   });
 
   test('a duplicate mark is an authoring error naming its scene', () => {

@@ -27,8 +27,8 @@ export const NAME = {
 
 export const title = drawing({
   timeline: {
-    rise: { scene: 'start', dur: 1.2, ease: 'outCubic' },
-    settle: { scene: 'start', offset: 0.17, dur: 0.6, ease: 'outCubic' },
+    rise: { at: 'start', dur: 1.2, ease: 'outCubic' },
+    settle: { at: 'start', offset: 0.17, dur: 0.6, ease: 'outCubic' },
     // The figure looks up as the rise comes to rest.
     lookUp: { after: 'rise', offset: -0.03, dur: 0.5 },
   },

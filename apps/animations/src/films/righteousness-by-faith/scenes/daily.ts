@@ -167,7 +167,7 @@ const knobs = {
 } as const;
 
 const timeline = {
-  ask: { scene: 'speech', dur: 0.4 },
+  ask: { at: 'speech', dur: 0.4 },
   lead: { mark: 'joy', dur: 0.4 },
   toGate: { mark: 'joy', offset: -0.2, dur: 1, ease: 'inOutCubic' },
   notes: { mark: 'joy', offset: 0.3, dur: 0.8 },

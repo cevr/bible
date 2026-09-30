@@ -15,7 +15,7 @@ import {
   trim,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, ease, lerp, staggered } from '@bible/film/core';
 import { C, blob, bubble, glow, piece, sky, type Hands } from './kit.ts';
 import { tree } from './garden.ts';
 
@@ -98,7 +98,7 @@ export interface Dawn {
 export const DAWN_DONE: Dawn = { flood: 1, day: 1, sun: 1, land: 1, tree: 1 };
 
 /** Rise from below, staggered: `k` 0..1 is how late this piece starts. */
-const risen = (land: number, k: number) => ease.outBack(clamp((land - k * 0.4) / 0.6));
+const risen = (land: number, k: number) => ease.outBack(staggered(land, k, 0.4));
 
 /**
  * The dawn world in 1920×1080 frame units: the dark, the sky it floods to,

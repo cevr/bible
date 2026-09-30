@@ -16,12 +16,13 @@ import {
   at,
   camera,
   drawing,
+  knobCamera,
   pushInto,
   rectShape,
   shotPath,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import {
   type GestureAt,
   C,
@@ -41,8 +42,6 @@ import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 
 /** The book that comes up out of the gold, at the frame's middle. */
 const BOOK: Pt = [960, 560];
-/** The book's dark page, which the camera pushes through. */
-const PAGE: Pt = [960 + 150, 560];
 
 /** The unmoved frame (the canvas itself, so not a knob). */
 const REST: Camera = { x: 960, y: 540, zoom: 1 };
@@ -69,9 +68,13 @@ export const spoke = drawing({
     shrug: { mark: 'where', offset: 0.1, dur: 0.5 },
     unshrug: { mark: 'from', offset: -0.2, dur: 0.4 },
     into: { mark: 'from', offset: -0.1, dur: 1.1, ease: 'inCubic' },
+    // The bubble's gold fills the frame as the push goes through it.
+    gold: { after: 'into', dur: 0.1, ends: true, ease: 'linear' },
     bookIn: { after: 'into', offset: -0.1, dur: 0.6, ease: 'outBack' },
     bookOpen: { mark: 'back', offset: 0.1, dur: 0.6 },
     plunge: { mark: 'dark', offset: -1, dur: 1.1, ease: 'inCubic' },
+    // The dark page fills the frame as the camera goes through it.
+    night: { after: 'plunge', dur: 0.12, ends: true, ease: 'linear' },
     // In the dark, the camera drifts slowly back while the world is made.
     drift: { after: 'plunge', dur: 10.4, ease: 'linear' },
     flight: { mark: 'then', offset: 0.1, dur: 1.3, ease: 'inOutSine' },
@@ -83,6 +86,9 @@ export const spoke = drawing({
     grow: { mark: 'itself', offset: -0.5, dur: 1.6, ease: 'linear' },
   },
   knobs: {
+    // Through the book's dark page: where the plunge ends, and how close.
+    page: [1110, 560],
+    pageZoom: 9,
     hangAt: [1330, 420],
     from: [-120, 760],
     // The grey figure beside the row, lower left.
@@ -129,9 +135,10 @@ export const spoke = drawing({
         );
       });
       // The bubble's gold, filling the frame as the push goes through it.
-      if (into > 0.75) {
+      const gold = f.at('gold');
+      if (gold > 0) {
         ctx.save();
-        ctx.globalAlpha *= clamp((into - 0.75) / 0.25);
+        ctx.globalAlpha *= gold;
         ctx.fillStyle = C.gold;
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
@@ -145,11 +152,9 @@ export const spoke = drawing({
       ctx.fillStyle = C.gold;
       ctx.fillRect(0, 0, w, h);
       glow(ctx, w / 2, h / 2, 700, C.glow, 0.6);
-      const cam: Camera = {
-        x: lerp(REST.x, PAGE[0], plunge),
-        y: lerp(REST.y, PAGE[1], plunge),
-        zoom: lerp(1, 9, ease.inCubic(plunge)),
-      };
+      const cam = shotPath(REST, [
+        [plunge, knobCamera(f.knob('page'), f.knob('pageZoom')), pushInto],
+      ]);
       camera(ctx, cam, w, h, () => {
         const inAt = f.at('bookIn');
         if (inAt <= 0) return;
@@ -201,9 +206,10 @@ export const spoke = drawing({
         );
       });
       // The dark page fills the frame as the camera goes through it.
-      if (plunge > 0.7) {
+      const night = f.at('night');
+      if (night > 0) {
         ctx.save();
-        ctx.globalAlpha *= clamp((plunge - 0.7) / 0.3);
+        ctx.globalAlpha *= night;
         ctx.fillStyle = C.night;
         ctx.fillRect(0, 0, w, h);
         ctx.restore();

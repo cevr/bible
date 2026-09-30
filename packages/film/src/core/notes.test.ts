@@ -27,8 +27,8 @@ describe('nearestMoment', () => {
           say: 'Look {up}and {live}now.',
           lead: 0.5,
           timeline: {
-            rise: { scene: 'start', offset: 1, dur: 1 },
-            pop: { scene: 'start', offset: 4 },
+            rise: { at: 'start', offset: 1, dur: 1 },
+            pop: { at: 'start', offset: 4 },
           },
         },
       ],

@@ -17,8 +17,6 @@ export * from './cues.ts';
 export * from './check.ts';
 export * from './findings.ts';
 export * from './film-check.ts';
-// `Reported` in check.ts is the look pass's shape; the check's own is findings.ts's.
-export type { Reported } from './findings.ts';
 export * from './checker.ts';
 export * from './preview-server.ts';
 export * from './browser.ts';

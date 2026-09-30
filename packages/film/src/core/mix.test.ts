@@ -333,8 +333,8 @@ describe('mixPlan', () => {
         id: 'a',
         min: 8,
         timeline: {
-          tap: { scene: 'start', offset: 1, dur: 0.5 },
-          knock: { scene: 'start', offset: 3, dur: 0.5 },
+          tap: { at: 'start', offset: 1, dur: 0.5 },
+          knock: { at: 'start', offset: 3, dur: 0.5 },
         },
       },
       { id: 'b', min: 8 },
@@ -386,19 +386,36 @@ describe('mixPlan', () => {
     const sounds: Sounds = { library, lock, dir: '/lib' };
     const sound: Sound = {
       beds: [
-        { sound: 'room.paper', from: { scene: 'a' }, to: { scene: 'b', offset: 8 } },
+        {
+          sound: 'room.paper',
+          from: { scene: 'a', at: 'start' },
+          to: { scene: 'b', at: 'start', offset: 8 },
+        },
         {
           sound: 'amb.court',
           level: -30,
           from: { scene: 'a', cue: 'tap' },
-          to: { scene: 'b' },
+          to: { scene: 'b', at: 'start' },
           fade: 0.5,
         },
       ],
       effects: {
-        tap: { sound: 'paper.tap', level: -8, at: [{ scene: 'a', cue: 'tap' }, { scene: 'b' }] },
+        tap: {
+          sound: 'paper.tap',
+          level: -8,
+          at: [
+            { scene: 'a', cue: 'tap' },
+            { scene: 'b', at: 'start' },
+          ],
+        },
         knock: { sound: 'wood.knock', at: [{ scene: 'a', cue: 'knock' }] },
-        lit: { sound: 'tone.chime', at: [{ scene: 'a' }, { scene: 'a', offset: 2 }] },
+        lit: {
+          sound: 'tone.chime',
+          at: [
+            { scene: 'a', at: 'start' },
+            { scene: 'a', at: 'start', offset: 2 },
+          ],
+        },
       },
     };
     const planned = () =>
@@ -443,14 +460,65 @@ describe('mixPlan', () => {
     });
 
     test('a sound placed for the other use fails, and so does a name the library lacks', () => {
-      const wrong: Sound = { effects: { x: { sound: 'amb.court', at: [{ scene: 'a' }] } } };
-      const typo: Sound = { effects: { x: { sound: 'paper.tapp', at: [{ scene: 'a' }] } } };
+      const wrong: Sound = {
+        effects: { x: { sound: 'amb.court', at: [{ scene: 'a', at: 'start' }] } },
+      };
+      const typo: Sound = {
+        effects: { x: { sound: 'paper.tapp', at: [{ scene: 'a', at: 'start' }] } },
+      };
       const failed = (s: Sound) =>
         Result.match(mixPlan({ ...input, placed: film, sound: Option.some(s), sounds }), {
           onSuccess: () => 'none',
           onFailure: (e) => e._tag,
         });
       expect([failed(wrong), failed(typo)]).toEqual(['SoundUseMismatch', 'UnknownSound']);
+    });
+
+    test("a sync: 'hit' placement starts each take its own hit early, so the hit lands on the cue", () => {
+      const hitAt = new Map([
+        ['/lib/files/paper.tap/1.flac', 0.2],
+        ['/lib/files/paper.tap/2.flac', 0.35],
+      ]);
+      const timed: Lock = {
+        ...lock,
+        'paper.tap': {
+          variants: [
+            { ...variant('paper.tap', 1, -20), onset: 0, hit: 0.2 },
+            { ...variant('paper.tap', 2, -26), onset: 0.01, hit: 0.35 },
+          ],
+          candidates: [],
+          rejected: [],
+        },
+      };
+      const taps = (sync: 'start' | 'hit') =>
+        Result.getOrThrow(
+          mixPlan({
+            ...input,
+            placed: film,
+            sound: Option.some<Sound>({ effects: { tap: { ...sound.effects['tap']!, sync } } }),
+            sounds: { ...sounds, lock: timed },
+          }),
+        ).effects.map((e) => ({ label: sourceLabel(e.sound), at: e.at }));
+      const started = taps('start');
+      const hit = taps('hit');
+      expect(hit.map((t) => t.label)).toEqual(started.map((t) => t.label));
+      hit.forEach((t, i) =>
+        expect(t.at).toBeCloseTo((started[i]?.at ?? Number.NaN) - (hitAt.get(t.label) ?? 0), 9),
+      );
+    });
+
+    test("a sync: 'hit' sound whose takes carry no hit plays from its start, and says so", () => {
+      const planned = Result.getOrThrow(
+        mixPlan({
+          ...input,
+          placed: film,
+          sound: Option.some<Sound>({
+            effects: { tap: { ...sound.effects['tap']!, sync: 'hit' } },
+          }),
+          sounds,
+        }),
+      );
+      expect(planned.warnings).toEqual(['mix.unsynced sound=paper.tap hint="run sfx describe"']);
     });
   });
 });

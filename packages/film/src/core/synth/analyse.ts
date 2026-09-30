@@ -10,6 +10,11 @@ export interface Described {
   readonly secs: number;
   /** When it first comes within 30 dB of its loudest 10 ms. */
   readonly onset: number;
+  /**
+   * When its loudest 10 ms begins: a one-shot's hit (the stamp landing, the
+   * stack settling), which a take can hold back well after its onset.
+   */
+  readonly hit: number;
   /** When it last is within 40 dB of its loudest 10 ms. */
   readonly end: number;
   readonly centroid: number;
@@ -116,6 +121,7 @@ export const describeSound = (pcm: Pcm): Described => {
   return {
     secs: pcm.frames / pcm.rate,
     onset: Math.max(0, first) * WINDOW,
+    hit: Math.max(0, levels.indexOf(loudest)) * WINDOW,
     end: Math.min(pcm.frames / pcm.rate, (Math.max(0, last) + 1) * WINDOW),
     centroid: total > 0 ? weighted / total : 0,
     flatness: total > 0 ? Math.exp(logSum / bins) / (total / bins) : 0,

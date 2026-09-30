@@ -72,7 +72,7 @@ export interface Splice {
 }
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
-const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'scene'];
+const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'at'];
 const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
   keyof CuePatch
 >;
@@ -675,7 +675,7 @@ export const editCue = (
       }
       const at = insertAt(span, key);
       if (Option.isNone(at))
-        return refuse(file, target, 'the span has no anchor (mark, after, with or scene)');
+        return refuse(file, target, 'the span has no anchor (mark, after, with or at)');
       const fields = inserts.get(at.value) ?? [];
       fields.push(`${key}: ${text.value}`);
       inserts.set(at.value, fields);

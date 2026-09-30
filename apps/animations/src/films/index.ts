@@ -3,18 +3,25 @@
 // (`shorts.ts`) under `<film>/shorts/<id>`.
 
 import { type Film, shortPages } from '@bible/film/canvas';
+import { narratedFilms } from '@bible/film/player';
 import { shorts as righteousnessByFaithShorts } from './righteousness-by-faith/shorts.ts';
 
-const righteousnessByFaithModule = () => import('./righteousness-by-faith/film.ts');
-const righteousnessByFaith = () => righteousnessByFaithModule().then((m) => m.film());
+const righteousnessByFaith = () => import('./righteousness-by-faith/film.ts');
 
-/** The films, by folder: each key names a folder under `src/films`. */
-export const films = {
+/**
+ * The films, by folder: each key names a folder under `src/films`, and the
+ * framework loads that film's narration from it (`narratedFilms`).
+ */
+export const films = narratedFilms({
   'righteousness-by-faith': righteousnessByFaith,
-} satisfies Record<string, () => Promise<Film>>;
+});
 
 /** Every page the player serves: the films, then each film's shorts. */
 export const pages = {
   ...films,
-  ...shortPages('righteousness-by-faith', righteousnessByFaith, righteousnessByFaithShorts),
+  ...shortPages(
+    'righteousness-by-faith',
+    films['righteousness-by-faith'],
+    righteousnessByFaithShorts,
+  ),
 } satisfies Record<string, () => Promise<Film>>;

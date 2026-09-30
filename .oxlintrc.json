@@ -286,7 +286,9 @@
       "rules": {
         "film/drawing-literal": "error",
         "film/no-hand-timed-seconds": "error",
-        "film/no-unprobed-ink": "error"
+        "film/no-unprobed-ink": "error",
+        "film/span-ends-on-anchor": "error",
+        "film/no-ease-on-cue": "error"
       }
     },
     {
@@ -294,14 +296,6 @@
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {
         "effect/noConditionalEmptyObjectSpread": "off"
-      }
-    },
-    {
-      // A film's browser loader: fetches its timings and builds the film.
-      "files": ["**/apps/animations/src/films/*/film.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off"
       }
     },
     {

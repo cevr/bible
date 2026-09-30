@@ -14,6 +14,8 @@
           "momentaryMax": -21.3,
           "peak": -10.9
         },
+        "onset": 0,
+        "hit": 1.23,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -64,6 +66,8 @@
           "momentaryMax": -26.8,
           "peak": -14.7
         },
+        "onset": 0,
+        "hit": 17.78,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -80,6 +84,8 @@
           "momentaryMax": -23.6,
           "peak": -12.3
         },
+        "onset": 0,
+        "hit": 14.91,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -96,6 +102,8 @@
           "momentaryMax": -22.1,
           "peak": -9
         },
+        "onset": 0,
+        "hit": 20,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -112,6 +120,8 @@
           "momentaryMax": -11.6,
           "peak": -2.7
         },
+        "onset": 0,
+        "hit": 6.53,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -128,6 +138,8 @@
           "momentaryMax": -13.6,
           "peak": -3.3
         },
+        "onset": 0,
+        "hit": 10.52,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -144,6 +156,8 @@
           "momentaryMax": -20.1,
           "peak": -9.6
         },
+        "onset": 0,
+        "hit": 14.68,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -165,6 +179,8 @@
           "momentaryMax": -17.3,
           "peak": -7.7
         },
+        "onset": 0.4,
+        "hit": 10.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -231,6 +247,8 @@
           "momentaryMax": -44.8,
           "peak": -25.2
         },
+        "onset": 0,
+        "hit": 17.67,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -247,6 +265,8 @@
           "momentaryMax": -13.2,
           "peak": -1.4
         },
+        "onset": 1.08,
+        "hit": 20.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -263,6 +283,8 @@
           "momentaryMax": -10.6,
           "peak": -2.4
         },
+        "onset": 1.54,
+        "hit": 3.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -279,6 +301,8 @@
           "momentaryMax": -35,
           "peak": -14.2
         },
+        "onset": 0,
+        "hit": 7.8,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -295,6 +319,8 @@
           "momentaryMax": -7.7,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 14.65,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -311,6 +337,8 @@
           "momentaryMax": -13.2,
           "peak": -1.7
         },
+        "onset": 0.03,
+        "hit": 9.96,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -338,6 +366,8 @@
           "momentaryMax": -48.4,
           "peak": -37.8
         },
+        "onset": 0,
+        "hit": 12.29,
         "licence": "elevenlabs-paid-sfx",
         "credits": 1200
       }
@@ -420,6 +450,8 @@
           "momentaryMax": -48.7,
           "peak": -26.8
         },
+        "onset": 0,
+        "hit": 3.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -436,6 +468,8 @@
           "momentaryMax": -33.8,
           "peak": -8.9
         },
+        "onset": 0,
+        "hit": 4.69,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -452,6 +486,8 @@
           "momentaryMax": -42.3,
           "peak": -22.2
         },
+        "onset": 0,
+        "hit": 2.98,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -468,6 +504,8 @@
           "momentaryMax": -30.5,
           "peak": -13.3
         },
+        "onset": 0.02,
+        "hit": 8.13,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -484,6 +522,8 @@
           "momentaryMax": -11,
           "peak": -1.5
         },
+        "onset": 0,
+        "hit": 1.29,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -500,6 +540,8 @@
           "momentaryMax": -5.9,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 17.29,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -516,6 +558,8 @@
           "momentaryMax": -51.8,
           "peak": -44
         },
+        "onset": 0,
+        "hit": 8.89,
         "licence": "elevenlabs-paid-sfx",
         "credits": 440
       },
@@ -532,6 +576,8 @@
           "momentaryMax": -50.3,
           "peak": -42.8
         },
+        "onset": 0,
+        "hit": 4.78,
         "licence": "elevenlabs-paid-sfx",
         "credits": 440
       },
@@ -548,6 +594,8 @@
           "momentaryMax": -36,
           "peak": -19.9
         },
+        "onset": 0,
+        "hit": 7.64,
         "licence": "elevenlabs-paid-sfx",
         "credits": 1200
       },
@@ -564,6 +612,8 @@
           "momentaryMax": -31,
           "peak": -11.8
         },
+        "onset": 0,
+        "hit": 29.76,
         "licence": "elevenlabs-paid-sfx",
         "credits": 1200
       },
@@ -580,6 +630,8 @@
           "momentaryMax": -52.5,
           "peak": -41.7
         },
+        "onset": 0,
+        "hit": 0.45,
         "licence": "elevenlabs-paid-sfx",
         "credits": 1200
       }
@@ -604,6 +656,8 @@
           "momentaryMax": -7.8,
           "peak": 0
         },
+        "onset": 0.91,
+        "hit": 6.81,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -702,6 +756,8 @@
           "momentaryMax": -41.3,
           "peak": -27.3
         },
+        "onset": 0.28,
+        "hit": 15.46,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -718,6 +774,8 @@
           "momentaryMax": -46.9,
           "peak": -30.5
         },
+        "onset": 0.07,
+        "hit": 2.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -734,6 +792,8 @@
           "momentaryMax": -49.1,
           "peak": -24.4
         },
+        "onset": 0,
+        "hit": 20.58,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -750,6 +810,8 @@
           "momentaryMax": -48.8,
           "peak": -30.9
         },
+        "onset": 0,
+        "hit": 5.06,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -766,6 +828,8 @@
           "momentaryMax": -29.4,
           "peak": -7
         },
+        "onset": 0,
+        "hit": 3.73,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -782,6 +846,8 @@
           "momentaryMax": -29.1,
           "peak": -13.4
         },
+        "onset": 0,
+        "hit": 9.37,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -806,6 +872,8 @@
           "momentaryMax": -18,
           "peak": -3.6
         },
+        "onset": 0,
+        "hit": 10.85,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -840,6 +908,8 @@
           "momentaryMax": -15.1,
           "peak": -0.9
         },
+        "onset": 0,
+        "hit": 11.71,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -861,6 +931,8 @@
           "momentaryMax": -34.2,
           "peak": -11.9
         },
+        "onset": 0,
+        "hit": 16.52,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -895,6 +967,8 @@
           "momentaryMax": -31.4,
           "peak": -9.5
         },
+        "onset": 0,
+        "hit": 4.47,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -916,6 +990,8 @@
           "momentaryMax": -18.6,
           "peak": -1.7
         },
+        "onset": 0,
+        "hit": 10.63,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -934,6 +1010,8 @@
           "momentaryMax": -17.6,
           "peak": -1.5
         },
+        "onset": 0,
+        "hit": 0.59,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -950,6 +1028,8 @@
           "momentaryMax": -27.3,
           "peak": -8.4
         },
+        "onset": 0,
+        "hit": 2.49,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -974,6 +1054,8 @@
           "momentaryMax": -41.1,
           "peak": -29.2
         },
+        "onset": 0,
+        "hit": 19.13,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -1001,6 +1083,8 @@
           "momentaryMax": -19.1,
           "peak": -5.4
         },
+        "onset": 0,
+        "hit": 20.67,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -1035,6 +1119,8 @@
           "momentaryMax": -24.3,
           "peak": -9
         },
+        "onset": 0,
+        "hit": 20.23,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -1051,6 +1137,8 @@
           "momentaryMax": -17.9,
           "peak": -2
         },
+        "onset": 0,
+        "hit": 20.83,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -1067,6 +1155,8 @@
           "momentaryMax": -18.7,
           "peak": -7.1
         },
+        "onset": 0,
+        "hit": 21.53,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       },
@@ -1083,6 +1173,8 @@
           "momentaryMax": -13.2,
           "peak": -4.9
         },
+        "onset": 0,
+        "hit": 2.71,
         "licence": "elevenlabs-paid-sfx",
         "credits": 880
       }
@@ -1107,6 +1199,8 @@
           "momentaryMax": -24.4,
           "peak": -4
         },
+        "onset": 0,
+        "hit": 0.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -1173,6 +1267,8 @@
           "momentaryMax": -26.5,
           "peak": -5.2
         },
+        "onset": 0,
+        "hit": 0.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -1189,6 +1285,8 @@
           "momentaryMax": -21.1,
           "peak": 0
         },
+        "onset": 0.25,
+        "hit": 0.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -1214,6 +1312,8 @@
           "momentaryMax": -16.2,
           "peak": -0.2
         },
+        "onset": 0,
+        "hit": 0.95,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -1280,6 +1380,8 @@
           "momentaryMax": -21.8,
           "peak": -1.2
         },
+        "onset": 0.25,
+        "hit": 0.97,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1296,6 +1398,8 @@
           "momentaryMax": -21.2,
           "peak": -2.7
         },
+        "onset": 0.15,
+        "hit": 0.54,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1312,6 +1416,8 @@
           "momentaryMax": -20.4,
           "peak": -1.4
         },
+        "onset": 0,
+        "hit": 0.91,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1328,6 +1434,8 @@
           "momentaryMax": -42.2,
           "peak": -19.7
         },
+        "onset": 0,
+        "hit": 1.23,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1344,6 +1452,8 @@
           "momentaryMax": -31.6,
           "peak": -6.8
         },
+        "onset": 0.14,
+        "hit": 0.69,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1360,6 +1470,8 @@
           "momentaryMax": -17.4,
           "peak": 0
         },
+        "onset": 0.16,
+        "hit": 1.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1376,6 +1488,8 @@
           "momentaryMax": -21,
           "peak": -1.2
         },
+        "onset": 1.07,
+        "hit": 1.1,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1392,6 +1506,8 @@
           "momentaryMax": -33.6,
           "peak": -17.3
         },
+        "onset": 0,
+        "hit": 0.39,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1408,6 +1524,8 @@
           "momentaryMax": -33.8,
           "peak": -14.2
         },
+        "onset": 0.01,
+        "hit": 0.26,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1424,6 +1542,8 @@
           "momentaryMax": -19.4,
           "peak": -0.4
         },
+        "onset": 0.05,
+        "hit": 0.61,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1440,6 +1560,8 @@
           "momentaryMax": -20.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.83,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -1461,6 +1583,8 @@
           "momentaryMax": -16.3,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.09,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -1479,6 +1603,8 @@
           "momentaryMax": -17,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.15,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1495,6 +1621,8 @@
           "momentaryMax": -19,
           "peak": -3.9
         },
+        "onset": 0,
+        "hit": 0.61,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1511,6 +1639,8 @@
           "momentaryMax": -17.6,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1527,6 +1657,8 @@
           "momentaryMax": -19.2,
           "peak": 0
         },
+        "onset": 0.05,
+        "hit": 0.15,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1543,6 +1675,8 @@
           "momentaryMax": -18.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1559,6 +1693,8 @@
           "momentaryMax": -21.4,
           "peak": -1
         },
+        "onset": 0,
+        "hit": 0.09,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1575,6 +1711,8 @@
           "momentaryMax": -18,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.24,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1591,6 +1729,8 @@
           "momentaryMax": -19,
           "peak": 0
         },
+        "onset": 0.02,
+        "hit": 0.6,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1607,6 +1747,8 @@
           "momentaryMax": -18.9,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.3,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -1635,6 +1777,8 @@
           "momentaryMax": -24.2,
           "peak": -4.4
         },
+        "onset": 0,
+        "hit": 0.3,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -1685,6 +1829,8 @@
           "momentaryMax": -27.1,
           "peak": -7.4
         },
+        "onset": 0.05,
+        "hit": 0.6,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1701,6 +1847,8 @@
           "momentaryMax": -36.9,
           "peak": -22
         },
+        "onset": 0,
+        "hit": 0.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1717,6 +1865,8 @@
           "momentaryMax": -35.2,
           "peak": -17.6
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -1733,6 +1883,8 @@
           "momentaryMax": -29.2,
           "peak": -10.1
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -1760,6 +1912,8 @@
           "momentaryMax": -22.3,
           "peak": -5.3
         },
+        "onset": 0,
+        "hit": 0.9,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -1826,6 +1980,8 @@
           "momentaryMax": -17.1,
           "peak": -0.5
         },
+        "onset": 0.04,
+        "hit": 0.11,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -1842,6 +1998,8 @@
           "momentaryMax": -16.2,
           "peak": -2.5
         },
+        "onset": 0,
+        "hit": 0.66,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -1867,6 +2025,8 @@
           "momentaryMax": -12.9,
           "peak": -4.1
         },
+        "onset": 0,
+        "hit": 1.9,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       }
@@ -1933,6 +2093,8 @@
           "momentaryMax": -12.3,
           "peak": -2.6
         },
+        "onset": 0,
+        "hit": 0.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -1949,6 +2111,8 @@
           "momentaryMax": -15.7,
           "peak": -5.7
         },
+        "onset": 0,
+        "hit": 1.43,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -1965,6 +2129,8 @@
           "momentaryMax": -17.7,
           "peak": -7
         },
+        "onset": 0,
+        "hit": 1.3,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -1981,6 +2147,8 @@
           "momentaryMax": -13.7,
           "peak": -3.5
         },
+        "onset": 0,
+        "hit": 0.63,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -1997,6 +2165,8 @@
           "momentaryMax": -12.4,
           "peak": -3
         },
+        "onset": 0,
+        "hit": 1.34,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2013,6 +2183,8 @@
           "momentaryMax": -12.4,
           "peak": -1.7
         },
+        "onset": 0,
+        "hit": 1.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2029,6 +2201,8 @@
           "momentaryMax": -13.1,
           "peak": -2.8
         },
+        "onset": 0,
+        "hit": 0.47,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2045,6 +2219,8 @@
           "momentaryMax": -7.6,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.84,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2061,6 +2237,8 @@
           "momentaryMax": -10.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.57,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2077,6 +2255,8 @@
           "momentaryMax": -10.6,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.85,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2093,6 +2273,8 @@
           "momentaryMax": -11.4,
           "peak": -1.7
         },
+        "onset": 0.05,
+        "hit": 1.1,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2109,6 +2291,8 @@
           "momentaryMax": -24.4,
           "peak": -15.7
         },
+        "onset": 0,
+        "hit": 0.68,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2125,6 +2309,8 @@
           "momentaryMax": -10.8,
           "peak": -0.4
         },
+        "onset": 0,
+        "hit": 0.66,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2141,6 +2327,8 @@
           "momentaryMax": -24.2,
           "peak": -13
         },
+        "onset": 0,
+        "hit": 0.11,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2157,6 +2345,8 @@
           "momentaryMax": -11.5,
           "peak": -2.7
         },
+        "onset": 0,
+        "hit": 0.45,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       },
@@ -2173,6 +2363,8 @@
           "momentaryMax": -9.1,
           "peak": 0
         },
+        "onset": 0.16,
+        "hit": 2.35,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       },
@@ -2189,6 +2381,8 @@
           "momentaryMax": -9.3,
           "peak": -0.7
         },
+        "onset": 0.12,
+        "hit": 1.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       },
@@ -2205,6 +2399,8 @@
           "momentaryMax": -14.7,
           "peak": -3.7
         },
+        "onset": 0.06,
+        "hit": 0.78,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2221,6 +2417,8 @@
           "momentaryMax": -25.8,
           "peak": -17.1
         },
+        "onset": 0,
+        "hit": 0.68,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2237,6 +2435,8 @@
           "momentaryMax": -28.4,
           "peak": -20.1
         },
+        "onset": 0.11,
+        "hit": 0.48,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2253,6 +2453,8 @@
           "momentaryMax": -14.4,
           "peak": -5
         },
+        "onset": 0,
+        "hit": 1.41,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2269,6 +2471,8 @@
           "momentaryMax": -8.9,
           "peak": 0
         },
+        "onset": 0.02,
+        "hit": 1,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2285,6 +2489,8 @@
           "momentaryMax": -7.1,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.54,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -2301,6 +2507,8 @@
           "momentaryMax": -8.7,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 2.84,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       },
@@ -2317,6 +2525,8 @@
           "momentaryMax": -10.2,
           "peak": 0
         },
+        "onset": 0.06,
+        "hit": 2.57,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       },
@@ -2333,6 +2543,8 @@
           "momentaryMax": -8,
           "peak": 0
         },
+        "onset": 0.09,
+        "hit": 0.95,
         "licence": "elevenlabs-paid-sfx",
         "credits": 200
       }
@@ -2358,6 +2570,8 @@
           "momentaryMax": -29.5,
           "peak": -14.9
         },
+        "onset": 0,
+        "hit": 1.83,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -2424,6 +2638,8 @@
           "momentaryMax": -39.7,
           "peak": -19.2
         },
+        "onset": 0,
+        "hit": 1.16,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2440,6 +2656,8 @@
           "momentaryMax": -26.6,
           "peak": -15.5
         },
+        "onset": 0.01,
+        "hit": 1.71,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -2465,6 +2683,8 @@
           "momentaryMax": -14.6,
           "peak": -2.6
         },
+        "onset": 0,
+        "hit": 1.08,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -2531,6 +2751,8 @@
           "momentaryMax": -17.7,
           "peak": -8.2
         },
+        "onset": 0,
+        "hit": 1.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -2547,6 +2769,8 @@
           "momentaryMax": -16.8,
           "peak": -5.6
         },
+        "onset": 0,
+        "hit": 0.85,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -2572,6 +2796,8 @@
           "momentaryMax": -13.7,
           "peak": -5.6
         },
+        "onset": 0,
+        "hit": 0.51,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -2638,6 +2864,8 @@
           "momentaryMax": -12.8,
           "peak": -1.2
         },
+        "onset": 0.05,
+        "hit": 1.17,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -2664,6 +2892,8 @@
           "momentaryMax": -21,
           "peak": -3.5
         },
+        "onset": 0,
+        "hit": 0.99,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       }
@@ -2730,6 +2960,8 @@
           "momentaryMax": -20.2,
           "peak": -2.9
         },
+        "onset": 0.26,
+        "hit": 1.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -2746,6 +2978,8 @@
           "momentaryMax": -22.1,
           "peak": -2.6
         },
+        "onset": 0.19,
+        "hit": 1.59,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       }
@@ -2771,6 +3005,8 @@
           "momentaryMax": -23,
           "peak": -12.4
         },
+        "onset": 0,
+        "hit": 0.37,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -2837,6 +3073,8 @@
           "momentaryMax": -28.9,
           "peak": -8.7
         },
+        "onset": 0,
+        "hit": 0.84,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2853,6 +3091,8 @@
           "momentaryMax": -27.2,
           "peak": -12.3
         },
+        "onset": 0,
+        "hit": 0.71,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2869,6 +3109,8 @@
           "momentaryMax": -17.3,
           "peak": -6.8
         },
+        "onset": 0,
+        "hit": 0.04,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2885,6 +3127,8 @@
           "momentaryMax": -25.5,
           "peak": -10.6
         },
+        "onset": 0.01,
+        "hit": 0.33,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2901,6 +3145,8 @@
           "momentaryMax": -27.5,
           "peak": -17.2
         },
+        "onset": 0,
+        "hit": 1.38,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2917,6 +3163,8 @@
           "momentaryMax": -36.2,
           "peak": -21.2
         },
+        "onset": 0,
+        "hit": 1.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2933,6 +3181,8 @@
           "momentaryMax": -26.6,
           "peak": -11.6
         },
+        "onset": 0,
+        "hit": 0.62,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2949,6 +3199,8 @@
           "momentaryMax": -31.5,
           "peak": -15.8
         },
+        "onset": 0,
+        "hit": 0.16,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2965,6 +3217,8 @@
           "momentaryMax": -21.1,
           "peak": -9.7
         },
+        "onset": 0,
+        "hit": 0.45,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2981,6 +3235,8 @@
           "momentaryMax": -25.6,
           "peak": -12.4
         },
+        "onset": 0,
+        "hit": 1.5,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -2997,6 +3253,8 @@
           "momentaryMax": -26.7,
           "peak": -12.4
         },
+        "onset": 0,
+        "hit": 0.98,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3013,6 +3271,8 @@
           "momentaryMax": -33.4,
           "peak": -22.2
         },
+        "onset": 0,
+        "hit": 1.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3029,6 +3289,8 @@
           "momentaryMax": -29.4,
           "peak": -18.3
         },
+        "onset": 0,
+        "hit": 1.53,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3045,6 +3307,8 @@
           "momentaryMax": -21.6,
           "peak": -8.9
         },
+        "onset": 0,
+        "hit": 0.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3061,6 +3325,8 @@
           "momentaryMax": -33.7,
           "peak": -15.4
         },
+        "onset": 0.1,
+        "hit": 1.09,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3077,6 +3343,8 @@
           "momentaryMax": -33.6,
           "peak": -17
         },
+        "onset": 0,
+        "hit": 0.53,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3093,6 +3361,8 @@
           "momentaryMax": -35.4,
           "peak": -15.7
         },
+        "onset": 0,
+        "hit": 1.59,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3109,6 +3379,8 @@
           "momentaryMax": -26.7,
           "peak": -13.4
         },
+        "onset": 0,
+        "hit": 0.34,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3125,6 +3397,8 @@
           "momentaryMax": -25.7,
           "peak": -13.3
         },
+        "onset": 0,
+        "hit": 0.04,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3141,6 +3415,8 @@
           "momentaryMax": -20.7,
           "peak": -9.8
         },
+        "onset": 0,
+        "hit": 1.09,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3157,6 +3433,8 @@
           "momentaryMax": -30.8,
           "peak": -13.4
         },
+        "onset": 0,
+        "hit": 1.52,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3173,6 +3451,8 @@
           "momentaryMax": -28.5,
           "peak": -11.5
         },
+        "onset": 0,
+        "hit": 0.99,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3189,6 +3469,8 @@
           "momentaryMax": -26.1,
           "peak": -2.1
         },
+        "onset": 0,
+        "hit": 0.1,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3205,6 +3487,8 @@
           "momentaryMax": -27.3,
           "peak": -17.8
         },
+        "onset": 0,
+        "hit": 0.87,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3221,6 +3505,8 @@
           "momentaryMax": -31.4,
           "peak": -19.4
         },
+        "onset": 0,
+        "hit": 0.78,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3237,6 +3523,8 @@
           "momentaryMax": -14.6,
           "peak": -3.2
         },
+        "onset": 0,
+        "hit": 0.38,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3253,6 +3541,8 @@
           "momentaryMax": -27.5,
           "peak": -12.9
         },
+        "onset": 0,
+        "hit": 0.22,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3269,6 +3559,8 @@
           "momentaryMax": -24.3,
           "peak": -11.4
         },
+        "onset": 0,
+        "hit": 0.43,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       }
@@ -3294,6 +3586,8 @@
           "momentaryMax": -13.3,
           "peak": 0
         },
+        "onset": 0.21,
+        "hit": 0.23,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -3360,6 +3654,8 @@
           "momentaryMax": -27.1,
           "peak": -7
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3376,6 +3672,8 @@
           "momentaryMax": -17.7,
           "peak": 0
         },
+        "onset": 0.03,
+        "hit": 0.04,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3392,6 +3690,8 @@
           "momentaryMax": -21,
           "peak": 0
         },
+        "onset": 0.23,
+        "hit": 0.24,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3408,6 +3708,8 @@
           "momentaryMax": -17.8,
           "peak": 0
         },
+        "onset": 0.45,
+        "hit": 0.46,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3424,6 +3726,8 @@
           "momentaryMax": -21.9,
           "peak": -1
         },
+        "onset": 0.75,
+        "hit": 0.76,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3440,6 +3744,8 @@
           "momentaryMax": -17.5,
           "peak": 0
         },
+        "onset": 0.51,
+        "hit": 0.52,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3456,6 +3762,8 @@
           "momentaryMax": -19.4,
           "peak": -1.7
         },
+        "onset": 0.06,
+        "hit": 0.65,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3472,6 +3780,8 @@
           "momentaryMax": -18.8,
           "peak": 0
         },
+        "onset": 0.1,
+        "hit": 0.13,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3488,6 +3798,8 @@
           "momentaryMax": -17.1,
           "peak": -0.3
         },
+        "onset": 0.45,
+        "hit": 0.45,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3504,6 +3816,8 @@
           "momentaryMax": -17.4,
           "peak": 0
         },
+        "onset": 0.02,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3520,6 +3834,8 @@
           "momentaryMax": -20.9,
           "peak": 0
         },
+        "onset": 0.2,
+        "hit": 0.21,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3536,6 +3852,8 @@
           "momentaryMax": -26.3,
           "peak": -7.3
         },
+        "onset": 0,
+        "hit": 0.06,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3552,6 +3870,8 @@
           "momentaryMax": -15.9,
           "peak": 0
         },
+        "onset": 0.11,
+        "hit": 0.14,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3568,6 +3888,8 @@
           "momentaryMax": -21.4,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -3584,6 +3906,8 @@
           "momentaryMax": -24.2,
           "peak": -2.7
         },
+        "onset": 0.36,
+        "hit": 0.37,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3600,6 +3924,8 @@
           "momentaryMax": -17.8,
           "peak": 0
         },
+        "onset": 0.02,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3616,6 +3942,8 @@
           "momentaryMax": -21.7,
           "peak": -1.4
         },
+        "onset": 0,
+        "hit": 1.19,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -3632,6 +3960,8 @@
           "momentaryMax": -10,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 1.27,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3648,6 +3978,8 @@
           "momentaryMax": -6.4,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 1.45,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3664,6 +3996,8 @@
           "momentaryMax": -10.3,
           "peak": -0.1
         },
+        "onset": 0,
+        "hit": 0.85,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3680,6 +4014,8 @@
           "momentaryMax": -51.9,
           "peak": -42.9
         },
+        "onset": 0.04,
+        "hit": 1.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3696,6 +4032,8 @@
           "momentaryMax": -35,
           "peak": -25.2
         },
+        "onset": 0.24,
+        "hit": 0.85,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3712,6 +4050,8 @@
           "momentaryMax": -50.6,
           "peak": -42.5
         },
+        "onset": 0,
+        "hit": 1.17,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -3728,6 +4068,8 @@
           "momentaryMax": -18.7,
           "peak": 0
         },
+        "onset": 0.73,
+        "hit": 1.33,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -3744,6 +4086,8 @@
           "momentaryMax": -19.2,
           "peak": 0
         },
+        "onset": 0.37,
+        "hit": 0.7,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -3760,6 +4104,8 @@
           "momentaryMax": -20.2,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 1.64,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -3776,6 +4122,8 @@
           "momentaryMax": -21.3,
           "peak": -0.1
         },
+        "onset": 0.24,
+        "hit": 1.73,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -3792,6 +4140,8 @@
           "momentaryMax": -16.2,
           "peak": 0
         },
+        "onset": 0.39,
+        "hit": 0.39,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -3817,6 +4167,8 @@
           "momentaryMax": -18.9,
           "peak": 0
         },
+        "onset": 0.05,
+        "hit": 0.36,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       }
@@ -3883,6 +4235,8 @@
           "momentaryMax": -22.1,
           "peak": -5.7
         },
+        "onset": 0.02,
+        "hit": 0.59,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -3899,6 +4253,8 @@
           "momentaryMax": -24.8,
           "peak": -6
         },
+        "onset": 0,
+        "hit": 0.42,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       }
@@ -3924,6 +4280,8 @@
           "momentaryMax": -6.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.33,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -3990,6 +4348,8 @@
           "momentaryMax": -9,
           "peak": -2.7
         },
+        "onset": 0,
+        "hit": 0.33,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -4006,6 +4366,8 @@
           "momentaryMax": -23.8,
           "peak": -11.7
         },
+        "onset": 0,
+        "hit": 0.68,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -4022,6 +4384,8 @@
           "momentaryMax": -4.9,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.35,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -4046,6 +4410,8 @@
           "momentaryMax": -14.3,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -4112,6 +4478,8 @@
           "momentaryMax": -13.5,
           "peak": 0
         },
+        "onset": 0.9,
+        "hit": 0.96,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4128,6 +4496,8 @@
           "momentaryMax": -17.4,
           "peak": -0.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -4153,6 +4523,8 @@
           "momentaryMax": -6,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.48,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -4203,6 +4575,8 @@
           "momentaryMax": -6.9,
           "peak": 0
         },
+        "onset": 0.09,
+        "hit": 0.41,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -4219,6 +4593,8 @@
           "momentaryMax": -5.8,
           "peak": 0
         },
+        "onset": 0.02,
+        "hit": 0.26,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -4245,6 +4621,8 @@
           "momentaryMax": -10.2,
           "peak": -2
         },
+        "onset": 0.09,
+        "hit": 0.46,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -4311,6 +4689,8 @@
           "momentaryMax": -11.4,
           "peak": -5
         },
+        "onset": 0.01,
+        "hit": 0.65,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -4327,6 +4707,8 @@
           "momentaryMax": -9.9,
           "peak": -3.5
         },
+        "onset": 0,
+        "hit": 0.47,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -4352,6 +4734,8 @@
           "momentaryMax": -16.8,
           "peak": -2.9
         },
+        "onset": 0.12,
+        "hit": 1.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4418,6 +4802,8 @@
           "momentaryMax": -24.5,
           "peak": -6.8
         },
+        "onset": 0.02,
+        "hit": 1.36,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4434,6 +4820,8 @@
           "momentaryMax": -18.1,
           "peak": -5.5
         },
+        "onset": 0.03,
+        "hit": 1.35,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4459,6 +4847,8 @@
           "momentaryMax": -10.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.58,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -4525,6 +4915,8 @@
           "momentaryMax": -12.4,
           "peak": -1.3
         },
+        "onset": 0,
+        "hit": 1.25,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4541,6 +4933,8 @@
           "momentaryMax": -9.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 1.17,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -4566,6 +4960,8 @@
           "momentaryMax": -17.1,
           "peak": -1.9
         },
+        "onset": 0.01,
+        "hit": 1.46,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4632,6 +5028,8 @@
           "momentaryMax": -15.9,
           "peak": 0
         },
+        "onset": 0.24,
+        "hit": 1.38,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4648,6 +5046,8 @@
           "momentaryMax": -15.4,
           "peak": 0
         },
+        "onset": 0.09,
+        "hit": 1.46,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4664,6 +5064,8 @@
           "momentaryMax": -22.1,
           "peak": -1.7
         },
+        "onset": 0.01,
+        "hit": 1.22,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4680,6 +5082,8 @@
           "momentaryMax": -15.2,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.67,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4696,6 +5100,8 @@
           "momentaryMax": -17.3,
           "peak": -0.5
         },
+        "onset": 0.01,
+        "hit": 0.98,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4712,6 +5118,8 @@
           "momentaryMax": -13.4,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.72,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4728,6 +5136,8 @@
           "momentaryMax": -15.4,
           "peak": 0
         },
+        "onset": 0.01,
+        "hit": 1.06,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4744,6 +5154,8 @@
           "momentaryMax": -17.8,
           "peak": -1.6
         },
+        "onset": 0,
+        "hit": 0.67,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4765,6 +5177,8 @@
           "momentaryMax": -6.9,
           "peak": -0.8
         },
+        "onset": 0,
+        "hit": 0.74,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4831,6 +5245,8 @@
           "momentaryMax": -8.4,
           "peak": -2.6
         },
+        "onset": 0,
+        "hit": 0.58,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -4847,6 +5263,8 @@
           "momentaryMax": -7.6,
           "peak": -1.5
         },
+        "onset": 0,
+        "hit": 1.14,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       }
@@ -4872,6 +5290,8 @@
           "momentaryMax": -8.3,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -4906,6 +5326,8 @@
           "momentaryMax": -34.9,
           "peak": -22.1
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4922,6 +5344,8 @@
           "momentaryMax": -31.6,
           "peak": -20
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4938,6 +5362,8 @@
           "momentaryMax": -32.8,
           "peak": -24.9
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4954,6 +5380,8 @@
           "momentaryMax": -34.7,
           "peak": -26.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4970,6 +5398,8 @@
           "momentaryMax": -32.3,
           "peak": -21
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -4986,6 +5416,8 @@
           "momentaryMax": -34.2,
           "peak": -24.5
         },
+        "onset": 0,
+        "hit": 0.04,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5002,6 +5434,8 @@
           "momentaryMax": -26.8,
           "peak": -16.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5018,6 +5452,8 @@
           "momentaryMax": -33.5,
           "peak": -22.5
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5034,6 +5470,8 @@
           "momentaryMax": -34,
           "peak": -25.9
         },
+        "onset": 0,
+        "hit": 0.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5050,6 +5488,8 @@
           "momentaryMax": -34.6,
           "peak": -25.5
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5066,6 +5506,8 @@
           "momentaryMax": -35.4,
           "peak": -27
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5082,6 +5524,8 @@
           "momentaryMax": -36,
           "peak": -26.5
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5098,6 +5542,8 @@
           "momentaryMax": -37.1,
           "peak": -25.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5114,6 +5560,8 @@
           "momentaryMax": -32.3,
           "peak": -19.3
         },
+        "onset": 0,
+        "hit": 0.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -5130,6 +5578,8 @@
           "momentaryMax": -37.6,
           "peak": -28.3
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -5146,6 +5596,8 @@
           "momentaryMax": -35,
           "peak": -25.7
         },
+        "onset": 0,
+        "hit": 0.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -5162,6 +5614,8 @@
           "momentaryMax": -38.7,
           "peak": -28.5
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -5178,6 +5632,8 @@
           "momentaryMax": -35.5,
           "peak": -25.5
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -5194,6 +5650,8 @@
           "momentaryMax": -32.1,
           "peak": -20.3
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -5210,6 +5668,8 @@
           "momentaryMax": -14.8,
           "peak": -5.5
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5226,6 +5686,8 @@
           "momentaryMax": -7.2,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5242,6 +5704,8 @@
           "momentaryMax": -47,
           "peak": -39.6
         },
+        "onset": 0,
+        "hit": 0.19,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5258,6 +5722,8 @@
           "momentaryMax": -47.6,
           "peak": -40.3
         },
+        "onset": 0,
+        "hit": 0.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5274,6 +5740,8 @@
           "momentaryMax": -44.3,
           "peak": -36.7
         },
+        "onset": 0,
+        "hit": 0.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -5301,6 +5769,8 @@
           "momentaryMax": -34.9,
           "peak": -11.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -5351,6 +5821,8 @@
           "momentaryMax": -31.8,
           "peak": -9.4
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -5367,6 +5839,8 @@
           "momentaryMax": -34,
           "peak": -15.6
         },
+        "onset": 0.22,
+        "hit": 0.26,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -5393,6 +5867,8 @@
           "momentaryMax": -32.6,
           "peak": -15.6
         },
+        "onset": 0.06,
+        "hit": 0.74,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       }
@@ -5459,6 +5935,8 @@
           "momentaryMax": -33.9,
           "peak": -15.5
         },
+        "onset": 0,
+        "hit": 0.9,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -5475,6 +5953,8 @@
           "momentaryMax": -34,
           "peak": -19.3
         },
+        "onset": 0.05,
+        "hit": 0.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       }
@@ -5500,6 +5980,8 @@
           "momentaryMax": -32.7,
           "peak": -13.5
         },
+        "onset": 0.04,
+        "hit": 1.29,
         "licence": "CC0-1.0",
         "credits": 0
       }
@@ -5531,6 +6013,8 @@
           "momentaryMax": -20.7,
           "peak": 0
         },
+        "onset": 0.01,
+        "hit": 0.75,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       }
@@ -5597,6 +6081,8 @@
           "momentaryMax": -18.2,
           "peak": 0
         },
+        "onset": 0.23,
+        "hit": 0.86,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       },
@@ -5613,6 +6099,8 @@
           "momentaryMax": -18.1,
           "peak": 0
         },
+        "onset": 0.05,
+        "hit": 0.82,
         "licence": "elevenlabs-paid-sfx",
         "credits": 120
       }
@@ -5638,6 +6126,8 @@
           "momentaryMax": -24.7,
           "peak": -2.2
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -5704,6 +6194,8 @@
           "momentaryMax": -35.8,
           "peak": -16.2
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5720,6 +6212,8 @@
           "momentaryMax": -34.2,
           "peak": -12.8
         },
+        "onset": 0,
+        "hit": 0.2,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -5745,6 +6239,8 @@
           "momentaryMax": -26.7,
           "peak": -5.1
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -5811,6 +6307,8 @@
           "momentaryMax": -24,
           "peak": -2.8
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       },
@@ -5827,6 +6325,8 @@
           "momentaryMax": -22,
           "peak": -1.3
         },
+        "onset": 0.02,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 40
       }
@@ -5852,6 +6352,8 @@
           "momentaryMax": -32.4,
           "peak": -19.7
         },
+        "onset": 0.03,
+        "hit": 0.12,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       }
@@ -5918,6 +6420,8 @@
           "momentaryMax": -32.7,
           "peak": -16.3
         },
+        "onset": 0.09,
+        "hit": 0.15,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5934,6 +6438,8 @@
           "momentaryMax": -30.4,
           "peak": -17.1
         },
+        "onset": 0,
+        "hit": 0.07,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5950,6 +6456,8 @@
           "momentaryMax": -36.5,
           "peak": -19.3
         },
+        "onset": 0.02,
+        "hit": 0.82,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5966,6 +6474,8 @@
           "momentaryMax": -36.4,
           "peak": -22.8
         },
+        "onset": 0,
+        "hit": 0.15,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5982,6 +6492,8 @@
           "momentaryMax": -38.6,
           "peak": -25.2
         },
+        "onset": 0,
+        "hit": 0.89,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -5998,6 +6510,8 @@
           "momentaryMax": -37.3,
           "peak": -25.8
         },
+        "onset": 0,
+        "hit": 0.73,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6014,6 +6528,8 @@
           "momentaryMax": -39.6,
           "peak": -27
         },
+        "onset": 0,
+        "hit": 1.26,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6030,6 +6546,8 @@
           "momentaryMax": -36.1,
           "peak": -24.6
         },
+        "onset": 0.01,
+        "hit": 1.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6046,6 +6564,8 @@
           "momentaryMax": -33.1,
           "peak": -18
         },
+        "onset": 0.01,
+        "hit": 1.28,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6062,6 +6582,8 @@
           "momentaryMax": -33.1,
           "peak": -19.4
         },
+        "onset": 0,
+        "hit": 1.18,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6078,6 +6600,8 @@
           "momentaryMax": -34,
           "peak": -19.4
         },
+        "onset": 0.04,
+        "hit": 0.9,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6094,6 +6618,8 @@
           "momentaryMax": -29.8,
           "peak": -13.6
         },
+        "onset": 0.03,
+        "hit": 1.23,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6110,6 +6636,8 @@
           "momentaryMax": -36.7,
           "peak": -22.3
         },
+        "onset": 0.01,
+        "hit": 1.18,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6126,6 +6654,8 @@
           "momentaryMax": -38.1,
           "peak": -25.5
         },
+        "onset": 0,
+        "hit": 1.52,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -6142,6 +6672,8 @@
           "momentaryMax": -40.1,
           "peak": -22
         },
+        "onset": 0,
+        "hit": 1.9,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -6158,6 +6690,8 @@
           "momentaryMax": -37.3,
           "peak": -26
         },
+        "onset": 0,
+        "hit": 1.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 100
       },
@@ -6174,6 +6708,8 @@
           "momentaryMax": -32.5,
           "peak": -15.8
         },
+        "onset": 0.03,
+        "hit": 1.22,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6190,6 +6726,8 @@
           "momentaryMax": -26.9,
           "peak": -15.2
         },
+        "onset": 0.01,
+        "hit": 1.09,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6206,6 +6744,8 @@
           "momentaryMax": -28.4,
           "peak": -11.5
         },
+        "onset": 0.02,
+        "hit": 0.99,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6222,6 +6762,8 @@
           "momentaryMax": -35.1,
           "peak": -5.5
         },
+        "onset": 0.58,
+        "hit": 0.6,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6238,6 +6780,8 @@
           "momentaryMax": -43.2,
           "peak": -19.2
         },
+        "onset": 0.03,
+        "hit": 0.05,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6254,6 +6798,8 @@
           "momentaryMax": -34.6,
           "peak": -12
         },
+        "onset": 0.65,
+        "hit": 0.66,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6270,6 +6816,8 @@
           "momentaryMax": -36.4,
           "peak": -13.2
         },
+        "onset": 0.42,
+        "hit": 1.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6286,6 +6834,8 @@
           "momentaryMax": -37.7,
           "peak": -14.6
         },
+        "onset": 0.09,
+        "hit": 1.18,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6302,6 +6852,8 @@
           "momentaryMax": -36.7,
           "peak": -11.2
         },
+        "onset": 0.26,
+        "hit": 0.97,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6318,6 +6870,8 @@
           "momentaryMax": -33.6,
           "peak": -14.7
         },
+        "onset": 0,
+        "hit": 0.27,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -6334,6 +6888,8 @@
           "momentaryMax": -36.9,
           "peak": -21.6
         },
+        "onset": 0,
+        "hit": 0.24,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       },
@@ -6350,6 +6906,8 @@
           "momentaryMax": -41.3,
           "peak": -25.9
         },
+        "onset": 0.01,
+        "hit": 0.66,
         "licence": "elevenlabs-paid-sfx",
         "credits": 32
       }
@@ -6377,6 +6935,8 @@
           "momentaryMax": -21.1,
           "peak": -0.7
         },
+        "onset": 0.09,
+        "hit": 0.61,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -6443,6 +7003,8 @@
           "momentaryMax": -19.1,
           "peak": -2.9
         },
+        "onset": 0.12,
+        "hit": 0.71,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6459,6 +7021,8 @@
           "momentaryMax": -25.8,
           "peak": -8.7
         },
+        "onset": 0.02,
+        "hit": 0.27,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6475,6 +7039,8 @@
           "momentaryMax": -21.3,
           "peak": -4.4
         },
+        "onset": 0.06,
+        "hit": 0.43,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6491,6 +7057,8 @@
           "momentaryMax": -22.3,
           "peak": -4.3
         },
+        "onset": 0.07,
+        "hit": 0.26,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       },
@@ -6507,6 +7075,8 @@
           "momentaryMax": -30.6,
           "peak": -12.9
         },
+        "onset": 0,
+        "hit": 0.33,
         "licence": "elevenlabs-paid-sfx",
         "credits": 60
       }
@@ -6532,6 +7102,8 @@
           "momentaryMax": -13.5,
           "peak": 0
         },
+        "onset": 0.01,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 64
       }
@@ -6598,6 +7170,8 @@
           "momentaryMax": -40.5,
           "peak": -21.9
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6614,6 +7188,8 @@
           "momentaryMax": -47.3,
           "peak": -30
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6630,6 +7206,8 @@
           "momentaryMax": -45.4,
           "peak": -27.8
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6646,6 +7224,8 @@
           "momentaryMax": -38.4,
           "peak": -20.2
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6662,6 +7242,8 @@
           "momentaryMax": -21.4,
           "peak": -2.8
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6678,6 +7260,8 @@
           "momentaryMax": -41.1,
           "peak": -25.1
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6694,6 +7278,8 @@
           "momentaryMax": -22.8,
           "peak": -5.5
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6710,6 +7296,8 @@
           "momentaryMax": -23.1,
           "peak": -6.1
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6726,6 +7314,8 @@
           "momentaryMax": -15.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6742,6 +7332,8 @@
           "momentaryMax": -29.2,
           "peak": -12.1
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6758,6 +7350,8 @@
           "momentaryMax": -24.1,
           "peak": -8
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6774,6 +7368,8 @@
           "momentaryMax": -14.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6790,6 +7386,8 @@
           "momentaryMax": -14,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6806,6 +7404,8 @@
           "momentaryMax": -58,
           "peak": -41.7
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 24
       },
@@ -6822,6 +7422,8 @@
           "momentaryMax": -19.5,
           "peak": 0
         },
+        "onset": 0.01,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 24
       },
@@ -6838,6 +7440,8 @@
           "momentaryMax": -47.6,
           "peak": -28
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 24
       },
@@ -6854,6 +7458,8 @@
           "momentaryMax": -12.3,
           "peak": 0
         },
+        "onset": 0.03,
+        "hit": 0.06,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -6870,6 +7476,8 @@
           "momentaryMax": -11.3,
           "peak": 0
         },
+        "onset": 0.26,
+        "hit": 0.27,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -6886,6 +7494,8 @@
           "momentaryMax": -38.7,
           "peak": -23.6
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 80
       },
@@ -6902,6 +7512,8 @@
           "momentaryMax": -46.6,
           "peak": -34.7
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6918,6 +7530,8 @@
           "momentaryMax": -21,
           "peak": -1.6
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6934,6 +7548,8 @@
           "momentaryMax": -38.4,
           "peak": -26.1
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6950,6 +7566,8 @@
           "momentaryMax": -31.6,
           "peak": -13.1
         },
+        "onset": 0,
+        "hit": 0,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6966,6 +7584,8 @@
           "momentaryMax": -14,
           "peak": 0
         },
+        "onset": 0.33,
+        "hit": 0.35,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6982,6 +7602,8 @@
           "momentaryMax": -20.8,
           "peak": -1.7
         },
+        "onset": 0,
+        "hit": 0.01,
         "licence": "elevenlabs-paid-sfx",
         "credits": 48
       },
@@ -6998,6 +7620,8 @@
           "momentaryMax": -14.5,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.02,
         "licence": "elevenlabs-paid-sfx",
         "credits": 64
       },
@@ -7014,6 +7638,8 @@
           "momentaryMax": -11.6,
           "peak": 0
         },
+        "onset": 0,
+        "hit": 0.03,
         "licence": "elevenlabs-paid-sfx",
         "credits": 64
       }

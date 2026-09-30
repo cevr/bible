@@ -1,12 +1,15 @@
-// Every beat of the script paired with its drawing. Beats without a drawing
-// yet play as storyboard cards, so the whole film is watchable from day one.
-// The script owns what is said and how it is timed; a drawing owns only its
-// picture: `draw`, and the cues and knobs it reads. Each is lit by its act's
-// light (`light.ts`, the colour script). Imports nothing that touches the DOM
+// Every beat of the script paired with its drawing by the beat's id
+// (`scenesOf`: an id the script lacks does not compile). Beats without a
+// drawing yet play as storyboard cards, so the whole film is watchable from
+// day one, and `film check` names each (`Storyboard`). The script owns what is
+// said and how it is timed; a drawing owns only its picture: `draw`, the cues
+// and knobs it reads, and a light of its own if it has one. Every other scene
+// is lit by its act's light (`light.ts`, the colour script). Imports nothing that touches the DOM
 // at module load: the narrate script reads this to lay out the audio track.
 
-import { type SceneSpec, storyboard } from '@bible/film/canvas';
-import { lights } from '../light.ts';
+import { type SceneSpec, scenesOf } from '@bible/film/canvas';
+import { lightOf } from '../light.ts';
+import { fonts } from '../palette.ts';
 import { script } from '../script.ts';
 import { accuser } from './accuser.ts';
 import { centurion } from './centurion.ts';
@@ -29,10 +32,8 @@ import { within } from './within.ts';
 import { woman } from './woman.ts';
 import { word } from './word.ts';
 
-export type Drawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift'>;
-
-const drawings = new Map<string, Drawing>(
-  Object.entries({
+export const scenes: SceneSpec[] = scenesOf(script, {
+  drawings: {
     accuser,
     centurion,
     cold,
@@ -53,16 +54,7 @@ const drawings = new Map<string, Drawing>(
     within,
     woman,
     word,
-  }),
-);
-
-// The script's timing is spread last, so a storyboard card's own entrance
-// holds only where the script names none.
-export const scenes: SceneSpec[] = script.map(({ cite: _cite, picture, ...timed }) => {
-  const light = lights.get(timed.id);
-  return {
-    ...(drawings.get(timed.id) ?? storyboard(timed.id, picture)),
-    ...(light === undefined ? {} : { light }),
-    ...timed,
-  };
+  },
+  light: lightOf,
+  card: { brief: fonts.display, label: fonts.body },
 });

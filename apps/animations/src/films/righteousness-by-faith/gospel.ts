@@ -21,7 +21,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
+import { clamp, lerp, staggered } from '@bible/film/core';
 import {
   type GestureAt,
   C,
@@ -171,6 +171,8 @@ const TILES: ReadonlyArray<readonly [from: number, to: Pt]> = [
   [860, [290, ROOF_TOP - 69]],
 ];
 const TILE = rounded(0, 0, 116, SLAB, 6);
+/** The tiles lift one after another, their starts over the first 2/7 of the lift. */
+const TILES_SHARE = 2 / 7;
 
 /** The room's crowd, standing along the back wall: never two cut alike. */
 const ROOM_CROWD: ReadonlyArray<Onlooker> = [
@@ -274,6 +276,8 @@ const TOWN: ReadonlyArray<readonly [number, number, number]> = [
 ];
 
 /** The specks of sin on the man's garment, in his units: each is lifted off him on "son". */
+/** The specks lift off him one after another, their starts over the first 3/13 of the lift. */
+const SPECKS_SHARE = 3 / 13;
 const MAN_SPECKS = [
   blob(10, -86, 22, 18, 51),
   blob(-16, -56, 16, 13, 52),
@@ -453,7 +457,7 @@ const roofTop = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
     torn: 2,
   });
   TILES.forEach(([x, [tx, ty]], i) => {
-    const k = clamp(s.tiles * 1.4 - i * 0.2);
+    const k = staggered(s.tiles, i / (TILES.length - 1), TILES_SHARE);
     at(
       ctx,
       {
@@ -683,7 +687,7 @@ const room = (ctx: CanvasRenderingContext2D, hand: Hands, s: House) => {
   // The specks lift off him and go.
   if (s.specks > 0 && s.specks < 1)
     MAN_SPECKS.forEach((speck, i) => {
-      const k = clamp(s.specks * 1.3 - i * 0.1);
+      const k = staggered(s.specks, i / MAN_SPECKS.length, SPECKS_SHARE);
       at(ctx, { x: hx, y: hy, rot: LIE }, () =>
         // Up and away from him, in the frame he lies in.
         at(ctx, { x: 90 * k, y: HIP_STAND - 30 * k, scale: MAN_S }, () =>

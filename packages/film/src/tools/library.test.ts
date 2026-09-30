@@ -537,6 +537,46 @@ describe('SoundLibrary', () => {
     ),
   );
 
+  it.effect.layer(fixture)(
+    'keeping a take records where it starts and hits; sfx describe fills a lock that lacks them',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          yield* library.make(all);
+          yield* library.keep(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1], 'candidates'),
+          );
+          const kept = (yield* library.load).lock['paper.slide']?.variants[0];
+          // The fixture's burst rises within 5 ms and is loudest in its second 10 ms.
+          expect(kept).toMatchObject({ onset: 0, hit: 0.01 });
+          const timing = Predicate.or(
+            Predicate.isTagged('TimingUnrecorded'),
+            Predicate.isTagged('LeadIn'),
+          );
+          expect((yield* library.check).filter(timing)).toEqual([]);
+
+          // A lock written before takes were described: check says so, describe mends it.
+          const file = `${dir}/library.lock.json`;
+          yield* fs.writeFileString(
+            file,
+            (yield* fs.readFileString(file)).replace(/"(onset|hit)": [0-9.]+,?/g, ''),
+          );
+          expect(
+            (yield* library.check).filter(timing).map((f) => [f._tag, 'name' in f && f.name]),
+          ).toEqual([['TimingUnrecorded', 'paper.slide']]);
+          expect(yield* library.describe).toBeGreaterThan(0);
+          expect((yield* library.check).filter(timing)).toEqual([]);
+          expect((yield* library.load).lock['paper.slide']?.variants[0]).toMatchObject({
+            onset: 0,
+            hit: 0.01,
+          });
+        }),
+      ),
+  );
+
   it.effect.layer(fixture)('imports a recording, trimmed, into public/ under its licence', () =>
     withLibrary(({ dir }) =>
       Effect.gen(function* () {

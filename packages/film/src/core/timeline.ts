@@ -24,16 +24,25 @@ export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
 
 /**
+ * 0→1 for the item at `at` (0 the first, 1 the last) across a staggered cue
+ * at scene time `t`, eased by the cue's ease: the items' starts spread over
+ * the cue's `stagger` share and each lasts the rest, the last ending with
+ * the cue, so a `dur` edit scales every item. For a set spread by place (a
+ * field by how far the rain reaches it) rather than by count.
+ */
+export const staggerAt = (cue: ResolvedCue, t: number, at: number): number => {
+  const lead = cue.stagger * at;
+  return progress(t, cue.start + cue.dur * lead, cue.dur * (1 - cue.stagger), ease[cue.ease]);
+};
+
+/**
  * 0→1 for item `i` of `n` across a staggered cue at scene time `t`, eased by
  * the cue's ease. The items' starts spread evenly over the cue's `stagger`
  * share, the first at its start, and each lasts the rest, the last ending
  * with the cue; so a `dur` edit scales every item. One item is the whole cue.
  */
-export const staggerProgress = (cue: ResolvedCue, t: number, i: number, n: number): number => {
-  if (n <= 1) return cueProgress(cue, t);
-  const lead = (cue.stagger * i) / (n - 1);
-  return progress(t, cue.start + cue.dur * lead, cue.dur * (1 - cue.stagger), ease[cue.ease]);
-};
+export const staggerProgress = (cue: ResolvedCue, t: number, i: number, n: number): number =>
+  n <= 1 ? cueProgress(cue, t) : staggerAt(cue, t, i / (n - 1));
 
 /**
  * Keyframes across a cue at scene time `t`. Each key's time is a fraction of
@@ -51,7 +60,7 @@ const anchorField = (span: Span) => {
     return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
   if ('after' in span) return { after: span.after };
   if ('with' in span) return { with: span.with };
-  return { scene: span.scene };
+  return { at: span.at };
 };
 
 /** A span's end: its `dur` (from its anchor, or up to it with `ends`), or the mark it runs `until`. */
@@ -200,7 +209,7 @@ export const anchorPoint = (span: Span): ScenePoint => {
     return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
   if ('after' in span) return { cue: span.after, edge: 'end' };
   if ('with' in span) return { cue: span.with };
-  return { at: span.scene };
+  return { at: span.at };
 };
 
 /** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */

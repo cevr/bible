@@ -140,7 +140,14 @@ placements rotate through the sound's variants (never the same one back to
 back while it has another), each nudged late, louder or quieter and up or
 down in pitch by the sound's jitter, seeded by the film, the effect and the
 placement, so a repeated sound never repeats exactly and a film always mixes
-the same way; a procedural variant is its recipe played with a seed. It logs
+the same way; a procedural variant is its recipe played with a seed. A
+placement meets its cue with the variant's start, or with its hit for an
+effect that says `sync: 'hit'`: the lock's `Variant` carries `onset` and
+`hit` (`describeSound` in `core/synth/analyse.ts`, recorded on keep and by
+`SoundLibrary.describe`, `sfx describe`), a procedural one is measured from
+its seed, and the mix starts each variant its hit early (`mix.unsynced`
+warns where a take has none recorded). `sfx check` warns `TimingUnrecorded`
+and `LeadIn` (a one-shot whose onset is past `LEAD_IN`, 0.05 s). It logs
 each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The
@@ -957,7 +964,8 @@ five colours), one per declared act against its target, and one for the
 film.
 
 **Light.** A scene brings its act's light into band with `light` on its
-drawing, not by repainting its page: `{ color, edge?, amount? }` multiplies
+drawing (`scenesOf` lights a scene whose drawing brings none by the film's
+`light(id)`, its act's), not by repainting its page: `{ color, edge?, amount? }` multiplies
 the page and all drawn on it by `color` over the middle of the frame,
 falling to `edge` at the corners (a pool keeps the subject lit while the
 page around it dims), at `amount`. A function `(f) => Light` reads it each
@@ -1198,7 +1206,7 @@ the film second it starts at; a finding about the whole film has neither).
   stale) and reads it in 50 ms windows, its sides' power summed as a listener
   hears it (`windowPowers`): a run under −60 dBFS longer than
   1.5 s is `DeadAir`, an error, less any span a cue declares with
-  `silence: true` (`{ scene: 'start', offset: 2, dur: 3, silence: true }`),
+  `silence: true` (`{ at: 'start', offset: 2, dur: 3, silence: true }`),
   the designed silences the script means. The same mix is held to the
   balance, as warnings: a master more than 3 LU off −18 LUFS
   (`MasterLoudness`: a hot peak held the mastering lift back), and an effect
@@ -1341,6 +1349,14 @@ or another cue and say why). A rate (`Math.sin(t * 7)`) is not a time. The
 rule reads syntax only, so a product is taken for a rate and a local alias of
 the clock or a helper hiding the subtraction pass; its doc comment lists the
 limits.
+`film/span-ends-on-anchor` (`lint/span-ends-on-anchor.ts`) refuses a span
+that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
+`{ mark: 'true', dur: 0.5, ends: true }`, its length written once.
+`film/no-ease-on-cue` (`lint/no-ease-on-cue.ts`) refuses `ease.X(f.at(cue))`
+(or a const bound to one): `f.at` is already eased by the span's `ease`, so a
+second curve is one the lab's picker cannot change, and a push whose zoom
+takes it runs on another clock than its x and y. A push is a `shotPath` stop
+with `pushInto`; another curve is its own cue or `f.keys`.
 
 ## Knobs
 
@@ -1371,7 +1387,7 @@ fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
 tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
-frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`.
+frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
 bun run gate   # typecheck + tests

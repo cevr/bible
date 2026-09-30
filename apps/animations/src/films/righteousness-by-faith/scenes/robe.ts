@@ -19,7 +19,6 @@
 // forgiven and in white. `within` opens on this row.
 
 import {
-  type Camera,
   type Frame,
   type Gesture,
   type Pt,
@@ -27,7 +26,10 @@ import {
   camera,
   drawing,
   ellipseShape,
+  knobCamera,
+  pushInto,
   rectShape,
+  shotPath,
   stroke,
   sub,
 } from '@bible/film/canvas';
@@ -54,6 +56,7 @@ import {
 } from '../kit.ts';
 import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
 import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
+import { LIGHT } from '../light.ts';
 
 const LOOM: Pt = [1045, 560];
 
@@ -108,6 +111,8 @@ const timeline = {
   carry: { mark: 'take', word: 'him', offset: -0.1, dur: 2.75, ease: 'inOutSine' },
   specks: { with: 'carry', offset: 0.4, dur: 0.8 },
   speck: { mark: 'pass', dur: 1.17 },
+  // The speck on his cheek fades as it lifts.
+  cheekOff: { with: 'speck', offset: 0.49, dur: 0.68, ease: 'outCubic' },
   reachOut: { mark: 'clothe', dur: 0.75 },
   loomIn: { mark: 'loom', offset: -0.33, dur: 0.67 },
   pushLoom: { mark: 'loom', offset: 0.33, dur: 1.17 },
@@ -129,7 +134,7 @@ const timeline = {
   beyond: { mark: 'judicial', until: 'reclaim', ease: 'inOutSine' },
   warm: { mark: 'reclaim', offset: 0.4, dur: 2.2, ease: 'inOutSine' },
   glad: { mark: 'reclaiming', dur: 0.6 },
-  toIcons: { scene: 'speechEnd', dur: 0.27 },
+  toIcons: { at: 'speechEnd', dur: 0.27 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   // The robe pops forward in gold as the row settles, the heart faded back.
   iconGlow: { after: 'toIcons', dur: 0.6, ease: 'outBack' },
@@ -137,15 +142,30 @@ const timeline = {
   forgiven: { with: 'toIcons', dur: 0.3 },
 } as const;
 
-/** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
-const knobs = { judged: [1180, 600] } as const;
+const knobs = {
+  /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
+  judged: [1180, 600],
+  /** How much of the first light is left once the loom has woven: the rest is day. */
+  woven: 0.5,
+  /** Where the push from the court ends, on the loom, and how close. */
+  atLoom: [1045, 560],
+  atLoomZoom: 4.2,
+} as const;
 const JUDGED_ZOOM = [1.22, 1.3] as const;
 
 type RobeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
+/** The first light, its amount rewritten each frame (scratch). */
+const DAWN = { ...LIGHT.firstLight, amount: 1 };
+
 export const robe = drawing({
   timeline,
   knobs,
+  // The day comes up as the loom weaves the robe: the first light lifts.
+  light: (f) => {
+    DAWN.amount = 1 - (1 - f.knob('woven')) * f.at('weave');
+    return DAWN;
+  },
   draw: (f) => {
     const { t } = f;
     if (t < f.cue('pushLoom').end) courtWide(f);
@@ -170,12 +190,9 @@ const courtWide = (f: RobeFrame) => {
   const carry = f.at('carry');
   const bob = gait(t, f.cue('carry'));
   const away = -1250 * carry;
-  const push = f.at('pushLoom');
-  const cam: Camera = {
-    x: lerp(ZECH_REST.x, LOOM[0], push),
-    y: lerp(ZECH_REST.y, LOOM[1], push),
-    zoom: lerp(ZECH_REST.zoom ?? 1, 4.2, ease.inCubic(push)),
-  };
+  const cam = shotPath(ZECH_REST, [
+    [f.at('pushLoom'), knobCamera(f.knob('atLoom'), f.knob('atLoomZoom')), pushInto],
+  ]);
   courtWall(ctx, w, h);
   camera(ctx, cam, w, h, () => {
     const reachOut = f.at('reachOut');
@@ -188,7 +205,7 @@ const courtWide = (f: RobeFrame) => {
       // Joshua, the specks going from his skin.
       joshua: { tilt: 0.1 * (1 - pass), look: [2 * reachOut, 0], browTilt: 0.2 + 0.3 * pass },
       specks: 1 - f.at('specks'),
-      cheek: { dy: -66 * pass, alpha: 1 - clamp((pass - 0.3) / 0.7) },
+      cheek: { dy: -66 * pass, alpha: 1 - f.at('cheekOff') },
       // The filthy clothes, lifted over his head and carried out left.
       tunic: { at: [JOSHUA[0] + away, JOSHUA[1] - 250 * lift - bob], flare: () => 0 },
       helpers: { grip: 1, dx: away, bob, up: lift },

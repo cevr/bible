@@ -14,6 +14,7 @@ import {
   dragPatch,
   patchSpan,
   resolveTimeline,
+  staggerAt,
   staggerProgress,
 } from './timeline.ts';
 
@@ -122,6 +123,16 @@ describe('timeline', () => {
     expect(staggerProgress({ ...drop, ease: 'inQuad' }, 2.35, 0, 3)).toBeCloseTo(0.25);
   });
 
+  test('a set spread by place staggers each item by where it stands, not its count', () => {
+    const green = { start: 0, end: 1, dur: 1, ease: 'linear', stagger: 0.6 } as const;
+    // A field the rain reaches half way starts at 0.3 of the cue and lasts 0.4.
+    expect(staggerAt(green, 0.3, 0.5)).toBe(0);
+    expect(staggerAt(green, 0.5, 0.5)).toBeCloseTo(0.5);
+    expect(staggerAt(green, 0.7, 0.5)).toBeCloseTo(1);
+    // The item at place i/(n-1) is item i of n.
+    expect(staggerAt(green, 0.62, 2 / 3)).toBeCloseTo(staggerProgress(green, 0.62, 2, 4));
+  });
+
   test('with no stagger, or one item, every item is the whole cue', () => {
     const cue = { start: 1, end: 3, dur: 2, ease: 'inQuad', stagger: 0 } as const;
     expect(staggerProgress(cue, 2, 4, 9)).toBe(cueProgress(cue, 2));
@@ -171,10 +182,10 @@ describe('timeline', () => {
     const cues = Result.getOrThrow(
       resolveTimeline(
         {
-          open: { scene: 'start', offset: 0.1 },
-          voice: { scene: 'speech' },
-          hush: { scene: 'speechEnd', offset: 0.2 },
-          close: { scene: 'end', offset: -1, dur: 1 },
+          open: { at: 'start', offset: 0.1 },
+          voice: { at: 'speech' },
+          hush: { at: 'speechEnd', offset: 0.2 },
+          close: { at: 'end', offset: -1, dur: 1 },
         },
         clock,
       ),
@@ -212,7 +223,7 @@ describe('timeline', () => {
   });
 
   test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
-    expect(failure({ walk: { scene: 'start', until: 'nope' } })).toEqual(
+    expect(failure({ walk: { at: 'start', until: 'nope' } })).toEqual(
       UnknownMark.make({
         scene: 'justified',
         mark: 'nope',

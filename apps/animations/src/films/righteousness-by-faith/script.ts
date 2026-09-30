@@ -76,12 +76,12 @@
 // at the open and the landing, peach to explain, one black moment at the cross,
 // dawn at the answer.
 
-import type { Beat } from '@bible/film/core';
+import { defineScript } from '@bible/film/core';
 
 /** The film's name: the film, its title card and its credits all read it here. */
 export const TITLE = 'Righteousness by Faith';
 
-export const script: ReadonlyArray<Beat> = [
+export const script = defineScript([
   {
     id: 'cold',
     say: 'Imagine standing in a courtroom. {evidence}The evidence is overwhelming. {did}You did it. {judge}And the judge looks at you and says, {righteous}righteous. {wait}Wait. That is not justice. {cover}That is a cover-up. {right}Right? {bible}And yet the Bible says God justifies the ungodly. {oldest}So what is God doing? It is one of the oldest questions there is. Job asked it: {job}“How should man be just with God?”',
@@ -322,4 +322,7 @@ export const script: ReadonlyArray<Beat> = [
     picture:
       "STORY: the credits over the landing's last shot. The camera keeps easing back from where `thesis` leaves the city, the two still sitting together on the rooftop, while the film's name and its sources (each beat's cite, by author) roll up a torn paper strip at the left for about 22 s; then the strip goes and the city holds clear for the end screens. Nothing breathes.",
   },
-];
+]);
+
+/** A beat's id: the name a drawing, a light and a short take it by. */
+export type BeatId = (typeof script)[number]['id'];

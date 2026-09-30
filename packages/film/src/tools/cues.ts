@@ -107,7 +107,13 @@ const anchorLabel = (cue: Cue): string =>
     () => '',
   );
 
-/** Each effect placement's film time and library sound, then each bed's span. */
+/** How an effect meets its cue, as the report marks it: its start (unmarked) or its hit. */
+const SYNC_LABEL = { start: '', hit: ' hit' } as const;
+
+/**
+ * Each effect placement's film time and library sound (marked `hit` where the
+ * sound's loudest moment, not its start, lands there), then each bed's span.
+ */
 export const soundReport = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
@@ -121,7 +127,7 @@ export const soundReport = (
         if (!inScene(cue.scene)) continue;
         const at = yield* cueTime(cue, placed);
         lines.push(
-          `${name.padEnd(8)} ${cue.scene.padEnd(11)} ${at.toFixed(3).padStart(8)} ${anchorLabel(cue)}  ${effect.sound}`,
+          `${name.padEnd(8)} ${cue.scene.padEnd(11)} ${at.toFixed(3).padStart(8)} ${anchorLabel(cue)}${SYNC_LABEL[Option.getOrElse(Option.fromUndefinedOr(effect.sync), () => 'start' as const)]}  ${effect.sound}`,
         );
       }
     for (const bed of sound.beds ?? []) {
