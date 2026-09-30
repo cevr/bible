@@ -12,7 +12,7 @@
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Database } from 'bun:sqlite';
 import { Effect, FileSystem, type Layer, type Scope } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { BunFileSystem } from '@effect/platform-bun';

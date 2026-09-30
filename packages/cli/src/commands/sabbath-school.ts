@@ -1,5 +1,5 @@
-import { Command, Flag } from 'effect/unstable/cli';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { Command, Flag } from 'effect/cli';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 import {
   Array,
   Console,

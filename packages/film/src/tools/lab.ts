@@ -43,7 +43,7 @@ import {
   Schema,
   String as Str,
 } from 'effect';
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { sceneClock, sceneOf } from '../core/layout.ts';
 import {
   type CheckLine,

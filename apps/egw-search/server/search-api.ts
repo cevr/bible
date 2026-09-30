@@ -8,8 +8,8 @@
  */
 
 import { Effect } from 'effect';
-import { HttpApiBuilder } from 'effect/unstable/httpapi';
-import type { SqlClient } from 'effect/unstable/sql';
+import { HttpApiBuilder } from 'effect/http-api';
+import type { SqlClient } from 'effect/sql';
 
 import type { SearchService } from '@bible/core/search';
 

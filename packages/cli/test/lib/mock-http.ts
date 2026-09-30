@@ -1,5 +1,5 @@
 import { Effect, Layer, Option } from 'effect';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 
 import type { ServiceCall } from './sequence-recorder.js';
 

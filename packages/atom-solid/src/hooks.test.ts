@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'effect-bun-test';
 
 import { Cause, Effect, Exit } from 'effect';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
-import * as Atom from 'effect/unstable/reactivity/Atom';
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
-import * as AtomRef from 'effect/unstable/reactivity/AtomRef';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import * as AtomRef from 'effect/reactivity/AtomRef';
 import {
   createRenderEffect,
   createRoot,

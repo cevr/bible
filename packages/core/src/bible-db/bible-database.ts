@@ -7,8 +7,8 @@
  */
 
 import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 export class BibleDataIntegrityError extends Schema.TaggedError<BibleDataIntegrityError>()(
   'BibleDataIntegrityError',

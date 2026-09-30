@@ -12,7 +12,7 @@
  */
 
 import { Cause, Context, Effect, Layer, Option, Predicate, Result, Schema } from 'effect';
-import * as SqlError from 'effect/unstable/sql/SqlError';
+import * as SqlError from 'effect/sql/SqlError';
 
 import { getBibleBook, getBibleBookByName } from '../bible/canon.js';
 import {

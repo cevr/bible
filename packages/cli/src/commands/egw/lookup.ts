@@ -14,7 +14,7 @@ import {
 import { Reference, type Paragraph, type Publication } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Array as Arr, Console, Effect, Option } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 import { CliProcess } from '../../services/process.js';
 import { encodeJson, publicationJson } from './format.js';

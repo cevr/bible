@@ -16,8 +16,8 @@ import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
 import type { LookupService, WikiService } from '@bible/core/wiki';
 import { Effect, Layer, Queue, Schema } from 'effect';
-import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcServer from 'effect/unstable/rpc/RpcServer';
+import type { FromClientEncoded, FromServerEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcServer from 'effect/rpc/RpcServer';
 
 const CLIENT_ID = 0;
 

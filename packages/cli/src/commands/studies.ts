@@ -1,4 +1,4 @@
-import { Command } from 'effect/unstable/cli';
+import { Command } from 'effect/cli';
 
 import { StudiesConfig } from '~/src/lib/content/configs';
 import {

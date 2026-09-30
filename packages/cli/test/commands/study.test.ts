@@ -32,7 +32,7 @@ import {
 } from '@bible/core/study/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { StudyLayer, strongsStudyJson, study, verseStudyJson } from '../../src/commands/study.js';
 import { runCli } from '../lib/run-cli.js';

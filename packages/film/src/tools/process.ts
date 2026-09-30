@@ -4,7 +4,7 @@
 
 import { Duration, Effect, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import type { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import type { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ProcessTimedOut } from './errors.ts';
 
 export interface Finished {

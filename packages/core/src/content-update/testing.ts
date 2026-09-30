@@ -17,7 +17,7 @@
  */
 
 import { Effect, Layer, Option, Schema } from 'effect';
-import { HttpClient, HttpClientError, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientError, HttpClientResponse } from 'effect/http';
 
 import { corpusGeneration, corpusRevision } from '../corpus-supply/model.js';
 import { CorpusSupply } from '../corpus-supply/service.js';

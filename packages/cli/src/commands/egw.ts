@@ -8,7 +8,7 @@
 
 import { isSearchQuery, parseEGWRef } from '@bible/core/egw';
 import { Console, Effect, Option } from 'effect';
-import { Argument, Command } from 'effect/unstable/cli';
+import { Argument, Command } from 'effect/cli';
 
 import { egwBooks } from './egw/books.js';
 import { egwCatalog } from './egw/catalog.js';

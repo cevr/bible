@@ -9,7 +9,7 @@
 import { RegistryProvider } from '@bible/atom-solid';
 import { Portal } from '@solidjs/web';
 import { Layer, Option } from 'effect';
-import * as Atom from 'effect/unstable/reactivity/Atom';
+import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
 import type { Film } from '../canvas/film.ts';

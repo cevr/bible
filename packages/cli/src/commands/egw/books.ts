@@ -1,6 +1,6 @@
 import { WritingsService } from '@bible/core/writings/service';
 import { Console, Effect, Option } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 
 import { encodeJson, publicationJson } from './format.js';
 import { ServiceLayer } from './layers.js';

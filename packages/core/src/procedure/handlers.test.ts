@@ -40,8 +40,8 @@ import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
-import type { Rpc, RpcGroup } from 'effect/unstable/rpc';
-import { RpcTest } from 'effect/unstable/rpc';
+import type { Rpc, RpcGroup } from 'effect/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { BibleProcedureGroup } from './group.js';
 import { BibleProcedureHandlers } from './handlers.js';

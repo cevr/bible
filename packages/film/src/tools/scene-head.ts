@@ -17,7 +17,7 @@ import {
   Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { type Knob, Knobs, type Span, Timeline } from '../core/schema.ts';
 import { HeadUnavailable, type ProcessTimedOut, type SceneNotLocated } from './errors.ts';
 import { collectWithin } from './process.ts';

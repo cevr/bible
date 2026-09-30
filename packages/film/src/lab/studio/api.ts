@@ -5,8 +5,9 @@
 // not one, or a request that never reached the server, becomes one in its
 // own words, so the panel always has a refusal to show.
 
-import { Context, Effect, Encoding, Layer, Result, Schema } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { Context, Effect, Layer, Result, Schema } from 'effect';
+import { Base64 } from 'effect/encoding';
+import { FetchHttpClient } from 'effect/http';
 import {
   KeepPost,
   STUDIO_MAX_BODY,
@@ -65,7 +66,7 @@ const TakeJson = Schema.fromJsonString(TakePost);
 
 /** The body a take posts: the WAV in base64, and its type, as JSON. */
 export const takeBody = (wav: Uint8Array): string =>
-  Schema.encodeSync(TakeJson)({ audio: Encoding.encodeBase64(wav), type: WAV_TYPE });
+  Schema.encodeSync(TakeJson)({ audio: Base64.encode(wav), type: WAV_TYPE });
 
 /** The body's bytes around the base64. */
 const ENVELOPE = takeBody(new Uint8Array(0)).length;
@@ -127,7 +128,7 @@ export const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: str
       post(
         studioPath('takes', beat),
         TakePost,
-        { audio: Encoding.encodeBase64(wav), type: WAV_TYPE },
+        { audio: Base64.encode(wav), type: WAV_TYPE },
         StudioTake,
       ).pipe(
         Effect.mapError((failure) =>

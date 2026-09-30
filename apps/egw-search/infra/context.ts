@@ -17,7 +17,7 @@
  */
 import { BunServices } from '@effect/platform-bun';
 import { Data, Effect, FileSystem, Path } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 /** The Dockerfile's path inside the context. */
 export const DOCKERFILE = 'Dockerfile';

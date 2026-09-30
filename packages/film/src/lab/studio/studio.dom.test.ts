@@ -12,16 +12,8 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import {
-  Effect,
-  Encoding,
-  type FileSystem,
-  Option,
-  type Path,
-  Result,
-  Schema,
-  type Scope,
-} from 'effect';
+import { Effect, type FileSystem, Option, type Path, Result, Schema, type Scope } from 'effect';
+import { Base64 } from 'effect/encoding';
 import { StudioRefusal } from '../../core/studio.ts';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
@@ -133,7 +125,7 @@ const posted = (asked: ReadonlyArray<Asked>, path: RegExp) =>
 
 /** The WAV's format fields: format, channels, rate, bits. */
 const wavFormat = (base64: string) =>
-  Result.map(Encoding.decodeBase64(base64), (bytes) => {
+  Result.map(Base64.decode(base64), (bytes) => {
     const v = new DataView(bytes.buffer, bytes.byteOffset);
     return {
       riff: String.fromCharCode(...bytes.subarray(0, 4)),

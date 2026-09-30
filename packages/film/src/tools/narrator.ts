@@ -18,7 +18,6 @@ import {
   Array as Arr,
   Context,
   Effect,
-  Encoding,
   FileSystem,
   Layer,
   Match,
@@ -27,6 +26,7 @@ import {
   Record as Rec,
   Result,
 } from 'effect';
+import { Base64 } from 'effect/encoding';
 import type { UnknownVoice } from '../core/errors.ts';
 import {
   type Line,
@@ -316,7 +316,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             reply.breaks,
           ),
         );
-        const audio = yield* Effect.fromResult(Encoding.decodeBase64(reply.audio_base64)).pipe(
+        const audio = yield* Effect.fromResult(Base64.decode(reply.audio_base64)).pipe(
           Effect.mapError((error) =>
             ElevenLabsFailed.make({ op: 'tts', exitCode: 0, reason: error.message }),
           ),

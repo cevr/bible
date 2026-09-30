@@ -35,7 +35,7 @@ import {
 } from '../corpus-supply/model.js';
 import Database from 'better-sqlite3';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema, Stream } from 'effect';
-import { HttpClient } from 'effect/unstable/http';
+import { HttpClient } from 'effect/http';
 
 export interface LocalFileArtifactSource {
   readonly kind: Exclude<FileArtifactSourceKind, 'release'>;

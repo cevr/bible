@@ -21,8 +21,8 @@
  *  so a defect in a host's client still reaches the operator. */
 
 import { Config, Effect, Layer, Option, Schema, Stream } from 'effect';
-import { FetchHttpClient, Headers, HttpClient } from 'effect/unstable/http';
-import type { HttpClientError } from 'effect/unstable/http';
+import { FetchHttpClient, Headers, HttpClient } from 'effect/http';
+import type { HttpClientError } from 'effect/http';
 
 import {
   CONTENT_MANIFEST_MAX_BYTES,

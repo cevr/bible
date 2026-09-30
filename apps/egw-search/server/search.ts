@@ -11,7 +11,7 @@
  */
 
 import { Cause, Effect, Option, Result } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 
 import { SearchQuery, SearchService, type SearchResult } from '@bible/core/search';
 import type { CorpusFilter } from '@bible/core/writings';

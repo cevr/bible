@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { Rpc, RpcGroup, type RpcSchema } from 'effect/unstable/rpc';
+import { Rpc, RpcGroup, type RpcSchema } from 'effect/rpc';
 
 import {
   BookNumber,

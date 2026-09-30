@@ -116,6 +116,7 @@
           "unnecessaryPipe": "off",
           "unnecessaryPipeChain": "off",
           "unnecessaryTypeofType": "error",
+          "unstableApiUsage": "off",
           "unsafeEffectTypeAssertion": "error"
         },
         "keyPatterns": [

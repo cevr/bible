@@ -16,7 +16,7 @@
 
 import { Effect, Layer, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { Reference } from '../bible/model.js';
 import { BibleProcedureGroup } from '../procedure/group.js';

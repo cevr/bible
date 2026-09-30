@@ -42,7 +42,7 @@ import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedu
 import { procedureDependencies } from '@bible/core/procedure/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Schema } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 
 import { topicsStatus, topicsUpdate } from '../../src/commands/topics.js';
 import { ContentLayer } from '../../src/commands/topics-layer.js';

@@ -32,7 +32,7 @@ import {
   Stream,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { sceneClock, sceneOf } from '../core/layout.ts';
 import type { CuePatch, Knob } from '../core/schema.ts';
 import { resolveTimeline } from '../core/timeline.ts';

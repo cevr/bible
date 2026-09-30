@@ -3,7 +3,7 @@ import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Database } from 'bun:sqlite';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
+import * as SqlClient from 'effect/sql/SqlClient';
 
 import { BibleCorpus } from './bible-corpus.js';
 import { BibleDatabase } from './bible-database.js';

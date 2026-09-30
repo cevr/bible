@@ -15,8 +15,8 @@ import {
   HttpServer,
   HttpServerRequest,
   HttpServerResponse,
-} from 'effect/unstable/http';
-import { HttpApiBuilder, HttpApiScalar } from 'effect/unstable/httpapi';
+} from 'effect/http';
+import { HttpApiBuilder, HttpApiScalar } from 'effect/http-api';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Option, type Config } from 'effect';
 import { mkdirSync } from 'fs';

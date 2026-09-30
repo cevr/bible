@@ -22,8 +22,8 @@
  */
 
 import { Effect } from 'effect';
-import type * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import type * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 /**
  * Ensure the shared `schema_versions` registry table exists. Idempotent; safe

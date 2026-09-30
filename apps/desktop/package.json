@@ -43,7 +43,7 @@
     "esbuild": "^0.28.2",
     "vite": "^8.2.2",
     "vite-plugin-solid": "catalog:",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.2"
   },
   "build": {
     "appId": "com.bible.desktop",

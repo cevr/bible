@@ -13,7 +13,7 @@
  *  corrupt artifact, and the file it just created is left on disk. */
 
 import { Cause, Context, Effect, FileSystem, Layer, RcRef, Result } from 'effect';
-import type * as SqlClient from 'effect/unstable/sql/SqlClient';
+import type * as SqlClient from 'effect/sql/SqlClient';
 
 import type { TopicService } from '../topics/service.js';
 import type { WikiSectionSources } from './section-composer.js';

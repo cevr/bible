@@ -35,7 +35,7 @@ import { registerAacEncoder } from '@mediabunny/aac-encoder';
 import { registerFlacEncoder } from '@mediabunny/flac-encoder';
 import { registerMediabunnyServer } from '@mediabunny/server';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Match, Option, Stream } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
   AudioSample,

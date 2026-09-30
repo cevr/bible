@@ -4,7 +4,7 @@ import {
   type RuntimeConnection,
 } from '@bible/core/procedure';
 import { Context, Effect, Layer } from 'effect';
-import { RpcClient } from 'effect/unstable/rpc';
+import { RpcClient } from 'effect/rpc';
 
 import type { ProcedureClient } from '../cache/reading-rpc.js';
 

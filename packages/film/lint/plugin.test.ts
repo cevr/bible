@@ -8,7 +8,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Stream } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));

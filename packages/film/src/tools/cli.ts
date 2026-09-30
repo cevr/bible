@@ -43,8 +43,8 @@ import {
   Schema,
   Stdio,
 } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
-import type { ChildProcessSpawner } from 'effect/unstable/process';
+import { Argument, Command, Flag } from 'effect/cli';
+import type { ChildProcessSpawner } from 'effect/process';
 import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';

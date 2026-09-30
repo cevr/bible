@@ -3,8 +3,8 @@
  * Adapted from Spotify client patterns with Effect-TS
  */
 
-import type { HttpClientError } from 'effect/unstable/http';
-import { HttpClient, HttpClientRequest, HttpClientResponse, UrlParams } from 'effect/unstable/http';
+import type { HttpClientError } from 'effect/http';
+import { HttpClient, HttpClientRequest, HttpClientResponse, UrlParams } from 'effect/http';
 import {
   Config,
   Context,

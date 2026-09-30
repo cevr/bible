@@ -46,8 +46,8 @@ import {
 import { RegistryContext, useAtomInitialValues } from '@bible/atom-solid';
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Option, Stream } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
+import { RpcTest } from 'effect/rpc';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { createEffect, createRoot, createSignal, flush, resolve, type Accessor } from 'solid-js';
 
 import { procedureClientAtom, type ProcedureClient } from '../cache/reading-rpc.js';

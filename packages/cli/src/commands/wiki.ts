@@ -52,7 +52,7 @@ import {
   Schema,
   SchemaGetter,
 } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import { BunServices } from '@effect/platform-bun';
 
 const JsonString = Schema.Unknown.pipe(

@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 import { readTopicsSchemaMajor } from '../corpus-supply/file-artifact.js';
 import { TopicId } from '../topics/model.js';

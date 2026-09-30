@@ -27,8 +27,8 @@ import {
   verifyTopicsDatabase,
 } from '@bible/core/corpus-supply/bun';
 import { Config, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { Command, Flag } from 'effect/cli';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 
 import { packagedDataCandidates } from '~/src/lib/paths';
 

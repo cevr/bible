@@ -5,7 +5,6 @@
 import {
   Array as Arr,
   Effect,
-  Encoding,
   Exit,
   FileSystem,
   Layer,
@@ -14,6 +13,7 @@ import {
   Redacted,
   Schema,
 } from 'effect';
+import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -265,7 +265,7 @@ export const fakeElevenLabs = (
         Effect.sync(() => {
           calls.tts.push(request);
           return {
-            audio_base64: Encoding.encodeBase64(request.text + ' '.repeat(calls.tts.length)),
+            audio_base64: Base64.encode(request.text + ' '.repeat(calls.tts.length)),
             alignment: aligned([...request.text]),
           };
         }),
@@ -277,7 +277,7 @@ export const fakeElevenLabs = (
             request.lines.slice(0, i).reduce((n, line) => n + [...line.text].length, 0),
           );
           return {
-            audio_base64: Encoding.encodeBase64(said + ' '.repeat(calls.dialogue.length)),
+            audio_base64: Base64.encode(said + ' '.repeat(calls.dialogue.length)),
             alignment: aligned(request.lines.flatMap((line) => [...line.text])),
             voice_segments: request.lines.map((line, i) => ({
               character_start_index: starts[i] ?? 0,

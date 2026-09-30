@@ -26,9 +26,9 @@ import {
   Schema,
   Stream,
 } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
-import type * as Statement from 'effect/unstable/sql/Statement';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
+import type * as Statement from 'effect/sql/Statement';
 
 import { EGW_SCOPE_AUTHORS, type CorpusScope } from '../writings/corpus-scope.js';
 import {

@@ -27,9 +27,9 @@
  * do worse than the retired layer did — it would fetch a query nobody reads.
  */
 
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
-import type * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
-import type * as Atom from 'effect/unstable/reactivity/Atom';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import type * as AsyncResult from 'effect/reactivity/AsyncResult';
+import type * as Atom from 'effect/reactivity/Atom';
 import { Effect, Option } from 'effect';
 
 /** The `AsyncResult` atom shape every `AtomRpc` query family produces. */
