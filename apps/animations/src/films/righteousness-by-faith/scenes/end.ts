@@ -81,7 +81,7 @@ export const end = drawing({
       [f.at('back'), knobCamera(f.knob('wide'), f.knob('wideZoom'))],
     ]);
     // `thesis`'s rooftop, its paper cut as it was, the two turned to each other.
-    rooftop(ctx, w, h, f.handsOf('thesis'), cam, 1);
+    rooftop(ctx, w, h, f.handsOf(thesis), cam, 1);
 
     const shown = f.at('stripIn') * (1 - f.at('stripOut'));
     if (shown <= 0) return;

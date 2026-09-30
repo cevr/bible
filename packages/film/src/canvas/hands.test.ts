@@ -66,4 +66,36 @@ describe('f.handsOf', () => {
     // A mistyped scene fails, naming it.
     expect(unknown).toContain('"giver "');
   });
+
+  test('finds the scene by its drawing, as f.knobsOf does, so a mistyped callback fails to compile', () => {
+    let own: ReadonlyArray<Hand> = [];
+    let borrowed: ReadonlyArray<Hand> = [];
+    const giver = {
+      draw: ((f) => {
+        own = KEYS.map((k) => f.hand(k));
+      }) satisfies SceneSpec['draw'],
+    };
+    const takes: SceneSpec['draw'] = (f) => {
+      const hands = f.handsOf(giver);
+      borrowed = KEYS.map((k) => hands(k));
+    };
+    withDom(() => {
+      const film = createFilm({
+        title: 'hands',
+        width: W,
+        height: H,
+        paper: { base: '#ffffff', tone: '#ffffff', seed: 1 },
+        shade: '#ffffff',
+        finish: { vignette: 0, grain: 0 },
+        scenes: [
+          { id: 'giver', min: DUR, draw: giver.draw },
+          { id: 'taker', min: DUR, draw: takes },
+        ],
+      });
+      const { ctx } = recorder(W, H);
+      film.render(ctx, 0.5 * DUR);
+      film.render(ctx, 1.5 * DUR);
+    });
+    expect(borrowed.map((h) => h.seed)).toEqual(own.map((h) => h.seed));
+  });
 });

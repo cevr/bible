@@ -31,6 +31,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { AT_THE_HOLE, type House, RECALL_RISE, house, recall } from '../gospel.ts';
+import { roof } from './roof.ts';
 import {
   type GestureAt,
   C,
@@ -522,7 +523,7 @@ const row = (f: LookFrame, shown: number) => {
     () => {
       icons(ctx, f.hand, LIT, undefined, COUNT);
       at(ctx, { x: ICON_X[0], y: 0 }, () =>
-        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf('roof'), HOLE), LEAD[0]),
+        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf(roof), HOLE), LEAD[0]),
       );
     },
   );

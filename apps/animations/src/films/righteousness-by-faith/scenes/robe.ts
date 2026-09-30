@@ -55,6 +55,7 @@ import {
 } from '../kit.ts';
 import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
 import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
+import { woman } from './woman.ts';
 import { LIGHT } from '../light.ts';
 
 const LOOM: Pt = [1045, 560];
@@ -554,7 +555,7 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
         ctx,
         hand,
         forgiven,
-        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
+        () => temple(ctx, w, h, f.handsOf(woman), COURT_FORGIVEN),
         ICONS_LEAD[1],
       ),
     );

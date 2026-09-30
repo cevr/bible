@@ -41,7 +41,7 @@ import {
 import { clamp, lerp, gait } from '@bible/film/core';
 import { type House, WENT, house } from '../gospel.ts';
 import { C, type Hands, type IconCount, ICON_KEPT, ICON_LEAD, ICON_X, type Three } from '../kit.ts';
-import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
+import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow, message } from './message.ts';
 
 const timeline = {
   // Through the faith icon of `message`'s row, into the house.
@@ -187,7 +187,7 @@ export const roof = drawing({
   timeline,
   knobs,
   draw: (f) => {
-    if (f.at('through') < 1) opening(f, f.handsOf('message'));
+    if (f.at('through') < 1) opening(f, f.handsOf(message));
     else if (f.t < f.mark('one')) capernaum(f);
     else replay(f);
     band(f);

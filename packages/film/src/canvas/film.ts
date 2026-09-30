@@ -115,10 +115,11 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
   /**
    * Another scene's hands, as its own `f.hand` gives them there, boiling on
    * this frame's tick: a callback or a shot carried over a cut draws that
-   * scene's paper torn as it was, not a new sheet. Throws, naming it, for a
-   * scene the film lacks.
+   * scene's paper torn as it was, not a new sheet. The scene is found by its
+   * drawing, as `f.knobsOf` finds it (`f.handsOf(thesis)`), or by its id.
+   * Throws, naming it, for a scene the film lacks.
    */
-  handsOf(scene: string): (key: string | number) => Hand;
+  handsOf(scene: string | KnobsOwner<Knobs>): (key: string | number) => Hand;
   /**
    * Another scene's knobs, as that scene reads them on this frame (a lab
    * edit to them included), found by its drawing: a callback that frames
@@ -608,13 +609,13 @@ export const createFilm = (spec: FilmSpec): Film => {
     return p;
   };
 
-  /** The one scene `draw` draws, for `f.knobsOf`; `by` names the scene that asked. */
+  /** The one scene `draw` draws, for `f.knobsOf` and `f.handsOf`; `by` names the scene that asked. */
   const drawnBy = (draw: (f: never) => void, by: string) => {
     const found = placed.filter((q) => q.spec.draw === draw);
     const one = found[0];
     if (one === undefined || found.length > 1)
       throw new Error(
-        `scene ${by}: f.knobsOf takes the drawing of one scene; ${found.length} scenes draw it (${found.map((q) => q.spec.id).join(', ')})`,
+        `scene ${by}: f.knobsOf and f.handsOf take the drawing of one scene; ${found.length} scenes draw it (${found.map((q) => q.spec.id).join(', ')})`,
       );
     return one;
   };
@@ -740,9 +741,10 @@ export const createFilm = (spec: FilmSpec): Film => {
       },
       hand: (key) => sceneHand(p.spec.id, key, boil),
       handsOf: (scene) => {
-        if (!ids.has(scene))
-          throw new Error(`scene ${p.spec.id}: film has no scene "${scene}" to take hands from`);
-        return (key) => sceneHand(scene, key, boil);
+        const id = Predicate.isString(scene) ? scene : drawnBy(scene.draw, p.spec.id).spec.id;
+        if (!ids.has(id))
+          throw new Error(`scene ${p.spec.id}: film has no scene "${id}" to take hands from`);
+        return (key) => sceneHand(id, key, boil);
       },
       knobsOf: <K extends Knobs>(of: KnobsOwner<K>) => {
         const q = drawnBy(of.draw, p.spec.id);

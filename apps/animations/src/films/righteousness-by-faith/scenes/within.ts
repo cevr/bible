@@ -55,6 +55,8 @@ import {
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../gospel.ts';
+import { roof } from './roof.ts';
+import { woman } from './woman.ts';
 
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
@@ -399,13 +401,7 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   at(ctx, { x: ICON_ROW.x, y, scale: ICON_ROW.scale }, () => {
     icons(ctx, hand, LIT, undefined, COUNT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(
-        ctx,
-        hand,
-        court,
-        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
-        LEAD[1],
-      ),
+      recall(ctx, hand, court, () => temple(ctx, w, h, f.handsOf(woman), COURT_FORGIVEN), LEAD[1]),
     );
     at(ctx, { x: ICON_X[2], y: 0 }, () =>
       recall(
@@ -417,7 +413,7 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
             ctx,
             w,
             h,
-            f.handsOf('roof'),
+            f.handsOf(roof),
             went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
           ),
         LEAD[2],
