@@ -75,7 +75,7 @@ export interface Allowed {
 export const LOOPBACK_ONLY: Allowed = { hosts: [] };
 
 /** The connection a request came on: the server's bound name and port, and a way to hold it open. */
-export interface ConnectionService {
+interface ConnectionService {
   readonly hostname: Option.Option<string>;
   readonly port: Option.Option<number>;
   /** Hold this request's connection open for `seconds` with nothing sent, past the server's idle limit. */
@@ -95,7 +95,7 @@ const connectionOf = (request: Request, server: LabBound): ConnectionService => 
 });
 
 /** The films a server answers for: a name is one of them, or a FilmUnknown naming them. */
-export interface FilmScopeService {
+interface FilmScopeService {
   readonly named: (film: string) => Effect.Effect<FilmName, FilmUnknown>;
 }
 
@@ -339,7 +339,7 @@ const pageRoute = (page: Option.Option<LabHandler>, own: ReadonlyArray<string>) 
   });
 
 /** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
-export type ApiRoutes = Layer.Layer<
+type ApiRoutes = Layer.Layer<
   never,
   never,
   | HttpRouter.HttpRouter

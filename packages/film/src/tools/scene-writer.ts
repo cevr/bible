@@ -30,12 +30,7 @@ export interface Written extends Change {
   readonly exportName: string;
 }
 
-export type WriteError =
-  | LocateError
-  | SceneNotLocated
-  | SourceShared
-  | TimelineUnresolved
-  | RewriteError;
+type WriteError = LocateError | SceneNotLocated | SourceShared | TimelineUnresolved | RewriteError;
 
 /** A cue written, and where it resolves as the film's files now give it (or why it does not). */
 export interface CueWritten {
@@ -43,7 +38,7 @@ export interface CueWritten {
   readonly read: CueRead;
 }
 
-export interface SceneWriterService {
+interface SceneWriterService {
   readonly setCue: (
     film: FilmName,
     scene: string,
@@ -51,7 +46,7 @@ export interface SceneWriterService {
     patch: CuePatch,
   ) => Effect.Effect<CueWritten, WriteError>;
   readonly setKnob: (
-    film: string,
+    film: FilmName,
     scene: string,
     knob: string,
     value: Knob,
@@ -193,7 +188,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
       });
 
       const setKnob = Effect.fn('SceneWriter.setKnob')(function* (
-        film: string,
+        film: FilmName,
         scene: string,
         knob: string,
         value: Knob,
