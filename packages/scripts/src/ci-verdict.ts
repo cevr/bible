@@ -5,7 +5,7 @@
 // so the loop records a red run as a finding with its id, not a re-run.
 //
 //   bun run ci              # the checkout's HEAD
-//   bun run ci <sha>        # another commit on main
+//   bun run ci <commit>     # another commit on main (short sha or ref)
 //
 // A red job's log: `gh run view <run> --log-failed`.
 
@@ -80,10 +80,12 @@ const verdict = Command.make(
   { commit: Argument.String('commit').pipe(Argument.optional) },
   ({ commit }) =>
     Effect.gen(function* () {
-      const sha = yield* Option.match(commit, {
-        onNone: () => run('git', ['rev-parse', 'HEAD']),
-        onSome: Effect.succeed,
-      }).pipe(Effect.map((s) => s.trim()));
+      // gh matches a run by the full sha, so a short one or a ref resolves first.
+      const sha = yield* run('git', [
+        'rev-parse',
+        '--verify',
+        `${Option.getOrElse(commit, () => 'HEAD')}^{commit}`,
+      ]).pipe(Effect.map((s) => s.trim()));
       // A push takes a moment to start its run; a run takes minutes to finish.
       const gate = yield* runOf(sha).pipe(
         Effect.retry({ while: (e) => e._tag === 'RunNotFound', schedule: POLL, times: APPEAR }),
