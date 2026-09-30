@@ -10,15 +10,15 @@ import { phraseCues, shortPhrases } from './phrases.ts';
 import type { ResolvedShort } from './shorts.ts';
 
 /** A line shows this long before its first word, so the eye is there first. */
-export const CAPTION_LEAD = 0.05;
+const CAPTION_LEAD = 0.05;
 /** The last line of a take holds this long after its last word. */
-export const CAPTION_HOLD = 0.6;
+const CAPTION_HOLD = 0.6;
 
 /**
  * Group words into short caption lines, breaking where a sentence or clause ends (`SENTENCE`, `CLAUSE`) and before
  * each word in `turns`, where another voice takes over.
  */
-export const captionLines = (
+const captionLines = (
   words: ReadonlyArray<Word>,
   turns: ReadonlySet<number> = new Set(),
   max = 7,

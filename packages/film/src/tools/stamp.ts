@@ -19,7 +19,9 @@
 //   modules, which that transition draws.
 //
 // Files are hashed by content and named relative to the films folder, so two
-// checkouts of the same sources agree. Anything else a frame reads at run
+// checkouts of the same sources agree when the films folder sits at the same
+// depth in each (a worktree or a rift of the repo does): a workspace module
+// such as `@bible/film/player` is named by its path from there. Anything else a frame reads at run
 // time (a font or image fetched by URL) is not in the key.
 
 import { createRequire } from 'node:module';
