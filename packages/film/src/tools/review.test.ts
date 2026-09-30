@@ -376,8 +376,8 @@ const projectCatalogue = [
 /**
  * The review over a fresh tree: `out/art`, a montage (a set of two, a big
  * lone video, a variant from `out/elsewhere`); `out/f`, a project folder
- * with its catalogue; ffprobe answering 12.5 s and ffmpeg copying its input
- * to its output.
+ * with its catalogue; a stand-in Media (`reviewMedia`) giving every video
+ * 12.5 s and making a still or a phone copy by copying the video whole.
  */
 const fixture = (phoneCopies: boolean) =>
   Layer.unwrap(

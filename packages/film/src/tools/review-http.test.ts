@@ -410,6 +410,36 @@ describe("a film's choices", () => {
       expect(form.status).toBe(415);
       const bad = yield* ask(pick('f', '{"point":"score","variant":"bright","verb":"keep"}', HOME));
       expect(bad.status).toBe(400);
+      // A body that does not decode answers why, as a refusal the page reads.
+      const refusal = refusalOf(yield* body(bad));
+      expect(refusal).toMatchObject({ _tag: 'RequestInvalid', part: 'Payload' });
+      expect(refusal.message).toContain('verb');
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a query or a body that does not decode answers RequestInvalid, naming it', () =>
+    Effect.gen(function* () {
+      const answers = yield* Effect.forEach(
+        [
+          get('/review/frame'),
+          get('/review/project/f?variant=Bad%20Name'),
+          post(
+            '/review/project/f/say',
+            '{"address":{"_tag":"Nope"},"say":{"_tag":"Approve"}}',
+            HOME,
+          ),
+        ],
+        (request) =>
+          Effect.gen(function* () {
+            const res = yield* ask(request);
+            return [res.status, refusalOf(yield* body(res))] as const;
+          }),
+      );
+      expect(answers).toMatchObject([
+        [400, { _tag: 'RequestInvalid', part: 'Query', reason: 'Missing key at ["ref"]' }],
+        [400, { _tag: 'RequestInvalid', part: 'Query' }],
+        [400, { _tag: 'RequestInvalid', part: 'Payload' }],
+      ]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
@@ -533,6 +563,21 @@ describe("a film's project", () => {
         say('{"address":{"_tag":"Short","id":"s"},"say":{"_tag":"Comment","text":"cut it"}}'),
       );
       expect(said.status).toBe(400);
+      expect(projectRuns).toEqual([]);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a comment on more than one scene is a 400, and nothing runs', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      const said = yield* ask(
+        say('{"address":{"_tag":"Scenes","ids":["a","b"]},"say":{"_tag":"Comment","text":"x"}}'),
+      );
+      expect(said.status).toBe(400);
+      expect(refusalOf(yield* body(said))).toMatchObject({
+        _tag: 'RequestInvalid',
+        part: 'Payload',
+      });
       expect(projectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );

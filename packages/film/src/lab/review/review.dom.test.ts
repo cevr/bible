@@ -4,14 +4,24 @@
 // escaped markdown; the set plays every variant on one clock (space plays
 // and pauses, ←/→ step, 🔊 moves the sound heard), shows the first against
 // one other, every variant's frame at the moments (←/→ between them), and
-// the notes; the view lives in the URL through a reload; and a phone's
-// width folds the grid to one column without scrolling sideways.
+// the notes; a variant the record proves stale says why in every view, and
+// the rest say no state; the view lives in the URL through a reload; and a
+// phone's width folds the grid to one column without scrolling sideways.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { type FakeRoute, type Json, json, openReview, route, text } from '../fixtures/harness.ts';
-import { textHas, until, waitFor } from '../fixtures/settled.ts';
+import { ReviewFileUnknown } from '../../core/refusals.ts';
+import {
+  type FakeRoute,
+  type Json,
+  json,
+  openReview,
+  refused,
+  route,
+  text,
+} from '../fixtures/harness.ts';
+import { countIs, textHas, textIs, textsAre, until, waitFor } from '../fixtures/settled.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
@@ -60,7 +70,8 @@ const index: Json = {
               notes: { ref: 'out/art/roof.A.md', name: 'roof.A.md', size: 10, mtime: 0 },
             }),
             variant('B', 'Cold'),
-            variant('C', 'Grey'),
+            // Drawn before a newer render at its address, of other sources.
+            variant('C', 'Grey', { state: 'stale', staleBy: 'sources' }),
           ],
         },
       ],
@@ -228,6 +239,55 @@ describe('the review page', () => {
         // A reload opens the view the URL keeps.
         yield* Effect.promise(() => page.goto(`http://lab.test/${SET}&view=moments&m=2`));
         yield* waitFor(page, 'button[data-moment="2"][aria-pressed="true"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a doc that cannot be read says why as text, the server's words never markup",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/review\/files\/out\/art\/why\.md$/, () =>
+              refused(ReviewFileUnknown.make({ ref: 'out/art/<i>why</i>.md' })),
+            ),
+            ...routes,
+          ],
+          { search: '?folder=out%2Fart' },
+        );
+        yield* Effect.promise(() => page.click('.rv-doc summary'));
+        yield* textIs(
+          page,
+          '.rv-doc .rv-note',
+          "no file out/art/<i>why</i>.md under the review's roots",
+        );
+        yield* countIs(page, '.rv-doc .rv-note i', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a variant the record proves stale says why in every view; the rest say no state',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { search: SET });
+        const STALE = 'stale: its sources changed since it was made';
+        /** The grid's one state word is C's, and says why it is stale. */
+        const onlyCStale = Effect.andThen(
+          textsAre(page, '.rv-grid [data-state]', [STALE]),
+          textsAre(page, '.rv-grid [data-id="C"] [data-state]', [STALE]),
+        );
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-state="stale"]');
+        yield* onlyCStale;
+        yield* Effect.promise(() => page.click('.rv-views button[data-view="moments"]'));
+        yield* waitFor(page, '.rv-card[data-id="C"] img');
+        yield* onlyCStale;
+        yield* Effect.promise(() => page.click('.rv-views button[data-view="notes"]'));
+        yield* waitFor(page, '.rv-note[data-id="C"]');
+        yield* onlyCStale;
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

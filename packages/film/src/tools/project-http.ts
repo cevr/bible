@@ -5,12 +5,14 @@
 // keys as the film now stands. A say (approve, withdraw, comment) answers
 // the project as it leaves it, with each rendered scene's video as this
 // checkout's catalogue records it (`Review.renderVideo`); a scene, act or
-// render the film lacks is answered with its refusal.
+// render the film lacks is answered with its refusal, and a comment on
+// several scenes (the CLI comments on one) is a RequestInvalid before
+// anything runs.
 
 import { Effect, Match, Option, Path } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
 import type { PartAddress } from '../core/address.ts';
-import { type ProjectView, ReviewHttpApi, Say } from '../core/api.ts';
+import { type ProjectView, RequestInvalid, ReviewHttpApi, Say } from '../core/api.ts';
 import type { Project } from '../core/catalogue.ts';
 import { answered, named } from './api-server.ts';
 import { FilmFolder } from './film-repo.ts';
@@ -84,6 +86,22 @@ const viewOf = Effect.fn('project.view')(function* (project: Project) {
 });
 
 /**
+ * A say `film project` can run: a comment names one scene, an act or the
+ * film (`comment --scene` takes one id), so a comment on several scenes is
+ * refused before anything runs.
+ */
+const sayable = (address: PartAddress, say: Say) => {
+  if (say._tag !== 'Comment' || address._tag !== 'Scenes' || address.ids.length === 1)
+    return Effect.void;
+  return Effect.fail(
+    RequestInvalid.make({
+      part: 'Payload',
+      reason: `a comment names one scene, not ${address.ids.length}, at ["address"]["ids"]`,
+    }),
+  );
+};
+
+/**
  * `film project <args>` for `film`, named first, in a fresh process, and the
  * project it answers as the page shows it. Each run answers in JSON.
  */
@@ -102,9 +120,12 @@ export const projectGroup = HttpApiBuilder.group(ReviewHttpApi, 'project', (hand
       project(params.film, (film) => [film, ...variantArgs(query), '--json']),
     )
     .handle('say', ({ params, payload }) =>
-      project(params.film, (film) => {
-        const { verb, flags } = sayArgs(payload.address, payload.say);
-        return [verb, film, ...flags, ...variantArgs(payload), '--json', ...sayText(payload.say)];
-      }),
+      Effect.andThen(
+        answered(sayable(payload.address, payload.say)),
+        project(params.film, (film) => {
+          const { verb, flags } = sayArgs(payload.address, payload.say);
+          return [verb, film, ...flags, ...variantArgs(payload), '--json', ...sayText(payload.say)];
+        }),
+      ),
     ),
 );

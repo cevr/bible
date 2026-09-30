@@ -14,7 +14,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Match, Option } from 'effect';
+import { Data, Exit, Match, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -26,6 +26,7 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   useContext,
 } from 'solid-js';
 import { type Steps, choiceMixUrl } from '../../../core/api.ts';
@@ -96,7 +97,8 @@ export interface FilmContextValue {
   readonly steps: Accessor<Option.Option<Steps>>;
   /** The last write, as it went. */
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
-  readonly write: (act: ChoiceAct) => void;
+  /** Write `act`: whether it was answered (a say's box empties only then). */
+  readonly write: (act: ChoiceAct) => Promise<boolean>;
   /** The sound check after the last pick or knob (initial until one). */
   readonly soundCheck: Accessor<AsyncResult.AsyncResult<SoundCheck, LabFailure>>;
   /** The render the sound plays over, when the film has one. */
@@ -135,6 +137,8 @@ const FilmBody = (
   }>,
 ) => {
   const film = props.atoms.film;
+  // The choices as first read seed the body once; each later answer updates `choices`.
+  const first = untrack(() => props.first);
   const syncAtom = ActorAtom.make(props.actor);
   const sync = useAtomValue(() => syncAtom);
   const send = useAtomSet(() => syncAtom);
@@ -144,12 +148,12 @@ const FilmBody = (
   const stepsResult = useAtomValue(() => props.atoms.steps);
   const readSteps = useAtomSet(() => props.atoms.steps);
   const wrote = useAtomValue(() => props.atoms.write);
-  const write = useAtomSet(() => props.atoms.write);
+  const write = useAtomSet(() => props.atoms.write, { mode: 'promiseExit' });
   const soundCheck = useAtomValue(() => props.atoms.soundCheck);
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
   // The choices as last answered: the first read, a read again after an undo or a redo, or a write's answer.
-  const [choices, setChoices] = createSignal(props.first);
+  const [choices, setChoices] = createSignal(first);
   createEffect(choicesResult, (result) => {
     if (result.waiting) return;
     Option.map(AsyncResult.value(result), setChoices);
@@ -180,14 +184,14 @@ const FilmBody = (
   });
 
   const [pictureRef, setPictureRef] = createSignal(
-    Option.map(Option.fromUndefinedOr(props.first.pictures[0]), (p) => p.ref),
+    Option.map(Option.fromUndefinedOr(first.pictures[0]), (p) => p.ref),
   );
   const picture = createMemo(() =>
     Option.flatMap(pictureRef(), (ref) =>
       Option.fromUndefinedOr(choices().pictures.find((p) => p.ref === ref)),
     ),
   );
-  const [heard, setHeard] = createSignal<Heard>(firstHeard(props.first));
+  const [heard, setHeard] = createSignal<Heard>(firstHeard(first));
   const mix = createMemo(() => mixOf(film, heard(), version()));
   createEffect(
     () => trackOf(film, heard(), version()),
@@ -221,7 +225,7 @@ const FilmBody = (
     findings,
     steps,
     wrote,
-    write: (act) => write(act),
+    write: (act) => write(act).then(Exit.isSuccess),
     soundCheck,
     picture,
     choosePicture: (ref) => {
@@ -274,7 +278,7 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   // The page opens on the choices as first read; a later read (after a write) updates them in place.
   const [opened, setOpened] = createSignal(Option.none<FilmChoices>());
   createEffect(first, (result) => {
-    if (Option.isSome(opened())) return;
+    if (Option.isSome(untrack(opened))) return;
     setOpened(AsyncResult.value(result));
   });
   return (

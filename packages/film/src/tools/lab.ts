@@ -45,7 +45,7 @@ import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
 
 /** The longest a wait may hold a request open. */
-export const MAX_WAIT = Duration.seconds(60);
+const MAX_WAIT = Duration.seconds(60);
 
 /** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
 const cueWritten = Effect.fn('lab.cueWritten')(function* (

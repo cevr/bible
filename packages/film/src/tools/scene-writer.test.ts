@@ -170,7 +170,7 @@ describe('scene writer', () => {
   it.effect('moves a point knob', () =>
     Effect.gen(function* () {
       const before = yield* read();
-      yield* (yield* SceneWriter).setKnob('f', 'hand', 'palm', [1010, 760.5]);
+      yield* (yield* SceneWriter).setKnob(F, 'hand', 'palm', [1010, 760.5]);
       expect(yield* read()).toBe(before.replace('palm: [960, 800]', 'palm: [1010, 760.5]'));
     }).pipe(Effect.provide(fixture)),
   );
@@ -216,7 +216,7 @@ describe('scene writer', () => {
       const before = yield* read();
       yield* writer.setCue(F, 'hand', 'topple', { ease: 'outBack' });
       const afterEase = yield* read();
-      yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
+      yield* writer.setKnob(F, 'hand', 'palm', [1, 2]);
       const afterKnob = yield* read();
       expect(yield* targets).toEqual({
         undo: Option.some('knob palm'),
@@ -243,7 +243,7 @@ describe('scene writer', () => {
       expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
       // A new write after an undo drops what could be redone.
       yield* source.undo('f');
-      yield* writer.setKnob('f', 'hand', 'palm', [3, 4]);
+      yield* writer.setKnob(F, 'hand', 'palm', [3, 4]);
       expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
     }).pipe(Effect.provide(fixture)),
   );
@@ -253,7 +253,7 @@ describe('scene writer', () => {
       const writer = yield* SceneWriter;
       const source = yield* SourceWriter;
       const fs = yield* FileSystem.FileSystem;
-      yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
+      yield* writer.setKnob(F, 'hand', 'palm', [1, 2]);
       yield* fs.writeFileString(yield* HandFile, `${yield* read()}// edited by hand\n`);
       const edited = yield* read();
       const refused = yield* Effect.flip(source.undo('f'));
@@ -323,7 +323,7 @@ describe('scene writer', () => {
     () =>
       Effect.gen(function* () {
         const before = yield* read();
-        const error = yield* Effect.flip((yield* SceneWriter).setKnob('f', 'hand', 'palm', [1, 2]));
+        const error = yield* Effect.flip((yield* SceneWriter).setKnob(F, 'hand', 'palm', [1, 2]));
         expect(error._tag).toBe('FormatFailed');
         expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
       }).pipe(
@@ -389,7 +389,7 @@ describe('scene writer', () => {
         expect(refused.message).toContain('the timeline scene "hand" reads is not the one');
         expect(yield* read()).toBe(before);
         // Its knobs are hand.ts's own object: that literal is the one the scene reads.
-        yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
+        yield* writer.setKnob(F, 'hand', 'palm', [1, 2]);
         expect(yield* read()).toBe(before.replace('palm: [960, 800]', 'palm: [1, 2]'));
       }).pipe(Effect.provide(fixtureWith(keep, Option.some(OVERRIDDEN)))),
   );
@@ -401,7 +401,7 @@ describe('scene writer', () => {
       const cue = yield* Effect.flip(writer.setCue(F, 'again', 'topple', { offset: 0.4 }));
       expect(cue._tag).toBe('SourceShared');
       expect(cue.message).toContain('scenes hand, again');
-      const knob = yield* Effect.flip(writer.setKnob('f', 'hand', 'palm', [1, 2]));
+      const knob = yield* Effect.flip(writer.setKnob(F, 'hand', 'palm', [1, 2]));
       expect(knob._tag).toBe('SourceShared');
       expect(yield* read()).toBe(before);
     }).pipe(Effect.provide(fixtureWith(keep, Option.some(SHARED)))),

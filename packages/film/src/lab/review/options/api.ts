@@ -38,7 +38,7 @@ export const changesSound: (act: ChoiceAct) => boolean = Predicate.or(
 export const writesSource = (act: ChoiceAct): boolean => act._tag !== 'Say';
 
 /** A say as a write's target says it: `approve score warm`, `comment on score warm`. */
-export const sayTarget = (say: Say, subject: string): string =>
+const sayTarget = (say: Say, subject: string): string =>
   Match.value(say).pipe(
     Match.tagsExhaustive({
       Approve: () => `approve ${subject}`,

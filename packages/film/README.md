@@ -711,7 +711,10 @@ the one status table (`statusOf` reads it). It crosses as its JSON with its
 page's client decodes it into the same class, so its `message` reads the
 same on both ends. A handler's failure that is not a Refusal answers 500 as
 `ServerFailed` (its tag and words), logged `api.request.failed`; a param, a
-query or a body that does not decode is an empty 400. On the page a call
+query or a body that does not decode is a 400 `RequestInvalid` naming the
+part and the schema's words (`{"_tag":"RequestInvalid","part":"Payload",
+"reason":"Expected \"pick\" | \"unpick\" | \"reject\" at [\"verb\"]"}`),
+answered by the gate (HttpApi itself would answer an empty 400). On the page a call
 fails with `LabFailure`: the server's Refusal, or `LabUnreachable` (no
 answer, or one that does not decode).
 
@@ -760,7 +763,10 @@ under the API's prefixes by themselves). The address is a `PartAddress` (the
 film, an act, scenes: a short is no branch of the tree, so it does not
 decode, 400). `projectGroup` (`tools/project-http.ts`) runs `film project …
 --json` in a fresh process (`FreshFilm.project`) and decodes its `Project`,
-or its refusal into the refusal's own class and status. A say (`Say`:
+or its refusal into the refusal's own class and status; any other failure
+the run names (a film that does not load) it prints as `ServerFailed`, its
+tag and words, which the page shows as one sentence (`answering`, as
+`film options` does). A say (`Say`:
 `Approve`, `Withdraw`, `Comment {text}`) runs `project approve`, `withdraw`
 or `comment` once; a comment's text goes after `--`, so one starting with a
 dash is never a flag. Its layer
@@ -1130,7 +1136,10 @@ master), each with its stamp, the owner's approval, and its state as the
 record says it (`recordedNow`): stale by its `sources` when a newer render at
 its address drew other sources, by its `sound` when a newer video carries
 another mix (`ChoiceVariant.staleBy`; whether the newest is current against
-the sources now is `film project`'s). A montage folder (say a
+the sources now is `film project`'s). The set page ("compare its renders")
+says it in every view, beside the variant's label: why a variant is stale
+when its record proves it (`recordedStaleText`), and no state word
+otherwise, never "current". A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
 files: `videos` and `images` (loose files to show), `docs`, and per set a title,
 order, start, moments, and each variant's label, tag, verdict, notes and
@@ -1264,8 +1273,10 @@ shown from its answer: the page reads nothing again but the undo and redo
 The project view (`?project=<film>`, `options/project.tsx`) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
 say and the same words at every level: the film's comments, "Approve all
-current" and its choice points, then each act (its comments, "Approve the
-act's current scenes", its points) and its scenes. Each scene is a render
+current", "Withdraw every approval" and its choice points, then each act (its
+comments, "Approve the act's current scenes", "Withdraw the act's approvals",
+its points) and its scenes; a withdraw is offered while a scene of the part
+holds an approval (an earlier version's too). Each scene is a render
 card: the video this checkout's catalogue records for it (`ProjectView.videos`,
 never another folder's of the same film), its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders
@@ -1276,7 +1287,9 @@ every scene it plays in (a scene, an act, else the film), folded under it; a
 scene links the layers that play in it but sit elsewhere, and a link opens
 where the card is. Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
-source write reads it again.
+source write reads it again. A say box empties only once its say is said
+(`SayBox`: each say answers whether it was): a comment whose say fails (the
+film mid-edit and not loading) stays in its box beside the failure.
 
 ## Check
 

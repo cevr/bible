@@ -623,7 +623,14 @@ describe('Renderer', () => {
         const { ledger, files, render } = setup({
           info,
           aac: Effect.fail(MediaFailed.make({ op: 'encode', file: 'the track', reason: 'no' })),
-          frame: () => Effect.sleep('5 millis'),
+          // Every frame after the first never finishes: only the failed track can end the render.
+          frame: (i) =>
+            Effect.asVoid(
+              Effect.when(
+                Effect.never,
+                Effect.sync(() => i > 0),
+              ),
+            ),
         });
         yield* mixed(files);
         const exit = yield* Effect.exit(render(video));

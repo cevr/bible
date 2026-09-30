@@ -37,6 +37,7 @@ import {
 import {
   type Refusal,
   Refusal as RefusalSchema,
+  RequestInvalid,
   RequestRefused,
   ServerFailed,
   WriteNotJson,
@@ -44,7 +45,7 @@ import {
   prefixesOf,
   statusOf,
 } from '../core/api.ts';
-import type { HttpApi, HttpApiGroup } from 'effect/http-api';
+import { type HttpApi, HttpApiError, type HttpApiGroup } from 'effect/http-api';
 import { BodyTooLarge, FilmUnknown } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
@@ -74,7 +75,7 @@ export interface Allowed {
 export const LOOPBACK_ONLY: Allowed = { hosts: [] };
 
 /** The connection a request came on: the server's bound name and port, and a way to hold it open. */
-export interface ConnectionService {
+interface ConnectionService {
   readonly hostname: Option.Option<string>;
   readonly port: Option.Option<number>;
   /** Hold this request's connection open for `seconds` with nothing sent, past the server's idle limit. */
@@ -94,7 +95,7 @@ const connectionOf = (request: Request, server: LabBound): ConnectionService => 
 });
 
 /** The films a server answers for: a name is one of them, or a FilmUnknown naming them. */
-export interface FilmScopeService {
+interface FilmScopeService {
   readonly named: (film: string) => Effect.Effect<FilmName, FilmUnknown>;
 }
 
@@ -248,6 +249,27 @@ const answerRefused = (request: HttpServerRequest.HttpServerRequest, refusal: Re
     Effect.as(HttpServerResponse.jsonUnsafe(encodeRefusal(refusal), { status: statusOf(refusal) })),
   );
 
+/**
+ * `routes`, a request its route cannot decode (HttpApi dies with its schema
+ * error, which would answer an empty 400) answered as `RequestInvalid`:
+ * the part, and the schema's words for why.
+ */
+const decodedOrRefused = <E, R>(
+  request: HttpServerRequest.HttpServerRequest,
+  routes: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
+) =>
+  Effect.catchDefect(routes, (defect) => {
+    if (!HttpApiError.HttpApiSchemaError.is(defect)) return Effect.die(defect);
+    return answerRefused(
+      request,
+      // The schema's words on one line: `Expected "pick" | … at ["verb"]`.
+      RequestInvalid.make({
+        part: defect.kind,
+        reason: defect.cause.message.replace(/\s*\n\s*/g, ' '),
+      }),
+    );
+  });
+
 /** The gate: a request admitted, a write's body bounded; anything else answered with its refusal. */
 const gate = (allowed: Allowed) =>
   HttpRouter.middleware(
@@ -256,10 +278,10 @@ const gate = (allowed: Allowed) =>
         const request = yield* HttpServerRequest.HttpServerRequest;
         const refusal = admit(request, yield* Connection, allowed);
         if (Option.isSome(refusal)) return yield* answerRefused(request, refusal.value);
-        if (SAFE_METHODS.includes(request.method)) return yield* routes;
+        if (SAFE_METHODS.includes(request.method)) return yield* decodedOrRefused(request, routes);
         const whole = yield* Effect.result(bounded(request));
         if (Result.isFailure(whole)) return yield* answerRefused(request, whole.failure);
-        return yield* routes.pipe(
+        return yield* decodedOrRefused(whole.success, routes).pipe(
           Effect.provideService(HttpServerRequest.HttpServerRequest, whole.success),
         );
       }),
@@ -317,7 +339,7 @@ const pageRoute = (page: Option.Option<LabHandler>, own: ReadonlyArray<string>) 
   });
 
 /** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
-export type ApiRoutes = Layer.Layer<
+type ApiRoutes = Layer.Layer<
   never,
   never,
   | HttpRouter.HttpRouter

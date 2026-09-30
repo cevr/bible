@@ -46,11 +46,12 @@ const APPROVE_TITLE = {
 } as const satisfies Record<ApprovalState, string>;
 
 /**
- * Where a card's says go, and whether one is in flight: a choice's to the
- * film's choices (the default), a render's to its project.
+ * Where a card's says go, whether each was said, and whether one is in
+ * flight: a choice's to the film's choices (the default), a render's to its
+ * project.
  */
 export interface Sayer {
-  readonly say: (variant: ChoiceVariant, say: Say) => void;
+  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
   readonly busy: () => boolean;
 }
 
@@ -92,19 +93,22 @@ export const Comments = (props: { readonly comments: ReadonlyArray<SaidComment> 
 );
 
 /**
- * A line to say something, and its button; `say` gets the text, the line
- * empties. While a say is in flight the button waits (the text stays).
+ * A line to say something, and its button; `say` gets the text and answers
+ * whether it was said. While a say is in flight the button waits; the line
+ * empties once the say is said (unless it was typed on since), and a say
+ * that fails leaves the text for another try.
  */
 export const SayBox = (props: {
-  readonly say: (text: string) => void;
+  readonly say: (text: string) => Promise<boolean>;
   readonly disabled?: boolean;
 }) => {
   const [text, setText] = createSignal('');
   const send = () => {
     const said = text().trim();
     if (said === '' || props.disabled === true) return;
-    props.say(said);
-    setText('');
+    void props.say(said).then((ok) => {
+      if (ok && text().trim() === said) setText('');
+    });
   };
   return (
     <form
@@ -135,7 +139,7 @@ export const SayBox = (props: {
 };
 
 /** An approve button: approved as it is now, or again once it has changed. */
-export const ApproveButton = (props: {
+const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
@@ -281,7 +285,8 @@ const VariantRow = (props: {
 
 /**
  * A level's knob: set on release, written into `sound.ts`; a computed level
- * only shown. It shows the value being dragged, else the film's.
+ * only shown. It shows the value being dragged, else the film's; a write
+ * that fails shows the film's value again (the failure is on the status line).
  */
 const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob }) => {
   const { write } = useFilm();
@@ -294,6 +299,10 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
     },
   );
   const value = () => Option.getOrElse(dragged(), () => props.knob.value);
+  const set = (to: number) =>
+    void write(ChoiceAct.Knob({ point: props.point.id, value: to })).then((ok) => {
+      if (!ok) setDragged(Option.none());
+    });
   return (
     <div class="rv-row rv-knob" data-knob={props.point.id}>
       <input
@@ -308,7 +317,7 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
           setDragged(Option.some(Number(e.currentTarget.value)))
         }
         onChange={(e: Event & { currentTarget: HTMLInputElement }) =>
-          write(ChoiceAct.Knob({ point: props.point.id, value: Number(e.currentTarget.value) }))
+          set(Number(e.currentTarget.value))
         }
       />
       <output class="rv-tag">

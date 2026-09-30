@@ -13,13 +13,13 @@
 import { For, Show } from '@solidjs/web';
 import { type Accessor, createEffect, onSettled } from 'solid-js';
 import { Option } from 'effect';
-import type { StudioPart } from '../../core/studio.ts';
+import type { Part } from '../../core/sheet.ts';
 import { Lab } from '../shell.tsx';
 import { type AttemptRow, useStudio } from './context.tsx';
 import { beatBadge } from './view.ts';
 
 /** One stretch of the beat as the owner reads it: a line (its reader named), or a quotation set apart. */
-const Part = (props: { readonly part: StudioPart }) => {
+const Stretch = (props: { readonly part: Part }) => {
   const part = props.part;
   if (part.kind === 'quotation')
     return (
@@ -42,7 +42,7 @@ const Prompter = () => {
   return (
     <div class="studio-prompter" data-role="prompter">
       <Show when={Option.getOrUndefined(state.current())}>
-        {(beat) => <For each={beat().parts}>{(part) => <Part part={part} />}</For>}
+        {(beat) => <For each={beat().parts}>{(part) => <Stretch part={part} />}</For>}
       </Show>
     </div>
   );

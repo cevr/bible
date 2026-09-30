@@ -268,8 +268,9 @@
       }
     },
     {
-      // The mix's sample loops: planar PCM and the ported ffmpeg filters, run
-      // over every sample of a film's track. They index typed arrays with
+      // The mix's sample loops: planar PCM, and the fade, duck and limiter
+      // that keep libavfilter's arithmetic, run over every sample of a film's
+      // track. They index typed arrays with
       // `?? 0` (past an array's end is silence) and branch per sample with
       // ternaries, as the draw path does.
       "files": ["**/packages/film/src/core/audio.ts", "**/packages/film/src/core/dsp.ts"],

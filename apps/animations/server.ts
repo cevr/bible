@@ -17,7 +17,7 @@ export const FILMS = join(import.meta.dir, 'src/films');
  * The loopback interface: the only one the player listens on. The lab's routes
  * rewrite scene files, so nothing on the network may reach them.
  */
-export const HOST = '127.0.0.1';
+const HOST = '127.0.0.1';
 
 /** A wait on `/lab/<film>/notes/wait` holds up to 60 s: the connection must outlive it. */
 const IDLE_SECONDS = 75;

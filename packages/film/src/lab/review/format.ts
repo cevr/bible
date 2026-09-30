@@ -114,3 +114,18 @@ export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>):
     Option.filter(staleBy, () => state === 'stale'),
     { onNone: () => STATE_TEXT[state], onSome: (by) => STALE_BY_TEXT[by] },
   );
+
+/**
+ * What the review's index can say of a variant's state: why it is stale when
+ * the record proves it (a newer render at its address drew other sources, or
+ * carries another mix), else nothing. Never "current": whether the newest is
+ * current against the film's sources now only `film project` can say.
+ */
+export const recordedStaleText = (variant: {
+  readonly state: VariantState;
+  readonly staleBy: Option.Option<StaleBy>;
+}): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(variant, (v) => v.state === 'stale'),
+    (v) => stateText(v.state, v.staleBy),
+  );

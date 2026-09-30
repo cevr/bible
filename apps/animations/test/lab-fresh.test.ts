@@ -9,6 +9,7 @@ import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { LabWrite, StudioBeats } from '@bible/film/core';
 import {
   ContentStore,
+  FilmName,
   FilmRepo,
   FreshFilm,
   Media,
@@ -25,6 +26,8 @@ import { refusingElevenLabs } from '@bible/film/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { ConfigProvider, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { spawnBudget } from './cli-run.ts';
+
+const asFilmName = Schema.decodeSync(FilmName);
 
 /** Where one test's copy of the films lives. */
 class Copy extends Context.Service<Copy, string>()('test/LabCopy') {}
@@ -192,5 +195,34 @@ describe('the lab reads the film as it stands', () => {
         ]);
       }).pipe(Effect.scoped, Effect.provide(fixture)),
     spawnBudget(3),
+  );
+
+  it.live(
+    "a film that fails to load answers why in one sentence, not the run's stderr",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const sound = (yield* Path.Path).join(yield* Copy, 'films/tiny/sound.ts');
+        // The agent is mid-edit: the film's sound module throws on import.
+        const before = yield* fs.readFileString(sound);
+        yield* fs.writeFileString(sound, `throw new Error('sound is mid-edit');\n${before}`);
+        const fresh = yield* FreshFilm;
+        const said = (error: { readonly _tag: string; readonly message: string }) => [
+          error._tag,
+          error.message,
+        ];
+        const why = expect.stringMatching(
+          /^film "tiny": sound\.ts is invalid: .*sound is mid-edit/,
+        );
+        expect(said(yield* Effect.flip(fresh.project(['tiny', '--json'])))).toEqual([
+          'ServerFailed',
+          why,
+        ]);
+        expect(said(yield* Effect.flip(fresh.choices(asFilmName('tiny'))))).toEqual([
+          'ServerFailed',
+          why,
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+    spawnBudget(2),
   );
 });

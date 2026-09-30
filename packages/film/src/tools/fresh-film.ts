@@ -11,11 +11,13 @@
 //
 // Two answers come back. A command answers with one line of JSON
 // (`FreshLine`): its answer, or the refusal it failed with, raised here again
-// as itself. `film check --json` answers with one `CheckLine` per finding; a
+// as itself; any other failure it names (a film that does not load) comes back
+// as `ServerFailed`, its tag and its words. `film check --json` answers with one `CheckLine` per finding; a
 // check that cannot run is itself one error finding. Logs go to stderr.
 
-import { Console, Context, Duration, Effect, Layer, Option, Schema } from 'effect';
+import { Console, Context, Duration, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { ServerFailed } from '../core/api.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
 import { UnknownAct, UnknownScene } from '../core/errors.ts';
@@ -105,6 +107,7 @@ export const FreshLine = Schema.Union([
   VoiceRead,
   CueRead,
   FreshRefusal,
+  ServerFailed,
 ]);
 export type FreshLine = typeof FreshLine.Type;
 
@@ -115,16 +118,39 @@ const FreshLineJson = Schema.fromJsonString(FreshLine);
 export const printLine = (line: FreshLine) =>
   Effect.flatMap(Schema.encodeEffect(FreshLineJson)(line), (text) => Console.log(text));
 
-/** Print a refusal as the run's answer, then fail with it (exit 1). */
-export const refuseWith = <E extends FreshRefusal>(error: E) =>
-  Effect.andThen(printLine(error), Effect.fail(error));
-
 /** Whether an error is one a fresh run answers with (its line), not a failure of the run. */
 export const isRefusal = Schema.is(FreshRefusal);
 
-/** `effect` with each refusal it fails with printed as the run's answer. */
+/** A failure that names itself: a tag, and words a page can show. */
+interface Named {
+  readonly _tag: string;
+  readonly message: string;
+}
+
+const isNamed = (u: unknown): u is Named =>
+  Predicate.hasProperty(u, '_tag') &&
+  Predicate.isString(u._tag) &&
+  Predicate.hasProperty(u, 'message') &&
+  Predicate.isString(u.message);
+
+/** The line a failure answers with: a refusal as itself, any other as `ServerFailed`. */
+const failureLine = (error: Named): FreshRefusal | ServerFailed => {
+  if (isRefusal(error)) return error;
+  return ServerFailed.make({ tag: error._tag, reason: error.message });
+};
+
+/**
+ * `effect` with the failure it names printed as the run's answer (a refusal
+ * as itself, any other as `ServerFailed`), then failed with as before (exit 1).
+ */
 export const answering = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  Effect.catchIf(effect, isRefusal, refuseWith);
+  Effect.tapError(effect, (error) => {
+    if (isNamed(error)) return printLine(failureLine(error));
+    return Effect.void;
+  });
+
+/** Whether a line is a failure the run answered with, raised here again as itself. */
+const isFailureLine = Schema.is(Schema.Union([FreshRefusal, ServerFailed]));
 
 /** One finding as `film check --json` prints it: a CheckLine as one line of JSON. */
 export const CheckLineJson = Schema.fromJsonString(CheckLine);
@@ -166,7 +192,7 @@ const CHECK_LIMITS: Record<CheckLeg, Duration.Duration> = {
   sound: Duration.minutes(5),
 };
 
-export type FreshError = FreshProcessFailed | FreshRefusal;
+export type FreshError = FreshProcessFailed | FreshRefusal | ServerFailed;
 
 export interface FreshFilmService {
   /** The film's choice points, its modules imported as they stand now. */
@@ -261,7 +287,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           );
         });
 
-        /** `film <args>`'s one line: its answer, or the refusal it printed, raised as itself. */
+        /** `film <args>`'s one line: its answer, or the failure it printed, raised as itself. */
         const answer = Effect.fn('FreshFilm.answer')(function* (
           args: ReadonlyArray<string>,
           limit: Duration.Duration,
@@ -274,7 +300,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
               reason: `exit ${done.exitCode}, no answer: ${tailOf(done)}`,
             }),
           );
-          if (isRefusal(line)) return yield* line;
+          if (isFailureLine(line)) return yield* line;
           return line;
         });
 

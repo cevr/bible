@@ -54,12 +54,12 @@ import {
   approvalState,
   commentsOn,
   recordedNow,
-  renderPointId,
   renderState,
   saidOn,
   subjectOf,
 } from '../core/catalogue.ts';
-import { type ChoicePoint, type ChoiceVariant, pointId, seenVariants } from '../core/choice.ts';
+import { type ChoicePoint, type ChoiceVariant, seenVariants } from '../core/choice.ts';
+import { pointIdOf } from '../core/point.ts';
 import type {
   ReviewFile,
   ReviewFolder,
@@ -92,10 +92,10 @@ export interface ReviewConfig {
   readonly phoneCopies: boolean;
 }
 
-export const PHONE_OVER = 40 * 1024 * 1024;
-export const MAX_VIDEO = 600 * 1024 * 1024;
+const PHONE_OVER = 40 * 1024 * 1024;
+const MAX_VIDEO = 600 * 1024 * 1024;
 /** How long an index answers before the roots are read again. */
-export const INDEX_FRESH = Duration.seconds(15);
+const INDEX_FRESH = Duration.seconds(15);
 
 /** Folders of working files a walk does not enter (dot-folders neither). */
 const SKIP_DIRS = ['stills', 'frames', 'node_modules'];
@@ -189,7 +189,7 @@ const fileOf = (found: Found): ReviewFile => ({
 const MANIFEST_FILE = 'review.json';
 
 /** What one folder is made of: its ref, its record, and the files its record names as found. */
-export interface FolderParts<A> {
+interface FolderParts<A> {
   readonly ref: string;
   readonly record: A;
   /** A file the record names (relative to the folder), when it is there. */
@@ -325,7 +325,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
       if (variants.length === 0) return [];
       return [
         {
-          id: renderPointId(renders[0].address),
+          id: pointIdOf({ _tag: 'Render', address: renders[0].address }),
           kind: 'render',
           address: Option.some(renders[0].address),
           title: addressTitle(renders[0]),
@@ -445,7 +445,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
       if (variants.length === 0) return [];
       return [
         {
-          id: pointId('render', clip),
+          id: pointIdOf({ _tag: 'Montage', clip }),
           kind: 'render',
           address: Option.none(),
           title: Option.getOrElse(set.title, () => clip),

@@ -3,8 +3,9 @@
 // process, as the film's sources stand on disk. The review runs these in a
 // fresh process (`FreshFilm`, `fresh-film.ts`) because its own imports of the
 // film and the app's sound library are as they were at its start. Each prints
-// one line of JSON (`FreshLine`) on stdout: its answer, or the refusal it
-// failed with; logs go to stderr.
+// one line of JSON (`FreshLine`) on stdout: its answer, or the failure it
+// ended with (`answering`: a refusal as itself, any other as ServerFailed);
+// logs go to stderr.
 //
 //   film options list <film> [--check]
 //       the film's choice points (`choice-points.ts`): score, looks, takes,
@@ -38,7 +39,6 @@ import {
   OptionsTaken,
   answering,
   printLine,
-  refuseWith,
 } from './fresh-film.ts';
 import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
@@ -101,10 +101,10 @@ const list = Command.make(
   },
   Effect.fn('film.options.list')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
-    const points = yield* answering(pointsOf(loaded));
+    const points = yield* pointsOf(loaded);
     if (!input.check) return yield* printLine(OptionsListed.make({ points }));
     yield* printLine(OptionsChecked.make({ points, findings: yield* staticLines(loaded) }));
-  }),
+  }, answering),
 ).pipe(
   Command.withDescription(
     "The film's choice points as its sources stand (and, with --check, its static check), as one line of JSON",
@@ -125,32 +125,28 @@ const take = Command.make(
     const loaded = yield* (yield* FilmRepo).load(input.film);
     // The take and the verb are checked against the film and its library as they stand.
     const found = Result.flatMap(
-      offered(input.film, yield* answering(pointsOf(loaded)), input.point, input.variant),
+      offered(input.film, yield* pointsOf(loaded), input.point, input.variant),
       (at) => Result.map(verbFits(at.point, at.variant, input.verb), () => at),
     );
-    if (Result.isFailure(found)) return yield* refuseWith(found.failure);
+    if (Result.isFailure(found)) return yield* found.failure;
     const { point, variant } = found.success;
     const take = Option.filter(pointRefOf(point.id), PointRef.guards.Take);
     if (Option.isNone(take))
-      return yield* refuseWith(
-        VerbRefused.make({
-          point: point.id,
-          variant: variant.id,
-          verb: input.verb,
-          reason: `a ${point.kind} is not a library take`,
-        }),
-      );
+      return yield* VerbRefused.make({
+        point: point.id,
+        variant: variant.id,
+        verb: input.verb,
+        reason: `a ${point.kind} is not a library take`,
+      });
     const library = yield* SoundLibrary;
     const sound = take.value.sound;
-    yield* answering(
-      Match.value(input.verb).pipe(
-        Match.when('pick', () => library.keep(sound, [variant.id])),
-        Match.when('unpick', () => library.unkeep(sound, [variant.id])),
-        Match.orElse(() => library.reject(sound, [variant.id])),
-      ),
+    yield* Match.value(input.verb).pipe(
+      Match.when('pick', () => library.keep(sound, [variant.id])),
+      Match.when('unpick', () => library.unkeep(sound, [variant.id])),
+      Match.orElse(() => library.reject(sound, [variant.id])),
     );
     yield* printLine(OptionsTaken.make({}));
-  }),
+  }, answering),
 ).pipe(Command.withDescription("Keep, unkeep or reject one of a sound's takes, by its sha256"));
 
 const mix = Command.make(
@@ -166,13 +162,8 @@ const mix = Command.make(
   Effect.fn('film.options.mix')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
     // The point and variant are checked against the film as it stands before a mix is rendered.
-    const found = offered(
-      input.film,
-      yield* answering(pointsOf(loaded)),
-      input.point,
-      input.variant,
-    );
-    if (Result.isFailure(found)) return yield* refuseWith(found.failure);
+    const found = offered(input.film, yield* pointsOf(loaded), input.point, input.variant);
+    if (Result.isFailure(found)) return yield* found.failure;
     const { point, variant } = found.success;
     const ref = pointRefOf(point.id);
     const score = Option.filter(ref, PointRef.guards.Score);
@@ -181,14 +172,12 @@ const mix = Command.make(
       take: variant.id,
     }));
     if (Option.isNone(score) && Option.isNone(take))
-      return yield* refuseWith(
-        VerbRefused.make({
-          point: point.id,
-          variant: variant.id,
-          verb: 'hear in place',
-          reason: `a ${point.kind} is not heard in the mix`,
-        }),
-      );
+      return yield* VerbRefused.make({
+        point: point.id,
+        variant: variant.id,
+        verb: 'hear in place',
+        reason: `a ${point.kind} is not heard in the mix`,
+      });
     const { mixed } = yield* (yield* Mixer).render(input.film, {
       warn: false,
       score: Option.as(score, variant.id),
@@ -196,7 +185,7 @@ const mix = Command.make(
     });
     yield* (yield* Media).writeAac(input.to, mixed.master);
     yield* printLine(OptionsMixed.make({}));
-  }),
+  }, answering),
 ).pipe(Command.withDescription("The film's whole mix with one variant in place, as an m4a"));
 
 const keepVoice = Command.make(
@@ -210,9 +199,7 @@ const keepVoice = Command.make(
   },
   Effect.fn('film.options.keepVoice')(function* (input) {
     const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(input.film)));
-    yield* answering(
-      (yield* Takes).keepAttempt(voiced, input.beat, input.file, { acceptMismatch: false }),
-    );
+    yield* (yield* Takes).keepAttempt(voiced, input.beat, input.file, { acceptMismatch: false });
     // The track is remixed with the take; a failed mix leaves the take kept and says why.
     const mixed = yield* (yield* Mixer)
       .mix(input.film, { stems: false, score: Option.none() })
@@ -225,7 +212,7 @@ const keepVoice = Command.make(
         ),
       );
     yield* printLine(OptionsKept.make({ mixed }));
-  }),
+  }, answering),
 ).pipe(Command.withDescription("Keep a beat's attempt as its take, and remix the track"));
 
 export const options = Command.make('options').pipe(

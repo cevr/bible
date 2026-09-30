@@ -163,17 +163,6 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    'score composes only the score: --only is gone',
-    () =>
-      Effect.gen(function* () {
-        const run = yield* cli('score', film, '--only', 'music', '--dry-run');
-        expect(run.exitCode).not.toBe(0);
-        expect(run.out).toContain('Unrecognized flag: --only');
-      }),
-    spawnBudget(1),
-  );
-
-  it.effect.layer(BunServices.layer)(
     'a score dry run prints each option, its movements and its cost, and composes nothing',
     () =>
       Effect.gen(function* () {
