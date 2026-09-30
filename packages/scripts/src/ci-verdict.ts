@@ -5,8 +5,14 @@
 // how long that step ran. Exits non-zero unless the run passed,
 // so the loop records a red run as a finding with its id, not a re-run.
 //
-//   bun run ci              # the checkout's HEAD
-//   bun run ci <commit>     # another commit on main (short sha or ref)
+//   bun run ci                 # the checkout's HEAD
+//   bun run ci <commit>        # another commit on main (short sha or ref)
+//   bun run ci <base>..<head>  # each first-parent commit after base up to head, oldest first
+//
+// A range prints one line per commit (a merge and its ledger commit, or a
+// whole pass) and exits non-zero if any run is not green. Only the head is
+// waited for to appear: an earlier commit with no run of its own was pushed
+// inside a later push, and prints `ci none`.
 //
 // A red job's log: `gh run view <run> --log-failed`.
 
@@ -22,7 +28,10 @@ import {
   GateRun,
   failedJobs,
   finished,
+  noRunLine,
   passed,
+  type Target,
+  targetOf,
   verdictLine,
 } from './ci-verdict/verdict.js';
 
@@ -76,27 +85,63 @@ const jobsOf = (run: GateRun) =>
     Effect.flatMap(Schema.decodeEffect(Schema.fromJsonString(GateJobs))),
   );
 
+/** A commit's full sha: gh matches a run by it, so a short one or a ref resolves first. */
+const shaOf = (ref: string) =>
+  run('git', ['rev-parse', '--verify', `${ref}^{commit}`]).pipe(Effect.map((s) => s.trim()));
+
+/** The first-parent commits after `base` up to `head`, oldest first: main's own history. */
+const commitsIn = (base: string, head: string) =>
+  run('git', ['rev-list', '--first-parent', '--reverse', `${base}..${head}`]).pipe(
+    Effect.map((out) => out.split('\n').filter((line) => line !== '')),
+  );
+
+/**
+ * Print the verdict on `sha`'s run once it has finished, and answer whether it
+ * passed. `appear` is how many polls a run not there yet is looked for: a
+ * push takes a moment to start its run, and a run takes minutes to finish.
+ */
+const verdictOn = (sha: string, appear: number) =>
+  Effect.gen(function* () {
+    const gate = yield* runOf(sha).pipe(
+      Effect.retry({ while: (e) => e._tag === 'RunNotFound', schedule: POLL, times: appear }),
+      Effect.repeat({ until: finished, schedule: POLL, times: FINISH }),
+    );
+    if (passed(gate)) return yield* Effect.as(Console.log(verdictLine(gate, [])), true);
+    yield* Console.log(verdictLine(gate, failedJobs(yield* jobsOf(gate))));
+    return false;
+  });
+
+/** Each commit's verdict in order; one with no run of its own (not the head) prints `ci none`. */
+const verdictsOn = (commits: ReadonlyArray<string>) =>
+  Effect.forEach(commits, (sha, i) => {
+    if (i === commits.length - 1) return verdictOn(sha, APPEAR);
+    return verdictOn(sha, 0).pipe(
+      Effect.catchTag('RunNotFound', () => Effect.as(Console.log(noRunLine(sha)), true)),
+    );
+  });
+
+/** Whether the run on each commit `target` names passed, each verdict printed. */
+const verdictsFor = (target: Target) => {
+  if (target._tag === 'Commit')
+    return Effect.flatMap(shaOf(target.ref), (sha) => verdictOn(sha, APPEAR));
+  return Effect.flatMap(commitsIn(target.base, target.head), verdictsOn).pipe(
+    Effect.map((each) => each.every(Boolean)),
+  );
+};
+
 const verdict = Command.make(
   'ci',
   { commit: Argument.String('commit').pipe(Argument.optional) },
   ({ commit }) =>
     Effect.gen(function* () {
-      // gh matches a run by the full sha, so a short one or a ref resolves first.
-      const sha = yield* run('git', [
-        'rev-parse',
-        '--verify',
-        `${Option.getOrElse(commit, () => 'HEAD')}^{commit}`,
-      ]).pipe(Effect.map((s) => s.trim()));
-      // A push takes a moment to start its run; a run takes minutes to finish.
-      const gate = yield* runOf(sha).pipe(
-        Effect.retry({ while: (e) => e._tag === 'RunNotFound', schedule: POLL, times: APPEAR }),
-        Effect.repeat({ until: finished, schedule: POLL, times: FINISH }),
-      );
-      if (passed(gate)) return yield* Console.log(verdictLine(gate, []));
-      yield* Console.log(verdictLine(gate, failedJobs(yield* jobsOf(gate))));
-      return yield* RunRed.make({});
+      const green = yield* verdictsFor(targetOf(Option.getOrElse(commit, () => 'HEAD')));
+      if (!green) return yield* RunRed.make({});
     }),
-).pipe(Command.withDescription("Wait for CI's gate run on a commit on main and print its verdict"));
+).pipe(
+  Command.withDescription(
+    "Wait for CI's gate run on a commit on main, or on each commit of a range, and print its verdict",
+  ),
+);
 
 Command.run(verdict, { version: '1.0.0' }).pipe(
   Effect.provide(BunServices.layer),

@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 
-import { type GateJobs, type GateRun, failedJobs, passed, verdictLine } from './verdict.js';
+import {
+  type GateJobs,
+  type GateRun,
+  failedJobs,
+  noRunLine,
+  passed,
+  targetOf,
+  verdictLine,
+} from './verdict.js';
 
 const RED: GateRun = {
   databaseId: 36760052995,
@@ -71,5 +79,16 @@ describe("CI's verdict", () => {
 
   test('a cancelled run has not passed', () => {
     expect(passed({ ...RED, conclusion: 'cancelled' })).toBe(false);
+  });
+
+  test('base..head is a range, an empty side HEAD; anything else one commit', () => {
+    expect(targetOf('3c4d886d..f922c2d4')).toEqual({
+      _tag: 'Range',
+      base: '3c4d886d',
+      head: 'f922c2d4',
+    });
+    expect(targetOf('main~3..')).toEqual({ _tag: 'Range', base: 'main~3', head: 'HEAD' });
+    expect(targetOf('b137fad9')).toEqual({ _tag: 'Commit', ref: 'b137fad9' });
+    expect(noRunLine('c3426ea8aa')).toStartWith('ci none sha=c3426ea8 ');
   });
 });

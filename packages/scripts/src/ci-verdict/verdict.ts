@@ -70,6 +70,27 @@ export const failedJobs = (jobs: GateJobs): ReadonlyArray<string> =>
       }),
     );
 
+/** What `bun run ci` was asked about: one commit, or the first-parent commits of `base..head`. */
+export type Target =
+  | { readonly _tag: 'Commit'; readonly ref: string }
+  | { readonly _tag: 'Range'; readonly base: string; readonly head: string };
+
+/** `a..b` is a range (an empty side is HEAD, as git reads it); anything else one commit. */
+export const targetOf = (arg: string): Target => {
+  const at = arg.indexOf('..');
+  if (at < 0) return { _tag: 'Commit', ref: arg };
+  const side = (ref: string) =>
+    Option.getOrElse(
+      Option.liftPredicate(ref, (r) => r !== ''),
+      () => 'HEAD',
+    );
+  return { _tag: 'Range', base: side(arg.slice(0, at)), head: side(arg.slice(at + 2)) };
+};
+
+/** A commit in a range with no gate run of its own: it was pushed inside a later push. */
+export const noRunLine = (sha: string): string =>
+  `ci none sha=${sha.slice(0, 8)} (no run of its own: pushed inside a later push)`;
+
 /** The verdict as one line: `ci <conclusion> run=<id> sha=<short>`, the failed jobs when any, the URL. */
 export const verdictLine = (run: GateRun, failed: ReadonlyArray<string>): string =>
   [
