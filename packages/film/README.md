@@ -12,6 +12,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper by meaning (`piece`: a figure cut and outlined, its line crawling, scenery torn with no ink and held still; `stroke`'s `boil`: tick, crawl or none), the `ground` contact shadow, paper fibre fixed to the backdrop plane (`planeFibre`), paper under a faint film grain, type, the one floating mitten hand with no arm (`hand.ts`: `floatingHand(ctx, root, { to, reach, grip }, style, hand)`, at rest beside its figure bobbing with the breath (`breathOf`), travelling toward its target on a soft arc about the shoulder, eased, with a settle, its grip forming from the open rest as it arrives; a hand at work that changes grip names the grip it `was` and morphs into the new one by `change`, point for point, never swapping in a frame (`handShape` its outline, for tests); `handAt` where it is, pure and allocation-free; `closeHand` the same hand close up, an open hand held out palm up seen from above, the palm the biggest shape, its middle on the origin, whose round finger block bends up toward the eye and back over the palm to cup (`closeShape` its outline at any `open`, continuous), with a lifeline and two soft joint lines; `CLOSE_SPAN` its length, no forearm; a gesture's `turn` turns its mitten palm up into the same shape at the mitten's size (`palmUpFrame`), so a push from the figure's hand into the close-up is one shape at two scales), figure, multiplane camera; every drawn scene breathes once by `DRIFT` (a scene's own `drawing({ drift })` in its place, `0` held still): through its outermost `camera` or `multiplane` when it frames one (a shot's `drift` is its share, `0` held still, `driftHeld`), as the outermost transform over its whole draw when it frames none, `shotPath`/`lerpCamera` shots (a deep push by `pushInto`, its target held in frame), `inset` for a picture in picture whose shots never take the scene's breath and `knobCamera` framings from knobs, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads. The entry names only what films, their kits and their tests use, the credits roll (`creditRoll`), `glow`, `sky`, `mix` and `reset` among them; the engine's own parts (`handShape`, `closeShape`, `palmUpFrame`, `lerpCamera`, `planeFibre`, the paper's sheets) are exported from their files for the framework and its tests. |
 | `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), drawn once every font face the page declares has loaded (`stageFilm`; the engine names no family), whose track marks marks, cues, sound effects and score movements (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, the narration as a typed state (`narration.ts`: `None`, `Loading`, `Ready`, `Blocked` until a click, `Missing` when the master will not load or play, which the preview then never asks to play and says `no narration`), and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `@bible/film/review`       | `Review`: the review page (`film review`, served at `/`) as compound components, `<Review.Root>`, `<Review.SetProvider>` and its pages: renders compared in sync, a film's options and its project.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `@bible/film/stand-in`     | The one stand-in 2D context for tests (bun has no canvas): `recorder` keeps the transform, alpha, composite and fill style and records each fill and image, and with `onCall` tells a test of every call and property set (how `every-scene-draws` logs a frame to check it is pure); each canvas it makes carries its number (`isStandInCanvas`, `made`); `withDom`/`standInDom` put up a document whose canvases are stand-ins; it refuses what a real canvas refuses (a negative radius, a colour stop off 0..1). The framework's canvas tests and a film's `every-scene-draws` draw into it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy, and the review's stills and phone copies), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through the app's private store), MediaStore (`media-store.ts`: the store interface, `put`/`get`/`hashOf`/`list`/`read` with a byte range, and the folder store), `r2-store.ts` (the R2 store, SigV4 in `sigv4.ts` through `HttpClient`), PrivateStore (`private-store.ts`: the store `library.ts` declares, reached with the `FILM_STORE_*` key read as `Config.Redacted`), Browser, Pages (`pages.ts`: the export page pool check, look and render share), PreviewServer, Renderer (`render-plan.ts` is its pure plan), RenderCatalogue (`catalogue.ts`: a film's `catalogue.json`; the domain is `core/catalogue.ts`), Stamps (`stamp.ts`: each scene's content key), `film project` (`project-cli.ts`), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead, StaticCheck; and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked, each read in a fresh process through `FreshFilm`, `choices-process.ts`, and `film options`, `choices-cli.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -23,13 +24,13 @@ recorded words, and every frame is a pure function of that film and a time.
 brief), `Voice`, `Timings` (`narration/timings.json`), `Sound`, and
 `SoundManifest` (`sound/manifest.json`). The TypeScript types derive from them.
 `TimingsJson` and `SoundManifestJson` decode a file's text and encode it back
-byte for byte; the request hashes (`voiceKey`, `musicKey`, `effectKey`) are
+byte for byte; the request hashes (`voiceKey`, `musicKey`, `requestKey`) are
 taken over Schema-encoded requests, so a committed hash stays current.
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|project|chapters|lab|notes <film>` (and `film doctor`, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, sounds, previewServer, labServer })`
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|project|chapters|lab|notes|options <film>` (and `film doctor`, `film review` (the review page), `film media …` over the private media store, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
+films. The app owns the entry: it calls `runFilmCli({ films, sounds, previewServer, labServer, review, self })`
 with its films folder, its sound library folder, a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
 mode with the lab's routes mounted, because only the app can bundle its HTML
@@ -44,8 +45,9 @@ effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
 produces an asset only when its stored hash is stale, and every manifest
 update is serialized. At most three paid jobs run at once. Failures are
-tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
-`tools/errors.ts`; `film check`'s findings, with their levels and addresses,
+tagged errors (`ApiKeyMissing`, `EncoderMissing`, ...) in `tools/errors.ts`,
+and the refusals a page shows in their own words (`TakeMismatch`, ...) in
+`core/refusals.ts`; `film check`'s findings, with their levels and addresses,
 are in `tools/findings.ts`. Logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
 
@@ -80,8 +82,8 @@ Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its
 login (`auth status`, free), the H.264 encoder a render would use (a page
 chooses it as a render does; the line says `hardware` or `software`, the
-default pages and the encoder budget) and `ffmpeg` (`-version`: x264 makes
-a software render's share copy; nothing else runs it), reports
+default pages and the encoder budget) and `ffmpeg` (`-version`: it makes a
+software render's x264 share copy, and the review's stills and phone copies), reports
 each, and fails if any is missing. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
 and the `ElevenLabs` service uses `ELEVENLABS_API_KEY` when the environment
 or the Keychain holds one (effects need it) and the CLI's OAuth login
@@ -115,8 +117,8 @@ take is the film's final voice, so it is never lossy after the recorder, and
 the mix reads it as it reads a staging MP3. Staging takes stay the MP3s
 ElevenLabs sends. mediabunny picks the first coder registered that can, so
 the AAC and FLAC encoders register before `@mediabunny/server`'s FFmpeg
-ones. The ffmpeg binary runs for one thing: a software render's share copy
-(x264, below).
+ones. The ffmpeg binary makes a software render's share copy (x264, below)
+and the review's stills and phone copies.
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, a staging take
 lifted to the speech level `takes import` sets and a person's take as
@@ -321,7 +323,8 @@ address's key hashes its scenes' keys. The key leaves out the audio (`mix` has
 its own staleness check) and what a frame fetches at run time.
 
 **`film project`** reviews a film scene by scene. `film project <film>
-[--variant v] [--json]` lists every scene in film order: its render `current`
+[--variant v] [--json]` prints the film's comments, then each act with its
+comments and its scenes in film order: each scene's render `current`
 (drawn from the sources as they are), `stale` or `missing`; its approval
 `approved`, `stale` (given on an earlier render) or `none`; and its comments,
 each marked when it was made on an earlier render. `film project render
@@ -357,13 +360,13 @@ therefore stops loudly instead of rendering a different look in software.
 `film doctor` runs the same choice, and still prints its other lines when the
 player server will not start (the encoder line then says so).
 
-|                  | Hardware (macOS)                    | Software (Linux, any box without a GPU encoder)                      |
-| ---------------- | ----------------------------------- | -------------------------------------------------------------------- |
-| Chromium flags   | `--enable-gpu --use-angle=metal`    | neither (`launchArgs`, `tools/browser.ts`); stills are cmp-identical |
-| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min)   |
-| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)                |
-| encoders at once | 14 (past it the encoder hangs)      | one per core                                                         |
-| default pages    | 6                                   | 8, or half the cores below 16                                        |
+|                  | Hardware (macOS)                    | Software (Linux, any box without a GPU encoder)                    |
+| ---------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| Chromium flags   | `--enable-gpu --use-angle=metal`    | neither (`launchArgs`, `tools/browser.ts`)                         |
+| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min) |
+| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)              |
+| encoders at once | 14 (past it the encoder hangs)      | one per core                                                       |
+| default pages    | 6                                   | 8, or half the cores below 16                                      |
 
 `SETTINGS` (`player/encode.ts`) holds both columns; a test pins the hardware
 one (quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode
@@ -402,14 +405,14 @@ same or better. The hardware path is untouched (preroll 0, the same
 
 ### Software share: x264 after the join
 
-The in-page software share needed 24 Mbps (1.16 GB for 7 minutes) to keep
-the grain. The share is now x264's (`Media.shareCopy`, `SHARE_X264`), from
+The share is x264's (`Media.shareCopy`, `SHARE_X264`), since the in-page
+software encoder kept the grain only at 24 Mbps (1.16 GB for 7 minutes): from
 the joined master, through the ffmpeg CLI the doctor already checks: CRF 22,
 preset slow, tune grain, level 4.1 (preset slow's reference frames would raise
 it to 5.0), AAC copied, written to `<out>.part` and renamed once whole. It
 logs `render.share by=x264 secs=…`.
 
-Not `@mediabunny/server` 1.60.0: its libx264 (through NodeAV) runs a fixed
+Not `@mediabunny/server`'s libx264: it (through NodeAV) runs a fixed
 `qp` with qmin = qmax on the default preset, with no CRF, preset or tune to
 pass (`packages/server/src/video-encoder.ts`), and at equal size it kept far
 less grain: q23 was 444 MB and kept 0.33–0.67, against x264 CRF 23 tune
@@ -446,10 +449,9 @@ join, so the pages carry one encoder each):
 | ----- | ---- | ---- | ---- | ----- |
 | fps   | 62.4 | 84.2 | 97.9 | 104.3 |
 
-The render timed above ran at the earlier default of 6 pages, before pass 2's
-look. With the fibre on the backdrop plane (the paper grain slides with the
-camera instead of a fresh screen grain each frame) the film encodes far
-smaller: righteousness-by-faith (457 s, 13712 frames) rendered in 293.5 s at
+With the fibre on the backdrop plane (the paper grain slides with the camera
+instead of a fresh screen grain each frame) the film encodes far smaller than
+the one-pass render timed above (6 pages, a fresh screen grain): righteousness-by-faith (457 s, 13712 frames) rendered in 293.5 s at
 8 pages (pages and join about 142 s, x264 151.8 s), the master 765 MB at
 13.4 Mbps and the share 126 MB at 2.2 Mbps, keeping 0.57–0.85 (master) and
 0.56–0.80 (share) of the lossless stills' grain.
@@ -716,9 +718,9 @@ quotation set apart with who said it, marks stripped), and records it:
   (`audio/wav`). A microphone refused is `MicDenied`, shown in the panel in
   the owner's words.
 - **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
-| Review | Importing | Failed` on `SelectBeat | Arm | Tick | CountDone |
-Cancel | Stop | Retake | Submit | Discard | Imported | Refused |
-AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
+| Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
+Cancel | Stop | MicLost | Retake | Submit | Discard | Imported | Refused |
+ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
   microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
   review (play it back before submitting); Submit posts it as the state's
   task; the answer is the take kept (what was heard, its word error) or the
@@ -761,7 +763,7 @@ box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Writes are atomic (a partial
 file renamed into place, through ContentStore), serialized in the process
-(a Semaphore) and across processes (a `notes.lock` directory held for each
+(a Semaphore) and across processes (a `notes.lock` file held for each
 change; a lock held past about 5 s fails with `NotesLocked`, naming it). A
 note's still is written before the note that names it.
 
@@ -839,7 +841,7 @@ change with `git diff`.
 | Route                                  | What it does                                                                                        |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `GET /lab/<film>/scenes/:scene/source` | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
-| `POST /lab/<film>/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`, `ease?`, at least one); answers the span, the cue resolved, findings |
+| `POST /lab/<film>/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings |
 | `POST /lab/<film>/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
 | `POST /lab/<film>/undo`, `/redo`       | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
 | `GET /lab/<film>/check`                | `film check --static` now, the latest change, and what Undo and Redo would do                       |
@@ -858,17 +860,19 @@ literal (a spread, a function) is reported as not located, with the reason.
 
 **SceneWriter** (`scene-writer.ts`, splices in `scene-source.ts`) re-reads the
 file, replaces only the value's text (a missing `offset`, `dur` or `ease` is
-added after the fields before it), writes the file whole through
-ContentStore (a partial renamed into place), runs `oxfmt` on it and reads the
-value back. If oxfmt fails or the value does not read back, the file is put
-back and the write fails (`FormatFailed`, `WriteUnverified`). It refuses what
+added after the fields before it), formats the new text with `oxfmt` and
+reads the value back from it, all before the file is touched; then
+`SourceWriter` writes it whole, only if the file is still the text the edit
+was made from (`SourceChanged` otherwise). If oxfmt fails or the value does
+not read back, the write fails (`FormatFailed`, `WriteUnverified`) and the file
+is as it was. It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
 computed key, a shorthand) and names it. A cue write is also refused
 (`TimelineUnresolved`) when the scene's timeline, read back from the new text,
 does not resolve: an `until` span dragged past its mark would end before it
 starts. Writes run one at a time and are
-uninterruptible (the reload a write causes drops its request). The last write
-can be undone once, only while the file is exactly as that write left it.
+uninterruptible (the reload a write causes drops its request); their undo and
+redo are `SourceWriter`'s (below, "How a pick lands").
 
 **StaticCheck** (`static-check.ts`) runs `film check <film> --static
 --allow-stale --json` in a new process after each write (this one imported the
@@ -948,7 +952,7 @@ at 1×. A cue loop follows the cue as it is edited; a cue under 0.2 s loops
 with 0.4 s either side. A–B loops any range. The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
-(`GET /lab/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
+(`GET /lab/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
 and parses it with the locator and parser the writer uses) and draws the
 frame with HEAD's timeline and knobs through today's code (`film.render(…,
 { edits })`, over whatever else the lab previews) on a layer over the film: wipe (HEAD left of a draggable
@@ -1432,5 +1436,5 @@ Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
-bun run gate   # typecheck + tests
+bun run gate   # repo root, as CI: lint, format check, the repo guards, every package's typecheck, build and tests, then the perf tests
 ```

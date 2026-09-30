@@ -12,10 +12,10 @@ The ledger is `apps/animations/plans/architecture-loop-<date>.md`: the single so
 
 ## Steps
 
-1. **Open the ledger.** Copy the section layout of the newest `apps/animations/plans/architecture-loop-*.md`, or [`ledger-template.md`](ledger-template.md) when none exists. Record the HEAD hash and the source baseline: `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)packages/film/**/*.ts' | xargs wc -l | tail -1`. Read [`rejected.md`](rejected.md). Done when the ledger file exists with a baseline.
+1. **Open the ledger.** Copy the section layout of the newest `apps/animations/plans/architecture-loop-*.md`, or [`ledger-template.md`](ledger-template.md) when none exists. Record the HEAD hash and the source baseline, the one count every pass uses: `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)apps/animations/**/*.tsx' ':(glob)packages/film/**/*.ts' ':(glob)packages/film/**/*.tsx' | xargs wc -l | tail -1`. Read [`rejected.md`](rejected.md). Done when the ledger file exists with a baseline.
 
 2. **Coverage audit.** List every source directory with its file count:
-   `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)packages/film/**/*.ts' | xargs -n1 dirname | sort | uniq -c`.
+   `git ls-files ':(glob)apps/animations/**/*.ts' ':(glob)apps/animations/**/*.tsx' ':(glob)packages/film/**/*.ts' ':(glob)packages/film/**/*.tsx' | xargs -n1 dirname | sort | uniq -c`.
    Mark each directory that no earlier ledger names. Those go first. Done when every directory is marked swept-before or unswept.
 
 3. **Review intake.** Gather every open review item from the sources in [`review.md`](review.md) into the ledger's review table, one row each, with where it came from. Review items are a standing batch: a pass never closes with one open. Done when every source is read and every item has a row.
@@ -35,12 +35,12 @@ The ledger is `apps/animations/plans/architecture-loop-<date>.md`: the single so
 10. **Merge.** In the worktree: merge main, resolve there, `bun run gate > <log> 2>&1; echo "GATE EXIT $?" >> <log>`. From the repo root: `git merge --ff-only p<N>-<batch>` (bible-tools commits to main; rebase in the worktree when main moved), gate into a log, read `GATE EXIT`. Bundle the branch (`git bundle create <scratchpad>/film-pass<N>/p<N>-<batch>.bundle p<N>-<batch>`), then `git worktree remove` it by full path and delete the branch. Write the batch's ledger rows. Push only when asked. After a push, run `bun run ci <sha>` for each commit pushed to main (each merge and ledger commit): it waits for that commit's gate run and prints `ci <conclusion> run=<id> sha=<sha> [failed="<jobs>"]`, exiting non-zero unless it passed. Write the line on the batch's ledger row. A red run is a finding with its run id (`gh run view <id> --log-failed`) and goes to a live-fix batch; it is never re-run to green. Done when the gate on main is green, the rows are written, the worktree is gone, and every pushed commit has its CI line.
 
 11. **Live check.** After each merge, or a small group of merges, drive what the batch changed:
-    - Picture: `bun run check <film>`. The batch's diff is the review of what it draws. A batch that brings a new scene, look or score renders stills at its marks (`bun run render <film> --stills <t,…> --tag p<N>`) for the owner to review, named in the ledger.
-    - Timing and sound: `bun run cues <film>` diffed against the baseline; `bun run mix <film>` runs clean and `bun run check <film>` shows no `DeadAir`, `VoiceLevel` or `EffectHot`. Levels are heard, not compared with a past mix.
+    - Picture: `bun run check <film>`. The batch's diff is the review of what it draws. A batch that brings a new scene, look or score renders stills at its marks (`bun run render <film> --stills <t,…> --variant p<N>`) for the owner to review, named in the ledger.
+    - Timing and sound: `bun run cues <film>` diffed against the baseline; `bun run mix <film>` runs clean and `bun run check <film>` shows no `DeadAir` or `EffectHot`. Levels are heard, not compared with a past mix.
     - Lab: `bun run lab <film>` in the background, then drive the changed controls with `agent-browser` (load the `agent-browser` skill); a write-back must leave a clean `git diff` after undo.
     - Performance: rerun the rows in [`performance.md`](performance.md) the batch claimed to move. Note `uptime` before and after; a number taken at a load average over 4 claims neither a regression nor a win.
     - CI: `gh run list --branch main --limit 10` lists a run for every commit pushed since the last live check; a red or cancelled run not yet on the ledger gets its `bun run ci <sha>` line and a finding.
-    - The film: on a box with no display (the Workbox), "open the MP4" is confirming the share copy and the contact sheet appear in the review page's index (`curl -s http://localhost:8229/index.json`).
+    - The film: on a box with no display (the Workbox), "open the MP4" is confirming the share copy and the contact sheet appear in the review page's index (`curl -s http://localhost:8229/review/index`).
 
     A defect found here becomes a live-fix batch (step 8). Done when the results match intent, the ledger has a live-check row, and every process you started is stopped.
 
