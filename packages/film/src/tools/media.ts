@@ -15,7 +15,8 @@
 // The review's stills and phone copies of a render are made here too: a
 // still is the frame at a time, decoded by mediabunny and written as a JPEG
 // (`jpeg.ts`); a phone copy is a mediabunny conversion to 720p H.264 through
-// x264, its track copied.
+// x264 at its own settings (CRF 23 at preset medium, capped, on two threads:
+// `x264.ts`), its track copied.
 //
 // A person's recording comes in whatever a recorder wrote (WAV, FLAC, AIFF,
 // M4A, MP3) at whatever rate its microphone ran, and loads in-process,
@@ -132,8 +133,8 @@ export interface MediaService {
   ) => Effect.Effect<void, MediaFailed>;
   /**
    * The copy of `video` a phone streams, written to `out` (an MP4 whatever
-   * its name): `PHONE_HEIGHT` pixels high, H.264 at `PHONE_BITRATE`, its
-   * track copied. The review makes one of every big render.
+   * its name): `PHONE_HEIGHT` pixels high, H.264 capped at `PHONE_BITRATE`
+   * (`x264.ts`, `PHONE_X264`), its track copied. The review makes one of every big render.
    */
   readonly phoneCopy: (video: string, out: string) => Effect.Effect<void, MediaFailed>;
 }
@@ -145,7 +146,7 @@ export interface MediaService {
  */
 export const SHARE_CRF = 22;
 
-/** A phone copy's height, in pixels, and its video's bitrate. */
+/** A phone copy's height, in pixels, and the bitrate its video is capped at. */
 export const PHONE_HEIGHT = 720;
 export const PHONE_BITRATE = 3_000_000;
 

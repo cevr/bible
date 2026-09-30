@@ -128,8 +128,9 @@ ElevenLabs sends. mediabunny picks the first coder registered that can, so
 the AAC and FLAC encoders and x264 (`tools/x264.ts`) register before
 `@mediabunny/server`'s FFmpeg ones, which it registers with no hardware
 context. Video is converted by mediabunny too: a software render's share
-copy (x264, below) and the review's phone copy (720p, x264 at 3 Mbps
-average) re-encode the film with its track copied, and a review's still is a
+copy (x264, below) and the review's phone copy (720p, x264 at CRF 23,
+preset medium, capped at 3 Mbps, on two threads so the review answers while
+it encodes) re-encode the film with its track copied, and a review's still is a
 frame mediabunny decodes, scaled by libswscale and written by FFmpeg's MJPEG
 encoder (`tools/jpeg.ts`, through NodeAV).
 

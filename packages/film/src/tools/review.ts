@@ -697,7 +697,8 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return 'pending' satisfies PhoneState;
         });
 
-        // Phone copies: one at a time, newest first, at low priority, in the background.
+        // Phone copies: one at a time, newest first, in the background, x264 on two
+        // threads (`x264.ts`) so the review answers while one encodes.
         const queue = yield* Queue.unbounded<Found>();
         const queued = new Set<string>();
         const makePhone = Effect.fn('Review.makePhone')(
