@@ -14,13 +14,15 @@
 //   POST /lab/<film>/undo, /lab/<film>/redo, GET /lab/<film>/check
 //
 // Every write passes `admit` first (`review-http.ts`): one of the hosts the
-// review answers, same-origin, JSON.
+// review answers, same-origin, JSON. A film is named as one of the films in
+// the app's folder (`filmNamed`) before anything reads it: any other name is
+// a 404 that lists the films, never a path.
 
 import { Effect, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { ChoiceWrite, FilmChoices, ReviewFilms, ScorePick, TakeCuration } from '../core/schema.ts';
 import { Choices, type Picked } from './choices.ts';
-import { FilmRepo } from './film-repo.ts';
+import { type FilmName, FilmRepo, filmNamed } from './film-repo.ts';
 import { checked, findings, redone, undone } from './lab.ts';
 
 const FilmParams = Schema.Struct({ film: Schema.String });
@@ -31,6 +33,12 @@ const TakeParams = Schema.Struct({
   sound: Schema.String,
   take: Schema.String,
 });
+
+/** The path's params, their `film` one of the app's films (else `FilmUnknown`). */
+const named = <A extends { readonly film: string }, E, R>(params: Effect.Effect<A, E, R>) =>
+  Effect.flatMap(params, (p) => Effect.map(filmNamed(p.film), (film) => ({ ...p, film })));
+
+const filmParam = named(HttpRouter.schemaPathParams(FilmParams));
 
 const choicesJson = HttpServerResponse.schemaJson(FilmChoices);
 const filmsJson = HttpServerResponse.schemaJson(ReviewFilms);
@@ -46,7 +54,7 @@ const IMMUTABLE = 'max-age=86400';
 const MIXED = 'no-cache';
 
 /** What a pick answers: the file it changed (relative to the film), the choices now, the check. */
-const answer = Effect.fn('choices.answer')(function* (film: string, picked: Picked) {
+const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Picked) {
   const path = yield* Path.Path;
   const dir = (yield* FilmRepo).paths(film).dir;
   return yield* writeJson({
@@ -89,7 +97,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options',
       answered(
         Effect.gen(function* () {
-          const { film } = yield* HttpRouter.schemaPathParams(FilmParams);
+          const { film } = yield* filmParam;
           return yield* choicesJson(yield* (yield* Choices).list(film));
         }),
       ),
@@ -99,7 +107,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options/score/pick',
       answered(
         Effect.gen(function* () {
-          const { film } = yield* HttpRouter.schemaPathParams(FilmParams);
+          const { film } = yield* filmParam;
           const { option } = yield* HttpServerRequest.schemaBodyJson(ScorePick);
           return yield* answer(film, yield* (yield* Choices).pickScore(film, option));
         }),
@@ -110,7 +118,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options/score/:option/mix',
       answered(
         Effect.gen(function* () {
-          const { film, option } = yield* HttpRouter.schemaPathParams(OptionParams);
+          const { film, option } = yield* named(HttpRouter.schemaPathParams(OptionParams));
           return yield* serve(yield* (yield* Choices).scoreMix(film, option), MIXED);
         }),
       ),
@@ -120,7 +128,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options/effect/:sound/takes/:take/audio',
       answered(
         Effect.gen(function* () {
-          const { film, sound, take } = yield* HttpRouter.schemaPathParams(TakeParams);
+          const { film, sound, take } = yield* named(HttpRouter.schemaPathParams(TakeParams));
           return yield* serve(yield* (yield* Choices).takeAudio(film, sound, take), IMMUTABLE);
         }),
       ),
@@ -130,7 +138,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options/effect/:sound/takes/:take/mix',
       answered(
         Effect.gen(function* () {
-          const { film, sound, take } = yield* HttpRouter.schemaPathParams(TakeParams);
+          const { film, sound, take } = yield* named(HttpRouter.schemaPathParams(TakeParams));
           return yield* serve(yield* (yield* Choices).takeMix(film, sound, take), MIXED);
         }),
       ),
@@ -140,7 +148,7 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
       '/lab/:film/options/effect/:sound/takes',
       answered(
         Effect.gen(function* () {
-          const { film, sound } = yield* HttpRouter.schemaPathParams(SoundParams);
+          const { film, sound } = yield* named(HttpRouter.schemaPathParams(SoundParams));
           const { take, act } = yield* HttpServerRequest.schemaBodyJson(TakeCuration);
           return yield* answer(film, yield* (yield* Choices).curate(film, sound, take, act));
         }),
@@ -149,16 +157,16 @@ export const choiceRoutes = <E extends { readonly _tag: string; readonly message
     HttpRouter.route(
       'POST',
       '/lab/:film/undo',
-      answered(Effect.flatMap(HttpRouter.schemaPathParams(FilmParams), (p) => undone(p.film))),
+      answered(Effect.flatMap(filmParam, (p) => undone(p.film))),
     ),
     HttpRouter.route(
       'POST',
       '/lab/:film/redo',
-      answered(Effect.flatMap(HttpRouter.schemaPathParams(FilmParams), (p) => redone(p.film))),
+      answered(Effect.flatMap(filmParam, (p) => redone(p.film))),
     ),
     HttpRouter.route(
       'GET',
       '/lab/:film/check',
-      answered(Effect.flatMap(HttpRouter.schemaPathParams(FilmParams), (p) => checked(p.film))),
+      answered(Effect.flatMap(filmParam, (p) => checked(p.film))),
     ),
   ]);

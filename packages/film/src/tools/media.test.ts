@@ -363,6 +363,50 @@ describe('Media', () => {
       ),
   );
 
+  it.effect.layer(MediaOnDisk)(
+    'a mix written as an m4a is AAC in an MP4 a phone streams, and measures its length',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const file = `${yield* tempDir}/mix.m4a`;
+          yield* media.writeAac(file, second());
+          const [track, ...rest] = yield* readBack(file);
+          expect(rest).toEqual([]);
+          expect([track?.type, track?.codec]).toEqual(['audio', 'aac']);
+          expect(yield* media.duration(file)).toBeCloseTo(1, 1);
+          // Fast start: the index (moov) comes before the samples (mdat).
+          const head = new TextDecoder('latin1').decode(
+            (yield* (yield* FileSystem.FileSystem).readFile(file)).subarray(0, 4096),
+          );
+          const moov = head.indexOf('moov');
+          expect(moov).toBeGreaterThan(-1);
+          expect(moov).toBeLessThan(head.indexOf('mdat'));
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)("a review's still is a JPEG, and its phone copy an MP4", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const media = yield* Media;
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* tempDir;
+        yield* media.still(fixture('segment-a.mp4'), 0.2, 32, `${dir}/still.jpg`);
+        expect([...(yield* fs.readFile(`${dir}/still.jpg`)).subarray(0, 2)]).toEqual([0xff, 0xd8]);
+        yield* media.phoneCopy(fixture('segment-a.mp4'), `${dir}/phone.mp4`);
+        const [video] = yield* readBack(`${dir}/phone.mp4`);
+        expect([video?.type, video?.codec]).toEqual(['video', 'avc']);
+      }),
+    ),
+  );
+
+  it.effect.layer(MediaOnDisk)('a video measures by its container, read where it lies', () =>
+    Effect.gen(function* () {
+      expect(yield* (yield* Media).duration(fixture('segment-a.mp4'))).toBeCloseTo(0.5, 2);
+    }),
+  );
+
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>
     Effect.scoped(
       Effect.gen(function* () {

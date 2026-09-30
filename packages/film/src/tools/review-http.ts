@@ -76,15 +76,16 @@ export const serveFile = Effect.fn('review.serveFile')(function* (
 });
 
 /**
- * The status a failure answers with: a ref naming nothing 404 (the static
- * server's own `HttpServerError` too: a file gone since it resolved), a bad
- * query 400, a frame or length ffmpeg could not make 502; a film route's
- * failures as the lab answers them (`lab.ts`).
+ * The status a failure answers with: a ref or a film naming nothing 404 (the
+ * static server's own `HttpServerError` too: a file gone since it resolved),
+ * a bad query 400, a frame, a length or a mix that could not be made 502; a
+ * film route's other failures as the lab answers them (`lab.ts`).
  */
 const statusOf = (tag: string) => {
-  if (tag === 'ReviewFileUnknown' || tag === 'HttpServerError') return 404;
+  if (tag === 'ReviewFileUnknown' || tag === 'HttpServerError' || tag === 'FilmUnknown') return 404;
   if (tag === 'SchemaError') return 400;
-  if (tag === 'ReviewToolFailed') return 502;
+  if (tag === 'ReviewToolFailed' || tag === 'MediaFailed' || tag === 'ChoicesProcessFailed')
+    return 502;
   return labStatusOf(tag);
 };
 

@@ -89,8 +89,16 @@ const writeInto = (
  * folders made (a folder with files in it exists whether made or not), so a
  * test can see a folder left empty.
  */
-const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) =>
-  ({
+const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) => {
+  /** A folder under `/tmp` no other call has made: `<prefix><n>`. */
+  const tempFolder = (prefix = 'tmp-') => {
+    let n = 1;
+    while (folders.has(`/tmp/${prefix}${n}`)) n += 1;
+    const dir = `/tmp/${prefix}${n}`;
+    folders.add(dir);
+    return dir;
+  };
+  return {
     exists: (path) =>
       Effect.succeed(
         files.has(path) ||
@@ -144,21 +152,20 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
             if (folder === path || folder.startsWith(`${path}/`)) folders.delete(folder);
         });
       }),
-    // A temp folder is made, as the system's is, so a write into it lands.
-    makeTempDirectoryScoped: () =>
-      Effect.sync(() => {
-        folders.add('/tmp/film-test');
-        return '/tmp/film-test';
-      }),
     // A new folder each call, as the system's are.
-    makeTempDirectory: (options) =>
-      Effect.sync(() => {
-        let n = 1;
-        while (folders.has(`/tmp/${options?.prefix ?? 'tmp-'}${n}`)) n += 1;
-        const dir = `/tmp/${options?.prefix ?? 'tmp-'}${n}`;
-        folders.add(dir);
-        return dir;
-      }),
+    makeTempDirectory: (options) => Effect.sync(() => tempFolder(options?.prefix)),
+    // The same, gone with everything in it when the scope closes, as the system's is.
+    makeTempDirectoryScoped: (options) =>
+      Effect.acquireRelease(
+        Effect.sync(() => tempFolder(options?.prefix)),
+        (dir) =>
+          Effect.sync(() => {
+            for (const file of [...files.keys()])
+              if (file.startsWith(`${dir}/`)) files.delete(file);
+            for (const folder of [...folders])
+              if (folder === dir || folder.startsWith(`${dir}/`)) folders.delete(folder);
+          }),
+      ),
     // The files and folders directly in `path`: made, or holding a file.
     readDirectory: (path) =>
       Effect.sync(() => [
@@ -168,7 +175,8 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
             .map((f) => f.slice(path.length + 1).split('/')[0] ?? ''),
         ),
       ]),
-  }) satisfies Partial<FileSystem.FileSystem>;
+  } satisfies Partial<FileSystem.FileSystem>;
+};
 
 /** A file system over a map of path → bytes, and the set of folders made in it. */
 export const memoryFileSystem = (
@@ -345,12 +353,60 @@ export const fakeRecording = (said: string, rate: number): Pcm => {
   return { rate, frames, channels: [plane] };
 };
 
-/** Recording for a fake media that never loads one: loading fails, encoding writes nothing. */
+/**
+ * The rest of a fake media that neither loads a recording nor serves a
+ * review: loading fails, encoding writes nothing, and the review's stills,
+ * phone copies and `.m4a` mixes do nothing.
+ */
 export const noRecording = {
   load: (file: string) =>
     Effect.fail(MediaFailed.make({ op: 'decode', file, reason: 'no recordings here' })),
   encodeFlac: () => Effect.succeed(new Uint8Array()),
-} satisfies Pick<MediaService, 'load' | 'encodeFlac'>;
+  writeAac: () => Effect.void,
+  still: () => Effect.void,
+  phoneCopy: () => Effect.void,
+} satisfies Pick<MediaService, 'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy'>;
+
+/**
+ * Media as the review uses it, on disk: every video lasts `seconds`, and a
+ * still or a phone copy is the video copied whole. Each call lands in `calls`
+ * (`duration <file>`, `still <video> <at> <width>`, `phone <video>`), so a
+ * test counts what was made; a video that is not there fails as ffmpeg would.
+ */
+export const reviewMedia = (calls: Array<string>, seconds = 12.5) =>
+  Layer.effect(
+    Media,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const copy = (op: MediaFailed['op'], video: string, out: string) =>
+        fs
+          .copyFile(video, out)
+          .pipe(
+            Effect.mapError((error) =>
+              MediaFailed.make({ op, file: video, reason: error.message }),
+            ),
+          );
+      const unused = Effect.die('not used by the review');
+      return Media.of({
+        ...noRecording,
+        duration: (file) =>
+          Effect.sync(() => void calls.push(`duration ${file}`)).pipe(Effect.as(seconds)),
+        still: (video, at, width, out) =>
+          Effect.sync(() => void calls.push(`still ${video} ${at} ${width}`)).pipe(
+            Effect.andThen(copy('decode', video, out)),
+          ),
+        phoneCopy: (video, out) =>
+          Effect.sync(() => void calls.push(`phone ${video}`)).pipe(
+            Effect.andThen(copy('encode', video, out)),
+          ),
+        decode: () => unused,
+        writeWav: () => unused,
+        encodeAac: () => unused,
+        join: () => unused,
+        shareCopy: () => unused,
+      });
+    }),
+  );
 
 /** What `fakeMedia.encodeFlac` writes: its frames and rate, so the fake measures it. */
 const fakeFlac = (pcm: Pcm) => text(`flac ${pcm.frames}/${pcm.rate}`);
@@ -368,7 +424,8 @@ const fakeDuration = (bytes: Uint8Array) =>
  * mix's rate unless given), a WAV written lands as `wav <frames>`, and a
  * joined film as `mp4 <frames>`. A recording loads as `fakeRecording` of its
  * bytes, and a take encodes to `flac <frames>/<rate>`, which measures its own
- * length.
+ * length. A review's mix lands as `aac <frames>`, a still as `still of
+ * <video> at <t> (<width>)`, a phone copy as `phone of <video>`.
  */
 export const fakeMedia = (
   files: Map<string, Uint8Array> = new Map(),
@@ -398,6 +455,10 @@ export const fakeMedia = (
             Effect.succeed(fakeRecording(new TextDecoder().decode(bytes).trim(), rate)),
         }),
       encodeFlac: (pcm) => Effect.succeed(fakeFlac(pcm)),
+      writeAac: (file, pcm) => Effect.sync(() => void files.set(file, text(`aac ${pcm.frames}`))),
+      still: (video, at, width, out) =>
+        Effect.sync(() => void files.set(out, text(`still of ${video} at ${at} (${width})`))),
+      phoneCopy: (video, out) => Effect.sync(() => void files.set(out, text(`phone of ${video}`))),
     }),
   );
 

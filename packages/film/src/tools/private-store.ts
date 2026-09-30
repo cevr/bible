@@ -7,12 +7,11 @@
 
 import { Config, Context, Crypto, Effect, FileSystem, Layer, Option, Path, Redacted } from 'effect';
 import { HttpClient } from 'effect/http';
-import type { R2StoreConfig, StoreConfig } from '../core/sfx.ts';
+import type { R2StoreConfig, StoreConfig } from '../core/store.ts';
 import { type FilmModuleInvalid, StoreCredentialsMissing } from './errors.ts';
 import { libraryModule } from './film-repo.ts';
 import { type MediaStoreService, expandHome, folderStore } from './media-store.ts';
 import { type R2Access, r2Store } from './r2-store.ts';
-import { sha256Hex } from './sigv4.ts';
 
 /** The environment variables that reach an R2 store. */
 export const R2_ENV = {
@@ -82,9 +81,7 @@ export class PrivateStore extends Context.Service<PrivateStore, PrivateStoreServ
         const of = Effect.fnUntraced(function* (declared: StoreConfig) {
           switch (declared.kind) {
             case 'folder':
-              return folderStore(fs, path, expandHome(declared.folder, home), (bytes) =>
-                sha256Hex(crypto, bytes),
-              );
+              return folderStore(fs, path, expandHome(declared.folder, home));
             case 'r2':
               return r2Store({ fs, path, crypto, http }, declared, yield* r2Access(declared, env));
           }
