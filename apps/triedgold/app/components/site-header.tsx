@@ -6,7 +6,6 @@ import { Logo } from './logo';
 
 /** The site's sections, in the order the header lists them. */
 export const sections = [
-  { to: '/events', label: 'Events' },
   { to: '/blog', label: 'Blog' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },

@@ -21,15 +21,8 @@ const get = Effect.fn('test.get')(function* (path: string) {
   return { status: response.status, headers: response.headers, body: yield* response.text };
 });
 
-/** The old site's URLs: each must still answer. */
-const pages = [
-  '/',
-  '/about',
-  '/contact',
-  '/events',
-  '/blog',
-  ...posts.map((p) => `/blog/${p.slug}`),
-];
+/** The old site's URLs that still answer: every one but the hidden `/events`. */
+const pages = ['/', '/about', '/contact', '/blog', ...posts.map((p) => `/blog/${p.slug}`)];
 
 /** Same-site targets a page points at: links, stylesheets, scripts, icons. */
 const targets = (html: string): ReadonlyArray<string> =>
@@ -56,10 +49,22 @@ describe('triedgold', () => {
       }
       // The header's sections and the posts are among them, so the check
       // covers navigation, not only assets.
-      expect([...seen]).toEqual(expect.arrayContaining(['/events', '/blog', '/about', '/contact']));
+      expect([...seen]).toEqual(expect.arrayContaining(['/blog', '/about', '/contact']));
       for (const target of seen) {
         const response = yield* get(target);
         expect([target, response.status]).toEqual([target, 200]);
+      }
+    }).pipe(Effect.provide(Served)),
+  );
+
+  it.live('the hidden events page is a 404 page, and nothing links to it', () =>
+    Effect.gen(function* () {
+      const events = yield* get('/events');
+      expect(events.status).toBe(404);
+      expect(events.body).toContain('could not be found');
+      for (const page of pages) {
+        const linked = targets((yield* get(page)).body).filter((t) => t.startsWith('/events'));
+        expect([page, linked]).toEqual([page, []]);
       }
     }).pipe(Effect.provide(Served)),
   );

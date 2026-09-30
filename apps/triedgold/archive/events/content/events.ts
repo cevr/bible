@@ -5,6 +5,10 @@
  * 2025, the first location is "Anytown", and each Register link points at an
  * anchor that does not exist. They stay as they were until the ministry
  * supplies real events.
+ *
+ * Archived with its route (`../routes/events.tsx`) outside the build: the
+ * owner hid the page, and `/events` answers 404. To bring it back, move both
+ * files back under `app/` and re-add the route in `app/routes.ts`.
  */
 
 export interface UpcomingEvent {
