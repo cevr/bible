@@ -604,13 +604,6 @@ export const Sound = Schema.Struct({
 });
 export type Sound = typeof Sound.Type;
 
-/** A generated file, keyed so a changed request is known to be stale. */
-export const Asset = Schema.Struct({
-  hash: Schema.String,
-  file: Schema.String,
-});
-export type Asset = typeof Asset.Type;
-
 /**
  * A score option as it was composed: its request hash, its file under the
  * film's `sound/` (private: generated music never sits in the public repo)
@@ -665,148 +658,6 @@ export const VoiceKey = Schema.fromJsonString(VoiceSettings);
 export const MusicRequestKey = Schema.fromJsonString(
   Schema.Struct({ model: MusicModel, plan: Plan }),
 );
-
-// ---------------------------------------------------------------------------
-// Export: what the player's `?export` handle reports about the film it loaded.
-
-export const ExportInfo = Schema.Struct({
-  width: Schema.Int,
-  height: Schema.Int,
-  fps: Schema.Finite,
-  duration: Schema.Finite,
-  frames: Schema.Int,
-  /** The mixed track's URL, present only when every take is recorded. */
-  audio: Schema.optional(Schema.String),
-});
-export type ExportInfo = typeof ExportInfo.Type;
-
-/**
- * One line of text as drawn, from the text probe, in canvas pixels after the
- * transform it was drawn under: its box as four corners (top-left, top-right,
- * bottom-right, bottom-left; rotated with the text), the axis-aligned box
- * around them (`x, y, w, h`), and its effective opacity. `scene` is the scene
- * that drew it; `order` is when, among everything the probe recorded in the
- * frame (text and ink share one count).
- */
-export const TextBox = Schema.Struct({
-  text: Schema.String,
-  scene: Schema.String,
-  x: Schema.Finite,
-  y: Schema.Finite,
-  w: Schema.Finite,
-  h: Schema.Finite,
-  corners: Schema.Tuple([Point, Point, Point, Point]),
-  alpha: Schema.Finite,
-  order: Schema.Int,
-  /**
-   * The seed of the hand that wrote it (`f.hand(key)`): which line this is,
-   * when two say the same words. A stroke's `marks` names it.
-   */
-  hand: Schema.optionalKey(Schema.Finite),
-  /**
-   * The `order` of the plate this line sits on (`probePlate`): the plate
-   * carries it, so the two never collide; any other text over the plate does.
-   */
-  on: Schema.optionalKey(Schema.Int),
-  /**
-   * How many canvas pixels one unit of the space it was drawn in spans
-   * (`sqrt(|det|)` of the transform): what turns a drift on screen back into
-   * the drawing's own units.
-   */
-  scale: Schema.Finite,
-  /** Set on the caption line: the voice's words, drawn over the picture. */
-  caption: Schema.optionalKey(Schema.Literal(true)),
-});
-export type TextBox = typeof TextBox.Type;
-
-/**
- * What the ink probe records: a brush `stroke` (its centre line, as drawn,
- * and its width), a `fill` (a cutout's or flat fill's outline) or a declared
- * `plate` under a line of text (`probePlate`, the caption plate). In canvas
- * pixels after its transform, with the box around it, its effective opacity
- * and its place in the frame's drawing order. `marks` names the lines of text
- * a stroke marks on purpose (a strike through it, a ring round it), by the
- * seed of the hand that wrote each: it may cross those lines, and no other,
- * even one with the same words.
- */
-export const InkMark = Schema.Struct({
-  kind: Schema.Literals(['stroke', 'fill', 'plate']),
-  scene: Schema.String,
-  points: Schema.Array(Point),
-  width: Schema.Finite,
-  x: Schema.Finite,
-  y: Schema.Finite,
-  w: Schema.Finite,
-  h: Schema.Finite,
-  alpha: Schema.Finite,
-  order: Schema.Int,
-  marks: Schema.optionalKey(Schema.Array(Schema.Finite)),
-  /** Canvas pixels per unit of the space it was drawn in, as `TextBox.scale`. */
-  scale: Schema.Finite,
-  /** Set on the caption line's plate. */
-  caption: Schema.optionalKey(Schema.Literal(true)),
-});
-export type InkMark = typeof InkMark.Type;
-
-/**
- * A face the probe saw (`probeFace`, called by a kit's person): its centre and
- * its height on screen in canvas pixels, and its effective opacity. What
- * `FaceSmall` reads to tell whether a scene ever gives a face human scale.
- */
-export const FaceMark = Schema.Struct({
-  scene: Schema.String,
-  x: Schema.Finite,
-  y: Schema.Finite,
-  /** The face's height on screen, in canvas pixels. */
-  size: Schema.Finite,
-  alpha: Schema.Finite,
-});
-export type FaceMark = typeof FaceMark.Type;
-
-/**
- * A hand the probe saw (`probeHand`, called by a kit's person for each of its
- * hands every frame, at rest or at work): where the hand, its shoulder and
- * its target are on screen, how big it is drawn, how far it has travelled to
- * its work, the figure's reach, whether the hand sits inside its own body's
- * silhouette and whether it is drawn over it. What `HandJump`, `HandFar` and
- * `HandHidden` read.
- */
-export const HandMark = Schema.Struct({
-  scene: Schema.String,
-  side: Schema.Literals(['far', 'near']),
-  /** The hand on screen, in canvas pixels. */
-  x: Schema.Finite,
-  y: Schema.Finite,
-  /** Its shoulder on screen: the same hand is found again a frame on by the shoulder it moves round. */
-  sx: Schema.Finite,
-  sy: Schema.Finite,
-  /** Where it works (its rest when it has no work), on screen. */
-  tx: Schema.Finite,
-  ty: Schema.Finite,
-  /** The hand's length drawn on screen, wrist to fingertips, in px. */
-  size: Schema.Finite,
-  /** The figure's reach on screen, in px: the farthest a hand works from its shoulder. */
-  radius: Schema.Finite,
-  /** How far it has travelled from its rest to its work, 0 to 1. */
-  reach: Schema.Finite,
-  /** The hand lies inside the silhouette of its own body (garment and head). */
-  inside: Schema.Boolean,
-  /** The hand is drawn over that body, not behind it. */
-  over: Schema.Boolean,
-  alpha: Schema.Finite,
-});
-export type HandMark = typeof HandMark.Type;
-
-/** A probed frame: every line of text and every mark of ink it drew, and the faces and hands. */
-export const Probed = Schema.Struct({
-  texts: Schema.Array(TextBox),
-  inks: Schema.Array(InkMark),
-  /** Recorded only where the sink asks for faces (the look pass). */
-  faces: Schema.optionalKey(Schema.Array(FaceMark)),
-  /** Recorded only where the sink asks for hands (the look pass). */
-  hands: Schema.optionalKey(Schema.Array(HandMark)),
-});
-export type Probed = typeof Probed.Type;
 
 /** A range of a measure, low to high, both included. */
 const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
@@ -1110,11 +961,8 @@ export type HeadSource = typeof HeadSource.Type;
 
 /** What a lab write (or its undo) answers: what the file now declares, and the check after it. */
 export const LabWrite = Schema.Struct({
-  /** The scene the write changed; none for a film's own file (its score's pick, the library's lock). */
-  scene: Schema.optionalKey(Schema.String),
-  file: Schema.String,
-  /** What changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
-  target: Schema.String,
+  /** The scene it changed (none for a film's own file: its score's pick, the library's lock), its file, and what changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
+  ...LabStep.fields,
   /** The cue's span as the file now declares it, when every field of it is a literal. */
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */

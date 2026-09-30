@@ -7,7 +7,8 @@ import type { Address, Scope } from '../core/address.ts';
 import type { RenderKind, RenderSound } from '../core/catalogue.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
-import type { ExportInfo, Short } from '../core/schema.ts';
+import type { Short } from '../core/schema.ts';
+import type { ExportInfo } from '../core/export-handle.ts';
 import { type FilmPiece, shortKey } from '../core/shorts.ts';
 
 interface JobBase {

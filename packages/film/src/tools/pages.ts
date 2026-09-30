@@ -7,8 +7,7 @@
 // interrupted) closes every page.
 
 import { Array as Arr, Context, Effect, Layer, Pool, Predicate, type Scope } from 'effect';
-import type { CallAnswers, CallArgs, ExportCall } from '../core/export-handle.ts';
-import type { ExportInfo } from '../core/schema.ts';
+import type { CallAnswers, CallArgs, ExportCall, ExportInfo } from '../core/export-handle.ts';
 import { Browser, type CallErrors, type FramePage, type PageOpenError } from './browser.ts';
 import type { PageCrashed, PageError } from './errors.ts';
 import { PreviewServer } from './preview-server.ts';

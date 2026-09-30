@@ -8,7 +8,7 @@ import { layout } from '../core/layout.ts';
 import { hashText } from '../core/narration.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { Phrase } from '../core/phrases.ts';
-import type { Probed, TextBox } from '../core/schema.ts';
+import type { Probed, TextBox } from '../core/export-handle.ts';
 import { type ResolvedShort, resolveShort } from '../core/shorts.ts';
 import {
   loopGap,

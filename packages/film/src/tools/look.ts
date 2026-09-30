@@ -10,7 +10,8 @@ import { Array as Arr, Option, Order, Result } from 'effect';
 import { type Placed, filmEnd } from '../core/layout.ts';
 import type { Stretch } from '../core/acts.ts';
 import { type AddressError, resolveAddress } from '../core/address.ts';
-import type { Act, FaceMark, HandMark } from '../core/schema.ts';
+import type { Act } from '../core/schema.ts';
+import type { FaceMark, HandMark } from '../core/export-handle.ts';
 import { ChaptersInvalid } from './errors.ts';
 import {
   ColourScript,

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Result } from 'effect';
 import { type Address, resolveAddress } from '../core/address.ts';
 import { layout } from '../core/layout.ts';
-import type { HandMark } from '../core/schema.ts';
+import type { HandMark } from '../core/export-handle.ts';
 import { LOOK_STEP } from './look.ts';
 import { Looker } from './looker.ts';
 import {

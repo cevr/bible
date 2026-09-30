@@ -35,16 +35,8 @@ import {
   voiceKey,
   wordAfter,
 } from '../core/narration.ts';
-import type {
-  InkMark,
-  Knob,
-  Score,
-  Point,
-  Probed,
-  Sound,
-  SoundManifest,
-  TextBox,
-} from '../core/schema.ts';
+import type { Knob, Score, Point, Sound, SoundManifest } from '../core/schema.ts';
+import type { InkMark, Probed, TextBox } from '../core/export-handle.ts';
 import {
   LEAD_IN,
   type LibraryEntry,

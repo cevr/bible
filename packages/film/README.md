@@ -26,6 +26,10 @@ brief), `Voice`, `Timings` (`narration/timings.json`), `Sound`, and
 `TimingsJson` and `SoundManifestJson` decode a file's text and encode it back
 byte for byte; the request hashes (`voiceKey`, `musicKey`, `requestKey`) are
 taken over Schema-encoded requests, so a committed hash stays current.
+The export page's handle and what its probe records (`ExportInfo`,
+`TextBox`, `InkMark`, `FaceMark`, `HandMark`, `Probed`) are declared beside
+the handle in `core/export-handle.ts`; a choice point's id in
+`core/point.ts`.
 
 ## Tools
 

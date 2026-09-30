@@ -6,7 +6,8 @@ import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { stretchesOf } from '../core/acts.ts';
 import { type Placed, layout } from '../core/layout.ts';
-import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
+import type { Look, Timed } from '../core/schema.ts';
+import type { FaceMark, HandMark } from '../core/export-handle.ts';
 import {
   type Drawn,
   FACE_SHARE,

@@ -8,7 +8,8 @@
 // been.
 
 import { insidePolygon } from '../core/polygon.ts';
-import type { FaceMark, HandMark, InkMark, Point, TextBox } from '../core/schema.ts';
+import type { Point } from '../core/schema.ts';
+import type { FaceMark, HandMark, InkMark, TextBox } from '../core/export-handle.ts';
 
 /** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
