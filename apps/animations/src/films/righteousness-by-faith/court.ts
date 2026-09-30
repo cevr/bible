@@ -119,6 +119,12 @@ export interface Stamp {
   readonly fill: number;
   /** 0 gone to 1 shown: the label comes first and goes last, so the letters only ever sit on a whole label. */
   readonly shown: number;
+  /**
+   * 0 hung in the air to 1 laid on something (the cover-up over the stains):
+   * laid, the hollow label is pressed flat and hides what is under it, so it
+   * reads as paper pasted on, never as a ghost of it. None: hung.
+   */
+  readonly laid?: number;
 }
 
 /**
@@ -129,7 +135,7 @@ export interface Stamp {
  */
 export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
   const fill = clamp(s.fill);
-  const plate = clamp(2 * s.shown) * lerp(HOLLOW_PLATE, 1, fill);
+  const plate = clamp(2 * s.shown) * lerp(lerp(HOLLOW_PLATE, 1, fill), 1, clamp(s.laid ?? 0));
   if (plate <= 0.01) return;
   const hollow = 1 - fill;
   ctx.save();

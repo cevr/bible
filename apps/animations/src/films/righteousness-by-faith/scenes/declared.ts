@@ -184,6 +184,7 @@ const VERDICT = {
   squash: 1,
   fill: 0,
   shown: 0,
+  laid: 0,
 } satisfies Verdict;
 const VERDICT_AT: Place = { x: 0, y: 0, sx: 1, sy: 1 };
 
@@ -370,6 +371,8 @@ export const declared = drawing({
       verdict.squash = f.keys('sink', SINK_SQUASH);
       verdict.fill = f.spoken('w', 'voice');
       verdict.shown = drift * (1 - f.keys('sink', SINK_OUT));
+      // Pressed flat over the stains on the last leg in, lifted on the first leg out.
+      verdict.laid = clamp(3 * cover - 2);
       return verdict;
     };
 
