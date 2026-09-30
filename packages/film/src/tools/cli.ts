@@ -6,8 +6,8 @@
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
 //   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
 //   film script <film> [--sheet]
-//   film score <film> [--force] [--dry-run]
-//   film mix <film> [--stems]
+//   film score <film> [--option name] [--force] [--dry-run] [--cap credits] [--tally file.tsv]
+//   film mix <film> [--stems] [--score option]
 //   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]

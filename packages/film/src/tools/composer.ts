@@ -12,7 +12,14 @@ import { createHash } from 'node:crypto';
 import { Console, Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { Plan, SoundManifest } from '../core/schema.ts';
-import { type ScoreOption, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
+import {
+  MUSIC_TAIL,
+  type ScoreOption,
+  filmEnd,
+  musicKey,
+  musicPlan,
+  scoreOptions,
+} from '../core/sound.ts';
 import { ContentStore, type StoreError, isStale } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -164,7 +171,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
             planned += credits;
           }
           yield* Console.log(
-            `option ${option.name}  ${option.music.model}  ${plan.chunks.length} acts  ${(ms / 1000).toFixed(1)}s of ${secs.toFixed(1)}s  ~${credits} credits  ${state}  (${hash})`,
+            `option ${option.name}  ${option.music.model}  ${plan.chunks.length} acts  ${(ms / 1000).toFixed(1)}s (the film's ${secs.toFixed(1)}s and ${MUSIC_TAIL}s past its end)  ~${credits} credits  ${state}  (${hash})`,
           );
           yield* Console.log(`  styles  ${option.music.styles.join(', ')}`);
           yield* Console.log(`  avoid   ${option.music.avoid.join(', ')}`);

@@ -146,7 +146,7 @@ describe('film cli', () => {
         const run = yield* cli('score', film, '--dry-run');
         expect(run.exitCode).toBe(0);
         expect(run.out).toContain('option piano  music_v2_5  2 acts');
-        expect(run.out).toContain('current  (596f29d1)');
+        expect(run.out).toContain('current  (20920098)');
         expect(run.out).toContain('1 options, ~0 credits to compose (dry run: nothing composed)');
         const lost = yield* cli('score', film, '--option', 'organ', '--dry-run');
         expect(lost.exitCode).not.toBe(0);

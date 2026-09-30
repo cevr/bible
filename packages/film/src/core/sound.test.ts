@@ -4,6 +4,7 @@ import { layout } from './layout.ts';
 import { type Music, Score, type Timings } from './schema.ts';
 import {
   MAX_CHUNK_MS,
+  MUSIC_TAIL,
   actSpans,
   cueTime,
   filmEnd,
@@ -77,10 +78,12 @@ describe('sound', () => {
     expect(outcome(cueTime({ scene: 'a', mark: 'live', edge: 'end' }, placed))).toBe('CueInvalid');
   });
 
-  test('acts cover the whole film, split at their scenes', () => {
+  test('acts cover the whole film, split at their scenes, and the last runs past its end', () => {
     const plan = Result.getOrThrow(musicPlan(music, placed));
     const ms = plan.chunks.map((c) => c.duration_ms);
-    expect(ms.reduce((x, y) => x + y, 0)).toBe(Math.round(filmEnd(placed) * 1000));
+    // The composed ending lands after the cut, so the mix's fade-out, not the
+    // music's own decay, is what the film's last seconds hear.
+    expect(ms.reduce((x, y) => x + y, 0)).toBe(Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000));
     expect(ms[0]).toBe(Math.round((placed[2]?.start ?? 0) * 1000));
   });
 
@@ -103,7 +106,7 @@ describe('sound', () => {
     // Reversed, the first act runs from the film's start to `a`, which also starts it.
     expect(
       spans.map((r) => Result.match(r, { onSuccess: (a) => a.ms, onFailure: (e) => e._tag })),
-    ).toEqual(['ActTooShort', Math.round(filmEnd(placed) * 1000)]);
+    ).toEqual(['ActTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
     const lost = actSpans(
       {
         ...music,
