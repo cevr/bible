@@ -10,7 +10,8 @@ import { describe, expect, it, test } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import { TestClock } from 'effect/testing';
 import type { Note, NoteDraft } from '../../core/schema.ts';
-import { LabRefused, NotesApi, type NotesCalls } from '../api.ts';
+import { ServerFailed } from '../../core/api.ts';
+import { type LabFailure, NotesApi, type NotesCalls } from '../api.ts';
 import { Stage, type StageOps } from '../stage.ts';
 import {
   ComposerEvent,
@@ -36,7 +37,7 @@ const made: Note = {
 };
 
 /** A stage that pauses and gives a four-byte still, and an API whose add answers `add`. */
-const fakes = (add: Effect.Effect<Note, LabRefused> = Effect.succeed(made)) => {
+const fakes = (add: Effect.Effect<Note, LabFailure> = Effect.succeed(made)) => {
   const log: Array<string> = [];
   const stage: StageOps = {
     preview: () => Effect.die('not asked'),
@@ -189,9 +190,8 @@ describe('saving', () => {
     }).pipe(
       Effect.scoped,
       Effect.provide(
-        fakes(
-          Effect.fail(LabRefused.make({ status: 500, message: 'StoreFailed: the file is locked' })),
-        ).layer,
+        fakes(Effect.fail(ServerFailed.make({ tag: 'StoreFailed', reason: 'the file is locked' })))
+          .layer,
       ),
     ),
   );

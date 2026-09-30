@@ -35,6 +35,8 @@ export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismat
   script: Schema.String,
   heard: Schema.String,
   wer: Schema.Finite,
+  /** The attempt the studio saved of it, which its panel's "accept anyway" keeps. */
+  attempt: Schema.optionalKey(Schema.String),
 }) {
   override get message() {
     return `take ${this.id} says something else (wer ${(this.wer * 100).toFixed(1)}%)\n  script: ${this.script}\n  heard:  ${this.heard}`;
@@ -209,6 +211,35 @@ export class ReviewFileUnknown extends Schema.TaggedError<ReviewFileUnknown>()(
 ) {
   override get message() {
     return `no file ${this.ref} under the review's roots`;
+  }
+}
+
+/** A video's 720p phone copy asked for before it is made (the index says when it is ready). */
+export class PhoneCopyUnmade extends Schema.TaggedError<PhoneCopyUnmade>()('PhoneCopyUnmade', {
+  ref: Schema.String,
+}) {
+  override get message() {
+    return `no phone copy of ${this.ref} yet`;
+  }
+}
+
+/** A note's still named that the film's notes do not hold. */
+export class StillUnknown extends Schema.TaggedError<StillUnknown>()('StillUnknown', {
+  film: Schema.String,
+  name: Schema.String,
+}) {
+  override get message() {
+    return `film "${this.film}" has no still ${this.name}`;
+  }
+}
+
+/** A studio attempt named that the beat never recorded. */
+export class AttemptUnknown extends Schema.TaggedError<AttemptUnknown>()('AttemptUnknown', {
+  beat: Schema.String,
+  file: Schema.String,
+}) {
+  override get message() {
+    return `beat "${this.beat}" has no attempt ${this.file}`;
   }
 }
 

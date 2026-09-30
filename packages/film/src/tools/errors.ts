@@ -28,6 +28,7 @@ export {
 // The failures the lab's and review's routes answer with, declared in the
 // core so the page decodes them too (`core/refusals.ts`).
 export {
+  AttemptUnknown,
   AudioInvalid,
   BodyTooLarge,
   ChoicesProcessFailed,
@@ -38,6 +39,7 @@ export {
   HeadUnavailable,
   MediaFailed,
   NoteNotFound,
+  PhoneCopyUnmade,
   RecordingInvalid,
   RecordingLossy,
   RedoUnavailable,
@@ -47,6 +49,7 @@ export {
   SourceChanged,
   SourceRefused,
   SourceShared,
+  StillUnknown,
   SttUntimed,
   TakeActRefused,
   TakeMismatch,
