@@ -38,7 +38,7 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { UnknownSound } from '../core/errors.ts';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, sceneAt } from '../core/layout.ts';
 import { type MixPlan, mixPlan } from '../core/mix.ts';
 import type {
   EffectChoice,
@@ -181,19 +181,14 @@ const placementsOf = (
     onNone: () => new Map<string, SoundEffect>(),
     onSome: (s) => new Map(Object.entries(s.effects)),
   });
-  const sceneAt = (at: number) =>
-    Option.getOrElse(
-      Option.map(
-        Arr.findLast(placed, (p) => p.start <= at),
-        (p) => p.spec.id,
-      ),
-      () => '',
-    );
+  /** The scene playing at film second `at` (`sceneAt`, the film's one rule). */
+  const sceneOfTime = (at: number) =>
+    Option.match(sceneAt(placed, at), { onNone: () => '', onSome: (p) => p.spec.id });
   return Option.match(plan, { onNone: () => [], onSome: (p) => p.effects }).flatMap((e) =>
     Option.match(Option.fromUndefinedOr(effects.get(e.name)), {
       onNone: () => [],
       onSome: (effect) => [
-        { sound: effect.sound, placement: { effect: e.name, scene: sceneAt(e.at), at: e.at } },
+        { sound: effect.sound, placement: { effect: e.name, scene: sceneOfTime(e.at), at: e.at } },
       ],
     }),
   );
@@ -212,7 +207,7 @@ const scoreChoice = (
       variants: scoreOptions(score).map((option) => ({
         id: option.name,
         styles: option.music.styles,
-        acts: option.music.acts,
+        movements: option.music.movements,
         state: STATE[scoreOptionState(option, placed, loaded.manifest)._tag],
       })),
     }),

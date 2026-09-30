@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import { type Quote, sheetBeats, sheetHtml, sheetMarkdown } from './sheet.ts';
 
 const quotes: ReadonlyArray<Quote> = [
@@ -21,7 +21,7 @@ const script = [
 ];
 
 describe('the reading sheet', () => {
-  const beats = sheetBeats(script, quotes);
+  const beats = Result.getOrThrow(sheetBeats(script, quotes));
 
   test('one entry per beat with words, each with the file its take is saved as', () => {
     expect(beats.map((b) => [b.id, b.file])).toEqual([
@@ -58,15 +58,17 @@ describe('the reading sheet', () => {
   });
 
   test('an abbreviation’s full stop is not a sentence’s end, so no breath follows it', () => {
-    const [beat] = sheetBeats(
-      [
-        {
-          id: 'a',
-          say: 'Mrs. White and Dr. Kellogg met at St. Helena. Then Mr. Jones spoke.',
-          cite: [],
-        },
-      ],
-      [],
+    const [beat] = Result.getOrThrow(
+      sheetBeats(
+        [
+          {
+            id: 'a',
+            say: 'Mrs. White and Dr. Kellogg met at St. Helena. Then Mr. Jones spoke.',
+            cite: [],
+          },
+        ],
+        [],
+      ),
     );
     expect(beat?.parts).toEqual([
       {
@@ -84,7 +86,10 @@ describe('the reading sheet', () => {
     expect(md).toContain('> “a most precious message”');
     expect(md).toContain('> — Ellen G. White, Lt 57, 1895');
     expect(md).toContain('**ASK:** Wait.');
-    const html = sheetHtml('test', sheetBeats([{ id: 'x', say: 'A <b> & c.', cite: [] }], []));
+    const html = sheetHtml(
+      'test',
+      Result.getOrThrow(sheetBeats([{ id: 'x', say: 'A <b> & c.', cite: [] }], [])),
+    );
     expect(html).toContain('A &lt;b&gt; &amp; c.');
     expect(html).toContain('<title>test: reading sheet</title>');
     expect(html).toContain('x.wav');

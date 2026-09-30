@@ -5,10 +5,11 @@
 // `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The server,
 // the browser and the pages live in one scope, as in a render.
 
-import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
+import { Array as Arr, Context, Effect, Layer, Pool } from 'effect';
+import type { Scope } from '../core/address.ts';
 import { Browser, type PageOpenError } from './browser.ts';
 import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
-import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
+import type { LoadedFilm } from './film-repo.ts';
 import {
   type Drawn,
   type HandFrame,
@@ -25,7 +26,7 @@ import {
 } from './look.ts';
 import { PreviewServer } from './preview-server.ts';
 
-export type LookError = PageOpenError | PageError | PageCrashed | FrameFailed | PlaceError;
+export type LookError = PageOpenError | PageError | PageCrashed | FrameFailed;
 
 /** Frames one page draws per call. */
 const BATCH = 40;
@@ -34,13 +35,13 @@ const HANDS_THUMB = 1;
 
 export interface LookerService {
   /**
-   * Draw every scene (or only `scenes`) at 2 fps, small, on `workers` pages,
-   * and measure each.
+   * Draw the scenes `scope` covers (`resolveAddress`: every one for the whole
+   * film) at 2 fps, small, on `workers` pages, and measure each.
    */
   readonly look: (
     film: LoadedFilm,
     workers: number,
-    scenes: Option.Option<ReadonlySet<string>>,
+    scope: Scope,
   ) => Effect.Effect<Looked, LookError>;
 }
 
@@ -54,13 +55,9 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
       const look = Effect.fn('Looker.look')(function* (
         film: LoadedFilm,
         workers: number,
-        scenes: Option.Option<ReadonlySet<string>>,
+        scope: Scope,
       ) {
-        const all = yield* placeFilm(film);
-        const placed = Option.match(scenes, {
-          onNone: () => all,
-          onSome: (ids) => all.filter((p) => ids.has(p.spec.id)),
-        });
+        const placed = scope.scenes;
         const url = `${server.url}?film=${encodeURIComponent(film.paths.name)}&export`;
         return yield* Effect.scoped(
           Effect.gen(function* () {

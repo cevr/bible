@@ -12,6 +12,12 @@ export type Ease = (t: number) => number;
  */
 export const FILM_FPS = 30;
 
+/** A stretch of time, `from` to `to`, in seconds on whatever clock it is read against. */
+export interface Interval {
+  readonly from: number;
+  readonly to: number;
+}
+
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));

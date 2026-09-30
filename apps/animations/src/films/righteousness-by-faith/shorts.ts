@@ -13,7 +13,7 @@ export const shorts = [
       // "That is a cover-up", "God justifies the ungodly".
       { scene: 'cold', from: { mark: 'evidence' }, to: { mark: 'oldest' } },
       // Paul's answer: not only counted righteous, made righteous.
-      { scene: 'declared', from: { mark: 'paul' }, to: { scene: 'speechEnd' } },
+      { scene: 'declared', from: { mark: 'paul' }, to: { at: 'speechEnd' } },
       // Job's question asked again, and answered: "How should man be just with
       // God? … By taking God at his word … it is not a cover-up. He makes it
       // true": the stamp lands solid.
@@ -27,9 +27,9 @@ export const shorts = [
     spans: [
       // Fig leaves, trying harder, "How is that going?", the rags, the law as a
       // mirror: "you cannot wash your face with a mirror".
-      { scene: 'mirror', from: { mark: 'fig' }, to: { scene: 'speechEnd' } },
+      { scene: 'mirror', from: { mark: 'fig' }, to: { at: 'speechEnd' } },
       // The turn's answer: "So what does faith do? … the hand that takes hold of Christ."
-      { scene: 'look', from: { scene: 'speech' }, to: { mark: 'desert' } },
+      { scene: 'look', from: { at: 'speech' }, to: { mark: 'desert' } },
     ],
   },
 ] as const satisfies Shorts;

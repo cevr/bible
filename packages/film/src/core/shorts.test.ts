@@ -18,17 +18,19 @@ import {
 const draw = () => {};
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-const placed = layout(
-  [
-    {
-      id: 'a',
-      say: 'One two {three}three four {five}five six.',
-      timeline: { lift: { mark: 'three', dur: 0.6 } },
-      draw,
-    },
-    { id: 'b', say: 'Seven {eight}eight nine ten.', draw },
-  ],
-  noTakes,
+const placed = Result.getOrThrow(
+  layout(
+    [
+      {
+        id: 'a',
+        say: 'One two {three}three four {five}five six.',
+        timeline: { lift: { mark: 'three', dur: 0.6 } },
+        draw,
+      },
+      { id: 'b', say: 'Seven {eight}eight nine ten.', draw },
+    ],
+    noTakes,
+  ),
 );
 const a = Option.getOrThrow(Arr.get(placed, 0));
 const b = Option.getOrThrow(Arr.get(placed, 1));
@@ -58,7 +60,7 @@ describe('shorts', () => {
   test('a span resolves its marks, cues and landmarks to film time, each on its frame', () => {
     const cut = resolved([
       { scene: 'a', from: { mark: 'three' }, to: { cue: 'lift' } },
-      { scene: 'b', from: { scene: 'speech' }, to: { mark: 'eight' } },
+      { scene: 'b', from: { at: 'speech' }, to: { mark: 'eight' } },
     ]);
     const first = spanOf(cut, 0);
     const second = spanOf(cut, 1);
@@ -97,53 +99,44 @@ describe('shorts', () => {
       words,
       source: 'elevenlabs' as const,
     };
-    const film = layout([{ id: 'a', say, lead: 0.5, draw }], { voice: 'v', scenes: { a: take } });
+    const film = Result.getOrThrow(
+      layout([{ id: 'a', say, lead: 0.5, draw }], { voice: 'v', scenes: { a: take } }),
+    );
     const p = Option.getOrThrow(Arr.get(film, 0));
     const at = (spans: Short['spans']) => Result.getOrThrow(resolveShort(film, short(spans), fps));
     const voice = p.start + p.speechStart;
     // From the mark: the word's voice less the preroll, not its aligned 0.9.
-    const marked = spanOf(
-      at([{ scene: 'a', from: { mark: 'back' }, to: { scene: 'speechEnd' } }]),
-      0,
-    );
+    const marked = spanOf(at([{ scene: 'a', from: { mark: 'back' }, to: { at: 'speechEnd' } }]), 0);
     expect(marked.from).toBe(onFrame(voice + 1.9 - SHORT_PREROLL));
     // From the speech: the first word's voice less the preroll.
-    const spoken = at([{ scene: 'a', from: { scene: 'speech' }, to: { mark: 'back' } }]);
+    const spoken = at([{ scene: 'a', from: { at: 'speech' }, to: { mark: 'back' } }]);
     expect(spanOf(spoken, 0).from).toBe(onFrame(voice + 0.6 - SHORT_PREROLL));
     // A span's end stays where it is marked; the scene's start is not a word.
     expect(spanOf(spoken, 0).to).toBe(onFrame(voice + 0.9));
-    const whole = at([{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }]);
+    const whole = at([{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }]);
     expect(spanOf(whole, 0).from).toBe(onFrame(p.start));
   });
 
   test('a cue as the start of a span is its start, unless it names an edge', () => {
     const lift = cueOf(a, 'lift');
     const from = (point: Short['spans'][0]['from']) =>
-      spanOf(resolved([{ scene: 'a', from: point, to: { scene: 'end' } }]), 0).from;
+      spanOf(resolved([{ scene: 'a', from: point, to: { at: 'end' } }]), 0).from;
     expect(from({ cue: 'lift' })).toBe(onFrame(a.start + lift.start));
     expect(from({ cue: 'lift', edge: 'end' })).toBe(onFrame(a.start + lift.end));
   });
 
   test('an unknown scene, mark or cue, or an empty span, fails naming what the film has', () => {
     const tag = (spans: Short['spans']) => outcome(resolveShort(placed, short(spans), fps));
-    expect(tag([{ scene: 'z', from: { scene: 'start' }, to: { scene: 'end' } }])).toBe(
+    expect(tag([{ scene: 'z', from: { at: 'start' }, to: { at: 'end' } }])).toBe(
       'ShortUnknownScene',
     );
-    expect(tag([{ scene: 'a', from: { mark: 'nope' }, to: { scene: 'end' } }])).toBe(
-      'ShortUnknownMark',
-    );
-    expect(tag([{ scene: 'a', from: { scene: 'start' }, to: { cue: 'nope' } }])).toBe(
-      'ShortUnknownCue',
-    );
+    expect(tag([{ scene: 'a', from: { mark: 'nope' }, to: { at: 'end' } }])).toBe('UnknownMark');
+    expect(tag([{ scene: 'a', from: { at: 'start' }, to: { cue: 'nope' } }])).toBe('UnknownCue');
     expect(tag([{ scene: 'a', from: { mark: 'five' }, to: { mark: 'three' } }])).toBe(
       'ShortSpanEmpty',
     );
     const error = Result.match(
-      resolveShort(
-        placed,
-        short([{ scene: 'a', from: { mark: 'nope' }, to: { scene: 'end' } }]),
-        fps,
-      ),
+      resolveShort(placed, short([{ scene: 'a', from: { mark: 'nope' }, to: { at: 'end' } }]), fps),
       { onSuccess: () => '', onFailure: (e) => e.message },
     );
     expect(error).toBe('short "cut": scene "a" has no mark {nope}; its marks are {three} {five}');
@@ -151,7 +144,7 @@ describe('shorts', () => {
 
   const twoSpans = () =>
     resolved([
-      { scene: 'b', from: { mark: 'eight' }, to: { scene: 'speechEnd' } },
+      { scene: 'b', from: { mark: 'eight' }, to: { at: 'speechEnd' } },
       { scene: 'a', from: { mark: 'three' }, to: { mark: 'five' } },
     ]);
 
@@ -199,7 +192,7 @@ describe('shorts', () => {
 
   test('shorts.ts decodes: ids are unique slugs and every short has a span', () => {
     const decode = Schema.decodeUnknownResult(Shorts);
-    const span = { scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } };
+    const span = { scene: 'a', from: { at: 'start' }, to: { at: 'end' } };
     const ok = (shorts: ReadonlyArray<object>) => Result.isSuccess(decode(shorts));
     expect(ok([{ id: 'one', title: 'One', spans: [span] }])).toBe(true);
     expect(ok([{ id: 'one', title: 'One', spans: [] }])).toBe(false);

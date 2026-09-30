@@ -261,9 +261,11 @@ describe('Narrator', () => {
           ],
         ]);
         const take = after.scenes['d'];
-        expect(take?.hash).toBe(hashText(takeScript(parse(said))));
+        expect(take?.hash).toBe(hashText(takeScript(Result.getOrThrow(parse('d', said)))));
         // Every word is its own, across the joins between lines.
-        expect(take?.words.map((w) => w.text)).toEqual(parse(said).spoken.split(' '));
+        expect(take?.words.map((w) => w.text)).toEqual(
+          Result.getOrThrow(parse('d', said)).spoken.split(' '),
+        );
         expect(after.voice).toBe(voiceKey(cast));
       }),
     );
@@ -407,7 +409,7 @@ describe('Narrator', () => {
         expect(calls.dialogue.map((r) => r.lines.map((l) => [l.name, l.text]))).toEqual([
           [['lead', 'Grace, freely given. Received, not earned.']],
         ]);
-        const voice = voiceFor('s', said, after);
+        const voice = Result.getOrThrow(voiceFor('s', said, after));
         expect(voice.recorded).toBe(true);
         const captions = captionCues(voice.words, voice.turns).map((c) => c.text);
         expect(captions.length).toBeGreaterThan(0);

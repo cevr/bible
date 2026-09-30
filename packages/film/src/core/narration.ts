@@ -12,7 +12,13 @@
 // Pure: runs in the browser, in scripts, and in tests.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
-import { AlignmentMismatch, UnknownVoice } from './errors.ts';
+import {
+  AlignmentMismatch,
+  DuplicateMark,
+  type LineError,
+  TurnInvalid,
+  UnknownVoice,
+} from './errors.ts';
 import { fnv1a } from './random.ts';
 import {
   type TakeSource,
@@ -45,7 +51,12 @@ export interface Parsed {
 /** `{name}` is a mark, `{@name}` a turn. */
 const TOKEN = /\{(@?)([a-zA-Z0-9_-]+)\}/g;
 
-export const parse = (text: string): Parsed => {
+/**
+ * Scene `scene`'s line `text` read: its spoken words, its marks and its
+ * turns. A mark named twice or a turn with no word of its own fails naming
+ * the scene.
+ */
+export const parse = (scene: string, text: string): Result.Result<Parsed, LineError> => {
   const marks = new Map<string, number>();
   const turns: Turn[] = [];
   const words: string[] = [];
@@ -54,19 +65,28 @@ export const parse = (text: string): Parsed => {
       if (name === undefined) continue;
       if (at === '@') {
         if (Arr.last(turns).pipe(Option.exists((t) => t.word === words.length)))
-          throw new Error(`two turns before one word in: ${text}`);
+          return Result.fail(
+            TurnInvalid.make({
+              scene,
+              voice: name,
+              reason: 'follows another turn before any word',
+            }),
+          );
         turns.push({ voice: name, word: words.length });
         continue;
       }
-      if (marks.has(name)) throw new Error(`duplicate mark {${name}} in: ${text}`);
+      if (marks.has(name)) return Result.fail(DuplicateMark.make({ scene, mark: name }));
       marks.set(name, words.length);
     }
     const rest = token.replace(TOKEN, '');
     if (rest.length > 0) words.push(rest);
   }
-  if (Arr.last(turns).pipe(Option.exists((t) => t.word >= words.length)))
-    throw new Error(`a turn with no words after it in: ${text}`);
-  return { spoken: words.join(' '), marks, turns };
+  const last = Arr.last(turns);
+  if (Option.isSome(last) && last.value.word >= words.length)
+    return Result.fail(
+      TurnInvalid.make({ scene, voice: last.value.voice, reason: 'has no word after it' }),
+    );
+  return Result.succeed({ spoken: words.join(' '), marks, turns });
 };
 
 /**
@@ -328,38 +348,45 @@ export const lastVoiced = (voice: SceneVoice): number =>
     ),
   );
 
-/** The voice for one scene: recorded when the take matches the text, estimated otherwise. */
-export const voiceFor = (id: string, text: string, timings: Timings | undefined): SceneVoice => {
-  const parsed = parse(text);
-  const { spoken, marks, turns } = parsed;
-  if (spoken.length === 0)
+/**
+ * The voice for one scene: recorded when the take matches the text,
+ * estimated otherwise; a line that does not parse fails naming the scene.
+ */
+export const voiceFor = (
+  id: string,
+  text: string,
+  timings: Timings | undefined,
+): Result.Result<SceneVoice, LineError> =>
+  Result.map(parse(id, text), (parsed): SceneVoice => {
+    const { spoken, marks, turns } = parsed;
+    if (spoken.length === 0)
+      return {
+        spoken,
+        words: [],
+        duration: 0,
+        marks: new Map(),
+        turns: [],
+        file: undefined,
+        recorded: false,
+        source: undefined,
+      };
+    const take = timings?.scenes[id];
+    const recorded = take !== undefined && take.hash === hashText(takeScript(parsed));
+    const words = recorded ? take.words : unmeasured(estimate(spoken));
+    const duration = recorded ? take.duration : (words[words.length - 1]?.end ?? 0);
+    const times = new Map<string, number>();
+    for (const [name, index] of marks) {
+      const w = words[index] ?? words[words.length - 1];
+      times.set(name, index >= words.length ? duration : (w?.start ?? 0));
+    }
     return {
       spoken,
-      words: [],
-      duration: 0,
-      marks: new Map(),
-      turns: [],
-      file: undefined,
-      recorded: false,
-      source: undefined,
+      words,
+      duration,
+      marks: times,
+      turns,
+      file: recorded ? take.file : undefined,
+      recorded,
+      source: recorded ? take.source : undefined,
     };
-  const take = timings?.scenes[id];
-  const recorded = take !== undefined && take.hash === hashText(takeScript(parsed));
-  const words = recorded ? take.words : unmeasured(estimate(spoken));
-  const duration = recorded ? take.duration : (words[words.length - 1]?.end ?? 0);
-  const times = new Map<string, number>();
-  for (const [name, index] of marks) {
-    const w = words[index] ?? words[words.length - 1];
-    times.set(name, index >= words.length ? duration : (w?.start ?? 0));
-  }
-  return {
-    spoken,
-    words,
-    duration,
-    marks: times,
-    turns,
-    file: recorded ? take.file : undefined,
-    recorded,
-    source: recorded ? take.source : undefined,
-  };
-};
+  });

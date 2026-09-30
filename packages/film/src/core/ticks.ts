@@ -1,14 +1,15 @@
 // What the player marks on its timeline, in film seconds: every narration
-// mark, every named cue's span, every sound effect placement and every music
-// act boundary. The same placements the renderer, the mixer and `film check`
+// mark, every named cue's span, every sound effect placement and where every
+// movement of the score begins. The same placements the renderer, the mixer and `film check`
 // read, so the bar shows where things will land. Pure and DOM-free.
 
 import { Array as Arr, Option, Result } from 'effect';
 import type { Placed } from './layout.ts';
 import type { Sound } from './schema.ts';
 import { cueTime } from './sound.ts';
+import { partStarts } from './acts.ts';
 
-export type TickKind = 'mark' | 'cue' | 'effect' | 'act';
+export type TickKind = 'mark' | 'cue' | 'effect' | 'movement';
 
 export interface Tick {
   readonly kind: TickKind;
@@ -21,8 +22,9 @@ export interface Tick {
 }
 
 /**
- * The film's ticks, in film order within each kind. An effect placement or an
- * act that does not resolve is left off: `film check` reports it.
+ * The film's ticks, in film order within each kind. An effect placement that
+ * does not resolve is left off, and so are the movements when one names no
+ * scene: `film check` reports them.
  */
 export const timelineTicks = (
   placed: ReadonlyArray<Placed>,
@@ -56,21 +58,20 @@ export const timelineTicks = (
       ),
     ),
   );
-  const acts = Option.toArray(sound).flatMap((s) =>
-    // The acts of the option the score plays.
+  const movements = Option.toArray(sound).flatMap((s) =>
+    // The movements of the option the score plays, where `partStarts` starts them.
     Option.toArray(Option.fromNullishOr(s.score?.options[s.score.play])).flatMap((music) =>
-      music.acts.flatMap((act, i) => {
-        // The first act opens the film, wherever it names.
-        const opening: Tick = { kind: 'act', name: `act ${act.name}`, at: 0, dur: 0 };
-        if (i === 0) return [opening];
-        return Option.toArray(
-          Option.map(
-            Arr.findFirst(placed, (p) => p.spec.id === act.from),
-            (p): Tick => ({ kind: 'act', name: `act ${act.name}`, at: p.start, dur: 0 }),
-          ),
-        );
+      Result.match(partStarts(music.movements, placed), {
+        onFailure: () => [],
+        onSuccess: (starts) =>
+          music.movements.map((movement, i): Tick => ({
+            kind: 'movement',
+            name: `movement ${movement.name}`,
+            at: Arr.getUnsafe(starts, i),
+            dur: 0,
+          })),
       }),
     ),
   );
-  return [...acts, ...cues, ...marks, ...effects];
+  return [...movements, ...cues, ...marks, ...effects];
 };

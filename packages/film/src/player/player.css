@@ -143,8 +143,8 @@ body.export .stage canvas {
   border-radius: 50%;
   background: #7fc4c0;
 }
-/* A music act starts: a line through the whole track. */
-.track .tick.act {
+/* A movement of the score starts: a line through the whole track. */
+.track .tick.movement {
   top: 0;
   bottom: 0;
   width: 2px;

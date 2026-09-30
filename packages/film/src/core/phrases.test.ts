@@ -99,12 +99,14 @@ describe('quotedWords', () => {
 
 describe('shortPhrases', () => {
   const draw = () => {};
-  const placed = layout(
-    [
-      { id: 'a', say: 'One two {three}three four five six.', draw },
-      { id: 'b', say: 'He said “seven eight nine” {ten}ten eleven.', draw },
-    ],
-    { voice: '', scenes: {} },
+  const placed = Result.getOrThrow(
+    layout(
+      [
+        { id: 'a', say: 'One two {three}three four five six.', draw },
+        { id: 'b', say: 'He said “seven eight nine” {ten}ten eleven.', draw },
+      ],
+      { voice: '', scenes: {} },
+    ),
   );
 
   test('the words under each span, on the short clock, quotations flagged', () => {
@@ -115,8 +117,8 @@ describe('shortPhrases', () => {
           id: 'cut',
           title: 'Cut',
           spans: [
-            { scene: 'b', from: { scene: 'speech' }, to: { mark: 'ten' } },
-            { scene: 'a', from: { mark: 'three' }, to: { scene: 'speechEnd' } },
+            { scene: 'b', from: { at: 'speech' }, to: { mark: 'ten' } },
+            { scene: 'a', from: { mark: 'three' }, to: { at: 'speechEnd' } },
           ],
         },
         30,
@@ -165,7 +167,7 @@ describe('shortPhrases', () => {
         {
           id: 'cut',
           title: 'Cut',
-          spans: [{ scene: 'a', from: { mark: 'three' }, to: { scene: 'speechEnd' } }],
+          spans: [{ scene: 'a', from: { mark: 'three' }, to: { at: 'speechEnd' } }],
         },
         7,
       ),
@@ -206,7 +208,9 @@ describe('shortPhrases', () => {
       words,
       source: 'elevenlabs' as const,
     };
-    const film = layout([{ id: 'a', say, lead: 0, draw }], { voice: 'v', scenes: { a: take } });
+    const film = Result.getOrThrow(
+      layout([{ id: 'a', say, lead: 0, draw }], { voice: 'v', scenes: { a: take } }),
+    );
     const short = Result.getOrThrow(
       resolveShort(
         film,
@@ -214,7 +218,7 @@ describe('shortPhrases', () => {
           id: 'cut',
           title: 'Cut',
           // From the scene's start, which is no word: a span opening on the voice would hide the late word.
-          spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'speechEnd' } }],
+          spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'speechEnd' } }],
         },
         30,
       ),

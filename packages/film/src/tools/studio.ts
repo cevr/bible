@@ -291,7 +291,7 @@ export const studioRoutes = (film: string) => {
           const lines = Option.getOrElse(yield* repo.script(film), () =>
             loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
           );
-          const sheet = sheetBeats(lines, yield* quotesOf(loaded));
+          const sheet = yield* Effect.fromResult(sheetBeats(lines, yield* quotesOf(loaded)));
           const rows = yield* Effect.forEach(beats, (beat) =>
             Effect.map(takes.attempts(loaded, beat.id), (attempts) =>
               beatRow(

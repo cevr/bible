@@ -55,7 +55,7 @@ const timeline = {
   // He asks; close on her as she answers, then the reverse on him as he speaks.
   asks: { mark: 'none', until: 'lord', ease: 'linear' },
   raise: { mark: 'none', dur: 0.8 },
-  herFace: { mark: 'lord', offset: -0.8, dur: 0.8, ease: 'inOutCubic' },
+  herFace: { mark: 'lord', dur: 0.8, ends: true, ease: 'inOutCubic' },
   lookUp: { mark: 'lord', dur: 0.6 },
   herPush: { mark: 'lord', until: 'told', ease: 'linear' },
   hisPush: { mark: 'told', until: 'again', ease: 'linear' },

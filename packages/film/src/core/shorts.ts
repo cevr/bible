@@ -5,16 +5,10 @@
 // so the picture the page draws and the track the renderer cuts agree to the
 // frame. Pure: the page, the tools and the tests read it alike.
 
-import { Array as Arr, Match, Option, Result } from 'effect';
-import {
-  type ShortError,
-  ShortSpanEmpty,
-  ShortUnknownCue,
-  ShortUnknownMark,
-  ShortUnknownScene,
-} from './errors.ts';
-import type { Placed } from './layout.ts';
-import type { Short, ShortPoint, ShortSpan } from './schema.ts';
+import { Array as Arr, Option, Result } from 'effect';
+import { type ShortError, ShortSpanEmpty, ShortUnknownScene } from './errors.ts';
+import { type Placed, pointIn } from './layout.ts';
+import type { ScenePoint, Short, ShortSpan } from './schema.ts';
 
 /** A short as it plays: 1080 × 1920, vertical. */
 export const SHORT_WIDTH = 1080;
@@ -168,65 +162,42 @@ const openOnVoice = (p: Placed, at: number): number =>
     },
   );
 
-/** Voice second `at` as a span's `edge`: an opening moves onto the voice, a close stays. */
-const opening = (p: Placed, at: number, edge: 'start' | 'end'): number =>
-  Match.value(edge).pipe(
-    Match.when('start', () => openOnVoice(p, at)),
-    Match.orElse(() => at),
+/**
+ * Where a point opens onto the voice, in voice seconds: a mark, or where the
+ * voice starts. None for any other point, which opens where it lands.
+ */
+const onVoice = (p: Placed, point: ScenePoint): Option.Option<number> => {
+  const mark = Option.filter(Option.fromUndefinedOr(point.mark), () =>
+    Option.isNone(Option.fromUndefinedOr(point.word)),
   );
-
-/** A scene's landmark, scene-local. */
-const landmarkAt = (p: Placed, landmark: 'start' | 'speech' | 'speechEnd' | 'end'): number => {
-  switch (landmark) {
-    case 'start':
-      return 0;
-    case 'speech':
-      return p.speechStart;
-    case 'speechEnd':
-      return p.speechStart + p.voice.duration;
-    case 'end':
-      return p.dur;
-  }
+  if (Option.isSome(mark)) return Option.fromUndefinedOr(p.voice.marks.get(mark.value));
+  return Option.as(
+    Option.filter(Option.fromUndefinedOr(point.at), (at) => at === 'speech'),
+    0,
+  );
 };
 
 /**
- * Where a point lands in its scene, scene-local. A cue that names no edge
- * lands on `edge`: its start when it opens a span, its end when it closes one.
- * A mark or the speech opening a span lands on the voice (`openOnVoice`).
+ * Where a point lands in its scene, scene-local (`pointIn`). A cue that names
+ * no edge lands on `edge`: its start when it opens a span, its end when it
+ * closes one. A mark or the speech opening a span lands on the voice
+ * (`openOnVoice`).
  */
 const pointAt = (
   short: string,
   p: Placed,
-  point: ShortPoint,
+  point: ScenePoint,
   edge: 'start' | 'end',
-): Result.Result<number, ShortError> => {
-  const scene = p.spec.id;
-  return Match.value(point).pipe(
-    Match.when({ mark: Match.string }, ({ mark }) =>
-      Result.fromOption(
-        Option.map(
-          Option.fromNullishOr(p.voice.marks.get(mark)),
-          (at) => p.speechStart + opening(p, at, edge),
-        ),
-        () => ShortUnknownMark.make({ short, scene, mark, known: [...p.voice.marks.keys()] }),
-      ),
+): Result.Result<number, ShortError> =>
+  Result.map(pointIn(p, point, `short "${short}"`, edge), (at) =>
+    Option.match(
+      Option.filter(onVoice(p, point), () => edge === 'start'),
+      {
+        onNone: () => at,
+        onSome: (voice) => p.speechStart + openOnVoice(p, voice),
+      },
     ),
-    Match.when({ cue: Match.string }, ({ cue, edge: named }) =>
-      Result.fromOption(
-        Option.map(
-          Option.fromNullishOr(p.cues.get(cue)),
-          (at) => at[Option.getOrElse(Option.fromNullishOr(named), () => edge)],
-        ),
-        () => ShortUnknownCue.make({ short, scene, cue, known: [...p.cues.keys()] }),
-      ),
-    ),
-    Match.when({ scene: 'speech' }, () => Result.succeed(p.speechStart + opening(p, 0, edge))),
-    Match.when({ scene: Match.string }, ({ scene: landmark }) =>
-      Result.succeed(landmarkAt(p, landmark)),
-    ),
-    Match.exhaustive,
   );
-};
 
 /** A span on the film's frames: `[from, to)`. */
 const spanFrames = (

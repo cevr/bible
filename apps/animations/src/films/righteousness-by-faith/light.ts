@@ -1,8 +1,8 @@
-// The colour script, lit (CRAFT rule 11; `look` in film.ts holds the targets
-// it is measured against). Each scene is lit by its act's light: a colour over
-// the middle of the frame, falling to a deeper one at the corners, so the page
-// dims round the subject rather than all over, and gold stays the brightest
-// thing on it. The parchment itself stays the parchment; the light is what
+// The colour script, lit (CRAFT rule 11; `look` in acts.ts holds the acts
+// and the targets they are measured against). Each scene is lit by its act's
+// light (`membersOf` says which act holds it): a colour over the middle of the
+// frame, falling to a deeper one at the corners, so the page dims round the
+// subject rather than all over, and gold stays the brightest thing on it. The parchment itself stays the parchment; the light is what
 // changes, act by act:
 //   - cold open: a cool, even room without sun;
 //   - message: the peach afternoon going toward dusk;
@@ -20,7 +20,11 @@
 // them. Every act gets lighter and their order and gaps hold.
 
 import { type Frame, type Light, mix } from '@bible/film/canvas';
+import { membersOf } from '@bible/film/core';
+import { Option, Result } from 'effect';
+import { type ActName, look } from './acts.ts';
 import { LIFT } from './palette.ts';
+import { script } from './script.ts';
 
 /** How much of the first light is left once `robe`'s loom has woven: the rest is day. */
 const WOVEN = 0.5;
@@ -35,7 +39,7 @@ const lit = (color: string, edge: string, share = 1): Light => {
   return { color: raised, edge: mix(edge, raised, lift) };
 };
 
-/** The lights, by the act that owns them. */
+/** The film's lights. */
 export const LIGHT = {
   room: lit('#e6e6e6', '#a9adb4'),
   dusk: lit('#f2f2f4', '#cccfd8'),
@@ -54,28 +58,36 @@ const dawn = (f: Frame): Light => {
   return DAWN;
 };
 
-/** Each drawn scene's light. */
-export const lights = new Map<string, Light | ((f: Frame) => Light)>(
-  Object.entries({
-    cold: LIGHT.room,
-    title: LIGHT.room,
-    word: LIGHT.room,
-    mirror: LIGHT.room,
-    message: LIGHT.dusk,
-    roof: LIGHT.dusk,
-    woman: LIGHT.dusk,
-    spoke: LIGHT.haze,
-    centurion: LIGHT.haze,
-    look: LIGHT.haze,
-    declared: LIGHT.sunset,
-    exchange: LIGHT.sunset,
-    accuser: LIGHT.firstLight,
-    robe: dawn,
-    within: LIGHT.morning,
-    daily: LIGHT.morning,
-    rain: LIGHT.day,
-    name: LIGHT.day,
-    thesis: LIGHT.day,
-    end: LIGHT.day,
-  }),
+/** Each act's light (`acts.ts` declares the acts and the scenes they hold). */
+const byAct: Readonly<Record<ActName, Light>> = {
+  'cold open': LIGHT.room,
+  message: LIGHT.dusk,
+  faith: LIGHT.haze,
+  forgiveness: LIGHT.sunset,
+  power: LIGHT.morning,
+  landing: LIGHT.day,
+};
+
+/** A scene's light: fixed, or read from its frame. */
+type SceneLight = Light | ((f: Frame) => Light);
+
+/** The scenes lit apart from their act: the valley's court at first light, and `robe`'s dawn. */
+const byScene: ReadonlyMap<string, SceneLight> = new Map<string, SceneLight>([
+  ['accuser', LIGHT.firstLight],
+  ['robe', dawn],
+]);
+
+/** Each scene's light: its own where `byScene` names one, else its act's. */
+export const lights: ReadonlyMap<string, SceneLight> = new Map(
+  Result.getOrThrow(
+    membersOf(
+      look.acts,
+      script.map((beat) => beat.id),
+    ),
+  ).flatMap(({ part, scenes }) =>
+    scenes.map((id): readonly [string, SceneLight] => [
+      id,
+      Option.getOrElse(Option.fromUndefinedOr(byScene.get(id)), () => byAct[part.name]),
+    ]),
+  ),
 );

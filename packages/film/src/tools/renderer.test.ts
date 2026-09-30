@@ -524,8 +524,8 @@ describe('Renderer', () => {
         id: 'cut',
         title: 'A cut',
         spans: [
-          { scene: 'c', from: { scene: 'start' }, to: { scene: 'end' } },
-          { scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } },
+          { scene: 'c', from: { at: 'start' }, to: { at: 'end' } },
+          { scene: 'a', from: { at: 'start' }, to: { at: 'end' } },
         ],
       },
     });
@@ -569,11 +569,11 @@ describe('Renderer', () => {
           short: {
             id: 'cut',
             title: 'x',
-            spans: [{ scene: 'a', from: { mark: 'nope' }, to: { scene: 'end' } }],
+            spans: [{ scene: 'a', from: { mark: 'nope' }, to: { at: 'end' } }],
           },
         });
         const error = yield* Effect.flip(render({ ...video, cut: broken }));
-        expect(error._tag).toBe('ShortUnknownMark');
+        expect(error._tag).toBe('UnknownMark');
       }),
     );
   });

@@ -3,8 +3,9 @@
 // chapters the acts name.
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
-import { layout } from '../core/layout.ts';
+import { Result } from 'effect';
+import { stretchesOf } from '../core/acts.ts';
+import { type Placed, layout } from '../core/layout.ts';
 import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
 import {
   type Drawn,
@@ -14,8 +15,6 @@ import {
   HELD_MAX,
   SIZE_JUMP,
   THUMB_BYTES,
-  actSpans,
-  actsOf,
   chapterTime,
   chapters,
   colourScript,
@@ -48,7 +47,10 @@ const face = (scene: string, size: number, alpha = 1): FaceMark => ({
 
 // Three spoken scenes: `held` never changes, `brief` flips black and white
 // each sample, `ambient` is the paper's grey. Each declares one face.
-const placed = layout(holdScenes, holdTimings);
+const placed = Result.getOrThrow(layout(holdScenes, holdTimings));
+
+/** A declared look's acts laid over `film`. */
+const actsIn = (look: Look, film: ReadonlyArray<Placed>) => stretchesOf(look.acts, film);
 const samples = lookSamples(placed, FPS, 1_000_000);
 const drawn = samples.map((s, k): Drawn => {
   if (s.scene === 'held') return { thumb: thumb(128), faces: [face('held', 400)], hands: [] };
@@ -104,7 +106,7 @@ describe('HeldShare', () => {
 
   test('a scene the voice does not speak in is not judged', () => {
     const silent: ReadonlyArray<Timed> = [{ id: 'quiet', min: 6 }];
-    const quiet = layout(silent, { voice: '', scenes: {} });
+    const quiet = Result.getOrThrow(layout(silent, { voice: '', scenes: {} }));
     const at = lookSamples(quiet, FPS, 1_000_000);
     const still = sceneLooks(
       quiet,
@@ -177,7 +179,7 @@ describe('ColourScript', () => {
       { from: 'brief', name: 'valley', luma: [0, 50], dark: 0.1, saturation: [0, 0.1] },
     ],
   };
-  const acts = Result.getOrThrow(actSpans(look, placed));
+  const acts = Result.getOrThrow(actsIn(look, placed));
 
   test('each act spans its scene to the next act', () => {
     expect(acts.map((a) => a.scenes)).toEqual([['held'], ['brief', 'ambient']]);
@@ -194,12 +196,13 @@ describe('ColourScript', () => {
   });
 
   test('an act that names a scene the film lacks fails', () => {
-    const wrong = actSpans({ acts: [{ from: 'nowhere', name: 'x' }] }, placed);
+    const wrong = actsIn({ acts: [{ from: 'nowhere', name: 'x' }] }, placed);
     expect(Result.isFailure(wrong) && wrong.failure._tag).toBe('UnknownScene');
   });
 
-  test('no declared look means no acts', () => {
-    expect(Result.getOrThrow(actsOf(Option.none(), placed))).toEqual([]);
+  test('acts declared out of film order fail rather than being reordered', () => {
+    const swapped = actsIn({ acts: [...look.acts].reverse() }, placed);
+    expect(Result.isFailure(swapped) && swapped.failure._tag).toBe('PartOutOfOrder');
   });
 
   test('the look pass reports every finding as a warning', () => {
@@ -236,8 +239,8 @@ describe('chapters', () => {
     { id: 'b', min: 12 },
     { id: 'c', min: 12 },
   ];
-  const laid = layout(three, { voice: '', scenes: {} });
-  const named = (look: Look) => chapters('f', Result.getOrThrow(actSpans(look, laid)), laid);
+  const laid = Result.getOrThrow(layout(three, { voice: '', scenes: {} }));
+  const named = (look: Look) => chapters('f', Result.getOrThrow(actsIn(look, laid)), laid);
 
   test('a chapter starts at mm:ss, or h:mm:ss past an hour', () => {
     expect(chapterTime(0)).toBe('00:00');
@@ -263,9 +266,11 @@ describe('chapters', () => {
   test('YouTube refuses fewer than three chapters, a first past 00:00, or one under 10 s', () => {
     const tooFew = named({ acts: [{ from: 'a', name: 'one', chapter: 'Who?' }] });
     expect(Result.isFailure(tooFew) && tooFew.failure.reason).toContain('YouTube needs 3');
-    const four = layout([...three, { id: 'd', min: 12 }], { voice: '', scenes: {} });
+    const four = Result.getOrThrow(
+      layout([...three, { id: 'd', min: 12 }], { voice: '', scenes: {} }),
+    );
     const lateActs = Result.getOrThrow(
-      actSpans(
+      actsIn(
         {
           acts: [
             { from: 'a', name: 'zero' },
@@ -284,9 +289,9 @@ describe('chapters', () => {
       { id: 'b', min: 4 },
       { id: 'c', min: 12 },
     ];
-    const tight = layout(short, { voice: '', scenes: {} });
+    const tight = Result.getOrThrow(layout(short, { voice: '', scenes: {} }));
     const acts = Result.getOrThrow(
-      actSpans(
+      actsIn(
         {
           acts: [
             { from: 'a', name: 'one', chapter: 'Who?' },

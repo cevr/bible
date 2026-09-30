@@ -59,11 +59,11 @@ const timeline = {
   up: { mark: 'roof', dur: 0.9, ease: 'inOutSine' },
   tiles: { mark: 'roof', offset: 0.3, dur: 0.8 },
   // The four take up the ropes, and let the bed down into the room.
-  grasp: { with: 'lower', offset: -0.5, dur: 0.5 },
+  grasp: { with: 'lower', dur: 0.5, ends: true },
   lower: { mark: 'roof', word: 'lower', until: 'saw', ease: 'inOutSine' },
   look: { mark: 'saw', dur: 0.6, ease: 'inOutSine' },
   // Close on the man; the specks lift off him as he is forgiven.
-  push: { mark: 'son', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
+  push: { mark: 'son', dur: 0.6, ends: true, ease: 'inOutCubic' },
   reach: { mark: 'son', dur: 0.6 },
   specks: { mark: 'son', word: 'sins', dur: 1.2, ease: 'inOutSine' },
   glad: { after: 'specks', dur: 0.6 },

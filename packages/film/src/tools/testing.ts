@@ -2,7 +2,17 @@
 // a browser and its pages that answer from memory and count their calls. No
 // network, no Chromium, no credits.
 
-import { Array as Arr, Effect, Exit, FileSystem, Layer, Option, Path, Redacted } from 'effect';
+import {
+  Array as Arr,
+  Effect,
+  Exit,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Redacted,
+  Result,
+} from 'effect';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
 import { type Pcm, silence } from '../core/audio.ts';
@@ -780,7 +790,7 @@ export const testFilm = (
  * twelve words speak from 0 to 5.9 s.
  */
 export const spokenTake = (say: string): VoiceTiming => {
-  const parsed = parse(say);
+  const parsed = Result.getOrThrow(parse('take', say));
   const words = parsed.spoken
     .split(' ')
     .map((text, i) => ({ text, start: i * 0.5, end: i * 0.5 + 0.4 }));

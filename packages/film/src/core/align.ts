@@ -137,21 +137,22 @@ export const lineUp = (
   return out;
 };
 
-interface Span {
-  readonly start: number;
-  readonly end: number;
-}
+/** A word's time on its take: where it starts and ends. */
+type WordTime = Pick<Word, 'start' | 'end'>;
 
 /** The span of `b` widened to cover `a`, when there is one. */
-const widen = (a: Option.Option<Span>, b: Span): Span =>
+const widen = (a: Option.Option<WordTime>, b: WordTime): WordTime =>
   Option.match(a, {
     onNone: () => b,
     onSome: (s) => ({ start: Math.min(s.start, b.start), end: Math.max(s.end, b.end) }),
   });
 
 /** Runs of unheard words share the gap between the words either side of them. */
-const fillGaps = (heard: ReadonlyArray<Option.Option<Span>>, duration: number): Array<Span> => {
-  const out: Array<Span> = [];
+const fillGaps = (
+  heard: ReadonlyArray<Option.Option<WordTime>>,
+  duration: number,
+): Array<WordTime> => {
+  const out: Array<WordTime> = [];
   let i = 0;
   while (i < heard.length) {
     const found = Arr.getUnsafe(heard, i);
@@ -180,7 +181,7 @@ const fillGaps = (heard: ReadonlyArray<Option.Option<Span>>, duration: number): 
 };
 
 /** Starts never go back, a word never ends before it starts, and nothing ends past the take. */
-const ordered = (spans: ReadonlyArray<Span>, duration: number): ReadonlyArray<Span> => {
+const ordered = (spans: ReadonlyArray<WordTime>, duration: number): ReadonlyArray<WordTime> => {
   let floor = 0;
   return spans.map((s) => {
     const end = Math.min(duration, Math.max(s.end, s.start, floor));
@@ -208,7 +209,7 @@ export const timeScript = (
     want.map((t) => t.text),
     got.map((t) => t.text),
   );
-  const spans: Array<Option.Option<Span>> = words.map(() => Option.none());
+  const spans: Array<Option.Option<WordTime>> = words.map(() => Option.none());
   for (const [k, pair] of pairs.entries()) {
     if (Option.isNone(pair)) continue;
     const owner = Arr.getUnsafe(want, k).owner;
