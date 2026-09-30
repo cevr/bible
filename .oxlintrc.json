@@ -226,13 +226,14 @@
     },
     {
       // The engine's thrown Errors: a programming mistake (a film with no
-      // scenes, a missing cue, knob or mark, no 2d context) that must stop the
-      // render. They live in the engine, never in a film; the probe test
-      // throws inside a draw to prove the probe comes off.
+      // scenes, a missing cue, knob or mark, no 2d context, a colour that is
+      // not hex) that must stop the render. They live in the engine, never in
+      // a film; the probe test throws inside a draw to prove the probe comes
+      // off.
       "files": [
+        "**/packages/film/src/canvas/colour.ts",
         "**/packages/film/src/canvas/film.ts",
         "**/packages/film/src/canvas/paper.ts",
-        "**/packages/film/src/canvas/cutout.ts",
         "**/packages/film/src/canvas/probe.test.ts"
       ],
       "rules": {
@@ -254,19 +255,16 @@
     {
       // The film clock, read by the draw path every frame and by the tools:
       // `layout` places scenes, `narration` times words, `timeline` resolves
-      // named cues. Optional scene fields stay plain optionals, and a layout
-      // mistake throws so the player and renderer stop; the tools lift that
-      // throw into LayoutInvalid at their boundary (tools/film-repo.ts).
+      // named cues. The clock returns Results; the draw path's reads stay
+      // plain optionals and ternaries.
       "files": [
         "**/packages/film/src/core/layout.ts",
         "**/packages/film/src/core/narration.ts",
         "**/packages/film/src/core/timeline.ts"
       ],
       "rules": {
-        "effect/noNewError": "off",
         "effect/noNullish": "off",
-        "effect/noTernary": "off",
-        "effect/noThrowStatement": "off"
+        "effect/noTernary": "off"
       }
     },
     {
@@ -289,6 +287,19 @@
         "film/no-unprobed-ink": "error",
         "film/span-ends-on-anchor": "error",
         "film/no-ease-on-cue": "error"
+      }
+    },
+    {
+      // A variadic logger handed point-free to a callback passed an index
+      // prints the index after each line (packages/film/lint/no-point-free-log.ts).
+      "files": [
+        "**/packages/film/**/*.ts",
+        "**/packages/film/**/*.tsx",
+        "**/apps/animations/**/*.ts",
+        "**/apps/animations/**/*.tsx"
+      ],
+      "rules": {
+        "film/no-point-free-log": "error"
       }
     },
     {

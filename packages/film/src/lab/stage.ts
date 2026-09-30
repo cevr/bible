@@ -10,7 +10,7 @@
 // the frame held.
 
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
-import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
+import type { SceneEdit, SceneSpec, ShownEdit } from '../canvas/film.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Knobs, ResolvedCue, Timeline } from '../core/schema.ts';
 import type { LoopRange, Player } from '../player/main.ts';
@@ -76,14 +76,14 @@ export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/S
  */
 export const makeStage = (player: Player, changed: () => void): StageOps => {
   const { film } = player;
-  const edits = new Map<string, SceneEdit>();
+  const edits = new Map<string, ShownEdit>();
   const placed = (scene: string): Option.Option<Placed<SceneSpec>> =>
     Result.getSuccess(sceneOf(film.placed, scene));
   const declared = <K extends 'timeline' | 'knobs'>(scene: string, field: K) =>
     Option.flatMap(placed(scene), (p) => Option.fromUndefinedOr(p.spec[field]));
   const edited = <K extends 'timeline' | 'knobs'>(scene: string, field: K) =>
     Option.flatMap(Option.fromUndefinedOr(edits.get(scene)), (e) =>
-      Option.fromUndefinedOr(e[field]),
+      Option.fromUndefinedOr(e.edit[field]),
     );
   const timelineOf = (scene: string): Timeline =>
     Option.getOrElse(
@@ -95,13 +95,12 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
       Option.orElse(edited(scene, 'knobs'), () => declared(scene, 'knobs')),
       () => ({}),
     );
-  /** Whether `edit` resolves for `scene`, as a frame would resolve it; why not. */
-  const resolves = (scene: string, edit: SceneEdit) =>
-    Result.try({
-      try: () => film.cuesOf(scene, edit),
-      catch: (err) => NotPreviewed.make({ scene, reason: String(err).replace(/^Error: /, '') }),
-    });
-  const cuesOf = (scene: string) => film.cuesOf(scene, edits.get(scene));
+  const cuesOf = (scene: string): ReadonlyMap<string, ResolvedCue> =>
+    edits.get(scene)?.cues ??
+    Option.getOrElse(
+      Option.map(placed(scene), (p) => p.cues),
+      () => new Map(),
+    );
   return {
     preview: (scene, edit) =>
       Effect.suspend(() => {
@@ -109,9 +108,10 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
           timeline: edit.timeline ?? timelineOf(scene),
           knobs: edit.knobs ?? knobsOf(scene),
         };
-        return Effect.fromResult(resolves(scene, next)).pipe(
-          Effect.map(() => {
-            edits.set(scene, next);
+        return Effect.fromResult(film.edit(scene, next)).pipe(
+          Effect.mapError((err) => NotPreviewed.make({ scene, reason: err.message })),
+          Effect.map((shown) => {
+            edits.set(scene, shown);
             player.showEdits(new Map(edits));
             changed();
           }),

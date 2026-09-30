@@ -298,7 +298,7 @@ export const createShort = (film: Film, declared: Short): Film => {
     look: film.look,
     sceneAt,
     render,
-    cuesOf: film.cuesOf,
+    edit: film.edit,
   };
 };
 

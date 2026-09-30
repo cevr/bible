@@ -13,12 +13,13 @@
  */
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schedule } from 'effect';
 
 import {
   primeVectorAccel,
   readyVectorAccel,
   resetVectorAccel,
+  resolvedFor,
   vectorAccel,
 } from './vector-accel.js';
 import { scanVectorIndex, type VectorIndex, type VectorManifest } from './vector-index.js';
@@ -162,8 +163,10 @@ describe('vector scan acceleration', () => {
       expect(Option.isNone(readyVectorAccel(index))).toBe(true);
       primeVectorAccel(index);
       // `it.live`, because priming resolves on the real clock rather than a
-      // test one, and a virtual clock would wait forever.
-      yield* Effect.sleep('100 millis');
+      // test one: wait until its resolution lands, with no call of our own.
+      yield* Effect.sync(() => Option.isNone(resolvedFor(index))).pipe(
+        Effect.repeat({ while: (pending) => pending, schedule: Schedule.spaced('5 millis') }),
+      );
       // An unbuilt checkout resolves to no tier, and that is a pass: the two
       // sides agree either way, which is the property under test.
       const built = yield* vectorAccel(index);

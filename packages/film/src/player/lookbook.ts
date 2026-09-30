@@ -5,6 +5,8 @@
 // swatches. The page composes it with `film.render`, so the lab shows it live
 // (`?film=…&lookbook`, linked from the lab) and `film lookbook` asks an export page for the
 // same sheet (`ExportHandle.lookbook`) and writes it to `out/<film>/lookbook.jpg`.
+// It is set in the film's own type: its shorts' hook face for the title, their
+// caption face for the rest (`film.look.short`), so the engine names no family.
 
 import type { Film } from '../canvas/film.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
@@ -49,6 +51,10 @@ const fit = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
   while (cut.length > 1 && ctx.measureText(`${cut}…`).width > width) cut = cut.slice(0, -1);
   return `${cut}…`;
 };
+
+/** The family of a CSS font (`600 64px "Fraunces"` → `"Fraunces"`): what follows its size. */
+export const familyOf = (font: string): string =>
+  /\d(?:px|pt|em|rem|%)(?:\/\S+)?\s+(.+)$/.exec(font)?.[1] ?? 'sans-serif';
 
 /** `cue topple start` reads as `topple ▸`, `cue topple end` as `topple ◂`. */
 const labelOf = (at: string) =>
@@ -105,14 +111,16 @@ export const composeLookbook = async (
   if (ctx === null) throw new Error('2d context unavailable');
   ctx.fillStyle = PAGE;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const display = familyOf(film.look.short.hook.font);
+  const body = familyOf(film.look.short.caption.font);
 
   // The title, and what the sheet shows.
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
-  ctx.font = '700 34px Fraunces';
+  ctx.font = `700 34px ${display}`;
   ctx.fillText(film.title, PAD, PAD + 34);
   ctx.fillStyle = MUTED;
-  ctx.font = '400 16px Inter';
+  ctx.font = `400 16px ${body}`;
   ctx.fillText(
     `Look-book · ${film.placed.length} scenes · ${tiles.length} stills at each cue's start (▸) and end (◂) and each scene's 60% point · ${film.duration.toFixed(1)} s`,
     PAD,
@@ -128,16 +136,16 @@ export const composeLookbook = async (
     ctx.strokeStyle = 'rgb(255 255 255 / 0.18)';
     ctx.strokeRect(sx + 0.5, sy + 0.5, SWATCH - 1, SWATCH - 1);
     ctx.fillStyle = INK;
-    ctx.font = '600 14px Inter';
+    ctx.font = `600 14px ${body}`;
     ctx.fillText(fit(ctx, name, SWATCH_W - 8), sx, sy + SWATCH + 18);
     ctx.fillStyle = MUTED;
-    ctx.font = '400 13px Inter';
+    ctx.font = `400 13px ${body}`;
     ctx.fillText(color, sx, sy + SWATCH + 35);
   });
 
   for (const head of heads) {
     ctx.fillStyle = INK;
-    ctx.font = '600 20px Inter';
+    ctx.font = `600 20px ${body}`;
     ctx.fillText(head.text, PAD, head.y + 26);
   }
 
@@ -151,10 +159,10 @@ export const composeLookbook = async (
     film.render(fctx, tile.moment.time, { captions: options.captions });
     ctx.drawImage(frame, tile.x, tile.y, tile.w, tile.h);
     ctx.fillStyle = INK;
-    ctx.font = '500 15px Inter';
+    ctx.font = `500 15px ${body}`;
     ctx.fillText(fit(ctx, labelOf(tile.moment.at), tile.w - 70), tile.x, tile.y + tile.h + 21);
     ctx.fillStyle = MUTED;
-    ctx.font = '400 14px Inter';
+    ctx.font = `400 14px ${body}`;
     ctx.textAlign = 'right';
     ctx.fillText(`${tile.moment.time.toFixed(2)} s`, tile.x + tile.w, tile.y + tile.h + 21);
     ctx.textAlign = 'left';

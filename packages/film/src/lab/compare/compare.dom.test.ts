@@ -1,13 +1,14 @@
 // The Compare section in a browser, over the probe film with the lab API
 // faked: a wipe shows HEAD's frame left of a divider the pointer drags, and
 // says which file it read; a blink flips HEAD's frame in and out; a scene
-// HEAD cannot give says the server's reason; a reload keeps the mode.
+// HEAD cannot give says the server's reason, and HEAD's timeline that does
+// not resolve on today's narration says why; a reload keeps the mode.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { HeadUnavailable } from '../../core/refusals.ts';
-import { openLab, refused, route } from '../fixtures/harness.ts';
+import { json, openLab, refused, route } from '../fixtures/harness.ts';
 
 const compareSays = (page: Page, part: string) =>
   Effect.promise(() =>
@@ -90,6 +91,38 @@ describe('compare with HEAD', () => {
         ),
       );
       expect(hidden).toBe(true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("HEAD's timeline that does not resolve now says why and draws no layer", () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab(
+        [
+          // HEAD cued a mark today's narration no longer has.
+          route('GET', /^\/scenes\/one\/head$/, () =>
+            json({
+              scene: 'one',
+              file: 'scenes/one.ts',
+              timeline: { rise: { mark: 'soar', dur: 0.6 } },
+              knobs: {},
+              codeChanged: false,
+              sameData: false,
+            }),
+          ),
+        ],
+        { hash: '#1' },
+      );
+      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
+      yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
+      yield* compareSays(page, "one: HEAD's timeline does not resolve now: ");
+      yield* compareSays(page, '{soar}');
+      const hidden = yield* Effect.promise(() =>
+        page.evaluate(
+          () => document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.hidden,
+        ),
+      );
+      expect(hidden).toBe(true);
+      expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
 

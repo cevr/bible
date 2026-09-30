@@ -199,6 +199,7 @@ describe('film cli', () => {
         expect(run.out).toContain('FlagsConflict');
         expect(run.out).not.toContain('render.still');
       }),
+    spawnBudget(1),
   );
 
   it.effect.layer(BunServices.layer)(

@@ -4,7 +4,7 @@
 // lab (`@bible/film/lab`) is its own page, which stages the film and mounts
 // this preview under its Solid panels, so the render page never loads Solid.
 
-import type { Film, KnobRead, SceneEdit } from '../canvas/film.ts';
+import type { Film, KnobRead, ShownEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
@@ -81,9 +81,9 @@ export interface Player {
    * The edits the preview draws with (`RenderOptions.edits`): none until the
    * lab shows some; the lab holds them, and hands over each change whole.
    */
-  edits(): ReadonlyMap<string, SceneEdit>;
+  edits(): ReadonlyMap<string, ShownEdit>;
   /** Draw with `edits` from now on, starting with the frame shown now. */
-  showEdits(edits: ReadonlyMap<string, SceneEdit>): void;
+  showEdits(edits: ReadonlyMap<string, ShownEdit>): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
   /** Called after every frame the preview draws, until the returned function is called. */
@@ -334,7 +334,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
   );
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
-  let edits: ReadonlyMap<string, SceneEdit> = new Map();
+  let edits: ReadonlyMap<string, ShownEdit> = new Map();
 
   const draw = () => {
     reads = [];
@@ -376,7 +376,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     tStart = T;
     wallStart = performance.now();
     voice.seek(T);
-    if (playing && rate === 1) voice.play();
+    if (playing && rate === 1) voice.play(() => T);
     else voice.pause();
   };
 
