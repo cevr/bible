@@ -260,7 +260,7 @@ export const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> 
 };
 
 /** `render` against `now`: its state, and why it is stale. */
-const renderState = (
+export const renderState = (
   render: Option.Option<Render>,
   now: RenderNow,
 ): { readonly state: VariantState; readonly staleBy: Option.Option<StaleBy> } =>
@@ -277,6 +277,32 @@ const renderState = (
       };
     },
   });
+
+/** The newest of `renders` (by when each was recorded). */
+const newest = (renders: ReadonlyArray<Render>): Option.Option<Render> =>
+  Arr.last(renders.toSorted((a, b) => a.at - b.at));
+
+/**
+ * What the record alone says `address`'s videos are measured against, for a
+ * reader that loads no film (the review's index): the sources the newest
+ * video at `address` drew, and the mix the newest video anywhere carries. A
+ * video is stale by it when a newer one at its address drew other sources, or
+ * a newer one carries another mix; that the newest is current against the
+ * film's sources now is the project's to say (`projectOf`, a fresh process).
+ */
+export const recordedNow = (catalogue: Catalogue, address: Address): Option.Option<RenderNow> => {
+  const videos = catalogue.renders.filter((r) => r.kind === 'video');
+  return Option.map(
+    newest(videos.filter((r) => addressKey(r.address) === addressKey(address))),
+    (latest): RenderNow => ({
+      key: latest.stamp.key,
+      sound: Option.flatMap(
+        newest(videos.filter((r) => Option.isSome(Option.flatMap(r.sound, (s) => s.mix)))),
+        (r) => Option.flatMap(r.sound, (s) => s.mix),
+      ),
+    }),
+  );
+};
 
 /**
  * What a slot needs to be current: nothing; a `remux` (its video drew its

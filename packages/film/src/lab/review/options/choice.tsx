@@ -13,7 +13,7 @@ import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { createEffect, createMemo, createSignal } from 'solid-js';
 import { type Say, choiceAloneUrl } from '../../../core/api.ts';
-import type { ApprovalState, SaidComment, StaleBy } from '../../../core/catalogue.ts';
+import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKind,
   type ChoiceKnob,
@@ -223,7 +223,6 @@ const VariantRow = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
-  readonly staleBy: Option.Option<StaleBy>;
 }) => {
   const { write } = useFilm();
   const said = () => Option.isSome(props.point.address);
@@ -240,7 +239,7 @@ const VariantRow = (props: {
           <span class="rv-badge">picked</span>
         </Show>
         <span class="rv-tag" data-state={props.variant.state}>
-          {stateText(props.variant.state, props.staleBy)}
+          {stateText(props.variant.state, props.variant.staleBy)}
         </span>
         <Show when={props.variant.approval !== 'none'}>
           <span class="rv-badge" data-approval={props.variant.approval}>
@@ -354,13 +353,9 @@ const Marks = (props: { readonly point: ChoicePoint }) => {
 /**
  * One choice point: its lines, where it plays, its knob, its variants. A
  * choice's says go to the film's choices; a render's card is told where its
- * go (`sayer`) and why a stale variant is stale (`staleBy`).
+ * go (`sayer`). Why a stale variant is stale is its own (`staleBy`).
  */
-export const ChoiceCard = (props: {
-  readonly point: ChoicePoint;
-  readonly sayer?: Sayer;
-  readonly staleBy?: (variant: ChoiceVariant) => Option.Option<StaleBy>;
-}) => {
+export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?: Sayer }) => {
   const { write, wrote } = useFilm();
   const given = () => Option.fromUndefinedOr(props.sayer);
   const sayer: Sayer = {
@@ -371,8 +366,6 @@ export const ChoiceCard = (props: {
       }),
     busy: () => Option.match(given(), { onSome: (s) => s.busy(), onNone: () => wrote().waiting }),
   };
-  const staleBy = (variant: ChoiceVariant) =>
-    Option.flatMap(Option.fromUndefinedOr(props.staleBy), (why) => why(variant));
   return (
     <div
       class="rv-card rv-option"
@@ -390,14 +383,7 @@ export const ChoiceCard = (props: {
           {(knob) => <Knob point={props.point} knob={knob()} />}
         </Show>
         <For each={props.point.variants} keyed={(v) => v.id}>
-          {(variant) => (
-            <VariantRow
-              point={props.point}
-              variant={variant()}
-              sayer={sayer}
-              staleBy={staleBy(variant())}
-            />
-          )}
+          {(variant) => <VariantRow point={props.point} variant={variant()} sayer={sayer} />}
         </For>
         <Show when={props.point.variants.length === 0 && Option.isNone(props.point.knob)}>
           <p class="rv-hint">Nothing to choose between yet.</p>

@@ -100,6 +100,7 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
           () => scene.state === 'missing',
         ),
         state: scene.state,
+        staleBy: scene.staleBy,
         picked: false,
         verbs: [],
         media,
@@ -214,11 +215,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
   );
   return (
     <div class="rv-scene" data-scene={props.scene.scene} data-state={props.scene.state}>
-      <ChoiceCard
-        point={point()}
-        sayer={sayerAt(props.at, address)}
-        staleBy={() => props.scene.staleBy}
-      />
+      <ChoiceCard point={point()} sayer={sayerAt(props.at, address)} />
       <Show when={Option.isSome(props.scene.render)}>
         <Compare folder={props.at.view().folder} point={point().id} />
       </Show>

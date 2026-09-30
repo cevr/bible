@@ -27,6 +27,7 @@ import {
   ApprovalState,
   type Catalogue,
   SaidComment,
+  StaleBy,
   type Subject,
   VariantState,
   approvalState,
@@ -68,6 +69,8 @@ export const ChoiceVariant = Schema.Struct({
   /** What it is, a line each: its styles, its length and loudness, its size and commit. */
   lines: Schema.Array(Schema.String),
   state: VariantState,
+  /** Why a stale render is stale (its sources, or only the film's sound); none for every other variant. */
+  staleBy: maybe(StaleBy),
   picked: Schema.Boolean,
   /** The verbs its state allows. */
   verbs: Schema.Array(ChoiceVerb),
@@ -128,8 +131,9 @@ export const refOf = (point: Pick<ChoicePoint, 'id'>): Option.Option<PointRef> =
   pointRefOf(point.id);
 
 /** A variant as its adapter describes it, before the owner's say is read. */
-export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes'> & {
+export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes' | 'staleBy'> & {
   readonly notes?: Option.Option<ReviewFile>;
+  readonly staleBy?: Option.Option<StaleBy>;
 };
 
 /** A point as its adapter describes it: its variants' say still to read. */
@@ -166,6 +170,7 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
     return {
       ...variant,
       notes: variant.notes ?? Option.none(),
+      staleBy: variant.staleBy ?? Option.none(),
       approval: Option.match(said, {
         onNone: (): ApprovalState => 'none',
         onSome: ({ cat, subject }) => approvalState(cat, subject),

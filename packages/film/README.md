@@ -1095,7 +1095,11 @@ at 0 drawing today's film); a render of another level is a render variant
 record says what its files are. A film's project folder (`out/<film>`) holds
 `catalogue.json`: each address the catalogue has renders of is a set, its
 variants that address's renders (`main` first, a share copy in place of its
-master), each with its stamp and the owner's approval. A montage folder (say a
+master), each with its stamp, the owner's approval, and its state as the
+record says it (`recordedNow`): stale by its `sources` when a newer render at
+its address drew other sources, by its `sound` when a newer video carries
+another mix (`ChoiceVariant.staleBy`; whether the newest is current against
+the sources now is `film project`'s). A montage folder (say a
 look explored by hand) holds `review.json` (`ReviewManifest`), which names its
 files: `videos` and `images` (loose files to show), `docs`, and per set a title,
 order, start, moments, and each variant's label, tag, verdict, notes and
