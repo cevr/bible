@@ -1531,6 +1531,11 @@ the same file that does) gives its timeout as its last argument
 (`spawnBudget(n)` from `apps/animations/test/cli-run.ts`, or milliseconds): a
 cold start's time is the machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
+The package's tests run with `bun test --timeout 20000` (its `test` script):
+the lab's browser tests open a page, bundle the lab and draw the probe film
+before they assert, which took 3–4.5 s at a load average of 50 beside
+sibling renders, where bun's 5 s default failed them in the gate. A test that
+hangs still fails, at 20 s.
 
 ## Knobs
 
