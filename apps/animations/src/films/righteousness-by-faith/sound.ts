@@ -1,6 +1,20 @@
-// The film's beds and effects. No score yet: the landing (`name`'s held
-// breath, `thesis`) and the credits (`end`) are left for it, so they stay
-// quiet until it is made.
+// The film's score, beds and effects.
+//
+// The score: three options, one film in three musical languages, all warm and
+// hopeful, never cinematic-epic: `piano` (felt piano and soft strings),
+// `ensemble` (a warm acoustic chamber group) and `ambient` (pads with a
+// four-note motif). They share one set of acts, so each turns where the film
+// does: the courtroom's question, the title's first statement of the theme,
+// the law's measure and our coming up short (a bass pedal swells), 1888's
+// message rising, the gifts shown, faith from the word, forgiveness (the low
+// end thins), the exchange and the accuser (the climax: the bass pedal at its
+// loudest, dark, then dawn), the robe, power, the name, and the landing
+// lifting (`thesis`, music alone) into the credits. The generated music
+// carries little under 70 Hz on its own, so the swells are asked for by
+// instrument (bowed basses, a pedal tone, a soft timpani roll), not by band.
+// The mix holds the score about 18.5 dB under the voice wherever anyone
+// speaks and lets it rise to about 6 dB under where no one does (the title
+// card, the landing, the credits).
 //
 // Beds sit 17–20 dB under the voice. The parchment (IDEA) has one bed, the
 // paper room (`room.paper`); each STORY place has its own air from the
@@ -18,7 +32,132 @@
 // courts (`woman`'s temple court, and `accuser` into `robe`'s heavenly one),
 // the town's under `centurion` until its row.
 
-import type { Cue, Sound } from '@bible/film/core';
+import type { Act, Cue, Music, Sound } from '@bible/film/core';
+
+/**
+ * The score's acts, one per turn of the film (each 3–120 s, from its scene to
+ * the next act's). Styles here are the mood and shape; each option brings its
+ * own instruments.
+ */
+const acts: ReadonlyArray<Act> = [
+  {
+    from: 'cold',
+    name: 'The courtroom',
+    styles: ['sparse', 'quiet suspense', 'questioning', 'unresolved', 'soft pulse'],
+  },
+  {
+    from: 'title',
+    name: 'The theme, then the measure',
+    styles: [
+      'begins at once, full and warm: the main theme stated clearly in the first three seconds',
+      'then sinks lower and more searching',
+      'slow build in the low register',
+    ],
+  },
+  {
+    from: 'mirror',
+    name: 'Coming up short',
+    styles: [
+      'heavy',
+      'a deep bass pedal tone swelling slowly louder under everything',
+      'bowed double basses on the lowest notes',
+      'soft low timpani roll',
+      'minor',
+      'weary',
+      'restrained',
+    ],
+  },
+  {
+    from: 'message',
+    name: 'The message of 1888',
+    styles: ['hope dawning', 'gentle forward motion', 'rising', 'major key'],
+  },
+  {
+    from: 'roof',
+    name: 'The gifts shown',
+    styles: ['warm', 'narrative', 'tender', 'unhurried', 'gentle movement'],
+  },
+  {
+    from: 'spoke',
+    name: 'Faith from the word',
+    styles: ['light breaking', 'wonder', 'growing', 'hopeful', 'steady'],
+  },
+  {
+    from: 'declared',
+    name: 'Forgiveness',
+    styles: ['tender', 'intimate', 'grace', 'soft resolution', 'light, no bass'],
+  },
+  {
+    from: 'exchange',
+    name: 'The exchange',
+    styles: [
+      'grief',
+      'the climax',
+      'a deep bass pedal tone swelling to its loudest under everything',
+      'bowed double basses on the lowest notes',
+      'soft low timpani roll',
+      'darkness and stillness',
+      'then light breaking through, slowly',
+    ],
+  },
+  {
+    from: 'accuser',
+    name: 'The accuser silenced',
+    styles: ['tension resolving', 'low strings easing', 'quiet strength', 'warming'],
+  },
+  {
+    from: 'robe',
+    name: 'The robe',
+    styles: ['warm', 'woven', 'gentle lift', 'gratitude', 'light, little bass'],
+  },
+  {
+    from: 'within',
+    name: 'Power within',
+    styles: ['steady walking pulse', 'renewal', 'quiet confidence', 'gentle rain'],
+  },
+  {
+    from: 'name',
+    name: 'The name',
+    styles: ['gathering', 'resolute', 'building gently toward a lift'],
+  },
+  {
+    from: 'thesis',
+    name: 'The Lord our righteousness',
+    styles: [
+      'the landing',
+      'the main theme returns in full',
+      'lifts',
+      'luminous',
+      'joyful',
+      'warm',
+    ],
+  },
+  {
+    from: 'end',
+    name: 'Credits',
+    styles: ['peaceful', 'the theme once more, softly', 'settling', 'ending on a resolved chord'],
+  },
+];
+
+/** What no option may do: sing, speak, or turn into a trailer. */
+const avoid = [
+  'vocals',
+  'choir',
+  'lyrics',
+  'spoken word',
+  'epic trailer',
+  'cinematic braams',
+  'heavy drums',
+  'EDM',
+  'distortion',
+];
+
+const option = (styles: ReadonlyArray<string>, extra: ReadonlyArray<string> = []): Music => ({
+  model: 'music_v2_5',
+  styles: ['instrumental', 'film score', 'warm', 'hopeful', ...styles],
+  avoid: [...avoid, ...extra],
+  acts,
+});
 
 /**
  * The paper room's level (dB against the voice). Room tone is broadband and
@@ -38,6 +177,41 @@ const mark = (scene: string, name: string, offset = 0): Cue => ({ scene, mark: n
 const start = (scene: string, offset = 0): Cue => ({ scene, offset });
 
 export const sound: Sound = {
+  score: {
+    play: 'piano',
+    // Integrated against the voice bus. Measured while the voice speaks (400 ms
+    // windows), −18.5 here played about 17.4 dB under; −19.5 plays about 18.4.
+    under: -19.5,
+    alone: -6,
+    options: {
+      piano: option(
+        ['felt piano', 'soft string ensemble', 'intimate', 'slow tempo', 'gentle suspensions'],
+        ['synth', 'electronic beats'],
+      ),
+      ensemble: option(
+        [
+          'warm acoustic chamber ensemble',
+          'nylon-string guitar',
+          'cello',
+          'clarinet',
+          'upright bass',
+          'soft hand percussion',
+          'folk',
+        ],
+        ['electric guitar', 'synth'],
+      ),
+      ambient: option(
+        [
+          'ambient',
+          'warm evolving pads',
+          'a simple recurring four-note motif on celesta and soft Rhodes',
+          'slow',
+          'spacious',
+        ],
+        ['beats', 'drums'],
+      ),
+    },
+  },
   beds: [
     // IDEA: the parchment page.
     { sound: 'room.paper', level: PAPER, from: start('cold'), to: start('mirror', 0.4) },
