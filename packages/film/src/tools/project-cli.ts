@@ -1,15 +1,19 @@
 // `film project`: a film's project folder (`out/<film>`), scene by scene. Every
 // scene renders on its own into the folder, a scene whose render is current
-// (its stamp's key is its sources' key now) is skipped, and the owner's
-// approvals and comments are kept in the folder's catalogue
-// (`core/catalogue.ts`, `catalogue.ts`), each on the render it was given on.
+// (its stamp's key is its sources' key now, and it carries the mix the film
+// makes now) is skipped, a scene stale by its sound alone is re-muxed (its
+// sound cut again from the master, nothing drawn), and the owner's approvals
+// and comments are kept in the folder's catalogue (`core/catalogue.ts`,
+// `catalogue.ts`), each on the render as it was when given.
 //
 //   film project <film> [--variant v] [--json]
 //       the film's comments, then each act (its comments) and its scenes: each
-//       scene current, stale or missing; approved, stale or not; its comments
+//       scene current, stale (by its sources, or stale:sound) or missing;
+//       approved, stale or not; its comments
 //   film project render <film> [--variant v] [--scene id,id] [--scale k] [--no-captions]
 //                              [--no-share] [--workers n] [--encoder e] [--force]
-//       render every scene (or those named) that is not current, each to scenes/<id>/<variant>.mp4
+//       render every scene (or those named) that is not current, each to
+//       scenes/<id>/<variant>.mp4; one stale by its sound alone is re-muxed
 //   film project approve <film> (--scene id,id | --act name | --all) [--variant v] [--json]
 //       approve those scenes' renders as they are stamped, an act's current
 //       scenes, or every current scene
@@ -30,6 +34,7 @@ import {
   MAIN_VARIANT,
   type Project,
   type ProjectScene,
+  type Render,
   RenderVariantName,
   type SaidComment,
   type SceneKey,
@@ -37,22 +42,23 @@ import {
   approve,
   approveCurrent,
   comment,
-  needsRender,
   nextCommentId,
   partSubject,
   projectOf,
   renderIn,
+  renderNeed,
   sceneSlot,
   subjectOf,
 } from '../core/catalogue.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
 import { ProjectRead, answering, printLine } from './choices-process.ts';
 import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, flagConflicts, jobOf } from './render-plan.ts';
+import { planKey } from './mixer.ts';
 import { Renderer } from './renderer.ts';
 import { type SceneKeys, Stamps, sceneStamps, stampOf } from './stamp.ts';
 
@@ -104,6 +110,37 @@ export const renderAndRecord = Effect.fn('film.renderAndRecord')(function* (
   return output;
 });
 
+/**
+ * Re-mux `render` (a scene video stale by its sound alone): its sound cut
+ * again from the film's master now, and recorded as it now sounds. None when
+ * it recorded no cut to take again (it is drawn instead).
+ */
+const remuxAndRecord = Effect.fn('film.remuxAndRecord')(function* (
+  loaded: LoadedFilm,
+  render: Render,
+) {
+  const path = yield* Path.Path;
+  const inProject = (file: string) => path.join(loaded.paths.out, file);
+  const cut = Option.all({ clip: render.files.clip, sound: render.sound });
+  if (Option.isNone(cut)) return Option.none<string>();
+  const { clip, sound } = cut.value;
+  const now = yield* (yield* Renderer).remux(loaded, {
+    clip: inProject(clip),
+    share: Option.map(render.files.share, inProject),
+    pieces: sound.pieces,
+  });
+  const at = yield* Clock.currentTimeMillis;
+  yield* (yield* RenderCatalogue).record(loaded.paths, { ...render, sound: Option.some(now), at });
+  return Option.some(clip);
+});
+
+/** The mix a scene's video carries now: the plan the film mixes to, once every take is recorded. */
+const soundNow = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>) =>
+  Effect.gen(function* () {
+    if (!everyTakeRecorded(placed)) return Option.none<string>();
+    return yield* planKey(loaded, placed);
+  });
+
 /** The film loaded and laid out, with its scenes' keys now and its address tree keyed. */
 const keyed = Effect.fn('film.project.keyed')(function* (name: string) {
   const loaded = yield* (yield* FilmRepo).load(name);
@@ -121,7 +158,12 @@ const keyed = Effect.fn('film.project.keyed')(function* (name: string) {
       }),
     ),
   );
-  const tree: Keyed = { key: stampOf(keys, whole).key, acts, scenes: sceneKeys(keys, placed) };
+  const tree: Keyed = {
+    key: stampOf(keys, whole).key,
+    sound: yield* soundNow(loaded, placed),
+    acts,
+    scenes: sceneKeys(keys, placed),
+  };
   return { loaded, placed, keys, tree };
 });
 
@@ -135,10 +177,20 @@ const saidLines = (comments: ReadonlyArray<SaidComment>, indent: string): string
     .map((c) => `\n${indent}${Arr.filter(['(earlier) '], () => !c.onThis).join('')}${c.text}`)
     .join('');
 
+/** A scene's state as a word: `current`, `missing`, `stale` (its sources) or `stale:sound`. */
+const stateWord = (scene: ProjectScene): string =>
+  Option.match(
+    Option.filter(scene.staleBy, (by) => by === 'sound'),
+    {
+      onNone: () => scene.state,
+      onSome: (by) => `${scene.state}:${by}`,
+    },
+  );
+
 /** One scene of the project as a line: its state, its approval, its comments, its clip. */
 const sceneLine = (scene: ProjectScene): string => {
   const clip = Option.flatMap(scene.render, (r) => r.files.clip);
-  return `  ${scene.scene.padEnd(16)} ${scene.state.padEnd(8)} ${scene.approval.padEnd(9)}${Option.match(
+  return `  ${scene.scene.padEnd(16)} ${stateWord(scene).padEnd(11)} ${scene.approval.padEnd(9)}${Option.match(
     clip,
     { onNone: () => '', onSome: (file) => ` ${file}` },
   )}${saidLines(scene.comments, '      ')}`;
@@ -243,20 +295,37 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       ),
     },
     Effect.fn('film.project.render')(function* (input) {
-      const { loaded, placed, keys } = yield* keyed(input.film);
+      const { loaded, placed, keys, tree } = yield* keyed(input.film);
       const catalogues = yield* RenderCatalogue;
       const settings = { scale: input.scale, captions: input.captions };
       const scopes = yield* scenesNamed(loaded, placed, input.scene);
       let rendered = 0;
+      let remuxed = 0;
       for (const scope of scopes) {
         const id = scope.scenes[0]?.spec.id ?? '';
         const stamp = stampOf(keys, scope);
         const catalogue = yield* catalogues.read(loaded.paths);
-        if (
-          !input.force &&
-          !needsRender(catalogue, sceneSlot(id, input.variant), stamp.key, settings)
-        ) {
+        const slot = sceneSlot(id, input.variant);
+        const need = Match.value(input.force).pipe(
+          Match.when(true, () => 'draw' as const),
+          Match.orElse(() =>
+            renderNeed(catalogue, slot, { key: stamp.key, sound: tree.sound }, settings),
+          ),
+        );
+        if (need === 'current') {
           yield* Console.log(`${id.padEnd(16)} current`);
+          continue;
+        }
+        const recut = yield* Option.match(
+          Option.filter(renderIn(catalogue, slot), () => need === 'remux'),
+          {
+            onNone: () => Effect.succeedNone,
+            onSome: (render) => remuxAndRecord(loaded, render),
+          },
+        );
+        if (Option.isSome(recut)) {
+          remuxed += 1;
+          yield* Console.log(`${id.padEnd(16)} remuxed ${recut.value}`);
           continue;
         }
         const job = yield* Effect.fromResult(
@@ -280,12 +349,12 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         yield* Console.log(`${id.padEnd(16)} rendered ${Option.getOrElse(output.clip, () => '')}`);
       }
       yield* Effect.log(
-        `project.render film=${input.film} variant=${input.variant} rendered=${rendered} current=${scopes.length - rendered}`,
+        `project.render film=${input.film} variant=${input.variant} rendered=${rendered} remuxed=${remuxed} current=${scopes.length - rendered - remuxed}`,
       );
     }, Effect.provide(renderLayer)),
   ).pipe(
     Command.withDescription(
-      "Render each scene on its own into the film's project folder (out/<film>/scenes/<id>/<variant>.mp4), skipping a scene whose render is current",
+      "Render each scene on its own into the film's project folder (out/<film>/scenes/<id>/<variant>.mp4), skipping a scene whose render is current and re-muxing one stale by its sound alone (its sound cut again from the master, nothing drawn)",
     ),
   );
 
@@ -332,7 +401,7 @@ const approveScenes = Command.make(
     /** Every current scene of `scenes` approved, in one update. */
     const current = (scenes: ReadonlyArray<SceneKey>) =>
       catalogues.update(loaded.paths, (catalogue) => {
-        const done = approveCurrent(catalogue, scenes, input.variant, at);
+        const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at);
         return [done.approved, done.catalogue] as const;
       });
     const named = (ids: ReadonlyArray<string>) =>

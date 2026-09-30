@@ -226,9 +226,9 @@ describe('film cli', () => {
               .map((line) => line.trimEnd()),
           ).toEqual([
             `${film} (main)`,
-            '  open             missing  none',
-            '  turn             missing  none',
-            '  close            missing  none',
+            '  open             missing     none',
+            '  turn             missing     none',
+            '  close            missing     none',
           ]);
           const said = yield* runCli({ FILMS_OUT: out }, [
             'project',

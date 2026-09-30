@@ -61,7 +61,7 @@ const CHOICES: FilmChoices = {
 /** Film `f`'s project: one scene, `a`, not yet rendered. */
 const PROJECT: Project = projectOf(
   emptyCatalogue('f'),
-  { key: 'fk', acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
+  { key: 'fk', sound: Option.none(), acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
   'main',
 );
 

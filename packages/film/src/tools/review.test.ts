@@ -96,6 +96,7 @@ const videoRender = (
     chapters: Option.none(),
     images: [],
   },
+  sound: Option.none(),
   at: 1,
 });
 

@@ -47,6 +47,7 @@ import {
   Layer,
   Match,
   Option,
+  Random,
   Stream,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
@@ -108,6 +109,20 @@ export interface MediaService {
    * them. Every segment must be encoded alike.
    */
   readonly join: (film: JoinedFilm) => Effect.Effect<void, MediaFailed>;
+  /**
+   * `video` with its sound replaced by `audio`: its H.264 packets copied, not
+   * re-encoded, and the track's AAC packets beside them. The file is written
+   * beside `video` and renamed over it once whole.
+   */
+  readonly remux: (video: string, audio: AacTrack) => Effect.Effect<void, MediaFailed>;
+  /**
+   * `video` with its sound replaced by `from`'s: its video stream and
+   * `from`'s audio copied by ffmpeg, not re-encoded, as a share copy takes its
+   * track from the master (`SHARE_X264`). An x264 share's B-frames copy
+   * there as they are. The file is written beside `video` and renamed over it
+   * once whole.
+   */
+  readonly copySound: (video: string, from: string) => Effect.Effect<void, MediaFailed>;
   /**
    * The share copy of the film at `master`, written to `out`: its video
    * encoded again by x264 (`SHARE_X264`), its track copied. `out` appears
@@ -756,6 +771,80 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         yield* joinInto(fs, film);
       });
 
+      /** The video packets `file` holds, counted by mediabunny in place on the disk. */
+      const videoPackets = (file: string) =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            const input = yield* Effect.acquireRelease(
+              Effect.sync(
+                () => new Input({ source: new FilePathSource(file), formats: ALL_FORMATS }),
+              ),
+              (opened) => Effect.sync(() => opened.dispose()),
+            );
+            const track = yield* present(
+              file,
+              'video track',
+              yield* attempt('join', file, () => input.getPrimaryVideoTrack()),
+            );
+            const stats = yield* attempt('join', file, () => track.computePacketStats());
+            return stats.packetCount;
+          }),
+        );
+
+      const remux = Effect.fn('Media.remux')(function* (video: string, audio: AacTrack) {
+        const frames = yield* videoPackets(video);
+        const partial = `${video}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial.mp4`;
+        yield* joinInto(fs, {
+          out: partial,
+          segments: [{ file: video, at: 0 }],
+          frames,
+          audio: Option.some(audio),
+        }).pipe(
+          Effect.andThen(fs.rename(partial, video)),
+          Effect.mapError((error) =>
+            Match.value(error).pipe(
+              Match.tag('MediaFailed', (failed) => failed),
+              Match.orElse((other) =>
+                MediaFailed.make({ op: 'write', file: video, reason: other.message }),
+              ),
+            ),
+          ),
+          Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))),
+        );
+      });
+
+      const copySound = Effect.fn('Media.copySound')(function* (video: string, from: string) {
+        const partial = `${video}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial.mp4`;
+        yield* runFfmpeg(spawner, 'write', video, [
+          '-i',
+          video,
+          '-i',
+          from,
+          '-map',
+          '0:v',
+          '-map',
+          '1:a',
+          '-c',
+          'copy',
+          '-movflags',
+          '+faststart',
+          '-f',
+          'mp4',
+          partial,
+        ]).pipe(
+          Effect.andThen(fs.rename(partial, video)),
+          Effect.mapError((error) =>
+            Match.value(error).pipe(
+              Match.tag('MediaFailed', (failed) => failed),
+              Match.orElse((other) =>
+                MediaFailed.make({ op: 'write', file: video, reason: other.message }),
+              ),
+            ),
+          ),
+          Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))),
+        );
+      });
+
       const encodeAac = Effect.fn('Media.encodeAac')(function* (pcm: Pcm) {
         return yield* encodeTrack(pcm);
       });
@@ -877,6 +966,8 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         encodeAac,
         writeAac,
         join,
+        remux,
+        copySound,
         load,
         encodeFlac,
         shareCopy,

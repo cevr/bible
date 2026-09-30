@@ -67,6 +67,7 @@ export const renderRecord = (
       chapters: Option.map(output.chapters, rel),
       images: output.images.map(rel),
     },
+    sound: output.sound,
     at,
   };
 };

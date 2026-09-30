@@ -317,25 +317,34 @@ module and all it imports (relative and workspace imports; not packages under
 import, with the registry's imports of the other scenes cut, and
 `@bible/film/player`), its beat as laid out and its take's timing, and, for a
 scene entering on a transition, the previous scene's own modules. An
-address's key hashes its scenes' keys. The key leaves out the audio (`mix` has
-its own staleness check) and what a frame fetches at run time.
+address's key hashes its scenes' keys. The key leaves out what a frame
+fetches at run time, and the audio: a video's record says the sound it
+carries instead (`sound`: the key of the plan its master was mixed from,
+`mixKey`, and the pieces of the master it cut).
 
 **`film project`** reviews a film scene by scene. `film project <film>
 [--variant v] [--json]` lists every scene in film order: its render `current`
-(drawn from the sources as they are), `stale` or `missing`; its approval
+(drawn from the sources as they are, carrying the mix the film makes now),
+`stale` (its sources changed), `stale:sound` (only the film's mix changed: a
+score pick, a level, a kept take, then `mix`) or `missing`; its approval
 `approved`, `stale` (given on an earlier render) or `none`; and its comments,
 each marked when it was made on an earlier render. `film project render
 <film> [--scene id,id] [--scale s] [--variant v] [--force]` renders each scene
-on its own into `scenes/<id>/` and skips one whose render is current at the
-same settings. `film project approve <film> --scene id,id | --act name |
+on its own into `scenes/<id>/`, skips one whose render is current at the same
+settings, and re-muxes one stale by its sound alone: its sound is cut again
+from the master at the pieces it recorded (the renderer's master check
+first), its pictures and its share copy's are copied, and no page opens
+(`render.remux frames_drawn=0`). `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
 scene (a stale or missing scene is left, and named). `film project comment
 <film> "text" [--scene id | --act name]` records a comment on a scene's render
 as it is now, on an act, or (with neither) on the whole film. With `--json`
 each prints the project (`ProjectRead`) as one line, or its refusal
 (`FreshRefused`), which is how the review runs it. Approvals and comments are keyed by address,
-variant and the stamp's key: a re-render leaves an approval in place, stale,
-and a render that returns to the approved sources is approved again. Each
+variant and the render's version (`renderVersion`: the stamp's key and the
+mix it carries): a re-render or a re-mux leaves an approval in place, stale,
+and a render that returns to the approved sources and sound is approved
+again. Each
 write reads the file, changes it and writes it back whole (a temp name, then a
 rename), one at a time in a process; two processes writing one film's
 catalogue at the same instant can lose the earlier write.

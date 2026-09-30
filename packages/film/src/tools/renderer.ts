@@ -29,10 +29,18 @@ import {
   sharesInPage,
 } from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
+import type { RenderSound } from '../core/catalogue.ts';
 import type { ChunkTiming } from '../core/export-handle.ts';
 import type { ShortError } from '../core/errors.ts';
 import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
-import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
+import {
+  type FilmPiece,
+  type ResolvedShort,
+  resolveShort,
+  shortPage,
+  shortPieces,
+} from '../core/shorts.ts';
+import { FILM_FPS } from '../core/time.ts';
 import { type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
 import {
   type AudioMissing,
@@ -210,7 +218,23 @@ export interface RendererService {
    * its `--out`, and say what it wrote.
    */
   readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
+  /**
+   * A video's sound cut again from the film's master now, at the pieces it
+   * recorded: its pictures (and its share copy's) copied, no page opened,
+   * nothing drawn. The master is checked first, as a render checks it; the
+   * sound the video now carries is the answer.
+   */
+  readonly remux: (film: LoadedFilm, video: Remuxed) => Effect.Effect<RenderSound, RemuxError>;
 }
+
+/** A recorded video whose sound is cut again: its files, and the pieces of the master it carries. */
+export interface Remuxed {
+  readonly clip: string;
+  readonly share: Option.Option<string>;
+  readonly pieces: ReadonlyArray<FilmPiece>;
+}
+
+export type RemuxError = AudioMissing | AudioStale | MediaFailed | PlaceError | PlatformError;
 
 export class Renderer extends Context.Service<Renderer, RendererService>()(
   '@bible/film/tools/Renderer',
@@ -222,6 +246,48 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const path = yield* Path.Path;
       const media = yield* Media;
       const pages = yield* Pages;
+
+      /**
+       * The film's master checked, before anything is drawn or cut, against
+       * the film it must cover (`seconds`, to within `tolerance`) and the plan
+       * the film mixes to now: that plan's key (none when it does not build).
+       */
+      const checkedMaster = (
+        film: LoadedFilm,
+        placed: ReadonlyArray<Placed>,
+        seconds: number,
+        tolerance: number,
+      ) =>
+        Effect.gen(function* () {
+          const master = yield* readMaster(fs, media, film.paths);
+          const key = yield* planKey(film, placed).pipe(
+            Effect.provideService(FileSystem.FileSystem, fs),
+          );
+          const finding = masterFinding(
+            masterFile(film.paths),
+            master,
+            { seconds, key },
+            tolerance,
+          );
+          if (Option.isSome(finding)) return yield* finding.value;
+          return key;
+        });
+
+      /** The master cut at `cut`'s pieces, each join faded, and encoded to AAC once. */
+      const trackOf = (cut: AudioCut) =>
+        media.decode(cut.file).pipe(
+          Effect.map((pcm) =>
+            splice(
+              pcm,
+              cut.pieces.map((piece) => ({
+                from: Math.round(piece.start * pcm.rate),
+                frames: Math.round(piece.duration * pcm.rate),
+              })),
+              Math.round(JOIN_FADE * pcm.rate),
+            ),
+          ),
+          Effect.flatMap(media.encodeAac),
+        );
 
       /** The short on a page's clock: the same spans, on the same frames, it draws. */
       const shortOn = (placed: ReadonlyArray<Placed>, cut: Cut, fps: number) =>
@@ -285,18 +351,18 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
             }),
           }),
         );
-        if (Option.isSome(audio)) {
-          const master = yield* readMaster(fs, media, film.paths);
-          const seconds = Option.match(where.short, {
-            onNone: () => info.duration,
-            onSome: () => filmEnd(where.placed),
-          });
-          const key = yield* planKey(film, where.placed).pipe(
-            Effect.provideService(FileSystem.FileSystem, fs),
-          );
-          const finding = masterFinding(audio.value.file, master, { seconds, key }, 1 / info.fps);
-          if (Option.isSome(finding)) return yield* finding.value;
-        }
+        const seconds = Option.match(where.short, {
+          onNone: () => info.duration,
+          onSome: () => filmEnd(where.placed),
+        });
+        const sound = yield* Option.match(audio, {
+          onNone: () => Effect.succeedNone,
+          onSome: (cut) =>
+            checkedMaster(film, where.placed, seconds, 1 / info.fps).pipe(
+              Effect.map((mix): RenderSound => ({ mix, pieces: cut.pieces })),
+              Effect.asSome,
+            ),
+        });
 
         // Before the pool opens: pages past the encoders this encoder runs at once would hang
         // (hardware) or fight for the cores (software).
@@ -313,21 +379,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         // The track, cut and encoded once beside the pages; both joins copy its packets.
         const aac = Option.match(audio, {
           onNone: () => Effect.succeedNone,
-          onSome: (cut) =>
-            media.decode(cut.file).pipe(
-              Effect.map((pcm) =>
-                splice(
-                  pcm,
-                  cut.pieces.map((piece) => ({
-                    from: Math.round(piece.start * pcm.rate),
-                    frames: Math.round(piece.duration * pcm.rate),
-                  })),
-                  Math.round(JOIN_FADE * pcm.rate),
-                ),
-              ),
-              Effect.flatMap(media.encodeAac),
-              Effect.asSome,
-            ),
+          onSome: (cut) => Effect.asSome(trackOf(cut)),
         });
 
         // The segments go in a folder of this render's own, made fresh by the
@@ -481,9 +533,28 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           captions: Option.some(captions),
           chapters,
           images: [],
+          sound,
         };
         return written;
       }, Effect.scoped);
+
+      const remux = Effect.fn('Renderer.remux')(function* (film: LoadedFilm, video: Remuxed) {
+        const placed = yield* placeFilm(film);
+        const file = masterFile(film.paths);
+        const mix = yield* checkedMaster(film, placed, filmEnd(placed), 1 / FILM_FPS);
+        const track = yield* trackOf({ file, pieces: video.pieces });
+        yield* media.remux(video.clip, track);
+        // The share copy takes the clip's new track, as a render's x264 share does.
+        yield* Option.match(video.share, {
+          onNone: () => Effect.void,
+          onSome: (share) => media.copySound(share, video.clip),
+        });
+        yield* Effect.log(
+          `render.remux frames_drawn=0 pieces=${video.pieces.length} mix=${Option.getOrElse(mix, () => 'none').slice(0, 12)} file=${video.clip} share=${Option.getOrElse(video.share, () => 'none')}`,
+        );
+        const sound: RenderSound = { mix, pieces: video.pieces };
+        return sound;
+      });
 
       const stills = Effect.fnUntraced(function* (
         job: Extract<RenderJob, { _tag: 'Stills' }>,
@@ -578,7 +649,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         });
       });
 
-      return Renderer.of({ render });
+      return Renderer.of({ render, remux });
     }),
   ).pipe(Layer.provide(Pages.layer));
 }

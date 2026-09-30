@@ -12,7 +12,7 @@ import {
   emptyCatalogue,
   type Keyed,
   type SceneKey,
-  needsRender,
+  renderNeed,
   partSubject,
   projectOf,
   recordRender,
@@ -38,6 +38,7 @@ const sceneRender = (id: string, key: string, at = 1): Render => ({
     chapters: Option.none(),
     images: [],
   },
+  sound: Option.none(),
   at,
 });
 
@@ -45,7 +46,12 @@ const withRenders = (...renders: ReadonlyArray<Render>): Catalogue =>
   renders.reduce(recordRender, emptyCatalogue('f'));
 
 /** The film as its scenes alone, keyed now (no acts). */
-const keyed = (scenes: ReadonlyArray<SceneKey>): Keyed => ({ key: 'film-k', acts: [], scenes });
+const keyed = (scenes: ReadonlyArray<SceneKey>): Keyed => ({
+  key: 'film-k',
+  sound: Option.none(),
+  acts: [],
+  scenes,
+});
 
 /** What is said of `render`: its variant as stamped. */
 const of = subjectOf;
@@ -68,10 +74,76 @@ describe('a scene render against its sources', () => {
   test('needs a render when missing, stale or made at other settings; not when current', () => {
     const catalogue = withRenders(sceneRender('a', 'k1'));
     const slot = sceneSlot('a', 'main');
-    expect(needsRender(catalogue, slot, 'k1', SETTINGS)).toBe(false);
-    expect(needsRender(catalogue, slot, 'k2', SETTINGS)).toBe(true);
-    expect(needsRender(catalogue, slot, 'k1', { scale: 1, captions: true })).toBe(true);
-    expect(needsRender(catalogue, sceneSlot('b', 'main'), 'k1', SETTINGS)).toBe(true);
+    const now = (key: string) => ({ key, sound: Option.none() });
+    expect(renderNeed(catalogue, slot, now('k1'), SETTINGS)).toBe('current');
+    expect(renderNeed(catalogue, slot, now('k2'), SETTINGS)).toBe('draw');
+    expect(renderNeed(catalogue, slot, now('k1'), { scale: 1, captions: true })).toBe('draw');
+    expect(renderNeed(catalogue, sceneSlot('b', 'main'), now('k1'), SETTINGS)).toBe('draw');
+  });
+});
+
+/** `render` carrying the film's master as mixed from plan `mix`, cut at its span. */
+const sounding = (render: Render, mix: string): Render => ({
+  ...render,
+  sound: Option.some({ mix: Option.some(mix), pieces: [{ start: 0, duration: 4 }] }),
+});
+
+/** The film keyed now with the film's mix key `sound`. */
+const heard = (scenes: ReadonlyArray<SceneKey>, sound: string): Keyed => ({
+  ...keyed(scenes),
+  sound: Option.some(sound),
+});
+
+describe("a scene render against the film's sound", () => {
+  test('is stale by its sound once the mix changes (a score pick, a level), though its scene did not', () => {
+    const catalogue = withRenders(sounding(sceneRender('a', 'k1'), 'mix-a'));
+    const same = projectOf(catalogue, heard([{ scene: 'a', key: 'k1' }], 'mix-a'), 'main');
+    const remixed = projectOf(catalogue, heard([{ scene: 'a', key: 'k1' }], 'mix-b'), 'main');
+    expect([same.scenes[0]?.state, same.scenes[0]?.staleBy]).toEqual(['current', Option.none()]);
+    expect([remixed.scenes[0]?.state, remixed.scenes[0]?.staleBy]).toEqual([
+      'stale',
+      Option.some('sound'),
+    ]);
+    // A scene that changed is stale by its sources, whatever its sound.
+    const redrawn = projectOf(catalogue, heard([{ scene: 'a', key: 'k2' }], 'mix-b'), 'main');
+    expect(redrawn.scenes[0]?.staleBy).toEqual(Option.some('sources'));
+  });
+
+  test('a render stale by its sound is re-muxed, not drawn again; one that drew other sources is drawn', () => {
+    const catalogue = withRenders(
+      sounding(sceneRender('a', 'k1'), 'mix-a'),
+      sceneRender('b', 'k1'),
+    );
+    const slot = sceneSlot('a', 'main');
+    const now = (key: string, sound: string) => ({ key, sound: Option.some(sound) });
+    expect(renderNeed(catalogue, slot, now('k1', 'mix-a'), SETTINGS)).toBe('current');
+    expect(renderNeed(catalogue, slot, now('k1', 'mix-b'), SETTINGS)).toBe('remux');
+    expect(renderNeed(catalogue, slot, now('k2', 'mix-b'), SETTINGS)).toBe('draw');
+    // A render that carries no sound has no cut to re-mux: the film's track is drawn with it.
+    expect(renderNeed(catalogue, sceneSlot('b', 'main'), now('k1', 'mix-b'), SETTINGS)).toBe(
+      'draw',
+    );
+    // A film with no track yet (or a plan that does not build) judges no render by its sound.
+    expect(renderNeed(catalogue, slot, { key: 'k1', sound: Option.none() }, SETTINGS)).toBe(
+      'current',
+    );
+  });
+
+  test('an approval is of the render as it sounded: re-muxed, it is stale', () => {
+    const first = sounding(sceneRender('a', 'k1'), 'mix-a');
+    const approved = approve(withRenders(first), of(first), 10);
+    const remuxed = sounding(sceneRender('a', 'k1', 20), 'mix-b');
+    const after = recordRender(approved, remuxed);
+    expect(approvalState(after, of(remuxed))).toBe('stale');
+    // Approve-all leaves a scene stale by its sound for a re-mux first.
+    const { approved: none } = approveCurrent(
+      withRenders(first),
+      [{ scene: 'a', key: 'k1' }],
+      Option.some('mix-b'),
+      'main',
+      5,
+    );
+    expect(none).toEqual([]);
   });
 });
 
@@ -102,7 +174,7 @@ describe('approvals', () => {
       { scene: 'b', key: 'new' },
       { scene: 'c', key: 'k3' },
     ];
-    const { catalogue: after, approved } = approveCurrent(catalogue, now, 'main', 5);
+    const { catalogue: after, approved } = approveCurrent(catalogue, now, Option.none(), 'main', 5);
     expect(approved).toEqual(['a']);
     expect(
       projectOf(after, keyed(now), 'main').scenes.map((s) => [s.scene, s.state, s.approval]),
@@ -141,6 +213,7 @@ describe("the owner's say beside a scene's render", () => {
     const said = comment(emptyCatalogue('f'), partSubject(act, 'main', 'a1'), 'too slow', 4);
     const tree = (key: string): Keyed => ({
       key: 'film-k',
+      sound: Option.none(),
       acts: [{ act: 'opening', scenes: ['a'], key }],
       scenes: [{ scene: 'a', key: 'k1' }],
     });
