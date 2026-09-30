@@ -421,7 +421,7 @@ describe("a film's project", () => {
   );
 
   it.live(
-    'approves all current, one scene, an act; withdraws; comments on a scene, a missing one, an act and the film',
+    'approves all current, one scene, an act; withdraws a scene, an act and the film; comments on a scene, a missing one, an act and the film',
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeProject(), { search: PROJECT });
@@ -453,6 +453,20 @@ describe("a film's project", () => {
         yield* click(page, '[data-act="approve-act"]');
         yield* until(page, "document.querySelector('p.rv-status').dataset.said === 'true'");
         yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === false`);
+        // An act's approvals withdrawn in one say (the stale one too), then the film's.
+        yield* click(page, '[data-act="withdraw-act"]');
+        yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
+        yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
+        yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
+        expect(
+          yield* evaluate<boolean>(
+            page,
+            `document.querySelector('[data-act="withdraw-act"]') === null`,
+          ),
+        ).toBe(true);
+        yield* click(page, '[data-act="withdraw-all"]');
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* until(page, `document.querySelector('[data-act="withdraw-all"]') === null`);
 
         yield* Effect.promise(() =>
           page.fill('[data-act-name="opening"] > .rv-say .rv-comment-input', 'the act drags'),
@@ -473,6 +487,8 @@ describe("a film's project", () => {
           { address: scenes('open'), say: { _tag: 'Comment', text: 'the hand jumps' } },
           { address: scenes('end'), say: { _tag: 'Comment', text: 'render it warm' } },
           { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
+          { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Withdraw' } },
+          { address: { _tag: 'Film' }, say: { _tag: 'Withdraw' } },
           {
             address: { _tag: 'Act', act: 'opening' },
             say: { _tag: 'Comment', text: 'the act drags' },

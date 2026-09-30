@@ -1236,8 +1236,10 @@ shown from its answer: the page reads nothing again but the undo and redo
 The project view (`?project=<film>`, `options/project.tsx`) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
 say and the same words at every level: the film's comments, "Approve all
-current" and its choice points, then each act (its comments, "Approve the
-act's current scenes", its points) and its scenes. Each scene is a render
+current", "Withdraw every approval" and its choice points, then each act (its
+comments, "Approve the act's current scenes", "Withdraw the act's approvals",
+its points) and its scenes; a withdraw is offered while a scene of the part
+holds an approval (an earlier version's too). Each scene is a render
 card: the video this checkout's catalogue records for it (`ProjectView.videos`,
 never another folder's of the same film), its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders

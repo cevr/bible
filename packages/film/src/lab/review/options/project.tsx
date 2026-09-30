@@ -2,8 +2,9 @@
 // (`core/catalogue.ts`'s Project, read in a fresh `film project --json` on
 // the server), film → acts → scenes → layers, with the same card, the same
 // say (approve, withdraw, comment) and the same words at every level. The
-// film's own comments and an approve of its current scenes; each act (its
-// comments, an approve of its current scenes); each scene's render as a
+// film's own comments, an approve of its current scenes and a withdraw of
+// its approvals; each act (its comments, the same approve and withdraw of
+// its scenes); each scene's render as a
 // render card (`choice.tsx`): the video this checkout's catalogue records
 // for it (`ProjectView.videos`), its state (current, stale by its sources or
 // by the film's sound alone, missing with the command that renders it), its
@@ -232,23 +233,45 @@ const countsOf = (scenes: ReadonlyArray<ProjectScene>) =>
     scenes.filter((s) => s.approval === 'approved').length
   } approved`;
 
-/** A part's bulk approve: every scene of it whose render is current. */
-const ApproveCurrent = (props: {
+/** What a part's approval buttons say: an act's, or the whole film's. */
+const PART_WORDS = {
+  act: { approve: "Approve the act's current scenes", withdraw: "Withdraw the act's approvals" },
+  all: { approve: 'Approve all current', withdraw: 'Withdraw every approval' },
+} as const;
+
+/**
+ * A part's approvals, each in one say: approve every scene of it whose
+ * render is current; withdraw every approval of its scenes (an earlier
+ * version's too), offered while one has one.
+ */
+const PartApproval = (props: {
   readonly at: ProjectValue;
   readonly address: PartAddress;
   readonly scenes: ReadonlyArray<ProjectScene>;
-  readonly act: string;
-  readonly children: string;
+  readonly part: keyof typeof PART_WORDS;
 }) => (
-  <button
-    type="button"
-    class="rv-chip"
-    data-act={props.act}
-    disabled={props.scenes.every((s) => s.state !== 'current') || props.at.saying()}
-    onClick={() => props.at.say({ address: props.address, say: { _tag: 'Approve' } })}
-  >
-    {props.children}
-  </button>
+  <>
+    <button
+      type="button"
+      class="rv-chip"
+      data-act={`approve-${props.part}`}
+      disabled={props.scenes.every((s) => s.state !== 'current') || props.at.saying()}
+      onClick={() => props.at.say({ address: props.address, say: { _tag: 'Approve' } })}
+    >
+      {PART_WORDS[props.part].approve}
+    </button>
+    <Show when={props.scenes.some((s) => s.approval !== 'none')}>
+      <button
+        type="button"
+        class="rv-chip"
+        data-act={`withdraw-${props.part}`}
+        disabled={props.at.saying()}
+        onClick={() => props.at.say({ address: props.address, say: { _tag: 'Withdraw' } })}
+      >
+        {PART_WORDS[props.part].withdraw}
+      </button>
+    </Show>
+  </>
 );
 
 const Scenes = (props: {
@@ -273,9 +296,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         {props.act.name} <small>{countsOf(scenes())}</small>
       </h2>
       <div class="rv-row">
-        <ApproveCurrent at={props.at} address={address()} scenes={scenes()} act="approve-act">
-          Approve the act's current scenes
-        </ApproveCurrent>
+        <PartApproval at={props.at} address={address()} scenes={scenes()} part="act" />
       </div>
       <Comments comments={props.act.comments} />
       <SayBox
@@ -300,9 +321,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
     <>
       <section class="rv-film" data-film={props.at.film}>
         <div class="rv-row">
-          <ApproveCurrent at={props.at} address={FILM} scenes={project().scenes} act="approve-all">
-            Approve all current
-          </ApproveCurrent>
+          <PartApproval at={props.at} address={FILM} scenes={project().scenes} part="all" />
           <span class="rv-hint" data-counts="">
             {countsOf(project().scenes)} · variant {project().variant}
           </span>
