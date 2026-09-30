@@ -240,9 +240,12 @@ const show = (project: Project, asJson: boolean) =>
     ),
   );
 
-/** `effect`, its refusals printed as the answer when the run answers in JSON (the review's read). */
-const answeringIf = <A, E, R>(asJson: boolean, effect: Effect.Effect<A, E, R>) => {
-  if (asJson) return answering(effect);
+/** `effect`, the failure it names printed as the answer when the run answers in JSON (the review's read). */
+const answeringIf = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  input: { readonly json: boolean },
+) => {
+  if (input.json) return answering(effect);
   return effect;
 };
 
@@ -274,10 +277,10 @@ const status = Command.make(
   'project',
   { film, variant: variantFlag, json },
   Effect.fn('film.project')(function* (input) {
-    const { loaded, tree } = yield* answeringIf(input.json, keyed(input.film));
-    const catalogue = yield* answeringIf(input.json, (yield* RenderCatalogue).read(loaded.paths));
+    const { loaded, tree } = yield* keyed(input.film);
+    const catalogue = yield* (yield* RenderCatalogue).read(loaded.paths);
     yield* show(projectOf(catalogue, tree, input.variant), input.json);
-  }),
+  }, answeringIf),
 );
 
 const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
@@ -451,7 +454,7 @@ const approveScenes = Command.make(
   { film, variant: variantFlag, ...partFlags('approve'), json },
   Effect.fn('film.project.approve')(function* (input) {
     yield* partsNamed(input);
-    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const { loaded, placed, tree } = yield* keyed(input.film);
     const catalogues = yield* RenderCatalogue;
     const at = yield* Clock.currentTimeMillis;
     /** Every current scene of `scenes` approved, in one update. */
@@ -486,11 +489,11 @@ const approveScenes = Command.make(
       if (input.all) return yield* current(tree.scenes);
       return yield* ApprovalUnnamed.make({ film: input.film, verb: 'approve' });
     });
-    const approved = yield* answeringIf(input.json, which);
+    const approved = yield* which;
     yield* Effect.log(`project.approve film=${input.film} scenes=${approved.join(',')}`);
     const catalogue = yield* catalogues.read(loaded.paths);
     yield* show(projectOf(catalogue, tree, input.variant), input.json);
-  }),
+  }, answeringIf),
 ).pipe(
   Command.withDescription(
     "Approve scenes' renders as they are stamped (--scene id,id), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
@@ -502,7 +505,7 @@ const withdrawApprovals = Command.make(
   { film, variant: variantFlag, ...partFlags('withdraw'), json },
   Effect.fn('film.project.withdraw')(function* (input) {
     yield* partsNamed(input);
-    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const { loaded, placed, tree } = yield* keyed(input.film);
     const catalogues = yield* RenderCatalogue;
     const which = Effect.gen(function* () {
       if (Option.isSome(input.scene)) {
@@ -513,14 +516,14 @@ const withdrawApprovals = Command.make(
       if (input.all) return tree.scenes.map((s) => s.scene);
       return yield* ApprovalUnnamed.make({ film: input.film, verb: 'withdraw' });
     });
-    const ids = yield* answeringIf(input.json, which);
+    const ids = yield* which;
     const catalogue = yield* catalogues.update(loaded.paths, (now) => {
       const next = ids.reduce((cat, id) => withdraw(cat, topicOfScene(id, input.variant)), now);
       return [next, next] as const;
     });
     yield* Effect.log(`project.withdraw film=${input.film} scenes=${ids.join(',')}`);
     yield* show(projectOf(catalogue, tree, input.variant), input.json);
-  }),
+  }, answeringIf),
 ).pipe(
   Command.withDescription(
     "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on",
@@ -553,7 +556,7 @@ const commentOn = Command.make(
         [['act', 'excludes', 'scene', 'say it of a scene or of an act, not both']],
       ),
     );
-    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const { loaded, placed, tree } = yield* keyed(input.film);
     const at = yield* Clock.currentTimeMillis;
     const catalogues = yield* RenderCatalogue;
     // A scene's comment is on its render as stamped, or on its sources as they are now
@@ -583,7 +586,7 @@ const commentOn = Command.make(
       }
       return partSubject({ _tag: 'Film' }, input.variant, tree.key);
     });
-    const subject = yield* answeringIf(input.json, about);
+    const subject = yield* about;
     const said = yield* catalogues.update(
       loaded.paths,
       (catalogue) =>
@@ -593,7 +596,7 @@ const commentOn = Command.make(
       `project.comment film=${input.film} id=${said} at=${addressKey(subject.address)}`,
     );
     yield* show(projectOf(yield* catalogues.read(loaded.paths), tree, input.variant), input.json);
-  }),
+  }, answeringIf),
 ).pipe(
   Command.withDescription(
     "Say something of one scene's render (--scene; of its sources as they are now while it has none), an act (--act) or the whole film, kept with the version it was said on",
