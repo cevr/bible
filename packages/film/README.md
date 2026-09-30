@@ -252,7 +252,9 @@ the same list the take check reads out).
 Playwright code) and a pool of player pages in one scope; a failure in any
 page, or Ctrl-C, closes every page, the browser and the server. A video's
 frames split into chunks (`planChunks`: about four per page, at least a second
-and at most eight each) on a queue that idle pages pull from; each page draws
+and at most eight each, then a tail of `workers` chunks at half that size, a
+quarter, and so on down to a second, so the last chunk each page pulls is its
+smallest and the pages finish together) on a queue that idle pages pull from; each page draws
 its chunk and encodes it with the browser's H.264 encoder through mediabunny
 (`player/encode.ts`, a key frame every two seconds) into a segment of its own
 (and, unless `--no-share`, a share copy from a second encoder in the same

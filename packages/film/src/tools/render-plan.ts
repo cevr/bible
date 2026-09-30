@@ -336,18 +336,60 @@ export const MIN_CHUNK_FRAMES = 30;
  */
 export const MAX_CHUNK_FRAMES = 240;
 
-/** Split `[start, end)` into in-order chunks for `workers` pages to pull from a queue. */
+/**
+ * `frames` split into as many near-equal chunks as `size` needs, each at most
+ * `size`, and none under `MIN_CHUNK_FRAMES` where there are frames for it.
+ */
+const evenly = (frames: number, size: number): ReadonlyArray<number> => {
+  const n = Math.max(1, Math.min(Math.ceil(frames / size), Math.floor(frames / MIN_CHUNK_FRAMES)));
+  return Arr.makeBy(n, (k) => Math.floor(((k + 1) * frames) / n) - Math.floor((k * frames) / n));
+};
+
+/**
+ * The tail's chunks, in the order the pages pull them: `pages` of half
+ * `size`, then `pages` of a quarter, and so on while a chunk keeps a second
+ * of frames. Frame costs vary twentyfold between scenes, so one full chunk
+ * pulled last can hold every other page idle; halving them makes the last
+ * chunk each page pulls its smallest, and the pages finish together.
+ */
+const tailSizes = (size: number, pages: number): ReadonlyArray<number> =>
+  Arr.unfold(Math.floor(size / 2), (n) =>
+    Option.map(
+      Option.liftPredicate(n, (k) => k >= MIN_CHUNK_FRAMES),
+      (k): readonly [ReadonlyArray<number>, number] => [
+        Arr.makeBy(pages, () => k),
+        Math.floor(k / 2),
+      ],
+    ),
+  ).flat();
+
+/** `frames` as chunk sizes, in order: `size` and under, then the tail; evenly when too short for it. */
+const chunkSizes = (frames: number, size: number, pages: number): ReadonlyArray<number> => {
+  const tail = tailSizes(size, pages);
+  const head = frames - tail.reduce((sum, n) => sum + n, 0);
+  if (head < MIN_CHUNK_FRAMES) return evenly(frames, size);
+  return [...evenly(head, size), ...tail];
+};
+
+/**
+ * Split `[start, end)` into in-order chunks for `workers` pages to pull from
+ * a queue: about four a page of `size` frames, then the halving tail
+ * (`tailSizes`). A range too short for the tail splits evenly.
+ */
 export const planChunks = (start: number, end: number, workers: number): ReadonlyArray<Chunk> => {
   const frames = end - start;
   if (frames <= 0) return [];
+  const pages = Math.max(1, workers);
   const size = Math.min(
     MAX_CHUNK_FRAMES,
-    Math.max(MIN_CHUNK_FRAMES, Math.ceil(frames / (Math.max(1, workers) * CHUNKS_PER_WORKER))),
+    Math.max(MIN_CHUNK_FRAMES, Math.ceil(frames / (pages * CHUNKS_PER_WORKER))),
   );
-  return Arr.makeBy(Math.ceil(frames / size), (index) => ({
+  const sizes = chunkSizes(frames, size, pages);
+  const ends = Arr.scan(sizes, start, (at, n) => at + n);
+  return Arr.makeBy(sizes.length, (index) => ({
     index,
-    from: start + index * size,
-    to: Math.min(end, start + (index + 1) * size),
+    from: ends[index] ?? start,
+    to: ends[index + 1] ?? end,
   }));
 };
 
