@@ -1018,7 +1018,8 @@ the film second it starts at; a finding about the whole film has neither).
   an end card (a last scene that speaks nothing) under 5 s, is an `EndShort`
   warning (static). Once every take is recorded, the sound leg renders the
   mix the film makes now in memory (not read from `full.wav`, which may be
-  stale) and reads it mono in 50 ms windows: a run under −60 dBFS longer than
+  stale) and reads it in 50 ms windows, its sides' power summed as a listener
+  hears it (`windowPowers`): a run under −60 dBFS longer than
   1.5 s is `DeadAir`, an error, less any span a cue declares with
   `silence: true` (`{ scene: 'start', offset: 2, dur: 3, silence: true }`),
   the designed silences the script means. The same mix is held to the

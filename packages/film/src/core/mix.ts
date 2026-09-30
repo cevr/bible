@@ -10,7 +10,7 @@
 // dB relative to the voice's speech level by what each variant measured.
 
 import { Option, Result, Schema } from 'effect';
-import { type Pcm, toStereo } from './audio.ts';
+import { type Pcm, SPEECH_GATE, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
 import {
   type ActLength,
@@ -360,6 +360,7 @@ export const mixKey = (plan: MixPlan<SoundSource>): string =>
         BED_FADE,
         BED_CROSSFADE,
         SCORE,
+        SPEECH_GATE,
         TAKE_LEVEL,
       },
       seconds: plan.seconds,

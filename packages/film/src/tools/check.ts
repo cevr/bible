@@ -11,7 +11,7 @@
 
 import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
-import { type Pcm, toMono, windowLevels } from '../core/audio.ts';
+import { type Pcm, windowPowers } from '../core/audio.ts';
 import { BALANCE, hotEffects } from '../core/balance.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { loudness } from '../core/synth/loudness.ts';
@@ -413,7 +413,7 @@ export const endShort = (placed: ReadonlyArray<Placed>): ReadonlyArray<EndShort>
 export const DEAD_FLOOR = -60;
 /** A silence longer than this, in seconds, that no cue declares is dead air. */
 export const DEAD_MAX = 1.5;
-/** The master's level is read in windows this long, in seconds. */
+/** The master's level is read in windows this long, in seconds, its sides' power summed (`windowPowers`). */
 export const DEAD_WINDOW = 0.05;
 
 /** The film seconds every cue declared `silence: true` spans. */
@@ -501,15 +501,15 @@ export const staticFindings = (
 
 /**
  * What the mix the film makes now (`Mixer.render`, in memory) fails: dead air
- * in its master, read mono in `DEAD_WINDOW` windows, and the balance.
+ * in its master, read in `DEAD_WINDOW` windows as a listener hears it, and
+ * the balance.
  */
 export const mixFindings = (
   placed: ReadonlyArray<Placed>,
   plan: MixPlan<Pcm>,
   mixed: Mixed,
 ): ReadonlyArray<MixFinding> => {
-  const mono = Arr.getUnsafe(toMono(mixed.master).channels, 0);
-  const levels = windowLevels(mono, Math.round(DEAD_WINDOW * mixed.master.rate));
+  const levels = windowPowers(mixed.master, Math.round(DEAD_WINDOW * mixed.master.rate));
   return [
     ...deadAir(levels, DEAD_WINDOW, designedSilences(placed)),
     ...balanceFindings(placed, plan, mixed),

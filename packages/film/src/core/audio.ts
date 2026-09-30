@@ -161,15 +161,35 @@ export const toMono = (pcm: Pcm): Pcm => {
   return { rate: pcm.rate, frames: pcm.frames, channels: [out] };
 };
 
-/** The RMS level in dBFS of each `window` frames of `plane`, in order; the last may be short. */
-export const windowLevels = (plane: Float32Array, window: number): Float64Array => {
-  const out = new Float64Array(Math.ceil(plane.length / window));
+/**
+ * A window quieter than this, in dBFS (`windowPowers`), holds no speech: the
+ * score rises over it, and the balance does not count it as the voice.
+ */
+export const SPEECH_GATE = -50;
+
+/**
+ * The level in dBFS of each `window` frames of `pcm` from frame `from` to
+ * `to`, in order, read as a listener hears it: its sides' power summed (as
+ * BS.1770 sums them), so a take played mono at −3 dB a side reads as the take
+ * itself. The last window may be short; it is measured over its own length.
+ * Silence is −Infinity.
+ */
+export const windowPowers = (
+  pcm: Pcm,
+  window: number,
+  from = 0,
+  to: number = pcm.frames,
+): Float64Array => {
+  const start = Math.max(0, from);
+  const end = Math.min(pcm.frames, to);
+  const size = Math.max(1, window);
+  const out = new Float64Array(Math.max(0, Math.ceil((end - start) / size)));
   for (let w = 0; w < out.length; w++) {
-    const from = w * window;
-    const to = Math.min(plane.length, from + window);
+    const a = start + w * size;
+    const b = Math.min(end, a + size);
     let power = 0;
-    for (let i = from; i < to; i++) power += (plane[i] ?? 0) ** 2;
-    out[w] = 10 * Math.log10(power / Math.max(1, to - from));
+    for (const plane of pcm.channels) for (let i = a; i < b; i++) power += (plane[i] ?? 0) ** 2;
+    out[w] = 10 * Math.log10(power / (b - a));
   }
   return out;
 };
