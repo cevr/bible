@@ -113,6 +113,8 @@ import { SceneWriter } from './scene-writer.ts';
 import { media } from './media-cli.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Choices } from './choices.ts';
+import { options } from './choices-cli.ts';
+import { FreshFilm } from './choices-process.ts';
 import { sfx } from './sfx-cli.ts';
 import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
@@ -1032,7 +1034,8 @@ export interface FilmApp<E> {
   /**
    * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
    * runs `check --static` through it in a fresh process after each write, so
-   * the check reads the scene files as the write left them.
+   * the check reads the scene files as the write left them, and the review
+   * reads a film's options and makes their mixes through it (`options`).
    */
   readonly self: ReadonlyArray<string>;
 }
@@ -1058,11 +1061,14 @@ export const runFilmCli = <E>({
     Layer.provide([Repo, Store, Platform]),
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
+  // The review reads a film's options, and makes its mixes, through this CLI in a fresh process.
+  const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
   const Reviewed = Review.layerConfig(reviewApp.roots).pipe(
     Layer.provideMerge(BunHttpPlatform.layer),
-    Layer.provide(Platform),
+    // Its lengths, frames and phone copies are the Media service's.
+    Layer.provide([Tools, Platform]),
   );
   const Services = Choices.layer.pipe(
     // The review hears each option in the mix, and writes a pick through the source writer.
@@ -1079,6 +1085,7 @@ export const runFilmCli = <E>({
             Store,
             Tools,
             Reviewed,
+            Fresh,
             Platform,
           ),
         ),
@@ -1102,6 +1109,7 @@ export const runFilmCli = <E>({
       sfx,
       media,
       mix,
+      options,
       cues(checkLayer),
       check(checkLayer),
       render(renderLayer),

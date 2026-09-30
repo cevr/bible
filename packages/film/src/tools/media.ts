@@ -1,14 +1,18 @@
 // Media files, in-process: how long a file plays, a sound decoded to PCM, PCM
-// written out as WAV, and a film joined from its video segments with its
-// track. mediabunny reads and writes the containers (pure TypeScript); MP3
-// decodes through mpg123 (WASM), gapless, sample for sample as ffmpeg decoded
-// it; AAC encodes through ffmpeg's encoder built to WASM
-// (@mediabunny/aac-encoder). Every byte moves through the FileSystem service
-// but a joined film's, which mediabunny writes by position itself.
+// written out as WAV or as an AAC `.m4a` (a review's mix), and a film joined
+// from its video segments with its track. mediabunny reads and writes the
+// containers (pure TypeScript); MP3 decodes through mpg123 (WASM), gapless,
+// sample for sample as ffmpeg decoded it; AAC encodes through ffmpeg's
+// encoder built to WASM (@mediabunny/aac-encoder). Every byte moves through
+// the FileSystem service but a joined film's, which mediabunny writes by
+// position itself, and a container's length, which it reads in place.
 // H.264 is a browser's codec: a page encodes it (player/encode.ts), and
 // joining only copies its packets.
 //
-// One H.264 encode happens here: the share copy of a film the browser
+// The review's stills and phone copies of a render are ffmpeg's (`still`,
+// `phoneCopy`): a JPEG at a time, and a 720p x264 copy at low priority.
+//
+// One more H.264 encode happens here: the share copy of a film the browser
 // encoded in software (`shareCopy`). Chromium's software encoder keeps the
 // paper's grain only at 24 Mbps, so its share is x264's, from the joined
 // master, through the ffmpeg CLI: CRF 22, preset slow, tune grain. Not
@@ -34,7 +38,17 @@
 import { registerAacEncoder } from '@mediabunny/aac-encoder';
 import { registerFlacEncoder } from '@mediabunny/flac-encoder';
 import { registerMediabunnyServer } from '@mediabunny/server';
-import { Array as Arr, Context, Effect, FileSystem, Layer, Match, Option, Stream } from 'effect';
+import {
+  Array as Arr,
+  Context,
+  Duration,
+  Effect,
+  FileSystem,
+  Layer,
+  Match,
+  Option,
+  Stream,
+} from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
@@ -47,6 +61,7 @@ import {
   type EncodedPacket,
   EncodedPacketSink,
   EncodedVideoPacketSource,
+  FilePathSource,
   FilePathTarget,
   FLAC,
   FlacOutputFormat,
@@ -61,8 +76,9 @@ import {
 import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
 import { isAiff, readAiff } from './aiff.ts';
-import { MediaFailed } from './errors.ts';
-import { collect, isNotFound } from './process.ts';
+import type { PlatformError } from 'effect/PlatformError';
+import { MediaFailed, type ProcessTimedOut } from './errors.ts';
+import { collect, collectWithin, type Finished, isNotFound } from './process.ts';
 import { resample } from './resample.ts';
 
 export interface MediaService {
@@ -84,6 +100,8 @@ export interface MediaService {
   readonly writeWav: (file: string, pcm: Pcm) => Effect.Effect<void, MediaFailed>;
   /** `pcm` encoded to AAC packets, from its first frame, for `join` to copy. */
   readonly encodeAac: (pcm: Pcm) => Effect.Effect<AacTrack, MediaFailed>;
+  /** `pcm` written to `file` as an AAC track in an MP4 (an `.m4a`, fast start): what a phone plays. */
+  readonly writeAac: (file: string, pcm: Pcm) => Effect.Effect<void, MediaFailed>;
   /**
    * The film as one MP4 at `out`: each segment's H.264 packets copied, not
    * re-encoded, at its place, and the track's AAC packets, if any, beside
@@ -96,6 +114,18 @@ export interface MediaService {
    * only once whole.
    */
   readonly shareCopy: (master: string, out: string) => Effect.Effect<void, MediaFailed>;
+  /** A JPEG of `video` at `at` seconds, `width` pixels wide, written to `out` (ffmpeg). */
+  readonly still: (
+    video: string,
+    at: number,
+    width: number,
+    out: string,
+  ) => Effect.Effect<void, MediaFailed>;
+  /**
+   * The 720p copy of `video` a phone streams (`PHONE_X264`), written to `out`
+   * by ffmpeg at low priority: the review makes one of every big render.
+   */
+  readonly phoneCopy: (video: string, out: string) => Effect.Effect<void, MediaFailed>;
 }
 
 /**
@@ -125,6 +155,34 @@ export const SHARE_X264: ReadonlyArray<string> = [
   '-movflags',
   '+faststart',
 ];
+
+/** x264's settings for a review's phone copy: 720p, capped at 3 Mbps, its track at 128 kbps. */
+export const PHONE_X264: ReadonlyArray<string> = [
+  '-vf',
+  'scale=-2:720',
+  '-c:v',
+  'libx264',
+  '-preset',
+  'medium',
+  '-crf',
+  '23',
+  '-maxrate',
+  '3000k',
+  '-bufsize',
+  '6000k',
+  '-pix_fmt',
+  'yuv420p',
+  '-c:a',
+  'aac',
+  '-b:a',
+  '128k',
+  '-movflags',
+  '+faststart',
+];
+
+/** How long one still may take ffmpeg, and one phone copy. */
+const STILL_LIMIT = Duration.minutes(1);
+const PHONE_LIMIT = Duration.minutes(30);
 
 /** A run of H.264 video in its own MP4, played from `at` seconds into the film. */
 export interface Segment {
@@ -477,19 +535,33 @@ const encodeTrack = (pcm: Pcm) =>
     return track;
   });
 
-/** `ffmpeg <args>` run to its end, failing as `op` on `file`. */
+/** How ffmpeg is run: as itself, or under `nice` (a background job that yields the machine). */
+type Priority = 'normal' | 'low';
+
+/** The command each priority runs `ffmpeg …` as. */
+const COMMAND: Record<Priority, (ffmpeg: ReadonlyArray<string>) => ChildProcess.Command> = {
+  normal: ([bin = 'ffmpeg', ...args]) => ChildProcess.make(bin, args),
+  low: (ffmpeg) => ChildProcess.make('nice', ['-n', '15', ...ffmpeg]),
+};
+
+/** `ffmpeg <args>` run to its end (stopped past `limit`, when given), failing as `op` on `file`. */
 const runFfmpeg = (
   spawner: ChildProcessSpawner.ChildProcessSpawner['Service'],
   op: MediaFailed['op'],
   file: string,
   args: ReadonlyArray<string>,
-) =>
-  collect(
-    spawner,
-    ChildProcess.make('ffmpeg', ['-hide_banner', '-v', 'error', '-nostdin', '-y', ...args]),
-  ).pipe(
-    Effect.mapError((error) => {
-      if (isNotFound(error))
+  limit: Option.Option<Duration.Duration> = Option.none(),
+  priority: Priority = 'normal',
+) => {
+  const ffmpeg = ['ffmpeg', '-hide_banner', '-v', 'error', '-nostdin', '-y', ...args];
+  const command = COMMAND[priority](ffmpeg);
+  const run: Effect.Effect<Finished, PlatformError | ProcessTimedOut> = Option.match(limit, {
+    onNone: () => collect(spawner, command),
+    onSome: (within) => collectWithin(spawner, 'ffmpeg', command, within),
+  });
+  return run.pipe(
+    Effect.mapError((error: PlatformError | ProcessTimedOut) => {
+      if (error._tag === 'PlatformError' && isNotFound(error))
         return MediaFailed.make({
           op,
           file,
@@ -502,6 +574,34 @@ const runFfmpeg = (
       return Effect.fail(MediaFailed.make({ op, file, reason: done.stderr.trim() }));
     }),
   );
+};
+
+/**
+ * `pcm` as an AAC track in an MP4 held in memory: the encoder's packets
+ * muxed with the index at the head (fast start), so a phone plays it as it
+ * streams.
+ */
+const aacFile = (file: string, track: AacTrack) =>
+  Effect.gen(function* () {
+    const target = new BufferTarget();
+    const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target });
+    const source = new EncodedAudioPacketSource('aac');
+    output.addAudioTrack(source);
+    yield* Effect.gen(function* () {
+      yield* attempt('write', file, () => output.start());
+      for (const [k, packet] of track.packets.entries())
+        yield* attempt('write', file, () =>
+          source.add(
+            packet,
+            Option.getOrUndefined(Option.liftPredicate(track.meta, () => k === 0)),
+          ),
+        );
+      yield* attempt('write', file, () => output.finalize());
+    }).pipe(Effect.onError(() => Effect.ignore(attempt('write', file, () => output.cancel()))));
+    return yield* Effect.fromOption(Option.fromNullishOr(target.buffer), () =>
+      MediaFailed.make({ op: 'write', file, reason: 'nothing was written' }),
+    );
+  });
 
 /** Whether ffmpeg runs, for `film doctor`: a software render's share copy is x264's, through it. */
 export const ffmpegReady = Effect.fn('Media.ffmpegReady')(function* () {
@@ -565,7 +665,32 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
           return opened;
         });
 
+      /**
+       * `file`'s length by its container's index, read in place on the disk
+       * by mediabunny (a render of hundreds of megabytes is never read whole).
+       * None for an MP3 or a FLAC, whose length is what they decode to, and
+       * for a file it cannot open there (an AIFF, or a file on a test's
+       * in-memory disk): those are read through `fs` as before.
+       */
+      const indexedLength = (file: string) =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            const input = yield* Effect.acquireRelease(
+              Effect.sync(
+                () => new Input({ source: new FilePathSource(file), formats: ALL_FORMATS }),
+              ),
+              (opened) => Effect.sync(() => opened.dispose()),
+            );
+            const format = yield* Effect.option(attempt('read', file, () => input.getFormat()));
+            if (Option.isNone(format) || format.value === MP3 || format.value === FLAC)
+              return Option.none<number>();
+            return Option.some(yield* attempt('read', file, () => input.computeDuration()));
+          }),
+        );
+
       const duration = Effect.fn('Media.duration')(function* (file: string) {
+        const indexed = yield* indexedLength(file);
+        if (Option.isSome(indexed)) return indexed.value;
         return yield* Effect.scoped(
           Effect.gen(function* () {
             const opened = yield* open(file);
@@ -635,6 +760,55 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         return yield* encodeTrack(pcm);
       });
 
+      const writeAac = Effect.fn('Media.writeAac')(function* (file: string, pcm: Pcm) {
+        const bytes = yield* aacFile(file, yield* encodeTrack(pcm));
+        yield* fs
+          .writeFile(file, new Uint8Array(bytes))
+          .pipe(
+            Effect.mapError((error) =>
+              MediaFailed.make({ op: 'write', file, reason: error.message }),
+            ),
+          );
+      });
+
+      const still = Effect.fn('Media.still')(function* (
+        video: string,
+        at: number,
+        width: number,
+        out: string,
+      ) {
+        yield* runFfmpeg(
+          spawner,
+          'decode',
+          video,
+          [
+            '-ss',
+            at.toFixed(3),
+            '-i',
+            video,
+            '-frames:v',
+            '1',
+            '-vf',
+            `scale=${width}:-2`,
+            '-q:v',
+            '3',
+            out,
+          ],
+          Option.some(STILL_LIMIT),
+        );
+      });
+
+      const phoneCopy = Effect.fn('Media.phoneCopy')(function* (video: string, out: string) {
+        yield* runFfmpeg(
+          spawner,
+          'encode',
+          video,
+          ['-i', video, ...PHONE_X264, out],
+          Option.some(PHONE_LIMIT),
+          'low',
+        );
+      });
+
       const load = Effect.fn('Media.load')(function* (file: string, rate: number) {
         const recording = yield* decode(file);
         // One channel at the rate already: nothing to convert, as ffmpeg converted nothing.
@@ -701,10 +875,13 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         decode,
         writeWav,
         encodeAac,
+        writeAac,
         join,
         load,
         encodeFlac,
         shareCopy,
+        still,
+        phoneCopy,
       });
     }),
   );

@@ -8,28 +8,29 @@
 // by the pre-commit guard. Effects and beds are the app's sound library's
 // (`sfx make`), not the film's.
 
-import { createHash } from 'node:crypto';
 import { Console, Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import type { Plan, SoundManifest } from '../core/schema.ts';
+import type { Plan, Score, SoundManifest } from '../core/schema.ts';
 import {
   MUSIC_TAIL,
-  type ScoreOption,
   filmEnd,
   musicKey,
   musicPlan,
+  playedOption,
+  scoreOptionState,
   scoreOptions,
 } from '../core/sound.ts';
-import { ContentStore, type StoreError, isStale } from './content-store.ts';
+import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type ActLength,
   CreditsOverCap,
   type ElevenLabsFailed,
-  ScoreUnknown,
+  type ScoreUnknown,
   SoundMissing,
   type UnknownScene,
 } from './errors.ts';
+import { sha256Hex } from './digest.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { TALLY_HEADER, talliedCredits } from './library.ts';
 
@@ -69,9 +70,6 @@ export type ScoreError =
   | ElevenLabsFailed
   | StoreError
   | PlatformError;
-
-/** Bytes' sha256, as the private store and the guard know them. */
-const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
 /** The manifest's scores narrowed to `keep`; `scores` is omitted, never undefined, when none are left. */
 const keepScores = (manifest: SoundManifest, keep: ReadonlySet<string>): SoundManifest => {
@@ -118,16 +116,12 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
             }),
         });
 
-      /** Which of the score's options this run looks at: `only` alone, or all. */
-      const chosenOf = (all: ReadonlyArray<ScoreOption>, only: Option.Option<string>) =>
+      /** Which of the score's options this run looks at: `only` alone (`ScoreUnknown` when the score lacks it), or all. */
+      const chosenOf = (score: Score, only: Option.Option<string>) =>
         Option.match(only, {
-          onNone: () => Effect.succeed(all),
+          onNone: () => Effect.succeed(scoreOptions(score)),
           onSome: (name) =>
-            Option.match(Option.fromUndefinedOr(all.find((o) => o.name === name)), {
-              onNone: () =>
-                Effect.fail(ScoreUnknown.make({ option: name, known: all.map((o) => o.name) })),
-              onSome: (o) => Effect.succeed([o]),
-            }),
+            Effect.map(Effect.fromResult(playedOption(score, Option.some(name))), (o) => [o]),
         });
 
       const score = Effect.fn('Composer.score')(function* (
@@ -145,7 +139,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
           return;
         }
         const all = scoreOptions(declared.value);
-        const chosen = yield* chosenOf(all, options.only);
+        const chosen = yield* chosenOf(declared.value, options.only);
         if (!options.dryRun)
           yield* store.update(manifest, (m) => keepScores(m, new Set(all.map((o) => o.name))));
         const placed = yield* placeFilm(film);
@@ -157,11 +151,8 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
           const hash = musicKey(option.music, plan);
           const ms = plan.chunks.reduce((sum, c) => sum + c.duration_ms, 0);
           const credits = musicCredits(plan);
-          const stored = Option.map(
-            Option.fromUndefinedOr(film.manifest.scores?.[option.name]),
-            (a) => a.hash,
-          );
-          const stale = isStale(stored, hash, options.force);
+          const stale =
+            options.force || scoreOptionState(option, placed, film.manifest)._tag !== 'Current';
           let state = 'current';
           if (stale) {
             state = 'to compose';
@@ -195,7 +186,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
                 Option.map(Option.fromUndefinedOr(m.scores?.[option.name]), (a) => a.hash),
               produce: elevenLabs.composeMusic(plan, option.music.model, at).pipe(
                 Effect.flatMap(() => fs.readFile(at)),
-                Effect.map(sha256),
+                Effect.map(sha256Hex),
               ),
               record: (m, digest) => ({
                 ...m,

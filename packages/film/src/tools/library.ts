@@ -15,13 +15,13 @@ import {
   Array as Arr,
   Config,
   Context,
-  Crypto,
   DateTime,
   Effect,
   FileSystem,
   Layer,
   Option,
   Path,
+  Result,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, concat, silence, slice } from '../core/audio.ts';
@@ -59,6 +59,7 @@ import { loudness } from '../core/synth/loudness.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
+import { sha256Hex, sha256OfFile } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
   type ApiKeyMissing,
@@ -78,6 +79,7 @@ import {
   SoundUnmade,
   StoreCopyFailed,
   type StoreFailed,
+  TakeUnknown,
   TrialInvalid,
   type UnknownSound,
   VariantMissing,
@@ -167,10 +169,6 @@ export const AUDITION_GAP = 0.5;
 
 /** The audio rate every library sound is made, kept and played at. */
 export const LIBRARY_RATE = 44100;
-
-/** Bytes as lower-case hex. */
-export const hex = (bytes: Uint8Array): string =>
-  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
 /** The credits a tally file (name, variant, seconds, credits; a header first) records as spent. */
 export const talliedCredits = (text: string): number =>
@@ -273,25 +271,40 @@ export interface SoundLibraryService {
     MakeError | UnknownSound | SoundKindMismatch | TrialInvalid
   >;
   /**
-   * Move candidates (1-based, among those for the current request) into the
+   * The takes (sha256s) the 1-based `picks` name among the sound's candidates
+   * for its current request, or among its kept variants in the order they
+   * play: how the command line's numbers become takes, before any verb runs.
+   */
+  readonly takesAt: (
+    name: string,
+    picks: ReadonlyArray<number>,
+    among: 'candidates' | 'kept',
+  ) => Effect.Effect<
+    ReadonlyArray<string>,
+    LibraryError | UnknownSound | CandidateMissing | VariantMissing
+  >;
+  /**
+   * Move candidates (by sha256, among those for the current request) into the
    * variants that play: beside the kept ones, or with `replace` in their place
-   * (the variants they replace wait again as candidates).
+   * (the variants they replace wait again as candidates). Each take is found
+   * in the lock under its write lock, so a curation landing first cannot move
+   * another take into its place.
    */
   readonly keep: (
     name: string,
-    picks: ReadonlyArray<number>,
+    takes: ReadonlyArray<string>,
     replace?: boolean,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | CandidateMissing>;
-  /** Move kept variants (1-based, in the order they play) back to the candidates waiting. */
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
+  /** Move kept variants (by sha256) back to the candidates waiting. */
   readonly unkeep: (
     name: string,
-    picks: ReadonlyArray<number>,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | VariantMissing>;
-  /** Drop candidates, never to be offered again. */
+    takes: ReadonlyArray<string>,
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
+  /** Drop candidates (by sha256), never to be offered again. */
   readonly reject: (
     name: string,
-    picks: ReadonlyArray<number>,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | CandidateMissing>;
+    takes: ReadonlyArray<string>,
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
   /** A recording into a declared `recorded` sound: trimmed, resampled, kept as a variant under `public/`. */
   readonly importFile: (
     file: string,
@@ -356,20 +369,34 @@ const everyVariant = (lock: Lock) =>
     [...entry.variants, ...entry.candidates].map((variant) => ({ name, variant })),
   );
 
-/** The `picks` (1-based) of `pending`, or the first pick out of range. */
-const picked = (
-  name: string,
-  pending: ReadonlyArray<Variant>,
+/** The `picks` (1-based) of `offered`, or the first pick out of range, as `missing` names it. */
+const picked = <E>(
+  offered: ReadonlyArray<Variant>,
   picks: ReadonlyArray<number>,
-): Effect.Effect<ReadonlyArray<Variant>, CandidateMissing> =>
+  missing: (index: number, count: number) => E,
+): Effect.Effect<ReadonlyArray<Variant>, E> =>
   Effect.forEach(picks, (n) =>
     Option.match(
-      Option.liftPredicate(n, (k) => k >= 1 && k <= pending.length),
+      Option.liftPredicate(n, (k) => k >= 1 && k <= offered.length),
       {
-        onNone: () =>
-          Effect.fail(CandidateMissing.make({ name, index: n, candidates: pending.length })),
-        onSome: (k) => Effect.succeed(Arr.getUnsafe(pending, k - 1)),
+        onNone: () => Effect.fail(missing(n, offered.length)),
+        onSome: (k) => Effect.succeed(Arr.getUnsafe(offered, k - 1)),
       },
+    ),
+  );
+
+/** The variants of `offered` whose sha256 each of `takes` names, or `TakeUnknown` for the first it lacks. */
+const byHash = (
+  name: string,
+  offered: ReadonlyArray<Variant>,
+  takes: ReadonlyArray<string>,
+): Result.Result<ReadonlyArray<Variant>, TakeUnknown> =>
+  Result.all(
+    takes.map((take) =>
+      Result.fromOption(
+        Arr.findFirst(offered, (v) => v.sha256 === take),
+        () => TakeUnknown.make({ sound: name, take }),
+      ),
     ),
   );
 
@@ -388,9 +415,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const store = yield* ContentStore;
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
-        const crypto = yield* Crypto.Crypto;
         const privateStore = yield* PrivateStore;
-        const sha256 = (bytes: Uint8Array) => Effect.map(crypto.digest('SHA-256', bytes), hex);
         const outputs = yield* Config.String('FILMS_OUT').pipe(
           Config.withDefault(path.resolve('out')),
         );
@@ -501,7 +526,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         ) =>
           Effect.gen(function* () {
             const bytes = yield* media.encodeFlac(pcm);
-            const hash = yield* sha256(bytes);
+            const hash = sha256Hex(bytes);
             const file = `${under}/${name}/${hash.slice(0, 12)}.flac`;
             yield* store.writeFile(path.join(dir, file), bytes);
             const variant: Variant = {
@@ -587,20 +612,57 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           );
         });
 
-        /** Rewrite `name`'s lock record, the pending candidates picked by `picks` handed to `change`. */
-        const curate = (
+        /** `name`'s candidates for its current request, or its kept variants, as `lock` holds them. */
+        const offeredIn = (
+          entry: LibraryEntry,
+          record: Option.Option<LockEntry>,
+          among: 'candidates' | 'kept',
+        ): ReadonlyArray<Variant> => {
+          if (among === 'candidates') return pendingOf(entry, record);
+          return Option.match(record, { onNone: () => [], onSome: (r) => r.variants });
+        };
+
+        const takesAt = Effect.fn('SoundLibrary.takesAt')(function* (
           name: string,
           picks: ReadonlyArray<number>,
+          among: 'candidates' | 'kept',
+        ) {
+          const loaded = yield* load;
+          const entry = yield* entryOf(loaded, name);
+          const offered = offeredIn(entry, Option.fromUndefinedOr(loaded.lock[name]), among);
+          const chosen = yield* picked<CandidateMissing | VariantMissing>(
+            offered,
+            picks,
+            (index, count) => {
+              if (among === 'candidates')
+                return CandidateMissing.make({ name, index, candidates: count });
+              return VariantMissing.make({ name, index, variants: count });
+            },
+          );
+          return chosen.map((v) => v.sha256);
+        });
+
+        /**
+         * Rewrite `name`'s lock record: the takes named by `takes` found among
+         * its candidates or kept variants and handed to `change`, all under
+         * the lock's write lock.
+         */
+        const curate = (
+          name: string,
+          takes: ReadonlyArray<string>,
+          among: 'candidates' | 'kept',
           change: (had: LockEntry, chosen: ReadonlyArray<Variant>, request: string) => LockEntry,
         ) =>
           Effect.gen(function* () {
             const loaded = yield* load;
             const entry = yield* entryOf(loaded, name);
-            const record = Option.fromUndefinedOr(loaded.lock[name]);
-            const chosen = yield* picked(name, pendingOf(entry, record), picks);
-            const next = yield* store.update(paths.lock, (lock) => {
-              const had = Option.getOrElse(Option.fromUndefinedOr(lock[name]), () => emptyEntry);
-              return { ...lock, [name]: change(had, chosen, requestKey(entry)) };
+            const next = yield* store.modify(paths.lock, (lock) => {
+              const record = Option.fromUndefinedOr(lock[name]);
+              const had = Option.getOrElse(record, () => emptyEntry);
+              return Result.map(
+                byHash(name, offeredIn(entry, record, among), takes),
+                (chosen): Lock => ({ ...lock, [name]: change(had, chosen, requestKey(entry)) }),
+              );
             });
             return Option.getOrElse(Option.fromUndefinedOr(next[name]), () => emptyEntry);
           });
@@ -610,10 +672,10 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const keep = Effect.fn('SoundLibrary.keep')(function* (
           name: string,
-          picks: ReadonlyArray<number>,
+          takes: ReadonlyArray<string>,
           replace = false,
         ) {
-          return yield* curate(name, picks, (had, chosen, request) => {
+          return yield* curate(name, takes, 'candidates', (had, chosen, request) => {
             // Variants for an older request play only until new ones are kept.
             const current = had.variants.filter((v) => v.request === request);
             if (!replace)
@@ -632,37 +694,20 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const unkeep = Effect.fn('SoundLibrary.unkeep')(function* (
           name: string,
-          picks: ReadonlyArray<number>,
+          takes: ReadonlyArray<string>,
         ) {
-          const loaded = yield* load;
-          yield* entryOf(loaded, name);
-          const kept = Option.match(Option.fromUndefinedOr(loaded.lock[name]), {
-            onNone: (): ReadonlyArray<Variant> => [],
-            onSome: (l) => l.variants,
-          });
-          const chosen = yield* Effect.forEach(picks, (n) => {
-            if (n >= 1 && n <= kept.length) return Effect.succeed(Arr.getUnsafe(kept, n - 1));
-            return Effect.fail(VariantMissing.make({ name, index: n, variants: kept.length }));
-          });
-          const next = yield* store.update(paths.lock, (lock) => {
-            const had = Option.getOrElse(Option.fromUndefinedOr(lock[name]), () => emptyEntry);
-            return {
-              ...lock,
-              [name]: {
-                variants: without(had.variants, chosen),
-                candidates: [...had.candidates, ...chosen],
-                rejected: had.rejected,
-              },
-            };
-          });
-          return Option.getOrElse(Option.fromUndefinedOr(next[name]), () => emptyEntry);
+          return yield* curate(name, takes, 'kept', (had, chosen) => ({
+            variants: without(had.variants, chosen),
+            candidates: [...had.candidates, ...chosen],
+            rejected: had.rejected,
+          }));
         });
 
         const reject = Effect.fn('SoundLibrary.reject')(function* (
           name: string,
-          picks: ReadonlyArray<number>,
+          takes: ReadonlyArray<string>,
         ) {
-          return yield* curate(name, picks, (had, chosen) => ({
+          return yield* curate(name, takes, 'candidates', (had, chosen) => ({
             variants: had.variants,
             candidates: without(had.candidates, chosen),
             rejected: [...had.rejected, ...chosen.map((v) => v.sha256)],
@@ -778,7 +823,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               return Option.some<LibraryFinding>(
                 SoundFileMissing.make({ name, file: variant.file }),
               );
-            const found = yield* sha256(yield* fs.readFile(at));
+            const found = yield* sha256OfFile(fs, at);
             if (found === variant.sha256) return Option.none<LibraryFinding>();
             return Option.some<LibraryFinding>(
               SoundCorrupt.make({ name, file: variant.file, sha256: variant.sha256, found }),
@@ -892,7 +937,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const holdsAt = (at: string, sha: string) =>
           Effect.gen(function* () {
             if (!(yield* fs.exists(at))) return false;
-            return (yield* sha256(yield* fs.readFile(at))) === sha;
+            return (yield* sha256OfFile(fs, at)) === sha;
           });
 
         /** Whether the file is here with its bytes. */
@@ -963,7 +1008,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
                   file,
                   inLibrary: Option.liftPredicate(under, (r) => !r.startsWith('..')),
                   inScore: scores.dirs.some((folder) => inside(folder, at)),
-                  sha256: yield* sha256(yield* fs.readFile(at)),
+                  sha256: yield* sha256OfFile(fs, at),
                 };
                 return audio;
               }),
@@ -980,6 +1025,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           plan,
           make,
           trial,
+          takesAt,
           keep,
           unkeep,
           reject,

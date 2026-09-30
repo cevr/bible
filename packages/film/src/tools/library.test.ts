@@ -249,13 +249,21 @@ describe('SoundLibrary', () => {
           expect(yield* library.make(all)).toEqual([]);
           expect(calls).toHaveLength(6);
 
-          const kept = yield* library.keep('paper.slide', [1, 3]);
+          const kept = yield* library.keep(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1, 3], 'candidates'),
+          );
           expect(kept.variants).toHaveLength(2);
-          const rejected = yield* library.reject('paper.slide', [1]);
+          const rejected = yield* library.reject(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1], 'candidates'),
+          );
           expect(rejected.candidates).toHaveLength(1);
           expect(rejected.rejected).toHaveLength(1);
-          const missing = yield* Effect.flip(library.keep('paper.slide', [5]));
+          const missing = yield* Effect.flip(library.takesAt('paper.slide', [5], 'candidates'));
           expect(missing._tag).toBe('CandidateMissing');
+          const unknown = yield* Effect.flip(library.keep('paper.slide', ['f'.repeat(64)]));
+          expect(unknown._tag).toBe('TakeUnknown');
           const loaded = yield* library.load;
           const entry = loaded.library['paper.slide'];
           expect(entry).toBeDefined();
@@ -295,8 +303,11 @@ describe('SoundLibrary', () => {
           // The declaration still asks for its own settings: the trial's candidates do not wait for it.
           const declared = yield* library.plan(Option.some(new Set(['paper.slide'])), false);
           expect(declared.map((j) => j.count)).toEqual([4]);
-          const unkeepable = yield* Effect.flip(library.keep('paper.slide', [1]));
+          const unkeepable = yield* Effect.flip(library.takesAt('paper.slide', [1], 'candidates'));
           expect(unkeepable._tag).toBe('CandidateMissing');
+          const tried = made[0]?.sha256 ?? '';
+          const notWaiting = yield* Effect.flip(library.keep('paper.slide', [tried]));
+          expect(notWaiting._tag).toBe('TakeUnknown');
           // Declared as the trial was made (the next run imports the edited
           // library.ts), its candidates are the ones that wait, and keep takes them.
           const loaded = yield* library.load;
@@ -334,23 +345,28 @@ describe('SoundLibrary', () => {
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
-          const first = yield* library.keep('paper.slide', [1, 2]);
-          const [one, two] = first.variants.map((v) => v.sha256);
+          const first = yield* library.keep(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1, 2], 'candidates'),
+          );
+          const [one = '', two = ''] = first.variants.map((v) => v.sha256);
           // Unkept: the variant waits again as the last candidate, playable by keep.
-          const unkept = yield* library.unkeep('paper.slide', [1]);
-          expect(unkept.variants.map((v) => v.sha256)).toEqual([two ?? '']);
-          expect(unkept.candidates.map((v) => v.sha256)).toContain(one ?? '');
+          const unkept = yield* library.unkeep('paper.slide', [one]);
+          expect(unkept.variants.map((v) => v.sha256)).toEqual([two]);
+          expect(unkept.candidates.map((v) => v.sha256)).toContain(one);
           expect(unkept.candidates).toHaveLength(3);
-          const outOfRange = yield* Effect.flip(library.unkeep('paper.slide', [2]));
+          const outOfRange = yield* Effect.flip(library.takesAt('paper.slide', [2], 'kept'));
           expect(outOfRange).toMatchObject({ _tag: 'VariantMissing', index: 2, variants: 1 });
+          const notKept = yield* Effect.flip(library.unkeep('paper.slide', [one]));
+          expect(notKept._tag).toBe('TakeUnknown');
           // Replace: the picks play alone; what played waits again.
-          const waiting = unkept.candidates[0]?.sha256;
-          const replaced = yield* library.keep('paper.slide', [1], true);
-          expect(replaced.variants.map((v) => v.sha256)).toEqual([waiting ?? '']);
-          expect(replaced.candidates.map((v) => v.sha256)).toContain(two ?? '');
+          const waiting = unkept.candidates[0]?.sha256 ?? '';
+          const replaced = yield* library.keep('paper.slide', [waiting], true);
+          expect(replaced.variants.map((v) => v.sha256)).toEqual([waiting]);
+          expect(replaced.candidates.map((v) => v.sha256)).toContain(two);
           expect(replaced.candidates).toHaveLength(3);
           // Unkeeping the last variant leaves nothing playing: the sound is unmade again.
-          const none = yield* library.unkeep('paper.slide', [1]);
+          const none = yield* library.unkeep('paper.slide', [waiting]);
           expect(none.variants).toEqual([]);
           const loaded = yield* library.load;
           const entry = loaded.library['paper.slide'];
@@ -359,6 +375,25 @@ describe('SoundLibrary', () => {
               _tag: 'Missing',
               candidates: 4,
             });
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'keeps the take its hash names, wherever a curation that landed first moved it',
+    () =>
+      withLibrary(() =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
+          // Both acts are decided while the candidates are [a, b, c, d]; rejecting a lands first.
+          const waiting = (yield* library.load).lock['paper.slide']?.candidates ?? [];
+          const [a = '', b = ''] = waiting.map((v) => v.sha256);
+          yield* library.reject('paper.slide', [a]);
+          const kept = yield* library.keep('paper.slide', [b]);
+          expect(kept.variants.map((v) => v.sha256)).toEqual([b]);
+          const gone = yield* Effect.flip(library.keep('paper.slide', [a]));
+          expect(gone).toMatchObject({ _tag: 'TakeUnknown', sound: 'paper.slide', take: a });
         }),
       ),
   );
@@ -461,8 +496,11 @@ describe('SoundLibrary', () => {
         const library = yield* SoundLibrary;
         const fs = yield* FileSystem.FileSystem;
         yield* library.make(all);
-        yield* library.keep('paper.slide', [1]);
-        yield* library.keep('amb.court', [1]);
+        yield* library.keep(
+          'paper.slide',
+          yield* library.takesAt('paper.slide', [1], 'candidates'),
+        );
+        yield* library.keep('amb.court', yield* library.takesAt('amb.court', [1], 'candidates'));
         const clean = yield* library.check;
         expect(clean.filter((f) => f._tag !== 'SoundUnmade' && f._tag !== 'LoopSeam')).toEqual([]);
         expect(clean.filter((f) => f._tag === 'SoundUnmade').map((f) => f.name)).toEqual([
@@ -533,7 +571,11 @@ describe('SoundLibrary', () => {
           const fs = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
-          const generated = (yield* library.keep('paper.slide', [1])).variants[0]?.file ?? '';
+          const generated =
+            (yield* library.keep(
+              'paper.slide',
+              yield* library.takesAt('paper.slide', [1], 'candidates'),
+            )).variants[0]?.file ?? '';
           const leak = path.join(dir, '..', 'leak.flac');
           yield* fs.copyFile(path.join(dir, generated), leak);
           const take = path.join(dir, '..', 'take.wav');

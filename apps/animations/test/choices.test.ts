@@ -1,29 +1,41 @@
 // A film's choices on a synthetic film: a copy of the fixture film given a
 // second score option and one generated library sound (a kept take and two
 // waiting, their files made here, never sent anywhere), listed, heard and
-// picked. A score pick changes the one `play` string in `sound.ts` and is
-// undone byte for byte; a take kept through the library is undone the same
-// way in the lock; a take's own file and its mix in place are served. No
-// ElevenLabs call can happen: the service refuses every one.
+// picked. The film is read, and its mixes made, in a fresh process (the
+// copy's own `cli.ts`, as the review runs the app's), so an option added to
+// `sound.ts` while the review runs is listed. A score pick changes the one
+// `play` string in `sound.ts` and is undone byte for byte; a take kept
+// through the library is undone the same way in the lock; a take's own file
+// and its mix in place are served. No ElevenLabs call can happen: this
+// process's service refuses every one, and the child only lists and mixes.
 
 import { BunServices } from '@effect/platform-bun';
-import { type LockEntry, LockJson, type Pcm, type Variant, requestKey } from '@bible/film/core';
+import {
+  type FilmChoice,
+  type LockEntry,
+  LockJson,
+  type Pcm,
+  type Variant,
+  requestKey,
+} from '@bible/film/core';
 import {
   Choices,
   ContentStore,
   ElevenLabs,
   ElevenLabsFailed,
   FilmRepo,
+  FreshFilm,
   Media,
-  Mixer,
   PrivateStore,
   Review,
   SoundLibrary,
   SourceWriter,
+  filmNamed,
 } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Option, Path, Redacted, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
+import { spawnBudget } from './cli-run.ts';
 
 /** Where one test's copy lives: its films, its library and its renders. */
 class Copy extends Context.Service<
@@ -37,6 +49,14 @@ const STRINGS = `      strings: {
         styles: ['instrumental', 'strings'],
         avoid: ['vocals'],
         acts: [{ from: 'open', name: 'The page', styles: ['quiet'] }],
+      },
+`;
+/** A third option, added while the review runs. */
+const ORGAN = `      organ: {
+        model: 'music_v2_5',
+        styles: ['instrumental', 'organ'],
+        avoid: ['vocals'],
+        acts: [{ from: 'open', name: 'The page', styles: ['slow'] }],
       },
 `;
 const HUSH = `    hush: {
@@ -111,6 +131,20 @@ const fixture = Layer.unwrap(
     );
     // A registry beside the films, as an app keeps one: a file, never a film.
     yield* fs.writeFileString(path.join(films, 'index.ts'), 'export const films = {};\n');
+    // The app's CLI over the copy: what the review runs for a fresh read.
+    const cli = path.join(root, 'cli.ts');
+    const [appAt, filmsAt, soundsAt] = yield* Effect.forEach(
+      [path.join(app, 'cli.ts'), films, sounds],
+      (at) => Schema.encodeEffect(Schema.fromJsonString(Schema.String))(at),
+    );
+    yield* fs.writeFileString(
+      cli,
+      [
+        `import { appCli } from ${appAt};`,
+        `appCli(${filmsAt}, ${soundsAt}, import.meta.path);`,
+        '',
+      ].join('\n'),
+    );
     // A render of the film, for the picture its options are heard against.
     yield* fs.makeDirectory(path.join(out, 'tiny'), { recursive: true });
     yield* fs.writeFileString(path.join(out, 'tiny', 'tiny.mp4'), 'not really a video');
@@ -131,11 +165,11 @@ const fixture = Layer.unwrap(
       phoneOver: 1e9,
       maxVideo: 1e9,
       phoneCopies: false,
-    }).pipe(Layer.provide(Platform));
+    }).pipe(Layer.provide([Tools, Platform]));
     const Writer = SourceWriter.layer.pipe(Layer.provide([Repo, Store, Platform]));
-    const Mixed = Mixer.layer.pipe(Layer.provide([Repo, Tools, Platform]));
+    const Fresh = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
     return Choices.layer.pipe(
-      Layer.provideMerge(Layer.mergeAll(Repo, Library, Writer, Mixed, Reviewed, Tools, Store)),
+      Layer.provideMerge(Layer.mergeAll(Repo, Library, Writer, Fresh, Reviewed, Tools, Store)),
       Layer.merge(Layer.succeed(Copy, Copy.of({ films, sounds, out }))),
     );
   }),
@@ -175,7 +209,8 @@ describe("a film's choices", () => {
       Effect.gen(function* () {
         yield* seedLock;
         expect(yield* FilmRepo.use((repo) => repo.names)).toEqual(['tiny']);
-        const listed = yield* (yield* Choices).list('tiny');
+        const tiny = yield* filmNamed('tiny');
+        const listed = yield* (yield* Choices).list(tiny);
         expect(listed.pictures.map((p) => p.ref)).toEqual(['out/tiny/tiny.mp4']);
         const [score, effect] = listed.choices;
         expect(score).toMatchObject({ _tag: 'ScoreChoice', picked: 'piano' });
@@ -201,6 +236,34 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'lists an option added to sound.ts while it runs: each read imports the film as it stands',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { films } = yield* Copy;
+        const choices = yield* Choices;
+        const tiny = yield* filmNamed('tiny');
+        const options = (listed: { readonly choices: ReadonlyArray<FilmChoice> }) =>
+          listed.choices
+            .filter((c) => c._tag === 'ScoreChoice')
+            .flatMap((c) => c.variants.map((v) => v.id));
+        expect(options(yield* choices.list(tiny))).toEqual(['strings', 'piano']);
+        const file = path.join(films, 'tiny', 'sound.ts');
+        const declared = yield* fs.readFileString(file);
+        yield* fs.writeFileString(
+          file,
+          declared.replace('    options: {\n', `    options: {\n${ORGAN}`),
+        );
+        expect(options(yield* choices.list(tiny))).toEqual(['organ', 'strings', 'piano']);
+        // And it can be picked: the pick checks the film as it stands, too.
+        const picked = yield* choices.pickScore(tiny, 'organ');
+        expect(Option.map(picked.change, (c) => c.target)).toEqual(Option.some('score play organ'));
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+    spawnBudget(4),
+  );
+
+  it.live(
     'a score pick changes only `play` in sound.ts, and undo puts the file back byte for byte',
     () =>
       Effect.gen(function* () {
@@ -209,24 +272,25 @@ describe("a film's choices", () => {
         const { films } = yield* Copy;
         const choices = yield* Choices;
         const writer = yield* SourceWriter;
+        const tiny = yield* filmNamed('tiny');
         const file = path.join(films, 'tiny', 'sound.ts');
         const before = yield* fs.readFileString(file);
-        const picked = yield* choices.pickScore('tiny', 'strings');
+        const picked = yield* choices.pickScore(tiny, 'strings');
         const after = yield* fs.readFileString(file);
         expect(after).toBe(before.replace("play: 'piano'", "play: 'strings'"));
         expect(Option.map(picked.change, (c) => c.target)).toEqual(
           Option.some('score play strings'),
         );
-        const listed = yield* choices.list('tiny');
+        const listed = yield* choices.list(tiny);
         expect(listed.choices[0]).toMatchObject({ picked: 'strings' });
         // Picking what already plays writes nothing, and leaves nothing to undo.
-        const again = yield* choices.pickScore('tiny', 'strings');
+        const again = yield* choices.pickScore(tiny, 'strings');
         expect(Option.isNone(again.change)).toBe(true);
         expect((yield* writer.undo('tiny')).target).toBe('undo score play strings');
         expect(yield* fs.readFileString(file)).toBe(before);
         expect((yield* writer.redo('tiny')).target).toBe('redo score play strings');
         expect(yield* fs.readFileString(file)).toBe(after);
-        const unknown = yield* Effect.flip(choices.pickScore('tiny', 'banjo'));
+        const unknown = yield* Effect.flip(choices.pickScore(tiny, 'banjo'));
         expect(unknown._tag).toBe('ChoiceUnknown');
         expect(unknown.message).toContain('strings, piano');
       }).pipe(Effect.scoped, Effect.provide(fixture)),
@@ -241,13 +305,14 @@ describe("a film's choices", () => {
         const { lock, waiting } = yield* seedLock;
         const choices = yield* Choices;
         const writer = yield* SourceWriter;
+        const tiny = yield* filmNamed('tiny');
         const before = yield* fs.readFileString(lock);
         const second = waiting[1]?.sha256 ?? '';
-        const kept = yield* choices.curate('tiny', 'paper.page', second, 'keep');
+        const kept = yield* choices.curate(tiny, 'paper.page', second, 'keep');
         expect(Option.map(kept.change, (c) => c.target)).toEqual(
           Option.some(`sound paper.page keep ${second.slice(0, 12)}`),
         );
-        const listed = yield* choices.list('tiny');
+        const listed = yield* choices.list(tiny);
         const effect = listed.choices.find((c) => c._tag === 'EffectChoice');
         expect(effect?._tag === 'EffectChoice' && effect.takes.map((t) => t.state)).toEqual([
           'kept',
@@ -255,11 +320,11 @@ describe("a film's choices", () => {
           'candidate',
         ]);
         // A kept take is not rejected; it is unkept first.
-        const refused = yield* Effect.flip(choices.curate('tiny', 'paper.page', second, 'reject'));
+        const refused = yield* Effect.flip(choices.curate(tiny, 'paper.page', second, 'reject'));
         expect(refused._tag).toBe('TakeActRefused');
         yield* writer.undo('tiny');
         expect(yield* fs.readFileString(lock)).toBe(before);
-        const missing = yield* Effect.flip(choices.curate('tiny', 'paper.page', 'ff', 'keep'));
+        const missing = yield* Effect.flip(choices.curate(tiny, 'paper.page', 'ff', 'keep'));
         expect(missing._tag).toBe('TakeUnknown');
       }).pipe(Effect.scoped, Effect.provide(fixture)),
     60_000,
@@ -272,16 +337,17 @@ describe("a film's choices", () => {
         const fs = yield* FileSystem.FileSystem;
         const { waiting } = yield* seedLock;
         const choices = yield* Choices;
+        const tiny = yield* filmNamed('tiny');
         const take = waiting[0]?.sha256 ?? '';
-        const alone = yield* choices.takeAudio('tiny', 'paper.page', take);
+        const alone = yield* choices.takeAudio(tiny, 'paper.page', take);
         expect(alone.endsWith('files/paper.page/bb22.wav')).toBe(true);
-        const mix = yield* choices.takeMix('tiny', 'paper.page', take);
+        const mix = yield* choices.takeMix(tiny, 'paper.page', take);
         expect(mix.endsWith('.m4a')).toBe(true);
         const made = yield* fs.stat(mix);
         expect(Number(made.size)).toBeGreaterThan(1000);
         // Asked again, it is the same file: not made twice.
-        expect(yield* choices.takeMix('tiny', 'paper.page', take)).toBe(mix);
-        const score = yield* choices.scoreMix('tiny', 'piano');
+        expect(yield* choices.takeMix(tiny, 'paper.page', take)).toBe(mix);
+        const score = yield* choices.scoreMix(tiny, 'piano');
         expect(score).not.toBe(mix);
       }).pipe(Effect.scoped, Effect.provide(fixture)),
     120_000,

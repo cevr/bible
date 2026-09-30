@@ -26,7 +26,8 @@ bun run sfx render <name> [--seed n]           # a procedural sound's seeds as W
 bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams
 bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
 bun run sfx push --from <folder>               # the same, sending files this machine lacks from an older folder store (a move; see The private store)
-bun run media push <file…> [--under dir]       # review renders into the private store's renders/ (skips what it holds), read back by hash
+bun run media push <file…> [--under dir]       # review renders into renders/<path under FILMS_OUT> (or renders/<dir>/<name>), read back by hash; skips what it holds, refuses a key it holds with other bytes
+bun run media push <file…> --replace           # send them even where the store holds other bytes under the key
 bun run media pull <key…> [--to dir]           # renders back out (default out/renders), checked against their sha256
 bun run media list [prefix]                    # what the private store holds under a prefix (default renders/)
 bun run plan | deploy                          # the private store's Cloudflare stack (alchemy.run.ts), prod stage; deploy is the owner's call
@@ -49,6 +50,8 @@ bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palett
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> picks its options (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
+bun cli.ts options list <film>                 # the film's options as the review reads them, fresh from disk (one line of JSON)
+bun cli.ts options mix <film> [--score o] [--take sound:sha256] --to f.m4a  # the mix the review plays for an option or a take
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -425,15 +428,19 @@ store, declared by `store` in `sounds/library.ts` as a tagged union:
 
 ```ts
 export const store = defineStore({ kind: 'folder', folder: '~/film-sounds' });
-export const store = defineStore({ kind: 'r2', bucket: 'film-store' }); // jurisdiction?: 'eu' | 'fedramp'
+export const store = defineStore({ kind: 'r2', bucket: 'film-store' }); // the bucket the stack makes (infra/store.test.ts checks)
 ```
 
 Keys are prefixes in the one store: `files/<name>/<hash>.flac` (the library's
 sounds), `scores/<film>/<option>.<ext>` (each score option) and
-`renders/<…>` (review renders, `media`). The R2 store keeps each object's
-sha256 as its `x-amz-meta-sha256` metadata, so `push` asks the store for a
-hash with one `HEAD` and never downloads to compare; `pull` checks the bytes
-against that hash before it renames them into place.
+`renders/<…>` (review renders, `media`: a render's key is its path under
+`FILMS_OUT`, so two films' `contact.jpg` never share one, and a key the store
+holds with other bytes is refused, `StoreKeyTaken`, unless `--replace`). The
+R2 store keeps each object's sha256 as its `x-amz-meta-sha256` metadata, so
+`push` asks the store for a hash with one `HEAD` and never downloads to
+compare; a file is hashed and sent as it streams, never read whole; `pull`
+streams the bytes beside their place, checks them against that hash, and
+renames them into place (or leaves nothing).
 
 **The stack.** `alchemy.run.ts` (wiring only) deploys `infra/store.ts`: one R2
 bucket, `film-store` on `prod` (`film-store-<stage>` on any other stage),
