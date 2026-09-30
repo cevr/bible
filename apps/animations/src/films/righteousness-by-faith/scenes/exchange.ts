@@ -37,7 +37,7 @@ import {
   rounded,
   sky,
 } from '@bible/film/canvas';
-import { clamp, lerp, gait } from '@bible/film/core';
+import { gait, lerp } from '@bible/film/core';
 import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
@@ -125,6 +125,8 @@ const timeline = {
   // Back out on "that we might take His righteousness", and he walks up the hill.
   back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
   walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
+  // The figure turns to watch him over the first half of his walk up.
+  watch: { with: 'walkUp', dur: 0.95, ease: 'inSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
   // His hands out along the beam as the silhouette comes up with the dark.
   nailed: { with: 'dark', dur: 0.9, ease: 'inOutSine' },
@@ -233,7 +235,7 @@ const hill = (f: ExchangeFrame) => {
       // The figure: turned toward the hill, puzzled on "fair", then watching him go.
       const turn = f.at('turn') * (1 - walkIn);
       const puzzle = f.at('puzzle') * (1 - f.at('close'));
-      const after = clamp(walkUp * 2);
+      const after = f.at('watch');
       at(ctx, { x: fx, y: fy, scale: SCALE }, () =>
         person(
           ctx,

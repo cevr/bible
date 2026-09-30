@@ -17,18 +17,9 @@ import {
   type ESTree,
   Rule,
   RuleContext,
-  Scope,
-  SourceCode,
-  type Variable,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { memberName } from './nodes.ts';
-
-/** `f.at(…)`: a call to a member named `at`. */
-const isCueProgress = (n: ESTree.Node): boolean =>
-  n.type === 'CallExpression' &&
-  n.callee.type === 'MemberExpression' &&
-  Option.contains(memberName(n.callee), 'at');
+import { readsCue } from './nodes.ts';
 
 /** `ease.inCubic(x)`: the one argument of a call on `ease`, when it is one. */
 const easedArgument = (n: ESTree.CallExpression): Option.Option<ESTree.Node> => {
@@ -41,26 +32,6 @@ const easedArgument = (n: ESTree.CallExpression): Option.Option<ESTree.Node> => 
   )
     return Option.none();
   return Option.filter(Option.fromUndefinedOr(n.arguments[0]), (a) => a.type !== 'SpreadElement');
-};
-
-/** Whether `name`, where `node` sits, is a `const` bound to a cue's progress. */
-const boundToCue = (node: ESTree.Node, name: string) =>
-  Effect.map(SourceCode.getScope(node), (scope) =>
-    Option.exists(
-      Option.flatMap(Scope.findVariableUp(scope, name), (v: Variable) =>
-        Option.fromUndefinedOr(v.defs[0]),
-      ),
-      (def) =>
-        def.node.type === 'VariableDeclarator' &&
-        Option.exists(Option.fromNullOr(def.node.init), isCueProgress),
-    ),
-  );
-
-/** Whether `x` is a cue's progress: `f.at(…)`, or a const bound to it. */
-const readsCue = (x: ESTree.Node) => {
-  if (isCueProgress(x)) return Effect.succeed(true);
-  if (x.type === 'Identifier') return boundToCue(x, x.name);
-  return Effect.succeed(false);
 };
 
 export const noEaseOnCue = Rule.define({

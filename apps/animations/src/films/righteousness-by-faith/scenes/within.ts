@@ -76,6 +76,8 @@ const timeline = {
   ask: { mark: 'out', dur: 0.4 },
   shrink: { mark: 'never', dur: 1.5, ease: 'inOutCubic' },
   heart: { mark: 'write', offset: -0.1, dur: 0.5, ease: 'outBack' },
+  // The circle fades as the heart pops in, gone by the time it is well in.
+  heartOut: { with: 'heart', dur: 0.08, ease: 'linear' },
   // `robe`'s row: the woman's plate goes as the row settles, and the heart lights on "power".
   settle: { at: 'start', dur: 0.8, ease: 'inOutCubic' },
   heartLit: { mark: 'power', dur: 0.55, ease: 'outBack' },
@@ -145,14 +147,14 @@ const page = (f: WithinFrame) => {
 /** The circle, as big as the universe, coming home to the chest; gone once the heart is in. */
 const circle = (f: WithinFrame, chest: Pt) => {
   const { ctx } = f;
-  const heart = f.at('heart');
-  if (heart >= 0.6) return;
+  const gone = f.at('heartOut');
+  if (gone >= 1) return;
   const { hand } = f;
   const shrink = f.at('shrink');
   const r = lerp(720, 40, shrink);
   const [cx, cy] = [lerp(960, chest[0], shrink), lerp(470, chest[1], shrink)];
   ctx.save();
-  ctx.globalAlpha *= 1 - clamp(heart / 0.6);
+  ctx.globalAlpha *= 1 - gone;
   glow(ctx, cx, cy, r * 1.1, C.glow, 0.5);
   stroke(
     ctx,

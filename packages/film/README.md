@@ -1393,6 +1393,12 @@ that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
 second curve is one the lab's picker cannot change, and a push whose zoom
 takes it runs on another clock than its x and y. A push is a `shotPath` stop
 with `pushInto`; another curve is its own cue or `f.keys`.
+`film/no-cue-remap` (`lint/no-cue-remap.ts`) refuses a cue split by a
+fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
+`clamp(3 * x - 2)` or `clamp((x - 0.75) / 0.25)` over a cue's progress `x`
+(`f.at(cue)` or a const bound to one): the part is a cue of its own,
+`{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
+which the lab can reach.
 
 ## Knobs
 

@@ -241,6 +241,7 @@ export const EaseName = Schema.Literals([
   'inOutQuart',
   'outExpo',
   'inOutExpo',
+  'inSine',
   'inOutSine',
   'outBack',
   'outSoft',

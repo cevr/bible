@@ -5,6 +5,7 @@
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
+import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
@@ -14,6 +15,7 @@ export default Plugin.define({
   name: 'film',
   rules: {
     'drawing-literal': drawingLiteral,
+    'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
     'no-unprobed-ink': noUnprobedInk,

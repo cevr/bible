@@ -12,7 +12,7 @@ export const scene = drawing({
       lerp(1, 9, ease.inCubic(plunge)), // RED film/no-ease-on-cue
       ease.outBack(f.at('plunge')), // RED film/no-ease-on-cue
       ease.outCubic(grow),
-      ease.inOutSine(clamp(plunge * 3)),
+      ease.inOutSine(clamp(plunge * 3)), // RED film/no-cue-remap
       plunge,
     ];
   },

@@ -292,6 +292,13 @@
       }
     },
     {
+      // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
+      "files": ["**/apps/animations/src/films/**/*.ts"],
+      "rules": {
+        "film/no-cue-remap": "error"
+      }
+    },
+    {
       // A film's scene registry builds each SceneSpec with its optional `say`.
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {

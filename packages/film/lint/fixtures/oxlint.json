@@ -8,6 +8,7 @@
     "film/no-unprobed-ink": "error",
     "film/no-hand-timed-seconds": "error",
     "film/span-ends-on-anchor": "error",
-    "film/no-ease-on-cue": "error"
+    "film/no-ease-on-cue": "error",
+    "film/no-cue-remap": "error"
   }
 }
