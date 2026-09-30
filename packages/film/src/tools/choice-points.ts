@@ -27,9 +27,9 @@ import {
   type VariantDraft,
   withSay,
 } from '../core/choice.ts';
-import { type SoundLayer, pointIdOf } from '../core/point.ts';
+import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
-import { type MixPlan, mixPlan } from '../core/mix.ts';
+import { type MixPlan, type MixPlanError, mixPlan } from '../core/mix.ts';
 import type { Cue, Sound } from '../core/schema.ts';
 import {
   type LibraryEntry,
@@ -163,25 +163,39 @@ const takesOf = (entry: LibraryEntry, lock: Option.Option<LockEntry>) => [
   ...pendingOf(entry, lock).map((v, i) => takeOf(entry, v, false, i + 1)),
 ];
 
-/** The film's mix plan as its sources stand, when it builds. */
+/**
+ * The film's mix plan as its sources stand (none when the film has no
+ * sound), or why it does not build: a bed or effect naming a cue a
+ * re-timing removed.
+ */
 const planOf = (
   loaded: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-): Option.Option<MixPlan<SoundSource>> =>
-  Option.flatMap(loaded.sound, () =>
-    Result.getSuccess(
-      mixPlan({
-        film: loaded.paths.name,
-        placed,
-        sound: loaded.sound,
-        manifest: loaded.manifest,
-        sounds: loaded.sounds,
-        narration: loaded.paths.narration,
-        soundDir: loaded.paths.sound,
-        play: Option.none(),
-      }),
-    ),
-  );
+): Result.Result<Option.Option<MixPlan<SoundSource>>, MixPlanError> =>
+  Option.match(loaded.sound, {
+    onNone: () => Result.succeed(Option.none()),
+    onSome: () =>
+      Result.map(
+        mixPlan({
+          film: loaded.paths.name,
+          placed,
+          sound: loaded.sound,
+          manifest: loaded.manifest,
+          sounds: loaded.sounds,
+          narration: loaded.paths.narration,
+          soundDir: loaded.paths.sound,
+          play: Option.none(),
+        }),
+        Option.some,
+      ),
+  });
+
+/** A point's line saying why its placements are not shown, when the plan does not build. */
+const unplacedLines = (plan: Result.Result<unknown, MixPlanError>): ReadonlyArray<string> =>
+  Result.match(plan, {
+    onSuccess: () => [],
+    onFailure: (error) => [`placed nowhere: the mix does not build (${error.message})`],
+  });
 
 /** One placement of an effect: its name in `sound.ts`, its library sound, its film second. */
 interface Placement {
@@ -193,9 +207,12 @@ interface Placement {
 /** Where each effect of the plan plays. */
 const placementsOf = (
   sound: Sound,
-  plan: Option.Option<MixPlan<SoundSource>>,
+  plan: Result.Result<Option.Option<MixPlan<SoundSource>>, MixPlanError>,
 ): ReadonlyArray<Placement> =>
-  Option.match(plan, { onNone: () => [], onSome: (p) => p.effects }).flatMap((e) =>
+  Option.match(Option.flatten(Result.getSuccess(plan)), {
+    onNone: () => [],
+    onSome: (p) => p.effects,
+  }).flatMap((e) =>
     Option.toArray(
       Option.map(Option.fromUndefinedOr(sound.effects[e.name]), (effect) => ({
         effect: e.name,
@@ -219,7 +236,8 @@ export const takePoints = (
   Option.match(loaded.sound, {
     onNone: () => [],
     onSome: (sound) => {
-      const where = placementsOf(sound, planOf(loaded, placed));
+      const plan = planOf(loaded, placed);
+      const where = placementsOf(sound, plan);
       const declared = Arr.dedupe(Object.values(sound.effects).map((e) => e.sound));
       return declared.flatMap((name) =>
         Option.match(Option.fromUndefinedOr(loaded.sounds.library[name]), {
@@ -236,6 +254,7 @@ export const takePoints = (
                 title: name,
                 lines: [
                   `${takes.filter((t) => t.picked).length} kept · ${takes.filter((t) => !t.picked).length} waiting`,
+                  ...unplacedLines(plan),
                 ],
                 marks: here.map((w) => markOf(placed, w)),
                 variants: takes,
@@ -333,6 +352,8 @@ interface LayerLevel {
   readonly fallback: Option.Option<number>;
   readonly scenes: ReadonlyArray<string>;
   readonly marks: ReadonlyArray<ChoiceMark>;
+  /** Why its placements are not shown: an effect's, when the mix does not build. */
+  readonly unplaced: ReadonlyArray<string>;
 }
 
 /** The ids of the scenes from `from`'s to `to`'s, in film order. */
@@ -350,7 +371,8 @@ const layersOf = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<LayerLevel> => {
-  const where = placementsOf(sound, planOf(loaded, placed));
+  const plan = planOf(loaded, placed);
+  const where = placementsOf(sound, plan);
   const entry = (name: string) => Option.fromUndefinedOr(loaded.sounds.library[name]);
   const score = Option.match(Option.fromUndefinedOr(sound.score), {
     onNone: () => [],
@@ -361,6 +383,7 @@ const layersOf = (
         fallback: Option.some(s[which]),
         scenes: [],
         marks: [],
+        unplaced: [],
       })),
   });
   const beds = Option.getOrElse(Option.fromUndefinedOr(sound.beds), () => []).map(
@@ -375,6 +398,7 @@ const layersOf = (
           label: `${bed.sound} from ${bed.from.scene}`,
         })),
       ),
+      unplaced: [],
     }),
   );
   const effects = Object.entries(sound.effects).map(([name, effect]): LayerLevel => {
@@ -385,6 +409,7 @@ const layersOf = (
       fallback: Option.map(entry(effect.sound), (e) => levelOf(e, Option.none())),
       scenes: here.map((w) => sceneOfTime(placed, w.at)),
       marks: here.map((w) => markOf(placed, w)),
+      unplaced: unplacedLines(plan),
     };
   });
   return [...score, ...beds, ...effects];
@@ -392,27 +417,27 @@ const layersOf = (
 
 const LEVEL_KNOB = { min: -40, max: 0, step: 0.5, unit: 'dB' } as const;
 
-/** A layer's level knob: its point id, its value and whether a write can reach it. */
+/** A layer's level knob: what it writes (its own level, or a shared constant), its value and whether a write can reach it. */
 const knobOf = (layer: LayerLevel, written: Result.Result<LevelWritten, unknown>) => {
-  const own = pointIdOf({ _tag: 'Level', target: { _tag: 'Layer', layer: layer.layer } });
+  const own: LevelTarget = { _tag: 'Layer', layer: layer.layer };
   const fixed = (why: string) => ({
-    id: own,
+    target: own,
     value: Option.getOrElse(layer.fallback, () => 0),
     fixed: Option.some(why),
   });
   if (Result.isFailure(written)) return fixed(`sound.ts does not read: ${String(written.failure)}`);
   const w = written.success;
-  if (w._tag === 'Own') return { id: own, value: w.value, fixed: Option.none<string>() };
+  if (w._tag === 'Own') return { target: own, value: w.value, fixed: Option.none<string>() };
   if (w._tag === 'Shared')
     return {
-      id: pointIdOf({ _tag: 'Level', target: { _tag: 'Const', name: w.name } }),
+      target: { _tag: 'Const', name: w.name } satisfies LevelTarget,
       value: w.value,
       fixed: Option.none<string>(),
     };
   if (w._tag === 'Computed') return fixed(`its level is \`${w.text}\`, not a literal`);
   return Option.match(layer.fallback, {
     onNone: () => fixed('its sound is not in the library'),
-    onSome: (value) => ({ id: own, value, fixed: Option.none<string>() }),
+    onSome: (value) => ({ target: own, value, fixed: Option.none<string>() }),
   });
 };
 
@@ -434,26 +459,26 @@ export const levelPoints = (
         layer,
         knob: knobOf(layer, readLevel(file, source, layer.layer)),
       }));
-      const byId = Arr.groupBy(knobs, (k) => k.knob.id);
+      const byId = Arr.groupBy(knobs, (k) => pointIdOf({ _tag: 'Level', target: k.knob.target }));
       return Object.entries(byId).map(([id, all]): PointDraft => {
         const first = all[0];
         const scenes = all.flatMap((k) => k.layer.scenes);
-        const shared = all.length > 1 || id.startsWith('level:const:');
+        const title = Match.valueTags(first.knob.target, {
+          Const: ({ name }) => `const:${name} · ${counted(all.length, 'layer')}`,
+          Layer: () => first.layer.title,
+        });
         return {
           id,
           kind: 'level',
           address: Option.some(scenesAddress(scenes)),
-          title: Match.value(shared).pipe(
-            Match.when(
-              true,
-              () => `${id.slice('level:'.length)} · ${counted(all.length, 'layer')}`,
+          title,
+          lines: [
+            ...Arr.filter(
+              all.map((k) => k.layer.title),
+              () => first.knob.target._tag === 'Const',
             ),
-            Match.orElse(() => first.layer.title),
-          ),
-          lines: Arr.filter(
-            all.map((k) => k.layer.title),
-            () => shared,
-          ),
+            ...Arr.dedupe(all.flatMap((k) => k.layer.unplaced)),
+          ],
           marks: all.flatMap((k) => k.layer.marks),
           knob: Option.some({ ...LEVEL_KNOB, value: first.knob.value, fixed: first.knob.fixed }),
           variants: [],
