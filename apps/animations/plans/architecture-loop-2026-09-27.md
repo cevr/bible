@@ -387,6 +387,33 @@ ci success run=36776988875 sha=f922c2d4
 | A    | p7-page  | the set page shows a stale render, a failed say keeps the comment, act/film Withdraw                                              | merged 05aa2bec: a failed say keeps its text, the set page shows a record-proven stale reason, act/film Withdraw, `RequestInvalid` names why a request did not decode, a film that fails to load answers `ServerFailed` in one sentence (project and options), `pointIdOf` the one point namer (`pointId`/`renderPointId` gone), atom setters read untracked (7 → 0 STRICT warnings), server text escaped; live: full RBF project render through the in-process share, 20 scenes, 2 page loads |
 | A    | p7-films | InkOverFace only for faces in frame, CueTwin, framing lint sees spread cameras, one unmoved camera                                | merged 8fdce7ef: InkOverFace only on faces in frame (shared `seenFace`; woman 104 → 1 frame, roof 206 → 49); `CueTwin` warning (RBF 4 twins collapsed, cues otherwise identical); framing lint reads spread cameras (message roofRise/roofZoom knobs); `UNMOVED` declared once; every-scene-draws through `drawLeg`; one refusing ElevenLabs (`@bible/film/testing`); `handsOf` takes the drawing only; 31 set-file exports private                                                            |
 
+CI, pass 7 (`bun run ci f922c2d4..6c79e4ec`): c5dffdf2 (the triage ledger commit, before p7-media) was cancelled by the job limit after "Install ffmpeg" took 1055 s — the second ffmpeg apt hang, gone with the step; the verdict blames the step it stopped in (G8-5).
+
+```
+ci cancelled run=36780178389 sha=c5dffdf2 failed="test (film 2/3) in Install Chromium: cancelled after 96 s"
+ci none sha=0e41a6ad (no run of its own: pushed inside a later push)
+ci none sha=22bcd9ed (no run of its own: pushed inside a later push)
+ci none sha=bffe0b3c (no run of its own: pushed inside a later push)
+ci success run=36788247232 sha=8fdce7ef
+ci success run=36788337636 sha=2f754136
+ci success run=36789807197 sha=05aa2bec
+ci success run=36789813027 sha=6c79e4ec
+```
+
+## Pass 8 (2026-10-01)
+
+- Baseline: main 6c79e4ec. Six sweeps, reports in `SP/film-pass8/`.
+- Findings: 2 P1 (re-muxing a software share copy asserts in mediabunny: `joinInto` writes a segment's B-frame video before any sound, so `project render` stops at the first `stale:sound` scene; mirror at 56.57 s: the needle and thread hold where the hand left them for 10 frames, up to 138 px off, as the grip turns hold → palm), 6 P2 (the stand-in never draws the blended-face path; no check sees a grip change; a merge silently dropped five doc statements; the docs still name the ffmpeg CLI; oxlint-plugin-effect 0.18.0 shipped and a pass-7 test has a fixed wait; the loop does not record its own CI), the rest P3. Core, lab: only polish. Not closed.
+- Triage: `SP/film-pass8/triage.md`.
+
+| Wave | Batch     | Items                                                                                                                                  | Result |
+| ---- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| A    | p8-media  | share re-mux (P1), phone copy settings, mixer writes whole, ffmpeg doc lines                                                           |        |
+| A    | p8-films  | mirror needle at 56.57 s (P1), a grip-change check, InkOverFace in film order, cue-fraction lint                                       |        |
+| A    | p8-engine | the stand-in draws a face as a canvas does, one face pattern per context                                                               |        |
+| A    | p8-guard  | merge audit, oxlint-plugin-effect 0.18.0 + no fixed waits, CI recorded per push, verdict names the long step                           |        |
+| A    | p8-core   | point-id codec edges, a scene id shape, choice-point ids made once, every module's unused exports guarded, fresh reads answer, lab P3s |        |
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
