@@ -58,7 +58,7 @@ export class ScenesApart extends Schema.TaggedError<ScenesApart>()('ScenesApart'
   between: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `scenes ${this.named.join(', ')} are not one stretch of the film: ${this.between.join(', ')} play between them; name those too, or address each scene alone`;
+    return `scenes ${this.named.join(', ')} are not one stretch of the film (between them: ${this.between.join(', ')}); name those too, or address each scene alone`;
   }
 }
 
