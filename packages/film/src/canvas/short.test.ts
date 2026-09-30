@@ -27,7 +27,7 @@ describe('createShort', () => {
       id: 'cut',
       title: 'A cut',
       spans: [
-        { scene: 'b', from: { mark: 'eight' }, to: { scene: 'speechEnd' } },
+        { scene: 'b', from: { mark: 'eight' }, to: { at: 'speechEnd' } },
         { scene: 'a', from: { mark: 'three' }, to: { mark: 'five' } },
       ],
     });
@@ -54,7 +54,7 @@ describe('createShort', () => {
       createShort(film, {
         id: 'cut',
         title: 'A cut',
-        spans: [{ scene: 'a', from: { mark: 'nope' }, to: { scene: 'end' } }],
+        spans: [{ scene: 'a', from: { mark: 'nope' }, to: { at: 'end' } }],
       }),
     ).toThrow('has no mark {nope}');
   });
@@ -81,7 +81,7 @@ describe('createShort', () => {
       {
         id: 'one',
         title: 'One',
-        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+        spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
       },
     ]);
     expect(Object.keys(pages)).toEqual(['probe/shorts/one']);

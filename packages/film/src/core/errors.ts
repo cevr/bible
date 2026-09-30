@@ -14,41 +14,146 @@ export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownSce
   }
 }
 
-export class UnknownCue extends Schema.TaggedError<UnknownCue>()('UnknownCue', {
-  scene: Schema.String,
-  cue: Schema.String,
+/** A film's act named by an address (`--act`) that its `look` does not declare. */
+export class UnknownAct extends Schema.TaggedError<UnknownAct>()('UnknownAct', {
+  act: Schema.String,
+  /** The acts the film declares, in order; empty when it declares no look. */
+  known: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `sound: scene "${this.scene}" has no cue "${this.cue}"`;
+    if (this.known.length === 0) return `the film has no act "${this.act}": it declares no acts`;
+    return `the film has no act "${this.act}"; its acts are ${this.known.join(', ')}`;
   }
 }
 
-export class UnknownMark extends Schema.TaggedError<UnknownMark>()('UnknownMark', {
-  scene: Schema.String,
-  mark: Schema.String,
+/** An address (`--short`) names a short the film's `shorts.ts` does not declare. */
+export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The shorts the film declares, in order; empty when it has no `shorts.ts`. */
+  known: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `sound: scene "${this.scene}" has no mark "${this.mark}"`;
+    if (this.known.length === 0)
+      return `film "${this.film}" has no short "${this.id}": it declares none (a shorts.ts beside its script)`;
+    return `film "${this.film}" has no short "${this.id}"; its shorts are ${this.known.join(', ')}`;
+  }
+}
+
+/** An address that names more than one scope: a film, one act, some scenes or one short. */
+export class AddressConflict extends Schema.TaggedError<AddressConflict>()('AddressConflict', {
+  /** The scopes it names: `act`, `scene`, `short`. */
+  given: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `an address names one scope (an act, scenes or a short), not ${this.given.join(' and ')}`;
   }
 }
 
 /**
- * A cue pinned to a word (`{ mark, word }`) whose line never says that word
- * at or after its mark: the pin has nothing to land on, so the film does not
- * lay out (never a silent fall back to the mark).
+ * A point names a cue its scene's timeline does not have. `by` says who
+ * named it: a cue of the timeline (`cue "lift"`), the sound, or a short.
+ */
+export class UnknownCue extends Schema.TaggedError<UnknownCue>()('UnknownCue', {
+  scene: Schema.String,
+  cue: Schema.String,
+  by: Schema.String,
+  /** The scene's cues. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.by}: scene "${this.scene}" has no cue "${this.cue}"; its cues are ${this.known.join(', ') || 'none'}`;
+  }
+}
+
+/** A point names a `{mark}` its scene's narration does not have. `by` as for `UnknownCue`. */
+export class UnknownMark extends Schema.TaggedError<UnknownMark>()('UnknownMark', {
+  scene: Schema.String,
+  mark: Schema.String,
+  by: Schema.String,
+  /** The scene's marks, in narration order. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    const marks = this.known.map((m) => `{${m}}`).join(' ') || 'none';
+    return `${this.by}: scene "${this.scene}" has no mark {${this.mark}}; its marks are ${marks}`;
+  }
+}
+
+/**
+ * A point pinned to a word (`{ mark, word }`) whose line never says that
+ * word at or after its mark: the pin has nothing to land on, so the film does
+ * not lay out (never a silent fall back to the mark).
  */
 export class WordMissing extends Schema.TaggedError<WordMissing>()('WordMissing', {
   scene: Schema.String,
-  cue: Schema.String,
+  by: Schema.String,
   mark: Schema.String,
   word: Schema.String,
 }) {
   override get message() {
-    return `scene ${this.scene}: cue "${this.cue}" is pinned to the word "${this.word}", which the line never says at or after {${this.mark}}`;
+    return `${this.by}: scene "${this.scene}" pins the word "${this.word}", which the line never says at or after {${this.mark}}`;
   }
 }
 
-/** A sound cue that names both a cue and a mark, or an edge without a cue. */
+/** A timeline whose cues anchor on each other in a ring: `cycle` runs round it, back to its first cue. */
+export class CueCycle extends Schema.TaggedError<CueCycle>()('CueCycle', {
+  scene: Schema.String,
+  cycle: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cycle.at(-1) ?? ''}" is part of a cycle (${this.cycle.join(' → ')})`;
+  }
+}
+
+/** A cue that runs `until` a mark said before the cue starts. */
+export class UntilBeforeStart extends Schema.TaggedError<UntilBeforeStart>()('UntilBeforeStart', {
+  scene: Schema.String,
+  cue: Schema.String,
+  mark: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" ends at {${this.mark}}, before it starts`;
+  }
+}
+
+/** Two scenes of a film share an id. */
+export class DuplicateScene extends Schema.TaggedError<DuplicateScene>()('DuplicateScene', {
+  scene: Schema.String,
+}) {
+  override get message() {
+    return `the film has two scenes "${this.scene}"`;
+  }
+}
+
+/** A scene's line names one `{mark}` twice. */
+export class DuplicateMark extends Schema.TaggedError<DuplicateMark>()('DuplicateMark', {
+  scene: Schema.String,
+  mark: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": the line names {${this.mark}} twice`;
+  }
+}
+
+/**
+ * A scene's line hands itself on where no voice can read: two turns before
+ * one word, or a turn with no word after it.
+ */
+export class TurnInvalid extends Schema.TaggedError<TurnInvalid>()('TurnInvalid', {
+  scene: Schema.String,
+  voice: Schema.String,
+  reason: Schema.Literals(['follows another turn before any word', 'has no word after it']),
+}) {
+  override get message() {
+    return `scene "${this.scene}": the turn to {@${this.voice}} ${this.reason}`;
+  }
+}
+
+/** Why a scene's line does not parse. */
+export type LineError = DuplicateMark | TurnInvalid;
+
+/** A bed that ends where it starts, or before. */
 export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   scene: Schema.String,
   reason: Schema.String,
@@ -58,28 +163,40 @@ export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   }
 }
 
-export class ActTooShort extends Schema.TaggedError<ActTooShort>()('ActTooShort', {
-  act: Schema.String,
+/** A score movement under the music API's shortest chunk, or one declared out of film order. */
+export class MovementTooShort extends Schema.TaggedError<MovementTooShort>()('MovementTooShort', {
+  movement: Schema.String,
   ms: Schema.Finite,
 }) {
   override get message() {
-    return `sound: act "${this.act}" is ${this.ms}ms; acts must run in film order, 3s or more`;
+    return `sound: movement "${this.movement}" is ${this.ms}ms; movements must run in film order, 3s or more`;
   }
 }
 
-/** A score act longer than the music API's longest chunk: start another act inside it. */
-export class ActTooLong extends Schema.TaggedError<ActTooLong>()('ActTooLong', {
-  act: Schema.String,
+/** A score movement longer than the music API's longest chunk: start another movement inside it. */
+export class MovementTooLong extends Schema.TaggedError<MovementTooLong>()('MovementTooLong', {
+  movement: Schema.String,
   ms: Schema.Finite,
   max: Schema.Finite,
 }) {
   override get message() {
-    return `sound: act "${this.act}" is ${this.ms}ms, over the ${this.max}ms one act may last; start another act at a scene inside it`;
+    return `sound: movement "${this.movement}" is ${this.ms}ms, over the ${this.max}ms one movement may last; start another at a scene inside it`;
   }
 }
 
-/** An act the music API cannot compose at its length. */
-export type ActLength = ActTooShort | ActTooLong;
+/** A movement the music API cannot compose at its length. */
+export type MovementLength = MovementTooShort | MovementTooLong;
+
+/** A part of the film (an act) declared out of film order: it starts on or before the one declared ahead of it. */
+export class PartOutOfOrder extends Schema.TaggedError<PartOutOfOrder>()('PartOutOfOrder', {
+  part: Schema.String,
+  from: Schema.String,
+  after: Schema.String,
+}) {
+  override get message() {
+    return `"${this.part}" starts on scene "${this.from}", which does not play after "${this.after}", the part declared ahead of it; declare parts in film order`;
+  }
+}
 
 /** A score option asked for by name (`mix --score`) that the film's score does not have. */
 export class ScoreUnknown extends Schema.TaggedError<ScoreUnknown>()('ScoreUnknown', {
@@ -116,7 +233,10 @@ export class BeatUnplaced extends Schema.TaggedError<BeatUnplaced>()('BeatUnplac
   }
 }
 
-export type SoundCueError = UnknownScene | UnknownCue | UnknownMark | CueInvalid;
+/** Why a point in a scene does not resolve. */
+export type PointError = UnknownCue | UnknownMark | WordMissing;
+
+export type SoundCueError = UnknownScene | PointError;
 
 /** A line hands over to a voice the film's cast does not have. */
 export class UnknownVoice extends Schema.TaggedError<UnknownVoice>()('UnknownVoice', {
@@ -150,33 +270,6 @@ export class ShortUnknownScene extends Schema.TaggedError<ShortUnknownScene>()(
   }
 }
 
-/** A short's span starts or ends on a `{mark}` its scene's narration does not have. */
-export class ShortUnknownMark extends Schema.TaggedError<ShortUnknownMark>()('ShortUnknownMark', {
-  short: Schema.String,
-  scene: Schema.String,
-  mark: Schema.String,
-  /** The scene's marks, in narration order. */
-  known: Schema.Array(Schema.String),
-}) {
-  override get message() {
-    const marks = this.known.map((m) => `{${m}}`).join(' ') || 'none';
-    return `short "${this.short}": scene "${this.scene}" has no mark {${this.mark}}; its marks are ${marks}`;
-  }
-}
-
-/** A short's span starts or ends on a named cue its scene's timeline does not have. */
-export class ShortUnknownCue extends Schema.TaggedError<ShortUnknownCue>()('ShortUnknownCue', {
-  short: Schema.String,
-  scene: Schema.String,
-  cue: Schema.String,
-  /** The scene's cues. */
-  known: Schema.Array(Schema.String),
-}) {
-  override get message() {
-    return `short "${this.short}": scene "${this.scene}" has no cue "${this.cue}"; its cues are ${this.known.join(', ') || 'none'}`;
-  }
-}
-
 /** A short's span that ends where it starts, or before. */
 export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortSpanEmpty', {
   short: Schema.String,
@@ -190,7 +283,7 @@ export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortS
   }
 }
 
-export type ShortError = ShortUnknownScene | ShortUnknownMark | ShortUnknownCue | ShortSpanEmpty;
+export type ShortError = ShortUnknownScene | PointError | ShortSpanEmpty;
 
 /** A film names a sound the library does not declare. */
 export class UnknownSound extends Schema.TaggedError<UnknownSound>()('UnknownSound', {

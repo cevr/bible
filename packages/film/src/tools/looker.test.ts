@@ -1,9 +1,11 @@
 // Looker with fakes: every scene is drawn small at 2 fps on the page pool and
-// measured; `--scene` draws only those scenes; every page, the browser and the
+// measured; an address of some scenes draws only those; every page, the browser and the
 // server close. No Chromium.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer, Option, Result } from 'effect';
+import { type Address, resolveAddress } from '../core/address.ts';
+import { layout } from '../core/layout.ts';
 import type { HandMark } from '../core/schema.ts';
 import { LOOK_STEP } from './look.ts';
 import { Looker } from './looker.ts';
@@ -54,9 +56,20 @@ const setup = () => {
       }),
     ),
   );
-  const look = (only: Option.Option<ReadonlySet<string>>) =>
+  const look = (address: Address) =>
     Effect.gen(function* () {
-      return yield* (yield* Looker).look(film, 2, only);
+      const scope = Result.getOrThrow(
+        resolveAddress(
+          {
+            name: 'test',
+            placed: Result.getOrThrow(layout(holdScenes, holdTimings)),
+            look: Option.none(),
+            shorts: [],
+          },
+          address,
+        ),
+      );
+      return yield* (yield* Looker).look(film, 2, scope);
     }).pipe(Effect.provide(layer));
   return { ledger, look };
 };
@@ -65,7 +78,7 @@ describe('Looker', () => {
   it.live('measures every scene of the film and closes what it opened', () =>
     Effect.gen(function* () {
       const { ledger, look } = setup();
-      const looked = yield* look(Option.none());
+      const looked = yield* look({ _tag: 'Film' });
       expect(looked.height).toBe(testExportInfo.height);
       expect(looked.looks.map((l) => l.scene)).toEqual(['held', 'brief', 'ambient']);
       // Every sample alternates grey, so no second holds; a face counts only in its own scene.
@@ -80,7 +93,7 @@ describe('Looker', () => {
   it.live('with scenes given, draws and reports only those', () =>
     Effect.gen(function* () {
       const { look } = setup();
-      const looked = yield* look(Option.some(new Set(['brief'])));
+      const looked = yield* look({ _tag: 'Scenes', ids: ['brief'] });
       expect(looked.looks.map((l) => l.scene)).toEqual(['brief']);
     }),
   );
@@ -88,7 +101,7 @@ describe('Looker', () => {
   it.live('draws every frame across a change of a hand and finds the frame it jumps on', () =>
     Effect.gen(function* () {
       const { look } = setup();
-      const looked = yield* look(Option.none());
+      const looked = yield* look({ _tag: 'Film' });
       expect(looked.jumps.map((j) => [j.scene, j.side, j.what])).toEqual([
         ['held', 'far', 'place'],
       ]);

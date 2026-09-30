@@ -3,7 +3,8 @@
 // every page, the browser and the server closed. No Chromium.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Effect, Exit, Layer, Option } from 'effect';
+import { Array as Arr, Effect, Exit, Layer, Option, Result } from 'effect';
+import { type Address, resolveAddress } from '../core/address.ts';
 import { layout } from '../core/layout.ts';
 import type { Short, Timed } from '../core/schema.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
@@ -31,14 +32,25 @@ const scenes: ReadonlyArray<Timed> = [
   { id: 'b', min: 10, enter: { kind: 'fade', dur: 0.5 } },
 ];
 const film = testFilm(scenes, { voice: '', scenes: {} });
-const samples = layoutSamples(layout(scenes, film.timings), testExportInfo.fps);
+const samples = layoutSamples(Result.getOrThrow(layout(scenes, film.timings)), testExportInfo.fps);
 
 const setup = (host: FakeRenderHost = {}, checked: LoadedFilm = film) => {
   const ledger = emptyLedger();
   const layer = Checker.layer.pipe(Layer.provide(fakeRenderHost(ledger, host)));
-  const check = (only: Option.Option<ReadonlySet<string>> = Option.none()) =>
+  const check = (address: Address = { _tag: 'Film' }) =>
     Effect.gen(function* () {
-      return yield* (yield* Checker).layout(checked, { workers: 2, scenes: only });
+      const scope = Result.getOrThrow(
+        resolveAddress(
+          {
+            name: checked.paths.name,
+            placed: Result.getOrThrow(layout(checked.scenes, checked.timings)),
+            look: Option.none(),
+            shorts: [],
+          },
+          address,
+        ),
+      );
+      return yield* (yield* Checker).layout(checked, { workers: 2, scope });
     }).pipe(Effect.provide(layer));
   return { ledger, check };
 };
@@ -75,7 +87,7 @@ describe('Checker', () => {
   it.live('--scene probes only those scenes', () =>
     Effect.gen(function* () {
       const { ledger, check } = setup();
-      yield* check(Option.some(new Set(['b'])));
+      yield* check({ _tag: 'Scenes', ids: ['b'] });
       expect(ledger.frames).toEqual(samples.filter((s) => s.scene === 'b').map((s) => s.frame));
     }),
   );
@@ -84,7 +96,7 @@ describe('Checker', () => {
     'warns StaticHold on 5 s of speech with nothing moving; 3 s, or ambient motion, is fine',
     () =>
       Effect.gen(function* () {
-        const placed = layout(holdScenes, holdTimings);
+        const placed = Result.getOrThrow(layout(holdScenes, holdTimings));
         const ambient = Option.getOrThrow(Arr.findFirst(placed, (p) => p.spec.id === 'ambient'));
         const fps = testExportInfo.fps;
         const inAmbient = (i: number) =>
@@ -178,7 +190,7 @@ describe('Checker.short', () => {
   const short: Short = {
     id: 'cut',
     title: 'Cut',
-    spans: [{ scene: 'a', from: { scene: 'start' }, to: { cue: 'hit' } }],
+    spans: [{ scene: 'a', from: { at: 'start' }, to: { cue: 'hit' } }],
   };
   const info = { width: 1080, height: 1920, fps: 30, duration: 2, frames: 60 };
 
@@ -201,7 +213,7 @@ describe('Checker.short', () => {
       const whole: Short = {
         id: 'cut',
         title: 'Cut',
-        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+        spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
       };
       const page = { width: 1080, height: 1920, fps: 24, duration: 10, frames: 240 };
       const { ledger, check } = setupShort({ info: page }, whole);

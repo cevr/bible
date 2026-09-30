@@ -45,7 +45,7 @@ bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone,
 bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills); --act name for one act
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
@@ -95,8 +95,12 @@ always `src/films`, the folder the player imports (`cli.ts` hands it and
 Check flags: `--static` (the files alone: no mix and no browser), `--sound`
 (the static leg and the mix, no browser), `--allow-stale` (stale takes, sound
 and audio master are warnings), `--scene id,id` (probe only these scenes'
-layout), `--workers n`. A scene id the film lacks (`--scene`, or
-`cues <film> <scene>`) fails with `UnknownScene`, listing the film's scenes.
+layout), `--act name` (probe that act's scenes and judge its colour script),
+`--workers n`. The address (`--act`, `--scene`, `--short`: one of them) is
+resolved once, in `core/address.ts`, before a page opens: a name the film
+lacks fails with `UnknownAct`, `UnknownScene` or `UnknownShort`, listing what
+the film has, and two at once with `AddressConflict` (`cues <film> <scene>`
+fails the same way for its scene).
 Once every take is recorded, the static leg also reads `narration/full.wav`
 and the stamp `mix` writes beside it (`full.json`): missing is
 `AudioMissing`; longer or shorter than the film, or mixed for another plan
@@ -115,9 +119,9 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 film like a video's, so no frame repeats; a range wholly outside it is
 `RangeEmpty`) but no video flag (`--workers` and `--encoder` included: one
 page composes the sheet);
-`--scene` goes with neither `--from` nor `--to`.
+`--scene` and `--act` go with neither `--from` nor `--to`.
 
-Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
+Render flags: `--from/--to` seconds, `--scene id,id` or `--act name`, `--workers n`
 (pages; the measured knee on each encoder: 6 on the Mac's
 hardware encoder, 8 in software, or half the cores on a software machine with
 fewer than 16), `--scale 0.5`, `--no-captions`, `--tag name` (output
@@ -197,7 +201,7 @@ copy of a film with a fake speech-to-text (no paid call; `POST
 without touching the real films. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
-along the top) and every music act's start (a line through it), from the film's
+along the top) and every score movement's start (a line through it), from the film's
 `sound` passed to `createFilm`; hover one for its name and time.
 
 **The review** (`bun run review`; on the box, the `film-review` user unit on
@@ -228,7 +232,8 @@ src/films/<film>/
   scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props, its people and type treatments
-  sound.ts         music acts and sound effects, placed on scenes' named cues
+  acts.ts          the film's acts, once: colour-script targets, chapters; light.ts lights each act
+  sound.ts         score movements and sound effects, placed on scenes' named cues
   shorts.ts        vertical shorts: spans of scenes, from a mark or cue to a later one (optional)
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
   sound/           each score option (git-ignored, private store), and manifest.json (their request hashes, sha256)
@@ -288,7 +293,14 @@ the word there fails the layout with `WordMissing` (`film check`, the player,
 the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
 a re-take moves its end as well as its start; a span declares one or the
-other, and a lab `dur` write replaces its `until`. Read it in
+other, and a lab `dur` write replaces its `until`. A motion that must land on
+its moment `ends` there: `{ mark: 'true', dur: 0.5, ends: true }` ends on
+`{true}` and starts its `dur` before it (never `offset: -0.5, dur: 0.5`, the
+same number twice), so a lab `dur` write or drag keeps the landing. A
+timeline that does not resolve fails the layout naming its scene and cue
+(`UnknownCue`, `UnknownMark`, `CueCycle`, `UntilBeforeStart`, `WordMissing`),
+as does a line with a mark named twice (`DuplicateMark`) or a turn with no
+word (`TurnInvalid`). Read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
 `f.at(name)` (0→1 across it, eased by the span's `ease`), or keyframe a
 motion across it with `f.keys(name, [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`:
@@ -368,13 +380,18 @@ A change of staging voice leaves recorded takes current.
 options (`score.options`: each a whole score in its own musical language, in
 acts that each start at a scene and last 3–120 s), `play` naming the one the
 mix plays, with its `under` and `alone` levels; and effects and beds as library
-sounds placed at a scene's named cue —
-`{ scene, cue, edge }`, the cue's start or end — so the sound lands where the
-picture does and a re-recorded line carries both. A sound with no picture event
-(a page turn at a scene's start) takes `{ scene, offset }`; `{ scene, mark }`
-still works for a sound on a word. `score` sends each option's
-acts as one timed ElevenLabs composition plan (music v2 enforces the section
-lengths, so the score turns where the film does). Assets are content-addressed
+sounds placed at a point in a scene, the same `ScenePoint` a short's span
+names: a named cue, `{ scene, cue, edge }` (the cue's start or end), so the
+sound lands where the picture does and a re-recorded line carries both; a
+`{ scene, mark }` (or a word pinned after it) for a sound on a word; or a
+landmark, `{ scene, at: 'speech' }`, for a bed that hands over where the next
+scene's voice starts (never `offset: 0.4`, a copy of the scene's `lead`). A
+sound at a scene's start names only its scene (`{ scene, offset }`). A point
+names one anchor: a cue and a mark together do not compile. `score` sends each option's
+movements as one timed ElevenLabs composition plan (music v2 enforces the
+section lengths, so the score turns where the film does). Movements are the
+score's own turns; the film's acts (`acts.ts`) are the colour script and
+chapters, and a movement may cross an act's first scene. Assets are content-addressed
 like takes: re-timing a scene makes every option stale; a level change only
 needs `mix`. The mix holds the score `under` dB against the voice wherever
 anyone speaks and lets it rise to `alone` where no one has for 3 s. Generated
@@ -392,13 +409,13 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `shorts`, each `{ id, title, hook?, spans }`, a span being `{ scene, from, to }`
 where a point is a `{ mark }`, a named `{ cue }` (its start, or its end as a
 span's `to`, or `edge` to say which) or a scene landmark
-(`{ scene: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
+(`{ at: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
 re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
 back to back at 1080×1920 with the track cut from `full.wav` under the same
 spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
-lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
-scene has). `cues <film> --short <id>` prints each span's film time and the
+lacks fails before a page starts (`ShortUnknownScene`, `UnknownMark`,
+`UnknownCue`, naming what the scene has). `cues <film> --short <id>` prints each span's film time and the
 short's length, on the frames at the rate the film declares (read from its page,
 as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px
 down, byte for byte the film's own frame at that time (a band crop of
@@ -503,7 +520,7 @@ points:
 |                      | `narration.ts`  | `{mark}` and `{@turn}` parsing, a cast's lines, take timings, word estimates                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 |                      | `time.ts`       | easing, `progress`, `keys`, `envelope`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 |                      | `random.ts`     | seeded hash and noise                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-|                      | `sound.ts`      | music acts → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|                      | `sound.ts`      | score movements → composition plan, effect cues → film times, asset hashes (read by `score`/`mix`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `@bible/film/canvas` | `film.ts`       | `Frame` (t, dur, boil, mark, cue, at, keys, stagger, knob, spoken, hand), `SceneSpec`, `drawing`, `createFilm`, the compositor and its finish (`FilmSpec.finish`: vignette, grain), captions (`CaptionStyle`: font, colours, plate); `createFilm` refuses a finish or plate value the canvas cannot draw                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 |                      | `ink.ts`        | path builders (line, quad, cubic, spline, ellipse), the variable-width brush `stroke` (its `boil`: `tick` redraws the wobble each boil tick, as ink does and by default; `crawl` lets a figure's line wander at most `CRAWL_MAX`, 0.3 px, a tick; `none` holds scenery's line; `closed` for a path that returns to its start: no end taper, and the wobble and swell run on round the seam, so an outline has no notch), and `sub(hand, k)`: a sub-hand on its own seed, so each piece of a drawing boils on its own                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 |                      | `cutout.ts`     | torn-paper `cutout` (rim, grain, shadow; an opaque face under flat state takes its pastel pre-blended per colour, `preblends`, unless the transform magnifies it, `magnifies`), `at` placement, `raised` (longer shadows for a nearer layer)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |

@@ -9,20 +9,22 @@ import { resolveShort } from '../core/shorts.ts';
 import { shortReport } from './cues.ts';
 
 const draw = () => {};
-const placed = layout(
-  [
-    { id: 'a', say: 'One two {three}three four {five}five six.', draw },
-    { id: 'b', say: 'Seven {eight}eight nine ten.', draw },
-  ],
-  { voice: '', scenes: {} },
+const placed = Result.getOrThrow(
+  layout(
+    [
+      { id: 'a', say: 'One two {three}three four {five}five six.', draw },
+      { id: 'b', say: 'Seven {eight}eight nine ten.', draw },
+    ],
+    { voice: '', scenes: {} },
+  ),
 );
 
 const cut: Short = {
   id: 'cut',
   title: 'A cut',
   spans: [
-    { scene: 'b', from: { mark: 'eight' }, to: { scene: 'speechEnd' } },
-    { scene: 'a', from: { scene: 'start' }, to: { mark: 'three' } },
+    { scene: 'b', from: { mark: 'eight' }, to: { at: 'speechEnd' } },
+    { scene: 'a', from: { at: 'start' }, to: { mark: 'three' } },
   ],
 };
 

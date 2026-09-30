@@ -143,16 +143,15 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             const p = Option.flatMap(placed, (all) => Result.getSuccess(sceneOf(all, scene)));
             if (Option.isNone(p)) return;
             const spans = readSpans(at.file, after, at.exportName);
-            const resolved = Result.try({
-              try: () =>
-                resolveTimeline({ ...p.value.spec.timeline, ...spans }, sceneClock(p.value)),
-              catch: (cause) => String(cause).replace(/^Error: /, ''),
-            });
+            const resolved = resolveTimeline(
+              { ...p.value.spec.timeline, ...spans },
+              sceneClock(p.value),
+            );
             if (Result.isFailure(resolved))
               return yield* TimelineUnresolved.make({
                 file: at.file,
                 target,
-                reason: resolved.failure,
+                reason: resolved.failure.message,
               });
           });
 

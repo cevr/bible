@@ -58,6 +58,19 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
+    'render with an unknown act fails with its message, and no stack, before a browser opens',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('render', film, '--act', 'nope');
+        expect(run.exitCode).not.toBe(0);
+        expect(run.out).toContain('UnknownAct: the film has no act "nope"');
+        expect(run.out).not.toContain('    at ');
+        expect(run.out).not.toContain('render.still');
+      }),
+    spawnBudget(1),
+  );
+
+  it.effect.layer(BunServices.layer)(
     'cues with a misspelt scene fails',
     () =>
       Effect.gen(function* () {
@@ -152,12 +165,12 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    'a score dry run prints each option, its acts and its cost, and composes nothing',
+    'a score dry run prints each option, its movements and its cost, and composes nothing',
     () =>
       Effect.gen(function* () {
         const run = yield* cli('score', film, '--dry-run');
         expect(run.exitCode).toBe(0);
-        expect(run.out).toContain('option piano  music_v2_5  2 acts');
+        expect(run.out).toContain('option piano  music_v2_5  2 movements');
         expect(run.out).toContain('current  (20920098)');
         expect(run.out).toContain('1 options, ~0 credits to compose (dry run: nothing composed)');
         const lost = yield* cli('score', film, '--option', 'organ', '--dry-run');

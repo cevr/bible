@@ -19,7 +19,7 @@ import {
   voiceKey,
 } from '@bible/film/core';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema, Result } from 'effect';
 import { FILMS } from '../server.ts';
 import { scenes as liveScenes } from '../src/films/righteousness-by-faith/scenes/index.ts';
 import { voice as liveVoice } from '../src/films/righteousness-by-faith/voice.ts';
@@ -68,7 +68,9 @@ describe('film data codecs and keys (fixture film)', () => {
       // Pinned, not recomputed: a change to the take hash would orphan every take.
       expect(timings.scenes['open']?.hash).toBe('af95d9f8');
       for (const scene of scenes)
-        expect(timings.scenes[scene.id]?.hash).toBe(hashText(parse(scene.say ?? '').spoken));
+        expect(timings.scenes[scene.id]?.hash).toBe(
+          hashText(Result.getOrThrow(parse(scene.id, scene.say ?? '')).spoken),
+        );
     }),
   );
 
@@ -79,7 +81,9 @@ describe('film data codecs and keys (fixture film)', () => {
       );
       const decoded = yield* Schema.decodeEffect(Sound)(sound);
       const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.score?.options['piano']));
-      const plan = yield* Effect.fromResult(musicPlan(music, layout(scenes, timings)));
+      const plan = yield* Effect.fromResult(
+        musicPlan(music, Result.getOrThrow(layout(scenes, timings))),
+      );
       expect(musicKey(music, plan)).toBe('20920098');
     }),
   );
@@ -103,7 +107,9 @@ describe('righteousness-by-faith data', () => {
       for (const scene of liveScenes) {
         const take = Option.fromNullishOr(timings.scenes[scene.id]);
         if (Option.isSome(take))
-          expect(take.value.hash).toBe(hashText(takeScript(parse(scene.say ?? ''))));
+          expect(take.value.hash).toBe(
+            hashText(takeScript(Result.getOrThrow(parse(scene.id, scene.say ?? '')))),
+          );
       }
     }),
   );

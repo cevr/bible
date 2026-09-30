@@ -11,7 +11,7 @@
 //   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
 //   film media push <file…> [--under dir] | pull <key…> [--to dir] | list [prefix]  (media-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
-//   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
+//   film check <film> [--static] [--allow-stale] [--scene id,id | --act name] [--workers n] [--json]
 //   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
@@ -19,7 +19,7 @@
 //   film notes <film> [--watch] [--since n]
 //   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
-//   film render <film> [--stills t,t | --contact secs] [--scene id,id | --from s --to s]
+//   film render <film> [--stills t,t | --contact secs] [--scene id,id | --act name | --from s --to s]
 //                      [--workers n] [--scale k] [--no-captions] [--tag name] [--out file]
 //                      [--no-share] [--encoder hardware|software] [--short id]
 //   film lookbook <film> [--captions] [--tag name]
@@ -49,19 +49,19 @@ import {
 import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
+import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
-import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName, resolveShort } from '../core/shorts.ts';
-import { FILM_FPS } from '../core/time.ts';
+import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.ts';
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD } from './check.ts';
 import { CHECK_RULES, layoutLeg, shortLeg, soundLeg, staticLeg } from './film-check.ts';
 import { type Finding, type Report, lineOf, report } from './findings.ts';
 import { Checker } from './checker.ts';
-import { actsOf, filmChapters, lookLines } from './look.ts';
+import { filmChapters, lookLines } from './look.ts';
 import { Looker } from './looker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -76,7 +76,6 @@ import {
   type MediaFailed,
   PreviewServerFailed,
   SoundMissing,
-  UnknownShort,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media, ffmpegReady } from './media.ts';
@@ -91,14 +90,7 @@ import { studioHandler, withStudio } from './studio.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 import { type LabServer, PreviewServer } from './preview-server.ts';
-import {
-  DRAW_WORKERS,
-  RenderJob,
-  flagConflicts,
-  givenFlags,
-  jobOf,
-  sceneSpan,
-} from './render-plan.ts';
+import { DRAW_WORKERS, RenderJob, flagConflicts, givenFlags, jobOf } from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
@@ -132,33 +124,24 @@ const scenes = Flag.String('scene').pipe(
 const short = Flag.String('short').pipe(Flag.optional);
 
 /**
- * The short `--short` names, its spans checked against the film's layout, so
- * a misspelt short, scene, mark or cue fails before a page or a browser starts.
- * Only a check of names: the short is resolved for use on its page's frame rate
- * (`Checker.cut`, the renderer), not at `FILM_FPS`.
+ * The part of the film the address flags name (`addressOf`), resolved once
+ * against the film's layout (`resolveAddress`), so a misspelt act, scene,
+ * short, mark or cue fails before a page or a browser starts. A short is only
+ * checked here, on the film's clock: its page resolves it on its own frame
+ * rate (`Checker.cut`, the renderer).
  */
-const pickShort = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, id: Option.Option<string>) =>
-  Option.match(id, {
-    onNone: () => Effect.succeed(Option.none<Short>()),
-    onSome: (want) =>
-      Option.match(
-        Arr.findFirst(loaded.shorts, (s) => s.id === want),
-        {
-          onNone: () =>
-            Effect.fail(
-              UnknownShort.make({
-                film: loaded.paths.name,
-                id: want,
-                known: loaded.shorts.map((s) => s.id),
-              }),
-            ),
-          onSome: (found) =>
-            Effect.fromResult(resolveShort(placed, found, FILM_FPS)).pipe(
-              Effect.as(Option.some(found)),
-            ),
-        },
+const scopeOf = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, flags: AddressFlags) =>
+  Effect.fromResult(
+    Result.flatMap(addressOf(flags), (address) =>
+      resolveAddress(
+        { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts },
+        address,
       ),
-  });
+    ),
+  );
+
+/** `--act <name>`: one of the film's acts (`look.acts`). */
+const act = Flag.String('act').pipe(Flag.optional);
 
 /**
  * `--accept-mismatch a,b`: the beats that may keep a take whose transcript
@@ -469,7 +452,8 @@ const script = Command.make(
       const beats = Option.getOrElse(lines, () =>
         loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
       );
-      return yield* Console.log(sheetMarkdown(input.film, sheetBeats(beats, [])));
+      const sheet = yield* Effect.fromResult(sheetBeats(beats, []));
+      return yield* Console.log(sheetMarkdown(input.film, sheet));
     }
     const written = yield* writeSheet(loaded, lines);
     yield* Console.log(written.markdown);
@@ -515,9 +499,14 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
       );
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
-      const cut = yield* pickShort(loaded, placed, input.short);
-      if (Option.isSome(cut)) {
-        for (const line of shortReport(yield* onPage(loaded, cut.value))) yield* Console.log(line);
+      const scope = yield* scopeOf(loaded, placed, {
+        act: Option.none(),
+        scene: Option.none(),
+        short: input.short,
+      });
+      if (Option.isSome(scope.short)) {
+        for (const line of shortReport(yield* onPage(loaded, scope.short.value)))
+          yield* Console.log(line);
         return;
       }
       if (input.sound) {
@@ -544,10 +533,10 @@ const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
   const layout = Effect.fn('film.check.layout')(function* (
     loaded: LoadedFilm,
-    placed: ReadonlyArray<Placed>,
-    options: { readonly workers: number; readonly scenes: Option.Option<ReadonlySet<string>> },
+    scope: Scope,
+    workers: number,
   ) {
-    return yield* layoutLeg(loaded, placed, options);
+    return yield* layoutLeg(loaded, scope, workers);
   }, Effect.provide(checkLayer));
   const onShort = Effect.fn('film.check.short')(function* (
     loaded: LoadedFilm,
@@ -577,6 +566,9 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
       ),
       scene: scenes.pipe(Flag.withDescription('probe the layout of just these scenes (id,id)')),
+      act: act.pipe(
+        Flag.withDescription("probe the layout of this act's scenes, and judge its colour script"),
+      ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
         Flag.withDescription(
@@ -609,23 +601,17 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
-      const picked = yield* pickShort(loaded, placed, input.short);
-      if (Option.isSome(picked)) {
-        const found = yield* onShort(loaded, picked.value, input);
-        return yield* printReport(picked.value.id, 'short', report(found, options), input.json);
+      // A misspelt act, scene or short fails here, in either leg, rather than probing nothing.
+      const scope = yield* scopeOf(loaded, placed, input);
+      if (Option.isSome(scope.short)) {
+        const declared = scope.short.value;
+        const found = yield* onShort(loaded, declared, input);
+        return yield* printReport(declared.id, 'short', report(found, options), input.json);
       }
-      // A misspelt scene fails here, in either leg, rather than probing nothing.
-      const scenes = yield* Option.match(input.scene, {
-        onNone: () => Effect.succeed(Option.none<ReadonlySet<string>>()),
-        onSome: (ids) =>
-          Effect.fromResult(scenesOf(placed, ids)).pipe(
-            Effect.map((picked) => Option.some(new Set(picked.map((p) => p.spec.id)))),
-          ),
-      });
       const found: Array<Finding> = [...(yield* staticLeg(loaded, placed))];
       if (!input.static) found.push(...(yield* soundLeg(loaded, placed)));
       if (!input.static && !input.sound)
-        found.push(...(yield* layout(loaded, placed, { workers: input.workers, scenes })));
+        found.push(...(yield* layout(loaded, scope, input.workers)));
       yield* printReport(input.film, 'film', report(found, options), input.json);
     }),
   ).pipe(
@@ -671,6 +657,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       scene: scenes.pipe(
         Flag.withDescription("span these scenes (id,id), read from the film's layout"),
       ),
+      act: act.pipe(Flag.withDescription("span this act's scenes, read from the film's layout")),
       from: Flag.Finite('from').pipe(Flag.optional, Flag.withDescription('start, in seconds')),
       to: Flag.Finite('to').pipe(Flag.optional, Flag.withDescription('end, in seconds')),
       workers: Flag.Int('workers').pipe(
@@ -719,12 +706,8 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     Effect.fn('film.render')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
-      // `--scene` sets the range from the film's own layout.
-      const span = yield* Option.match(input.scene, {
-        onNone: () => Effect.succeedNone,
-        onSome: (ids) => Effect.asSome(Effect.fromResult(sceneSpan(placed, ids))),
-      });
-      const cut = yield* pickShort(loaded, placed, input.short);
+      // `--act` and `--scene` set the range from the film's own layout; `--short` cuts to it.
+      const scope = yield* scopeOf(loaded, placed, input);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
         onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
@@ -736,14 +719,13 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
           workers: input.workers,
           stills,
           contact: input.contact,
-          span,
+          scope,
           from: input.from,
           to: input.to,
           scale: input.scale,
           out: input.out,
           share: input.share,
           encoder: input.encoder,
-          short: cut,
         }),
       );
       yield* (yield* Renderer).render(loaded, job);
@@ -770,13 +752,17 @@ const lookbook = <E, R>(lookLayer: Layer.Layer<Renderer | Looker, E, R>) =>
     },
     Effect.fn('film.lookbook')(function* (input) {
       const loaded = yield* (yield* FilmRepo).load(input.film);
-      const acts = yield* Effect.fromResult(actsOf(loaded.look, yield* placeFilm(loaded)));
+      const whole = yield* scopeOf(loaded, yield* placeFilm(loaded), {
+        act: Option.none(),
+        scene: Option.none(),
+        short: Option.none(),
+      });
       yield* (yield* Renderer).render(
         loaded,
         RenderJob.LookBook({ tag: input.tag, captions: input.captions }),
       );
-      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, Option.none());
-      for (const line of lookLines(looked.looks, acts)) yield* Console.log(line);
+      const looked = yield* (yield* Looker).look(loaded, DRAW_WORKERS, whole);
+      for (const line of lookLines(looked.looks, whole.acts)) yield* Console.log(line);
     }, Effect.provide(lookLayer)),
   ).pipe(
     Command.withDescription(

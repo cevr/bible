@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import { layout } from './layout.ts';
 import {
   addNote,
@@ -17,21 +17,23 @@ const at = '2026-09-25T00:00:00.000Z';
 
 describe('nearestMoment', () => {
   // Scene a: 0–5 s, no voice. Scene b: from 5 s, a cue at 1–2 s local and one instant at 4 s.
-  const placed = layout(
-    [
-      { id: 'a', min: 5 },
-      {
-        id: 'b',
-        min: 6,
-        say: 'Look {up}and {live}now.',
-        lead: 0.5,
-        timeline: {
-          rise: { scene: 'start', offset: 1, dur: 1 },
-          pop: { scene: 'start', offset: 4 },
+  const placed = Result.getOrThrow(
+    layout(
+      [
+        { id: 'a', min: 5 },
+        {
+          id: 'b',
+          min: 6,
+          say: 'Look {up}and {live}now.',
+          lead: 0.5,
+          timeline: {
+            rise: { scene: 'start', offset: 1, dur: 1 },
+            pop: { scene: 'start', offset: 4 },
+          },
         },
-      },
-    ],
-    { voice: '', scenes: {} },
+      ],
+      { voice: '', scenes: {} },
+    ),
   );
   const moment = (T: number) => Option.getOrThrow(nearestMoment(placed, T));
 

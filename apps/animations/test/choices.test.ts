@@ -48,7 +48,7 @@ const STRINGS = `      strings: {
         model: 'music_v2_5',
         styles: ['instrumental', 'strings'],
         avoid: ['vocals'],
-        acts: [{ from: 'open', name: 'The page', styles: ['quiet'] }],
+        movements: [{ from: 'open', name: 'The page', styles: ['quiet'] }],
       },
 `;
 /** A third option, added while the review runs. */
@@ -56,7 +56,7 @@ const ORGAN = `      organ: {
         model: 'music_v2_5',
         styles: ['instrumental', 'organ'],
         avoid: ['vocals'],
-        acts: [{ from: 'open', name: 'The page', styles: ['slow'] }],
+        movements: [{ from: 'open', name: 'The page', styles: ['slow'] }],
       },
 `;
 const HUSH = `    hush: {

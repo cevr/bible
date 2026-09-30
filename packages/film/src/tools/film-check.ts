@@ -7,13 +7,14 @@
 // as one Report.
 
 import { Effect, FileSystem, Option } from 'effect';
+import type { Scope } from '../core/address.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { actsOf, lookFindings } from './look.ts';
+import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
 import { Mixer, planKey, readMaster } from './mixer.ts';
@@ -60,20 +61,19 @@ export const soundLeg = Effect.fn('check.sound')(function* (
 
 /**
  * The browser legs, on one server and browser that start only when they run:
- * the layout at every sampled frame, then the look pass over the film. Acts
- * are judged only over the whole film; a misnamed act fails before any page
+ * the layout at every sampled frame of the scenes `scope` covers, then the
+ * look pass over them. Each act the scope covers whole is judged against its
+ * colour script; a misnamed act fails in `resolveAddress`, before any page
  * opens.
  */
 export const layoutLeg = Effect.fn('check.layout')(function* (
   film: LoadedFilm,
-  placed: ReadonlyArray<Placed>,
-  options: { readonly workers: number; readonly scenes: Option.Option<ReadonlySet<string>> },
+  scope: Scope,
+  workers: number,
 ) {
-  const declared = Option.filter(film.look, () => Option.isNone(options.scenes));
-  const acts = yield* Effect.fromResult(actsOf(declared, placed));
-  const layout = yield* (yield* Checker).layout(film, options);
-  const looked = yield* (yield* Looker).look(film, options.workers, options.scenes);
-  return [...layout, ...lookFindings(looked, acts).map((r) => r.finding)];
+  const layout = yield* (yield* Checker).layout(film, { workers, scope });
+  const looked = yield* (yield* Looker).look(film, workers, scope);
+  return [...layout, ...lookFindings(looked, scope.acts).map((r) => r.finding)];
 });
 
 /**

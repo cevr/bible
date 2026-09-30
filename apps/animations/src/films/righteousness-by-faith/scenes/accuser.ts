@@ -29,7 +29,7 @@ export const accuser = drawing({
     dim: { with: 'flare', offset: 0.9, dur: 2.4, stagger: 0.5, ease: 'linear' },
     up: { mark: 'ew', offset: 0.4, dur: 1.4, ease: 'inOutCubic' },
     sink: { mark: 'day', offset: -0.2, dur: 2.2, ease: 'inOutSine' },
-    back: { mark: 'angel', offset: -1, dur: 1, ease: 'inOutCubic' },
+    back: { mark: 'angel', dur: 1, ends: true, ease: 'inOutCubic' },
     raise: { mark: 'angel', offset: 0.1, dur: 0.8, ease: 'inOutSine' },
     drop: { mark: 'silence', dur: 0.6, ease: 'inCubic' },
     shrink: { mark: 'silence', offset: 0.1, dur: 0.8 },

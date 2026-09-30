@@ -2,11 +2,10 @@
 // covers, how they split into chunks, and where each output lands. Pure, so
 // the scheduling is checked without Chromium; `Renderer` only runs it.
 
-import { Array as Arr, Data, Option, Result } from 'effect';
+import { Array as Arr, Data, Match, Option, Result } from 'effect';
+import type { Address, Scope } from '../core/address.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
-import type { UnknownScene } from '../core/errors.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
-import { type Placed, scenesOf } from '../core/layout.ts';
 import type { ExportInfo, Short } from '../core/schema.ts';
 import { type FilmPiece, shortKey } from '../core/shorts.ts';
 
@@ -115,15 +114,19 @@ export const givenFlags = (flags: Record<string, Option.Option<unknown>>): Reado
 
 const STILLS = 'stills are drawn at the seconds --stills names';
 const VIDEO = 'only a video takes it';
+const RANGED = 'the address sets the range from the layout';
 
 /** Render flags where one would silently win over, or ignore, the other. */
 const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['stills', 'excludes', 'contact', 'a render writes stills or a contact sheet, not both'],
   ['stills', 'excludes', 'scene', STILLS],
+  ['stills', 'excludes', 'act', STILLS],
   ['stills', 'excludes', 'from', STILLS],
   ['stills', 'excludes', 'to', STILLS],
-  ['scene', 'excludes', 'from', '--scene sets the range from the layout'],
-  ['scene', 'excludes', 'to', '--scene sets the range from the layout'],
+  ['scene', 'excludes', 'from', RANGED],
+  ['scene', 'excludes', 'to', RANGED],
+  ['act', 'excludes', 'from', RANGED],
+  ['act', 'excludes', 'to', RANGED],
   ['stills', 'excludes', 'scale', VIDEO],
   ['stills', 'excludes', 'out', VIDEO],
   ['stills', 'excludes', 'share', VIDEO],
@@ -133,10 +136,18 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['contact', 'excludes', 'workers', 'one page composes the whole sheet'],
   ['stills', 'excludes', 'encoder', VIDEO],
   ['contact', 'excludes', 'encoder', VIDEO],
-  ['short', 'excludes', 'scene', "a short's spans are its scenes"],
 ];
 
-/** `film render`'s flags, parsed; `span` is `--scene`'s range, read from the layout. */
+/** The flag an address was named by: none for the whole film. */
+const addressFlag = (address: Address): Option.Option<string> =>
+  Match.valueTags(address, {
+    Film: () => Option.none(),
+    Act: () => Option.some('act'),
+    Scenes: () => Option.some('scene'),
+    Short: () => Option.some('short'),
+  });
+
+/** `film render`'s flags, parsed; `scope` is the address (`--act`, `--scene`, `--short`) resolved against the layout. */
 export interface RenderFlags {
   readonly tag: string;
   readonly captions: boolean;
@@ -144,7 +155,7 @@ export interface RenderFlags {
   readonly workers: Option.Option<number>;
   readonly stills: Option.Option<ReadonlyArray<number>>;
   readonly contact: Option.Option<number>;
-  readonly span: Option.Option<{ readonly from: number; readonly to: number }>;
+  readonly scope: Scope;
   readonly from: Option.Option<number>;
   readonly to: Option.Option<number>;
   readonly scale: Option.Option<number>;
@@ -152,44 +163,43 @@ export interface RenderFlags {
   readonly share: Option.Option<boolean>;
   /** `--encoder hardware|software`. */
   readonly encoder: Option.Option<Encoder>;
-  /** `--short <id>`, looked up in the film's `shorts.ts`. */
-  readonly short: Option.Option<Short>;
 }
 
 /**
- * The render `flags` ask for: stills, a contact sheet or a video, over
- * `--scene`'s span or `--from/--to`. A flag the job would ignore fails as
- * `FlagsConflict` rather than being dropped.
+ * The render `flags` ask for: stills, a contact sheet or a video, of the
+ * whole film or its short, over the address's span or `--from/--to`. A flag
+ * the job would ignore fails as `FlagsConflict` rather than being dropped.
  */
 export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflict> => {
-  const given = givenFlags({
-    stills: flags.stills,
-    contact: flags.contact,
-    scene: flags.span,
-    from: flags.from,
-    to: flags.to,
-    scale: flags.scale,
-    out: flags.out,
-    share: flags.share,
-    short: flags.short,
-    workers: flags.workers,
-    encoder: flags.encoder,
-  });
+  const given = new Set([
+    ...givenFlags({
+      stills: flags.stills,
+      contact: flags.contact,
+      from: flags.from,
+      to: flags.to,
+      scale: flags.scale,
+      out: flags.out,
+      share: flags.share,
+      workers: flags.workers,
+      encoder: flags.encoder,
+    }),
+    ...Option.toArray(addressFlag(flags.scope.address)),
+  ]);
   const workers = Option.map(flags.workers, (n) => Math.max(1, n));
   const base = {
     tag: flags.tag,
     captions: flags.captions,
-    cut: Option.match(flags.short, {
+    cut: Option.match(flags.scope.short, {
       onNone: () => Cut.Whole(),
       onSome: (short) => Cut.Short({ short }),
     }),
   };
   const from = Option.orElse(
-    Option.map(flags.span, (s) => s.from),
+    Option.map(flags.scope.span, (s) => s.from),
     () => flags.from,
   );
   const to = Option.orElse(
-    Option.map(flags.span, (s) => s.to),
+    Option.map(flags.scope.span, (s) => s.to),
     () => flags.to,
   );
   const job = Option.match(flags.stills, {
@@ -292,16 +302,6 @@ export const videoEncoders = (
     () => TooManyEncoders.make({ workers, share: inPage, max, encoder: encoderName(encoder) }),
   );
 };
-
-/** `--scene a,b`: the seconds from the first scene's start to the last one's end. */
-export const sceneSpan = (
-  placed: ReadonlyArray<Placed>,
-  ids: ReadonlyArray<string>,
-): Result.Result<{ readonly from: number; readonly to: number }, UnknownScene> =>
-  Result.map(scenesOf(placed, ids), (hit) => ({
-    from: Math.min(...hit.map((p) => p.start)),
-    to: Math.max(...hit.map((p) => p.start + p.dur)),
-  }));
 
 /** Frames `[start, end)`. */
 export interface FrameSpan {

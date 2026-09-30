@@ -6,8 +6,8 @@
 
 import { Match, Schema } from 'effect';
 import type {
-  ActTooLong,
-  ActTooShort,
+  MovementTooLong,
+  MovementTooShort,
   CueInvalid,
   SoundUseMismatch,
   UnknownCue,
@@ -15,6 +15,7 @@ import type {
   UnknownScene,
   UnknownSound,
   UnknownVoice,
+  WordMissing,
 } from '../core/errors.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
@@ -516,8 +517,9 @@ export type StaticFinding =
   | UnknownCue
   | UnknownMark
   | CueInvalid
-  | ActTooShort
-  | ActTooLong
+  | MovementTooShort
+  | MovementTooLong
+  | WordMissing
   | UnknownVoice
   | UnknownSound
   | SoundUseMismatch
@@ -574,8 +576,9 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       UnknownCue: error,
       UnknownMark: error,
       CueInvalid: error,
-      ActTooShort: error,
-      ActTooLong: error,
+      MovementTooShort: error,
+      MovementTooLong: error,
+      WordMissing: error,
       UnknownVoice: error,
       UnknownSound: error,
       SoundUseMismatch: error,
@@ -643,8 +646,9 @@ export const addressOf = (finding: Finding): FindingAddress => {
       UnknownCue: scene,
       UnknownMark: scene,
       CueInvalid: scene,
-      ActTooShort: none,
-      ActTooLong: none,
+      MovementTooShort: none,
+      MovementTooLong: none,
+      WordMissing: scene,
       UnknownVoice: scene,
       UnknownSound: none,
       SoundUseMismatch: none,

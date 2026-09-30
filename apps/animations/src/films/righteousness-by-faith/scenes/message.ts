@@ -126,7 +126,7 @@ const timeline = {
   warm: { after: 'given', dur: 1 },
   // The figure lifts its open hand, turns it palm up as it comes, and the
   // camera pushes into it: the insert, the same hand close up.
-  offer: { with: 'handIn', offset: -0.6, dur: 0.6 },
+  offer: { with: 'handIn', dur: 0.6, ends: true },
   palmUp: { mark: 'gifts', offset: -0.7, dur: 0.3, ease: 'inOutSine' },
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
   // Close on the palm, its fingers curl a little on "gifts": the hand that takes hold of them.

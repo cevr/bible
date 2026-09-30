@@ -25,7 +25,7 @@ const recorded: Timings = {
   scenes: { said: spokenTake('Hi there.') },
 };
 const film = testFilm(scenes, recorded);
-const placed = layout(scenes, recorded);
+const placed = Result.getOrThrow(layout(scenes, recorded));
 const NOW = { score: Option.none<string>(), take: Option.none() };
 
 /** The static leg over `files`: what it needs is all it is given. */

@@ -99,7 +99,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
 };
 
 /** The film's length in frames: every track is exactly that long. */
-const frames = Math.round(filmEnd(layout(scenes, timings)) * MIX_RATE);
+const frames = Math.round(filmEnd(Result.getOrThrow(layout(scenes, timings))) * MIX_RATE);
 
 describe('Mixer', () => {
   it.effect('a finished mix replaces the track with one the film’s length', () =>
@@ -118,7 +118,7 @@ describe('Mixer', () => {
       yield* mix();
       const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
       // The film has no score or library sound to be missing: its plan is the one `mix` played.
-      const now = planOf(film, layout(scenes, timings), {
+      const now = planOf(film, Result.getOrThrow(layout(scenes, timings)), {
         score: Option.none(),
         take: Option.none(),
       });

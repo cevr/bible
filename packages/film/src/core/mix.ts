@@ -13,14 +13,15 @@ import { Option, Result, Schema } from 'effect';
 import { type Pcm, SPEECH_GATE, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limitInto, toFrames } from './dsp.ts';
 import {
-  type ActLength,
   CueInvalid,
+  type MovementLength,
   type ScoreUnknown,
   type SoundUseMismatch,
   type UnknownCue,
   type UnknownMark,
   type UnknownScene,
   type UnknownSound,
+  type WordMissing,
 } from './errors.ts';
 import type { Placed } from './layout.ts';
 import { hashText } from './narration.ts';
@@ -154,8 +155,9 @@ export type MixPlanError =
   | UnknownScene
   | UnknownCue
   | UnknownMark
+  | WordMissing
   | CueInvalid
-  | ActLength
+  | MovementLength
   | ScoreUnknown
   | UnknownSound
   | SoundUseMismatch;
@@ -303,7 +305,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
         );
       if (state._tag === 'Stale')
         warnings.push(
-          `mix.stale asset=score.${option.name} why=${state.why._tag} hint="acts or timing changed; run score to compose it again"`,
+          `mix.stale asset=score.${option.name} why=${state.why._tag} hint="movements or timing changed; run score to compose it again"`,
         );
       if (state._tag !== 'Missing')
         played = Option.some({

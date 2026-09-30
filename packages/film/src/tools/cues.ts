@@ -83,13 +83,29 @@ export const sceneReport = (
     return { lines: rows.map((r) => r.line), late: rows.reduce((n, r) => n + r.late, 0) };
   });
 
-const anchorLabel = (cue: Cue): string => {
-  const anchor = Option.orElse(Option.fromNullishOr(cue.cue), () =>
-    Option.map(Option.fromNullishOr(cue.mark), (mark) => `{${mark}}`),
+/**
+ * A sound cue's point as the report prints it: `lower`, `lower.end`,
+ * `{three}`, `{gift}~faith`, `@speech`; nothing for the scene's start.
+ */
+const anchorLabel = (cue: Cue): string =>
+  Option.getOrElse(
+    Option.firstSomeOf([
+      Option.map(Option.fromUndefinedOr(cue.cue), (name) =>
+        Option.match(Option.fromUndefinedOr(cue.edge), {
+          onNone: () => name,
+          onSome: (edge) => `${name}.${edge}`,
+        }),
+      ),
+      Option.map(Option.fromUndefinedOr(cue.mark), (mark) =>
+        Option.match(Option.fromUndefinedOr(cue.word), {
+          onNone: () => `{${mark}}`,
+          onSome: (word) => `{${mark}}~${word}`,
+        }),
+      ),
+      Option.map(Option.fromUndefinedOr(cue.at), (at) => `@${at}`),
+    ]),
+    () => '',
   );
-  const edge = Option.map(Option.fromNullishOr(cue.edge), (e) => `.${e}`);
-  return [anchor, edge].flatMap((part) => Option.toArray(part)).join('');
-};
 
 /** Each effect placement's film time and library sound, then each bed's span. */
 export const soundReport = (

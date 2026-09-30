@@ -16,7 +16,7 @@ const music: Music = {
   model: 'music_v2_5',
   styles: ['felt piano'],
   avoid: [],
-  acts: [
+  movements: [
     { from: 'a', name: 'Open', styles: [] },
     { from: 'b', name: 'Close', styles: [] },
   ],
@@ -25,12 +25,14 @@ const option = { name: 'piano', music };
 
 /** Scene `a` lasting `secs`, then `b` lasting `last`. */
 const timed = (secs: number, last = 6) =>
-  layout(
-    [
-      { id: 'a', min: secs, draw },
-      { id: 'b', min: last, draw },
-    ],
-    noTakes,
+  Result.getOrThrow(
+    layout(
+      [
+        { id: 'a', min: secs, draw },
+        { id: 'b', min: last, draw },
+      ],
+      noTakes,
+    ),
   );
 
 const composedFor = (secs: number): SoundManifest => {
@@ -48,13 +50,13 @@ describe('scoreOptionState', () => {
     expect(state).toMatchObject({ _tag: 'Stale', why: { _tag: 'Retimed' } });
   });
 
-  test('stale, not a failure, when an act no longer fits the API', () => {
-    // Scene b re-timed to 130 s: act Close runs longer than a chunk may.
+  test('stale, not a failure, when a movement no longer fits the API', () => {
+    // Scene b re-timed to 130 s: movement Close runs longer than a chunk may.
     const state = scoreOptionState(option, timed(5, 130), composedFor(5));
     expect(state).toMatchObject({
       _tag: 'Stale',
       asset: { file: 'piano.mp3' },
-      why: { _tag: 'ActTooLong', act: 'Close' },
+      why: { _tag: 'MovementTooLong', movement: 'Close' },
     });
   });
 

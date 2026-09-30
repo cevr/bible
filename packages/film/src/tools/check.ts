@@ -46,9 +46,9 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { actSpans, cueTime, filmEnd, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import { cueTime, filmEnd, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type {
-  ActLength,
+  MovementLength,
   SoundUseMismatch,
   UnknownScene,
   UnknownSound,
@@ -180,7 +180,19 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     });
   });
 
-const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
+/** A scene's line read; one that does not parse is the layout's `LineError`, so it reads as silent here. */
+const said = (scene: Timed) =>
+  Result.getOrElse(
+    parse(
+      scene.id,
+      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
+    ),
+    () => ({
+      spoken: '',
+      marks: new Map<string, number>(),
+      turns: [],
+    }),
+  );
 
 /**
  * Beats with words whose take is missing or was recorded for other text,
@@ -208,24 +220,24 @@ export const unknownVoices = (film: LoadedFilm): ReadonlyArray<UnknownVoice> =>
 
 /** A generated asset against the hash its request has now. */
 /**
- * Each score option's acts: each names a scene, and each runs in film order
- * for as long as the API's chunks may last (`actSpans`, every failure rather
- * than the first). Only acts that hold are checked for the option's state
- * (`scoreOptionState`, asset `score.<option>`): missing, or composed for
- * another plan.
+ * Each score option's movements: each names a scene, and each runs in film
+ * order for as long as the API's chunks may last (`movementSpans`, every
+ * failure rather than the first). Only movements that hold are checked for
+ * the option's state (`scoreOptionState`, asset `score.<option>`): missing,
+ * or composed for another plan.
  */
 export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
+): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> =>
   scoreOptions(score).flatMap(
-    (option): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> => {
-      const acts = Result.match(actSpans(option.music, placed), {
-        onFailure: (unknown): ReadonlyArray<UnknownScene | ActLength> => unknown,
+    (option): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => {
+      const movements = Result.match(movementSpans(option.music, placed), {
+        onFailure: (unknown): ReadonlyArray<UnknownScene | MovementLength> => unknown,
         onSuccess: (spans) => Arr.getFailures(spans),
       });
-      if (acts.length > 0) return acts;
+      if (movements.length > 0) return movements;
       const asset = `score.${option.name}`;
       const state = scoreOptionState(option, placed, manifest);
       if (state._tag === 'Missing') return [AssetMissing.make({ asset })];

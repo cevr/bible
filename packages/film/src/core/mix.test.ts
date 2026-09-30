@@ -238,12 +238,12 @@ describe('renderMix', () => {
 });
 
 describe('mixPlan', () => {
-  const placed = layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} });
+  const placed = Result.getOrThrow(layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} }));
   const option = (styles: ReadonlyArray<string>): Music => ({
     model: 'music_v2',
     styles,
     avoid: [],
-    acts: [{ from: 'a', name: 'Open', styles: [] }],
+    movements: [{ from: 'a', name: 'Open', styles: [] }],
   });
   const score: Score = {
     play: 'piano',
@@ -293,7 +293,7 @@ describe('mixPlan', () => {
       Option.some('s/pads-0.mp3'),
     );
     expect(pads.warnings).toEqual([
-      'mix.stale asset=score.pads why=Retimed hint="acts or timing changed; run score to compose it again"',
+      'mix.stale asset=score.pads why=Retimed hint="movements or timing changed; run score to compose it again"',
     ]);
     const lost = mixPlan({ ...input, manifest, sound: scored, play: Option.some('organ') });
     expect(Result.match(lost, { onSuccess: () => 'none', onFailure: (e) => e._tag })).toBe(
@@ -301,11 +301,14 @@ describe('mixPlan', () => {
     );
   });
 
-  test('an option whose acts no longer hold still plays, with a warning naming why', () => {
+  test('an option whose movements no longer hold still plays, with a warning naming why', () => {
     const lost: Score = {
       ...score,
       options: {
-        piano: { ...option(['felt piano']), acts: [{ from: 'gone', name: 'Open', styles: [] }] },
+        piano: {
+          ...option(['felt piano']),
+          movements: [{ from: 'gone', name: 'Open', styles: [] }],
+        },
       },
     };
     const planned = Result.getOrThrow(
@@ -315,7 +318,7 @@ describe('mixPlan', () => {
       Option.some('s/piano-1.mp3'),
     );
     expect(planned.warnings).toEqual([
-      'mix.stale asset=score.piano why=UnknownScene hint="acts or timing changed; run score to compose it again"',
+      'mix.stale asset=score.piano why=UnknownScene hint="movements or timing changed; run score to compose it again"',
     ]);
   });
 
@@ -336,7 +339,7 @@ describe('mixPlan', () => {
       },
       { id: 'b', min: 8 },
     ];
-    const film = layout(scenes, { voice: '', scenes: {} });
+    const film = Result.getOrThrow(layout(scenes, { voice: '', scenes: {} }));
     const library = defineLibrary({
       'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
       'wood.knock': { kind: 'generated', prompt: 'a knock', secs: 1, use: 'one-shot', level: -4 },
