@@ -18,8 +18,8 @@ import { NoteId } from '@bible/core/local-first';
 import { DEFAULT_READING_PREFERENCES } from '@bible/core/reading-preferences';
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Option, Schema, Stream } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
+import { RpcTest } from 'effect/rpc';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { RegistryContext, useAtomInitialValues } from '@bible/atom-solid';
 import { createRoot, flush, resolve, type Accessor } from 'solid-js';
 

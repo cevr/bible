@@ -38,7 +38,7 @@ export const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Ha
     line: 2.5,
     alpha: plate,
   });
-  const gems = [C.scarlet, C.glow, C.boardLight];
+  const gems = [C.scarlet, C.glow, C.cutLight];
   for (let r = 0; r < 4; r++)
     for (let c = 0; c < 3; c++) {
       ctx.save();

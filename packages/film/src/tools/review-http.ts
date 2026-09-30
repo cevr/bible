@@ -16,13 +16,8 @@
 
 import type { FileSystem, Path } from 'effect';
 import { Config, Effect, Layer, Option, Result, Schema } from 'effect';
-import type { HttpPlatform } from 'effect/unstable/http';
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-  HttpStaticServer,
-} from 'effect/unstable/http';
+import type { HttpPlatform } from 'effect/http';
+import { HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from 'effect/http';
 import { REVIEW_FILES, REVIEW_PHONE, ReviewDuration, ReviewIndex } from '../core/schema.ts';
 import { choiceRoutes } from './choices-http.ts';
 import type { Choices } from './choices.ts';

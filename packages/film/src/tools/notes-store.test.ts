@@ -18,7 +18,7 @@ import {
   Path,
   Schema,
 } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { type NoteDraft, NotesFileJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { LockOwnerJson, NotesStore, lockVerdict } from './notes-store.ts';

@@ -3,7 +3,8 @@
 // thread, and a bad body or an unknown note answers with its status.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Encoding, Layer, Path, Schema } from 'effect';
+import { ConfigProvider, Effect, Layer, Path, Schema } from 'effect';
+import { Base64 } from 'effect/encoding';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
@@ -80,7 +81,7 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(at(path), { method: 'GET', headers });
 
-const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Encoding.encodeBase64(png)}"}`;
+const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Base64.encode(png)}"}`;
 
 describe('lab routes', () => {
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>

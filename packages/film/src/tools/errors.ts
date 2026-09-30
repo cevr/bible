@@ -158,7 +158,7 @@ export class MasterLoudness extends Schema.TaggedError<MasterLoudness>()('Master
   tolerance: Schema.Finite,
 }) {
   override get message() {
-    return `the master measures ${this.loudness.toFixed(1)} LUFS, outside ${this.target} ± ${this.tolerance}: balance the voice first, then the beds, music and effects against it`;
+    return `the master measures ${this.loudness.toFixed(1)} LUFS, outside ${this.target} ± ${this.tolerance}: the mix masters to ${this.target}, so a peak held the lift back (see mix.master gain); find the hot peak on its bus (an effect or a take) and lower it`;
   }
 }
 

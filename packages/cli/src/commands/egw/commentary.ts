@@ -1,7 +1,7 @@
 import { parseBibleQuery, Reference as BibleReference } from '@bible/core/bible';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { Console, Effect } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 import { CliProcess } from '../../services/process.js';
 import { encodeJson } from './format.js';

@@ -19,7 +19,7 @@
   "dependencies": {
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "ai": "^7.0.77",
+    "ai": "^7.0.123",
     "cheerio": "^1.2.0",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
@@ -28,6 +28,6 @@
   },
   "devDependencies": {
     "effect-bun-test": "catalog:",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.15"
   }
 }

@@ -278,8 +278,8 @@ export const makeUnregisteredFileCorpusArtifact = <
   layerEmpty: Layer.merge(
     Layer.succeed(input.Recipe, { sources: [], releaseSource: Option.none() }),
     Layer.succeed(input.Installer, {
-      current: Effect.succeed(Option.none()),
-      activeFile: Effect.succeed(Option.none()),
+      current: Effect.succeedNone,
+      activeFile: Effect.succeedNone,
       install: () =>
         Effect.fail(
           CorpusInstallationError.make({

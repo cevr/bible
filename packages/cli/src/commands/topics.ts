@@ -28,7 +28,7 @@ import {
   type ContentStatus,
 } from '@bible/core/content-update';
 import { Console, Effect, Match, Option, Schema } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 
 import { contentService } from './topics-layer.js';
 

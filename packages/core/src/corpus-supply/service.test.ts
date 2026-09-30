@@ -90,7 +90,7 @@ const makeLayer = (options: {
     ],
   });
   const installer = BibleArtifact.layerInstaller({
-    current: Effect.succeed(Option.none()),
+    current: Effect.succeedNone,
     activeFile: Effect.succeedNone,
     install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
   });

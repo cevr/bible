@@ -2,7 +2,7 @@ import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { CorpusSupply, Target } from '@bible/core/corpus-supply';
 import { publicationId } from '@bible/core/writings';
 import { Console, Effect, Option, Stream } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 import { FullLayer } from './layers.js';
 

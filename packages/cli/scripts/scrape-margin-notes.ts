@@ -18,7 +18,7 @@
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import * as BunHttpClient from '@effect/platform-bun/BunHttpClient';
 import { Effect, FileSystem, Layer, Option, Path, Schema, SchemaGetter } from 'effect';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 
 const URL =
   'https://en.literaturabautista.com/exhaustive-listing-marginal-notes-1611-edition-king-james-bible';

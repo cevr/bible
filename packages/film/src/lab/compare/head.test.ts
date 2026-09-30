@@ -5,7 +5,7 @@
 
 import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { LabRefused } from '../api.ts';
 import { compareText, headEdit } from './head.ts';
 

@@ -16,7 +16,7 @@
  */
 
 import { Effect, Option } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { ADAPTER_EXPECTATIONS, ADAPTER_ROUTES, liveAdapterConformance } from './testing.js';

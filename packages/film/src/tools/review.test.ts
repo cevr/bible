@@ -17,7 +17,7 @@ import {
   Schedule,
   Schema,
 } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ReviewManifestJson } from '../core/schema.ts';
 import {
   type Found,
@@ -352,15 +352,12 @@ describe('the review service', () => {
       const first = yield* review.index(true);
       const big = first.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
       expect(big?.phone).toBe('pending');
-      const copy = yield* review.phone('out/art/big.mp4').pipe(
-        Effect.flatMap((made) =>
-          Option.match(made, {
-            onNone: () => Effect.fail('not yet'),
-            onSome: Effect.succeed,
-          }),
-        ),
-        Effect.retry({ schedule: Schedule.spaced('20 millis'), times: 250 }),
-      );
+      const copy = yield* review
+        .phone('out/art/big.mp4')
+        .pipe(
+          Effect.flatMap(Effect.fromOption),
+          Effect.retry({ schedule: Schedule.spaced('20 millis'), times: 250 }),
+        );
       expect(yield* (yield* FileSystem.FileSystem).readFileString(copy)).toBe('x'.repeat(200));
       expect((yield* Spawned).some((c) => c.startsWith('nice -n 15 ffmpeg'))).toBe(true);
       const again = yield* review.index(true);

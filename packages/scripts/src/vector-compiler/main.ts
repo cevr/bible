@@ -1,6 +1,6 @@
 /** `bun run build:vectors` — the §9.2 flat vector index builder.
  *
- *  Mirrors `topics-compiler/main.ts`: an `effect/unstable/cli` command under
+ *  Mirrors `topics-compiler/main.ts`: an `effect/cli` command under
  *  `BunRuntime.runMain`, defaults resolved against `~/.bible`, a `--json`
  *  manifest, and `Cause.pretty` on the way out.
  *
@@ -35,7 +35,7 @@ import {
   Schema,
   SchemaGetter,
 } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 
 import { clearCheckpoint, embedAllResumable } from './checkpoint.js';
 import { bookRanges, paragraphIds } from './emit.js';

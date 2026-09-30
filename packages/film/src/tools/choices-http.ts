@@ -17,7 +17,7 @@
 // review answers, same-origin, JSON.
 
 import { Effect, Option, Path, Schema } from 'effect';
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { ChoiceWrite, FilmChoices, ReviewFilms, ScorePick, TakeCuration } from '../core/schema.ts';
 import { Choices, type Picked } from './choices.ts';
 import { FilmRepo } from './film-repo.ts';

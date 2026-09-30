@@ -48,10 +48,10 @@
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
 import * as Exit from 'effect/Exit';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
-import * as Atom from 'effect/unstable/reactivity/Atom';
-import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
-import type * as AtomRef from 'effect/unstable/reactivity/AtomRef';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import type * as AtomRef from 'effect/reactivity/AtomRef';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, createRenderEffect, createSignal, useContext } from 'solid-js';
 

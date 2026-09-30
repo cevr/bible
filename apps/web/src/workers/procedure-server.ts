@@ -33,8 +33,8 @@ import {
   WikiSectionSources,
 } from '@bible/core/wiki';
 import { Effect, Layer, Option } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
-import * as RpcServer from 'effect/unstable/rpc/RpcServer';
+import { FetchHttpClient } from 'effect/http';
+import * as RpcServer from 'effect/rpc/RpcServer';
 
 import type { SqliteDatabase } from './sqlite-database.js';
 import { layerHttpWritingsAssetSource } from './writings-http-source.js';

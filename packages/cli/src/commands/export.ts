@@ -1,4 +1,4 @@
-import { Command, Flag } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/cli';
 import { Effect, FileSystem, Option, Schema } from 'effect';
 
 import { dryRun, files, folder } from '~/src/lib/content/options';

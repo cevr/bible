@@ -1,10 +1,15 @@
 pre-commit:
   jobs:
-    # gate:fix runs lint --fix + fmt first (auto-merges duplicate imports,
-    # reorders, etc.), then re-runs the readonly gate to make sure the fixes
-    # hold. stage_fixed re-stages anything the formatters/linter rewrote.
-    - name: gate
-      run: bun run gate:fix
+    # Budget: under 5 s. Only the staged files are linted (with fixes) and
+    # formatted; stage_fixed re-stages what the tools rewrote. The whole gate
+    # (typecheck, tests, perf) runs in CI, and by hand between units.
+    - name: lint
+      glob: '*.{ts,tsx,js,jsx,mts,cts}'
+      run: bun x oxlint --fix {staged_files}
+      stage_fixed: true
+
+    - name: fmt
+      run: bun x oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
 
     # Guard rail: animations + keyframes in apps/desktop/src belong in

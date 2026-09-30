@@ -1,8 +1,8 @@
 /** Administrative import capability for the canonical unified Bible schema. */
 
 import { Context, Effect, Layer, Option, Schema } from 'effect';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { SqlError } from 'effect/unstable/sql/SqlError';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
 
 import { BIBLE_BOOKS } from '../bible/canon.js';
 import type {

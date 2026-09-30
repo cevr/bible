@@ -34,7 +34,7 @@ import {
   Schema,
   Semaphore,
 } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import type {
   RenderChoice,
   RenderVariant,
@@ -688,7 +688,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const text = yield* fs.readFileString(path.join(dir, 'review.json')).pipe(Effect.option);
           if (Option.isNone(text)) return Option.none<ReviewManifest>();
           return yield* Schema.decodeEffect(ReviewManifestJson)(text.value).pipe(
-            Effect.map(Option.some),
+            Effect.asSome,
             Effect.catchTag('SchemaError', (error) =>
               Effect.logWarning(
                 `review.manifest.invalid dir=${dir} reason="${error.message}"`,

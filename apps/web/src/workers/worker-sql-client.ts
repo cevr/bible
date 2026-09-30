@@ -1,9 +1,9 @@
 import { Effect, Layer, Predicate, Stream } from 'effect';
-import * as Reactivity from 'effect/unstable/reactivity/Reactivity';
-import * as SqlClient from 'effect/unstable/sql/SqlClient';
-import type { Connection } from 'effect/unstable/sql/SqlConnection';
-import { SqlError, UnknownError } from 'effect/unstable/sql/SqlError';
-import * as Statement from 'effect/unstable/sql/Statement';
+import * as Reactivity from 'effect/reactivity/Reactivity';
+import * as SqlClient from 'effect/sql/SqlClient';
+import type { Connection } from 'effect/sql/SqlConnection';
+import { SqlError, UnknownError } from 'effect/sql/SqlError';
+import * as Statement from 'effect/sql/Statement';
 
 import type { SqliteDatabase } from './sqlite-database.js';
 

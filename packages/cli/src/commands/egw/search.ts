@@ -10,7 +10,7 @@ import { WikiService } from '@bible/core/wiki';
 import { NO_FILTER, Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Cause, Console, Effect, Option, Schema } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 
 import {
   encodeJson,

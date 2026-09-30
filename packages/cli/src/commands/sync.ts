@@ -6,7 +6,7 @@
  */
 
 import { defaultBibleSyncPaths, syncBible } from '@bible/core/sync';
-import { Flag, Command } from 'effect/unstable/cli';
+import { Flag, Command } from 'effect/cli';
 import { Effect, Schema } from 'effect';
 
 class SyncError extends Schema.TaggedError<SyncError>()('SyncError', {

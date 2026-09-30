@@ -485,8 +485,8 @@ export const WIKI_PAGE_FIXTURE_PAGE: Effect.Effect<WikiPage> = Effect.gen(functi
     catalogId: Option.some(CATALOG.id),
     // The artifact's `topics` table, as the two rows the fixture writes.
     titleOf: (slug) => {
-      if (String(slug) !== WIKI_PAGE_FIXTURE.related.slug) return Effect.succeed(Option.none());
-      return Effect.succeed(Option.some(WIKI_PAGE_FIXTURE.related.title));
+      if (String(slug) !== WIKI_PAGE_FIXTURE.related.slug) return Effect.succeedNone;
+      return Effect.succeedSome(WIKI_PAGE_FIXTURE.related.title);
     },
     // No page points *at* the fixture, so section 6 is the authored edge
     // alone — the same list the artifact produces, where the reverse edge is
@@ -548,7 +548,7 @@ export const WIKI_LOOKUP_FIXTURE_LAYER: Layer.Layer<LookupService> = LookupServi
         list: () => Effect.succeed([]),
         topic: () => Effect.die('the lookup fixture serves no pages'),
         dictionary: Effect.succeed(WIKI_LOOKUP_FIXTURE_DICTIONARY),
-        availability: Effect.succeed(Option.none()),
+        availability: Effect.succeedNone,
       }),
     ),
   ),

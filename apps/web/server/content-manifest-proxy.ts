@@ -23,7 +23,7 @@ import {
   redirectTarget,
 } from '@bible/core/content-update';
 import { Data, Effect, Option, Stream } from 'effect';
-import { HttpServerResponse } from 'effect/unstable/http';
+import { HttpServerResponse } from 'effect/http';
 
 /** Everything that can go wrong reaching an upstream, as one declared failure.
  *

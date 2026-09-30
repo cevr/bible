@@ -6,8 +6,8 @@
 //   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
 //   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
 //   film script <film> [--sheet]
-//   film score <film> [--force] [--dry-run]
-//   film mix <film> [--stems]
+//   film score <film> [--option name] [--force] [--dry-run] [--cap credits] [--tally file.tsv]
+//   film mix <film> [--stems] [--score option]
 //   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
 //   film cues <film> [scene] [--sound] | film cues <film> --short <id>
 //   film check <film> [--static] [--allow-stale] [--scene id,id] [--workers n] [--json]
@@ -44,8 +44,8 @@ import {
   Schema,
   Stdio,
 } from 'effect';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
-import type { ChildProcessSpawner } from 'effect/unstable/process';
+import { Argument, Command, Flag } from 'effect/cli';
+import type { ChildProcessSpawner } from 'effect/process';
 import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
@@ -524,10 +524,9 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         return;
       }
       if (input.sound) {
-        const sound = yield* Option.match(loaded.sound, {
-          onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
-          onSome: Effect.succeed,
-        });
+        const sound = yield* Effect.fromOption(loaded.sound, () =>
+          SoundMissing.make({ film: input.film }),
+        );
         const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
         for (const line of lines) yield* Console.log(line);
         return;
@@ -763,13 +762,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       // `--scene` sets the range from the film's own layout.
       const span = yield* Option.match(input.scene, {
         onNone: () => Effect.succeedNone,
-        onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
+        onSome: (ids) => Effect.asSome(Effect.fromResult(sceneSpan(placed, ids))),
       });
       const cut = yield* pickShort(loaded, placed, input.short);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
-        onSome: (list) =>
-          Effect.map(Schema.decodeEffect(Seconds)(list.split(',')), (times) => Option.some(times)),
+        onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
       });
       const job = yield* Effect.fromResult(
         jobOf({
@@ -911,7 +909,7 @@ const notesReply = Command.make(
     const at = store.paths(input.film);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
-      onSome: (file) => Effect.map(fs.readFile(file), Option.some),
+      onSome: (file) => Effect.asSome(fs.readFile(file)),
     });
     // Where the agent left off, read before its reply moves it.
     const cursor = yield* Option.match(input.since, {

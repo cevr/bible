@@ -119,6 +119,12 @@ export interface Stamp {
   readonly fill: number;
   /** 0 gone to 1 shown: the label comes first and goes last, so the letters only ever sit on a whole label. */
   readonly shown: number;
+  /**
+   * 0 hung in the air to 1 laid on something (the cover-up over the stains):
+   * laid, the hollow label is pressed flat and hides what is under it, so it
+   * reads as paper pasted on, never as a ghost of it. None: hung.
+   */
+  readonly laid?: number;
 }
 
 /**
@@ -129,7 +135,7 @@ export interface Stamp {
  */
 export const stamp = (ctx: CanvasRenderingContext2D, hand: Hands, s: Stamp) => {
   const fill = clamp(s.fill);
-  const plate = clamp(2 * s.shown) * lerp(HOLLOW_PLATE, 1, fill);
+  const plate = clamp(2 * s.shown) * lerp(lerp(HOLLOW_PLATE, 1, fill), 1, clamp(s.laid ?? 0));
   if (plate <= 0.01) return;
   const hollow = 1 - fill;
   ctx.save();
@@ -772,7 +778,7 @@ const HELPER: Posed<Person> & { look: [number, number] } = {
 
 /** The filthy tunic in Joshua's units; `flare` 0..1 per stain lights it scarlet. */
 export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: number) => number) => {
-  piece(ctx, TUNIC, C.boardShade, hand('tunic'), { role: 'figure', torn: 2.5, line: 2 });
+  piece(ctx, TUNIC, C.cutShade, hand('tunic'), { role: 'figure', torn: 2.5, line: 2 });
   TUNIC_STAINS.forEach((stain, i) => {
     const lit = flare(i);
     if (lit > 0) {
@@ -796,7 +802,7 @@ export const tunic = (ctx: CanvasRenderingContext2D, hand: Hands, flare: (i: num
 export const gavel = (ctx: CanvasRenderingContext2D, hand: Hands, place: Place) =>
   at(ctx, place, () => {
     piece(ctx, GAVEL_HANDLE, C.inkSoft, hand('handle'), { role: 'figure', line: 2 });
-    piece(ctx, GAVEL_HEAD, C.boardDeep, hand('gavelHead'), { role: 'figure', line: 2.5 });
+    piece(ctx, GAVEL_HEAD, C.cutDeep, hand('gavelHead'), { role: 'figure', line: 2.5 });
   });
 const GAVEL_HANDLE = rounded(0, -52, 12, 100, 4);
 const GAVEL_HEAD = rounded(0, -104, 64, 34, 8);

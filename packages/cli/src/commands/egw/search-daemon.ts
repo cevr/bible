@@ -35,8 +35,8 @@ import {
   Option,
   Ref,
 } from 'effect';
-import { Command, Flag } from 'effect/unstable/cli';
-import { RpcSerialization, RpcServer } from 'effect/unstable/rpc';
+import { Command, Flag } from 'effect/cli';
+import { RpcSerialization, RpcServer } from 'effect/rpc';
 
 import { CliProcess } from '../../services/process.js';
 import {

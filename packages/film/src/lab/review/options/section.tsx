@@ -8,7 +8,7 @@
 import { For, Show } from '@solidjs/web';
 import { onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Match, Option } from 'effect';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type EffectChoice,
   type EffectTake,

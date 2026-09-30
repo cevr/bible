@@ -3,8 +3,8 @@ import { BunServices } from '@effect/platform-bun';
 import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Effect, Latch, Layer, Schedule } from 'effect';
 import type { Scope } from 'effect';
-import { Etag, HttpPlatform, HttpRouter } from 'effect/unstable/http';
-import { HttpApiBuilder } from 'effect/unstable/httpapi';
+import { Etag, HttpPlatform, HttpRouter } from 'effect/http';
+import { HttpApiBuilder } from 'effect/http-api';
 
 import {
   loadVectorIndex,

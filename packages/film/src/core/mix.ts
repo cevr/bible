@@ -40,6 +40,7 @@ import {
   soundState,
 } from './sfx.ts';
 import { aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
+import { loudness } from './synth/loudness.ts';
 import { cueTime, filmEnd, musicKey, musicPlan, playedOption } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
@@ -50,6 +51,14 @@ export const BED_DUCK: Duck = { threshold: 0.02, ratio: 2, attack: 120, release:
 
 /** The ceiling the summed track may not pass. */
 export const LIMIT: Limit = { limit: 0.95, attack: 5, release: 50 };
+
+/**
+ * Mastering: the summed track is brought to `loudness` (integrated LUFS, CRAFT
+ * rule 10) by one clean gain, up or down, before the limiter; a lift stops
+ * where it would take the track's peak past `LIMIT`, so mastering never makes
+ * the limiter work. The buses keep their balance; only the master moves.
+ */
+export const MASTER = { loudness: -18 } as const;
 
 /** The score fades in over its first `MUSIC_FADE_IN` seconds and out over the film's last `MUSIC_FADE_OUT`. */
 export const MUSIC_FADE_IN = 2;
@@ -318,6 +327,8 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
 export interface Mixed {
   readonly master: Pcm;
+  /** The mastering gain the summed buses took on the way to `master`, in dB (`MASTER`). */
+  readonly masterGain: number;
   readonly voice: Pcm;
   readonly music: Option.Option<Pcm>;
   readonly beds: Option.Option<Pcm>;
@@ -412,6 +423,14 @@ const renderBeds = (
   return ducked;
 };
 
+/** The gain, in dB, that brings `track` to `MASTER.loudness` without taking its peak past `LIMIT`; 0 for silence. */
+const masteringGain = (track: Pcm): number => {
+  const { integrated, peak } = loudness(track);
+  if (!Number.isFinite(integrated) || !Number.isFinite(peak)) return 0;
+  const headroom = 20 * Math.log10(LIMIT.limit) - peak;
+  return Math.min(MASTER.loudness - integrated, headroom);
+};
+
 /**
  * Play `plan` out over decoded audio, every sound at `MIX_RATE`: the takes
  * summed on the voice bus; the score under the voice and alone in its pauses,
@@ -469,8 +488,13 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   ])
     addInto(sum, channels, 0, 1);
 
+  const masterGain = masteringGain(pcm(frames, sum));
+  const mastered = bus(frames);
+  addInto(mastered, sum, 0, 10 ** (masterGain / 20));
+
   return {
-    master: pcm(frames, limit(sum, MIX_RATE, LIMIT)),
+    master: pcm(frames, limit(mastered, MIX_RATE, LIMIT)),
+    masterGain,
     voice: pcm(frames, voice),
     music: Option.map(music, (channels) => pcm(frames, channels)),
     beds: Option.map(beds, (channels) => pcm(frames, channels)),

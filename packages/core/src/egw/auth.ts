@@ -3,14 +3,14 @@
  * Adapted from Spotify auth patterns with Effect-TS
  */
 
-import type { HttpClientError } from 'effect/unstable/http';
+import type { HttpClientError } from 'effect/http';
 import {
   HttpBody,
   HttpClient,
   HttpClientRequest,
   HttpClientResponse,
   UrlParams,
-} from 'effect/unstable/http';
+} from 'effect/http';
 import type { PlatformError } from 'effect/PlatformError';
 import type { FileSystem, Path } from 'effect';
 import {

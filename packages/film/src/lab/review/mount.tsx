@@ -4,7 +4,7 @@
 
 import { For, Show, render } from '@solidjs/web';
 import { Effect, Match, Option } from 'effect';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
 import type { ReviewIndex } from '../../core/schema.ts';
 import { Root, useReview } from './context.tsx';

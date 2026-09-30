@@ -15,7 +15,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Ref, Schema } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedure';
 import { procedureDependencies } from '@bible/core/procedure/testing';
 import {

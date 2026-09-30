@@ -88,17 +88,17 @@ function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): Option
   const normalized = normalizeBookName(bookPart);
 
   // Direct alias lookup
-  let bookNum = BIBLE_BOOK_ALIASES[normalized];
+  let bookNum = BIBLE_BOOK_ALIASES.get(normalized);
   if (bookNum) return Option.some(bookNum);
 
   // Try removing spaces
   const noSpaces = normalized.replace(/\s+/g, '');
-  bookNum = BIBLE_BOOK_ALIASES[noSpaces];
+  bookNum = BIBLE_BOOK_ALIASES.get(noSpaces);
   if (bookNum) return Option.some(bookNum);
 
   // Try adding space after number (e.g., "1cor" -> "1 cor")
   const withSpace = normalized.replace(/^(\d)([a-z])/, '$1 $2');
-  bookNum = BIBLE_BOOK_ALIASES[withSpace];
+  bookNum = BIBLE_BOOK_ALIASES.get(withSpace);
   if (bookNum) return Option.some(bookNum);
 
   // Use fuzzy matcher if provided

@@ -1,5 +1,5 @@
 import { BunServices } from '@effect/platform-bun';
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import { formatBibleReference, getBibleBook, parseBibleQuery, type Verse } from '@bible/core/bible';
 import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase, type ConcordanceHit, type StrongsEntry } from '@bible/core/bible-db';

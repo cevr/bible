@@ -24,7 +24,7 @@ import {
 import { sqliteProvenanceStore, verifyTopicsDatabase } from '@bible/core/corpus-supply/bun';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Context, Effect, Layer, Path } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 
 import { packagedDataCandidates } from '~/src/lib/paths';
 

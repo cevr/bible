@@ -71,10 +71,9 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
       const booksByNumber = new Map<BookNumber, Book>(canon.map((book) => [book.number, book]));
 
       const requireBook = (number: BookNumber): Effect.Effect<Book, BibleBookNotFoundError> =>
-        Option.match(Option.fromNullishOr(booksByNumber.get(number)), {
-          onNone: () => Effect.fail(BibleBookNotFoundError.make({ book: number })),
-          onSome: Effect.succeed,
-        });
+        Effect.fromOption(Option.fromNullishOr(booksByNumber.get(number)), () =>
+          BibleBookNotFoundError.make({ book: number }),
+        );
 
       const book = (reference: BookReference): Effect.Effect<Book, BibleBookNotFoundError> =>
         requireBook(reference.book);
@@ -218,17 +217,13 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
       BibleService.of({
         books: Effect.succeed(config.books),
         book: (reference) =>
-          Option.match(Option.fromNullishOr(booksByNumber.get(reference.book)), {
-            onNone: () => Effect.fail(BibleBookNotFoundError.make({ book: reference.book })),
-            onSome: Effect.succeed,
-          }),
+          Effect.fromOption(Option.fromNullishOr(booksByNumber.get(reference.book)), () =>
+            BibleBookNotFoundError.make({ book: reference.book }),
+          ),
         chapter: (reference) =>
-          Option.match(
+          Effect.fromOption(
             Option.fromNullishOr(config.chapters?.get(`${reference.book}:${reference.chapter}`)),
-            {
-              onNone: () => Effect.fail(BibleChapterNotFoundError.make({ reference })),
-              onSome: Effect.succeed,
-            },
+            () => BibleChapterNotFoundError.make({ reference }),
           ),
         chapterMarginAnchors: (reference) =>
           Effect.succeed(

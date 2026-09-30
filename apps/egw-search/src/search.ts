@@ -15,8 +15,8 @@
  */
 
 import { Effect, Exit, Option, Schema as S } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
-import { HttpApiClient } from 'effect/unstable/httpapi';
+import { FetchHttpClient } from 'effect/http';
+import { HttpApiClient } from 'effect/http-api';
 
 import {
   MAX_BATCH,

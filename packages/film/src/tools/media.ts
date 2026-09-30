@@ -35,7 +35,7 @@ import { registerAacEncoder } from '@mediabunny/aac-encoder';
 import { registerFlacEncoder } from '@mediabunny/flac-encoder';
 import { registerMediabunnyServer } from '@mediabunny/server';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Match, Option, Stream } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   ALL_FORMATS,
   AudioSample,
@@ -195,13 +195,9 @@ const audioTrack = (opened: Opened) =>
   Effect.flatMap(
     attempt('decode', opened.file, () => opened.input.getPrimaryAudioTrack()),
     (track) =>
-      Option.match(Option.fromNullishOr(track), {
-        onNone: () =>
-          Effect.fail(
-            MediaFailed.make({ op: 'decode', file: opened.file, reason: 'no audio track' }),
-          ),
-        onSome: Effect.succeed,
-      }),
+      Effect.fromOption(Option.fromNullishOr(track), () =>
+        MediaFailed.make({ op: 'decode', file: opened.file, reason: 'no audio track' }),
+      ),
   );
 
 /**
@@ -320,10 +316,9 @@ const configKey = (config: VideoDecoderConfig) =>
 
 /** `value`, or a failed join of `file` for want of `what`. */
 const present = <A>(file: string, what: string, value: A) =>
-  Option.match(Option.fromNullishOr(value), {
-    onNone: () => Effect.fail(MediaFailed.make({ op: 'join', file, reason: `no ${what}` })),
-    onSome: (found) => Effect.succeed(found),
-  });
+  Effect.fromOption(Option.fromNullishOr(value), () =>
+    MediaFailed.make({ op: 'join', file, reason: `no ${what}` }),
+  );
 
 /**
  * `film` written to its file. mediabunny writes the index into the space
@@ -475,11 +470,9 @@ const encodeTrack = (pcm: Pcm) =>
       }
       yield* attempt('encode', TRACK, () => output.finalize());
     }).pipe(Effect.onError(() => Effect.ignore(attempt('encode', TRACK, () => output.cancel()))));
-    const meta = yield* Option.match(Arr.head(metas), {
-      onNone: () =>
-        Effect.fail(MediaFailed.make({ op: 'encode', file: TRACK, reason: 'no decoder config' })),
-      onSome: (first) => Effect.succeed(first),
-    });
+    const meta = yield* Effect.fromOption(Arr.head(metas), () =>
+      MediaFailed.make({ op: 'encode', file: TRACK, reason: 'no decoder config' }),
+    );
     const track: AacTrack = { packets, meta };
     return track;
   });

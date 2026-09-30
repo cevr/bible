@@ -145,12 +145,7 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
         Effect.flatMap(() =>
           Effect.callback<Blob, NoStill>((resume) =>
             player.canvas.toBlob((blob) =>
-              resume(
-                Option.match(Option.fromNullishOr(blob), {
-                  onNone: () => Effect.fail(NoStill.make({ T })),
-                  onSome: Effect.succeed,
-                }),
-              ),
+              resume(Effect.fromOption(Option.fromNullishOr(blob), () => NoStill.make({ T }))),
             ),
           ),
         ),

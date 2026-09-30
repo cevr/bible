@@ -58,6 +58,15 @@ const messageOf = (cause: unknown): string => {
 const isPromiseLike = <A>(value: A | PromiseLike<A>): value is PromiseLike<A> =>
   Predicate.isPromiseLike(value);
 
+/** A driver answer: a sync driver's value now, an async driver's when it settles. */
+const settle = <A, E>(
+  result: PromiseLike<A> | A,
+  failure: (cause: unknown) => E,
+): Effect.Effect<A, E> => {
+  if (isPromiseLike(result)) return Effect.tryPromise({ try: () => result, catch: failure });
+  return Effect.succeed(result);
+};
+
 const adapt = <A>(
   operation: UserDatabaseError['operation'],
   evaluate: () => PromiseLike<A> | A,
@@ -65,10 +74,7 @@ const adapt = <A>(
   const failure = (cause: unknown) =>
     UserDatabaseError.make({ operation, message: messageOf(cause), cause });
   return Effect.try({ try: evaluate, catch: failure }).pipe(
-    Effect.flatMap((result) => {
-      if (!isPromiseLike(result)) return Effect.succeed(result);
-      return Effect.tryPromise({ try: () => result, catch: failure });
-    }),
+    Effect.flatMap((result) => settle(result, failure)),
   );
 };
 

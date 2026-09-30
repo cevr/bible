@@ -3,9 +3,9 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { DateTime, Effect, FileSystem, Option, Path, Runtime, Schema, Terminal } from 'effect';
-import { Argument, Command } from 'effect/unstable/cli';
-import * as ChildProcess from 'effect/unstable/process/ChildProcess';
-import { ChildProcessSpawner } from 'effect/unstable/process/ChildProcessSpawner';
+import { Argument, Command } from 'effect/cli';
+import * as ChildProcess from 'effect/process/ChildProcess';
+import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
 import { checkBoundaries } from './checkpoint/boundaries.js';
 import { LEGACY_CATEGORIES, snapshotLegacy, validateLegacySnapshot } from './checkpoint/legacy.js';

@@ -270,10 +270,7 @@ export const makeBrowserCapture = Effect.gen(function* () {
     );
 
   const theMic = Effect.suspend(() =>
-    Option.match(mic, {
-      onNone: () => Effect.fail(failed('no microphone is open')),
-      onSome: Effect.succeed,
-    }),
+    Effect.fromOption(mic, () => failed('no microphone is open')),
   );
 
   const start: CaptureOps['start'] = lock.withPermits(1)(

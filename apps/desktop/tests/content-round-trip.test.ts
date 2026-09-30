@@ -50,12 +50,8 @@ import { procedureDependencies } from '@bible/core/procedure/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, FileSystem, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
-import type {
-  FromClientEncoded,
-  FromServerEncoded,
-  RequestEncoded,
-} from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
+import type { FromClientEncoded, FromServerEncoded, RequestEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
 
 import {
   layerDesktopProcedureServer,

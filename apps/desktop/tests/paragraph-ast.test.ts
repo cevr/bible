@@ -21,10 +21,10 @@ const loadFixture = (name: string): Effect.Effect<readonly Paragraph[], unknown>
 // Convenience: find a paragraph by id in a fixture, fail loudly if missing so
 // fixture renames don't silently degrade the test.
 const find = (paragraphs: readonly Paragraph[], paraId: string): Effect.Effect<Paragraph, string> =>
-  Option.match(Option.fromUndefinedOr(paragraphs.find((p) => p.para_id === paraId)), {
-    onNone: () => Effect.fail(`fixture missing para_id ${paraId}`),
-    onSome: Effect.succeed,
-  });
+  Effect.fromOption(
+    Option.fromUndefinedOr(paragraphs.find((p) => p.para_id === paraId)),
+    () => `fixture missing para_id ${paraId}`,
+  );
 
 const concatText = (nodes: readonly Node[]): string =>
   nodes

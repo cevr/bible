@@ -4,7 +4,7 @@
  * CLI commands for querying the SDA Hymnal.
  */
 
-import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import { BunServices } from '@effect/platform-bun';
 import type { CategoryId, HymnId } from '@bible/core/hymnal';
 import { HymnalService } from '@bible/core/hymnal';
@@ -83,7 +83,7 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const hymn = yield* service.getHymn(args.hymnNumber as HymnId).pipe(
-      Effect.map(Option.some),
+      Effect.asSome,
       Effect.catch(() => Effect.succeedNone),
     );
 

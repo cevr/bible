@@ -361,7 +361,7 @@ export const vectorAccel = (target: AccelTarget): Effect.Effect<Option.Option<Ve
     const native = yield* loadNative(target);
     const chosen = yield* Option.match(native, {
       onNone: () => loadWasm(target),
-      onSome: (ready) => Effect.succeed(Option.some(ready)),
+      onSome: (ready) => Effect.succeedSome(ready),
     });
     resolved = Option.some({ vectors: target.vectors, accel: chosen });
     return chosen;

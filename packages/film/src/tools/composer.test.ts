@@ -14,7 +14,7 @@ import {
   type Timed,
   type Timings,
 } from '../core/schema.ts';
-import { musicKey, musicPlan } from '../core/sound.ts';
+import { MUSIC_TAIL, musicKey, musicPlan } from '../core/sound.ts';
 import { Composer, type ScoreOptions, musicCredits } from './composer.ts';
 import { emptyCalls, fakeElevenLabs, memoryFileSystem, storeLayer, testFilm } from './testing.ts';
 
@@ -125,7 +125,8 @@ describe('Composer', () => {
       expect(over._tag).toBe('CreditsOverCap');
       expect(calls.music).toHaveLength(1);
       expect(new TextDecoder().decode(files.get(TALLY)).split('\n').slice(1, 2)).toEqual([
-        `score.piano\t${keyOf(piano)}\t16.000\t${each}`,
+        // The film's 16 s and the tail composed past its end.
+        `score.piano\t${keyOf(piano)}\t${(16 + MUSIC_TAIL).toFixed(3)}\t${each}`,
       ]);
     }).pipe(Effect.provide(layer));
   });

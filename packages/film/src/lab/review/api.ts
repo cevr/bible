@@ -4,7 +4,7 @@
 // arrived says so (`LabFailure`, as every lab call fails).
 
 import { Context, Effect, Layer } from 'effect';
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http';
+import { FetchHttpClient, HttpClient } from 'effect/http';
 import { ReviewDuration, ReviewIndex, reviewFileUrl } from '../../core/schema.ts';
 import { type LabFailure, LabRefused, LabUnreachable, labClient } from '../api.ts';
 
@@ -33,10 +33,10 @@ export const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: stri
       Effect.mapError(unreachable),
       Effect.flatMap((res) =>
         Effect.mapError(res.text, unreachable).pipe(
-          Effect.flatMap((body) => {
-            if (res.status >= 200 && res.status < 300) return Effect.succeed(body);
-            return Effect.fail(LabRefused.make({ status: res.status, message: body }));
-          }),
+          Effect.filterOrFail(
+            () => res.status >= 200 && res.status < 300,
+            (body) => LabRefused.make({ status: res.status, message: body }),
+          ),
         ),
       ),
     );

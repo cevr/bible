@@ -8,7 +8,7 @@
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Match, Option } from 'effect';
-import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createMemo, createSignal, onCleanup } from 'solid-js';
 import {
   type RenderChoice,

@@ -36,9 +36,9 @@ import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunn
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Schema } from 'effect';
 import type { Scope } from 'effect';
-import type { FromClientEncoded, RequestEncoded } from 'effect/unstable/rpc/RpcMessage';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
-import * as RpcServer from 'effect/unstable/rpc/RpcServer';
+import type { FromClientEncoded, RequestEncoded } from 'effect/rpc/RpcMessage';
+import * as RpcClient from 'effect/rpc/RpcClient';
+import * as RpcServer from 'effect/rpc/RpcServer';
 
 import { layerWebProcedureTransport } from './procedure-client.js';
 

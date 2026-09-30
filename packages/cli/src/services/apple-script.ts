@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Layer, Stream } from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 /**
  * Service for executing AppleScript commands.

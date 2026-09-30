@@ -4,7 +4,7 @@
 // change it made and the film's check after it.
 
 import { Context, Data, Effect, Layer, Match, Schema } from 'effect';
-import { FetchHttpClient } from 'effect/unstable/http';
+import { FetchHttpClient } from 'effect/http';
 import {
   type CheckLine,
   CheckReport,
