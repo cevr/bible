@@ -43,8 +43,8 @@ const SKY: ReadonlyArray<readonly [number, number, number, string]> = [
 const timeline = {
   // The match cut: the title's first word, where the title left it, drops
   // onto the page and lands as the card's word; the rest of the name falls away.
-  match: { scene: 'start', offset: 0.2, dur: 0.9, ease: 'inOutCubic' },
-  fall: { scene: 'start', dur: 0.6, ease: 'inQuad' },
+  match: { at: 'start', offset: 0.2, dur: 0.9, ease: 'inOutCubic' },
+  fall: { at: 'start', dur: 0.6, ease: 'inQuad' },
   // The card comes up under the word as it lands.
   card: { after: 'match', dur: 0.3, ends: true, ease: 'outCubic' },
   shrug: { mark: 'church', offset: 0.2, dur: 0.4, ease: 'outBack' },

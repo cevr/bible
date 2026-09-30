@@ -171,10 +171,10 @@ describe('timeline', () => {
     const cues = Result.getOrThrow(
       resolveTimeline(
         {
-          open: { scene: 'start', offset: 0.1 },
-          voice: { scene: 'speech' },
-          hush: { scene: 'speechEnd', offset: 0.2 },
-          close: { scene: 'end', offset: -1, dur: 1 },
+          open: { at: 'start', offset: 0.1 },
+          voice: { at: 'speech' },
+          hush: { at: 'speechEnd', offset: 0.2 },
+          close: { at: 'end', offset: -1, dur: 1 },
         },
         clock,
       ),
@@ -212,7 +212,7 @@ describe('timeline', () => {
   });
 
   test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
-    expect(failure({ walk: { scene: 'start', until: 'nope' } })).toEqual(
+    expect(failure({ walk: { at: 'start', until: 'nope' } })).toEqual(
       UnknownMark.make({
         scene: 'justified',
         mark: 'nope',

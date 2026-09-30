@@ -23,7 +23,7 @@ import {
   type UnknownSound,
   type WordMissing,
 } from './errors.ts';
-import type { Placed } from './layout.ts';
+import { type Placed, filmEnd } from './layout.ts';
 import { hashText } from './narration.ts';
 import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundManifest } from './schema.ts';
@@ -44,7 +44,7 @@ import {
 } from './sfx.ts';
 import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
-import { cueTime, filmEnd, playedOption, scoreOptionState } from './sound.ts';
+import { cueTime, playedOption, scoreOptionState } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
 export const MIX_RATE = 44100;

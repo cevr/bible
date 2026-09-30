@@ -7,21 +7,20 @@
 // the YouTube chapters the declared acts name. `looker.ts` draws the samples.
 
 import { Array as Arr, Option, Order, Result } from 'effect';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, filmEnd } from '../core/layout.ts';
 import type { Stretch } from '../core/acts.ts';
 import { type AddressError, resolveAddress } from '../core/address.ts';
 import type { Act, FaceMark, HandMark } from '../core/schema.ts';
-import { filmEnd } from '../core/sound.ts';
-import type { Reported } from './check.ts';
+import { ChaptersInvalid } from './errors.ts';
 import {
-  ChaptersInvalid,
   ColourScript,
   FaceSmall,
   HandFar,
   HandHidden,
   HandJump,
   HeldShare,
-} from './errors.ts';
+  type LookFinding,
+} from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
 
 /** A thumb's size: the research's measure (a 64×36 grey frame, research #1). */
@@ -546,23 +545,23 @@ export const colourScript = (
   });
 
 /**
- * What the look pass warns of: scenes held still, faces never at human
- * scale, each of `acts` outside its colour script, and hands that jump, work
- * out of reach or are lost in their bodies. Pass no acts for a part of the
- * film: an act measured on some of its scenes is not the act.
+ * What the look pass finds: scenes held still, faces never at human scale,
+ * each of `acts` outside its colour script, and hands that jump, work out of
+ * reach or are lost in their bodies. The check levels them (`levelOf`: all
+ * warnings). Pass no acts for a part of the film: an act measured on some of
+ * its scenes is not the act.
  */
 export const lookFindings = (
   looked: Looked,
   acts: ReadonlyArray<ActSpan>,
-): ReadonlyArray<Reported> =>
-  [
-    ...heldShares(looked.looks),
-    ...smallFaces(looked.looks, looked.height),
-    ...colourScript(acts, looked.looks),
-    ...looked.jumps,
-    ...looked.far,
-    ...looked.hidden,
-  ].map((finding) => ({ level: 'warning', finding }));
+): ReadonlyArray<LookFinding> => [
+  ...heldShares(looked.looks),
+  ...smallFaces(looked.looks, looked.height),
+  ...colourScript(acts, looked.looks),
+  ...looked.jumps,
+  ...looked.far,
+  ...looked.hidden,
+];
 
 const pct = (x: number) => `${Math.round(x * 100)}%`.padStart(4);
 

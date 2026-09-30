@@ -211,7 +211,7 @@ export const sound: Sound = {
     {
       sound: 'room.paper',
       level: PAPER,
-      from: { scene: 'cold' },
+      from: { scene: 'cold', at: 'start' },
       to: { scene: 'mirror', at: 'speech' },
     },
     {
@@ -252,7 +252,7 @@ export const sound: Sound = {
     {
       sound: 'amb.garden',
       level: -6,
-      from: { scene: 'mirror' },
+      from: { scene: 'mirror', at: 'start' },
       to: { scene: 'mirror', mark: 'mirror' },
     },
     {
@@ -264,13 +264,13 @@ export const sound: Sound = {
     {
       sound: 'amb.house',
       level: -15,
-      from: { scene: 'roof' },
+      from: { scene: 'roof', at: 'start' },
       to: { scene: 'woman', at: 'speech' },
     },
     {
       sound: 'amb.court',
       level: -16,
-      from: { scene: 'woman' },
+      from: { scene: 'woman', at: 'start' },
       to: { scene: 'woman', cue: 'toIdea' },
     },
     {
@@ -282,7 +282,7 @@ export const sound: Sound = {
     {
       sound: 'amb.town',
       level: -15,
-      from: { scene: 'centurion' },
+      from: { scene: 'centurion', at: 'start' },
       to: { scene: 'centurion', cue: 'toIcons' },
     },
     {
@@ -300,7 +300,7 @@ export const sound: Sound = {
     {
       sound: 'amb.court',
       level: -17,
-      from: { scene: 'accuser' },
+      from: { scene: 'accuser', at: 'start' },
       to: { scene: 'robe', cue: 'toIcons' },
     },
     {
@@ -312,7 +312,7 @@ export const sound: Sound = {
     {
       sound: 'amb.rain',
       level: -12,
-      from: { scene: 'rain' },
+      from: { scene: 'rain', at: 'start' },
       to: { scene: 'name', at: 'speech', offset: 0.2 },
     },
 

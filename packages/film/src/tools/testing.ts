@@ -812,9 +812,9 @@ const TWELVE = 'one two three four five six seven eight nine ten eleven twelve';
  * a page that draws it moving.
  */
 export const holdScenes: ReadonlyArray<Timed> = [
-  { id: 'held', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
-  { id: 'brief', say: TWELVE, timeline: { intro: { scene: 'start', dur: 3.4 } } },
-  { id: 'ambient', say: TWELVE, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+  { id: 'held', say: TWELVE, timeline: { intro: { at: 'start', dur: 1.4 } } },
+  { id: 'brief', say: TWELVE, timeline: { intro: { at: 'start', dur: 3.4 } } },
+  { id: 'ambient', say: TWELVE, timeline: { intro: { at: 'start', dur: 1.4 } } },
 ];
 
 export const holdTimings: Timings = {
@@ -830,7 +830,7 @@ const TWENTY = `${TWELVE} thirteen fourteen fifteen sixteen seventeen eighteen n
  * declares inside it.
  */
 export const longHoldScenes: ReadonlyArray<Timed> = [
-  { id: 'long', say: TWENTY, timeline: { intro: { scene: 'start', dur: 1.4 } } },
+  { id: 'long', say: TWENTY, timeline: { intro: { at: 'start', dur: 1.4 } } },
 ];
 
 export const longHoldTimings: Timings = {
@@ -995,11 +995,11 @@ export { hand_ as hand };
 `,
     'a.ts': `import { drawing } from './drawing.ts';
 
-export const alpha = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
+export const alpha = drawing({ timeline: { go: { at: 'start', dur: 1 } }, draw: () => {} });
 `,
     'decoy.ts': `import { drawing } from './drawing.ts';
 
-export const beta = drawing({ timeline: { go: { scene: 'start', dur: 1 } }, draw: () => {} });
+export const beta = drawing({ timeline: { go: { at: 'start', dur: 1 } }, draw: () => {} });
 `,
     'index.ts': `import { alpha } from './a.ts';
 import { hand } from './hand.ts';
@@ -1007,7 +1007,7 @@ import { hand } from './hand.ts';
 export const scenes = [
   { id: 'hand', say: 'Faith {earns} nothing.', ...hand },
   { id: 'beta', ...alpha },
-  { id: 'built', timeline: { x: { scene: 'start' } } },
+  { id: 'built', timeline: { x: { at: 'start' } } },
   { id: 'plain' },
 ];
 `,

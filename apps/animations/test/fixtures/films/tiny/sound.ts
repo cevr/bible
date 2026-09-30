@@ -24,9 +24,15 @@ export const sound: Sound = {
       },
     },
   },
-  beds: [{ sound: 'room.paper', from: { scene: 'turn' }, to: { scene: 'close', offset: 1 } }],
+  beds: [
+    {
+      sound: 'room.paper',
+      from: { scene: 'turn', at: 'start' },
+      to: { scene: 'close', at: 'start', offset: 1 },
+    },
+  ],
   effects: {
-    page: { sound: 'tone.chime', level: -20, at: [{ scene: 'turn', offset: 0.05 }] },
+    page: { sound: 'tone.chime', level: -20, at: [{ scene: 'turn', at: 'start', offset: 0.05 }] },
     fold: {
       sound: 'tone.notes',
       at: [

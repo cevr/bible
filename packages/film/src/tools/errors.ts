@@ -25,10 +25,6 @@ export {
   WordMissing,
 } from '../core/errors.ts';
 
-// The look pass's findings, for the modules that import them from here; they
-// are declared, levelled and addressed with every other finding in findings.ts.
-export { ColourScript, FaceSmall, HandFar, HandHidden, HandJump, HeldShare } from './findings.ts';
-
 // ---------------------------------------------------------------------------
 // The sound library (`sounds/`): what `sfx check` and `film check` report.
 

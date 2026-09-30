@@ -1,13 +1,13 @@
 import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
-import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
+import { DEFAULT_TAIL, MIN_LEAD, filmEnd, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Probed, Score, Sound, Timed, Timings } from '../core/schema.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { recorder } from '../canvas/fixtures/stand-in.ts';
-import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { musicKey, musicPlan } from '../core/sound.ts';
 import {
   HOLD,
   type Sample,
@@ -748,14 +748,14 @@ describe('lateCues', () => {
   test('a cue that ends after its scene', () => {
     const placed = Result.getOrThrow(
       layout(
-        [{ id: 's', min: 4, timeline: { ok: { scene: 'start', dur: 4 }, over: { scene: 'end' } } }],
+        [{ id: 's', min: 4, timeline: { ok: { at: 'start', dur: 4 }, over: { at: 'end' } } }],
         noTakes,
       ),
     );
     expect(lateCues(placed)).toEqual([]);
     const late = Result.getOrThrow(
       layout(
-        [{ id: 's', min: 4, timeline: { over: { scene: 'end', offset: -0.5, dur: 1 } } }],
+        [{ id: 's', min: 4, timeline: { over: { at: 'end', offset: -0.5, dur: 1 } } }],
         noTakes,
       ),
     );
@@ -848,7 +848,7 @@ describe('longSeams', () => {
 });
 
 const soundScenes: ReadonlyArray<Timed> = [
-  { id: 'open', min: 8, timeline: { hit: { scene: 'start', offset: 1 } } },
+  { id: 'open', min: 8, timeline: { hit: { at: 'start', offset: 1 } } },
   { id: 'middle', min: 2 },
   { id: 'close', min: 8 },
 ];
@@ -970,8 +970,16 @@ describe('soundFindings', () => {
   test('every cue naming an unknown scene, cue or mark; every sound unknown, misused, unmade or stale, once', () => {
     const sound: Sound = {
       beds: [
-        { sound: 'room.paper', from: { scene: 'open' }, to: { scene: 'nowhere' } },
-        { sound: 'paper.hit', from: { scene: 'open' }, to: { scene: 'close' } },
+        {
+          sound: 'room.paper',
+          from: { scene: 'open', at: 'start' },
+          to: { scene: 'nowhere', at: 'start' },
+        },
+        {
+          sound: 'paper.hit',
+          from: { scene: 'open', at: 'start' },
+          to: { scene: 'close', at: 'start' },
+        },
       ],
       effects: {
         hit: { sound: 'paper.hit', at: [{ scene: 'open', cue: 'hit' }] },
@@ -982,10 +990,10 @@ describe('soundFindings', () => {
             { scene: 'open', mark: 'nope' },
           ],
         },
-        again: { sound: 'paper.old', at: [{ scene: 'close' }] },
-        fresh: { sound: 'paper.new', at: [{ scene: 'close' }] },
-        gone: { sound: 'paper.gone', at: [{ scene: 'close' }] },
-        room: { sound: 'room.paper', at: [{ scene: 'close' }] },
+        again: { sound: 'paper.old', at: [{ scene: 'close', at: 'start' }] },
+        fresh: { sound: 'paper.new', at: [{ scene: 'close', at: 'start' }] },
+        gone: { sound: 'paper.gone', at: [{ scene: 'close', at: 'start' }] },
+        room: { sound: 'room.paper', at: [{ scene: 'close', at: 'start' }] },
       },
     };
     const found = soundFindings(sound, placedSound, sounds);
@@ -1096,8 +1104,8 @@ describe('staticFindings', () => {
       ...film,
       sound: Option.some<Sound>({
         effects: {
-          hit: { sound: 'paper.new', at: [{ scene: 'open' }] },
-          lost: { sound: 'paper.gone', at: [{ scene: 'open' }] },
+          hit: { sound: 'paper.new', at: [{ scene: 'open', at: 'start' }] },
+          lost: { sound: 'paper.gone', at: [{ scene: 'open', at: 'start' }] },
         },
       }),
     };
@@ -1226,7 +1234,7 @@ describe('static holds', () => {
         id: 'a',
         say,
         enter: { kind: 'fade', dur: 1.5 },
-        timeline: { drift: { scene: 'start', offset: 4, dur: 1 } },
+        timeline: { drift: { at: 'start', offset: 4, dur: 1 } },
       },
     ];
     const timings: Timings = {

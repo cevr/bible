@@ -36,15 +36,15 @@ const answerStyle = {
 
 export const thesis = drawing({
   timeline: {
-    lookUp: { scene: 'speech', dur: 0.5 },
-    answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
+    lookUp: { at: 'speech', dur: 0.5 },
+    answer: { at: 'speech', dur: 1.6, ease: 'linear' },
     // The gavel lifts back from where `name` laid it down.
-    gavel: { scene: 'start', dur: 2, ease: 'linear' },
+    gavel: { at: 'start', dur: 2, ease: 'linear' },
     // The judge, who held it down through `name`'s last line, lets it go once it stands again.
     letGo: { after: 'gavel', dur: 0.5 },
     // A pause the script means: the answer stands alone on screen while the
     // music rises, then lets go. What follows it hangs off it.
-    textOut: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
+    textOut: { at: 'speechEnd', offset: 7.9, dur: 1.2 },
     away: { with: 'textOut', offset: 0.6, dur: 4.5, ease: 'inOutSine' },
     city: { with: 'away', offset: 2.6, dur: 11, ease: 'inOutSine' },
     // The two of them turn to each other once the city has settled.

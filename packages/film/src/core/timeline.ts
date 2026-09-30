@@ -51,7 +51,7 @@ const anchorField = (span: Span) => {
     return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
   if ('after' in span) return { after: span.after };
   if ('with' in span) return { with: span.with };
-  return { scene: span.scene };
+  return { at: span.at };
 };
 
 /** A span's end: its `dur` (from its anchor, or up to it with `ends`), or the mark it runs `until`. */
@@ -200,7 +200,7 @@ export const anchorPoint = (span: Span): ScenePoint => {
     return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
   if ('after' in span) return { cue: span.after, edge: 'end' };
   if ('with' in span) return { cue: span.with };
-  return { at: span.scene };
+  return { at: span.at };
 };
 
 /** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */

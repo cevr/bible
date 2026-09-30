@@ -20,6 +20,7 @@ import {
   DEFAULT_TAIL,
   MIN_LEAD,
   everyTakeRecorded,
+  filmEnd,
   sceneAt,
   transitionDur,
 } from '../core/layout.ts';
@@ -50,7 +51,7 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { cueTime, filmEnd, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type { Interval } from '../core/time.ts';
 import type {
   MovementLength,
@@ -72,7 +73,6 @@ import {
   MasterLoudness,
   type MixFinding,
   PlateOffFrame,
-  type Reported as Levelled,
   SeamLong,
   type StaticFinding,
   TakeStale,
@@ -83,12 +83,6 @@ import {
 } from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type Master, masterFile, masterFinding } from './mixer.ts';
-
-/**
- * A finding and its level, as the look pass (`lookFindings`) hands them back;
- * the check re-levels and addresses them with `report`.
- */
-export type Reported = Pick<Levelled, 'level' | 'finding'>;
 
 // ---------------------------------------------------------------------------
 // Static

@@ -9,7 +9,7 @@ export const declared = drawing({
     stamp: { mark: 'justified' },
     cord: { after: 'stamp', dur: 0.4 },
     thud: { with: 'cord', offset: 0.1 },
-    fade: { scene: 'speechEnd' },
+    fade: { at: 'speechEnd' },
   },
   draw: (f) => {
     f.cue('stamp');

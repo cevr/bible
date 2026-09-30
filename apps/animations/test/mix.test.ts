@@ -86,11 +86,17 @@ const generated: Sound = {
   ...sound,
   beds: [
     ...(sound.beds ?? []),
-    { sound: 'amb.hall', from: { scene: 'open' }, to: { scene: 'turn', cue: 'fold' } },
+    { sound: 'amb.hall', from: { scene: 'open', at: 'start' }, to: { scene: 'turn', cue: 'fold' } },
   ],
   effects: {
     ...sound.effects,
-    leaf: { sound: 'paper.page', at: [{ scene: 'turn', offset: 0.5 }, { scene: 'close' }] },
+    leaf: {
+      sound: 'paper.page',
+      at: [
+        { scene: 'turn', at: 'start', offset: 0.5 },
+        { scene: 'close', at: 'start' },
+      ],
+    },
     crease: { sound: 'paper.fold', level: -14, at: [{ scene: 'open', cue: 'rise', edge: 'end' }] },
   },
 };

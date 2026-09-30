@@ -54,7 +54,7 @@ const WATCHERS = CITY_FRONT.filter((_, i) => i % 2 === 1);
 export const rain = drawing({
   timeline: {
     // Christ pleads before the ark from the cut, as `exchange` left him.
-    plea: { scene: 'start', dur: 0 },
+    plea: { at: 'start', dur: 0 },
     fall: { mark: 'spirit', offset: -0.3, dur: 0.8 },
     green: { mark: 'spirit', offset: 0.2, dur: 3.6, ease: 'linear' },
     tiltUp: { mark: 'blot', offset: -0.6, dur: 1.3 },

@@ -28,7 +28,7 @@ import {
 } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [
-  { id: 'a', min: 10, timeline: { hit: { scene: 'start', offset: 2, dur: 1 } } },
+  { id: 'a', min: 10, timeline: { hit: { at: 'start', offset: 2, dur: 1 } } },
   { id: 'b', min: 10, enter: { kind: 'fade', dur: 0.5 } },
 ];
 const film = testFilm(scenes, { voice: '', scenes: {} });

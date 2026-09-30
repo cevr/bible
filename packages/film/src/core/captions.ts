@@ -3,8 +3,8 @@
 // `captionCues`, so the file and the picture cannot disagree. Pure.
 
 import { Array as Arr, Option } from 'effect';
-import { type Placed, captionLines } from './layout.ts';
-import type { Turn } from './narration.ts';
+import type { Placed } from './layout.ts';
+import { type Turn, endsClause, endsSentence } from './narration.ts';
 import type { TakeWord, Word } from './schema.ts';
 import { phraseCues, shortPhrases } from './phrases.ts';
 import type { ResolvedShort } from './shorts.ts';
@@ -13,6 +13,32 @@ import type { ResolvedShort } from './shorts.ts';
 export const CAPTION_LEAD = 0.05;
 /** The last line of a take holds this long after its last word. */
 export const CAPTION_HOLD = 0.6;
+
+/**
+ * Group words into short caption lines, breaking where a sentence or clause ends (`SENTENCE`, `CLAUSE`) and before
+ * each word in `turns`, where another voice takes over.
+ */
+export const captionLines = (
+  words: ReadonlyArray<Word>,
+  turns: ReadonlySet<number> = new Set(),
+  max = 7,
+): Word[][] => {
+  const out: Word[][] = [];
+  let cur: Word[] = [];
+  for (const [i, w] of words.entries()) {
+    if (turns.has(i) && cur.length > 0) {
+      out.push(cur);
+      cur = [];
+    }
+    cur.push(w);
+    if (cur.length >= max || endsSentence(w.text) || endsClause(w.text)) {
+      out.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length > 0) out.push(cur);
+  return out;
+};
 
 /** One caption line and the span it shows, in seconds. */
 export interface CaptionCue {

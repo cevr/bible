@@ -12,7 +12,7 @@ import {
   UnknownScene,
 } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Knob, ResolvedCue, ScenePoint, Timed, Timings, Transition, Word } from './schema.ts';
+import type { Knob, ResolvedCue, ScenePoint, Timed, Timings, Transition } from './schema.ts';
 import { type SceneClock, type TimelineError, pointOn, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
@@ -114,31 +114,9 @@ export const pointIn = (
     edge,
   );
 
-/**
- * Group words into short caption lines, breaking at punctuation and before
- * each word in `turns`, where another voice takes over.
- */
-export const captionLines = (
-  words: ReadonlyArray<Word>,
-  turns: ReadonlySet<number> = new Set(),
-  max = 7,
-): Word[][] => {
-  const out: Word[][] = [];
-  let cur: Word[] = [];
-  for (const [i, w] of words.entries()) {
-    if (turns.has(i) && cur.length > 0) {
-      out.push(cur);
-      cur = [];
-    }
-    cur.push(w);
-    if (cur.length >= max || /[.!?;:,—]["”’)]*$/.test(w.text)) {
-      out.push(cur);
-      cur = [];
-    }
-  }
-  if (cur.length > 0) out.push(cur);
-  return out;
-};
+/** When the film ends: the last placed scene's end, or 0 with no scenes. */
+export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
+  Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
 
 /** The placed scene `scene` names, or `UnknownScene` listing the scenes there are. */
 export const sceneOf = <S extends Timed>(

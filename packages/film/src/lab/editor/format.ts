@@ -18,7 +18,7 @@ export const anchorText = (span: Span): string => {
     });
   if ('after' in span) return `after cue ${span.after}`;
   if ('with' in span) return `with cue ${span.with}`;
-  return `scene ${span.scene}`;
+  return `scene ${span.at}`;
 };
 
 /** An ease drawing's box: 0→1 across, with room for an overshoot. */

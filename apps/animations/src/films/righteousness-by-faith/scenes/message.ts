@@ -97,7 +97,7 @@ const timeline = {
   lookUp: { mark: 'how', offset: 0.3, dur: 0.8, ease: 'inOutSine' },
   window: { mark: 'year', offset: -0.3, dur: 1.3, ease: 'inCubic' },
   // Waggoner holds the open Bible from the cut: the hall opens on it.
-  bible: { scene: 'start', dur: 0 },
+  bible: { at: 'start', dur: 0 },
   placard: { after: 'window', dur: 0.5, ease: 'outBack' },
   stepUp: { mark: 'two', dur: 0.6 },
   push: { mark: 'two', offset: 0.3, dur: 1.4, ease: 'inOutSine' },

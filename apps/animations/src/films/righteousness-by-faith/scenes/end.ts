@@ -58,8 +58,8 @@ export const end = drawing({
   drift: 0,
   timeline: {
     // The strip comes in, the credits roll up it, and it goes: the rest is clear for the end screens.
-    stripIn: { scene: 'start', dur: 0.8 },
-    roll: { scene: 'start', dur: 22, ease: 'linear' },
+    stripIn: { at: 'start', dur: 0.8 },
+    roll: { at: 'start', dur: 22, ease: 'linear' },
     stripOut: { after: 'roll', dur: 0.8 },
     // The pull back, from where `thesis` leaves the city, settling as the strip goes.
     back: { with: 'roll', dur: 24, ease: 'inOutSine' },

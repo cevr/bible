@@ -62,8 +62,8 @@ const ORGAN = `      organ: {
 const HUSH = `    hush: {
       sound: 'paper.page',
       at: [
-        { scene: 'turn', offset: 0.5 },
-        { scene: 'close', offset: 0.2 },
+        { scene: 'turn', at: 'start', offset: 0.5 },
+        { scene: 'close', at: 'start', offset: 0.2 },
       ],
     },
 `;

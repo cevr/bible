@@ -80,7 +80,7 @@ describe('an edit is a value a frame draws with', () => {
           say: 'A line.',
           min: 4,
           knobs: { x: 3 },
-          timeline: { go: { scene: 'start', dur: 2 } },
+          timeline: { go: { at: 'start', dur: 2 } },
           draw: (f) => {
             seen.push([f.knob('x'), f.at('go')]);
           },
@@ -89,7 +89,7 @@ describe('an edit is a value a frame draws with', () => {
     });
     return { film, seen };
   };
-  const edit = { knobs: { x: 7 }, timeline: { go: { scene: 'start' as const, dur: 1 } } };
+  const edit = { knobs: { x: 7 }, timeline: { go: { at: 'start' as const, dur: 1 } } };
 
   test('draws the edit it is handed, and the frame after with none draws the scene as declared', () => {
     const { film, seen } = seeing();

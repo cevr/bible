@@ -1047,7 +1047,7 @@ the film second it starts at; a finding about the whole film has neither).
   stale) and reads it in 50 ms windows, its sides' power summed as a listener
   hears it (`windowPowers`): a run under −60 dBFS longer than
   1.5 s is `DeadAir`, an error, less any span a cue declares with
-  `silence: true` (`{ scene: 'start', offset: 2, dur: 3, silence: true }`),
+  `silence: true` (`{ at: 'start', offset: 2, dur: 3, silence: true }`),
   the designed silences the script means. The same mix is held to the
   balance, as warnings: a master more than 3 LU off −18 LUFS
   (`MasterLoudness`: a hot peak held the mastering lift back), and an effect
@@ -1190,6 +1190,9 @@ or another cue and say why). A rate (`Math.sin(t * 7)`) is not a time. The
 rule reads syntax only, so a product is taken for a rate and a local alias of
 the clock or a helper hiding the subtraction pass; its doc comment lists the
 limits.
+`film/span-ends-on-anchor` (`lint/span-ends-on-anchor.ts`) refuses a span
+that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
+`{ mark: 'true', dur: 0.5, ends: true }`, its length written once.
 
 ## Knobs
 

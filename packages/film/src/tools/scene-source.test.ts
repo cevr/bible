@@ -32,7 +32,7 @@ export const hand_ = draw({
     topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
     shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' },
     late: { after: 'topple', offset: GAP * 2 },
-    bare: { scene: 'speech' },
+    bare: { at: 'speech' },
   },
   knobs: {
     palm: [960, 800],
@@ -84,14 +84,14 @@ describe('scene source', () => {
     const eased = ok(editCue(FILE, scene, 'hand', 'topple', { ease: 'inQuad' }));
     expect(eased).toContain("topple: { mark: 'earns', offset: 0.1, dur: 1.8, ease: 'inQuad' }");
     const timed = ok(editCue(FILE, scene, 'hand', 'bare', { dur: 1, offset: 0.25 }));
-    expect(timed).toContain("bare: { scene: 'speech', offset: 0.25, dur: 1 }");
+    expect(timed).toContain("bare: { at: 'speech', offset: 0.25, dur: 1 }");
     expect(ok(readCue(FILE, timed, 'hand', 'bare'))).toEqual({ offset: 0.25, dur: 1 });
   });
 
   it('adds an offset to a word pin after its word, which it keeps', () => {
     const pinned = scene.replace(
-      "bare: { scene: 'speech' },",
-      "bare: { scene: 'speech' },\n    lit: { mark: 'gift', word: 'faith', dur: 0.6 },",
+      "bare: { at: 'speech' },",
+      "bare: { at: 'speech' },\n    lit: { mark: 'gift', word: 'faith', dur: 0.6 },",
     );
     const next = ok(editCue(FILE, pinned, 'hand', 'lit', { offset: -0.3 }));
     expect(next).toContain("lit: { mark: 'gift', word: 'faith', offset: -0.3, dur: 0.6 }");
@@ -112,7 +112,7 @@ describe('scene source', () => {
     const sized = ok(editCue(FILE, marked, 'hand', 'topple', { dur: 1.2 }));
     expect(sized).toBe(scene.replace('dur: 1.8', 'dur: 1.2'));
     const bare = ok(editCue(FILE, scene, 'hand', 'bare', { until: 'gift', ease: 'linear' }));
-    expect(bare).toContain("bare: { scene: 'speech', until: 'gift', ease: 'linear' }");
+    expect(bare).toContain("bare: { at: 'speech', until: 'gift', ease: 'linear' }");
     expect(readSpans(FILE, marked, 'hand')['topple']).toEqual({
       mark: 'earns',
       offset: 0.1,
@@ -159,7 +159,7 @@ describe('scene source', () => {
     expect(refused(editCue(FILE, scene, 'hidden', 'x', { dur: 1 }))).toContain(
       'exports no drawing({...}) named hidden',
     );
-    const spread = scene.replace("bare: { scene: 'speech' }", "bare: { ...base, scene: 'speech' }");
+    const spread = scene.replace("bare: { at: 'speech' }", "bare: { ...base, at: 'speech' }");
     expect(refused(editCue(FILE, spread, 'hand', 'bare', { dur: 1 }))).toContain('spread');
     const shared = scene.replace(/timeline: \{[\s\S]*?\n {2}\},\n {2}knobs/, 'timeline,\n  knobs');
     expect(refused(editCue(FILE, shared, 'hand', 'topple', { dur: 1 }))).toContain(
@@ -169,7 +169,7 @@ describe('scene source', () => {
     expect(refused(editCue(FILE, computedKey, 'hand', 'topple', { dur: 1 }))).toContain(
       'its object has a computed key, so the value is not provable',
     );
-    const twice = scene.replace("bare: { scene: 'speech' }", "topple: { scene: 'speech' }");
+    const twice = scene.replace("bare: { at: 'speech' }", "topple: { at: 'speech' }");
     expect(refused(editCue(FILE, twice, 'hand', 'topple', { dur: 1 }))).toContain(
       '"topple" is declared 2 times',
     );
@@ -177,9 +177,9 @@ describe('scene source', () => {
     expect(refused(editCue(FILE, broken, 'hand', 'topple', { dur: 1 }))).toContain(
       'the module: it does not parse',
     );
-    const unanchored = scene.replace("bare: { scene: 'speech' }", 'bare: { dur: 1 }');
+    const unanchored = scene.replace("bare: { at: 'speech' }", 'bare: { dur: 1 }');
     expect(refused(editCue(FILE, unanchored, 'hand', 'bare', { offset: 1 }))).toContain(
-      'the span has no anchor (mark, after, with or scene)',
+      'the span has no anchor (mark, after, with or at)',
     );
     expect(refused(editKnob(FILE, scene, 'hand', 'nope', 1))).toBe(
       'scenes/hand.ts: will not edit knob nope: the drawing declares no such knob',
@@ -258,7 +258,7 @@ export const hand = drawing({
     expect(readSpans(FILE, scene, 'hand')).toEqual({
       topple: { mark: 'earns', offset: 0.1, dur: 1.8 },
       shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' },
-      bare: { scene: 'speech' },
+      bare: { at: 'speech' },
     });
   });
 

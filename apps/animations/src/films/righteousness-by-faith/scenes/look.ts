@@ -145,12 +145,12 @@ const timeline = {
   // After the last word: the face gives way to faith's icon close, pulled back
   // to the row, faith glowing; for a breath, under it, the four faces at the
   // hole in the roof, lit gold (the callback to `roof`).
-  toIcons: { scene: 'speechEnd', offset: 0.1, dur: 0.4 },
-  pullBack: { scene: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
+  toIcons: { at: 'speechEnd', offset: 0.1, dur: 0.4 },
+  pullBack: { at: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
   // Faith pops forward in gold as the row settles, the other two faded back.
-  iconGlow: { scene: 'speechEnd', offset: 0.3, dur: 0.6, ease: 'outBack' },
-  hole: { scene: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
-  holeOut: { scene: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
+  iconGlow: { at: 'speechEnd', offset: 0.3, dur: 0.6, ease: 'outBack' },
+  hole: { at: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
+  holeOut: { at: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
 } as const;
 const knobs = {
   pole: [1180, 930],

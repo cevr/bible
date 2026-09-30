@@ -10,6 +10,7 @@ import { sceneCaptions } from '../core/captions.ts';
 import {
   type Placed,
   everyTakeRecorded,
+  filmEnd,
   layout,
   sceneClock,
   sceneIndexAt,
@@ -477,8 +478,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const height = spec.height ?? 1080;
   const fps = spec.fps ?? FILM_FPS;
   const placed = Result.getOrThrow(layout(spec.scenes, spec.timings));
-  const last = placed[placed.length - 1];
-  const duration = last === undefined ? 0 : last.start + last.dur;
+  const duration = filmEnd(placed);
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
   /** Each scene's breath: its own `drift` where it sets one, `DRIFT` where it does not. */

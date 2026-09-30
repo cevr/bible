@@ -26,10 +26,9 @@ import { splice } from '../core/audio.ts';
 import { encoderCandidates, encoderName, sharesInPage } from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { ShortError } from '../core/errors.ts';
-import { type Placed, everyTakeRecorded } from '../core/layout.ts';
+import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
 import type { ExportInfo } from '../core/schema.ts';
 import { type ResolvedShort, resolveShort, shortPage, shortPieces } from '../core/shorts.ts';
-import { filmEnd } from '../core/sound.ts';
 import { Browser, type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
 import {
   type AudioMissing,

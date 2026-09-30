@@ -129,7 +129,7 @@ const timeline = {
   beyond: { mark: 'judicial', until: 'reclaim', ease: 'inOutSine' },
   warm: { mark: 'reclaim', offset: 0.4, dur: 2.2, ease: 'inOutSine' },
   glad: { mark: 'reclaiming', dur: 0.6 },
-  toIcons: { scene: 'speechEnd', dur: 0.27 },
+  toIcons: { at: 'speechEnd', dur: 0.27 },
   pullBack: { with: 'toIcons', dur: 0.7, ease: 'outCubic' },
   // The robe pops forward in gold as the row settles, the heart faded back.
   iconGlow: { after: 'toIcons', dur: 0.6, ease: 'outBack' },

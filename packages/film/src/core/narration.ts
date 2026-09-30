@@ -212,8 +212,8 @@ export const estimate = (spoken: string): Word[] => {
     const dur = 0.16 + letters * 0.045;
     out.push({ text: w, start: t, end: t + dur });
     t += dur + 0.05;
-    if (/[.!?]["”’)]*$/.test(w)) t += 0.45;
-    else if (/[,;:—–]["”’)]*$/.test(w)) t += 0.22;
+    if (endsSentence(w)) t += 0.45;
+    else if (endsClause(w)) t += 0.22;
   }
   return out;
 };
@@ -247,8 +247,15 @@ export const readsWord = (text: string, word: string): boolean => {
   return false;
 };
 
-/** Whether a spoken word ends a sentence: `.`, `!` or `?`, before any closing quote or bracket. */
-export const endsSentence = (text: string): boolean => /[.!?]["”’)]*$/.test(text);
+/** A sentence ends here: on a full stop, a question or an exclamation, before any closing quote or bracket. */
+export const SENTENCE = /[.?!][”’"')\]]*$/;
+/** A clause ends here: on a comma, a dash, a colon, a semicolon or an ellipsis, before any closing quote or bracket. */
+export const CLAUSE = /[,—–;:…][”’"')\]]*$/;
+
+/** Whether a spoken word ends a sentence (`SENTENCE`). */
+export const endsSentence = (text: string): boolean => SENTENCE.test(text);
+/** Whether a spoken word ends a clause (`CLAUSE`). */
+export const endsClause = (text: string): boolean => CLAUSE.test(text);
 
 /**
  * When the first word said at or after `from` (seconds, on the words' clock)
