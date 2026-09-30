@@ -892,7 +892,7 @@ draws what it is handed, and `film.cuesOf(scene, edit)` gives the cues it
 draws); an edit that does not resolve is not shown, and the status says why;
 the release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs (for an `until` cue, `until {mark}` and its resolved end instead of
+inputs (for an `until` cue, `until {mark}` or `until speechEnd` and its resolved end instead of
 `dur`), and an ease picker drawing each curve (the ease is only ever data:
 `f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the

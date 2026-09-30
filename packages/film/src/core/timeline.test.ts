@@ -222,6 +222,23 @@ describe('timeline', () => {
     ).toBe(4);
   });
 
+  test('`until` ends a cue on a landmark: the voice’s end, or the scene’s', () => {
+    const cues = Result.getOrThrow(
+      resolveTimeline(
+        {
+          days: { mark: 'as', until: { at: 'speechEnd' }, ease: 'linear' },
+          tilt: { at: 'start', until: { at: 'end' } },
+        },
+        clock,
+      ),
+    );
+    expect(cues.get('days')).toMatchObject({ start: 5.5, end: 8.5, dur: 3, ease: 'linear' });
+    expect(cues.get('tilt')).toMatchObject({ start: 0, end: clock.dur, dur: clock.dur });
+    expect(failure({ late: { at: 'end', until: { at: 'speech' } } })).toEqual(
+      UntilBeforeStart.make({ scene: 'justified', cue: 'late', until: 'speech' }),
+    );
+  });
+
   test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
     expect(failure({ walk: { at: 'start', until: 'nope' } })).toEqual(
       UnknownMark.make({
@@ -232,7 +249,7 @@ describe('timeline', () => {
       }),
     );
     expect(failure({ walk: { mark: 'as', until: 'fiction' } })).toEqual(
-      UntilBeforeStart.make({ scene: 'justified', cue: 'walk', mark: 'fiction' }),
+      UntilBeforeStart.make({ scene: 'justified', cue: 'walk', until: '{fiction}' }),
     );
   });
 

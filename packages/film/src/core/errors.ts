@@ -106,14 +106,15 @@ export class CueCycle extends Schema.TaggedError<CueCycle>()('CueCycle', {
   }
 }
 
-/** A cue that runs `until` a mark said before the cue starts. */
+/** A cue that runs `until` a mark said, or a landmark that falls, before the cue starts. */
 export class UntilBeforeStart extends Schema.TaggedError<UntilBeforeStart>()('UntilBeforeStart', {
   scene: Schema.String,
   cue: Schema.String,
-  mark: Schema.String,
+  /** The point it runs until: `{mark}`, or a landmark's name. */
+  until: Schema.String,
 }) {
   override get message() {
-    return `scene "${this.scene}": cue "${this.cue}" ends at {${this.mark}}, before it starts`;
+    return `scene "${this.scene}": cue "${this.cue}" ends at ${this.until}, before it starts`;
   }
 }
 

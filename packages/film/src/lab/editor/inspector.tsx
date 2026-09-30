@@ -10,7 +10,7 @@ import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE } from '../../core/time.ts';
-import { patchSpan } from '../../core/timeline.ts';
+import { patchSpan, untilText } from '../../core/timeline.ts';
 import type { Selection } from '../selection.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
@@ -115,7 +115,7 @@ const CueFields = (props: CueFieldsProps) => {
           {(until) => (
             <>
               <Key>end</Key>
-              <Val>{`until {${until()}} · ${props.cue.end.toFixed(2)}s`}</Val>
+              <Val>{`until ${untilText(until())} · ${props.cue.end.toFixed(2)}s`}</Val>
             </>
           )}
         </Show>

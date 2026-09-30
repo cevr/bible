@@ -307,9 +307,11 @@ starts on the first word said at or after `{gift}` that reads `faith` (read as
 a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
 the word there fails the layout with `WordMissing` (`film check`, the player,
 the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
-or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
+or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`) or a
+landmark (`{ mark: 'daily', until: { at: 'speechEnd' } }`, never a progress rolled
+by hand to `f.speech.end`), so
 a re-take moves its end as well as its start; a span declares one or the
-other, and a lab `dur` write replaces its `until`. A motion that must land on
+other, and a lab `dur` write replaces a mark's `until`. A motion that must land on
 its moment `ends` there: `{ mark: 'true', dur: 0.5, ends: true }` ends on
 `{true}` and starts its `dur` before it (never `offset: -0.5, dur: 0.5`, the
 same number twice), so a lab `dur` write or drag keeps the landing. A

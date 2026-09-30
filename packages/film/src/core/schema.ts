@@ -329,18 +329,26 @@ const byDur = {
   until: Schema.optionalKey(Schema.Never),
 };
 
-/** A span that ends on a `{mark}` in the scene's narration, so a re-take moves the end with it. */
-const untilMark = {
-  until: Schema.String,
+/**
+ * Where a span runs `until`: a `{mark}` in the scene's narration (its name),
+ * or a scene landmark (`{ at: 'speechEnd' }`), so a re-take moves the end
+ * with it.
+ */
+export const Until = Schema.Union([Schema.String, Schema.Struct({ at: Landmark })]);
+export type Until = typeof Until.Type;
+
+/** A span that ends on a mark or a landmark. */
+const untilPoint = {
+  until: Until,
   dur: Schema.optionalKey(Schema.Never),
   ends: Schema.optionalKey(Schema.Never),
 };
 
-/** One anchor's two spans: ended by `dur`, or `until` a mark; never both. */
+/** One anchor's two spans: ended by `dur`, or `until` a mark or landmark; never both. */
 const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
   [
     Schema.Struct({ ...anchor, ...spanTiming, ...byDur }),
-    Schema.Struct({ ...anchor, ...spanTiming, ...untilMark }),
+    Schema.Struct({ ...anchor, ...spanTiming, ...untilPoint }),
   ] as const;
 
 /**

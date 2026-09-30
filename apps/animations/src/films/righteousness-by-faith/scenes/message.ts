@@ -131,8 +131,8 @@ const timeline = {
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
   // Close on the palm, its fingers curl a little on "gifts": the hand that takes hold of them.
   take: { mark: 'gifts', dur: 0.7, ease: 'inOutSine' },
-  // The days start on "daily" and run to the last word (`page` reads the speech's end).
-  days: { mark: 'daily' },
+  // The days start on "daily" and run to the last word.
+  days: { mark: 'daily', until: { at: 'speechEnd' }, ease: 'linear' },
 } as const;
 const knobs = {
   // The hall at rest.
@@ -420,8 +420,7 @@ const page = (f: MessageFrame) => {
   // one and how high, and how deep into dusk the page is, which eases in over
   // the first half day and out over the last, so the page, the icons and the
   // hand leave and rejoin the day before and after without a step.
-  const from = f.cue('days').start;
-  const days = clamp((f.t - from) / (f.speech.end - from));
+  const days = f.at('days');
   const k = (days * DAYS) % 1;
   const noon = Math.sin(Math.PI * k);
   const settle = clamp(Math.min(days, 1 - days) * (DAYS / DAYS_EASE));
