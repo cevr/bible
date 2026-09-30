@@ -9,7 +9,9 @@
 // `level:score:under|alone` and `level:const:<NAME>` for a sound layer's
 // level. Every name is non-empty, and a montage clip (named by its file) is
 // never `film`, `act:…`, `scenes:…` or `short:…` (`Clip` refuses it), so
-// every ref the schema admits reads back from its id as itself.
+// every ref the schema admits reads back from its id as itself. Reading
+// back is canonical too: a string is a point only when it is that point's own
+// id, so `level:bed:01:x` or `render:scenes:a,` is no point.
 
 import {
   Array as Arr,
@@ -62,7 +64,7 @@ const addressOfKey = (key: string): Option.Option<Address> => {
  * (`film`, `act:…`, `scenes:…`, `short:…`), so its `render:` id reads back
  * as a montage.
  */
-const Clip = Name.check(
+export const Clip = Name.check(
   Schema.makeFilter((clip: string) =>
     Option.match(addressOfKey(clip), {
       onNone: () => true,
@@ -123,8 +125,8 @@ const levelOf = (text: string): Option.Option<LevelTarget> => {
   return Option.some({ _tag: 'Layer', layer: { _tag: 'Bed', index: n, sound: sound.join(':') } });
 };
 
-/** `id` read back as its ref, when it is one. */
-const decode = (id: string): Option.Option<PointRef> => {
+/** `id` read as a ref, before the schema and the round trip judge it. */
+const read = (id: string): Option.Option<PointRef> => {
   if (id === 'score') return Option.some({ _tag: 'Score' });
   const colon = id.indexOf(':');
   if (colon <= 0 || colon === id.length - 1) return Option.none();
@@ -150,6 +152,12 @@ const decode = (id: string): Option.Option<PointRef> => {
       return Option.none();
   }
 };
+
+const isPointRef = Schema.is(PointRef);
+
+/** `id` read back as its ref, when it is the id that ref is written as. */
+const decode = (id: string): Option.Option<PointRef> =>
+  Option.filter(read(id), (ref) => isPointRef(ref) && encode(ref) === id);
 
 /** A choice point's id on the wire and on disk, decoded to the point it names. */
 export const PointId = Schema.String.pipe(
