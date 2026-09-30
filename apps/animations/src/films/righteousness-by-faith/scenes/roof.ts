@@ -47,6 +47,7 @@ import {
   type Three,
   gait,
   glow,
+  reset,
 } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
@@ -266,6 +267,28 @@ const capernaum = (f: RoofFrame) => {
   house(ctx, w, h, f.hand, s);
 };
 
+/** The house as the four let him down, every pose `replay` starts from. */
+const LET_DOWN: Omit<House, 'cam'> = {
+  tiles: 1,
+  lower: 1,
+  ropes: 1,
+  lookUp: 1,
+  reach: 0,
+  lookAfter: 0,
+  specks: 0,
+  rise: 0,
+  roll: 0,
+  steady: 0,
+  walk: 0,
+  bob: 0,
+  glad: 0,
+  wonder: 0,
+  doubt: 0,
+  holeLit: 0,
+  robed: 0,
+  heart: 0,
+};
+
 /**
  * The count: each spoken number cuts back to its moment, in the framing the
  * story gave it, held and breathing in a little while its icon lights.
@@ -274,24 +297,7 @@ const replay = (f: RoofFrame) => {
   const { ctx, w, h, t } = f;
   const s = CAPERNAUM;
   // The house as the four let him down: the tiles off, the bed on the floor, the ropes held.
-  s.tiles = 1;
-  s.lower = 1;
-  s.ropes = 1;
-  s.lookUp = 1;
-  s.reach = 0;
-  s.lookAfter = 0;
-  s.specks = 0;
-  s.rise = 0;
-  s.roll = 0;
-  s.steady = 0;
-  s.walk = 0;
-  s.bob = 0;
-  s.glad = 0;
-  s.wonder = 0;
-  s.doubt = 0;
-  s.holeLit = 0;
-  s.robed = 0;
-  s.heart = 0;
+  reset(s, LET_DOWN);
   if (t < f.mark('two')) {
     // One: up on the four faces at the hole, as Jesus saw their faith, lit as its icon lights.
     s.holeLit = f.at('oneLit');

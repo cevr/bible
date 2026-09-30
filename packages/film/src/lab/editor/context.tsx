@@ -144,7 +144,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, p.edge);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
     const placed = Result.getSuccess(sceneOf(film.placed, p.scene));
-    const cues = film.cuesOf(p.scene);
+    const cues = stage.cuesOf(p.scene);
     const timeline = stage.timelineOf(p.scene);
     const grip = Option.all({
       placed,

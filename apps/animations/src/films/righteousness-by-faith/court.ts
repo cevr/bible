@@ -7,6 +7,7 @@ import {
   type Camera,
   type Gesture,
   type Hand,
+  type HandBody,
   type HandRoot,
   type HandStyle,
   type Place,
@@ -15,6 +16,7 @@ import {
   at,
   breathOf,
   ellipseShape,
+  floatingHand,
   line,
   multiplane,
   probePlate,
@@ -33,7 +35,6 @@ import {
   type Posed,
   blob,
   christ,
-  figureHand,
   ground,
   glow,
   handOf,
@@ -559,7 +560,7 @@ export const accuser = (ctx: CanvasRenderingContext2D, hand: Hands, point = 0) =
   ACCUSING.reach = point;
   const k = hand('accuserArm');
   ACCUSER_ROOT.breath = breathOf(k);
-  figureHand(ctx, ACCUSER_ROOT, ACCUSING, ACCUSER_HAND, k, accuserBody);
+  floatingHand(ctx, ACCUSER_ROOT, ACCUSING, ACCUSER_HAND, k, ACCUSER_SEEN);
   at(ctx, { x: 0, y: -420 }, () => {
     piece(
       ctx,
@@ -591,7 +592,8 @@ const ACCUSER_BODY: ReadonlyArray<Pt> = [
   [-74, -6],
 ];
 const ACCUSER_SHAPES = [ACCUSER_BODY];
-const accuserBody = () => ACCUSER_SHAPES;
+/** His body, for a check probing his hand: he is drawn first, so the hand is over it. */
+const ACCUSER_SEEN: HandBody = { over: true, body: () => ACCUSER_SHAPES };
 /** His hand, cut like a person's at his size (about 2.1 times theirs), in his grey, with his reach. */
 const ACCUSER_HAND: HandStyle = {
   skin: ACCUSER_GREY,
@@ -840,7 +842,8 @@ const ON_GAVEL: GestureAt = {
 const JUDGE_BODY = [JUDGE_ROBE, JUDGE_HEAD].map((shape) =>
   shape.map(([x, y]): Pt => [JUDGE[0] + x, JUDGE[1] + y]),
 );
-const judgeBody = () => JUDGE_BODY;
+/** His body, for a check probing his hand: the hand is drawn over it. */
+const JUDGE_SEEN: HandBody = { over: true, body: () => JUDGE_BODY };
 
 /**
  * The cold open's and the landing's gavel on the bench at `GAVEL`, turned
@@ -866,5 +869,5 @@ export const judgeGavel = (
   ON_GAVEL.reach = held;
   const k = hand('judgeArm');
   JUDGE_ROOT.breath = breathOf(k);
-  figureHand(ctx, JUDGE_ROOT, ON_GAVEL, JUDGE_HAND, k, judgeBody);
+  floatingHand(ctx, JUDGE_ROOT, ON_GAVEL, JUDGE_HAND, k, JUDGE_SEEN);
 };

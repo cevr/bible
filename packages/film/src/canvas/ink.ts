@@ -70,23 +70,6 @@ export const quad = (a: Pt, c: Pt, b: Pt, n = 24): Pt[] => {
   return out;
 };
 
-export const cubic = (a: Pt, c1: Pt, c2: Pt, b: Pt, n = 32): Pt[] => {
-  const out: Pt[] = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const u = 1 - t;
-    const w0 = u * u * u;
-    const w1 = 3 * u * u * t;
-    const w2 = 3 * u * t * t;
-    const w3 = t * t * t;
-    out.push([
-      w0 * a[0] + w1 * c1[0] + w2 * c2[0] + w3 * b[0],
-      w0 * a[1] + w1 * c1[1] + w2 * c2[1] + w3 * b[1],
-    ]);
-  }
-  return out;
-};
-
 /** A smooth curve through every given point (Catmull-Rom). */
 export const spline = (pts: Path, perSeg = 12, closed = false): Pt[] => {
   const n = pts.length;
@@ -164,6 +147,42 @@ export const rectShape = (x: number, y: number, w: number, h: number): Pt[] => [
   [x + w, y + h],
   [x, y + h],
 ];
+
+/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, drawn by `piece` and declared by `probePlate`. */
+export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
+  rectShape(x - w / 2, y - h / 2, w, h);
+
+/** A rectangle centred on (x, y) with corners rounded to `r`. */
+export const rounded = (x: number, y: number, w: number, h: number, r: number): Pt[] => {
+  const k = Math.min(r, w / 2, h / 2);
+  const corner = (cx: number, cy: number, from: number): Pt[] =>
+    Array.from({ length: 7 }, (_, i): Pt => {
+      const a = from + (Math.PI / 2) * (i / 6);
+      return [cx + Math.cos(a) * k, cy + Math.sin(a) * k];
+    });
+  const l = x - w / 2 + k;
+  const rr = x + w / 2 - k;
+  const t = y - h / 2 + k;
+  const b = y + h / 2 - k;
+  return [
+    ...corner(rr, t, -Math.PI / 2),
+    ...corner(rr, b, 0),
+    ...corner(l, b, Math.PI / 2),
+    ...corner(l, t, Math.PI),
+  ];
+};
+
+/** An irregular round patch (a stain, a speck, a flake), centred on (x, y), its wobble seeded by `seed`. */
+export const blob = (x: number, y: number, w: number, h: number, seed: number): Pt[] =>
+  spline(
+    Array.from({ length: 11 }, (_, i): Pt => {
+      const a = (2 * Math.PI * i) / 11;
+      const k = 0.78 + 0.3 * hash2(i, seed);
+      return [x + ((Math.cos(a) * w) / 2) * k, y + ((Math.sin(a) * h) / 2) * k];
+    }),
+    6,
+    true,
+  );
 
 // ─── wobble ──────────────────────────────────────────────────────────────────
 

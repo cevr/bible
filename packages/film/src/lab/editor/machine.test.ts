@@ -58,6 +58,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabRefused> = Effect.succeed(lande
     unpreview: (scene) => Effect.sync(() => log.push(`unpreview ${scene}`)),
     timelineOf: () => ({}),
     knobsOf: () => ({}),
+    cuesOf: () => new Map(),
     holdT: Effect.sync(() => log.push('holdT')),
     reload: Effect.die('not asked'),
     settle: Effect.sync(() => log.push('settle')),

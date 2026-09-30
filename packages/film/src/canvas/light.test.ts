@@ -1,12 +1,14 @@
 // A scene's `light` multiplies its page and all on it: none leaves the page
 // as it is, an even light is one colour over the whole frame, a pool keeps
 // its colour over the middle and reaches its edge at the corners, and a light
-// read per frame comes up by its amount. Drawn through `createFilm` into a
-// stand-in context, which records the sheet each light is multiplied in with
-// and the gradient the sheet was filled with; bun has no canvas.
+// read per frame comes up by its amount. A fixed light and the vignette go on
+// in one multiply, their product; a light read per frame takes its own.
+// Drawn through `createFilm` into a stand-in context, which records the sheet
+// each light is multiplied in with (inside the product, for a fixed one) and
+// the gradient the sheet was filled with; bun has no canvas.
 
 import { describe, expect, test } from 'bun:test';
-import { type Frame, type Light, type SceneSpec, createFilm } from './film.ts';
+import { type Frame, type Light, SHEETS_KEPT, type SceneSpec, createFilm } from './film.ts';
 import { type Drawn, type StandInGradient, recorder, withDom } from './fixtures/stand-in.ts';
 
 const W = 320;
@@ -39,20 +41,27 @@ const film = withDom(() =>
   }),
 );
 
-/**
- * The lights `scene` was multiplied by `through` its length (0..1): each
- * sheet filled with one gradient over the whole frame, and the alpha it went
- * on at. (The film's vignette multiplies too, from a white sheet: a white
- * sheet leaves a frame as it is.)
- */
-const lit = (scene: string, through: number): ReadonlyArray<Drawn> => {
+/** Every multiply `scene`'s frame takes `through` its length (0..1). */
+const multiplies = (scene: string, through: number): ReadonlyArray<Drawn> => {
   const r = recorder(W, H);
   const index = lights.findIndex(([id]) => id === scene);
   withDom(() => film.render(r.ctx, (index + through) * DUR));
-  return r.images.filter(
-    (d) => d.comp === 'multiply' && d.image.drawn.fills.every((f) => f.style !== '#ffffff'),
-  );
+  return r.images.filter((d) => d.comp === 'multiply');
 };
+
+/** Whether a sheet is one gradient over the whole frame (a light), not white under others (a product, the vignette). */
+const isLight = (d: Drawn) =>
+  d.comp === 'multiply' && d.image.drawn.fills.every((f) => f.style !== '#ffffff');
+
+/**
+ * The lights `scene` was multiplied by `through` its length (0..1): each
+ * sheet filled with one gradient over the whole frame, and the alpha it went
+ * on at, found inside the product a fixed light shares with the vignette.
+ */
+const lit = (scene: string, through: number): ReadonlyArray<Drawn> =>
+  multiplies(scene, through)
+    .flatMap((d) => (isLight(d) ? [d] : d.image.drawn.images))
+    .filter(isLight);
 
 /** The one gradient a light's sheet was filled with, over the whole frame. */
 const gradientOf = (drawn: Drawn | undefined): StandInGradient => {
@@ -91,5 +100,50 @@ describe('a scene is lit by its light', () => {
   test('a light read per frame comes up by its amount', () => {
     expect(lit('rising', 0.25).map((d) => d.alpha)).toEqual([0.25]);
     expect(lit('rising', 0.75).map((d) => d.alpha)).toEqual([0.75]);
+  });
+
+  test('a fixed light and the vignette are one multiply; a light read per frame and it are two', () => {
+    expect(multiplies('even', 0.5)).toHaveLength(1);
+    expect(multiplies('pool', 0.5)).toHaveLength(1);
+    expect(multiplies('rising', 0.5)).toHaveLength(2);
+    // Unlit, the vignette alone.
+    expect(multiplies('unlit', 0.5)).toHaveLength(1);
+  });
+
+  test('keeps a few light sheets, however many colours a light moves through', () => {
+    const shifting = (f: Frame): Light => ({
+      color: `#${(f.t * 10).toString(16).padStart(6, '0')}`,
+    });
+    const many = withDom(() =>
+      createFilm({
+        title: 'shifting',
+        width: W,
+        height: H,
+        paper: { base: '#ffffff', tone: '#ffffff', seed: 1 },
+        shade: '#ffffff',
+        finish: { vignette: 0, grain: 0 },
+        scenes: [{ id: 'shifting', min: DUR, drift: 0, draw: () => {}, light: shifting }],
+      }),
+    );
+    const made = withDom(() => {
+      const r = recorder(W, H);
+      for (let i = 0; i < 40; i++) many.render(r.ctx, (i / 40) * DUR);
+      return r.images.filter(isLight).map((d) => d.image);
+    });
+    // Each frame made its own sheet; only the last few are held for reuse.
+    expect(new Set(made).size).toBe(40);
+    const first = withDom(() => {
+      const r = recorder(W, H);
+      many.render(r.ctx, 0);
+      return r.images.filter(isLight)[0]?.image;
+    });
+    expect(first).not.toBe(made[0]);
+    const last = withDom(() => {
+      const r = recorder(W, H);
+      many.render(r.ctx, (39 / 40) * DUR);
+      return r.images.filter(isLight)[0]?.image;
+    });
+    expect(last).toBe(made[39]);
+    expect(SHEETS_KEPT).toBeLessThanOrEqual(8);
   });
 });

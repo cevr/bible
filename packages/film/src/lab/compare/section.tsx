@@ -1,7 +1,7 @@
 // Compare's section of the panel, its HEAD layer and the wipe's divider. The
 // section picks the mode; the layer draws the frame shown with HEAD's
-// timeline and knobs through today's code (`film.render(…, { edit })`, one
-// frame, nothing kept), clipped left of the divider in a wipe and shown on
+// timeline and knobs through today's code (`film.render(…, { edits })`, over
+// whatever else the lab previews; one frame, nothing kept), clipped left of the divider in a wipe and shown on
 // HEAD's side of a blink; the divider, on the overlay, drags the wipe.
 
 import { For, Show } from '@solidjs/web';
@@ -66,7 +66,7 @@ export const Layer = () => {
       Option.map(shown, (edit) => {
         film.render(l.ctx, player.now(), {
           captions: player.captions.on,
-          edit: { scene: state.scene(), edit },
+          edits: new Map([...player.edits(), [state.scene(), edit]]),
         });
         // Clipped left of the divider in a wipe; whole otherwise.
         l.el.style.clipPath = Option.match(state.split(), {

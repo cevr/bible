@@ -155,7 +155,7 @@ const CueInspector = (props: { readonly selection: Selection }) => {
     return Option.all({
       placed: Result.getSuccess(sceneOf(meta.film.placed, scene)),
       span: Option.fromUndefinedOr(meta.stage.timelineOf(scene)[props.selection.name]),
-      cue: Option.fromUndefinedOr(meta.film.cuesOf(scene).get(props.selection.name)),
+      cue: Option.fromUndefinedOr(meta.stage.cuesOf(scene).get(props.selection.name)),
     });
   });
   return (

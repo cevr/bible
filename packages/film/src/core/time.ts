@@ -65,6 +65,14 @@ export const envelope = (
   e: Ease = ease[DEFAULT_EASE],
 ) => Math.min(progress(t, start, inDur, e), 1 - progress(t, end - outDur, outDur, e));
 
+/**
+ * A walker's bob, in units (+ up), while the `walk` span runs and 0 outside
+ * it: a step every π/7 s counted from the span's start, each rising up to 5
+ * units, so the bob starts from rest and never jumps as the walk begins.
+ */
+export const gait = (t: number, walk: { readonly start: number; readonly end: number }): number =>
+  t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
+
 /** A keyframe: its time, its value, and the ease (by name, as data) of the segment arriving at it. */
 export type Key = readonly [time: number, value: number, ease?: EaseName];
 
