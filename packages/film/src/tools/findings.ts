@@ -6,6 +6,7 @@
 
 import { Match, Schema } from 'effect';
 import type {
+  PartOutOfOrder,
   MovementTooLong,
   MovementTooShort,
   CueInvalid,
@@ -544,6 +545,7 @@ export type StaticFinding =
   | UnknownCue
   | UnknownMark
   | CueInvalid
+  | PartOutOfOrder
   | MovementTooShort
   | MovementTooLong
   | WordMissing
@@ -606,6 +608,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       UnknownCue: error,
       UnknownMark: error,
       CueInvalid: error,
+      PartOutOfOrder: error,
       MovementTooShort: error,
       MovementTooLong: error,
       WordMissing: error,
@@ -679,6 +682,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       UnknownCue: scene,
       UnknownMark: scene,
       CueInvalid: scene,
+      PartOutOfOrder: none,
       MovementTooShort: none,
       MovementTooLong: none,
       WordMissing: scene,

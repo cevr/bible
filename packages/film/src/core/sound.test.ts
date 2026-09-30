@@ -128,33 +128,57 @@ describe('sound', () => {
     expect(outcome(musicPlan(lost, placed))).toBe('UnknownScene');
   });
 
-  test('movementSpans gives every movement its length or its refusal, and every movement naming no scene', () => {
-    const spans = Result.getOrThrow(
-      movementSpans({ ...music, movements: [...music.movements].reverse() }, placed),
-    );
-    // Reversed, the first movement runs from the film's start to `a`, which also starts it.
+  test('movementSpans gives every movement its length or its refusal', () => {
+    const three = {
+      ...music,
+      movements: [
+        { from: 'a', name: 'Open', styles: [] },
+        { from: 'b', name: 'Middle', styles: [] },
+        { from: 'c', name: 'Close', styles: [] },
+      ],
+    };
+    const spans = Result.getOrThrow(movementSpans(three, placed));
     expect(
       spans.map((r) => Result.match(r, { onSuccess: (a) => a.ms, onFailure: (e) => e._tag })),
-    ).toEqual(['MovementTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
+    ).toEqual([
+      // Scene a's take runs under the API's shortest chunk.
+      'MovementTooShort',
+      Math.round((placed[2]?.start ?? 0) * 1000) - Math.round((placed[1]?.start ?? 0) * 1000),
+      Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000) -
+        Math.round((placed[2]?.start ?? 0) * 1000),
+    ]);
+  });
+
+  test('a movement naming no scene fails as an act does: the first one, with what the film has', () => {
     const lost = movementSpans(
       {
         ...music,
         movements: [
           { from: 'x', name: 'X', styles: [] },
           { from: 'a', name: 'A', styles: [] },
-          { from: 'y', name: 'Y', styles: [] },
         ],
       },
       placed,
     );
-    expect(
-      Result.match(lost, { onSuccess: () => [], onFailure: (u) => u.map((e) => e.scene) }),
-    ).toEqual(['x', 'y']);
+    expect(Result.getFailure(lost)).toMatchObject(
+      Option.some({ _tag: 'UnknownScene', scene: 'x', known: ['a', 'b', 'c'] }),
+    );
   });
 
-  test('movements out of film order are refused', () => {
+  test('a movement out of film order fails as an act does, naming it', () => {
+    const shuffled = {
+      ...music,
+      movements: [
+        { from: 'a', name: 'one', styles: [] },
+        { from: 'c', name: 'two', styles: [] },
+        { from: 'b', name: 'three', styles: [] },
+      ],
+    };
+    expect(Result.getFailure(movementSpans(shuffled, placed))).toMatchObject(
+      Option.some({ _tag: 'PartOutOfOrder', part: 'three', from: 'b', after: 'two' }),
+    );
     const backwards = { ...music, movements: [...music.movements].reverse() };
-    expect(outcome(musicPlan(backwards, placed))).toBe('MovementTooShort');
+    expect(outcome(musicPlan(backwards, placed))).toBe('PartOutOfOrder');
   });
 
   test('a movement longer than the API composes in one chunk is refused', () => {

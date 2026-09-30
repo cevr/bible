@@ -939,24 +939,18 @@ describe('musicFindings', () => {
     ]);
   });
 
-  test('every act out of order or under 3 s is reported, not just the first', () => {
+  test('a movement out of order is named as an act would be', () => {
     const found = musicFindings(
       music([
         { from: 'open', name: 'Opening', styles: [] },
         { from: 'close', name: 'Closing', styles: [] },
         { from: 'middle', name: 'Middle', styles: [] },
-        { from: 'middle', name: 'Coda', styles: [] },
       ]),
       placedSound,
       {},
     );
-    const acts = found.map((f) => {
-      if (f._tag === 'MovementTooShort') return [f._tag, f.movement];
-      return [f._tag];
-    });
-    expect(acts).toEqual([
-      ['MovementTooShort', 'Closing'],
-      ['MovementTooShort', 'Middle'],
+    expect(found).toMatchObject([
+      { _tag: 'PartOutOfOrder', part: 'Middle', from: 'middle', after: 'Closing' },
     ]);
   });
 

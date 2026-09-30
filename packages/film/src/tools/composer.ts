@@ -28,8 +28,8 @@ import {
   type ElevenLabsFailed,
   type ScoreUnknown,
   SoundMissing,
-  type UnknownScene,
 } from './errors.ts';
+import type { PartError } from '../core/acts.ts';
 import { sha256Hex } from './digest.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { TALLY_HEADER, talliedCredits } from './library.ts';
@@ -64,7 +64,7 @@ export type ScoreError =
   | SoundMissing
   | ScoreUnknown
   | PlaceError
-  | UnknownScene
+  | PartError
   | MovementLength
   | CreditsOverCap
   | ElevenLabsFailed

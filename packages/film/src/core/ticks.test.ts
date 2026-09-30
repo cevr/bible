@@ -29,7 +29,7 @@ const sound: Sound = {
         styles: [],
         avoid: [],
         movements: [
-          { from: 'stamp', name: 'Opening', styles: [] },
+          { from: 'open', name: 'Opening', styles: [] },
           { from: 'stamp', name: 'Turn', styles: [] },
         ],
       },

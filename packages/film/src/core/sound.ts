@@ -13,9 +13,8 @@ import {
   MovementTooShort,
   ScoreUnknown,
   type SoundCueError,
-  type UnknownScene,
 } from './errors.ts';
-import { partStarts } from './acts.ts';
+import { type PartError, stretchesOf } from './acts.ts';
 import { type Placed, filmEnd, pointIn, sceneOf } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
@@ -87,22 +86,21 @@ export interface MovementSpan {
 }
 
 /**
- * Each movement's length, from where it starts (`partStarts`: its scene, the
- * first at 0) to the next one's (the last to the film's end and `MUSIC_TAIL`
- * past it), with `MovementTooShort` or `MovementTooLong` in place of a
- * movement outside the API's chunk lengths; or, when any movement names no
- * scene, every such movement.
+ * Each movement's length, from where its stretch starts (`stretchesOf`: its
+ * scene, the first at 0) to the next one's (the last to the film's end and
+ * `MUSIC_TAIL` past it), with `MovementTooShort` or `MovementTooLong` in
+ * place of a movement outside the API's chunk lengths. Fails as an act does:
+ * the first movement naming no scene, or declared out of film order.
  */
 export const movementSpans = (
   music: Music,
   placed: ReadonlyArray<Placed>,
-): Result.Result<
-  ReadonlyArray<Result.Result<MovementSpan, MovementLength>>,
-  Arr.NonEmptyReadonlyArray<UnknownScene>
-> =>
-  Result.map(partStarts(music.movements, placed), (starts) => {
-    const bounds = [...starts, filmEnd(placed) + MUSIC_TAIL].map((s) => Math.round(s * 1000));
-    return music.movements.map((movement, i): Result.Result<MovementSpan, MovementLength> => {
+): Result.Result<ReadonlyArray<Result.Result<MovementSpan, MovementLength>>, PartError> =>
+  Result.map(stretchesOf(music.movements, placed), (stretches) => {
+    const bounds = [...stretches.map((s) => s.start), filmEnd(placed) + MUSIC_TAIL].map((s) =>
+      Math.round(s * 1000),
+    );
+    return stretches.map(({ part: movement }, i): Result.Result<MovementSpan, MovementLength> => {
       const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
       if (ms < MIN_CHUNK_MS)
         return Result.fail(MovementTooShort.make({ movement: movement.name, ms }));
@@ -123,9 +121,9 @@ export const movementSpans = (
 export const musicPlan = (
   music: Music,
   placed: ReadonlyArray<Placed>,
-): Result.Result<Plan, UnknownScene | MovementLength> =>
+): Result.Result<Plan, PartError | MovementLength> =>
   Result.gen(function* () {
-    const spans = yield* Result.mapError(movementSpans(music, placed), Arr.headNonEmpty);
+    const spans = yield* movementSpans(music, placed);
     const chunks: PlanChunk[] = [];
     for (const span of spans) {
       const { movement, ms } = yield* span;
@@ -149,7 +147,7 @@ export const musicKey = (music: Music, plan: Plan): string =>
 /** Why a composed option no longer fits: the film was re-timed (the plan's key now), or no plan holds. */
 export type ScoreStale =
   | { readonly _tag: 'Retimed'; readonly key: string }
-  | UnknownScene
+  | PartError
   | MovementLength;
 
 /**
@@ -158,7 +156,7 @@ export type ScoreStale =
  * the manifest holds a file composed for the plan as the film now times it;
  * `Stale` when it holds one composed for another plan, or when no plan holds
  * any longer (a movement outside the API's chunk lengths, a movement naming
- * no scene): the file still plays, with a warning; `Missing` when nothing was
+ * no scene or out of film order): the file still plays, with a warning; `Missing` when nothing was
  * composed.
  */
 export type ScoreOptionState =

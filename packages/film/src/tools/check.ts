@@ -56,10 +56,10 @@ import {
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type { Interval } from '../core/time.ts';
+import type { PartError } from '../core/acts.ts';
 import type {
   MovementLength,
   SoundUseMismatch,
-  UnknownScene,
   UnknownSound,
   UnknownVoice,
 } from '../core/errors.ts';
@@ -263,11 +263,10 @@ export const unknownVoices = (
     }),
   );
 
-/** A generated asset against the hash its request has now. */
 /**
  * Each score option's movements: each names a scene, and each runs in film
- * order for as long as the API's chunks may last (`movementSpans`, every
- * failure rather than the first). Only movements that hold are checked for
+ * order for as long as the API's chunks may last (`movementSpans`: the first
+ * misnamed or out-of-order movement, else every length it refuses). Only movements that hold are checked for
  * the option's state (`scoreOptionState`, asset `score.<option>`): missing,
  * or composed for another plan.
  */
@@ -275,11 +274,11 @@ export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> =>
+): ReadonlyArray<PartError | MovementLength | AssetStale | AssetMissing> =>
   scoreOptions(score).flatMap(
-    (option): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => {
+    (option): ReadonlyArray<PartError | MovementLength | AssetStale | AssetMissing> => {
       const movements = Result.match(movementSpans(option.music, placed), {
-        onFailure: (unknown): ReadonlyArray<UnknownScene | MovementLength> => unknown,
+        onFailure: (error): ReadonlyArray<PartError | MovementLength> => [error],
         onSuccess: (spans) => Arr.getFailures(spans),
       });
       if (movements.length > 0) return movements;

@@ -170,7 +170,7 @@ export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   }
 }
 
-/** A score movement under the music API's shortest chunk, or one declared out of film order. */
+/** A score movement under the music API's shortest chunk. */
 export class MovementTooShort extends Schema.TaggedError<MovementTooShort>()('MovementTooShort', {
   movement: Schema.String,
   ms: Schema.Finite,

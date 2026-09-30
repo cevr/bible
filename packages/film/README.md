@@ -1333,8 +1333,8 @@ body })` from what it knows (its side from `root.away`, where it is, where
   rule in `core/acts.ts`: `membersOf(parts, ids)` gives each part its scene
   until the next part's, the first reaching back to the film's first scene,
   and fails with `UnknownScene` or `PartOutOfOrder`; `stretchesOf` adds their
-  seconds, and `partStarts` is where each part begins (the first at 0), which
-  the score's `movements` read. A film lights its scenes from the same
+  seconds (the first starting at 0), which the score's `movements` read too,
+  so a misnamed or out-of-order movement fails as an act does. A film lights its scenes from the same
   acts. The look pass judges only the acts its address covers whole (the
   film: all of them; `--act`: that one; `--scene`: none): an act measured
   on part of itself is not the act.

@@ -93,30 +93,3 @@ export const stretchesOf = <P extends PartOf>(
       })),
   );
 };
-
-/**
- * Where each part begins on the film clock: its scene's start, the first at
- * 0. Order is not checked here: a part declared out of order begins before
- * the one ahead of it, and its length says so. Fails with every part naming
- * no scene.
- */
-export const partStarts = <P extends PartOf>(
-  parts: ReadonlyArray<P>,
-  placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<number>, Arr.NonEmptyReadonlyArray<UnknownScene>> => {
-  const known = placed.map((p) => p.spec.id);
-  const [unknown, starts] = Arr.partition(parts, (part) =>
-    Result.fromOption(
-      Option.map(
-        Arr.findFirst(placed, (p) => p.spec.id === part.from),
-        (p) => p.start,
-      ),
-      () => UnknownScene.make({ scene: part.from, known }),
-    ),
-  );
-  if (Arr.isReadonlyArrayNonEmpty(unknown)) return Result.fail(unknown);
-  // The first part opens the film, wherever it names.
-  return Result.succeed(
-    Arr.match(starts, { onEmpty: () => [], onNonEmpty: ([, ...rest]) => [0, ...rest] }),
-  );
-};
