@@ -6,7 +6,7 @@
 //
 // Pure: the CLI reads the script and the quotes, and writes what this returns.
 
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
 import type { LineError } from './errors.ts';
 import { type Parsed, normalizeWords, parse } from './narration.ts';
 import { isAbbreviation } from './spoken.ts';
@@ -25,19 +25,37 @@ export interface ScriptLine {
   readonly cite: ReadonlyArray<string>;
 }
 
-/** A stretch of a beat: words to read, or a quotation set apart. */
-export type Part =
-  | { readonly _tag: 'Line'; readonly voice: Option.Option<string>; readonly text: string }
-  | { readonly _tag: 'Quotation'; readonly text: string; readonly by: Option.Option<string> };
+/**
+ * A stretch of a beat: words to read (and who reads them), or a quotation set
+ * apart. The sheet, the studio's reading and the lab's panel read this one
+ * shape.
+ */
+export const Part = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal('line'),
+    /** The reader a turn names; absent for the film's one voice. */
+    voice: Schema.optionalKey(Schema.String),
+    text: Schema.String,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal('quotation'),
+    text: Schema.String,
+    /** `author, ref` of the `quotes.jsonl` record whose words hold it. */
+    by: Schema.optionalKey(Schema.String),
+  }),
+]);
+export type Part = typeof Part.Type;
 
-export interface SheetBeat {
-  readonly id: string;
+/** A beat on the reading sheet: the take's file, its parts to read and the sources it cites. */
+export const SheetBeat = Schema.Struct({
+  id: Schema.String,
   /** The name to save the take under, for `takes import`. */
-  readonly file: string;
-  readonly parts: ReadonlyArray<Part>;
+  file: Schema.String,
+  parts: Schema.Array(Part),
   /** The beat's sources, as the script cites them. */
-  readonly sources: ReadonlyArray<string>;
-}
+  sources: Schema.Array(Schema.String),
+});
+export type SheetBeat = typeof SheetBeat.Type;
 
 /** A quotation mark: “…”. */
 const QUOTATION = /(“[^”]*”)/;
@@ -77,10 +95,16 @@ const partsOf = (
     .filter((piece) => piece.length > 0)
     .map((piece, i, all): Part => {
       if (QUOTATION.test(piece))
-        return { _tag: 'Quotation', text: piece, by: sourceOf(quotes, piece) };
+        return Option.match(sourceOf(quotes, piece), {
+          onNone: () => ({ kind: 'quotation', text: piece }),
+          onSome: (by) => ({ kind: 'quotation', text: piece, by }),
+        });
       // Only the first stretch of a voice's words carries its name.
       const named = Option.filter(voice, () => all.findIndex((p) => !QUOTATION.test(p)) === i);
-      return { _tag: 'Line', voice: named, text: breathe(piece) };
+      return Option.match(named, {
+        onNone: () => ({ kind: 'line', text: breathe(piece) }),
+        onSome: (reader) => ({ kind: 'line', voice: reader, text: breathe(piece) }),
+      });
     });
 
 /** The words of a line, cut where each turn hands it on. */
@@ -131,11 +155,15 @@ const HOW_TO =
 
 /** A line's text, with its reader when a turn names one. */
 const spoken = (voice: Option.Option<string>, text: string, name: (v: string) => string) =>
-  Option.match(voice, { onNone: () => text, onSome: (v) => `${name(v.toUpperCase())} ${text}` });
+  Option.match(voice, {
+    onNone: () => text,
+    onSome: (v) => `${name(v.toUpperCase())} ${text}`,
+  });
 
 const markdownPart = (part: Part): string => {
-  if (part._tag === 'Line') return spoken(part.voice, part.text, (v) => `**${v}:**`);
-  return Option.match(part.by, {
+  if (part.kind === 'line')
+    return spoken(Option.fromUndefinedOr(part.voice), part.text, (v) => `**${v}:**`);
+  return Option.match(Option.fromUndefinedOr(part.by), {
     onNone: () => `> ${part.text}`,
     onSome: (by) => `> ${part.text}\n> — ${by}`,
   });
@@ -160,9 +188,9 @@ const escape = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const htmlPart = (part: Part): string => {
-  if (part._tag === 'Line')
-    return `<p>${spoken(part.voice, escape(part.text), (v) => `<b>${escape(v)}:</b>`)}</p>`;
-  const by = Option.match(part.by, {
+  if (part.kind === 'line')
+    return `<p>${spoken(Option.fromUndefinedOr(part.voice), escape(part.text), (v) => `<b>${escape(v)}:</b>`)}</p>`;
+  const by = Option.match(Option.fromUndefinedOr(part.by), {
     onNone: () => '',
     onSome: (source) => `<cite>— ${escape(source)}</cite>`,
   });
