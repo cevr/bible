@@ -4,8 +4,9 @@
 // escaped markdown; the set plays every variant on one clock (space plays
 // and pauses, ←/→ step, 🔊 moves the sound heard), shows the first against
 // one other, every variant's frame at the moments (←/→ between them), and
-// the notes; the view lives in the URL through a reload; and a phone's
-// width folds the grid to one column without scrolling sideways.
+// the notes; a variant the record proves stale says why in every view, and
+// the rest say no state; the view lives in the URL through a reload; and a
+// phone's width folds the grid to one column without scrolling sideways.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -59,7 +60,8 @@ const index: Json = {
               notes: { ref: 'out/art/roof.A.md', name: 'roof.A.md', size: 10, mtime: 0 },
             }),
             variant('B', 'Cold'),
-            variant('C', 'Grey'),
+            // Drawn before a newer render at its address, of other sources.
+            variant('C', 'Grey', { state: 'stale', staleBy: 'sources' }),
           ],
         },
       ],
@@ -243,6 +245,30 @@ describe('the review page', () => {
         // A reload opens the view the URL keeps.
         yield* Effect.promise(() => page.goto(`http://lab.test/${SET}&view=moments&m=2`));
         yield* waitFor(page, 'button[data-moment="2"][aria-pressed="true"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a variant the record proves stale says why in every view; the rest say no state',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { search: SET });
+        const STALE = 'stale: its sources changed since it was made';
+        const states = (scope: string) =>
+          evaluate<string>(
+            page,
+            `Array.from(document.querySelectorAll('${scope} [data-state]')).map((e) => e.closest('[data-id]').dataset.id + ' ' + e.textContent).join('|')`,
+          );
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-state="stale"]');
+        expect(yield* states('.rv-grid')).toBe(`C ${STALE}`);
+        yield* Effect.promise(() => page.click('.rv-views button[data-view="moments"]'));
+        yield* waitFor(page, '.rv-card[data-id="C"] img');
+        expect(yield* states('.rv-grid')).toBe(`C ${STALE}`);
+        yield* Effect.promise(() => page.click('.rv-views button[data-view="notes"]'));
+        yield* waitFor(page, '.rv-note[data-id="C"]');
+        expect(yield* states('.rv-grid')).toBe(`C ${STALE}`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

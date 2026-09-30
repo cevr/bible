@@ -29,6 +29,7 @@ import {
   folderTitle,
   isMarkdown,
   pressed,
+  recordedStaleText,
   sizeText,
   videoUrl,
 } from './format.ts';
@@ -511,6 +512,17 @@ export const Transport = (props: {
 
 const letterOf = (set: SeenPoint, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
 
+/** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
+const StaleTag = (props: { readonly variant: SeenVariant }) => (
+  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+    {(words) => (
+      <span class="rv-tag" data-state="stale">
+        {words()}
+      </span>
+    )}
+  </Show>
+);
+
 /** A variant's video on the set's clock, and the 🔊 that makes it the one heard. */
 const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { state } = useReview();
@@ -529,6 +541,7 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
       <div class="rv-cap">
         <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
         <span class="rv-name">{props.variant.label}</span>
+        <StaleTag variant={props.variant} />
         <span class="rv-tag" title={props.variant.lines.join(' · ')}>
           {props.variant.lines.join(' · ')}
         </span>
@@ -651,6 +664,7 @@ const MomentsView = (props: { readonly index: number }) => {
                     <div class="rv-cap">
                       <span class="rv-letter">{letterOf(set, variant.id)}</span>
                       <span class="rv-name">{variant.label}</span>
+                      <StaleTag variant={variant} />
                       <span class="rv-tag">{variant.lines.join(' · ')}</span>
                     </div>
                   </div>
@@ -677,6 +691,7 @@ const NotesView = () => {
                 {letterOf(set, variant.id)} · {variant.label}
               </b>
               {approvalText(variant.approval)}
+              <StaleTag variant={variant} />
               <For each={variant.lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
             </div>
             <Show
