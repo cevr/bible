@@ -902,7 +902,11 @@ are served `no-cache` and revalidated; the page asks again after each write
 a phone, so `REVIEW_HOST` defaults to loopback and a box's unit binds
 `0.0.0.0` with the names it is reached by in `FILM_REVIEW_HOSTS`
 (comma-separated Host values as the browser sends them, port included:
-`bite-cristian.exe.xyz:8229`). Every request passes the lab's `admit`: a Host
+`bite-cristian.exe.xyz:8229`). Every request passes the lab's `admit`, the
+page and its script included: the app's server has no route of its own, only
+`reviewHandler`, which admits first and then hands what is not `/review/*` or
+`/lab/*` to the app's page (built in process when `review` starts, so a page
+that does not build stops the command as `ReviewPageFailed`). A Host
 that is neither the server's own nor one of those is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`). A write
 must also carry an `Origin` of one of those hosts (`http://` or `https://`)

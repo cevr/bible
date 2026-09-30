@@ -4,9 +4,15 @@
 // `review` (`bun cli.ts --help`). A server starts with its command and stops
 // when it ends, fails or is interrupted.
 
-import { type LabHandler, PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
+import {
+  type LabHandler,
+  PreviewServer,
+  type ReviewPageFailed,
+  type ReviewRoot,
+  runFilmCli,
+} from '@bible/film/tools';
 import { Config, Effect, FileSystem, Layer, Path } from 'effect';
-import { FILMS, serve, serveReview } from './server.ts';
+import { FILMS, reviewPage, serve, serveReview } from './server.ts';
 
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
@@ -42,12 +48,12 @@ const reviewAt = Effect.gen(function* () {
   return { port, host };
 });
 
-/** The review page and its routes, and the narration, stopped with the command's scope. */
-const reviewServer = (films: string) => (handler: LabHandler) =>
+/** The review, every request answered by `handler`, stopped with the command's scope. */
+const reviewServer = (handler: LabHandler) =>
   Layer.effect(
     PreviewServer,
     Effect.acquireRelease(
-      Effect.map(reviewAt, ({ port, host }) => serveReview(port, host, handler, films)),
+      Effect.map(reviewAt, ({ port, host }) => serveReview(port, host, handler)),
       (server) => Effect.promise(() => server.stop(true)),
     ).pipe(Effect.map((server) => PreviewServer.of({ url: server.url.href }))),
   );
@@ -84,14 +90,14 @@ const checkoutRoots = Effect.gen(function* () {
  * need no page.
  */
 export const appCli = (films: string, sounds: string, self: string): void =>
-  runFilmCli({
+  runFilmCli<Config.ConfigError | ReviewPageFailed>({
     films,
     sounds,
     // Any free port: nobody opens it by hand.
     previewServer: player(Effect.succeed(0), false, films),
     // A port to keep open in a tab across runs.
     labServer: (lab) => player(labPort, true, films, lab),
-    review: { server: reviewServer(films), roots: checkoutRoots },
+    review: { server: reviewServer, page: reviewPage(films), roots: checkoutRoots },
     // This CLI, for the lab's fresh `check --static` after each write.
     self: ['bun', self],
   });

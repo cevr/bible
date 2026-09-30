@@ -90,7 +90,7 @@ import { Mixer, masterFile, masterLevels, measureMaster } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
-import { labHandler } from './lab.ts';
+import { type LabHandler, labHandler } from './lab.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { studioHandler, withStudio } from './studio.ts';
@@ -865,12 +865,12 @@ const lab = <E>(labServer: LabServer<E>) =>
     ),
   );
 
-const review = <E>(reviewServer: LabServer<E>) =>
+const review = <E>(reviewServer: LabServer<E>, reviewPage: Effect.Effect<LabHandler, E>) =>
   Command.make(
     'review',
     {},
     Effect.fn('film.review')(function* () {
-      const handler = yield* reviewHandler(yield* reviewAllowed);
+      const handler = yield* reviewHandler(yield* reviewAllowed, yield* reviewPage);
       const server = Context.get(yield* Layer.build(reviewServer(handler)), PreviewServer);
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
       yield* Console.log(server.url);
@@ -1010,12 +1010,15 @@ export interface FilmApp<E> {
   /** The player in development mode with the lab's routes, served while `lab` runs. */
   readonly labServer: LabServer<E>;
   /**
-   * The review, served while `review` runs: its server (the review page and
-   * its routes, on the host and port the app chooses) and the roots it reads
-   * when `FILM_REVIEW_ROOTS` names none.
+   * The review, served while `review` runs: its server (on the host and port
+   * the app chooses, answering every request with the handler it is given),
+   * its page (made when `review` starts: a handler for the page, its assets
+   * and what else the app serves, asked only once the review admits the
+   * request), and the roots it reads when `FILM_REVIEW_ROOTS` names none.
    */
   readonly review: {
     readonly server: LabServer<E>;
+    readonly page: Effect.Effect<LabHandler, E>;
     readonly roots: Effect.Effect<
       ReadonlyArray<ReviewRoot>,
       never,
@@ -1089,7 +1092,7 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labServer),
-      review(reviewApp.server),
+      review(reviewApp.server, reviewApp.page),
       notes,
     ]),
   );

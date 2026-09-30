@@ -202,7 +202,9 @@ of `sound.ts`, and each take of each library sound the film places, in place
 **Reject** curate the take in `sounds/library.lock.json`, as `sfx keep`,
 `unkeep` and `reject` do. Each write is checked and undoable (Undo, Redo);
 review it with `git diff`. The review answers loopback, and the names in
-`FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`; writes are same-origin JSON.
+`FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
+`server.ts` builds it in process and serves it behind the check); writes are
+same-origin JSON.
 It never edits a scene: that stays in the lab.
 
 ## How a film is built

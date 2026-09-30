@@ -108,6 +108,7 @@ const fixture = Layer.unwrap(
     yield* fs.makeDirectory(path.join(out, 'art'), { recursive: true });
     yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
     yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
+    yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
     yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
     const spawner = ChildProcessSpawner.make((command) => {
       if (command._tag !== 'StandardCommand') return real.spawn(command);
@@ -137,9 +138,13 @@ const allowed = { hosts: ['box.example:8229'] };
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(`http://127.0.0.1:8229${path}`, { method: 'GET', headers });
 
+/** The app's page: its path echoed, so a test sees the request reached it. */
+const page = (request: Request) =>
+  Effect.runPromise(Effect.sync(() => new Response(`page ${new URL(request.url).pathname}`)));
+
 const ask = (request: Request) =>
   Effect.gen(function* () {
-    const review = yield* reviewHandler(allowed);
+    const review = yield* reviewHandler(allowed, page);
     return yield* Effect.promise(() => review(request, bound));
   });
 
@@ -190,6 +195,8 @@ describe('review routes', () => {
       expect(yield* body(part)).toBe('cdef');
       const past = yield* ask(get(reviewFileUrl('out/art/roof.B.mp4'), { range: 'bytes=20-' }));
       expect(past.status).toBe(416);
+      const captions = yield* ask(get(reviewFileUrl('out/art/roof.vtt')));
+      expect(captions.headers.get('content-type')).toBe('text/vtt; charset=utf-8');
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
@@ -231,6 +238,17 @@ describe('review routes', () => {
         });
       expect((yield* ask(write('https://box.example:8229'))).status).toBe(404);
       expect((yield* ask(write('https://evil.example'))).status).toBe(403);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("passes the app's page the rest, behind the same hosts", () =>
+    Effect.gen(function* () {
+      for (const path of ['/', '/chunk-a1.js', '/films/tiny/narration/s1.mp3']) {
+        const own = yield* ask(get(path, { host: 'box.example:8229' }));
+        expect([path, own.status, yield* body(own)]).toEqual([path, 200, `page ${path}`]);
+        const rebound = yield* ask(get(path, { host: 'evil.example:8229' }));
+        expect([path, rebound.status]).toEqual([path, 403]);
+      }
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 });

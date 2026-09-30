@@ -11,7 +11,7 @@
 //
 // The review is served on a host the owner reaches from a phone, so it
 // answers only the hosts it is told (`FILM_REVIEW_HOSTS`, beside loopback),
-// and a write (a pick, `choices.ts`) must come from one of them, same-origin,
+// on every path, the app's page included (`reviewHandler`), and a write (a pick, `choices.ts`) must come from one of them, same-origin,
 // as JSON (`admit`).
 
 import type { FileSystem, Path } from 'effect';
@@ -52,13 +52,20 @@ export const refFromUrl = (url: string, prefix: string): Option.Option<string> =
   );
 };
 
+/**
+ * What the static server's own table lacks among the files the review serves:
+ * a mix (m4a; a phone's Safari will not play `application/octet-stream`) and
+ * a caption file.
+ */
+const MIME_TYPES = { m4a: 'audio/mp4', vtt: 'text/vtt; charset=utf-8' };
+
 /** The file at `file` as the request asks for it: whole, or the range it names (206). */
 export const serveFile = Effect.fn('review.serveFile')(function* (
   file: string,
   cacheControl: string,
 ) {
   const request = yield* HttpServerRequest.HttpServerRequest;
-  const serve = yield* HttpStaticServer.make({ root: '/', cacheControl });
+  const serve = yield* HttpStaticServer.make({ root: '/', cacheControl, mimeTypes: MIME_TYPES });
   const url = file
     .split('/')
     .map((segment) => encodeURIComponent(segment))
@@ -182,12 +189,20 @@ export const reviewAllowed = Config.String('FILM_REVIEW_HOSTS').pipe(
   })),
 );
 
+/** The paths the review's own routes answer; every other path is the app's page. */
+const OWN_PATHS = ['/review/', '/lab/'];
+
 /**
- * The review's routes as a web handler over the services the caller runs
- * with, answering only what `admit` lets through with `allowed`; closed with
- * the scope.
+ * The review's whole server as one web handler over the services the caller
+ * runs with: every request passes `admit` with `allowed` first, the page and
+ * its assets included, so a foreign Host reads nothing; then the review's
+ * routes answer `/review/*` and `/lab/*`, and `page` (the app's page, its
+ * assets and whatever else it serves) the rest. Closed with the scope.
  */
-export const reviewHandler = Effect.fn('film.review.handler')(function* (allowed: Allowed) {
+export const reviewHandler = Effect.fn('film.review.handler')(function* (
+  allowed: Allowed,
+  page: LabHandler,
+) {
   const services = yield* Effect.context<
     | Review
     | FileSystem.FileSystem
@@ -206,9 +221,14 @@ export const reviewHandler = Effect.fn('film.review.handler')(function* (allowed
     ),
     (web) => Effect.promise(() => web.dispose()),
   );
+  const answer: LabHandler = (request, server) => {
+    const { pathname } = new URL(request.url);
+    if (OWN_PATHS.some((prefix) => pathname.startsWith(prefix))) return handler(request, services);
+    return page(request, server);
+  };
   const review: LabHandler = (request, server) =>
     Option.match(admit(request, server, allowed), {
-      onNone: () => handler(request, services),
+      onNone: () => answer(request, server),
       onSome: (refusal) => refuse(services, request, refusal),
     });
   return review;
