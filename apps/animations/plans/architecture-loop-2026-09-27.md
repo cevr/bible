@@ -301,6 +301,8 @@ Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 
 ## Pass 4
 
 - Batch proofs no longer include the bench or the v1 `cmp`: the owner removed the film bench and the frozen first cut (2026-09-29, p4-frame).
+- Art round 3 (2026-09-30): five directions redrawn from scratch on roof and declared — G stick, H shadow puppet, I picture book, J geometric, K one line (branches `art3-G…K`, bundles `SP/film-pass4/art3-<X>.bundle`, never merged; notes in `SP/film-pass4/art3/`, sheet and recommendation in `SP/film-pass4/art/recommend-3.md`). **Owner kept the current cut paper (A)**, asked for a lighter ground, then compared now / light / lighter and **kept now**.
+- p4-light (b33da3e7..98afd3ab, merged 2026-09-30): figures' clothes get their own `cut` chipboard; the ground lift is one named level (`GROUND` in palette.ts: `now` 0, `light` 0.5, `lighter` 0.75) with `now` chosen, so stills match the old ground byte for byte; declared's "Righteous" cover-up label is laid opaque on the chest instead of a see-through ghost (`Stamp.laid`). Check unchanged (18 HeldShare, 10 FaceSmall; DeadAir from the 99 unkept candidates missing in the store).
 
 ## Close
 
