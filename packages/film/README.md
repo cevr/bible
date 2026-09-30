@@ -424,7 +424,9 @@ The share is x264's (`Media.shareCopy`, `SHARE_X264`), since the in-page
 software encoder kept the grain only at 24 Mbps (1.16 GB for 7 minutes): from
 the joined master, through the ffmpeg CLI the doctor already checks: CRF 22,
 preset slow, tune grain, level 4.1 (preset slow's reference frames would raise
-it to 5.0), AAC copied, written to `<out>.part` and renamed once whole. It
+it to 5.0), AAC copied, written whole (`writeWhole`: ffmpeg writes a partial
+of its own, told `-f mp4`, renamed over `<out>` once whole). The review's
+derived files (a frame, a phone copy, a mix) are written the same way. It
 logs `render.share by=x264 secs=…`.
 
 Not `@mediabunny/server`'s libx264: it (through NodeAV) runs a fixed

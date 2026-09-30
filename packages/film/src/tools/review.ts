@@ -18,7 +18,8 @@
 // index lists. The only files the review writes are derived ones (a frame, a
 // 720p phone copy of a big video, a score option's mix) in its cache, keyed
 // by the source's path and mtime (or, for a mix, its plan), each made once,
-// whole or not at all (written beside its name, then renamed into place).
+// whole or not at all (`writeWhole`: a partial of its own beside its name,
+// renamed into place; the maker names its format, never the file's name).
 // Lengths, frames and phone copies are the Media service's (`media.ts`).
 
 import {
@@ -43,6 +44,7 @@ import {
   Ref,
   Schema,
 } from 'effect';
+import { type PlatformError, isPlatformError } from 'effect/PlatformError';
 import { addressKey } from '../core/address.ts';
 import {
   type Catalogue,
@@ -66,6 +68,7 @@ import type {
 import { ReviewManifestJson } from '../core/review.ts';
 import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
+import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import { Media } from './media.ts';
 
@@ -484,8 +487,9 @@ export interface ReviewService {
   readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
   /**
    * A derived file in the cache at `name` (`mix/<key>.m4a`): there already, or
-   * made by `make` (into the temporary path it is given, renamed into place
-   * when it succeeds). One maker per name at a time: a caller that may be
+   * made by `make` into the partial path it is given (`writeWhole`: its name
+   * is not the file's, so `make` names its format) and renamed into place
+   * when it succeeds. One maker per name at a time: a caller that may be
    * asked twice at once runs it through `once`.
    */
   readonly derive: <E, R>(
@@ -599,28 +603,20 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         const derive = <E, R>(
           name: string,
           make: (temporary: string) => Effect.Effect<void, E, R>,
-        ): Effect.Effect<string, E | ReviewToolFailed, R> => {
-          const out = path.join(config.cache, name);
-          const ext = path.extname(name);
-          const temporary = `${out.slice(0, out.length - ext.length)}.part${ext}`;
-          return fs.exists(out).pipe(
-            Effect.mapError(cacheFailed(name)),
-            Effect.flatMap((there) => {
-              if (there) return Effect.succeed(out);
-              return fs.makeDirectory(path.dirname(out), { recursive: true }).pipe(
-                Effect.mapError(cacheFailed(name)),
-                Effect.andThen(
-                  make(temporary).pipe(
-                    Effect.onError(() => fs.remove(temporary, { force: true }).pipe(Effect.ignore)),
-                  ),
-                ),
-                Effect.andThen(fs.rename(temporary, out).pipe(Effect.mapError(cacheFailed(name)))),
-                Effect.tap(() => Effect.logDebug(`review.derived name=${name}`)),
-                Effect.as(out),
-              );
-            }),
-          );
-        };
+        ): Effect.Effect<string, E | ReviewToolFailed, R> =>
+          Effect.gen(function* () {
+            const out = path.join(config.cache, name);
+            const cached = <A>(effect: Effect.Effect<A, PlatformError>) =>
+              Effect.mapError(effect, cacheFailed(name));
+            if (yield* cached(fs.exists(out))) return out;
+            yield* cached(fs.makeDirectory(path.dirname(out), { recursive: true }));
+            // Whole or not at all: `make` writes a partial of its own, renamed into place.
+            yield* writeWhole(fs, out, make).pipe(
+              Effect.catchIf(isPlatformError, (error) => Effect.fail(cacheFailed(name)(error))),
+            );
+            yield* Effect.logDebug(`review.derived name=${name}`);
+            return out;
+          });
 
         /** Each video's length, by path and mtime, the newest kept; a failed read is not. */
         const lengths = yield* Cache.makeWith((at: AtMtime) => media.duration(at.file), {
