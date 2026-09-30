@@ -301,8 +301,9 @@ let resolved: Option.Option<{
  *  most one regardless of how many callers ask. */
 let priming = false;
 
-/** The tier resolved for exactly this index's vectors. */
-const resolvedFor = (target: AccelTarget): Option.Option<Option.Option<VectorAccel>> =>
+/** The tier resolved for exactly this index's vectors: `None` until a
+ *  resolution for them lands, `Some(None)` when no tier loads. */
+export const resolvedFor = (target: AccelTarget): Option.Option<Option.Option<VectorAccel>> =>
   Option.map(
     Option.filter(resolved, (entry) => entry.vectors === target.vectors),
     (entry) => entry.accel,

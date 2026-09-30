@@ -101,8 +101,8 @@ describe('the AudioWorklet capture', () => {
         expect(probed.refused).toBe('');
         expect(probed.trackRate).toBe(44100);
         expect(probed.rate).toBe(probed.trackRate);
-        expect(probed.frames).toBeGreaterThan(probed.rate * 0.9);
-        expect(probed.frames).toBeLessThan(probed.rate * 1.3);
+        // The probe stops once a second of frames was kept: the stop hands back all of them.
+        expect(probed.frames).toBeGreaterThanOrEqual(probed.rate);
         expect(probed.peak).toBeGreaterThan(0.45);
         expect(probed.peak).toBeLessThan(0.55);
         expect(probed.rms).toBeGreaterThan(0.3);
@@ -122,8 +122,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.refused).toBe('');
         expect(probed.trackRate).toBe(44100);
         expect(probed.rate).toBe(44100);
-        expect(probed.frames).toBeGreaterThan(44100 * 0.9);
-        expect(probed.frames).toBeLessThan(44100 * 1.3);
+        expect(probed.frames).toBeGreaterThanOrEqual(44100);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     30_000,
   );
@@ -149,7 +148,7 @@ describe('the AudioWorklet capture', () => {
         const probed = yield* allowed(MONO_44K, { seconds: 1, lose: true });
         expect(probed.refused).toBe('');
         expect(probed.lost).toBe(true);
-        expect(probed.frames).toBeGreaterThan(44100 * 0.9);
+        expect(probed.frames).toBeGreaterThanOrEqual(44100);
         expect(probed.peak).toBeGreaterThan(0.45);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     30_000,

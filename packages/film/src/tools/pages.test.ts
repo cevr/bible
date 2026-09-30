@@ -5,7 +5,7 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Fiber, Layer } from 'effect';
+import { Effect, Exit, Fiber, Latch, Layer } from 'effect';
 import { PageCrashed } from './errors.ts';
 import { type ExportPages, Pages, type PagesOptions, exportUrl } from './pages.ts';
 import { type FakeRenderHost, emptyLedger, fakeRenderHost } from './testing.ts';
@@ -80,7 +80,16 @@ describe('Pages', () => {
 
   it.live('closes every page when interrupted mid-call', () =>
     Effect.gen(function* () {
-      const { ledger, withPool } = setup({ frame: () => Effect.never });
+      // Each page's call hangs; the fourth call to start opens the latch.
+      const allStarted = yield* Latch.make();
+      let started = 0;
+      const { ledger, withPool } = setup({
+        frame: () =>
+          Effect.when(
+            allStarted.open,
+            Effect.sync(() => ++started === 4),
+          ).pipe(Effect.andThen(Effect.never)),
+      });
       const fiber = yield* Effect.forkChild(
         withPool('film', { workers: 4, captions: true }, (pool) =>
           Effect.forEach([0, 1, 2, 3], (i) => pool.call('frame', i, 'image/png'), {
@@ -88,7 +97,7 @@ describe('Pages', () => {
           }),
         ),
       );
-      yield* Effect.sleep('50 millis');
+      yield* allStarted.await;
       yield* Fiber.interrupt(fiber);
       expect(ledger.pages.opened).toBe(4);
       expect(ledger.pages.closed).toBe(4);
