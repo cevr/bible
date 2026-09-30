@@ -40,13 +40,21 @@ const FIELDS = [
   { x: 1600, y: 1080, w: 1500, h: 240, seed: 65, reach: 0.9 },
 ] as const;
 
-/** The scarlet specks over the land. */
 /** The banner's words, written across the angel's flight once it has slowed to glide. */
 const WRITTEN: ReadonlyArray<Key> = [
   [0.2, 0],
   [0.32, 1, 'linear'],
 ];
 
+/** The angel's way across the sky over `fly`: in fast, a slow glide while the words can be read, out fast. */
+const FLY_X: ReadonlyArray<Key> = [
+  [0, -200],
+  [0.25, 1150, 'outCubic'],
+  [0.8, 1600, 'linear'],
+  [1, 3400, 'inCubic'],
+];
+
+/** The scarlet specks over the land. */
 const SPECKS = (() => {
   const r = rng(1844);
   return Array.from({ length: 11 }, (_, i) => ({
@@ -231,14 +239,8 @@ export const rain = drawing({
     // The angel with the banner, across the sky above the city.
     const fly = f.cue('fly');
     if (t >= fly.start && t <= fly.end) {
-      const k = (t - fly.start) / fly.dur;
-      // In fast, a slow glide while the words can be read, out fast.
-      const x = keys(k, [
-        [0, -200],
-        [0.25, 1150, 'outCubic'],
-        [0.8, 1600, 'linear'],
-        [1, 3400, 'inCubic'],
-      ]);
+      const k = f.at('fly');
+      const x = f.keys('fly', FLY_X);
       const written = f.keys('fly', WRITTEN);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>
         herald(ctx, hand, t, written, f.at('grasp')),

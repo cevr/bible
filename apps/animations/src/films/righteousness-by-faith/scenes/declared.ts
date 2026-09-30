@@ -34,7 +34,7 @@ import {
   mix,
   sky,
 } from '@bible/film/canvas';
-import { type Key, clamp, ease, lerp } from '@bible/film/core';
+import { type Key, clamp, ease, lerp, staggered } from '@bible/film/core';
 import {
   type Hands,
   type Person,
@@ -71,6 +71,11 @@ const sideX = (figX: number, stampScale: number) => figX + 35 * FS + 262 * stamp
 /** Where the verdict is this frame: one scratch point, reused. */
 const AT: [number, number] = [0, 0];
 
+/** The way round the face runs in three legs, each starting a third of the way on. */
+const LEG = 2 / 3;
+/** Leg `i` (0 out, 1 along, 2 in) of the way `p` round the face, 0→1. */
+const leg = (p: number, i: number) => staggered(p, i / 2, LEG);
+
 /**
  * Sets `AT` to the point `p` (0..1) along the way from `a` to `b` round the
  * face: out level to the `side` column, along it to `b`'s height, then in
@@ -82,9 +87,9 @@ const aroundFace = (
   side: number,
   p: number,
 ) => {
-  const out = ease.inOutSine(clamp(p * 3));
-  const along = ease.inOutSine(clamp(p * 3 - 1));
-  const inward = ease.inOutSine(clamp(p * 3 - 2));
+  const out = ease.inOutSine(leg(p, 0));
+  const along = ease.inOutSine(leg(p, 1));
+  const inward = ease.inOutSine(leg(p, 2));
   AT[0] = lerp(lerp(a[0], side, out), b[0], inward);
   AT[1] = lerp(a[1], b[1], along);
 };
@@ -367,12 +372,12 @@ export const declared = drawing({
       const verdict = VERDICT;
       verdict.x = AT[0];
       verdict.y = AT[1] + f.keys('sink', SINK_RISE);
-      verdict.scale = stampScale * lerp(1, 0.15, clamp((into - 2 / 3) * 3) ** 3);
+      verdict.scale = stampScale * lerp(1, 0.15, leg(into, 2) ** 3);
       verdict.squash = f.keys('sink', SINK_SQUASH);
       verdict.fill = f.spoken('w', 'voice');
       verdict.shown = drift * (1 - f.keys('sink', SINK_OUT));
       // Pressed flat over the stains on the last leg in, lifted on the first leg out.
-      verdict.laid = clamp(3 * cover - 2);
+      verdict.laid = leg(cover, 2);
       return verdict;
     };
 
