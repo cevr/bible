@@ -129,8 +129,8 @@ out (`core/score.ts`); the library's beds looped over their spans, crossfaded
 where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited: ported from the ffmpeg graph
 it replaced, which it matched to a −98.8 dB residual) and writes the film's
-one track, `narration/full.wav` (16-bit), to `full.partial.wav`, renamed only
-once whole: a failed or interrupted mix leaves the previous track. Beside it,
+one track, `narration/full.wav` (16-bit), whole (`writeWhole`: a partial of
+its own, renamed only once written): a failed or interrupted mix leaves the previous track. Beside it,
 once it is whole, `full.json` stamps the key of the plan it played
 (`mixKey`: every sound it plays by its file name, which carries its hash, or
 its recipe, with where, how loud and at what pitch, the score option and its
@@ -319,29 +319,40 @@ module and all it imports (relative and workspace imports; not packages under
 import, with the registry's imports of the other scenes cut, and
 `@bible/film/player`), its beat as laid out and its take's timing, and, for a
 scene entering on a transition, the previous scene's own modules. An
-address's key hashes its scenes' keys. The key leaves out the audio (`mix` has
-its own staleness check) and what a frame fetches at run time.
+address's key hashes its scenes' keys. The key leaves out what a frame
+fetches at run time, and the audio: a video's record says the sound it
+carries instead (`sound`: the key of the plan its master was mixed from,
+`mixKey`, and the pieces of the master it cut).
 
 **`film project`** reviews a film scene by scene. `film project <film>
 [--variant v] [--json]` prints the film's comments, then each act with its
 comments and its scenes in film order: each scene's render `current`
-(drawn from the sources as they are), `stale` or `missing`; its approval
+(drawn from the sources as they are, carrying the mix the film makes now),
+`stale` (its sources changed), `stale:sound` (only the film's mix changed: a
+score pick, a level, a kept take, then `mix`) or `missing`; its approval
 `approved`, `stale` (given on an earlier render) or `none`; and its comments,
 each marked when it was made on an earlier render. `film project render
 <film> [--scene id,id] [--scale s] [--variant v] [--force]` renders each scene
-on its own into `scenes/<id>/` and skips one whose render is current at the
-same settings. `film project approve <film> --scene id,id | --act name |
+on its own into `scenes/<id>/`, every one through one probe and one pool of
+pages (`Renderer.session`: 1 + workers page loads a run, not that a scene;
+`pages.open` logs each), skips one whose render is current at the same
+settings, and re-muxes one stale by its sound alone: its sound is cut again
+from the master at the pieces it recorded (the renderer's master check
+first), its pictures and its share copy's are copied, and no page opens
+(`render.remux frames_drawn=0`). `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
 scene (a stale or missing scene is left, and named). `film project comment
 <film> "text" [--scene id | --act name]` records a comment on a scene's render
 as it is now, on an act, or (with neither) on the whole film. With `--json`
 each prints the project (`ProjectRead`) as one line, or its refusal
 (`FreshRefused`), which is how the review runs it. Approvals and comments are keyed by address,
-variant and the stamp's key: a re-render leaves an approval in place, stale,
-and a render that returns to the approved sources is approved again. Each
-write reads the file, changes it and writes it back whole (a temp name, then a
-rename), one at a time in a process; two processes writing one film's
-catalogue at the same instant can lose the earlier write.
+variant and the render's version (`renderVersion`: the stamp's key and the
+mix it carries): a re-render or a re-mux leaves an approval in place, stale,
+and a render that returns to the approved sources and sound is approved
+again. The catalogue is a `ContentStore` manifest: each write reads the file,
+changes it and writes it back whole, one writer at a time across processes
+(the review, a `film project` child, a terminal's `project render`), so every
+approval, comment and render record lands.
 
 ## Encoders
 
@@ -761,11 +772,12 @@ status, still, thread, createdAt }`, plus `seq` (the change that made it) and
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
 a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
-the CLI wrote while the server was waiting. Writes are atomic (a partial
-file renamed into place, through ContentStore), serialized in the process
-(a Semaphore) and across processes (a `notes.lock` file held for each
-change; a lock held past about 5 s fails with `NotesLocked`, naming it). A
-note's still is written before the note that names it.
+the CLI wrote while the server was waiting. Each change is one
+`ContentStore.transact`, as every manifest's is: written whole, one writer at
+a time across processes (`notes.json.lock`, created only if there is none and
+naming its holder; a lock whose holder is gone, or older than 30 s, is
+broken; one held past about 5 s fails with `StoreLocked`, naming it). A
+note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
 it, the nearest named-cue edge and `{mark}`; the page computes it from the

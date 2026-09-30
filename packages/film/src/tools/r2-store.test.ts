@@ -229,7 +229,7 @@ const contract = (store: MediaStoreService, dir: string) =>
     const back = `${dir}/back/again.mp4`;
     yield* store.get(key, back);
     expect(yield* fs.readFile(back)).toEqual(bytes);
-    expect(yield* fs.exists(`${back}.partial`)).toBe(false);
+    expect(yield* fs.readDirectory(`${dir}/back`)).toEqual(['again.mp4']);
 
     // A range, as a player asks for one, and the whole when none is given.
     const ranged = Option.getOrThrow(yield* store.read(key, Option.some({ start: 10, end: 17 })));

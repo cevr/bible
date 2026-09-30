@@ -3,7 +3,6 @@
 // never overwritten; a wait reports each change past its cursor once.
 
 import { BunServices } from '@effect/platform-bun';
-import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Clock,
@@ -21,8 +20,8 @@ import {
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { TestClock } from 'effect/testing';
 import { type NoteDraft, NotesFileJson } from '../core/schema.ts';
-import { ContentStore } from './content-store.ts';
-import { LockOwnerJson, NotesStore, lockVerdict } from './notes-store.ts';
+import { ContentStore, LockOwnerJson } from './content-store.ts';
+import { NotesStore } from './notes-store.ts';
 import { crashingFileSystem, memoryFileSystem, text } from './testing.ts';
 
 const film = 'f';
@@ -162,7 +161,7 @@ describe('NotesStore', () => {
       );
       expect(file.seq).toBe(10);
       expect(new Set(file.notes.map((n) => n.id)).size).toBe(10);
-      expect(yield* fs.exists(`${dir}/${film}/notes.lock`)).toBe(false);
+      expect(yield* fs.exists(`${dir}/${film}/notes.json.lock`)).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
@@ -197,14 +196,14 @@ describe('NotesStore', () => {
       const created = yield* Clock.currentTimeMillis;
       const owner = { pid: yield* deadPid, created, token: 'crashed' };
       yield* fs.writeFileString(
-        `${dir}/${film}/notes.lock`,
+        `${dir}/${film}/notes.json.lock`,
         yield* Schema.encodeEffect(LockOwnerJson)(owner),
       );
       const note = yield* addAt(dir);
       expect(note.id).toBe('n1');
       // Broken at once, not after the 5 s of retries a live lock gets.
       expect((yield* Clock.currentTimeMillis) - created).toBeLessThan(2000);
-      expect(yield* fs.exists(`${dir}/${film}/notes.lock`)).toBe(false);
+      expect(yield* fs.exists(`${dir}/${film}/notes.json.lock`)).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
@@ -212,7 +211,7 @@ describe('NotesStore', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const dir = yield* fs.makeTempDirectoryScoped();
-      const lock = `${dir}/${film}/notes.lock`;
+      const lock = `${dir}/${film}/notes.json.lock`;
       // What a crashed writer of the old store left: a bare directory, a minute old.
       yield* fs.makeDirectory(lock, { recursive: true });
       const old = DateTime.toDate(DateTime.subtract(yield* DateTime.now, { minutes: 1 }));
@@ -222,16 +221,4 @@ describe('NotesStore', () => {
       expect(yield* fs.exists(lock)).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
-
-  test('a lock is stale when its holder is gone or it is past 30 s; a live, fresh one holds', () => {
-    const owner = { pid: 42, created: 1_000_000, token: 't' };
-    const alive = () => true;
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 29_000, alive)).toEqual(Option.none());
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 1_000, () => false)).toEqual(
-      Option.some('its holder, pid 42, is gone'),
-    );
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 31_000, alive)).toEqual(
-      Option.some('it was taken 31 s ago'),
-    );
-  });
 });

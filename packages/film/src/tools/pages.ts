@@ -83,6 +83,7 @@ export class Pages extends Context.Service<Pages, PagesService>()('@bible/film/t
             ),
           );
         const first = yield* use((page) => Effect.succeed(page));
+        yield* Effect.log(`pages.open page=${film} workers=${Math.max(1, options.workers)}`);
         return {
           info: first.info,
           title: first.title,
