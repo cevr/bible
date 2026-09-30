@@ -137,9 +137,11 @@ levelled by BS.1770 loudness against the voice bus, ramped, and faded in and
 out (`core/score.ts`); the library's beds looped over their spans, crossfaded
 where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited) and writes the film's
-one track, `narration/full.wav` (16-bit), whole (`writeWhole`: a partial of
-its own, renamed only once written): a failed or interrupted mix leaves the previous track. Beside it,
-once it is whole, `full.json` stamps the key of the plan it played
+one track, `narration/full.wav` (16-bit), whole (a partial of its own,
+renamed only once written): a failed or interrupted mix leaves the previous
+track. The track's rename and its stamp are one step under `full.json`'s
+store lock (`ContentStore.transact`), so two mixes finishing together never
+leave one's track under the other's stamp. `full.json` stamps the key of the plan it played
 (`mixKey`: every sound it plays by its file name, which carries its hash, or
 its recipe, with where, how loud and at what pitch, the score option and its
 levels, and the levels it masters, fades and ducks by). A bed or

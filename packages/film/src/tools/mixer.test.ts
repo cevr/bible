@@ -3,16 +3,17 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Fiber, Layer, Option, Result, Schema } from 'effect';
+import { Deferred, Duration, Effect, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { MIX_RATE, mixKey } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
+import { ContentStore } from './content-store.ts';
 import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
-import { MasterStampJson, Mixer, planOf } from './mixer.ts';
+import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
 import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
@@ -85,14 +86,20 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
       });
     }),
   ).pipe(Layer.provide(writingMedia(files, finish, rate, hung)));
-  const layer = Mixer.layer.pipe(Layer.provide([memoryFileSystem(files), repo, media]));
-  const mix = (stems = false) =>
+  const fs = memoryFileSystem(files);
+  const store = ContentStore.layer.pipe(Layer.provide([fs, Path.layer]));
+  const layer = Mixer.layer.pipe(Layer.provideMerge(store), Layer.provide([fs, repo, media]));
+  /** `effect` with one mixer and one store, sharing their locks. */
+  const run = <A, E>(effect: Effect.Effect<A, E, Mixer | ContentStore>) =>
+    effect.pipe(Effect.provide(layer));
+  const mixing = (stems = false) =>
     Effect.gen(function* () {
       yield* (yield* Mixer).mix('test', { stems, score: Option.none() });
-    }).pipe(Effect.provide(layer));
+    });
+  const mix = (stems = false) => run(mixing(stems));
   const read = (file: string) => new TextDecoder().decode(files.get(file));
   const partials = () => [...files.keys()].filter((f) => f.includes('partial'));
-  return { files, decoded, hung, mix, read, partials };
+  return { files, decoded, hung, mix, mixing, run, read, partials };
 };
 
 /** The film's length in frames: every track is exactly that long. */
@@ -153,6 +160,43 @@ describe('Mixer', () => {
       yield* Deferred.await(hung);
       yield* Fiber.interrupt(fiber);
       expect(read(TRACK)).toBe('old');
+      expect(partials()).toEqual([]);
+    }),
+  );
+
+  it.live("a mix lands its track and its stamp together, under the stamp's lock", () =>
+    Effect.gen(function* () {
+      const { mixing, run, read, partials } = setup('done');
+      const release = yield* Deferred.make<boolean>();
+      const held = yield* Deferred.make<boolean>();
+      const whileHeld = yield* run(
+        Effect.gen(function* () {
+          // Another writer (a mix of another plan) holds the stamp's lock.
+          const other = yield* Effect.forkChild(
+            (yield* ContentStore).transact(stampManifest(film.paths), () =>
+              Deferred.succeed(held, true).pipe(
+                Effect.andThen(Deferred.await(release)),
+                Effect.as(['held', 'another plan'] as const),
+              ),
+            ),
+          );
+          yield* Deferred.await(held);
+          const fiber = yield* Effect.forkChild(mixing());
+          // The mix has written its track beside the old one, and waits for the lock.
+          yield* Effect.sleep(Duration.millis(300));
+          const seen = { track: read(TRACK), stamp: read(STAMP), partials: partials().length };
+          yield* Deferred.succeed(release, true);
+          yield* Fiber.join(other);
+          yield* Fiber.join(fiber);
+          return seen;
+        }),
+      );
+      // Nothing of the mix landed while the other writer held the lock.
+      expect(whileHeld).toEqual({ track: 'old', stamp: '', partials: 1 });
+      // Then its track and its own stamp landed together.
+      const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
+      expect(stamp.key).toMatch(/./);
+      expect(read(TRACK)).toBe(`wav ${frames}`);
       expect(partials()).toEqual([]);
     }),
   );
