@@ -11,7 +11,7 @@
 
 import { Option, Result, Schema } from 'effect';
 import { type Pcm, SPEECH_GATE, toStereo } from './audio.ts';
-import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
+import { type Duck, type Limit, addInto, duck, fade, limitInto, toFrames } from './dsp.ts';
 import {
   type ActLength,
   CueInvalid,
@@ -537,12 +537,14 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   ])
     addInto(sum, channels, 0, 1);
 
+  // The master is `sum` itself, lifted and limited in place: no bus of its own.
   const masterGain = masteringGain(pcm(frames, sum));
-  const mastered = bus(frames);
-  addInto(mastered, sum, 0, 10 ** (masterGain / 20));
+  const lift = 10 ** (masterGain / 20);
+  for (const plane of sum) for (let i = 0; i < frames; i++) plane[i] = (plane[i] ?? 0) * lift;
+  limitInto(sum, MIX_RATE, LIMIT, sum);
 
   return {
-    master: pcm(frames, limit(mastered, MIX_RATE, LIMIT)),
+    master: pcm(frames, sum),
     masterGain,
     voice: pcm(frames, voice),
     music: Option.map(music, (channels) => pcm(frames, channels)),

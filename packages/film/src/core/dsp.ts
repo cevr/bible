@@ -232,17 +232,31 @@ const advance = (l: Limiter, oldest: number): void => {
   if (l.delta !== 0 && Math.abs(l.delta) < 0.00000000000001) l.delta = 0;
 };
 
-/**
- * `input` through af_alimiter.c `filter_frame` with `level=false`, no
- * auto-release and no latency compensation: the output runs one attack
- * window (less a frame) behind the input, as it did in the ffmpeg graph.
- * Returns new channels, `input`'s length.
- */
+/** `input` through `limitInto`, as new channels `input`'s length. */
 export const limit = (
   input: ReadonlyArray<Float32Array>,
   rate: number,
   spec: Limit,
 ): Array<Float32Array> => {
+  const frames = Math.max(0, ...input.map((channel) => channel.length));
+  const out = input.map(() => new Float32Array(frames));
+  limitInto(input, rate, spec, out);
+  return out;
+};
+
+/**
+ * `input` through af_alimiter.c `filter_frame` with `level=false`, no
+ * auto-release and no latency compensation, written into `out`: the output
+ * runs one attack window (less a frame) behind the input, as it did in the
+ * ffmpeg graph. `out` may be `input` itself: each frame is read before it
+ * is written.
+ */
+export const limitInto = (
+  input: ReadonlyArray<Float32Array>,
+  rate: number,
+  spec: Limit,
+  out: ReadonlyArray<Float32Array>,
+): void => {
   const channels = input.length;
   const frames = Math.max(0, ...input.map((channel) => channel.length));
   const ceiling = spec.limit;
@@ -264,8 +278,6 @@ export const limit = (
     nextiter: 0,
     nextlen: 0,
   };
-  const out = input.map(() => new Float32Array(frames));
-
   for (let n = 0; n < frames; n++) {
     for (const [c, channel] of input.entries()) l.buffer[l.pos + c] = channel[n] ?? 0;
     const peak = peakAt(l, l.pos);
@@ -280,5 +292,4 @@ export const limit = (
       channel[n] = Math.min(ceiling, Math.max(-ceiling, (l.buffer[oldest + c] ?? 0) * gain));
     l.pos = (l.pos + channels) % bufferSize;
   }
-  return out;
 };

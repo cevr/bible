@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addInto, duck, fade, limit, toFrames } from './dsp.ts';
+import { addInto, duck, fade, limit, limitInto, toFrames } from './dsp.ts';
 
 const RATE = 44100;
 
@@ -85,5 +85,16 @@ describe('limit', () => {
     const peak = Math.max(...out.flatMap((channel) => [...channel].map(Math.abs)));
     expect(peak).toBeLessThanOrEqual(0.95);
     expect(peak).toBeGreaterThan(0.9);
+  });
+
+  test('limited in place, a sound comes out as it does into new channels', () => {
+    const tone = (gain: number) =>
+      Array.from({ length: RATE / 4 }, (_, i) => Math.sin(i / 20) * gain);
+    // Quiet, then loud enough that the limiter works.
+    const input = () => Float32Array.from([...tone(0.3), ...tone(2)]);
+    const fresh = limit([input(), input()], RATE, spec);
+    const inPlace = [input(), input()];
+    limitInto(inPlace, RATE, spec, inPlace);
+    expect(inPlace.map((c) => [...c])).toEqual(fresh.map((c) => [...c]));
   });
 });
