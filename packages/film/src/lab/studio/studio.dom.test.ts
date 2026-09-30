@@ -12,7 +12,7 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, type FileSystem, Option, type Path, Result, type Scope } from 'effect';
+import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scope } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { TakeMismatch } from '../../core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
@@ -102,16 +102,28 @@ const studioRoutes: ReadonlyArray<FakeRoute> = [
 const textOf = (page: Page, sel: string) =>
   Effect.promise(() => page.textContent(sel)).pipe(Effect.map((t) => t ?? ''));
 
-/** Wait until the status line reads `pattern`. */
-const statusIs = (page: Page, pattern: RegExp) =>
+/** Wait until the element at `sel` reads `pattern`: a settled value, never the first one drawn. */
+const textIs = (page: Page, sel: string, pattern: RegExp) =>
   Effect.promise(() =>
     page.waitForFunction(
-      (source) =>
-        new RegExp(source).test(document.querySelector('[data-role="status"]')?.textContent ?? ''),
-      pattern.source,
+      ([source, at]) => new RegExp(source).test(document.querySelector(at)?.textContent ?? ''),
+      [pattern.source, sel] as const,
       { timeout: 10_000 },
     ),
   );
+
+/**
+ * How often the page has asked for `path`, once it has more than `least`
+ * times: a request the page makes after what it shows (a list read again).
+ */
+const askedMoreThan = (asked: ReadonlyArray<Asked>, path: string, least: number) =>
+  Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
+    Effect.repeat({ until: (n) => n > least, schedule: Schedule.spaced('20 millis') }),
+    Effect.timeout('10 seconds'),
+  );
+
+/** Wait until the status line reads `pattern`. */
+const statusIs = (page: Page, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
 
 /** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
 const recorded = (page: Page, seconds: number) =>
@@ -247,9 +259,8 @@ describe('the studio', () => {
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* countedIn(page);
-          yield* Effect.promise(() => page.waitForSelector('[data-role="peak"]'));
-          const peak = yield* textOf(page, '[data-role="peak"]');
-          expect(peak).toMatch(/^peak −[5-7]\.\d dBFS$/);
+          // The meter reads its floor until the tone's chunks arrive: wait for the tone's level.
+          yield* textIs(page, '[data-role="peak"]', /^peak −[5-7]\.\d dBFS$/);
           yield* recorded(page, 1.2);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
@@ -337,9 +348,9 @@ describe('the studio', () => {
             /^kept thesis\.new\.flac: heard “the law is holy” · 0\.0% words differ · the mix failed; the lab log says why$/,
           );
           // The attempts are read again after the keep.
-          expect(
-            asked.filter((a) => a.path === '/studio/takes/thesis/attempts').length,
-          ).toBeGreaterThan(1);
+          expect(yield* askedMoreThan(asked, '/studio/takes/thesis/attempts', 1)).toBeGreaterThan(
+            1,
+          );
           const [keep] = posted(asked, /^\/studio\/takes\/thesis\/keep$/);
           expect(
             Option.getOrUndefined(Option.fromUndefinedOr(keep).pipe(Option.flatMap((k) => k.body))),

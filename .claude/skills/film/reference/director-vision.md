@@ -99,7 +99,7 @@ The last row is the rule that the landing is both the most saturated and the cal
   - Once per beat, a face fills at least ⅓ of frame height (CRAFT 5).
   - A crowd varies silhouette, height and hat. Never clone.
 - **Hands.**
-  - **No arms: floating hands.** A figure's two hands float near its body, and no arm is ever drawn, close up or wide. At rest they float beside the body at hip height and bob with the breath, so a figure is never a handless pillar and a hand never pops in (chosen over hidden-until-acting in pass 4, 2026-09-29: hidden, a figure at rest read as a handless stub, and every action began with a hand growing out of nothing). A lying figure folds them on its middle.
+  - **No arms: floating hands.** A figure's two hands float near its body, and no arm is ever drawn, close up or wide. At rest they float beside the body at hip height and bob with the breath, so a figure is never a handless pillar and a hand never pops in (hidden until acting, a figure at rest reads as a handless stub, and every action begins with a hand growing out of nothing). A lying figure folds them on its middle.
   - **A hand travels on an arc.** On its action's named cue (the kit's `far`/`near`, `{ to, reach: f.at('<cue>'), grip }`) it swings about the shoulder along a soft arc bowed away from the head, eased, and settles on arrival; never a straight lerp and never a pop. Give a travel at least 0.6 s.
   - **The kit owns the reach.** A person's hand works within its reach (the kit's radius about the shoulder, scaled with the build); a target past it is a staging fault, not a stretch. Bring the prop or the figure closer.
   - **One hand at every scale.** A mitten with a thumb (`@bible/film/canvas`'s `floatingHand`). Close up (`handCloseUp`), it is the open hand palm up seen from above (the palm the biggest shape, the fingers one round block, the thumb low along the side) and adds a lifeline and two soft joint lines; the figure's own hand turns palm up into that shape before a push into it (`turn`). The close-up has no forearm: the push grows the figure's own hand into it and shrinks it back onto the hand.
@@ -140,7 +140,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ## Sound and silence
 
-- **Score.** Each act gets a cue composed to the cut (ElevenLabs `music_v2` chunks aligned to the act starts), rising and falling with the colour script. The bed sits 17–20 dB under the voice, and the low end swells on the problem and the climax (CRAFT 10). _(Zhou and Kurzgesagt compose to picture #19, #40.)_
+- **Score.** Each act gets a cue composed to the cut (ElevenLabs `music_v2`, composed to the cut in movements that each start at a scene), rising and falling with the colour script. The bed sits 17–20 dB under the voice, and the low end swells on the problem and the climax (CRAFT 10). _(Zhou and Kurzgesagt compose to picture #19, #40.)_
 - **Effects land on the frame of the noun:** the gavel, the stamp, cloth, the loom, the serpent, rain (synchresis #39). Page sounds come only at register switches.
 - **Silence has three designed places:**
   - about 1 s after the key quotation;

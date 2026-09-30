@@ -349,8 +349,12 @@ test('filter changes in quick succession share one request', async ({ page }) =>
   expect([url.get('scope'), url.get('type')]).toEqual(['egw', 'book']);
   await expect(pane.locator('.text')).toHaveText('alpha [egw]');
   await expect(pane.locator('.results')).toHaveAttribute('aria-busy', 'false');
-  await page.waitForTimeout(300);
-  expect((await receipts(page)).batchHttpRequests).toBe(before + 1);
+  // The answer on screen came back from the request the changes caused: one
+  // request, carrying one search. A search the first change left running would
+  // be a second request, or a second input in the same batch window.
+  const after = await receipts(page);
+  expect(after.batchHttpRequests).toBe(before + 1);
+  expect(after.lastBatch).toEqual(['alpha']);
   expect(errors).toEqual([]);
 });
 
