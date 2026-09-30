@@ -169,7 +169,10 @@ describe("a film's options", () => {
           "document.querySelector('.rv-status').textContent.includes('score play piano')",
         );
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
-        yield* waitFor(page, '.rv-findings li[data-level="warning"]');
+        yield* until(
+          page,
+          'document.querySelector(\'.rv-findings li[data-level="warning"]\') !== null',
+        );
         const pick = asked.find((a) => a.path === '/lab/toy/options/score/pick');
         expect(
           Option.getOrUndefined(Option.flatMap(Option.fromUndefinedOr(pick), (a) => a.body)),

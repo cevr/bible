@@ -123,7 +123,8 @@ a.rv-card:hover { border-color: var(--rv-dim); }
 }
 .rv-status { min-width: 0; overflow-wrap: anywhere; }
 .rv-status[data-failed="true"] { color: #e0705a; }
-.rv-findings { margin: 8px 0 0; padding-left: 18px; font-size: 12px; }
+.rv-check summary { cursor: pointer; margin-top: 6px; }
+.rv-findings { margin: 8px 0 0; padding-left: 18px; font-size: 12px; overflow-wrap: anywhere; }
 .rv-findings li[data-level="error"] b { color: #e0705a; }
 .rv-findings li[data-level="warning"] b { color: var(--rv-gold); }
 .rv-films { margin-bottom: 4px; }

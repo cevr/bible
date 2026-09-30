@@ -107,6 +107,8 @@ const fixture = Layer.unwrap(
         .replace('    options: {\n', `    options: {\n${STRINGS}`)
         .replace('  effects: {\n', `  effects: {\n${HUSH}`),
     );
+    // A registry beside the films, as an app keeps one: a file, never a film.
+    yield* fs.writeFileString(path.join(films, 'index.ts'), 'export const films = {};\n');
     // A render of the film, for the picture its options are heard against.
     yield* fs.makeDirectory(path.join(out, 'tiny'), { recursive: true });
     yield* fs.writeFileString(path.join(out, 'tiny', 'tiny.mp4'), 'not really a video');
@@ -164,6 +166,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         yield* seedLock;
+        expect(yield* FilmRepo.use((repo) => repo.names)).toEqual(['tiny']);
         const listed = yield* (yield* Choices).list('tiny');
         expect(listed.pictures.map((p) => p.ref)).toEqual(['out/tiny/tiny.mp4']);
         const [score, effect] = listed.choices;

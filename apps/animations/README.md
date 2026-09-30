@@ -42,6 +42,7 @@ bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .v
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
+bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> picks its options (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -186,6 +187,23 @@ estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every music act's start (a line through it), from the film's
 `sound` passed to `createFilm`; hover one for its name and time.
+
+**The review** (`bun run review`; on the box, the `film-review` user unit on
+port 8229) is where options are compared and picked. Its home lists the
+films and every folder of renders under every checkout's `out/` (and any
+`FILM_REVIEW_EXTRA_ROOTS`). Videos named `<clip>.<variant>.mp4` in one
+folder are a comparison set, played on one clock (all of them, the first
+against one other, every variant's frame at a few moments, or the notes;
+space plays, ←/→ step 2 s, 🔊 picks whose sound is heard), titled and
+annotated by an optional `review.json`. A film's page (`?film=<film>`) plays
+its newest render with the film's whole mix heard over it: each score option
+of `sound.ts`, and each take of each library sound the film places, in place
+(or alone). **Pick** writes `play` in `sound.ts`; **Keep**, **Unkeep** and
+**Reject** curate the take in `sounds/library.lock.json`, as `sfx keep`,
+`unkeep` and `reject` do. Each write is checked and undoable (Undo, Redo);
+review it with `git diff`. The review answers loopback, and the names in
+`FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`; writes are same-origin JSON.
+It never edits a scene: that stays in the lab.
 
 ## How a film is built
 

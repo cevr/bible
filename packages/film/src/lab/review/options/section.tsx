@@ -7,19 +7,20 @@
 
 import { For, Show } from '@solidjs/web';
 import { onCleanup } from 'solid-js';
-import { Match, Option } from 'effect';
+import { Duration, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
 import {
   type EffectChoice,
   type EffectTake,
   type ScoreChoice,
+  type ReviewVideo,
   type ScoreVariant,
   type TakeAct,
   scoreMixUrl,
   takeAudioUrl,
 } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
-import { pressed, videoUrl } from '../format.ts';
+import { pressed, sizeText, videoUrl } from '../format.ts';
 import { SyncEvent, timeText } from '../machine.ts';
 import { Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
@@ -31,6 +32,13 @@ const STATE_TEXT = {
   stale: 'stale: composed before the acts changed',
   missing: 'not composed here',
 } as const;
+
+/** A picture's chip: where it lies (renders of one film share a name), and its size. */
+const pictureLabel = (p: ReviewVideo): string => {
+  const dir = p.ref.slice(0, Math.max(0, p.ref.length - p.name.length - 1));
+  if (dir === '') return `${p.name} · ${sizeText(p.size)}`;
+  return `${dir} · ${sizeText(p.size)}`;
+};
 
 /** The 🔊 that makes `heard` the sound over the picture. */
 const HearButton = (props: { readonly heard: Heard; readonly disabled?: boolean }) => {
@@ -85,7 +93,7 @@ const Player = () => {
                     aria-pressed={pressed(p.ref === video.ref)}
                     onClick={() => choosePicture(p.ref)}
                   >
-                    {p.name}
+                    {pictureLabel(p)}
                   </button>
                 )}
               </For>
@@ -112,19 +120,40 @@ const Player = () => {
   );
 };
 
-/** The mix heard: an `<audio>` on the player's clock, gone when another is chosen. */
+/** How long a mix that failed to load waits before it is asked for again, and how often. */
+const MIX_RETRY_MS = 5000;
+const MIX_TRIES = 6;
+
+/**
+ * The mix heard: an `<audio>` on the player's clock, gone when another is
+ * chosen. A film's first mix renders the whole film, so a load that fails
+ * (the connection dropped while it rendered) asks again: the server's mix
+ * ran on, and is found made.
+ */
 const Mix = (props: { readonly src: string }) => {
   const { driver } = useFilm();
   const src = props.src;
-  onCleanup(() => driver.detach(src));
-  return (
-    <audio
-      class="rv-mix"
-      preload="auto"
-      src={src}
-      ref={(el: HTMLAudioElement) => driver.attach(src, el)}
-    />
-  );
+  let tries = 0;
+  let waiting = Option.none<Fiber.Fiber<void>>();
+  onCleanup(() => {
+    Option.map(waiting, (f) => Effect.runFork(Fiber.interrupt(f)));
+    driver.detach(src);
+  });
+  const attach = (el: HTMLAudioElement) => {
+    el.addEventListener('error', () => {
+      if (tries >= MIX_TRIES) return;
+      tries += 1;
+      waiting = Option.some(
+        Effect.runFork(
+          Effect.sleep(Duration.millis(MIX_RETRY_MS)).pipe(
+            Effect.andThen(Effect.sync(() => el.load())),
+          ),
+        ),
+      );
+    });
+    driver.attach(src, el);
+  };
+  return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };
 
 const ScoreCard = (props: { readonly score: ScoreChoice; readonly variant: ScoreVariant }) => {
@@ -207,7 +236,8 @@ const TakeRow = (props: { readonly effect: EffectChoice; readonly take: EffectTa
         <span class="rv-letter">{props.take.index}</span>
         <span class="rv-name">{props.take.state}</span>
         <span class="rv-tag">
-          {props.take.secs.toFixed(1)} s · {props.take.loudest.toFixed(1)} LUFS · {props.take.made}
+          {props.take.secs.toFixed(1)} s · {props.take.loudest.toFixed(1)} LUFS ·{' '}
+          {props.take.made.slice(0, 10)}
           {Match.value(props.take.current).pipe(
             Match.when(true, () => ''),
             Match.orElse(() => ' · for an older declaration'),
@@ -344,16 +374,16 @@ const WriteBar = () => {
         <span class="rv-hint rv-status" data-failed={pressed(AsyncResult.isFailure(wrote()))}>
           {status()}
         </span>
-        <span class="rv-spacer" />
-        <span class="rv-hint" data-findings={String(findings().length)}>
+      </div>
+      {/* The check folds away: its findings are read when asked for, not over the player. */}
+      <details class="rv-check">
+        <summary class="rv-hint" data-findings={String(findings().length)}>
           {Match.value(findings().length).pipe(
             Match.when(0, () => 'check: clean'),
             Match.when(1, () => 'check: 1 finding'),
             Match.orElse((n) => `check: ${n} findings`),
           )}
-        </span>
-      </div>
-      <Show when={findings().length > 0}>
+        </summary>
         <ul class="rv-findings">
           <For each={findings()}>
             {(f) => (
@@ -363,7 +393,7 @@ const WriteBar = () => {
             )}
           </For>
         </ul>
-      </Show>
+      </details>
     </section>
   );
 };

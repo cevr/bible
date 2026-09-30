@@ -21,6 +21,8 @@ export const HOST = '127.0.0.1';
 
 /** A wait on `/lab/<film>/notes/wait` holds up to 60 s: the connection must outlive it. */
 const IDLE_SECONDS = 75;
+/** Bun's longest idle timeout. A mix a page stops waiting for runs on and is found made next time. */
+const REVIEW_IDLE_SECONDS = 255;
 
 type Handler = (req: Request, server: LabBound) => Response | Promise<Response>;
 
@@ -86,7 +88,8 @@ export const serveReview = (port: number, hostname: string, review: Handler, fil
     hostname,
     port,
     development: false,
-    idleTimeout: IDLE_SECONDS,
+    // A film's first mix renders the whole film before it answers: as long as Bun allows.
+    idleTimeout: REVIEW_IDLE_SECONDS,
     routes: {
       '/': reviewPage,
       '/review/*': review,

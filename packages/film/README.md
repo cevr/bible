@@ -13,7 +13,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), whose track marks marks, cues, sound effects and music acts (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, the narration as a typed state (`narration.ts`: `None`, `Loading`, `Ready`, `Blocked` until a click, `Missing` when the master will not load or play, which the preview then never asks to play and says `no narration`), and the look-book (`?lookbook`, `lookbook.ts`). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy only), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through a `SoundStore`, `sound-store.ts`), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SceneWriter, SceneHead, StaticCheck.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy only), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through a `SoundStore`, `sound-store.ts`), Browser, PreviewServer, Renderer (`render-plan.ts` is its pure plan), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead, StaticCheck; and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Data
 
@@ -811,6 +811,121 @@ first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
 whole-film `render` writes them beside the video as `<out>.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
 `ChaptersInvalid` (a render logs the reason and writes none).
+
+## Review
+
+`film review` serves the review: every render under the review's roots,
+compared in sync, and each film's options, picked where they are heard. It
+is one Effect-native server (`tools/review.ts`, `review-http.ts`,
+`choices.ts`, `choices-http.ts`) and one Solid 2 page (`lab/review/`, its
+options in `lab/review/options/`), dark and made for a phone first.
+
+**An option is a choice point with named variants**, each with media to
+compare. Its kind says how it is picked (`core/schema.ts`; `Choice` in code,
+since `Option` is Effect's):
+
+| Kind            | Schema         | Variants                                         | Picked by                                                   |
+| --------------- | -------------- | ------------------------------------------------ | ----------------------------------------------------------- |
+| a render set    | `RenderChoice` | `<clip>.<variant>[.share].mp4` in one folder     | nobody: reviewed only                                       |
+| a score         | `ScoreChoice`  | `sound.ts`'s `score.options`, each the whole mix | `play` in `sound.ts`                                        |
+| a sound's takes | `EffectChoice` | a library sound's kept variants and candidates   | the library's keep, unkeep and reject (`library.lock.json`) |
+| a look          | (deferred)     | a style at named levels                          | joins the union when it has a pick to write                 |
+
+**Sets are found by name.** Videos named `<clip>.<variant>[.share].mp4` in
+one folder form a set (a share copy stands in for its master). An optional
+`review.json` in the folder (`ReviewManifest`) adds a title and a line, docs,
+and per set a title, order, start, moments, and each variant's label, tag,
+verdict, notes, or file when it lies elsewhere. Every key may be left out.
+
+**The roots.** `FILM_REVIEW_ROOTS` (comma-separated, each `label=path` or a
+bare path) replaces the app's own roots (every checkout's `out/`);
+`FILM_REVIEW_EXTRA_ROOTS` adds to them. Every route names a file by its ref
+(its root's label, then its path under the root), never a path on the box.
+Derived files (frames, 720p phone copies of big videos, option mixes) are
+kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
+makes no phone copies.
+
+| Route                                                       | What it answers                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `GET /review/index[?fresh]`                                 | `ReviewIndex`: every folder with something to review, newest first |
+| `GET /review/files/<ref>`, `/review/phone/<ref>`            | the file, or its phone copy, byte ranges answered 206              |
+| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`     | a JPEG of a video at `t` s, `w` px wide; its length                |
+| `GET /review/films`                                         | `ReviewFilms`: the app's films                                     |
+| `GET /lab/<film>/options`                                   | `FilmChoices`: the film's renders (the pictures) and its choices   |
+| `POST /lab/<film>/options/score/pick`                       | `ScorePick` → `ChoiceWrite`: `play` written                        |
+| `GET /lab/<film>/options/score/<option>/mix`                | the film's whole mix with that option playing (m4a)                |
+| `GET /lab/<film>/options/effect/<sound>/takes/<take>/audio` | the take alone                                                     |
+| `GET /lab/<film>/options/effect/<sound>/takes/<take>/mix`   | the film's whole mix with only that take at every placement (m4a)  |
+| `POST /lab/<film>/options/effect/<sound>/takes`             | `TakeCuration` (`keep`, `unkeep`, `reject`) → `ChoiceWrite`        |
+| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`   | the lab's own, for the film named                                  |
+
+**How a pick lands.** Every write goes through the one `SourceWriter`
+(`source-writer.ts`), the lab's knob and cue writes included: it reads the
+file, makes the new text, formats it with oxfmt through stdin, verifies it
+(the edit reads back as meant), and swaps it in only if the file is still as
+it was read (compare and swap), then runs `check --static`. A score pick
+splices the one `play` string literal (`sound-source.ts`, through oxc); a
+take's act runs the library's own `keep`, `unkeep` or `reject` on the lock,
+the writer recording the lock's bytes before and after and leaving the lock
+as oxfmt does (the library's own JSON writer spreads short arrays the
+formatter keeps on one line), so the diff is only the pick. A write that
+changes nothing answers `(already so)` and records nothing. Each film keeps
+its own undo and redo stacks (50 deep): Undo puts the newest change back byte
+for byte, only while the file is exactly as that change left it (else
+`UndoUnavailable`, a 409); a new change drops what could be redone. The file a change
+touched is named relative to the film's folder (`sound.ts`,
+`../../../sounds/library.lock.json` in the app).
+
+**No per-placement pin.** A take is chosen for the whole sound, not for one
+placement: the library's kept variants are the picks, and they rotate
+through the sound's placements. Pinning one take to one placement would put
+a second pick for the same sound in a second file (`sound.ts` beside the
+lock), and the two could disagree: a take rejected in the lock while a film
+still pins it. When one moment needs its own take, it is its own library
+sound (`paper.page.hush`), placed there, and picked the same way.
+
+**Mixes.** An option's mix is the film's whole mix (`Mixer.render`) with
+that option playing (a score) or only that take at every placement of its
+sound (`RenderOptions.take`), encoded AAC and cached under a key of the film,
+the option, the take and the film's source stamp (the newest file under its
+folder, and the lock). A mix renders the whole film (45–55 s for
+righteousness-by-faith on the box under load), so mixes are made one at a time in the
+service's scope, not the request's: a page that stops waiting leaves one
+running, the next ask joins it or finds it made, and the page's `<audio>`
+asks again when its load fails. Their URLs name the option, not the source, so they
+are served `no-cache` and revalidated; the page asks again after each write
+(`?v=`). The film's module is imported once per process: a hand edit to
+`sound.ts`'s options needs the review restarted (a pick does not: it reads
+`play` from the file's text).
+
+**The remote surface.** The review is served where the owner reaches it from
+a phone, so `REVIEW_HOST` defaults to loopback and a box's unit binds
+`0.0.0.0` with the names it is reached by in `FILM_REVIEW_HOSTS`
+(comma-separated Host values as the browser sends them, port included:
+`bite-cristian.exe.xyz:8229`). Every request passes the lab's `admit`: a Host
+that is neither the server's own nor one of those is a 403 (DNS rebinding),
+and so is any request a browser marks cross-site (`Sec-Fetch-Site`). A write
+must also carry an `Origin` of one of those hosts (`http://` or `https://`)
+and a JSON body: another origin is a 403, a text/plain body a 415 (so a form
+on another site cannot post), a bad body a 400. The scene editor, the notes
+and the studio stay on `film lab`'s loopback server: the review serves no
+scene writes.
+
+**The page** (`lab/review/`): `<Review.Root>` holds the runtime (the review's
+routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
+`?film=`; kept in the URL, so Back and a reload work), the index, the films,
+the quality (720p or the file) and the lightbox. A set's page holds two
+effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
+`Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
+and the view (`All`, `Pair`, `Moments`, `Notes`). `sync.ts` is the driver
+that makes every media element (a `<video>` or an `<audio>`) follow the
+player: it puts drifters back on the clock, holds all while one stalls, and
+unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
+puts its newest render on that player, muted, and one `<audio>` of the mix
+heard over it: 🔊 on a score option or a take ("in place") swaps it, and it
+joins where the clock stands. A sound's placements jump the clock there.
+Pick, Keep, Unkeep and Reject write; Undo and Redo name what they would do;
+the film's check shows under them after every write.
 
 ## Check
 

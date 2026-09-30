@@ -294,8 +294,11 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
 
         const names = fs.readDirectory(films).pipe(
           Effect.flatMap((entries) =>
+            // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
             Effect.filter(entries, (name) =>
-              fs.exists(path.join(films, name, 'scenes', 'index.ts')),
+              fs
+                .exists(path.join(films, name, 'scenes', 'index.ts'))
+                .pipe(Effect.orElseSucceed(() => false)),
             ),
           ),
           Effect.map((found) => [...found].sort()),

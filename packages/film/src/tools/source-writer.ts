@@ -113,7 +113,7 @@ export interface SourceWriterService {
     file: string,
     target: string,
     act: Effect.Effect<A, E, R>,
-  ) => Effect.Effect<readonly [A, Option.Option<Change>], E | PlatformError, R>;
+  ) => Effect.Effect<readonly [A, Option.Option<Change>], E | PlatformError | FormatFailed, R>;
   /** Put `film`'s newest change back: its file as it was before it. */
   readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | PlatformError>;
   /** Make `film`'s newest undone change again. */
@@ -266,7 +266,11 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             Effect.gen(function* () {
               const before = yield* fs.readFileString(file);
               const done = yield* act;
-              const after = yield* fs.readFileString(file);
+              // Left as the formatter leaves it, as every lab write is: the act's own
+              // writer (the library's lock) need not format as the repository does.
+              const acted = yield* fs.readFileString(file);
+              const after = yield* format(file, acted);
+              if (after !== acted) yield* put(file, after);
               if (after === before) return [done, Option.none<Change>()] as const;
               const change: Change = { film, scene: Option.none(), file, target, before, after };
               yield* record(change, 'lab.write');

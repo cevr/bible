@@ -22,6 +22,7 @@ import {
   Crypto,
   Duration,
   Effect,
+  Fiber,
   FileSystem,
   Layer,
   Option,
@@ -29,6 +30,8 @@ import {
   Path,
   Predicate,
   Result,
+  Scope,
+  Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { UnknownSound } from '../core/errors.ts';
@@ -58,6 +61,7 @@ import { musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
 import {
   type CandidateMissing,
   ChoiceUnknown,
+  type FormatFailed,
   type ReviewToolFailed,
   type SourceRefused,
   TakeActRefused,
@@ -111,6 +115,7 @@ export interface ChoicesService {
     | UnknownSound
     | CandidateMissing
     | VariantMissing
+    | FormatFailed
   >;
   /** The film's whole mix with `option` playing, as an m4a in the review's cache. */
   readonly scoreMix: (
@@ -454,6 +459,42 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return Math.max(0, ...times);
       });
 
+      /** The mix `name` made: the film's with `score` and `take`, written to the cache as an m4a. */
+      const derived = (
+        name: string,
+        film: string,
+        score: Option.Option<string>,
+        take: Option.Option<TakeInPlace>,
+      ) =>
+        review.derive(name, (temporary) =>
+          Effect.gen(function* () {
+            const { mixed: m } = yield* mixer.render(film, { warn: false, score, take });
+            const wav = `${temporary}.wav`;
+            yield* media.writeWav(wav, m.master);
+            yield* review
+              .ffmpeg(
+                name,
+                ['-i', wav, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', temporary],
+                ENCODE_LIMIT,
+              )
+              .pipe(Effect.ensuring(Effect.ignore(fs.remove(wav, { force: true }))));
+            yield* Effect.log(`review.mix film=${film} name=${name}`);
+          }),
+        );
+
+      /**
+       * The mixes being made, by name. A mix runs in the service's scope, not
+       * the request's: a page that stops waiting (a dropped connection, the
+       * next 🔊) leaves it running, and the next ask joins it or finds it made.
+       * One mix at a time: each renders the whole film.
+       */
+      const running = new Map<
+        string,
+        Fiber.Fiber<string, Effect.Error<ReturnType<typeof derived>>>
+      >();
+      const oneMix = Semaphore.makeUnsafe(1);
+      const scope = yield* Scope.Scope;
+
       /** The film's mix with `score` and `take` as asked, derived once into the cache as an m4a. */
       const mixed = (
         film: string,
@@ -471,21 +512,17 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             crypto.digest('SHA-1', new TextEncoder().encode(what.join('|'))),
           );
           const name = `mix/${film}/${hex(digest).slice(0, 20)}.m4a`;
-          return yield* review.derive(name, (temporary) =>
-            Effect.gen(function* () {
-              const { mixed: m } = yield* mixer.render(film, { warn: false, score, take });
-              const wav = `${temporary}.wav`;
-              yield* media.writeWav(wav, m.master);
-              yield* review
-                .ffmpeg(
-                  name,
-                  ['-i', wav, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', temporary],
-                  ENCODE_LIMIT,
-                )
-                .pipe(Effect.ensuring(Effect.ignore(fs.remove(wav, { force: true }))));
-              yield* Effect.log(`review.mix film=${film} name=${name}`);
-            }),
-          );
+          const fiber = yield* Option.match(Option.fromUndefinedOr(running.get(name)), {
+            onSome: (f) => Effect.succeed(f),
+            onNone: () =>
+              derived(name, film, score, take).pipe(
+                Semaphore.withPermits(oneMix, 1),
+                Effect.ensuring(Effect.sync(() => running.delete(name))),
+                Effect.forkIn(scope),
+                Effect.tap((f) => Effect.sync(() => running.set(name, f))),
+              ),
+          });
+          return yield* Fiber.join(fiber);
         });
 
       const scoreMix = Effect.fn('Choices.scoreMix')(function* (film: string, option: string) {
