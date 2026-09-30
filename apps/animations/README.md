@@ -613,9 +613,9 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`. A callback, or a shot
-carried over a cut, draws another scene's paper with `f.handsOf(message)` (found by its drawing, so a mistyped scene fails to compile; an id string works too):
+carried over a cut, draws another scene's paper with `f.handsOf(message)` (found by its drawing, so a mistyped scene fails to compile):
 that scene's hands as its own `f.hand` gives them, boiling on this frame's
-tick; a scene the film lacks throws, naming it. It frames what that scene
+tick; a drawing no scene of the film draws throws, naming the scene that asked. It frames what that scene
 framed with its knobs, `f.knobsOf(thesis)('city')` (found by its drawing,
 typed by its knobs, a lab edit to them included), never a copy of the point.
 
