@@ -1,22 +1,25 @@
 // Review: the box's renders, served where they lie and compared in sync.
 //
 // Nothing is copied. Each review root (a checkout's `out/`, a scratchpad's
-// montages) is read in place; a file is named by its ref, its root's label
-// and its path under the root, so a route never takes a path on the box, and
-// a ref answers only what the index would list: a video, an image or a doc
-// (`kindOf`) where a walk looks, or a file a manifest names. The only files
-// the review writes are derived ones (a frame, a 720p phone copy of a big
-// video, a score option's mix) in its cache, keyed by the source's path and
-// mtime (or, for a mix, its plan), each made once, whole or not at all
-// (written beside its name, then renamed into place). Lengths, frames and
-// phone copies are the Media service's (`media.ts`).
+// montages) is read in place, and a folder is listed only by the record that
+// says what its files are; nothing reads a file's name back:
 //
-// Videos that share a folder and a clip name (`<clip>.<variant>[.share].mp4`)
-// form one comparison set, a share copy standing in for its master; a set
-// needs two variants, or a `review.json` entry for its clip. The manifest
-// names, orders and annotates a folder's sets and may pull a variant, notes or
-// docs from anywhere under the roots. What is in no set (renders, images,
-// docs) is listed with the folder.
+// - a film's project folder by its catalogue (`catalogue.json`,
+//   `core/catalogue.ts`): each address's renders are one comparison set, a
+//   variant each, with the owner's approval as its verdict; stills, sheets
+//   and captions are listed with the folder. A film's whole-film renders are
+//   also the pictures its options are heard against (`pictures`);
+// - a montage by its manifest (`review.json`): the sets, variants, videos,
+//   images and docs it names. A variant with no `file` is
+//   `<clip>.<id>.share.mp4`, else `<clip>.<id>.mp4`, beside it.
+//
+// A file is named by its ref, its root's label and its path under the root,
+// so a route never takes a path on the box, and a ref answers only a file the
+// index lists. The only files the review writes are derived ones (a frame, a
+// 720p phone copy of a big video, a score option's mix) in its cache, keyed
+// by the source's path and mtime (or, for a mix, its plan), each made once,
+// whole or not at all (written beside its name, then renamed into place).
+// Lengths, frames and phone copies are the Media service's (`media.ts`).
 
 import {
   Array as Arr,
@@ -36,6 +39,15 @@ import {
   Schema,
   Semaphore,
 } from 'effect';
+import { addressKey } from '../core/address.ts';
+import {
+  type Catalogue,
+  CatalogueJson,
+  MAIN_VARIANT,
+  type Render,
+  approvalState,
+  commentsOn,
+} from '../core/catalogue.ts';
 import type {
   RenderChoice,
   RenderVariant,
@@ -47,6 +59,7 @@ import type {
 } from '../core/schema.ts';
 import { ReviewManifestJson } from '../core/schema.ts';
 import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
+import { CATALOGUE_FILE } from './catalogue.ts';
 import { cacheKey } from './digest.ts';
 import { Media } from './media.ts';
 
@@ -73,15 +86,11 @@ export const MAX_VIDEO = 600 * 1024 * 1024;
 /** How long an index answers before the roots are read again. */
 export const INDEX_FRESH = Duration.seconds(15);
 
-const VIDEO = ['.mp4', '.webm'];
-const IMAGE = ['.jpg', '.jpeg', '.png', '.webp'];
-const DOC = ['.md', '.vtt', '.txt'];
 /** Folders of working files a walk does not enter (dot-folders neither). */
 const SKIP_DIRS = ['stills', 'frames', 'node_modules'];
 /** How many folders deep a walk goes under a root. */
 const MAX_DEPTH = 8;
 
-type Kind = 'video' | 'image' | 'doc';
 type PhoneState = ReviewVideo['phone'];
 
 /** A file a walk found, where it lies. */
@@ -92,41 +101,6 @@ export interface Found {
   readonly size: number;
   readonly mtime: number;
 }
-
-/** What a file is to the review, by its name: `None` for anything it does not show. */
-export const kindOf = (name: string): Option.Option<Kind> => {
-  const lower = name.toLowerCase();
-  const ext = lower.slice(lower.lastIndexOf('.'));
-  if (lower.includes('.part.')) return Option.none();
-  if (VIDEO.includes(ext)) return Option.some('video');
-  if (IMAGE.includes(ext)) return Option.some('image');
-  // A .txt is a doc only when it is a chapter list; the rest are logs.
-  if (ext === '.txt' && !lower.includes('chapters')) return Option.none();
-  if (DOC.includes(ext)) return Option.some('doc');
-  return Option.none();
-};
-
-/** A video's name read as a set member. */
-export interface NameParts {
-  readonly clip: string;
-  readonly variant: Option.Option<string>;
-  /** A share copy (`.share.mp4`): it stands in for its master. */
-  readonly share: boolean;
-}
-
-/**
- * `roof.A-current.share.mp4` is clip `roof`, variant `A-current`, a share
- * copy; `film.mp4` is clip `film` with no variant.
- */
-export const splitName = (name: string): NameParts => {
-  let stem = name;
-  if (name.includes('.')) stem = name.slice(0, name.lastIndexOf('.'));
-  const share = stem.endsWith('.share');
-  if (share) stem = stem.slice(0, -'.share'.length);
-  const first = stem.indexOf('.');
-  if (first < 0) return { clip: stem, variant: Option.none(), share };
-  return { clip: stem.slice(0, first), variant: Option.some(stem.slice(first + 1)), share };
-};
 
 const rootFrom = (entry: string, path: Path.Path): ReviewRoot => {
   const eq = entry.indexOf('=');
@@ -200,157 +174,256 @@ const fileOf = (found: Found): ReviewFile => ({
   mtime: found.mtime,
 });
 
-/** What one folder is made of: what a walk found in it, its manifest, and what the manifest names. */
-export interface FolderParts {
+/** The record files a walk finds: a project's catalogue, a montage's manifest. */
+const MANIFEST_FILE = 'review.json';
+
+/** What one folder is made of: its ref, its record, and the files its record names as found. */
+export interface FolderParts<A> {
   readonly ref: string;
-  readonly found: ReadonlyArray<Found>;
-  readonly manifest: Option.Option<ReviewManifest>;
-  /** Files the manifest names, by the name it gives them (relative to the folder). */
-  readonly named: ReadonlyMap<string, Found>;
+  readonly record: A;
+  /** A file the record names (relative to the folder), when it is there. */
+  readonly look: (name: string) => Option.Option<Found>;
   readonly phone: (video: Found) => PhoneState;
+  /** A video over this many bytes (a master) is not listed: too big to stream. */
+  readonly maxVideo: number;
 }
 
-interface Member {
-  readonly id: string;
-  readonly found: Found;
-}
+const found = <A>(parts: FolderParts<A>, names: ReadonlyArray<string>) =>
+  names.flatMap((name) => Option.toArray(parts.look(name)));
 
-type ManifestSet = ReviewManifest['sets'][string];
-
-/** One comparison set from its members by name and what the manifest says of its clip. */
-const setOf = (
-  parts: FolderParts,
-  clip: string,
-  byName: ReadonlyArray<Member>,
-  said: Option.Option<ManifestSet>,
-): Option.Option<RenderChoice> => {
-  const named = (name: string) => Option.fromUndefinedOr(parts.named.get(name));
-  const metas: ManifestSet['variants'] = Option.match(said, {
-    onNone: () => ({}),
-    onSome: (s) => s.variants,
-  });
-  const pulled = Object.entries(metas).flatMap(([id, meta]) =>
-    Option.toArray(
-      Option.map(
-        Option.filter(Option.flatMap(meta.file, named), () => !byName.some((v) => v.id === id)),
-        (found): Member => ({ id, found }),
-      ),
-    ),
+/** The first of `names` there, as a video small enough to stream. */
+const videoOf = <A>(
+  parts: FolderParts<A>,
+  names: ReadonlyArray<string>,
+): Option.Option<ReviewVideo> =>
+  Option.map(
+    Arr.findFirst(found(parts, names), (f) => f.size <= parts.maxVideo),
+    (f) => ({ ...fileOf(f), phone: parts.phone(f) }),
   );
-  const members = [...byName, ...pulled];
-  if (members.length === 0 || (members.length < 2 && Option.isNone(said))) return Option.none();
-  const order: ReadonlyArray<string> = Option.match(said, {
-    onNone: () => [],
-    onSome: (s) => s.order,
-  });
-  const rank = (id: string) => {
-    const at = order.indexOf(id);
-    if (at < 0) return order.length;
-    return at;
-  };
-  const variants = members
-    .map((m): RenderVariant => {
-      const meta = Rec.get(metas, m.id);
-      return {
-        id: m.id,
-        label: Option.getOrElse(
-          Option.flatMap(meta, (v) => v.label),
-          () => m.id,
-        ),
-        tag: Option.flatMap(meta, (v) => v.tag),
-        verdict: Option.flatMap(meta, (v) => v.verdict),
-        notes: Option.map(
-          Option.flatMap(
-            Option.flatMap(meta, (v) => v.notes),
-            named,
-          ),
-          fileOf,
-        ),
-        video: { ...fileOf(m.found), phone: parts.phone(m.found) },
-      };
-    })
-    .toSorted((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
-  return Option.some({
-    _tag: 'RenderChoice',
-    clip,
-    title: Option.getOrElse(
-      Option.flatMap(said, (s) => s.title),
-      () => clip,
-    ),
-    start: Option.match(said, { onNone: () => 0, onSome: (s) => s.start }),
-    moments: Option.flatMap(said, (s) => s.moments),
-    variants,
-  });
+
+const newestFiles = (files: ReadonlyArray<Found>): ReadonlyArray<ReviewFile> =>
+  Arr.sort(
+    Arr.dedupeWith(files, (a, b) => a.path === b.path),
+    newestFirst,
+  ).map(fileOf);
+
+const newestMtime = (files: ReadonlyArray<Found>) => Math.max(0, ...files.map((f) => f.mtime));
+
+/** Every file a render names, relative to its project folder. */
+const renderFiles = (render: Render): ReadonlyArray<string> => [
+  ...Option.toArray(render.files.clip),
+  ...Option.toArray(render.files.share),
+  ...Option.toArray(render.files.captions),
+  ...Option.toArray(render.files.chapters),
+  ...render.files.images,
+];
+
+/** Every file a catalogue names, relative to its project folder. */
+export const namesInProject = (catalogue: Catalogue): ReadonlyArray<string> =>
+  Arr.dedupe(catalogue.renders.flatMap(renderFiles));
+
+/** A render's video as the review plays it: its share copy, standing in for its master. */
+const renderVideo = (parts: FolderParts<Catalogue>, render: Render) =>
+  videoOf(parts, [...Option.toArray(render.files.share), ...Option.toArray(render.files.clip)]);
+
+/** Where an address's set sits in its project: the film, then by film time, then the shorts. */
+const placeOf = (render: Render): readonly [number, number] => {
+  if (render.address._tag === 'Film') return [0, 0];
+  if (render.address._tag === 'Short') return [2, 0];
+  return [1, Option.match(render.span, { onNone: () => 0, onSome: (s) => s.from })];
+};
+
+/** An address as a set's title: `film`, `act cold open`, `scene cold`, `scenes a, b`, `short verdict`. */
+const addressTitle = (render: Render): string => {
+  const address = render.address;
+  if (address._tag === 'Film') return 'film';
+  if (address._tag === 'Act') return `act ${address.act}`;
+  if (address._tag === 'Short') return `short ${address.id}`;
+  if (address.ids.length === 1) return `scene ${address.ids[0]}`;
+  return `scenes ${address.ids.join(', ')}`;
+};
+
+const VERDICT = {
+  none: Option.none(),
+  approved: Option.some('approved'),
+  stale: Option.some('approved an earlier render'),
+} as const;
+
+/** `n` and `noun`, plural but for one. */
+const counted = (n: number, noun: string) =>
+  `${n} ${noun}${Arr.filter(['s'], () => n !== 1).join('')}`;
+
+/** What a render is, in a line: its size, its commit, and what was said of it. */
+const renderTag = (catalogue: Catalogue, render: Render): string => {
+  const said = commentsOn(catalogue, render).length;
+  return [
+    `scale ${render.settings.scale}`,
+    ...Option.toArray(Option.map(render.stamp.commit, (c) => c.slice(0, 7))),
+    ...Arr.filter([counted(said, 'comment')], () => said > 0),
+  ].join(' · ');
 };
 
 /**
- * One folder as the review lists it: its sets (by name and by manifest), and
- * the videos, images and docs in no set, newest first. Pure.
+ * A film's project folder as the review lists it, from its catalogue: one set
+ * per address its videos draw (the film, then acts and scenes in film order,
+ * then shorts), a variant per render (`main` first) with its approval as the
+ * verdict; its stills, sheets and captions with the folder. Pure.
  */
-export const assembleFolder = (parts: FolderParts): ReviewFolder => {
-  const ofKind = (kind: Kind) => parts.found.filter((f) => Option.contains(kindOf(f.name), kind));
-  const video = (f: Found): ReviewVideo => ({ ...fileOf(f), phone: parts.phone(f) });
-  const named = (name: string) => Option.fromUndefinedOr(parts.named.get(name));
-  const sets = Option.match(parts.manifest, { onNone: () => ({}), onSome: (m) => m.sets });
-
-  // A share copy stands in for its master.
-  const videos = ofKind('video');
-  const shared = new Set(
-    videos.filter((v) => splitName(v.name).share).map((v) => v.name.replace('.share.', '.')),
-  );
-  const playable = videos.filter((v) => !shared.has(v.name));
-  const members = playable.flatMap((found) => {
-    const parts = splitName(found.name);
-    return Option.toArray(
-      Option.map(parts.variant, (id) => ({ clip: parts.clip, member: { id, found } })),
-    );
-  });
-  const byClip = Arr.groupBy(members, (m) => m.clip);
-  const clips = Arr.dedupe([...Object.keys(byClip), ...Object.keys(sets)]).toSorted();
-  const choices = clips.flatMap((clip) => {
-    const byName = Option.match(Rec.get(byClip, clip), {
-      onNone: () => [],
-      onSome: (ms) => ms.map((m) => m.member),
+export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
+  const catalogue = parts.record;
+  const videos = catalogue.renders.filter((r) => r.kind === 'video');
+  const byAddress = Arr.groupBy(videos, (r) => addressKey(r.address));
+  const sets = Object.entries(byAddress)
+    .map(([key, renders]) => ({ key, renders, place: placeOf(renders[0]) }))
+    .toSorted(
+      (a, b) => a.place[0] - b.place[0] || a.place[1] - b.place[1] || a.key.localeCompare(b.key),
+    )
+    .flatMap(({ key, renders }): ReadonlyArray<RenderChoice> => {
+      const variants = renders
+        .toSorted(
+          (a, b) =>
+            Number(b.variant === MAIN_VARIANT) - Number(a.variant === MAIN_VARIANT) ||
+            a.variant.localeCompare(b.variant),
+        )
+        .flatMap((render) =>
+          Option.toArray(
+            Option.map(renderVideo(parts, render), (video): RenderVariant => ({
+              id: render.variant,
+              label: render.variant,
+              tag: Option.some(renderTag(catalogue, render)),
+              verdict: VERDICT[approvalState(catalogue, render)],
+              notes: Option.none(),
+              video,
+            })),
+          ),
+        );
+      if (variants.length === 0) return [];
+      return [
+        {
+          _tag: 'RenderChoice',
+          clip: key,
+          title: addressTitle(renders[0]),
+          start: 0,
+          moments: Option.none(),
+          variants,
+        },
+      ];
     });
-    return Option.toArray(
-      Option.map(setOf(parts, clip, byName, Rec.get(sets, clip)), (choice) => ({
-        choice,
-        paths: byName.map((m) => m.found.path),
-      })),
-    );
-  });
-  const inSet = new Set(choices.flatMap((c) => c.paths));
-  const listed = Option.match(parts.manifest, { onNone: () => [], onSome: (m) => m.docs });
-  const docs = [...ofKind('doc'), ...listed.flatMap((name) => Option.toArray(named(name)))];
+  const all = found(parts, namesInProject(catalogue));
+  const approved = catalogue.renders.filter((r) => approvalState(catalogue, r) === 'approved');
   return {
     ref: parts.ref,
-    title: Option.flatMap(parts.manifest, (m) => m.title),
-    blurb: Option.flatMap(parts.manifest, (m) => m.blurb),
-    mtime: Math.max(0, ...parts.found.map((f) => f.mtime)),
-    sets: choices.map((c) => c.choice),
-    videos: Arr.sort(
-      playable.filter((v) => !inSet.has(v.path)),
-      newestFirst,
-    ).map(video),
-    images: Arr.sort(ofKind('image'), newestFirst).map(fileOf),
-    docs: Arr.sort(
-      Arr.dedupeWith(docs, (a, b) => a.path === b.path),
-      newestFirst,
-    ).map(fileOf),
+    title: Option.some(catalogue.film),
+    blurb: Option.some(
+      `${counted(catalogue.renders.length, 'render')}, ${approved.length} approved`,
+    ),
+    mtime: newestMtime(all),
+    sets,
+    videos: [],
+    images: newestFiles(
+      found(
+        parts,
+        catalogue.renders.flatMap((r) => r.files.images),
+      ),
+    ),
+    docs: newestFiles(
+      found(
+        parts,
+        catalogue.renders.flatMap((r) => [
+          ...Option.toArray(r.files.captions),
+          ...Option.toArray(r.files.chapters),
+        ]),
+      ),
+    ),
   };
 };
 
-/** The names a manifest gives files relative to its folder: variants, notes, docs. */
-const namedIn = (manifest: ReviewManifest): ReadonlyArray<string> =>
+type ManifestSet = ReviewManifest['sets'][string];
+
+/** A set's variant ids: its order first, then the rest it describes, by name. */
+const variantIds = (set: ManifestSet): ReadonlyArray<string> =>
+  Arr.dedupe([...set.order, ...Object.keys(set.variants).toSorted()]);
+
+/** The files a manifest variant may be, first first: its `file`, else its share copy, then its master. */
+const variantNames = (clip: string, id: string, set: ManifestSet): ReadonlyArray<string> =>
+  Option.match(
+    Option.flatMap(Rec.get(set.variants, id), (v) => v.file),
+    {
+      onSome: (file) => [file],
+      onNone: () => [`${clip}.${id}.share.mp4`, `${clip}.${id}.mp4`],
+    },
+  );
+
+/** Every file a manifest names (or may, for a variant with no `file`), relative to its folder. */
+export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> =>
   Arr.dedupe([
     ...manifest.docs,
-    ...Object.values(manifest.sets).flatMap((set) =>
-      Object.values(set.variants).flatMap((v) => [
-        ...Option.toArray(v.file),
-        ...Option.toArray(v.notes),
+    ...manifest.images,
+    ...manifest.videos,
+    ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
+      variantIds(set).flatMap((id) => [
+        ...variantNames(clip, id, set),
+        ...Option.toArray(Option.flatMap(Rec.get(set.variants, id), (v) => v.notes)),
       ]),
     ),
   ]);
+
+/**
+ * A montage as the review lists it, from its manifest: its sets (in clip
+ * order) with each variant it names, and the videos, images and docs it
+ * names, newest first. A variant whose video is not there is left out. Pure.
+ */
+export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder => {
+  const manifest = parts.record;
+  const sets = Object.entries(manifest.sets)
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .flatMap(([clip, set]): ReadonlyArray<RenderChoice> => {
+      const variants = variantIds(set).flatMap((id) => {
+        const meta = Rec.get(set.variants, id);
+        return Option.toArray(
+          Option.map(videoOf(parts, variantNames(clip, id, set)), (video): RenderVariant => ({
+            id,
+            label: Option.getOrElse(
+              Option.flatMap(meta, (v) => v.label),
+              () => id,
+            ),
+            tag: Option.flatMap(meta, (v) => v.tag),
+            verdict: Option.flatMap(meta, (v) => v.verdict),
+            notes: Option.map(
+              Option.flatMap(
+                Option.flatMap(meta, (v) => v.notes),
+                parts.look,
+              ),
+              fileOf,
+            ),
+            video,
+          })),
+        );
+      });
+      if (variants.length === 0) return [];
+      return [
+        {
+          _tag: 'RenderChoice',
+          clip,
+          title: Option.getOrElse(set.title, () => clip),
+          start: set.start,
+          moments: set.moments,
+          variants,
+        },
+      ];
+    });
+  const videos = found(parts, manifest.videos).filter((f) => f.size <= parts.maxVideo);
+  return {
+    ref: parts.ref,
+    title: manifest.title,
+    blurb: manifest.blurb,
+    mtime: newestMtime(found(parts, namesInMontage(manifest))),
+    sets,
+    videos: Arr.sort(videos, newestFirst).map((f) => ({ ...fileOf(f), phone: parts.phone(f) })),
+    images: newestFiles(found(parts, manifest.images)),
+    docs: newestFiles(found(parts, manifest.docs)),
+  };
+};
 
 /** Whether a path under a root (its segments, relative) is one a walk looks at. */
 const walked = (rel: string): boolean => {
@@ -364,6 +437,11 @@ export interface ReviewService {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;
+  /**
+   * `film`'s whole-film renders under the roots, newest first, by its
+   * project folders' catalogues: the pictures its options are heard against.
+   */
+  readonly pictures: (film: string) => Effect.Effect<ReadonlyArray<ReviewVideo>>;
   /** The file `ref` names: inside its root, there, a file the index lists. */
   readonly resolve: (ref: string) => Effect.Effect<string, ReviewFileUnknown>;
   /** A video's length in seconds (its container's index), kept per path and mtime. */
@@ -437,15 +515,12 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           });
         });
 
-        /**
-         * Whether the index would list `found` (at `ref`): a video, an image or
-         * a doc where a walk looks, or a file a folder's manifest names.
-         */
-        const listed = Effect.fn('Review.listed')(function* (ref: string, found: Found) {
-          const rel = ref.split('/').slice(1).join('/');
-          if (Option.isSome(kindOf(found.name)) && walked(rel)) return true;
-          const { folders } = yield* Effect.suspend(() => index(false));
-          return folders.some((folder) => refsIn(folder).includes(ref));
+        /** Whether the index lists `ref`: as it stands, or read again once when it does not. */
+        const listed = Effect.fn('Review.listed')(function* (ref: string) {
+          const lists = (index: ReviewIndex) =>
+            index.folders.some((folder) => refsIn(folder).includes(ref));
+          if (lists(yield* Effect.suspend(() => index(false)))) return true;
+          return lists(yield* Effect.suspend(() => index(true)));
         });
 
         const resolve = Effect.fn('Review.resolve')(function* (ref: string) {
@@ -463,7 +538,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const inside = Option.exists(real, (r) => Option.isSome(refOf(realRoots, r, path)));
           const found = yield* foundAt(at.value);
           if (!inside || Option.isNone(found)) return yield* unknown;
-          if (!(yield* listed(ref, found.value))) return yield* unknown;
+          if (!(yield* listed(ref))) return yield* unknown;
           return at.value;
         });
 
@@ -588,100 +663,159 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           }
         });
 
-        // Every file a walk looks at under a root, by folder.
+        /** Every record a walk finds under a root: a project's catalogue, a montage's manifest. */
         const walk = Effect.fn('Review.walk')(function* (root: ReviewRoot) {
           const names = yield* fs
             .readDirectory(root.path, { recursive: true })
             .pipe(Effect.orElseSucceed(() => []));
-          const shown = names
+          return names
             .map((rel) => rel.split(path.sep).join('/'))
-            .filter((rel) => walked(rel) && Option.isSome(kindOf(path.basename(rel))));
-          const found = yield* Effect.forEach(
-            shown,
-            (rel) => foundAt(path.join(root.path, ...rel.split('/'))),
-            { concurrency: 16 },
-          );
-          const kept = found.flatMap(Option.toArray).filter((f) => {
-            if (Option.contains(kindOf(f.name), 'video')) return f.size <= config.maxVideo;
-            return true;
-          });
-          return Arr.groupBy(kept, (f) => path.dirname(f.path));
+            .filter((rel) => walked(rel))
+            .filter((rel) => [CATALOGUE_FILE, MANIFEST_FILE].includes(rel.split('/').at(-1) ?? ''))
+            .map((rel) => path.join(root.path, ...rel.split('/')));
         });
 
-        const readManifest = Effect.fn('Review.readManifest')(function* (dir: string) {
-          const text = yield* fs.readFileString(path.join(dir, 'review.json')).pipe(Effect.option);
-          if (Option.isNone(text)) return Option.none<ReviewManifest>();
-          return yield* Schema.decodeEffect(ReviewManifestJson)(text.value).pipe(
+        /** A record decoded, or none (with a warning) when it does not. */
+        const decodeRecord = <A>(file: string, codec: Schema.Codec<A, string>) =>
+          fs.readFileString(file).pipe(
+            Effect.flatMap(Schema.decodeEffect(codec)),
             Effect.asSome,
-            Effect.catchTag('SchemaError', (error) =>
-              Effect.logWarning(
-                `review.manifest.invalid dir=${dir} reason="${error.message}"`,
-              ).pipe(Effect.as(Option.none<ReviewManifest>())),
+            Effect.catch((error) =>
+              Effect.as(
+                Effect.logWarning(`review.record.invalid file=${file} reason="${error.message}"`),
+                Option.none<A>(),
+              ),
             ),
           );
-        });
 
-        const folderAt = Effect.fn('Review.folderAt')(function* (
+        /** The files `names` (relative to `dir`) as found there, and each video's phone state. */
+        const lookIn = Effect.fn('Review.lookIn')(function* (
           dir: string,
-          found: ReadonlyArray<Found>,
+          names: ReadonlyArray<string>,
         ) {
-          const manifest = yield* readManifest(dir);
-          const names = Option.match(manifest, { onNone: () => [], onSome: namedIn });
-          const named = new Map<string, Found>();
+          const byName = new Map<string, Found>();
           for (const name of names) {
             const at = yield* foundAt(path.resolve(dir, name));
-            if (Option.isSome(at)) named.set(name, at.value);
+            if (Option.isSome(at)) byName.set(name, at.value);
           }
-          const videos = [...found, ...named.values()].filter((f) =>
-            Option.contains(kindOf(f.name), 'video'),
-          );
           const phones = new Map<string, PhoneState>();
-          for (const video of videos) phones.set(video.path, yield* phoneState(video));
-          const pending = videos.filter((v) => phones.get(v.path) === 'pending');
-          const folder = assembleFolder({
+          for (const file of byName.values())
+            if (!phones.has(file.path)) phones.set(file.path, yield* phoneState(file));
+          const pending = [...byName.values()].filter(
+            (f) => phones.get(f.path) === 'pending' && f.size <= config.maxVideo,
+          );
+          const parts = {
             ref: Option.getOrElse(refOf(roots, dir, path), () => dir),
-            found,
-            manifest,
-            named,
-            phone: (video) =>
-              Option.getOrElse(Option.fromUndefinedOr(phones.get(video.path)), () => 'none'),
+            look: (name: string) => Option.fromUndefinedOr(byName.get(name)),
+            phone: (video: Found) =>
+              Option.getOrElse(
+                Option.fromUndefinedOr(phones.get(video.path)),
+                () => 'none' as const,
+              ),
+            maxVideo: config.maxVideo,
+          };
+          return { parts, pending };
+        });
+
+        /** A folder the index lists by its record, the videos waiting for phone copies, and its film's pictures. */
+        const folderAt = Effect.fn('Review.folderAt')(function* (file: string) {
+          const dir = path.dirname(file);
+          if (path.basename(file) === CATALOGUE_FILE) {
+            const catalogue = yield* decodeRecord(file, CatalogueJson);
+            if (Option.isNone(catalogue)) return Option.none();
+            const record = catalogue.value;
+            const { parts, pending } = yield* lookIn(dir, namesInProject(record));
+            const pictures = record.renders
+              .filter((r) => r.kind === 'video' && r.address._tag === 'Film')
+              .flatMap((r) =>
+                Option.toArray(
+                  Option.map(renderVideo({ ...parts, record }, r), (video) => ({
+                    video,
+                    at: r.at,
+                  })),
+                ),
+              );
+            return Option.some({
+              folder: projectFolder({ ...parts, record }),
+              pending,
+              film: Option.some(record.film),
+              pictures,
+            });
+          }
+          // A project folder's own manifest is not a montage.
+          const project = yield* fs
+            .exists(path.join(dir, CATALOGUE_FILE))
+            .pipe(Effect.orElseSucceed(() => false));
+          if (project) return Option.none();
+          const manifest = yield* decodeRecord(file, ReviewManifestJson);
+          if (Option.isNone(manifest)) return Option.none();
+          const record = manifest.value;
+          const { parts, pending } = yield* lookIn(dir, namesInMontage(record));
+          return Option.some({
+            folder: montageFolder({ ...parts, record }),
+            pending,
+            film: Option.none<string>(),
+            pictures: [],
           });
-          return { folder, pending };
         });
 
         const hasAny = (f: ReviewFolder) =>
           f.sets.length + f.videos.length + f.images.length + f.docs.length > 0;
 
+        /** What a read of the roots found: the index, and each film's pictures, newest first. */
+        interface Read {
+          readonly index: ReviewIndex;
+          readonly pictures: ReadonlyMap<string, ReadonlyArray<ReviewVideo>>;
+        }
+
         const read = Effect.fn('Review.read')(function* () {
-          const walks = yield* Effect.forEach(roots, walk);
-          const dirs = walks.flatMap((byDir) => Object.entries(byDir));
-          const built = yield* Effect.forEach(dirs, ([dir, found]) => folderAt(dir, found));
+          const records = (yield* Effect.forEach(roots, walk)).flat();
+          const built = (yield* Effect.forEach(records, folderAt)).flatMap(Option.toArray);
           const folders = Arr.sort(
             built.map((b) => b.folder),
             newestFirst,
           ).filter(hasAny);
           if (config.phoneCopies) yield* enqueue(built.flatMap((b) => b.pending));
+          // Newest render first, across every project folder of the film.
+          const byFilm = Arr.groupBy(
+            built.flatMap((b) =>
+              Option.toArray(b.film).flatMap((film) => b.pictures.map((p) => ({ film, ...p }))),
+            ),
+            (p) => p.film,
+          );
+          const pictures = new Map(
+            Object.entries(byFilm).map(([film, found]) => [
+              film,
+              found.toSorted((x, y) => y.at - x.at).map((p) => p.video),
+            ]),
+          );
           yield* Effect.logDebug(`review.index.read folders=${folders.length}`);
-          return { folders } satisfies ReviewIndex;
+          return { index: { folders }, pictures } satisfies Read;
         });
 
-        const cached = yield* Ref.make(
-          Option.none<{ readonly at: number; readonly index: ReviewIndex }>(),
-        );
+        const cached = yield* Ref.make(Option.none<{ readonly at: number; readonly read: Read }>());
 
-        const index = Effect.fn('Review.index')(function* (fresh: boolean) {
+        const current = Effect.fn('Review.current')(function* (fresh: boolean) {
           const now = yield* Clock.currentTimeMillis;
           const had = Option.filter(
             yield* Ref.get(cached),
             (c) => !fresh && now - c.at < Duration.toMillis(INDEX_FRESH),
           );
-          if (Option.isSome(had)) return had.value.index;
+          if (Option.isSome(had)) return had.value.read;
           const made = yield* read();
-          yield* Ref.set(cached, Option.some({ at: now, index: made }));
+          yield* Ref.set(cached, Option.some({ at: now, read: made }));
           return made;
         });
 
-        return Review.of({ roots, index, resolve, duration, frame, phone, derive });
+        const index = Effect.fn('Review.index')(function* (fresh: boolean) {
+          return (yield* current(fresh)).index;
+        });
+
+        const pictures = Effect.fn('Review.pictures')(function* (film: string) {
+          return (yield* current(false)).pictures.get(film) ?? [];
+        });
+
+        return Review.of({ roots, index, pictures, resolve, duration, frame, phone, derive });
       }),
     );
 

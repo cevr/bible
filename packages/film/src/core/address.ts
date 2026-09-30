@@ -29,6 +29,21 @@ export const Address = Schema.Union([
 ]);
 export type Address = typeof Address.Type;
 
+/**
+ * One address as a string, equal for equal addresses: `film`, `act:<name>`,
+ * `scenes:<id>,<id>`, `short:<id>`. A record keyed by address compares these.
+ */
+export const addressKey = (address: Address): string =>
+  Match.valueTags(address, {
+    Film: () => 'film',
+    Act: ({ act }) => `act:${act}`,
+    Scenes: ({ ids }) => `scenes:${ids.join(',')}`,
+    Short: ({ id }) => `short:${id}`,
+  });
+
+/** One scene's address. */
+export const sceneAddress = (id: string): Address => ({ _tag: 'Scenes', ids: [id] });
+
 /** What a command was given to name its part: `--act`, `--scene a,b`, `--short`. */
 export interface AddressFlags {
   readonly act: Option.Option<string>;
