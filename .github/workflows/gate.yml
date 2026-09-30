@@ -1,0 +1,151 @@
+# The full gate (`bun run gate`), split into parallel jobs so the wall clock is
+# the slowest job's, not the sum. The hooks run only the staged-file lint and
+# format; everything else runs here.
+
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  FORCE_COLOR: '1'
+
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          turbo-key: style
+      - run: bun run lint
+      - run: bun run fmt:check
+
+  typecheck:
+    name: typecheck and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          turbo-key: typecheck
+      - run: bun x turbo run typecheck build --output-logs=errors-only
+
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The film framework's suite is the longest: bun splits its files
+          # across three runners by `--shard`.
+          - name: film 1/3
+            filters: --filter=@bible/film
+            args: --shard=1/3
+            browser: true
+            ffmpeg: true
+          - name: film 2/3
+            filters: --filter=@bible/film
+            args: --shard=2/3
+            browser: true
+            ffmpeg: true
+          - name: film 3/3
+            filters: --filter=@bible/film
+            args: --shard=3/3
+            browser: true
+            ffmpeg: true
+          - name: core
+            filters: --filter=@bible/core
+            model: true
+          - name: animations
+            filters: --filter=@bible/animations
+            ffmpeg: true
+          - name: apps and packages
+            filters: --filter=!@bible/film --filter=!@bible/core --filter=!@bible/animations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          turbo-key: test
+
+      # The media tests encode and probe through the ffmpeg CLI.
+      - name: Install ffmpeg
+        if: matrix.ffmpeg
+        run: command -v ffmpeg || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; }
+
+      # Headless Chromium for the canvas and lab tests, at playwright-core's version.
+      - name: Cache Chromium
+        if: matrix.browser
+        id: chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ hashFiles('packages/film/package.json') }}
+      - name: Install Chromium
+        if: matrix.browser
+        working-directory: packages/film
+        run: bun x playwright-core install --with-deps chromium chromium-headless-shell
+
+      # EmbeddingGemma's weights are not committed (core §10): fetched once
+      # from Hugging Face into a cache the embedder reads by BIBLE_MODEL_CACHE.
+      - name: Cache the embedding model
+        if: matrix.model
+        id: model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/bible-models
+          key: embeddinggemma-300m-onnx-fp32-v1
+      - name: Fetch the embedding model
+        if: matrix.model && steps.model.outputs.cache-hit != 'true'
+        run: |
+          base=https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/resolve/main
+          dir="$HOME/.cache/bible-models/onnx-community/embeddinggemma-300m-ONNX"
+          for file in config.json tokenizer.json tokenizer_config.json onnx/model.onnx onnx/model.onnx_data; do
+            curl -fsSL --retry 3 --create-dirs -o "$dir/$file" "$base/$file"
+          done
+      - name: Point the embedder at the model
+        if: matrix.model
+        run: echo "BIBLE_MODEL_CACHE=$HOME/.cache/bible-models" >> "$GITHUB_ENV"
+
+      - run: bun x turbo run test ${{ matrix.filters }} --output-logs=new-only -- ${{ matrix.args }}
+
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          turbo-key: perf
+
+      # The release Artifact the CLI's query-plan budgets read, pinned by its
+      # digest in packages/core/src/corpus-supply/file-artifact.ts.
+      - name: Cache bible.db
+        id: bible-db
+        uses: actions/cache@v4
+        with:
+          path: packages/core/data/bible.db
+          key: bible-db-v2-e72244f576be
+      - name: Fetch bible.db
+        if: steps.bible-db.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download db-v2 --repo ${{ github.repository }} --pattern bible.db --dir packages/core/data
+      - name: Verify bible.db
+        run: echo "e72244f576be2bfa1b28c4816f60d3668338c1322d7cd329d73143ec43bf277c  packages/core/data/bible.db" | sha256sum --check
+
+      - run: bun run test:perf
