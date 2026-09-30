@@ -19,6 +19,7 @@ import {
   Schema,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { TestClock } from 'effect/testing';
 import { type NoteDraft, NotesFileJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { LockOwnerJson, NotesStore, lockVerdict } from './notes-store.ts';
@@ -118,21 +119,21 @@ describe('NotesStore', () => {
     }).pipe(Effect.provide(storeOver(memoryFileSystem(files))));
   });
 
-  it.live('a wait returns each change past its cursor once, and wakes on a new one', () =>
+  it.effect('a wait returns each change past its cursor once, and wakes on a new one', () =>
     Effect.gen(function* () {
       const notes = yield* NotesStore;
       yield* notes.add(film, draft('first'), png);
       const first = yield* notes.wait(film, 0, '1 second');
       expect(first.events.map((e) => [e._tag, e.note.id])).toEqual([['NoteAdded', 'n1']]);
       // Nothing past the cursor: the wait times out empty and keeps the cursor.
-      expect(yield* notes.wait(film, first.cursor, '300 millis')).toEqual({
-        cursor: 1,
-        events: [],
-      });
-      // A wait already running sees a note saved after it began.
+      const idle = yield* Effect.forkChild(notes.wait(film, first.cursor, '300 millis'));
+      yield* TestClock.adjust('300 millis');
+      expect(yield* Fiber.join(idle)).toEqual({ cursor: 1, events: [] });
+      // A wait already running (it has read the file and found nothing) sees a note saved after it began.
       const waiting = yield* Effect.forkChild(notes.wait(film, first.cursor, '5 seconds'));
-      yield* Effect.sleep('250 millis');
+      yield* TestClock.adjust('200 millis');
       yield* notes.reply(film, 'n1', { by: 'user', text: 'and this', still: Option.none() });
+      yield* TestClock.adjust('200 millis');
       const next = yield* Fiber.join(waiting);
       expect(next.events.map((e) => [e._tag, e.seq])).toEqual([['NoteReplied', 2]]);
       expect(next.cursor).toBe(2);
