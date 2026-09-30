@@ -8,6 +8,7 @@ A monorepo for Bible study tools with CLI and web interfaces.
 bible/
 ├── apps/
 │   ├── desktop/        # Desktop app
+│   ├── triedgold/      # triedgold.com (@bible/triedgold, React Router 8; brand tokens in src/brand.ts; Alchemy → Railway)
 │   └── web/            # Web application (@bible/web, shared Solid 2/Vite app)
 ├── packages/
 │   ├── core/           # Shared business logic (@bible/core)
