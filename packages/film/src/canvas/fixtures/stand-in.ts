@@ -1,18 +1,23 @@
-// A stand-in 2D context, because bun has no canvas. It keeps the drawing
-// state a frame's geometry depends on (transform, alpha, composite, filter,
-// fill style), saved and restored whole, and records what is filled and
-// drawn under it; every other call answers `nothing`. `withDom` puts up a
-// document whose canvases draw into stand-ins of their own, for the paper,
-// the light sheets and the fibre tile a film makes off the page.
+// The one stand-in 2D context, because bun has no canvas (`@bible/film/stand-in`,
+// for the framework's tests and a film's). It keeps the drawing state a
+// frame's geometry depends on (transform, alpha, composite, filter, fill
+// style), saved and restored whole, and records what is filled and drawn
+// under it; every other call answers `nothing`. It refuses what a real canvas
+// refuses (a negative arc, ellipse or gradient radius, a colour stop off
+// 0..1), raising the defect the real one's IndexSizeError would be. `withDom`
+// and `standInDom` put up a document whose canvases draw into stand-ins of
+// their own, for the paper, the light sheets and the fibre tile a film makes
+// off the page.
 
-import { Effect, Predicate, Schema } from 'effect';
-import { type Mat2d, mat2d } from 'math';
+import { Effect, Predicate, Schema, type Scope } from 'effect';
 import { type Affine, IDENTITY } from '../../core/affine.ts';
 
 /** What a stand-in's `createPattern` hands back: the tile it repeats. */
 export interface StandInPattern {
   readonly _tag: 'Pattern';
   readonly tile: StandInCanvas;
+  /** Where the tile starts: taken and dropped. */
+  readonly setTransform: (m?: DOMMatrix2DInit) => void;
 }
 
 /** What a stand-in's `createRadialGradient` hands back: its circles and its stops, as added. */
@@ -23,15 +28,25 @@ export interface StandInGradient {
   readonly stops: Array<readonly [offset: number, color: string]>;
 }
 
+/** What a stand-in's `createLinearGradient` hands back: its line and its stops, as added. */
+export interface StandInLinear {
+  readonly _tag: 'Linear';
+  /** `x0, y0, x1, y1`. */
+  readonly line: readonly [number, number, number, number];
+  readonly stops: Array<readonly [offset: number, color: string]>;
+}
+
 /** A canvas off the page, drawn into its own stand-in. */
 export interface StandInCanvas {
   width: number;
   height: number;
   readonly getContext: () => CanvasRenderingContext2D;
   readonly drawn: Recorder;
+  /** Its number, in the order stand-in canvases are made: a log of calls tells canvases apart by it. */
+  readonly made: number;
 }
 
-export type Style = string | StandInPattern | StandInGradient;
+export type Style = string | StandInPattern | StandInGradient | StandInLinear;
 
 /** One `fillRect`: the style, alpha, composite and transform it was filled under. */
 export interface Fill {
@@ -68,8 +83,27 @@ export interface Recorder {
   readonly filters: Map<string, string>;
 }
 
+/** How a stand-in keeps what is drawn into it. */
+export interface StandInOptions {
+  /**
+   * Whether it records its fills and images (the default). A test that only
+   * asks whether a draw runs (every scene of a film, frame after frame) keeps
+   * nothing, so its canvases do not grow.
+   */
+  readonly record?: boolean;
+  /**
+   * Told of every call on the context (a factory and a query too) and every
+   * property set (as a call with the one value), before it runs: a test's log
+   * of what a frame asks the canvas to do.
+   */
+  readonly onCall?: (key: PropertyKey, args: ReadonlyArray<unknown>) => void;
+}
+
 export const isPattern = (style: Style): style is StandInPattern =>
   Predicate.isTagged(style, 'Pattern');
+
+export const isRadial = (style: Style): style is StandInGradient =>
+  Predicate.isTagged(style, 'Radial');
 
 /** The stand-in's drawing state, saved and restored whole. */
 interface Pen {
@@ -81,14 +115,30 @@ interface Pen {
 }
 
 /** `m` then `n`, as the canvas composes a transform onto the current one. */
-const times = (m: Affine, n: Mat2d): Mat2d => mat2d.multiply(mat2d.create(), [...m], n);
+const times = (
+  m: Affine,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+): Affine => [
+  m[0] * a + m[2] * b,
+  m[1] * a + m[3] * b,
+  m[0] * c + m[2] * d,
+  m[1] * c + m[3] * d,
+  m[0] * e + m[2] * f + m[4],
+  m[1] * e + m[3] * f + m[5],
+];
 
-/** Anything a context could answer: callable (answering itself), every property itself. */
+/** Anything a context could answer: callable (answering itself), every property itself, 0 in arithmetic, an empty list spread. */
 function none(): void {}
 export const nothing: typeof none = new Proxy(none, {
   get: (_target, key) => {
     if (key === Symbol.toPrimitive) return () => 0;
     if (key === Symbol.iterator) return function* () {};
+    if (key === 'length') return 0;
     return nothing;
   },
   apply: () => nothing,
@@ -96,7 +146,25 @@ export const nothing: typeof none = new Proxy(none, {
   set: () => true,
 });
 
-export const recorder = (width = 1920, height = 1080): Recorder => {
+/** A call that does nothing and answers nothing, as a path call on a real canvas answers. */
+const quiet = (): void => {};
+
+/**
+ * What a real canvas does with an argument it refuses: throws an
+ * IndexSizeError out of the draw. Here the same defect, raised synchronously.
+ */
+const refuseWhen = (bad: boolean, what: string) => {
+  if (bad) Effect.runSync(Effect.die(new RangeError(`IndexSizeError: ${what}`)));
+};
+
+/** A colour stop, refused off 0..1 as a real gradient refuses it. */
+const stopOf = (stops: Array<readonly [number, string]>) => (offset: number, color: string) => {
+  refuseWhen(!(offset >= 0 && offset <= 1), `addColorStop offset ${offset}`);
+  stops.push([offset, color]);
+};
+
+export const recorder = (width = 1920, height = 1080, options: StandInOptions = {}): Recorder => {
+  const keeps = options.record !== false;
   let state: Pen = { m: IDENTITY, alpha: 1, filter: 'none', comp: 'source-over', style: '' };
   const stack: Pen[] = [];
   const fills: Fill[] = [];
@@ -110,16 +178,16 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
       state = stack.pop() ?? state;
     },
     translate: (x: number, y: number) => {
-      state.m = times(state.m, [1, 0, 0, 1, x, y]);
+      state.m = times(state.m, 1, 0, 0, 1, x, y);
     },
     scale: (x: number, y: number) => {
-      state.m = times(state.m, [x, 0, 0, y, 0, 0]);
+      state.m = times(state.m, x, 0, 0, y, 0, 0);
     },
     rotate: (a: number) => {
-      state.m = times(state.m, [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0]);
+      state.m = times(state.m, Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0);
     },
     transform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
-      state.m = times(state.m, [a, b, c, d, e, f]);
+      state.m = times(state.m, a, b, c, d, e, f);
     },
     setTransform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
       state.m = [a, b, c, d, e, f];
@@ -132,6 +200,7 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
       return { a, b, c, d, e, f };
     },
     fillRect: (x: number, y: number, w: number, h: number) => {
+      if (!keeps) return;
       if (isPattern(state.style)) events.push('fibre');
       const fill: Fill = {
         _tag: 'Fill',
@@ -145,6 +214,7 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
       ops.push(fill);
     },
     drawImage: (image: StandInCanvas) => {
+      if (!keeps) return;
       const drawn: Drawn = {
         _tag: 'Image',
         image,
@@ -155,7 +225,34 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
       images.push(drawn);
       ops.push(drawn);
     },
-    createPattern: (tile: StandInCanvas): StandInPattern => ({ _tag: 'Pattern', tile }),
+    // The calls a frame makes most, which answer nothing on a real canvas
+    // too: plain functions, so each is one call rather than a trip through
+    // `nothing`.
+    beginPath: quiet,
+    closePath: quiet,
+    moveTo: quiet,
+    lineTo: quiet,
+    bezierCurveTo: quiet,
+    quadraticCurveTo: quiet,
+    rect: quiet,
+    roundRect: quiet,
+    fill: quiet,
+    stroke: quiet,
+    clip: quiet,
+    fillText: quiet,
+    strokeText: quiet,
+    strokeRect: quiet,
+    clearRect: quiet,
+    setLineDash: quiet,
+    arc: (_x = 0, _y = 0, r = 0) => refuseWhen(r < 0, `arc radius ${r}`),
+    ellipse: (_x = 0, _y = 0, rx = 0, ry = 0) =>
+      refuseWhen(rx < 0 || ry < 0, `ellipse radii ${rx}, ${ry}`),
+    arcTo: (_x1 = 0, _y1 = 0, _x2 = 0, _y2 = 0, r = 0) => refuseWhen(r < 0, `arcTo radius ${r}`),
+    createPattern: (tile: StandInCanvas): StandInPattern => ({
+      _tag: 'Pattern',
+      tile,
+      setTransform: () => {},
+    }),
     createRadialGradient: (
       x0: number,
       y0: number,
@@ -164,12 +261,15 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
       y1: number,
       r1: number,
     ) => {
+      refuseWhen(r0 < 0 || r1 < 0, `radial gradient radii ${r0}, ${r1}`);
       const g: StandInGradient = { _tag: 'Radial', circles: [x0, y0, r0, x1, y1, r1], stops: [] };
-      return {
-        ...g,
-        addColorStop: (offset: number, color: string) => g.stops.push([offset, color]),
-      };
+      return { ...g, addColorStop: stopOf(g.stops) };
     },
+    createLinearGradient: (x0: number, y0: number, x1: number, y1: number) => {
+      const g: StandInLinear = { _tag: 'Linear', line: [x0, y0, x1, y1], stops: [] };
+      return { ...g, addColorStop: stopOf(g.stops) };
+    },
+    createConicGradient: () => ({ addColorStop: stopOf([]) }),
     createImageData: (w: number, h: number) => ({
       width: w,
       height: h,
@@ -212,12 +312,35 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
   };
   /** Any other property holds what is set on it; any other call answers `nothing`. */
   const other = new Map<PropertyKey, unknown>();
+  const valueOf = (key: PropertyKey): unknown => {
+    if (Reflect.has(fake, key)) return Reflect.get(fake, key);
+    return other.has(key) ? other.get(key) : nothing;
+  };
+  const onCall = options.onCall;
+  // With `onCall`, each call name's function is wrapped once, the first time
+  // it is asked for: a frame asks for `save` or `lineTo` thousands of times.
+  const told = new Map<PropertyKey, (...args: ReadonlyArray<unknown>) => unknown>();
+  const tellingOf = (key: PropertyKey, tell: NonNullable<StandInOptions['onCall']>) => {
+    let wrapper = told.get(key);
+    if (wrapper === undefined) {
+      wrapper = (...args) => {
+        tell(key, args);
+        const fn = valueOf(key);
+        if (Predicate.isFunction(fn)) return Reflect.apply(fn, fake, args);
+        return nothing;
+      };
+      told.set(key, wrapper);
+    }
+    return wrapper;
+  };
   const ctx = new Proxy(fake, {
-    get: (target, key) => {
-      if (Reflect.has(target, key)) return Reflect.get(target, key);
-      return other.has(key) ? other.get(key) : nothing;
+    get: (_target, key) => {
+      const value = valueOf(key);
+      if (onCall === undefined || !Predicate.isFunction(value)) return value;
+      return tellingOf(key, onCall);
     },
     set: (target, key, value) => {
+      onCall?.(key, [value]);
       if (Reflect.has(target, key)) return Reflect.set(target, key, value);
       other.set(key, value);
       return true;
@@ -234,45 +357,63 @@ export const recorder = (width = 1920, height = 1080): Recorder => {
   };
 };
 
+/** How many stand-in canvases have been made: the last one's `made`. */
+let canvasesMade = 0;
+
+/** Whether `v` is a stand-in canvas (a pattern's tile, an image drawn). */
+export const isStandInCanvas = (v: unknown): v is StandInCanvas =>
+  Predicate.hasProperty(v, 'made') && Predicate.hasProperty(v, 'getContext');
+
 /** A canvas off the page whose context is a stand-in, sized as it is made. */
-export const standInCanvas = (): StandInCanvas => {
+export const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
   let drawn: Recorder | undefined;
+  canvasesMade += 1;
   const canvas: StandInCanvas = {
     width: 0,
     height: 0,
+    made: canvasesMade,
     getContext: () => canvas.drawn.ctx,
     get drawn() {
-      drawn ??= recorder(canvas.width, canvas.height);
+      drawn ??= recorder(canvas.width, canvas.height, options);
       return drawn;
     },
   };
   return canvas;
 };
 
+/** The globals the stand-in DOM replaces, as they were. */
+interface Globals {
+  readonly document: unknown;
+  readonly matrix: unknown;
+}
+
+const putUp = (options: StandInOptions) =>
+  Effect.sync((): Globals => {
+    const before = {
+      document: Reflect.get(globalThis, 'document'),
+      matrix: Reflect.get(globalThis, 'DOMMatrix'),
+    };
+    Reflect.set(globalThis, 'document', { createElement: () => standInCanvas(options) });
+    Reflect.set(globalThis, 'DOMMatrix', function DOMMatrix() {
+      return nothing;
+    });
+    return before;
+  });
+
+const takeDown = (before: Globals) =>
+  Effect.sync(() => {
+    Reflect.set(globalThis, 'document', before.document);
+    Reflect.set(globalThis, 'DOMMatrix', before.matrix);
+  });
+
 /**
- * Run `draw` with a document whose canvases are stand-ins (and a `DOMMatrix`
- * that answers `nothing`), for everything a film makes off the page; the DOM
- * is put back after, even when `draw` throws.
+ * A document whose canvases are stand-ins (and a `DOMMatrix` that answers
+ * `nothing`), for everything a film makes off the page, put back when the
+ * scope closes.
  */
-export const withDom = <A>(draw: () => A): A =>
-  Effect.runSync(
-    Effect.acquireUseRelease(
-      Effect.sync(() => {
-        const before = {
-          document: Reflect.get(globalThis, 'document'),
-          matrix: Reflect.get(globalThis, 'DOMMatrix'),
-        };
-        Reflect.set(globalThis, 'document', { createElement: standInCanvas });
-        Reflect.set(globalThis, 'DOMMatrix', function DOMMatrix() {
-          return nothing;
-        });
-        return before;
-      }),
-      () => Effect.sync(draw),
-      (before) =>
-        Effect.sync(() => {
-          Reflect.set(globalThis, 'document', before.document);
-          Reflect.set(globalThis, 'DOMMatrix', before.matrix);
-        }),
-    ),
-  );
+export const standInDom = (options: StandInOptions = {}): Effect.Effect<void, never, Scope.Scope> =>
+  Effect.asVoid(Effect.acquireRelease(putUp(options), takeDown));
+
+/** Run `draw` under `standInDom`; the DOM is put back after, even when `draw` throws. */
+export const withDom = <A>(draw: () => A, options: StandInOptions = {}): A =>
+  Effect.runSync(Effect.acquireUseRelease(putUp(options), () => Effect.sync(draw), takeDown));

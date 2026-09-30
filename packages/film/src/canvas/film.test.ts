@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { Drift } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm } from './film.ts';
+import { recorder, withDom } from './fixtures/stand-in.ts';
 
 const spec = (finish: FinishStyle = {}, plate?: Partial<CaptionStyle>): FilmSpec => ({
   title: 'probe',
@@ -64,5 +65,53 @@ describe('createFilm finish and caption plate', () => {
     ['bottom', { bottom: Number.NaN }],
   ])('refuses a caption plate whose %s the canvas cannot draw', (field, plate) => {
     expect(() => createFilm(spec({}, plate))).toThrow(field);
+  });
+});
+
+describe('an edit is a value a frame draws with', () => {
+  /** A film whose one scene reads knob `x` and cue `go`, logging what each frame saw. */
+  const seeing = () => {
+    const seen: Array<readonly [unknown, number]> = [];
+    const film = createFilm({
+      ...spec(),
+      scenes: [
+        {
+          id: 'a',
+          say: 'A line.',
+          min: 4,
+          knobs: { x: 3 },
+          timeline: { go: { scene: 'start', dur: 2 } },
+          draw: (f) => {
+            seen.push([f.knob('x'), f.at('go')]);
+          },
+        },
+      ],
+    });
+    return { film, seen };
+  };
+  const edit = { knobs: { x: 7 }, timeline: { go: { scene: 'start' as const, dur: 1 } } };
+
+  test('draws the edit it is handed, and the frame after with none draws the scene as declared', () => {
+    const { film, seen } = seeing();
+    withDom(
+      () => {
+        film.render(recorder().ctx, 0.5);
+        film.render(recorder().ctx, 0.5, { edits: new Map([['a', edit]]) });
+        film.render(recorder().ctx, 0.5);
+      },
+      { record: false },
+    );
+    const [declared, edited, after] = seen.slice(-3);
+    // Half of the edit's one-second cue, eased; a quarter of the declared two.
+    expect(edited).toEqual([7, 0.5]);
+    expect(declared?.[0]).toBe(3);
+    expect(declared?.[1]).toBeLessThan(0.5);
+    expect(after).toEqual(declared);
+  });
+
+  test("a scene's cues with an edit, and as laid out without one", () => {
+    const { film } = seeing();
+    expect(film.cuesOf('a', edit).get('go')).toMatchObject({ start: 0, end: 1 });
+    expect(film.cuesOf('a').get('go')).toMatchObject({ start: 0, end: 2 });
   });
 });

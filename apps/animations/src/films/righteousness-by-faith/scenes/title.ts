@@ -7,6 +7,10 @@ import { at, drawing, multiplane, write } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { ROOF, cityBack, cityFront } from '../city.ts';
 import { C, F, glow, person, sky } from '../kit.ts';
+import { TITLE } from '../script.ts';
+
+/** Where the film's name splits: its first word drops into `word`. */
+const FIRST = TITLE.indexOf(' ');
 
 /**
  * The film's name as it settles: its words, where it rests (the line's
@@ -14,8 +18,8 @@ import { C, F, glow, person, sky } from '../kit.ts';
  * cut from it: its first word drops onto the page from exactly here.
  */
 export const NAME = {
-  first: 'Righteousness',
-  rest: ' by Faith',
+  first: TITLE.slice(0, FIRST),
+  rest: TITLE.slice(FIRST),
   x: 960,
   y: 415,
   style: { family: F.display, size: 132, weight: 700, color: C.cream, align: 'center' },

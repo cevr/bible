@@ -113,7 +113,7 @@ export const Strip = () => {
   // Read again after each preview: a drag moves the bars as it goes.
   const cues = createMemo(() => {
     lab.revision();
-    return [...meta.film.cuesOf(state.stripScene())];
+    return [...meta.stage.cuesOf(state.stripScene())];
   });
   let rows = Option.none<HTMLElement>();
   const file = () =>

@@ -1,7 +1,9 @@
-// The preview as the lab's machines drive it: an edit shown in memory
-// (`film.preview`, the scene's timeline or knobs standing in for its
-// drawing's until the write lands and the page reloads), and the clock's `#T`
-// held at the frame a write is asked at, then let go. `#T` keeps its one
+// The preview as the lab's machines drive it: an edit shown in memory (the
+// scene's timeline or knobs standing in for its drawing's until the write
+// lands and the page reloads), held here and handed to the player whole
+// (`Player.showEdits`), which draws every frame with it
+// (`RenderOptions.edits`); and the clock's `#T` held at the frame a write is
+// asked at, then let go. `#T` keeps its one
 // owner (`tInUrl`, behind `Player.holdT` and `Player.settle`); nothing here
 // writes the URL. A write the film's code does not import (a take's audio
 // and timings, which the player fetches once) reloads the page itself, at
@@ -10,7 +12,7 @@
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../canvas/film.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
-import type { Knobs, Timeline } from '../core/schema.ts';
+import type { Knobs, ResolvedCue, Timeline } from '../core/schema.ts';
 import type { LoopRange, Player } from '../player/main.ts';
 
 /** An edit the scene's timeline cannot resolve with: shown nowhere, and why. */
@@ -35,6 +37,8 @@ export interface StageOps {
   readonly timelineOf: (scene: string) => Timeline;
   /** The knobs shown for `scene`: previewed, else declared. */
   readonly knobsOf: (scene: string) => Knobs;
+  /** `scene`'s cues as the preview draws them: previewed, else laid out. */
+  readonly cuesOf: (scene: string) => ReadonlyMap<string, ResolvedCue>;
   /** A write is on its way: hold `#T` at this frame for the reload it causes. */
   readonly holdT: Effect.Effect<void>;
   /**
@@ -91,11 +95,13 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
       Option.orElse(edited(scene, 'knobs'), () => declared(scene, 'knobs')),
       () => ({}),
     );
-  const show = (scene: string, edit: Option.Option<SceneEdit>) =>
+  /** Whether `edit` resolves for `scene`, as a frame would resolve it; why not. */
+  const resolves = (scene: string, edit: SceneEdit) =>
     Result.try({
-      try: () => film.preview(scene, Option.getOrUndefined(edit)),
+      try: () => film.cuesOf(scene, edit),
       catch: (err) => NotPreviewed.make({ scene, reason: String(err).replace(/^Error: /, '') }),
     });
+  const cuesOf = (scene: string) => film.cuesOf(scene, edits.get(scene));
   return {
     preview: (scene, edit) =>
       Effect.suspend(() => {
@@ -103,10 +109,10 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
           timeline: edit.timeline ?? timelineOf(scene),
           knobs: edit.knobs ?? knobsOf(scene),
         };
-        return Effect.fromResult(show(scene, Option.some(next))).pipe(
+        return Effect.fromResult(resolves(scene, next)).pipe(
           Effect.map(() => {
             edits.set(scene, next);
-            player.redraw();
+            player.showEdits(new Map(edits));
             changed();
           }),
         );
@@ -114,12 +120,12 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     unpreview: (scene) =>
       Effect.sync(() => {
         edits.delete(scene);
-        show(scene, Option.none());
-        player.redraw();
+        player.showEdits(new Map(edits));
         changed();
       }),
     timelineOf,
     knobsOf,
+    cuesOf,
     holdT: Effect.sync(() => player.holdT()),
     reload: Effect.sync(() => {
       player.holdT();
@@ -130,7 +136,7 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     duration: film.duration,
     cueSpan: (scene, name) =>
       Option.flatMap(placed(scene), (p) =>
-        Option.map(Option.fromUndefinedOr(film.cuesOf(scene).get(name)), (c) => ({
+        Option.map(Option.fromUndefinedOr(cuesOf(scene).get(name)), (c) => ({
           from: p.start + c.start,
           to: p.start + c.end,
         })),
@@ -141,7 +147,9 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
         player.play();
       }),
     still: (T) =>
-      Effect.sync(() => film.render(player.ctx, T, { captions: player.captions.on })).pipe(
+      Effect.sync(() =>
+        film.render(player.ctx, T, { captions: player.captions.on, edits: player.edits() }),
+      ).pipe(
         Effect.flatMap(() =>
           Effect.callback<Blob, NoStill>((resume) =>
             player.canvas.toBlob((blob) =>

@@ -6,6 +6,7 @@ import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Probed, Score, Sound, Timed, Timings } from '../core/schema.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
+import { recorder } from '../canvas/fixtures/stand-in.ts';
 import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
   HOLD,
@@ -55,7 +56,6 @@ import {
   holdTimings,
   inkMark,
   spokenTake,
-  stubContext,
   testFilm,
   testVoice,
   textBox,
@@ -1316,7 +1316,8 @@ describe('static holds', () => {
   test('D1: a stroke that only boils holds still at any zoom (drift in its own units)', () => {
     const drawnAt = (zoom: number, boil: number, dy = 0): Probed => {
       const sink: ProbeSink = { texts: [], inks: [] };
-      const ctx = stubContext(zoom);
+      const { ctx } = recorder();
+      ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
       probing(ctx, { sink, scene: 'a', dx: 0, alpha: 1 }, () =>
         stroke(
           ctx,

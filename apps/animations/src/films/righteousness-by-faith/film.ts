@@ -5,6 +5,7 @@ import { type Timings, TimingsJson } from '@bible/film/core';
 import { Schema } from 'effect';
 import { fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
+import { TITLE } from './script.ts';
 
 /** The film's acts and colour script (`acts.ts`), read by `film check`, `film lookbook` and `film chapters`. */
 export { look } from './acts.ts';
@@ -16,7 +17,7 @@ const loadTimings = async (): Promise<Timings | undefined> => {
 
 export const film = async () =>
   createFilm({
-    title: 'Righteousness by Faith',
+    title: TITLE,
     paper: { base: palette.paper, tone: palette.paperTone, seed: 1888 },
     shade: palette.boardDeep,
     scenes,

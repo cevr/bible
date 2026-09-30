@@ -20,6 +20,7 @@
 import { BOIL_FPS, type Hand, type Pt, spline, stroke, sub } from './ink.ts';
 import { cutout } from './cutout.ts';
 import { PAPER_EDGES, piece } from './piece.ts';
+import { probeHand, probesHands } from './probe.ts';
 import { clamp, lerp } from '../core/time.ts';
 import { hash } from '../core/random.ts';
 
@@ -566,9 +567,26 @@ export const palmUpFrame = (
 const AT: [number, number] = [0, 0];
 
 /**
+ * What a check probing hands needs of a floating hand beyond what the hand
+ * knows itself: whether it is drawn over its own figure's body (after it),
+ * and that body's silhouette, one shape or several, in the hand's space.
+ */
+export interface HandBody {
+  readonly over: boolean;
+  readonly body: () => ReadonlyArray<ReadonlyArray<Pt>>;
+}
+
+/**
  * The hand of `root`, floating free: at rest with no gesture, doing `g`
  * with one (see `place`), the one mitten in `style` with no arm. Its grip
  * forms from the open rest as it arrives; `g.turn` turns it palm up.
+ *
+ * Given its figure's `body`, it declares itself to a check probing hands
+ * (`probeHand`: its side from `root.away`, its shoulder, where it is, where
+ * it works, its size and reach), so `film check` follows it frame to frame
+ * (`HandJump`), flags one sent past the reach (`HandFar`) and sees one lost
+ * behind its body (`HandHidden`), whichever film draws it. It declares
+ * itself even when the context's alpha hides it, and then draws nothing.
  */
 export const floatingHand = (
   ctx: CanvasRenderingContext2D,
@@ -576,10 +594,26 @@ export const floatingHand = (
   g: Gesture | undefined,
   style: HandStyle,
   hand: Hand,
+  seen?: HandBody,
 ) => {
   const p = place(root, g, style.mitten);
   AT[0] = p.x;
   AT[1] = p.y;
+  if (seen !== undefined && probesHands(ctx)) {
+    const reach = g?.reach ?? 0;
+    probeHand(ctx, {
+      side: root.away === 1 ? 'near' : 'far',
+      shoulder: root.shoulder,
+      at: AT,
+      to: g === undefined || reach <= 0 ? root.rest : g.to,
+      size: style.mitten,
+      radius: style.radius,
+      reach,
+      over: seen.over,
+      body: seen.body,
+    });
+  }
+  if (ctx.globalAlpha <= 0) return;
   handEnd(ctx, g, p.s, AT, p.angle, style.mitten, root.away, style, sub(hand, 3));
 };
 

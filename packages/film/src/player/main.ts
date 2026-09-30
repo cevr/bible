@@ -4,7 +4,7 @@
 // lab (`@bible/film/lab`) is its own page, which stages the film and mounts
 // this preview under its Solid panels, so the render page never loads Solid.
 
-import type { Film, KnobRead } from '../canvas/film.ts';
+import type { Film, KnobRead, SceneEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { FaceMark, HandMark, Probed } from '../core/schema.ts';
 import { timelineTicks } from '../core/ticks.ts';
@@ -22,18 +22,14 @@ import { lookFrames } from './look-frames.ts';
 /** The longest `#T` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
 
-const FONTS = [
-  '400 40px "Fraunces"',
-  '700 40px "Fraunces"',
-  'italic 400 40px "Fraunces"',
-  '400 40px "Inter"',
-  '600 40px "Inter"',
-  '400 40px "EB Garamond"',
-  'italic 400 40px "EB Garamond"',
-  '400 40px "Frank Ruhl Libre"',
-  '400 40px "Gaegu"',
-  '700 40px "Gaegu"',
-];
+/**
+ * Every face the page declares (its stylesheets' `@font-face` rules, each
+ * unicode-range subset its own face), loaded: text measures true from the
+ * first frame whatever families and scripts a film draws (a short's hook and
+ * captions are measured once, on the first frame that draws them), and the
+ * engine names none of them. A face that will not load fails the page.
+ */
+const loadFonts = () => Promise.all(Array.from(document.fonts, (face) => face.load()));
 
 export interface ExportHandle {
   readonly width: number;
@@ -130,8 +126,15 @@ export interface Player {
   setRate(rate: number): void;
   /** Repeat `range` while playing (none to stop repeating). */
   setLoop(range: LoopRange | undefined): void;
-  /** Draw the frame shown now again: after the lab previews an edit. */
+  /** Draw the frame shown now again. */
   redraw(): void;
+  /**
+   * The edits the preview draws with (`RenderOptions.edits`): none until the
+   * lab shows some; the lab holds them, and hands over each change whole.
+   */
+  edits(): ReadonlyMap<string, SceneEdit>;
+  /** Draw with `edits` from now on, starting with the frame shown now. */
+  showEdits(edits: ReadonlyMap<string, SceneEdit>): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
   /** Called after every frame the preview draws, until the returned function is called. */
@@ -157,8 +160,8 @@ export const filmName = (films: Films): string =>
 export { labUrl, lookbookUrl } from './pages.ts';
 
 /**
- * Load the page's film (its fonts first, so text measures true), title the
- * page, and put the film's canvas on the stage.
+ * Load the page's film (every font the page declares first, so text measures
+ * true), title the page, and put the film's canvas on the stage.
  */
 export const stageFilm = async (films: Films): Promise<Staged> => {
   const params = new URLSearchParams(location.search);
@@ -167,10 +170,7 @@ export const stageFilm = async (films: Films): Promise<Staged> => {
   const load = films[name];
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
-  await Promise.all([
-    ...FONTS.map((f) => document.fonts.load(f, 'Aaα')),
-    document.fonts.load('400 40px "Frank Ruhl Libre"', 'א'),
-  ]);
+  await loadFonts();
   const film = await load();
   document.title = film.title;
 
@@ -347,9 +347,12 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     HASH_MS,
   );
 
+  /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
+  let edits: ReadonlyMap<string, SceneEdit> = new Map();
+
   const draw = () => {
     reads = [];
-    film.render(ctx, T, { captions: captions.on, knobs: reads });
+    film.render(ctx, T, { captions: captions.on, knobs: reads, edits });
     for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
@@ -486,6 +489,11 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
       draw();
     },
     redraw: draw,
+    edits: () => edits,
+    showEdits: (next) => {
+      edits = next;
+      draw();
+    },
     knobReads: () => reads,
     onDraw: (listener) => {
       listeners.push(listener);
