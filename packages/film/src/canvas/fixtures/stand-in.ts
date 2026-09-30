@@ -15,7 +15,7 @@ import { Effect, Predicate, Schema, type Scope } from 'effect';
 import { type Affine, IDENTITY } from '../../core/affine.ts';
 
 /** What a stand-in's `createPattern` hands back: the tile it repeats. */
-export interface StandInPattern {
+interface StandInPattern {
   readonly _tag: 'Pattern';
   readonly tile: StandInCanvas;
   /** Where the tile starts: taken and dropped. */
@@ -31,7 +31,7 @@ export interface StandInGradient {
 }
 
 /** What a stand-in's `createLinearGradient` hands back: its line and its stops, as added. */
-export interface StandInLinear {
+interface StandInLinear {
   readonly _tag: 'Linear';
   /** `x0, y0, x1, y1`. */
   readonly line: readonly [number, number, number, number];
@@ -39,7 +39,7 @@ export interface StandInLinear {
 }
 
 /** A canvas off the page, drawn into its own stand-in. */
-export interface StandInCanvas {
+interface StandInCanvas {
   width: number;
   height: number;
   readonly getContext: () => CanvasRenderingContext2D;
@@ -51,7 +51,7 @@ export interface StandInCanvas {
 export type Style = string | StandInPattern | StandInGradient | StandInLinear;
 
 /** One `fillRect`: the style, alpha, composite and transform it was filled under. */
-export interface Fill {
+interface Fill {
   readonly _tag: 'Fill';
   readonly style: Style;
   readonly alpha: number;
@@ -86,7 +86,7 @@ export interface Recorder {
 }
 
 /** How a stand-in keeps what is drawn into it, and measures. */
-export interface StandInOptions {
+interface StandInOptions {
   /**
    * How wide `text` sets in `font` (the context's font when measured): a
    * test of layout gives its own advances, kerning included. Without it,
@@ -142,7 +142,7 @@ const times = (
 
 /** Anything a context could answer: callable (answering itself), every property itself, 0 in arithmetic, an empty list spread. */
 function none(): void {}
-export const nothing: typeof none = new Proxy(none, {
+const nothing: typeof none = new Proxy(none, {
   get: (_target, key) => {
     if (key === Symbol.toPrimitive) return () => 0;
     if (key === Symbol.iterator) return function* () {};
@@ -392,7 +392,7 @@ export const isStandInCanvas = (v: unknown): v is StandInCanvas =>
   Predicate.hasProperty(v, 'made') && Predicate.hasProperty(v, 'getContext');
 
 /** A canvas off the page whose context is a stand-in, sized as it is made. */
-export const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
+const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
   let drawn: Recorder | undefined;
   canvasesMade += 1;
   const canvas: StandInCanvas = {
