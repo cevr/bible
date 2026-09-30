@@ -26,10 +26,10 @@ import type { ProjectView } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
-  renderPointId,
   renderVersion,
 } from '../../../core/catalogue.ts';
 import type { ChoicePoint, VariantMedia } from '../../../core/choice.ts';
+import { pointIdOf } from '../../../core/point.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
 import { Loaded, statusText } from '../loaded.tsx';
@@ -83,7 +83,7 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
     onSome: (video): VariantMedia => ({ _tag: 'Seen', video }),
   });
   const point: ChoicePoint = {
-    id: renderPointId(address),
+    id: pointIdOf({ _tag: 'Render', address }),
     kind: 'render',
     address: Option.some(address),
     title: `scene ${scene.scene}`,

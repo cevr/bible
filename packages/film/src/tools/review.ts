@@ -54,12 +54,12 @@ import {
   approvalState,
   commentsOn,
   recordedNow,
-  renderPointId,
   renderState,
   saidOn,
   subjectOf,
 } from '../core/catalogue.ts';
-import { type ChoicePoint, type ChoiceVariant, pointId, seenVariants } from '../core/choice.ts';
+import { type ChoicePoint, type ChoiceVariant, seenVariants } from '../core/choice.ts';
+import { pointIdOf } from '../core/point.ts';
 import type {
   ReviewFile,
   ReviewFolder,
@@ -325,7 +325,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
       if (variants.length === 0) return [];
       return [
         {
-          id: renderPointId(renders[0].address),
+          id: pointIdOf({ _tag: 'Render', address: renders[0].address }),
           kind: 'render',
           address: Option.some(renders[0].address),
           title: addressTitle(renders[0]),
@@ -445,7 +445,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
       if (variants.length === 0) return [];
       return [
         {
-          id: pointId('render', clip),
+          id: pointIdOf({ _tag: 'Montage', clip }),
           kind: 'render',
           address: Option.none(),
           title: Option.getOrElse(set.title, () => clip),

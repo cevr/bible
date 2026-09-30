@@ -167,9 +167,6 @@ export interface Subject extends Topic {
   readonly key: string;
 }
 
-/** The id of an address's render set as a choice point: `render:scenes:cold`. */
-export const renderPointId = (address: Address): string => pointIdOf({ _tag: 'Render', address });
-
 /**
  * One variant of the point `ref` at `address` as a topic. A render set's
  * point is its address's, so it is recorded without one; any other point

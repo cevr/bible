@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { type PointRef, pointIdOf, pointRefOf } from './point.ts';
+import { type PointRef, pointRefOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -121,10 +121,6 @@ export const ChoicePoint = Schema.Struct({
   variants: Schema.Array(ChoiceVariant),
 });
 export type ChoicePoint = typeof ChoicePoint.Type;
-
-/** A montage clip's render set as a choice point, as the review names it: `render:<clip>`. */
-export const pointId = (_kind: 'render', clip: string): string =>
-  pointIdOf({ _tag: 'Montage', clip });
 
 /** A variant as its adapter describes it, before the owner's say is read. */
 export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes' | 'staleBy'> & {
