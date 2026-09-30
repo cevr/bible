@@ -7,6 +7,7 @@
 import { For, Portal, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { createEffect } from 'solid-js';
+import { stillUrl } from '../../core/api.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
@@ -42,12 +43,7 @@ const label = (note: Note) => {
 const Still = (props: { readonly name: string }) => {
   const { meta } = useLab();
   return (
-    <img
-      class="lab-still"
-      src={`${meta.api}/stills/${props.name}`}
-      alt={props.name}
-      loading="lazy"
-    />
+    <img class="lab-still" src={stillUrl(meta.name, props.name)} alt={props.name} loading="lazy" />
   );
 };
 

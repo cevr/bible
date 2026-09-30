@@ -5,55 +5,25 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { ConfigProvider, Effect, Layer, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
+import { HttpPlatform } from 'effect/http';
+import { LabHttpApi, Refusal, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
 import { FilmRepo } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
-import { SceneHead } from './scene-head.ts';
-import { SceneSources } from './scene-sources.ts';
-import { SceneWriter } from './scene-writer.ts';
-import { SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
-import { memoryFileSystem, text } from './testing.ts';
+import { foreignRequests, memoryFileSystem, noSource, noStudio, text } from './testing.ts';
 
 const files = () => new Map<string, Uint8Array>();
 
-/** The scene-source routes are not called here: their services only have to exist. */
-const unused = Effect.die('not used by the notes routes');
-const noSource = Layer.mergeAll(
-  Layer.succeed(
-    SceneSources,
-    SceneSources.of({
-      locate: () => unused,
-      site: () => unused,
-      writable: () => unused,
-      editable: () => unused,
-    }),
-  ),
-  Layer.succeed(
-    SceneWriter,
-    SceneWriter.of({
-      setCue: () => unused,
-      setKnob: () => unused,
-    }),
-  ),
-  Layer.succeed(
-    SourceWriter,
-    SourceWriter.of({
-      write: () => unused,
-      around: () => unused,
-      undo: () => unused,
-      redo: () => unused,
-      history: () => unused,
-    }),
-  ),
-  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unused })),
-  Layer.succeed(SceneHead, SceneHead.of({ head: () => unused })),
-);
-
 const labLayer = (store: Map<string, Uint8Array>) =>
-  Layer.mergeAll(NotesStore.layer, FilmRepo.layer('/films'), noSource).pipe(
+  Layer.mergeAll(
+    NotesStore.layer,
+    FilmRepo.layer('/films'),
+    noSource,
+    noStudio,
+    HttpPlatform.layer,
+  ).pipe(
     Layer.provide(ContentStore.layer),
     Layer.provideMerge([
       memoryFileSystem(store),
@@ -136,23 +106,50 @@ describe('lab routes', () => {
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
-  it.effect('every route names its film: another film, or none, is a 409 that writes nothing', () =>
+  it.effect(
+    'every route names its film: another film is a 404 FilmUnknown, none a 404; nothing is written',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler('f');
+        const answer = (req: Request) =>
+          Effect.gen(function* () {
+            const res = yield* Effect.promise(() => lab(req, bound));
+            return { status: res.status, body: yield* Effect.promise(() => res.text()) };
+          });
+        // A page for film g, open on the lab that serves f.
+        const other = yield* answer(post('/lab/g/notes', draft));
+        expect(other.status).toBe(404);
+        expect(
+          yield* Schema.decodeEffect(Schema.fromJsonString(Refusal))(other.body),
+        ).toMatchObject({
+          _tag: 'FilmUnknown',
+          film: 'g',
+          known: ['f'],
+        });
+        expect((yield* answer(get('/lab/g/check'))).status).toBe(404);
+        expect((yield* answer(post('/lab/g/undo', '{}'))).status).toBe(404);
+        expect((yield* answer(get('/lab/g/studio/beats'))).status).toBe(404);
+        // A page from before the film was on the wire: no route takes it.
+        expect((yield* answer(get('/lab/notes'))).status).toBe(404);
+        // Nothing was written; the bound film still answers.
+        const listed = yield* Effect.promise(() =>
+          lab(get('/lab/f/notes'), bound).then((r) => r.json()),
+        );
+        expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  );
+
+  it.effect('every route the lab API declares answers a foreign Host 403, and runs nothing', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler('f');
-      const answer = (req: Request) =>
-        Effect.gen(function* () {
-          const res = yield* Effect.promise(() => lab(req, bound));
-          return { status: res.status, body: yield* Effect.promise(() => res.text()) };
-        });
-      // A page for film g, open on the lab that serves f.
-      const other = yield* answer(post('/lab/g/notes', draft));
-      expect(other.status).toBe(409);
-      expect(other.body).toContain('serves film "f", not "g"');
-      expect((yield* answer(get('/lab/g/check'))).status).toBe(409);
-      expect((yield* answer(post('/lab/g/undo', '{}'))).status).toBe(409);
-      // A page from before the film was on the wire.
-      expect((yield* answer(get('/lab/notes'))).status).toBe(409);
-      // Nothing was written; the bound film still answers.
+      const routes = routesOf(LabHttpApi);
+      expect(routes.length).toBeGreaterThan(15);
+      for (const request of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
+        const res = yield* Effect.promise(() => lab(request, bound));
+        const refusal = yield* Effect.promise(() => res.json());
+        const route = `${request.method} ${new URL(request.url).pathname}`;
+        expect([route, res.status, refusal._tag]).toEqual([route, 403, 'RequestRefused']);
+      }
       const listed = yield* Effect.promise(() =>
         lab(get('/lab/f/notes'), bound).then((r) => r.json()),
       );

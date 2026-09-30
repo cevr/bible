@@ -12,7 +12,8 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import type { SceneEdit } from '../../canvas/film.ts';
 import type { LabWrite } from '../../core/schema.ts';
-import { LabApi, type LabCalls, LabRefused } from '../api.ts';
+import { SourceChanged } from '../../core/refusals.ts';
+import { LabApi, type LabCalls, type LabFailure } from '../api.ts';
 import { NotPreviewed, Stage, type StageOps } from '../stage.ts';
 import { type CueGrip, CueWrite, type KnobGrip, KnobWrite, StepWrite } from './grip.ts';
 import { EditEvent, EditState, WRITE_TIMEOUT_S, editMachine } from './machine.ts';
@@ -44,7 +45,7 @@ const landed: LabWrite = {
  * A stage that says what was asked of it (scene `bad` cannot be previewed),
  * and an API whose every write answers `write`.
  */
-const fakes = (write: Effect.Effect<LabWrite, LabRefused> = Effect.succeed(landed)) => {
+const fakes = (write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(landed)) => {
   const log: Array<string> = [];
   const keys = (edit: SceneEdit) => Object.keys({ ...edit.timeline, ...edit.knobs }).join(',');
   const stage: StageOps = {
@@ -303,7 +304,7 @@ const settledTag = Predicate.or(Predicate.isTagged('Written'), Predicate.isTagge
 
 describe('the write task, through an actor', () => {
   /** An actor's state once a commit through `write` has settled. */
-  const settled = (write: Effect.Effect<LabWrite, LabRefused>) =>
+  const settled = (write: Effect.Effect<LabWrite, LabFailure>) =>
     Effect.gen(function* () {
       const actor = yield* Machine.spawn(editMachine);
       yield* actor.start;
@@ -323,9 +324,9 @@ describe('the write task, through an actor', () => {
 
   it.live('a write the server refuses shows its text', () =>
     Effect.gen(function* () {
-      const refused = LabRefused.make({ status: 409, message: 'SourceRefused: stale' });
+      const refused = SourceChanged.make({ file: 'scenes/hand.ts', target: 'cue topple offset' });
       const state = yield* settled(Effect.fail(refused));
-      expect(state).toEqual(EditState.Refused({ message: 'SourceRefused: stale' }));
+      expect(state).toEqual(EditState.Refused({ message: refused.message }));
     }).pipe(Effect.scoped),
   );
 

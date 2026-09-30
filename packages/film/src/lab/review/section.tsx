@@ -17,10 +17,9 @@ import {
   type ReviewFolder,
   type ReviewIndex,
   type ReviewVideo,
-  reviewFileUrl,
-  reviewFrameUrl,
 } from '../../core/schema.ts';
-import { type LabFailure, untagged } from '../api.ts';
+import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import type { LabFailure } from '../api.ts';
 import { SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -84,7 +83,7 @@ const Go = (props: {
 /** What a failed read says. */
 const failureText = (result: AsyncResult.AsyncResult<unknown, LabFailure>) =>
   Option.getOrElse(
-    Option.map(AsyncResult.error(result), (e) => untagged(e.message)),
+    Option.map(AsyncResult.error(result), (e) => e.message),
     () => 'could not read the review',
   );
 

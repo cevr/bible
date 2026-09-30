@@ -22,13 +22,8 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import {
-  type CheckReport,
-  type FilmChoices,
-  type ReviewVideo,
-  scoreMixUrl,
-  takeMixUrl,
-} from '../../../core/schema.ts';
+import { type CheckReport, type FilmChoices, type ReviewVideo } from '../../../core/schema.ts';
+import { scoreMixUrl, takeMixUrl } from '../../../core/api.ts';
 import type { LabFailure } from '../../api.ts';
 import { ARROWS, typing, useReview } from '../context.tsx';
 import { STEP_S, type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';

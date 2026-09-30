@@ -13,7 +13,6 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
 import type { Film } from '../canvas/film.ts';
-import { labBase } from '../core/schema.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
 import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
@@ -45,8 +44,6 @@ export interface LabMeta {
   readonly name: string;
   readonly film: Film;
   readonly player: Player;
-  /** The film's lab API root (`labBase`). */
-  readonly api: string;
   /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
   readonly view: ViewStore;
   /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
@@ -119,8 +116,9 @@ const Root = (props: RootProps) => {
 
   const [revision, setRevision] = createSignal(0, fromDraw);
   const stage = makeStage(player, () => setRevision((n) => n + 1));
-  const api = labBase(props.name);
-  const runtime = Atom.runtime(Layer.merge(stageLayer(stage), labApiLayer(location.origin, api)));
+  const runtime = Atom.runtime(
+    Layer.merge(stageLayer(stage), labApiLayer(location.origin, props.name)),
+  );
 
   const [selection, setSelection] = createSignal(selectionFromSearch(location.search));
   const select = (next: Option.Option<Selection>) => {
@@ -139,7 +137,7 @@ const Root = (props: RootProps) => {
       },
       select,
     },
-    meta: { name: props.name, film: player.film, player, api, view, stage, runtime },
+    meta: { name: props.name, film: player.film, player, view, stage, runtime },
   };
   return (
     <RegistryProvider>

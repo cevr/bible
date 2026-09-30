@@ -12,9 +12,9 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, type FileSystem, Option, type Path, Result, Schema, type Scope } from 'effect';
+import { Effect, type FileSystem, Option, type Path, Result, type Scope } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { StudioRefusal } from '../../core/studio.ts';
+import { TakeMismatch } from '../../core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import {
@@ -23,8 +23,8 @@ import {
   type Json,
   json,
   openLab,
+  refused,
   route,
-  text,
 } from '../fixtures/harness.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
 import { toneFile } from '../fixtures/tone.ts';
@@ -72,14 +72,13 @@ const ATTEMPTS: Json = {
   ],
 };
 
-const MISMATCH: StudioRefusal = {
-  _tag: 'TakeMismatch',
-  message: 'TakeMismatch: thesis was heard as "the lord is light" (40.0% of words differ)',
-  beat: 'thesis',
+const MISMATCH = TakeMismatch.make({
+  id: 'thesis',
+  script: 'the law is holy',
   heard: 'the lord is light',
   wer: 0.4,
   attempt: 'thesis.abcd.flac',
-};
+});
 
 const took = (file: string): Json => ({
   beat: 'thesis',
@@ -94,9 +93,7 @@ const took = (file: string): Json => ({
 const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/studio\/beats$/, () => json(BEATS)),
   route('GET', /^\/studio\/takes\/\w+\/attempts$/, () => json(ATTEMPTS)),
-  route('POST', /^\/studio\/takes\/thesis$/, () =>
-    text(Schema.encodeSync(Schema.fromJsonString(StudioRefusal))(MISMATCH), 422),
-  ),
+  route('POST', /^\/studio\/takes\/thesis$/, () => refused(MISMATCH)),
   route('POST', /^\/studio\/takes\/thesis\/keep$/, (asked) =>
     json(took(String(Reflect.get(Option.getOrElse(asked.body, () => ({})) as object, 'file')))),
   ),
@@ -272,7 +269,7 @@ describe('the studio', () => {
           expect(yield* Effect.promise(() => page.locator('.studio-meter-fill').count())).toBe(0);
 
           yield* press(page, 'k');
-          yield* statusIs(page, /^TakeMismatch: thesis was heard as/);
+          yield* statusIs(page, /^take thesis says something else \(wer 40\.0%\)/);
           const [take] = posted(asked, /^\/studio\/takes\/thesis$/);
           const body = Option.getOrElse(
             Option.fromUndefinedOr(take).pipe(Option.flatMap((t) => t.body)),

@@ -1,12 +1,16 @@
-// The review's routes (`/review/*`) as its page calls them, through the lab's
-// client: the index and a video's length decoded by their Schemas, a doc's
-// text as it is. A refusal is the server's own words; a request that never
-// arrived says so (`LabFailure`, as every lab call fails).
+// The review's routes as its page calls them, through the client derived
+// from the review API (`ReviewGroup` in `core/api.ts`): the index and a
+// video's length decoded by their Schemas. A doc's text is the file itself,
+// fetched by its URL (the route's path is the ref, which the derived client
+// does not build). A refusal is the server's own failure; a request that
+// never arrived says so (`LabFailure`, as every lab call fails).
 
 import { Context, Effect, Layer } from 'effect';
-import { FetchHttpClient, HttpClient } from 'effect/http';
-import { ReviewDuration, ReviewIndex, reviewFileUrl } from '../../core/schema.ts';
-import { type LabFailure, LabRefused, LabUnreachable, labClient } from '../api.ts';
+import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
+import { HttpApiClient } from 'effect/http-api';
+import { Refusal, ReviewHttpApi, reviewFileUrl } from '../../core/api.ts';
+import type { ReviewIndex } from '../../core/schema.ts';
+import { type LabFailure, heard } from '../api.ts';
 
 export interface ReviewCalls {
   /** Every folder with something to review; `fresh` walks the roots again now. */
@@ -21,33 +25,23 @@ export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(
   '@bible/film/lab/ReviewApi',
 ) {}
 
-const unreachable = (cause: { readonly message: string }) =>
-  LabUnreachable.make({ message: cause.message });
+/** A file's text when it is served; the server's refusal (JSON, by the contract) when not. */
+const fileText = (res: HttpClientResponse.HttpClientResponse) => {
+  if (res.status >= 200 && res.status < 300) return res.text;
+  return Effect.flatMap(HttpClientResponse.schemaBodyJson(Refusal)(res), Effect.fail);
+};
 
 /** The review's routes on `origin`. */
 export const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
-  const { get } = yield* labClient(origin, '/review');
+  const client = (yield* HttpApiClient.make(ReviewHttpApi, { baseUrl: origin })).review;
   const http = yield* HttpClient.HttpClient;
-  const text = (ref: string) =>
-    http.get(`${origin}${reviewFileUrl(ref)}`).pipe(
-      Effect.mapError(unreachable),
-      Effect.flatMap((res) =>
-        Effect.mapError(res.text, unreachable).pipe(
-          Effect.filterOrFail(
-            () => res.status >= 200 && res.status < 300,
-            (body) => LabRefused.make({ status: res.status, message: body }),
-          ),
-        ),
-      ),
-    );
   const api: ReviewCalls = {
     index: (fresh) => {
-      if (fresh) return get('/index?fresh=1', ReviewIndex);
-      return get('/index', ReviewIndex);
+      if (fresh) return heard(client.index({ query: { fresh: '1' } }));
+      return heard(client.index({ query: {} }));
     },
-    duration: (ref) =>
-      Effect.map(get(`/duration?ref=${encodeURIComponent(ref)}`, ReviewDuration), (d) => d.seconds),
-    text,
+    duration: (ref) => heard(Effect.map(client.duration({ query: { ref } }), (d) => d.seconds)),
+    text: (ref) => heard(Effect.flatMap(http.get(`${origin}${reviewFileUrl(ref)}`), fileText)),
   };
   return api;
 });

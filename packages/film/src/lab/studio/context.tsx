@@ -23,10 +23,11 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
+import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
-import { StudioApi, type StudioRefused, attemptSrc, studioApiLayer } from './api.ts';
+import { StudioApi, type StudioRefused, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
 import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
@@ -224,7 +225,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
         a.attempts.map((attempt) => ({
           file: attempt.file,
           line: attemptLine(attempt),
-          src: attemptSrc(meta.api, a.beat, attempt.file),
+          src: attemptUrl(meta.name, a.beat, attempt.file),
           kept: attempt.kept,
           current: attempt.current,
         })),
@@ -357,7 +358,7 @@ export const Provider = (props: ParentProps) => {
   const runtime: StudioRuntime = Atom.runtime(
     Layer.mergeAll(
       stageLayer(meta.stage),
-      studioApiLayer(location.origin, meta.api),
+      studioApiLayer(location.origin, meta.name),
       browserCaptureLayer,
     ),
   );

@@ -6,7 +6,8 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { openLab, route, text } from '../fixtures/harness.ts';
+import { HeadUnavailable } from '../../core/refusals.ts';
+import { openLab, refused, route } from '../fixtures/harness.ts';
 
 const compareSays = (page: Page, part: string) =>
   Effect.promise(() =>
@@ -73,12 +74,16 @@ describe('compare with HEAD', () => {
   it.live("a scene HEAD cannot give says the server's reason", () =>
     Effect.gen(function* () {
       const { page } = yield* openLab(
-        [route('GET', /^\/scenes\/one\/head$/, () => text('SceneNotFound: not in HEAD', 404))],
+        [
+          route('GET', /^\/scenes\/one\/head$/, () =>
+            refused(HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' })),
+          ),
+        ],
         { hash: '#1' },
       );
       yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, 'one: not in HEAD');
+      yield* compareSays(page, 'one: scenes/one.ts: no HEAD version to compare with: not in git');
       const hidden = yield* Effect.promise(() =>
         page.evaluate(
           () => document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.hidden,

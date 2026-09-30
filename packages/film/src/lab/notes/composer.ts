@@ -16,7 +16,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { InkStroke, NoteBox, NoteDraft, Point } from '../../core/schema.ts';
-import { NotesApi, untagged } from '../api.ts';
+import { NotesApi } from '../api.ts';
 import { Stage } from '../stage.ts';
 import { boxOf, pointBox } from './draft.ts';
 
@@ -133,7 +133,7 @@ export const composerMachine = Machine.make({
     ComposerState.Saving({ T: state.T, box: state.box, ink: state.ink, draft: event.draft }),
   )
   .task(ComposerState.Saving, ({ state }) => saving(state), {
-    onFailure: (e) => ComposerEvent.Failed({ reason: untagged(e.message) }),
+    onFailure: (e) => ComposerEvent.Failed({ reason: e.message }),
   })
   .on(ComposerState.Saving, ComposerEvent.Saved, ({ event }) =>
     ComposerState.Closed({ saved: Option.some(event.id) }),

@@ -7,6 +7,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
+import { HttpPlatform } from 'effect/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
@@ -20,7 +21,7 @@ import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
 import { StaticCheck } from './static-check.ts';
-import { sceneFixture } from './testing.ts';
+import { noStudio, sceneFixture } from './testing.ts';
 
 /** The fixture's hand scene file. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
@@ -71,6 +72,8 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         ),
         NotesStore.layer,
         fakeCheck,
+        noStudio,
+        HttpPlatform.layer,
         Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),
       ).pipe(Layer.provideMerge(ContentStore.layer));
     }),
@@ -142,7 +145,9 @@ describe('lab source routes', () => {
         lab(post('/lab/f/cues/hand/late', '{"offset":1}'), bound),
       );
       expect(refused.status).toBe(422);
-      expect(yield* Effect.promise(() => refused.text())).toContain('`GAP * 2`, not a literal');
+      const refusal = yield* Effect.promise(() => refused.json());
+      expect(refusal).toMatchObject({ _tag: 'SourceRefused', target: 'cue late offset' });
+      expect(refusal.reason).toContain('`GAP * 2`, not a literal');
       expect(yield* read()).toBe(after);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       expect(yield* status(post('/lab/f/cues/nope/topple', '{"dur":1}'))).toBe(404);
@@ -153,7 +158,9 @@ describe('lab source routes', () => {
         lab(post('/lab/f/cues/hand/topple', '{"until":"earns"}'), bound),
       );
       expect(unresolved.status).toBe(422);
-      expect(yield* Effect.promise(() => unresolved.text())).toContain('TimelineUnresolved: ');
+      expect(yield* Effect.promise(() => unresolved.json())).toMatchObject({
+        _tag: 'TimelineUnresolved',
+      });
       expect(yield* read()).toBe(after);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
