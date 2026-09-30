@@ -12,6 +12,7 @@ import type {
   PartOutOfOrder,
   ShortSpanEmpty,
   TurnInvalid,
+  ScenesApart,
   UnknownAct,
   UnknownShort,
   UntilBeforeStart,
@@ -629,6 +630,7 @@ export type PlaceFinding =
   | TurnInvalid
   | CueCycle
   | UntilBeforeStart
+  | ScenesApart
   | UnknownAct
   | UnknownShort
   | ShortSpanEmpty;
@@ -725,6 +727,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       TurnInvalid: error,
       CueCycle: error,
       UntilBeforeStart: error,
+      ScenesApart: error,
       UnknownAct: error,
       UnknownShort: error,
       ShortSpanEmpty: error,
@@ -817,6 +820,8 @@ export const addressOf = (finding: Finding): FindingAddress => {
       TurnInvalid: scene,
       CueCycle: scene,
       UntilBeforeStart: scene,
+      // The scenes it names are no one stretch: no one scene is the place.
+      ScenesApart: none,
       // The act or short it names is one the film does not have.
       UnknownAct: none,
       UnknownShort: none,

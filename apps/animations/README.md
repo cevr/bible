@@ -47,7 +47,7 @@ bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone,
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/film/main/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes in out/<film>/scenes/<id>[+<id>]/ (not --stills); --act name for one act (acts/<act>/)
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those adjacent scenes in out/<film>/scenes/<id>[+<id>]/ (not --stills); --act name for one act (acts/<act>/)
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
@@ -113,7 +113,9 @@ layout), `--act name` (probe that act's scenes and judge its colour script),
 `--workers n`. The address (`--act`, `--scene`, `--short`: one of them) is
 resolved once, in `core/address.ts`, before a page opens: a name the film
 lacks fails with `UnknownAct`, `UnknownScene` or `UnknownShort`, listing what
-the film has, and two at once with `AddressConflict` (`cues <film> <scene>`
+the film has; scenes with another scene between them fail with `ScenesApart`
+(a part is one stretch of the film: name the scenes between, or render each
+alone); and two at once with `AddressConflict` (`cues <film> <scene>`
 fails the same way for its scene).
 Once every take is recorded, the static leg also reads `narration/full.wav`
 and the stamp `mix` writes beside it (`full.json`): missing is
