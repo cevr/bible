@@ -30,10 +30,11 @@ import {
   pushOn,
   shotPath,
   type Posed,
+  reset,
   sky,
 } from '@bible/film/canvas';
 import { lerp, gait } from '@bible/film/core';
-import { COURT_WIDE, type Temple, temple } from '../gospel.ts';
+import { COURT_GONE, COURT_WIDE, GONE_LOOK, type Temple, temple } from '../gospel.ts';
 import { ICON_ROW, ICON_SKY, type IconCount } from '../kit.ts';
 import { giftRow } from './message.ts';
 import { BAND_S, counted, roof } from './roof.ts';
@@ -224,17 +225,9 @@ const court = (f: WomanFrame) => {
 const replay = (f: WomanFrame) => {
   const { ctx, w, h, t } = f;
   // The court once they have gone: the stones in the dust, the words written.
-  COURT.charge = 0;
-  COURT.drop = 1;
-  COURT.leave = 1;
-  COURT.leaveBob = 0;
-  COURT.writing = 1;
-  COURT.writes = 0;
-  COURT.stand = 1;
-  COURT.sends = 0;
-  COURT.speak = 0;
-  LOOK[0] = -4;
-  LOOK[1] = 0.5;
+  reset(COURT, COURT_GONE);
+  LOOK[0] = GONE_LOOK[0];
+  LOOK[1] = GONE_LOOK[1];
   WOMAN.walk = 0;
   WOMAN.bob = 0;
   WOMAN.faith = 0;

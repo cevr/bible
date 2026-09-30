@@ -1213,12 +1213,12 @@ export const recall = (
 };
 
 /**
- * The court as `woman` leaves it on "go", framed wide, held still: those who
- * brought her gone, their stones in the dust, Jesus standing, and the woman
- * forgiven, in white (`robe`'s callback).
+ * The court once those who brought her have gone: their stones in the dust,
+ * the words written, Jesus standing and still. Flat (no `look` or `woman`,
+ * which a scene keeps as scratch), so `woman`'s count resets its court to it
+ * with `reset` and `COURT_FORGIVEN` holds it.
  */
-export const COURT_FORGIVEN: Temple = {
-  cam: COURT_WIDE,
+export const COURT_GONE = {
   charge: 0,
   drop: 1,
   leave: 1,
@@ -1228,7 +1228,19 @@ export const COURT_FORGIVEN: Temple = {
   sends: 0,
   stand: 1,
   speak: 0,
-  look: [-4, 0.5],
+} as const satisfies Partial<Temple>;
+/** Where Jesus looks, standing, once they have gone: to her. */
+export const GONE_LOOK: Pt = [-4, 0.5];
+
+/**
+ * The court as `woman` leaves it on "go", framed wide, held still: those who
+ * brought her gone, their stones in the dust, Jesus standing, and the woman
+ * forgiven, in white (`robe`'s callback).
+ */
+export const COURT_FORGIVEN: Temple = {
+  ...COURT_GONE,
+  cam: COURT_WIDE,
+  look: GONE_LOOK,
   woman: {
     walk: 0,
     bob: 0,
