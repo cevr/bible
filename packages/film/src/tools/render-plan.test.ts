@@ -190,26 +190,46 @@ describe('planChunks', () => {
     }
   });
 
-  test('about four chunks per page, so an idle page always has one to pull', () => {
-    expect(planChunks(0, 2400, 4)).toHaveLength(16);
-    expect(planChunks(0, 3000, 6)).toHaveLength(24);
+  /** The frames in each chunk, in order. */
+  const sizes = (from: number, to: number, workers: number) =>
+    planChunks(from, to, workers).map((c) => c.to - c.from);
+
+  test('about four chunks per page, then a tail that halves', () => {
+    // 150 frames a chunk for 4 pages, the last 448 frames as four of 75 and four of 37.
+    const all = sizes(0, 2400, 4);
+    expect(all.slice(-8)).toEqual([75, 75, 75, 75, 37, 37, 37, 37]);
+    const head = all.slice(0, -8);
+    expect(head).toHaveLength(14);
+    expect(head.every((n) => n === 139 || n === 140)).toBe(true);
+  });
+
+  test('the last chunks the pages pull are the smallest, so the pages finish together', () => {
+    // The whole righteousness-by-faith film on 8 pages: 59 of 238–239, then eight each of 120, 60 and 30.
+    const all = sizes(0, 15_776, 8);
+    expect(all.slice(-24)).toEqual([
+      ...Array.from({ length: 8 }, () => 120),
+      ...Array.from({ length: 8 }, () => 60),
+      ...Array.from({ length: 8 }, () => 30),
+    ]);
+    expect(all.slice(0, -24).every((n) => n >= 238 && n <= MAX_CHUNK_FRAMES)).toBe(true);
   });
 
   test('never over eight seconds of frames, however few the pages', () => {
-    const chunks = planChunks(0, 10_499, 6);
-    expect(chunks).toHaveLength(Math.ceil(10_499 / MAX_CHUNK_FRAMES));
-    expect(chunks.every((c) => c.to - c.from <= MAX_CHUNK_FRAMES)).toBe(true);
+    expect(sizes(0, 10_499, 6).every((n) => n <= MAX_CHUNK_FRAMES)).toBe(true);
+    expect(sizes(0, 10_499, 1).every((n) => n <= MAX_CHUNK_FRAMES)).toBe(true);
   });
 
   test('never under a second of frames', () => {
-    const chunks = planChunks(3600, 4200, 4);
-    expect(
-      chunks.every((c, k, all) => k === all.length - 1 || c.to - c.from >= MIN_CHUNK_FRAMES),
-    ).toBe(true);
-    expect(planChunks(0, 45, 8).map((c) => [c.from, c.to])).toEqual([
-      [0, 30],
-      [30, 45],
-    ]);
+    for (const [from, to, workers] of [
+      [3600, 4200, 4],
+      [0, 10_499, 6],
+      [0, 1000, 8],
+      [0, 2413, 4],
+      [0, 61, 1],
+    ] as const)
+      expect(sizes(from, to, workers).every((n) => n >= MIN_CHUNK_FRAMES)).toBe(true);
+    // Too short for two chunks of a second: one chunk.
+    expect(sizes(0, 45, 8)).toEqual([45]);
   });
 
   test('an empty range has no chunks', () => {

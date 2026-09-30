@@ -6,12 +6,11 @@
 
 import type { Film, KnobRead, SceneEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
-import type { FaceMark, HandMark, Probed } from '../core/schema.ts';
+import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Option } from 'effect';
 import { composeContact } from './contact.ts';
-import { bytesBase64, canvasBase64, required } from './dom.ts';
-import type { Encoder, EncoderChoice } from '../core/encoder.ts';
+import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
@@ -30,56 +29,6 @@ const HASH_MS = 250;
  * engine names none of them. A face that will not load fails the page.
  */
 const loadFonts = () => Promise.all(Array.from(document.fonts, (face) => face.load()));
-
-export interface ExportHandle {
-  readonly width: number;
-  readonly height: number;
-  readonly fps: number;
-  readonly duration: number;
-  readonly frames: number;
-  readonly audio: string | undefined;
-  /** Draw frame `i` and return it encoded. */
-  frame(i: number, type?: 'image/png' | 'image/jpeg'): Promise<string>;
-  /** Draw frame `i` with the probe on: every line of text and mark of ink it draws, in canvas pixels. */
-  probe(i: number): Probed;
-  /** Compose the film's look-book (`composeLookbook`) and return it encoded. */
-  lookbook(type?: 'image/png' | 'image/jpeg'): Promise<string>;
-  /**
-   * The first of `candidates` the film can be encoded with here at `scale`
-   * (with its share copy when `share`), or none (`encoderChoice`).
-   */
-  encoder(
-    scale: number,
-    share: boolean,
-    candidates: ReadonlyArray<Encoder>,
-  ): Promise<EncoderChoice>;
-  /**
-   * Frames `[from, to)` encoded by `encoder` as an H.264 MP4 at `scale`
-   * (`encodeChunk`), and with `share` a small copy beside it, each as base64.
-   */
-  encode(
-    from: number,
-    to: number,
-    scale: number,
-    share: boolean,
-    encoder: Encoder,
-  ): Promise<{ readonly master: string; readonly share?: string }>;
-  /** `frames` tiled into the contact sheet (`composeContact`), as a base64 JPEG. */
-  contact(frames: ReadonlyArray<number>): Promise<string>;
-  /**
-   * `frames` drawn without captions, each shrunk to a `w` × `h` RGBA thumb
-   * (end to end, base64), and the faces and hands each declared (`lookFrames`).
-   */
-  look(
-    frames: ReadonlyArray<number>,
-    w: number,
-    h: number,
-  ): {
-    readonly thumbs: string;
-    readonly faces: ReadonlyArray<ReadonlyArray<FaceMark>>;
-    readonly hands: ReadonlyArray<ReadonlyArray<HandMark>>;
-  };
-}
 
 declare global {
   interface Window {
@@ -210,46 +159,7 @@ export const mountPlayer = (films: Films): void => {
 
     if (exporting) {
       document.body.classList.add('export');
-      const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
-      window.__film = {
-        width: film.width,
-        height: film.height,
-        fps: film.fps,
-        duration: film.duration,
-        frames: Math.ceil(film.duration * film.fps),
-        audio: film.audio,
-        frame: (i, type = 'image/png') => {
-          draw(i);
-          return canvasBase64(canvas, type);
-        },
-        probe: (i) => {
-          const sink: ProbeSink = { texts: [], inks: [] };
-          film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
-          return sink;
-        },
-        lookbook: async (type = 'image/jpeg') =>
-          canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
-        encoder: (scale, share, candidates) =>
-          encoderChoice(canvas, film.fps, scale, share, candidates),
-        encode: async (from, to, scale, share, encoder) => {
-          const chunk = await encodeChunk(draw, canvas, film.fps, from, to, scale, share, encoder);
-          const master = bytesBase64(chunk.master);
-          return chunk.share === undefined
-            ? { master }
-            : { master, share: bytesBase64(chunk.share) };
-        },
-        contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
-        look: (frames, w, h) => {
-          const drawn = lookFrames(
-            (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
-            canvas,
-            frames,
-            w,
-            h,
-          );
-          return { thumbs: bytesBase64(drawn.thumbs), faces: drawn.faces, hands: drawn.hands };
-        },
-      };
+      window.__film = exportHandle({ name, film, canvas, ctx, captions });
       return;
     }
     if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
@@ -260,6 +170,82 @@ export const mountPlayer = (films: Films): void => {
     showFailure(e);
     throw e;
   });
+};
+
+/**
+ * The handle the tools drive a staged film through (`ExportHandle`,
+ * core/export-handle.ts). Every draw is timed the same way (`drawn`): the
+ * frame drawn, then rastered by a one-pixel read before the clock stops, so
+ * the canvas's recorded drawing is paid for in the draw and not later by
+ * whatever reads the canvas next (an encoder, `toBlob`).
+ */
+const exportHandle = ({ film, canvas, ctx, captions }: Staged): ExportHandle => {
+  const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
+  /** Draw frame `i` and raster it: the ms it took. */
+  const drawn = (i: number) => {
+    const began = performance.now();
+    draw(i);
+    ctx.getImageData(0, 0, 1, 1);
+    return performance.now() - began;
+  };
+  return {
+    info: {
+      width: film.width,
+      height: film.height,
+      fps: film.fps,
+      duration: film.duration,
+      frames: Math.ceil(film.duration * film.fps),
+      audio: film.audio,
+    },
+    frame: (i, type) => {
+      draw(i);
+      return canvasBase64(canvas, type);
+    },
+    probe: (i) => {
+      const sink: ProbeSink = { texts: [], inks: [] };
+      film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
+      return sink;
+    },
+    lookbook: async (type) =>
+      canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
+    encoder: (scale, share, candidates) =>
+      encoderChoice(canvas, film.fps, scale, share, candidates),
+    encode: async (from, to, scale, share, encoder) => {
+      const began = performance.now();
+      let drawing = 0;
+      const chunk = await encodeChunk(
+        (i) => {
+          drawing += drawn(i);
+        },
+        canvas,
+        film.fps,
+        from,
+        to,
+        scale,
+        share,
+        encoder,
+      );
+      const master = bytesBase64(chunk.master);
+      const copy = chunk.share === undefined ? {} : { share: bytesBase64(chunk.share) };
+      return { master, ...copy, timing: { draw: drawing, page: performance.now() - began } };
+    },
+    contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
+    look: (frames, w, h) => {
+      const shot = lookFrames(
+        (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
+        canvas,
+        frames,
+        w,
+        h,
+      );
+      return { thumbs: bytesBase64(shot.thumbs), faces: shot.faces, hands: shot.hands };
+    },
+    luma: (i, area) => {
+      draw(i);
+      return canvasLuma(canvas, area);
+    },
+    drawTimes: (frames) => frames.map(drawn),
+  };
 };
 
 /** The scrubbable preview of a staged film: its bar and timeline, its clock, its keys. */

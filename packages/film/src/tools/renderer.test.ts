@@ -113,11 +113,12 @@ describe('Renderer', () => {
       const [join] = ledger.joins;
       expect(join?.out).toBe('/out/test/film/main.mp4');
       expect(join?.frames).toBe(600);
-      // Sixteen chunks of 38 frames (the last 30), each placed where its first frame plays.
+      // Sixteen chunks of 37 or 38 frames (too few for a halving tail), each
+      // placed where its first frame plays.
       expect(join?.segments.map((s) => s.at)).toEqual(
-        Array.from({ length: 16 }, (_, k) => (k * 38) / 30),
+        Array.from({ length: 16 }, (_, k) => Math.floor((k * 600) / 16) / 30),
       );
-      expect(joined.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
+      expect(joined.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 37-75'));
       expect(join?.audio).toEqual(Option.none());
       expect(files.has('/out/test/film/main.vtt')).toBe(true);
       expectAllClosed(ledger);
@@ -134,7 +135,7 @@ describe('Renderer', () => {
         '/out/test/film/main.share.mp4',
       ]);
       const [, share] = ledger.joins;
-      expect(joined.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
+      expect(joined.get(share?.segments[1]?.file ?? '')).toEqual(text('share 37-75'));
       expect(share?.segments.map((s) => s.at)).toEqual(ledger.joins[0]?.segments.map((s) => s.at));
     }),
   );

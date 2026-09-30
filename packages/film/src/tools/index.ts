@@ -22,6 +22,7 @@ export type { Reported } from './findings.ts';
 export * from './checker.ts';
 export * from './preview-server.ts';
 export * from './browser.ts';
+export * from './pages.ts';
 export * from './render-plan.ts';
 export * from './renderer.ts';
 export * from './catalogue.ts';

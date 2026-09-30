@@ -2,12 +2,12 @@
 // (the player's `look` handle), then every frame across each hand's travel
 // (the hands pass), and measured by the pure functions in `look.ts`.
 // `film check` warns from it (`HeldShare`, `FaceSmall`, `ColourScript`,
-// `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The server,
-// the browser and the pages live in one scope, as in a render.
+// `HandJump`, `HandFar`, `HandHidden`); `film lookbook` prints it. The pages
+// are a pool of `Pages`, in the look's scope, as in a render.
 
-import { Array as Arr, Context, Effect, Layer, Pool } from 'effect';
+import { Array as Arr, Context, Effect, Layer } from 'effect';
 import type { Scope } from '../core/address.ts';
-import { Browser, type PageOpenError } from './browser.ts';
+import type { PageOpenError } from './browser.ts';
 import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
@@ -24,7 +24,7 @@ import {
   lookSamples,
   sceneLooks,
 } from './look.ts';
-import { PreviewServer } from './preview-server.ts';
+import { Pages } from './pages.ts';
 
 export type LookError = PageOpenError | PageError | PageCrashed | FrameFailed;
 
@@ -49,8 +49,7 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
   static readonly layer = Layer.effect(
     Looker,
     Effect.gen(function* () {
-      const browser = yield* Browser;
-      const server = yield* PreviewServer;
+      const pages = yield* Pages;
 
       const look = Effect.fn('Looker.look')(function* (
         film: LoadedFilm,
@@ -58,12 +57,12 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
         scope: Scope,
       ) {
         const placed = scope.scenes;
-        const url = `${server.url}?film=${encodeURIComponent(film.paths.name)}&export`;
         return yield* Effect.scoped(
           Effect.gen(function* () {
             const size = Math.max(1, workers);
-            const pool = yield* Pool.make({ acquire: browser.open(url), size });
-            const info = yield* Effect.scoped(Effect.map(Pool.get(pool), (page) => page.info));
+            // The look handle draws without captions whatever the page's switch says.
+            const pool = yield* pages.open(film.paths.name, { workers: size, captions: true });
+            const info = pool.info;
             /** `samples` drawn on the pool, each as a `w` × `h` thumb, in order. */
             const drawAll = (samples: ReadonlyArray<LookSample>, w: number, h: number) =>
               Effect.map(
@@ -73,18 +72,14 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
                     BATCH,
                   ),
                   (frames) =>
-                    Effect.scoped(
-                      Effect.gen(function* () {
-                        const page = yield* Pool.get(pool);
-                        const got = yield* page.look(frames, w, h);
-                        const bytes = w * h * 4;
-                        return frames.map((_, k): Drawn => ({
-                          thumb: got.thumbs.subarray(k * bytes, (k + 1) * bytes),
-                          faces: got.faces[k] ?? [],
-                          hands: got.hands[k] ?? [],
-                        }));
-                      }),
-                    ),
+                    Effect.map(pool.call('look', frames, w, h), (got) => {
+                      const bytes = w * h * 4;
+                      return frames.map((_, k): Drawn => ({
+                        thumb: got.thumbs.subarray(k * bytes, (k + 1) * bytes),
+                        faces: got.faces[k] ?? [],
+                        hands: got.hands[k] ?? [],
+                      }));
+                    }),
                   { concurrency: size },
                 ),
                 (batches) => batches.flat(),
@@ -114,5 +109,5 @@ export class Looker extends Context.Service<Looker, LookerService>()('@bible/fil
 
       return Looker.of({ look });
     }),
-  );
+  ).pipe(Layer.provide(Pages.layer));
 }

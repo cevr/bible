@@ -9,7 +9,7 @@ import { layout } from '../core/layout.ts';
 import type { Short, Timed } from '../core/schema.ts';
 import { holdGrid, holdTicks, layoutSamples } from './check.ts';
 import { Checker } from './checker.ts';
-import type { LumaArea } from './browser.ts';
+import type { LumaArea } from '../core/export-handle.ts';
 import { PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
