@@ -1,10 +1,15 @@
 // Colours as a film writes them: hex, `#rrggbb` (or `#rgb`). A colour between
-// two, and a colour's own fully clear shade for a gradient to fade into.
+// two, and a colour's own fully clear shade for a gradient to fade into. Any
+// other colour (a name, `rgb(…)`, hex with alpha) is refused, named: read as
+// hex it would make a NaN fill a canvas ignores, or a stop it refuses.
 
 import { clamp, lerp } from '../core/time.ts';
 
-/** The red, green and blue of a hex colour, 0..255 each, written into `out`. */
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** The red, green and blue of a hex colour, 0..255 each, written into `out`; throws naming any other colour. */
 export const rgbOf = (out: [number, number, number], hex: string): [number, number, number] => {
+  if (!HEX.test(hex)) throw new Error(`colour "${hex}" is not #rgb or #rrggbb hex`);
   const short = hex.length === 4;
   for (let i = 0; i < 3; i++) {
     const at = short ? 1 + i : 1 + i * 2;

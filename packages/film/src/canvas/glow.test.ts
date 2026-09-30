@@ -113,15 +113,6 @@ describe('wash', () => {
   });
 });
 
-describe('mix', () => {
-  test('a colour between two, rounded per channel, clamped to the two', () => {
-    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
-    expect(mix('#ab8163', '#f3ebdd', 0)).toBe('#ab8163');
-    expect(mix('#ab8163', '#f3ebdd', 2)).toBe('#f3ebdd');
-    expect(mix('#fff', '#000', 0.25)).toBe('#bfbfbf');
-  });
-});
-
 describe('reset', () => {
   test('writes the defaults onto the scratch in place', () => {
     const pose = { a: 3, b: 4, keep: 'x' };

@@ -4,7 +4,9 @@
 // style), saved and restored whole, and records what is filled and drawn
 // under it; every other call answers `nothing`. It refuses what a real canvas
 // refuses (a negative arc, ellipse or gradient radius, a colour stop off
-// 0..1), raising the defect the real one's IndexSizeError would be. `withDom`
+// 0..1, a stop colour made of NaN or undefined, a non-finite gradient
+// coordinate), raising the defect the real one's IndexSizeError, SyntaxError
+// or TypeError would be. `withDom`
 // and `standInDom` put up a document whose canvases draw into stand-ins of
 // their own, for the paper, the light sheets and the fibre tile a film makes
 // off the page.
@@ -83,8 +85,14 @@ export interface Recorder {
   readonly filters: Map<string, string>;
 }
 
-/** How a stand-in keeps what is drawn into it. */
+/** How a stand-in keeps what is drawn into it, and measures. */
 export interface StandInOptions {
+  /**
+   * How wide `text` sets in `font` (the context's font when measured): a
+   * test of layout gives its own advances, kerning included. Without it,
+   * every character is 10 wide in any font.
+   */
+  readonly measure?: (font: string, text: string) => number;
   /**
    * Whether it records its fills and images (the default). A test that only
    * asks whether a draw runs (every scene of a film, frame after frame) keeps
@@ -153,18 +161,35 @@ const quiet = (): void => {};
  * What a real canvas does with an argument it refuses: throws an
  * IndexSizeError out of the draw. Here the same defect, raised synchronously.
  */
-const refuseWhen = (bad: boolean, what: string) => {
-  if (bad) Effect.runSync(Effect.die(new RangeError(`IndexSizeError: ${what}`)));
+const refuseWhen = (bad: boolean, what: string, error = 'IndexSizeError') => {
+  if (bad) Effect.runSync(Effect.die(new RangeError(`${error}: ${what}`)));
 };
 
-/** A colour stop, refused off 0..1 as a real gradient refuses it. */
+/** Gradient coordinates, refused when one is not finite, as a canvas's restricted doubles are. */
+const refuseUnfinite = (what: string, ...at: ReadonlyArray<number>) =>
+  refuseWhen(!at.every(Number.isFinite), `${what} ${at.join(', ')}`, 'TypeError');
+
+/** A colour no canvas parses: what a NaN or a missing channel writes into one. */
+const UNPARSED = /NaN|undefined/;
+
+/**
+ * A colour stop, refused off 0..1 and for a colour made of NaN or undefined,
+ * as a real gradient refuses them (IndexSizeError, SyntaxError).
+ */
 const stopOf = (stops: Array<readonly [number, string]>) => (offset: number, color: string) => {
   refuseWhen(!(offset >= 0 && offset <= 1), `addColorStop offset ${offset}`);
+  refuseWhen(UNPARSED.test(color), `addColorStop colour "${color}"`, 'SyntaxError');
   stops.push([offset, color]);
 };
 
 export const recorder = (width = 1920, height = 1080, options: StandInOptions = {}): Recorder => {
   const keeps = options.record !== false;
+  const measure = options.measure ?? ((_font: string, text: string) => text.length * 10);
+  /** The font set on the context, else a canvas's own default. */
+  const fontOf = () => {
+    const font = other.get('font');
+    return Predicate.isString(font) ? font : '10px sans-serif';
+  };
   let state: Pen = { m: IDENTITY, alpha: 1, filter: 'none', comp: 'source-over', style: '' };
   const stack: Pen[] = [];
   const fills: Fill[] = [];
@@ -261,11 +286,13 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       y1: number,
       r1: number,
     ) => {
+      refuseUnfinite('radial gradient', x0, y0, r0, x1, y1, r1);
       refuseWhen(r0 < 0 || r1 < 0, `radial gradient radii ${r0}, ${r1}`);
       const g: StandInGradient = { _tag: 'Radial', circles: [x0, y0, r0, x1, y1, r1], stops: [] };
       return { ...g, addColorStop: stopOf(g.stops) };
     },
     createLinearGradient: (x0: number, y0: number, x1: number, y1: number) => {
+      refuseUnfinite('linear gradient', x0, y0, x1, y1);
       const g: StandInLinear = { _tag: 'Linear', line: [x0, y0, x1, y1], stops: [] };
       return { ...g, addColorStop: stopOf(g.stops) };
     },
@@ -281,7 +308,7 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       data: new Uint8ClampedArray(Math.max(1, w * h) * 4),
     }),
     measureText: (text: string) => ({
-      width: text.length * 10,
+      width: measure(fontOf(), text),
       actualBoundingBoxAscent: 8,
       actualBoundingBoxDescent: 2,
     }),
