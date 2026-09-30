@@ -1166,7 +1166,7 @@ sound (`paper.page.hush`), placed there, and picked the same way.
 that option playing (a score) or only that take at every placement of its
 sound (`RenderOptions.take`), encoded AAC and cached under a key of the film,
 the option, the take and the film's source stamp (the newest file under its
-folder, and the lock). A mix renders the whole film (45–55 s for
+folder, the library's module and its lock). A mix renders the whole film (45–55 s for
 righteousness-by-faith on the box under load), so mixes are made one at a time in the
 service's scope, not the request's: a page that stops waiting leaves one
 running, the next ask joins it or finds it made, and the page's `<audio>`

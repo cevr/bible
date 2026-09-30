@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { ConfigProvider, Effect, Layer, Option, Path } from 'effect';
+import { ConfigProvider, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
 import { memoryFileSystem, storeLayer, testFilm } from './testing.ts';
@@ -50,6 +50,37 @@ describe('FilmRepo', () => {
       // Its film.ts declares the look: two acts, the first from the opening.
       const look = Option.getOrThrow(loaded.look);
       expect(look.acts.map((act) => act.from)).toEqual(['open', 'title']);
+    }),
+  );
+});
+
+describe('FilmFolder.stamp', () => {
+  // A film and the app's sound library on disk, each file dated by hand, so
+  // the stamp is read from the dates alone: the film's newest is 1000 s, the
+  // lock's 2000 s, the library module's 3000 s.
+  const dated = Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: 'film-stamp-' });
+      const sounds = `${root}/sounds`;
+      yield* fs.makeDirectory(`${root}/films/f/scenes`, { recursive: true });
+      yield* fs.makeDirectory(sounds);
+      const at = (file: string, seconds: number) =>
+        fs.writeFileString(file, '').pipe(Effect.andThen(fs.utimes(file, seconds, seconds)));
+      yield* at(`${root}/films/f/scenes/index.ts`, 1_000);
+      yield* at(`${sounds}/library.lock.json`, 2_000);
+      yield* at(`${sounds}/library.ts`, 3_000);
+      yield* fs.utimes(`${root}/films/f/scenes`, 1_000, 1_000);
+      return FilmFolder.layer(`${root}/films`, Option.some(sounds));
+    }),
+  ).pipe(
+    Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({}))),
+    Layer.provideMerge(BunServices.layer),
+  );
+
+  it.effect.layer(dated)("moves when the library's module changes, as when its lock does", () =>
+    Effect.gen(function* () {
+      expect(yield* (yield* FilmFolder).stamp('f')).toBe(3_000_000);
     }),
   );
 });
