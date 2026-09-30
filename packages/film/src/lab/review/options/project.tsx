@@ -17,7 +17,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Match, Option } from 'effect';
+import { Array as Arr, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
@@ -117,7 +117,8 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
 interface ProjectValue {
   readonly film: string;
   readonly view: Accessor<ProjectView>;
-  readonly say: (said: ProjectSay) => void;
+  /** Say `said` of the project: whether it was said. */
+  readonly say: (said: ProjectSay) => Promise<boolean>;
   readonly saying: () => boolean;
 }
 
@@ -336,7 +337,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   const read = useAtomValue(() => readAtom);
   const refresh = useAtomRefresh(() => readAtom);
   const said = useAtomValue(() => sayAtom);
-  const say = useAtomSet(() => sayAtom);
+  const say = useAtomSet(() => sayAtom, { mode: 'promiseExit' });
   const [shown, setShown] = createSignal(Option.none<ProjectView>());
   createEffect(read, (r) => {
     if (r.waiting) return;
@@ -353,7 +354,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   const at = (view: Accessor<ProjectView>): ProjectValue => ({
     film,
     view,
-    say: (s) => say(s),
+    say: (s) => say(s).then(Exit.isSuccess),
     saying: () => said().waiting,
   });
   return (

@@ -46,11 +46,12 @@ const APPROVE_TITLE = {
 } as const satisfies Record<ApprovalState, string>;
 
 /**
- * Where a card's says go, and whether one is in flight: a choice's to the
- * film's choices (the default), a render's to its project.
+ * Where a card's says go, whether each was said, and whether one is in
+ * flight: a choice's to the film's choices (the default), a render's to its
+ * project.
  */
 export interface Sayer {
-  readonly say: (variant: ChoiceVariant, say: Say) => void;
+  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
   readonly busy: () => boolean;
 }
 
@@ -92,19 +93,22 @@ export const Comments = (props: { readonly comments: ReadonlyArray<SaidComment> 
 );
 
 /**
- * A line to say something, and its button; `say` gets the text, the line
- * empties. While a say is in flight the button waits (the text stays).
+ * A line to say something, and its button; `say` gets the text and answers
+ * whether it was said. While a say is in flight the button waits; the line
+ * empties once the say is said (unless it was typed on since), and a say
+ * that fails leaves the text for another try.
  */
 export const SayBox = (props: {
-  readonly say: (text: string) => void;
+  readonly say: (text: string) => Promise<boolean>;
   readonly disabled?: boolean;
 }) => {
   const [text, setText] = createSignal('');
   const send = () => {
     const said = text().trim();
     if (said === '' || props.disabled === true) return;
-    props.say(said);
-    setText('');
+    void props.say(said).then((ok) => {
+      if (ok && text().trim() === said) setText('');
+    });
   };
   return (
     <form

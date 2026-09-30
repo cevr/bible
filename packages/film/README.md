@@ -1245,7 +1245,9 @@ every scene it plays in (a scene, an act, else the film), folded under it; a
 scene links the layers that play in it but sit elsewhere, and a link opens
 where the card is. Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
-source write reads it again.
+source write reads it again. A say box empties only once its say is said
+(`SayBox`: each say answers whether it was): a comment whose say fails (the
+film mid-edit and not loading) stays in its box beside the failure.
 
 ## Check
 

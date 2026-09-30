@@ -14,7 +14,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Match, Option } from 'effect';
+import { Data, Exit, Match, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -96,7 +96,8 @@ export interface FilmContextValue {
   readonly steps: Accessor<Option.Option<Steps>>;
   /** The last write, as it went. */
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
-  readonly write: (act: ChoiceAct) => void;
+  /** Write `act`: whether it was answered (a say's box empties only then). */
+  readonly write: (act: ChoiceAct) => Promise<boolean>;
   /** The sound check after the last pick or knob (initial until one). */
   readonly soundCheck: Accessor<AsyncResult.AsyncResult<SoundCheck, LabFailure>>;
   /** The render the sound plays over, when the film has one. */
@@ -144,7 +145,7 @@ const FilmBody = (
   const stepsResult = useAtomValue(() => props.atoms.steps);
   const readSteps = useAtomSet(() => props.atoms.steps);
   const wrote = useAtomValue(() => props.atoms.write);
-  const write = useAtomSet(() => props.atoms.write);
+  const write = useAtomSet(() => props.atoms.write, { mode: 'promiseExit' });
   const soundCheck = useAtomValue(() => props.atoms.soundCheck);
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
@@ -221,7 +222,7 @@ const FilmBody = (
     findings,
     steps,
     wrote,
-    write: (act) => write(act),
+    write: (act) => write(act).then(Exit.isSuccess),
     soundCheck,
     picture,
     choosePicture: (ref) => {

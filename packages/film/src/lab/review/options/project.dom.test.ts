@@ -17,7 +17,15 @@
 import { Array as Arr, Effect, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { type FakeRoute, type Json, json, openReview, route } from '../../fixtures/harness.ts';
+import { FreshProcessFailed } from '../../../core/refusals.ts';
+import {
+  type FakeRoute,
+  type Json,
+  json,
+  openReview,
+  refused,
+  route,
+} from '../../fixtures/harness.ts';
 
 const SLOW = 30_000;
 
@@ -500,6 +508,78 @@ describe("a film's project", () => {
             `window.clip === document.querySelector('${scene('open')} video')`,
           ),
         ).toBe(true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a comment whose say fails stays in its box beside the failure; one that is said empties it',
+    () =>
+      Effect.gen(function* () {
+        // The film is mid-edit and does not load: every say fails until it does.
+        let loads = false;
+        const routes = fakeProject();
+        const failing = FreshProcessFailed.make({ command: 'film comment', reason: 'exit 1' });
+        const whileBroken = (path: RegExp): FakeRoute =>
+          route('POST', path, (asked) =>
+            Option.match(
+              Option.filter(
+                Option.fromUndefinedOr(
+                  routes.find((r) => r.method === 'POST' && r.path.test(asked.path)),
+                ),
+                () => loads,
+              ),
+              { onNone: () => refused(failing), onSome: (r) => r.answer(asked) },
+            ),
+          );
+        const { page, asked, errors } = yield* openReview(
+          [
+            whileBroken(/^\/review\/project\/toy\/say$/),
+            whileBroken(/^\/lab\/toy\/choices\/say$/),
+            ...routes,
+          ],
+          { search: PROJECT },
+        );
+        const box = (at: string) => `${at} .rv-comment-input`;
+        const valueOf = (at: string) =>
+          evaluate<string>(page, `document.querySelector('${box(at)}').value`);
+        /** Say `text` in the box at `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
+        const failedSay = (at: string, text: string, path: string, n: number, status: string) =>
+          Effect.gen(function* () {
+            yield* Effect.promise(() => page.fill(box(at), text));
+            yield* click(page, `${at} [data-act="comment"]`);
+            yield* Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
+              Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (m) => m >= n }),
+              Effect.timeout('10 seconds'),
+            );
+            yield* until(
+              page,
+              `((s) => s.dataset.failed === 'true' && !s.textContent.endsWith('…'))(document.querySelector('${status}'))`,
+            );
+          });
+        const PROJECT_SAY = '/review/project/toy/say';
+        const take = `${scene('open')} [data-point="take:paper.page"]`;
+        yield* waitFor(page, `${render('open')} [data-act="approve"]`);
+        // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
+        yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'p.rv-status');
+        expect(yield* valueOf(render('open'))).toBe('a long thoughtful note');
+        yield* failedSay('.rv-film > .rv-say', 'of the whole film', PROJECT_SAY, 2, 'p.rv-status');
+        expect(yield* valueOf('.rv-film > .rv-say')).toBe('of the whole film');
+        yield* click(page, `${scene('open')} > .rv-layers > summary`);
+        yield* failedSay(
+          take,
+          'the page is late',
+          '/lab/toy/choices/say',
+          1,
+          '.rv-writes .rv-status',
+        );
+        expect(yield* valueOf(take)).toBe('the page is late');
+        // The film loads again: the kept comment is said, and its box empties.
+        loads = true;
+        yield* click(page, `${render('open')} [data-act="comment"]`);
+        yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
+        yield* until(page, `document.querySelector('${box(render('open'))}').value === ''`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
