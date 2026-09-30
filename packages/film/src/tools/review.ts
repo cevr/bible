@@ -763,18 +763,22 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
 
   /**
    * The review's config from the environment: `FILM_REVIEW_ROOTS` (see
-   * `parseRoots`; `defaults` when unset), `FILM_REVIEW_CACHE` (default
+   * `parseRoots`; the app's `defaults` when unset), then any
+   * `FILM_REVIEW_EXTRA_ROOTS` beside them, `FILM_REVIEW_CACHE` (default
    * `~/.cache/film-review`) and `FILM_REVIEW_PHONE` (`off` makes no phone copies).
    */
-  static readonly layerConfig = (defaults: ReadonlyArray<ReviewRoot>) =>
+  static readonly layerConfig = <R>(defaults: Effect.Effect<ReadonlyArray<ReviewRoot>, never, R>) =>
     Layer.unwrap(
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const home = yield* Config.String('HOME').pipe(Config.withDefault('.'));
-        const roots = yield* Config.String('FILM_REVIEW_ROOTS').pipe(
-          Config.map((text) => parseRoots(text, path)),
-          Config.withDefault(defaults),
-        );
+        const given = yield* Config.option(Config.String('FILM_REVIEW_ROOTS'));
+        const extra = yield* Config.String('FILM_REVIEW_EXTRA_ROOTS').pipe(Config.withDefault(''));
+        const base = yield* Option.match(given, {
+          onNone: () => defaults,
+          onSome: (text) => Effect.succeed(parseRoots(text, path)),
+        });
+        const roots = [...base, ...parseRoots(extra, path)];
         const cache = yield* Config.String('FILM_REVIEW_CACHE').pipe(
           Config.withDefault(path.join(home, '.cache', 'film-review')),
         );

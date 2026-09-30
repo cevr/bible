@@ -19,6 +19,7 @@
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",
     "notes": "bun cli.ts notes",
+    "review": "bun cli.ts review",
     "typecheck": "tsc --noEmit",
     "test": "bun test test"
   },

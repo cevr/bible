@@ -31,6 +31,7 @@
 // must be same-origin, and a write must carry a JSON body from that origin (a
 // cross-site form post can send text/plain without a preflight; JSON cannot).
 
+import type { Context } from 'effect';
 import {
   Array as Arr,
   Duration,
@@ -99,20 +100,42 @@ const refused = (status: Refusal['status'], reason: string) =>
   Option.some<Refusal>({ status, reason });
 
 /**
+ * Hosts a server answers to beyond the bound port's loopback names: each an
+ * exact Host value (`bite-cristian.exe.xyz:8229`), whose page may write from
+ * `http://` or `https://` it (a TLS proxy in front). The lab has none; the
+ * review is told them (`FILM_REVIEW_HOSTS`).
+ */
+export interface Allowed {
+  readonly hosts: ReadonlyArray<string>;
+}
+
+/** Loopback only: the lab's. */
+export const LOOPBACK_ONLY: Allowed = { hosts: [] };
+
+/**
  * Whether the lab answers `request` at all: `None` when it does, else why
  * not. Pure: the Host (or, where no header is sent, the URL's host) must be
- * the bound port on a loopback name; a browser's `Sec-Fetch-Site` must be
- * same-origin; and a write must come from no Origin (a tool, like curl) or
- * the lab's own, with a JSON body.
+ * the bound port on a loopback name, or one `allowed` names; a browser's
+ * `Sec-Fetch-Site` must be same-origin; and a write must come from no Origin
+ * (a tool, like curl) or one of those hosts', with a JSON body.
  */
-export const admit = (request: Request, bound: LabBound): Option.Option<Refusal> =>
+export const admit = (
+  request: Request,
+  bound: LabBound,
+  allowed: Allowed = LOOPBACK_ONLY,
+): Option.Option<Refusal> =>
   Option.match(Option.fromUndefinedOr(bound.port), {
     onNone: () => refused(403, 'the server has no port to check the Host against'),
     onSome: (port) => {
-      const hosts = Arr.dedupe([
+      const local = Arr.dedupe([
         ...Option.toArray(Option.fromUndefinedOr(bound.hostname)),
         ...LOOPBACK,
       ]).map((name) => `${name}:${port}`);
+      const hosts = [...local, ...allowed.hosts];
+      const origins = [
+        ...local.map((h) => `http://${h}`),
+        ...allowed.hosts.flatMap((h) => [`http://${h}`, `https://${h}`]),
+      ];
       const host = Option.getOrElse(header(request, 'host'), () => new URL(request.url).host);
       if (!hosts.includes(host))
         return refused(403, `Host ${host} is not the lab's (${hosts.join(', ')})`);
@@ -121,7 +144,7 @@ export const admit = (request: Request, bound: LabBound): Option.Option<Refusal>
         return refused(403, `a ${Option.getOrElse(site, () => '')} request`);
       if (SAFE_METHODS.includes(request.method)) return Option.none();
       const origin = header(request, 'origin');
-      if (Option.exists(origin, (o) => !hosts.some((h) => o === `http://${h}`)))
+      if (Option.exists(origin, (o) => !origins.includes(o)))
         return refused(403, `Origin ${Option.getOrElse(origin, () => '')} is not the lab's`);
       const type = Option.getOrElse(
         Option.map(header(request, 'content-type'), (t) =>
@@ -484,7 +507,6 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     Effect.sync(() => HttpRouter.toWebHandler(labRoutes(film), { disableLogger: true })),
     (web) => Effect.promise(() => web.dispose()),
   );
-  const run = Effect.runPromiseWith(services);
   // Each admitted request for this film runs with the caller's store and file
   // system; a refused one, logged, runs nothing.
   const lab: LabHandler = (request, server) =>
@@ -492,21 +514,28 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
       Option.orElse(admit(request, server), () => forFilm(request, film)),
       {
         onNone: () => handler(request, services),
-        onSome: (refusal) =>
-          run(
-            Effect.logWarning(
-              `lab.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
-            ).pipe(
-              Effect.map(() =>
-                HttpServerResponse.toWeb(
-                  HttpServerResponse.text(`LabRequestRefused: ${refusal.reason}`, {
-                    status: refusal.status,
-                  }),
-                ),
-              ),
-            ),
-          ),
+        onSome: (refusal) => refuse(services, request, refusal),
       },
     );
   return lab;
 });
+
+/** A refused request's answer, logged with the caller's `services`: its status and reason; nothing runs. */
+export const refuse = <R>(
+  services: Context.Context<R>,
+  request: Request,
+  refusal: Refusal,
+): Promise<Response> =>
+  Effect.runPromiseWith(services)(
+    Effect.logWarning(
+      `lab.request.refused method=${request.method} path=${new URL(request.url).pathname} status=${refusal.status} reason="${refusal.reason}"`,
+    ).pipe(
+      Effect.map(() =>
+        HttpServerResponse.toWeb(
+          HttpServerResponse.text(`LabRequestRefused: ${refusal.reason}`, {
+            status: refusal.status,
+          }),
+        ),
+      ),
+    ),
+  );

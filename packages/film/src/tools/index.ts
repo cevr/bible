@@ -28,6 +28,7 @@ export {
   type ReviewService,
   parseRoots,
 } from './review.ts';
+export { reviewAllowed, reviewHandler, reviewRoutes } from './review-http.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

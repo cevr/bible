@@ -49,24 +49,46 @@ export const serve = (port: number, development: boolean, lab?: Handler, films: 
     routes: {
       '/': index,
       ...labRoutes(Option.fromUndefinedOr(lab)),
-      // Narration takes: /films/<film>/narration/<file>. The studio rewrites
-      // them in place (a take kept, the track remixed), so the browser asks
-      // again on every load rather than play a take it cached.
-      '/films/*': (req) => {
-        const rel = normalize(
-          decodeURIComponent(new URL(req.url).pathname.slice('/films/'.length)),
-        );
-        if (rel.startsWith('..') || !rel.includes('/narration/'))
-          return new Response('not found', { status: 404 });
-        const file = Bun.file(join(films, rel));
-        return file
-          .exists()
-          .then((ok) =>
-            ok
-              ? new Response(file, { headers: { 'Cache-Control': 'no-cache' } })
-              : new Response('not found', { status: 404 }),
-          );
-      },
+      '/films/*': narration(films),
+    },
+  });
+
+/**
+ * Narration takes: /films/<film>/narration/<file>. The studio rewrites them
+ * in place (a take kept, the track remixed), so the browser asks again on
+ * every load rather than play a take it cached.
+ */
+const narration =
+  (films: string): Handler =>
+  (req) => {
+    const rel = normalize(decodeURIComponent(new URL(req.url).pathname.slice('/films/'.length)));
+    if (rel.startsWith('..') || !rel.includes('/narration/'))
+      return new Response('not found', { status: 404 });
+    const file = Bun.file(join(films, rel));
+    return file
+      .exists()
+      .then((ok) =>
+        ok
+          ? new Response(file, { headers: { 'Cache-Control': 'no-cache' } })
+          : new Response('not found', { status: 404 }),
+      );
+  };
+
+/**
+ * The review on `hostname`:`port`: its routes (the framework's handler, which
+ * answers only the hosts it is told) at /review/* and each film's options at
+ * /lab/*, and the narration its film pages play. No scene editor, no studio.
+ */
+export const serveReview = (port: number, hostname: string, review: Handler, films: string) =>
+  Bun.serve({
+    hostname,
+    port,
+    development: false,
+    idleTimeout: IDLE_SECONDS,
+    routes: {
+      '/review/*': review,
+      '/lab/*': review,
+      '/films/*': narration(films),
     },
   });
 

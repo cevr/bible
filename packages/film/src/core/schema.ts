@@ -939,6 +939,29 @@ export type CheckLine = typeof CheckLine.Type;
  */
 export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
 
+/** Where the review serves a file by its ref, and its phone copy. */
+export const REVIEW_FILES = '/review/files/';
+export const REVIEW_PHONE = '/review/phone/';
+
+/** A ref as a URL path: each segment encoded, the slashes kept. */
+const refPath = (ref: string) =>
+  ref
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+
+/** The review's URL for a file, by its ref. */
+export const reviewFileUrl = (ref: string): string => `${REVIEW_FILES}${refPath(ref)}`;
+
+/** The review's URL for a video's 720p phone copy, by its ref. */
+export const reviewPhoneUrl = (ref: string): string => `${REVIEW_PHONE}${refPath(ref)}`;
+
+/** The review's URL for a frame of a video, `w` px wide, at `t` s (10% in when none). */
+export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number): string => {
+  const at = Option.match(t, { onNone: () => '', onSome: (s) => `&t=${s.toFixed(2)}` });
+  return `/review/frame?ref=${encodeURIComponent(ref)}&w=${Math.round(w)}${at}`;
+};
+
 /**
  * One change the lab made to a file, as a page is told of it: a scene's (its
  * cue or knob) or a film's (its score's pick, its library's takes), named by

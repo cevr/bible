@@ -14,6 +14,7 @@
 //   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
 //   film doctor
 //   film lab <film>
+//   film review                     (every render compared in sync, each film's options: FILM_REVIEW_*)
 //   film notes <film> [--watch] [--since n]
 //   film notes reply <film> <id> <text> [--still file.png] [--since n]
 //   film notes resolve <film> <id>
@@ -26,7 +27,7 @@
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
 
-import { BunRuntime, BunServices } from '@effect/platform-bun';
+import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Cause,
@@ -90,6 +91,8 @@ import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
 import { labHandler } from './lab.ts';
+import { Review, type ReviewRoot } from './review.ts';
+import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { studioHandler, withStudio } from './studio.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
@@ -861,6 +864,25 @@ const lab = <E>(labServer: LabServer<E>) =>
     ),
   );
 
+const review = <E>(reviewServer: LabServer<E>) =>
+  Command.make(
+    'review',
+    {},
+    Effect.fn('film.review')(function* () {
+      const handler = yield* reviewHandler(yield* reviewAllowed);
+      const server = Context.get(yield* Layer.build(reviewServer(handler)), PreviewServer);
+      const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
+      yield* Console.log(server.url);
+      yield* Effect.log(`review.ready url=${server.url} roots=${roots.join(',')}`);
+      // Until Ctrl-C (or the unit stops): the scope then stops the server and the handler.
+      return yield* Effect.never;
+    }, Effect.scoped),
+  ).pipe(
+    Command.withDescription(
+      "Serve the review: every render under the review roots, compared in sync, and each film's options to pick from (Ctrl-C stops it)",
+    ),
+  );
+
 const noteId = Argument.String('id').pipe(Argument.withDescription('the note, e.g. n3'));
 
 const notesReply = Command.make(
@@ -987,6 +1009,19 @@ export interface FilmApp<E> {
   /** The player in development mode with the lab's routes, served while `lab` runs. */
   readonly labServer: LabServer<E>;
   /**
+   * The review, served while `review` runs: its server (the review page and
+   * its routes, on the host and port the app chooses) and the roots it reads
+   * when `FILM_REVIEW_ROOTS` names none.
+   */
+  readonly review: {
+    readonly server: LabServer<E>;
+    readonly roots: Effect.Effect<
+      ReadonlyArray<ReviewRoot>,
+      never,
+      FileSystem.FileSystem | Path.Path
+    >;
+  };
+  /**
    * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
    * runs `check --static` through it in a fresh process after each write, so
    * the check reads the scene files as the write left them.
@@ -1004,6 +1039,7 @@ export const runFilmCli = <E>({
   sounds,
   previewServer,
   labServer,
+  review: reviewApp,
   self,
 }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
@@ -1014,8 +1050,14 @@ export const runFilmCli = <E>({
   );
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Platform]));
+  const Reviewed = Review.layerConfig(reviewApp.roots).pipe(
+    Layer.provideMerge(BunHttpPlatform.layer),
+    Layer.provide(Platform),
+  );
   const Services = Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
-    Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Platform)),
+    Layer.provideMerge(
+      Layer.mergeAll(Repo, Notes, Source, Check, Library, Store, Tools, Reviewed, Platform),
+    ),
   );
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
@@ -1040,6 +1082,7 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labServer),
+      review(reviewApp.server),
       notes,
     ]),
   );
