@@ -1067,7 +1067,9 @@ and time. The page composes it with `film.render`, so the lab shows it live
 (`?film=<film>&lookbook`, a still opening that frame in the lab) and
 `film lookbook <film> [--captions] [--variant v]` asks one export page for the
 same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`), writes
-`out/<film>/film/<variant>/lookbook.jpg` and records it in the catalogue. It is the first page to read for a new film
+`out/<film>/film/<variant>/lookbook.jpg` and records it in the catalogue. A sheet
+laid out past Chromium's largest canvas side (32,767 px) is drawn scaled down
+to fit it. It is the first page to read for a new film
 and the consistency reference while its scenes are built. The command then
 runs the look pass (below) and prints one line per scene (held share and
 longest held run, largest face, mean luma, dark share, saturation and top
