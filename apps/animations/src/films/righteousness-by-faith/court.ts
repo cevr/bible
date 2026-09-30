@@ -56,9 +56,9 @@ export const WIDE: Camera = { x: 930, y: 480, zoom: 1.3 };
 
 /** Where the accused stands, where the Advocate stands at the landing, the judge and his gavel. */
 export const ACCUSED: Pt = [640, 860];
-export const ADVOCATE: Pt = [820, 860];
+const ADVOCATE: Pt = [820, 860];
 export const JUDGE: Pt = [1180, 350];
-export const GAVEL: Pt = [1330, 445];
+const GAVEL: Pt = [1330, 445];
 
 /** The grey figure's stains, in the person's units: each blob's centre, size and seed (`cold`, `exchange`, `declared`). */
 export const FIGURE_STAIN_SPOTS = [
@@ -84,14 +84,14 @@ export const STAMP_POP: ReadonlyArray<Key> = [
 // chest in `declared`; hung hollow at the bench's top and landed solid in `name`.
 
 /** Where the verdict stamps across the cold open's bench, and its tilt there (`cold`, `name`). */
-export const STAMP_AT: Pt = [1180, 672];
-export const STAMP_TILT = -0.07;
+const STAMP_AT: Pt = [1180, 672];
+const STAMP_TILT = -0.07;
 /**
  * Where it hangs hollow before it lands (`name`): at the bench's top, its
  * label's upper edge under the judge's chin, so the drop to `STAMP_AT` runs
  * straight down and never crosses his face.
  */
-export const STAMP_HUNG: Pt = [1180, 530];
+const STAMP_HUNG: Pt = [1180, 530];
 /**
  * The verdict's scale in `name`, whose court is framed `WIDE`: the cold open's
  * size on screen (framed `REST`), hung and landed alike.
@@ -222,7 +222,7 @@ export const FIGURE_LANDED = {
   smile: 0.7,
 } as const satisfies Person;
 
-export interface Court {
+interface Court {
   readonly cam: Camera;
   /** How much of the film's breath the shot takes, 0..1: all of it unless the scene holds it (`0`). */
   readonly drift?: number;
@@ -491,7 +491,7 @@ export const courtWall = (ctx: CanvasRenderingContext2D, w: number, h: number) =
   ]);
 
 /** Where the court's high window stands, and the bench's centre. */
-export const COURT_WINDOW: Pt = [1045, 220];
+const COURT_WINDOW: Pt = [1045, 220];
 export const COURT_BENCH: Pt = [1600, 750];
 
 /**
@@ -620,14 +620,14 @@ const ACCUSING: Posed<Gesture> = { to: [168, -262], reach: 0, grip: 'point' };
 export const JOSHUA: Pt = [760, 950];
 /** Joshua's scale in the court, and his helpers'. */
 export const JS = 2;
-export const AS = 1.7;
+const AS = 1.7;
 /** The helpers who lift his clothes (Zech 3:4): where each stands, the side it grips from, its seed. */
-export const HELPERS = [
+const HELPERS = [
   [610, 1, 1],
   [910, -1, 2],
 ] as const;
 
-export const TUNIC: Pt[] = [
+const TUNIC: Pt[] = [
   [-39, -134],
   [39, -134],
   [48, -18],
@@ -640,21 +640,21 @@ export const TUNIC_STAINS = [
   blob(15, -118, 13, 11, 24),
 ];
 /** The specks on his skin: the cheek's is the last to go. */
-export const CHEEK: Pt = [-19, -160];
+const CHEEK: Pt = [-19, -160];
 export const SPECKS = [blob(22, -100, 7, 6, 12), blob(-15, -60, 8, 6, 13)];
 
 /** The frame `accuser` ends on and `robe` opens on: the whole court. */
 export const ZECH_REST = UNMOVED;
 /** Where the accuser stands once he has stepped up (he steps in from off the left), and his scale there. */
-export const ACCUSER_AT: Pt = [300, 950];
+const ACCUSER_AT: Pt = [300, 950];
 const ACCUSER_FROM = -260;
 const ACCUSER_S = 0.9;
 /** Where the Angel (Christ) stands at the bench, and his scale. */
-export const ANGEL_AT: Pt = [1330, 950];
+const ANGEL_AT: Pt = [1330, 950];
 const ANGEL_S = 2.1;
 
 /** The heavenly court's people, as a scene has them this frame; every place is the court's. */
-export interface ZechCourt {
+interface ZechCourt {
   /** The sun's fall in the window (`court`'s `sun`). */
   readonly sun: number;
   /** The accuser: 0..1 stepped up (0 draws none), shrunk back, pointing. */

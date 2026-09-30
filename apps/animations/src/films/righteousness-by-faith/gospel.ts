@@ -555,7 +555,7 @@ const MAN_SHADE = [C.figureShade, mix(C.figureShade, C.robe, 0.8)] as const;
  * A heart lit gold from inside, on a person's chest in their units (`CHEST`),
  * `lit` 0..1: the heart icon's gift, echoed on the one who received it.
  */
-export const litHeart = (ctx: CanvasRenderingContext2D, hand: Hands, lit: number) => {
+const litHeart = (ctx: CanvasRenderingContext2D, hand: Hands, lit: number) => {
   const [cx, cy] = CHEST;
   glow(ctx, cx, cy, 90, C.glow, 0.9 * lit);
   at(ctx, { x: cx, y: cy, scale: 0.2 * lerp(0.6, 1, lit) }, () =>

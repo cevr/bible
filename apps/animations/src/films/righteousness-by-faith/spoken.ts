@@ -85,7 +85,7 @@ export const SUN: Pt = [960, 300];
 export const TREE: Pt = [1330, 905];
 
 /** How far along the dawn world is; every value 0..1. */
-export interface Dawn {
+interface Dawn {
   /** Night gives way to dawn. */
   readonly flood: number;
   /** Dawn gives way to teal day. */

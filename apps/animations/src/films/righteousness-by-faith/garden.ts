@@ -20,7 +20,7 @@ import { type Key, clamp, hash2, keys, lerp } from '@bible/film/core';
 import { C, CHEST, type Person, person, piece, type Hands } from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
-export const leafShape = (s: number, seed: number): Pt[] =>
+const leafShape = (s: number, seed: number): Pt[] =>
   spline(
     Array.from({ length: 15 }, (_, i): Pt => {
       const a = (2 * Math.PI * i) / 15 - Math.PI / 2;
@@ -36,7 +36,7 @@ export const leafShape = (s: number, seed: number): Pt[] =>
  * A fig-leaf apron over a person's garment (in the person's units): `count`
  * leaves shown, `droop` 0..1 wilts them brown and lets them hang.
  */
-export const APRON: ReadonlyArray<readonly [number, number, number]> = [
+const APRON: ReadonlyArray<readonly [number, number, number]> = [
   [-16, -44, -0.3],
   [18, -46, 0.35],
   [0, -84, 0.05],
@@ -84,7 +84,7 @@ export const apron = (
 };
 
 /** A tree's shape: every tree in the film is this one tree at another size. */
-export interface Tree {
+interface Tree {
   /** The trunk's height and width. */
   readonly height: number;
   readonly trunk: number;
