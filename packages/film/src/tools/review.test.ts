@@ -156,6 +156,13 @@ const MANIFEST = `{
 describe('a montage', () => {
   const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
 
+  test('a set named like an address is refused, so its id never reads as a film render', () => {
+    for (const clip of ['film', 'act:valley', 'scenes:cold', 'short:hook', ''])
+      expect(() => Schema.decodeSync(ReviewManifestJson)(`{"sets":{"${clip}":{}}}`)).toThrow(
+        `a set's clip is never empty nor named like an address ("${clip}")`,
+      );
+  });
+
   test('names every file it may show: a variant with no file by its share copy, then its master', () => {
     expect(namesInMontage(manifest)).toEqual([
       '../brief.md',
