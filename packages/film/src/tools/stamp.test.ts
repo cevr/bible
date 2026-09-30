@@ -146,6 +146,52 @@ describe('scene keys', () => {
   );
 });
 
+/** How many times the stamp read each file. */
+class Reads extends Context.Service<Reads, Map<string, number>>()('test/Reads') {}
+
+/** The fixture's Stamps, over a file system that counts what it reads. */
+const counting = Layer.unwrap(
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const films = yield* sceneFixture(yield* fs.makeTempDirectoryScoped());
+    const counted = Layer.effect(
+      FileSystem.FileSystem,
+      Effect.gen(function* () {
+        const real = yield* FileSystem.FileSystem;
+        const reads = yield* Reads;
+        return FileSystem.FileSystem.of({
+          ...real,
+          readFileString: (file, encoding) => {
+            reads.set(file, (reads.get(file) ?? 0) + 1);
+            return real.readFileString(file, encoding);
+          },
+        });
+      }),
+    );
+    return Stamps.layer.pipe(
+      Layer.provide(counted),
+      Layer.provideMerge(SceneSources.layer),
+      Layer.provide(FilmRepo.layer(films)),
+      Layer.provide(ContentStore.layer),
+      Layer.merge(Layer.succeed(Films, films)),
+    );
+  }),
+).pipe(
+  Layer.provideMerge(Layer.sync(Reads, () => new Map<string, number>())),
+  Layer.provideMerge(BunServices.layer),
+);
+
+describe('the stamp’s reads', () => {
+  it.effect('read, hash and parse each file once per call, however many scenes import it', () =>
+    Effect.gen(function* () {
+      yield* keysNow;
+      const reads = yield* Reads;
+      expect(reads.size).toBeGreaterThan(3);
+      expect([...reads].filter(([, n]) => n > 1)).toEqual([]);
+    }).pipe(Effect.provide(counting)),
+  );
+});
+
 describe('importsOf', () => {
   test('lists imports and re-exports, each once', () => {
     const source = `import { a } from './a.ts';
