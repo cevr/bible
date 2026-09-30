@@ -6,6 +6,7 @@ import { Option } from 'effect';
 import { layout } from '../core/layout.ts';
 import type { Timed } from '../core/schema.ts';
 import { DEAD_MAX, deadAir, designedSilences, endShort, staticFindings } from './check.ts';
+import { report } from './findings.ts';
 import { holdScenes, holdTimings, testFilm } from './testing.ts';
 
 /** No track on disk, and no plan key: what a check before any mix sees. */
@@ -34,7 +35,7 @@ describe('EndShort', () => {
   test('the check warns of it', () => {
     const film = testFilm(holdScenes, holdTimings);
     const placed = layout(holdScenes, holdTimings);
-    const found = staticFindings(film, placed, { allowStale: false }, NO_MASTER);
+    const found = report(staticFindings(film, placed, NO_MASTER), { allowStale: false }).findings;
     expect(found.filter((r) => r.finding._tag === 'EndShort').map((r) => r.level)).toEqual([
       'warning',
       'warning',

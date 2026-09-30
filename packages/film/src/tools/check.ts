@@ -1,15 +1,17 @@
 // What `film check` looks for, as pure functions over a laid-out film: the
 // static findings (cues past their scene, sound cues naming nothing, acts out
 // of order, stale takes and sounds, an audio master missing, not as long as
-// the film or mixed for another plan, a line handed to a voice the cast lacks)
-// and the layout findings in what a probed frame reports: text over
-// text, text off the frame, brush strokes across text, and a plate carrying
-// text cut off by the frame; and static holds, where the voice speaks over a
-// picture that does not move. Every finding is collected; none stops the others.
+// the film or mixed for another plan, a line handed to a voice the cast lacks);
+// what the mix the film makes now fails (dead air, the balance); the layout
+// findings in what a probed frame reports: text over text, text off the
+// frame, brush strokes across text, and a plate carrying text cut off by the
+// frame; and static holds, where the voice speaks over a picture that does not
+// move. Every finding is collected; none stops the others. The findings, their
+// levels and addresses are in findings.ts; the legs that run these in film-check.ts.
 
 import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
-import type { Pcm } from '../core/audio.ts';
+import { type Pcm, toMono, windowLevels } from '../core/audio.ts';
 import { BALANCE, hotEffects } from '../core/balance.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { loudness } from '../core/synth/loudness.ts';
@@ -45,86 +47,43 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { actSpans, cueTime, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
+import type {
+  ActLength,
+  SoundUseMismatch,
+  UnknownScene,
+  UnknownSound,
+  UnknownVoice,
+} from '../core/errors.ts';
+import { type AudioMissing, type AudioStale, SoundStale, SoundUnmade } from './errors.ts';
 import {
-  type ActLength,
-  type HandFar,
-  type HandHidden,
-  type HandJump,
   AssetMissing,
   AssetStale,
-  type AudioMissing,
-  type AudioStale,
   CueLate,
   DeadAir,
   EffectHot,
   EndShort,
-  MasterLoudness,
-  type ColourScript,
-  type CueInvalid,
-  type FaceSmall,
-  type HeldShare,
+  type FrameFinding,
   InkOverText,
+  MasterLoudness,
+  type MixFinding,
   PlateOffFrame,
+  type Reported as Levelled,
   SeamLong,
-  SoundStale,
-  SoundUnmade,
-  type SoundUseMismatch,
-  type StaticHold,
+  type StaticFinding,
   TakeStale,
   TextOffFrame,
   TextOffPlate,
   TextOverlap,
-  type UnknownCue,
-  type UnknownMark,
-  type UnknownScene,
-  type UnknownSound,
-  type UnknownVoice,
   WordPinFar,
-} from './errors.ts';
+} from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type Master, masterFile, masterFinding } from './mixer.ts';
 
-export type StaticFinding =
-  | CueLate
-  | SeamLong
-  | TakeStale
-  | AssetStale
-  | AssetMissing
-  | AudioMissing
-  | AudioStale
-  | UnknownScene
-  | UnknownCue
-  | UnknownMark
-  | CueInvalid
-  | ActLength
-  | UnknownVoice
-  | UnknownSound
-  | SoundUseMismatch
-  | SoundUnmade
-  | SoundStale
-  | EffectHot
-  | WordPinFar
-  | EndShort
-  | DeadAir
-  | MasterLoudness;
-/** What one probed frame shows wrong. */
-export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
-export type LayoutFinding = FrameFinding | StaticHold;
-/** What the look pass measures across the film (`look.ts`): every one a warning. */
-export type LookFinding = HeldShare | ColourScript | FaceSmall | HandJump | HandFar | HandHidden;
-export type Finding = StaticFinding | LayoutFinding | LookFinding;
-
-export type Level = 'error' | 'warning';
-
-export interface Reported {
-  readonly level: Level;
-  readonly finding: Finding;
-}
-
-export interface CheckOptions {
-  /** Report stale takes and stale sounds as warnings: work in progress, not a broken film. */
-  readonly allowStale: boolean;
-}
+/**
+ * A finding and its level, as the look pass (`lookFindings`) hands them back;
+ * the check re-levels and addresses them with `report`.
+ */
+export type Reported = Pick<Levelled, 'level' | 'finding'>;
 
 // ---------------------------------------------------------------------------
 // Static
@@ -381,27 +340,6 @@ export const soundFindings = (
   return [...beds, ...effects];
 };
 
-const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
-  switch (finding._tag) {
-    case 'TakeStale':
-    case 'AssetStale':
-    case 'AudioStale':
-    case 'AudioMissing':
-      if (options.allowStale) return 'warning';
-      return 'error';
-    case 'AssetMissing':
-    case 'SoundStale':
-    case 'EffectHot':
-    case 'MasterLoudness':
-    case 'SeamLong':
-    case 'WordPinFar':
-    case 'EndShort':
-      return 'warning';
-    default:
-      return 'error';
-  }
-};
-
 /**
  * How far the audio master may differ from the film's length. The check does
  * not know the film's frame rate, so it holds the master to a frame at 60 fps,
@@ -534,14 +472,14 @@ export const deadAir = (
 
 /**
  * Everything the check finds without drawing a frame or mixing: `audio` is
- * the master on disk and the key of the plan the film mixes to now.
+ * the master on disk and the key of the plan the film mixes to now. `report`
+ * levels and addresses them.
  */
 export const staticFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  options: CheckOptions,
   audio: MasterAudio,
-): ReadonlyArray<Reported> => {
+): ReadonlyArray<StaticFinding> => {
   const sound = Option.toArray(film.sound).flatMap((s) => [
     ...Option.toArray(Option.fromNullishOr(s.score)).flatMap((score) =>
       musicFindings(score, placed, film.manifest),
@@ -558,10 +496,24 @@ export const staticFindings = (
     ...sound,
     ...master,
     ...endShort(placed),
-  ].map((finding) => ({
-    level: levelOf(finding, options),
-    finding,
-  }));
+  ];
+};
+
+/**
+ * What the mix the film makes now (`Mixer.render`, in memory) fails: dead air
+ * in its master, read mono in `DEAD_WINDOW` windows, and the balance.
+ */
+export const mixFindings = (
+  placed: ReadonlyArray<Placed>,
+  plan: MixPlan<Pcm>,
+  mixed: Mixed,
+): ReadonlyArray<MixFinding> => {
+  const mono = Arr.getUnsafe(toMono(mixed.master).channels, 0);
+  const levels = windowLevels(mono, Math.round(DEAD_WINDOW * mixed.master.rate));
+  return [
+    ...deadAir(levels, DEAD_WINDOW, designedSilences(placed)),
+    ...balanceFindings(placed, plan, mixed),
+  ];
 };
 
 // ---------------------------------------------------------------------------
@@ -1128,12 +1080,6 @@ export const mergeFindings = (
     merged.set(key, withFrames(worst, frames));
   }
   return [...merged.values()];
-};
-
-/** Every layout finding is an error but a static hold, which asks for a look (the owner, 2026-09-27). */
-export const layoutLevel = (finding: LayoutFinding): Level => {
-  if (finding._tag === 'StaticHold') return 'warning';
-  return 'error';
 };
 
 // ---------------------------------------------------------------------------

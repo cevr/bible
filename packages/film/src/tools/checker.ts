@@ -20,7 +20,6 @@ import {
 } from '../core/shorts.ts';
 import { Browser, type FramePage, type LumaArea, type PageOpenError } from './browser.ts';
 import {
-  type ShortFinding,
   loopPicture,
   lumaDiff,
   mergeUnsafe,
@@ -34,7 +33,6 @@ import {
 import {
   HOLD,
   type HoldCandidate,
-  type LayoutFinding,
   type Sample,
   frameFindings,
   heldStill,
@@ -46,7 +44,8 @@ import {
   layoutSamples,
   mergeFindings,
 } from './check.ts';
-import { type FrameFailed, type PageCrashed, type PageError, StaticHold } from './errors.ts';
+import type { FrameFailed, PageCrashed, PageError } from './errors.ts';
+import { type LayoutFinding, type ShortFinding, StaticHold } from './findings.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { PreviewServer } from './preview-server.ts';
 

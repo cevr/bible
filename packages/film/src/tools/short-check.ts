@@ -17,34 +17,13 @@ import {
   safeRect,
 } from '../core/shorts.ts';
 import { heldStill } from './check.ts';
-import type { Level } from './check.ts';
-import { ShortHook, ShortLength, ShortLoop, ShortUnsafeText } from './errors.ts';
-
-export type ShortFinding = ShortUnsafeText | ShortHook | ShortLoop | ShortLength;
-
-/**
- * How bad a finding is: a loop is a warning; a length is an error only past
- * the most a short may run; text past the zone is an error when the short
- * placed it (its hook, its captions) and a warning when the film did, since
- * the band is the film's frame untouched and only a different span moves it.
- */
-export const shortLevel = (finding: ShortFinding): Level =>
-  Match.value(finding).pipe(
-    Match.tagsExhaustive({
-      ShortUnsafeText: (f): Level =>
-        Match.value(f.own).pipe(
-          Match.when(true, (): Level => 'error'),
-          Match.orElse((): Level => 'warning'),
-        ),
-      ShortHook: (): Level => 'error',
-      ShortLoop: (): Level => 'warning',
-      ShortLength: (f): Level =>
-        Match.value(f.length > f.max).pipe(
-          Match.when(true, (): Level => 'error'),
-          Match.orElse((): Level => 'warning'),
-        ),
-    }),
-  );
+import {
+  type ShortFinding,
+  ShortHook,
+  ShortLength,
+  ShortLoop,
+  ShortUnsafeText,
+} from './findings.ts';
 
 /** A short over the most it may run, or outside the lengths that hold best. */
 export const shortLength = (short: ResolvedShort): Option.Option<ShortLength> => {

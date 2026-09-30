@@ -43,7 +43,8 @@ effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 produces an asset only when its stored hash is stale, and every manifest
 update is serialized. At most three paid jobs run at once. Failures are
 tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
-`tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
+`tools/errors.ts`; `film check`'s findings, with their levels and addresses,
+are in `tools/findings.ts`. Logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
 
 `film sfx` is the app's sound library (`SoundLibrary`, `tools/library.ts`).
@@ -709,8 +710,9 @@ uninterruptible (the reload a write causes drops its request). The last write
 can be undone once, only while the file is exactly as that write left it.
 
 **StaticCheck** (`static-check.ts`) runs `film check <film> --static
---allow-stale` in a new process after each write (this one imported the
-scene modules at start) and returns its findings, which the lab lists.
+--allow-stale --json` in a new process after each write (this one imported the
+scene modules at start) and returns its findings, each with its address,
+which the lab lists. The static leg never mixes or opens a browser.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
@@ -942,7 +944,17 @@ the film's check shows under them after every write.
 ## Check
 
 `film check <film>` fails (after reporting every finding, not the first) on
-what a review used to find by eye:
+what a review used to find by eye. It runs in legs (`tools/film-check.ts`),
+each typed by what it needs: the static leg (`staticLeg`: the film's files,
+FileSystem and Media), the sound leg (`soundLeg`: the mix, Mixer), and the
+layout and look legs (`layoutLeg`: the browser, Checker and Looker).
+`--static` runs the static leg alone, with no mix and no browser: it is what
+the lab runs after each write. `--sound` adds the sound leg, still with no
+browser. With neither, all of them run. Every finding comes back in one
+`Report` (`tools/findings.ts`): levelled by `levelOf` (one exhaustive
+table, `--allow-stale` included) and addressed by `addressOf` (its scene and
+the film second it starts at; a finding about the whole film has neither).
+`--json` prints each as a `CheckLine`, `{ level, tag, message, address? }`.
 
 - **Static** (no browser, `--static`): a named cue that ends after its scene
   (`CueLate`); a sound cue naming an unknown scene, cue or mark; a music act
@@ -1002,14 +1014,17 @@ what a review used to find by eye:
   `STILL_DRIFT` and reads as motion. `film check` stays
   green on it; `--static` skips it, since telling a still picture from
   undeclared motion needs the frames.
-- **The ending and the air** (static): the stretch after the last word under
-  20 s, or an end card (a last scene that speaks nothing) under 5 s, is an
-  `EndShort` warning. Once every take is recorded, the mix the film makes
-  now is rendered in memory (not read from `full.wav`, which may be stale)
-  and read mono in 50 ms windows: a run under −60 dBFS longer than 1.5 s is
-  `DeadAir`, an error, less any span a cue declares with `silence: true`
-  (`{ scene: 'start', offset: 2, dur: 3, silence: true }`), the designed
-  silences the script means.
+- **The ending and the air**: the stretch after the last word under 20 s, or
+  an end card (a last scene that speaks nothing) under 5 s, is an `EndShort`
+  warning (static). Once every take is recorded, the sound leg renders the
+  mix the film makes now in memory (not read from `full.wav`, which may be
+  stale) and reads it mono in 50 ms windows: a run under −60 dBFS longer than
+  1.5 s is `DeadAir`, an error, less any span a cue declares with
+  `silence: true` (`{ scene: 'start', offset: 2, dur: 3, silence: true }`),
+  the designed silences the script means. The same mix is held to the
+  balance, as warnings: a master more than 3 LU off −18 LUFS
+  (`MasterLoudness`: a hot peak held the mastering lift back), and an effect
+  whose loudest 50 ms comes within 3 dB of the voice around it (`EffectHot`).
 - **The look pass** (headless pages, `looker.ts`, measures in `look.ts`):
   every scene drawn at 2 fps and shrunk to a 64×36 thumb (the research's
   measure). A second holds when both its half-second steps change the mean

@@ -8,7 +8,6 @@ import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
 import {
-  type FrameFinding,
   HOLD,
   type Sample,
   soundFindings,
@@ -18,7 +17,6 @@ import {
   holdCandidates,
   holdGrid,
   holdTicks,
-  layoutLevel,
   lateCues,
   layoutSamples,
   longSeams,
@@ -40,7 +38,17 @@ import type { Pcm } from '../core/audio.ts';
 import { BALANCE } from '../core/balance.ts';
 import { TAKE_LEVEL } from '../core/recording.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
-import { type AudioStale, StaticHold } from './errors.ts';
+import type { AudioStale } from './errors.ts';
+import {
+  type CheckOptions,
+  type FrameFinding,
+  type Reported,
+  StaticHold,
+  levelOf,
+  report,
+} from './findings.ts';
+import type { LoadedFilm } from './film-repo.ts';
+import type { Placed } from '../core/layout.ts';
 import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import {
   holdScenes,
@@ -57,6 +65,15 @@ const frame = { width: 1920, height: 1080 };
 const noTakes: Timings = { voice: '', scenes: {} };
 /** No track on disk, and no plan key: what a check before any mix sees. */
 const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none() };
+/** The static leg's findings, levelled and addressed as `film check` reports them. */
+const checked = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+  options: CheckOptions,
+  audio: MasterAudio,
+): ReadonlyArray<Reported> => report(staticFindings(film, placed, audio), options).findings;
+/** A layout finding's level: none of them turns on `--allow-stale`. */
+const layoutLevel = (finding: FrameFinding | StaticHold) => levelOf(finding, { allowStale: false });
 const sample: Sample = { scene: 'a', frame: 30, time: 1, at: 'mark go' };
 const tags = (fs: ReadonlyArray<{ readonly _tag: string }>) => fs.map((f) => f._tag);
 /** Every finding but the ending's: these fixtures are too short for end screens (`check-ending.test.ts`). */
@@ -672,7 +689,7 @@ describe('unknownVoices', () => {
   test('is an error in the static check, beside the take it cannot record', () => {
     const scenes: ReadonlyArray<Timed> = [{ id: 'lost', say: 'One. {@narrator}Two.' }];
     const film = testFilm(scenes, noTakes, cast);
-    const found = staticFindings(film, layout(scenes, noTakes), { allowStale: true }, NO_MASTER);
+    const found = checked(film, layout(scenes, noTakes), { allowStale: true }, NO_MASTER);
     expect(found.filter(besideEnding).map((r) => [r.level, r.finding._tag])).toEqual([
       ['error', 'UnknownVoice'],
       ['warning', 'TakeStale'],
@@ -701,7 +718,7 @@ describe('farPins', () => {
     expect(found[0]?.message).toBe(
       'scene "s": cue "lit" is pinned to "six", 2 sentences past {m}: a re-take that dropped the word near the mark moves the cue there',
     );
-    const reported = staticFindings(
+    const reported = checked(
       testFilm([scene('six')], noTakes),
       layout([scene('six')], noTakes),
       { allowStale: false },
@@ -788,7 +805,7 @@ describe('longSeams', () => {
   test('is a warning in the static check', () => {
     const scenes = [said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })];
     const film = testFilm(scenes, noTakes);
-    const found = staticFindings(film, layout(scenes, noTakes), { allowStale: true }, NO_MASTER);
+    const found = checked(film, layout(scenes, noTakes), { allowStale: true }, NO_MASTER);
     expect(found.filter((r) => r.finding._tag === 'SeamLong').map((r) => r.level)).toEqual([
       'warning',
     ]);
@@ -1030,7 +1047,7 @@ describe('staticFindings', () => {
 
   test('stale work is an error, a stale library sound a warning', () => {
     expect(
-      staticFindings(film, placed, { allowStale: false }, NO_MASTER)
+      checked(film, placed, { allowStale: false }, NO_MASTER)
         .filter(besideEnding)
         .map((r) => [r.level, r.finding._tag]),
     ).toEqual([
@@ -1050,7 +1067,7 @@ describe('staticFindings', () => {
       }),
     };
     expect(
-      staticFindings(unmade, placed, { allowStale: true }, NO_MASTER)
+      checked(unmade, placed, { allowStale: true }, NO_MASTER)
         .filter(besideEnding)
         .map((r) => [r.level, r.finding._tag]),
     ).toEqual([
@@ -1062,7 +1079,7 @@ describe('staticFindings', () => {
 
   test('--allow-stale turns stale work into warnings', () => {
     expect(
-      staticFindings(film, placed, { allowStale: true }, NO_MASTER)
+      checked(film, placed, { allowStale: true }, NO_MASTER)
         .filter(besideEnding)
         .map((r) => r.level),
     ).toEqual(['warning', 'warning']);
@@ -1085,7 +1102,7 @@ describe('the audio master', () => {
     allowStale = false,
     mixedFor: Option.Option<string> = Option.some(NOW),
   ) =>
-    staticFindings(
+    checked(
       film,
       placed,
       { allowStale },
@@ -1097,7 +1114,7 @@ describe('the audio master', () => {
       .filter(besideEnding)
       .map((r) => [r.level, r.finding._tag]);
   const reason = (length: number, mixedFor: Option.Option<string>) =>
-    staticFindings(
+    checked(
       film,
       placed,
       { allowStale: false },
@@ -1139,7 +1156,7 @@ describe('the audio master', () => {
   test('a film with a take still to record has no master to check', () => {
     const unrecorded = testFilm(scenes, noTakes);
     const laid = layout(scenes, noTakes);
-    const tagsOf = staticFindings(unrecorded, laid, { allowStale: true }, NO_MASTER)
+    const tagsOf = checked(unrecorded, laid, { allowStale: true }, NO_MASTER)
       .filter(besideEnding)
       .map((r) => r.finding._tag);
     expect(tagsOf).toEqual(['TakeStale']);

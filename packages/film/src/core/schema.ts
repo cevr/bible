@@ -925,11 +925,23 @@ export const ResolvedCue = Schema.Struct({
 });
 export type ResolvedCue = typeof ResolvedCue.Type;
 
-/** One finding of `film check --static`, as it prints it. */
+/**
+ * Where in the film a finding is: the scene it names, and the film second it
+ * starts at. A finding about the whole film (a stale master, a missing sound)
+ * has neither; one about a scene's declarations has only the scene.
+ */
+export const FindingAddress = Schema.Struct({
+  scene: Schema.optionalKey(Schema.String),
+  time: Schema.optionalKey(Schema.Finite),
+});
+export type FindingAddress = typeof FindingAddress.Type;
+
+/** One finding of `film check`, as `--json` prints it; `address` is absent when it has none. */
 export const CheckLine = Schema.Struct({
   level: Schema.Literals(['error', 'warning']),
   tag: Schema.String,
   message: Schema.String,
+  address: Schema.optionalKey(FindingAddress),
 });
 export type CheckLine = typeof CheckLine.Type;
 
