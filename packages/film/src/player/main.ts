@@ -376,7 +376,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     tStart = T;
     wallStart = performance.now();
     voice.seek(T);
-    if (playing && rate === 1) voice.play();
+    if (playing && rate === 1) voice.play(() => T);
     else voice.pause();
   };
 
