@@ -14,7 +14,6 @@ export {
   PartOutOfOrder,
   ScoreUnknown,
   ShortSpanEmpty,
-  ShortUnknownScene,
   UnknownCue,
   UnknownMark,
   SoundUseMismatch,

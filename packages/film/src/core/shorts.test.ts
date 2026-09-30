@@ -127,9 +127,7 @@ describe('shorts', () => {
 
   test('an unknown scene, mark or cue, or an empty span, fails naming what the film has', () => {
     const tag = (spans: Short['spans']) => outcome(resolveShort(placed, short(spans), fps));
-    expect(tag([{ scene: 'z', from: { at: 'start' }, to: { at: 'end' } }])).toBe(
-      'ShortUnknownScene',
-    );
+    expect(tag([{ scene: 'z', from: { at: 'start' }, to: { at: 'end' } }])).toBe('UnknownScene');
     expect(tag([{ scene: 'a', from: { mark: 'nope' }, to: { at: 'end' } }])).toBe('UnknownMark');
     expect(tag([{ scene: 'a', from: { at: 'start' }, to: { cue: 'nope' } }])).toBe('UnknownCue');
     expect(tag([{ scene: 'a', from: { mark: 'five' }, to: { mark: 'three' } }])).toBe(
@@ -140,6 +138,11 @@ describe('shorts', () => {
       { onSuccess: () => '', onFailure: (e) => e.message },
     );
     expect(error).toBe('short "cut": scene "a" has no mark {nope}; its marks are {three} {five}');
+    const scene = Result.match(
+      resolveShort(placed, short([{ scene: 'z', from: { at: 'start' }, to: { at: 'end' } }]), fps),
+      { onSuccess: () => '', onFailure: (e) => e.message },
+    );
+    expect(scene).toBe('short "cut": the film has no scene "z"; its scenes are a, b');
   });
 
   const twoSpans = () =>

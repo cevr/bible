@@ -449,7 +449,7 @@ re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
 back to back at 1080×1920 with the track cut from `full.wav` under the same
 spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
-lacks fails before a page starts (`ShortUnknownScene`, `UnknownMark`,
+lacks fails before a page starts (`UnknownScene`, `UnknownMark`,
 `UnknownCue`, naming what the scene has). `cues <film> --short <id>` prints each span's film time and the
 short's length, on the frames at the rate the film declares (read from its page,
 as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px

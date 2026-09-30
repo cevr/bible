@@ -466,7 +466,7 @@ aligned start: the aligner gives a word the pause before it, and a short
 opened on that pause starts on silence. A close stays where it is marked.
 `core/shorts.ts` resolves a short against the layout on whole frames
 (`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
-and short seconds), or fails with `ShortUnknownScene`, `UnknownMark`,
+and short seconds), or fails with `UnknownScene`, `UnknownMark`,
 `UnknownCue` (each `by: 'short "<id>"'`) or `ShortSpanEmpty` naming what the film has; `--short`
 naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
 the film stretches under it.
