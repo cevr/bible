@@ -116,6 +116,25 @@ const statusIs = (page: Page, pattern: RegExp) =>
     ),
   );
 
+/** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
+const recorded = (page: Page, seconds: number) =>
+  Effect.promise(() =>
+    page.waitForFunction(
+      (least) => {
+        const status = document.querySelector('[data-role="status"]')?.textContent ?? '';
+        return Number(/^recording · (\d+(?:\.\d+)?) s/.exec(status)?.[1] ?? '-1') >= least;
+      },
+      seconds,
+      { timeout: 10_000 },
+    ),
+  );
+
+/**
+ * Run the page's clock on by `ms`: its timers and frames run that much,
+ * however slow the machine, so what a key would have started has started.
+ */
+const runClock = (page: Page, ms: number) => Effect.promise(() => page.clock.runFor(ms));
+
 const press = (page: Page, key: string) => Effect.promise(() => page.keyboard.press(key));
 
 /** The count-in, each second of it moved on by the page's clock, until the take records. */
@@ -234,7 +253,7 @@ describe('the studio', () => {
           yield* Effect.promise(() => page.waitForSelector('[data-role="peak"]'));
           const peak = yield* textOf(page, '[data-role="peak"]');
           expect(peak).toMatch(/^peak −[5-7]\.\d dBFS$/);
-          yield* Effect.promise(() => page.waitForTimeout(1200));
+          yield* recorded(page, 1.2);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
           const review = yield* Effect.promise(() =>
@@ -356,7 +375,7 @@ describe('the studio', () => {
           // At the last beat → and Space (nothing to stop) are still the studio's: the film holds.
           yield* press(page, 'ArrowRight');
           yield* press(page, ' ');
-          yield* Effect.promise(() => page.waitForTimeout(300));
+          yield* runClock(page, 300);
           expect(yield* shownT(page)).toBe(1);
           expect(yield* playLabel()).toBe(paused);
           expect(
@@ -367,7 +386,11 @@ describe('the studio', () => {
             page.evaluate(() => (document.activeElement as HTMLElement).blur()),
           );
           yield* press(page, 'Shift+ArrowRight');
-          yield* Effect.promise(() => page.waitForTimeout(300));
+          yield* Effect.promise(() =>
+            page.waitForFunction(
+              () => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '') === 2,
+            ),
+          );
           expect(yield* shownT(page)).toBe(2);
           expect(
             yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
@@ -389,7 +412,7 @@ describe('the studio', () => {
           const paused = yield* playLabel();
           yield* Effect.promise(() => page.click('[data-act="arm"]'));
           yield* countedIn(page);
-          yield* Effect.promise(() => page.waitForTimeout(600));
+          yield* recorded(page, 0.6);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
           expect(yield* shownT(page)).toBe(1);
