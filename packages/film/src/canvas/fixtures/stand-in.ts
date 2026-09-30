@@ -1,8 +1,12 @@
 // The one stand-in 2D context, because bun has no canvas (`@bible/film/stand-in`,
-// for the framework's tests and a film's). It keeps the drawing state a
-// frame's geometry depends on (transform, alpha, composite, filter, fill
-// style), saved and restored whole, and records what is filled and drawn
-// under it; every other call answers `nothing`. It refuses what a real canvas
+// for the framework's tests and a film's). It holds the drawing state a canvas
+// holds, starting from a canvas's defaults and saved and restored whole: the
+// transform (`setTransform` takes six numbers, a matrix or nothing), an alpha
+// it keeps only within 0..1, and every property a draw sets (shadow, font,
+// line width among them). It records what is filled and drawn under that
+// state, and a pixel read answers the colour of the last hex fill over it, so
+// a draw that reads its canvas back (a face's opacity) takes the branch it
+// takes on a canvas. Every other call answers `nothing`. It refuses what a real canvas
 // refuses (a negative arc, ellipse or gradient radius, a colour stop off
 // 0..1, a stop colour made of NaN or undefined, a non-finite gradient
 // coordinate), raising the defect the real one's IndexSizeError, SyntaxError
@@ -120,7 +124,64 @@ interface Pen {
   filter: string;
   comp: string;
   style: Style;
+  /** Every other property, as set or as a canvas starts it; shared with the saved pen until first set. */
+  props: Map<PropertyKey, unknown>;
+  /** Whether `props` is this pen's own to write, or still the saved pen's. */
+  owns: boolean;
 }
+
+/** What a canvas answers for a property no draw has set. */
+const DEFAULTS: ReadonlyArray<readonly [PropertyKey, unknown]> = [
+  ['shadowBlur', 0],
+  ['shadowOffsetX', 0],
+  ['shadowOffsetY', 0],
+  ['shadowColor', 'rgba(0, 0, 0, 0)'],
+  ['font', '10px sans-serif'],
+  ['lineWidth', 1],
+  ['lineCap', 'butt'],
+  ['lineJoin', 'miter'],
+  ['miterLimit', 10],
+  ['lineDashOffset', 0],
+  ['strokeStyle', '#000000'],
+  ['textAlign', 'start'],
+  ['textBaseline', 'alphabetic'],
+  ['imageSmoothingEnabled', true],
+  ['imageSmoothingQuality', 'low'],
+];
+
+/** The last fill, in device px, and the colour it laid (`undefined` where the stand-in cannot read its style). */
+interface Painted {
+  readonly x0: number;
+  readonly y0: number;
+  readonly x1: number;
+  readonly y1: number;
+  readonly rgba: readonly [number, number, number, number] | undefined;
+}
+
+const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/** A `#rgb`, `#rgba`, `#rrggbb` or `#rrggbbaa` style laid at `alpha`, as its four bytes; `undefined` for any other style. */
+const rgbaOf = (style: Style, alpha: number): Painted['rgba'] => {
+  if (!Predicate.isString(style) || !HEX.test(style)) return undefined;
+  const short = style.length <= 5;
+  const byte = (i: number) =>
+    Number.parseInt(short ? style.charAt(1 + i).repeat(2) : style.slice(1 + i * 2, 3 + i * 2), 16);
+  const has = style.length === 5 || style.length === 9;
+  return [byte(0), byte(1), byte(2), Math.round((has ? byte(3) : 255) * alpha)];
+};
+
+/** The device-px box a rect covers under `m`. */
+const boxOf = (m: Affine, x: number, y: number, w: number, h: number): Omit<Painted, 'rgba'> => {
+  const [a, b, c, d, e, f] = m;
+  const xs = [a * x + c * y, a * (x + w) + c * y, a * x + c * (y + h), a * (x + w) + c * (y + h)];
+  const ys = [b * x + d * y, b * (x + w) + d * y, b * x + d * (y + h), b * (x + w) + d * (y + h)];
+  return {
+    x0: Math.min(...xs) + e,
+    y0: Math.min(...ys) + f,
+    x1: Math.max(...xs) + e,
+    y1: Math.max(...ys) + f,
+  };
+};
 
 /** `m` then `n`, as the canvas composes a transform onto the current one. */
 const times = (
@@ -187,18 +248,31 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
   const measure = options.measure ?? ((_font: string, text: string) => text.length * 10);
   /** The font set on the context, else a canvas's own default. */
   const fontOf = () => {
-    const font = other.get('font');
+    const font = state.props.get('font');
     return Predicate.isString(font) ? font : '10px sans-serif';
   };
-  let state: Pen = { m: IDENTITY, alpha: 1, filter: 'none', comp: 'source-over', style: '' };
+  let state: Pen = {
+    m: IDENTITY,
+    alpha: 1,
+    filter: 'none',
+    comp: 'source-over',
+    style: '',
+    props: new Map(DEFAULTS),
+    owns: true,
+  };
   const stack: Pen[] = [];
+  /** The last fill, which a pixel read answers from (not a composite of every fill under it). */
+  let painted: Painted | undefined;
   const fills: Fill[] = [];
   const images: Drawn[] = [];
   const ops: Array<Fill | Drawn> = [];
   const events: string[] = [];
   const fake = {
     canvas: { width, height },
-    save: () => stack.push({ ...state }),
+    save: () => {
+      stack.push(state);
+      state = { ...state, owns: false };
+    },
     restore: () => {
       state = stack.pop() ?? state;
     },
@@ -214,8 +288,10 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
     transform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
       state.m = times(state.m, a, b, c, d, e, f);
     },
-    setTransform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
-      state.m = [a, b, c, d, e, f];
+    setTransform: (a?: number | DOMMatrix2DInit, b = 0, c = 0, d = 1, e = 0, f = 0) => {
+      state.m = Predicate.isNumber(a)
+        ? [a, b, c, d, e, f]
+        : [a?.a ?? 1, a?.b ?? 0, a?.c ?? 0, a?.d ?? 1, a?.e ?? 0, a?.f ?? 0];
     },
     resetTransform: () => {
       state.m = IDENTITY;
@@ -225,6 +301,7 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       return { a, b, c, d, e, f };
     },
     fillRect: (x: number, y: number, w: number, h: number) => {
+      painted = { ...boxOf(state.m, x, y, w, h), rgba: rgbaOf(state.style, state.alpha) };
       if (!keeps) return;
       if (isPattern(state.style)) events.push('fibre');
       const fill: Fill = {
@@ -302,11 +379,22 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       height: h,
       data: new Uint8ClampedArray(Math.max(1, w * h) * 4),
     }),
-    getImageData: (_x: number, _y: number, w = 1, h = 1) => ({
-      width: w,
-      height: h,
-      data: new Uint8ClampedArray(Math.max(1, w * h) * 4),
-    }),
+    getImageData: (x: number, y: number, w = 1, h = 1) => {
+      const data = new Uint8ClampedArray(Math.max(1, w * h) * 4);
+      for (let row = 0; row < h; row++)
+        for (let col = 0; col < w; col++) {
+          const px = x + col + 0.5;
+          const py = y + row + 0.5;
+          const over =
+            painted !== undefined &&
+            px >= painted.x0 &&
+            px < painted.x1 &&
+            py >= painted.y0 &&
+            py < painted.y1;
+          if (over && painted?.rgba !== undefined) data.set(painted.rgba, (row * w + col) * 4);
+        }
+      return { width: w, height: h, data };
+    },
     measureText: (text: string) => ({
       width: measure(fontOf(), text),
       actualBoundingBoxAscent: 8,
@@ -328,7 +416,7 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       return state.alpha;
     },
     set globalAlpha(v: number) {
-      state.alpha = v;
+      if (v >= 0 && v <= 1) state.alpha = v;
     },
     get filter() {
       return state.filter;
@@ -337,11 +425,18 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       state.filter = v;
     },
   };
-  /** Any other property holds what is set on it; any other call answers `nothing`. */
-  const other = new Map<PropertyKey, unknown>();
+  /** Any other property holds what is set on it (in the pen); any other call answers `nothing`. */
   const valueOf = (key: PropertyKey): unknown => {
     if (Reflect.has(fake, key)) return Reflect.get(fake, key);
-    return other.has(key) ? other.get(key) : nothing;
+    return state.props.has(key) ? state.props.get(key) : nothing;
+  };
+  /** The pen's properties to write into: its own copy of the saved pen's, taken the first time. */
+  const ownProps = () => {
+    if (!state.owns) {
+      state.props = new Map(state.props);
+      state.owns = true;
+    }
+    return state.props;
   };
   const onCall = options.onCall;
   // With `onCall`, each call name's function is wrapped once, the first time
@@ -369,7 +464,7 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
     set: (target, key, value) => {
       onCall?.(key, [value]);
       if (Reflect.has(target, key)) return Reflect.set(target, key, value);
-      other.set(key, value);
+      ownProps().set(key, value);
       return true;
     },
   });

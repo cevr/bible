@@ -37,3 +37,69 @@ describe('the stand-in context', () => {
     expect(() => ctx.createLinearGradient(0, 0, 0, 10)).not.toThrow();
   });
 });
+
+describe('the stand-in holds the state a canvas holds', () => {
+  test("starts with a canvas's defaults", () => {
+    const { ctx } = recorder();
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowOffsetX).toBe(0);
+    expect(ctx.shadowOffsetY).toBe(0);
+    expect(ctx.shadowColor).toBe('rgba(0, 0, 0, 0)');
+    expect(ctx.font).toBe('10px sans-serif');
+    expect(ctx.lineWidth).toBe(1);
+  });
+
+  test('restore puts back every property set since the save, the shadow and font among them', () => {
+    const { ctx } = recorder();
+    ctx.lineWidth = 3;
+    ctx.save();
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = 'rgba(40, 28, 16, 0.2)';
+    ctx.font = '40px serif';
+    ctx.lineWidth = 7;
+    ctx.restore();
+    expect(ctx.shadowBlur).toBe(0);
+    expect(ctx.shadowColor).toBe('rgba(0, 0, 0, 0)');
+    expect(ctx.font).toBe('10px sans-serif');
+    expect(ctx.lineWidth).toBe(3);
+  });
+
+  test('keeps the alpha a canvas keeps: one past 0..1 or not a number is ignored', () => {
+    const { ctx } = recorder();
+    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 1.2;
+    ctx.globalAlpha = -1;
+    ctx.globalAlpha = Number.NaN;
+    expect(ctx.globalAlpha).toBe(0.5);
+  });
+
+  test('takes a matrix, or nothing for the identity, as setTransform does', () => {
+    const r = recorder();
+    r.ctx.translate(10, 20);
+    r.ctx.scale(2, 2);
+    const m = r.ctx.getTransform();
+    r.ctx.resetTransform();
+    r.ctx.setTransform(m);
+    expect(r.now()).toEqual([2, 0, 0, 2, 10, 20]);
+    r.ctx.setTransform({ e: 4 });
+    expect(r.now()).toEqual([1, 0, 0, 1, 4, 0]);
+    r.ctx.setTransform();
+    expect(r.now()).toEqual([1, 0, 0, 1, 0, 0]);
+  });
+
+  test('reads back the colour of the last fill over the pixel, as getImageData does', () => {
+    const { ctx } = recorder(8, 8);
+    expect([...ctx.getImageData(0, 0, 1, 1).data]).toEqual([0, 0, 0, 0]);
+    ctx.fillStyle = '#c86';
+    ctx.fillRect(0, 0, 8, 8);
+    expect([...ctx.getImageData(0, 0, 1, 1).data]).toEqual([0xcc, 0x88, 0x66, 255]);
+    ctx.fillStyle = '#10203080';
+    ctx.fillRect(0, 0, 8, 8);
+    expect(ctx.getImageData(0, 0, 1, 1).data[3]).toBe(0x80);
+    ctx.fillStyle = '#102030';
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(0, 0, 8, 8);
+    expect(ctx.getImageData(0, 0, 1, 1).data[3]).toBe(128);
+    expect([...ctx.getImageData(20, 20, 1, 1).data]).toEqual([0, 0, 0, 0]);
+  });
+});
