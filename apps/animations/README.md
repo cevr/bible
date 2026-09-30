@@ -230,7 +230,7 @@ It never edits a scene: that stays in the lab.
 src/films/<film>/
   script.ts        the screenplay: ordered beats — narration, citations, picture brief
   voice.ts         who reads it: the film's one narrator (changing it re-records everything)
-  scenes/index.ts  pairs every beat with its drawing; undrawn beats play as storyboard cards
+  scenes/index.ts  scenesOf(script, { drawings, light, card }): every beat with its drawing by id; undrawn beats play as storyboard cards
   scenes/*.ts      one Drawing per beat: draw(frame) + timeline (named cues) + enter transition + timing
   kit.ts           the film's recurring props, its people and type treatments
   acts.ts          the film's acts, once: colour-script targets, chapters; light.ts lights each act
@@ -436,8 +436,12 @@ nothing moving by 0.5 s, or the film's title card first), `ShortLoop`
 the loop) and `ShortLength` (over 90 s an error, outside 45–75 s a warning).
 The film's `short` style sets the hook's
 and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`).
-`src/films/index.ts` keeps `films` (a key per film folder)
-apart from `pages`, what the player mounts: the films plus each short's page
+`src/films/index.ts` keeps `films` (a key per film folder, `narratedFilms`:
+the framework loads each film's `narration/timings.json` and names its
+`full.wav` by that key, then calls the film's `film({ timings, audio })`; a
+film with no timings file yet is laid out on estimates, as the tools lay it
+out, and a timings file the page cannot read fails with
+`NarrationUnreadable`) apart from `pages`, what the player mounts: the films plus each short's page
 from `shortPages`, under `<film>/shorts/<id>`.
 
 ## The private store
@@ -548,7 +552,9 @@ Rules that keep renders deterministic: never call `Math.random` (use
 state between frames — compute everything from `f.t`. A callback, or a shot
 carried over a cut, draws another scene's paper with `f.handsOf('message')`:
 that scene's hands as its own `f.hand` gives them, boiling on this frame's
-tick; a scene the film lacks throws, naming it.
+tick; a scene the film lacks throws, naming it. It frames what that scene
+framed with its knobs, `f.knobsOf(thesis)('city')` (found by its drawing,
+typed by its knobs, a lab edit to them included), never a copy of the point.
 
 **Lint.** The repo's `film` oxlint plugin (`packages/film/lint/`, rules read
 as `film/<rule>`) holds the rules a film's syntax can show, in `bun run lint`,

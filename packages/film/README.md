@@ -812,7 +812,8 @@ five colours), one per declared act against its target, and one for the
 film.
 
 **Light.** A scene brings its act's light into band with `light` on its
-drawing, not by repainting its page: `{ color, edge?, amount? }` multiplies
+drawing (`scenesOf` lights a scene whose drawing brings none by the film's
+`light(id)`, its act's), not by repainting its page: `{ color, edge?, amount? }` multiplies
 the page and all drawn on it by `color` over the middle of the frame,
 falling to `edge` at the corners (a pool keeps the subject lit while the
 page around it dims), at `amount`. A function `(f) => Light` reads it each
@@ -1223,7 +1224,7 @@ fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
 tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
-frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`.
+frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
 bun run gate   # typecheck + tests

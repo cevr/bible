@@ -298,14 +298,6 @@
       }
     },
     {
-      // A film's browser loader: fetches its timings and builds the film.
-      "files": ["**/apps/animations/src/films/*/film.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off"
-      }
-    },
-    {
       // The browser player: DOM, audio element and requestAnimationFrame, plus
       // the `?export` handle the renderer drives through page.evaluate.
       "files": ["**/packages/film/src/player/**/*.ts"],

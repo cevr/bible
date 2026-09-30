@@ -5,6 +5,7 @@
 
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
+import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
@@ -13,6 +14,7 @@ export default Plugin.define({
   name: 'film',
   rules: {
     'drawing-literal': drawingLiteral,
+    'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
     'no-unprobed-ink': noUnprobedInk,
     'span-ends-on-anchor': spanEndsOnAnchor,

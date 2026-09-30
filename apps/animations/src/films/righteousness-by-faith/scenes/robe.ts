@@ -54,6 +54,7 @@ import {
 } from '../kit.ts';
 import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
 import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
+import { LIGHT } from '../light.ts';
 
 const LOOM: Pt = [1045, 560];
 
@@ -137,15 +138,27 @@ const timeline = {
   forgiven: { with: 'toIcons', dur: 0.3 },
 } as const;
 
-/** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
-const knobs = { judged: [1180, 600] } as const;
+const knobs = {
+  /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
+  judged: [1180, 600],
+  /** How much of the first light is left once the loom has woven: the rest is day. */
+  woven: 0.5,
+} as const;
 const JUDGED_ZOOM = [1.22, 1.3] as const;
 
 type RobeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
+/** The first light, its amount rewritten each frame (scratch). */
+const DAWN = { ...LIGHT.firstLight, amount: 1 };
+
 export const robe = drawing({
   timeline,
   knobs,
+  // The day comes up as the loom weaves the robe: the first light lifts.
+  light: (f) => {
+    DAWN.amount = 1 - (1 - f.knob('woven')) * f.at('weave');
+    return DAWN;
+  },
   draw: (f) => {
     const { t } = f;
     if (t < f.cue('pushLoom').end) courtWide(f);

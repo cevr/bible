@@ -58,6 +58,7 @@ export {
   pushInto,
   shotPath,
 } from './camera.ts';
-export { storyboard } from './storyboard.ts';
+export { type CardType, storyboard } from './storyboard.ts';
+export { type SceneDrawing, type SceneLight, type SceneParts, scenesOf } from './scenes.ts';
 export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';

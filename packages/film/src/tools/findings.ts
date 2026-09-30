@@ -88,6 +88,32 @@ export class WordPinFar extends Schema.TaggedError<WordPinFar>()('WordPinFar', {
   }
 }
 
+/** A beat with no drawing yet: it plays as its storyboard card. */
+export class Storyboard extends Schema.TaggedError<Storyboard>()('Storyboard', {
+  scene: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}" has no drawing: it plays as its storyboard card (a drawing keyed by the beat's id in scenesOf)`;
+  }
+}
+
+/**
+ * A point knob one scene writes with the value another scene's knob holds: a
+ * callback that copied the framing it calls back, so a lab drag of the one
+ * leaves the other behind. Read it there with `f.knobsOf(drawing)`.
+ */
+export class KnobRepeated extends Schema.TaggedError<KnobRepeated>()('KnobRepeated', {
+  scene: Schema.String,
+  knob: Schema.String,
+  /** The earlier scene that holds the same point, and its knob. */
+  of: Schema.String,
+  ofKnob: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": knob "${this.knob}" repeats "${this.of}"'s "${this.ofKnob}"; if it calls that framing back, read it there with f.knobsOf(${this.of}) so a drag moves both`;
+  }
+}
+
 /** A named cue that ends after its scene does. */
 export class CueLate extends Schema.TaggedError<CueLate>()('CueLate', {
   scene: Schema.String,
@@ -526,6 +552,8 @@ export type StaticFinding =
   | SoundUnmade
   | SoundStale
   | WordPinFar
+  | Storyboard
+  | KnobRepeated
   | EndShort;
 /** What the sound leg hears in the mix the film makes now. */
 export type MixFinding = DeadAir | MasterLoudness | EffectHot;
@@ -585,6 +613,8 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       SoundUnmade: error,
       SoundStale: warning,
       WordPinFar: warning,
+      Storyboard: warning,
+      KnobRepeated: warning,
       EndShort: warning,
       DeadAir: error,
       MasterLoudness: warning,
@@ -655,6 +685,8 @@ export const addressOf = (finding: Finding): FindingAddress => {
       SoundUnmade: none,
       SoundStale: none,
       WordPinFar: scene,
+      Storyboard: scene,
+      KnobRepeated: scene,
       EndShort: none,
       DeadAir: (f): FindingAddress => ({ time: f.from }),
       MasterLoudness: none,

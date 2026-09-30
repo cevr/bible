@@ -107,7 +107,37 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * scene the film lacks.
    */
   handsOf(scene: string): (key: string | number) => Hand;
+  /**
+   * Another scene's knobs, as that scene reads them on this frame (a lab
+   * edit to them included), found by its drawing: a callback that frames
+   * what another scene framed reads it there, so a drag of that knob moves
+   * both: `f.knobsOf(thesis)('city')`. Throws, naming it, for a drawing no
+   * scene of the film draws, or that more than one does.
+   */
+  knobsOf<K extends Knobs>(drawing: KnobsOwner<K>): KnobReader<K>;
 }
+
+/** A scene's knobs, read by name as its drawing declares them; a name it lacks throws. */
+function knobReader<K extends Knobs>(
+  knobs: ReadonlyMap<string, Knob>,
+  scene: string,
+): KnobReader<K>;
+function knobReader(knobs: ReadonlyMap<string, Knob>, scene: string) {
+  return (name: string): Knob => {
+    const k = knobs.get(name);
+    if (k === undefined) throw new Error(`scene ${scene} has no knob "${name}"`);
+    return k;
+  };
+}
+
+/** A drawing, as `f.knobsOf` finds its scene: by its `draw`, typed by its knobs. */
+export interface KnobsOwner<K extends Knobs> {
+  readonly draw: (f: never) => void;
+  readonly knobs?: K;
+}
+
+/** Reads a scene's knobs by name, typed as that drawing declares them. */
+export type KnobReader<K extends Knobs> = <N extends keyof K & string>(name: N) => KnobValue<K[N]>;
 
 /** The hand scene `scene` gives `key` on boil tick `boil`: what `f.hand` and `f.handsOf` both give. */
 const sceneHand = (scene: string, key: string | number, boil: number): Hand => ({
@@ -566,6 +596,17 @@ export const createFilm = (spec: FilmSpec): Film => {
     return p;
   };
 
+  /** The one scene `draw` draws, for `f.knobsOf`; `by` names the scene that asked. */
+  const drawnBy = (draw: (f: never) => void, by: string) => {
+    const found = placed.filter((q) => q.spec.draw === draw);
+    const one = found[0];
+    if (one === undefined || found.length > 1)
+      throw new Error(
+        `scene ${by}: f.knobsOf takes the drawing of one scene; ${found.length} scenes draw it (${found.map((q) => q.spec.id).join(', ')})`,
+      );
+    return one;
+  };
+
   /** Every scene's id, for `f.handsOf`. */
   const ids = new Set(placed.map((p) => p.spec.id));
 
@@ -689,6 +730,12 @@ export const createFilm = (spec: FilmSpec): Film => {
         if (!ids.has(scene))
           throw new Error(`scene ${p.spec.id}: film has no scene "${scene}" to take hands from`);
         return (key) => sceneHand(scene, key, boil);
+      },
+      knobsOf: <K extends Knobs>(of: KnobsOwner<K>) => {
+        const q = drawnBy(of.draw, p.spec.id);
+        const knobs = shownOf(q, edits).knobs;
+        // The scene is the one `of` draws, so each name holds the kind `of` declares.
+        return knobReader<K>(knobs, q.spec.id);
       },
       words,
       spoken: (from, to) => {

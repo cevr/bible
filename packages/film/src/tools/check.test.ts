@@ -13,6 +13,8 @@ import {
   type Sample,
   soundFindings,
   farPins,
+  repeatedKnobs,
+  storyboards,
   frameFindings,
   heldStill,
   holdCandidates,
@@ -708,6 +710,33 @@ describe('unknownVoices', () => {
       ['error', 'UnknownVoice'],
       ['warning', 'TakeStale'],
     ]);
+  });
+});
+
+describe('storyboards and repeated knobs', () => {
+  const drawn: Timed = { id: 'a', say: 'One.', knobs: { city: [1200, 640], zoom: 1 } };
+  const card: Timed = { id: 'b', say: 'Two.', storyboard: true };
+  const callback: Timed = { id: 'c', say: 'Three.', knobs: { from: [1200, 640], zoom: 1 } };
+  const placed = Result.getOrThrow(layout([drawn, card, callback], noTakes));
+
+  test('a beat with no drawing is named, a warning', () => {
+    expect(storyboards(placed).map((f) => [f._tag, f.scene])).toEqual([['Storyboard', 'b']]);
+    const reported = checked(
+      testFilm([drawn, card], noTakes),
+      placed.slice(0, 2),
+      { allowStale: false },
+      NO_MASTER,
+    );
+    expect(reported.filter((r) => r.finding._tag === 'Storyboard').map((r) => r.level)).toEqual([
+      'warning',
+    ]);
+  });
+
+  test('a point knob a later scene repeats names the scene that holds it first; a number is no callback', () => {
+    expect(repeatedKnobs(placed).map((f) => [f.scene, f.knob, f.of, f.ofKnob])).toEqual([
+      ['c', 'from', 'a', 'city'],
+    ]);
+    expect(repeatedKnobs(placed)[0]?.message).toContain('f.knobsOf(a)');
   });
 });
 

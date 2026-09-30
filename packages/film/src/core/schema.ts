@@ -426,6 +426,15 @@ export const Beat = Schema.Struct({
 export type Beat = typeof Beat.Type;
 
 /**
+ * A film's script: its beats in order, each id kept as written, so a
+ * registry keyed by beat (`scenesOf`'s drawings, a light per scene) names only
+ * beats the script has. An identity.
+ */
+export const defineScript = <const Id extends string>(
+  beats: ReadonlyArray<Beat & { readonly id: Id }>,
+): ReadonlyArray<Beat & { readonly id: Id }> => beats;
+
+/**
  * `script.ts`'s optional `heardAs`: a word of the script (a name, mostly) and
  * the ways speech-to-text writes it, so a take that reads it right is not a
  * mismatch: `{ Ellet: ['Elliot', 'Elliott'] }`.
