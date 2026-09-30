@@ -114,8 +114,8 @@ BibleProject is informative, curious and hopeful. The weight sits on explanation
 - **Say wonder out loud, once per act,** about the text: "Jones noticed something kind of amazing".
 - **Turn to hope on a "But"** that names a surprise, then a gift: "But the story does not end there."
 - **Keep the colour script bright, with one valley:**
-  - a mean luma of 140–150, with 5% of frames or fewer darker than 60;
-  - one act, the answer's valley, may fall to 90–110;
+  - a mean luma of 155–170 on a light ground (the owner lifted the chipboard and skies in 2026-09; 140–150 before), with 5% of frames or fewer darker than 60;
+  - one act, the answer's valley, sits 30–50 below the acts round it (105–130 on the light ground);
   - one black moment, at the cross, held 4–6 s;
   - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer;
   - the landing is the most saturated act;
