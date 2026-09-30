@@ -135,7 +135,9 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--act`,
 film like a video's, so no frame repeats; a range wholly outside it is
 `RangeEmpty`) but no video flag (`--workers` and `--encoder` included: one
 page composes the sheet);
-`--scene` and `--act` go with neither `--from` nor `--to`.
+`--scene` and `--act` go with neither `--from` nor `--to`; a video's
+`--from/--to` needs `--out` (a stretch is not the film's render, so it never
+replaces the film's clip or its catalogue record).
 
 Render flags: `--from/--to` seconds, `--scene id,id` or `--act name`, `--workers n`
 (pages; the measured knee on each encoder: 6 on the Mac's

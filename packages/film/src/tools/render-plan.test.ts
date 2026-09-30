@@ -85,9 +85,23 @@ describe('jobOf', () => {
     );
   });
 
+  test("a video's stretch is not the film's render: --from/--to need --out", () => {
+    expect(conflict({ from: Option.some(2) })).toBe('from needs out');
+    expect(conflict({ to: Option.some(4) })).toBe('to needs out');
+    expect(conflict({ from: Option.some(2), out: Option.some('/tmp/x.mp4') })).toBe('none');
+    // A contact sheet takes a range and records it; it writes no clip to overwrite.
+    expect(conflict({ contact: Option.some(5), from: Option.some(2) })).toBe('none');
+  });
+
   test('a video takes its range, scale and share; defaults when not given', () => {
     const job = Result.getOrThrow(
-      jobOf({ ...flags, from: Option.some(2), to: Option.some(4), share: Option.some(false) }),
+      jobOf({
+        ...flags,
+        from: Option.some(2),
+        to: Option.some(4),
+        out: Option.some('/tmp/stretch.mp4'),
+        share: Option.some(false),
+      }),
     );
     expect(job._tag).toBe('Video');
     expect(job).toMatchObject({ scale: 1, share: false, from: Option.some(2) });

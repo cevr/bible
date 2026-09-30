@@ -319,7 +319,13 @@ out/<film>/
 
 `--variant <name>` (default `main`) renders beside `main` at the same address:
 a look or score option, a lab note's `lab-<id>`. `--out file` writes a video
-outside the folder and is not catalogued.
+outside the folder and is not catalogued. A video's `--from/--to` on the film
+or a short needs `--out` (`FlagsConflict` otherwise, before a browser opens):
+a stretch is not the film's render, so it never replaces the address's clip
+or its record. A contact sheet over a range records the seconds it drew as
+its span. Every file a render leaves (the clip, its share copy, captions,
+chapters, stills, a sheet) is written beside itself and renamed into place
+once whole, so a failed or interrupted render leaves the last good file.
 
 **The catalogue** (`core/catalogue.ts`, kept by `tools/catalogue.ts`) records
 each render's address, variant, kind (video, stills, contact, look-book),
@@ -352,7 +358,9 @@ pages (`Renderer.session`: 1 + workers page loads a run, not that a scene;
 settings, and re-muxes one stale by its sound alone: its sound is cut again
 from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens
-(`render.remux frames_drawn=0`). `film project approve <film> --scene id,id | --act name |
+(`render.remux frames_drawn=0`, `remuxVideo`: media and the disk only).
+Chromium launches with the first page a scene opens (`Browser.layer`), so a
+run where every scene is current or re-muxed opens no browser. `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
 scene (a stale or missing scene is left, and named); `film project withdraw
 <film> --scene id,id | --act name | --all` withdraws those scenes' approvals,

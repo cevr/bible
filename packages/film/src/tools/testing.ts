@@ -900,7 +900,13 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       () => Effect.sync(() => void (ledger.browser.closed += 1)),
     ),
   );
-  const media = Layer.succeed(
+  return Layer.mergeAll(server, browser, fakeRenderMedia(ledger, host));
+};
+
+/** The render host's media alone: it measures the master and records every film it joins. */
+export const fakeRenderMedia = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
+  const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
+  return Layer.succeed(
     Media,
     Media.of({
       ...noRecording,
@@ -927,7 +933,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
     }),
   );
-  return Layer.mergeAll(server, browser, media);
 };
 
 export const testVoice: Voice = {

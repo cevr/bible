@@ -65,7 +65,7 @@ import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, type RenderOutput, flagConflicts, jobOf } from './render-plan.ts';
 import { planKey } from './mixer.ts';
-import { Renderer } from './renderer.ts';
+import { Renderer, remuxVideo } from './renderer.ts';
 import { type SceneKeys, Stamps, sceneStamps, stampOf } from './stamp.ts';
 
 const film = Argument.String('film').pipe(
@@ -120,9 +120,11 @@ const recordOutput = Effect.fn('film.recordOutput')(function* (
   }
   const path = yield* Path.Path;
   const at = yield* Clock.currentTimeMillis;
+  // A range the command narrowed it to is its span, not the address's whole.
+  const drawn = { span: Option.orElse(output.span, () => scope.span) };
   yield* (yield* RenderCatalogue).record(
     loaded.paths,
-    renderRecord(loaded.paths, job, scope, stamp, output, at, path),
+    renderRecord(loaded.paths, job, drawn, stamp, output, at, path),
   );
   return output;
 });
@@ -141,7 +143,7 @@ const remuxAndRecord = Effect.fn('film.remuxAndRecord')(function* (
   const cut = Option.all({ clip: render.files.clip, sound: render.sound });
   if (Option.isNone(cut)) return Option.none<string>();
   const { clip, sound } = cut.value;
-  const now = yield* (yield* Renderer).remux(loaded, {
+  const now = yield* remuxVideo(loaded, {
     clip: inProject(clip),
     share: Option.map(render.files.share, inProject),
     pieces: sound.pieces,
@@ -317,7 +319,9 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         const catalogues = yield* RenderCatalogue;
         const settings = { scale: input.scale, captions: input.captions };
         const scopes = yield* scenesNamed(loaded, placed, input.scene);
-        // Every scene drawn in this run shares one probe and one pool of pages.
+        // Every scene drawn in this run shares one probe and one pool of pages,
+        // opened only once a scene draws (Chromium launches with the first
+        // page): a run where each is current or re-muxed opens no browser.
         const drawn = yield* (yield* Renderer).session;
         let rendered = 0;
         let remuxed = 0;
