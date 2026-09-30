@@ -203,6 +203,17 @@ export class StoreFailed extends Schema.TaggedError<StoreFailed>()('StoreFailed'
   }
 }
 
+/** A push to a key the store already holds with other bytes: refused, so nothing kept is replaced unasked. */
+export class StoreKeyTaken extends Schema.TaggedError<StoreKeyTaken>()('StoreKeyTaken', {
+  key: Schema.String,
+  file: Schema.String,
+  store: Schema.String,
+}) {
+  override get message() {
+    return `the store at ${this.store} holds other bytes as ${this.key}; ${this.file} was not sent (--replace sends it over them, or --under keeps it in its own folder)`;
+  }
+}
+
 /** The store is an R2 bucket and the environment lacks what reaches it (names only; values are never read into a message). */
 export class StoreCredentialsMissing extends Schema.TaggedError<StoreCredentialsMissing>()(
   'StoreCredentialsMissing',
@@ -231,6 +242,16 @@ export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFou
 }) {
   override get message() {
     return `no film "${this.film}" at ${this.dir}`;
+  }
+}
+
+/** A name that is none of the films in the folder: answered with the films there are, no path. */
+export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown', {
+  film: Schema.String,
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `no film "${this.film}" (the films: ${this.known.join(', ') || 'none'})`;
   }
 }
 
@@ -746,6 +767,19 @@ export class ReviewFileUnknown extends Schema.TaggedError<ReviewFileUnknown>()(
   }
 }
 
+/** A `film options` run that gave no answer: it failed, timed out, or printed something else. */
+export class ChoicesProcessFailed extends Schema.TaggedError<ChoicesProcessFailed>()(
+  'ChoicesProcessFailed',
+  {
+    command: Schema.String,
+    reason: Schema.String,
+  },
+) {
+  override get message() {
+    return `${this.command} failed: ${this.reason}`;
+  }
+}
+
 /** A pick naming a score option, or a library sound, the film does not offer. */
 export class ChoiceUnknown extends Schema.TaggedError<ChoiceUnknown>()('ChoiceUnknown', {
   film: Schema.String,
@@ -782,12 +816,9 @@ export class TakeUnknown extends Schema.TaggedError<TakeUnknown>()('TakeUnknown'
   }
 }
 
-/**
- * A derived file the review makes (a frame, a length, a phone copy, a mix)
- * that ffmpeg or ffprobe did not make, or its cache could not keep.
- */
+/** A derived file the review makes (a frame, a length, a phone copy, a mix) that its cache could not keep. */
 export class ReviewToolFailed extends Schema.TaggedError<ReviewToolFailed>()('ReviewToolFailed', {
-  tool: Schema.Literals(['ffmpeg', 'ffprobe', 'cache']),
+  tool: Schema.Literal('cache'),
   ref: Schema.String,
   reason: Schema.String,
 }) {

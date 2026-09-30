@@ -15,9 +15,9 @@
 
 import { Config, Console, Effect, FileSystem, Option, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { StoreCopyFailed } from './errors.ts';
+import { StoreCopyFailed, StoreKeyTaken } from './errors.ts';
 import { sha256OfFile } from './digest.ts';
-import { RENDERS, StoreKeyTaken, renderKey } from './media-store.ts';
+import { RENDERS, renderKey } from './media-store.ts';
 import { PrivateStore } from './private-store.ts';
 
 /** A key as given, under `renders/` (a bare name or path is taken as under it). */
