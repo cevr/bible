@@ -8,9 +8,10 @@
 // that says whether a sound is current, which variant each placement plays and
 // its jitter, and the level arithmetic the mix gains a sound by.
 
-import { Array as Arr, Option, Result, Schema, SchemaTransformation } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
 import { SoundUseMismatch, UnknownSound } from './errors.ts';
 import { hashText } from './narration.ts';
+import { repoJson } from './schema.ts';
 import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { loudness } from './synth/loudness.ts';
@@ -221,15 +222,7 @@ export const Lock = Schema.Record(Schema.String, LockEntry);
 export type Lock = typeof Lock.Type;
 
 /** `library.lock.json` on disk: two-space JSON and a final newline, as the formatter leaves it. */
-export const LockJson = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.fromJsonString(Lock, { space: 2 }),
-    SchemaTransformation.transform<string, string>({
-      decode: (text) => text,
-      encode: (json) => `${json}\n`,
-    }),
-  ),
-);
+export const LockJson = repoJson(Lock);
 
 /** The fields that change what a sound's audio is, in a fixed order: never reorder. */
 const RequestKey = Schema.fromJsonString(
