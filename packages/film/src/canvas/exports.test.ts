@@ -39,10 +39,15 @@ const imported = (source: string): ReadonlyArray<string> =>
     (m) => namesIn(Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '')),
   );
 
-/** Whether `file` is where a user of the entry lives: a film's code, or a test or its fixture. */
+/**
+ * Whether `file` is where a user of the entry lives: a film's code, or a test
+ * or its fixture. An app's `out/` is output, and tests copy films into it and
+ * remove them while this walks, so it is never read.
+ */
 const isUser = (file: string) =>
   /\.tsx?$/.test(file) &&
   !file.includes('node_modules') &&
+  !/^apps\/[^/]+\/out\//.test(file) &&
   (file.startsWith('apps/') || /\.test\.tsx?$/.test(file) || file.includes('/fixtures/'));
 
 describe('the canvas entry', () => {

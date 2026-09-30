@@ -3,28 +3,17 @@
 // names its films folder and serves its player page, which imports the same
 // folder, so the tools and the page always read one film.
 //
-//   film narrate <film> [--only id,id] [--force] [--dry-run] [--accept-mismatch id,id] [--replace-recorded]
-//   film takes import <film> <folder | file> [--only id,id] [--accept-mismatch id,id] [--whole]
-//   film script <film> [--sheet]
-//   film score <film> [--option name] [--force] [--dry-run] [--cap credits] [--tally file.tsv]
-//   film mix <film> [--stems] [--score option]
-//   film sfx list|plan|make|audition|keep|reject|import|render|check|pull|push|guard …  (sfx-cli.ts)
-//   film media push <file…> [--under dir] | pull <key…> [--to dir] | list [prefix]  (media-cli.ts)
-//   film cues <film> [scene] [--sound] | film cues <film> --short <id>
-//   film check <film> [--static] [--allow-stale] [--scene id,id | --act name] [--workers n] [--json]
-//   film check <film> --short <id> [--zone default|ads] [--static] [--workers n] [--json]
-//   film doctor
-//   film lab <film>
-//   film review                     (every render compared in sync, each film's options: FILM_REVIEW_*)
-//   film notes <film> [--watch] [--since n]
-//   film notes reply <film> <id> <text> [--still file.png] [--since n]
-//   film notes resolve <film> <id>
-//   film render <film> [--stills t,t | --contact secs] [--scene id,id | --act name | --from s --to s]
-//                      [--workers n] [--scale k] [--no-captions] [--variant name] [--out file]
-//                      [--no-share] [--encoder hardware|software] [--short id]
-//   film project <film> [--variant name] [--json]     (project-cli.ts: render, approve, comment)
-//   film lookbook <film> [--captions] [--variant name]
-//   film chapters <film>
+//   film narrate | takes import | script | score | mix       the voice and the sound
+//   film sfx …        (sfx-cli.ts)     the app's sound library
+//   film media …      (media-cli.ts)   the app's private media store
+//   film cues | check | doctor                                 read and check a film
+//   film render | lookbook | chapters                          pictures and video
+//   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
+//   film options …    (choices-cli.ts) a film's choice points, read fresh for the review
+//   film lab | review                                          the servers (Ctrl-C stops them)
+//   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
+//
+// Each command's flags are its own `--help`.
 //
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
@@ -36,7 +25,6 @@ import {
   Console,
   Context,
   Effect,
-  FileSystem,
   Layer,
   Logger,
   Option,
@@ -47,13 +35,13 @@ import {
   Schema,
   Stdio,
 } from 'effect';
+import type { FileSystem } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
-import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
 import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.ts';
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
@@ -65,7 +53,7 @@ import { Checker } from './checker.ts';
 import { filmChapters, lookLines } from './look.ts';
 import { Looker } from './looker.ts';
 import { Composer } from './composer.ts';
-import { ContentStore, type StoreError } from './content-store.ts';
+import { ContentStore } from './content-store.ts';
 import { CUES_RULES, sceneReport, shortReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
@@ -89,9 +77,17 @@ import { labHandler } from './lab.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { NotesStore } from './notes-store.ts';
-import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
-import { type LabServer, PreviewServer } from './preview-server.ts';
-import { DRAW_WORKERS, RenderJob, flagConflicts, givenFlags, jobOf } from './render-plan.ts';
+import { notes } from './notes-cli.ts';
+import { type LabServer, PreviewServer, type PreviewServerService } from './preview-server.ts';
+import {
+  DRAW_WORKERS,
+  HARDWARE_WORKERS,
+  RenderJob,
+  SOFTWARE_WORKERS,
+  flagConflicts,
+  givenFlags,
+  jobOf,
+} from './render-plan.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
@@ -666,7 +662,7 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       workers: Flag.Int('workers').pipe(
         Flag.optional,
         Flag.withDescription(
-          'pages rendering at once (default: a video, 6 on the hardware encoder and 6 on the software one, within one a core; stills, 6)',
+          `pages rendering at once (default: a video, ${HARDWARE_WORKERS} on the hardware encoder and ${SOFTWARE_WORKERS} on the software one, within one a core; stills, ${DRAW_WORKERS})`,
         ),
       ),
       scale: Flag.Finite('scale').pipe(
@@ -791,6 +787,22 @@ const chaptersCommand = Command.make(
   ),
 );
 
+/**
+ * A server built in the command's scope, its URL printed (the line a reader
+ * opens) and its ready event logged, then held until Ctrl-C (or the unit
+ * stops): the scope then stops the server and its handler.
+ */
+const serveUntilInterrupted = <E>(
+  server: Layer.Layer<PreviewServer, E>,
+  lines: (server: PreviewServerService) => readonly [printed: string, ready: string],
+) =>
+  Effect.gen(function* () {
+    const [printed, ready] = lines(Context.get(yield* Layer.build(server), PreviewServer));
+    yield* Console.log(printed);
+    yield* Effect.log(ready);
+    return yield* Effect.never;
+  });
+
 const lab = <E>(labServer: LabServer<E>) =>
   Command.make(
     'lab',
@@ -800,13 +812,11 @@ const lab = <E>(labServer: LabServer<E>) =>
       yield* (yield* FilmRepo).load(input.film);
       // The lab's whole API: notes, scene source, steps and the studio.
       const handler = yield* labHandler(input.film);
-      const server = Context.get(yield* Layer.build(labServer(handler)), PreviewServer);
-      const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
       const notes = (yield* NotesStore).paths(input.film).notes.file;
-      yield* Console.log(url);
-      yield* Effect.log(`lab.ready film=${input.film} url=${url} notes=${notes}`);
-      // Until Ctrl-C: the scope then stops the server and the handler.
-      return yield* Effect.never;
+      return yield* serveUntilInterrupted(labServer(handler), (server) => {
+        const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
+        return [url, `lab.ready film=${input.film} url=${url} notes=${notes}`];
+      });
     }, Effect.scoped),
   ).pipe(
     Command.withDescription(
@@ -820,129 +830,17 @@ const review = <E>(reviewServer: LabServer<E>, reviewPage: Effect.Effect<LabHand
     {},
     Effect.fn('film.review')(function* () {
       const handler = yield* reviewHandler(yield* reviewAllowed, yield* reviewPage);
-      const server = Context.get(yield* Layer.build(reviewServer(handler)), PreviewServer);
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
-      yield* Console.log(server.url);
-      yield* Effect.log(`review.ready url=${server.url} roots=${roots.join(',')}`);
-      // Until Ctrl-C (or the unit stops): the scope then stops the server and the handler.
-      return yield* Effect.never;
+      return yield* serveUntilInterrupted(reviewServer(handler), (server) => [
+        server.url,
+        `review.ready url=${server.url} roots=${roots.join(',')}`,
+      ]);
     }, Effect.scoped),
   ).pipe(
     Command.withDescription(
       "Serve the review: every render under the review roots, compared in sync, and each film's options to pick from (Ctrl-C stops it)",
     ),
   );
-
-const noteId = Argument.String('id').pipe(Argument.withDescription('the note, e.g. n3'));
-
-const notesReply = Command.make(
-  'reply',
-  {
-    film,
-    id: noteId,
-    text: Argument.String('text').pipe(Argument.withDescription('the reply')),
-    still: Flag.String('still').pipe(
-      Flag.optional,
-      Flag.withDescription('a PNG to show with the reply: the frame after the change'),
-    ),
-    since: Flag.Int('since').pipe(
-      Flag.optional,
-      Flag.withDescription(
-        "print what came past this cursor instead of past the agent's previous reply",
-      ),
-    ),
-  },
-  Effect.fn('film.notes.reply')(function* (input) {
-    const fs = yield* FileSystem.FileSystem;
-    const store = yield* NotesStore;
-    const at = store.paths(input.film);
-    const still = yield* Option.match(input.still, {
-      onNone: () => Effect.succeedNone,
-      onSome: (file) => Effect.asSome(fs.readFile(file)),
-    });
-    // Where the agent left off, read before its reply moves it.
-    const cursor = yield* Option.match(input.since, {
-      onNone: () => Effect.map(store.read(input.film), agentCursor),
-      onSome: (since) => Effect.succeed(since),
-    });
-    const note = yield* store.reply(input.film, input.id, { by: 'agent', text: input.text, still });
-    yield* Console.log(noteLine(at, note, note.changed));
-    // What the user said while the agent worked: new notes and user replies past its cursor,
-    // but the note it just answered, whose line is above.
-    const news = eventsSince(yield* store.read(input.film), cursor);
-    for (const event of news.events)
-      if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
-        yield* Effect.forEach(Option.toArray(eventLine(at, event)), Console.log);
-    yield* Console.log(cursorLine(news.cursor));
-  }),
-).pipe(
-  Command.withDescription(
-    "Reply to a note as the agent (it shows in the lab's thread); then print the new notes and user replies since the agent's previous reply, and the cursor",
-  ),
-);
-
-const notesResolve = Command.make(
-  'resolve',
-  { film, id: noteId },
-  Effect.fn('film.notes.resolve')(function* (input) {
-    const note = yield* (yield* NotesStore).resolve(input.film, input.id);
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
-  }),
-).pipe(Command.withDescription('Mark a note resolved'));
-
-/** How long one wait of `--watch` holds before it asks again. */
-const WATCH_WAIT = '30 seconds';
-
-const notes = Command.make(
-  'notes',
-  {
-    film,
-    watch: Flag.Boolean('watch').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription(
-        'stream each new note, and each reply from the user, as one line, once (for a Monitor); prints `watch since=<seq>` first',
-      ),
-    ),
-    since: Flag.Int('since').pipe(
-      Flag.optional,
-      Flag.withDescription(
-        'with --watch: start past this cursor (from `cursor seq=` of a list, or the last `seq=` a watch printed) instead of the current one',
-      ),
-    ),
-  },
-  Effect.fn('film.notes')(function* (input) {
-    const store = yield* NotesStore;
-    const at = store.paths(input.film);
-    const file = yield* store.read(input.film);
-    if (!input.watch) {
-      const open = file.notes.filter((n) => n.status !== 'resolved');
-      for (const note of open) yield* Console.log(noteLine(at, note, note.changed));
-      // The cursor this list saw: a watch started past it misses nothing made since.
-      yield* Console.log(cursorLine(file.seq));
-      yield* Effect.log(`notes.list film=${input.film} open=${open.length} cursor=${file.seq}`);
-      return;
-    }
-    const start = Option.getOrElse(input.since, () => file.seq);
-    yield* Console.log(watchLine(start));
-    yield* Effect.log(`notes.watch film=${input.film} since=${start}`);
-    // Each wait passes the cursor on, so every change prints once.
-    const watch = (since: number): Effect.Effect<never, StoreError> =>
-      store.wait(input.film, since, WATCH_WAIT).pipe(
-        Effect.tap((waited) =>
-          Effect.forEach(waited.events, (event) =>
-            Effect.forEach(Option.toArray(eventLine(at, event)), Console.log),
-          ),
-        ),
-        Effect.flatMap((waited) => watch(waited.cursor)),
-      );
-    return yield* watch(start);
-  }),
-).pipe(
-  Command.withDescription(
-    "List a film's open notes from the lab (id, scene, time, nearest cue, still, text), or --watch for new ones",
-  ),
-  Command.withSubcommands([notesReply, notesResolve]),
-);
 
 const Platform = BunServices.layer;
 const Store = ContentStore.layer.pipe(Layer.provide(Platform));

@@ -28,7 +28,6 @@ export default Alchemy.Stack(
     return {
       bucket: bucket.bucketName,
       accountId,
-      publicDomain: bucket.publicDomain,
       keyId: key.tokenId,
       token: key.value,
     };

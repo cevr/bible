@@ -815,7 +815,7 @@ wait says so in the panel and connects again after 2 s (a state timeout);
 a note, reply or resolve made on the page reads the notes at once. (Scene
 hot reload is Bun's own HMR client, not the lab's.)
 
-`film notes <film>` prints each unresolved note as one line:
+`film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
 note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
