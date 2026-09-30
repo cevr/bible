@@ -4,7 +4,17 @@
 // through their Schema codecs, one writer at a time, so takes finishing
 // together can no longer overwrite each other's entries.
 
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema, Semaphore } from 'effect';
+import {
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Result,
+  Schema,
+  Semaphore,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { FileInvalid } from './errors.ts';
 
@@ -43,6 +53,16 @@ export interface ContentStoreService {
     manifest: Manifest<A>,
     change: (current: A) => A,
   ) => Effect.Effect<A, StoreError>;
+  /**
+   * Read, change and write the manifest back, serialized with every other
+   * update; a change that fails writes nothing and fails the call. What the
+   * change decides from (an entry by its hash, say) is read under the same
+   * lock as the write, so no other update lands between them.
+   */
+  readonly modify: <A, E>(
+    manifest: Manifest<A>,
+    change: (current: A) => Result.Result<A, E>,
+  ) => Effect.Effect<A, E | StoreError>;
   /** Write a file whole: a reader never sees half of it. */
   readonly writeFile: (file: string, bytes: Uint8Array) => Effect.Effect<void, PlatformError>;
   /** Produce the asset unless its stored hash is current, then record it. `None` when skipped. */
@@ -81,11 +101,11 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         );
       });
 
-      const update = <A>(manifest: Manifest<A>, change: (current: A) => A) =>
+      const modify = <A, E>(manifest: Manifest<A>, change: (current: A) => Result.Result<A, E>) =>
         writer
           .withPermit(
             Effect.gen(function* () {
-              const next = change(yield* read(manifest));
+              const next = yield* Effect.fromResult(change(yield* read(manifest)));
               const text = yield* Schema.encodeEffect(manifest.codec)(next).pipe(
                 Effect.mapError((error) =>
                   FileInvalid.make({ file: manifest.file, reason: error.message }),
@@ -95,7 +115,10 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
               return next;
             }),
           )
-          .pipe(Effect.withSpan('ContentStore.update'));
+          .pipe(Effect.withSpan('ContentStore.modify'));
+
+      const update = <A>(manifest: Manifest<A>, change: (current: A) => A) =>
+        modify(manifest, (current: A) => Result.succeed(change(current)));
 
       const ensure = Effect.fn('ContentStore.ensure')(function* <M, A, E, R>(
         request: Ensure<M, A, E, R>,
@@ -107,7 +130,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         return Option.some(made);
       });
 
-      return ContentStore.of({ read, update, writeFile, ensure });
+      return ContentStore.of({ read, update, modify, writeFile, ensure });
     }),
   );
 }

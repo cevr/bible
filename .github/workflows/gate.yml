@@ -31,6 +31,10 @@ jobs:
           turbo-key: style
       - run: bun run lint
       - run: bun run fmt:check
+      # The repo guards the pre-commit hook runs on staged files (lefthook.yml,
+      # tag repo-guard), over every tracked file: generated audio and renders
+      # stay out of this public repo however a commit was made.
+      - run: bun x lefthook run pre-commit --all-files --tag repo-guard --no-auto-install --no-tty
 
   typecheck:
     name: typecheck and build
@@ -41,6 +45,9 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-key: typecheck
+      # Every file a tsc program reads is among its typecheck task's inputs,
+      # so turbo's restored cache cannot skip tsc for a changed file.
+      - run: bun packages/scripts/src/typecheck-inputs.ts
       - run: bun x turbo run typecheck --output-logs=errors-only
       # Skipped here: the Sure Word site's build (@bible/site) links EGW
       # references through the owner's EGW corpus (~/.bible/egw-paragraphs.db),

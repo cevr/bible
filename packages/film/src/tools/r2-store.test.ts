@@ -22,11 +22,11 @@ import {
   Stream,
 } from 'effect';
 import { HttpClient, type HttpClientRequest, HttpClientResponse } from 'effect/http';
-import type { StoreFailed } from './errors.ts';
 import { type MediaStoreService, folderStore } from './media-store.ts';
 import { PrivateStore, R2_ENV } from './private-store.ts';
 import { r2Store } from './r2-store.ts';
-import { type S3Credentials, sha256Hex, signS3 } from './sigv4.ts';
+import { sha256Hex } from './digest.ts';
+import { type S3Credentials, signS3 } from './sigv4.ts';
 
 const ACCOUNT = 'a1b2c3';
 const BUCKET = 'film-store-test';
@@ -170,29 +170,8 @@ const bucketAnswer = (
   });
 };
 
-const fakeR2 = (objects: Map<string, Held>, secret: S3Credentials) =>
-  Effect.gen(function* () {
-    const crypto = yield* Crypto.Crypto;
-    return HttpClient.make((request, url) =>
-      Effect.gen(function* () {
-        let body: Uint8Array = new Uint8Array();
-        if (request.body._tag === 'Uint8Array') body = request.body.body;
-        let answer: Answer;
-        if (!(yield* signedBy(crypto, secret, request, url)))
-          answer = s3Error(403, 'SignatureDoesNotMatch');
-        else if ((yield* sha256Hex(crypto, body)) !== request.headers['x-amz-content-sha256'])
-          answer = s3Error(400, 'XAmzContentSHA256Mismatch');
-        else answer = bucketAnswer(objects, request, url, body);
-        return HttpClientResponse.fromWeb(
-          request,
-          new Response(answer.body, { status: answer.status, headers: answer.headers }),
-        );
-      }).pipe(Effect.orDie),
-    );
-  });
-
 /** Every byte a read streams, joined. */
-const drain = (stream: Stream.Stream<Uint8Array, StoreFailed>) =>
+const drain = <E>(stream: Stream.Stream<Uint8Array, E>) =>
   Effect.map(Stream.runCollect(stream), (chunks) => {
     const parts = Array.from(chunks);
     const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
@@ -204,13 +183,39 @@ const drain = (stream: Stream.Stream<Uint8Array, StoreFailed>) =>
     return out;
   });
 
+const fakeR2 = (objects: Map<string, Held>, secret: S3Credentials) =>
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto;
+    return HttpClient.make((request, url) =>
+      Effect.gen(function* () {
+        // A file is sent as a stream of its length, never read whole first.
+        let body: Uint8Array = new Uint8Array();
+        if (request.body._tag === 'Uint8Array') return yield* Effect.die('a body held whole');
+        if (request.body._tag === 'Stream') {
+          body = yield* drain(request.body.stream);
+          if (request.body.contentLength !== body.length)
+            return yield* Effect.die('a stream not its declared length');
+        }
+        let answer: Answer;
+        if (!(yield* signedBy(crypto, secret, request, url)))
+          answer = s3Error(403, 'SignatureDoesNotMatch');
+        else if (sha256Hex(body) !== request.headers['x-amz-content-sha256'])
+          answer = s3Error(400, 'XAmzContentSHA256Mismatch');
+        else answer = bucketAnswer(objects, request, url, body);
+        return HttpClientResponse.fromWeb(
+          request,
+          new Response(answer.body, { status: answer.status, headers: answer.headers }),
+        );
+      }).pipe(Effect.orDie),
+    );
+  });
+
 const text = new TextEncoder();
 
 /** A store's whole contract, over synthetic files in `dir`. */
 const contract = (store: MediaStoreService, dir: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const crypto = yield* Crypto.Crypto;
     const bytes = text.encode('synthetic render: 0123456789');
     const source = `${dir}/c-robe 188.15.mp4`;
     yield* fs.writeFile(source, bytes);
@@ -218,7 +223,7 @@ const contract = (store: MediaStoreService, dir: string) =>
 
     expect(yield* store.hashOf(key)).toEqual(Option.none());
     yield* store.put(key, source);
-    expect(yield* store.hashOf(key)).toEqual(Option.some(yield* sha256Hex(crypto, bytes)));
+    expect(yield* store.hashOf(key)).toEqual(Option.some(sha256Hex(bytes)));
 
     // Whole, into a folder that does not exist yet, and nothing half-written left.
     const back = `${dir}/back/again.mp4`;
@@ -299,9 +304,8 @@ describe('the private store', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const crypto = yield* Crypto.Crypto;
       const dir = yield* tempDir;
-      const store = folderStore(fs, path, `${dir}/store`, (b) => sha256Hex(crypto, b));
+      const store = folderStore(fs, path, `${dir}/store`);
       yield* contract(store, dir);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
@@ -323,7 +327,7 @@ describe('the private store', () => {
       yield* contract(store, dir);
       // The hash rides with the object, so `hashOf` never downloads it.
       const held = objects.get('scores/f/score.mp3');
-      expect(held?.sha256).toBe(yield* sha256Hex(crypto, text.encode('score')));
+      expect(held?.sha256).toBe(sha256Hex(text.encode('score')));
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
@@ -351,7 +355,7 @@ describe('the private store', () => {
       // An object whose bytes are not the hash it carries is never written into place.
       objects.set('files/y.flac', {
         bytes: text.encode('half a fi'),
-        sha256: yield* sha256Hex(crypto, text.encode('half a file')),
+        sha256: sha256Hex(text.encode('half a file')),
         modified: '',
       });
       const store = r2Store(

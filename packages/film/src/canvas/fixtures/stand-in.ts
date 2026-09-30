@@ -10,7 +10,6 @@
 // off the page.
 
 import { Effect, Predicate, Schema, type Scope } from 'effect';
-import { type Mat2d, mat2d } from 'math';
 import { type Affine, IDENTITY } from '../../core/affine.ts';
 
 /** What a stand-in's `createPattern` hands back: the tile it repeats. */
@@ -43,6 +42,8 @@ export interface StandInCanvas {
   height: number;
   readonly getContext: () => CanvasRenderingContext2D;
   readonly drawn: Recorder;
+  /** Its number, in the order stand-in canvases are made: a log of calls tells canvases apart by it. */
+  readonly made: number;
 }
 
 export type Style = string | StandInPattern | StandInGradient | StandInLinear;
@@ -90,6 +91,12 @@ export interface StandInOptions {
    * nothing, so its canvases do not grow.
    */
   readonly record?: boolean;
+  /**
+   * Told of every call on the context (a factory and a query too) and every
+   * property set (as a call with the one value), before it runs: a test's log
+   * of what a frame asks the canvas to do.
+   */
+  readonly onCall?: (key: PropertyKey, args: ReadonlyArray<unknown>) => void;
 }
 
 export const isPattern = (style: Style): style is StandInPattern =>
@@ -108,7 +115,22 @@ interface Pen {
 }
 
 /** `m` then `n`, as the canvas composes a transform onto the current one. */
-const times = (m: Affine, n: Mat2d): Mat2d => mat2d.multiply(mat2d.create(), [...m], n);
+const times = (
+  m: Affine,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+): Affine => [
+  m[0] * a + m[2] * b,
+  m[1] * a + m[3] * b,
+  m[0] * c + m[2] * d,
+  m[1] * c + m[3] * d,
+  m[0] * e + m[2] * f + m[4],
+  m[1] * e + m[3] * f + m[5],
+];
 
 /** Anything a context could answer: callable (answering itself), every property itself, 0 in arithmetic, an empty list spread. */
 function none(): void {}
@@ -123,6 +145,9 @@ export const nothing: typeof none = new Proxy(none, {
   construct: () => nothing,
   set: () => true,
 });
+
+/** A call that does nothing and answers nothing, as a path call on a real canvas answers. */
+const quiet = (): void => {};
 
 /**
  * What a real canvas does with an argument it refuses: throws an
@@ -153,16 +178,16 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       state = stack.pop() ?? state;
     },
     translate: (x: number, y: number) => {
-      state.m = times(state.m, [1, 0, 0, 1, x, y]);
+      state.m = times(state.m, 1, 0, 0, 1, x, y);
     },
     scale: (x: number, y: number) => {
-      state.m = times(state.m, [x, 0, 0, y, 0, 0]);
+      state.m = times(state.m, x, 0, 0, y, 0, 0);
     },
     rotate: (a: number) => {
-      state.m = times(state.m, [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0]);
+      state.m = times(state.m, Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0);
     },
     transform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
-      state.m = times(state.m, [a, b, c, d, e, f]);
+      state.m = times(state.m, a, b, c, d, e, f);
     },
     setTransform: (a: number, b: number, c: number, d: number, e: number, f: number) => {
       state.m = [a, b, c, d, e, f];
@@ -200,6 +225,25 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
       images.push(drawn);
       ops.push(drawn);
     },
+    // The calls a frame makes most, which answer nothing on a real canvas
+    // too: plain functions, so each is one call rather than a trip through
+    // `nothing`.
+    beginPath: quiet,
+    closePath: quiet,
+    moveTo: quiet,
+    lineTo: quiet,
+    bezierCurveTo: quiet,
+    quadraticCurveTo: quiet,
+    rect: quiet,
+    roundRect: quiet,
+    fill: quiet,
+    stroke: quiet,
+    clip: quiet,
+    fillText: quiet,
+    strokeText: quiet,
+    strokeRect: quiet,
+    clearRect: quiet,
+    setLineDash: quiet,
     arc: (_x = 0, _y = 0, r = 0) => refuseWhen(r < 0, `arc radius ${r}`),
     ellipse: (_x = 0, _y = 0, rx = 0, ry = 0) =>
       refuseWhen(rx < 0 || ry < 0, `ellipse radii ${rx}, ${ry}`),
@@ -268,12 +312,35 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
   };
   /** Any other property holds what is set on it; any other call answers `nothing`. */
   const other = new Map<PropertyKey, unknown>();
+  const valueOf = (key: PropertyKey): unknown => {
+    if (Reflect.has(fake, key)) return Reflect.get(fake, key);
+    return other.has(key) ? other.get(key) : nothing;
+  };
+  const onCall = options.onCall;
+  // With `onCall`, each call name's function is wrapped once, the first time
+  // it is asked for: a frame asks for `save` or `lineTo` thousands of times.
+  const told = new Map<PropertyKey, (...args: ReadonlyArray<unknown>) => unknown>();
+  const tellingOf = (key: PropertyKey, tell: NonNullable<StandInOptions['onCall']>) => {
+    let wrapper = told.get(key);
+    if (wrapper === undefined) {
+      wrapper = (...args) => {
+        tell(key, args);
+        const fn = valueOf(key);
+        if (Predicate.isFunction(fn)) return Reflect.apply(fn, fake, args);
+        return nothing;
+      };
+      told.set(key, wrapper);
+    }
+    return wrapper;
+  };
   const ctx = new Proxy(fake, {
-    get: (target, key) => {
-      if (Reflect.has(target, key)) return Reflect.get(target, key);
-      return other.has(key) ? other.get(key) : nothing;
+    get: (_target, key) => {
+      const value = valueOf(key);
+      if (onCall === undefined || !Predicate.isFunction(value)) return value;
+      return tellingOf(key, onCall);
     },
     set: (target, key, value) => {
+      onCall?.(key, [value]);
       if (Reflect.has(target, key)) return Reflect.set(target, key, value);
       other.set(key, value);
       return true;
@@ -290,12 +357,21 @@ export const recorder = (width = 1920, height = 1080, options: StandInOptions = 
   };
 };
 
+/** How many stand-in canvases have been made: the last one's `made`. */
+let canvasesMade = 0;
+
+/** Whether `v` is a stand-in canvas (a pattern's tile, an image drawn). */
+export const isStandInCanvas = (v: unknown): v is StandInCanvas =>
+  Predicate.hasProperty(v, 'made') && Predicate.hasProperty(v, 'getContext');
+
 /** A canvas off the page whose context is a stand-in, sized as it is made. */
 export const standInCanvas = (options: StandInOptions = {}): StandInCanvas => {
   let drawn: Recorder | undefined;
+  canvasesMade += 1;
   const canvas: StandInCanvas = {
     width: 0,
     height: 0,
+    made: canvasesMade,
     getContext: () => canvas.drawn.ctx,
     get drawn() {
       drawn ??= recorder(canvas.width, canvas.height, options);

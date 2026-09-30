@@ -2,7 +2,7 @@
 // or recovers every resource the render opened. No Chromium, no encoder.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import type { ExportInfo } from '../core/schema.ts';
 import { MediaFailed, PageCrashed, PageError } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -118,21 +118,31 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('the segments go once the film is joined, and stay when the join fails', () =>
+  it.live('the segments go with the render: joined, failed or interrupted', () =>
     Effect.gen(function* () {
-      const segments = (files: Map<string, Uint8Array>) =>
-        [...files.keys()].filter((f) => f.includes('/segments/') || f.includes('/share/'));
+      const left = (run: {
+        readonly files: Map<string, Uint8Array>;
+        readonly folders: Set<string>;
+      }) =>
+        [...run.folders, ...run.files.keys()].filter((f) => f.startsWith('/tmp/film-segments-'));
       const done = setup();
       yield* done.render({ ...video, share: true });
       expect(done.ledger.joins.length).toBe(2);
-      expect(segments(done.files)).toEqual([]);
+      expect(left(done)).toEqual([]);
 
       const failed = setup({
         join: () => Effect.fail(MediaFailed.make({ op: 'join', file: 'x', reason: 'no' })),
       });
       const exit = yield* Effect.exit(failed.render({ ...video, share: true }));
       expect(Exit.isFailure(exit)).toBe(true);
-      expect(segments(failed.files).length).toBe(32);
+      expect(left(failed)).toEqual([]);
+
+      const cut = setup();
+      const fiber = yield* Effect.forkChild(cut.render(video));
+      yield* Effect.sleep('30 millis');
+      expect(left(cut).length).toBeGreaterThan(0);
+      yield* Fiber.interrupt(fiber);
+      expect(left(cut)).toEqual([]);
     }),
   );
 
@@ -285,10 +295,11 @@ describe('Renderer', () => {
 
   it.live('an interrupt closes every page, encoder, the browser and the server', () =>
     Effect.gen(function* () {
-      const { ledger, render } = setup();
+      // Interrupted once a page is drawing a frame: the render is under way.
+      const drawing = yield* Deferred.make<void>();
+      const { ledger, render } = setup({ frame: () => Deferred.done(drawing, Exit.void) });
       const fiber = yield* Effect.forkChild(render(video));
-      yield* Effect.sleep('30 millis');
-      expect(ledger.frames.length).toBeGreaterThan(0);
+      yield* Deferred.await(drawing);
       yield* Fiber.interrupt(fiber);
       expect(ledger.encoders.killed).toBeGreaterThan(0);
       expectAllClosed(ledger);

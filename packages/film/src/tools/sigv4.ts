@@ -1,12 +1,12 @@
 // AWS Signature Version 4 for the S3 API, as R2 takes it: the request's
-// canonical form hashed, signed with a key derived from the secret, and sent
-// as `Authorization`. HMAC-SHA256 is built on Effect's `Crypto.digest`
-// (RFC 2104), so signing needs no host crypto and no SDK. Checked against the
+// canonical form hashed (`digest.ts`), signed with a key derived from the
+// secret, and sent as `Authorization`. HMAC-SHA256 is built on Effect's
+// `Crypto.digest` (RFC 2104), so signing needs no SDK. Checked against the
 // signatures AWS publishes for its S3 examples (`sigv4.test.ts`).
 
 import { type Crypto, DateTime, Effect, Order, Redacted } from 'effect';
 import { Hex } from 'effect/encoding';
-import type { PlatformError } from 'effect/PlatformError';
+import { sha256Hex } from './digest.ts';
 
 /** An S3 key pair. The secret stays `Redacted` until the signing key is derived. */
 export interface S3Credentials {
@@ -69,20 +69,14 @@ export const hmacSha256 = Effect.fnUntraced(function* (
   return yield* crypto.digest('SHA-256', concat(outer, innerHash));
 });
 
-/** A digest of `bytes` as lowercase hex. */
-export const sha256Hex = (
-  crypto: Crypto.Crypto,
-  bytes: Uint8Array,
-): Effect.Effect<string, PlatformError> => Effect.map(crypto.digest('SHA-256', bytes), Hex.encode);
-
 /** `20130524T000000Z`: the moment as SigV4 stamps it. */
-export const amzDate = (at: DateTime.Utc): string =>
+const amzDate = (at: DateTime.Utc): string =>
   DateTime.formatIso(at)
     .replace(/\.\d+Z$/, 'Z')
     .replaceAll(/[-:]/g, '');
 
-/** The canonical request, the string to sign's last line hashed from it (exported for the tests). */
-export const canonicalRequest = (request: S3Request, stamp: string): string => {
+/** The canonical request, the string to sign's last line hashed from it. */
+const canonicalRequest = (request: S3Request, stamp: string): string => {
   const headers = Object.entries({
     ...Object.fromEntries(
       Object.entries(request.headers).map(([k, v]) => [k.toLowerCase(), v.trim()]),
@@ -119,12 +113,7 @@ export const signS3 = Effect.fnUntraced(function* (
   const day = stamp.slice(0, 8);
   const scope = `${day}/${region}/s3/aws4_request`;
   const canonical = canonicalRequest(request, stamp);
-  const toSign = [
-    'AWS4-HMAC-SHA256',
-    stamp,
-    scope,
-    yield* sha256Hex(crypto, text.encode(canonical)),
-  ].join('\n');
+  const toSign = ['AWS4-HMAC-SHA256', stamp, scope, sha256Hex(canonical)].join('\n');
   let key: Uint8Array = text.encode(`AWS4${Redacted.value(credentials.secretAccessKey)}`);
   for (const part of [day, region, 's3', 'aws4_request'])
     key = yield* hmacSha256(crypto, key, text.encode(part));
