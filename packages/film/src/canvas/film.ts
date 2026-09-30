@@ -35,6 +35,7 @@ import {
   makeGrain,
   makeLight,
   makePaper,
+  makeProduct,
   makeVignette,
   offscreen,
   shadeBy,
@@ -133,8 +134,10 @@ export interface SceneSpec extends Timed {
  * A scene's light: `color` over the middle of the frame, falling to `edge`
  * (`color` when it names none) at the corners, at `amount` (0 unlit, 1 fully
  * lit; 1 when it names none). White is no light at all. A light is drawn
- * once per `color` and `edge` and kept, so a draw that returns one of a few
- * lights, its `amount` rewritten, allocates nothing.
+ * once per `color` and `edge` and kept (the last `SHEETS_KEPT`), so a draw
+ * that returns one of a few lights, its `amount` rewritten, allocates
+ * nothing; a light whose colour moves every frame draws a sheet a frame but
+ * never holds more than a few.
  */
 export interface Light {
   readonly color: string;
@@ -428,6 +431,18 @@ const shortOf = (declared: ShortStyle = {}, shade: string): ShortLook => {
   };
 };
 
+/** The most full-frame light sheets a film keeps of each kind (8 MB each at 1080p). */
+export const SHEETS_KEPT = 4;
+
+/** Keep `sheet` under `key`, letting go of the oldest past `SHEETS_KEPT`. */
+const keep = (sheets: Map<string, HTMLCanvasElement>, key: string, sheet: HTMLCanvasElement) => {
+  if (sheets.size >= SHEETS_KEPT) {
+    const oldest = sheets.keys().next();
+    if (oldest.done !== true) sheets.delete(oldest.value);
+  }
+  sheets.set(key, sheet);
+};
+
 /** How much a probe's sink held before a scene drew into it (scratch, one draw at a time). */
 const SINK_MARK = { texts: 0, inks: 0, faces: 0, hands: 0 };
 
@@ -495,20 +510,53 @@ export const createFilm = (spec: FilmSpec): Film => {
       b: offscreen(width, height),
     });
 
-  /** Each light's sheet, drawn once per `color` and `edge` (`makeLight`). */
+  /** Each light's sheet, by `color` and `edge` (`makeLight`), the fewest kept (`SHEETS_KEPT`). */
   const lights = new Map<string, HTMLCanvasElement>();
+  const lightSheet = (light: Light) => {
+    const edge = light.edge ?? light.color;
+    const key = `${light.color} ${edge}`;
+    const have = lights.get(key);
+    if (have !== undefined) return have;
+    const made = makeLight(width, height, light.color, edge);
+    keep(lights, key, made);
+    return made;
+  };
   /** Multiply the frame by `light` at its amount. */
   const lightUp = (ctx: CanvasRenderingContext2D, light: Light) => {
     const amount = clamp(light.amount ?? 1);
-    if (amount <= 0) return;
-    const edge = light.edge ?? light.color;
-    const key = `${light.color} ${edge}`;
-    let sheet = lights.get(key);
-    if (sheet === undefined) {
-      sheet = makeLight(width, height, light.color, edge);
-      lights.set(key, sheet);
+    if (amount > 0) shadeBy(ctx, lightSheet(light), amount);
+  };
+  /**
+   * A fixed light at its amount and the vignette, multiplied into one sheet
+   * by `color`, `edge` and amount, the fewest kept (`SHEETS_KEPT`): a frame
+   * lit by one takes one multiply for both.
+   */
+  const litVignettes = new Map<string, HTMLCanvasElement>();
+  const litVignette = (light: Light, amount: number) => {
+    const key = `${light.color} ${light.edge ?? light.color} ${amount}`;
+    const have = litVignettes.get(key);
+    if (have !== undefined) return have;
+    const made = makeProduct(width, height, lightSheet(light), amount, getAssets().vignette);
+    keep(litVignettes, key, made);
+    return made;
+  };
+  /**
+   * The light and the vignette over a whole frame: one multiply by their
+   * product for a fixed light, the two in turn for a light read per frame
+   * (its amount moves, so a product would be a new sheet each frame).
+   */
+  const lightAndVignette = (
+    ctx: CanvasRenderingContext2D,
+    light: Light | undefined,
+    fixed: boolean,
+  ) => {
+    const amount = clamp(light?.amount ?? 1);
+    if (light === undefined || amount <= 0) shadeBy(ctx, getAssets().vignette);
+    else if (fixed) shadeBy(ctx, litVignette(light, amount));
+    else {
+      lightUp(ctx, light);
+      shadeBy(ctx, getAssets().vignette);
     }
-    shadeBy(ctx, sheet, amount);
   };
 
   const sceneAt = (T: number): Placed<SceneSpec> => {
@@ -650,12 +698,15 @@ export const createFilm = (spec: FilmSpec): Film => {
     const shot = hearingCameras(ctx, heard, breath, () => p.spec.draw(frame));
     ctx.restore();
     const light = p.spec.light;
+    drawnFixed = !Predicate.isFunction(light);
     drawnLight = Predicate.isFunction(light) ? light(frame) : light;
     return shot;
   };
 
   /** The light the last scene drawn is lit by, read on its own frame (`SceneSpec.light`). */
   let drawnLight: Light | undefined;
+  /** Whether that light is fixed, not read per frame. */
+  let drawnFixed = true;
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
   const breath: BreathNow = { through: 0, drift: DRIFT, outer: false, width, height };
@@ -708,11 +759,9 @@ export const createFilm = (spec: FilmSpec): Film => {
     }
     if (moving && shot) unshot.delete(id);
     else if (moving) unshot.add(id);
-    // The scene's light over its page and all on it, outside the probe: light is no ink.
-    if (drawnLight !== undefined) lightUp(ctx, drawnLight);
   };
 
-  /** Paper plus one scene, into a layer. */
+  /** Paper plus one scene, lit by its light, into a layer (light is no ink: outside the probe). */
   const layer = (
     target: Offscreen,
     p: Placed<SceneSpec>,
@@ -726,6 +775,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
     sheet(target.ctx, p, T, boil, probe, reads, override);
+    if (drawnLight !== undefined) lightUp(target.ctx, drawnLight);
     return target.c;
   };
 
@@ -755,6 +805,8 @@ export const createFilm = (spec: FilmSpec): Film => {
 
     if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), override);
+      // The scene's light over its page and all on it, with the vignette.
+      lightAndVignette(ctx, drawnLight, drawnFixed);
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
@@ -786,9 +838,9 @@ export const createFilm = (spec: FilmSpec): Film => {
           inkWipe(ctx, inn, p, width, height, enter.color ?? spec.shade);
           break;
       }
+      shadeBy(ctx, getAssets().vignette);
     }
 
-    shadeBy(ctx, getAssets().vignette);
     grain(ctx, getAssets().grain, boil, width, height, finish.grain);
     if (opts.captions === true && captions !== undefined) {
       const style = captions;

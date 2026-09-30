@@ -805,8 +805,12 @@ falling to `edge` at the corners (a pool keeps the subject lit while the
 page around it dims), at `amount`. A function `(f) => Light` reads it each
 frame, so dusk can deepen or dawn come up on a cue. It is laid per sheet,
 before the vignette and grain, so a fade between two scenes crosses their
-lights; each `color`/`edge` pair is drawn once and kept, and it never
-reaches the probe (light is no ink).
+lights; each `color`/`edge` pair is drawn once and kept (the last
+`SHEETS_KEPT`, so a light whose colour moves every frame never grows the
+page), and it never reaches the probe (light is no ink). Outside a
+transition a fixed light and the vignette go on as one multiply by their
+product (`makeProduct`, kept by colour, edge and amount); a light read per
+frame and the vignette go on in turn.
 
 **Chapters.** An act of `film.ts`'s `look` that names a `chapter` (the
 narrator's question, in the viewer's words) starts a YouTube chapter at its
