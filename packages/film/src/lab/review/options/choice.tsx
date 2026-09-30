@@ -139,7 +139,7 @@ export const SayBox = (props: {
 };
 
 /** An approve button: approved as it is now, or again once it has changed. */
-export const ApproveButton = (props: {
+const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
@@ -285,7 +285,8 @@ const VariantRow = (props: {
 
 /**
  * A level's knob: set on release, written into `sound.ts`; a computed level
- * only shown. It shows the value being dragged, else the film's.
+ * only shown. It shows the value being dragged, else the film's; a write
+ * that fails shows the film's value again (the failure is on the status line).
  */
 const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob }) => {
   const { write } = useFilm();
@@ -298,6 +299,10 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
     },
   );
   const value = () => Option.getOrElse(dragged(), () => props.knob.value);
+  const set = (to: number) =>
+    void write(ChoiceAct.Knob({ point: props.point.id, value: to })).then((ok) => {
+      if (!ok) setDragged(Option.none());
+    });
   return (
     <div class="rv-row rv-knob" data-knob={props.point.id}>
       <input
@@ -312,7 +317,7 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
           setDragged(Option.some(Number(e.currentTarget.value)))
         }
         onChange={(e: Event & { currentTarget: HTMLInputElement }) =>
-          write(ChoiceAct.Knob({ point: props.point.id, value: Number(e.currentTarget.value) }))
+          set(Number(e.currentTarget.value))
         }
       />
       <output class="rv-tag">

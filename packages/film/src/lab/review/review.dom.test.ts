@@ -11,7 +11,16 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { type FakeRoute, type Json, json, openReview, route, text } from '../fixtures/harness.ts';
+import { ReviewFileUnknown } from '../../core/refusals.ts';
+import {
+  type FakeRoute,
+  type Json,
+  json,
+  openReview,
+  refused,
+  route,
+  text,
+} from '../fixtures/harness.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
@@ -245,6 +254,32 @@ describe('the review page', () => {
         // A reload opens the view the URL keeps.
         yield* Effect.promise(() => page.goto(`http://lab.test/${SET}&view=moments&m=2`));
         yield* waitFor(page, 'button[data-moment="2"][aria-pressed="true"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a doc that cannot be read says why as text, the server's words never markup",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/review\/files\/out\/art\/why\.md$/, () =>
+              refused(ReviewFileUnknown.make({ ref: 'out/art/<i>why</i>.md' })),
+            ),
+            ...routes,
+          ],
+          { search: '?folder=out%2Fart' },
+        );
+        yield* Effect.promise(() => page.click('.rv-doc summary'));
+        yield* textIn(page, '.rv-doc .rv-note', 'no file');
+        expect(
+          yield* evaluate<string>(page, "document.querySelector('.rv-doc .rv-note').textContent"),
+        ).toBe("no file out/art/<i>why</i>.md under the review's roots");
+        expect(
+          yield* evaluate<number>(page, "document.querySelectorAll('.rv-doc .rv-note i').length"),
+        ).toBe(0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -46,7 +46,7 @@ import {
   viewNameOf,
 } from './machine.ts';
 import { Loaded, failedText } from './loaded.tsx';
-import { markdownHtml } from './markdown.ts';
+import { escapeHtml, markdownHtml } from './markdown.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
 
 /** A strip's frames are this wide; a poster, a moment's frame and the lightbox wider. */
@@ -248,7 +248,7 @@ const Markdown = (props: { readonly file: string }) => {
       class="rv-note"
       innerHTML={Option.getOrElse(Option.map(AsyncResult.value(read()), markdownHtml), () =>
         Match.value(AsyncResult.isFailure(read())).pipe(
-          Match.when(true, () => `<p class="rv-hint">${failedText(read())}</p>`),
+          Match.when(true, () => `<p class="rv-hint">${escapeHtml(failedText(read()))}</p>`),
           Match.orElse(() => '<p class="rv-hint">loading…</p>'),
         ),
       )}

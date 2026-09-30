@@ -21,9 +21,11 @@ import {
   file,
   json,
   openReview,
+  refused,
   route,
   text,
 } from '../../fixtures/harness.ts';
+import { SourceRefused } from '../../../core/refusals.ts';
 import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
@@ -449,6 +451,43 @@ describe("a film's choices", () => {
           page,
           `${at('score', 'strings')} [data-act="approve"][data-approval="none"]`,
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a knob whose write is refused shows the film's value again, beside the failure",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(
+          [
+            route('POST', /^\/lab\/toy\/choices\/knob$/, () =>
+              refused(
+                SourceRefused.make({ file: 'sound.ts', target: 'PAPER', reason: 'computed' }),
+              ),
+            ),
+            ...fakeFilm(),
+          ],
+          { search: FILM },
+        );
+        const knob = '[data-knob="level:const:PAPER"]';
+        yield* waitFor(page, `${knob} input`);
+        yield* Effect.promise(() =>
+          page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`),
+        );
+        yield* until(page, "document.querySelector('.rv-status').dataset.failed === 'true'");
+        yield* until(page, `document.querySelector('${knob} output').textContent === '-24 dB'`);
+        expect(
+          yield* Effect.promise(() =>
+            page.evaluate(`document.querySelector('${knob} input').value`),
+          ),
+        ).toBe('-24');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
