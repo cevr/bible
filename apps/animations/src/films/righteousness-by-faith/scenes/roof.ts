@@ -83,11 +83,11 @@ const timeline = {
   oneHold: { mark: 'one', until: 'two', ease: 'linear' },
   twoLit: { mark: 'two', dur: 0.55, ease: 'outBack' },
   twoSpecks: { mark: 'two', word: 'forgiveness', dur: 1.2, ease: 'inOutSine' },
+  // The specks lift off him on "forgiveness", and the robe comes over him with them.
   twoHold: { mark: 'two', until: 'three', ease: 'linear' },
   threeLit: { mark: 'three', dur: 0.55, ease: 'outBack' },
   threeWalk: { mark: 'three', until: 'proof', ease: 'linear' },
-  // The echo of each gift in the picture: the robe over him as the specks lift, the heart as he stands.
-  robed: { with: 'twoSpecks', dur: 1.2, ease: 'inOutSine' },
+  // The echo of the third gift in the picture: the heart as he stands.
   heart: { mark: 'three', offset: 0.2, dur: 0.8, ease: 'outCubic' },
   // The walk vouches for the pardon: a thread of light from the heart back to the robe.
   proof: { mark: 'proof', dur: 1.2, ease: 'inOutSine' },
@@ -301,7 +301,7 @@ const replay = (f: RoofFrame) => {
     // Two: close on his face as the specks lift, and the robe comes over him.
     s.reach = 1;
     s.specks = f.at('twoSpecks');
-    s.robed = f.at('robed');
+    s.robed = f.at('twoSpecks');
     s.glad = clamp(2 * s.specks - 1);
     s.cam = pushOn(
       knobCamera(f.knob('manFace'), f.knob('manFaceZoom')),

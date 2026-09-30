@@ -15,6 +15,7 @@ import {
   type Sample,
   soundFindings,
   durOnWords,
+  cueTwins,
   farPins,
   repeatedKnobs,
   storyboards,
@@ -221,36 +222,63 @@ describe('ink over a face', () => {
     );
 
   test('a stroke drawn after a face, across it, is a finding at that face', () => {
-    const found = inkOverFace(sample, { texts: [], inks: [rope(6)], faces: [face] });
+    const found = inkOverFace(sample, { texts: [], inks: [rope(6)], faces: [face] }, frame);
     expect(found).toMatchObject([{ _tag: 'InkOverFace', scene: 'a', strokes: 1, texts: [] }]);
   });
 
   test('a line of text stamped after a face, over it, is a finding naming the text', () => {
     const stamp = textBox('GUILTY', 880, 420, 160, 60, { order: 7 });
-    const found = inkOverFace(sample, { texts: [stamp], inks: [], faces: [face] });
+    const found = inkOverFace(sample, { texts: [stamp], inks: [], faces: [face] }, frame);
     expect(found).toMatchObject([{ _tag: 'InkOverFace', strokes: 0, texts: ['GUILTY'] }]);
   });
 
   test('ink drawn before the face, beside it, faint, marking a line, or the caption, is quiet', () => {
-    const quiet = inkOverFace(sample, {
-      texts: [textBox('— he said', 700, 440, 520, 50, { order: 9, caption: true })],
-      inks: [
-        rope(2),
-        inkMark(
-          'stroke',
-          [
-            [1200, 100],
-            [1400, 900],
-          ],
-          { order: 6 },
-        ),
-        rope(6, { alpha: 0.2 }),
-        rope(6, { marks: [3] }),
-      ],
-      faces: [face],
-    });
+    const quiet = inkOverFace(
+      sample,
+      {
+        texts: [textBox('— he said', 700, 440, 520, 50, { order: 9, caption: true })],
+        inks: [
+          rope(2),
+          inkMark(
+            'stroke',
+            [
+              [1200, 100],
+              [1400, 900],
+            ],
+            { order: 6 },
+          ),
+          rope(6, { alpha: 0.2 }),
+          rope(6, { marks: [3] }),
+        ],
+        faces: [face],
+      },
+      frame,
+    );
     expect(quiet).toEqual([]);
-    expect(inkOverFace(sample, { texts: [], inks: [rope(6)] })).toEqual([]);
+    expect(inkOverFace(sample, { texts: [], inks: [rope(6)] }, frame)).toEqual([]);
+  });
+
+  test('ink over a face the viewer does not see (off the frame, faint, another scene’s) is quiet', () => {
+    const across = (x: number) =>
+      inkMark(
+        'stroke',
+        [
+          [x - 200, 380],
+          [x + 200, 420],
+        ],
+        { order: 6 },
+      );
+    const offFrame: FaceMark = { ...face, x: -500 };
+    expect(
+      inkOverFace(sample, { texts: [], inks: [across(-500)], faces: [offFrame] }, frame),
+    ).toEqual([]);
+    const faint: FaceMark = { ...face, alpha: 0.4 };
+    expect(inkOverFace(sample, { texts: [], inks: [rope(6)], faces: [faint] }, frame)).toEqual([]);
+    const theirs: FaceMark = { ...face, scene: 'b' };
+    const theirRope = { ...rope(6), scene: 'b' };
+    expect(inkOverFace(sample, { texts: [], inks: [theirRope], faces: [theirs] }, frame)).toEqual(
+      [],
+    );
   });
 });
 
@@ -903,6 +931,70 @@ describe('durOnWords', () => {
       ['warning', { _tag: 'Scenes', ids: ['s'] }],
     ]);
     expect(scenes[0]?.timeline).toEqual({ reach: { at: 'speech', dur: 1.4 } });
+  });
+});
+
+describe('cueTwins', () => {
+  const say = 'One {two}two three {four}four five six.';
+  const timings: Timings = { voice: voiceKey(testVoice), scenes: { s: spokenTake(say) } };
+  const found = (timeline: Timed['timeline']) =>
+    cueTwins(Result.getOrThrow(layout([{ id: 's', say, timeline }], timings))).map((f) => [
+      f.cue,
+      f.twin,
+    ]);
+
+  test('a cue declared as another is, or `with` it at its length and ease, warns naming the first', () => {
+    expect(
+      found({
+        hold: { mark: 'two', until: 'four', ease: 'linear' },
+        speaks: { mark: 'two', until: 'four', ease: 'linear' },
+        lift: { at: 'speech', dur: 0.4 },
+        letGo: { with: 'lift', offset: 0.5, dur: 0.5 },
+        receive: { with: 'lift', offset: 0.5, dur: 0.5 },
+        dark: { mark: 'four', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
+        nailed: { with: 'dark', dur: 0.9, ease: 'inOutSine' },
+        landed: { after: 'dark', dur: 0.9, ends: true, ease: 'inOutSine' },
+      }),
+    ).toEqual([
+      ['speaks', 'hold'],
+      ['receive', 'letGo'],
+      ['nailed', 'dark'],
+      ['landed', 'dark'],
+    ]);
+  });
+
+  test('another ease, stagger, length or anchor is its own cue, even where the times agree today', () => {
+    expect(
+      found({
+        grow: { mark: 'two', offset: 0.1, dur: 1.9, ease: 'inCubic' },
+        wide: { mark: 'two', offset: 0.1, dur: 1.9, ease: 'inOutSine' },
+        roll: { mark: 'two', dur: 0.8, ease: 'inOutSine' },
+        steady: { with: 'roll', dur: 0.8 },
+        drop: { mark: 'two', dur: 0.8, ease: 'inOutSine', stagger: 0.5 },
+        short: { with: 'roll', dur: 0.6, ease: 'inOutSine' },
+        // "four" is heard 1 s after "two" in this take: the same time, another anchor.
+        later: { mark: 'four', offset: -1, dur: 0.8, ease: 'inOutSine' },
+      }),
+    ).toEqual([]);
+  });
+
+  test('check reports it as a warning on its scene', () => {
+    const scenes: ReadonlyArray<Timed> = [
+      {
+        id: 's',
+        say,
+        timeline: { a: { at: 'speech', dur: 1 }, b: { with: 'a', dur: 1 } },
+      },
+    ];
+    const reported = checked(
+      testFilm(scenes, timings),
+      Result.getOrThrow(layout(scenes, timings)),
+      { allowStale: true },
+      NO_MASTER,
+    ).filter((r) => r.finding._tag === 'CueTwin');
+    expect(reported.map((r) => [r.level, r.address.part])).toEqual([
+      ['warning', { _tag: 'Scenes', ids: ['s'] }],
+    ]);
   });
 });
 

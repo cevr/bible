@@ -38,10 +38,10 @@ bun run cues <film> [scene]                    # scene times, {mark} times, name
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg (software share copy): ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns SeamLong, AssetMissing, SoundStale, WordPinFar, DurOnWord, Storyboard, KnobRepeated, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
+bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns SeamLong, AssetMissing, SoundStale, WordPinFar, DurOnWord, CueTwin, Storyboard, KnobRepeated, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
-bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace), no browser
+bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace on a face the viewer sees), no browser
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{part,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json

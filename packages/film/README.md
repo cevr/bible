@@ -1262,8 +1262,9 @@ the lab runs after each write. `--sound` adds the sound leg, still with no
 browser. `--draw` adds the draw leg instead: `DrawThrew` (a scene that
 throws), `FrameImpure` (a cue start or 60% point that, drawn after the frame
 after it and after the frame before it, leaves different calls), and the
-warning `InkOverFace` (a visible stroke or line of text drawn after a face,
-through `FACE_CORE` of its radius; a kit declares a face with `probeFace`
+warning `InkOverFace` (a visible stroke or line of text drawn after a face the
+viewer sees, `seenFace`: its scene's own, mostly opaque, centred on the frame,
+the one rule `FaceSmall` measures by too; through `FACE_CORE` of its radius; a kit declares a face with `probeFace`
 once its person is drawn, so the person's own features, headwear and hands
 come before it; fills, the caption and a stroke that `marks` a line are not
 read, and a gradient glow is invisible to the probe). With neither, all of them run. Every finding comes back in one
@@ -1465,7 +1466,7 @@ cue already are. A span that `ends: true` ends at its anchor and starts its
 `dur` before it. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
-`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. It warns `DurOnWord` (`durOnWords`) where a `dur` of `DUR_MIN` (1 s) or more puts its hand-sized edge (its end, or with `ends` its start) within `DUR_ON_WORD` (80 ms) of a phrase edge of its take (a word heard after, or before, a pause of `PHRASE_GAP` or more, or the take's first or last word): a length sized to this take. It is a report only; the fix is `until` a mark or a word pin. A line that never says it
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. It warns `DurOnWord` (`durOnWords`) where a `dur` of `DUR_MIN` (1 s) or more puts its hand-sized edge (its end, or with `ends` its start) within `DUR_ON_WORD` (80 ms) of a phrase edge of its take (a word heard after, or before, a pause of `PHRASE_GAP` or more, or the take's first or last word): a length sized to this take. It is a report only; the fix is `until` a mark or a word pin. It warns `CueTwin` (`cueTwins`) where a scene declares one moment twice: two cues with the same edges on the same anchors (each `with` and `after` followed to the mark or landmark under it, so `{ with: 'dark', dur: 0.9 }` at `dark`'s length and ease is `dark`) and the same ease, stagger and silence; read the first where both are read. A line that never says it
 there fails the layout with `WordMissing` (`core/errors.ts`), which the tools'
 `placeFilm` fails with as itself (`PlaceError = LayoutError`),
 so `film check` and every tool refuse the film by name; there is no fall back

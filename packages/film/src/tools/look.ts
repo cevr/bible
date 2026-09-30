@@ -12,6 +12,7 @@ import type { Stretch } from '../core/acts.ts';
 import { type AddressError, resolveAddress } from '../core/address.ts';
 import type { Act } from '../core/schema.ts';
 import type { FaceMark, HandMark } from '../core/export-handle.ts';
+import { type FrameSize, seenFace } from './check.ts';
 import { ChaptersInvalid } from './errors.ts';
 import {
   ColourScript,
@@ -206,21 +207,6 @@ const longestRun = (held: ReadonlyArray<boolean>): readonly [number, number] => 
   }
   return best;
 };
-
-/** The frame a film draws, in canvas pixels. */
-export interface FrameSize {
-  readonly width: number;
-  readonly height: number;
-}
-
-/** A face the viewer sees: its scene's own, mostly opaque, and centred on the frame. */
-const seenFace = (f: FaceMark, scene: string, frame: FrameSize) =>
-  f.scene === scene &&
-  f.alpha > 0.5 &&
-  f.x >= 0 &&
-  f.x <= frame.width &&
-  f.y >= 0 &&
-  f.y <= frame.height;
 
 /** Each scene's look from its drawn samples, in film order; `frame` is the canvas the faces were marked on. */
 export const sceneLooks = (

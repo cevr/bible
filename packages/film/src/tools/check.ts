@@ -9,7 +9,7 @@
 // move. Every finding is collected; none stops the others. The findings, their
 // levels and addresses are in findings.ts; the legs that run these in film-check.ts.
 
-import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
+import { Array as Arr, Match, Option, Order, Predicate, Record as Rec, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
 import { type Pcm, windowPowers } from '../core/audio.ts';
 import { BALANCE, hotEffects } from '../core/balance.ts';
@@ -36,8 +36,17 @@ import {
   voiceKey,
   wordAfter,
 } from '../core/narration.ts';
-import type { Knob, Score, Point, Sound, SoundManifest } from '../core/schema.ts';
-import type { InkMark, Probed, TextBox } from '../core/export-handle.ts';
+import type {
+  Knob,
+  Score,
+  Point,
+  Sound,
+  SoundManifest,
+  Span,
+  Timeline,
+  Until,
+} from '../core/schema.ts';
+import type { FaceMark, InkMark, Probed, TextBox } from '../core/export-handle.ts';
 import {
   LEAD_IN,
   type LibraryEntry,
@@ -48,7 +57,7 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import type { Interval } from '../core/time.ts';
+import { DEFAULT_EASE, type Interval } from '../core/time.ts';
 import type { PartError } from '../core/acts.ts';
 import type {
   MovementLength,
@@ -61,6 +70,7 @@ import {
   AssetMissing,
   AssetStale,
   CueLate,
+  CueTwin,
   DeadAir,
   EffectHot,
   EndShort,
@@ -188,6 +198,125 @@ export const durOnWords = (placed: ReadonlyArray<Placed>): ReadonlyArray<DurOnWo
       );
       return Option.toArray(found);
     });
+  });
+
+/**
+ * A point of a timeline as its declaration writes it: a primary anchor (a
+ * mark, with its word pin, or a landmark) and seconds from it, with every
+ * `with` and `after` followed to the anchor under it. Two cues with the same
+ * declared edges stay together under any re-take.
+ */
+interface DeclaredPoint {
+  readonly anchor: string;
+  readonly offset: number;
+}
+
+/** A cue's two edges as declared (`DeclaredPoint`), and how it plays across them. */
+interface DeclaredCue {
+  readonly start: DeclaredPoint;
+  readonly end: DeclaredPoint;
+  readonly ease: string;
+  readonly stagger: number;
+  readonly silence: boolean;
+}
+
+const plus = (p: DeclaredPoint, seconds: number): DeclaredPoint => ({
+  anchor: p.anchor,
+  offset: p.offset + seconds,
+});
+
+/** Where an `until` ends a span: its mark or its landmark. */
+const untilPoint = (until: Until): DeclaredPoint => ({
+  anchor: Match.value(until).pipe(
+    Match.when(Predicate.isString, (mark) => `mark ${mark}`),
+    Match.orElse((landmark) => `at ${landmark.at}`),
+  ),
+  offset: 0,
+});
+
+/** A span's edges from its anchor's declared point, as `resolveTimeline` lays them. */
+const edgesFrom = (span: Span, anchor: DeclaredPoint): Pick<DeclaredCue, 'start' | 'end'> => {
+  const at = plus(
+    anchor,
+    Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0),
+  );
+  return Option.match(Option.fromUndefinedOr(span.until), {
+    onSome: (until) => ({ start: at, end: untilPoint(until) }),
+    onNone: () => {
+      const dur = Option.getOrElse(Option.fromUndefinedOr(span.dur), () => 0);
+      if (span.ends === true) return { start: plus(at, -dur), end: at };
+      return { start: at, end: plus(at, dur) };
+    },
+  });
+};
+
+/** How a span plays across its edges, each default applied as `resolveTimeline` applies it. */
+const playOf = (span: Span): Pick<DeclaredCue, 'ease' | 'stagger' | 'silence'> => ({
+  ease: Option.getOrElse(Option.fromUndefinedOr(span.ease), () => DEFAULT_EASE),
+  stagger: Option.getOrElse(Option.fromUndefinedOr(span.stagger), () => 0),
+  silence: span.silence === true,
+});
+
+/** Every cue of `timeline` as declared; a cue whose anchor chain fails to resolve is left out (layout names it). */
+const declaredCues = (timeline: Timeline): ReadonlyMap<string, DeclaredCue> => {
+  const out = new Map<string, DeclaredCue>();
+  const visiting = new Set<string>();
+  const declare = (name: string, span: Span): Option.Option<DeclaredCue> => {
+    visiting.add(name);
+    const anchor = anchorOf(span);
+    visiting.delete(name);
+    return Option.map(anchor, (a) => {
+      const declared = { ...edgesFrom(span, a), ...playOf(span) };
+      out.set(name, declared);
+      return declared;
+    });
+  };
+  const cue = (name: string): Option.Option<DeclaredCue> =>
+    Option.orElse(Option.fromUndefinedOr(out.get(name)), () =>
+      Option.flatMap(
+        Option.filter(Rec.get(timeline, name), () => !visiting.has(name)),
+        (span) => declare(name, span),
+      ),
+    );
+  const anchorOf = (span: Span): Option.Option<DeclaredPoint> => {
+    if ('mark' in span)
+      return Option.some({ anchor: `mark ${span.mark} ${span.word ?? ''}`, offset: 0 });
+    if ('after' in span) return Option.map(cue(span.after), (c) => c.end);
+    if ('with' in span) return Option.map(cue(span.with), (c) => c.start);
+    return Option.some({ anchor: `at ${span.at}`, offset: 0 });
+  };
+  for (const name of Object.keys(timeline)) cue(name);
+  return out;
+};
+
+const samePoint = (a: DeclaredPoint, b: DeclaredPoint) =>
+  a.anchor === b.anchor && Math.abs(a.offset - b.offset) < 1e-9;
+
+const sameCue = (a: DeclaredCue, b: DeclaredCue) =>
+  samePoint(a.start, b.start) &&
+  samePoint(a.end, b.end) &&
+  a.ease === b.ease &&
+  a.stagger === b.stagger &&
+  a.silence === b.silence;
+
+/**
+ * Cues of one scene declared twice for the same moment (`CueTwin`): the same
+ * edges on the same anchors (a `with` another cue at its length counts as
+ * that cue) and the same ease, stagger and silence, so nothing tells them
+ * apart but their names, and a lab drag of one leaves the other behind. Each
+ * later twin is reported against the first cue it repeats.
+ */
+export const cueTwins = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueTwin> =>
+  placed.flatMap((p) => {
+    const cues = [...declaredCues(p.spec.timeline ?? {})];
+    return cues.flatMap(([cue, declared], i) =>
+      Option.toArray(
+        Option.map(
+          Arr.findFirst(cues.slice(0, i), ([, earlier]) => sameCue(earlier, declared)),
+          ([twin]) => CueTwin.make({ scene: p.spec.id, cue, twin }),
+        ),
+      ),
+    );
   });
 
 /** The beats that play as storyboard cards: no drawing yet. */
@@ -625,6 +754,7 @@ export const staticFindings = (
     ...longSeams(placed),
     ...farPins(placed),
     ...durOnWords(placed),
+    ...cueTwins(placed),
     ...storyboards(placed),
     ...repeatedKnobs(placed),
     ...takes,
@@ -987,20 +1117,43 @@ const distanceTo = (points: ReadonlyArray<Point>, p: Point): number =>
       ),
   });
 
+/** The frame a film draws, in canvas pixels. */
+export interface FrameSize {
+  readonly width: number;
+  readonly height: number;
+}
+
 /**
- * Ink and text drawn over a face (`InkOverFace`): for each visible face, the
- * visible strokes and lines of text of its scene drawn after it (the kit
+ * A face the viewer sees: its scene's own (`scene`, the scene the frame
+ * shows), mostly opaque, and centred on the frame. The one rule for a seen
+ * face: `FaceSmall` measures only these, and `InkOverFace` judges only these.
+ */
+export const seenFace = (f: FaceMark, scene: string, frame: FrameSize) =>
+  f.scene === scene &&
+  f.alpha > 0.5 &&
+  f.x >= 0 &&
+  f.x <= frame.width &&
+  f.y >= 0 &&
+  f.y <= frame.height;
+
+/**
+ * Ink and text drawn over a face (`InkOverFace`): for each face the viewer
+ * sees (`seenFace` on `frame`), the visible strokes and lines of text of its scene drawn after it (the kit
  * declares a face once its person is drawn, so its own features, headwear and
  * hands come before) that run through its core (`FACE_CORE` of its radius). A
  * stroke that `marks` a line on purpose, the caption line, and fills and
  * plates (a figure or a card staged in front) are not read; a gradient glow
  * is invisible to the probe.
  */
-export const inkOverFace = (sample: Sample, probed: Probed): ReadonlyArray<InkOverFace> => {
+export const inkOverFace = (
+  sample: Sample,
+  probed: Probed,
+  frame: FrameSize,
+): ReadonlyArray<InkOverFace> => {
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const faces = Option.getOrElse(Option.fromUndefinedOr(probed.faces), () => []);
   return faces
-    .filter((face) => face.alpha > VISIBLE_ALPHA)
+    .filter((face) => seenFace(face, sample.scene, frame))
     .flatMap((face) => {
       const centre: Point = [face.x, face.y];
       const core = (face.size / 2) * FACE_CORE;
@@ -1070,7 +1223,7 @@ const AT_REST = 1;
 export const platesOffFrame = (
   sample: Sample,
   probed: Probed,
-  size: { readonly width: number; readonly height: number },
+  size: FrameSize,
   next: Probed = probed,
 ): ReadonlyArray<PlateOffFrame> => {
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
@@ -1160,7 +1313,7 @@ const carries = (a: TextBox, b: TextBox) => a.on === b.order || b.on === a.order
 export const frameFindings = (
   sample: Sample,
   probed: Probed,
-  size: { readonly width: number; readonly height: number },
+  size: FrameSize,
   next: Probed = probed,
 ): ReadonlyArray<FrameFinding> => {
   const shown = probed.texts.filter(visible);
