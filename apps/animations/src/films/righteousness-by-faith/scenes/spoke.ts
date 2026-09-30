@@ -93,6 +93,11 @@ export const spoke = drawing({
     from: [-120, 760],
     // The grey figure beside the row, lower left.
     figure: [190, 1010],
+    // In the dark: the camera drifts from close and low back to the made world.
+    dark: [960, 560],
+    darkZoom: 1.06,
+    made: [960, 530],
+    madeZoom: 1,
   },
   draw: (f) => {
     const { ctx, w, h, t } = f;
@@ -218,8 +223,10 @@ export const spoke = drawing({
     }
 
     // ── The dark, and the word that makes the world ─────────────────────────
-    const drift = f.at('drift');
-    camera(ctx, { x: 960, y: lerp(560, 530, drift), zoom: lerp(1.06, 1, drift) }, w, h, () => {
+    const drift = shotPath(knobCamera(f.knob('dark'), f.knob('darkZoom')), [
+      [f.at('drift'), knobCamera(f.knob('made'), f.knob('madeZoom'))],
+    ]);
+    camera(ctx, drift, w, h, () => {
       dawn(ctx, w, h, hand, {
         flood: f.at('flood'),
         day: f.at('day'),

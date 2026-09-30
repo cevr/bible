@@ -26,14 +26,14 @@ export const memberName = (node: ESTree.MemberExpression): Option.Option<string>
 };
 
 /** The file a node is in. */
-const programOf = (n: ESTree.Node): ESTree.Node => {
+export const programOf = (n: ESTree.Node): ESTree.Node => {
   let at = n;
   while (at.type !== 'Program') at = at.parent;
   return at;
 };
 
 /** A top-level statement's declaration: itself, or what an `export` declares. */
-const declared = (statement: ESTree.Node) => {
+export const declared = (statement: ESTree.Node) => {
   if (statement.type === 'ExportNamedDeclaration') return statement.declaration;
   return statement;
 };

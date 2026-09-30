@@ -1399,6 +1399,13 @@ fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
 (`f.at(cue)` or a const bound to one): the part is a cue of its own,
 `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
 which the lab can reach.
+`film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
+files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
+blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,
+ARK_IN, …)`): a framing is knobs read with `knobCamera`, a move a
+`shotPath` of them, a held push `pushOn` with a number knob. The unmoved
+frame and a framing derived from the scene's geometry (a point that is not
+two numbers) pass; one shared across scenes lives in a set file.
 
 ## Knobs
 

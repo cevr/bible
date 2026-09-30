@@ -39,7 +39,7 @@ import {
   reset,
 } from '@bible/film/canvas';
 import { clamp, lerp, gait } from '@bible/film/core';
-import { type House, SCRIBES_AT, WENT, house } from '../gospel.ts';
+import { type House, WENT, house } from '../gospel.ts';
 import { C, type Hands, type IconCount, ICON_KEPT, ICON_LEAD, ICON_X, type Three } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow } from './message.ts';
 
@@ -104,6 +104,9 @@ const knobs = {
   roomZoom: 1.2,
   saw: [990, 520],
   sawZoom: 1.25,
+  // Racked across to where the scribes sit, on "scribes".
+  scribes: [1420, 560],
+  scribesZoom: 2.4,
   // Close on the man's face on his bed (a third of the frame), then back as he stands.
   manFace: [600, 808],
   manFaceZoom: 3.4,
@@ -233,7 +236,7 @@ const capernaum = (f: RoofFrame) => {
     [f.at('lower'), knobCamera(f.knob('room'), f.knob('roomZoom'))],
     [f.at('look'), knobCamera(f.knob('saw'), f.knob('sawZoom'))],
     [f.at('push'), knobCamera(f.knob('manFace'), f.knob('manFaceZoom'))],
-    [f.at('rack'), SCRIBES_AT],
+    [f.at('rack'), knobCamera(f.knob('scribes'), f.knob('scribesZoom'))],
     [f.at('easy'), knobCamera(f.knob('lying'), f.knob('lyingZoom'))],
     [f.at('back'), knobCamera(f.knob('arise'), f.knob('ariseZoom'))],
     [f.at('follow'), WENT],

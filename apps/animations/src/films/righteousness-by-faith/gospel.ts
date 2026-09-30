@@ -226,8 +226,6 @@ const ON_KNEE: GestureAt = { to: [-18, -34], reach: 1, grip: 'open' };
 const AT_CHIN: GestureAt = { to: [30, -122], reach: 0, grip: 'hold' };
 const SCRIBE_LOOK: [number, number] = [-4, 0];
 const SCRIBE: Person = { look: SCRIBE_LOOK, sit: 1, ground: 0, far: ON_KNEE };
-/** Where the scribes sit, framed (`roof`'s rack on "scribes"). */
-export const SCRIBES_AT: Camera = { x: 1420, y: 560, zoom: 2.4 };
 /** The near crowd at the frame's sides, cut off at the waist by the frame. */
 const NEAR_CROWD: ReadonlyArray<Onlooker> = [
   {
@@ -1268,11 +1266,11 @@ const WENT_HOUSE = {
 } satisfies House;
 
 /**
- * The four at the hole as `roof` has them on "saw", framed on the roof, held
- * still, the faces lit gold from below (`look`'s callback, under faith).
+ * The four at the hole, held still, the faces lit gold from below (`look`'s
+ * callback, under faith, in its recall plate). `look` frames them with its
+ * own `hole` knobs.
  */
-export const AT_THE_HOLE: House = {
-  cam: { x: 740, y: 240, zoom: 2.2 },
+export const AT_THE_HOLE: Omit<House, 'cam'> = {
   tiles: 1,
   lower: 0.35,
   ropes: 1,

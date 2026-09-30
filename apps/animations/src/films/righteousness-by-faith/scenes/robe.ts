@@ -144,13 +144,15 @@ const timeline = {
 const knobs = {
   /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
   judged: [1180, 600],
+  judgedZoom: 1.22,
+  /** How close the drift has come by "reclaim". */
+  judgedInZoom: 1.3,
   /** How much of the first light is left once the loom has woven: the rest is day. */
   woven: 0.5,
   /** Where the push from the court ends, on the loom, and how close. */
   atLoom: [1045, 560],
   atLoomZoom: 4.2,
 } as const;
-const JUDGED_ZOOM = [1.22, 1.3] as const;
 
 type RobeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
@@ -463,11 +465,13 @@ const judged = (f: RobeFrame) => {
   const { ctx, w, h } = f;
   const { hand } = f;
   const beyond = f.at('beyond');
-  const [jx, jy] = f.knob('judged');
+  const court = f.knob('judged');
   courtWall(ctx, w, h);
   camera(
     ctx,
-    { x: jx, y: jy, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], f.at('drift')) },
+    shotPath(knobCamera(court, f.knob('judgedZoom')), [
+      [f.at('drift'), knobCamera(court, f.knob('judgedInZoom'))],
+    ]),
     w,
     h,
     () => {

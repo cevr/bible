@@ -10,6 +10,7 @@
 // from the left, shrugging at the start and open-mouthed at the end.
 
 import {
+  type Camera,
   type Frame,
   type Gesture,
   at,
@@ -26,6 +27,8 @@ import {
   glow,
   rounded,
   plate,
+  knobCamera,
+  shotPath,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
 import { C, F, person, piece } from '../kit.ts';
@@ -66,7 +69,20 @@ const timeline = {
   lean: { mark: 'all', offset: -0.3, dur: 2.4, ease: 'inOutSine' },
   wide: { mark: 'circle', offset: 0.1, dur: 1.9, ease: 'inOutSine' },
 } as const;
-const knobs = { figure: [460, 1000], card: [1230, 330], law: [1230, 600] } as const;
+const knobs = {
+  figure: [460, 1000],
+  card: [1230, 330],
+  law: [1230, 600],
+  // In on the tablets and the figure as the law drops, then out past the
+  // page as the circle grows.
+  lean: [1060, 580],
+  leanZoom: 1.18,
+  wide: [960, 560],
+  wideZoom: 0.92,
+} as const;
+
+/** The unmoved frame (the canvas itself, so not a knob). */
+const REST: Camera = { x: 960, y: 540, zoom: 1 };
 
 type WordFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
@@ -75,13 +91,10 @@ export const word = drawing({
   knobs,
   draw: (f) => {
     const { ctx, w, h } = f;
-    const lean = f.at('lean');
-    const wide = f.at('wide');
-    const cam = {
-      x: lerp(lerp(960, 1060, lean), 960, wide),
-      y: lerp(lerp(540, 580, lean), 560, wide),
-      zoom: lerp(lerp(1, 1.18, lean), 0.92, wide),
-    };
+    const cam = shotPath(REST, [
+      [f.at('lean'), knobCamera(f.knob('lean'), f.knob('leanZoom'))],
+      [f.at('wide'), knobCamera(f.knob('wide'), f.knob('wideZoom'))],
+    ]);
     camera(ctx, cam, w, h, () => page(f));
   },
 });

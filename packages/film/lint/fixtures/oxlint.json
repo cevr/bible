@@ -9,6 +9,7 @@
     "film/no-hand-timed-seconds": "error",
     "film/span-ends-on-anchor": "error",
     "film/no-ease-on-cue": "error",
-    "film/no-cue-remap": "error"
+    "film/no-cue-remap": "error",
+    "film/framing-is-a-knob": "error"
   }
 }

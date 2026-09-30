@@ -12,6 +12,8 @@ import {
   type Pt,
   at,
   drawing,
+  knobCamera,
+  shotPath,
   multiplane,
   unprobed,
   sub,
@@ -99,6 +101,7 @@ export const rain = drawing({
   knobs: {
     // Tilted up to the sanctuary.
     up: [960, -40],
+    upZoom: 1,
     // Down over the city on the horizon.
     city: [1000, 560],
     cityZoom: 1.7,
@@ -108,13 +111,10 @@ export const rain = drawing({
     const hand = (k: string) => f.hand(k);
     const up = f.at('tiltUp') * (1 - f.at('down'));
     const down = f.at('down');
-    const upAt = f.knob('up');
-    const city = f.knob('city');
-    const cam: Camera = {
-      x: lerp(lerp(REST.x, upAt[0], up), city[0], down),
-      y: lerp(lerp(REST.y, upAt[1], up), city[1], down),
-      zoom: lerp(1, f.knob('cityZoom'), down),
-    };
+    const cam = shotPath(REST, [
+      [up, knobCamera(f.knob('up'), f.knob('upZoom'))],
+      [down, knobCamera(f.knob('city'), f.knob('cityZoom'))],
+    ]);
     const turn = f.at('turn');
 
     sky(ctx, w, h, [

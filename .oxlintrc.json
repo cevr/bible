@@ -299,6 +299,13 @@
       }
     },
     {
+      // A scene's framing is knobs; a framing shared across scenes lives in a set file.
+      "files": ["**/apps/animations/src/films/*/scenes/*.ts"],
+      "rules": {
+        "film/framing-is-a-knob": "error"
+      }
+    },
+    {
       // A film's scene registry builds each SceneSpec with its optional `say`.
       "files": ["**/apps/animations/src/films/*/scenes/index.ts"],
       "rules": {

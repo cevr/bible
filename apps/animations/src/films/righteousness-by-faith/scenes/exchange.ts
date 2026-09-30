@@ -68,14 +68,8 @@ const SANCTUARY: Pt = [960, -280];
 const SS = 0.8;
 const inHeaven = ([x, y]: Pt): Pt => [SANCTUARY[0] + x * SS, SANCTUARY[1] + y * SS];
 
-/**
- * After the cut: close in the most holy place, the veil at the left edge,
- * Christ before the ark (the `ark` knobs); the camera eases in a little, to
- * `ARK_IN`, as the last words are spoken.
- */
-const ARK_IN = 2.75;
 /** The ark framing this frame: rewritten each frame, never made per frame. */
-const AT_ARK: Camera = { x: 0, y: 0, zoom: 1 };
+const AT_ARK: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** The ground under the hill and the garden. */
 const GROUND = rectShape(-200, 950, 2400, 300);
@@ -147,9 +141,12 @@ const knobs = {
   // Up in heaven at the sanctuary.
   heaven: [960, -560],
   heavenZoom: 1,
-  // Close in the most holy place, before the ark.
+  // After the cut: close in the most holy place, the veil at the left edge,
+  // Christ before the ark; the camera eases in a little, to `arkInZoom`, as
+  // the last words are spoken.
   ark: [1224, -450],
   arkZoom: 2.5,
+  arkInZoom: 2.75,
 } as const;
 
 type ExchangeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -478,10 +475,12 @@ const mostHoly = (f: ExchangeFrame) => {
     [1, C.tealLow],
   ]);
   const ark = f.knob('ark');
-  AT_ARK.x = ark[0];
-  AT_ARK.y = ark[1];
-  AT_ARK.zoom = lerp(f.knob('arkZoom'), ARK_IN, f.spoken('now'));
-  camera(ctx, AT_ARK, w, h, () =>
+  const cam = shotPath(
+    knobCamera(ark, f.knob('arkZoom')),
+    [[f.spoken('now'), knobCamera(ark, f.knob('arkInZoom'))]],
+    AT_ARK,
+  );
+  camera(ctx, cam, w, h, () =>
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
       ministry(ctx, hand, 1, f.at('hands')),
     ),

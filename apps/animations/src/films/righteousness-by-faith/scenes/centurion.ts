@@ -17,6 +17,7 @@ import {
   drawing,
   multiplane,
   rectShape,
+  pushOn,
   shotPath,
   sub,
   type Posed,
@@ -78,8 +79,12 @@ const knobs = {
   faceZoom: 2.5,
   town: [130, 590],
   townZoom: 0.62,
+  // The word in his hand: the shot opens at `handShotWide` and settles in to
+  // `handShotZoom`, then keeps pushing in by `pushOn` while it holds.
   handShot: [800, 680],
+  handShotWide: 2.05,
   handShotZoom: 2.3,
+  pushOn: 1.12,
   // Where faith's disc opens on the word in his hand, in frame px, and its size there.
   iconFrom: [1410, 790],
   iconFromZoom: 1.6,
@@ -229,13 +234,14 @@ const street = (f: CenturionFrame, hand: Hands) => {
 
   const shot = f.cue('handShot');
   const inHand = t >= shot.start;
-  const [hx, hy] = f.knob('handShot');
   const cam = inHand
-    ? {
-        x: hx,
-        y: hy,
-        zoom: lerp(2.05, f.knob('handShotZoom'), f.at('handShot')) * lerp(1, 1.12, f.at('hold')),
-      }
+    ? pushOn(
+        shotPath(knobCamera(f.knob('handShot'), f.knob('handShotWide')), [
+          [f.at('handShot'), knobCamera(f.knob('handShot'), f.knob('handShotZoom'))],
+        ]),
+        f.knob('pushOn'),
+        f.at('hold'),
+      )
     : shotPath(STREET, [
         [f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom'))],
         [f.at('pullOut'), knobCamera(f.knob('town'), f.knob('townZoom'))],
