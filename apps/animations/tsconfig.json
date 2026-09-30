@@ -7,6 +7,13 @@
     "jsx": "preserve",
     "jsxImportSource": "@solidjs/web"
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "server.ts", "cli.ts"],
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "infra/**/*.ts",
+    "server.ts",
+    "cli.ts",
+    "alchemy.run.ts"
+  ],
   "exclude": ["node_modules", "out"]
 }

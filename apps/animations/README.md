@@ -25,6 +25,12 @@ bun run sfx import <file> <name>               # a CC0 recording into a declared
 bun run sfx render <name> [--seed n]           # a procedural sound's seeds as WAVs
 bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams
 bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
+bun run sfx push --from <folder>               # the same, sending files this machine lacks from an older folder store (a move; see The private store)
+bun run media push <file…> [--under dir]       # review renders into the private store's renders/ (skips what it holds), read back by hash
+bun run media pull <key…> [--to dir]           # renders back out (default out/renders), checked against their sha256
+bun run media list [prefix]                    # what the private store holds under a prefix (default renders/)
+bun run plan | deploy                          # the private store's Cloudflare stack (alchemy.run.ts), prod stage; deploy is the owner's call
+bun run store:keys                             # the deployed store's key pair into ./.env (git-ignored)
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
@@ -75,8 +81,8 @@ not yet made (`SoundUnmade`), and warns on a stale one or an effect within
 3 dB of the voice where it speaks (`EffectHot`). How to word a generated
 sound's prompt and pick its length and influence, per kind (one-shot foley,
 impacts, beds), is `sounds/PROMPTING.md`. The library's generated files sync
-with `~/film-sounds`, never a folder under `~/film-media`, whose index deletes
-files it did not mirror. A misspelt `--only` beat
+with the private store `library.ts` declares (below), never a folder under
+`~/film-media`, whose index deletes files it did not mirror. A misspelt `--only` beat
 fails narrate before anything is planned with `UnknownScene`. The films are
 always `src/films`, the folder the player imports (`cli.ts` hands it and
 `sounds/` to the tools); `FILMS_OUT` overrides `out`.
@@ -390,6 +396,70 @@ and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`)
 `src/films/index.ts` keeps `films` (a key per film folder)
 apart from `pages`, what the player mounts: the films plus each short's page
 from `shortPages`, under `<film>/shorts/<id>`.
+
+## The private store
+
+Generated audio (ElevenLabs' terms forbid publishing it as files), composed
+scores and review renders never enter the repo. They live in one private
+store, declared by `store` in `sounds/library.ts` as a tagged union:
+
+```ts
+export const store = defineStore({ kind: 'folder', folder: '~/film-sounds' });
+export const store = defineStore({ kind: 'r2', bucket: 'film-store' }); // jurisdiction?: 'eu' | 'fedramp'
+```
+
+Keys are prefixes in the one store: `files/<name>/<hash>.flac` (the library's
+sounds), `scores/<film>/<option>.<ext>` (each score option) and
+`renders/<…>` (review renders, `media`). The R2 store keeps each object's
+sha256 as its `x-amz-meta-sha256` metadata, so `push` asks the store for a
+hash with one `HEAD` and never downloads to compare; `pull` checks the bytes
+against that hash before it renames them into place.
+
+**The stack.** `alchemy.run.ts` (wiring only) deploys `infra/store.ts`: one R2
+bucket, `film-store` on `prod` (`film-store-<stage>` on any other stage),
+with no public access and no domain, and one account API token allowed to
+read and write objects in that bucket only. The prod bucket is retained
+(`RemovalPolicy.retain`): `alchemy destroy` forgets it and never deletes it;
+a throwaway stage's bucket is emptied and deleted with the stage. State is
+local, in the git-ignored `.alchemy/`, which also holds the token's value;
+keep it.
+
+**The key.** R2's S3 API takes the token as a key pair (the token's id, and
+the sha256 of its value). `bun run store:keys` derives it from the stack's
+outputs into `./.env` (mode 0600, only its `FILM_STORE_*` lines replaced,
+nothing printed but the names):
+
+```
+FILM_STORE_ACCOUNT_ID  FILM_STORE_ACCESS_KEY_ID  FILM_STORE_SECRET_ACCESS_KEY
+```
+
+The tools read them as `Config.Redacted` (`PrivateStore`); a command that
+touches an R2 store without them fails `StoreCredentialsMissing`, naming the
+ones missing, and a command that does not touch the store never asks. Requests are signed
+with SigV4 through Effect's `HttpClient` (no SDK) and retried on transient
+failures. A dashboard R2 API token scoped to the bucket works the same: put
+its account id, access key id and secret in `.env`.
+
+**Moving from the folder.** Once the owner has deployed:
+
+```bash
+bun run deploy && bun run store:keys
+# library.ts: store = defineStore({ kind: 'r2', bucket: 'film-store' })
+bun run sfx push --from ~/film-sounds          # sounds and scores, each read back by hash; the folder is left as it was
+bun run media push <render.mp4…> --under <dir> # renders
+```
+
+`push --from` is idempotent: a second run sends nothing. A lock file found in
+neither this checkout nor the old folder is named `missing`, never
+regenerated.
+
+**For a review page.** `PrivateStore.store` (in `@bible/film/tools`) gives the
+`MediaStore` interface a page needs without holding files locally:
+`list(prefix)` → `{ key, size, modified }[]` sorted by key, and
+`read(key, range)` → `Option<{ size, start, end, stream }>` (an inclusive byte
+range, clamped to the object; `none` when the key is absent), which is what a
+`206 Partial Content` answer to a `<video>`'s `Range` request needs. The page
+itself is not wired yet.
 
 ## Engine (`@bible/film`)
 

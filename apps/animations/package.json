@@ -19,8 +19,12 @@
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",
     "notes": "bun cli.ts notes",
+    "media": "bun cli.ts media",
+    "plan": "alchemy plan alchemy.run.ts --stage prod",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod",
+    "store:keys": "bun infra/keys.ts --stage prod",
     "typecheck": "tsc --noEmit",
-    "test": "bun test test"
+    "test": "bun test test infra"
   },
   "dependencies": {
     "@bible/film": "workspace:*",
