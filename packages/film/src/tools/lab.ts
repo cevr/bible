@@ -69,7 +69,8 @@ const stepsGroup = HttpApiBuilder.group(LabHttpApi, 'steps', (handlers) =>
   handlers
     .handle('undo', stepHandlers.undo)
     .handle('redo', stepHandlers.redo)
-    .handle('check', stepHandlers.check),
+    .handle('check', stepHandlers.check)
+    .handle('steps', stepHandlers.steps),
 );
 
 /** The notes on the film's frames. */

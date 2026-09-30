@@ -30,17 +30,9 @@ import {
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
-import {
-  ApprovePost,
-  CommentPost,
-  ChoiceWrite,
-  FilmChoices,
-  KnobPost,
-  PickPost,
-  SoundCheck,
-} from './choice.ts';
+import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
-import { ReviewDuration, ReviewFilms, ReviewIndex } from './review.ts';
+import { ReviewDuration, ReviewFilms, ReviewIndex, ReviewVideo } from './review.ts';
 import {
   AttemptUnknown,
   AudioInvalid,
@@ -199,6 +191,30 @@ export const statusOf = (refusal: Refusal): number => {
 /** A write with nothing to say (undo, redo, resolve) still sends JSON: the server takes no other write. */
 export const NoBody = Schema.Struct({});
 
+/** `GET /lab/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
+export const Steps = Schema.Struct({
+  latest: CheckReport.fields.latest,
+  undo: CheckReport.fields.undo,
+  redo: CheckReport.fields.redo,
+});
+export type Steps = typeof Steps.Type;
+
+/**
+ * What the owner says of a variant, a scene's render, an act or the film:
+ * approve it as it is now, withdraw every approval of it, or comment on it.
+ * The one say both the choices and the project take.
+ */
+export const Say = Schema.Union([
+  Schema.TaggedStruct('Approve', {}),
+  Schema.TaggedStruct('Withdraw', {}),
+  Schema.TaggedStruct('Comment', { text: Schema.String.check(Schema.isNonEmpty()) }),
+]).pipe(Schema.toTaggedUnion('_tag'));
+export type Say = typeof Say.Type;
+
+/** `POST /lab/<film>/choices/say`: a say on one variant of one point, as it is now. */
+export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });
+export type SayPost = typeof SayPost.Type;
+
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */
 const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
@@ -289,6 +305,12 @@ export class StepsGroup extends HttpApiGroup.make('steps').add(
     success: CheckReport,
     error: Refusals,
   }),
+  /** The latest change and what Undo and Redo would do, without the check: what a page reads after a write that answered its findings. */
+  HttpApiEndpoint.get('steps', '/lab/:film/steps', {
+    params: film,
+    success: Steps,
+    error: Refusals,
+  }),
 ) {}
 
 /** The studio: the film's voice recorded in the browser, beat by beat. */
@@ -357,9 +379,9 @@ export class ReviewGroup extends HttpApiGroup.make('review').add(
 
 /**
  * A film's choice points (`choice.ts`): listed, a variant picked (or
- * unpicked, or rejected), a level knob set, a variant approved or commented
- * on, each variant heard alone or in the film's mix, and the film's sound
- * checked after a pick.
+ * unpicked, or rejected), a level knob set, a variant said of (`Say`), each
+ * variant heard alone or in the film's mix, and the film's sound checked
+ * after a pick.
  */
 export class ChoicesGroup extends HttpApiGroup.make('choices').add(
   HttpApiEndpoint.get('films', '/review/films', { success: ReviewFilms, error: Refusals }),
@@ -382,15 +404,10 @@ export class ChoicesGroup extends HttpApiGroup.make('choices').add(
     success: ChoiceWrite,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('approve', '/lab/:film/choices/approve', {
+  /** A variant approved, its approvals withdrawn, or commented on: the choices after it. */
+  HttpApiEndpoint.post('say', '/lab/:film/choices/say', {
     params: film,
-    payload: ApprovePost,
-    success: FilmChoices,
-    error: Refusals,
-  }),
-  HttpApiEndpoint.post('comment', '/lab/:film/choices/comment', {
-    params: film,
-    payload: CommentPost,
+    payload: SayPost,
     success: FilmChoices,
     error: Refusals,
   }),
@@ -424,41 +441,37 @@ export class ChoicesGroup extends HttpApiGroup.make('choices').add(
 const variantField = { variant: Schema.optionalKey(RenderVariantName) };
 
 /**
+ * The project as the review page shows it: the project (`catalogue.ts`), the
+ * review's ref of its folder when the review's roots hold it (the page's
+ * compare link), and each rendered scene's video by scene id: this
+ * checkout's catalogue record of it, its share copy standing in for its
+ * master.
+ */
+export const ProjectView = Schema.Struct({
+  project: Project,
+  folder: Schema.OptionFromOptionalKey(Schema.String),
+  videos: Schema.Record(Schema.String, ReviewVideo),
+});
+export type ProjectView = typeof ProjectView.Type;
+
+/**
  * A film's project folder by its address tree (`catalogue.ts`): each scene's
- * render, its state and the owner's say; approvals (of scenes, an act's
- * current scenes, or every current scene) and comments. Each call runs `film
- * project` in a fresh process and answers the project as it now stands.
+ * render, its state and the owner's say. A say on a scene is on its render
+ * as stamped; an approval of an act or the film approves its current scenes,
+ * and a withdrawal withdraws every approval of its scenes. Each call runs
+ * `film project` in a fresh process and answers the project as it now stands.
  */
 export class ProjectGroup extends HttpApiGroup.make('project').add(
   HttpApiEndpoint.get('get', '/review/project/:film', {
     params: film,
     query: variantField,
-    success: Project,
+    success: ProjectView,
     error: Refusals,
   }),
-  /** The scenes named approved as they are rendered, or an act's current scenes. */
-  HttpApiEndpoint.post('approve', '/review/project/:film/approve', {
+  HttpApiEndpoint.post('say', '/review/project/:film/say', {
     params: film,
-    payload: Schema.Struct({ address: PartAddress, ...variantField }),
-    success: Project,
-    error: Refusals,
-  }),
-  /** Every scene whose render is current approved. */
-  HttpApiEndpoint.post('approveAll', '/review/project/:film/approve-all', {
-    params: film,
-    payload: Schema.Struct(variantField),
-    success: Project,
-    error: Refusals,
-  }),
-  /** Something said of a scene's render, an act or the whole film. */
-  HttpApiEndpoint.post('comment', '/review/project/:film/comment', {
-    params: film,
-    payload: Schema.Struct({
-      address: PartAddress,
-      text: Schema.String.check(Schema.isNonEmpty()),
-      ...variantField,
-    }),
-    success: Project,
+    payload: Schema.Struct({ address: PartAddress, say: Say, ...variantField }),
+    success: ProjectView,
     error: Refusals,
   }),
 ) {}

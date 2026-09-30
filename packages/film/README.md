@@ -344,9 +344,12 @@ from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens
 (`render.remux frames_drawn=0`). `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
-scene (a stale or missing scene is left, and named). `film project comment
+scene (a stale or missing scene is left, and named); `film project withdraw
+<film> --scene id,id | --act name | --all` withdraws those scenes' approvals,
+whatever version they were given on. `film project comment
 <film> "text" [--scene id | --act name]` records a comment on a scene's render
-as it is now, on an act, or (with neither) on the whole film. With `--json`
+as it is now (on the scene itself when it has no render yet), on an act, or
+(with neither) on the whole film. With `--json`
 each prints the project (`ProjectRead`) as one line, or its refusal as
 itself (`SceneNotRendered`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
 a `FreshRefusal`), which is how the review runs it. Approvals and comments are keyed by address,
@@ -711,16 +714,19 @@ answered(Effect.gen(…)))`, naming the film with `named(params.film)`.
 4. The foreign-Host test covers it by itself; add a test of what it answers.
 
 For example, the review's project routes (`GET /review/project/<film>?variant=`
-answering a `Project`; `POST /review/project/<film>/approve` `{address,
-variant?}`, `…/approve-all` `{variant?}` and `…/comment` `{address, text,
-variant?}`, each answering the fresh `Project`) are one group: `ProjectGroup`
+and `POST /review/project/<film>/say` `{address, say, variant?}`, each
+answering a `ProjectView`: the fresh `Project`, the project folder's ref and
+the video this checkout's catalogue records for each rendered scene) are one
+group: `ProjectGroup`
 in `core/api.ts`, added to `ReviewHttpApi` (its `/review/project` paths fall
 under the API's prefixes by themselves). The address is a `PartAddress` (the
 film, an act, scenes: a short is no branch of the tree, so it does not
 decode, 400). `projectGroup` (`tools/project-http.ts`) runs `film project …
 --json` in a fresh process (`FreshFilm.project`) and decodes its `Project`,
-or its refusal into the refusal's own class and status; a comment's text
-goes after `--`, so one starting with a dash is never a flag. Its layer
+or its refusal into the refusal's own class and status. A say (`Say`:
+`Approve`, `Withdraw`, `Comment {text}`) runs `project approve`, `withdraw`
+or `comment` once; a comment's text goes after `--`, so one starting with a
+dash is never a flag. Its layer
 joins the `Layer.mergeAll` in `reviewHandler`, and the page calls
 `client.project.<name>` (`lab/review/options/api.ts`).
 
@@ -1093,21 +1099,21 @@ Derived files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
-| Route                                                                        | What it answers                                                    |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `GET /review/index[?fresh]`                                                  | `ReviewIndex`: every folder with something to review, newest first |
-| `GET /review/files/<ref>`, `/review/phone/<ref>`                             | the file, or its phone copy, byte ranges answered 206              |
-| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`                      | a JPEG of a video at `t` s, `w` px wide; its length                |
-| `GET /review/films`                                                          | `ReviewFilms`: the app's films                                     |
-| `GET /lab/<film>/choices`                                                    | `FilmChoices`: the film's renders (the pictures) and its points    |
-| `POST /lab/<film>/choices/pick`                                              | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                |
-| `POST /lab/<film>/choices/knob`                                              | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written     |
-| `POST /lab/<film>/choices/approve`, `…/comment`                              | `{point, variant[, text]}` → `FilmChoices`, the say recorded       |
-| `GET /lab/<film>/choices/alone?point=&variant=`                              | the variant's own file (a take, a voice attempt)                   |
-| `GET /lab/<film>/choices/mix?point=&variant=`                                | the film's whole mix with that variant in place (m4a)              |
-| `GET /lab/<film>/choices/check`                                              | `SoundCheck`: `film check --sound` as the film now stands          |
-| `GET /review/project/<film>`; `POST …/approve`, `…/approve-all`, `…/comment` | `Project`, read or written by a fresh `film project` (above)       |
-| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`                    | the lab's own, for the film named                                  |
+| Route                                                                | What it answers                                                     |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `GET /review/index[?fresh]`                                          | `ReviewIndex`: every folder with something to review, newest first  |
+| `GET /review/files/<ref>`, `/review/phone/<ref>`                     | the file, or its phone copy, byte ranges answered 206               |
+| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`              | a JPEG of a video at `t` s, `w` px wide; its length                 |
+| `GET /review/films`                                                  | `ReviewFilms`: the app's films                                      |
+| `GET /lab/<film>/choices`                                            | `FilmChoices`: the film's renders (the pictures) and its points     |
+| `POST /lab/<film>/choices/pick`                                      | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                 |
+| `POST /lab/<film>/choices/knob`                                      | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written      |
+| `POST /lab/<film>/choices/say`                                       | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded |
+| `GET /lab/<film>/choices/alone?point=&variant=`                      | the variant's own file (a take, a voice attempt)                    |
+| `GET /lab/<film>/choices/mix?point=&variant=`                        | the film's whole mix with that variant in place (m4a)               |
+| `GET /lab/<film>/choices/check`                                      | `SoundCheck`: `film check --sound` as the film now stands           |
+| `GET /review/project/<film>`; `POST …/say`                           | `ProjectView`, read or written by a fresh `film project` (above)    |
+| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`, `…/steps` | the lab's own, for the film named; `steps` its undo and redo alone  |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
@@ -1198,19 +1204,32 @@ heard over it: 🔊 on a variant heard in place (a score option, a take) swaps
 it, and it joins where the clock stands. A point's marks jump the clock
 there. Every point is one card (`options/choice.tsx`): its variants with
 their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
-approve and a line to comment; a level point's knob is a slider, written on
-release. Undo and Redo name what they would do; the film's static check shows
-under them after every write, and after a pick or a knob `film check --sound`
-runs (`GET …/choices/check`) and its findings show beside it.
+approve (a current variant only), withdraw once approved, and a line to
+comment; a level point's knob is a slider, written on release. Every say is
+one `POST …/choices/say`, answered by the film's choices with it recorded,
+which the page shows as they are. Undo and Redo say what they would undo or
+redo (`Undo score play brass`); the film's static check shows under them,
+the one the write answered, and after a pick or a knob `film check --sound`
+runs (`GET …/choices/check`) and its findings show beside it. A write is
+shown from its answer: the page reads nothing again but the undo and redo
+(`GET …/steps`, no check) and, after an undo or a redo, the choices.
 
 The project view (`?project=<film>`, `options/project.tsx`) is the film by its
-address tree: the film's comments and choice points, then each act (its
-comments, "Approve the act's current scenes", its points) and its scenes; each
-scene its render (the render set at its address in the index), its state, its
-approval, its comments, an approve (a current render only) and a line to
-comment, and the points that play in it (a take, a level, a voice). "Approve
-all current" approves every current scene. Each say answers the fresh
-`Project`, which the page shows; a pick reads it again.
+address tree, film → acts → scenes → layers, with the same card, the same
+say and the same words at every level: the film's comments, "Approve all
+current" and its choice points, then each act (its comments, "Approve the
+act's current scenes", its points) and its scenes. Each scene is a render
+card: the video this checkout's catalogue records for it (`ProjectView.videos`,
+never another folder's of the same film), its state (current; stale by its
+sources, or by the film's sound alone; missing, with the command that renders
+it), its approval (approve a current render, withdraw an approval), its
+comments (a missing scene takes one too), a link to compare its renders, and
+the points placed at it. Each point sits once, at the narrowest part holding
+every scene it plays in (a scene, an act, else the film), folded under it; a
+scene links the layers that play in it but sit elsewhere, and a link opens
+where the card is. Each say answers the fresh `ProjectView`, which the page
+shows in place (a playing clip plays on, a half-typed comment stays); a
+source write reads it again.
 
 ## Check
 

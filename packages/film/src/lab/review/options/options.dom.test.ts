@@ -5,7 +5,8 @@
 // writes `play`, the page reads the film again (the pick shown, Undo
 // offered, the check after it) and runs the sound check, showing its
 // findings; a take is kept; a look picked; a level's knob set; a variant
-// approved and commented on; Undo is sent to the film's own route; a mark
+// approved, commented on and its approval withdrawn; Undo, naming what it
+// undoes, is sent to the film's own route; a mark
 // jumps the clock; a mix whose first load failed is heard once its retry
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
 // page (a selector, a condition) or its clock, never a fixed time.
@@ -223,14 +224,21 @@ const fakeFilm = () => {
       toy.level = -20;
       return json(wrote('level:const:PAPER -20', 'sound.ts'));
     }),
-    route('POST', /^\/lab\/toy\/choices\/approve$/, () => {
-      toy.approved = true;
+    route('POST', /^\/lab\/toy\/choices\/say$/, (asked) => {
+      const body = bodyText(asked.body);
+      if (body.includes('"Approve"')) toy.approved = true;
+      if (body.includes('"Withdraw"')) toy.approved = false;
+      if (body.includes('"Comment"')) toy.said = [...toy.said, 'warmer in the close'];
       return json(choices(toy));
     }),
-    route('POST', /^\/lab\/toy\/choices\/comment$/, () => {
-      toy.said = [...toy.said, 'warmer in the close'];
-      return json(choices(toy));
-    }),
+    route('GET', /^\/lab\/toy\/steps$/, () =>
+      json(
+        Option.match(undo, {
+          onNone: () => ({}),
+          onSome: (target) => ({ undo: { file: 'sound.ts', target } }),
+        }),
+      ),
+    ),
     route('POST', /^\/lab\/toy\/undo$/, () => {
       toy.picked = 'strings';
       undo = Option.none();
@@ -331,6 +339,13 @@ describe("a film's choices", () => {
           "document.querySelector('.rv-status').textContent.includes('score play piano')",
         );
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
+        // Undo says what it would undo.
+        expect(
+          yield* evaluate<string>(
+            page,
+            'document.querySelector(\'[data-act="undo"]\').textContent',
+          ),
+        ).toBe('Undo score play piano');
         expect(posted(asked, '/lab/toy/choices/pick')).toEqual({
           point: 'score',
           variant: 'piano',
@@ -406,20 +421,34 @@ describe("a film's choices", () => {
           page,
           `${at('score', 'strings')} [data-act="approve"][data-approval="approved"]`,
         );
-        expect(posted(asked, '/lab/toy/choices/approve')).toEqual({
+        expect(posted(asked, '/lab/toy/choices/say')).toEqual({
           point: 'score',
           variant: 'strings',
+          say: { _tag: 'Approve' },
         });
         yield* Effect.promise(() =>
           page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close'),
         );
         yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
         yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
-        expect(posted(asked, '/lab/toy/choices/comment')).toEqual({
-          point: 'score',
-          variant: 'strings',
-          text: 'warmer in the close',
-        });
+        expect(
+          asked
+            .filter((a) => a.path === '/lab/toy/choices/say')
+            .map((a) => Option.getOrUndefined(a.body)),
+        ).toEqual([
+          { point: 'score', variant: 'strings', say: { _tag: 'Approve' } },
+          {
+            point: 'score',
+            variant: 'strings',
+            say: { _tag: 'Comment', text: 'warmer in the close' },
+          },
+        ]);
+        // An approval is withdrawn from the same card.
+        yield* click(page, `${at('score', 'strings')} [data-act="withdraw"]`);
+        yield* waitFor(
+          page,
+          `${at('score', 'strings')} [data-act="approve"][data-approval="none"]`,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -231,9 +231,15 @@ const renderFiles = (render: Render): ReadonlyArray<string> => [
 export const namesInProject = (catalogue: Catalogue): ReadonlyArray<string> =>
   Arr.dedupe(catalogue.renders.flatMap(renderFiles));
 
+/** A render's files as the review plays it: its share copy, standing in for its master, then its clip. */
+const playedFiles = (render: Render) => [
+  ...Option.toArray(render.files.share),
+  ...Option.toArray(render.files.clip),
+];
+
 /** A render's video as the review plays it: its share copy, standing in for its master. */
 const renderVideo = (parts: FolderParts<Catalogue>, render: Render) =>
-  videoOf(parts, [...Option.toArray(render.files.share), ...Option.toArray(render.files.clip)]);
+  videoOf(parts, playedFiles(render));
 
 /** Where an address's set sits in its project: the film, then by film time, then the shorts. */
 const placeOf = (render: Render): readonly [number, number] => {
@@ -473,6 +479,12 @@ export interface ReviewService {
    * project folders' catalogues: the pictures its options are heard against.
    */
   readonly pictures: (film: string) => Effect.Effect<ReadonlyArray<ReviewVideo>>;
+  /**
+   * `render`'s video in its project folder `dir`, as the review plays it
+   * (its share copy standing in for its master, and its phone copy's
+   * state); none when the roots do not hold it or it is too big to stream.
+   */
+  readonly renderVideo: (dir: string, render: Render) => Effect.Effect<Option.Option<ReviewVideo>>;
   /** The file `ref` names: inside its root, there, a file the index lists. */
   readonly resolve: (ref: string) => Effect.Effect<string, ReviewFileUnknown>;
   /** A video's length in seconds (its container's index), kept per path and mtime. */
@@ -860,7 +872,26 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return (yield* current(false)).pictures.get(film) ?? [];
         });
 
-        return Review.of({ roots, index, pictures, resolve, duration, frame, phone, derive });
+        const videoOfRender = Effect.fn('Review.renderVideo')(function* (
+          dir: string,
+          render: Render,
+        ) {
+          const names = playedFiles(render);
+          const { parts } = yield* lookIn(dir, names);
+          return videoOf({ ...parts, record: render }, names);
+        });
+
+        return Review.of({
+          roots,
+          index,
+          pictures,
+          renderVideo: videoOfRender,
+          resolve,
+          duration,
+          frame,
+          phone,
+          derive,
+        });
       }),
     );
 
