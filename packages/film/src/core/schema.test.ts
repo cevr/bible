@@ -10,6 +10,7 @@ import {
   type VoiceTiming,
   type TakeWord,
 } from './schema.ts';
+import { voicedAt } from './voiced.ts';
 
 const take: VoiceTiming = {
   hash: 'h',
@@ -17,9 +18,9 @@ const take: VoiceTiming = {
   duration: 2,
   source: 'elevenlabs',
   words: [
-    { text: 'Look', start: 0, end: 0.4, voiced: { start: 0.1, end: 0.4 } },
-    { text: 'and', start: 0.5, end: 0.8, voiced: { start: 0.5, end: 0.8 } },
-    { text: 'live.', start: 0.9, end: 2, voiced: { start: 1.2, end: 1.9 } },
+    { text: 'Look', start: 0, end: 0.4, voiced: voicedAt(0.1, 0.4) },
+    { text: 'and', start: 0.5, end: 0.8, voiced: voicedAt(0.5, 0.8) },
+    { text: 'live.', start: 0.9, end: 2, voiced: voicedAt(1.2, 1.9) },
   ],
 };
 
@@ -55,9 +56,9 @@ describe('Timings', () => {
   });
 
   test('a word is heard inside its aligned span, and a take word says where', () => {
-    expect(decodes(withWord(2, { voiced: { start: 0.8, end: 1.9 } }))).toBe(false);
-    expect(decodes(withWord(2, { voiced: { start: 1.2, end: 2.1 } }))).toBe(false);
-    expect(decodes(withWord(2, { voiced: { start: 1.5, end: 1.2 } }))).toBe(false);
+    expect(decodes(withWord(2, { voiced: voicedAt(0.8, 1.9) }))).toBe(false);
+    expect(decodes(withWord(2, { voiced: voicedAt(1.2, 2.1) }))).toBe(false);
+    expect(decodes(withWord(2, { voiced: voicedAt(1.5, 1.2) }))).toBe(false);
     const unheard = `{"voice":"v","scenes":{"a":{"hash":"h","file":"a.mp3","duration":1,"words":[{"text":"Look","start":0,"end":0.4}]}}}`;
     expect(() => Schema.decodeSync(Schema.fromJsonString(Timings))(unheard)).toThrow();
   });

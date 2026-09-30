@@ -6,7 +6,8 @@ import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { stretchesOf } from '../core/acts.ts';
 import { type Placed, layout } from '../core/layout.ts';
-import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
+import type { Look, Timed } from '../core/schema.ts';
+import type { FaceMark, HandMark } from '../core/export-handle.ts';
 import {
   type Drawn,
   FACE_SHARE,
@@ -44,6 +45,7 @@ const face = (scene: string, size: number, alpha = 1): FaceMark => ({
   y: 400,
   size,
   alpha,
+  order: 0,
 });
 
 // Three spoken scenes: `held` never changes, `brief` flips black and white
@@ -184,7 +186,7 @@ describe('ColourScript', () => {
 
   test('each act spans its scene to the next act', () => {
     expect(acts.map((a) => a.scenes)).toEqual([['held'], ['brief', 'ambient']]);
-    expect(acts[1]?.start).toBe(lookOf('brief')?.start);
+    expect(acts[1]?.from).toBe(lookOf('brief')?.start);
   });
 
   test('an act warns for each measure outside its target, and only those', () => {

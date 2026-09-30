@@ -3,11 +3,11 @@
 // movement of the score begins. The same placements the renderer, the mixer and `film check`
 // read, so the bar shows where things will land. Pure and DOM-free.
 
-import { Array as Arr, Option, Result } from 'effect';
+import { Option, Result } from 'effect';
 import type { Placed } from './layout.ts';
 import type { Sound } from './schema.ts';
 import { cueTime } from './sound.ts';
-import { partStarts } from './acts.ts';
+import { stretchesOf } from './acts.ts';
 
 export type TickKind = 'mark' | 'cue' | 'effect' | 'movement';
 
@@ -59,15 +59,15 @@ export const timelineTicks = (
     ),
   );
   const movements = Option.toArray(sound).flatMap((s) =>
-    // The movements of the option the score plays, where `partStarts` starts them.
+    // The movements of the option the score plays, where their stretches start.
     Option.toArray(Option.fromNullishOr(s.score?.options[s.score.play])).flatMap((music) =>
-      Result.match(partStarts(music.movements, placed), {
+      Result.match(stretchesOf(music.movements, placed), {
         onFailure: () => [],
-        onSuccess: (starts) =>
-          music.movements.map((movement, i): Tick => ({
+        onSuccess: (stretches) =>
+          stretches.map(({ part, from }): Tick => ({
             kind: 'movement',
-            name: `movement ${movement.name}`,
-            at: Arr.getUnsafe(starts, i),
+            name: `movement ${part.name}`,
+            at: from,
             dur: 0,
           })),
       }),

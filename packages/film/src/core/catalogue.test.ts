@@ -231,7 +231,7 @@ describe("the owner's say beside a scene's render", () => {
     const render = sceneRender('a', 'k1');
     const take = {
       address: sceneAddress('a'),
-      point: Option.some('take:paper.slide'),
+      point: Option.some({ _tag: 'Take' as const, sound: 'paper.slide' }),
       variant: 'sha-1',
       key: 'sha-1',
     };

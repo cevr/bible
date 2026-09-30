@@ -20,7 +20,7 @@
 // valley rises by about as much as the acts round it and stays as far below
 // them. Every act gets lighter and their order and gaps hold.
 
-import { type Light, mix } from '@bible/film/canvas';
+import { type Hex, type Light, mix } from '@bible/film/canvas';
 import { membersOf } from '@bible/film/core';
 import { Result } from 'effect';
 import { type ActName, look } from './acts.ts';
@@ -31,7 +31,7 @@ import { type BeatId, script } from './script.ts';
 const VALLEY = 0.5;
 
 /** A light of `color` falling to `edge` at the corners, both raised by `share` of the ground's lift. */
-const lit = (color: string, edge: string, share = 1): Light => {
+const lit = (color: Hex, edge: Hex, share = 1): Light => {
   const lift = LIFT * share;
   const raised = mix(color, '#ffffff', lift / 2);
   return { color: raised, edge: mix(edge, raised, lift) };

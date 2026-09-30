@@ -27,18 +27,16 @@ import {
   ApprovalState,
   type Catalogue,
   SaidComment,
+  StaleBy,
   type Subject,
   VariantState,
   approvalState,
   saidOn,
+  topicAt,
 } from './catalogue.ts';
-import { CheckLine } from './schema.ts';
+import { type PointRef, pointIdOf, pointRefOf } from './point.ts';
+import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
-
-/** A key a JSON file may leave out, read as an `Option`. */
-const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
-
-const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 
 /** What a choice point chooses between; each kind has one adapter. */
 export const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);
@@ -71,6 +69,8 @@ export const ChoiceVariant = Schema.Struct({
   /** What it is, a line each: its styles, its length and loudness, its size and commit. */
   lines: Schema.Array(Schema.String),
   state: VariantState,
+  /** Why a stale render is stale (its sources, or only the film's sound); none for every other variant. */
+  staleBy: maybe(StaleBy),
   picked: Schema.Boolean,
   /** The verbs its state allows. */
   verbs: Schema.Array(ChoiceVerb),
@@ -102,7 +102,10 @@ export type ChoiceKnob = typeof ChoiceKnob.Type;
 
 /** A choice point: at an address, variants to compare, pick, comment on and approve. */
 export const ChoicePoint = Schema.Struct({
-  /** Unique in its film: `score`, `take:paper.slide`, `look:ground`, `render:scenes:cold`. */
+  /**
+   * Unique in its film: `score`, `take:paper.slide`, `look:ground`,
+   * `render:scenes:cold`; a `PointRef` as `point.ts` writes it.
+   */
   id: Schema.String,
   kind: ChoiceKind,
   /** Where in the film it belongs; none for a montage's set, which no film owns. */
@@ -119,22 +122,18 @@ export const ChoicePoint = Schema.Struct({
 });
 export type ChoicePoint = typeof ChoicePoint.Type;
 
-/**
- * A point's id from its kind and its name at that kind: `take:paper.slide`,
- * `look:ground`, `voice:cold`; the score, the film's one, is `score`.
- */
-export const pointId = (kind: ChoiceKind, name: string): string => {
-  if (name === '') return kind;
-  return `${kind}:${name}`;
-};
+/** A montage clip's render set as a choice point, as the review names it: `render:<clip>`. */
+export const pointId = (_kind: 'render', clip: string): string =>
+  pointIdOf({ _tag: 'Montage', clip });
 
-/** A point's name at its kind (`pointId` read back): `paper.slide` of `take:paper.slide`. */
-export const pointName = (point: Pick<ChoicePoint, 'id' | 'kind'>): string =>
-  point.id.slice(point.kind.length + 1);
+/** The point `point` is (its id read back), when its id names one. */
+export const refOf = (point: Pick<ChoicePoint, 'id'>): Option.Option<PointRef> =>
+  pointRefOf(point.id);
 
 /** A variant as its adapter describes it, before the owner's say is read. */
-export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes'> & {
+export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes' | 'staleBy'> & {
   readonly notes?: Option.Option<ReviewFile>;
+  readonly staleBy?: Option.Option<StaleBy>;
 };
 
 /** A point as its adapter describes it: its variants' say still to read. */
@@ -149,22 +148,12 @@ export interface PointDraft extends Omit<
   readonly knob?: Option.Option<ChoiceKnob>;
 }
 
-/**
- * What the owner's say on `variant` of the point `id` at `address` is
- * about. A render set's say is recorded without a point (its address names
- * it); any other point's with its id.
- */
+/** What the owner's say on `variant` of the point `ref` at `address` is about. */
 export const subjectAt = (
-  id: string,
-  kind: ChoiceKind,
+  ref: PointRef,
   address: Address,
   variant: { readonly id: string; readonly key: string },
-): Subject => ({
-  address,
-  point: Option.liftPredicate(id, () => kind !== 'render'),
-  variant: variant.id,
-  key: variant.key,
-});
+): Subject => ({ ...topicAt(address, ref, variant.id), key: variant.key });
 
 /** `draft` with each variant's approval and comments as `catalogue` records them. */
 export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => ({
@@ -174,15 +163,14 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
   marks: draft.marks ?? [],
   knob: draft.knob ?? Option.none(),
   variants: draft.variants.map((variant): ChoiceVariant => {
-    const said = Option.flatMap(catalogue, (cat) =>
-      Option.map(draft.address, (address) => ({
-        cat,
-        subject: subjectAt(draft.id, draft.kind, address, variant),
-      })),
+    const said = Option.map(
+      Option.all({ cat: catalogue, address: draft.address, ref: refOf(draft) }),
+      ({ cat, address, ref }) => ({ cat, subject: subjectAt(ref, address, variant) }),
     );
     return {
       ...variant,
       notes: variant.notes ?? Option.none(),
+      staleBy: variant.staleBy ?? Option.none(),
       approval: Option.match(said, {
         onNone: (): ApprovalState => 'none',
         onSome: ({ cat, subject }) => approvalState(cat, subject),
@@ -267,18 +255,6 @@ export type PickPost = typeof PickPost.Type;
 /** `POST /lab/<film>/choices/level`: a level point's knob set. */
 export const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });
 export type KnobPost = typeof KnobPost.Type;
-
-/** `POST /lab/<film>/choices/approve`: one variant approved as it is now. */
-export const ApprovePost = Schema.Struct({ point: Schema.String, variant: Schema.String });
-export type ApprovePost = typeof ApprovePost.Type;
-
-/** `POST /lab/<film>/choices/comment`: something said of one variant as it is now. */
-export const CommentPost = Schema.Struct({
-  point: Schema.String,
-  variant: Schema.String,
-  text: Schema.String.check(Schema.isNonEmpty()),
-});
-export type CommentPost = typeof CommentPost.Type;
 
 /** What a pick answers: the file it changed, the film's choices as they now stand, and the check after it. */
 export const ChoiceWrite = Schema.Struct({

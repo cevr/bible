@@ -316,6 +316,39 @@ describe('a project folder', () => {
     expect(folder.sets[1]?.variants[0]?.approval).toBe('stale');
   });
 
+  test('a variant is stale by the record: a newer render at its address drew other sources, a newer video carries another mix', () => {
+    const mixed = (render: Render, mix: string, at: number): Render => ({
+      ...render,
+      sound: Option.some({ mix: Option.some(mix), pieces: [] }),
+      at,
+    });
+    const record = [
+      mixed(cold, 'm1', 1),
+      mixed(coldInk, 'm1', 1),
+      mixed(roof, 'm1', 1),
+      mixed(videoRender(sceneAddress('cold'), 'scenes/cold', 'main', 'k9'), 'm2', 5),
+    ].reduce(recordRender, emptyCatalogue('f'));
+    const folder = projectFolder({
+      ref: 'out/f',
+      record,
+      look: lookAmong(namesInProject(record), 10, 'out/f'),
+      phone: () => 'none',
+      maxVideo: 1000,
+    });
+    expect(
+      folder.sets.map((s) => [s.title, s.variants.map((v) => [v.id, v.state, v.staleBy])]),
+    ).toEqual([
+      [
+        'scene cold',
+        [
+          ['main', 'current', Option.none()],
+          ['ink', 'stale', Option.some('sources')],
+        ],
+      ],
+      ['scene roof', [['main', 'stale', Option.some('sound')]]],
+    ]);
+  });
+
   test('a render whose files are gone, or too big to stream, is left out', () => {
     const folder = projectFolder({
       ref: 'out/f',

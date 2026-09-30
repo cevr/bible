@@ -2,18 +2,23 @@
 // what a leg may cost is in its type. The static leg reads the film's files
 // and the master's length and stamp (FileSystem, Media): the lab runs it after
 // every write. The sound leg renders the mix the film makes now (Mixer). The
-// layout leg draws frames (Checker, Looker). The short leg checks one short
-// (Checker). Each hands back its findings; `report` levels and addresses them
+// layout leg draws frames (Checker, Looker). The draw leg draws every scene
+// in this process, into the stand-in context, at its moments (no browser).
+// The short leg checks one short (Checker). Each hands back its findings; `report` levels and addresses them
 // as one Report.
 
-import { Effect, FileSystem, Option } from 'effect';
-import type { Scope } from '../core/address.ts';
-import { type Placed, everyTakeRecorded } from '../core/layout.ts';
+import { Effect, FileSystem, Option, Path, Predicate, Result, Schema } from 'effect';
+import type { Film } from '../canvas/film.ts';
+import { type Narrated, narrationUrls } from '../player/narrated.ts';
+import { drawFindings } from './draw-check.ts';
+import { FilmModuleInvalid } from './errors.ts';
+import { type Address, type AddressError, type Scope, resolveAddress } from '../core/address.ts';
+import { type LayoutError, type Placed, everyTakeRecorded, layout } from '../core/layout.ts';
 import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import { type LoadedFilm, importFilmModule } from './film-repo.ts';
 import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
@@ -24,7 +29,37 @@ import type { FlagRule } from './render-plan.ts';
 export const CHECK_RULES: ReadonlyArray<FlagRule> = [
   ['sound', 'excludes', 'static', '--static leaves the mix out, --sound runs it'],
   ['sound', 'excludes', 'short', 'a short has no mix of its own'],
+  ['draw', 'excludes', 'static', '--static draws nothing, --draw draws every scene'],
+  ['draw', 'excludes', 'sound', '--sound hears the mix, --draw draws the scenes'],
+  ['draw', 'excludes', 'short', 'a short is drawn by its page'],
 ];
+
+/** The film laid out, and the part of it a check covers. */
+export interface LaidOut {
+  readonly placed: ReadonlyArray<Placed>;
+  readonly scope: Scope;
+}
+
+/**
+ * The film laid out and `address` resolved on it, or the one error that
+ * stops them: a timeline that does not resolve, a line that does not parse,
+ * acts or a short that do not lay out, a part the film lacks. The check
+ * reports it as its finding, addressed at its scene, rather than failing
+ * the run, so the lab's findings show it where it is.
+ */
+export const laidOut = (
+  film: LoadedFilm,
+  address: Address,
+): Result.Result<LaidOut, LayoutError | AddressError> =>
+  Result.flatMap(layout(film.scenes, film.timings), (placed) =>
+    Result.map(
+      resolveAddress(
+        { name: film.paths.name, placed, look: film.look, shorts: film.shorts },
+        address,
+      ),
+      (scope): LaidOut => ({ placed, scope }),
+    ),
+  );
 
 /**
  * What the film's files tell without a mix or a frame: cues, takes, sounds,
@@ -74,6 +109,34 @@ export const layoutLeg = Effect.fn('check.layout')(function* (
   const layout = yield* (yield* Checker).layout(film, { workers, scope });
   const looked = yield* (yield* Looker).look(film, workers, scope);
   return [...layout, ...lookFindings(looked, scope.acts)];
+});
+
+/** A film's `film.ts` as the draw leg reads it: the film, built from its narration. */
+const FilmFile = Schema.Struct({
+  film: Schema.declare((u): u is (narrated: Narrated) => Film => Predicate.isFunction(u)),
+});
+
+/**
+ * `check --draw`: the film as its page builds it (its `film.ts`, from the
+ * committed timings), every moment of the scenes `scope` covers drawn in this
+ * process into the stand-in context (`draw-check.ts`): a scene that throws, a
+ * frame that is not pure, ink over a face. No browser.
+ */
+export const drawLeg = Effect.fn('check.draw')(function* (film: LoadedFilm, scope: Scope) {
+  const path = yield* Path.Path;
+  const file = path.join(film.paths.dir, 'film.ts');
+  const invalid = (reason: string) =>
+    FilmModuleInvalid.make({ film: film.paths.name, module: 'film.ts', reason });
+  const module = yield* Effect.tryPromise({
+    try: () => importFilmModule(file),
+    catch: (cause) => invalid(String(cause)),
+  });
+  const { film: build } = yield* Schema.decodeUnknownEffect(FilmFile)(module).pipe(
+    Effect.mapError((error) => invalid(error.message)),
+  );
+  const narrated = { timings: film.timings, audio: narrationUrls(film.paths.name).audio };
+  const scenes = new Set(scope.scenes.map((p) => p.spec.id));
+  return yield* Effect.scoped(drawFindings(() => build(narrated), scenes));
 });
 
 /**

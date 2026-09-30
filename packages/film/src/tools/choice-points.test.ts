@@ -13,11 +13,14 @@ import { type Catalogue, approve, comment, emptyCatalogue } from '../core/catalo
 import { type ChoicePoint, subjectAt } from '../core/choice.ts';
 import { layout } from '../core/layout.ts';
 import type { Sound } from '../core/schema.ts';
+import { type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import {
   type BeatAttempts,
   filmPoints,
+  levelPoints,
   lookPoints,
   scorePoint,
+  takePoints,
   voicePoints,
 } from './choice-points.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -176,7 +179,7 @@ describe("the owner's say", () => {
   test('an approval and a comment read onto the variant they were given on, and no other', () => {
     const [ground] = lookPoints(film());
     const light = Option.getOrThrow(Option.fromUndefinedOr(ground?.variants[1]));
-    const subject = subjectAt('look:ground', 'look', { _tag: 'Film' }, light);
+    const subject = subjectAt({ _tag: 'Look', name: 'ground' }, { _tag: 'Film' }, light);
     const said = comment(approve(emptyCatalogue('test'), subject, 1), subject, 'warmer', 2);
     const look = named(points(Option.some(said)), 'look:ground');
     expect(
@@ -194,5 +197,47 @@ describe("the owner's say", () => {
         p.variants.map((v) => v.approval),
       ),
     ).toEqual(Option.some(['none', 'none']));
+  });
+});
+
+describe('a take point when the mix plan does not build', () => {
+  const chime = defineLibrary({
+    'tone.chime': { kind: 'generated', prompt: 'a chime', secs: 1, use: 'one-shot' },
+  });
+  const kept: Variant = {
+    request: requestKey(chime['tone.chime']),
+    file: 'files/chime.flac',
+    sha256: 'chime',
+    made: '2026-09-30T00:00:00Z',
+    model: 'eleven_text_to_sound_v2',
+    format: 'pcm_44100',
+    secs: 1,
+    loudness: { integrated: -24, momentaryMax: -20, peak: -3 },
+    licence: 'elevenlabs-paid-sfx',
+    credits: 40,
+  };
+  const withEffect = (at: Sound['effects'][string]['at']) =>
+    film({
+      sound: Option.some({ ...SOUND, beds: [], effects: { page: { sound: 'tone.chime', at } } }),
+      sounds: {
+        library: chime,
+        lock: { 'tone.chime': { variants: [kept], candidates: [], rejected: [] } },
+        dir: '',
+      },
+    });
+
+  test('shows why its placements are missing, not an empty take list', () => {
+    const [placedTake] = takePoints(withEffect([{ scene: 'brief', at: 'start' }]), placed);
+    expect(placedTake?.marks).toHaveLength(1);
+    const [lost] = takePoints(withEffect([{ scene: 'brief', cue: 'nosuch' }]), placed);
+    expect(lost?.marks).toEqual([]);
+    expect(lost?.lines.some((line) => line.includes('nosuch'))).toBe(true);
+    const effect = levelPoints(
+      withEffect([{ scene: 'brief', cue: 'nosuch' }]),
+      placed,
+      'sound.ts',
+      SOUND_TS,
+    ).find((p) => p.id === 'level:effect:page');
+    expect(effect?.lines.some((line) => line.includes('nosuch'))).toBe(true);
   });
 });

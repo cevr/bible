@@ -1,28 +1,35 @@
 // The package's browser and test entries carry only what their users use:
 // every name an entry exports is imported by name from it somewhere, by a
-// film's code under apps/ or by a test (or a test's fixture), through the
-// package specifier (`@bible/film/canvas`) or a path to the entry's file. An
-// export nobody reads is deleted from the entry, not kept "in case", and an
-// entry names its exports (`export *` publishes a module whole). The
-// engine's own parts stay exported from their files for the framework and
-// its tests.
+// film's code under apps/, by a test (or a test's fixture, a lint rule's
+// among them), through the package specifier (`@bible/film/canvas`) or a
+// path to the entry's file. An export nobody reads is deleted from the
+// entry, not kept "in case", and an entry names its exports (`export *`
+// publishes a module whole). The engine's own parts stay exported from their
+// files for the framework and its tests.
 //
 // The entries guarded, and who uses them:
 //   canvas    films, their kits and tests: the draw kit
 //   player    the app's page, its film registry, a film's `Narrated` type
-//   stand-in  the framework's and a film's tests: the one stand-in context
-// `core`, `tools`, `lab` and `review` are not guarded here: the pure core
-// and the tooling entries are read by the CLI and the tools by path.
+//   stand-in  the framework's and a film's tests, and `check --draw`'s leg
+//             (tools/draw-check.ts), which draws every scene into it
+//   core      films, their kits, the app's sound library and tests: the
+//             clock, the script and sound schemas, the mix plan
+// `tools`, `lab` and `review` are not guarded here: the tooling entries are
+// read by the CLI, and the framework reads each core module by its path.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, FileSystem, Option, Path } from 'effect';
+
+/** The tools that use a guarded entry as its users do: the draw leg draws into the stand-in. */
+const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-check.ts']);
 
 /** Each guarded entry: its specifier under `@bible/film/` and its file under packages/film. */
 const ENTRIES = [
   { entry: 'canvas', file: 'src/canvas/index.ts' },
   { entry: 'player', file: 'src/player/index.ts' },
   { entry: 'stand-in', file: 'src/canvas/fixtures/stand-in.ts' },
+  { entry: 'core', file: 'src/core/index.ts' },
 ] as const;
 
 /** `a, type B, c as d` → the names each part gives: the left of `as` (`pick` 0) or its right (1). */
@@ -93,8 +100,12 @@ describe('the package entries', () => {
           ...(yield* fs.readDirectory(path.join(films, 'src'), { recursive: true })).map(
             (f) => `packages/film/src/${f}`,
           ),
+          // The lint rules' fixtures, each a film's code the rule reads.
+          ...(yield* fs.readDirectory(path.join(films, 'lint/fixtures'), { recursive: true })).map(
+            (f) => `packages/film/lint/fixtures/${f}`,
+          ),
         ],
-        isUser,
+        (file) => isUser(file) || TOOL_USERS.has(file),
       );
       const sources = new Map<string, string>();
       for (const file of files) sources.set(file, yield* fs.readFileString(path.join(root, file)));

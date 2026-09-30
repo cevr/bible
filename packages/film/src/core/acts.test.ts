@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import { membersOf, partStarts, stretchesOf } from './acts.ts';
+import { membersOf, stretchesOf } from './acts.ts';
 import { layout } from './layout.ts';
 import type { Timed } from './schema.ts';
 
@@ -49,27 +49,8 @@ describe('membersOf', () => {
 describe('stretchesOf', () => {
   test('a stretch spans its scenes: from the first one’s start to the last one’s end', () => {
     const [first, second] = Result.getOrThrow(stretchesOf([part('a'), part('c')], placed));
-    expect([first?.start, first?.end]).toEqual([
-      0,
-      (placed[1]?.start ?? 0) + (placed[1]?.dur ?? 0),
-    ]);
-    expect(second?.start).toBe(placed[2]?.start ?? Number.NaN);
-    expect(second?.end).toBe((placed[3]?.start ?? 0) + (placed[3]?.dur ?? 0));
-  });
-});
-
-describe('partStarts', () => {
-  test('the first part opens the film; later ones start at their scene', () => {
-    expect(Result.getOrThrow(partStarts([part('b'), part('c')], placed))).toEqual([
-      0,
-      placed[2]?.start ?? Number.NaN,
-    ]);
-  });
-
-  test('every part naming no scene is refused, not just the first', () => {
-    const lost = partStarts([part('x'), part('a'), part('y')], placed);
-    expect(Result.getFailure(lost).pipe(Option.map((u) => u.map((e) => e.scene)))).toEqual(
-      Option.some(['x', 'y']),
-    );
+    expect([first?.from, first?.to]).toEqual([0, (placed[1]?.start ?? 0) + (placed[1]?.dur ?? 0)]);
+    expect(second?.from).toBe(placed[2]?.start ?? Number.NaN);
+    expect(second?.to).toBe((placed[3]?.start ?? 0) + (placed[3]?.dur ?? 0));
   });
 });

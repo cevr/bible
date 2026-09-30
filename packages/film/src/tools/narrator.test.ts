@@ -147,7 +147,9 @@ describe('Narrator', () => {
       const [the, second] = after.scenes['b']?.words ?? [];
       // One character per 0.05 s: "The" is aligned from 0, heard from 0.1 s.
       expect([the?.text, the?.start, the?.voiced.start]).toEqual(['The', 0, 0.1]);
-      expect([second?.voiced.start, second?.voiced.end]).toEqual([second?.start, second?.end]);
+      expect<ReadonlyArray<number>>([second?.voiced.start ?? -1, second?.voiced.end ?? -1]).toEqual(
+        [second?.start ?? -1, second?.end ?? -1],
+      );
     }),
   );
 

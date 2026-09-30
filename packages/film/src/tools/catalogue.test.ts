@@ -7,8 +7,8 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Context, Effect, FileSystem, Layer } from 'effect';
 import { sceneAddress } from '../core/address.ts';
-import { approvalState, comment, emptyCatalogue, partSubject } from '../core/catalogue.ts';
-import { RenderCatalogue, said } from './catalogue.ts';
+import { approvalState, comment, emptyCatalogue, partSubject, said } from '../core/catalogue.ts';
+import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 
 /** A catalogue of its own, as another process holds one: nothing in memory is shared. */

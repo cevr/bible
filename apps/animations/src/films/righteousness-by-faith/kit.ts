@@ -21,8 +21,10 @@ import {
   piece as paperPiece,
   cutout,
   ground,
+  type Hex,
   ellipseShape,
   probeFace,
+  probesFaces,
   probesHands,
   mix,
   quad,
@@ -147,9 +149,9 @@ export interface PersonGesture extends Gesture {
  */
 export interface Person {
   /** Garment and head colours. */
-  body?: string;
-  shade?: string;
-  skin?: string;
+  body?: Hex;
+  shade?: Hex;
+  skin?: Hex;
   /** `round` is a tunic; `robe` falls to the feet. */
   garment?: 'round' | 'robe';
   /** Head turn about the neck, radians (+ tips right). */
@@ -567,13 +569,7 @@ export const clipToGarment = (ctx: CanvasRenderingContext2D, p: Person) => {
   ctx.setTransform(m);
 };
 
-const garment = (
-  ctx: CanvasRenderingContext2D,
-  p: Person,
-  sit: number,
-  body: string,
-  hand: Hand,
-) => {
+const garment = (ctx: CanvasRenderingContext2D, p: Person, sit: number, body: Hex, hand: Hand) => {
   const robe = p.garment === 'robe';
   ctx.save();
   toFold(ctx, robe, sit);
@@ -788,6 +784,12 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   if (farFront) personHand(ctx, p, 'far', build, hand, true, sit, drop);
   head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
   personHand(ctx, p, 'near', build, hand, true, sit, drop);
+  // The face, declared once the person is drawn: what is drawn after it lies over it.
+  if (probesFaces(ctx)) {
+    headFrame(ctx, p, NECK[1] * (bh - 1));
+    probeFace(ctx, HEAD[0], HEAD[1], 2 * HEAD_RY);
+    ctx.restore();
+  }
   ctx.restore();
 };
 
@@ -835,18 +837,22 @@ const browOf = (
   );
 };
 
+/** Save `ctx` and enter the head's space: turned about the neck, nodded, and raised `lift` with a build. */
+const headFrame = (ctx: CanvasRenderingContext2D, p: Person, lift: number) => {
+  ctx.save();
+  ctx.translate(NECK[0], NECK[1] + (p.nod ?? 0) + lift);
+  ctx.rotate(p.tilt ?? 0);
+  ctx.translate(-NECK[0], -NECK[1]);
+};
+
 /**
  * The head, turned about the neck and raised `lift` with a build, with its
  * face, whatever sits on it and any moustache.
  */
 const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand, lift: number) => {
-  ctx.save();
-  ctx.translate(NECK[0], NECK[1] + (p.nod ?? 0) + lift);
-  ctx.rotate(p.tilt ?? 0);
-  ctx.translate(-NECK[0], -NECK[1]);
+  headFrame(ctx, p, lift);
   const [cx, cy] = HEAD;
   piece(ctx, ellipseShape(cx, cy, HEAD_RX, HEAD_RY), skin, sub(hand, 4), { role: 'figure' });
-  probeFace(ctx, cx, cy, 2 * HEAD_RY);
   const [lx, ly] = p.look ?? HEAD_STILL;
   const smile = clamp(p.smile ?? 0, -1, 1);
   eyePair(ctx, cx + lx, cy - 7 + ly, clamp(p.eyes ?? 1), smile, hand);

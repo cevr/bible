@@ -20,7 +20,8 @@
 
 import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { ChoiceVerb, pointName } from '../core/choice.ts';
+import { ChoiceVerb, refOf } from '../core/choice.ts';
+import { PointRef } from '../core/point.ts';
 import { hashText } from '../core/narration.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
@@ -129,7 +130,8 @@ const take = Command.make(
     );
     if (Result.isFailure(found)) return yield* refuseWith(found.failure);
     const { point, variant } = found.success;
-    if (point.kind !== 'take')
+    const take = Option.filter(refOf(point), PointRef.guards.Take);
+    if (Option.isNone(take))
       return yield* refuseWith(
         VerbRefused.make({
           point: point.id,
@@ -139,7 +141,7 @@ const take = Command.make(
         }),
       );
     const library = yield* SoundLibrary;
-    const sound = pointName(point);
+    const sound = take.value.sound;
     yield* answering(
       Match.value(input.verb).pipe(
         Match.when('pick', () => library.keep(sound, [variant.id])),
@@ -172,7 +174,13 @@ const mix = Command.make(
     );
     if (Result.isFailure(found)) return yield* refuseWith(found.failure);
     const { point, variant } = found.success;
-    if (point.kind !== 'score' && point.kind !== 'take')
+    const ref = refOf(point);
+    const score = Option.filter(ref, PointRef.guards.Score);
+    const take = Option.map(Option.filter(ref, PointRef.guards.Take), (r) => ({
+      sound: r.sound,
+      take: variant.id,
+    }));
+    if (Option.isNone(score) && Option.isNone(take))
       return yield* refuseWith(
         VerbRefused.make({
           point: point.id,
@@ -183,11 +191,8 @@ const mix = Command.make(
       );
     const { mixed } = yield* (yield* Mixer).render(input.film, {
       warn: false,
-      score: Option.liftPredicate(variant.id, () => point.kind === 'score'),
-      take: Option.liftPredicate(
-        { sound: pointName(point), take: variant.id },
-        () => point.kind === 'take',
-      ),
+      score: Option.as(score, variant.id),
+      take,
     });
     yield* (yield* Media).writeAac(input.to, mixed.master);
     yield* printLine(OptionsMixed.make({}));

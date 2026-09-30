@@ -1,36 +1,47 @@
 // Pure film core: the clock, seeded randomness, narration timing, named cues,
-// sound cues, scene layout, the mix and the procedural synth. Nothing here touches the DOM at runtime, so the Bun
-// scripts and tests import it directly.
+// sound cues, scene layout, the mix and the procedural synth. Nothing here
+// touches the DOM at runtime, so the Bun scripts and tests import it
+// directly. The entry names what films, their kits, the app's sound library
+// and tests import from `@bible/film/core` (guarded by exports.test.ts); the
+// framework's own code reads each module by its path.
 
-export * from './time.ts';
-export * from './random.ts';
-export * from './schema.ts';
-export * from './errors.ts';
-export * from './narration.ts';
-export * from './voiced.ts';
-export * from './align.ts';
-export * from './recording.ts';
-export * from './spoken.ts';
-export * from './studio.ts';
-export * from './sound.ts';
-export * from './timeline.ts';
-export * from './layout.ts';
-export * from './acts.ts';
-export * from './address.ts';
-export * from './catalogue.ts';
-export * from './choice.ts';
-export * from './served.ts';
-export * from './review.ts';
-export * from './shorts.ts';
-export * from './captions.ts';
-export * from './phrases.ts';
-export * from './ticks.ts';
-export * from './notes.ts';
-export * from './affine.ts';
-export * from './moments.ts';
-export * from './audio.ts';
-export * from './dsp.ts';
-export * from './mix.ts';
-export * from './synth/index.ts';
-export * from './sfx.ts';
-export * from './store.ts';
+export { type Key, clamp, ease, envelope, gait, keys, lerp, progress, staggered } from './time.ts';
+export { hash2, rng } from './random.ts';
+export {
+  LabWrite,
+  Look,
+  Looks,
+  Movement,
+  Music,
+  Shorts,
+  Sound,
+  SoundManifest,
+  SoundManifestJson,
+  TimingsJson,
+  Voice,
+  defineScript,
+} from './schema.ts';
+export { hashText, parse, takeScript, voiceKey } from './narration.ts';
+export { StudioBeats } from './studio.ts';
+export { musicKey, musicPlan } from './sound.ts';
+export { type Placed, layout } from './layout.ts';
+export { membersOf } from './acts.ts';
+export { CatalogueJson } from './catalogue.ts';
+export { ChoicePoint, FilmChoices } from './choice.ts';
+export { type Pcm } from './audio.ts';
+export { type MixPlan, mixPlan } from './mix.ts';
+export {
+  DEFAULT_JITTER,
+  JITTER_DELAY,
+  Lock,
+  LockEntry,
+  LockJson,
+  type SoundSource,
+  Variant,
+  defineLibrary,
+  gainFor,
+  levelOf,
+  requestKey,
+  sourceLabel,
+} from './sfx.ts';
+export { StoreConfig, defineStore } from './store.ts';

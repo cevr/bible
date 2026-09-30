@@ -5,7 +5,7 @@ import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Schema } from 'effect';
-import { Asset, type SoundManifest, SoundManifestJson } from '../core/schema.ts';
+import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
 import { ContentStore, type Manifest, lockVerdict } from './content-store.ts';
 import { storeLayer } from './testing.ts';
 
@@ -14,6 +14,9 @@ const manifest: Manifest<SoundManifest> = {
   codec: SoundManifestJson,
   empty: {},
 };
+
+/** A generated file, keyed by its request's hash. */
+const Asset = Schema.Struct({ hash: Schema.String, file: Schema.String });
 
 /** A manifest of many keyed assets, so racing updates each add their own. */
 const Assets = Schema.Struct({ assets: Schema.Record(Schema.String, Asset) });

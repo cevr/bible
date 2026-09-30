@@ -28,6 +28,7 @@ import {
   stroke,
   sub,
   glow,
+  type Hex,
   mix,
   rounded,
   sky,
@@ -241,8 +242,8 @@ const AT_THE_WINDOW: Person = {
 };
 const LAID: [number, number, number] = [0, 0, 0];
 const LIT: [number, number, number] = [0, 0, 0];
-const SKY_TOP: [number, string] = [0, C.tealTop];
-const SKY_LOW: [number, string] = [1, C.tealLow];
+const SKY_TOP: [number, Hex] = [0, C.tealTop];
+const SKY_LOW: [number, Hex] = [1, C.tealLow];
 const WINDOW_SKY = [SKY_TOP, SKY_LOW] as const;
 
 /** A: the page, the robed figure, the gate and the one at it. */

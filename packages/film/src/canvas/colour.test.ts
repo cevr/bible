@@ -22,11 +22,15 @@ describe('clearOf', () => {
 });
 
 describe('a colour that is not hex', () => {
-  test.each(['rgb(230, 179, 71)', 'gold', '#e6b34780', '#e6b3', '#ggg'])(
-    '%p is refused, named',
-    (c) => {
-      expect(() => mix(c, '#000000', 0)).toThrow(`colour "${c}"`);
-      expect(() => clearOf(c)).toThrow(`colour "${c}"`);
-    },
-  );
+  test.each(['#e6b34780', '#e6b3', '#ggg'] as const)('%p is refused, named', (c) => {
+    expect(() => mix(c, '#000000', 0)).toThrow(`colour "${c}"`);
+    expect(() => clearOf(c)).toThrow(`colour "${c}"`);
+  });
+
+  test('a name or rgb() is not a Hex where it is written, and refused if it gets through', () => {
+    // @ts-expect-error a colour name is not hex
+    expect(() => mix('gold', '#000000', 0)).toThrow('colour "gold"');
+    // @ts-expect-error rgb() is not hex
+    expect(() => clearOf('rgb(230, 179, 71)')).toThrow('colour "rgb(230, 179, 71)"');
+  });
 });

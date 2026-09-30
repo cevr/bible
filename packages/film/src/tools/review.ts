@@ -53,7 +53,9 @@ import {
   type Render,
   approvalState,
   commentsOn,
+  recordedNow,
   renderPointId,
+  renderState,
   saidOn,
   subjectOf,
 } from '../core/catalogue.ts';
@@ -277,9 +279,11 @@ const renderTag = (catalogue: Catalogue, render: Render): string => {
  * render choice point per address its videos draw (the film, then acts and
  * scenes in film order, then shorts), a variant per render (`main` first)
  * with the owner's approval and comments on it; its stills, sheets and
- * captions with the folder. A variant's state is `current`: it is the render
- * its stamp says it is (whether that is current against the film's sources
- * now is the project's, read in a fresh process). Pure.
+ * captions with the folder. A variant's state, and why it is stale, is the
+ * record's (`recordedNow`): stale when a newer render at its address drew
+ * other sources, or a newer video carries another mix (whether the newest is
+ * current against the film's sources now is the project's, read in a fresh
+ * process). Pure.
  */
 export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
   const catalogue = parts.record;
@@ -291,6 +295,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
       (a, b) => a.place[0] - b.place[0] || a.place[1] - b.place[1] || a.key.localeCompare(b.key),
     )
     .flatMap(({ renders }): ReadonlyArray<ChoicePoint> => {
+      const now = recordedNow(catalogue, renders[0].address);
       const variants = renders
         .toSorted(
           (a, b) =>
@@ -303,7 +308,10 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
               id: render.variant,
               label: render.variant,
               lines: [renderTag(catalogue, render)],
-              state: 'current',
+              ...Option.match(now, {
+                onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
+                onSome: (at) => renderState(Option.some(render), at),
+              }),
               picked: false,
               verbs: [],
               media: { _tag: 'Seen', video },
@@ -417,6 +425,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
               ...Option.toArray(Option.flatMap(meta, (v) => v.verdict)),
             ],
             state: 'current',
+            staleBy: Option.none(),
             picked: false,
             verbs: [],
             media: { _tag: 'Seen', video },

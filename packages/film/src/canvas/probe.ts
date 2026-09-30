@@ -8,7 +8,8 @@
 // been.
 
 import { insidePolygon } from '../core/polygon.ts';
-import type { FaceMark, HandMark, InkMark, Point, TextBox } from '../core/schema.ts';
+import type { Point } from '../core/schema.ts';
+import type { FaceMark, HandMark, InkMark, TextBox } from '../core/export-handle.ts';
 
 /** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
@@ -194,9 +195,19 @@ export const recordInk = (
 };
 
 /**
+ * Whether a probe that collects faces is attached to `ctx`: a kit asks before
+ * setting up the transform its face is declared in, so a frame nobody probes
+ * pays one lookup.
+ */
+export const probesFaces = (ctx: CanvasRenderingContext2D): boolean =>
+  probes.get(ctx)?.sink.faces !== undefined;
+
+/**
  * Declare a face centred on (x, y), `height` tall, in the current transform's
- * space: a kit's person calls it for its head, so `film check` measures the
- * face on screen (`FaceSmall`) rather than a reader guessing it from a still.
+ * space: a kit's person calls it for its head once the whole person is drawn
+ * (its features, what sits on its head, its hands), so `film check` measures
+ * the face on screen (`FaceSmall`) rather than a reader guessing it from a
+ * still, and whatever is drawn after it lies over it (`InkOverFace`).
  * Records only when a probe that collects faces is attached; draws nothing.
  */
 export const probeFace = (ctx: CanvasRenderingContext2D, x: number, y: number, height: number) => {
@@ -210,6 +221,7 @@ export const probeFace = (ctx: CanvasRenderingContext2D, x: number, y: number, h
     y: sy,
     size: height * scaleOf(ctx),
     alpha: ctx.globalAlpha * probe.alpha,
+    order: nextOrder(probe.sink),
   });
 };
 

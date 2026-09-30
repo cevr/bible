@@ -32,9 +32,8 @@ import {
 } from '../core/encoder.ts';
 import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { RenderSound } from '../core/catalogue.ts';
-import type { ChunkTiming } from '../core/export-handle.ts';
+import type { ChunkTiming, ExportInfo } from '../core/export-handle.ts';
 import type { ShortError } from '../core/errors.ts';
-import type { ExportInfo } from '../core/schema.ts';
 import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
 import {
   type FilmPiece,

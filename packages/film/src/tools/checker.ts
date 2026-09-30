@@ -10,8 +10,8 @@ import type { Scope } from '../core/address.ts';
 import type { Interval } from '../core/time.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { ShortError } from '../core/errors.ts';
-import type { LumaArea } from '../core/export-handle.ts';
-import type { Probed, Short } from '../core/schema.ts';
+import type { LumaArea, Probed } from '../core/export-handle.ts';
+import type { Short } from '../core/schema.ts';
 import {
   type ResolvedShort,
   bandOf,

@@ -3,21 +3,25 @@ import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, filmEnd, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
-import type { Cast, Music, Probed, Score, Sound, Timed, Timings } from '../core/schema.ts';
+import type { Cast, Music, Score, Sound, Timed, Timings } from '../core/schema.ts';
+import type { FaceMark, Probed } from '../core/export-handle.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { recorder } from '../canvas/fixtures/stand-in.ts';
+import { voicedAt } from '../core/voiced.ts';
 import { musicKey, musicPlan } from '../core/sound.ts';
 import {
   HOLD,
   type Sample,
   soundFindings,
+  durOnWords,
   farPins,
   repeatedKnobs,
   storyboards,
   frameFindings,
   heldStill,
   holdCandidates,
+  inkOverFace,
   holdGrid,
   holdTicks,
   lateCues,
@@ -200,6 +204,53 @@ describe('a plate and the lines it carries', () => {
     const stray = textBox('Let there be light', 1130, 505, 130, 60, { order: 5 });
     const found = frameFindings(sample, { texts: [...lines, stray], inks: [plate] }, frame);
     expect(found).toMatchObject([{ _tag: 'TextOverlap', a: card, b: 'Let there be light' }]);
+  });
+});
+
+describe('ink over a face', () => {
+  // A face 200 px tall centred on (960, 400), declared once its person is drawn (order 4).
+  const face: FaceMark = { scene: 'a', x: 960, y: 400, size: 200, alpha: 1, order: 4 };
+  const rope = (order: number, options: Parameters<typeof inkMark>[2] = {}) =>
+    inkMark(
+      'stroke',
+      [
+        [700, 380],
+        [1220, 420],
+      ],
+      { order, ...options },
+    );
+
+  test('a stroke drawn after a face, across it, is a finding at that face', () => {
+    const found = inkOverFace(sample, { texts: [], inks: [rope(6)], faces: [face] });
+    expect(found).toMatchObject([{ _tag: 'InkOverFace', scene: 'a', strokes: 1, texts: [] }]);
+  });
+
+  test('a line of text stamped after a face, over it, is a finding naming the text', () => {
+    const stamp = textBox('GUILTY', 880, 420, 160, 60, { order: 7 });
+    const found = inkOverFace(sample, { texts: [stamp], inks: [], faces: [face] });
+    expect(found).toMatchObject([{ _tag: 'InkOverFace', strokes: 0, texts: ['GUILTY'] }]);
+  });
+
+  test('ink drawn before the face, beside it, faint, marking a line, or the caption, is quiet', () => {
+    const quiet = inkOverFace(sample, {
+      texts: [textBox('— he said', 700, 440, 520, 50, { order: 9, caption: true })],
+      inks: [
+        rope(2),
+        inkMark(
+          'stroke',
+          [
+            [1200, 100],
+            [1400, 900],
+          ],
+          { order: 6 },
+        ),
+        rope(6, { alpha: 0.2 }),
+        rope(6, { marks: [3] }),
+      ],
+      faces: [face],
+    });
+    expect(quiet).toEqual([]);
+    expect(inkOverFace(sample, { texts: [], inks: [rope(6)] })).toEqual([]);
   });
 });
 
@@ -786,6 +837,75 @@ describe('farPins', () => {
   });
 });
 
+describe('durOnWords', () => {
+  // "One two." then a pause, then "Three four five.": the aligner starts
+  // "Three" at 0.9 s, where the pause starts; its voice is heard from 1.4 s.
+  const said = 'One two. {m}Three four five.';
+  const spoken = 'One two. Three four five.';
+  const timings: Timings = {
+    voice: voiceKey(testVoice),
+    scenes: {
+      s: {
+        hash: hashText(spoken),
+        file: 's.mp3',
+        duration: 3,
+        source: 'elevenlabs',
+        words: [
+          { text: 'One', start: 0, end: 0.4, voiced: voicedAt(0.05, 0.4) },
+          { text: 'two.', start: 0.4, end: 0.9, voiced: voicedAt(0.45, 0.85) },
+          { text: 'Three', start: 0.9, end: 1.8, voiced: voicedAt(1.4, 1.7) },
+          { text: 'four', start: 1.8, end: 2.1, voiced: voicedAt(1.8, 2.1) },
+          { text: 'five.', start: 2.1, end: 2.6, voiced: voicedAt(2.1, 2.5) },
+        ],
+      },
+    },
+  };
+  const found = (timeline: Timed['timeline']) =>
+    durOnWords(Result.getOrThrow(layout([{ id: 's', say: said, timeline }], timings)));
+
+  test('a dur that ends where a phrase is heard to start or stop warns, naming the word', () => {
+    const hits = found({
+      reach: { at: 'speech', dur: 1.4 },
+      stop: { at: 'speech', dur: 2.53 },
+      lands: { at: 'speechEnd', dur: 2.15, ends: true },
+    });
+    expect(hits.map((f) => [f._tag, f.scene, f.cue, f.word, f.edge])).toEqual([
+      ['DurOnWord', 's', 'reach', 'Three', 'start'],
+      ['DurOnWord', 's', 'stop', 'five.', 'end'],
+      ['DurOnWord', 's', 'lands', 'two.', 'end'],
+    ]);
+    expect(hits[0]?.message).toContain('dur 1.4');
+    expect(hits[0]?.message).toContain('until');
+  });
+
+  test('a dur that ends in a pause, inside a phrase, under a second, or a span until a mark is quiet', () => {
+    expect(
+      found({
+        pause: { at: 'speech', dur: 1.1 },
+        inside: { at: 'speech', dur: 1.8 },
+        short: { at: 'speech', dur: 0.85 },
+        marked: { at: 'speech', until: 'm' },
+      }),
+    ).toEqual([]);
+  });
+
+  test('check reports it as a warning on its scene, and rewrites nothing', () => {
+    const scenes: ReadonlyArray<Timed> = [
+      { id: 's', say: said, timeline: { reach: { at: 'speech', dur: 1.4 } } },
+    ];
+    const reported = checked(
+      testFilm(scenes, timings),
+      Result.getOrThrow(layout(scenes, timings)),
+      { allowStale: true },
+      NO_MASTER,
+    ).filter((r) => r.finding._tag === 'DurOnWord');
+    expect(reported.map((r) => [r.level, r.address.part])).toEqual([
+      ['warning', { _tag: 'Scenes', ids: ['s'] }],
+    ]);
+    expect(scenes[0]?.timeline).toEqual({ reach: { at: 'speech', dur: 1.4 } });
+  });
+});
+
 describe('lateCues', () => {
   test('a cue that ends after its scene', () => {
     const placed = Result.getOrThrow(
@@ -939,24 +1059,18 @@ describe('musicFindings', () => {
     ]);
   });
 
-  test('every act out of order or under 3 s is reported, not just the first', () => {
+  test('a movement out of order is named as an act would be', () => {
     const found = musicFindings(
       music([
         { from: 'open', name: 'Opening', styles: [] },
         { from: 'close', name: 'Closing', styles: [] },
         { from: 'middle', name: 'Middle', styles: [] },
-        { from: 'middle', name: 'Coda', styles: [] },
       ]),
       placedSound,
       {},
     );
-    const acts = found.map((f) => {
-      if (f._tag === 'MovementTooShort') return [f._tag, f.movement];
-      return [f._tag];
-    });
-    expect(acts).toEqual([
-      ['MovementTooShort', 'Closing'],
-      ['MovementTooShort', 'Middle'],
+    expect(found).toMatchObject([
+      { _tag: 'PartOutOfOrder', part: 'Middle', from: 'middle', after: 'Closing' },
     ]);
   });
 

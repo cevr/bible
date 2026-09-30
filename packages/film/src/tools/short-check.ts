@@ -8,7 +8,7 @@
 
 import { Array as Arr, Match, Option, Order } from 'effect';
 import type { Phrase } from '../core/phrases.ts';
-import type { Probed, TextBox } from '../core/schema.ts';
+import type { Probed, TextBox } from '../core/export-handle.ts';
 import {
   type ResolvedShort,
   SAFE_ZONES,

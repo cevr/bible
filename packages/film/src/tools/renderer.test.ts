@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
-import type { ExportInfo } from '../core/schema.ts';
+import type { ExportInfo } from '../core/export-handle.ts';
 import { MediaFailed, PageCrashed, PageError } from './errors.ts';
 import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';

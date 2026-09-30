@@ -16,7 +16,11 @@ const H = 180;
 const DUR = 10;
 
 /** The rising light: one object, its amount rewritten each frame. */
-const RISING = { color: '#808080', amount: 0 };
+/** A light whose amount a scene rewrites each frame. */
+interface Rising extends Light {
+  amount: number;
+}
+const RISING: Rising = { color: '#808080', amount: 0 };
 const rising = (f: Frame): Light => {
   RISING.amount = f.t / f.dur;
   return RISING;

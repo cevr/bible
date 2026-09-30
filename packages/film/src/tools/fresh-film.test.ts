@@ -19,7 +19,7 @@ const error = {
   level: 'error',
   tag: 'CueLate',
   message: 'scene "hand": cue "topple" ends at 12.40s, after the scene (12.10s)',
-  address: { scene: 'hand' },
+  address: { part: { _tag: 'Scenes', ids: ['hand'] } },
 } as const;
 
 const encode = Schema.encodeSync(CheckLineJson);

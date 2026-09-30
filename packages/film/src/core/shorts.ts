@@ -258,12 +258,6 @@ export const shortSpanAt = (short: ResolvedShort, s: number): number => {
   return i;
 };
 
-/** The film time shown at short time `s`. */
-export const shortFilmTime = (short: ResolvedShort, s: number): number => {
-  const span = short.spans[shortSpanAt(short, s)] ?? short.spans[0];
-  return span.from + (s - span.at);
-};
-
 /** A stretch of the film's track: `duration` seconds from film second `start`. */
 export const FilmPiece = Schema.Struct({ start: Schema.Finite, duration: Schema.Finite });
 export type FilmPiece = typeof FilmPiece.Type;

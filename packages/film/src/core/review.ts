@@ -5,14 +5,10 @@
 
 import { Effect, Schema } from 'effect';
 import { ChoicePoint } from './choice.ts';
+import { Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
 export { ReviewFile, ReviewVideo } from './served.ts';
-
-const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
-
-/** A key a JSON file may leave out, read as an `Option`. */
-const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
 
 /** A key a JSON file may leave out, read as `fallback` when it does. */
 const orElse = <S extends Schema.Top>(schema: S, fallback: S['Encoded']) =>

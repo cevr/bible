@@ -48,7 +48,15 @@ import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD } from './check.ts';
-import { CHECK_RULES, layoutLeg, shortLeg, soundLeg, staticLeg } from './film-check.ts';
+import {
+  CHECK_RULES,
+  drawLeg,
+  laidOut,
+  layoutLeg,
+  shortLeg,
+  soundLeg,
+  staticLeg,
+} from './film-check.ts';
 import { type Finding, type Report, lineOf, report } from './findings.ts';
 import { Checker } from './checker.ts';
 import { filmChapters, lookLines } from './look.ts';
@@ -564,6 +572,12 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
           'the static leg and the mix the film makes now (dead air, balance), without the browser',
         ),
       ),
+      draw: Flag.Boolean('draw').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription(
+          'the static leg and every scene drawn in this process at its moments (a throw, a frame that is not pure, ink over a face), without the browser or the mix',
+        ),
+      ),
       allowStale: Flag.Boolean('allow-stale').pipe(
         Flag.withDefault(false),
         Flag.withDescription('report stale takes, sounds and audio master as warnings, not errors'),
@@ -596,6 +610,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
           givenFlags({
             static: Option.liftPredicate(input.static, Boolean),
             sound: Option.liftPredicate(input.sound, Boolean),
+            draw: Option.liftPredicate(input.draw, Boolean),
             short: input.short,
           }),
           CHECK_RULES,
@@ -603,17 +618,22 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       );
       const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
-      const placed = yield* placeFilm(loaded);
-      // A misspelt act, scene or short fails here, in either leg, rather than probing nothing.
-      const scope = yield* scopeOf(loaded, placed, input);
+      const address = yield* Effect.fromResult(addressOf(input));
+      // A film that does not lay out, or a misspelt act, scene or short, is the
+      // one finding: reported at its scene, rather than probing nothing.
+      const laid = laidOut(loaded, address);
+      if (Result.isFailure(laid))
+        return yield* printReport(input.film, 'film', report([laid.failure], options), input.json);
+      const { placed, scope } = laid.success;
       if (Option.isSome(scope.short)) {
         const declared = scope.short.value;
         const found = yield* onShort(loaded, declared, input);
         return yield* printReport(declared.id, 'short', report(found, options), input.json);
       }
       const found: Array<Finding> = [...(yield* staticLeg(loaded, placed))];
-      if (!input.static) found.push(...(yield* soundLeg(loaded, placed)));
-      if (!input.static && !input.sound)
+      if (input.draw) found.push(...(yield* drawLeg(loaded, scope)));
+      if (!input.static && !input.draw) found.push(...(yield* soundLeg(loaded, placed)));
+      if (!input.static && !input.sound && !input.draw)
         found.push(...(yield* layout(loaded, scope, input.workers)));
       yield* printReport(input.film, 'film', report(found, options), input.json);
     }),

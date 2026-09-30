@@ -25,6 +25,7 @@ import {
   transitionDur,
 } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
+import { PHRASE_GAP } from '../core/phrases.ts';
 import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
@@ -35,16 +36,8 @@ import {
   voiceKey,
   wordAfter,
 } from '../core/narration.ts';
-import type {
-  InkMark,
-  Knob,
-  Score,
-  Point,
-  Probed,
-  Sound,
-  SoundManifest,
-  TextBox,
-} from '../core/schema.ts';
+import type { Knob, Score, Point, Sound, SoundManifest } from '../core/schema.ts';
+import type { InkMark, Probed, TextBox } from '../core/export-handle.ts';
 import {
   LEAD_IN,
   type LibraryEntry,
@@ -56,10 +49,10 @@ import {
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type { Interval } from '../core/time.ts';
+import type { PartError } from '../core/acts.ts';
 import type {
   MovementLength,
   SoundUseMismatch,
-  UnknownScene,
   UnknownSound,
   UnknownVoice,
 } from '../core/errors.ts';
@@ -84,6 +77,8 @@ import {
   TextOffFrame,
   TextOffPlate,
   TextOverlap,
+  DurOnWord,
+  InkOverFace,
   WordPinFar,
 } from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -128,6 +123,72 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
       },
     ),
   );
+
+/** How near a hand-sized edge must land to a phrase edge to read as sized to it, in seconds. */
+export const DUR_ON_WORD = 0.08;
+
+/** The shortest `dur` `durOnWords` reads: a shorter motion is a gesture, not a length sized to a line. */
+export const DUR_MIN = 1;
+
+/** A word's heard edge that bounds a phrase: where the voice starts after a pause or stops before one. */
+interface PhraseEdge {
+  readonly word: string;
+  readonly edge: 'start' | 'end';
+  /** Voice seconds. */
+  readonly at: number;
+}
+
+/** The phrase edges of a take: its first word's start, its last word's end, and each side of every pause over `PHRASE_GAP`. */
+const phraseEdges = (words: Placed['voice']['words']): ReadonlyArray<PhraseEdge> =>
+  words.flatMap((w, i) => {
+    const before = Arr.get(words, i - 1);
+    const after = Arr.get(words, i + 1);
+    const opens = Option.match(before, {
+      onNone: () => true,
+      onSome: (b) => w.voiced.start - b.voiced.end >= PHRASE_GAP,
+    });
+    const closes = Option.match(after, {
+      onNone: () => true,
+      onSome: (a) => a.voiced.start - w.voiced.end >= PHRASE_GAP,
+    });
+    return [
+      ...Arr.filter([{ word: w.text, edge: 'start' as const, at: w.voiced.start }], () => opens),
+      ...Arr.filter([{ word: w.text, edge: 'end' as const, at: w.voiced.end }], () => closes),
+    ];
+  });
+
+/**
+ * Cues whose length is written by hand (`dur` of `DUR_MIN` or more) and whose
+ * hand-sized edge (its end; with `ends`, its start) lands within
+ * `DUR_ON_WORD` of a phrase edge of its scene's take (`DurOnWord`): a length
+ * sized to this take, which a re-take leaves behind its word. A warning, and
+ * only a report: `until` a mark, or a word pin, is the fix, made by hand.
+ */
+export const durOnWords = (placed: ReadonlyArray<Placed>): ReadonlyArray<DurOnWord> =>
+  placed.flatMap((p) => {
+    const edges = phraseEdges(p.voice.words);
+    return Object.entries(
+      Option.getOrElse(Option.fromNullishOr(p.spec.timeline), () => ({})),
+    ).flatMap(([cue, span]) => {
+      const dur = Option.filter(Option.fromNullishOr(span.dur), (d) => d >= DUR_MIN);
+      const found = Option.flatMap(
+        Option.all({ dur, resolved: Option.fromNullishOr(p.cues.get(cue)) }),
+        ({ dur, resolved }) => {
+          const sized = Match.value(span.ends === true).pipe(
+            Match.when(true, () => resolved.start),
+            Match.orElse(() => resolved.end),
+          );
+          const voiceAt = sized - p.speechStart;
+          return Option.map(
+            Arr.findFirst(edges, (e) => Math.abs(e.at - voiceAt) <= DUR_ON_WORD + 1e-9),
+            (e) =>
+              DurOnWord.make({ scene: p.spec.id, cue, dur, word: e.word, edge: e.edge, at: sized }),
+          );
+        },
+      );
+      return Option.toArray(found);
+    });
+  });
 
 /** The beats that play as storyboard cards: no drawing yet. */
 export const storyboards = (placed: ReadonlyArray<Placed>): ReadonlyArray<Storyboard> =>
@@ -263,11 +324,10 @@ export const unknownVoices = (
     }),
   );
 
-/** A generated asset against the hash its request has now. */
 /**
  * Each score option's movements: each names a scene, and each runs in film
- * order for as long as the API's chunks may last (`movementSpans`, every
- * failure rather than the first). Only movements that hold are checked for
+ * order for as long as the API's chunks may last (`movementSpans`: the first
+ * misnamed or out-of-order movement, else every length it refuses). Only movements that hold are checked for
  * the option's state (`scoreOptionState`, asset `score.<option>`): missing,
  * or composed for another plan.
  */
@@ -275,11 +335,11 @@ export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> =>
+): ReadonlyArray<PartError | MovementLength | AssetStale | AssetMissing> =>
   scoreOptions(score).flatMap(
-    (option): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => {
+    (option): ReadonlyArray<PartError | MovementLength | AssetStale | AssetMissing> => {
       const movements = Result.match(movementSpans(option.music, placed), {
-        onFailure: (unknown): ReadonlyArray<UnknownScene | MovementLength> => unknown,
+        onFailure: (error): ReadonlyArray<PartError | MovementLength> => [error],
         onSuccess: (spans) => Arr.getFailures(spans),
       });
       if (movements.length > 0) return movements;
@@ -564,6 +624,7 @@ export const staticFindings = (
     ...lateCues(placed),
     ...longSeams(placed),
     ...farPins(placed),
+    ...durOnWords(placed),
     ...storyboards(placed),
     ...repeatedKnobs(placed),
     ...takes,
@@ -904,6 +965,74 @@ export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOv
       ...boundsOf(marks),
     });
   });
+};
+
+/**
+ * Ink crosses a face only through its core, this share of its radius: its
+ * rim meets what the figure wears and holds (a brim, a collar, its own hands)
+ * and what stands beside it.
+ */
+export const FACE_CORE = 0.7;
+
+/** How far `p` is from the polyline `points`. */
+const distanceTo = (points: ReadonlyArray<Point>, p: Point): number =>
+  Arr.match(points, {
+    onEmpty: () => Number.POSITIVE_INFINITY,
+    onNonEmpty: (all) =>
+      Math.min(
+        Math.hypot(...sub(Arr.headNonEmpty(all), p)),
+        ...all
+          .slice(1)
+          .map((b, i) => Math.hypot(...sub(nearestOnSegment(Arr.getUnsafe(all, i), b, p), p))),
+      ),
+  });
+
+/**
+ * Ink and text drawn over a face (`InkOverFace`): for each visible face, the
+ * visible strokes and lines of text of its scene drawn after it (the kit
+ * declares a face once its person is drawn, so its own features, headwear and
+ * hands come before) that run through its core (`FACE_CORE` of its radius). A
+ * stroke that `marks` a line on purpose, the caption line, and fills and
+ * plates (a figure or a card staged in front) are not read; a gradient glow
+ * is invisible to the probe.
+ */
+export const inkOverFace = (sample: Sample, probed: Probed): ReadonlyArray<InkOverFace> => {
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const faces = Option.getOrElse(Option.fromUndefinedOr(probed.faces), () => []);
+  return faces
+    .filter((face) => face.alpha > VISIBLE_ALPHA)
+    .flatMap((face) => {
+      const centre: Point = [face.x, face.y];
+      const core = (face.size / 2) * FACE_CORE;
+      const after = (mark: { readonly scene: string; readonly order: number }) =>
+        mark.scene === face.scene && mark.order >= face.order;
+      const strokes = probed.inks.filter(
+        (m) =>
+          m.kind === 'stroke' &&
+          m.alpha > VISIBLE_ALPHA &&
+          after(m) &&
+          Option.isNone(Option.fromUndefinedOr(m.marks)) &&
+          distanceTo(m.points, centre) <= core + m.width / 2,
+      );
+      const texts = probed.texts.filter(
+        (t) =>
+          visible(t) &&
+          after(t) &&
+          t.caption !== true &&
+          Math.hypot(...sub(nearestIn(t.corners, centre), centre)) <= core,
+      );
+      if (strokes.length === 0 && texts.length === 0) return [];
+      return [
+        InkOverFace.make({
+          ...where,
+          x: face.x,
+          y: face.y,
+          size: face.size,
+          strokes: strokes.length,
+          texts: Arr.dedupe(texts.map((t) => t.text)),
+        }),
+      ];
+    });
 };
 
 /** The plate under a line of text: the topmost fill or plate under its centre, drawn before it. */

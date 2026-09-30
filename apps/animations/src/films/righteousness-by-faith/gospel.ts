@@ -23,6 +23,7 @@ import {
   blob,
   ground,
   glow,
+  type Hex,
   mix,
   rounded,
   sky,
@@ -102,7 +103,7 @@ interface Onlooker {
   readonly s: number;
   readonly build: readonly [number, number];
   readonly head?: HeadPiece;
-  readonly body: string;
+  readonly body: Hex;
   readonly look: Pt;
 }
 
@@ -143,7 +144,7 @@ const FRIENDS: ReadonlyArray<{
   readonly side: -1 | 1;
   readonly build: readonly [number, number];
   readonly head?: HeadPiece;
-  readonly body: string;
+  readonly body: Hex;
 }> = [
   { x: 400, side: -1, build: [1.1, 0.95], head: headcloth(C.cutShade, 0.7), body: C.figure },
   {
@@ -213,7 +214,7 @@ const SCRIBES: ReadonlyArray<{
   readonly x: number;
   readonly build: readonly [number, number];
   readonly head: HeadPiece;
-  readonly body: string;
+  readonly body: Hex;
 }> = [
   { x: 1450, build: [1.1, 1.05], head: headcloth(C.cutDeep, 0.8, C.gold), body: C.figureShade },
   { x: 1570, build: [0.95, 1.1], head: headcloth(C.inkSoft, 0.6, C.cutShade), body: C.figure },
@@ -802,7 +803,7 @@ const ACCUSERS: ReadonlyArray<{
   readonly s: number;
   readonly build: readonly [number, number];
   readonly head?: HeadPiece;
-  readonly body: string;
+  readonly body: Hex;
   readonly lands: Pt;
 }> = [
   {
@@ -902,7 +903,7 @@ const COURT_GROUND = mix(C.board, C.peachLow, 0.35);
 const HER_BODY = [mix(C.stone, C.robe, 0), mix(C.stone, C.robe, 1)] as const;
 const HER_SHADE = [mix(C.figureShade, C.robe, 0), mix(C.figureShade, C.robe, 1)] as const;
 /** Her colour at `white`: an end mixed once, or mixed now for a white between them. */
-const inWhite = (ends: readonly [string, string], white: number) =>
+const inWhite = (ends: readonly [Hex, Hex], white: number) =>
   white <= 0 ? ends[0] : white >= 1 ? ends[1] : mix(ends[0], ends[1], white);
 
 /**

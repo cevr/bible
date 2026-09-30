@@ -19,10 +19,10 @@
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import type { Say } from './api.ts';
+import { PointId, type PointRef, pointIdOf } from './point.ts';
+import { maybe } from './schema.ts';
 import { FilmPiece } from './shorts.ts';
-
-/** A key a JSON file may leave out, read as an `Option`. */
-const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
 
 /**
  * What a render drew: the commit it was made at (none outside a git
@@ -104,7 +104,7 @@ export type Render = typeof Render.Type;
  */
 const SayFields = {
   address: Address,
-  point: maybe(Schema.String),
+  point: maybe(PointId),
   variant: Schema.String,
   key: Schema.String,
 };
@@ -158,7 +158,7 @@ const sameSlot = (a: Slot, b: Slot) =>
 export interface Topic {
   readonly address: Address;
   /** The point, when it is not the address's render set. */
-  readonly point: Option.Option<string>;
+  readonly point: Option.Option<PointRef>;
   readonly variant: string;
 }
 
@@ -168,11 +168,22 @@ export interface Subject extends Topic {
 }
 
 /** The id of an address's render set as a choice point: `render:scenes:cold`. */
-export const renderPointId = (address: Address): string => `render:${addressKey(address)}`;
+export const renderPointId = (address: Address): string => pointIdOf({ _tag: 'Render', address });
 
-/** The id of the choice point `topic` is on. */
-export const pointIdOf = (topic: Pick<Topic, 'address' | 'point'>): string =>
-  Option.getOrElse(topic.point, () => renderPointId(topic.address));
+/**
+ * One variant of the point `ref` at `address` as a topic. A render set's
+ * point is its address's, so it is recorded without one; any other point
+ * names itself.
+ */
+export const topicAt = (address: Address, ref: PointRef, variant: string): Topic => ({
+  address,
+  point: Option.liftPredicate(ref, (r) => r._tag !== 'Render'),
+  variant,
+});
+
+/** The point `topic` is on. */
+const pointOf = (topic: Topic): PointRef =>
+  Option.getOrElse(topic.point, (): PointRef => ({ _tag: 'Render', address: topic.address }));
 
 /**
  * A render's version, what the owner's say is keyed by: its stamp's key, and
@@ -189,22 +200,17 @@ export const renderVersion = (render: Render): string =>
 
 /** A render as what the owner's say is about: its render set's variant, as it is now. */
 export const subjectOf = (render: Render): Subject => ({
-  address: render.address,
-  point: Option.none(),
-  variant: render.variant,
+  ...topicOf(render),
   key: renderVersion(render),
 });
 
 /** A slot's video render set as a topic (its point and variant). */
-export const topicOf = (slot: Slot): Topic => ({
-  address: slot.address,
-  point: Option.none(),
-  variant: slot.variant,
-});
+const topicOf = (slot: Pick<Slot, 'address' | 'variant'>): Topic =>
+  topicAt(slot.address, { _tag: 'Render', address: slot.address }, slot.variant);
 
 /** Whether `on` (an approval or comment) is about `topic`: the same point's same variant. */
 const about = (on: Topic, topic: Topic) =>
-  pointIdOf(on) === pointIdOf(topic) && on.variant === topic.variant;
+  pointIdOf(pointOf(on)) === pointIdOf(pointOf(topic)) && on.variant === topic.variant;
 
 /** `catalogue` with `render` in its slot, in place of the render there before. */
 export const recordRender = (catalogue: Catalogue, render: Render): Catalogue => ({
@@ -272,6 +278,32 @@ export const renderState = (
     },
   });
 
+/** The newest of `renders` (by when each was recorded). */
+const newest = (renders: ReadonlyArray<Render>): Option.Option<Render> =>
+  Arr.last(renders.toSorted((a, b) => a.at - b.at));
+
+/**
+ * What the record alone says `address`'s videos are measured against, for a
+ * reader that loads no film (the review's index): the sources the newest
+ * video at `address` drew, and the mix the newest video anywhere carries. A
+ * video is stale by it when a newer one at its address drew other sources, or
+ * a newer one carries another mix; that the newest is current against the
+ * film's sources now is the project's to say (`projectOf`, a fresh process).
+ */
+export const recordedNow = (catalogue: Catalogue, address: Address): Option.Option<RenderNow> => {
+  const videos = catalogue.renders.filter((r) => r.kind === 'video');
+  return Option.map(
+    newest(videos.filter((r) => addressKey(r.address) === addressKey(address))),
+    (latest): RenderNow => ({
+      key: latest.stamp.key,
+      sound: Option.flatMap(
+        newest(videos.filter((r) => Option.isSome(Option.flatMap(r.sound, (s) => s.mix)))),
+        (r) => Option.flatMap(r.sound, (s) => s.mix),
+      ),
+    }),
+  );
+};
+
 /**
  * What a slot needs to be current: nothing; a `remux` (its video drew its
  * sources as they are, at these settings, and only the film's sound changed:
@@ -324,6 +356,23 @@ export const approve = (catalogue: Catalogue, subject: Subject, at: number): Cat
     approvals: [...catalogue.approvals, { address, point, variant, key, at }],
   };
 };
+
+/**
+ * `catalogue` with every approval of `topic` withdrawn, whatever version it
+ * was given on (the same point's same variant).
+ */
+export const withdraw = (catalogue: Catalogue, topic: Topic): Catalogue => ({
+  ...catalogue,
+  approvals: catalogue.approvals.filter((a) => !about(a, topic)),
+});
+
+/** `catalogue` after `say` on `subject` (as it is now) at `at`: the one change a say makes. */
+export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
+  Match.valueTags(say, {
+    Approve: () => approve(catalogue, subject, at),
+    Withdraw: () => withdraw(catalogue, subject),
+    Comment: ({ text }) => comment(catalogue, subject, text, at),
+  });
 
 /** The next comment's id in `catalogue`: `c1`, `c2`, … */
 export const nextCommentId = (catalogue: Catalogue): string => `c${catalogue.comments.length + 1}`;
@@ -402,8 +451,6 @@ export const Project = Schema.Struct({
 });
 export type Project = typeof Project.Type;
 
-export const ProjectJson = Schema.fromJsonString(Project);
-
 /** A scene of the film, with the key its sources have now. */
 export interface SceneKey {
   readonly scene: string;
@@ -437,9 +484,7 @@ export const sceneSlot = (scene: string, variant: string): Slot => ({
 
 /** `address`'s render set's `variant` as it is now (`key`): what is said of a film or an act. */
 export const partSubject = (address: Address, variant: string, key: string): Subject => ({
-  address,
-  point: Option.none(),
-  variant,
+  ...topicOf({ address, variant }),
   key,
 });
 
@@ -496,20 +541,16 @@ export const approveCurrent = (
 ): Approved => {
   const current = scenes.flatMap(({ scene, key }) =>
     Option.toArray(
-      Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) =>
-        Option.isNone(staleBy(r, { key, sound })),
+      Option.map(
+        Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) =>
+          Option.isNone(staleBy(r, { key, sound })),
+        ),
+        (render) => ({ scene, render }),
       ),
     ),
   );
   return {
-    catalogue: current.reduce((cat, render) => approve(cat, subjectOf(render), at), catalogue),
-    approved: current.flatMap((r) =>
-      Match.valueTags(r.address, {
-        Scenes: ({ ids }) => ids,
-        Film: () => [],
-        Act: () => [],
-        Short: () => [],
-      }),
-    ),
+    catalogue: current.reduce((cat, { render }) => approve(cat, subjectOf(render), at), catalogue),
+    approved: current.map(({ scene }) => scene),
   };
 };

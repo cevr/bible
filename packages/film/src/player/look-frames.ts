@@ -3,7 +3,7 @@
 
 import { offscreen } from '../canvas/paper.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
-import type { FaceMark, HandMark } from '../core/schema.ts';
+import type { FaceMark, HandMark } from '../core/export-handle.ts';
 
 /**
  * The look pass (`film check`, `film lookbook`): each of `frames` drawn by

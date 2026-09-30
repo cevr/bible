@@ -16,6 +16,7 @@
 
 import { Array as Arr, Match, Option, Predicate, Result } from 'effect';
 import type { ArrayExpression, Expression, ObjectExpression, Program } from 'oxc-parser';
+import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
 import { SourceRefused } from './errors.ts';
 import {
   declarations,
@@ -142,17 +143,6 @@ export const editPick = (
 // ---------------------------------------------------------------------------
 // A sound layer's level.
 
-/** A layer of the film's sound whose level `sound.ts` sets. */
-export type SoundLayer =
-  | { readonly _tag: 'Bed'; readonly index: number; readonly sound: string }
-  | { readonly _tag: 'Effect'; readonly name: string }
-  | { readonly _tag: 'Score'; readonly which: 'under' | 'alone' };
-
-/** What a level knob writes: one layer's own level, or a constant layers share. */
-export type LevelTarget =
-  | { readonly _tag: 'Layer'; readonly layer: SoundLayer }
-  | { readonly _tag: 'Const'; readonly name: string };
-
 /** How a layer's level is written now. */
 export type LevelWritten =
   /** Its own number. */
@@ -164,31 +154,8 @@ export type LevelWritten =
   /** Something no knob can rewrite. */
   | { readonly _tag: 'Computed'; readonly text: string };
 
-/** A level knob's point id: `level:bed:3:amb.hall`, `level:effect:gavel`, `level:score:under`, `level:const:PAPER`. */
-export const levelPointId = (target: LevelTarget): string => {
-  if (target._tag === 'Const') return `level:const:${target.name}`;
-  const layer = target.layer;
-  if (layer._tag === 'Bed') return `level:bed:${layer.index}:${layer.sound}`;
-  if (layer._tag === 'Effect') return `level:effect:${layer.name}`;
-  return `level:score:${layer.which}`;
-};
-
-/** The target a level point's id names, when it names one. */
-export const levelTargetOf = (id: string): Option.Option<LevelTarget> => {
-  const [kind = '', what = '', ...rest] = id.split(':');
-  if (kind !== 'level') return Option.none();
-  const tail = rest.join(':');
-  if (what === 'const' && tail !== '') return Option.some({ _tag: 'Const', name: tail });
-  if (what === 'effect' && tail !== '')
-    return Option.some({ _tag: 'Layer', layer: { _tag: 'Effect', name: tail } });
-  if (what === 'score' && (tail === 'under' || tail === 'alone'))
-    return Option.some({ _tag: 'Layer', layer: { _tag: 'Score', which: tail } });
-  if (what !== 'bed') return Option.none();
-  const [index = '', ...sound] = rest;
-  const n = Number(index);
-  if (!Number.isInteger(n) || n < 0 || sound.length === 0) return Option.none();
-  return Option.some({ _tag: 'Layer', layer: { _tag: 'Bed', index: n, sound: sound.join(':') } });
-};
+/** A level knob's point id: `level:bed:3:amb.hall`, `level:const:PAPER`. */
+const levelId = (target: LevelTarget): string => pointIdOf({ _tag: 'Level', target });
 
 /** A number literal, negative ones included. */
 const numberOf = (e: Expression): Option.Option<number> => {
@@ -230,7 +197,7 @@ const numberConsts = (program: Program): ReadonlyMap<string, Expression> =>
       }),
   );
 
-const layerTarget = (layer: SoundLayer): string => levelPointId({ _tag: 'Layer', layer });
+const layerTarget = (layer: SoundLayer): string => levelId({ _tag: 'Layer', layer });
 
 /** The object literal that holds `layer`'s `level` (a bed, an effect, the score). */
 const layerObject = (
@@ -356,7 +323,7 @@ export const editLevel = (
   value: number,
 ): Result.Result<string, SourceRefused> => {
   const text = String(roundValue(value));
-  const id = levelPointId(target);
+  const id = levelId(target);
   return Result.flatMap(parseModule(file, source), (program) => {
     if (target._tag === 'Const')
       return Option.match(Option.fromUndefinedOr(numberConsts(program).get(target.name)), {

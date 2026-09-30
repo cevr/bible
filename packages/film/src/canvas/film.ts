@@ -4,6 +4,7 @@
 
 import { Predicate, Result, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
+import type { Hex } from './colour.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
 import { type CaptionCue, sceneCaptions } from '../core/captions.ts';
@@ -188,8 +189,8 @@ export interface SceneSpec extends Timed {
  * never holds more than a few.
  */
 export interface Light {
-  readonly color: string;
-  readonly edge?: string;
+  readonly color: Hex;
+  readonly edge?: Hex;
   readonly amount?: number;
 }
 

@@ -29,8 +29,8 @@ import {
   ExportAnswers,
   type LumaArea,
   type WireAnswers,
+  ExportInfo,
 } from '../core/export-handle.ts';
-import { ExportInfo } from '../core/schema.ts';
 import {
   BrowserFailed,
   BrowserMissing,

@@ -4,8 +4,17 @@
 // collects, never the first failure only; the run fails with `CheckFailed`
 // once every one is reported. The legs that find them are in `film-check.ts`.
 
-import { Match, Schema } from 'effect';
+import { Array as Arr, Match, Schema } from 'effect';
 import type {
+  CueCycle,
+  DuplicateMark,
+  DuplicateScene,
+  PartOutOfOrder,
+  ShortSpanEmpty,
+  TurnInvalid,
+  UnknownAct,
+  UnknownShort,
+  UntilBeforeStart,
   MovementTooLong,
   MovementTooShort,
   CueInvalid,
@@ -17,6 +26,7 @@ import type {
   UnknownVoice,
   WordMissing,
 } from '../core/errors.ts';
+import { type Address, sceneAddress } from '../core/address.ts';
 import { TakeStaleReason } from '../core/narration.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
@@ -86,6 +96,29 @@ export class WordPinFar extends Schema.TaggedError<WordPinFar>()('WordPinFar', {
 }) {
   override get message() {
     return `scene "${this.scene}": cue "${this.cue}" is pinned to "${this.word}", ${this.sentences} sentences past {${this.mark}}: a re-take that dropped the word near the mark moves the cue there`;
+  }
+}
+
+/** How a finding says a word's heard edge. */
+const EDGE_HEARD = { start: 'starts to be heard', end: 'stops being heard' } as const;
+
+/**
+ * A cue whose length is written by hand (`dur`, over a second) and whose
+ * hand-sized edge (its end; with `ends`, its start) lands on a phrase edge of
+ * its take: within `DUR_ON_WORD` of where a word is heard to start after a
+ * pause or stop before one. The length was sized to this take, so a re-take
+ * leaves the cue behind its word. `at` is scene-local seconds.
+ */
+export class DurOnWord extends Schema.TaggedError<DurOnWord>()('DurOnWord', {
+  scene: Schema.String,
+  cue: Schema.String,
+  dur: Schema.Finite,
+  word: Schema.String,
+  edge: Schema.Literals(['start', 'end']),
+  at: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" (dur ${this.dur}) meets "${this.word}" where it ${EDGE_HEARD[this.edge]}, at ${this.at.toFixed(2)}s: the length is sized to this take, so a re-take leaves it behind; end it \`until\` a mark or pin it to the word`;
   }
 }
 
@@ -478,6 +511,61 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
   }
 }
 
+/**
+ * A scene that throws when it draws, at a moment the draw leg samples: a
+ * mark, a cue or a knob it reads that its film no longer has (4f46add3), or
+ * an argument a real canvas refuses.
+ */
+export class DrawThrew extends Schema.TaggedError<DrawThrew>()('DrawThrew', {
+  ...sampled,
+  why: Schema.String,
+}) {
+  override get message() {
+    return `${where(this)}: the frame throws when drawn: ${this.why}`;
+  }
+}
+
+/**
+ * A frame that is not a function of its time: drawn after the frame after
+ * it, then after the frame before it, it leaves a different picture
+ * (ab75a2a1, 5da347fd). `why` names the first call that differs.
+ */
+export class FrameImpure extends Schema.TaggedError<FrameImpure>()('FrameImpure', {
+  ...sampled,
+  why: Schema.String,
+}) {
+  override get message() {
+    return `${where(this)}: the frame depends on the frame drawn before it: ${this.why}`;
+  }
+}
+
+/**
+ * Ink or text drawn over a face: visible strokes or lines of text drawn after
+ * a visible face (its person done), running through its core. A rope across
+ * a man's face, a stamp over a mouth: caught here, not by eye.
+ */
+export class InkOverFace extends Schema.TaggedError<InkOverFace>()('InkOverFace', {
+  ...sampled,
+  /** The face's centre and height on screen, in canvas pixels. */
+  x: Schema.Finite,
+  y: Schema.Finite,
+  size: Schema.Finite,
+  /** How many strokes cross it. */
+  strokes: Schema.Int,
+  /** The lines of text over it. */
+  texts: Schema.Array(Schema.String),
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const texts = this.texts.map((t) => `"${t}"`).join(', ');
+    const over = [
+      ...Arr.filter([`${this.strokes} stroke(s)`], () => this.strokes > 0),
+      ...Arr.filter([`text ${texts}`], () => this.texts.length > 0),
+    ].join(' and ');
+    return `${where(this)}: ${over} drawn over the face at ${Math.round(this.x)},${Math.round(this.y)} (${Math.round(this.size)} px tall) (${this.frames} sampled frame(s))`;
+  }
+}
+
 /** A line of text running off the plate under it (a card, a tag), past the plate's edge. */
 export class TextOffPlate extends Schema.TaggedError<TextOffPlate>()('TextOffPlate', {
   ...sampled,
@@ -531,8 +619,23 @@ export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOff
 // ---------------------------------------------------------------------------
 // The report
 
+/**
+ * Why the film does not lay out, or the part a check names does not resolve
+ * on it: the one finding a check reports when it cannot place the film.
+ */
+export type PlaceFinding =
+  | DuplicateScene
+  | DuplicateMark
+  | TurnInvalid
+  | CueCycle
+  | UntilBeforeStart
+  | UnknownAct
+  | UnknownShort
+  | ShortSpanEmpty;
+
 /** What the static leg finds from the film's files alone: no mix, no browser. */
 export type StaticFinding =
+  | PlaceFinding
   | CueLate
   | SeamLong
   | TakeStale
@@ -544,6 +647,7 @@ export type StaticFinding =
   | UnknownCue
   | UnknownMark
   | CueInvalid
+  | PartOutOfOrder
   | MovementTooShort
   | MovementTooLong
   | WordMissing
@@ -554,6 +658,7 @@ export type StaticFinding =
   | SoundStale
   | LeadIn
   | WordPinFar
+  | DurOnWord
   | Storyboard
   | KnobRepeated
   | EndShort;
@@ -564,9 +669,17 @@ export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFr
 export type LayoutFinding = FrameFinding | StaticHold;
 /** What the look pass measures across the film (`look.ts`). */
 export type LookFinding = HeldShare | ColourScript | FaceSmall | HandJump | HandFar | HandHidden;
+/** What the draw leg (`check --draw`) finds, drawing each scene in-process at its moments. */
+export type DrawFinding = DrawThrew | FrameImpure | InkOverFace;
 /** What `check --short` finds on a short. */
 export type ShortFinding = ShortUnsafeText | ShortHook | ShortLoop | ShortLength;
-export type Finding = StaticFinding | MixFinding | LayoutFinding | LookFinding | ShortFinding;
+export type Finding =
+  | StaticFinding
+  | MixFinding
+  | LayoutFinding
+  | DrawFinding
+  | LookFinding
+  | ShortFinding;
 
 export type Level = 'error' | 'warning';
 
@@ -606,6 +719,15 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       UnknownCue: error,
       UnknownMark: error,
       CueInvalid: error,
+      PartOutOfOrder: error,
+      DuplicateScene: error,
+      DuplicateMark: error,
+      TurnInvalid: error,
+      CueCycle: error,
+      UntilBeforeStart: error,
+      UnknownAct: error,
+      UnknownShort: error,
+      ShortSpanEmpty: error,
       MovementTooShort: error,
       MovementTooLong: error,
       WordMissing: error,
@@ -616,6 +738,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       SoundStale: warning,
       LeadIn: warning,
       WordPinFar: warning,
+      DurOnWord: warning,
       Storyboard: warning,
       KnobRepeated: warning,
       EndShort: warning,
@@ -627,6 +750,9 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       InkOverText: error,
       PlateOffFrame: error,
       TextOffPlate: error,
+      DrawThrew: error,
+      FrameImpure: error,
+      InkOverFace: warning,
       StaticHold: warning,
       HeldShare: warning,
       ColourScript: warning,
@@ -649,26 +775,31 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
 };
 
 /**
- * Where in the film a finding is (`FindingAddress`): its scene, and the film
- * second it starts at. A seam is addressed at the scene it runs into. A
- * finding about the whole film, an act, a short or a sound file has neither
- * (a short's seconds are its own, not the film's).
+ * Where in the film a finding is (`FindingAddress`): its part (a scene, an
+ * act, a short, else the whole film), and the film second it starts at. A
+ * seam is addressed at the scene it runs into; a colour script at its act; a
+ * short's findings at the short, with no film second (its seconds are its
+ * own). A finding about the whole film or a sound file is the film's.
  */
 export const addressOf = (finding: Finding): FindingAddress => {
-  const none = (): FindingAddress => ({});
-  const scene = (f: { readonly scene: string }): FindingAddress => ({ scene: f.scene });
-  const span = (f: { readonly scene: string; readonly from: number }): FindingAddress => ({
-    scene: f.scene,
-    time: f.from,
+  const film: Address = { _tag: 'Film' };
+  const none = (): FindingAddress => ({ part: film });
+  const scene = (f: { readonly scene: string }): FindingAddress => ({
+    part: sceneAddress(f.scene),
   });
-  const sampledAt = (f: { readonly scene: string; readonly time: number }): FindingAddress => ({
-    scene: f.scene,
-    time: f.time,
+  const at = (scene: string, time: number): FindingAddress => ({
+    part: sceneAddress(scene),
+    time,
+  });
+  const span = (f: { readonly scene: string; readonly from: number }) => at(f.scene, f.from);
+  const sampledAt = (f: { readonly scene: string; readonly time: number }) => at(f.scene, f.time);
+  const short = (f: { readonly short: string }): FindingAddress => ({
+    part: { _tag: 'Short', id: f.short },
   });
   return matchFinding.pipe(
     Match.tagsExhaustive({
       CueLate: scene,
-      SeamLong: (f): FindingAddress => ({ scene: f.to }),
+      SeamLong: (f) => scene({ scene: f.to }),
       TakeStale: scene,
       AssetStale: none,
       AssetMissing: none,
@@ -679,6 +810,17 @@ export const addressOf = (finding: Finding): FindingAddress => {
       UnknownCue: scene,
       UnknownMark: scene,
       CueInvalid: scene,
+      // A movement or an act declared out of film order: the declaration is the film's.
+      PartOutOfOrder: none,
+      DuplicateScene: scene,
+      DuplicateMark: scene,
+      TurnInvalid: scene,
+      CueCycle: scene,
+      UntilBeforeStart: scene,
+      // The act or short it names is one the film does not have.
+      UnknownAct: none,
+      UnknownShort: none,
+      ShortSpanEmpty: short,
       MovementTooShort: none,
       MovementTooLong: none,
       WordMissing: scene,
@@ -689,28 +831,32 @@ export const addressOf = (finding: Finding): FindingAddress => {
       SoundStale: none,
       LeadIn: none,
       WordPinFar: scene,
+      DurOnWord: scene,
       Storyboard: scene,
       KnobRepeated: scene,
       EndShort: none,
-      DeadAir: (f): FindingAddress => ({ time: f.from }),
+      DeadAir: (f): FindingAddress => ({ part: film, time: f.from }),
       MasterLoudness: none,
-      EffectHot: (f): FindingAddress => ({ scene: f.scene, time: f.at }),
+      EffectHot: (f) => at(f.scene, f.at),
       TextOverlap: sampledAt,
       TextOffFrame: sampledAt,
       InkOverText: sampledAt,
       PlateOffFrame: sampledAt,
       TextOffPlate: sampledAt,
+      DrawThrew: sampledAt,
+      FrameImpure: sampledAt,
+      InkOverFace: sampledAt,
       StaticHold: span,
       HeldShare: span,
-      ColourScript: none,
+      ColourScript: (f): FindingAddress => ({ part: { _tag: 'Act', act: f.act } }),
       FaceSmall: scene,
-      HandJump: (f): FindingAddress => ({ scene: f.scene, time: f.T }),
+      HandJump: (f) => at(f.scene, f.T),
       HandFar: span,
       HandHidden: span,
-      ShortUnsafeText: none,
-      ShortHook: none,
-      ShortLoop: none,
-      ShortLength: none,
+      ShortUnsafeText: short,
+      ShortHook: short,
+      ShortLoop: short,
+      ShortLength: short,
     }),
   )(finding);
 };
@@ -740,9 +886,10 @@ export const report = (found: ReadonlyArray<Finding>, options: CheckOptions): Re
   return { findings, errors, warnings: findings.length - errors };
 };
 
-/** One finding as `check --json` prints it and the lab reads it; an empty address is left out. */
-export const lineOf = ({ level, finding, address }: Reported): CheckLine => {
-  const line = { level, tag: finding._tag, message: finding.message };
-  if (Object.keys(address).length === 0) return line;
-  return { ...line, address };
-};
+/** One finding as `check --json` prints it and the lab reads it, with its address. */
+export const lineOf = ({ level, finding, address }: Reported): CheckLine => ({
+  level,
+  tag: finding._tag,
+  message: finding.message,
+  address,
+});

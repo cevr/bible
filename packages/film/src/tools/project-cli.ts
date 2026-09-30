@@ -54,11 +54,12 @@ import {
   renderNeed,
   sceneSlot,
   subjectOf,
+  withdraw,
 } from '../core/catalogue.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
-import { RenderCatalogue, renderRecord, withdraw } from './catalogue.ts';
+import { RenderCatalogue, renderRecord } from './catalogue.ts';
 import { ProjectRead, answering, printLine } from './fresh-film.ts';
 import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
