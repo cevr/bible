@@ -5,15 +5,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import * as AtomRef from 'effect/reactivity/AtomRef';
-import {
-  createRenderEffect,
-  createRoot,
-  createSignal,
-  DEV,
-  flush,
-  onCleanup,
-  resolve,
-} from 'solid-js';
+import { createRenderEffect, createRoot, createSignal, DEV, flush, resolve } from 'solid-js';
 
 import {
   useAtom,
@@ -815,26 +807,21 @@ describe('RegistryProvider cleanup order', () => {
   const test = it.scoped;
 
   /**
-   * `RegistryProvider` registers `onCleanup(() => registry.dispose())` before
-   * its children run, and Solid runs cleanups in registration order, so the
-   * registry is disposed while hook unsubscribes are still pending. This test
-   * reproduces that order without a JSX runtime and asserts the unsubscribes
-   * neither throw nor leave listeners behind.
+   * Solid runs one owner's cleanups in reverse registration order (unwind),
+   * and a child's before its owner's, so `RegistryProvider`, which registers
+   * `registry.dispose()` before its children run, disposes the registry after
+   * their unsubscribes. A registry owned elsewhere can still be disposed while
+   * hooks are subscribed. This test disposes the registry first, then the
+   * owner, and asserts the unsubscribes neither throw nor leave listeners.
    */
   test('disposes the registry before hook unsubscribes without leaking or throwing', () =>
     Effect.gen(function* () {
       const counter = Atom.make(0).pipe(Atom.keepAlive);
       const registry = AtomRegistry.make({ defaultIdleTTL: 400 });
       RegistryContext.defaultValue = registry;
-      const events: Array<string> = [];
 
       const owned = createRoot((dispose) => {
-        onCleanup(() => {
-          events.push('registry-dispose');
-          registry.dispose();
-        });
         const value = useAtomValue(() => counter);
-        onCleanup(() => events.push('child-cleanup'));
         return { value, dispose };
       });
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
@@ -844,10 +831,10 @@ describe('RegistryProvider cleanup order', () => {
       const node = registry.getNodes().get(counter);
       expect(node?.listeners.size).toBe(1);
 
+      registry.dispose();
       owned.dispose();
       yield* settle;
 
-      expect(events).toEqual(['registry-dispose', 'child-cleanup']);
       expect(node?.listeners.size).toBe(0);
       expect(registry.getNodes().size).toBe(0);
     }));
