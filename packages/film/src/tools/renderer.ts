@@ -268,8 +268,9 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
 
         // The segments go in a folder of this render's own, made fresh by the
         // system: never under out/<film>, so two renders at once never share
-        // one, and nothing is left there for this render to clean up.
-        const work = yield* fs.makeTempDirectory({ prefix: 'film-segments-' });
+        // one. It lives in the render's scope: joined, failed or interrupted,
+        // the render takes it with it.
+        const work = yield* fs.makeTempDirectoryScoped({ prefix: 'film-segments-' });
         const segDir = path.join(work, 'segments');
         const shareDir = path.join(work, 'share');
         yield* fs.makeDirectory(segDir);
@@ -356,10 +357,6 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
               Match.orElse(() => x264Share(out)),
             ),
         });
-
-        // Joined: the segments are copied into the film and nothing reads them
-        // again. A failed join leaves them for the error that names one.
-        yield* fs.remove(work, { recursive: true, force: true });
 
         const captions = `${target.replace(/\.[^./]+$/, '')}.vtt`;
         const cues = Option.match(where.short, {

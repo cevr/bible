@@ -28,6 +28,7 @@ export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';
 export * from './choices.ts';
+export * from './choices-process.ts';
 export { editPlay, readPlay } from './sound-source.ts';
 export {
   Review,

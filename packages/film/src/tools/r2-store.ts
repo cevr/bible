@@ -9,7 +9,8 @@
 // not the ones hashed, and the same sha256 rides along as the object's
 // metadata (`x-amz-meta-sha256`), so `hashOf` is a HEAD, never a download.
 // A `get` checks the bytes it fetched against that hash before it renames
-// them into place.
+// them into place. A file is streamed both ways, hashed as it passes: a
+// render of hundreds of megabytes is never held whole.
 
 import {
   type Crypto,
@@ -28,7 +29,7 @@ import {
   HttpClientRequest,
   type HttpClientResponse,
 } from 'effect/http';
-import type { R2StoreConfig } from '../core/sfx.ts';
+import type { R2StoreConfig } from '../core/store.ts';
 import { StoreFailed } from './errors.ts';
 import {
   type ByteRange,
@@ -37,14 +38,8 @@ import {
   type StoredRead,
   clampRange,
 } from './media-store.ts';
-import {
-  EMPTY_SHA256,
-  type S3Credentials,
-  encodeKey,
-  sha256Hex,
-  signS3,
-  uriEncode,
-} from './sigv4.ts';
+import { EMPTY_SHA256, type S3Credentials, encodeKey, signS3, uriEncode } from './sigv4.ts';
+import { hashed, hashing, sha256OfFile } from './digest.ts';
 
 /** What reaches the bucket: the account it is in and a key scoped to it (from the environment). */
 export interface R2Access {
@@ -63,12 +58,8 @@ export interface R2Platform {
 /** R2 signs every request for the region `auto`. */
 const REGION = 'auto';
 
-/** The S3 endpoint's host for the account, in the bucket's jurisdiction. */
-export const r2Host = (accountId: string, jurisdiction: R2StoreConfig['jurisdiction']): string => {
-  if (jurisdiction === 'eu' || jurisdiction === 'fedramp')
-    return `${accountId}.${jurisdiction}.r2.cloudflarestorage.com`;
-  return `${accountId}.r2.cloudflarestorage.com`;
-};
+/** The S3 endpoint's host for the account (its default jurisdiction, where the stack makes the bucket). */
+const r2Host = (accountId: string): string => `${accountId}.r2.cloudflarestorage.com`;
 
 /** The metadata header that carries an object's sha256. */
 const HASH_HEADER = 'x-amz-meta-sha256';
@@ -149,7 +140,12 @@ interface Call {
   readonly object: Option.Option<string>;
   readonly query: ReadonlyArray<readonly [string, string]>;
   readonly headers: Readonly<Record<string, string>>;
-  readonly body: Option.Option<{ readonly bytes: Uint8Array; readonly sha256: string }>;
+  /** A PUT's body: the file streamed from disk, its length and its sha256 (hashed before, signed with it). */
+  readonly body: Option.Option<{
+    readonly file: string;
+    readonly size: number;
+    readonly sha256: string;
+  }>;
 }
 
 /** A private R2 bucket as the store. */
@@ -159,7 +155,7 @@ export const r2Store = (
   access: R2Access,
 ): MediaStoreService => {
   const { fs, crypto } = platform;
-  const host = r2Host(Redacted.value(access.accountId), config.jurisdiction);
+  const host = r2Host(Redacted.value(access.accountId));
   const where = `r2://${config.bucket}`;
   // Every request is idempotent (a PUT sends the same whole object again), so
   // transient failures are retried, a few times, backing off.
@@ -198,11 +194,10 @@ export const r2Store = (
       HttpClientRequest.setHeaders({ ...call.headers, ...signed }),
     );
     if (Option.isSome(call.body))
-      request = HttpClientRequest.bodyUint8Array(
-        request,
-        call.body.value.bytes,
-        contentTypeOf(call.key),
-      );
+      request = HttpClientRequest.bodyStream(request, fs.stream(call.body.value.file), {
+        contentType: contentTypeOf(call.key),
+        contentLength: call.body.value.size,
+      });
     return yield* http
       .execute(request)
       .pipe(Effect.mapError((error) => failed(call.op, call.key, error.message)));
@@ -236,47 +231,45 @@ export const r2Store = (
   });
 
   const put = Effect.fn('R2Store.put')(function* (key: string, from: string) {
-    const bytes = yield* fs
-      .readFile(from)
-      .pipe(Effect.mapError((error) => failed('put', key, error.message)));
-    const sha256 = yield* sha256Hex(crypto, bytes).pipe(
-      Effect.mapError((error) => failed('put', key, error.message)),
-    );
+    const [size, sha256] = yield* Effect.all([
+      Effect.map(fs.stat(from), (info) => Number(info.size)),
+      sha256OfFile(fs, from),
+    ]).pipe(Effect.mapError((error) => failed('put', key, error.message)));
     const call: Call = {
       ...object('put', key, 'PUT'),
       headers: { [HASH_HEADER]: sha256 },
-      body: Option.some({ bytes, sha256 }),
+      body: Option.some({ file: from, size, sha256 }),
     };
     const response = yield* send(call);
     if (response.status !== 200) return yield* refused(call, response);
-    yield* Effect.logDebug(`store.put store=${where} key=${key} bytes=${bytes.length}`);
+    yield* Effect.logDebug(`store.put store=${where} key=${key} bytes=${size}`);
   });
 
   const get = Effect.fn('R2Store.get')(function* (key: string, to: string) {
     const call = object('get', key, 'GET');
     const response = yield* send(call);
     if (response.status !== 200) return yield* refused(call, response);
-    const bytes = new Uint8Array(
-      yield* response.arrayBuffer.pipe(
-        Effect.mapError((error) => failed('get', key, error.message)),
-      ),
-    );
-    const sha256 = yield* sha256Hex(crypto, bytes).pipe(
-      Effect.mapError((error) => failed('get', key, error.message)),
-    );
-    const stored = Option.fromUndefinedOr(response.headers[HASH_HEADER]);
-    if (Option.isSome(stored) && stored.value !== sha256)
-      return yield* failed(
-        'get',
-        key,
-        `the bytes fetched are not the sha256 they were stored under`,
-      );
+    // Streamed beside `to`, hashed as it lands; renamed into place only when
+    // the hash holds. A fetch cut off, or bytes that are not what was stored,
+    // leave nothing behind.
     const partial = `${to}.partial`;
+    const into = hashing();
     yield* Effect.gen(function* () {
-      yield* fs.makeDirectory(platform.path.dirname(to), { recursive: true });
-      yield* fs.writeFile(partial, bytes);
-      yield* fs.rename(partial, to);
-    }).pipe(Effect.mapError((error) => failed('get', key, error.message)));
+      yield* fs
+        .makeDirectory(platform.path.dirname(to), { recursive: true })
+        .pipe(Effect.andThen(Stream.run(hashed(response.stream, into), fs.sink(partial))))
+        .pipe(Effect.mapError((error) => failed('get', key, error.message)));
+      const stored = Option.fromUndefinedOr(response.headers[HASH_HEADER]);
+      if (Option.isSome(stored) && stored.value !== into.hex())
+        return yield* failed(
+          'get',
+          key,
+          `the bytes fetched are not the sha256 they were stored under`,
+        );
+      yield* fs
+        .rename(partial, to)
+        .pipe(Effect.mapError((error) => failed('get', key, error.message)));
+    }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
   });
 
   const list = Effect.fn('R2Store.list')(function* (prefix: string) {

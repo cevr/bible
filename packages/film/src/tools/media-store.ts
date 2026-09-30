@@ -15,8 +15,9 @@
 // reader could see it, and each key carries its bytes' sha256, so `hashOf`
 // answers without reading them.
 
-import { Effect, type FileSystem, Option, type Path, Stream } from 'effect';
+import { Effect, type FileSystem, Option, type Path, Schema, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { sha256OfFile } from './digest.ts';
 import { StoreFailed } from './errors.ts';
 
 /** What the store holds under a key: its size in bytes and when it was last written (ISO 8601). */
@@ -87,12 +88,37 @@ export const scoreKey = (film: string, file: string): string => `scores/${film}/
 /** Where review renders are kept in the store. */
 export const RENDERS = 'renders/';
 
-/** A render's key: `renders/`, then `under/` when given, then the file's name. */
-export const renderKey = (name: string, under: Option.Option<string>): string =>
+/**
+ * A render's key: `renders/<dir>/<name>` when a folder is given; else
+ * `renders/` and its path under `outputs` (`FILMS_OUT`), so that `media
+ * pull`'s `<outputs>/renders/<key>` mirrors where it was; a file outside
+ * `outputs` by its name alone.
+ */
+export const renderKey = (
+  path: Path.Path,
+  outputs: string,
+  file: string,
+  under: Option.Option<string>,
+): string =>
   Option.match(under, {
-    onNone: () => `${RENDERS}${name}`,
-    onSome: (dir) => `${RENDERS}${dir.replace(/^\/+|\/+$/g, '')}/${name}`,
+    onSome: (dir) => `${RENDERS}${dir.replace(/^\/+|\/+$/g, '')}/${path.basename(file)}`,
+    onNone: () => {
+      const rel = path.relative(outputs, file);
+      if (rel.startsWith('..') || path.isAbsolute(rel)) return `${RENDERS}${path.basename(file)}`;
+      return `${RENDERS}${rel.split(path.sep).join('/')}`;
+    },
   });
+
+/** A push to a key the store already holds with other bytes: refused, so nothing kept is replaced unasked. */
+export class StoreKeyTaken extends Schema.TaggedError<StoreKeyTaken>()('StoreKeyTaken', {
+  key: Schema.String,
+  file: Schema.String,
+  store: Schema.String,
+}) {
+  override get message() {
+    return `the store at ${this.store} holds other bytes as ${this.key}; ${this.file} was not sent (--replace sends it over them, or --under keeps it in its own folder)`;
+  }
+}
 
 /** `~/…` under `home`; any other path as it is. */
 export const expandHome = (file: string, home: string): string => {
@@ -112,12 +138,11 @@ export const clampRange = (
       Option.liftPredicate({ start, end: Math.min(end, size - 1) }, (r) => r.start < size),
   });
 
-/** A store that is a folder: each key a file at that path under `root`, hashed by `sha256`. */
+/** A store that is a folder: each key a file at that path under `root`, hashed as it streams. */
 export const folderStore = (
   fs: FileSystem.FileSystem,
   path: Path.Path,
   root: string,
-  sha256: (bytes: Uint8Array) => Effect.Effect<string, PlatformError>,
 ): MediaStoreService => {
   const failed =
     (op: string, key: string) =>
@@ -135,7 +160,7 @@ export const folderStore = (
     Effect.gen(function* () {
       const at = path.join(root, key);
       if (!(yield* fs.exists(at))) return Option.none<string>();
-      return Option.some(yield* sha256(yield* fs.readFile(at)));
+      return Option.some(yield* sha256OfFile(fs, at));
     }).pipe(Effect.mapError(failed('hash', key)));
   const list = (prefix: string) =>
     Effect.gen(function* () {

@@ -279,7 +279,9 @@ const keep = Command.make(
     ),
   },
   Effect.fn('film.sfx.keep')(function* (input) {
-    const entry = yield* (yield* SoundLibrary).keep(input.name, input.picks, input.replace);
+    const library = yield* SoundLibrary;
+    const takes = yield* library.takesAt(input.name, input.picks, 'candidates');
+    const entry = yield* library.keep(input.name, takes, input.replace);
     yield* Console.log(
       `${input.name} variants=${entry.variants.length} candidates=${entry.candidates.length}`,
     );
@@ -300,7 +302,9 @@ const unkeep = Command.make(
     ),
   },
   Effect.fn('film.sfx.unkeep')(function* (input) {
-    const entry = yield* (yield* SoundLibrary).unkeep(input.name, input.picks);
+    const library = yield* SoundLibrary;
+    const takes = yield* library.takesAt(input.name, input.picks, 'kept');
+    const entry = yield* library.unkeep(input.name, takes);
     yield* Console.log(
       `${input.name} variants=${entry.variants.length} candidates=${entry.candidates.length}`,
     );
@@ -315,7 +319,9 @@ const reject = Command.make(
   'reject',
   { name, picks },
   Effect.fn('film.sfx.reject')(function* (input) {
-    const entry = yield* (yield* SoundLibrary).reject(input.name, input.picks);
+    const library = yield* SoundLibrary;
+    const takes = yield* library.takesAt(input.name, input.picks, 'candidates');
+    const entry = yield* library.reject(input.name, takes);
     yield* Console.log(
       `${input.name} candidates=${entry.candidates.length} rejected=${entry.rejected.length}`,
     );

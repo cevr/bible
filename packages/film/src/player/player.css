@@ -447,15 +447,28 @@ body.lab .stage {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/*
+ * The cue rows scroll in their own box, so a scene of many cues (roof has 35)
+ * never takes the film's row: the stage keeps its size and the strip scrolls.
+ * The cue names sit in the box's left padding, inside what it clips.
+ */
+.lab-strip-scroll {
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+  padding-left: 72px;
+}
 .lab-strip-rows {
   position: relative;
-  margin-left: 72px;
   background: #1c1915;
   border-radius: 3px;
 }
+/* The words stay at the top of the strip while its cues scroll under them. */
 .lab-strip-words {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 1;
   height: 18px;
+  background: #1c1915;
   border-bottom: 1px solid #3a342c;
 }
 .lab-word {
@@ -512,6 +525,7 @@ body.lab .stage {
 }
 .lab-strip-playhead {
   position: absolute;
+  z-index: 2;
   top: 0;
   bottom: 0;
   width: 1px;

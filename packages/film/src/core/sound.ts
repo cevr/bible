@@ -27,6 +27,8 @@ import {
   type Plan,
   type PlanChunk,
   type Score,
+  type ScoreAsset,
+  type SoundManifest,
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
@@ -184,3 +186,42 @@ export const musicPlan = (
 
 export const musicKey = (music: Music, plan: Plan): string =>
   hashText(Schema.encodeSync(MusicRequestKey)({ model: music.model, plan }));
+
+/** Why a composed option no longer fits: the film was re-timed (the plan's key now), or no plan holds. */
+export type ScoreStale =
+  | { readonly _tag: 'Retimed'; readonly key: string }
+  | UnknownScene
+  | ActLength;
+
+/**
+ * Where a score option stands against what was composed for it, the one
+ * answer the mix, the check, the composer and the review read: `Current` when
+ * the manifest holds a file composed for the plan as the film now times it;
+ * `Stale` when it holds one composed for another plan, or when no plan holds
+ * any longer (an act outside the API's chunk lengths, an act naming no
+ * scene): the file still plays, with a warning; `Missing` when nothing was
+ * composed.
+ */
+export type ScoreOptionState =
+  | { readonly _tag: 'Current'; readonly asset: ScoreAsset; readonly key: string }
+  | { readonly _tag: 'Stale'; readonly asset: ScoreAsset; readonly why: ScoreStale }
+  | { readonly _tag: 'Missing' };
+
+/** `option`'s state against `manifest`, for the film as `placed` times it. */
+export const scoreOptionState = (
+  option: ScoreOption,
+  placed: ReadonlyArray<Placed>,
+  manifest: SoundManifest,
+): ScoreOptionState =>
+  Option.match(Option.fromUndefinedOr(manifest.scores?.[option.name]), {
+    onNone: (): ScoreOptionState => ({ _tag: 'Missing' }),
+    onSome: (asset): ScoreOptionState =>
+      Result.match(musicPlan(option.music, placed), {
+        onFailure: (why): ScoreOptionState => ({ _tag: 'Stale', asset, why }),
+        onSuccess: (plan): ScoreOptionState => {
+          const key = musicKey(option.music, plan);
+          if (asset.hash === key) return { _tag: 'Current', asset, key };
+          return { _tag: 'Stale', asset, why: { _tag: 'Retimed', key } };
+        },
+      }),
+  });

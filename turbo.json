@@ -5,16 +5,7 @@
   "tasks": {
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "inputs": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "electron/**/*.ts",
-        "scripts/**/*.ts",
-        "lint/**/*.ts",
-        "tsconfig.json",
-        "../../tsconfig.json",
-        "package.json"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "../../tsconfig.json"],
       "outputs": []
     },
     "build": {

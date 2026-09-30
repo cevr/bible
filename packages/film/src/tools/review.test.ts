@@ -1,24 +1,15 @@
 // The review over a synthetic tree: sets found by name (a share copy standing
 // in for its master), a manifest's say, refs that never leave their root, and
 // derived files (lengths, frames, phone copies) made once, whole, through a
-// stand-in for ffmpeg and ffprobe that copies and prints instead.
+// stand-in Media that copies and counts instead (`reviewMedia`).
 
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import {
-  Context,
-  Duration,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Schedule,
-  Schema,
-} from 'effect';
-import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { Context, Effect, FileSystem, Layer, Option, Path, Schedule, Schema } from 'effect';
 import { ReviewManifestJson } from '../core/schema.ts';
+import { Media } from './media.ts';
+import { reviewMedia } from './testing.ts';
 import {
   type Found,
   Review,
@@ -210,7 +201,6 @@ const fixture = (phoneCopies: boolean) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const real = yield* ChildProcessSpawner.ChildProcessSpawner;
       const dir = yield* fs.makeTempDirectoryScoped();
       const out = path.join(dir, 'out');
       yield* fs.makeDirectory(path.join(out, 'art', 'stills'), { recursive: true });
@@ -225,24 +215,9 @@ const fixture = (phoneCopies: boolean) =>
         path.join(out, 'art', 'review.json'),
         '{ "title": "Art", "sets": { "roof": { "variants": { "D": { "file": "../elsewhere/roof.D.mp4" } } } } }',
       );
+      // A frame of the log the review's page reads: listed nowhere, never served.
+      yield* fs.writeFileString(path.join(out, 'art', 'render.log'), 'a log');
       const spawned: Array<string> = [];
-      const spawner = ChildProcessSpawner.make((command) => {
-        if (command._tag !== 'StandardCommand') return real.spawn(command);
-        spawned.push([command.command, ...command.args].join(' '));
-        // A phone copy runs `nice -n 15 ffmpeg …`.
-        let args = command.args;
-        let tool = command.command;
-        if (tool === 'nice') {
-          tool = command.args[2] ?? '';
-          args = command.args.slice(3);
-        }
-        if (tool === 'ffprobe') return real.spawn(ChildProcess.make('echo', ['12.5']));
-        if (tool === 'ffmpeg') {
-          const input = args[args.indexOf('-i') + 1] ?? '';
-          return real.spawn(ChildProcess.make('cp', [input, args.at(-1) ?? '']));
-        }
-        return real.spawn(command);
-      });
       return Review.layer({
         roots: [{ label: 'out', path: out }],
         cache: path.join(dir, 'cache'),
@@ -250,7 +225,7 @@ const fixture = (phoneCopies: boolean) =>
         maxVideo: 1000,
         phoneCopies,
       }).pipe(
-        Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
+        Layer.provideMerge(reviewMedia(spawned)),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
       );
@@ -276,14 +251,23 @@ describe('the review service', () => {
     }).pipe(Effect.provide(fixture(false))),
   );
 
-  it.effect('resolves a ref inside its root, and nothing outside', () =>
+  it.effect('resolves a ref inside its root that the index lists, and nothing else', () =>
     Effect.gen(function* () {
       const review = yield* Review;
       const path = yield* Path.Path;
       expect(yield* review.resolve('out/art/roof.A.mp4')).toBe(
         path.join(yield* Root, 'out', 'art', 'roof.A.mp4'),
       );
-      for (const ref of ['out/../secret.mp4', 'out/art', 'out/art/none.mp4', 'nowhere/x.mp4']) {
+      for (const ref of [
+        'out/../secret.mp4',
+        'out/art',
+        'out/art/none.mp4',
+        'nowhere/x.mp4',
+        // There, inside the root, but nothing the index lists: a manifest, a log, a working still.
+        'out/art/review.json',
+        'out/art/render.log',
+        'out/art/stills/roof.C.mp4',
+      ]) {
         const failed = yield* Effect.flip(review.resolve(ref));
         expect(failed._tag).toBe('ReviewFileUnknown');
       }
@@ -315,13 +299,12 @@ describe('the review service', () => {
       );
       expect(a).toBe(b);
       expect(yield* (yield* FileSystem.FileSystem).readFileString(a)).toBe('a'.repeat(10));
-      expect(spawned.filter((c) => c.startsWith('ffprobe'))).toHaveLength(1);
-      const frames = spawned.filter((c) => c.startsWith('ffmpeg'));
+      expect(spawned.filter((c) => c.startsWith('duration'))).toHaveLength(1);
+      const frames = spawned.filter((c) => c.startsWith('still'));
       expect(frames).toHaveLength(1);
-      expect(frames[0]).toContain('-ss 1.250');
-      expect(frames[0]).toContain('scale=640:-2');
+      expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
       yield* review.frame('out/art/roof.A.mp4', Option.some(3), 640);
-      expect(spawned.filter((c) => c.startsWith('ffmpeg'))).toHaveLength(2);
+      expect(spawned.filter((c) => c.startsWith('still'))).toHaveLength(2);
     }).pipe(Effect.provide(fixture(false))),
   );
 
@@ -333,12 +316,12 @@ describe('the review service', () => {
         review.derive('mix/x.m4a', (temporary) =>
           writeText(temporary, 'half').pipe(
             Effect.andThen(
-              review.ffmpeg('x', ['-i', '/no/such/file', temporary], Duration.seconds(10)),
+              Effect.flatMap(Media, (media) => media.still('/no/such/file', 0, 320, temporary)),
             ),
           ),
         ),
       );
-      expect(failed._tag).toBe('ReviewToolFailed');
+      expect(failed._tag).toBe('MediaFailed');
       const cache = (yield* Path.Path).join(yield* Root, 'cache', 'mix');
       expect(yield* fs.readDirectory(cache)).toEqual([]);
       const made = yield* review.derive('mix/x.m4a', (temporary) => writeText(temporary, 'whole'));
@@ -359,7 +342,7 @@ describe('the review service', () => {
           Effect.retry({ schedule: Schedule.spaced('20 millis'), times: 250 }),
         );
       expect(yield* (yield* FileSystem.FileSystem).readFileString(copy)).toBe('x'.repeat(200));
-      expect((yield* Spawned).some((c) => c.startsWith('nice -n 15 ffmpeg'))).toBe(true);
+      expect((yield* Spawned).some((c) => c.startsWith('phone '))).toBe(true);
       const again = yield* review.index(true);
       const ready = again.folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
       expect(ready?.phone).toBe('ready');

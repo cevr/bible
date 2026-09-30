@@ -4,12 +4,23 @@
 // score option's, a take's in place); Pick writes `play` and the page reads
 // the film again (the pick shown, Undo offered, the check after it); a take
 // is kept; Undo is sent to the film's own route; a placement jumps the clock;
-// and a phone's width scrolls nothing sideways.
+// a mix whose first load failed is heard once its retry lands; and a phone's
+// width scrolls nothing sideways.
 
-import { Effect, Option } from 'effect';
+import { Effect, FileSystem, Option } from 'effect';
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { type FakeRoute, type Json, json, openReview, route } from '../../fixtures/harness.ts';
+import {
+  type FakeRoute,
+  type Json,
+  file,
+  json,
+  openReview,
+  route,
+  text,
+} from '../../fixtures/harness.ts';
+import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
 
@@ -208,6 +219,44 @@ describe("a film's options", () => {
         expect(asked.some((a) => a.method === 'POST' && a.path === '/lab/toy/undo')).toBe(true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a mix that loads on a retry while the film plays is heard',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'options-mix-' });
+        // The picture and the mix: ten seconds of tone each, real media the page plays.
+        const wav = `${dir}/tone.wav`;
+        yield* fs.writeFile(wav, tone(10, 0.1));
+        let asks = 0;
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/review\/files\/out\/toy\/toy\.mp4/, () => file(wav)),
+          // The first ask is cut off while the mix renders; the retry finds it made.
+          route('GET', /^\/lab\/toy\/options\/score\/strings\/mix/, () => {
+            asks += 1;
+            if (asks === 1) return text('the connection dropped', 502);
+            return file(wav);
+          }),
+          ...fakeFilm(),
+        ];
+        const { page, errors } = yield* openReview(routes, { search: FILM });
+        // The page's timers from here on are the test's: the retry's wait is run through.
+        yield* Effect.promise(() => page.clock.install());
+        yield* waitFor(page, '.rv-picture video');
+        yield* until(page, `${MIX}.startsWith('/lab/toy/options/score/strings/mix')`);
+        yield* until(page, "document.querySelector('audio.rv-mix').error !== null");
+        yield* Effect.promise(() => page.keyboard.press('Space'));
+        yield* until(page, "document.querySelector('.rv-picture video').paused === false");
+        yield* Effect.promise(() => page.clock.runFor(5_000));
+        yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");
+        expect(asks).toBe(2);
+        // The reload stalls the set (Buffering) until the mix can play, and the set resumes it.
+        yield* until(page, "document.querySelector('audio.rv-mix').paused === false");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SLOW,
   );
 

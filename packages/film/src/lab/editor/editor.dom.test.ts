@@ -5,7 +5,7 @@
 // inspector's fields and eases write the selected cue; Undo asks the server
 // to undo; and the findings of the film's check show under the inspector.
 
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { type Asked, hold, json, openLab, route, sourceOne, text } from '../fixtures/harness.ts';
@@ -26,6 +26,20 @@ const statusSays = (page: Page, part: string) =>
       part,
     ),
   );
+
+/** Wait until the lab has posted `n` writes. */
+const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
+  Effect.sync(() => posted(asked).length).pipe(
+    Effect.repeat({ until: (k) => k >= n, schedule: Schedule.spaced('10 millis') }),
+    Effect.timeout('10 seconds'),
+    Effect.orDie,
+  );
+
+/**
+ * Run the page's clock on by `ms`: its timers and frames run that much,
+ * however slow the machine, so what a key or a drag would start has started.
+ */
+const runClock = (page: Page, ms: number) => Effect.promise(() => page.clock.runFor(ms));
 
 /** Drag the bar of cue `name` by `dx` pixels from `at` across it (0 left edge, 0.5 middle, 1 right edge). */
 const dragBar = (page: Page, name: string, at: number, dx: number) =>
@@ -131,7 +145,7 @@ describe('one write at a time', () => {
       yield* Effect.promise(() => page.mouse.move(x + 60, y, { steps: 4 }));
       yield* Effect.promise(() => page.keyboard.press('Escape'));
       yield* Effect.promise(() => page.mouse.up());
-      yield* Effect.sleep('200 millis');
+      yield* runClock(page, 200);
       expect(posted(asked)).toEqual([]);
       const after = yield* Effect.promise(() => bar.boundingBox()).pipe(
         Effect.flatMap(Effect.fromNullishOr),
@@ -148,9 +162,10 @@ describe('one write at a time', () => {
       });
       yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
       yield* dragBar(page, 'rise', 0.5, 60);
-      yield* Effect.sleep('100 millis');
+      yield* postedReach(asked, 1);
+      yield* statusSays(page, 'writing…');
       yield* dragBar(page, 'fall', 0.5, 40);
-      yield* Effect.sleep('200 millis');
+      yield* runClock(page, 200);
       expect(posted(asked).map((p) => p.path)).toEqual(['/cues/one/rise']);
     }).pipe(Effect.scoped),
   );
@@ -165,7 +180,7 @@ describe('the inspector', () => {
       yield* Effect.promise(() => page.press('.lab-edit-cue input[data-field="offset"]', 'Enter'));
       yield* statusSays(page, 'wrote');
       yield* Effect.promise(() => page.click('.lab-ease[data-ease="linear"]'));
-      yield* Effect.sleep('200 millis');
+      yield* postedReach(asked, 2);
       expect(posted(asked)).toEqual([
         { path: '/cues/one/rise', body: Option.some({ offset: 0.3 }) },
         { path: '/cues/one/rise', body: Option.some({ ease: 'linear' }) },
