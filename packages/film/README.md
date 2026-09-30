@@ -1424,7 +1424,7 @@ cue already are. A span that `ends: true` ends at its anchor and starts its
 `dur` before it. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
-`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. A line that never says it
+`core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. It warns `DurOnWord` (`durOnWords`) where a `dur` of `DUR_MIN` (1 s) or more puts its hand-sized edge (its end, or with `ends` its start) within `DUR_ON_WORD` (80 ms) of a phrase edge of its take (a word heard after, or before, a pause of `PHRASE_GAP` or more, or the take's first or last word): a length sized to this take. It is a report only; the fix is `until` a mark or a word pin. A line that never says it
 there fails the layout with `WordMissing` (`core/errors.ts`), which the tools'
 `placeFilm` fails with as itself (`PlaceError = LayoutError`),
 so `film check` and every tool refuse the film by name; there is no fall back

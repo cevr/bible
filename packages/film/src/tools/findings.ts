@@ -99,6 +99,29 @@ export class WordPinFar extends Schema.TaggedError<WordPinFar>()('WordPinFar', {
   }
 }
 
+/** How a finding says a word's heard edge. */
+const EDGE_HEARD = { start: 'starts to be heard', end: 'stops being heard' } as const;
+
+/**
+ * A cue whose length is written by hand (`dur`, over a second) and whose
+ * hand-sized edge (its end; with `ends`, its start) lands on a phrase edge of
+ * its take: within `DUR_ON_WORD` of where a word is heard to start after a
+ * pause or stop before one. The length was sized to this take, so a re-take
+ * leaves the cue behind its word. `at` is scene-local seconds.
+ */
+export class DurOnWord extends Schema.TaggedError<DurOnWord>()('DurOnWord', {
+  scene: Schema.String,
+  cue: Schema.String,
+  dur: Schema.Finite,
+  word: Schema.String,
+  edge: Schema.Literals(['start', 'end']),
+  at: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" (dur ${this.dur}) meets "${this.word}" where it ${EDGE_HEARD[this.edge]}, at ${this.at.toFixed(2)}s: the length is sized to this take, so a re-take leaves it behind; end it \`until\` a mark or pin it to the word`;
+  }
+}
+
 /** A beat with no drawing yet: it plays as its storyboard card. */
 export class Storyboard extends Schema.TaggedError<Storyboard>()('Storyboard', {
   scene: Schema.String,
@@ -580,6 +603,7 @@ export type StaticFinding =
   | SoundStale
   | LeadIn
   | WordPinFar
+  | DurOnWord
   | Storyboard
   | KnobRepeated
   | EndShort;
@@ -651,6 +675,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       SoundStale: warning,
       LeadIn: warning,
       WordPinFar: warning,
+      DurOnWord: warning,
       Storyboard: warning,
       KnobRepeated: warning,
       EndShort: warning,
@@ -740,6 +765,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       SoundStale: none,
       LeadIn: none,
       WordPinFar: scene,
+      DurOnWord: scene,
       Storyboard: scene,
       KnobRepeated: scene,
       EndShort: none,

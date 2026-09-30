@@ -8,11 +8,13 @@ import type { Probed } from '../core/export-handle.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { recorder } from '../canvas/fixtures/stand-in.ts';
+import { voicedAt } from '../core/voiced.ts';
 import { musicKey, musicPlan } from '../core/sound.ts';
 import {
   HOLD,
   type Sample,
   soundFindings,
+  durOnWords,
   farPins,
   repeatedKnobs,
   storyboards,
@@ -784,6 +786,75 @@ describe('farPins', () => {
     expect(reported.filter((r) => r.finding._tag === 'WordPinFar').map((r) => r.level)).toEqual([
       'warning',
     ]);
+  });
+});
+
+describe('durOnWords', () => {
+  // "One two." then a pause, then "Three four five.": the aligner starts
+  // "Three" at 0.9 s, where the pause starts; its voice is heard from 1.4 s.
+  const said = 'One two. {m}Three four five.';
+  const spoken = 'One two. Three four five.';
+  const timings: Timings = {
+    voice: voiceKey(testVoice),
+    scenes: {
+      s: {
+        hash: hashText(spoken),
+        file: 's.mp3',
+        duration: 3,
+        source: 'elevenlabs',
+        words: [
+          { text: 'One', start: 0, end: 0.4, voiced: voicedAt(0.05, 0.4) },
+          { text: 'two.', start: 0.4, end: 0.9, voiced: voicedAt(0.45, 0.85) },
+          { text: 'Three', start: 0.9, end: 1.8, voiced: voicedAt(1.4, 1.7) },
+          { text: 'four', start: 1.8, end: 2.1, voiced: voicedAt(1.8, 2.1) },
+          { text: 'five.', start: 2.1, end: 2.6, voiced: voicedAt(2.1, 2.5) },
+        ],
+      },
+    },
+  };
+  const found = (timeline: Timed['timeline']) =>
+    durOnWords(Result.getOrThrow(layout([{ id: 's', say: said, timeline }], timings)));
+
+  test('a dur that ends where a phrase is heard to start or stop warns, naming the word', () => {
+    const hits = found({
+      reach: { at: 'speech', dur: 1.4 },
+      stop: { at: 'speech', dur: 2.53 },
+      lands: { at: 'speechEnd', dur: 2.15, ends: true },
+    });
+    expect(hits.map((f) => [f._tag, f.scene, f.cue, f.word, f.edge])).toEqual([
+      ['DurOnWord', 's', 'reach', 'Three', 'start'],
+      ['DurOnWord', 's', 'stop', 'five.', 'end'],
+      ['DurOnWord', 's', 'lands', 'two.', 'end'],
+    ]);
+    expect(hits[0]?.message).toContain('dur 1.4');
+    expect(hits[0]?.message).toContain('until');
+  });
+
+  test('a dur that ends in a pause, inside a phrase, under a second, or a span until a mark is quiet', () => {
+    expect(
+      found({
+        pause: { at: 'speech', dur: 1.1 },
+        inside: { at: 'speech', dur: 1.8 },
+        short: { at: 'speech', dur: 0.85 },
+        marked: { at: 'speech', until: 'm' },
+      }),
+    ).toEqual([]);
+  });
+
+  test('check reports it as a warning on its scene, and rewrites nothing', () => {
+    const scenes: ReadonlyArray<Timed> = [
+      { id: 's', say: said, timeline: { reach: { at: 'speech', dur: 1.4 } } },
+    ];
+    const reported = checked(
+      testFilm(scenes, timings),
+      Result.getOrThrow(layout(scenes, timings)),
+      { allowStale: true },
+      NO_MASTER,
+    ).filter((r) => r.finding._tag === 'DurOnWord');
+    expect(reported.map((r) => [r.level, r.address.part])).toEqual([
+      ['warning', { _tag: 'Scenes', ids: ['s'] }],
+    ]);
+    expect(scenes[0]?.timeline).toEqual({ reach: { at: 'speech', dur: 1.4 } });
   });
 });
 

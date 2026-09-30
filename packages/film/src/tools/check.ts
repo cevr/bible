@@ -25,6 +25,7 @@ import {
   transitionDur,
 } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
+import { PHRASE_GAP } from '../core/phrases.ts';
 import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
@@ -76,6 +77,7 @@ import {
   TextOffFrame,
   TextOffPlate,
   TextOverlap,
+  DurOnWord,
   WordPinFar,
 } from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -120,6 +122,72 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
       },
     ),
   );
+
+/** How near a hand-sized edge must land to a phrase edge to read as sized to it, in seconds. */
+export const DUR_ON_WORD = 0.08;
+
+/** The shortest `dur` `durOnWords` reads: a shorter motion is a gesture, not a length sized to a line. */
+export const DUR_MIN = 1;
+
+/** A word's heard edge that bounds a phrase: where the voice starts after a pause or stops before one. */
+interface PhraseEdge {
+  readonly word: string;
+  readonly edge: 'start' | 'end';
+  /** Voice seconds. */
+  readonly at: number;
+}
+
+/** The phrase edges of a take: its first word's start, its last word's end, and each side of every pause over `PHRASE_GAP`. */
+const phraseEdges = (words: Placed['voice']['words']): ReadonlyArray<PhraseEdge> =>
+  words.flatMap((w, i) => {
+    const before = Arr.get(words, i - 1);
+    const after = Arr.get(words, i + 1);
+    const opens = Option.match(before, {
+      onNone: () => true,
+      onSome: (b) => w.voiced.start - b.voiced.end >= PHRASE_GAP,
+    });
+    const closes = Option.match(after, {
+      onNone: () => true,
+      onSome: (a) => a.voiced.start - w.voiced.end >= PHRASE_GAP,
+    });
+    return [
+      ...Arr.filter([{ word: w.text, edge: 'start' as const, at: w.voiced.start }], () => opens),
+      ...Arr.filter([{ word: w.text, edge: 'end' as const, at: w.voiced.end }], () => closes),
+    ];
+  });
+
+/**
+ * Cues whose length is written by hand (`dur` of `DUR_MIN` or more) and whose
+ * hand-sized edge (its end; with `ends`, its start) lands within
+ * `DUR_ON_WORD` of a phrase edge of its scene's take (`DurOnWord`): a length
+ * sized to this take, which a re-take leaves behind its word. A warning, and
+ * only a report: `until` a mark, or a word pin, is the fix, made by hand.
+ */
+export const durOnWords = (placed: ReadonlyArray<Placed>): ReadonlyArray<DurOnWord> =>
+  placed.flatMap((p) => {
+    const edges = phraseEdges(p.voice.words);
+    return Object.entries(
+      Option.getOrElse(Option.fromNullishOr(p.spec.timeline), () => ({})),
+    ).flatMap(([cue, span]) => {
+      const dur = Option.filter(Option.fromNullishOr(span.dur), (d) => d >= DUR_MIN);
+      const found = Option.flatMap(
+        Option.all({ dur, resolved: Option.fromNullishOr(p.cues.get(cue)) }),
+        ({ dur, resolved }) => {
+          const sized = Match.value(span.ends === true).pipe(
+            Match.when(true, () => resolved.start),
+            Match.orElse(() => resolved.end),
+          );
+          const voiceAt = sized - p.speechStart;
+          return Option.map(
+            Arr.findFirst(edges, (e) => Math.abs(e.at - voiceAt) <= DUR_ON_WORD + 1e-9),
+            (e) =>
+              DurOnWord.make({ scene: p.spec.id, cue, dur, word: e.word, edge: e.edge, at: sized }),
+          );
+        },
+      );
+      return Option.toArray(found);
+    });
+  });
 
 /** The beats that play as storyboard cards: no drawing yet. */
 export const storyboards = (placed: ReadonlyArray<Placed>): ReadonlyArray<Storyboard> =>
@@ -555,6 +623,7 @@ export const staticFindings = (
     ...lateCues(placed),
     ...longSeams(placed),
     ...farPins(placed),
+    ...durOnWords(placed),
     ...storyboards(placed),
     ...repeatedKnobs(placed),
     ...takes,
