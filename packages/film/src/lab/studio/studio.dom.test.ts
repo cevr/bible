@@ -28,6 +28,7 @@ import {
 } from '../fixtures/harness.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
 import { toneFile } from '../fixtures/tone.ts';
+import { COUNT_IN } from './machine.ts';
 
 const beat = (id: string, state: string, parts: Json, extra: Record<string, Json> = {}): Json => ({
   id,
@@ -116,6 +117,16 @@ const statusIs = (page: Page, pattern: RegExp) =>
   );
 
 const press = (page: Page, key: string) => Effect.promise(() => page.keyboard.press(key));
+
+/** The count-in, each second of it moved on by the page's clock, until the take records. */
+const countedIn = (page: Page) =>
+  Effect.gen(function* () {
+    for (let n = COUNT_IN; n > 0; n--) {
+      yield* statusIs(page, new RegExp(`^recording in ${n}…$`));
+      yield* Effect.promise(() => page.clock.fastForward(1000));
+    }
+    yield* statusIs(page, /^recording · /);
+  });
 
 /** Focus the studio, as a click into it does. */
 const focusStudio = (page: Page) => Effect.promise(() => page.focus('[data-role="studio"]'));
@@ -219,8 +230,7 @@ describe('the studio', () => {
           yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
           yield* focusStudio(page);
           yield* press(page, 'r');
-          yield* statusIs(page, /^recording in [123]…$/);
-          yield* statusIs(page, /^recording · /);
+          yield* countedIn(page);
           yield* Effect.promise(() => page.waitForSelector('[data-role="peak"]'));
           const peak = yield* textOf(page, '[data-role="peak"]');
           expect(peak).toMatch(/^peak −[5-7]\.\d dBFS$/);
@@ -378,7 +388,7 @@ describe('the studio', () => {
           const playLabel = () => textOf(page, '[data-act="play"]');
           const paused = yield* playLabel();
           yield* Effect.promise(() => page.click('[data-act="arm"]'));
-          yield* statusIs(page, /^recording · /);
+          yield* countedIn(page);
           yield* Effect.promise(() => page.waitForTimeout(600));
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
