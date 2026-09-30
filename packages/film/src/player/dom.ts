@@ -1,5 +1,7 @@
-// The player's DOM helpers: a child the markup must have, and bytes or a
-// canvas as base64.
+// The player's DOM helpers: a child the markup must have, bytes or a canvas
+// as base64, and a canvas's luma.
+
+import type { LumaArea } from '../core/export-handle.ts';
 
 /** The element `sel` finds under `root`: markup the caller wrote, so a missing one is a bug. */
 export const required = <T extends Element>(root: ParentNode, sel: string): T => {
@@ -19,4 +21,28 @@ export const canvasBase64 = async (
   const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.95));
   if (blob === null) throw new Error('toBlob failed');
   return bytesBase64(new Uint8Array(await blob.arrayBuffer()));
+};
+
+/**
+ * The luma (Rec. 709, 0–255) of `area` of `canvas`, scaled down to its grid
+ * by the browser's own resize, row by row. No 2D context to read it back on:
+ * an empty read, which the tools refuse as a failed frame.
+ */
+export const canvasLuma = async (
+  canvas: HTMLCanvasElement,
+  area: LumaArea,
+): Promise<ReadonlyArray<number>> => {
+  const bitmap = await createImageBitmap(canvas, area.x, area.y, area.w, area.h, {
+    resizeWidth: area.cols,
+    resizeHeight: area.rows,
+    resizeQuality: 'medium',
+  });
+  const ctx = new OffscreenCanvas(area.cols, area.rows).getContext('2d');
+  if (ctx === null) return [];
+  ctx.drawImage(bitmap, 0, 0);
+  const d = ctx.getImageData(0, 0, area.cols, area.rows).data;
+  const out: number[] = [];
+  for (let i = 0; i < d.length; i += 4)
+    out.push(0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0));
+  return out;
 };
