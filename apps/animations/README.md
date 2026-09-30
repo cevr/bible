@@ -41,7 +41,7 @@ bun run doctor                                 # headless Chromium, elevenlabs C
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns SeamLong, AssetMissing, SoundStale, WordPinFar, Storyboard, KnobRepeated, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
-bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{scene,time}} (the lab reads this)
+bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{part,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second

@@ -3,14 +3,15 @@
 // (FileSystem and Media, no Mixer), and the master it reads is judged by the
 // stamp `mix` left beside it.
 
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Predicate, Result, Schema } from 'effect';
 import { filmEnd, layout } from '../core/layout.ts';
 import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
-import { staticLeg } from './film-check.ts';
-import type { StaticFinding } from './findings.ts';
+import { laidOut, staticLeg } from './film-check.ts';
+import { type StaticFinding, lineOf, report } from './findings.ts';
 import type { Media } from './media.ts';
 import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
 import { fakeMedia, memoryFileSystem, spokenTake, testFilm, testVoice, text } from './testing.ts';
@@ -70,4 +71,29 @@ describe('the static leg', () => {
       expect(masterTags(current)).toEqual([]);
     }),
   );
+});
+
+describe('a film that does not lay out', () => {
+  test('is the one finding the check reports, at the scene that stops it', () => {
+    const typo = testFilm(
+      [{ id: 'said', say: 'Hi {there}there.', timeline: { lift: { mark: 'nosuch', dur: 1 } } }],
+      recorded,
+    );
+    const laid = laidOut(typo, { _tag: 'Film' });
+    const lines = Result.match(laid, {
+      onFailure: (error) => report([error], { allowStale: false }).findings.map(lineOf),
+      onSuccess: () => [],
+    });
+    expect(lines).toMatchObject([
+      { level: 'error', tag: 'UnknownMark', address: { part: { _tag: 'Scenes', ids: ['said'] } } },
+    ]);
+  });
+
+  test('a part the film lacks is a finding too, and the film lays out otherwise', () => {
+    const lost = laidOut(film, { _tag: 'Act', act: 'nowhere' });
+    expect(Result.getFailure(lost).pipe(Option.map((e) => e._tag))).toEqual(
+      Option.some('UnknownAct'),
+    );
+    expect(Result.isSuccess(laidOut(film, { _tag: 'Film' }))).toBe(true);
+  });
 });

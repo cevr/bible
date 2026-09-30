@@ -48,7 +48,7 @@ import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
 import { Browser, browserReady } from './browser.ts';
 import { HOLD } from './check.ts';
-import { CHECK_RULES, layoutLeg, shortLeg, soundLeg, staticLeg } from './film-check.ts';
+import { CHECK_RULES, laidOut, layoutLeg, shortLeg, soundLeg, staticLeg } from './film-check.ts';
 import { type Finding, type Report, lineOf, report } from './findings.ts';
 import { Checker } from './checker.ts';
 import { filmChapters, lookLines } from './look.ts';
@@ -603,9 +603,13 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       );
       const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
-      const placed = yield* placeFilm(loaded);
-      // A misspelt act, scene or short fails here, in either leg, rather than probing nothing.
-      const scope = yield* scopeOf(loaded, placed, input);
+      const address = yield* Effect.fromResult(addressOf(input));
+      // A film that does not lay out, or a misspelt act, scene or short, is the
+      // one finding: reported at its scene, rather than probing nothing.
+      const laid = laidOut(loaded, address);
+      if (Result.isFailure(laid))
+        return yield* printReport(input.film, 'film', report([laid.failure], options), input.json);
+      const { placed, scope } = laid.success;
       if (Option.isSome(scope.short)) {
         const declared = scope.short.value;
         const found = yield* onShort(loaded, declared, input);

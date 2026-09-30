@@ -6,7 +6,15 @@
 
 import { Match, Schema } from 'effect';
 import type {
+  CueCycle,
+  DuplicateMark,
+  DuplicateScene,
   PartOutOfOrder,
+  ShortSpanEmpty,
+  TurnInvalid,
+  UnknownAct,
+  UnknownShort,
+  UntilBeforeStart,
   MovementTooLong,
   MovementTooShort,
   CueInvalid,
@@ -18,6 +26,7 @@ import type {
   UnknownVoice,
   WordMissing,
 } from '../core/errors.ts';
+import { type Address, sceneAddress } from '../core/address.ts';
 import { TakeStaleReason } from '../core/narration.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
@@ -532,8 +541,23 @@ export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOff
 // ---------------------------------------------------------------------------
 // The report
 
+/**
+ * Why the film does not lay out, or the part a check names does not resolve
+ * on it: the one finding a check reports when it cannot place the film.
+ */
+export type PlaceFinding =
+  | DuplicateScene
+  | DuplicateMark
+  | TurnInvalid
+  | CueCycle
+  | UntilBeforeStart
+  | UnknownAct
+  | UnknownShort
+  | ShortSpanEmpty;
+
 /** What the static leg finds from the film's files alone: no mix, no browser. */
 export type StaticFinding =
+  | PlaceFinding
   | CueLate
   | SeamLong
   | TakeStale
@@ -609,6 +633,14 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       UnknownMark: error,
       CueInvalid: error,
       PartOutOfOrder: error,
+      DuplicateScene: error,
+      DuplicateMark: error,
+      TurnInvalid: error,
+      CueCycle: error,
+      UntilBeforeStart: error,
+      UnknownAct: error,
+      UnknownShort: error,
+      ShortSpanEmpty: error,
       MovementTooShort: error,
       MovementTooLong: error,
       WordMissing: error,
@@ -652,26 +684,31 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
 };
 
 /**
- * Where in the film a finding is (`FindingAddress`): its scene, and the film
- * second it starts at. A seam is addressed at the scene it runs into. A
- * finding about the whole film, an act, a short or a sound file has neither
- * (a short's seconds are its own, not the film's).
+ * Where in the film a finding is (`FindingAddress`): its part (a scene, an
+ * act, a short, else the whole film), and the film second it starts at. A
+ * seam is addressed at the scene it runs into; a colour script at its act; a
+ * short's findings at the short, with no film second (its seconds are its
+ * own). A finding about the whole film or a sound file is the film's.
  */
 export const addressOf = (finding: Finding): FindingAddress => {
-  const none = (): FindingAddress => ({});
-  const scene = (f: { readonly scene: string }): FindingAddress => ({ scene: f.scene });
-  const span = (f: { readonly scene: string; readonly from: number }): FindingAddress => ({
-    scene: f.scene,
-    time: f.from,
+  const film: Address = { _tag: 'Film' };
+  const none = (): FindingAddress => ({ part: film });
+  const scene = (f: { readonly scene: string }): FindingAddress => ({
+    part: sceneAddress(f.scene),
   });
-  const sampledAt = (f: { readonly scene: string; readonly time: number }): FindingAddress => ({
-    scene: f.scene,
-    time: f.time,
+  const at = (scene: string, time: number): FindingAddress => ({
+    part: sceneAddress(scene),
+    time,
+  });
+  const span = (f: { readonly scene: string; readonly from: number }) => at(f.scene, f.from);
+  const sampledAt = (f: { readonly scene: string; readonly time: number }) => at(f.scene, f.time);
+  const short = (f: { readonly short: string }): FindingAddress => ({
+    part: { _tag: 'Short', id: f.short },
   });
   return matchFinding.pipe(
     Match.tagsExhaustive({
       CueLate: scene,
-      SeamLong: (f): FindingAddress => ({ scene: f.to }),
+      SeamLong: (f) => scene({ scene: f.to }),
       TakeStale: scene,
       AssetStale: none,
       AssetMissing: none,
@@ -682,7 +719,17 @@ export const addressOf = (finding: Finding): FindingAddress => {
       UnknownCue: scene,
       UnknownMark: scene,
       CueInvalid: scene,
+      // A movement or an act declared out of film order: the declaration is the film's.
       PartOutOfOrder: none,
+      DuplicateScene: scene,
+      DuplicateMark: scene,
+      TurnInvalid: scene,
+      CueCycle: scene,
+      UntilBeforeStart: scene,
+      // The act or short it names is one the film does not have.
+      UnknownAct: none,
+      UnknownShort: none,
+      ShortSpanEmpty: short,
       MovementTooShort: none,
       MovementTooLong: none,
       WordMissing: scene,
@@ -696,9 +743,9 @@ export const addressOf = (finding: Finding): FindingAddress => {
       Storyboard: scene,
       KnobRepeated: scene,
       EndShort: none,
-      DeadAir: (f): FindingAddress => ({ time: f.from }),
+      DeadAir: (f): FindingAddress => ({ part: film, time: f.from }),
       MasterLoudness: none,
-      EffectHot: (f): FindingAddress => ({ scene: f.scene, time: f.at }),
+      EffectHot: (f) => at(f.scene, f.at),
       TextOverlap: sampledAt,
       TextOffFrame: sampledAt,
       InkOverText: sampledAt,
@@ -706,15 +753,15 @@ export const addressOf = (finding: Finding): FindingAddress => {
       TextOffPlate: sampledAt,
       StaticHold: span,
       HeldShare: span,
-      ColourScript: none,
+      ColourScript: (f): FindingAddress => ({ part: { _tag: 'Act', act: f.act } }),
       FaceSmall: scene,
-      HandJump: (f): FindingAddress => ({ scene: f.scene, time: f.T }),
+      HandJump: (f) => at(f.scene, f.T),
       HandFar: span,
       HandHidden: span,
-      ShortUnsafeText: none,
-      ShortHook: none,
-      ShortLoop: none,
-      ShortLength: none,
+      ShortUnsafeText: short,
+      ShortHook: short,
+      ShortLoop: short,
+      ShortLength: short,
     }),
   )(finding);
 };
@@ -744,9 +791,10 @@ export const report = (found: ReadonlyArray<Finding>, options: CheckOptions): Re
   return { findings, errors, warnings: findings.length - errors };
 };
 
-/** One finding as `check --json` prints it and the lab reads it; an empty address is left out. */
-export const lineOf = ({ level, finding, address }: Reported): CheckLine => {
-  const line = { level, tag: finding._tag, message: finding.message };
-  if (Object.keys(address).length === 0) return line;
-  return { ...line, address };
-};
+/** One finding as `check --json` prints it and the lab reads it, with its address. */
+export const lineOf = ({ level, finding, address }: Reported): CheckLine => ({
+  level,
+  tag: finding._tag,
+  message: finding.message,
+  address,
+});

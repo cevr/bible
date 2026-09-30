@@ -908,7 +908,13 @@ redo are `SourceWriter`'s (below, "How a pick lands").
 **The check after a write** is `FreshFilm.check(film, 'static')`
 (`fresh-film.ts`): `film check <film> --static --allow-stale --json` in a new
 process (this one imported the scene modules at start), its findings each
-with its address, which the lab lists. The static leg never mixes or opens a
+with its address (`FindingAddress`: the `part` it is about, an `Address`,
+the film's when it is about the whole, an act's for a colour script, a
+short's for a short; and the film second it starts at, when it has one),
+which the lab lists. A film that does not lay out (a cue on a mark its line
+lacks, a cycle, a duplicate mark) or a part the check names that it lacks
+is the one finding the check reports, at its scene (`laidOut` in
+`film-check.ts`), not a failed run. The static leg never mixes or opens a
 browser. A check that does not run (a line that does not decode, a crash, 30 s
 gone) is itself one error finding, `FreshProcessFailed`, in its words.
 

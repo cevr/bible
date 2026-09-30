@@ -5,6 +5,7 @@
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
+import { Address } from './address.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -1010,12 +1011,16 @@ export const ResolvedCue = Schema.Struct({
 export type ResolvedCue = typeof ResolvedCue.Type;
 
 /**
- * Where in the film a finding is: the scene it names, and the film second it
- * starts at. A finding about the whole film (a stale master, a missing sound)
- * has neither; one about a scene's declarations has only the scene.
+ * Where in the film a finding is: the part it is about (`Address`: the whole
+ * film, an act, a scene, a short), and the film second it starts at when it
+ * has one. A finding about the whole film (a stale master, a missing sound)
+ * is the Film's; one about a scene's declarations has only its scene; a
+ * short's has no film second, its seconds being its own.
  */
 export const FindingAddress = Schema.Struct({
-  scene: Schema.optionalKey(Schema.String),
+  // Read when a line is decoded, not when this module loads: address.ts
+  // reaches this module through layout.ts.
+  part: Schema.suspend((): Schema.Codec<Address> => Address),
   time: Schema.optionalKey(Schema.Finite),
 });
 export type FindingAddress = typeof FindingAddress.Type;

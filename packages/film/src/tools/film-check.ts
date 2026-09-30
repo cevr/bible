@@ -6,9 +6,9 @@
 // (Checker). Each hands back its findings; `report` levels and addresses them
 // as one Report.
 
-import { Effect, FileSystem, Option } from 'effect';
-import type { Scope } from '../core/address.ts';
-import { type Placed, everyTakeRecorded } from '../core/layout.ts';
+import { Effect, FileSystem, Option, Result } from 'effect';
+import { type Address, type AddressError, type Scope, resolveAddress } from '../core/address.ts';
+import { type LayoutError, type Placed, everyTakeRecorded, layout } from '../core/layout.ts';
 import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
@@ -25,6 +25,33 @@ export const CHECK_RULES: ReadonlyArray<FlagRule> = [
   ['sound', 'excludes', 'static', '--static leaves the mix out, --sound runs it'],
   ['sound', 'excludes', 'short', 'a short has no mix of its own'],
 ];
+
+/** The film laid out, and the part of it a check covers. */
+export interface LaidOut {
+  readonly placed: ReadonlyArray<Placed>;
+  readonly scope: Scope;
+}
+
+/**
+ * The film laid out and `address` resolved on it, or the one error that
+ * stops them: a timeline that does not resolve, a line that does not parse,
+ * acts or a short that do not lay out, a part the film lacks. The check
+ * reports it as its finding, addressed at its scene, rather than failing
+ * the run, so the lab's findings show it where it is.
+ */
+export const laidOut = (
+  film: LoadedFilm,
+  address: Address,
+): Result.Result<LaidOut, LayoutError | AddressError> =>
+  Result.flatMap(layout(film.scenes, film.timings), (placed) =>
+    Result.map(
+      resolveAddress(
+        { name: film.paths.name, placed, look: film.look, shorts: film.shorts },
+        address,
+      ),
+      (scope): LaidOut => ({ placed, scope }),
+    ),
+  );
 
 /**
  * What the film's files tell without a mix or a frame: cues, takes, sounds,
