@@ -57,7 +57,7 @@ import {
   MediaFailed,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { FreshProcessFailed } from '../core/refusals.ts';
+import { ElevenLabsFailed, FreshProcessFailed } from '../core/refusals.ts';
 import { cueOf } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';
@@ -399,6 +399,23 @@ export const heardAt = (said: string) =>
     .filter((w) => w.length > 0)
     .map((w, i) => ({ text: w, start: i * 0.5, end: i * 0.5 + 0.4, type: 'word' }));
 
+/** ElevenLabs that refuses every call, paid or not: for a test in which nothing may reach the API. */
+export const refusingElevenLabs = Layer.succeed(
+  ElevenLabs,
+  ElevenLabs.of({
+    tts: () => Effect.fail(ElevenLabsFailed.make({ op: 'tts', exitCode: -1, reason: 'refused' })),
+    dialogue: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'dialogue', exitCode: -1, reason: 'refused' })),
+    stt: () => Effect.fail(ElevenLabsFailed.make({ op: 'stt', exitCode: -1, reason: 'refused' })),
+    composeMusic: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'music', exitCode: -1, reason: 'refused' })),
+    soundEffect: () =>
+      Effect.fail(ElevenLabsFailed.make({ op: 'sfx', exitCode: -1, reason: 'refused' })),
+    ready: Effect.void,
+    apiKey: Effect.succeed(Redacted.make('never used')),
+  }),
+);
+
 /**
  * Speech comes back aligned one character per 0.05 s, and its "audio" is the
  * text itself, padded with one space per take so no two takes are the same
@@ -519,17 +536,16 @@ export const noRecording = {
   still: () => Effect.void,
   phoneCopy: () => Effect.void,
   remux: () => Effect.void,
-  copySound: () => Effect.void,
 } satisfies Pick<
   MediaService,
-  'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy' | 'remux' | 'copySound'
+  'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy' | 'remux'
 >;
 
 /**
  * Media as the review uses it, on disk: every video lasts `seconds`, and a
  * still or a phone copy is the video copied whole. Each call lands in `calls`
  * (`duration <file>`, `still <video> <at> <width>`, `phone <video>`), so a
- * test counts what was made; a video that is not there fails as ffmpeg would.
+ * test counts what was made; a video that is not there fails as the real media does.
  */
 export const reviewMedia = (calls: Array<string>, seconds = 12.5) =>
   Layer.effect(
@@ -604,8 +620,6 @@ export const fakeMedia = (
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
       remux: (video) => Effect.sync(() => void files.set(video, text(`remuxed ${video}`))),
-      copySound: (video, from) =>
-        Effect.sync(() => void files.set(video, text(`sound of ${from} under ${video}`))),
       shareCopy: (master, out) =>
         Effect.sync(() => void files.set(out, text(`share of ${master}`))),
       load: (file, rate) =>
@@ -903,7 +917,13 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       () => Effect.sync(() => void (ledger.browser.closed += 1)),
     ),
   );
-  const media = Layer.succeed(
+  return Layer.mergeAll(server, browser, fakeRenderMedia(ledger, host));
+};
+
+/** The render host's media alone: it measures the master and records every film it joins. */
+export const fakeRenderMedia = (ledger: RenderLedger, host: FakeRenderHost = {}) => {
+  const info = Option.getOrElse(Option.fromNullishOr(host.info), () => testExportInfo);
+  return Layer.succeed(
     Media,
     Media.of({
       ...noRecording,
@@ -919,7 +939,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
       shareCopy: (master, out) => Effect.sync(() => void ledger.shareCopies.push({ master, out })),
       remux: (video) => Effect.sync(() => void ledger.remuxes.push(video)),
-      copySound: (video) => Effect.sync(() => void ledger.remuxes.push(video)),
       join: (film) =>
         Effect.sync(() => void ledger.joins.push(film)).pipe(
           Effect.andThen(
@@ -931,7 +950,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
         ),
     }),
   );
-  return Layer.mergeAll(server, browser, media);
 };
 
 export const testVoice: Voice = {

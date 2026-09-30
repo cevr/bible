@@ -2,9 +2,8 @@
 // process, as its page builds it (the film's own `film()` from its committed
 // timings, drawn by the compositor), at its first frame, each cue's edges and
 // midpoint, its 60% point and its last frame. A scene that reads a mark, a
-// cue or a knob its film no longer has throws at draw time (4f46add3 was a
-// `declared` card reading `{declared}` after the revised script removed the
-// mark): `DrawThrew`.
+// cue or a knob its film no longer has (a card reading a mark a revised
+// script removed) throws at draw time: `DrawThrew`.
 //
 // Bun has no canvas, so each frame is drawn into the framework's stand-in
 // context (`canvas/fixtures/stand-in.ts`), keeping nothing: every call it does
@@ -16,7 +15,8 @@
 // of a cue) still needs a render to find.
 //
 // Every sampled frame is also pure: a function of its time, not of what the
-// film drew before (ab75a2a1, 5da347fd). Where a cue starts and at each
+// film drew before (a scene easing from a value it kept from the last
+// frame). Where a cue starts and at each
 // scene's 60% point, the frame is drawn after the frame after it, and again
 // after the frame before it, into a context that logs every call; the two
 // logs must be the same, else `FrameImpure`. Those draws are that moment's
@@ -31,11 +31,12 @@
 // last time the paper is drawn.
 //
 // Each moment is drawn with the probe collecting faces, strokes and text, so
-// ink or text drawn over a face is found (`InkOverFace`). The stand-in sets
+// ink or text drawn over a face the viewer sees (`seenFace`: its scene's own,
+// mostly opaque, centred on the frame) is found (`InkOverFace`). The stand-in sets
 // text a width from its font's size and a fixed height, so a line of text is
 // found over a face where its baseline strip crosses the face's core.
 
-import { Array as Arr, Effect, Option, Predicate, type Scope } from 'effect';
+import { Array as Arr, Effect, Option, Order, Predicate, type Scope } from 'effect';
 import type { Film } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import { isStandInCanvas, recorder, standInDom } from '../canvas/fixtures/stand-in.ts';
@@ -289,15 +290,16 @@ const drawAt = (film: Film, m: DrawMoment): Effect.Effect<ReadonlyArray<DrawFind
   const where = { scene: m.scene, time: m.time, at: m.at };
   const sample = { ...where, frame: m.frame };
   const probe = sinkOf();
+  const frame = { width: film.width, height: film.height };
   return Effect.sync((): ReadonlyArray<DrawFinding> => {
     if (!m.pure) {
       film.render(blank(), m.time, { captions: true, probe });
-      return inkOverFace(sample, probe);
+      return inkOverFace(sample, probe, frame);
     }
     const impure = Option.map(impureAt(film, m.frame, probe), (why) =>
       FrameImpure.make({ ...where, why }),
     );
-    return [...Option.toArray(impure), ...inkOverFace(sample, probe)];
+    return [...Option.toArray(impure), ...inkOverFace(sample, probe, frame)];
   }).pipe(
     Effect.catchDefect((defect) =>
       Effect.succeed([DrawThrew.make({ ...where, why: String(defect) })]),
@@ -305,14 +307,19 @@ const drawAt = (film: Film, m: DrawMoment): Effect.Effect<ReadonlyArray<DrawFind
   );
 };
 
-/** Ink over one face in many frames, as one finding per scene: the first, with how many frames show it. */
+/**
+ * Ink over the faces of a scene in many frames, as one finding per scene: the
+ * first seen face it lies over (the moment the owner is sent to), the most
+ * strokes over any one face, every line of text, and how many sampled frames
+ * show it (a frame with ink over two faces counts once).
+ */
 const mergeFaces = (found: ReadonlyArray<DrawFinding>): ReadonlyArray<DrawFinding> => {
   const faces = Arr.groupBy(
     found.filter((f) => f._tag === 'InkOverFace'),
     (f) => f.scene,
   );
   const merged = Object.values(faces).map((same) => {
-    const first = Arr.headNonEmpty(same);
+    const first = Arr.headNonEmpty(Arr.sortWith(same, (f) => f.time, Order.Number));
     return InkOverFace.make({
       scene: first.scene,
       time: first.time,
@@ -322,7 +329,7 @@ const mergeFaces = (found: ReadonlyArray<DrawFinding>): ReadonlyArray<DrawFindin
       size: first.size,
       strokes: Math.max(...same.map((f) => f.strokes)),
       texts: Arr.dedupe(same.flatMap((f) => f.texts)),
-      frames: same.length,
+      frames: new Set(same.map((f) => f.time)).size,
     });
   });
   return [...found.filter((f) => f._tag !== 'InkOverFace'), ...merged];

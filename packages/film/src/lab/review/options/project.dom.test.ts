@@ -26,6 +26,7 @@ import {
   refused,
   route,
 } from '../../fixtures/harness.ts';
+import { attached, countIs, until, valueIs, waitFor } from '../../fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -303,15 +304,6 @@ const fakeProject = (elsewhere = false) => {
 
 const PROJECT = '?project=toy';
 
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-/** Wait for `selector` in the page, shown or folded away. */
-const waitAttached = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector, { state: 'attached' }));
-
-const until = (page: Page, check: string) => Effect.promise(() => page.waitForFunction(check));
-
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
 const evaluate = <A>(page: Page, script: string) =>
@@ -388,14 +380,14 @@ describe("a film's project", () => {
         ).toBe('not rendered yet: film project render toy --scene end');
         // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
         yield* waitFor(page, '.rv-film [data-point="score"]');
-        yield* waitAttached(
+        yield* attached(
           page,
           '[data-act-name="opening"] > .rv-layers [data-point="take:paper.hum"]',
         );
-        yield* waitAttached(page, '.rv-film [data-point="take:room.tone"]');
+        yield* attached(page, '.rv-film [data-point="take:room.tone"]');
         // The take with its scene, the voice with its beat.
-        yield* waitAttached(page, `${scene('open')} [data-point="take:paper.page"]`);
-        yield* waitAttached(page, `${scene('close')} [data-point="voice:close"]`);
+        yield* attached(page, `${scene('open')} [data-point="take:paper.page"]`);
+        yield* attached(page, `${scene('close')} [data-point="voice:close"]`);
         // Each card once: a scene links the layers that play in it but sit elsewhere.
         expect(
           yield* evaluate<number>(
@@ -458,15 +450,10 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
-        expect(
-          yield* evaluate<boolean>(
-            page,
-            `document.querySelector('[data-act="withdraw-act"]') === null`,
-          ),
-        ).toBe(true);
+        yield* countIs(page, '[data-act="withdraw-act"]', 0);
         yield* click(page, '[data-act="withdraw-all"]');
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
-        yield* until(page, `document.querySelector('[data-act="withdraw-all"]') === null`);
+        yield* countIs(page, '[data-act="withdraw-all"]', 0);
 
         yield* Effect.promise(() =>
           page.fill('[data-act-name="opening"] > .rv-say .rv-comment-input', 'the act drags'),
@@ -558,8 +545,6 @@ describe("a film's project", () => {
           { search: PROJECT },
         );
         const box = (at: string) => `${at} .rv-comment-input`;
-        const valueOf = (at: string) =>
-          evaluate<string>(page, `document.querySelector('${box(at)}').value`);
         /** Say `text` in the box at `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
         const failedSay = (at: string, text: string, path: string, n: number, status: string) =>
           Effect.gen(function* () {
@@ -579,9 +564,9 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
         yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'p.rv-status');
-        expect(yield* valueOf(render('open'))).toBe('a long thoughtful note');
+        yield* valueIs(page, box(render('open')), 'a long thoughtful note');
         yield* failedSay('.rv-film > .rv-say', 'of the whole film', PROJECT_SAY, 2, 'p.rv-status');
-        expect(yield* valueOf('.rv-film > .rv-say')).toBe('of the whole film');
+        yield* valueIs(page, box('.rv-film > .rv-say'), 'of the whole film');
         yield* click(page, `${scene('open')} > .rv-layers > summary`);
         yield* failedSay(
           take,
@@ -590,12 +575,12 @@ describe("a film's project", () => {
           1,
           '.rv-writes .rv-status',
         );
-        expect(yield* valueOf(take)).toBe('the page is late');
+        yield* valueIs(page, box(take), 'the page is late');
         // The film loads again: the kept comment is said, and its box empties.
         loads = true;
         yield* click(page, `${render('open')} [data-act="comment"]`);
         yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
-        yield* until(page, `document.querySelector('${box(render('open'))}').value === ''`);
+        yield* valueIs(page, box(render('open')), '');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -624,7 +609,7 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeProject(), { search: PROJECT });
         const take = `${scene('open')} [data-point="take:paper.page"]`;
-        yield* waitAttached(page, take);
+        yield* attached(page, take);
         const reads = (from: number) =>
           asked
             .slice(from)

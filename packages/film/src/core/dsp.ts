@@ -1,9 +1,9 @@
 // The mix's signal processing: sounds added in at a frame, the score's fades,
 // the duck under the voice and the final limiter. The fade, duck and limiter
-// are ported from the ffmpeg filters the mix was first built and balanced with
-// (FFmpeg n9.0.1, libavfilter: afade, sidechaincompress, alimiter) and keep
-// their arithmetic, so a mix sounds as it did when it was balanced. Pure
-// sample loops over planar Float32Arrays; past an array's end reads silence.
+// keep the arithmetic of libavfilter's afade, sidechaincompress and alimiter
+// (n9.0.1), the filters the mix was balanced with, so a mix sounds as it
+// did when it was balanced. Pure sample loops over planar Float32Arrays;
+// past an array's end reads silence.
 
 /** `secs` as a frame count at `rate`, to the nearest frame. */
 export const toFrames = (secs: number, rate: number): number => Math.round(secs * rate);
@@ -247,9 +247,8 @@ export const limit = (
 /**
  * `input` through af_alimiter.c `filter_frame` with `level=false`, no
  * auto-release and no latency compensation, written into `out`: the output
- * runs one attack window (less a frame) behind the input, as it did in the
- * ffmpeg graph. `out` may be `input` itself: each frame is read before it
- * is written.
+ * runs one attack window (less a frame) behind the input, as alimiter's does.
+ * `out` may be `input` itself: each frame is read before it is written.
  */
 export const limitInto = (
   input: ReadonlyArray<Float32Array>,

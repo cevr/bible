@@ -12,6 +12,14 @@ export interface Camera {
 }
 
 /**
+ * The unmoved frame: the canvas itself (a film's default 1920 × 1080, at its
+ * centre, zoom 1). A scene's rest, a `shotPath`'s base and what a push comes
+ * back to; a constant, not a knob, since there is nothing to move. Frozen:
+ * blend into a camera of your own, never into this one.
+ */
+export const UNMOVED: Readonly<Camera> = Object.freeze({ x: 960, y: 540, zoom: 1 });
+
+/**
  * Who hears of the cameras a context applies (the lab's knob reads: a knob
  * read before a camera is drawn where the camera puts it), and how many
  * cameras deep it draws now. Only a frame recording its knob reads listens;

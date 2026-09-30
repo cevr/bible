@@ -42,6 +42,7 @@ import {
   rounded,
   sky,
   plate,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -147,6 +148,9 @@ const knobs = {
   // Toward the pulpit's light.
   pulpit: [960, 560],
   pulpitZoom: 1.15,
+  // As the roof lifts, how far the camera rises, and the zoom it pulls back to.
+  roofRise: 60,
+  roofZoom: 1,
   // Where the figure on the page stands.
   figureAt: [960, 1010],
   angelAt: [1620, 330],
@@ -201,8 +205,6 @@ const DARK_WINDOWS = [720, 900] as const;
  * the frame's corners (75 × 16 = 1200 > the half-diagonal, 1101).
  */
 const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] - 90, zoom: 16 };
-/** The unmoved frame (the canvas itself, so not a knob): where the push through the emblem starts. */
-const FRAME: Camera = { x: 960, y: 540, zoom: 1 };
 /** The figure from `mirror`, small and screen-left, in the rags of their own sewing. */
 const LOOKER: Pt = [330, HALL_GROUND + 20];
 const LOOKER_S = 1.7;
@@ -325,7 +327,11 @@ export const message = drawing({
         [f.at('toPulpit'), knobCamera(f.knob('pulpit'), f.knob('pulpitZoom'))],
       ]);
       const roof = f.at('roof');
-      const up: Camera = { ...cam, y: cam.y - 60 * roof, zoom: lerp(cam.zoom ?? 1, 1, roof) };
+      const up: Camera = {
+        ...cam,
+        y: cam.y - f.knob('roofRise') * roof,
+        zoom: lerp(cam.zoom ?? 1, f.knob('roofZoom'), roof),
+      };
       const into = f.at('window');
       if (into < 1) outside(f, into, () => hall(f, up, roof));
       else hall(f, up, roof);
@@ -357,7 +363,7 @@ export const message = drawing({
       const meet = f.at('meet');
       if (meet > 0) {
         const [ex, ey] = f.knob('emblem');
-        const cam = shotPath(FRAME, [
+        const cam = shotPath(UNMOVED, [
           [through, knobCamera(f.knob('emblem'), f.knob('emblemZoom')), pushInto],
         ]);
         // Held as framed (no drift): the emblem sits still until the push.

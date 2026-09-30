@@ -33,6 +33,7 @@ import type { Pcm } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { lineError } from '../core/spoken.ts';
+import type { ReadBeat } from '../core/studio.ts';
 import { prepareTake } from '../core/recording.ts';
 import { voicedWords } from '../core/voiced.ts';
 import { type Timings, VoiceTiming } from '../core/schema.ts';
@@ -47,7 +48,7 @@ import {
 } from './errors.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { Media } from './media.ts';
-import { type Beat, MAX_WORD_ERROR, type VoicedFilm, contentHash, takeFile } from './narrator.ts';
+import { MAX_WORD_ERROR, type VoicedFilm, contentHash, takeFile } from './narrator.ts';
 
 /** The files a recording may be: what the owner's recorder saves. */
 export const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
@@ -127,7 +128,7 @@ const beatNamed = (file: string): string => {
 };
 
 /** The beats with lines, by id. */
-const spokenBeats = (beats: ReadonlyArray<Beat>) =>
+const spokenBeats = (beats: ReadonlyArray<ReadBeat>) =>
   new Map(beats.filter((b) => b.text.length > 0).map((b) => [b.id, b]));
 
 /** The one beat named by `--only`, when it names exactly one. */
@@ -252,7 +253,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       /** A recording, already loaded, made into an attempt at `beat`'s take. */
       const attempt = Effect.fn('Takes.attempt')(function* (
         film: VoicedFilm,
-        beat: Beat,
+        beat: ReadBeat,
         source: Source,
         recording: Pcm,
       ) {
@@ -301,7 +302,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       /** Make an attempt the beat's take: beside the others, named by the timings. */
       const keep = Effect.fn('Takes.keep')(function* (
         film: VoicedFilm,
-        beat: Beat,
+        beat: ReadBeat,
         made: Attempt,
         options: BeatOptions,
       ) {
@@ -345,7 +346,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         } satisfies Imported;
       });
 
-      const importOne = (film: VoicedFilm, beat: Beat, file: string, options: BeatOptions) =>
+      const importOne = (film: VoicedFilm, beat: ReadBeat, file: string, options: BeatOptions) =>
         Effect.gen(function* () {
           const recording = yield* media.load(file, MIX_RATE);
           const original = yield* keepOriginal(film, beat.id, file);

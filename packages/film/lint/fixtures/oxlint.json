@@ -11,6 +11,8 @@
     "film/no-ease-on-cue": "error",
     "film/no-cue-remap": "error",
     "film/framing-is-a-knob": "error",
-    "film/no-point-free-log": "error"
+    "film/no-point-free-log": "error",
+    "film/no-read-once": "error",
+    "film/spawn-budget": "error"
   }
 }

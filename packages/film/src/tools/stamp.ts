@@ -19,7 +19,9 @@
 //   modules, which that transition draws.
 //
 // Files are hashed by content and named relative to the films folder, so two
-// checkouts of the same sources agree. Anything else a frame reads at run
+// checkouts of the same sources agree when the films folder sits at the same
+// depth in each (a worktree or a rift of the repo does): a workspace module
+// such as `@bible/film/player` is named by its path from there. Anything else a frame reads at run
 // time (a font or image fetched by URL) is not in the key.
 
 import { createRequire } from 'node:module';
@@ -147,6 +149,12 @@ export interface StampsService {
   ) => Effect.Effect<SceneKeys, StampError>;
 }
 
+/** A file as the stamp read it: its content hash and the files its imports name. */
+interface Read {
+  readonly hash: string;
+  readonly imports: ReadonlyArray<string>;
+}
+
 export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/film/tools/Stamps') {
   static readonly layer = Layer.effect(
     Stamps,
@@ -187,30 +195,44 @@ export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/fil
         return workspace(spec, from);
       };
 
+      /** `file` hashed, and its imports resolved to the files they name (none for a non-source file). */
+      const readOnce = Effect.fn('Stamps.read')(function* (file: string) {
+        const source = yield* fs.readFileString(file);
+        const imports: Array<string> = [];
+        if (SOURCE.includes(path.extname(file)))
+          for (const spec of importsOf(file, source)) {
+            const to = yield* resolve(spec, file);
+            if (Option.isSome(to)) imports.push(to.value);
+          }
+        return { hash: sha256Hex(source), imports } satisfies Read;
+      });
+
       /**
-       * Every file reached from `roots` through their imports, each hashed,
-       * except where `cut(from, to)` says an import is not followed. `hashes`
-       * keeps a file's hash across calls.
+       * Every file reached from `roots` through their imports, except where
+       * `cut(from, to)` says an import is not followed. `reads` keeps each
+       * file's hash and resolved imports for the whole call, so a file many
+       * scenes import is read, parsed and resolved once.
        */
       const closure = Effect.fn('Stamps.closure')(function* (
         roots: ReadonlyArray<string>,
         cut: (from: string, to: string) => boolean,
-        hashes: Map<string, string>,
+        reads: Map<string, Read>,
       ) {
         const seen = new Set<string>();
         let queue = [...roots];
         while (queue.length > 0) {
           const next: Array<string> = [];
           for (const file of queue) {
-            if (seen.has(file) || !(yield* isFile(file))) continue;
+            if (seen.has(file)) continue;
+            const known = Option.fromUndefinedOr(reads.get(file));
+            if (Option.isNone(known) && !(yield* isFile(file))) continue;
             seen.add(file);
-            const source = yield* fs.readFileString(file);
-            if (!hashes.has(file)) hashes.set(file, sha256Hex(source));
-            if (!SOURCE.includes(path.extname(file))) continue;
-            for (const spec of importsOf(file, source)) {
-              const to = yield* resolve(spec, file);
-              if (Option.isSome(to) && !cut(file, to.value)) next.push(to.value);
-            }
+            const read = yield* Option.match(known, {
+              onNone: () => readOnce(file),
+              onSome: Effect.succeed,
+            });
+            reads.set(file, read);
+            for (const to of read.imports) if (!cut(file, to)) next.push(to);
           }
           queue = next;
         }
@@ -236,7 +258,7 @@ export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/fil
       ) {
         const dir = film.paths.dir;
         const films = path.dirname(dir);
-        const hashes = new Map<string, string>();
+        const reads = new Map<string, Read>();
         const located = yield* sources.locate(film.paths.name);
         const sceneFiles = new Set([...located.sites.values()].map((s) => s.file));
         const registry = path.join(dir, 'scenes', 'index.ts');
@@ -244,21 +266,21 @@ export class Stamps extends Context.Service<Stamps, StampsService>()('@bible/fil
         const frame = yield* closure(
           [path.join(dir, 'film.ts'), registry, ...Option.toArray(player)],
           (from, to) => from === registry && sceneFiles.has(to),
-          hashes,
+          reads,
         );
         /** A scene's own modules: its drawing's file and all it imports. */
         const own = (id: string) =>
           Option.match(Option.fromUndefinedOr(located.sites.get(id)), {
             onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
-            onSome: (site) => closure([site.file], () => false, hashes),
+            onSome: (site) => closure([site.file], () => false, reads),
           });
         const digest = (files: ReadonlyArray<string>) =>
           Arr.dedupe(files)
             .flatMap((file) =>
               Option.toArray(
                 Option.map(
-                  Option.fromUndefinedOr(hashes.get(file)),
-                  (hash) => [path.relative(films, file), hash] as const,
+                  Option.fromUndefinedOr(reads.get(file)),
+                  (read) => [path.relative(films, file), read.hash] as const,
                 ),
               ),
             )

@@ -14,7 +14,7 @@
 // as itself. `film check --json` answers with one `CheckLine` per finding; a
 // check that cannot run is itself one error finding. Logs go to stderr.
 
-import { Console, Context, Duration, Effect, Layer, Match, Option, Schema } from 'effect';
+import { Console, Context, Duration, Effect, Layer, Option, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
@@ -109,7 +109,7 @@ export const FreshLine = Schema.Union([
 export type FreshLine = typeof FreshLine.Type;
 
 /** `FreshLine` as the JSON text the child prints and the review reads. */
-export const FreshLineJson = Schema.fromJsonString(FreshLine);
+const FreshLineJson = Schema.fromJsonString(FreshLine);
 
 /** Print `line` as the run's answer: one line of JSON on stdout. */
 export const printLine = (line: FreshLine) =>
@@ -278,34 +278,25 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return line;
         });
 
-        /** What `command` answers, or that it answered something else. */
-        const expect = <A>(
-          command: string,
-          line: FreshLine,
-          pick: (line: FreshLine) => Option.Option<A>,
+        /** `film <args>`'s answer when it is `answered`, or that it answered something else. */
+        const ask = <A extends FreshLine>(
+          args: ReadonlyArray<string>,
+          limit: Duration.Duration,
+          answered: Schema.Schema<A>,
         ) =>
-          Effect.fromOption(pick(line), () =>
-            FreshProcessFailed.make({ command, reason: `answered ${line._tag}` }),
+          Effect.filterOrFail(answer(args, limit), Schema.is(answered), (line) =>
+            FreshProcessFailed.make({
+              command: `film ${args.slice(0, 2).join(' ')}`,
+              reason: `answered ${line._tag}`,
+            }),
           );
 
         const choices = Effect.fn('FreshFilm.choices')(function* (film: FilmName) {
-          const line = yield* answer(['options', 'list', film], READ_LIMIT);
-          return yield* expect('film options list', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('OptionsListed', (listed) => Option.some(listed.points)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return (yield* ask(['options', 'list', film], READ_LIMIT, OptionsListed)).points;
         });
 
         const checked = Effect.fn('FreshFilm.checked')(function* (film: FilmName) {
-          const line = yield* answer(['options', 'list', film, '--check'], READ_LIMIT);
-          return yield* expect('film options list --check', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('OptionsChecked', (listed) => Option.some(listed)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return yield* ask(['options', 'list', film, '--check'], READ_LIMIT, OptionsChecked);
         });
 
         const mix = Effect.fn('FreshFilm.mix')(function* (
@@ -314,12 +305,10 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           variant: string,
           to: string,
         ) {
-          const line = yield* answer(
+          yield* ask(
             ['options', 'mix', film, '--point', point, '--variant', variant, '--to', to],
             MIX_LIMIT,
-          );
-          yield* expect('film options mix', line, (l) =>
-            Option.liftPredicate(l, (x) => x._tag === 'OptionsMixed'),
+            OptionsMixed,
           );
         });
 
@@ -328,13 +317,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           beat: string,
           file: string,
         ) {
-          const line = yield* answer(['options', 'keep-voice', film, beat, file], MIX_LIMIT);
-          return yield* expect('film options keep-voice', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('OptionsKept', (kept) => Option.some(kept)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return yield* ask(['options', 'keep-voice', film, beat, file], MIX_LIMIT, OptionsKept);
         });
 
         const take = Effect.fn('FreshFilm.take')(function* (
@@ -343,23 +326,15 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           sha: string,
           verb: ChoiceVerb,
         ) {
-          const line = yield* answer(
+          yield* ask(
             ['options', 'take', film, '--point', point, '--variant', sha, '--verb', verb],
             READ_LIMIT,
-          );
-          yield* expect('film options take', line, (l) =>
-            Option.liftPredicate(l, (x) => x._tag === 'OptionsTaken'),
+            OptionsTaken,
           );
         });
 
         const reading = Effect.fn('FreshFilm.reading')(function* (film: FilmName) {
-          const line = yield* answer(['read', 'voice', film], READ_LIMIT);
-          return yield* expect('film read voice', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('VoiceRead', (read) => Option.some(read.reading)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return (yield* ask(['read', 'voice', film], READ_LIMIT, VoiceRead)).reading;
         });
 
         const cue = Effect.fn('FreshFilm.cue')(function* (
@@ -373,13 +348,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
             onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
             onSome: (s) => Effect.map(Effect.orDie(encodeTimeline(s)), (json) => ['--spans', json]),
           });
-          const line = yield* answer(['read', 'cue', film, scene, name, ...given], READ_LIMIT);
-          return yield* expect('film read cue', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('CueRead', (read) => Option.some(read)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return yield* ask(['read', 'cue', film, scene, name, ...given], READ_LIMIT, CueRead);
         });
 
         const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
@@ -392,13 +361,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
         });
 
         const project = Effect.fn('FreshFilm.project')(function* (args: ReadonlyArray<string>) {
-          const line = yield* answer(['project', ...args], READ_LIMIT);
-          return yield* expect('film project', line, (l) =>
-            Match.value(l).pipe(
-              Match.tag('ProjectRead', (read) => Option.some(read.project)),
-              Match.orElse(() => Option.none()),
-            ),
-          );
+          return (yield* ask(['project', ...args], READ_LIMIT, ProjectRead)).project;
         });
 
         /** `film check <film> --<leg>`: its findings; exit 1 is the check failing on them. */

@@ -10,23 +10,13 @@ import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { SourceRefused } from '../../core/refusals.ts';
 import { type Asked, hold, json, openLab, refused, route, sourceOne } from '../fixtures/harness.ts';
+import { attributeIs, attributesAre, textHas, textIs } from '../fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
 
-const statusOf = (page: Page) =>
-  Effect.promise(() => page.textContent('.lab-edit-status')).pipe(
-    Effect.map((t) => Option.getOrElse(Option.fromNullishOr(t), () => '')),
-  );
-
 /** Wait until the status line reads something containing `part`. */
-const statusSays = (page: Page, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (want) => (document.querySelector('.lab-edit-status')?.textContent ?? '').includes(want),
-      part,
-    ),
-  );
+const statusSays = (page: Page, part: string) => textHas(page, '.lab-edit-status', part);
 
 /** Wait until the lab has posted `n` writes. */
 const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
@@ -62,12 +52,8 @@ describe('the cue strip', () => {
     Effect.gen(function* () {
       const { page, errors } = yield* openLab([], { hash: '#1' });
       yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="fall"]'));
-      const cues = yield* Effect.promise(() =>
-        page.$$eval('.lab-cue', (els) => els.map((e) => e.getAttribute('data-cue'))),
-      );
-      expect(cues).toEqual(['rise', 'fall']);
-      const head = yield* Effect.promise(() => page.textContent('.lab-strip-head'));
-      expect(head).toContain('scenes/one.ts');
+      yield* attributesAre(page, '.lab-cue', 'data-cue', ['rise', 'fall']);
+      yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
@@ -86,10 +72,7 @@ describe('the cue strip', () => {
       );
       const search = yield* Effect.promise(() => page.evaluate(() => location.search));
       expect(search).toContain('sel=cue%3Aone%3Arise');
-      const selected = yield* Effect.promise(() =>
-        page.getAttribute('.lab-cue[data-cue="rise"]', 'class'),
-      );
-      expect(selected).toContain('selected');
+      yield* attributeIs(page, '.lab-cue[data-cue="rise"]', 'class', /\bselected\b/);
     }).pipe(Effect.scoped),
   );
 
@@ -106,8 +89,7 @@ describe('the cue strip', () => {
       });
       yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
       yield* dragBar(page, 'rise', 0.5, 60);
-      yield* statusSays(page, refusal);
-      expect(yield* statusOf(page)).toBe(refusal);
+      yield* textIs(page, '.lab-edit-status', refusal);
     }).pipe(Effect.scoped),
   );
 
@@ -122,11 +104,7 @@ describe('the cue strip', () => {
         { hash: '#1' },
       );
       yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
-      yield* Effect.promise(() =>
-        page.waitForFunction(() =>
-          document.querySelector('.lab-strip-head')?.textContent?.includes('scenes/one.ts'),
-        ),
-      );
+      yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       yield* dragBar(page, 'rise', 1, 30);
       yield* statusSays(page, 'cannot drag rise: its dur is computed in the source');
       expect(posted(asked)).toEqual([]);
@@ -215,8 +193,7 @@ describe('the inspector', () => {
         { hash: '#1' },
       );
       yield* Effect.promise(() => page.waitForSelector('.lab-finding'));
-      const finding = yield* Effect.promise(() => page.textContent('.lab-finding'));
-      expect(finding).toBe('late rise ends after the scene');
+      yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
       yield* Effect.promise(() => page.click('.lab-edit button[data-act="undo"]:not([disabled])'));
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       expect(posted(asked)).toEqual([{ path: '/undo', body: Option.some({}) }]);

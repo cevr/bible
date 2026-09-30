@@ -21,7 +21,7 @@ import { lerp } from '@bible/film/core';
 import { type GestureAt, C, F, type Person, christ, person, piece, type Hands } from './kit.ts';
 
 /** Christ as high priest: the white robe and sash, and the breastplate over them. */
-export const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands, plate = 1) => {
+const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands, plate = 1) => {
   christ(ctx, pose, hand);
   if (plate <= 0) return;
   piece(ctx, rounded(0, -88, 40, 44, 5), C.gold, hand('breastplate'), {
@@ -49,7 +49,7 @@ export const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Ha
 
 /** Where Christ stands in each apartment, in the sanctuary's units. */
 export const HOLY_PLACE: Pt = [-90, 0];
-export const MOST_HOLY: Pt = [230, 0];
+const MOST_HOLY: Pt = [230, 0];
 /** The sanctuary's scale for a figure standing in it. */
 export const IN_SANCTUARY = 1.55;
 
@@ -349,7 +349,7 @@ export const angel = (ctx: CanvasRenderingContext2D, hand: Hands, flap: number, 
 };
 
 /** The third angel's message, as Rev 14:12 words it. */
-export const BANNER = 'the commandments of God, and the faith of Jesus';
+const BANNER = 'the commandments of God, and the faith of Jesus';
 
 /**
  * The angel of Rev 14 flying in with the third angel's banner trailing to its

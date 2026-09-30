@@ -37,11 +37,11 @@ import {
   type ReadBeat,
   STUDIO_IMPORT_IDLE_S,
   STUDIO_MAX_BODY,
-  type SheetRow,
   type StudioBeat,
   type StudioReading,
   type StudioTake,
 } from '../core/studio.ts';
+import type { SheetBeat } from '../core/sheet.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { Connection, answered, named } from './api-server.ts';
 import {
@@ -104,7 +104,7 @@ const beatRow = (
   timings: Timings,
   voice: Voice,
   beat: ReadBeat,
-  sheet: Option.Option<SheetRow>,
+  sheet: Option.Option<SheetBeat>,
   attempts: number,
 ): StudioBeat => {
   const state = takeState(beat.id, beat.script, timings, voiceKey(voice));

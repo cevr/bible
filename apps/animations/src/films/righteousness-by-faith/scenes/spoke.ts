@@ -27,6 +27,7 @@ import {
   rounded,
   sky,
   wash,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -45,8 +46,6 @@ import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
 /** The book that comes up out of the gold, at the frame's middle. */
 const BOOK: Pt = [960, 560];
 
-/** The unmoved frame (the canvas itself, so not a knob). */
-const REST: Camera = { x: 960, y: 540, zoom: 1 };
 /** Through the word-bubble: on its disc, close enough that its gold is past the frame's corners. */
 const FAITH: Camera = {
   x: ICON_ROW.x + ICON_X[0] * ICON_ROW.scale,
@@ -114,7 +113,7 @@ export const spoke = drawing({
     const into = f.at('into');
     if (into < 1) {
       sky(ctx, w, h, ICON_SKY);
-      const cam = shotPath(REST, [[into, FAITH, pushInto]]);
+      const cam = shotPath(UNMOVED, [[into, FAITH, pushInto]]);
       const dim = f.at('dim');
       LIT[1] = 1 - dim;
       LIT[2] = 1 - dim;
@@ -164,7 +163,7 @@ export const spoke = drawing({
       ctx.fillStyle = C.gold;
       ctx.fillRect(0, 0, w, h);
       glow(ctx, w / 2, h / 2, 700, C.glow, 0.6);
-      const cam = shotPath(REST, [
+      const cam = shotPath(UNMOVED, [
         [plunge, knobCamera(f.knob('page'), f.knob('pageZoom')), pushInto],
       ]);
       camera(ctx, cam, w, h, () => {

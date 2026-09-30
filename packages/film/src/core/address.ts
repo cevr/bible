@@ -6,10 +6,12 @@
 // scenes, span and acts, and a misspelt name fails here with what the film
 // has. Pure: it reads only the placed film and its declarations.
 
-import { Array as Arr, Match, Option, Order, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Order, Result } from 'effect';
+import type { Address } from './address-schema.ts';
 import { type PartError, type Stretch, stretchesOf } from './acts.ts';
 import {
   AddressConflict,
+  ScenesApart,
   type ShortError,
   UnknownAct,
   UnknownShort,
@@ -20,40 +22,7 @@ import type { Act, Look, Short } from './schema.ts';
 import { resolveShort } from './shorts.ts';
 import { FILM_FPS, type Interval } from './time.ts';
 
-const FilmPart = Schema.TaggedStruct('Film', {});
-const ActPart = Schema.TaggedStruct('Act', { act: Schema.String });
-const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(Schema.String) });
-
-/** Which part of a film: the whole, one act, some scenes (in the order named), or one short. */
-export const Address = Schema.Union([
-  FilmPart,
-  ActPart,
-  ScenesPart,
-  Schema.TaggedStruct('Short', { id: Schema.String }),
-]);
-export type Address = typeof Address.Type;
-
-/**
- * A part of the film's own tree (the project's): the whole, one act, some
- * scenes. A short is cut across the film, not a branch of it.
- */
-export const PartAddress = Schema.Union([FilmPart, ActPart, ScenesPart]);
-export type PartAddress = typeof PartAddress.Type;
-
-/**
- * One address as a string, equal for equal addresses: `film`, `act:<name>`,
- * `scenes:<id>,<id>`, `short:<id>`. A record keyed by address compares these.
- */
-export const addressKey = (address: Address): string =>
-  Match.valueTags(address, {
-    Film: () => 'film',
-    Act: ({ act }) => `act:${act}`,
-    Scenes: ({ ids }) => `scenes:${ids.join(',')}`,
-    Short: ({ id }) => `short:${id}`,
-  });
-
-/** One scene's address. */
-export const sceneAddress = (id: string): Address => ({ _tag: 'Scenes', ids: [id] });
+export { Address, PartAddress, addressKey, sceneAddress } from './address-schema.ts';
 
 /** What a command was given to name its part: `--act`, `--scene a,b`, `--short`. */
 export interface AddressFlags {
@@ -110,7 +79,13 @@ export interface Scope {
 }
 
 /** Why an address does not resolve: a name the film lacks, or acts or a short that do not lay out. */
-export type AddressError = UnknownScene | UnknownAct | UnknownShort | PartError | ShortError;
+export type AddressError =
+  | UnknownScene
+  | ScenesApart
+  | UnknownAct
+  | UnknownShort
+  | PartError
+  | ShortError;
 
 /** The seconds from the first of `scenes` to start to the last to end. */
 const spanOf = (scenes: ReadonlyArray<Placed>): Interval => ({
@@ -167,19 +142,28 @@ export const resolveAddress = (
         ),
       ),
     // Named in any order, the scenes are one part: its address lists them as
-    // the film plays them, so `b,a` and `a,b` key one slot and one stamp.
+    // the film plays them, so `b,a` and `a,b` key one slot and one stamp. The
+    // part is one stretch, so its span covers exactly the scenes it names.
     Scenes: (named) =>
-      Result.map(scenesOf(film.placed, named.ids), (hit): Scope => {
+      Result.flatMap(scenesOf(film.placed, named.ids), (): Result.Result<Scope, ScenesApart> => {
         // Every id is the film's here: `scenesOf` refused any other.
-        const at = new Map(film.placed.map((p, i) => [p.spec.id, i]));
+        const ids = new Set(named.ids);
+        const first = film.placed.findIndex((p) => ids.has(p.spec.id));
+        const last = film.placed.findLastIndex((p) => ids.has(p.spec.id));
+        const run = film.placed.slice(first, last + 1);
+        const between = run.filter((p) => !ids.has(p.spec.id)).map((p) => p.spec.id);
+        if (between.length > 0)
+          return Result.fail(
+            ScenesApart.make({ named: inFilmOrder(film, ids).map((p) => p.spec.id), between }),
+          );
         const played = Order.mapInput(Order.Number, (id: string) =>
-          Option.getOrElse(Option.fromUndefinedOr(at.get(id)), () => 0),
+          run.findIndex((p) => p.spec.id === id),
         );
-        return {
+        return Result.succeed({
           address: { _tag: 'Scenes', ids: Arr.sort(Arr.dedupe(named.ids), played) },
-          ...stretch(inFilmOrder(film, new Set(hit.map((p) => p.spec.id)))),
+          ...stretch(run),
           acts: [],
-        };
+        });
       }),
     Short: (named) =>
       Result.flatMap(

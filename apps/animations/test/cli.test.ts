@@ -109,12 +109,15 @@ describe('film cli', () => {
     spawnBudget(1),
   );
 
-  it.effect.layer(BunServices.layer)('narrate --only with a misspelt beat fails', () =>
-    Effect.gen(function* () {
-      const run = yield* cli('narrate', film, '--only', 'open,typo', '--dry-run');
-      expect(run.exitCode).not.toBe(0);
-      unknownTypo(run.out);
-    }),
+  it.effect.layer(BunServices.layer)(
+    'narrate --only with a misspelt beat fails',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('narrate', film, '--only', 'open,typo', '--dry-run');
+        expect(run.exitCode).not.toBe(0);
+        unknownTypo(run.out);
+      }),
+    spawnBudget(1),
   );
 
   it.effect.layer(BunServices.layer)(
@@ -159,12 +162,15 @@ describe('film cli', () => {
     spawnBudget(2),
   );
 
-  it.effect.layer(BunServices.layer)('score composes only the score: --only is gone', () =>
-    Effect.gen(function* () {
-      const run = yield* cli('score', film, '--only', 'music', '--dry-run');
-      expect(run.exitCode).not.toBe(0);
-      expect(run.out).toContain('Unrecognized flag: --only');
-    }),
+  it.effect.layer(BunServices.layer)(
+    'score composes only the score: --only is gone',
+    () =>
+      Effect.gen(function* () {
+        const run = yield* cli('score', film, '--only', 'music', '--dry-run');
+        expect(run.exitCode).not.toBe(0);
+        expect(run.out).toContain('Unrecognized flag: --only');
+      }),
+    spawnBudget(1),
   );
 
   it.effect.layer(BunServices.layer)(

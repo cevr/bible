@@ -107,12 +107,13 @@ export const takeScript = (parsed: Parsed): string => {
 };
 
 /** One voice's stretch of a take. */
-export interface Line {
+export const Line = Schema.Struct({
   /** Its voice's name in the cast; empty when one voice reads the film. */
-  readonly name: string;
-  readonly voiceId: string;
-  readonly text: string;
-}
+  name: Schema.String,
+  voiceId: Schema.String,
+  text: Schema.String,
+});
+export type Line = typeof Line.Type;
 
 /**
  * The lines a take is read in: the whole take for a film with one voice, and

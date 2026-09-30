@@ -19,7 +19,7 @@ import {
   Option,
   Path,
   Schema,
-  type Scope,
+  Scope,
 } from 'effect';
 import { type Page, chromium } from 'playwright-core';
 import {
@@ -181,7 +181,12 @@ export const lumaOf = (page: FramePage, i: number, area: LumaArea) =>
       ),
     );
 
-export type PageOpenError = PageLoadFailed | PageError | PageCrashed | BrowserFailed;
+export type PageOpenError =
+  | PageLoadFailed
+  | PageError
+  | PageCrashed
+  | BrowserFailed
+  | BrowserMissing;
 
 export interface BrowserService {
   /** Open the player at `url` and wait for its export handle; the page closes with the scope. */
@@ -322,10 +327,27 @@ export const browserReady: Effect.Effect<void, BrowserMissing | BrowserFailed, P
 export class Browser extends Context.Service<Browser, BrowserService>()(
   '@bible/film/tools/Browser',
 ) {
-  /** Headless Chromium through Playwright, closed when the layer's scope closes. */
+  /**
+   * Headless Chromium through Playwright, launched when the first page opens
+   * and closed when the layer's scope closes: a command that draws nothing
+   * (a `project render` of current scenes, a refused flag) never starts it,
+   * and never needs it installed.
+   */
   static readonly layer = Layer.effect(
     Browser,
-    Effect.suspend(() => makeBrowser),
+    Effect.gen(function* () {
+      const scope = yield* Effect.scope;
+      const path = yield* Path.Path;
+      const launched = yield* Effect.cached(
+        Effect.suspend(() => makeBrowser).pipe(
+          Effect.provideService(Path.Path, path),
+          Scope.provide(scope),
+        ),
+      );
+      return Browser.of({
+        open: (url) => Effect.flatMap(launched, (browser) => browser.open(url)),
+      });
+    }),
   );
 }
 

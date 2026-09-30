@@ -27,6 +27,15 @@ import {
   route,
 } from '../fixtures/harness.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
+import {
+  attached,
+  attributeIs,
+  attributesAre,
+  countIs,
+  textIs,
+  textsAre,
+  until,
+} from '../fixtures/settled.ts';
 import { toneFile } from '../fixtures/tone.ts';
 import { COUNT_IN } from './machine.ts';
 
@@ -99,18 +108,8 @@ const studioRoutes: ReadonlyArray<FakeRoute> = [
   ),
 ];
 
-const textOf = (page: Page, sel: string) =>
-  Effect.promise(() => page.textContent(sel)).pipe(Effect.map((t) => t ?? ''));
-
-/** Wait until the element at `sel` reads `pattern`: a settled value, never the first one drawn. */
-const textIs = (page: Page, sel: string, pattern: RegExp) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      ([source, at]) => new RegExp(source).test(document.querySelector(at)?.textContent ?? ''),
-      [pattern.source, sel] as const,
-      { timeout: 10_000 },
-    ),
-  );
+/** The play button's label while the film is paused. */
+const PAUSED = '▶︎';
 
 /**
  * How often the page has asked for `path`, once it has more than `least`
@@ -198,50 +197,34 @@ describe('the studio', () => {
         Effect.gen(function* () {
           const { page, errors } = yield* withMic(0.5, ['microphone']);
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          expect(yield* textOf(page, '.studio-counts')).toBe('1 recorded · 1 staging · 1 stale');
-          const badges = yield* Effect.promise(() =>
-            page.$$eval('[data-role="badge"]', (els) => els.map((e) => e.textContent)),
-          );
-          expect(badges).toEqual(['recorded', 'staging', 'stale: text changed']);
-          expect(yield* textOf(page, '[data-role="prompter"]')).toBe('In the beginning.');
+          yield* textIs(page, '.studio-counts', '1 recorded · 1 staging · 1 stale');
+          yield* textsAre(page, '[data-role="badge"]', [
+            'recorded',
+            'staging',
+            'stale: text changed',
+          ]);
+          yield* textIs(page, '[data-role="prompter"]', 'In the beginning.');
           yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
           yield* Effect.promise(() => page.waitForSelector('.studio-quotation cite'));
-          expect(yield* textOf(page, '.studio-line')).toBe('The law is holy.');
-          expect(yield* textOf(page, '.studio-quotation p')).toBe(
-            'The law of the Lord is perfect.',
+          yield* textIs(page, '.studio-line', 'The law is holy.');
+          yield* textIs(page, '.studio-quotation p', 'The law of the Lord is perfect.');
+          yield* textIs(page, '.studio-quotation cite', 'David, Ps 19:7');
+          const files = ['thesis.new.flac', 'thesis.kept.flac', 'thesis.old.flac'];
+          yield* attributesAre(page, '.studio-attempt', 'data-file', files);
+          yield* textsAre(
+            page,
+            '.studio-attempt .studio-attempt-line',
+            files.map(() => '“the law is holy” · 0.0% · 2.5 s'),
           );
-          expect(yield* textOf(page, '.studio-quotation cite')).toBe('David, Ps 19:7');
-          yield* Effect.promise(() => page.waitForSelector('.studio-attempt'));
-          const rows = yield* Effect.promise(() =>
-            page.$$eval('.studio-attempt', (els) =>
-              els.map((e) => ({
-                file: e.getAttribute('data-file'),
-                line: e.querySelector('.studio-attempt-line')?.textContent,
-                keep: !(e.querySelector('[data-act="keep"]') as HTMLButtonElement).disabled,
-                src: e.querySelector('audio')?.getAttribute('src'),
-              })),
-            ),
+          // Only an attempt that is not the take can be kept.
+          yield* countIs(page, '.studio-attempt [data-act="keep"]:not([disabled])', 1);
+          yield* attached(page, '[data-file="thesis.new.flac"] [data-act="keep"]:not([disabled])');
+          yield* attributesAre(
+            page,
+            '.studio-attempt audio',
+            'src',
+            files.map((file) => `/lab/${PROBE}/studio/takes/thesis/attempts/${file}`),
           );
-          expect(rows).toEqual([
-            {
-              file: 'thesis.new.flac',
-              line: '“the law is holy” · 0.0% · 2.5 s',
-              keep: true,
-              src: `/lab/${PROBE}/studio/takes/thesis/attempts/thesis.new.flac`,
-            },
-            {
-              file: 'thesis.kept.flac',
-              line: '“the law is holy” · 0.0% · 2.5 s',
-              keep: false,
-              src: `/lab/${PROBE}/studio/takes/thesis/attempts/thesis.kept.flac`,
-            },
-            {
-              file: 'thesis.old.flac',
-              line: '“the law is holy” · 0.0% · 2.5 s',
-              keep: false,
-              src: `/lab/${PROBE}/studio/takes/thesis/attempts/thesis.old.flac`,
-            },
-          ]);
           expect(errors).toEqual([]);
         }),
       ),
@@ -264,10 +247,7 @@ describe('the studio', () => {
           yield* recorded(page, 1.2);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
-          const review = yield* Effect.promise(() =>
-            page.$eval('[data-role="review"]', (a) => (a as HTMLAudioElement).src),
-          );
-          expect(review).toMatch(/^blob:/);
+          yield* attributeIs(page, '[data-role="review"]', 'src', /^blob:/);
           // The browser reads the recording back as audio it can play, over a second long.
           yield* Effect.promise(() =>
             page.waitForFunction(
@@ -277,7 +257,7 @@ describe('the studio', () => {
               { timeout: 5000 },
             ),
           );
-          expect(yield* Effect.promise(() => page.locator('.studio-meter-fill').count())).toBe(0);
+          yield* countIs(page, '.studio-meter-fill', 0);
 
           yield* press(page, 'k');
           yield* statusIs(page, /^take thesis says something else \(wer 40\.0%\)/);
@@ -297,12 +277,8 @@ describe('the studio', () => {
             rate: contextRate,
             bits: 24,
           });
-          const tone = yield* Effect.promise(() =>
-            page.getAttribute('[data-role="status"]', 'data-tone'),
-          );
-          expect(tone).toBe('refused');
-          const accept = yield* textOf(page, '[data-act="acceptAnyway"]');
-          expect(accept).toBe('Accept anyway (K)');
+          yield* attributeIs(page, '[data-role="status"]', 'data-tone', 'refused');
+          yield* textIs(page, '[data-act="acceptAnyway"]', 'Accept anyway (K)');
 
           // The take kept and mixed: the page loads again, at the same T, on the same beat.
           const beatsBefore = asked.filter((a) => a.path === '/studio/beats').length;
@@ -373,8 +349,6 @@ describe('the studio', () => {
             mic: { wav: yield* toneFile(4, 0.5), permissions: ['microphone'] },
           });
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          const playLabel = () => textOf(page, '[data-act="play"]');
-          const paused = yield* playLabel();
           yield* focusStudio(page);
           yield* press(page, 'ArrowRight');
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"].selected'));
@@ -385,10 +359,8 @@ describe('the studio', () => {
           yield* press(page, ' ');
           yield* runClock(page, 300);
           expect(yield* shownT(page)).toBe(1);
-          expect(yield* playLabel()).toBe(paused);
-          expect(
-            yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
-          ).toBe(1);
+          yield* textIs(page, '[data-act="play"]', PAUSED);
+          yield* countIs(page, '[data-beat="close"].selected', 1);
           // Out of the studio the lab's keys are the lab's again: → steps the film, not the beat.
           yield* Effect.promise(() =>
             page.evaluate(() => (document.activeElement as HTMLElement).blur()),
@@ -400,9 +372,7 @@ describe('the studio', () => {
             ),
           );
           expect(yield* shownT(page)).toBe(2);
-          expect(
-            yield* Effect.promise(() => page.locator('[data-beat="close"].selected').count()),
-          ).toBe(1);
+          yield* countIs(page, '[data-beat="close"].selected', 1);
         }),
       ),
     60_000,
@@ -416,15 +386,13 @@ describe('the studio', () => {
           const { page, errors } = yield* withMic(0.5, ['microphone']);
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
           yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
-          const playLabel = () => textOf(page, '[data-act="play"]');
-          const paused = yield* playLabel();
           yield* Effect.promise(() => page.click('[data-act="arm"]'));
           yield* countedIn(page);
           yield* recorded(page, 0.6);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
           expect(yield* shownT(page)).toBe(1);
-          expect(yield* playLabel()).toBe(paused);
+          yield* textIs(page, '[data-act="play"]', PAUSED);
           expect(errors).toEqual([]);
         }),
       ),
@@ -442,8 +410,12 @@ describe('the studio', () => {
           yield* Effect.promise(() => page.waitForSelector('[data-file="thesis.new.flac"] audio'));
           // Mark the row's player; a row built again would lose the mark.
           yield* Effect.promise(() =>
-            page.$eval('[data-file="thesis.new.flac"] audio', (a) =>
-              Reflect.set(a, 'filmMark', true),
+            page.evaluate(() =>
+              Reflect.set(
+                document.querySelector('[data-file="thesis.new.flac"] audio') ?? {},
+                'filmMark',
+                true,
+              ),
             ),
           );
           yield* focusStudio(page);
@@ -451,10 +423,11 @@ describe('the studio', () => {
           yield* statusIs(page, /^recording in [123]…$/);
           yield* press(page, 'Escape');
           yield* statusIs(page, /^ready/);
-          const marked = yield* Effect.promise(() =>
-            page.$eval('[data-file="thesis.new.flac"] audio', (a) => Reflect.get(a, 'filmMark')),
+          // The row kept: its player still carries the mark.
+          yield* until(
+            page,
+            `document.querySelector('[data-file="thesis.new.flac"] audio')?.filmMark === true`,
           );
-          expect(marked).toBe(true);
         }),
       ),
     60_000,
@@ -477,13 +450,11 @@ describe('the studio', () => {
               timeout: 10_000,
             }),
           );
-          const shown = yield* Effect.promise(() =>
-            page.$eval(
-              '[data-field="mic"]',
-              (s) => (s as HTMLSelectElement).selectedOptions[0]?.textContent,
-            ),
+          yield* textIs(
+            page,
+            '[data-field="mic"] option:checked',
+            'the microphone picked before (not connected)',
           );
-          expect(shown).toBe('the microphone picked before (not connected)');
           yield* Effect.promise(() => page.selectOption('[data-field="mic"]', ''));
           const stored = yield* Effect.promise(() =>
             page.evaluate(() => window.localStorage.getItem('film-lab-mic')),
@@ -506,7 +477,7 @@ describe('the studio', () => {
           yield* Effect.promise(() =>
             page.waitForSelector('[data-role="clip"]', { timeout: 10_000 }),
           );
-          expect(yield* textOf(page, '[data-role="clip"]')).toBe('clipping: turn the input down');
+          yield* textIs(page, '[data-role="clip"]', 'clipping: turn the input down');
           yield* press(page, 'Escape');
           yield* statusIs(page, /^ready/);
         }),
@@ -524,7 +495,9 @@ describe('the studio', () => {
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* statusIs(page, /^no microphone: /);
-          expect(yield* textOf(page, '[data-role="status"]')).toBe(
+          yield* textIs(
+            page,
+            '[data-role="status"]',
             'no microphone: the browser was not allowed to use it; allow the microphone for this page',
           );
         }),

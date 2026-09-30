@@ -26,6 +26,7 @@ import {
   text,
 } from '../../fixtures/harness.ts';
 import { SourceRefused } from '../../../core/refusals.ts';
+import { attributeIs, textIs, until, valueIs, waitFor } from '../../fixtures/settled.ts';
 import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
@@ -252,11 +253,6 @@ const fakeFilm = () => {
 
 const FILM = '?film=toy';
 
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-const until = (page: Page, check: string) => Effect.promise(() => page.waitForFunction(check));
-
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
 const evaluate = <A>(page: Page, script: string) =>
@@ -481,13 +477,9 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`),
         );
-        yield* until(page, "document.querySelector('.rv-status').dataset.failed === 'true'");
-        yield* until(page, `document.querySelector('${knob} output').textContent === '-24 dB'`);
-        expect(
-          yield* Effect.promise(() =>
-            page.evaluate(`document.querySelector('${knob} input').value`),
-          ),
-        ).toBe('-24');
+        yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
+        yield* textIs(page, `${knob} output`, '-24 dB');
+        yield* valueIs(page, `${knob} input`, '-24');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 
-import { type GateRun, failedJobs, passed, verdictLine } from './verdict.js';
+import {
+  type GateJobs,
+  type GateRun,
+  failedJobs,
+  noRunLine,
+  passed,
+  targetOf,
+  verdictLine,
+} from './verdict.js';
 
 const RED: GateRun = {
   databaseId: 36760052995,
@@ -10,19 +18,52 @@ const RED: GateRun = {
   url: 'https://github.com/cevr/bible/actions/runs/36760052995',
 };
 
+const step = (
+  name: string,
+  conclusion: string,
+  startedAt = '2026-09-30T20:05:14Z',
+  completedAt = '2026-09-30T20:05:20Z',
+) => ({ name, conclusion, startedAt, completedAt });
+
 describe("CI's verdict", () => {
-  test('a red run names its run, its commit and the jobs that failed', () => {
-    const jobs = {
+  test('a red run names its run, its commit, the jobs that failed and the step each stopped in', () => {
+    const jobs: GateJobs = {
       jobs: [
-        { name: 'style', conclusion: 'success' },
-        { name: 'test (film 1/3)', conclusion: 'failure' },
-        { name: 'test (animations)', conclusion: 'cancelled' },
+        { name: 'style', conclusion: 'success', steps: [step('Run bun run guard', 'success')] },
+        {
+          name: 'test (film 1/3)',
+          conclusion: 'failure',
+          steps: [
+            step('Run ./.github/actions/setup', 'success'),
+            step(
+              'Run bun x turbo run test',
+              'failure',
+              '2026-09-30T18:40:57Z',
+              '2026-09-30T18:41:44Z',
+            ),
+          ],
+        },
+        // Run 36769762208: the job's 20 minutes ran out inside the apt install.
+        {
+          name: 'test (animations)',
+          conclusion: 'cancelled',
+          steps: [
+            step('Run ./.github/actions/setup', 'success'),
+            step('Install ffmpeg', 'cancelled', '2026-09-30T20:05:14Z', '2026-09-30T20:22:10Z'),
+            step('Install Chromium', 'skipped'),
+          ],
+        },
       ],
     };
     expect(passed(RED)).toBe(false);
     expect(verdictLine(RED, failedJobs(jobs))).toBe(
-      'ci failure run=36760052995 sha=2417cadf failed="test (film 1/3), test (animations)" https://github.com/cevr/bible/actions/runs/36760052995',
+      'ci failure run=36760052995 sha=2417cadf failed="test (film 1/3) in Run bun x turbo run test: failure after 47 s, test (animations) in Install ffmpeg: cancelled after 1016 s" https://github.com/cevr/bible/actions/runs/36760052995',
     );
+  });
+
+  test('a job that failed before any step names only itself', () => {
+    const jobs: GateJobs = { jobs: [{ name: 'perf', conclusion: 'failure', steps: [] }] };
+    expect(verdictLine(RED, failedJobs(jobs))).toContain('failed="perf"');
   });
 
   test('a green run passes; a run still going has not, and says so', () => {
@@ -38,5 +79,16 @@ describe("CI's verdict", () => {
 
   test('a cancelled run has not passed', () => {
     expect(passed({ ...RED, conclusion: 'cancelled' })).toBe(false);
+  });
+
+  test('base..head is a range, an empty side HEAD; anything else one commit', () => {
+    expect(targetOf('3c4d886d..f922c2d4')).toEqual({
+      _tag: 'Range',
+      base: '3c4d886d',
+      head: 'f922c2d4',
+    });
+    expect(targetOf('main~3..')).toEqual({ _tag: 'Range', base: 'main~3', head: 'HEAD' });
+    expect(targetOf('b137fad9')).toEqual({ _tag: 'Commit', ref: 'b137fad9' });
+    expect(noRunLine('c3426ea8aa')).toStartWith('ci none sha=c3426ea8 ');
   });
 });

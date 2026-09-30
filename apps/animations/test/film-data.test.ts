@@ -69,7 +69,7 @@ describe('film data codecs and keys (fixture film)', () => {
       expect(timings.scenes['open']?.hash).toBe('af95d9f8');
       for (const scene of scenes)
         expect(timings.scenes[scene.id]?.hash).toBe(
-          hashText(Result.getOrThrow(parse(scene.id, scene.say ?? '')).spoken),
+          hashText(takeScript(Result.getOrThrow(parse(scene.id, scene.say ?? '')))),
         );
     }),
   );

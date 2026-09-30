@@ -17,7 +17,6 @@
 // cloth warms toward cream: made righteous, not covered.
 
 import {
-  type Camera,
   type Place,
   type Pt,
   at,
@@ -33,6 +32,7 @@ import {
   knobCamera,
   mix,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { type Key, clamp, ease, lerp, staggered } from '@bible/film/core';
 import {
@@ -55,9 +55,6 @@ import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
 const FS = 3.8;
 /** The figure's chest this frame, where the verdict sinks and the word lands (scratch, set from the `fig` knob). */
 const CHEST: [number, number] = [0, 0];
-
-/** The unmoved frame the scene rests on (the canvas itself, so not a knob). */
-const REST: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** Where the verdict drifts in from, level with where it hangs: across from where the card was. */
 const STAMP_FROM_X = 1240;
@@ -389,9 +386,9 @@ export const declared = drawing({
 
     camera(
       ctx,
-      shotPath(REST, [
+      shotPath(UNMOVED, [
         [f.at('push'), FACE],
-        [back, REST],
+        [back, UNMOVED],
       ]),
       w,
       h,

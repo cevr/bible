@@ -4,9 +4,15 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Context, Effect, FileSystem, Layer, Option, Schema } from 'effect';
 import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
-import { ContentStore, type Manifest, lockVerdict } from './content-store.ts';
+import {
+  ContentStore,
+  LockOwnerJson,
+  type Manifest,
+  lockFile,
+  lockVerdict,
+} from './content-store.ts';
 import { storeLayer } from './testing.ts';
 
 const manifest: Manifest<SoundManifest> = {
@@ -89,6 +95,56 @@ describe('ContentStore', () => {
       const text = yield* Schema.encodeEffect(SoundManifestJson)(yield* store.read(manifest));
       expect(text.endsWith('\n')).toBe(true);
     }).pipe(Effect.provide(storeLayer(new Map()))),
+  );
+
+  it.live('breaking a stale lock never clobbers a lock a third writer took meanwhile', () =>
+    Effect.gen(function* () {
+      const real = yield* FileSystem.FileSystem;
+      const dir = yield* real.makeTempDirectoryScoped();
+      const shared = { ...assets, file: `${dir}/assets.json` };
+      const lock = lockFile(shared.file);
+      const now = yield* Clock.currentTimeMillis;
+      const owner = (pid: number, token: string) =>
+        Schema.encodeSync(LockOwnerJson)({ pid, created: now, token });
+      // Left by a crash: a pid no process has.
+      yield* real.writeFileString(lock, owner(2 ** 22 + 7, 'crashed'));
+      // The race, played in order around this writer's break: another writer
+      // breaks the crashed lock and takes its own just before this one moves
+      // it aside, and a third takes the lock the moment it is moved.
+      let raced = false;
+      const seen: Array<string> = [];
+      const racing = FileSystem.FileSystem.of({
+        ...real,
+        rename: (from, to) => {
+          if (raced || from !== lock) return real.rename(from, to);
+          raced = true;
+          return real
+            .writeFileString(lock, owner(process.pid, 'second'))
+            .pipe(
+              Effect.andThen(real.rename(from, to)),
+              Effect.andThen(real.writeFileString(lock, owner(process.pid, 'third'))),
+            );
+        },
+        // What the lock holds when this writer next judges it; then the third lets go.
+        readFileString: (file, encoding) =>
+          real.readFileString(file, encoding).pipe(
+            Effect.tap((text) =>
+              Effect.when(
+                Effect.sync(() => seen.push(text)).pipe(Effect.andThen(real.remove(lock))),
+                Effect.sync(() => raced && file === lock && seen.length === 0),
+              ),
+            ),
+          ),
+      });
+      const store = yield* Effect.map(
+        Layer.build(
+          ContentStore.layer.pipe(Layer.provide(Layer.succeed(FileSystem.FileSystem, racing))),
+        ),
+        Context.get(ContentStore),
+      );
+      yield* store.update(shared, (m) => m);
+      expect(seen.map((text) => text.includes('"third"'))).toEqual([true]);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   test('a lock is stale when its holder is gone or it is past 30 s; a live, fresh one holds', () => {

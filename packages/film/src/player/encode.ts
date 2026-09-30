@@ -34,10 +34,7 @@ export interface Settings {
 export const SETTINGS = {
   Hardware: {
     hardwareAcceleration: 'prefer-hardware',
-    /**
-     * The master: quantizer 16, about 37 Mbps at 1080p30 on this film, beside
-     * x264's CRF 15 at `slow` in the ffmpeg master it replaces.
-     */
+    /** The master: quantizer 16, about 37 Mbps at 1080p30 on this film. */
     master: new Quality({ quantizer: 16 }),
     /**
      * The share copy: quantizer 26, the smallest that keeps the paper's

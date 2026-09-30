@@ -1,7 +1,8 @@
 // An AIFF (or AIFF-C of plain PCM) read to planar samples: what a Mac's
-// recorders save that mediabunny has no reader for. Integers scale as ffmpeg
-// scales them (over 2^(bits−1) of their whole bytes), so a take read here is
-// the take ffmpeg read. Pure: bytes in, samples or the reason not out.
+// recorders save that mediabunny has no reader for. Integers scale over
+// 2^(bits−1) of their whole bytes, as FFmpeg's PCM decoders scale them, so an
+// AIFF take reads as the same take in any other container does. Pure: bytes
+// in, samples or the reason not out.
 
 import { Array as Arr, Match, Option, Result } from 'effect';
 import type { Pcm } from '../core/audio.ts';

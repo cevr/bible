@@ -71,24 +71,20 @@ jobs:
             filters: --filter=@bible/film
             args: --shard=1/3
             browser: true
-            ffmpeg: true
           - name: film 2/3
             filters: --filter=@bible/film
             args: --shard=2/3
             browser: true
-            ffmpeg: true
           - name: film 3/3
             filters: --filter=@bible/film
             args: --shard=3/3
             browser: true
-            ffmpeg: true
           - name: core
             filters: --filter=@bible/core
             model: true
           - name: animations
             filters: --filter=@bible/animations
             browser: true
-            ffmpeg: true
           - name: apps and packages
             filters: --filter=!@bible/film --filter=!@bible/core --filter=!@bible/animations
     steps:
@@ -96,11 +92,6 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-key: test
-
-      # The media tests encode and probe through the ffmpeg CLI.
-      - name: Install ffmpeg
-        if: matrix.ffmpeg
-        run: command -v ffmpeg || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; }
 
       # Headless Chromium for the canvas and lab tests, at playwright-core's version.
       - name: Cache Chromium
@@ -110,10 +101,24 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: chromium-${{ runner.os }}-${{ hashFiles('packages/film/package.json') }}
+      # Its system libraries come through apt, whose mirror sometimes stalls for
+      # many minutes: each attempt has 6 of the job's 20, a stalled one is
+      # tried once more, and a second stall fails this named step (which
+      # `bun run ci` names) instead of the job's clock.
       - name: Install Chromium
+        id: install-chromium
         if: matrix.browser
+        continue-on-error: true
+        timeout-minutes: 6
         working-directory: packages/film
         run: bun x playwright-core install --with-deps chromium chromium-headless-shell
+      - name: Install Chromium, second attempt
+        if: matrix.browser && steps.install-chromium.outcome == 'failure'
+        timeout-minutes: 6
+        working-directory: packages/film
+        run: |
+          sudo dpkg --configure -a
+          bun x playwright-core install --with-deps chromium chromium-headless-shell
 
       # EmbeddingGemma's weights are not committed (core §10): fetched once
       # from Hugging Face into a cache the embedder reads by BIBLE_MODEL_CACHE.

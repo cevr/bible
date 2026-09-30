@@ -33,7 +33,7 @@ const row = (seed: number, widths: Pt, heights: Pt, overlap: Pt): Block[] => {
   return blocks;
 };
 
-export const CITY_BACK = row(1888, [110, 210], [300, 520], [-20, -4]);
+const CITY_BACK = row(1888, [110, 210], [300, 520], [-20, -4]);
 export const CITY_FRONT = row(1889, [150, 260], [170, 340], [-10, 18]).map((b, i, all) =>
   all.findIndex((c) => c.x > 1300) === i ? { ...b, top: 830 } : b,
 );

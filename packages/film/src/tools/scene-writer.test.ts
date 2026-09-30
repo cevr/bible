@@ -32,6 +32,9 @@ import {
 } from './source-writer.ts';
 import { freshCue, sceneFixture } from './testing.ts';
 
+/** The timeout of a test here that spawns (bunx oxfmt, sh, sleep): a cold start's time is the machine's (film/spawn-budget). */
+const SPAWNS_MS = 30_000;
+
 /** The fixture's film, by name. */
 const F = Schema.decodeSync(FilmName)('f');
 
@@ -120,40 +123,48 @@ const oxfmtCheck = Effect.fn('test.oxfmtCheck')(function* () {
 });
 
 describe('scene writer', () => {
-  it.effect('changes one offset: the file differs by that value only, as oxfmt leaves it', () =>
-    Effect.gen(function* () {
-      const before = yield* read();
-      // The untouched file is already as oxfmt leaves it: formatting adds nothing of its own.
-      expect(yield* oxfmtCheck()).toBe(0);
-      const { written } = yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { offset: 0.4 });
-      const after = yield* read();
-      expect(after).toBe(
-        before.replace(
-          "topple: { mark: 'earns', offset: 0.1,",
-          "topple: { mark: 'earns', offset: 0.4,",
-        ),
-      );
-      expect(written).toMatchObject({ film: 'f', target: 'cue topple offset', before, after });
-      expect(written.scene).toEqual(Option.some('hand'));
-    }).pipe(Effect.provide(fixture)),
+  it.effect(
+    'changes one offset: the file differs by that value only, as oxfmt leaves it',
+    () =>
+      Effect.gen(function* () {
+        const before = yield* read();
+        // The untouched file is already as oxfmt leaves it: formatting adds nothing of its own.
+        expect(yield* oxfmtCheck()).toBe(0);
+        const { written } = yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', {
+          offset: 0.4,
+        });
+        const after = yield* read();
+        expect(after).toBe(
+          before.replace(
+            "topple: { mark: 'earns', offset: 0.1,",
+            "topple: { mark: 'earns', offset: 0.4,",
+          ),
+        );
+        expect(written).toMatchObject({ film: 'f', target: 'cue topple offset', before, after });
+        expect(written.scene).toEqual(Option.some('hand'));
+      }).pipe(Effect.provide(fixture)),
+    SPAWNS_MS,
   );
 
-  it.effect('adds a missing ease; oxfmt reflows only the span it grew', () =>
-    Effect.gen(function* () {
-      const before = yield* read();
-      yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { ease: 'inQuad', dur: 2.25 });
-      const after = yield* read();
-      const line = "    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },\n";
-      const at = before.indexOf(line);
-      expect(after.slice(0, at)).toBe(before.slice(0, at));
-      expect(after.slice(after.indexOf('    late: {'))).toBe(
-        before.slice(before.indexOf('    late: {')),
-      );
-      expect(after.slice(at, after.indexOf('    late: {'))).toBe(
-        "    topple: { mark: 'earns', offset: 0.1, dur: 2.25, ease: 'inQuad' },\n",
-      );
-      expect(yield* oxfmtCheck()).toBe(0);
-    }).pipe(Effect.provide(fixture)),
+  it.effect(
+    'adds a missing ease; oxfmt reflows only the span it grew',
+    () =>
+      Effect.gen(function* () {
+        const before = yield* read();
+        yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { ease: 'inQuad', dur: 2.25 });
+        const after = yield* read();
+        const line = "    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },\n";
+        const at = before.indexOf(line);
+        expect(after.slice(0, at)).toBe(before.slice(0, at));
+        expect(after.slice(after.indexOf('    late: {'))).toBe(
+          before.slice(before.indexOf('    late: {')),
+        );
+        expect(after.slice(at, after.indexOf('    late: {'))).toBe(
+          "    topple: { mark: 'earns', offset: 0.1, dur: 2.25, ease: 'inQuad' },\n",
+        );
+        expect(yield* oxfmtCheck()).toBe(0);
+      }).pipe(Effect.provide(fixture)),
+    SPAWNS_MS,
   );
 
   it.effect('moves a point knob', () =>
@@ -307,27 +318,30 @@ describe('scene writer', () => {
     ),
   );
 
-  it.effect('a failed oxfmt leaves an editor save in place', () =>
-    Effect.gen(function* () {
-      const before = yield* read();
-      const error = yield* Effect.flip((yield* SceneWriter).setKnob(F, 'hand', 'palm', [1, 2]));
-      expect(error._tag).toBe('FormatFailed');
-      expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
-    }).pipe(
-      Effect.provide(
-        fixtureWith((file, command) =>
-          Effect.gen(function* () {
-            if (!isOxfmt(command)) return command;
-            const fs = yield* FileSystem.FileSystem;
-            const now = yield* Effect.orDie(fs.readFileString(file));
-            // The editor saves what it had (the file before any write) and oxfmt then fails.
-            const buffer = now.replace('palm: [1, 2]', 'palm: [960, 800]');
-            yield* Effect.orDie(fs.writeFileString(file, `${buffer}${EDITOR_LINE}`));
-            return ChildProcess.make('sh', ['-c', 'exit 3']);
-          }),
+  it.effect(
+    'a failed oxfmt leaves an editor save in place',
+    () =>
+      Effect.gen(function* () {
+        const before = yield* read();
+        const error = yield* Effect.flip((yield* SceneWriter).setKnob(F, 'hand', 'palm', [1, 2]));
+        expect(error._tag).toBe('FormatFailed');
+        expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
+      }).pipe(
+        Effect.provide(
+          fixtureWith((file, command) =>
+            Effect.gen(function* () {
+              if (!isOxfmt(command)) return command;
+              const fs = yield* FileSystem.FileSystem;
+              const now = yield* Effect.orDie(fs.readFileString(file));
+              // The editor saves what it had (the file before any write) and oxfmt then fails.
+              const buffer = now.replace('palm: [1, 2]', 'palm: [960, 800]');
+              yield* Effect.orDie(fs.writeFileString(file, `${buffer}${EDITOR_LINE}`));
+              return ChildProcess.make('sh', ['-c', 'exit 3']);
+            }),
+          ),
         ),
       ),
-    ),
+    SPAWNS_MS,
   );
 
   /** Done when the hung oxfmt below has started. */
@@ -360,6 +374,7 @@ describe('scene writer', () => {
           ),
         ),
       ),
+    SPAWNS_MS,
   );
 
   it.effect(

@@ -12,6 +12,7 @@ import type {
   PartOutOfOrder,
   ShortSpanEmpty,
   TurnInvalid,
+  ScenesApart,
   UnknownAct,
   UnknownShort,
   UntilBeforeStart,
@@ -145,6 +146,23 @@ export class KnobRepeated extends Schema.TaggedError<KnobRepeated>()('KnobRepeat
 }) {
   override get message() {
     return `scene "${this.scene}": knob "${this.knob}" repeats "${this.of}"'s "${this.ofKnob}"; if it calls that framing back, read it there with f.knobsOf(${this.of}) so a drag moves both`;
+  }
+}
+
+/**
+ * A cue declared twice for the same moment: another cue of its scene has the
+ * same edges on the same anchors (a `with` it at its length is the same) and
+ * the same ease, so the two differ only by name, and a lab drag of one leaves
+ * the other behind. Read the first one where both are read.
+ */
+export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
+  scene: Schema.String,
+  cue: Schema.String,
+  /** The earlier cue it repeats. */
+  twin: Schema.String,
+}) {
+  override get message() {
+    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same anchor, offset, length and ease); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
   }
 }
 
@@ -629,6 +647,7 @@ export type PlaceFinding =
   | TurnInvalid
   | CueCycle
   | UntilBeforeStart
+  | ScenesApart
   | UnknownAct
   | UnknownShort
   | ShortSpanEmpty;
@@ -659,6 +678,7 @@ export type StaticFinding =
   | LeadIn
   | WordPinFar
   | DurOnWord
+  | CueTwin
   | Storyboard
   | KnobRepeated
   | EndShort;
@@ -725,6 +745,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       TurnInvalid: error,
       CueCycle: error,
       UntilBeforeStart: error,
+      ScenesApart: error,
       UnknownAct: error,
       UnknownShort: error,
       ShortSpanEmpty: error,
@@ -739,6 +760,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       LeadIn: warning,
       WordPinFar: warning,
       DurOnWord: warning,
+      CueTwin: warning,
       Storyboard: warning,
       KnobRepeated: warning,
       EndShort: warning,
@@ -817,6 +839,8 @@ export const addressOf = (finding: Finding): FindingAddress => {
       TurnInvalid: scene,
       CueCycle: scene,
       UntilBeforeStart: scene,
+      // The scenes it names are no one stretch: no one scene is the place.
+      ScenesApart: none,
       // The act or short it names is one the film does not have.
       UnknownAct: none,
       UnknownShort: none,
@@ -832,6 +856,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       LeadIn: none,
       WordPinFar: scene,
       DurOnWord: scene,
+      CueTwin: scene,
       Storyboard: scene,
       KnobRepeated: scene,
       EndShort: none,

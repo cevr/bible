@@ -22,6 +22,9 @@ import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
 import { freshCue, noStudio, sceneFixture } from './testing.ts';
 
+/** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
+const SPAWNS_MS = 30_000;
+
 /** The fixture's hand scene file. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
@@ -192,48 +195,51 @@ describe('lab source routes', () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
-  it.effect("head answers HEAD's data, and says when the code changed since", () =>
-    Effect.gen(function* () {
-      const lab = yield* labHandler('f');
-      const fs = yield* FileSystem.FileSystem;
-      const file = yield* HandFile;
-      const dir = (yield* Path.Path).dirname(file);
-      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const git = (...args: ReadonlyArray<string>) =>
-        collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
-      const request = () =>
-        Effect.promise(() => lab(new Request(at('/lab/f/scenes/hand/head')), bound));
-      const head = Effect.fn('test.head')(function* () {
-        const res = yield* request();
-        return yield* Schema.decodeUnknownEffect(HeadSource)(
-          yield* Effect.promise(() => res.json()),
-        );
-      });
-      // Not in a repository yet: nothing to compare with.
-      expect((yield* request()).status).toBe(404);
-      yield* git('init', '-q');
-      yield* git('add', '.');
-      yield* git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'scenes');
-      expect(yield* head()).toMatchObject({
-        file: 'scenes/hand.ts',
-        codeChanged: false,
-        sameData: true,
-        knobs: { palm: [960, 800] },
-      });
-      // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
-      yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound));
-      const moved = yield* head();
-      expect(moved).toMatchObject({
-        codeChanged: false,
-        sameData: false,
-        timeline: { topple: { mark: 'earns', offset: 0.1, dur: 1.8 } },
-      });
-      expect(Object.keys(moved.timeline)).toEqual(['topple']);
-      // Code outside the literals changed: the compare can show data only.
-      const now = yield* fs.readFileString(file);
-      yield* fs.writeFileString(file, now.replace('const GAP = 0.2;', 'const GAP = 0.3;'));
-      expect(yield* head()).toMatchObject({ codeChanged: true });
-    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  it.effect(
+    "head answers HEAD's data, and says when the code changed since",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler('f');
+        const fs = yield* FileSystem.FileSystem;
+        const file = yield* HandFile;
+        const dir = (yield* Path.Path).dirname(file);
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const git = (...args: ReadonlyArray<string>) =>
+          collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
+        const request = () =>
+          Effect.promise(() => lab(new Request(at('/lab/f/scenes/hand/head')), bound));
+        const head = Effect.fn('test.head')(function* () {
+          const res = yield* request();
+          return yield* Schema.decodeUnknownEffect(HeadSource)(
+            yield* Effect.promise(() => res.json()),
+          );
+        });
+        // Not in a repository yet: nothing to compare with.
+        expect((yield* request()).status).toBe(404);
+        yield* git('init', '-q');
+        yield* git('add', '.');
+        yield* git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'scenes');
+        expect(yield* head()).toMatchObject({
+          file: 'scenes/hand.ts',
+          codeChanged: false,
+          sameData: true,
+          knobs: { palm: [960, 800] },
+        });
+        // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
+        yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound));
+        const moved = yield* head();
+        expect(moved).toMatchObject({
+          codeChanged: false,
+          sameData: false,
+          timeline: { topple: { mark: 'earns', offset: 0.1, dur: 1.8 } },
+        });
+        expect(Object.keys(moved.timeline)).toEqual(['topple']);
+        // Code outside the literals changed: the compare can show data only.
+        const now = yield* fs.readFileString(file);
+        yield* fs.writeFileString(file, now.replace('const GAP = 0.2;', 'const GAP = 0.3;'));
+        expect(yield* head()).toMatchObject({ codeChanged: true });
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+    SPAWNS_MS,
   );
 
   it.effect(

@@ -1,7 +1,6 @@
 // A sound mixed to another channel count and rate by FFmpeg's libswresample,
 // in-process through NodeAV (the FFmpeg that @mediabunny/server decodes
-// with), at its defaults: what `ffmpeg -ac <n> -ar <rate>` did to a person's
-// recording, sample for sample. Not mediabunny's own resampler: it
+// with), at its defaults. Not mediabunny's own resampler: it
 // interpolates linearly, with no filter, so a 48 kHz recording's top octave
 // would fold down into the voice.
 

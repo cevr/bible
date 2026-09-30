@@ -6,7 +6,7 @@ import { type Author, type Credit, creditRoll } from '@bible/film/canvas';
 import { TITLE, script } from './script.ts';
 
 /** The authors the sources are grouped under, in the order the credits give them, after scripture. */
-export const AUTHORS: ReadonlyArray<Author> = [
+const AUTHORS: ReadonlyArray<Author> = [
   { name: 'Ellen G. White' },
   { name: 'E. J. Waggoner' },
   { name: 'A. T. Jones' },

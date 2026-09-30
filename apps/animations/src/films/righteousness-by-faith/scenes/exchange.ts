@@ -36,14 +36,12 @@ import {
   mix,
   rounded,
   sky,
+  UNMOVED,
 } from '@bible/film/canvas';
 import { gait, lerp } from '@bible/film/core';
 import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
-
-/** The whole hill: the unmoved frame (the canvas itself, so not a knob). */
-const WIDE: Camera = { x: 960, y: 540, zoom: 1 };
 
 const SCALE = 1.9;
 /** Where Jesus stops beside the figure, and the hilltop where the cross stands. */
@@ -114,16 +112,14 @@ const timeline = {
   // The figure's hand to the cloth on their chest, it lifts across to him, and his hand takes it.
   give: { with: 'lift', dur: 0.4, ends: true },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
+  // Halfway through the lift one hand lets the cloth go as the other takes it.
   letGo: { with: 'lift', offset: 0.5, dur: 0.5 },
-  receive: { with: 'lift', offset: 0.5, dur: 0.5 },
   // Back out on "that we might take His righteousness", and he walks up the hill.
   back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
   walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
   // The figure turns to watch him over the first half of his walk up.
   watch: { with: 'walkUp', dur: 0.95, ease: 'inSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
-  // His hands out along the beam as the silhouette comes up with the dark.
-  nailed: { with: 'dark', dur: 0.9, ease: 'inOutSine' },
   dawn: { mark: 'rose', offset: -0.3, dur: 1, ease: 'inOutSine' },
   ascend: { mark: 'up', dur: 0.9, ease: 'inOutCubic' },
   robed: { after: 'ascend', dur: 0.5 },
@@ -194,11 +190,11 @@ const hill = (f: ExchangeFrame) => {
   const clothS = lerp(SCALE, cs, lift);
   TAKING.to[0] = (clothX - CLOTH_END * clothWidth(lift) * clothS - cx) / cs;
   TAKING.to[1] = (clothY - (cy - walking)) / cs;
-  TAKING.reach = f.at('receive') * (1 - f.at('dark'));
+  TAKING.reach = f.at('letGo') * (1 - f.at('dark'));
 
-  const cam = shotPath(WIDE, [
+  const cam = shotPath(UNMOVED, [
     [f.at('close'), knobCamera(f.knob('close'), f.knob('closeZoom'))],
-    [f.at('back'), WIDE],
+    [f.at('back'), UNMOVED],
   ]);
   // The sky reddens as the sun goes down toward the hilltop.
   sky(ctx, w, h, [
@@ -300,7 +296,7 @@ const blackMoment = (f: ExchangeFrame) => {
   // lets its drift go over the same cue, so the two never part.
   camera(
     ctx,
-    WIDE,
+    UNMOVED,
     w,
     h,
     () => {
@@ -323,7 +319,8 @@ const blackMoment = (f: ExchangeFrame) => {
       });
       piece(ctx, BEAM, C.night, hand('beam'), { role: 'scenery', kind: 'cut', line: 0, shadow: 0 });
       ctx.save();
-      NAILED_FAR.reach = f.at('nailed');
+      // His hands out along the beam as the silhouette comes up with the dark.
+      NAILED_FAR.reach = f.at('dark');
       NAILED_NEAR.reach = NAILED_FAR.reach;
       ctx.translate(TOP, NAILED);
       ctx.scale(1.2, 1.2);
@@ -434,7 +431,7 @@ const heaven = (f: ExchangeFrame, dawn: number) => {
   const HEAVEN = knobCamera(f.knob('heaven'), f.knob('heavenZoom'));
   camera(
     ctx,
-    shotPath(WIDE, [[ascend, HEAVEN]]),
+    shotPath(UNMOVED, [[ascend, HEAVEN]]),
     w,
     h,
     () => {

@@ -9,14 +9,9 @@ import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { HeadUnavailable } from '../../core/refusals.ts';
 import { json, openLab, refused, route } from '../fixtures/harness.ts';
+import { textHas } from '../fixtures/settled.ts';
 
-const compareSays = (page: Page, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (want) => (document.querySelector('.lab-compare-status')?.textContent ?? '').includes(want),
-      part,
-    ),
-  );
+const compareSays = (page: Page, part: string) => textHas(page, '.lab-compare-status', part);
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 

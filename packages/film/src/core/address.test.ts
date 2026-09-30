@@ -103,6 +103,13 @@ describe('resolveAddress', () => {
     expect(keyOf(['c', 'b', 'c'])).toBe('scenes:b,c');
   });
 
+  test('scenes with a scene between them are no part of the film: refused, naming what lies between', () => {
+    const apart = resolveAddress(film, { _tag: 'Scenes', ids: ['d', 'a'] });
+    expect(Result.getFailure(apart)).toMatchObject(
+      Option.some({ _tag: 'ScenesApart', named: ['a', 'd'], between: ['b', 'c'] }),
+    );
+  });
+
   test('a short covers its spans’ scenes and runs on its own clock', () => {
     const clip = Result.getOrThrow(resolveAddress(film, { _tag: 'Short', id: 'clip' }));
     expect(clip.scenes.map((p) => p.spec.id)).toEqual(['b']);
