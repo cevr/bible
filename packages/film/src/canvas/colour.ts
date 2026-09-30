@@ -5,10 +5,20 @@
 
 import { clamp, lerp } from '../core/time.ts';
 
+/**
+ * A colour as a film writes it: `#rgb` or `#rrggbb`. The type keeps a name or
+ * `rgb(…)` out where it is written; `rgbOf` still refuses one that reaches it
+ * computed.
+ */
+export type Hex = `#${string}`;
+
+/** A colour fully clear, as `clearOf` writes it: a gradient's stop to fade into. */
+export type Clear = `rgba(${number}, ${number}, ${number}, 0)`;
+
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /** The red, green and blue of a hex colour, 0..255 each, written into `out`; throws naming any other colour. */
-export const rgbOf = (out: [number, number, number], hex: string): [number, number, number] => {
+export const rgbOf = (out: [number, number, number], hex: Hex): [number, number, number] => {
   if (!HEX.test(hex)) throw new Error(`colour "${hex}" is not #rgb or #rrggbb hex`);
   const short = hex.length === 4;
   for (let i = 0; i < 3; i++) {
@@ -27,7 +37,7 @@ const B: [number, number, number] = [0, 0, 0];
 const hex2 = (v: number) => Math.round(v).toString(16).padStart(2, '0');
 
 /** A colour `t` (0..1, clamped) of the way from hex colour `a` to `b`, as `#rrggbb`. */
-export const mix = (a: string, b: string, t: number): string => {
+export const mix = (a: Hex, b: Hex, t: number): Hex => {
   rgbOf(A, a);
   rgbOf(B, b);
   const k = clamp(t);
@@ -35,7 +45,7 @@ export const mix = (a: string, b: string, t: number): string => {
 };
 
 /** Hex colour `color` fully clear: what a glow fades into at its rim, the same colour at alpha 0. */
-export const clearOf = (color: string): string => {
+export const clearOf = (color: Hex): Clear => {
   rgbOf(A, color);
   return `rgba(${A[0]}, ${A[1]}, ${A[2]}, 0)`;
 };

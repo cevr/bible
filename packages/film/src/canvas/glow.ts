@@ -12,7 +12,7 @@
 // frame, 21,336 over its 1,304 frames, and makes 6; `within` 8,899 and makes
 // 6; `daily`, whose glow changes colour every frame, 4,794 and makes 258.
 
-import { clearOf } from './colour.ts';
+import { type Clear, type Hex, clearOf } from './colour.ts';
 
 /** The most unit gradients kept per context, of each kind. */
 export const GRADIENTS_KEPT = 64;
@@ -57,7 +57,7 @@ export const unitGradient = <A>(
 };
 
 /** A glow's gradient: the colour at its heart, the same colour clear at its rim. */
-const glowGradient = (ctx: CanvasRenderingContext2D, color: string) => {
+const glowGradient = (ctx: CanvasRenderingContext2D, color: Hex) => {
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
   g.addColorStop(0, color);
   g.addColorStop(1, clearOf(color));
@@ -74,7 +74,7 @@ export const glow = (
   x: number,
   y: number,
   r: number,
-  color: string,
+  color: Hex,
   alpha: number,
 ) => {
   if (alpha <= 0 || r <= 0) return;
@@ -89,7 +89,7 @@ export const glow = (
 };
 
 /** A sky's stops as one key: each position and colour, in order. */
-const skyKey = (stops: ReadonlyArray<readonly [number, string]>) => {
+const skyKey = (stops: ReadonlyArray<readonly [number, Hex | Clear]>) => {
   let key = '';
   for (const [at, color] of stops) key += `${at} ${color};`;
   return key;
@@ -98,7 +98,7 @@ const skyKey = (stops: ReadonlyArray<readonly [number, string]>) => {
 /** A wash's gradient: its stops down one unit. */
 const washGradient = (
   ctx: CanvasRenderingContext2D,
-  stops: ReadonlyArray<readonly [number, string]>,
+  stops: ReadonlyArray<readonly [number, Hex | Clear]>,
 ) => {
   const g = ctx.createLinearGradient(0, 0, 0, 1);
   for (const [at, color] of stops) g.addColorStop(at, color);
@@ -115,7 +115,7 @@ export const wash = (
   y: number,
   w: number,
   h: number,
-  stops: ReadonlyArray<readonly [number, string]>,
+  stops: ReadonlyArray<readonly [number, Hex | Clear]>,
 ) => {
   if (w <= 0 || h <= 0) return;
   const g = unitGradient(ctx, 'sky', skyKey(stops), washGradient, stops);
@@ -132,5 +132,5 @@ export const sky = (
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  stops: ReadonlyArray<readonly [number, string]>,
+  stops: ReadonlyArray<readonly [number, Hex | Clear]>,
 ) => wash(ctx, 0, 0, w, h, stops);

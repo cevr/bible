@@ -21,6 +21,7 @@ import {
   piece as paperPiece,
   cutout,
   ground,
+  type Hex,
   ellipseShape,
   probeFace,
   probesHands,
@@ -147,9 +148,9 @@ export interface PersonGesture extends Gesture {
  */
 export interface Person {
   /** Garment and head colours. */
-  body?: string;
-  shade?: string;
-  skin?: string;
+  body?: Hex;
+  shade?: Hex;
+  skin?: Hex;
   /** `round` is a tunic; `robe` falls to the feet. */
   garment?: 'round' | 'robe';
   /** Head turn about the neck, radians (+ tips right). */
@@ -567,13 +568,7 @@ export const clipToGarment = (ctx: CanvasRenderingContext2D, p: Person) => {
   ctx.setTransform(m);
 };
 
-const garment = (
-  ctx: CanvasRenderingContext2D,
-  p: Person,
-  sit: number,
-  body: string,
-  hand: Hand,
-) => {
+const garment = (ctx: CanvasRenderingContext2D, p: Person, sit: number, body: Hex, hand: Hand) => {
   const robe = p.garment === 'robe';
   ctx.save();
   toFold(ctx, robe, sit);

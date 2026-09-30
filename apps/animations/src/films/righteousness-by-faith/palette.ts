@@ -12,7 +12,7 @@
 // lighter than the figures while the floors and dark props stay under them,
 // so a figure reads against both.
 
-import { mix } from '@bible/film/canvas';
+import { type Hex, mix } from '@bible/film/canvas';
 import type { Looks } from '@bible/film/core';
 
 /**
@@ -34,14 +34,14 @@ export const GROUND: Ground = looks.ground.play;
 export const LIFT: number = looks.ground.options[GROUND];
 
 /** The warm light paper the ground rises toward: under the robe's white and the glow. */
-const LIGHT_PAPER = '#f3ebdd';
+const LIGHT_PAPER: Hex = '#f3ebdd';
 
 /**
  * A ground colour lifted by `share` of the film's lift. Walls take all of it;
  * skies, floors and dark props less, so skies keep their colour and floors
  * stay under the figures.
  */
-const ground = (base: string, share = 1) => mix(base, LIGHT_PAPER, LIFT * share);
+const ground = (base: Hex, share = 1): Hex => mix(base, LIGHT_PAPER, LIFT * share);
 
 /** The share of the lift a sky takes: enough to lighten it, not so much it washes out. */
 const SKY = 0.4;
@@ -96,7 +96,7 @@ export const palette = {
   dawnTop: ground('#cfddcf', SKY),
   dawnLow: ground('#ded7b1', SKY),
   night: '#1b150d',
-} satisfies Record<string, string>;
+} satisfies Record<string, Hex>;
 
 export const fonts = {
   display: 'Fraunces',
