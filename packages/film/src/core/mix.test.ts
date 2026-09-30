@@ -473,6 +473,53 @@ describe('mixPlan', () => {
         });
       expect([failed(wrong), failed(typo)]).toEqual(['SoundUseMismatch', 'UnknownSound']);
     });
+
+    test("a sync: 'hit' placement starts each take its own hit early, so the hit lands on the cue", () => {
+      const hitAt = new Map([
+        ['/lib/files/paper.tap/1.flac', 0.2],
+        ['/lib/files/paper.tap/2.flac', 0.35],
+      ]);
+      const timed: Lock = {
+        ...lock,
+        'paper.tap': {
+          variants: [
+            { ...variant('paper.tap', 1, -20), onset: 0, hit: 0.2 },
+            { ...variant('paper.tap', 2, -26), onset: 0.01, hit: 0.35 },
+          ],
+          candidates: [],
+          rejected: [],
+        },
+      };
+      const taps = (sync: 'start' | 'hit') =>
+        Result.getOrThrow(
+          mixPlan({
+            ...input,
+            placed: film,
+            sound: Option.some<Sound>({ effects: { tap: { ...sound.effects['tap']!, sync } } }),
+            sounds: { ...sounds, lock: timed },
+          }),
+        ).effects.map((e) => ({ label: sourceLabel(e.sound), at: e.at }));
+      const started = taps('start');
+      const hit = taps('hit');
+      expect(hit.map((t) => t.label)).toEqual(started.map((t) => t.label));
+      hit.forEach((t, i) =>
+        expect(t.at).toBeCloseTo((started[i]?.at ?? Number.NaN) - (hitAt.get(t.label) ?? 0), 9),
+      );
+    });
+
+    test("a sync: 'hit' sound whose takes carry no hit plays from its start, and says so", () => {
+      const planned = Result.getOrThrow(
+        mixPlan({
+          ...input,
+          placed: film,
+          sound: Option.some<Sound>({
+            effects: { tap: { ...sound.effects['tap']!, sync: 'hit' } },
+          }),
+          sounds,
+        }),
+      );
+      expect(planned.warnings).toEqual(['mix.unsynced sound=paper.tap hint="run sfx describe"']);
+    });
   });
 });
 

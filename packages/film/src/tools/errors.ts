@@ -122,6 +122,28 @@ export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   }
 }
 
+/** A one-shot's kept take whose sound starts late in its file: placed from its start, it is heard late on its cue. */
+export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
+  name: Schema.String,
+  variant: Schema.Int,
+  onset: Schema.Finite,
+  hit: Schema.Finite,
+}) {
+  override get message() {
+    return `one-shot "${this.name}" variant ${this.variant}: its sound starts ${Math.round(this.onset * 1000)} ms in and hits at ${this.hit.toFixed(2)} s; place it with sync: 'hit', or keep a tighter take`;
+  }
+}
+
+/** A kept take whose onset and hit the lock does not record: a `sync: 'hit'` placement cannot land it. */
+export class TimingUnrecorded extends Schema.TaggedError<TimingUnrecorded>()('TimingUnrecorded', {
+  name: Schema.String,
+  variant: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" variant ${this.variant}: no onset or hit in the lock; run sfx describe (free)`;
+  }
+}
+
 /** A generated sound's candidates would cost more than the run allows. */
 export class CreditsOverCap extends Schema.TaggedError<CreditsOverCap>()('CreditsOverCap', {
   credits: Schema.Int,

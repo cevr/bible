@@ -554,6 +554,13 @@ export const SoundEffect = Schema.Struct({
   sound: Schema.String,
   /** Its level in dB relative to the voice; else the library's, else the one-shot default. */
   level: Schema.optionalKey(Schema.Finite),
+  /**
+   * What lands on each cue: `'hit'`, the take's loudest moment (its lead-in
+   * played before it, as the lock records it, so a take with a slow start
+   * needs no hand offset and a kept take swapped for another stays on the
+   * cue); `'start'` (the default), its first sample.
+   */
+  sync: Schema.optionalKey(Schema.Literals(['start', 'hit'])),
   at: Schema.Array(Cue),
 });
 export type SoundEffect = typeof SoundEffect.Type;

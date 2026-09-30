@@ -21,6 +21,7 @@ import {
   Layer,
   Option,
   Path,
+  Record as Rec,
   Result,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
@@ -41,13 +42,16 @@ import {
   type StagedAudio,
   type Trial,
   type Variant,
+  type VariantTiming,
   creditsOf,
   trialEntry,
   influenceOf,
   refusedAudio,
   gainFor,
   levelOf,
+  LEAD_IN,
   lockLoudness,
+  lockTiming,
   makePlan,
   pendingOf,
   playablesOf,
@@ -55,6 +59,7 @@ import {
   resolveSound,
   soundState,
 } from '../core/sfx.ts';
+import { describeSound } from '../core/synth/analyse.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
@@ -67,12 +72,14 @@ import {
   CreditsOverCap,
   ElevenLabsFailed,
   type FilmModuleInvalid,
+  LeadIn,
   LibraryMissing,
   LoopSeam,
   type MediaFailed,
   PaidUnconfirmed,
   SoundCorrupt,
   SoundFileMissing,
+  TimingUnrecorded,
   SoundKindMismatch,
   SoundLicence,
   SoundStale,
@@ -205,7 +212,9 @@ export type LibraryFinding =
   | SoundFileMissing
   | SoundCorrupt
   | SoundLicence
-  | LoopSeam;
+  | LoopSeam
+  | LeadIn
+  | TimingUnrecorded;
 
 export const libraryLevel = (finding: LibraryFinding): 'error' | 'warning' => {
   switch (finding._tag) {
@@ -328,7 +337,12 @@ export interface SoundLibraryService {
     ReadonlyArray<string>,
     LibraryError | UnknownSound | SoundKindMismatch | MediaFailed | PlatformError
   >;
-  /** Every library finding: unmade, stale, missing or corrupt files, licences, loop seams. */
+  /**
+   * Each variant's onset and hit, measured from its file where the lock lacks
+   * them and written in (free: no generation). How many it wrote.
+   */
+  readonly describe: Effect.Effect<number, LibraryError | MediaFailed | PlatformError>;
+  /** Every library finding: unmade, stale, missing or corrupt files, licences, loop seams, lead-ins. */
   readonly check: Effect.Effect<
     ReadonlyArray<LibraryFinding>,
     LibraryError | MediaFailed | PlatformError
@@ -364,6 +378,10 @@ export interface SoundLibraryService {
 }
 
 /** Every variant and candidate of every sound, with its name. */
+/** A variant's onset and hit, when the lock records both. */
+const timingOf = (v: Variant) =>
+  Option.all({ onset: Option.fromUndefinedOr(v.onset), hit: Option.fromUndefinedOr(v.hit) });
+
 const everyVariant = (lock: Lock) =>
   Object.entries(lock).flatMap(([name, entry]) =>
     [...entry.variants, ...entry.candidates].map((variant) => ({ name, variant })),
@@ -536,6 +554,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               made: yield* now,
               secs: Math.round((pcm.frames / pcm.rate) * 1000) / 1000,
               loudness: lockLoudness(loudness(pcm)),
+              ...lockTiming(describeSound(pcm)),
             };
             return variant;
           });
@@ -783,6 +802,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             playables = pendingOf(entry, record).map((v) => ({
               source: { _tag: 'File', file: path.join(dir, v.file) },
               loudness: v.loudness,
+              hit: Option.fromUndefinedOr(v.hit),
             }));
           yield* fs.makeDirectory(paths.out, { recursive: true });
           let suffix = '';
@@ -854,6 +874,79 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             });
           });
 
+        /** A one-shot's kept takes whose timing is unrecorded, or whose sound starts late. */
+        const timingFindings = (
+          name: string,
+          entry: LibraryEntry,
+          kept: ReadonlyArray<Variant>,
+        ): ReadonlyArray<LibraryFinding> => {
+          if (entry.use !== 'one-shot') return [];
+          return kept.flatMap((v, i): ReadonlyArray<LibraryFinding> =>
+            Option.match(timingOf(v), {
+              onNone: () => [TimingUnrecorded.make({ name, variant: i + 1 })],
+              onSome: ({ onset, hit }) =>
+                Option.toArray(
+                  Option.map(
+                    Option.liftPredicate(onset, (s) => s > LEAD_IN),
+                    () => LeadIn.make({ name, variant: i + 1, onset, hit }),
+                  ),
+                ),
+            }),
+          );
+        };
+
+        /** A bed's loop seams that are heard, past the files already reported missing or corrupt. */
+        const seamFindings = (
+          name: string,
+          entry: LibraryEntry,
+          sounds: Sounds,
+          broken: ReadonlySet<string>,
+        ) =>
+          Effect.gen(function* () {
+            const findings: Array<LibraryFinding> = [];
+            if (entry.use !== 'bed') return findings;
+            for (const [i, p] of playablesOf(sounds, name, entry).entries()) {
+              // A missing or corrupt file is reported above; its seam cannot be heard.
+              if (p.source._tag === 'File' && broken.has(p.source.file)) continue;
+              const seam = loopSeam(yield* heard(p.source));
+              if (seamHeard(seam))
+                findings.push(
+                  LoopSeam.make({ name, variant: i + 1, db: seam.db, click: seam.click }),
+                );
+            }
+            return findings;
+          });
+
+        /**
+         * Each variant and candidate whose onset and hit the lock lacks,
+         * measured from its file (`describeSound`) and written in: free. A
+         * file not here is left for `sfx pull`. The written variants.
+         */
+        const describeLibrary = Effect.fn('SoundLibrary.describe')(function* () {
+          const loaded = yield* load;
+          const measured = new Map<string, VariantTiming>();
+          for (const { variant } of everyVariant(loaded.lock)) {
+            if (Option.isSome(timingOf(variant))) continue;
+            const at = path.join(dir, variant.file);
+            if (!(yield* fs.exists(at))) continue;
+            measured.set(variant.sha256, lockTiming(describeSound(yield* media.decode(at))));
+          }
+          const timed = (v: Variant): Variant =>
+            Option.match(Option.fromUndefinedOr(measured.get(v.sha256)), {
+              onNone: () => v,
+              onSome: (timing) => ({ ...v, ...timing }),
+            });
+          yield* store.update(paths.lock, (lock) =>
+            Rec.map(lock, (entry) => ({
+              ...entry,
+              variants: entry.variants.map(timed),
+              candidates: entry.candidates.map(timed),
+            })),
+          );
+          return measured.size;
+        });
+        const describe = describeLibrary();
+
         const checkLibrary = Effect.fn('SoundLibrary.check')(function* () {
           const loaded = yield* load;
           const sounds = soundsOf(loaded);
@@ -875,17 +968,8 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
                 findings.push(finding);
                 broken.add(path.join(dir, variant.file));
               }
-            if (entry.use !== 'bed') continue;
-            const playables = playablesOf(sounds, name, entry);
-            for (const [i, p] of playables.entries()) {
-              // A missing or corrupt file is reported above; its seam cannot be heard.
-              if (p.source._tag === 'File' && broken.has(p.source.file)) continue;
-              const seam = loopSeam(yield* heard(p.source));
-              if (seamHeard(seam))
-                findings.push(
-                  LoopSeam.make({ name, variant: i + 1, db: seam.db, click: seam.click }),
-                );
-            }
+            findings.push(...timingFindings(name, entry, kept));
+            findings.push(...(yield* seamFindings(name, entry, sounds, broken)));
           }
           findings.push(...(yield* licenceFindings(loaded.lock)));
           return findings;
@@ -1034,6 +1118,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           audition,
           render,
           check,
+          describe,
           pull: pullFiles,
           push: pushFiles,
           guard,

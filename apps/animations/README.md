@@ -23,7 +23,8 @@ bun run sfx keep <name> <n…> --replace         # keep candidates in place of t
 bun run sfx unkeep <name> <n…>                 # stop playing kept variants (by audition number); they wait again
 bun run sfx import <file> <name>               # a CC0 recording into a declared recorded sound (public/)
 bun run sfx render <name> [--seed n]           # a procedural sound's seeds as WAVs
-bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams
+bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams, one-shots that start late or lack their hit
+bun run sfx describe                           # record each take's onset and hit in the lock, measured from its file (free)
 bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
 bun run sfx push --from <folder>               # the same, sending files this machine lacks from an older folder store (a move; see The private store)
 bun run media push <file…> [--under dir]       # review renders into renders/<path under FILMS_OUT> (or renders/<dir>/<name>), read back by hash; skips what it holds, refuses a key it holds with other bytes
@@ -398,7 +399,14 @@ sound lands where the picture does and a re-recorded line carries both; a
 landmark, `{ scene, at: 'speech' }`, for a bed that hands over where the next
 scene's voice starts (never `offset: 0.4`, a copy of the scene's `lead`). A
 sound at a scene's start names that landmark too (`{ scene, at: 'start' }`),
-so a timeline, a short and the sound spell a point one way. A point names one
+so a timeline, a short and the sound spell a point one way. A one-shot whose
+loudest moment is its event (a stack settling, a page landing) says
+`sync: 'hit'` and anchors on the cue where the picture lands: the lock
+records each take's `onset` and `hit` (seconds into its file, measured when
+kept, or by `sfx describe`), and the mix starts each take its own hit early,
+so a re-rolled take stays on the picture. Never an `offset: -0.3` sized to
+one take's lead-in; `sfx check` warns `LeadIn` on a take whose sound starts
+more than 0.05 s in. A point names one
 anchor: a cue and a mark together do not compile. `score` sends each option's
 movements as one timed ElevenLabs composition plan (music v2 enforces the
 section lengths, so the score turns where the film does). Movements are the

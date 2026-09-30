@@ -14,6 +14,7 @@ import { hashText } from './narration.ts';
 import { repoJson } from './schema.ts';
 import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
+import { describeSound } from './synth/analyse.ts';
 import { loudness } from './synth/loudness.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
 
@@ -166,10 +167,34 @@ export const Variant = Schema.Struct({
   format: Schema.String,
   secs: Schema.Finite,
   loudness: VariantLoudness,
+  /**
+   * Seconds into the file where its sound starts (within 30 dB of its loudest
+   * 10 ms) and where it hits (its loudest 10 ms begins), as `describeSound`
+   * measured them: a take is not trimmed, so a placement that lands its hit
+   * on a cue (`sync: 'hit'`) starts it this much early. Written when the
+   * variant is made, or by `sfx describe` from the file (free).
+   */
+  onset: Schema.optionalKey(Schema.Finite),
+  hit: Schema.optionalKey(Schema.Finite),
   licence: VariantLicence,
   credits: Schema.Int,
 });
 export type Variant = typeof Variant.Type;
+
+/** Where a take's sound starts and where it hits, in seconds into its file. */
+export interface VariantTiming {
+  readonly onset: number;
+  readonly hit: number;
+}
+
+/** A variant's onset and hit as the lock writes them, to the millisecond. */
+export const lockTiming = (described: VariantTiming): VariantTiming => ({
+  onset: Math.round(described.onset * 1000) / 1000,
+  hit: Math.round(described.hit * 1000) / 1000,
+});
+
+/** A one-shot's lead-in (its onset) over this many seconds is heard late on its cue: `sfx check` says so. */
+export const LEAD_IN = 0.05;
 
 /**
  * One sound's record: its kept variants (what plays), the candidates made and
@@ -447,20 +472,31 @@ export const sourceLabel = (source: SoundSource): string => {
   return `synth:${hashText(Schema.encodeSync(Schema.fromJsonString(Recipe))(source.recipe))}/${source.seed}`;
 };
 
-/** One variant a placement may play: its audio and how loud it measured. */
+/** One variant a placement may play: its audio, how loud it measured, and where it hits (none unrecorded). */
 export interface Playable {
   readonly source: SoundSource;
   readonly loudness: VariantLoudness;
+  readonly hit: Option.Option<number>;
 }
 
-/** Each procedural variant's loudness, measured once per process: the recipe and seed decide it. */
-const synthLoudness = new Map<string, VariantLoudness>();
+/** A procedural variant as measured: its loudness and its hit. */
+interface SynthMeasure {
+  readonly loudness: VariantLoudness;
+  readonly hit: number;
+}
 
-const measureSynth = (recipe: Recipe, seed: number): VariantLoudness => {
+/** Each procedural variant measured once per process: the recipe and seed decide it. */
+const synthMeasured = new Map<string, SynthMeasure>();
+
+const measureSynth = (recipe: Recipe, seed: number): SynthMeasure => {
   const key = sourceLabel({ _tag: 'Synth', recipe, seed });
-  return Option.getOrElse(Option.fromUndefinedOr(synthLoudness.get(key)), () => {
-    const measured = lockLoudness(loudness(synthesize(recipe, seed)));
-    synthLoudness.set(key, measured);
+  return Option.getOrElse(Option.fromUndefinedOr(synthMeasured.get(key)), () => {
+    const pcm = synthesize(recipe, seed);
+    const measured = {
+      loudness: lockLoudness(loudness(pcm)),
+      hit: lockTiming(describeSound(pcm)).hit,
+    };
+    synthMeasured.set(key, measured);
     return measured;
   });
 };
@@ -476,15 +512,23 @@ export const playablesOf = (
   entry: LibraryEntry,
 ): ReadonlyArray<Playable> => {
   if (entry.kind === 'procedural')
-    return Array.from({ length: entry.variants }, (_, i) => ({
-      source: { _tag: 'Synth', recipe: entry.recipe, seed: i + 1 },
-      loudness: measureSynth(entry.recipe, i + 1),
-    }));
+    return Array.from({ length: entry.variants }, (_, i) => {
+      const measured = measureSynth(entry.recipe, i + 1);
+      return {
+        source: { _tag: 'Synth', recipe: entry.recipe, seed: i + 1 },
+        loudness: measured.loudness,
+        hit: Option.some(measured.hit),
+      };
+    });
   const kept = Option.match(Option.fromUndefinedOr(sounds.lock[name]), {
     onNone: (): ReadonlyArray<Variant> => [],
     onSome: (l) => l.variants,
   });
-  return kept.map((v) => ({ source: fileSource(`${sounds.dir}/${v.file}`), loudness: v.loudness }));
+  return kept.map((v) => ({
+    source: fileSource(`${sounds.dir}/${v.file}`),
+    loudness: v.loudness,
+    hit: Option.fromUndefinedOr(v.hit),
+  }));
 };
 
 // ---------------------------------------------------------------------------
