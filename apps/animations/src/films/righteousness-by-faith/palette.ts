@@ -28,15 +28,15 @@ export const mix = (a: string, b: string, t: number): string => {
 
 /**
  * How far the ground is lifted toward light paper, by level: `now` the
- * chipboard as first cut, `light` the committed lift, `lighter` a further
- * step. Pick one with `GROUND`; every value below and in `light.ts` and
- * `film.ts` follows it.
+ * chipboard as first cut (the owner's pick, 2026-09-30), `light` and
+ * `lighter` the two lifts they compared. Pick one with `GROUND`; every value
+ * below and in `light.ts` and `film.ts` follows it.
  */
 export const GROUNDS = { now: 0, light: 0.5, lighter: 0.75 } as const;
 export type Ground = keyof typeof GROUNDS;
 
 /** The film's ground level: the one line that sets how light the world is. */
-export const GROUND: Ground = 'light';
+export const GROUND: Ground = 'now';
 
 /** The lift, 0..1: the share of the way each ground colour rises toward `LIGHT_PAPER`. */
 export const LIFT: number = GROUNDS[GROUND];
