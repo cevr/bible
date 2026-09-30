@@ -3,6 +3,7 @@
 // with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
 // the real Media. Never a real call: every paid path is counted by the fake.
 
+import { createHash } from 'node:crypto';
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
@@ -24,6 +25,7 @@ import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from './errors.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
+import { NO_SCORES, type Scores } from './sound-store.ts';
 
 const LIBRARY = `export const library = {
   'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, candidates: 4, use: 'one-shot' },
@@ -367,7 +369,7 @@ describe('SoundLibrary', () => {
           yield* library.make(all);
           const lock = (yield* library.load).lock;
           const files = Object.values(lock).flatMap((e) => e.candidates.map((v) => v.file));
-          const first = yield* library.push;
+          const first = yield* library.push(NO_SCORES);
           expect([...first.sent].sort()).toEqual([...files].sort());
           expect(first).toMatchObject({ had: 0, missing: [], total: 6 });
           const broken = files[0] ?? '';
@@ -377,12 +379,33 @@ describe('SoundLibrary', () => {
           yield* fs.remove(`${storeDir}/${gone}`);
           yield* fs.remove(`${storeDir}/${lost}`);
           yield* fs.remove(`${dir}/${lost}`);
-          const again = yield* library.push;
+          const again = yield* library.push(NO_SCORES);
           expect([...again.sent].sort()).toEqual([broken, gone].sort());
           expect(again).toMatchObject({ had: 3, missing: [lost], total: 6 });
           // Pull names the file the store lacks, and brings back the rest.
           yield* fs.remove(`${dir}/${gone}`);
-          expect(yield* library.pull).toEqual({ fetched: 1, had: 4, missing: [lost] });
+          expect(yield* library.pull(NO_SCORES)).toEqual({ fetched: 1, had: 4, missing: [lost] });
+
+          // A film's score goes to the store beside the library's files, under its own key.
+          const score = `${dir}/../films/f/sound/piano-1.mp3`;
+          yield* fs.makeDirectory(`${dir}/../films/f/sound`, { recursive: true });
+          yield* fs.writeFileString(score, 'a score');
+          const scores: Scores = {
+            files: [
+              {
+                key: 'scores/f/piano-1.mp3',
+                file: score,
+                sha256: createHash('sha256').update('a score').digest('hex'),
+              },
+            ],
+            dirs: [`${dir}/../films/f/sound`],
+          };
+          const sent = yield* library.push(scores);
+          expect(sent.sent).toEqual(['scores/f/piano-1.mp3']);
+          expect(yield* fs.readFileString(`${storeDir}/scores/f/piano-1.mp3`)).toBe('a score');
+          yield* fs.remove(score);
+          expect(yield* library.pull(scores)).toEqual({ fetched: 1, had: 5, missing: [lost] });
+          expect(yield* fs.readFileString(score)).toBe('a score');
         }),
       ),
   );
@@ -401,8 +424,8 @@ describe('SoundLibrary', () => {
           'wood.knock',
         ]);
 
-        expect(yield* library.push).toMatchObject({ had: 0, total: 6 });
-        expect(yield* library.push).toEqual({ sent: [], had: 6, missing: [], total: 6 });
+        expect(yield* library.push(NO_SCORES)).toMatchObject({ had: 0, total: 6 });
+        expect(yield* library.push(NO_SCORES)).toEqual({ sent: [], had: 6, missing: [], total: 6 });
         const lock = (yield* library.load).lock;
         const slide = lock['paper.slide']?.variants[0]?.file ?? '';
         const court = lock['amb.court']?.variants[0]?.file ?? '';
@@ -413,7 +436,7 @@ describe('SoundLibrary', () => {
         expect(broken.map((f) => f._tag)).toEqual(
           expect.arrayContaining(['SoundFileMissing', 'SoundCorrupt']),
         );
-        expect(yield* library.pull).toEqual({ fetched: 2, had: 4, missing: [] });
+        expect(yield* library.pull(NO_SCORES)).toEqual({ fetched: 2, had: 4, missing: [] });
         const mended = yield* library.check;
         expect(mended.filter(fileBroken)).toEqual([]);
 
@@ -471,20 +494,44 @@ describe('SoundLibrary', () => {
           yield* fs.copyFile(take, stray);
           const notes = path.join(dir, 'notes.txt');
           yield* fs.writeFileString(notes, 'not audio');
+          // A film's composed score, in its sound/ folder and copied out of it.
+          const soundDir = path.join(dir, '..', 'films', 'f', 'sound');
+          yield* fs.makeDirectory(soundDir, { recursive: true });
+          const composed = path.join(soundDir, 'piano-1.mp3');
+          yield* fs.writeFileString(composed, 'a score');
+          const copied = path.join(dir, '..', 'score-copy.mp3');
+          yield* fs.copyFile(composed, copied);
+          const scores: Scores = {
+            files: [
+              {
+                key: 'scores/f/piano-1.mp3',
+                file: composed,
+                sha256: createHash('sha256').update('a score').digest('hex'),
+              },
+            ],
+            dirs: [soundDir],
+          };
 
-          const refused = yield* library.guard([
+          const staged = [
             path.join(dir, generated),
             leak,
             path.join(dir, recorded),
             stray,
             take,
             notes,
-          ]);
+            composed,
+            copied,
+          ];
+          const refused = yield* library.guard(staged, scores);
           expect(refused.map((r) => [path.basename(r.file), r.licence])).toEqual([
             [path.basename(generated), 'a generated sound (sounds/files is private)'],
             ['leak.flac', 'elevenlabs-paid-sfx (a copy of paper.slide)'],
             ['stray.wav', 'not a CC0 variant in the lock'],
+            ['piano-1.mp3', "a generated score (a film's sound/ is private)"],
+            ['score-copy.mp3', 'elevenlabs-music (a copy of a generated score)'],
           ]);
+          // Without the films' scores, the guard judges the library's sounds alone.
+          expect(yield* library.guard([copied], NO_SCORES)).toEqual([]);
         }),
       ),
   );

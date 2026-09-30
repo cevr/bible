@@ -113,8 +113,12 @@ the AAC and FLAC encoders register before `@mediabunny/server`'s FFmpeg
 ones. The ffmpeg binary runs for one thing: a software render's share copy
 (x264, below).
 
-`mix` plays `mixPlan` out through `renderMix` (the voice bus, the score faded
-and ducked under it, the library's beds looped over their spans, crossfaded
+`mix` plays `mixPlan` out through `renderMix` (the voice bus, a staging take
+lifted to the speech level `takes import` sets and a person's take as
+imported; the score option the film plays, `under` dB against the voice
+wherever anyone speaks and `alone` dB where no one has for 3 s or more, each
+levelled by BS.1770 loudness against the voice bus, ramped, and faded in and
+out (`core/score.ts`); the library's beds looped over their spans, crossfaded
 where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited: ported from the ffmpeg graph
 it replaced, which it matched to a −98.8 dB residual) and writes the film's

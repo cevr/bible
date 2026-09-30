@@ -49,6 +49,7 @@ const brokenRepo = (films: string) =>
             FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
           ),
         script: repo.script,
+        scores: repo.scores,
       }),
     ),
   ).pipe(Layer.provide(FilmRepo.layer(films)));

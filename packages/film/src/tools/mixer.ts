@@ -1,5 +1,6 @@
 // Lay a film's sound on one track: the voice takes where the film places them,
-// the score and the library's beds ducked under the voice (room tone is not),
+// the score option it plays under the voice and alone in its pauses, the
+// library's beds ducked under the voice (room tone is not),
 // and each effect on its cue at its level relative to the voice. What plays
 // where, and the signal processing, are core (core/mix.ts); `Mixer.mix` loads
 // the film and the app's library, decodes what its plan plays (a procedural
@@ -12,13 +13,13 @@ import { Context, Effect, FileSystem, Layer, Option } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels, windowLevels } from '../core/audio.ts';
 import {
-  type Bed,
   type BedSpan,
   MIX_RATE,
   type MixPlan,
   type MixPlanError,
   type Mixed,
   type Placement,
+  type ScoreBed,
   type Take,
   mixPlan,
   renderMix,
@@ -88,8 +89,10 @@ export const masterFinding = (
   });
 
 export interface MixOptions {
-  /** Also write each bus to `<out>/<film>/stems/<bus>.wav`. */
+  /** Also write each bus to `<out>/<film>/stems/<bus>.wav` (the score's as `music.<option>.wav`). */
   readonly stems: boolean;
+  /** The score option to play in place of the one the score names (`mix --score`). */
+  readonly score: Option.Option<string>;
 }
 
 export type MixError =
@@ -105,6 +108,8 @@ export type MixError =
 export interface RenderOptions {
   /** Log each warning the plan earns (stale, missing). */
   readonly warn: boolean;
+  /** The score option to play in place of the one the score names. */
+  readonly score: Option.Option<string>;
 }
 
 /** A mix rendered in memory, and the decoded plan it played. */
@@ -150,15 +155,15 @@ export const decodePlan = (
     Effect.map(decodeAt(p.sound), (sound): Placement<Pcm> => ({ ...p, sound }));
   const read = (take: Take<SoundSource>) =>
     Effect.map(decodeAt(take.sound), (sound): Take<Pcm> => ({ ...take, sound }));
-  const lay = (bed: Bed<SoundSource>) =>
-    Effect.map(decodeAt(bed.sound), (sound): Bed<Pcm> => ({ ...bed, sound }));
+  const lay = (score: ScoreBed<SoundSource>) =>
+    Effect.map(decodeAt(score.sound), (sound): ScoreBed<Pcm> => ({ ...score, sound }));
   const span = (bed: BedSpan<SoundSource>) =>
     Effect.map(decodeAt(bed.sound), (sound): BedSpan<Pcm> => ({ ...bed, sound }));
   return Effect.gen(function* () {
     const decoded: MixPlan<Pcm> = {
       ...plan,
       voice: yield* Effect.forEach(plan.voice, read, { concurrency: 4 }),
-      music: yield* Effect.transposeOption(Option.map(plan.music, lay)),
+      score: yield* Effect.transposeOption(Option.map(plan.score, lay)),
       beds: yield* Effect.forEach(plan.beds, span, { concurrency: 4 }),
       effects: yield* Effect.forEach(plan.effects, place, { concurrency: 4 }),
     };
@@ -167,7 +172,7 @@ export const decodePlan = (
 };
 
 /**
- * `plan` without the library files that are not on disk (a clone that has
+ * `plan` without the generated files that are not on disk (a clone that has
  * not run `sfx pull`), each named in a warning: the mix plays what it has.
  */
 export const presentOnly = (
@@ -176,13 +181,18 @@ export const presentOnly = (
 ): Effect.Effect<MixPlan<SoundSource>, PlatformError> =>
   Effect.gen(function* () {
     const absent = new Set<string>();
-    const sources = [...plan.beds.map((b) => b.sound), ...plan.effects.map((e) => e.sound)];
+    const sources = [
+      ...Option.toArray(Option.map(plan.score, (s) => s.sound)),
+      ...plan.beds.map((b) => b.sound),
+      ...plan.effects.map((e) => e.sound),
+    ];
     for (const source of sources)
       if (source._tag === 'File' && !absent.has(source.file) && !(yield* exists(source.file)))
         absent.add(source.file);
     const here = (source: SoundSource) => source._tag !== 'File' || !absent.has(source.file);
     return {
       ...plan,
+      score: Option.filter(plan.score, (s) => here(s.sound)),
       beds: plan.beds.filter((b) => here(b.sound)),
       effects: plan.effects.filter((e) => here(e.sound)),
       warnings: [
@@ -235,6 +245,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
             sounds: film.sounds,
             narration: film.paths.narration,
             soundDir: film.paths.sound,
+            play: options.score,
           }),
         );
         const present = yield* presentOnly((file) => fs.exists(file), planned);
@@ -246,10 +257,15 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
 
       const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
         const film = yield* repo.load(name);
-        const { plan, mixed } = yield* render(name, { warn: true });
+        const { plan, mixed } = yield* render(name, { warn: true, score: options.score });
+        const option = Option.map(plan.score, (s) => s.option);
+        const music = Option.match(option, {
+          onNone: () => 'music',
+          onSome: (o) => `music.${o}`,
+        });
         const buses: ReadonlyArray<Bus> = [
           { bus: 'voice', pcm: mixed.voice },
-          ...Option.toArray(Option.map(mixed.music, (pcm) => ({ bus: 'music', pcm }))),
+          ...Option.toArray(Option.map(mixed.music, (pcm) => ({ bus: music, pcm }))),
           ...Option.toArray(Option.map(mixed.beds, (pcm) => ({ bus: 'beds', pcm }))),
           ...Option.toArray(Option.map(mixed.effects, (pcm) => ({ bus: 'effects', pcm }))),
         ];
@@ -269,7 +285,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
           yield* Effect.log(`mix.stems names=${buses.map(({ bus }) => bus).join(',')} dir=${dir}`);
         }
         yield* Effect.log(
-          `mix.track takes=${plan.voice.length} music=${Option.isSome(plan.music)} beds=${plan.beds.length} effects=${plan.effects.length} secs=${plan.seconds.toFixed(1)} file=${master}`,
+          `mix.track takes=${plan.voice.length} score=${Option.getOrElse(option, () => 'none')} beds=${plan.beds.length} effects=${plan.effects.length} secs=${plan.seconds.toFixed(1)} file=${master}`,
         );
       });
 

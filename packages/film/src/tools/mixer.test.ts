@@ -3,7 +3,7 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, Layer } from 'effect';
+import { Effect, Fiber, Layer, Option } from 'effect';
 import { silence } from '../core/audio.ts';
 import { layout } from '../core/layout.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -14,6 +14,7 @@ import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
+import { NO_SCORES } from './sound-store.ts';
 import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello.', min: 5 }];
@@ -59,6 +60,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
       paths: () => film.paths,
       load: () => Effect.succeed(film),
       script: () => Effect.succeedNone,
+      scores: Effect.succeed(NO_SCORES),
     }),
   );
   const media = Layer.effect(
@@ -75,7 +77,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
   const layer = Mixer.layer.pipe(Layer.provide([memoryFileSystem(files), repo, media]));
   const mix = (stems = false) =>
     Effect.gen(function* () {
-      yield* (yield* Mixer).mix('test', { stems });
+      yield* (yield* Mixer).mix('test', { stems, score: Option.none() });
     }).pipe(Effect.provide(layer));
   const read = (file: string) => new TextDecoder().decode(files.get(file));
   const partials = () => [...files.keys()].filter((f) => f.includes('partial'));

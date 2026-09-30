@@ -24,10 +24,12 @@ pre-commit:
         fi
 
     # Guard rail: this repo is public, and ElevenLabs' terms forbid
-    # distributing generated sound effects as files. The film sound library
-    # refuses any staged audio that is a generated sound (under sounds/files,
-    # or a copy of one anywhere, by its hash) or sits under sounds/public
-    # without being a CC0 variant in the lock. See apps/animations/sounds.
+    # distributing generated sound effects or music as files. The film sound
+    # library refuses any staged audio that is a generated sound (under
+    # sounds/files, or a copy of one anywhere, by its hash), a film's generated
+    # score (anything under a film's sound/, or a copy of an option its
+    # manifest records, by its hash), or sits under sounds/public without being
+    # a CC0 variant in the lock. See apps/animations/sounds.
     - name: sound-licence
       glob: '**/*.{flac,wav,mp3,ogg,opus,m4a,aac,aif,aiff,FLAC,WAV,MP3}'
       run: bun apps/animations/cli.ts sfx guard {staged_files}

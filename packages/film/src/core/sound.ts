@@ -7,8 +7,11 @@
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
+  type ActLength,
+  ActTooLong,
   ActTooShort,
   CueInvalid,
+  ScoreUnknown,
   type SoundCueError,
   UnknownCue,
   UnknownMark,
@@ -23,10 +26,39 @@ import {
   MusicRequestKey,
   type Plan,
   type PlanChunk,
+  type Score,
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
 export const MIN_CHUNK_MS = 3000;
+
+/** The API refuses chunks longer than this. */
+export const MAX_CHUNK_MS = 120_000;
+
+/** One option of a score, by its name. */
+export interface ScoreOption {
+  readonly name: string;
+  readonly music: Music;
+}
+
+/** Each of the score's options, in the order `sound.ts` declares them. */
+export const scoreOptions = (score: Score): ReadonlyArray<ScoreOption> =>
+  Object.entries(score.options).map(([name, music]) => ({ name, music }));
+
+/**
+ * The option the mix plays: the one asked for by name, or else the one the
+ * score plays (`play`); a name the score lacks is `ScoreUnknown`.
+ */
+export const playedOption = (
+  score: Score,
+  asked: Option.Option<string>,
+): Result.Result<ScoreOption, ScoreUnknown> => {
+  const name = Option.getOrElse(asked, () => score.play);
+  return Result.fromOption(
+    Option.map(Option.fromUndefinedOr(score.options[name]), (music) => ({ name, music })),
+    () => ScoreUnknown.make({ option: name, known: Object.keys(score.options) }),
+  );
+};
 
 export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
   Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
@@ -90,23 +122,25 @@ export interface ActSpan {
 
 /**
  * Each act's length, from its scene to the next act's (the last to the film's
- * end), with `ActTooShort` in place of an act under the API's shortest chunk;
- * or, when any act names no scene, every such act.
+ * end), with `ActTooShort` or `ActTooLong` in place of an act outside the
+ * API's chunk lengths; or, when any act names no scene, every such act.
  */
 export const actSpans = (
   music: Music,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<
-  ReadonlyArray<Result.Result<ActSpan, ActTooShort>>,
+  ReadonlyArray<Result.Result<ActSpan, ActLength>>,
   Arr.NonEmptyReadonlyArray<UnknownScene>
 > => {
   const [unknown, starts] = Arr.partition(music.acts, (act, i) => actStart(act, i, placed));
   if (Arr.isReadonlyArrayNonEmpty(unknown)) return Result.fail(unknown);
   const bounds = [...starts, filmEnd(placed)].map((s) => Math.round(s * 1000));
   return Result.succeed(
-    music.acts.map((act, i) => {
+    music.acts.map((act, i): Result.Result<ActSpan, ActLength> => {
       const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
       if (ms < MIN_CHUNK_MS) return Result.fail(ActTooShort.make({ act: act.name, ms }));
+      if (ms > MAX_CHUNK_MS)
+        return Result.fail(ActTooLong.make({ act: act.name, ms, max: MAX_CHUNK_MS }));
       return Result.succeed({ act, ms });
     }),
   );
@@ -120,7 +154,7 @@ export const actSpans = (
 export const musicPlan = (
   music: Music,
   placed: ReadonlyArray<Placed>,
-): Result.Result<Plan, UnknownScene | ActTooShort> =>
+): Result.Result<Plan, UnknownScene | ActLength> =>
   Result.gen(function* () {
     const spans = yield* Result.mapError(actSpans(music, placed), Arr.headNonEmpty);
     const chunks: PlanChunk[] = [];

@@ -78,7 +78,7 @@ describe('film data codecs and keys (fixture film)', () => {
         yield* fixture('narration/timings.json'),
       );
       const decoded = yield* Schema.decodeEffect(Sound)(sound);
-      const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.music));
+      const music = yield* Effect.fromOption(Option.fromNullishOr(decoded.score?.options['piano']));
       const plan = yield* Effect.fromResult(musicPlan(music, layout(scenes, timings)));
       expect(musicKey(music, plan)).toBe('596f29d1');
     }),

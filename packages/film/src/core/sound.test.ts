@@ -1,11 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import { layout } from './layout.ts';
-import type { Music, Timings } from './schema.ts';
+import { type Music, Score, type Timings } from './schema.ts';
+import {
+  MAX_CHUNK_MS,
+  actSpans,
+  cueTime,
+  filmEnd,
+  musicKey,
+  musicPlan,
+  playedOption,
+  scoreOptions,
+} from './sound.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { actSpans, cueTime, filmEnd, musicKey, musicPlan } from './sound.ts';
 
 /** The failure's tag, or `ok`. */
 const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>) =>
@@ -32,7 +41,6 @@ const music: Music = {
   model: 'music_v2_5',
   styles: ['piano'],
   avoid: ['vocals'],
-  gain: 0.2,
   acts: [
     { from: 'a', name: 'Open', styles: ['sparse'] },
     { from: 'c', name: 'Close', styles: ['warm'] },
@@ -117,9 +125,43 @@ describe('sound', () => {
     expect(outcome(musicPlan(backwards, placed))).toBe('ActTooShort');
   });
 
-  test('keys change with the request, not with the gain', () => {
+  test('an act longer than the API composes in one chunk is refused', () => {
+    const long = layout([{ id: 'a', min: 130 }], noTakes);
+    const one = { ...music, acts: [{ from: 'a', name: 'Whole', styles: [] }] };
+    expect(outcome(musicPlan(one, long))).toBe('ActTooLong');
+    expect(MAX_CHUNK_MS).toBe(120_000);
+  });
+
+  test('keys change with the request: the model and the plan', () => {
     const plan = Result.getOrThrow(musicPlan(music, placed));
-    expect(musicKey({ ...music, gain: 0.9 }, plan)).toBe(musicKey(music, plan));
+    expect(musicKey({ ...music }, plan)).toBe(musicKey(music, plan));
     expect(musicKey({ ...music, model: 'music_v2' }, plan)).not.toBe(musicKey(music, plan));
+  });
+});
+
+describe('score options', () => {
+  const score: Score = {
+    play: 'piano',
+    under: -18,
+    alone: -6,
+    options: { piano: music, pads: { ...music, styles: ['pads'] } },
+  };
+
+  test('each option in the order declared; the mix plays the named one unless asked for another', () => {
+    expect(scoreOptions(score).map((o) => o.name)).toEqual(['piano', 'pads']);
+    const played = (asked: Option.Option<string>) =>
+      Result.match(playedOption(score, asked), {
+        onSuccess: (o) => o.name,
+        onFailure: (e) => `${e._tag} ${e.known.join(',')}`,
+      });
+    expect(played(Option.none())).toBe('piano');
+    expect(played(Option.some('pads'))).toBe('pads');
+    expect(played(Option.some('organ'))).toBe('ScoreUnknown piano,pads');
+  });
+
+  test('a score must play one of its options', () => {
+    const decode = Schema.decodeUnknownResult(Score);
+    expect(Result.isSuccess(decode(score))).toBe(true);
+    expect(Result.isFailure(decode({ ...score, play: 'organ' }))).toBe(true);
   });
 });

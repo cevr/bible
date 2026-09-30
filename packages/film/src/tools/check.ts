@@ -28,7 +28,7 @@ import {
 } from '../core/narration.ts';
 import type {
   InkMark,
-  Music,
+  Score,
   Point,
   Probed,
   Sound,
@@ -43,9 +43,9 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { actSpans, cueTime, filmEnd, musicKey, musicPlan } from '../core/sound.ts';
+import { actSpans, cueTime, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
 import {
-  type ActTooShort,
+  type ActLength,
   type HandFar,
   type HandHidden,
   type HandJump,
@@ -96,7 +96,7 @@ export type StaticFinding =
   | UnknownCue
   | UnknownMark
   | CueInvalid
-  | ActTooShort
+  | ActLength
   | UnknownVoice
   | UnknownSound
   | SoundUseMismatch
@@ -263,31 +263,35 @@ const assetFinding = (
   });
 
 /**
- * The score's acts: each names a scene, and each runs in film order for at
- * least the API's shortest chunk (`actSpans`, every failure rather than the
- * first). Only a plan that holds is checked for a stale score.
+ * Each score option's acts: each names a scene, and each runs in film order
+ * for as long as the API's chunks may last (`actSpans`, every failure rather
+ * than the first). Only a plan that holds is checked for a stale option
+ * (asset `score.<option>`).
  */
 export const musicFindings = (
-  music: Music,
+  score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | ActTooShort | AssetStale | AssetMissing> =>
-  Result.match(actSpans(music, placed), {
-    onFailure: (unknown) => unknown,
-    onSuccess: (spans) => {
-      const short = Arr.getFailures(spans);
-      if (short.length > 0) return short;
-      return Result.match(musicPlan(music, placed), {
-        onFailure: (error) => [error],
-        onSuccess: (plan) =>
-          assetFinding(
-            'music',
-            Option.map(Option.fromNullishOr(manifest.music), (a) => a.hash),
-            musicKey(music, plan),
-          ),
-      });
-    },
-  });
+): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
+  scoreOptions(score).flatMap(({ name, music }) =>
+    Result.match(actSpans(music, placed), {
+      onFailure: (unknown): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
+        unknown,
+      onSuccess: (spans) => {
+        const wrong = Arr.getFailures(spans);
+        if (wrong.length > 0) return wrong;
+        return Result.match(musicPlan(music, placed), {
+          onFailure: (error) => [error],
+          onSuccess: (plan) =>
+            assetFinding(
+              `score.${name}`,
+              Option.map(Option.fromUndefinedOr(manifest.scores?.[name]), (a) => a.hash),
+              musicKey(music, plan),
+            ),
+        });
+      },
+    }),
+  );
 
 /**
  * The mix measured against the film's sound rules: the voice's level and the
@@ -530,8 +534,8 @@ export const staticFindings = (
   master: Option.Option<number>,
 ): ReadonlyArray<Reported> => {
   const sound = Option.toArray(film.sound).flatMap((s) => [
-    ...Option.toArray(Option.fromNullishOr(s.music)).flatMap((m) =>
-      musicFindings(m, placed, film.manifest),
+    ...Option.toArray(Option.fromNullishOr(s.score)).flatMap((score) =>
+      musicFindings(score, placed, film.manifest),
     ),
     ...soundFindings(s, placed, film.sounds),
   ]);

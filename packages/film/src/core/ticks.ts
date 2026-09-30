@@ -57,7 +57,8 @@ export const timelineTicks = (
     ),
   );
   const acts = Option.toArray(sound).flatMap((s) =>
-    Option.toArray(Option.fromNullishOr(s.music)).flatMap((music) =>
+    // The acts of the option the score plays.
+    Option.toArray(Option.fromNullishOr(s.score?.options[s.score.play])).flatMap((music) =>
       music.acts.flatMap((act, i) => {
         // The first act opens the film, wherever it names.
         const opening: Tick = { kind: 'act', name: `act ${act.name}`, at: 0, dur: 0 };

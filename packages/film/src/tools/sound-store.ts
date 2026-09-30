@@ -3,7 +3,8 @@
 // and cannot be made again (the model has no seed), so `sfx push` copies them
 // to a store and `sfx pull` brings them back. One small interface; a folder
 // store now (the library's `store.folder`), a remote one (a private Git repo
-// or an R2 bucket) once the owner chooses.
+// or an R2 bucket) once the owner chooses. A film's generated score is kept
+// the same way, beside the library's files (`scores/<film>/<file>`).
 
 import { Effect, type FileSystem, Option, type Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
@@ -11,13 +12,36 @@ import type { PlatformError } from 'effect/PlatformError';
 export interface SoundStoreService {
   /** Where the store is, for the log. */
   readonly where: string;
-  /** The sha256 of the bytes the store holds as `key` (a path under the library's `files/`), if any. */
+  /** The sha256 of the bytes the store holds as `key` (`files/…` for a library file, `scores/…` for a score), if any. */
   readonly hashOf: (key: string) => Effect.Effect<Option.Option<string>, PlatformError>;
   /** Copy the store's `key` to `to`, whole: a reader never sees half of it. */
   readonly get: (key: string, to: string) => Effect.Effect<void, PlatformError>;
   /** Copy `from` into the store as `key`, whole. */
   readonly put: (key: string, from: string) => Effect.Effect<void, PlatformError>;
 }
+
+/** A private file the store keeps: its key in the store, where it lives here, and its bytes' hash. */
+export interface PrivateFile {
+  readonly key: string;
+  readonly file: string;
+  readonly sha256: string;
+}
+
+/**
+ * The films' generated scores, kept beside the library's files in its store:
+ * each composed option (keyed `scores/<film>/<file>`), and each film's
+ * `sound/` folder, where no audio may be committed.
+ */
+export interface Scores {
+  readonly files: ReadonlyArray<PrivateFile>;
+  readonly dirs: ReadonlyArray<string>;
+}
+
+/** No films' scores: the library's own files alone. */
+export const NO_SCORES: Scores = { files: [], dirs: [] };
+
+/** A score option's key in the store. */
+export const scoreKey = (film: string, file: string): string => `scores/${film}/${file}`;
 
 /** `~/…` under `home`; any other path as it is. */
 export const expandHome = (file: string, home: string): string => {

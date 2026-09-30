@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import type { Pcm } from './audio.ts';
+import { type Pcm, slice } from './audio.ts';
 import { layout } from './layout.ts';
+import { loudness } from './synth/loudness.ts';
 import { BED_DUCK, MIX_RATE, type MixPlan, loopFill, mixPlan, renderMix, repitch } from './mix.ts';
 import { TAKE_LEVEL } from './recording.ts';
-import type { Music, Sound, Timed } from './schema.ts';
+import type { Music, Score, Sound, SoundManifest, Timed } from './schema.ts';
+import { musicKey, musicPlan } from './sound.ts';
 import {
   type Lock,
   NO_SOUNDS,
@@ -27,12 +29,20 @@ const mono = (secs: number, value: number): Pcm => {
 const plan = (over: Partial<MixPlan<Pcm>>): MixPlan<Pcm> => ({
   seconds: 10,
   voice: [],
-  music: Option.none(),
+  score: Option.none(),
   beds: [],
   effects: [],
   warnings: [],
   ...over,
 });
+
+/** `secs` of a mono sine at `hz`, peaking at `amp` (loudness weighting ignores a constant). */
+const tone = (secs: number, amp: number, hz: number): Pcm => {
+  const frames = Math.round(secs * RATE);
+  const plane = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) plane[i] = amp * Math.sin((2 * Math.PI * hz * i) / RATE);
+  return { rate: RATE, frames, channels: [plane] };
+};
 
 /** A bus's left channel at `secs`. */
 const at = (bus: Pcm, secs: number) => bus.channels[0]?.[Math.round(secs * RATE)];
@@ -90,22 +100,44 @@ describe('renderMix', () => {
   });
 
   test('the score fades in over its first two seconds and out over the film’s last six', () => {
-    const mixed = renderMix(plan({ music: Option.some({ sound: mono(10, 0.5), gain: 0.5 }) }));
-    const music = Option.getOrThrow(mixed.music);
-    const whole = SIDE * 0.5;
+    // No voice: nothing to level against, so the score plays as it is.
+    const score = { option: 'piano', sound: mono(10, 0.5), under: -18, alone: -6 };
+    const music = Option.getOrThrow(renderMix(plan({ score: Option.some(score) })).music);
     expect(at(music, 0)).toBe(0);
-    expect(at(music, 1)).toBeCloseTo(whole / 2, 6);
-    expect(at(music, 3)).toBeCloseTo(whole, 6);
-    expect(at(music, 7)).toBeCloseTo(whole / 2, 6);
+    expect(at(music, 1)).toBeCloseTo(SIDE / 2, 6);
+    expect(at(music, 3)).toBeCloseTo(SIDE, 6);
+    expect(at(music, 7)).toBeCloseTo(SIDE / 2, 6);
   });
 
-  test('the score ducks under the voice', () => {
-    const score = { sound: mono(10, 0.5), gain: 0.5 };
-    const voice = [take(mono(10, 0.5), 0)];
-    const alone = Option.getOrThrow(renderMix(plan({ music: Option.some(score) })).music);
-    const under = Option.getOrThrow(renderMix(plan({ music: Option.some(score), voice })).music);
-    // The key sits 20·log(SIDE / 0.02) dB over the threshold; at 3:1 two thirds of that comes off.
-    expect((at(under, 3) ?? 0) / (at(alone, 3) ?? 1)).toBeCloseTo((0.02 / SIDE) ** (2 / 3), 3);
+  describe('the score against the voice', () => {
+    const seconds = 20;
+    const score = { option: 'piano', sound: tone(seconds, 0.3, 500), under: -18, alone: -6 };
+    /** `bus`'s loudness from `from` to `to` seconds. */
+    const lufs = (bus: Pcm, from: number, to: number) =>
+      loudness(slice(bus, Math.round(from * RATE), Math.round((to - from) * RATE))).integrated;
+
+    test('under the voice while it speaks, alone once it has rested', () => {
+      const voice = [take(tone(4, 0.3, 1000), 0)];
+      const mixed = renderMix(plan({ seconds, voice, score: Option.some(score) }));
+      const music = Option.getOrThrow(mixed.music);
+      const spoken = loudness(mixed.voice).integrated;
+      expect(lufs(music, 2, 3.8) - spoken).toBeCloseTo(-18, 0);
+      expect(lufs(music, 6, 13) - spoken).toBeCloseTo(-6, 0);
+    });
+
+    test('a short pause stays under; a long one rises and settles back before the voice', () => {
+      const voice = [take(tone(4, 0.3, 1000), 0), take(tone(4, 0.3, 1000), 5.5)];
+      const mixed = renderMix(plan({ seconds, voice, score: Option.some(score) }));
+      const music = Option.getOrThrow(mixed.music);
+      expect(lufs(music, 4.2, 5.3)).toBeCloseTo(lufs(music, 2, 3.8), 1);
+      const late = [take(tone(4, 0.3, 1000), 0), take(tone(4, 0.3, 1000), 10)];
+      const rested = Option.getOrThrow(
+        renderMix(plan({ seconds, voice: late, score: Option.some(score) })).music,
+      );
+      expect(lufs(rested, 6, 8) - lufs(rested, 2, 3.8)).toBeCloseTo(12, 0);
+      // Down again a quarter of a second before the voice speaks.
+      expect(lufs(rested, 10, 12)).toBeCloseTo(lufs(rested, 2, 3.8), 0);
+    });
   });
 
   test('effects play on their own bus, each at its cue and gain', () => {
@@ -163,12 +195,17 @@ describe('renderMix', () => {
 
 describe('mixPlan', () => {
   const placed = layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} });
-  const score: Music = {
+  const option = (styles: ReadonlyArray<string>): Music => ({
     model: 'music_v2',
-    styles: [],
+    styles,
     avoid: [],
     acts: [{ from: 'a', name: 'Open', styles: [] }],
-    gain: 0.5,
+  });
+  const score: Score = {
+    play: 'piano',
+    under: -18,
+    alone: -6,
+    options: { piano: option(['felt piano']), pads: option(['ambient pads']) },
   };
   const input = {
     film: 'f',
@@ -177,14 +214,47 @@ describe('mixPlan', () => {
     sounds: NO_SOUNDS,
     narration: 'n',
     soundDir: 's',
+    play: Option.none<string>(),
   };
+  const keyOf = (music: Music) => musicKey(music, Result.getOrThrow(musicPlan(music, placed)));
+  const manifest: SoundManifest = {
+    scores: {
+      piano: { hash: keyOf(option(['felt piano'])), file: 'piano-1.mp3', sha256: 'a' },
+      pads: { hash: 'old', file: 'pads-0.mp3', sha256: 'b' },
+    },
+  };
+  const scored = Option.some<Sound>({ score, effects: {} });
 
-  test('a declared score with no asset plays no music, and says so', () => {
-    const planned = Result.getOrThrow(
-      mixPlan({ ...input, sound: Option.some({ music: score, effects: {} }) }),
+  test('a declared score with no asset plays no music, and says which option', () => {
+    const planned = Result.getOrThrow(mixPlan({ ...input, sound: scored }));
+    expect(Option.isNone(planned.score)).toBe(true);
+    expect(planned.warnings).toEqual([
+      'mix.missing asset=score.piano hint="run score to compose it, or score pull"',
+    ]);
+  });
+
+  test('the score plays the option it names, at its levels against the voice', () => {
+    const planned = Result.getOrThrow(mixPlan({ ...input, manifest, sound: scored }));
+    expect(
+      Option.map(planned.score, (s) => [s.option, sourceLabel(s.sound), s.under, s.alone]),
+    ).toEqual(Option.some(['piano', 's/piano-1.mp3', -18, -6]));
+    expect(planned.warnings).toEqual([]);
+  });
+
+  test('another option plays when asked for by name, stale or not; a name it lacks fails', () => {
+    const pads = Result.getOrThrow(
+      mixPlan({ ...input, manifest, sound: scored, play: Option.some('pads') }),
     );
-    expect(Option.isNone(planned.music)).toBe(true);
-    expect(planned.warnings).toEqual(['mix.missing asset=music hint="run score to generate it"']);
+    expect(Option.map(pads.score, (s) => sourceLabel(s.sound))).toEqual(
+      Option.some('s/pads-0.mp3'),
+    );
+    expect(pads.warnings).toEqual([
+      'mix.stale asset=score.pads hint="acts or timing changed; run score to compose it again"',
+    ]);
+    const lost = mixPlan({ ...input, manifest, sound: scored, play: Option.some('organ') });
+    expect(Result.match(lost, { onSuccess: () => 'none', onFailure: (e) => e._tag })).toBe(
+      'ScoreUnknown',
+    );
   });
 
   test('no score declared, no warning', () => {

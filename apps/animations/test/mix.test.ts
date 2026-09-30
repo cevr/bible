@@ -54,7 +54,12 @@ const Span = Schema.Struct({
 const Plan = Schema.Struct({
   seconds: Schema.Finite,
   voice: Schema.Array(Placed),
-  music: Schema.Struct({ sound: Schema.String, gain: Schema.Finite }),
+  score: Schema.Struct({
+    option: Schema.String,
+    sound: Schema.String,
+    under: Schema.Finite,
+    alone: Schema.Finite,
+  }),
   beds: Schema.Array(Span),
   effects: Schema.Array(Placed),
 });
@@ -146,6 +151,7 @@ const plan = (
       sounds,
       narration: `${dir}/${FILM}/narration`,
       soundDir: `${dir}/${FILM}/sound`,
+      play: Option.none(),
     }),
   );
 };
@@ -164,9 +170,14 @@ const placement = (p: Placement<SoundSource>): typeof Placed.Type => ({
 const pinned = (planned: MixPlan<SoundSource>): typeof Plan.Type => ({
   seconds: planned.seconds,
   voice: planned.voice.map(placement),
-  music: Option.match(planned.music, {
-    onNone: () => ({ sound: '', gain: 0 }),
-    onSome: (m) => ({ sound: sourceLabel(m.sound), gain: m.gain }),
+  score: Option.match(planned.score, {
+    onNone: () => ({ option: '', sound: '', under: 0, alone: 0 }),
+    onSome: (s) => ({
+      option: s.option,
+      sound: sourceLabel(s.sound),
+      under: s.under,
+      alone: s.alone,
+    }),
   }),
   beds: planned.beds.map((b) => ({
     sound: sourceLabel(b.sound),

@@ -67,6 +67,31 @@ export class ActTooShort extends Schema.TaggedError<ActTooShort>()('ActTooShort'
   }
 }
 
+/** A score act longer than the music API's longest chunk: start another act inside it. */
+export class ActTooLong extends Schema.TaggedError<ActTooLong>()('ActTooLong', {
+  act: Schema.String,
+  ms: Schema.Finite,
+  max: Schema.Finite,
+}) {
+  override get message() {
+    return `sound: act "${this.act}" is ${this.ms}ms, over the ${this.max}ms one act may last; start another act at a scene inside it`;
+  }
+}
+
+/** An act the music API cannot compose at its length. */
+export type ActLength = ActTooShort | ActTooLong;
+
+/** A score option asked for by name (`mix --score`) that the film's score does not have. */
+export class ScoreUnknown extends Schema.TaggedError<ScoreUnknown>()('ScoreUnknown', {
+  option: Schema.String,
+  /** The score's options. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `the score has no option "${this.option}"; its options are ${this.known.join(', ') || 'none'}`;
+  }
+}
+
 /** A take's character alignment does not regroup into the words of its text. */
 export class AlignmentMismatch extends Schema.TaggedError<AlignmentMismatch>()(
   'AlignmentMismatch',

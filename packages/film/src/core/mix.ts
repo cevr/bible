@@ -1,9 +1,10 @@
 // A film's sound on one track. `mixPlan` is the whole decision, pure: which
-// take, score, bed and effect play, where and how loud, with the warnings a
-// stale or missing asset earns. `renderMix` plays a plan out once each sound
-// in it is decoded: the voice bus, the score ducked under the voice, the beds
-// looped and faded (ducked unless they sit under everything), the effects on
-// their cues, summed and limited. Remixing never calls a paid API.
+// take, score option, bed and effect play, where and how loud, with the
+// warnings a stale or missing asset earns. `renderMix` plays a plan out once
+// each sound in it is decoded: the voice bus, the score under the voice and
+// alone where no one speaks (`score.ts`), the beds looped and faded (ducked
+// unless they sit under everything), the effects on their cues, summed and
+// limited. Remixing never calls a paid API.
 //
 // Effects and beds name sounds from the app's library (`sfx.ts`), levelled in
 // dB relative to the voice's speech level by what each variant measured.
@@ -12,8 +13,9 @@ import { Option, Result } from 'effect';
 import { type Pcm, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
 import {
-  type ActTooShort,
+  type ActLength,
   CueInvalid,
+  type ScoreUnknown,
   type SoundUseMismatch,
   type UnknownCue,
   type UnknownMark,
@@ -37,15 +39,13 @@ import {
   resolveUse,
   soundState,
 } from './sfx.ts';
-import { cueTime, filmEnd, musicKey, musicPlan } from './sound.ts';
+import { aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
+import { cueTime, filmEnd, musicKey, musicPlan, playedOption } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
 export const MIX_RATE = 44100;
 
-/** How far the score sits under the voice: gentle ratio, slow release so it breathes back. */
-export const DUCK: Duck = { threshold: 0.02, ratio: 3, attack: 80, release: 1000, knee: 4 };
-
-/** How far a bed sits under the voice: gentler than the score, and slower back. */
+/** How far a bed sits under the voice: gentle ratio, slow release so it breathes back. */
 export const BED_DUCK: Duck = { threshold: 0.02, ratio: 2, attack: 120, release: 1500, knee: 4 };
 
 /** The ceiling the summed track may not pass. */
@@ -82,10 +82,17 @@ export interface Take<A> extends Placement<A> {
   readonly staged: boolean;
 }
 
-/** The score: one sound under the whole film, from its start. */
-export interface Bed<A> {
+/**
+ * The score option the mix plays: one sound under the whole film, from its
+ * start, at `under` dB against the voice where anyone speaks and `alone` dB
+ * where no one does (`score.ts`).
+ */
+export interface ScoreBed<A> {
+  /** The option's name in the film's score. */
+  readonly option: string;
   readonly sound: A;
-  readonly gain: number;
+  readonly under: number;
+  readonly alone: number;
 }
 
 /** A library bed: its sound looped from `from` to `to` (film seconds), faded at each end. */
@@ -106,8 +113,8 @@ export interface MixPlan<A> {
   readonly seconds: number;
   /** Each recorded take. */
   readonly voice: ReadonlyArray<Take<A>>;
-  /** The score, or none. */
-  readonly music: Option.Option<Bed<A>>;
+  /** The score option that plays, or none. */
+  readonly score: Option.Option<ScoreBed<A>>;
   /** Each bed over its span. */
   readonly beds: ReadonlyArray<BedSpan<A>>;
   /** Each effect on each of its cues. */
@@ -128,6 +135,8 @@ export interface MixInput {
   readonly narration: string;
   /** Directory of the generated score. */
   readonly soundDir: string;
+  /** The score option to play in place of the one the score names (`mix --score`). */
+  readonly play: Option.Option<string>;
 }
 
 export type MixPlanError =
@@ -135,7 +144,8 @@ export type MixPlanError =
   | UnknownCue
   | UnknownMark
   | CueInvalid
-  | ActTooShort
+  | ActLength
+  | ScoreUnknown
   | UnknownSound
   | SoundUseMismatch;
 
@@ -270,21 +280,29 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
     );
 
     // A stale score still plays, with a warning; a missing one is silence, with a warning.
-    let music = Option.none<Bed<SoundSource>>();
-    const score = Option.flatMap(input.sound, (s) => Option.fromNullishOr(s.music));
-    const made = Option.fromNullishOr(manifest.music);
-    if (Option.isSome(score) && Option.isNone(made))
-      warnings.push('mix.missing asset=music hint="run score to generate it"');
-    if (Option.isSome(score) && Option.isSome(made)) {
-      const plan = yield* musicPlan(score.value, placed);
-      if (made.value.hash !== musicKey(score.value, plan))
+    let played = Option.none<ScoreBed<SoundSource>>();
+    const declared = Option.flatMap(input.sound, (s) => Option.fromNullishOr(s.score));
+    if (Option.isSome(declared)) {
+      const score = declared.value;
+      const option = yield* playedOption(score, input.play);
+      const made = Option.fromNullishOr(manifest.scores?.[option.name]);
+      if (Option.isNone(made))
         warnings.push(
-          'mix.stale asset=music hint="acts or timing changed; run score to regenerate"',
+          `mix.missing asset=score.${option.name} hint="run score to compose it, or score pull"`,
         );
-      music = Option.some({
-        sound: fileSource(`${input.soundDir}/${made.value.file}`),
-        gain: score.value.gain,
-      });
+      if (Option.isSome(made)) {
+        const plan = yield* musicPlan(option.music, placed);
+        if (made.value.hash !== musicKey(option.music, plan))
+          warnings.push(
+            `mix.stale asset=score.${option.name} hint="acts or timing changed; run score to compose it again"`,
+          );
+        played = Option.some({
+          option: option.name,
+          sound: fileSource(`${input.soundDir}/${made.value.file}`),
+          under: score.under,
+          alone: score.alone,
+        });
+      }
     }
 
     let beds: ReadonlyArray<BedSpan<SoundSource>> = [];
@@ -294,7 +312,7 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
       effects = yield* effectPlacements(input, input.sound.value, warnings);
     }
 
-    return { seconds: filmEnd(placed), voice, music, beds, effects, warnings };
+    return { seconds: filmEnd(placed), voice, score: played, beds, effects, warnings };
   });
 
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
@@ -396,9 +414,9 @@ const renderBeds = (
 
 /**
  * Play `plan` out over decoded audio, every sound at `MIX_RATE`: the takes
- * summed on the voice bus; the score at its gain, faded, ducked under the
- * voice; the beds looped over their spans; the effects at their gains and
- * pitches; all summed and limited.
+ * summed on the voice bus; the score under the voice and alone in its pauses,
+ * each levelled against the voice, then faded in and out; the beds looped over
+ * their spans; the effects at their gains and pitches; all summed and limited.
  */
 export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   const frames = toFrames(plan.seconds, MIX_RATE);
@@ -411,16 +429,19 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
     addInto(voice, toStereo(take.sound).channels, at(take.at), take.gain * lift);
   }
 
-  const music = Option.map(plan.music, (bed) => {
+  const music = Option.map(plan.score, (score) => {
     const out = bus(frames);
-    addInto(out, toStereo(bed.sound).channels, 0, bed.gain);
+    addInto(out, toStereo(score.sound).channels, 0, 1);
+    const speaking = pcm(frames, voice);
+    const weights = aloneWeights(aloneSpans(speechSpans(speaking), plan.seconds), MIX_RATE, frames);
+    const gains = scoreGains(pcm(frames, out), speaking, weights, score);
+    applyScore(out, weights, gains);
     fade(out, { type: 'in', start: 0, frames: at(MUSIC_FADE_IN) });
     fade(out, {
       type: 'out',
       start: at(Math.max(0, plan.seconds - MUSIC_FADE_OUT)),
       frames: at(MUSIC_FADE_OUT),
     });
-    duck(out, voice, MIX_RATE, DUCK);
     return out;
   });
 

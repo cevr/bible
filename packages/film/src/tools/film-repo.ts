@@ -29,6 +29,7 @@ import {
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { FilmModuleInvalid, FilmNotFound, LayoutInvalid, WordMissing } from './errors.ts';
+import { type PrivateFile, type Scores, scoreKey } from './sound-store.ts';
 
 /** Every path a tool touches for one film. */
 export interface FilmPaths {
@@ -70,6 +71,11 @@ export interface FilmRepoService {
   readonly script: (
     film: string,
   ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
+  /**
+   * Every film's composed score options, as the private store keeps them, and
+   * each film's `sound/` folder (the pre-commit guard refuses audio there).
+   */
+  readonly scores: Effect.Effect<Scores, StoreError>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
@@ -263,7 +269,28 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });
 
-        return FilmRepo.of({ paths, load, script });
+        const readScores = Effect.fn('FilmRepo.scores')(function* () {
+          const names: Array<string> = [];
+          if (yield* fs.exists(films))
+            for (const entry of yield* fs.readDirectory(films))
+              if ((yield* fs.stat(path.join(films, entry))).type === 'Directory') names.push(entry);
+          const files: Array<PrivateFile> = [];
+          for (const name of names.toSorted()) {
+            const at = paths(name);
+            const manifest = yield* store.read(at.manifest);
+            for (const asset of Object.values(manifest.scores ?? {}))
+              files.push({
+                key: scoreKey(name, asset.file),
+                file: path.join(at.sound, asset.file),
+                sha256: asset.sha256,
+              });
+          }
+          const found: Scores = { files, dirs: names.map((name) => paths(name).sound) };
+          return found;
+        });
+        const scores = readScores();
+
+        return FilmRepo.of({ paths, load, script, scores });
       }),
     );
 }

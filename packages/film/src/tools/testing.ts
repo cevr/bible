@@ -305,7 +305,13 @@ export const fakeElevenLabs = (
           if (options.untimed === true) return { text: heard };
           return { text: heard, words: heardAt(heard) };
         }),
-      composeMusic: (_plan, _model, out) => Effect.sync(() => void calls.music.push(out)),
+      // The score's bytes name the plan's styles, so each option hashes apart.
+      composeMusic: (plan, _model, out) =>
+        Effect.sync(() => {
+          calls.music.push(out);
+          const styles = plan.chunks.flatMap((c) => c.positive_styles).join(' ');
+          files.set(out, new TextEncoder().encode(`music ${styles}`));
+        }),
       ready: Effect.void,
       apiKey: Option.match(Option.fromNullishOr(options.apiKey), {
         onNone: () => Effect.fail(ApiKeyMissing.make({})),

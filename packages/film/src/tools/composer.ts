@@ -1,47 +1,79 @@
-// Generate a film's score. It is current while the hash of its request
-// matches, like a voice take: the score's plan is timed from the film's
-// layout, so re-timing a scene makes the score stale, while changing its gain
-// never does. Effects and beds are the app's sound library's (`sfx make`), not
-// the film's.
+// Compose a film's score: each of its options (`sound.ts`'s `score.options`),
+// a whole score in its own musical language. An option is current while the
+// hash of its request matches, like a voice take: its plan is timed from the
+// film's layout, so re-timing a scene makes every option stale, while its
+// levels never do. Each lands as `sound/<option>-<hash>.mp3`, recorded with
+// the sha256 of its bytes; generated music may not sit in the public repo, so
+// the file is git-ignored, kept in the private store (`sfx push`) and refused
+// by the pre-commit guard. Effects and beds are the app's sound library's
+// (`sfx make`), not the film's.
 
-import { Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { createHash } from 'node:crypto';
+import { Console, Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
-import type { Asset, SoundManifest } from '../core/schema.ts';
+import type { Plan, SoundManifest } from '../core/schema.ts';
+import { type ScoreOption, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
 import { ContentStore, type StoreError, isStale } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
-  type ActTooShort,
+  type ActLength,
+  CreditsOverCap,
   type ElevenLabsFailed,
+  ScoreUnknown,
   SoundMissing,
   type UnknownScene,
 } from './errors.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
+import { TALLY_HEADER, talliedCredits } from './library.ts';
+
+/**
+ * What a minute of music costs, in credits (ElevenLabs' help centre, "How much
+ * does Eleven Music cost?": about 900 credits a minute). An estimate for the
+ * plan and the cap; the account's own count is the measure.
+ */
+export const MUSIC_CREDITS_PER_MINUTE = 900;
+
+/** The credits a plan is estimated to cost. */
+export const musicCredits = (plan: Plan): number =>
+  Math.ceil(
+    (plan.chunks.reduce((sum, c) => sum + c.duration_ms, 0) / 60_000) * MUSIC_CREDITS_PER_MINUTE,
+  );
 
 export interface ScoreOptions {
-  /** Compose the score again even when it is current. */
+  /** Compose again even when current. */
   readonly force: boolean;
-  /** Print the plan and whether the score would be composed, then stop. */
+  /** Print each option's plan, its cost and whether it would be composed, then stop. */
   readonly dryRun: boolean;
+  /** Just this option; every stale one otherwise. */
+  readonly only: Option.Option<string>;
+  /** The most credits spent in all, counting what the tally already records. */
+  readonly cap: Option.Option<number>;
+  /** A TSV each composed option is appended to: name, hash, seconds, credits. */
+  readonly tally: Option.Option<string>;
 }
 
 export type ScoreError =
   | SoundMissing
+  | ScoreUnknown
   | PlaceError
   | UnknownScene
-  | ActTooShort
+  | ActLength
+  | CreditsOverCap
   | ElevenLabsFailed
   | StoreError
   | PlatformError;
 
-const hashOf = (asset: Asset): string => asset.hash;
+/** Bytes' sha256, as the private store and the guard know them. */
+const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
-/** The manifest with the music set or cleared; `music` is omitted, never undefined. */
-const withMusic = (music: Option.Option<Asset>): SoundManifest =>
-  Option.match(music, {
-    onNone: () => ({}),
-    onSome: (asset) => ({ music: asset }),
-  });
+/** The manifest's scores narrowed to `keep`; `scores` is omitted, never undefined, when none are left. */
+const keepScores = (manifest: SoundManifest, keep: ReadonlySet<string>): SoundManifest => {
+  const scores = Object.fromEntries(
+    Object.entries(manifest.scores ?? {}).filter(([name]) => keep.has(name)),
+  );
+  if (Object.keys(scores).length === 0) return {};
+  return { scores };
+};
 
 export interface ComposerService {
   readonly score: (film: LoadedFilm, options: ScoreOptions) => Effect.Effect<void, ScoreError>;
@@ -58,6 +90,39 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
       const store = yield* ContentStore;
       const elevenLabs = yield* ElevenLabs;
 
+      const spentSoFar = (tally: Option.Option<string>) =>
+        Option.match(tally, {
+          onNone: () => Effect.succeed(0),
+          onSome: (file) =>
+            Effect.gen(function* () {
+              if (!(yield* fs.exists(file))) return 0;
+              return talliedCredits(yield* fs.readFileString(file));
+            }),
+        });
+
+      const tallied = (tally: Option.Option<string>, line: string) =>
+        Option.match(tally, {
+          onNone: () => Effect.void,
+          onSome: (file) =>
+            Effect.gen(function* () {
+              let text = TALLY_HEADER;
+              if (yield* fs.exists(file)) text = yield* fs.readFileString(file);
+              yield* fs.writeFileString(file, `${text}${line}\n`);
+            }),
+        });
+
+      /** Which of the score's options this run looks at: `only` alone, or all. */
+      const chosenOf = (all: ReadonlyArray<ScoreOption>, only: Option.Option<string>) =>
+        Option.match(only, {
+          onNone: () => Effect.succeed(all),
+          onSome: (name) =>
+            Option.match(Option.fromUndefinedOr(all.find((o) => o.name === name)), {
+              onNone: () =>
+                Effect.fail(ScoreUnknown.make({ option: name, known: all.map((o) => o.name) })),
+              onSome: (o) => Effect.succeed([o]),
+            }),
+        });
+
       const score = Effect.fn('Composer.score')(function* (
         film: LoadedFilm,
         options: ScoreOptions,
@@ -68,41 +133,84 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
           onSome: Effect.succeed,
         });
         const manifest = film.paths.manifest;
-        const declared = Option.fromNullishOr(sound.music);
+        const declared = Option.fromNullishOr(sound.score);
         if (Option.isNone(declared)) {
-          yield* Effect.log(`score.plan film=${name} to_generate=none reason="no score declared"`);
-          // A score the film no longer declares is dropped; its file stays until pruned by hand.
-          if (!options.dryRun) yield* store.update(manifest, () => withMusic(Option.none()));
+          yield* Effect.log(`score.plan film=${name} to_compose=none reason="no score declared"`);
+          // Options the film no longer declares are dropped; their files stay until pruned by hand.
+          if (!options.dryRun) yield* store.update(manifest, (m) => keepScores(m, new Set()));
           return;
         }
-        const music = declared.value;
+        const all = scoreOptions(declared.value);
+        const chosen = yield* chosenOf(all, options.only);
+        if (!options.dryRun)
+          yield* store.update(manifest, (m) => keepScores(m, new Set(all.map((o) => o.name))));
         const placed = yield* placeFilm(film);
-        const plan = yield* Effect.fromResult(musicPlan(music, placed));
-        const hash = musicKey(music, plan);
-        const acts = plan.chunks.map((c) => `${c.text}:${(c.duration_ms / 1000).toFixed(1)}`);
-        yield* Effect.log(`score.acts secs=${filmEnd(placed).toFixed(1)} acts=${acts.join(' | ')}`);
-        const stored = Option.map(Option.fromNullishOr(film.manifest.music), hashOf);
-        const stale = isStale(stored, hash, options.force);
-        let planned = 'none';
-        if (stale) planned = 'music';
-        yield* Effect.log(`score.plan film=${name} to_generate=${planned}`);
-        if (options.dryRun || !stale) return;
+        const secs = filmEnd(placed);
+        let spent = yield* spentSoFar(options.tally);
+        let planned = 0;
+        for (const option of chosen) {
+          const plan = yield* Effect.fromResult(musicPlan(option.music, placed));
+          const hash = musicKey(option.music, plan);
+          const ms = plan.chunks.reduce((sum, c) => sum + c.duration_ms, 0);
+          const credits = musicCredits(plan);
+          const stored = Option.map(
+            Option.fromUndefinedOr(film.manifest.scores?.[option.name]),
+            (a) => a.hash,
+          );
+          const stale = isStale(stored, hash, options.force);
+          let state = 'current';
+          if (stale) {
+            state = 'to compose';
+            planned += credits;
+          }
+          yield* Console.log(
+            `option ${option.name}  ${option.music.model}  ${plan.chunks.length} acts  ${(ms / 1000).toFixed(1)}s of ${secs.toFixed(1)}s  ~${credits} credits  ${state}  (${hash})`,
+          );
+          yield* Console.log(`  styles  ${option.music.styles.join(', ')}`);
+          yield* Console.log(`  avoid   ${option.music.avoid.join(', ')}`);
+          for (const [i, chunk] of plan.chunks.entries())
+            yield* Console.log(
+              `  ${chunk.text.padEnd(20)} ${(chunk.duration_ms / 1000).toFixed(1).padStart(6)}s  ${(option.music.acts[i]?.styles ?? []).join(', ')}`,
+            );
+          if (options.dryRun || !stale) continue;
 
-        yield* fs.makeDirectory(film.paths.sound, { recursive: true });
-        const file = `music-${hash}.mp3`;
-        const [took] = yield* Effect.timed(
-          store.ensure({
-            manifest,
-            hash,
-            force: options.force,
-            stored: (m) => Option.map(Option.fromNullishOr(m.music), hashOf),
-            produce: elevenLabs.composeMusic(plan, music.model, path.join(film.paths.sound, file)),
-            record: () => withMusic(Option.some({ hash, file })),
-          }),
-        );
-        yield* Effect.log(
-          `score.made id=music secs=${(Duration.toMillis(took) / 1000).toFixed(1)}`,
-        );
+          if (Option.isSome(options.cap) && spent + credits > options.cap.value)
+            return yield* CreditsOverCap.make({
+              credits: spent + credits,
+              cap: options.cap.value,
+            });
+          yield* fs.makeDirectory(film.paths.sound, { recursive: true });
+          const file = `${option.name}-${hash}.mp3`;
+          const at = path.join(film.paths.sound, file);
+          const [took] = yield* Effect.timed(
+            store.ensure({
+              manifest,
+              hash,
+              force: options.force,
+              stored: (m) =>
+                Option.map(Option.fromUndefinedOr(m.scores?.[option.name]), (a) => a.hash),
+              produce: elevenLabs.composeMusic(plan, option.music.model, at).pipe(
+                Effect.flatMap(() => fs.readFile(at)),
+                Effect.map(sha256),
+              ),
+              record: (m, digest) => ({
+                ...m,
+                scores: { ...m.scores, [option.name]: { hash, file, sha256: digest } },
+              }),
+            }),
+          );
+          spent += credits;
+          yield* tallied(
+            options.tally,
+            `score.${option.name}\t${hash}\t${(ms / 1000).toFixed(3)}\t${credits}`,
+          );
+          yield* Effect.log(
+            `score.made option=${option.name} file=${file} secs=${(Duration.toMillis(took) / 1000).toFixed(1)} credits~${credits}`,
+          );
+        }
+        let note = '';
+        if (options.dryRun) note = ' (dry run: nothing composed)';
+        yield* Console.log(`${chosen.length} options, ~${planned} credits to compose${note}`);
       });
 
       return Composer.of({ score });

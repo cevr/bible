@@ -19,16 +19,29 @@ const placed = layout(scenes, noTakes);
 const [, stamp] = placed;
 
 const sound: Sound = {
-  music: {
-    model: 'music_v2',
-    styles: [],
-    avoid: [],
-    gain: 0.5,
-    acts: [
-      { from: 'stamp', name: 'Opening', styles: [] },
-      { from: 'stamp', name: 'Turn', styles: [] },
-      { from: 'nowhere', name: 'Lost', styles: [] },
-    ],
+  score: {
+    play: 'piano',
+    under: -18,
+    alone: -6,
+    options: {
+      piano: {
+        model: 'music_v2',
+        styles: [],
+        avoid: [],
+        acts: [
+          { from: 'stamp', name: 'Opening', styles: [] },
+          { from: 'stamp', name: 'Turn', styles: [] },
+          { from: 'nowhere', name: 'Lost', styles: [] },
+        ],
+      },
+      // Another option's acts are not the ones the bar marks.
+      pads: {
+        model: 'music_v2',
+        styles: [],
+        avoid: [],
+        acts: [{ from: 'open', name: 'Pads', styles: [] }],
+      },
+    },
   },
   effects: {
     thud: {

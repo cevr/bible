@@ -19,6 +19,7 @@ import {
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Mixer } from './mixer.ts';
+import { NO_SCORES } from './sound-store.ts';
 import { STUDIO_MAX_BODY, studioHandler } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
@@ -72,6 +73,7 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
         // The film as it is stored now, as the lab reloads it for each request.
         load: () => Effect.map(store.read(film.paths.timings), (timings) => ({ ...film, timings })),
         script: () => Effect.succeedNone,
+        scores: Effect.succeed(NO_SCORES),
       });
     }),
   );

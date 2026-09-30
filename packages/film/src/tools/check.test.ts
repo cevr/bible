@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
-import type { Cast, Music, Probed, Sound, Timed, Timings } from '../core/schema.ts';
+import type { Cast, Music, Probed, Score, Sound, Timed, Timings } from '../core/schema.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { filmEnd, musicKey, musicPlan } from '../core/sound.ts';
@@ -807,30 +807,48 @@ const soundScenes: ReadonlyArray<Timed> = [
   { id: 'close', min: 8 },
 ];
 const placedSound = layout(soundScenes, noTakes);
-const music = (acts: Music['acts']): Music => ({
+const option = (acts: Music['acts']): Music => ({
   model: 'music_v2',
   styles: [],
   avoid: [],
   acts,
-  gain: 0.5,
+});
+
+/** A score of one option, `piano`, in `acts`. */
+const music = (acts: Music['acts']): Score => ({
+  play: 'piano',
+  under: -18,
+  alone: -6,
+  options: { piano: option(acts) },
 });
 
 describe('musicFindings', () => {
-  const inOrder = music([
+  const acts: Music['acts'] = [
     { from: 'open', name: 'Opening', styles: [] },
     { from: 'close', name: 'Closing', styles: [] },
-  ]);
-  const hash = musicKey(inOrder, Result.getOrThrow(musicPlan(inOrder, placedSound)));
+  ];
+  const inOrder = music(acts);
+  const piano = option(acts);
+  const hash = musicKey(piano, Result.getOrThrow(musicPlan(piano, placedSound)));
+  const asset = (h: string) => ({ hash: h, file: `piano-${h}.mp3`, sha256: 'x' });
 
-  test('a current score is fine; a re-timed one is stale; an unmade one is missing', () => {
-    expect(musicFindings(inOrder, placedSound, { music: { hash, file: 'm.mp3' } })).toEqual([]);
-    const stale = musicFindings(inOrder, placedSound, {
-      music: { hash: 'old', file: 'm.mp3' },
-    });
+  test('a current option is fine; a re-timed one is stale; an unmade one is missing', () => {
+    expect(musicFindings(inOrder, placedSound, { scores: { piano: asset(hash) } })).toEqual([]);
+    const stale = musicFindings(inOrder, placedSound, { scores: { piano: asset('old') } });
     expect(stale).toMatchObject([
-      { _tag: 'AssetStale', asset: 'music', stored: 'old', wanted: hash },
+      { _tag: 'AssetStale', asset: 'score.piano', stored: 'old', wanted: hash },
     ]);
     expect(tags(musicFindings(inOrder, placedSound, {}))).toEqual(['AssetMissing']);
+  });
+
+  test('each option is checked: one composed, another not', () => {
+    const two: Score = {
+      ...inOrder,
+      options: { piano, pads: { ...piano, styles: ['pads'] } },
+    };
+    expect(musicFindings(two, placedSound, { scores: { piano: asset(hash) } })).toMatchObject([
+      { _tag: 'AssetMissing', asset: 'score.pads' },
+    ]);
   });
 
   test('every act out of order or under 3 s is reported, not just the first', () => {
@@ -964,7 +982,7 @@ describe('balanceFindings', () => {
     const plan: MixPlan<Pcm> = {
       seconds: 10,
       voice: [],
-      music: Option.none(),
+      score: Option.none(),
       beds: [],
       effects,
       warnings: [],

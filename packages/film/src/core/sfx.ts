@@ -592,6 +592,8 @@ export interface StagedAudio {
   readonly file: string;
   /** Its path under the library's folder (`files/…`, `public/…`), when it is under it. */
   readonly inLibrary: Option.Option<string>;
+  /** Whether it sits under a film's `sound/` folder, where the generated score lives. */
+  readonly inScore: boolean;
   readonly sha256: string;
 }
 
@@ -605,13 +607,15 @@ export interface Refused {
  * The staged audio files a public repo may not take: anything under the
  * library's private `files/`; a copy (by its bytes' hash) of any variant or
  * candidate that is not CC0, wherever it is staged; and anything under
- * `public/` that the lock does not hold as a CC0 variant. Audio outside the
- * library that is no copy of its sounds (a film's takes and score) is not the
- * library's to judge.
+ * `public/` that the lock does not hold as a CC0 variant. A film's generated
+ * score is private too: anything under a film's `sound/`, and a copy of any
+ * score its manifest records (`scores`, the sha256 of each), wherever staged.
+ * A film's takes are not the library's to judge.
  */
 export const refusedAudio = (
   lock: Lock,
   staged: ReadonlyArray<StagedAudio>,
+  scores: ReadonlySet<string>,
 ): ReadonlyArray<Refused> => {
   const made = new Map(
     Object.entries(lock).flatMap(([name, entry]) =>
@@ -624,6 +628,10 @@ export const refusedAudio = (
     const under = Option.getOrElse(audio.inLibrary, () => '');
     if (under.startsWith('files/'))
       return [{ file: audio.file, licence: 'a generated sound (sounds/files is private)' }];
+    if (audio.inScore)
+      return [{ file: audio.file, licence: "a generated score (a film's sound/ is private)" }];
+    if (scores.has(audio.sha256))
+      return [{ file: audio.file, licence: 'elevenlabs-music (a copy of a generated score)' }];
     const copy = Option.fromUndefinedOr(made.get(audio.sha256));
     if (Option.isSome(copy) && copy.value.variant.licence !== 'CC0-1.0')
       return [

@@ -21,9 +21,11 @@
         "pitch": 0
       }
     ],
-    "music": {
+    "score": {
+      "option": "piano",
       "sound": "<app>/test/fixtures/films/tiny/sound/music-596f29d1.mp3",
-      "gain": 0.5
+      "under": -18,
+      "alone": -6
     },
     "beds": [
       {
@@ -78,9 +80,11 @@
         "pitch": 0
       }
     ],
-    "music": {
+    "score": {
+      "option": "piano",
       "sound": "<app>/test/fixtures/films/tiny/sound/music-596f29d1.mp3",
-      "gain": 0.5
+      "under": -18,
+      "alone": -6
     },
     "beds": [
       {

@@ -469,15 +469,36 @@ export type Act = typeof Act.Type;
 
 export const MusicModel = Schema.Literals(['music_v2', 'music_v2_5']);
 
+/** One score for the film: a musical language (its styles), in acts timed to the film. */
 export const Music = Schema.Struct({
   model: MusicModel,
   styles: Schema.Array(Schema.String),
   avoid: Schema.Array(Schema.String),
   acts: Schema.Array(Act),
-  /** Linear gain of the bed before it ducks under the voice. */
-  gain: Schema.Finite,
 });
 export type Music = typeof Music.Type;
+
+/**
+ * The film's score: one or more options, each a whole score in its own
+ * musical language, composed for the whole film; `play` names the one the mix
+ * plays (`mix --score <option>` plays another). The levels are dB against the
+ * voice as the mix measures it: `under` wherever anyone speaks (short gaps
+ * included), `alone` where no one speaks for a while (the title card, the
+ * landing, the credits).
+ */
+export const Score = Schema.Struct({
+  play: Schema.String,
+  under: Schema.Finite,
+  alone: Schema.Finite,
+  options: Schema.Record(Schema.String, Music),
+}).check(
+  Schema.makeFilter(
+    (score) =>
+      Object.hasOwn(score.options, score.play) ||
+      `plays "${score.play}", which is none of its options (${Object.keys(score.options).join(', ')})`,
+  ),
+);
+export type Score = typeof Score.Type;
 
 /**
  * A one-shot from the app's sound library (`sounds/library.ts`), placed on
@@ -508,9 +529,9 @@ export const SoundBed = Schema.Struct({
 });
 export type SoundBed = typeof SoundBed.Type;
 
-/** A film's music, beds and effects (`sound.ts`). */
+/** A film's score, beds and effects (`sound.ts`). */
 export const Sound = Schema.Struct({
-  music: Schema.optionalKey(Music),
+  score: Schema.optionalKey(Score),
   beds: Schema.optionalKey(Schema.Array(SoundBed)),
   effects: Schema.Record(Schema.String, SoundEffect),
 });
@@ -523,9 +544,25 @@ export const Asset = Schema.Struct({
 });
 export type Asset = typeof Asset.Type;
 
-/** `sound/manifest.json`: the film's generated score. Its effects and beds are the library's. */
+/**
+ * A score option as it was composed: its request hash, its file under the
+ * film's `sound/` (private: generated music never sits in the public repo)
+ * and the sha256 of its bytes, which the private store keeps it under and
+ * the pre-commit guard knows it by.
+ */
+export const ScoreAsset = Schema.Struct({
+  hash: Schema.String,
+  file: Schema.String,
+  sha256: Schema.String,
+});
+export type ScoreAsset = typeof ScoreAsset.Type;
+
+/**
+ * `sound/manifest.json`: each score option composed for the film, by option
+ * name. Its effects and beds are the library's.
+ */
 export const SoundManifest = Schema.Struct({
-  music: Schema.optionalKey(Asset),
+  scores: Schema.optionalKey(Schema.Record(Schema.String, ScoreAsset)),
 });
 export type SoundManifest = typeof SoundManifest.Type;
 

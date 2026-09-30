@@ -214,7 +214,7 @@ export const studioRoutes = (film: string) => {
 
   /** The kept take, remixed into the track, as the panel reads it. */
   const kept = Effect.fn('studio.kept')(function* (imported: Imported) {
-    const mixed = yield* (yield* Mixer).mix(film, { stems: false }).pipe(
+    const mixed = yield* (yield* Mixer).mix(film, { stems: false, score: Option.none() }).pipe(
       Effect.as(true),
       Effect.catch((error) =>
         Effect.logWarning(

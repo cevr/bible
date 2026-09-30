@@ -7,9 +7,12 @@ import { EncoderName } from '../core/encoder.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
+  type ActLength,
+  ActTooLong,
   ActTooShort,
   AlignmentMismatch,
   CueInvalid,
+  ScoreUnknown,
   ShortSpanEmpty,
   ShortUnknownCue,
   ShortUnknownMark,
@@ -165,7 +168,7 @@ export class CreditsOverCap extends Schema.TaggedError<CreditsOverCap>()('Credit
   cap: Schema.Int,
 }) {
   override get message() {
-    return `this make would spend ${this.credits} credits, over the cap of ${this.cap}; make fewer sounds or raise --cap`;
+    return `this run would spend ${this.credits} credits, over the cap of ${this.cap}; make less or raise --cap`;
   }
 }
 

@@ -63,8 +63,11 @@ line changed). Takes import flags: `--only id,id` (just these beats; one file
 not named for its beat imports as the one beat named), `--accept-mismatch id,id`,
 `--whole` (the file is one reading of the whole script, cut at the quietest
 point of the silence around each beat; a flubbed line read again keeps the
-reading that finished it). Score flags: `--force` and `--dry-run`; `score`
-composes only the score. A film's beds and effects name sounds in the app's
+reading that finished it). Score flags: `--force`, `--dry-run` (each option's
+acts and estimated credits), `--option <name>` (just that one), `--cap n` and
+`--tally file`; `score` composes only the score, keeps each option in the
+private store (as `sfx push` does) and remixes. Mix flags: `--stems` and
+`--score <option>` (play another option; its stem is `music.<option>.wav`). A film's beds and effects name sounds in the app's
 library (`sounds/library.ts`, shared by every film) with a level in dB
 relative to the voice; `check` fails on a sound the library lacks
 (`UnknownSound`), one placed for the other use (`SoundUseMismatch`) or one
@@ -196,7 +199,7 @@ src/films/<film>/
   sound.ts         music acts and sound effects, placed on scenes' named cues
   shorts.ts        vertical shorts: spans of scenes, from a mark or cue to a later one (optional)
   narration/       one take per beat + timings.json (word timings); full.wav (the mixed track) is derived
-  sound/           generated score + effects, and manifest.json (their request hashes)
+  sound/           each score option (git-ignored, private store), and manifest.json (their request hashes, sha256)
 ```
 
 **Narration drives the clock.** A scene lasts `lead + speech + tail`: `lead`
@@ -331,17 +334,25 @@ Staging never overwrites a recorded take: `narrate` skips it (even under
 fails it, and `narrate` refuses to stage over it without `--replace-recorded`.
 A change of staging voice leaves recorded takes current.
 
-**Sound follows the same clock.** `sound.ts` declares the score as acts, each
-starting at a scene, and effects as prompts placed at a scene's named cue —
+**Sound follows the same clock.** `sound.ts` declares the score as one or more
+options (`score.options`: each a whole score in its own musical language, in
+acts that each start at a scene and last 3–120 s), `play` naming the one the
+mix plays, with its `under` and `alone` levels; and effects and beds as library
+sounds placed at a scene's named cue —
 `{ scene, cue, edge }`, the cue's start or end — so the sound lands where the
 picture does and a re-recorded line carries both. A sound with no picture event
 (a page turn at a scene's start) takes `{ scene, offset }`; `{ scene, mark }`
-still works for a sound on a word. `score` sends the
+still works for a sound on a word. `score` sends each option's
 acts as one timed ElevenLabs composition plan (music v2 enforces the section
-lengths, so the score turns where the film does) and generates each effect.
-Assets are content-addressed like takes: re-timing a scene makes the score
-stale; a gain change only needs `mix`. The mix ducks the music under the voice
-with a sidechain compressor. Music works with the CLI's OAuth login; effects
+lengths, so the score turns where the film does). Assets are content-addressed
+like takes: re-timing a scene makes every option stale; a level change only
+needs `mix`. The mix holds the score `under` dB against the voice wherever
+anyone speaks and lets it rise to `alone` where no one has for 3 s. Generated
+music, like generated effects, never enters the repo: each option's file sits
+git-ignored in the film's `sound/`, its manifest (committed) records its hash
+and sha256, `sfx pull`/`push` sync it with the private store under
+`scores/<film>/`, and the pre-commit guard refuses it and any copy of it.
+Music works with the CLI's OAuth login; effects
 need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `ELEVENLABS_API_KEY`) — without one they are skipped, not faked. Balance with
 `mix --stems` against the levels in rule 10 of the film skill's

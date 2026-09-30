@@ -318,7 +318,7 @@ const narrate = Command.make(
     // Before the first paid take: the CLI must be logged in.
     yield* paidPreflight;
     yield* narrator.record(loaded, plan, options);
-    yield* (yield* Mixer).mix(input.film, { stems: false });
+    yield* (yield* Mixer).mix(input.film, { stems: false, score: Option.none() });
   }),
 ).pipe(Command.withDescription("Record a film's stale narration takes, then remix"));
 
@@ -328,7 +328,21 @@ const score = Command.make(
     film,
     force: Flag.Boolean('force').pipe(
       Flag.withDefault(false),
-      Flag.withDescription('compose the score again even when it is current'),
+      Flag.withDescription('compose again even when current'),
+    ),
+    option: Flag.String('option').pipe(
+      Flag.optional,
+      Flag.withDescription('just this score option; every stale one otherwise'),
+    ),
+    cap: Flag.Int('cap').pipe(
+      Flag.optional,
+      Flag.withDescription('the most credits spent in all, counting what --tally records'),
+    ),
+    tally: Flag.String('tally').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        'a TSV each composed option is appended to: name, hash, seconds, credits',
+      ),
     ),
     dryRun,
   },
@@ -337,13 +351,21 @@ const score = Command.make(
     const composer = yield* Composer;
     const loaded = yield* repo.load(input.film);
     if (!input.dryRun) yield* paidPreflight;
-    yield* composer.score(loaded, { force: input.force, dryRun: input.dryRun });
+    yield* composer.score(loaded, {
+      force: input.force,
+      dryRun: input.dryRun,
+      only: input.option,
+      cap: input.cap,
+      tally: input.tally,
+    });
     if (input.dryRun) return;
-    yield* (yield* Mixer).mix(input.film, { stems: false });
+    // Generated music may not sit in the public repo: into the private store at once.
+    yield* (yield* SoundLibrary).push(yield* repo.scores);
+    yield* (yield* Mixer).mix(input.film, { stems: false, score: Option.none() });
   }),
 ).pipe(
   Command.withDescription(
-    "Compose a film's stale score, then remix (effects and beds are the library's: sfx make)",
+    "Compose a film's stale score options, keep them in the private store, then remix (effects and beds are the library's: sfx make)",
   ),
 );
 
@@ -355,9 +377,13 @@ const mix = Command.make(
       Flag.withDefault(false),
       Flag.withDescription('also write voice, music and effects stems to out/<film>/stems'),
     ),
+    score: Flag.String('score').pipe(
+      Flag.optional,
+      Flag.withDescription('play this score option in place of the one the score names'),
+    ),
   },
   Effect.fn('film.mix')(function* (input) {
-    yield* (yield* Mixer).mix(input.film, { stems: input.stems });
+    yield* (yield* Mixer).mix(input.film, { stems: input.stems, score: input.score });
   }),
 ).pipe(
   Command.withDescription(
@@ -409,7 +435,7 @@ const takesImport = Command.make(
       yield* Console.log(
         `recorded  ${beat.id.padEnd(14)} ${beat.take.file}  ${beat.take.duration.toFixed(2)}s  wer ${(beat.wer * 100).toFixed(1)}%`,
       );
-    yield* (yield* Mixer).mix(input.film, { stems: false });
+    yield* (yield* Mixer).mix(input.film, { stems: false, score: Option.none() });
   }),
 ).pipe(
   Command.withDescription(
@@ -617,7 +643,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
           found.push({ level: 'error', finding });
         // The balance is measured on the mix itself, bus by bus, as `mix` makes it.
-        const { plan, mixed } = yield* (yield* Mixer).render(input.film, { warn: false });
+        const { plan, mixed } = yield* (yield* Mixer).render(input.film, {
+          warn: false,
+          score: Option.none(),
+        });
         for (const finding of balanceFindings(placed, plan, mixed))
           found.push({ level: 'warning', finding });
       }

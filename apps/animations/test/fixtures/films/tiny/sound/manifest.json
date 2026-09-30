@@ -1,6 +1,9 @@
 {
-  "music": {
-    "hash": "596f29d1",
-    "file": "music-596f29d1.mp3"
+  "scores": {
+    "piano": {
+      "hash": "596f29d1",
+      "file": "music-596f29d1.mp3",
+      "sha256": "451a8a1fb25b32baed4c7fc48cb5b3ea8ab1c4a98a0592991cad669fb0dda066"
+    }
   }
 }

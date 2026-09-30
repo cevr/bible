@@ -48,9 +48,9 @@ describe('ContentStore', () => {
           manifest,
           hash,
           force: false,
-          stored: (m) => Option.map(Option.fromNullishOr(m.music), (a) => a.hash),
+          stored: (m) => Option.map(Option.fromNullishOr(m.scores?.['piano']), (a) => a.hash),
           produce: Effect.sync(() => ++made),
-          record: () => ({ music: { hash, file: `music-${hash}.mp3` } }),
+          record: () => ({ scores: { piano: { hash, file: `piano-${hash}.mp3`, sha256: hash } } }),
         });
       expect(yield* ensure('h1')).toEqual(Option.some(1));
       expect(yield* ensure('h1')).toEqual(Option.none());

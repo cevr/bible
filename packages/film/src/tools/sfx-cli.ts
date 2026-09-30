@@ -30,6 +30,7 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { LibraryCheckFailed, SoundsRefused } from './errors.ts';
+import { FilmRepo } from './film-repo.ts';
 import { type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
 import { CheckLineJson } from './static-check.ts';
 
@@ -381,27 +382,33 @@ const pull = Command.make(
   'pull',
   {},
   Effect.fn('film.sfx.pull')(function* () {
-    const { fetched, had, missing } = yield* (yield* SoundLibrary).pull;
+    const scores = yield* (yield* FilmRepo).scores;
+    const { fetched, had, missing } = yield* (yield* SoundLibrary).pull(scores);
     for (const file of missing) yield* Console.log(`missing  ${file}  (not in the store)`);
     yield* Console.log(`pulled ${fetched}, had ${had}, missing ${missing.length}`);
   }),
-).pipe(Command.withDescription("Bring the lock's generated files back from the store"));
+).pipe(
+  Command.withDescription(
+    "Bring the lock's generated files and the films' scores back from the store",
+  ),
+);
 
 const push = Command.make(
   'push',
   {},
   Effect.fn('film.sfx.push')(function* () {
-    const { sent, had, missing, total } = yield* (yield* SoundLibrary).push;
+    const scores = yield* (yield* FilmRepo).scores;
+    const { sent, had, missing, total } = yield* (yield* SoundLibrary).push(scores);
     for (const file of sent) yield* Console.log(`sent  ${file}`);
     for (const file of missing)
       yield* Console.log(`missing  ${file}  (not here, not in the store)`);
     yield* Console.log(
-      `pushed ${sent.length}, had ${had}, missing ${missing.length}, of ${total} in the lock`,
+      `pushed ${sent.length}, had ${had}, missing ${missing.length}, of ${total} private files`,
     );
   }),
 ).pipe(
   Command.withDescription(
-    "Copy the lock's generated files the store lacks (or holds with other bytes) into it, each read back by hash",
+    "Copy the lock's generated files and the films' scores the store lacks (or holds with other bytes) into it, each read back by hash",
   ),
 );
 
@@ -414,13 +421,14 @@ const guard = Command.make(
     ),
   },
   Effect.fn('film.sfx.guard')(function* (input) {
-    const refused = yield* (yield* SoundLibrary).guard(input.files);
+    const scores = yield* (yield* FilmRepo).scores;
+    const refused = yield* (yield* SoundLibrary).guard(input.files, scores);
     for (const r of refused) yield* Console.error(`refused  ${r.message}`);
     if (refused.length > 0) return yield* SoundsRefused.make({ files: refused.map((r) => r.file) });
   }),
 ).pipe(
   Command.withDescription(
-    'Refuse staged audio a public repo may not take: generated sounds (or copies of them) and public audio that is no CC0 variant',
+    "Refuse staged audio a public repo may not take: generated sounds and scores (or copies of them), anything in a film's sound/, and public audio that is no CC0 variant",
   ),
 );
 
