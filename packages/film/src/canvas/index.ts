@@ -56,6 +56,7 @@ export {
   knobCamera,
   multiplane,
   pushInto,
+  pushOn,
   shotPath,
 } from './camera.ts';
 export { type CardType, storyboard } from './storyboard.ts';

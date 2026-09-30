@@ -14,6 +14,7 @@ import {
   dragPatch,
   patchSpan,
   resolveTimeline,
+  staggerAt,
   staggerProgress,
 } from './timeline.ts';
 
@@ -120,6 +121,16 @@ describe('timeline', () => {
     expect(staggerProgress(longer, 3.4, 1, 3)).toBeCloseTo(0.5);
     // Each item eases by the cue's ease.
     expect(staggerProgress({ ...drop, ease: 'inQuad' }, 2.35, 0, 3)).toBeCloseTo(0.25);
+  });
+
+  test('a set spread by place staggers each item by where it stands, not its count', () => {
+    const green = { start: 0, end: 1, dur: 1, ease: 'linear', stagger: 0.6 } as const;
+    // A field the rain reaches half way starts at 0.3 of the cue and lasts 0.4.
+    expect(staggerAt(green, 0.3, 0.5)).toBe(0);
+    expect(staggerAt(green, 0.5, 0.5)).toBeCloseTo(0.5);
+    expect(staggerAt(green, 0.7, 0.5)).toBeCloseTo(1);
+    // The item at place i/(n-1) is item i of n.
+    expect(staggerAt(green, 0.62, 2 / 3)).toBeCloseTo(staggerProgress(green, 0.62, 2, 4));
   });
 
   test('with no stagger, or one item, every item is the whole cue', () => {

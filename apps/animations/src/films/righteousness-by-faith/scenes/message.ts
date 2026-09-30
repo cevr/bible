@@ -38,7 +38,7 @@ import {
   write,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, lerp } from '@bible/film/core';
 import {
   C,
   F,
@@ -147,7 +147,9 @@ const knobs = {
   // Where the figure on the page stands.
   figureAt: [960, 1010],
   angelAt: [1620, 330],
+  // The law and the gospel's emblem, and how close the push through to the page comes on it.
   emblem: [960, 190],
+  emblemZoom: 7,
   // The open hand's palm, and the row of gifts laid across it.
   palm: [960, 720],
   gifts: [960, 730],
@@ -197,6 +199,8 @@ const DARK_WINDOWS = [720, 900] as const;
  */
 const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] - 90, zoom: 16 };
 const OUTSIDE: Camera = { x: 960, y: 560, zoom: 1 };
+/** The unmoved frame (the canvas itself, so not a knob): where the push through the emblem starts. */
+const FRAME: Camera = { x: 960, y: 540, zoom: 1 };
 /** The figure from `mirror`, small and screen-left, in the rags of their own sewing. */
 const LOOKER: Pt = [330, HALL_GROUND + 20];
 const LOOKER_S = 1.7;
@@ -349,8 +353,18 @@ export const message = drawing({
       const meet = f.at('meet');
       if (meet > 0) {
         const [ex, ey] = f.knob('emblem');
-        const zoom = lerp(1, 7, ease.inCubic(through));
-        at(ctx, { x: ex, y: ey, scale: 1.3 * zoom }, () => emblem(f, meet, f.at('golden')));
+        const cam = shotPath(FRAME, [
+          [through, knobCamera(f.knob('emblem'), f.knob('emblemZoom')), pushInto],
+        ]);
+        // Held as framed (no drift): the emblem sits still until the push.
+        camera(
+          ctx,
+          cam,
+          w,
+          h,
+          () => at(ctx, { x: ex, y: ey, scale: 1.3 }, () => emblem(f, meet, f.at('golden'))),
+          0,
+        );
       }
     }
 

@@ -287,7 +287,8 @@
         "film/drawing-literal": "error",
         "film/no-hand-timed-seconds": "error",
         "film/no-unprobed-ink": "error",
-        "film/span-ends-on-anchor": "error"
+        "film/span-ends-on-anchor": "error",
+        "film/no-ease-on-cue": "error"
       }
     },
     {

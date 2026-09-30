@@ -8,7 +8,7 @@
 // flies across again, and figures on the rooftops turn to look and wave.
 
 import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
-import { clamp, keys, lerp, rng } from '@bible/film/core';
+import { type Key, keys, lerp, rng } from '@bible/film/core';
 import { type GestureAt, C, blob, glow, person, piece, sky, mix } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
@@ -29,6 +29,12 @@ const FIELDS = [
 ] as const;
 
 /** The scarlet specks over the land. */
+/** The banner's words, written across the angel's flight once it has slowed to glide. */
+const WRITTEN: ReadonlyArray<Key> = [
+  [0.2, 0],
+  [0.32, 1, 'linear'],
+];
+
 const SPECKS = (() => {
   const r = rng(1844);
   return Array.from({ length: 11 }, (_, i) => ({
@@ -56,10 +62,13 @@ export const rain = drawing({
     // Christ pleads before the ark from the cut, as `exchange` left him.
     plea: { at: 'start', dur: 0 },
     fall: { mark: 'spirit', offset: -0.3, dur: 0.8 },
-    green: { mark: 'spirit', offset: 0.2, dur: 3.6, ease: 'linear' },
+    // The fields green back to front: each starts as the rain reaches it
+    // (over the first 0.6 of the cue) and takes the rest to turn.
+    green: { mark: 'spirit', offset: 0.2, dur: 3.6, ease: 'linear', stagger: 0.6 },
     tiltUp: { mark: 'blot', offset: -0.6, dur: 1.3 },
     bright: { mark: 'blot', offset: 0.4, dur: 1 },
-    wink: { mark: 'blot', offset: 0.9, dur: 2, ease: 'linear' },
+    // The specks wink out one after another, each quickly.
+    wink: { mark: 'blot', offset: 0.9, dur: 2, ease: 'linear', stagger: 0.85 },
     down: { mark: 'loud', offset: -0.9, dur: 1.4 },
     stop: { mark: 'loud', offset: -0.9, dur: 0.8 },
     fly: { mark: 'loud', offset: -0.1, dur: 3, ease: 'linear' },
@@ -77,7 +86,6 @@ export const rain = drawing({
   draw: (f) => {
     const { ctx, w, h, t } = f;
     const hand = (k: string) => f.hand(k);
-    const green = f.at('green');
     const up = f.at('tiltUp') * (1 - f.at('down'));
     const down = f.at('down');
     const upAt = f.knob('up');
@@ -87,7 +95,6 @@ export const rain = drawing({
       y: lerp(lerp(REST.y, upAt[1], up), city[1], down),
       zoom: lerp(1, f.knob('cityZoom'), down),
     };
-    const wink = f.at('wink');
     const turn = f.at('turn');
 
     sky(ctx, w, h, [
@@ -149,7 +156,7 @@ export const rain = drawing({
           z: 1,
           draw: () =>
             FIELDS.forEach((p, i) => {
-              const g = clamp((green - p.reach * 0.6) / 0.4);
+              const g = f.staggerAt('green', p.reach);
               piece(
                 ctx,
                 blob(p.x, p.y, p.w, p.h, p.seed),
@@ -164,8 +171,7 @@ export const rain = drawing({
           z: 1.2,
           draw: () =>
             SPECKS.forEach((s, i) => {
-              const k = i / SPECKS.length;
-              const gone = clamp((wink - k * 0.85) / 0.15);
+              const gone = f.staggerAt('wink', i / SPECKS.length);
               if (gone >= 1) return;
               const pop = keys(gone, [
                 [0, 1],
@@ -221,7 +227,7 @@ export const rain = drawing({
         [0.8, 1600, 'linear'],
         [1, 3400, 'inCubic'],
       ]);
-      const written = clamp((k - 0.2) / 0.12);
+      const written = f.keys('fly', WRITTEN);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>
         herald(ctx, hand, t, written, f.at('grasp')),
       );

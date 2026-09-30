@@ -28,7 +28,13 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { cueKeys, cueProgress, resolveTimeline, staggerProgress } from '../core/timeline.ts';
+import {
+  cueKeys,
+  cueProgress,
+  resolveTimeline,
+  staggerAt,
+  staggerProgress,
+} from '../core/timeline.ts';
 import {
   type Grain,
   type Offscreen,
@@ -89,6 +95,12 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * and each lasts the rest, so a `dur` edit scales every item.
    */
   stagger(name: C, i: number, n: number): number;
+  /**
+   * 0→1 for the item at `at` (0 the first, 1 the last) across a named cue
+   * (`staggerAt`): `f.stagger` for a set spread by place rather than count,
+   * `f.staggerAt('green', field.reach)`.
+   */
+  staggerAt(name: C, at: number): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
@@ -713,6 +725,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       at: (name) => cueProgress(frame.cue(name), t),
       keys: (name, frames) => cueKeys(frame.cue(name), t, frames),
       stagger: (name, i, n) => staggerProgress(frame.cue(name), t, i, n),
+      staggerAt: (name, at) => staggerAt(frame.cue(name), t, at),
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);

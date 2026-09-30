@@ -70,7 +70,8 @@ const timeline = {
   sheepish: { mark: 'going', offset: 0.1, dur: 0.4 },
   // The promising hand comes back down as they turn sheepish.
   lower: { mark: 'going', dur: 0.8, ease: 'inOutSine' },
-  droop: { mark: 'rags', offset: 0.3, dur: 1.2, ease: 'outCubic' },
+  // The apron wilts; its two leaves fall one after the other over the same cue.
+  droop: { mark: 'rags', offset: 0.3, dur: 1.2, ease: 'outCubic', stagger: 0.29 },
   wide: { mark: 'rags', dur: 1.4, ease: 'inOutSine' },
   stand: { mark: 'mirror', dur: 0.5, ease: 'outBack' },
   become: { mark: 'mirror', offset: 0.6, dur: 0.8, ease: 'inOutSine' },
@@ -211,7 +212,7 @@ const garden = (f: MirrorFrame) => {
           });
           // A leaf or two falls as the apron wilts.
           for (const k of [0, 1] as const) {
-            const fall = clamp(f.at('droop') * 1.4 - k * 0.3);
+            const fall = f.stagger('droop', k, 2);
             if (fall <= 0) continue;
             at(
               ctx,

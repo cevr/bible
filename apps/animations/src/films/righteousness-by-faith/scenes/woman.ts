@@ -27,6 +27,7 @@ import {
   type Pt,
   drawing,
   knobCamera,
+  pushOn,
   shotPath,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
@@ -96,12 +97,12 @@ const knobs = {
   herFaceZoom: 2.3,
   hisFace: [1310, 522],
   hisFaceZoom: 2.3,
+  // How far each held close-up keeps pushing in while its face is on screen.
+  pushOn: 1.18,
 } as const;
 
 type WomanFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
-/** How far each held close-up keeps pushing in while its face is on screen. */
-const PUSH_ON = 1.18;
 /** How far above the frame the band waits. */
 const BAND_ABOVE = -120;
 
@@ -160,7 +161,11 @@ const talking = (k: number) => Math.min(1, 4 * Math.min(k, 1 - k));
 const shot = (f: WomanFrame): Camera => {
   if (f.t >= f.cue('wash').start) return COURT_WIDE;
   if (f.t >= f.mark('told'))
-    return knobCamera(f.knob('hisFace'), f.knob('hisFaceZoom') * lerp(1, PUSH_ON, f.at('hisPush')));
+    return pushOn(
+      knobCamera(f.knob('hisFace'), f.knob('hisFaceZoom')),
+      f.knob('pushOn'),
+      f.at('hisPush'),
+    );
   return shotPath(COURT_WIDE, [
     [f.at('toCharge'), knobCamera(f.knob('charge'), f.knob('chargeZoom'))],
     [f.at('toDust'), knobCamera(f.knob('dust'), f.knob('dustZoom'))],
@@ -168,7 +173,11 @@ const shot = (f: WomanFrame): Camera => {
     [f.at('courtPush'), knobCamera(f.knob('twoShot'), f.knob('twoShotZoom'))],
     [
       f.at('herFace'),
-      knobCamera(f.knob('herFace'), f.knob('herFaceZoom') * lerp(1, PUSH_ON, f.at('herPush'))),
+      pushOn(
+        knobCamera(f.knob('herFace'), f.knob('herFaceZoom')),
+        f.knob('pushOn'),
+        f.at('herPush'),
+      ),
     ],
   ]);
 };
@@ -236,17 +245,19 @@ const replay = (f: WomanFrame) => {
     WOMAN.bowed = 0;
     WOMAN.glad = 0;
     WOMAN.faith = f.at('faith');
-    COURT.cam = knobCamera(
-      f.knob('herFace'),
-      f.knob('herFaceZoom') * lerp(1, PUSH_ON, f.at('oneHold')),
+    COURT.cam = pushOn(
+      knobCamera(f.knob('herFace'), f.knob('herFaceZoom')),
+      f.knob('pushOn'),
+      f.at('oneHold'),
     );
   } else if (t < f.mark('three')) {
     // Two: his face as he speaks, his hand turned toward her.
     COURT.sends = 1;
     COURT.speak = 0.4 * talking(f.at('twoSpeaks')) * Math.abs(Math.sin(t * 8));
-    COURT.cam = knobCamera(
-      f.knob('hisFace'),
-      f.knob('hisFaceZoom') * lerp(1, PUSH_ON, f.at('twoHold')),
+    COURT.cam = pushOn(
+      knobCamera(f.knob('hisFace'), f.knob('hisFaceZoom')),
+      f.knob('pushOn'),
+      f.at('twoHold'),
     );
   } else {
     // Three: wide, as she walks out upright, clean.

@@ -116,7 +116,8 @@ const timeline = {
   holdUp: { mark: 'saviour', dur: 0.6, ends: true, ease: 'outBack' },
   // Their hands go up to where the stack comes down into them, and down once it has slid off.
   handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
-  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
+  // The stack slides off one piece at a time, each falling over the rest of the cue.
+  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear', stagger: 0.41 },
   armsDown: { after: 'slide', dur: 0.5 },
   handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
   // As the stack goes, their near hand comes down open, and the camera
@@ -227,7 +228,7 @@ export const look = drawing({
           // The stack: held up, then sliding off one piece at a time.
           if (up > 0 || slide > 0)
             STACK.forEach(([kind, dx], i) => {
-              const fall = clamp(slide * 1.7 - i * 0.13);
+              const fall = f.stagger('slide', i, STACK.length);
               const x0 = dx;
               const y0 = bottom - i * 22;
               const x = lerp(x0, 70 + i * 26, fall);

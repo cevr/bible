@@ -1194,6 +1194,11 @@ limits.
 `film/span-ends-on-anchor` (`lint/span-ends-on-anchor.ts`) refuses a span
 that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
 `{ mark: 'true', dur: 0.5, ends: true }`, its length written once.
+`film/no-ease-on-cue` (`lint/no-ease-on-cue.ts`) refuses `ease.X(f.at(cue))`
+(or a const bound to one): `f.at` is already eased by the span's `ease`, so a
+second curve is one the lab's picker cannot change, and a push whose zoom
+takes it runs on another clock than its x and y. A push is a `shotPath` stop
+with `pushInto`; another curve is its own cue or `f.keys`.
 
 ## Knobs
 

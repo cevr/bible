@@ -311,6 +311,12 @@ across a cue (sheets falling, stains spreading) read `f.stagger(name, i, n)`:
 the span's `stagger` (0 to 1) is the share of the cue their starts spread over,
 and each item lasts the rest, eased by the span's `ease`, so a `dur` edit
 scales every item (`drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger: 0.857 }`).
+A set spread by place rather than count (fields greening as the rain reaches
+each) reads `f.staggerAt(name, at)`, `at` 0 for the first and 1 for the last.
+A part of a cue (a fill over its last tenth) is a cue of its own, `{ after:
+'into', dur: 0.1, ends: true }`, never `clamp((f.at('into') - 0.75) / 0.25)`:
+the lab cannot reach a fraction written in the draw. A set that takes a
+number staggers its pieces with `staggered(p, at, share)` (`@bible/film/core`).
 Plain `keys(t, …)` is for ornament. Wrap the drawing in `drawing({ timeline,
 draw })` so an undeclared name fails to compile, in `f.cue`/`f.at`/`f.keys`/`f.stagger` and in the
 timeline's own `after`/`with`. `layout()` resolves every cue
@@ -328,7 +334,11 @@ constant. A framing is knobs too: a point and a zoom (and a tilt),
 `knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`, which
 a film's kit re-exports); the lab gives that pair a reticle. Only the unmoved
 frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
-constant and one shared across scenes stay code. Read a position knob
+constant and one shared across scenes stay code. A push is a `shotPath` stop
+to a knob camera, `shotPath(REST, [[f.at('plunge'), knobCamera(f.knob('page'),
+f.knob('pageZoom')), pushInto]])`, never a zoom eased again by hand
+(`film/no-ease-on-cue`); a held close-up that keeps pushing in is
+`pushOn(cam, f.knob('pushOn'), f.at('hold'))`, its push a number knob. Read a position knob
 under the transform it is drawn with (inside the camera or the plane), so
 its handle lands on it.
 
@@ -565,4 +575,5 @@ for every film:
 | `film/drawing-literal`       | what the lab's locator (`unlocatable` in `packages/film/src/tools/scene-source.ts`, the same code the lab edits with) cannot locate: a `drawing(…)` that is not a module-level `export const x = drawing({…})` (a drawing built in a function, one no export names, `drawing` off a namespace), a `timeline` or `knobs` that is not an object literal (inline, or a same-file module `const`) or is declared twice, a spread, and a scene with a timeline built without `drawing()`                                                                                                                                                                                                                                                                                                                                                                                      |
 | `film/no-unprobed-ink`       | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `film/no-hand-timed-seconds` | a second written by hand, which the lab cannot reach, a sound cannot follow and a re-take leaves behind: `clamp(t / 2)` or `clamp((t - cue.end) / 1.5)` over the scene clock, `(t - cue.start) / 0.5`, `progress`/`envelope(t, …)` with a literal start or length, `keys(t, …)` on the scene clock, `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5` or `t - 4.2`, the clock compared with a second (`t > 3.5`, `t - cue.start > 0.5`), a second hidden in a module `const`, and a span whose literal `offset` sits over 1 s from its `mark` or the scene's `start`/`speech`. Declare a cue and read `f.at`/`f.keys`/`f.stagger`, anchored to a word pin, another cue (`after`/`with`) or the voice's end (`at: 'speechEnd'`); a pause the script means is a named cue with its reason in a comment. A rate (`Math.sin(t * 7)`) and a lead-in under 1 s are not times |
+| `film/no-ease-on-cue`        | a cue's progress eased a second time, `ease.inCubic(f.at('plunge'))`: the span's `ease` already curves it, and the lab's picker cannot reach the second; a push is a `shotPath` stop with `pushInto`, another curve its own cue or `f.keys`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `film/span-ends-on-anchor`   | a span that lands on its anchor written as `offset: -d, dur: d` (its length twice, so a `dur` edit moves the landing): write `{ mark, dur, ends: true }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
