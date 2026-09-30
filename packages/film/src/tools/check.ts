@@ -16,14 +16,19 @@ import { BALANCE, hotEffects } from '../core/balance.ts';
 import type { MixPlan, Mixed } from '../core/mix.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { Placed } from '../core/layout.ts';
-import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
+import {
+  DEFAULT_TAIL,
+  MIN_LEAD,
+  everyTakeRecorded,
+  sceneAt,
+  transitionDur,
+} from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { insidePolygon } from '../core/polygon.ts';
 import {
   endsSentence,
   lastVoiced,
   linesOf,
-  parse,
   takeScript,
   takeState,
   voiceKey,
@@ -37,7 +42,6 @@ import type {
   Sound,
   SoundManifest,
   TextBox,
-  Timed,
 } from '../core/schema.ts';
 import {
   type LibraryEntry,
@@ -47,6 +51,7 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, filmEnd, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import type { Interval } from '../core/time.ts';
 import type {
   MovementLength,
   SoundUseMismatch,
@@ -180,39 +185,31 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     });
   });
 
-/** A scene's line read; one that does not parse is the layout's `LineError`, so it reads as silent here. */
-const said = (scene: Timed) =>
-  Result.getOrElse(
-    parse(
-      scene.id,
-      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
-    ),
-    () => ({
-      spoken: '',
-      marks: new Map<string, number>(),
-      turns: [],
-    }),
-  );
-
 /**
  * Beats with words whose take is missing or was recorded for other text,
  * other turns or another voice (a person's take is read by no staging voice).
+ * Each line is read as the layout placed it (`voice`: its words and turns).
  */
-export const staleTakes = (film: LoadedFilm): ReadonlyArray<TakeStale> => {
+export const staleTakes = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): ReadonlyArray<TakeStale> => {
   const voice = voiceKey(film.voice);
-  return film.scenes.flatMap((scene) => {
-    const parsed = said(scene);
-    if (parsed.spoken.length === 0) return [];
-    const state = takeState(scene.id, takeScript(parsed), film.timings, voice);
+  return placed.flatMap((p) => {
+    if (p.voice.spoken.length === 0) return [];
+    const state = takeState(p.spec.id, takeScript(p.voice), film.timings, voice);
     if (state._tag !== 'Stale') return [];
-    return [TakeStale.make({ scene: scene.id, reason: state.reason, recorded: state.recorded })];
+    return [TakeStale.make({ scene: p.spec.id, reason: state.reason, recorded: state.recorded })];
   });
 };
 
 /** Lines handed to a voice the film's cast does not have: `narrate` would refuse them. */
-export const unknownVoices = (film: LoadedFilm): ReadonlyArray<UnknownVoice> =>
-  film.scenes.flatMap((scene) =>
-    Result.match(linesOf(scene.id, said(scene), film.voice), {
+export const unknownVoices = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): ReadonlyArray<UnknownVoice> =>
+  placed.flatMap((p) =>
+    Result.match(linesOf(p.spec.id, p.voice, film.voice), {
       onFailure: (error) => [error],
       onSuccess: () => [],
     }),
@@ -266,20 +263,16 @@ export const balanceFindings = (
     found.push(
       EffectHot.make({
         effect: hot.name,
-        scene: sceneAt(placed, hot.at),
+        scene: Option.match(sceneAt(placed, hot.at), {
+          onNone: () => '',
+          onSome: (p) => p.spec.id,
+        }),
         at: hot.at,
         over: hot.over,
       }),
     );
   return found;
 };
-
-/** The scene playing at film second `at`. */
-const sceneAt = (placed: ReadonlyArray<Placed>, at: number): string =>
-  Option.match(
-    Arr.findLast(placed, (p) => p.start <= at + 1e-9),
-    { onNone: () => '', onSome: (p) => p.spec.id },
-  );
 
 /** A named library sound for `use`: refused (unknown, or for the other use), unmade, stale, or fine. */
 const libraryFindings = (
@@ -413,29 +406,29 @@ export const DEAD_MAX = 1.5;
 export const DEAD_WINDOW = 0.05;
 
 /** The film seconds every cue declared `silence: true` spans. */
-export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Span> =>
+export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Interval> =>
   placed.flatMap((p) =>
     Object.entries(p.spec.timeline ?? {})
       .filter(([, span]) => span.silence === true)
       .flatMap(([name]) =>
-        Option.toArray(Option.fromNullishOr(p.cues.get(name))).map((c): Span => [
-          p.start + c.start,
-          p.start + c.end,
-        ]),
+        Option.toArray(Option.fromNullishOr(p.cues.get(name))).map((c): Interval => ({
+          from: p.start + c.start,
+          to: p.start + c.end,
+        })),
       ),
   );
 
 /** `run` less every span of `cut`, in order. */
-const without = (run: Span, cut: ReadonlyArray<Span>): ReadonlyArray<Span> =>
-  cut.reduce<ReadonlyArray<Span>>(
-    (pieces, [a, b]) =>
-      pieces.flatMap(([from, to]): ReadonlyArray<Span> => {
-        if (b <= from || a >= to) return [[from, to]];
-        const kept: ReadonlyArray<Span> = [
-          [from, a],
-          [b, to],
+const without = (run: Interval, cut: ReadonlyArray<Interval>): ReadonlyArray<Interval> =>
+  cut.reduce<ReadonlyArray<Interval>>(
+    (pieces, gone) =>
+      pieces.flatMap((piece): ReadonlyArray<Interval> => {
+        if (gone.to <= piece.from || gone.from >= piece.to) return [piece];
+        const kept: ReadonlyArray<Interval> = [
+          { from: piece.from, to: gone.from },
+          { from: gone.to, to: piece.to },
         ];
-        return kept.filter(([x, y]) => y > x);
+        return kept.filter((k) => k.to > k.from);
       }),
     [run],
   );
@@ -448,22 +441,22 @@ const without = (run: Span, cut: ReadonlyArray<Span>): ReadonlyArray<Span> =>
 export const deadAir = (
   levels: ArrayLike<number>,
   window: number,
-  designed: ReadonlyArray<Span>,
+  designed: ReadonlyArray<Interval>,
 ): ReadonlyArray<DeadAir> => {
-  const runs: Span[] = [];
+  const runs: Interval[] = [];
   let from = -1;
   for (let i = 0; i <= levels.length; i++) {
     const quiet = i < levels.length && (levels[i] ?? 0) < DEAD_FLOOR;
     if (quiet && from < 0) from = i;
     if (!quiet && from >= 0) {
-      runs.push([from * window, i * window]);
+      runs.push({ from: from * window, to: i * window });
       from = -1;
     }
   }
   return runs
     .flatMap((run) => without(run, designed))
-    .filter(([a, b]) => b - a > DEAD_MAX)
-    .map(([a, b]) => DeadAir.make({ from: a, to: b, floor: DEAD_FLOOR, max: DEAD_MAX }));
+    .filter((run) => run.to - run.from > DEAD_MAX)
+    .map((run) => DeadAir.make({ ...run, floor: DEAD_FLOOR, max: DEAD_MAX }));
 };
 
 /**
@@ -483,7 +476,7 @@ export const staticFindings = (
     ...soundFindings(s, placed, film.sounds),
   ]);
   const master = masterFindings(film, placed, audio);
-  const takes = [...unknownVoices(film), ...staleTakes(film)];
+  const takes = [...unknownVoices(film, placed), ...staleTakes(film, placed)];
   return [
     ...lateCues(placed),
     ...longSeams(placed),
@@ -1108,42 +1101,39 @@ export interface HoldCandidate {
   readonly to: number;
 }
 
-type Span = readonly [from: number, to: number];
-
 /** Scene-local spans in which the scene declares motion: each cue, and its entering transition. */
-const busySpans = (p: Placed): ReadonlyArray<Span> => {
-  const cues = [...p.cues.values()].map((c): Span => [c.start, c.end]);
+const busySpans = (p: Placed): ReadonlyArray<Interval> => {
+  const cues = [...p.cues.values()].map((c): Interval => ({ from: c.start, to: c.end }));
   // The first scene has nothing to arrive from.
   const arriving = Math.min(p.index, 1) * transitionDur(p.spec.enter);
   if (arriving <= 0) return cues;
-  return [[0, arriving], ...cues];
+  return [{ from: 0, to: arriving }, ...cues];
 };
 
 /** Scene-local: from the first word's start to the last word's end. */
-const spokenSpan = (p: Placed): Option.Option<Span> =>
-  Option.zipWith(Arr.head(p.voice.words), Arr.last(p.voice.words), (first, last): Span => [
-    p.speechStart + first.start,
-    p.speechStart + last.end,
-  ]);
+const spokenSpan = (p: Placed): Option.Option<Interval> =>
+  Option.zipWith(Arr.head(p.voice.words), Arr.last(p.voice.words), (first, last): Interval => ({
+    from: p.speechStart + first.start,
+    to: p.speechStart + last.end,
+  }));
 
 /** The parts of `within` that no span of `busy` covers. */
-const gapsIn = (within: Span, busy: ReadonlyArray<Span>): ReadonlyArray<Span> => {
-  const [from, to] = within;
+const gapsIn = (within: Interval, busy: ReadonlyArray<Interval>): ReadonlyArray<Interval> => {
   const sorted = Arr.sort(
     busy,
-    Order.mapInput(Order.Number, (s: Span) => s[0]),
+    Order.mapInput(Order.Number, (s: Interval) => s.from),
   );
-  const swept = sorted.reduce<{ readonly gaps: ReadonlyArray<Span>; readonly at: number }>(
-    ({ gaps, at }, [start, end]) => {
-      const until = Math.min(start, to);
-      const next = Math.max(at, end);
-      if (until > at) return { gaps: [...gaps, [at, until]], at: next };
+  const swept = sorted.reduce<{ readonly gaps: ReadonlyArray<Interval>; readonly at: number }>(
+    ({ gaps, at }, span) => {
+      const until = Math.min(span.from, within.to);
+      const next = Math.max(at, span.to);
+      if (until > at) return { gaps: [...gaps, { from: at, to: until }], at: next };
       return { gaps, at: next };
     },
-    { gaps: [], at: from },
+    { gaps: [], at: within.from },
   );
-  if (swept.at >= to) return swept.gaps;
-  return [...swept.gaps, [swept.at, to]];
+  if (swept.at >= within.to) return swept.gaps;
+  return [...swept.gaps, { from: swept.at, to: within.to }];
 };
 
 /**
@@ -1158,8 +1148,8 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
     return Option.match(spokenSpan(p), {
       onNone: () => [],
       onSome: (spoken) => {
-        const gaps = gapsIn(spoken, busySpans(p)).filter(([a, b]) => b - a > HOLD + 1e-9);
-        return gaps.map(([a, b]) => ({ scene: p.spec.id, from: p.start + a, to: p.start + b }));
+        const gaps = gapsIn(spoken, busySpans(p)).filter((g) => g.to - g.from > HOLD + 1e-9);
+        return gaps.map((g) => ({ scene: p.spec.id, from: p.start + g.from, to: p.start + g.to }));
       },
     });
   });
@@ -1169,10 +1159,7 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
  * from its first frame to its last. Nothing faster than the boil can be told
  * from it, and a sway slower than it is sampled at more than one phase.
  */
-export const holdTicks = (
-  hold: Pick<HoldCandidate, 'from' | 'to'>,
-  fps: number,
-): ReadonlyArray<number> => {
+export const holdTicks = (hold: Interval, fps: number): ReadonlyArray<number> => {
   const first = Math.ceil(hold.from * fps - 1e-6);
   const last = Math.ceil(hold.to * fps - 1e-6) - 1;
   const per = fps / BOIL_FPS;
@@ -1201,17 +1188,17 @@ export const holdGrid = (ticks: ReadonlyArray<number>): ReadonlyArray<number> =>
  * to its edge.
  */
 export const stillSpan = (
-  hold: Pick<HoldCandidate, 'from' | 'to'>,
+  hold: Interval,
   ticks: ReadonlyArray<number>,
   lo: number,
   hi: number,
   fps: number,
-): Span => {
+): Interval => {
   const edge = (end: Option.Option<number>, tick: number, whole: number) => {
     if (Option.exists(end, (f) => f === tick)) return whole;
     return tick / fps;
   };
-  return [edge(Arr.head(ticks), lo, hold.from), edge(Arr.last(ticks), hi, hold.to)];
+  return { from: edge(Arr.head(ticks), lo, hold.from), to: edge(Arr.last(ticks), hi, hold.to) };
 };
 
 type Mark = {

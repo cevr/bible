@@ -66,6 +66,10 @@ const noTakes: Timings = { voice: '', scenes: {} };
 /** No track on disk, and no plan key: what a check before any mix sees. */
 const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none() };
 /** The static leg's findings, levelled and addressed as `film check` reports them. */
+/** `film` and its placed scenes, as the static check reads them. */
+const placedFilm = (film: LoadedFilm) =>
+  [film, Result.getOrThrow(layout(film.scenes, film.timings))] as const;
+
 const checked = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
@@ -633,7 +637,9 @@ describe('staleTakes', () => {
   };
 
   test('a missing take, and a take of other text, are stale; marks never are', () => {
-    expect(staleTakes(testFilm(scenes, timings)).map((s) => [s.scene, s.reason])).toEqual([
+    expect(
+      staleTakes(...placedFilm(testFilm(scenes, timings))).map((s) => [s.scene, s.reason]),
+    ).toEqual([
       ['edited', 'text changed'],
       ['new', 'missing'],
     ]);
@@ -641,7 +647,7 @@ describe('staleTakes', () => {
 
   test('another voice makes every take stale', () => {
     const film = testFilm(scenes, { ...timings, voice: 'someone-else' });
-    expect(staleTakes(film).map((s) => s.reason)).toEqual([
+    expect(staleTakes(...placedFilm(film)).map((s) => s.reason)).toEqual([
       'voice changed',
       'voice changed',
       'missing',
@@ -652,7 +658,7 @@ describe('staleTakes', () => {
     const read = { ...take('Still the same'), source: 'recorded' as const };
     const edited = { ...take('Now it says'), source: 'recorded' as const };
     const film = testFilm(scenes, { voice: 'someone-else', scenes: { kept: read, edited } });
-    expect(staleTakes(film).map((s) => [s.scene, s.reason, s.recorded])).toEqual([
+    expect(staleTakes(...placedFilm(film)).map((s) => [s.scene, s.reason, s.recorded])).toEqual([
       ['edited', 'text changed', true],
       ['new', 'missing', false],
     ]);
@@ -665,10 +671,10 @@ describe('staleTakes', () => {
       scenes: { d: take(takeScript(Result.getOrThrow(parse('d', said)))) },
     };
     const film = (say: string) => testFilm([{ id: 'd', say }], recorded, cast);
-    expect(staleTakes(film(said))).toEqual([]);
-    expect(staleTakes(film('Declared? But {@ask}he is guilty.')).map((s) => s.reason)).toEqual([
-      'text changed',
-    ]);
+    expect(staleTakes(...placedFilm(film(said)))).toEqual([]);
+    expect(
+      staleTakes(...placedFilm(film('Declared? But {@ask}he is guilty.'))).map((s) => s.reason),
+    ).toEqual(['text changed']);
   });
 });
 
@@ -679,11 +685,14 @@ describe('unknownVoices', () => {
       { id: 'lost', say: 'One. {@narrator}Two.' },
       { id: 'quiet' },
     ];
-    const found = unknownVoices(testFilm(scenes, noTakes, cast));
+    const found = unknownVoices(...placedFilm(testFilm(scenes, noTakes, cast)));
     expect(found.map((f) => [f.scene, f.voice, f.known])).toEqual([
       ['lost', 'narrator', ['lead', 'ask']],
     ]);
-    expect(unknownVoices(testFilm(scenes, noTakes)).map((f) => f.scene)).toEqual(['ok', 'lost']);
+    expect(unknownVoices(...placedFilm(testFilm(scenes, noTakes))).map((f) => f.scene)).toEqual([
+      'ok',
+      'lost',
+    ]);
   });
 
   test('is an error in the static check, beside the take it cannot record', () => {
@@ -1254,8 +1263,8 @@ describe('static holds', () => {
 
   test('a still run covers the stretch to an edge it reaches, else its still ticks', () => {
     const ticks = holdTicks({ from: 1.4, to: 6.4 }, 30);
-    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 42, 191, 30)).toEqual([1.4, 6.4]);
-    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 57, 150, 30)).toEqual([1.9, 5]);
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 42, 191, 30)).toEqual({ from: 1.4, to: 6.4 });
+    expect(stillSpan({ from: 1.4, to: 6.4 }, ticks, 57, 150, 30)).toEqual({ from: 1.9, to: 5 });
   });
 
   const card = textBox('A MOST PRECIOUS MESSAGE', 600, 300, 700, 80);

@@ -7,6 +7,7 @@
 
 import { Array as Arr, Context, Effect, Layer, Option, Pool } from 'effect';
 import type { Scope } from '../core/address.ts';
+import type { Interval } from '../core/time.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { ShortError } from '../core/errors.ts';
 import type { Probed, Short } from '../core/schema.ts';
@@ -126,7 +127,7 @@ const confirmHold = (
     const grid = holdGrid(ticks);
     // The grid first, as many at once as there are pages.
     yield* Effect.forEach(grid, probeAt, { concurrency: workers, discard: true });
-    let longest: readonly [number, number] = [hold.from, hold.from];
+    let longest: Interval = { from: hold.from, to: hold.from };
     let reached = -1;
     for (const [tick, next] of Arr.zip(grid, grid.slice(1))) {
       // A grid tick inside the run found last would only find it again.
@@ -138,9 +139,9 @@ const confirmHold = (
       const lo = yield* reach(probeAt, workers, anchor, tick, ticks.slice(0, at).reverse());
       const run = stillSpan(hold, ticks, lo, hi, fps);
       reached = hi;
-      if (run[1] - run[0] > longest[1] - longest[0]) longest = run;
+      if (run.to - run.from > longest.to - longest.from) longest = run;
     }
-    const [from, to] = longest;
+    const { from, to } = longest;
     if (to - from <= HOLD + 1e-9) return { holds: [], frames: seen.size };
     return {
       holds: [StaticHold.make({ scene: hold.scene, from, to, max: HOLD })],
