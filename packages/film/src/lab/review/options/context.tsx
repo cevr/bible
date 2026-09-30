@@ -1,10 +1,13 @@
-// One film's options on the review page. `<FilmProvider>` holds the film's
-// choices and its check (read from the film's routes, read again after each
-// write), the write itself (a pick, a take kept or rejected, an undo or a
-// redo), and the synced player: the film's newest render (its own sound
-// muted) on the clock, and the sound heard over it, one `<audio>` of the
-// film's whole mix with a score option playing or a take in place. Choosing
-// what is heard swaps that one `<audio>`; it joins the clock where it stands.
+// One film's choices on the review page. `<FilmProvider>` holds the film's
+// choice points and its check (read from the film's routes, read again after
+// each write), the write itself (a verb on a variant, a knob, an approval or
+// a comment, an undo or a redo), the sound check run after each write that
+// changes what the film plays (`film check --sound`: dead air, balance
+// against the picked score), and the synced player: the film's newest render
+// (its own sound muted) on the clock, and the sound heard over it, one
+// `<audio>` of the film's whole mix with a variant in place (a score option,
+// a take). Choosing what is heard swaps that one `<audio>`; it joins the
+// clock where it stands.
 
 import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -22,22 +25,23 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import { type CheckReport, type FilmChoices, type ReviewVideo } from '../../../core/schema.ts';
-import { scoreMixUrl, takeMixUrl } from '../../../core/api.ts';
+import { choiceMixUrl } from '../../../core/api.ts';
+import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
+import type { ReviewVideo } from '../../../core/review.ts';
+import type { CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
 import { ARROWS, typing, useReview } from '../context.tsx';
 import { STEP_S, type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
 import { type SyncDriver, makeSync } from '../sync.ts';
-import { type ChoiceAct, OptionsApi, type Wrote } from './api.ts';
+import { type ChoiceAct, OptionsApi, type Wrote, changesSound } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
 export const PICTURE = 'picture';
 
-/** What is heard over the picture: its own sound, the mix with a score option, or a take in place. */
+/** What is heard over the picture: its own sound, or the mix with one variant of a point in place. */
 export type Heard = Data.TaggedEnum<{
   Own: {};
-  Score: { readonly option: string };
-  Take: { readonly sound: string; readonly take: string };
+  InPlace: { readonly point: string; readonly variant: string };
 }>;
 export const Heard = Data.taggedEnum<Heard>();
 
@@ -46,8 +50,7 @@ export const mixOf = (film: string, heard: Heard, version: number): Option.Optio
   Match.value(heard).pipe(
     Match.tagsExhaustive({
       Own: () => Option.none<string>(),
-      Score: (h) => Option.some(`${scoreMixUrl(film, h.option)}?v=${version}`),
-      Take: (h) => Option.some(`${takeMixUrl(film, h.sound, h.take)}?v=${version}`),
+      InPlace: (h) => Option.some(`${choiceMixUrl(film, h.point, h.variant)}&v=${version}`),
     }),
   );
 
@@ -55,18 +58,22 @@ export const mixOf = (film: string, heard: Heard, version: number): Option.Optio
 export const trackOf = (film: string, heard: Heard, version: number): string =>
   Option.getOrElse(mixOf(film, heard, version), () => PICTURE);
 
-/** What is heard first: the score option the film plays, when it has been composed; else the first that has. */
+/** Whether a variant is heard in the film's mix. */
+const inPlace = (media: FilmChoices['points'][number]['variants'][number]['media']) =>
+  media._tag === 'Heard' && media.inPlace;
+
+/** What is heard first: the score option the film plays, when it is heard; else the first that is. */
 export const firstHeard = (choices: FilmChoices): Heard =>
   Option.getOrElse(
     Option.flatMap(
-      Option.fromUndefinedOr(choices.choices.find((c) => c._tag === 'ScoreChoice')),
+      Option.fromUndefinedOr(choices.points.find((p) => p.kind === 'score')),
       (score) => {
-        const heard = score.variants.filter((v) => v.state !== 'missing');
+        const heard = score.variants.filter((v) => inPlace(v.media));
         return Option.map(
-          Option.orElse(Option.fromUndefinedOr(heard.find((v) => v.id === score.picked)), () =>
+          Option.orElse(Option.fromUndefinedOr(heard.find((v) => v.picked)), () =>
             Option.fromUndefinedOr(heard[0]),
           ),
-          (v): Heard => Heard.Score({ option: v.id }),
+          (v): Heard => Heard.InPlace({ point: score.id, variant: v.id }),
         );
       },
     ),
@@ -83,6 +90,8 @@ export interface FilmContextValue {
   /** The last write, as it went. */
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
   readonly write: (act: ChoiceAct) => void;
+  /** The sound check after the last pick or knob (initial until one). */
+  readonly soundCheck: Accessor<AsyncResult.AsyncResult<SoundCheck, LabFailure>>;
   /** The render the sound plays over, when the film has one. */
   readonly picture: Accessor<Option.Option<ReviewVideo>>;
   readonly choosePicture: (ref: string) => void;
@@ -107,6 +116,7 @@ interface FilmAtoms {
   readonly choices: Loaded<FilmChoices>;
   readonly check: Loaded<CheckReport>;
   readonly write: Atom.Writable<AsyncResult.AsyncResult<Wrote, LabFailure>, ChoiceAct>;
+  readonly soundCheck: Atom.Writable<AsyncResult.AsyncResult<SoundCheck, LabFailure>, void>;
 }
 
 const FilmBody = (
@@ -126,6 +136,8 @@ const FilmBody = (
   const refreshCheck = useAtomRefresh(() => props.atoms.check);
   const wrote = useAtomValue(() => props.atoms.write);
   const write = useAtomSet(() => props.atoms.write);
+  const soundCheck = useAtomValue(() => props.atoms.soundCheck);
+  const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
   const choices = createMemo(() =>
     Option.getOrElse(AsyncResult.value(choicesResult()), () => props.first),
@@ -137,6 +149,8 @@ const FilmBody = (
     setVersion((v) => v + 1);
     refreshChoices();
     refreshCheck();
+    // A pick or a knob changes the mix: the sound check hears it again.
+    if (changesSound(result.value.act)) runSoundCheck();
   });
 
   const [pictureRef, setPictureRef] = createSignal(
@@ -181,6 +195,7 @@ const FilmBody = (
     check,
     wrote,
     write: (act) => write(act),
+    soundCheck,
     picture,
     choosePicture: (ref) => {
       send(SyncEvent.PausePressed);
@@ -228,9 +243,10 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   const film = props.film;
   const atoms: FilmAtoms = {
     film,
-    choices: meta.runtime.atom(OptionsApi.use((api) => api.options(film))),
+    choices: meta.runtime.atom(OptionsApi.use((api) => api.choices(film))),
     check: meta.runtime.atom(OptionsApi.use((api) => api.check(film))),
     write: meta.runtime.fn((act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act))),
+    soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
   const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0)));
   const first = useAtomValue(() => atoms.choices);
@@ -248,7 +264,7 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
         <p class="empty">
           {Match.value(AsyncResult.isFailure(first())).pipe(
             Match.when(true, () => failedText(first())),
-            Match.orElse(() => `Reading ${film}'s options…`),
+            Match.orElse(() => `Reading ${film}'s choices…`),
           )}
         </p>
       }

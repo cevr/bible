@@ -13,21 +13,25 @@
 // so a figure reads against both.
 
 import { mix } from '@bible/film/canvas';
+import type { Looks } from '@bible/film/core';
 
 /**
- * How far the ground is lifted toward light paper, by level: `now` the
- * chipboard as first cut (the owner's pick, 2026-09-30), `light` and
- * `lighter` the two lifts they compared. Pick one with `GROUND`; every value
- * below and in `light.ts` and `film.ts` follows it.
+ * The looks the film chooses between, at named levels. `ground`: how far the
+ * ground is lifted toward light paper, `now` the chipboard as first cut (the
+ * owner's pick, 2026-09-30), `light` and `lighter` the two lifts they
+ * compared. The review lists each level and a pick rewrites `play`; every
+ * value below and in `light.ts` and `acts.ts` follows it.
  */
-export const GROUNDS = { now: 0, light: 0.5, lighter: 0.75 } as const;
-export type Ground = keyof typeof GROUNDS;
+export const looks = {
+  ground: { options: { now: 0, light: 0.5, lighter: 0.75 }, play: 'now' },
+} as const satisfies Looks;
+export type Ground = keyof typeof looks.ground.options;
 
-/** The film's ground level: the one line that sets how light the world is. */
-export const GROUND: Ground = 'now';
+/** The film's ground level: the level `looks.ground` plays. */
+export const GROUND: Ground = looks.ground.play;
 
 /** The lift, 0..1: the share of the way each ground colour rises toward `LIGHT_PAPER`. */
-export const LIFT: number = GROUNDS[GROUND];
+export const LIFT: number = looks.ground.options[GROUND];
 
 /** The warm light paper the ground rises toward: under the robe's white and the glow. */
 const LIGHT_PAPER = '#f3ebdd';

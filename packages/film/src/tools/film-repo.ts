@@ -22,6 +22,7 @@ import { StoreConfig } from '../core/store.ts';
 import {
   HeardAs,
   Look,
+  Looks,
   Sound,
   type SoundManifest,
   SoundManifestJson,
@@ -62,6 +63,8 @@ export interface LoadedFilm {
   readonly heardAs: HeardAs;
   /** The film's declared colour script and acts (`film.ts`'s `look`); none when it declares none. */
   readonly look: Option.Option<Look>;
+  /** The looks it chooses between at named levels (`palette.ts`'s `looks`); empty when it has none. */
+  readonly looks: Looks;
   /** The app's sound library its effects and beds name; none when the app has none. */
   readonly sounds: Sounds;
 }
@@ -110,6 +113,8 @@ const SoundModule = Schema.Struct({ sound: Sound });
 /** The part of `film.ts` the tools read: its declared look, when it declares one. */
 const FilmModule = Schema.Struct({ look: Schema.optionalKey(Look) });
 const ShortsModule = Schema.Struct({ shorts: Shorts });
+/** The part of `palette.ts` the tools read: the looks it chooses between, when it has any. */
+const PaletteModule = Schema.Struct({ looks: Schema.optionalKey(Looks) });
 
 /**
  * The one place a film module is imported by path. The process keeps the
@@ -251,6 +256,13 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           let look = Option.none<Look>();
           if (yield* fs.exists(filmFile))
             look = Option.fromNullishOr((yield* loadModule(name, filmFile, FilmModule)).look);
+          const paletteFile = path.join(at.dir, 'palette.ts');
+          let looks: Looks = {};
+          if (yield* fs.exists(paletteFile))
+            looks = Option.getOrElse(
+              Option.fromUndefinedOr((yield* loadModule(name, paletteFile, PaletteModule)).looks),
+              (): Looks => ({}),
+            );
           const library = yield* loadSounds;
           return {
             paths: at,
@@ -262,6 +274,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             manifest,
             heardAs,
             look,
+            looks,
             sounds: library,
           };
         });

@@ -47,17 +47,19 @@ import {
   type Render,
   approvalState,
   commentsOn,
+  renderPointId,
+  saidOn,
+  subjectOf,
 } from '../core/catalogue.ts';
+import { type ChoicePoint, type ChoiceVariant, pointId, seenVariants } from '../core/choice.ts';
 import type {
-  RenderChoice,
-  RenderVariant,
   ReviewFile,
   ReviewFolder,
   ReviewIndex,
   ReviewManifest,
   ReviewVideo,
-} from '../core/schema.ts';
-import { ReviewManifestJson } from '../core/schema.ts';
+} from '../core/review.ts';
+import { ReviewManifestJson } from '../core/review.ts';
 import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
 import { cacheKey } from './digest.ts';
@@ -243,19 +245,13 @@ const addressTitle = (render: Render): string => {
   return `scenes ${address.ids.join(', ')}`;
 };
 
-const VERDICT = {
-  none: Option.none(),
-  approved: Option.some('approved'),
-  stale: Option.some('approved an earlier render'),
-} as const;
-
 /** `n` and `noun`, plural but for one. */
 const counted = (n: number, noun: string) =>
   `${n} ${noun}${Arr.filter(['s'], () => n !== 1).join('')}`;
 
 /** What a render is, in a line: its size, its commit, and what was said of it. */
 const renderTag = (catalogue: Catalogue, render: Render): string => {
-  const said = commentsOn(catalogue, render).length;
+  const said = commentsOn(catalogue, subjectOf(render)).length;
   return [
     `scale ${render.settings.scale}`,
     ...Option.toArray(Option.map(render.stamp.commit, (c) => c.slice(0, 7))),
@@ -264,10 +260,13 @@ const renderTag = (catalogue: Catalogue, render: Render): string => {
 };
 
 /**
- * A film's project folder as the review lists it, from its catalogue: one set
- * per address its videos draw (the film, then acts and scenes in film order,
- * then shorts), a variant per render (`main` first) with its approval as the
- * verdict; its stills, sheets and captions with the folder. Pure.
+ * A film's project folder as the review lists it, from its catalogue: one
+ * render choice point per address its videos draw (the film, then acts and
+ * scenes in film order, then shorts), a variant per render (`main` first)
+ * with the owner's approval and comments on it; its stills, sheets and
+ * captions with the folder. A variant's state is `current`: it is the render
+ * its stamp says it is (whether that is current against the film's sources
+ * now is the project's, read in a fresh process). Pure.
  */
 export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
   const catalogue = parts.record;
@@ -278,7 +277,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
     .toSorted(
       (a, b) => a.place[0] - b.place[0] || a.place[1] - b.place[1] || a.key.localeCompare(b.key),
     )
-    .flatMap(({ key, renders }): ReadonlyArray<RenderChoice> => {
+    .flatMap(({ renders }): ReadonlyArray<ChoicePoint> => {
       const variants = renders
         .toSorted(
           (a, b) =>
@@ -287,30 +286,41 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
         )
         .flatMap((render) =>
           Option.toArray(
-            Option.map(renderVideo(parts, render), (video): RenderVariant => ({
+            Option.map(renderVideo(parts, render), (video): ChoiceVariant => ({
               id: render.variant,
               label: render.variant,
-              tag: Option.some(renderTag(catalogue, render)),
-              verdict: VERDICT[approvalState(catalogue, render)],
+              lines: [renderTag(catalogue, render)],
+              state: 'current',
+              picked: false,
+              verbs: [],
+              media: { _tag: 'Seen', video },
+              key: render.stamp.key,
+              approval: approvalState(catalogue, subjectOf(render)),
+              comments: saidOn(catalogue, subjectOf(render)),
               notes: Option.none(),
-              video,
             })),
           ),
         );
       if (variants.length === 0) return [];
       return [
         {
-          _tag: 'RenderChoice',
-          clip: key,
+          id: renderPointId(renders[0].address),
+          kind: 'render',
+          address: Option.some(renders[0].address),
           title: addressTitle(renders[0]),
+          lines: [],
           start: 0,
           moments: Option.none(),
+          marks: [],
+          knob: Option.none(),
           variants,
         },
       ];
     });
   const all = found(parts, namesInProject(catalogue));
-  const approved = catalogue.renders.filter((r) => approvalState(catalogue, r) === 'approved');
+  const approved = catalogue.renders.filter(
+    (r) => approvalState(catalogue, subjectOf(r)) === 'approved',
+  );
   return {
     ref: parts.ref,
     title: Option.some(catalogue.film),
@@ -370,25 +380,36 @@ export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> 
 
 /**
  * A montage as the review lists it, from its manifest: its sets (in clip
- * order) with each variant it names, and the videos, images and docs it
- * names, newest first. A variant whose video is not there is left out. Pure.
+ * order) as render choice points at no address of a film, each variant it
+ * names with its tag and verdict as its lines, and the videos, images and
+ * docs it names, newest first. A variant whose video is not there is left
+ * out. Pure.
  */
 export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder => {
   const manifest = parts.record;
   const sets = Object.entries(manifest.sets)
     .toSorted(([a], [b]) => a.localeCompare(b))
-    .flatMap(([clip, set]): ReadonlyArray<RenderChoice> => {
+    .flatMap(([clip, set]): ReadonlyArray<ChoicePoint> => {
       const variants = variantIds(set).flatMap((id) => {
         const meta = Rec.get(set.variants, id);
         return Option.toArray(
-          Option.map(videoOf(parts, variantNames(clip, id, set)), (video): RenderVariant => ({
+          Option.map(videoOf(parts, variantNames(clip, id, set)), (video): ChoiceVariant => ({
             id,
             label: Option.getOrElse(
               Option.flatMap(meta, (v) => v.label),
               () => id,
             ),
-            tag: Option.flatMap(meta, (v) => v.tag),
-            verdict: Option.flatMap(meta, (v) => v.verdict),
+            lines: [
+              ...Option.toArray(Option.flatMap(meta, (v) => v.tag)),
+              ...Option.toArray(Option.flatMap(meta, (v) => v.verdict)),
+            ],
+            state: 'current',
+            picked: false,
+            verbs: [],
+            media: { _tag: 'Seen', video },
+            key: video.ref,
+            approval: 'none',
+            comments: [],
             notes: Option.map(
               Option.flatMap(
                 Option.flatMap(meta, (v) => v.notes),
@@ -396,18 +417,21 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
               ),
               fileOf,
             ),
-            video,
           })),
         );
       });
       if (variants.length === 0) return [];
       return [
         {
-          _tag: 'RenderChoice',
-          clip,
+          id: pointId('render', clip),
+          kind: 'render',
+          address: Option.none(),
           title: Option.getOrElse(set.title, () => clip),
+          lines: [],
           start: set.start,
           moments: set.moments,
+          marks: [],
+          knob: Option.none(),
           variants,
         },
       ];
@@ -467,12 +491,10 @@ export interface ReviewService {
 
 /** Every file ref a folder of the index lists: its sets' videos and notes, and what is in no set. */
 const refsIn = (folder: ReviewFolder): ReadonlyArray<string> => [
-  ...folder.sets.flatMap((set) =>
-    set.variants.flatMap((v) => [
-      v.video.ref,
-      ...Option.toArray(Option.map(v.notes, (n) => n.ref)),
-    ]),
-  ),
+  ...folder.sets.flatMap((set) => [
+    ...seenVariants(set).map((seen) => seen.video.ref),
+    ...set.variants.flatMap((v) => Option.toArray(Option.map(v.notes, (n) => n.ref))),
+  ]),
   ...[...folder.videos, ...folder.images, ...folder.docs].map((f) => f.ref),
 ];
 

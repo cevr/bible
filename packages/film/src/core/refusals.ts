@@ -243,9 +243,13 @@ export class AttemptUnknown extends Schema.TaggedError<AttemptUnknown>()('Attemp
   }
 }
 
-/** A `film options` run that gave no answer: it failed, timed out, or printed something else. */
-export class ChoicesProcessFailed extends Schema.TaggedError<ChoicesProcessFailed>()(
-  'ChoicesProcessFailed',
+/**
+ * A run of the film CLI in a fresh process (`film options`, `film project`,
+ * `film check`) that gave no answer: it failed, timed out, or printed
+ * something else.
+ */
+export class FreshProcessFailed extends Schema.TaggedError<FreshProcessFailed>()(
+  'FreshProcessFailed',
   {
     command: Schema.String,
     reason: Schema.String,
@@ -256,29 +260,65 @@ export class ChoicesProcessFailed extends Schema.TaggedError<ChoicesProcessFaile
   }
 }
 
-/** A pick naming a score option, or a library sound, the film does not offer. */
+/** A choice point the film does not have. */
 export class ChoiceUnknown extends Schema.TaggedError<ChoiceUnknown>()('ChoiceUnknown', {
   film: Schema.String,
-  kind: Schema.Literals(['score option', 'sound']),
-  name: Schema.String,
+  point: Schema.String,
   known: Schema.Array(Schema.String),
 }) {
   override get message() {
     const known = this.known.join(', ') || 'none';
-    return `film "${this.film}" has no ${this.kind} "${this.name}" to choose (it has: ${known})`;
+    return `film "${this.film}" has no choice "${this.point}" (it has: ${known})`;
   }
 }
 
-/** A take act its take's state does not allow: only a waiting take is kept or rejected, only a kept one unkept. */
-export class TakeActRefused extends Schema.TaggedError<TakeActRefused>()('TakeActRefused', {
-  sound: Schema.String,
-  take: Schema.String,
-  /** What was asked, as it would read done: `kept`, `unkept`, `rejected`. */
-  act: Schema.String,
-  state: Schema.String,
+/** A variant a choice point does not have: a score option, a take, an attempt, a level. */
+export class VariantUnknown extends Schema.TaggedError<VariantUnknown>()('VariantUnknown', {
+  film: Schema.String,
+  point: Schema.String,
+  variant: Schema.String,
+  known: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `take ${this.take.slice(0, 12)} of "${this.sound}" is ${this.state}: it cannot be ${this.act}`;
+    const known = this.known.map((k) => k.slice(0, 24)).join(', ') || 'none';
+    return `"${this.point}" of film "${this.film}" has no variant "${this.variant.slice(0, 24)}" (it has: ${known})`;
+  }
+}
+
+/**
+ * A verb its variant's state or its point's kind does not allow: only a
+ * waiting take is kept or rejected, only a kept one unkept; a render is
+ * approved, never picked; a knob is set, never picked.
+ */
+export class VerbRefused extends Schema.TaggedError<VerbRefused>()('VerbRefused', {
+  point: Schema.String,
+  variant: Schema.String,
+  verb: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `cannot ${this.verb} ${this.variant.slice(0, 24)} of "${this.point}": ${this.reason}`;
+  }
+}
+
+/** An approval or comment on a scene the project holds no render of. */
+export class SceneNotRendered extends Schema.TaggedError<SceneNotRendered>()('SceneNotRendered', {
+  film: Schema.String,
+  scene: Schema.String,
+  variant: Schema.String,
+}) {
+  override get message() {
+    return `${this.film} has no render of scene ${this.scene} (variant ${this.variant}) to review; run film project render ${this.film} first`;
+  }
+}
+
+/** A project folder's `catalogue.json` that does not read. */
+export class CatalogueInvalid extends Schema.TaggedError<CatalogueInvalid>()('CatalogueInvalid', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the render catalogue ${this.file} does not read: ${this.reason}`;
   }
 }
 

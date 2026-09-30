@@ -1,8 +1,9 @@
 // What the review's cards say of a file, and which copy of a video it
 // plays: pure, so each reads the same in a test as on the page.
 
-import { Array as Arr, Option } from 'effect';
-import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/schema.ts';
+import { Array as Arr, Match, Option } from 'effect';
+import type { ApprovalState } from '../../core/catalogue.ts';
+import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
@@ -79,3 +80,11 @@ export const pressed = (on: boolean) => `${on}` as const;
 
 /** Whether a doc reads as markdown (shown inline); the rest are linked. */
 export const isMarkdown = (doc: ReviewFile): boolean => doc.name.endsWith('.md');
+
+/** An approval as a variant's verdict says it, after its label: none said for none. */
+export const approvalText = (approval: ApprovalState): string =>
+  Match.value(approval).pipe(
+    Match.when('approved', () => ' — approved'),
+    Match.when('stale', () => ' — approved an earlier version'),
+    Match.orElse(() => ''),
+  );

@@ -24,7 +24,9 @@ import {
   serveApi,
   withServices,
 } from './api-server.ts';
-import { optionsGroup } from './choices-http.ts';
+import { choicesGroup } from './choices-http.ts';
+import type { FreshFilm } from './choices-process.ts';
+import { projectGroup } from './project-http.ts';
 import type { Choices } from './choices.ts';
 import type { FilmRepo } from './film-repo.ts';
 import { serveFile } from './review-file.ts';
@@ -146,9 +148,10 @@ export const reviewHandler = Effect.fn('film.review.handler')(function* (
     | FilmRepo
     | SourceWriter
     | StaticCheck
+    | FreshFilm
   >();
   const routes = HttpApiBuilder.layer(ReviewHttpApi).pipe(
-    Layer.provide(Layer.mergeAll(reviewGroup, optionsGroup, stepsGroup)),
+    Layer.provide(Layer.mergeAll(reviewGroup, choicesGroup, projectGroup, stepsGroup)),
     withServices(services, yield* FilmScope.repo),
   );
   return yield* serveApi(ReviewHttpApi, routes, { allowed, page });

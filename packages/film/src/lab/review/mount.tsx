@@ -6,10 +6,11 @@ import { For, Show, render } from '@solidjs/web';
 import { Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
-import type { ReviewIndex } from '../../core/schema.ts';
+import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { folderTitle, pressed } from './format.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
@@ -29,12 +30,12 @@ export const crumbsOf = (
     Option.flatMap(index, (i) => Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref)));
   const folder = (ref: string) =>
     Option.getOrElse(Option.map(folderAt(ref), folderTitle), () => ref);
-  const set = (ref: string, clip: string) =>
+  const set = (ref: string, point: string) =>
     Option.getOrElse(
       Option.flatMap(folderAt(ref), (f) =>
-        Option.map(Option.fromUndefinedOr(f.sets.find((s) => s.clip === clip)), (s) => s.title),
+        Option.map(Option.fromUndefinedOr(f.sets.find((s) => s.id === point)), (s) => s.title),
       ),
-      () => clip,
+      () => point,
     );
   return Match.value(place).pipe(
     Match.tagsExhaustive({
@@ -42,9 +43,12 @@ export const crumbsOf = (
       Folder: (p): ReadonlyArray<Crumb> => [{ title: folder(p.folder), place: Option.none() }],
       Set: (p): ReadonlyArray<Crumb> => [
         { title: folder(p.folder), place: Option.some(Place.Folder({ folder: p.folder })) },
-        { title: set(p.folder, p.clip), place: Option.none() },
+        { title: set(p.folder, p.point), place: Option.none() },
       ],
-      Film: (p): ReadonlyArray<Crumb> => [{ title: `${p.film} · options`, place: Option.none() }],
+      Film: (p): ReadonlyArray<Crumb> => [{ title: `${p.film} · choices`, place: Option.none() }],
+      Project: (p): ReadonlyArray<Crumb> => [
+        { title: `${p.film} · project`, place: Option.none() },
+      ],
     }),
   );
 };
@@ -115,8 +119,9 @@ const Page = () => {
         Match.tagsExhaustive({
           Home: () => <Home />,
           Folder: (p) => <FolderPage folder={p.folder} />,
-          Set: (p) => <SetPage folder={p.folder} clip={p.clip} />,
+          Set: (p) => <SetPage folder={p.folder} point={p.point} />,
           Film: (p) => <FilmPage film={p.film} />,
+          Project: (p) => <ProjectPage film={p.film} />,
         }),
       )}
     </main>

@@ -1,8 +1,9 @@
 // Where the review page is, read from and written to its URL, so a link (or
 // a reload, or Back) opens the same place: every folder (`/`), one folder
-// (`?folder=<ref>`), one comparison set in it (`&set=<clip>`) and the view
-// it shows (`&view=pair&other=<id>`, `&view=moments&m=<n>`), or one film's
-// options (`?film=<film>`).
+// (`?folder=<ref>`), one comparison set in it (`&set=<point id>`) and the view
+// it shows (`&view=pair&other=<id>`, `&view=moments&m=<n>`), one film's
+// choices (`?film=<film>`), or one film's project by its address tree
+// (`?project=<film>`).
 
 import { Data, Match, Option } from 'effect';
 import { type ViewName, ViewState, viewNameOf } from './machine.ts';
@@ -10,18 +11,23 @@ import { type ViewName, ViewState, viewNameOf } from './machine.ts';
 export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
   Folder: { readonly folder: string };
-  Set: { readonly folder: string; readonly clip: string };
-  /** A film's options: its score's, its sounds' takes. */
+  /** A render choice point of the folder, by its id. */
+  Set: { readonly folder: string; readonly point: string };
+  /** A film's choices: every choice point it has, by kind. */
   Film: { readonly film: string };
+  /** A film's project: its acts and scenes, each scene's render and the owner's say. */
+  Project: { readonly film: string };
 }>;
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
 const param = (params: URLSearchParams, name: string): Option.Option<string> =>
   Option.filter(Option.fromNullishOr(params.get(name)), (v) => v !== '');
 
-/** The place a search string (`?folder=…&set=…`, `?film=…`) names; home when it names none. */
+/** The place a search string (`?folder=…&set=…`, `?film=…`, `?project=…`) names; home when it names none. */
 export const placeOf = (search: string): ReviewPlace => {
   const params = new URLSearchParams(search);
+  const project = param(params, 'project');
+  if (Option.isSome(project)) return ReviewPlace.Project({ film: project.value });
   return Option.match(param(params, 'film'), {
     onSome: (film) => ReviewPlace.Film({ film }),
     onNone: () =>
@@ -30,7 +36,7 @@ export const placeOf = (search: string): ReviewPlace => {
         onSome: (folder) =>
           Option.match(param(params, 'set'), {
             onNone: () => ReviewPlace.Folder({ folder }),
-            onSome: (clip) => ReviewPlace.Set({ folder, clip }),
+            onSome: (point) => ReviewPlace.Set({ folder, point }),
           }),
       }),
   });
@@ -42,8 +48,9 @@ export const searchOf = (place: ReviewPlace): string => {
     Match.tagsExhaustive({
       Home: () => new URLSearchParams(),
       Folder: (p) => new URLSearchParams({ folder: p.folder }),
-      Set: (p) => new URLSearchParams({ folder: p.folder, set: p.clip }),
+      Set: (p) => new URLSearchParams({ folder: p.folder, set: p.point }),
       Film: (p) => new URLSearchParams({ film: p.film }),
+      Project: (p) => new URLSearchParams({ project: p.film }),
     }),
   );
   const text = params.toString();

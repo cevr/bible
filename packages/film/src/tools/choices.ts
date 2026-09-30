@@ -1,34 +1,38 @@
-// A film's choices: the options it is choosing between, each heard in place,
-// and the pick written back where the film declares it.
+// A film's choices: its choice points (`core/choice.ts`, listed by
+// `choice-points.ts`), each variant heard in place, and each verb landed
+// where the film declares the pick:
 //
-// - A score's options (`sound.ts`'s `score.options`): each heard as the whole
-//   film's mix with that option playing, against the film's latest render. A
-//   pick sets `play`: the one string in `sound.ts`, spliced by the parser
-//   (`sound-source.ts`) through the SourceWriter.
-// - A library sound's takes (`library.lock.json`): each heard alone (its
-//   file) and in place (the whole mix with that take at every placement of
-//   the sound). A take is kept, unkept or rejected by its sha256 through the
-//   library's own operations (`SoundLibrary.keep`/`unkeep`/`reject`),
-//   recorded around the lock's rewrite by the SourceWriter, so it is undone
-//   the same way.
+// - score: `play` in `sound.ts`, and look: `play` of a look in `palette.ts`,
+//   each the one string spliced by the parser (`choice-source.ts`) through
+//   the SourceWriter;
+// - take: kept, unkept or rejected by its sha256 through the library's own
+//   operations (`SoundLibrary.keep`/`unkeep`/`reject`), recorded around the
+//   lock's rewrite by the SourceWriter, so it is undone the same way;
+// - voice: an attempt kept as its beat's take by the film CLI in a fresh
+//   process (it reads the script), recorded around the timings' rewrite;
+// - level: a sound layer's level (or the constant layers share) written into
+//   `sound.ts` through the SourceWriter;
+// - approve and comment: the catalogue's records (`RenderCatalogue`), on the
+//   variant as it is now.
 //
 // The review runs for days and its own imports of a film stay as they were at
-// start, so the film's options are read, and its mixes made, in a fresh
+// start, so the film's points are read, and its mixes made, in a fresh
 // process (`FreshFilm`, `choices-process.ts`): every answer is the film as it
-// stands on disk. `filmChoices` is what that process lists.
+// stands on disk.
 //
 // Every mix is derived once into the review's cache, keyed by the film's
 // sources as they stand (the newest mtime under its folder and the lock), so a
-// change to the film makes it again. A render set (a sketchbook) has no pick
-// and is the review's (`review.ts`); a look is not a choice yet.
+// change to the film makes it again.
 
 import {
   Array as Arr,
+  Clock,
   Context,
   Effect,
   Fiber,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
   Result,
@@ -36,48 +40,49 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import type { UnknownSound } from '../core/errors.ts';
-import { type Placed, sceneAt } from '../core/layout.ts';
-import { type MixPlan, mixPlan } from '../core/mix.ts';
-import type {
-  EffectChoice,
-  EffectPlacement,
-  EffectTake,
-  FilmChoice,
-  FilmChoices,
-  ScoreChoice,
-  ScoreState,
-  SoundEffect,
-  TakeAct,
-} from '../core/schema.ts';
+import { type Catalogue, type Subject, approve, comment } from '../core/catalogue.ts';
 import {
-  type LibraryEntry,
-  type LockEntry,
-  type SoundSource,
-  type Variant,
-  pendingOf,
-  requestKey,
-} from '../core/sfx.ts';
-import { type ScoreOptionState, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { FreshFilm } from './choices-process.ts';
+  type ApprovePost,
+  type ChoicePoint,
+  type ChoiceVariant,
+  type ChoiceVerb,
+  type CommentPost,
+  type FilmChoices,
+  type KnobPost,
+  type PickPost,
+  pointName,
+  pointNamed,
+  subjectAt,
+  variantNamed,
+} from '../core/choice.ts';
+import type { UnknownSound } from '../core/errors.ts';
+import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
+import {
+  SCORE_PLAY,
+  editLevel,
+  editPick,
+  levelTargetOf,
+  lookPlay,
+  readPick,
+} from './choice-source.ts';
+import { FreshFilm, type FreshRefusal } from './choices-process.ts';
 import { cacheKey } from './digest.ts';
 import {
   ChoiceUnknown,
-  type ChoicesProcessFailed,
   type FormatFailed,
+  type FreshProcessFailed,
   type ReviewToolFailed,
   type SourceRefused,
-  TakeActRefused,
-  TakeUnknown,
+  VariantUnknown,
+  VerbRefused,
 } from './errors.ts';
-import { type FilmName, FilmRepo, type LoadedFilm } from './film-repo.ts';
+import { type FilmName, FilmRepo, type LoadError } from './film-repo.ts';
 import { type LibraryError, SoundLibrary } from './library.ts';
-import type { TakeInPlace } from './mixer.ts';
 import { Review } from './review.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
-import { editPlay, readPlay } from './sound-source.ts';
+import { Takes } from './takes.ts';
 
-/** What a pick did: the change it made (none when it was already so). */
+/** What a verb did: the change it made (none when it was already so). */
 export interface Picked {
   /** The file it rewrote. */
   readonly file: string;
@@ -85,225 +90,113 @@ export interface Picked {
   readonly change: Option.Option<Change>;
 }
 
-export type ChoicesError = ChoicesProcessFailed | LibraryError | SourceRefused | PlatformError;
+export type ChoicesError =
+  | FreshProcessFailed
+  | FreshRefusal
+  | LibraryError
+  | SourceRefused
+  | PlatformError;
 
 export interface ChoicesService {
-  /** The film's choices as they stand, and the renders they are heard against. */
+  /** The film's choice points as they stand, and the renders they are heard against. */
   readonly list: (film: FilmName) => Effect.Effect<FilmChoices, ChoicesError>;
-  /** Play `option`: `play` in `sound.ts`. */
-  readonly pickScore: (
+  /** A verb on one variant, landed where the film declares its pick. */
+  readonly pick: (
     film: FilmName,
-    option: string,
-  ) => Effect.Effect<Picked, ChoicesError | ChoiceUnknown | RewriteError>;
-  /** Keep, unkeep or reject a take (by its sha256) of a sound the film plays. */
-  readonly curate: (
+    pick: PickPost,
+  ) => Effect.Effect<Picked, ChoicesError | RewriteError | UnknownSound | FormatFailed>;
+  /** A level point's knob, written into `sound.ts`. */
+  readonly knob: (
     film: FilmName,
-    sound: string,
-    take: string,
-    act: TakeAct,
-  ) => Effect.Effect<
-    Picked,
-    ChoicesError | ChoiceUnknown | TakeUnknown | TakeActRefused | UnknownSound | FormatFailed
-  >;
-  /** The film's whole mix with `option` playing, as an m4a in the review's cache. */
-  readonly scoreMix: (
+    knob: KnobPost,
+  ) => Effect.Effect<Picked, ChoicesError | RewriteError>;
+  /** One variant approved as it is now; the choices after it. */
+  readonly approve: (
     film: FilmName,
-    option: string,
-  ) => Effect.Effect<string, ChoicesError | ChoiceUnknown | TakeUnknown | ReviewToolFailed>;
-  /** A take's own file. */
-  readonly takeAudio: (
+    said: ApprovePost,
+  ) => Effect.Effect<FilmChoices, ChoicesError | CatalogueError>;
+  /** Something said of one variant as it is now; the choices after it. */
+  readonly comment: (
     film: FilmName,
-    sound: string,
-    take: string,
-  ) => Effect.Effect<string, ChoicesError | ChoiceUnknown | TakeUnknown>;
-  /** The film's whole mix with only this take at each of the sound's placements, as an m4a. */
-  readonly takeMix: (
+    said: CommentPost,
+  ) => Effect.Effect<FilmChoices, ChoicesError | CatalogueError>;
+  /** A variant's own file: a take's, an attempt's. */
+  readonly alone: (
     film: FilmName,
-    sound: string,
-    take: string,
-  ) => Effect.Effect<string, ChoicesError | ChoiceUnknown | TakeUnknown | ReviewToolFailed>;
+    point: string,
+    variant: string,
+  ) => Effect.Effect<string, ChoicesError | LoadError>;
+  /** The film's whole mix with the variant in place, as an m4a in the review's cache. */
+  readonly inPlace: (
+    film: FilmName,
+    point: string,
+    variant: string,
+  ) => Effect.Effect<string, ChoicesError | ReviewToolFailed>;
 }
 
 /** The folders under a film's that hold no source of its sound (renders, caches). */
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
-/** How a score option's state reads on the page. */
-const STATE: Record<ScoreOptionState['_tag'], ScoreState> = {
-  Current: 'current',
-  Stale: 'stale',
-  Missing: 'missing',
-};
-
-/** A lock variant as a take the review lists: kept or waiting, its 1-based index in that list. */
-const takeOf = (
-  entry: LibraryEntry,
-  variant: Variant,
-  state: EffectTake['state'],
-  index: number,
-): EffectTake => ({
-  id: variant.sha256,
-  state,
-  index,
-  secs: variant.secs,
-  loudest: variant.loudness.momentaryMax,
-  made: variant.made,
-  current: variant.request === requestKey(entry),
-});
-
-/** A sound's takes: the kept ones as they play, then those waiting for the current request. */
-const takesOf = (entry: LibraryEntry, lock: Option.Option<LockEntry>) => [
-  ...Option.match(lock, { onNone: () => [], onSome: (l) => l.variants }).map((v, i) =>
-    takeOf(entry, v, 'kept', i + 1),
-  ),
-  ...pendingOf(entry, lock).map((v, i) => takeOf(entry, v, 'candidate', i + 1)),
-];
-
-/** Whether `act` applies to a take in `state`: only a waiting take is kept or rejected. */
-const actFits = (act: TakeAct, state: EffectTake['state']) => {
-  if (act === 'unkeep') return state === 'kept';
-  return state === 'candidate';
-};
-
-const ACTED = new Map<TakeAct, string>([
-  ['keep', 'kept'],
-  ['unkeep', 'unkept'],
-  ['reject', 'rejected'],
-]);
-
-/** Where each effect placement of the plan falls: its effect, its scene, its film time. */
-const placementsOf = (
-  film: LoadedFilm,
-  plan: Option.Option<MixPlan<SoundSource>>,
-  placed: ReadonlyArray<Placed>,
-): ReadonlyArray<{ readonly sound: string; readonly placement: EffectPlacement }> => {
-  const effects = Option.match(film.sound, {
-    onNone: () => new Map<string, SoundEffect>(),
-    onSome: (s) => new Map(Object.entries(s.effects)),
-  });
-  /** The scene playing at film second `at` (`sceneAt`, the film's one rule). */
-  const sceneOfTime = (at: number) =>
-    Option.match(sceneAt(placed, at), { onNone: () => '', onSome: (p) => p.spec.id });
-  return Option.match(plan, { onNone: () => [], onSome: (p) => p.effects }).flatMap((e) =>
-    Option.match(Option.fromUndefinedOr(effects.get(e.name)), {
-      onNone: () => [],
-      onSome: (effect) => [
-        { sound: effect.sound, placement: { effect: e.name, scene: sceneOfTime(e.at), at: e.at } },
-      ],
-    }),
-  );
-};
-
-/** The film's score options, the one `play` names picked, each with its state in the store. */
-const scoreChoice = (
-  loaded: LoadedFilm,
-  placed: ReadonlyArray<Placed>,
-): Option.Option<ScoreChoice> =>
-  Option.map(
-    Option.flatMap(loaded.sound, (s) => Option.fromUndefinedOr(s.score)),
-    (score): ScoreChoice => ({
-      _tag: 'ScoreChoice',
-      picked: score.play,
-      variants: scoreOptions(score).map((option) => ({
-        id: option.name,
-        styles: option.music.styles,
-        movements: option.music.movements,
-        state: STATE[scoreOptionState(option, placed, loaded.manifest)._tag],
-      })),
-    }),
-  );
-
-/** The library sounds the film's effects place, with where and their takes; recipes have none. */
-const effectChoices = (
-  loaded: LoadedFilm,
-  placed: ReadonlyArray<Placed>,
-): ReadonlyArray<EffectChoice> => {
-  const plan = Option.flatMap(loaded.sound, () =>
-    Result.getSuccess(
-      mixPlan({
-        film: loaded.paths.name,
-        placed,
-        sound: loaded.sound,
-        manifest: loaded.manifest,
-        sounds: loaded.sounds,
-        narration: loaded.paths.narration,
-        soundDir: loaded.paths.sound,
-        play: Option.none(),
-      }),
-    ),
-  );
-  const where = placementsOf(loaded, plan, placed);
-  const declared = Option.match(loaded.sound, {
-    onNone: () => [],
-    onSome: (s) => Object.values(s.effects).map((e) => e.sound),
-  });
-  return Arr.dedupe(declared).flatMap((sound) =>
-    Option.match(Option.fromUndefinedOr(loaded.sounds.library[sound]), {
-      onNone: () => [],
-      onSome: (entry): ReadonlyArray<EffectChoice> => {
-        if (entry.kind === 'procedural') return [];
-        return [
-          {
-            _tag: 'EffectChoice',
-            sound,
-            placements: where.filter((w) => w.sound === sound).map((w) => w.placement),
-            takes: takesOf(entry, Option.fromUndefinedOr(loaded.sounds.lock[sound])),
-          },
-        ];
-      },
-    }),
-  );
-};
-
-/** The film's choice points as loaded: its score's options, then the library sounds it places. */
-export const filmChoices = (
-  loaded: LoadedFilm,
-  placed: ReadonlyArray<Placed>,
-): ReadonlyArray<FilmChoice> => [
-  ...Option.toArray(scoreChoice(loaded, placed)),
-  ...effectChoices(loaded, placed),
-];
-
-/** The score option `option` among `choices`, or `ChoiceUnknown` naming the ones there are. */
-export const offeredOption = (
+/** The point `id` among `points`, or `ChoiceUnknown` naming the ones there are. */
+export const offeredPoint = (
   film: string,
-  choices: ReadonlyArray<FilmChoice>,
-  option: string,
-): Result.Result<string, ChoiceUnknown> => {
-  const known = choices
-    .filter((c): c is ScoreChoice => c._tag === 'ScoreChoice')
-    .flatMap((c) => c.variants.map((v) => v.id));
-  if (known.includes(option)) return Result.succeed(option);
-  return Result.fail(ChoiceUnknown.make({ film, kind: 'score option', name: option, known }));
+  points: ReadonlyArray<ChoicePoint>,
+  id: string,
+): Result.Result<ChoicePoint, ChoiceUnknown> =>
+  Result.fromOption(pointNamed(points, id), () =>
+    ChoiceUnknown.make({ film, point: id, known: points.map((p) => p.id) }),
+  );
+
+/** The variant `id` of `point`, or `VariantUnknown` naming the ones it has. */
+export const offeredVariant = (
+  film: string,
+  point: ChoicePoint,
+  id: string,
+): Result.Result<ChoiceVariant, VariantUnknown> =>
+  Result.fromOption(variantNamed(point, id), () =>
+    VariantUnknown.make({
+      film,
+      point: point.id,
+      variant: id,
+      known: point.variants.map((v) => v.id),
+    }),
+  );
+
+/** The point and variant a request names, among `points`. */
+export const offered = (
+  film: string,
+  points: ReadonlyArray<ChoicePoint>,
+  point: string,
+  variant: string,
+): Result.Result<
+  { readonly point: ChoicePoint; readonly variant: ChoiceVariant },
+  ChoiceUnknown | VariantUnknown
+> =>
+  Result.flatMap(offeredPoint(film, points, point), (p) =>
+    Result.map(offeredVariant(film, p, variant), (v) => ({ point: p, variant: v })),
+  );
+
+/** Whether `verb` applies to `variant` as it stands, or why not. */
+const verbFits = (
+  point: ChoicePoint,
+  variant: ChoiceVariant,
+  verb: ChoiceVerb,
+): Result.Result<void, VerbRefused> => {
+  if (variant.verbs.includes(verb)) return Result.void;
+  const standing = Match.value(variant.picked).pipe(
+    Match.when(true, () => `it is picked`),
+    Match.orElse(() => `it is ${variant.state}, not picked`),
+  );
+  const reason = Match.value(point.kind).pipe(
+    Match.when('render', () => 'a render is approved, not picked'),
+    Match.when('level', () => 'a level is set with its knob'),
+    Match.orElse(() => `${standing}: it allows ${variant.verbs.join(', ') || 'nothing'}`),
+  );
+  return Result.fail(VerbRefused.make({ point: point.id, variant: variant.id, verb, reason }));
 };
 
-/** The take `take` of the library sound `sound` as `choices` offer it, or why not. */
-export const offeredTake = (
-  film: string,
-  choices: ReadonlyArray<FilmChoice>,
-  sound: string,
-  take: string,
-): Result.Result<EffectTake, ChoiceUnknown | TakeUnknown> => {
-  const effects = choices.filter((c): c is EffectChoice => c._tag === 'EffectChoice');
-  return Option.match(
-    Arr.findFirst(effects, (c) => c.sound === sound),
-    {
-      onNone: () =>
-        Result.fail(
-          ChoiceUnknown.make({
-            film,
-            kind: 'sound',
-            name: sound,
-            known: effects.map((c) => c.sound),
-          }),
-        ),
-      onSome: (choice) =>
-        Result.fromOption(
-          Arr.findFirst(choice.takes, (t) => t.id === take),
-          () => TakeUnknown.make({ sound, take }),
-        ),
-    },
-  );
-};
+/** How a verb reads in a change's target: `keep`, `unkeep`, `reject`, `play`. */
+const TAKE_ACT = { pick: 'keep', unpick: 'unkeep', reject: 'reject' } as const;
 
 export class Choices extends Context.Service<Choices, ChoicesService>()(
   '@bible/film/tools/Choices',
@@ -318,62 +211,205 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const writer = yield* SourceWriter;
       const review = yield* Review;
       const fresh = yield* FreshFilm;
+      const catalogues = yield* RenderCatalogue;
+      const takes = yield* Takes;
 
-      const soundFile = (film: FilmName) => path.join(repo.paths(film).dir, 'sound.ts');
+      const fileIn = (film: FilmName, name: string) => path.join(repo.paths(film).dir, name);
 
       const list = Effect.fn('Choices.list')(function* (film: FilmName) {
-        const choices = yield* fresh.choices(film);
+        const points = yield* fresh.choices(film);
         // The film's whole-film renders, by its catalogues: a scene or a short is never its picture.
-        const result: FilmChoices = { film, pictures: yield* review.pictures(film), choices };
+        const result: FilmChoices = { film, pictures: yield* review.pictures(film), points };
         return result;
       });
 
-      const pickScore = Effect.fn('Choices.pickScore')(function* (film: FilmName, option: string) {
-        yield* Effect.fromResult(offeredOption(film, yield* fresh.choices(film), option));
-        const file = soundFile(film);
-        const target = `score play ${option}`;
+      /** `play` at `site` in `file` set to `option`, through the writer. */
+      const writePick = (
+        film: FilmName,
+        file: string,
+        site: Parameters<typeof editPick>[2],
+        option: string,
+      ) =>
+        Effect.map(
+          writer.write({
+            film,
+            scene: Option.none(),
+            file,
+            target: `${site.target} ${option}`,
+            edit: (source) => editPick(file, source, site, option),
+            verify: (after) =>
+              Result.map(readPick(file, after, site), (read) =>
+                Arr.filter(['play'], () => read !== option),
+              ),
+            check: () => Effect.void,
+          }),
+          (change): Picked => ({
+            file,
+            target: `${site.target} ${option}`,
+            change: Option.liftPredicate(change, (c) => c.before !== c.after),
+          }),
+        );
+
+      /** A take kept, unkept or rejected by its sha256, recorded around the lock's rewrite. */
+      const actOnTake = Effect.fn('Choices.actOnTake')(function* (
+        film: FilmName,
+        sound: string,
+        take: string,
+        verb: ChoiceVerb,
+      ) {
+        const file = library.paths.lock.file;
+        const target = `sound ${sound} ${TAKE_ACT[verb]} ${take.slice(0, 12)}`;
+        const run = Match.value(verb).pipe(
+          Match.when('pick', () => library.keep(sound, [take])),
+          Match.when('unpick', () => library.unkeep(sound, [take])),
+          Match.orElse(() => library.reject(sound, [take])),
+        );
+        const [, change] = yield* writer.around(film, file, target, run);
+        const picked: Picked = { file, target, change };
+        return picked;
+      });
+
+      /** A beat's attempt kept as its take in a fresh process, recorded around the timings' rewrite. */
+      const keepVoice = Effect.fn('Choices.keepVoice')(function* (
+        film: FilmName,
+        beat: string,
+        file: string,
+      ) {
+        const timings = repo.paths(film).timings.file;
+        const target = `voice ${beat} keep ${file}`;
+        const [kept, change] = yield* writer.around(
+          film,
+          timings,
+          target,
+          fresh.keepVoice(film, beat, file),
+        );
+        if (!kept.mixed)
+          yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
+        const picked: Picked = { file: timings, target, change };
+        return picked;
+      });
+
+      const pick = Effect.fn('Choices.pick')(function* (film: FilmName, asked: PickPost) {
+        const { point, variant } = yield* Effect.fromResult(
+          offered(film, yield* fresh.choices(film), asked.point, asked.variant),
+        );
+        yield* Effect.fromResult(verbFits(point, variant, asked.verb));
+        const name = pointName(point);
+        return yield* Match.value(point.kind).pipe(
+          Match.when('score', () =>
+            writePick(film, fileIn(film, 'sound.ts'), SCORE_PLAY, variant.id),
+          ),
+          Match.when('look', () =>
+            writePick(film, fileIn(film, 'palette.ts'), lookPlay(name), variant.id),
+          ),
+          Match.when('take', () => actOnTake(film, name, variant.id, asked.verb)),
+          Match.when('voice', () => keepVoice(film, name, variant.id)),
+          Match.orElse(() =>
+            Effect.fail(
+              VerbRefused.make({
+                point: point.id,
+                variant: variant.id,
+                verb: asked.verb,
+                reason: `a ${point.kind} has no pick`,
+              }),
+            ),
+          ),
+        );
+      });
+
+      const knob = Effect.fn('Choices.knob')(function* (film: FilmName, asked: KnobPost) {
+        const point = yield* Effect.fromResult(
+          offeredPoint(film, yield* fresh.choices(film), asked.point),
+        );
+        const refused = (reason: string) =>
+          VerbRefused.make({ point: point.id, variant: '', verb: 'set', reason });
+        const knob = yield* Effect.fromOption(point.knob, () => refused('it has no knob'));
+        if (Option.isSome(knob.fixed)) return yield* refused(knob.fixed.value);
+        const target = yield* Effect.fromOption(levelTargetOf(point.id), () =>
+          refused('it is not a level'),
+        );
+        const value = Math.min(knob.max, Math.max(knob.min, asked.value));
+        const file = fileIn(film, 'sound.ts');
         const change = yield* writer.write({
           film,
           scene: Option.none(),
           file,
-          target,
-          edit: (source) => editPlay(file, source, option),
-          verify: (after) =>
-            Result.map(readPlay(file, after), (read) =>
-              Arr.filter(['play'], () => read !== option),
-            ),
+          target: `${point.id} ${value}`,
+          edit: (source) => editLevel(file, source, target, value),
+          verify: () => Result.succeed([]),
           check: () => Effect.void,
         });
         const picked: Picked = {
           file,
-          target,
+          target: `${point.id} ${value}`,
           change: Option.liftPredicate(change, (c) => c.before !== c.after),
         };
         return picked;
       });
 
-      const curate = Effect.fn('Choices.curate')(function* (
+      /** Record what the owner says of one variant in the film's catalogue, then list again. */
+      const say = Effect.fn('Choices.say')(function* (
         film: FilmName,
-        sound: string,
-        take: string,
-        act: TakeAct,
+        asked: { readonly point: string; readonly variant: string },
+        change: (catalogue: Catalogue, subject: Subject, at: number) => Catalogue,
       ) {
-        const offered = yield* Effect.fromResult(
-          offeredTake(film, yield* fresh.choices(film), sound, take),
+        const { point, variant } = yield* Effect.fromResult(
+          offered(film, yield* fresh.choices(film), asked.point, asked.variant),
         );
-        const acted = Option.getOrElse(Option.fromUndefinedOr(ACTED.get(act)), () => act);
-        if (!actFits(act, offered.state))
-          return yield* TakeActRefused.make({ sound, take, act: acted, state: offered.state });
-        const file = library.paths.lock.file;
-        const target = `sound ${sound} ${act} ${take.slice(0, 12)}`;
-        const run = Effect.suspend(() => {
-          if (act === 'keep') return library.keep(sound, [take]);
-          if (act === 'unkeep') return library.unkeep(sound, [take]);
-          return library.reject(sound, [take]);
+        const address = yield* Effect.fromOption(point.address, () =>
+          VerbRefused.make({
+            point: point.id,
+            variant: variant.id,
+            verb: 'say',
+            reason: 'it belongs to no film address',
+          }),
+        );
+        const at = yield* Clock.currentTimeMillis;
+        const subject = subjectAt(point.id, point.kind, address, variant);
+        yield* catalogues.update(repo.paths(film), (catalogue) => [
+          subject,
+          change(catalogue, subject, at),
+        ]);
+        yield* Effect.log(
+          `choices.say film=${film} point=${point.id} variant=${variant.id.slice(0, 12)}`,
+        );
+        return yield* list(film);
+      });
+
+      const approveVariant = (film: FilmName, asked: ApprovePost) => say(film, asked, approve);
+
+      const commentVariant = (film: FilmName, asked: CommentPost) =>
+        say(film, asked, (catalogue, subject, at) => comment(catalogue, subject, asked.text, at));
+
+      const alone = Effect.fn('Choices.alone')(function* (
+        film: FilmName,
+        point: string,
+        variant: string,
+      ) {
+        const found = yield* Effect.fromResult(
+          offered(film, yield* fresh.choices(film), point, variant),
+        );
+        const unheard = VerbRefused.make({
+          point,
+          variant,
+          verb: 'hear alone',
+          reason: 'it is not heard alone',
         });
-        const [, change] = yield* writer.around(film, file, target, run);
-        const picked: Picked = { file, target, change };
-        return picked;
+        if (!Option.exists(Option.some(found.variant.media), (m) => m._tag === 'Heard' && m.alone))
+          return yield* unheard;
+        const name = pointName(found.point);
+        if (found.point.kind === 'voice') {
+          const at = yield* takes.attemptFile(yield* repo.load(film), name, variant);
+          return yield* Effect.fromOption(at, () => unheard);
+        }
+        const { lock } = yield* library.load;
+        const take = Option.flatMap(Option.fromUndefinedOr(lock[name]), (entry) =>
+          Arr.findFirst([...entry.variants, ...entry.candidates], (v) => v.sha256 === variant),
+        );
+        return yield* Option.match(take, {
+          onNone: () => Effect.fail(unheard),
+          onSome: (t) => Effect.succeed(path.join(library.paths.dir, t.file)),
+        });
       });
 
       /**
@@ -399,16 +435,11 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return Math.max(0, ...times);
       });
 
-      /** The mix `name` made in a fresh process: the film's with `score` and `take`, as an m4a. */
-      const derived = (
-        name: string,
-        film: FilmName,
-        score: Option.Option<string>,
-        take: Option.Option<TakeInPlace>,
-      ) =>
+      /** The mix `name` made in a fresh process: the film's with `variant` of `point` in place. */
+      const derived = (name: string, film: FilmName, point: string, variant: string) =>
         review.derive(name, (temporary) =>
           fresh
-            .mix(film, score, take, temporary)
+            .mix(film, point, variant, temporary)
             .pipe(Effect.tap(() => Effect.log(`review.mix film=${film} name=${name}`))),
         );
 
@@ -426,63 +457,40 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const scope = yield* Scope.Scope;
 
       /**
-       * The film's mix with `score` and `take` as asked, derived once into the
-       * cache as an m4a. The fresh process checks the option or take is the
-       * film's: a name it lacks is answered as unknown, and nothing is cached.
+       * The film's mix with `variant` of `point` in place, derived once into
+       * the cache as an m4a. The fresh process checks the point and variant
+       * are the film's: a name it lacks is answered as unknown, and nothing is
+       * cached.
        */
-      const mixed = (
+      const inPlace = Effect.fn('Choices.inPlace')(function* (
         film: FilmName,
-        score: Option.Option<string>,
-        take: Option.Option<TakeInPlace>,
-      ) =>
-        Effect.gen(function* () {
-          const key = cacheKey([
-            film,
-            Option.getOrElse(score, () => ''),
-            ...Option.match(take, { onNone: () => [], onSome: (t) => [t.sound, t.take] }),
-            yield* stamp(film),
-          ]);
-          const name = `mix/${film}/${key}.m4a`;
-          const fiber = yield* Option.match(Option.fromUndefinedOr(running.get(name)), {
-            onSome: (f) => Effect.succeed(f),
-            onNone: () =>
-              derived(name, film, score, take).pipe(
-                Semaphore.withPermits(oneMix, 1),
-                Effect.ensuring(Effect.sync(() => running.delete(name))),
-                Effect.forkIn(scope),
-                Effect.tap((f) => Effect.sync(() => running.set(name, f))),
-              ),
-          });
-          return yield* Fiber.join(fiber);
+        point: string,
+        variant: string,
+      ) {
+        const key = cacheKey([film, point, variant, yield* stamp(film)]);
+        const name = `mix/${film}/${key}.m4a`;
+        const fiber = yield* Option.match(Option.fromUndefinedOr(running.get(name)), {
+          onSome: (f) => Effect.succeed(f),
+          onNone: () =>
+            derived(name, film, point, variant).pipe(
+              Semaphore.withPermits(oneMix, 1),
+              Effect.ensuring(Effect.sync(() => running.delete(name))),
+              Effect.forkIn(scope),
+              Effect.tap((f) => Effect.sync(() => running.set(name, f))),
+            ),
         });
-
-      const scoreMix = Effect.fn('Choices.scoreMix')(function* (film: FilmName, option: string) {
-        return yield* mixed(film, Option.some(option), Option.none());
+        return yield* Fiber.join(fiber);
       });
 
-      const takeAudio = Effect.fn('Choices.takeAudio')(function* (
-        film: FilmName,
-        sound: string,
-        take: string,
-      ) {
-        yield* Effect.fromResult(offeredTake(film, yield* fresh.choices(film), sound, take));
-        const { lock } = yield* library.load;
-        const variant = Option.flatMap(Option.fromUndefinedOr(lock[sound]), (entry) =>
-          Arr.findFirst([...entry.variants, ...entry.candidates], (v) => v.sha256 === take),
-        );
-        if (Option.isNone(variant)) return yield* TakeUnknown.make({ sound, take });
-        return path.join(library.paths.dir, variant.value.file);
+      return Choices.of({
+        list,
+        pick,
+        knob,
+        approve: approveVariant,
+        comment: commentVariant,
+        alone,
+        inPlace,
       });
-
-      const takeMix = Effect.fn('Choices.takeMix')(function* (
-        film: FilmName,
-        sound: string,
-        take: string,
-      ) {
-        return yield* mixed(film, Option.none(), Option.some({ sound, take }));
-      });
-
-      return Choices.of({ list, pickScore, curate, scoreMix, takeAudio, takeMix });
     }),
   );
 }

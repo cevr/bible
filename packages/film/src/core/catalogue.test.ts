@@ -10,11 +10,15 @@ import {
   approveCurrent,
   comment,
   emptyCatalogue,
+  type Keyed,
+  type SceneKey,
   needsRender,
+  partSubject,
   projectOf,
   recordRender,
   renderIn,
   sceneSlot,
+  subjectOf,
 } from './catalogue.ts';
 
 const SETTINGS = { scale: 0.5, captions: true };
@@ -40,17 +44,23 @@ const sceneRender = (id: string, key: string, at = 1): Render => ({
 const withRenders = (...renders: ReadonlyArray<Render>): Catalogue =>
   renders.reduce(recordRender, emptyCatalogue('f'));
 
+/** The film as its scenes alone, keyed now (no acts). */
+const keyed = (scenes: ReadonlyArray<SceneKey>): Keyed => ({ key: 'film-k', acts: [], scenes });
+
+/** What is said of `render`: its variant as stamped. */
+const of = subjectOf;
+
 describe('a scene render against its sources', () => {
   test('is stale once its scene changes: the stamp, not the file, says so', () => {
     const catalogue = withRenders(sceneRender('a', 'k1'));
-    const unchanged = projectOf(catalogue, [{ scene: 'a', key: 'k1' }], 'main');
-    const changed = projectOf(catalogue, [{ scene: 'a', key: 'k2' }], 'main');
+    const unchanged = projectOf(catalogue, keyed([{ scene: 'a', key: 'k1' }]), 'main');
+    const changed = projectOf(catalogue, keyed([{ scene: 'a', key: 'k2' }]), 'main');
     expect(unchanged.scenes[0]?.state).toBe('current');
     expect(changed.scenes[0]?.state).toBe('stale');
   });
 
   test('is missing until rendered', () => {
-    const project = projectOf(emptyCatalogue('f'), [{ scene: 'a', key: 'k1' }], 'main');
+    const project = projectOf(emptyCatalogue('f'), keyed([{ scene: 'a', key: 'k1' }]), 'main');
     expect(project.scenes[0]?.state).toBe('missing');
     expect(project.scenes[0]?.approval).toBe('none');
   });
@@ -68,12 +78,12 @@ describe('a scene render against its sources', () => {
 describe('approvals', () => {
   test('a new render of a scene marks its approval stale; the approval is kept', () => {
     const first = sceneRender('a', 'k1');
-    const approved = approve(withRenders(first), first, 10);
-    expect(approvalState(approved, first)).toBe('approved');
+    const approved = approve(withRenders(first), of(first), 10);
+    expect(approvalState(approved, of(first))).toBe('approved');
 
     const second = sceneRender('a', 'k2', 20);
     const rerendered = recordRender(approved, second);
-    expect(approvalState(rerendered, second)).toBe('stale');
+    expect(approvalState(rerendered, of(second))).toBe('stale');
     expect(rerendered.approvals).toEqual(approved.approvals);
     // The slot holds the new render alone.
     expect(rerendered.renders).toEqual([second]);
@@ -81,7 +91,7 @@ describe('approvals', () => {
 
   test('approving twice records one approval', () => {
     const render = sceneRender('a', 'k1');
-    const twice = approve(approve(withRenders(render), render, 1), render, 2);
+    const twice = approve(approve(withRenders(render), of(render), 1), of(render), 2);
     expect(twice.approvals.length).toBe(1);
   });
 
@@ -94,20 +104,20 @@ describe('approvals', () => {
     ];
     const { catalogue: after, approved } = approveCurrent(catalogue, now, 'main', 5);
     expect(approved).toEqual(['a']);
-    expect(projectOf(after, now, 'main').scenes.map((s) => [s.scene, s.state, s.approval])).toEqual(
-      [
-        ['a', 'current', 'approved'],
-        ['b', 'stale', 'none'],
-        ['c', 'missing', 'none'],
-      ],
-    );
+    expect(
+      projectOf(after, keyed(now), 'main').scenes.map((s) => [s.scene, s.state, s.approval]),
+    ).toEqual([
+      ['a', 'current', 'approved'],
+      ['b', 'stale', 'none'],
+      ['c', 'missing', 'none'],
+    ]);
   });
 
   test("an approval is one variant's: another variant of the scene is not approved", () => {
     const main = sceneRender('a', 'k1');
     const other: Render = { ...main, variant: 'ink' };
-    const catalogue = approve(withRenders(main, other), main, 1);
-    expect(approvalState(catalogue, other)).toBe('none');
+    const catalogue = approve(withRenders(main, other), of(main), 1);
+    expect(approvalState(catalogue, of(other))).toBe('none');
     expect(Option.isSome(renderIn(catalogue, sceneSlot('a', 'ink')))).toBe(true);
   });
 });
@@ -115,19 +125,65 @@ describe('approvals', () => {
 describe('comments', () => {
   test('a comment stays on its scene, marked as on an earlier render once it is rendered again', () => {
     const first = sceneRender('a', 'k1');
-    const said = comment(withRenders(first), first, 'the hand jumps', 'c1', 3);
+    const said = comment(withRenders(first), of(first), 'the hand jumps', 3);
     const now = [{ scene: 'a', key: 'k2' }];
-    const before = projectOf(said, [{ scene: 'a', key: 'k1' }], 'main').scenes[0]?.comments;
-    expect(before?.map((c) => [c.text, c.onThisRender])).toEqual([['the hand jumps', true]]);
-    const after = projectOf(recordRender(said, sceneRender('a', 'k2', 9)), now, 'main').scenes[0]
-      ?.comments;
-    expect(after?.map((c) => [c.text, c.onThisRender])).toEqual([['the hand jumps', false]]);
+    const before = projectOf(said, keyed([{ scene: 'a', key: 'k1' }]), 'main').scenes[0]?.comments;
+    expect(before?.map((c) => [c.text, c.onThis])).toEqual([['the hand jumps', true]]);
+    const after = projectOf(recordRender(said, sceneRender('a', 'k2', 9)), keyed(now), 'main')
+      .scenes[0]?.comments;
+    expect(after?.map((c) => [c.text, c.onThis])).toEqual([['the hand jumps', false]]);
+  });
+});
+
+describe("the owner's say beside a scene's render", () => {
+  test("an act's comment is on the act as it is now, and earlier once its scenes change", () => {
+    const act = { _tag: 'Act', act: 'opening' } as const;
+    const said = comment(emptyCatalogue('f'), partSubject(act, 'main', 'a1'), 'too slow', 4);
+    const tree = (key: string): Keyed => ({
+      key: 'film-k',
+      acts: [{ act: 'opening', scenes: ['a'], key }],
+      scenes: [{ scene: 'a', key: 'k1' }],
+    });
+    const now = projectOf(said, tree('a1'), 'main');
+    expect(now.acts.map((a) => a.comments.map((c) => [c.text, c.onThis]))).toEqual([
+      [['too slow', true]],
+    ]);
+    // The act's scene never hears it: it was said of the act.
+    expect(now.scenes[0]?.comments).toEqual([]);
+    const later = projectOf(said, tree('a2'), 'main');
+    expect(later.acts[0]?.comments.map((c) => c.onThis)).toEqual([false]);
+  });
+
+  test("a choice point's approval is its own: the scene's render is not approved by it", () => {
+    const render = sceneRender('a', 'k1');
+    const take = {
+      address: sceneAddress('a'),
+      point: Option.some('take:paper.slide'),
+      variant: 'sha-1',
+      key: 'sha-1',
+    };
+    const catalogue = approve(withRenders(render), take, 1);
+    expect(approvalState(catalogue, take)).toBe('approved');
+    expect(approvalState(catalogue, of(render))).toBe('none');
+  });
+
+  test('comments get the next id in turn', () => {
+    const render = sceneRender('a', 'k1');
+    const twice = comment(comment(withRenders(render), of(render), 'one', 1), of(render), 'two', 2);
+    expect(twice.comments.map((c) => c.id)).toEqual(['c1', 'c2']);
+  });
+
+  test("a catalogue written before choice points (no point on a record) reads as the render's", () => {
+    const render = sceneRender('a', 'k1');
+    const text = Schema.encodeSync(CatalogueJson)(approve(withRenders(render), of(render), 1));
+    expect(text).not.toContain('"point"');
+    expect(approvalState(Schema.decodeSync(CatalogueJson)(text), of(render))).toBe('approved');
   });
 });
 
 test('catalogue.json round-trips through its schema', () => {
   const render = sceneRender('a', 'k1');
-  const catalogue = comment(approve(withRenders(render), render, 1), render, 'ok', 'c1', 2);
+  const catalogue = comment(approve(withRenders(render), of(render), 1), of(render), 'ok', 2);
   const text = Schema.encodeSync(CatalogueJson)(catalogue);
   expect(Schema.decodeSync(CatalogueJson)(text)).toEqual(catalogue);
 });

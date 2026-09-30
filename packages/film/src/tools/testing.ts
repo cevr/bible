@@ -254,7 +254,10 @@ export const noSource = Layer.mergeAll(
       history: () => unusedSource,
     }),
   ),
-  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unusedSource })),
+  Layer.succeed(
+    StaticCheck,
+    StaticCheck.of({ run: () => unusedSource, sound: () => unusedSource }),
+  ),
   Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
 );
 
@@ -903,6 +906,7 @@ export const testFilm = (
   manifest: {},
   heardAs: {},
   look: Option.none(),
+  looks: {},
   sounds: NO_SOUNDS,
 });
 

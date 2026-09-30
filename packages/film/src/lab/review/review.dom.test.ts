@@ -15,18 +15,27 @@ import { type FakeRoute, type Json, json, openReview, route, text } from '../fix
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
 
+/** A seen variant of the roof's render set, as the server encodes it. */
 const variant = (id: string, label: string, extra: Readonly<Record<string, Json>> = {}): Json => ({
   id,
   label,
-  tag: `${label} look`,
-  verdict: `verdict ${id}`,
-  video: {
-    ref: `out/art/roof.${id}.mp4`,
-    name: `roof.${id}.mp4`,
-    size: 2048,
-    mtime: 0,
-    phone: 'none',
+  lines: [`${label} look`, `verdict ${id}`],
+  state: 'current',
+  picked: false,
+  verbs: [],
+  media: {
+    _tag: 'Seen',
+    video: {
+      ref: `out/art/roof.${id}.mp4`,
+      name: `roof.${id}.mp4`,
+      size: 2048,
+      mtime: 0,
+      phone: 'none',
+    },
   },
+  key: `out/art/roof.${id}.mp4`,
+  approval: 'none',
+  comments: [],
   ...extra,
 });
 
@@ -39,10 +48,12 @@ const index: Json = {
       mtime: 0,
       sets: [
         {
-          _tag: 'RenderChoice',
-          clip: 'roof',
+          id: 'render:roof',
+          kind: 'render',
           title: 'The roof',
+          lines: [],
           start: 0,
+          marks: [],
           variants: [
             variant('A', 'Warm', {
               notes: { ref: 'out/art/roof.A.md', name: 'roof.A.md', size: 10, mtime: 0 },
@@ -79,7 +90,7 @@ const routes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/review\/files\/out\/art\/roof\.A\.md$/, () => text('Warm reads *best*.', 200)),
 ];
 
-const SET = '?folder=out%2Fart&set=roof';
+const SET = '?folder=out%2Fart&set=render%3Aroof';
 
 const waitFor = (page: Page, selector: string) =>
   Effect.promise(() => page.waitForSelector(selector));

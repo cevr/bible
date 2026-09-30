@@ -6,7 +6,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { ProjectJson } from '@bible/film/core';
+import { ProjectRead } from '@bible/film/tools';
 import { Effect, FileSystem, Schema } from 'effect';
 import { FIXTURE_FILM, runCli, spawnBudget } from './cli-run.ts';
 
@@ -209,18 +209,34 @@ describe('film cli', () => {
           const out = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
           const listed = yield* runCli({ FILMS_OUT: out }, ['project', film, '--json']);
           expect(listed.exitCode).toBe(0);
-          const project = yield* Schema.decodeEffect(ProjectJson)(listed.stdout.trim());
+          const { project } = yield* Schema.decodeEffect(Schema.fromJsonString(ProjectRead))(
+            listed.stdout.trim(),
+          );
           expect(project.scenes.map((s) => [s.scene, s.state, s.approval])).toEqual([
             ['open', 'missing', 'none'],
             ['turn', 'missing', 'none'],
             ['close', 'missing', 'none'],
           ]);
+          // Without --json, a line each: the film, then each scene, nothing after.
+          const plain = yield* runCli({ FILMS_OUT: out }, ['project', film]);
+          expect(
+            plain.stdout
+              .trimEnd()
+              .split('\n')
+              .map((line) => line.trimEnd()),
+          ).toEqual([
+            `${film} (main)`,
+            '  open             missing  none',
+            '  turn             missing  none',
+            '  close            missing  none',
+          ]);
           const said = yield* runCli({ FILMS_OUT: out }, [
             'project',
             'comment',
             film,
-            'turn',
             'too slow',
+            '--scene',
+            'turn',
           ]);
           expect(said.exitCode).not.toBe(0);
           expect(said.out).toContain('SceneNotRendered');

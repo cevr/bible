@@ -20,14 +20,25 @@ import type { Act, Look, Short } from './schema.ts';
 import { resolveShort } from './shorts.ts';
 import { FILM_FPS, type Interval } from './time.ts';
 
+const FilmPart = Schema.TaggedStruct('Film', {});
+const ActPart = Schema.TaggedStruct('Act', { act: Schema.String });
+const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(Schema.String) });
+
 /** Which part of a film: the whole, one act, some scenes (in the order named), or one short. */
 export const Address = Schema.Union([
-  Schema.TaggedStruct('Film', {}),
-  Schema.TaggedStruct('Act', { act: Schema.String }),
-  Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(Schema.String) }),
+  FilmPart,
+  ActPart,
+  ScenesPart,
   Schema.TaggedStruct('Short', { id: Schema.String }),
 ]);
 export type Address = typeof Address.Type;
+
+/**
+ * A part of the film's own tree (the project's): the whole, one act, some
+ * scenes. A short is cut across the film, not a branch of it.
+ */
+export const PartAddress = Schema.Union([FilmPart, ActPart, ScenesPart]);
+export type PartAddress = typeof PartAddress.Type;
 
 /**
  * One address as a string, equal for equal addresses: `film`, `act:<name>`,

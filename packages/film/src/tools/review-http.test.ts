@@ -6,16 +6,19 @@
 import { BunServices, BunHttpPlatform } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import {
-  CheckReport,
-  ChoiceWrite,
-  FilmChoices,
-  LabWrite,
-  ReviewDuration,
-  ReviewIndex,
-} from '../core/schema.ts';
+import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { CheckReport, LabWrite } from '../core/schema.ts';
 import { Refusal, ReviewHttpApi, reviewFileUrl, routesOf } from '../core/api.ts';
+import {
+  type Project,
+  Project as ProjectSchema,
+  emptyCatalogue,
+  projectOf,
+} from '../core/catalogue.ts';
+import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
+import { ReviewDuration, ReviewIndex } from '../core/review.ts';
+import { SceneNotRendered } from '../core/refusals.ts';
+import { FreshFilm } from './choices-process.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
@@ -27,21 +30,43 @@ import { foreignRequests, reviewMedia } from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
+/** A score option as film `f` offers it. */
+const option = (id: string, picked: boolean) => ({
+  id,
+  label: id,
+  lines: [],
+  state: 'current' as const,
+  picked,
+  verbs: Arr.filter(['pick'] as const, () => !picked),
+  media: { _tag: 'Heard' as const, alone: false, inPlace: true },
+  key: id,
+});
+
 /** Film `f`'s choices: one score of two options, `warm` playing. */
 const CHOICES: FilmChoices = {
   film: 'f',
   pictures: [],
-  choices: [
-    {
-      _tag: 'ScoreChoice',
-      picked: 'warm',
-      variants: [
-        { id: 'warm', styles: ['felt piano'], movements: [], state: 'current' },
-        { id: 'bright', styles: ['strings'], movements: [], state: 'missing' },
-      ],
-    },
+  points: [
+    withSay(Option.none(), {
+      id: 'score',
+      kind: 'score',
+      address: Option.some({ _tag: 'Film' }),
+      title: 'score',
+      lines: [],
+      variants: [option('warm', true), option('bright', false)],
+    }),
   ],
 };
+
+/** Film `f`'s project: one scene, `a`, not yet rendered. */
+const PROJECT: Project = projectOf(
+  emptyCatalogue('f'),
+  { key: 'fk', acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
+  'main',
+);
+
+/** The `film project` args each fresh run was asked for. */
+const projectRuns: Array<ReadonlyArray<string>> = [];
 
 /** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
 const pickIn = (films: string): Change => ({
@@ -66,16 +91,32 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
       Choices,
       Choices.of({
         list: () => Effect.succeed(CHOICES),
-        pickScore: (_, option) =>
+        pick: (_, asked) =>
           Effect.succeed({
             file: PICK.file,
-            target: `score play ${option}`,
+            target: `${asked.point} play ${asked.variant}`,
             change: Option.some(PICK),
           }),
-        curate: () => unused,
-        scoreMix: () => unused,
-        takeAudio: () => unused,
-        takeMix: () => unused,
+        knob: () => unused,
+        approve: () => Effect.succeed(CHOICES),
+        comment: () => Effect.succeed(CHOICES),
+        alone: () => unused,
+        inPlace: () => unused,
+      }),
+    ),
+    Layer.succeed(
+      FreshFilm,
+      FreshFilm.of({
+        choices: () => unused,
+        mix: () => unused,
+        keepVoice: () => unused,
+        project: (args) =>
+          Effect.suspend(() => {
+            projectRuns.push(args);
+            if (args.includes('--scene'))
+              return Effect.fail(SceneNotRendered.make({ film: 'f', scene: 'a', variant: 'main' }));
+            return Effect.succeed(PROJECT);
+          }),
       }),
     ),
     Layer.succeed(
@@ -89,7 +130,14 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
           Effect.succeed({ undo: Option.none(), redo: Option.some(PICK), latest: Option.none() }),
       }),
     ),
-    Layer.succeed(StaticCheck, StaticCheck.of({ run: () => Effect.succeed([]) })),
+    Layer.succeed(
+      StaticCheck,
+      StaticCheck.of({
+        run: () => Effect.succeed([]),
+        sound: () =>
+          Effect.succeed([{ level: 'warning', tag: 'DeadAir', message: 'no sound 3.0-4.2 s' }]),
+      }),
+    ),
     FilmRepo.layer(films).pipe(Layer.provide(ContentStore.layer)),
   );
 
@@ -167,8 +215,8 @@ describe('review routes', () => {
       const decoded = yield* Schema.decodeUnknownEffect(ReviewIndex)(
         yield* Effect.promise(() => index.json()),
       );
-      expect(decoded.folders.map((f) => [f.ref, f.sets.map((s) => s.clip)])).toEqual([
-        ['out/art', ['roof']],
+      expect(decoded.folders.map((f) => [f.ref, f.sets.map((s) => s.id)])).toEqual([
+        ['out/art', ['render:roof']],
       ]);
       const length = yield* ask(get('/review/duration?ref=out/art/roof.A.mp4'));
       expect(
@@ -269,24 +317,31 @@ describe('review routes', () => {
   );
 });
 
-/** A pick as the review's page sends it through the proxy: JSON, from `origin`. */
-const pick = (film: string, body: string, origin: string, type = 'application/json') =>
-  new Request(`http://127.0.0.1:8229/lab/${film}/options/score/pick`, {
+/** A POST as the review's page sends it through the proxy: JSON, from `origin`. */
+const post = (route: string, body: string, origin: string, type = 'application/json') =>
+  new Request(`http://127.0.0.1:8229${route}`, {
     method: 'POST',
     headers: { host: 'box.example:8229', origin, 'content-type': type },
     body,
   });
 
-describe("a film's options", () => {
+/** A pick as the review's page sends it. */
+const pick = (film: string, body: string, origin: string, type = 'application/json') =>
+  post(`/lab/${film}/choices/pick`, body, origin, type);
+
+const PICK_BRIGHT = '{"point":"score","variant":"bright","verb":"pick"}';
+const HOME = 'https://box.example:8229';
+
+describe("a film's choices", () => {
   it.effect('are listed for any film the app has; an unknown one is 404', () =>
     Effect.gen(function* () {
-      const listed = yield* ask(get('/lab/f/options'));
+      const listed = yield* ask(get('/lab/f/choices'));
       expect(listed.status).toBe(200);
       const choices = yield* Schema.decodeEffect(Schema.fromJsonString(FilmChoices))(
         yield* body(listed),
       );
       expect(choices).toEqual(CHOICES);
-      const unknown = yield* ask(get('/lab/nope/options'));
+      const unknown = yield* ask(get('/lab/nope/choices'));
       expect(unknown.status).toBe(404);
       expect(refusalOf(yield* body(unknown))).toMatchObject({
         _tag: 'FilmUnknown',
@@ -300,7 +355,7 @@ describe("a film's options", () => {
     Effect.gen(function* () {
       const dir = yield* Root;
       for (const film of ['..%2Fbeside', '%2E%2E%2Fbeside', encodeURIComponent(`${dir}/films/f`)])
-        for (const route of ['options', 'check', 'options/score/warm/mix']) {
+        for (const route of ['choices', 'check', 'choices/mix?point=score&variant=warm']) {
           const answer = yield* ask(get(`/lab/${film}/${route}`));
           const text = yield* body(answer);
           expect([film, route, answer.status]).toEqual([film, route, 404]);
@@ -324,7 +379,7 @@ describe("a film's options", () => {
 
   it.effect("a pick is answered with the file it changed, the choices, and the film's check", () =>
     Effect.gen(function* () {
-      const picked = yield* ask(pick('f', '{"option":"bright"}', 'https://box.example:8229'));
+      const picked = yield* ask(pick('f', PICK_BRIGHT, HOME));
       expect(picked.status).toBe(200);
       const answer = yield* Schema.decodeEffect(Schema.fromJsonString(ChoiceWrite))(
         yield* body(picked),
@@ -357,12 +412,106 @@ describe("a film's options", () => {
 
   it.effect('a pick from another site, or not as JSON, is refused before it runs', () =>
     Effect.gen(function* () {
-      const cross = yield* ask(pick('f', '{"option":"bright"}', 'https://evil.example'));
+      const cross = yield* ask(pick('f', PICK_BRIGHT, 'https://evil.example'));
       expect(cross.status).toBe(403);
-      const form = yield* ask(pick('f', 'option=bright', 'https://box.example:8229', 'text/plain'));
+      const form = yield* ask(pick('f', 'point=score', HOME, 'text/plain'));
       expect(form.status).toBe(415);
-      const bad = yield* ask(pick('f', '{"choice":"bright"}', 'https://box.example:8229'));
+      const bad = yield* ask(pick('f', '{"point":"score","variant":"bright","verb":"keep"}', HOME));
       expect(bad.status).toBe(400);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("the sound check after a pick answers the mix's findings", () =>
+    Effect.gen(function* () {
+      const checked = yield* ask(get('/lab/f/choices/check'));
+      expect(checked.status).toBe(200);
+      expect(
+        yield* Schema.decodeEffect(Schema.fromJsonString(SoundCheck))(yield* body(checked)),
+      ).toEqual({
+        findings: [{ level: 'warning', tag: 'DeadAir', message: 'no sound 3.0-4.2 s' }],
+      });
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("a variant's approval and comment answer the choices as they stand", () =>
+    Effect.gen(function* () {
+      const approved = yield* ask(
+        post('/lab/f/choices/approve', '{"point":"score","variant":"warm"}', HOME),
+      );
+      expect(approved.status).toBe(200);
+      const said = yield* ask(
+        post('/lab/f/choices/comment', '{"point":"score","variant":"warm","text":""}', HOME),
+      );
+      // An empty comment is no comment.
+      expect(said.status).toBe(400);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+});
+
+describe("a film's project", () => {
+  const decodeProject = Schema.decodeEffect(Schema.fromJsonString(ProjectSchema));
+
+  it.effect('is read, approved and commented on in a fresh run of `film project … --json`', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      const read = yield* ask(get('/review/project/f'));
+      expect(read.status).toBe(200);
+      expect(yield* decodeProject(yield* body(read))).toEqual(PROJECT);
+      const all = yield* ask(post('/review/project/f/approve-all', '{}', HOME));
+      expect(yield* decodeProject(yield* body(all))).toEqual(PROJECT);
+      const act = yield* ask(
+        post('/review/project/f/approve', '{"address":{"_tag":"Act","act":"one"}}', HOME),
+      );
+      expect(act.status).toBe(200);
+      const said = yield* ask(
+        post(
+          '/review/project/f/comment',
+          '{"address":{"_tag":"Film"},"text":"--all of it","variant":"ink"}',
+          HOME,
+        ),
+      );
+      expect(said.status).toBe(200);
+      // A comment's text is past `--`, so one that starts with a dash is never a flag.
+      expect(projectRuns).toEqual([
+        ['f', '--json'],
+        ['approve', 'f', '--all', '--json'],
+        ['approve', 'f', '--act', 'one', '--json'],
+        ['comment', 'f', '--variant', 'ink', '--json', '--', '--all of it'],
+      ]);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect("a scene with no render is the run's refusal: 404", () =>
+    Effect.gen(function* () {
+      const refused = yield* ask(
+        post('/review/project/f/approve', '{"address":{"_tag":"Scenes","ids":["a"]}}', HOME),
+      );
+      expect(refused.status).toBe(404);
+      expect(refusalOf(yield* body(refused))).toMatchObject({
+        _tag: 'SceneNotRendered',
+        scene: 'a',
+      });
+      const unknown = yield* ask(get('/review/project/nope'));
+      expect(unknown.status).toBe(404);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a short is no part of the project tree: its address is a 400, and nothing runs', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      const short = yield* ask(
+        post('/review/project/f/approve', '{"address":{"_tag":"Short","id":"s"}}', HOME),
+      );
+      expect(short.status).toBe(400);
+      const said = yield* ask(
+        post(
+          '/review/project/f/comment',
+          '{"address":{"_tag":"Short","id":"s"},"text":"cut it"}',
+          HOME,
+        ),
+      );
+      expect(said.status).toBe(400);
+      expect(projectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 });

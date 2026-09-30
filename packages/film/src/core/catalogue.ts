@@ -77,21 +77,28 @@ export const Render = Schema.Struct({
 });
 export type Render = typeof Render.Type;
 
-/** The owner's approval of one render: its address and variant, as stamped with `key`. */
-export const Approval = Schema.Struct({
+/**
+ * What the owner's say (an approval, a comment) is about: one variant of one
+ * choice point (`core/choice.ts`) at its address, as it was when said
+ * (`key`: a render's stamp key, a take's sha256, an option's name). A render
+ * records no `point`: its point is its address's render set. Any other point
+ * names itself (`score`, `take:paper.slide`, `look:ground`).
+ */
+const SayFields = {
   address: Address,
+  point: maybe(Schema.String),
   variant: Schema.String,
   key: Schema.String,
-  at: Schema.Finite,
-});
+};
+
+/** The owner's approval of one variant, as it was when approved. */
+export const Approval = Schema.Struct({ ...SayFields, at: Schema.Finite });
 export type Approval = typeof Approval.Type;
 
-/** The owner's comment on one render: its address and variant, as stamped with `key`. */
+/** The owner's comment on one variant, as it was when said. */
 export const Comment = Schema.Struct({
   id: Schema.String,
-  address: Address,
-  variant: Schema.String,
-  key: Schema.String,
+  ...SayFields,
   text: Schema.String,
   at: Schema.Finite,
 });
@@ -129,11 +136,44 @@ export interface Slot {
 const sameSlot = (a: Slot, b: Slot) =>
   addressKey(a.address) === addressKey(b.address) && a.variant === b.variant && a.kind === b.kind;
 
-/** Whether `on` (an approval or comment) is about `render`'s address and variant. */
-const about = (
-  on: { readonly address: Address; readonly variant: string },
-  render: { readonly address: Address; readonly variant: string },
-) => addressKey(on.address) === addressKey(render.address) && on.variant === render.variant;
+/** One variant of one choice point: what an approval or a comment is about. */
+export interface Topic {
+  readonly address: Address;
+  /** The point, when it is not the address's render set. */
+  readonly point: Option.Option<string>;
+  readonly variant: string;
+}
+
+/** A topic as it is now: `key` says what the variant is (a render's stamp key). */
+export interface Subject extends Topic {
+  readonly key: string;
+}
+
+/** The id of an address's render set as a choice point: `render:scenes:cold`. */
+export const renderPointId = (address: Address): string => `render:${addressKey(address)}`;
+
+/** The id of the choice point `topic` is on. */
+export const pointIdOf = (topic: Pick<Topic, 'address' | 'point'>): string =>
+  Option.getOrElse(topic.point, () => renderPointId(topic.address));
+
+/** A render as what the owner's say is about: its render set's variant, as stamped. */
+export const subjectOf = (render: Render): Subject => ({
+  address: render.address,
+  point: Option.none(),
+  variant: render.variant,
+  key: render.stamp.key,
+});
+
+/** A slot's video render set as a topic (its point and variant). */
+export const topicOf = (slot: Slot): Topic => ({
+  address: slot.address,
+  point: Option.none(),
+  variant: slot.variant,
+});
+
+/** Whether `on` (an approval or comment) is about `topic`: the same point's same variant. */
+const about = (on: Topic, topic: Topic) =>
+  pointIdOf(on) === pointIdOf(topic) && on.variant === topic.variant;
 
 /** `catalogue` with `render` in its slot, in place of the render there before. */
 export const recordRender = (catalogue: Catalogue, render: Render): Catalogue => ({
@@ -179,57 +219,65 @@ export const needsRender = (
   );
 
 /**
- * The owner's say on a render: `approved` as it is stamped, `stale` when an
- * approval was given on an earlier render of its slot, or `none`.
+ * The owner's say on a variant: `approved` as it is now, `stale` when an
+ * approval was given on an earlier version of it (an earlier render of its
+ * slot, a take made for an earlier request), or `none`.
  */
 export const ApprovalState = Schema.Literals(['none', 'approved', 'stale']);
 export type ApprovalState = typeof ApprovalState.Type;
 
-/** `render`'s approval state (`ApprovalState`). */
-export const approvalState = (catalogue: Catalogue, render: Render): ApprovalState => {
-  const given = catalogue.approvals.filter((a) => about(a, render));
-  if (given.some((a) => a.key === render.stamp.key)) return 'approved';
+/** `subject`'s approval state (`ApprovalState`). */
+export const approvalState = (catalogue: Catalogue, subject: Subject): ApprovalState => {
+  const given = catalogue.approvals.filter((a) => about(a, subject));
+  if (given.some((a) => a.key === subject.key)) return 'approved';
   if (given.length > 0) return 'stale';
   return 'none';
 };
 
-/** `catalogue` with `render` approved as it is stamped, once. */
-export const approve = (catalogue: Catalogue, render: Render, at: number): Catalogue => {
-  if (approvalState(catalogue, render) === 'approved') return catalogue;
+/** `catalogue` with `subject` approved as it is now, once. */
+export const approve = (catalogue: Catalogue, subject: Subject, at: number): Catalogue => {
+  if (approvalState(catalogue, subject) === 'approved') return catalogue;
+  const { address, point, variant, key } = subject;
   return {
     ...catalogue,
-    approvals: [
-      ...catalogue.approvals,
-      { address: render.address, variant: render.variant, key: render.stamp.key, at },
+    approvals: [...catalogue.approvals, { address, point, variant, key, at }],
+  };
+};
+
+/** The next comment's id in `catalogue`: `c1`, `c2`, … */
+export const nextCommentId = (catalogue: Catalogue): string => `c${catalogue.comments.length + 1}`;
+
+/** `catalogue` with `text` said of `subject` as it is now, under the next id. */
+export const comment = (
+  catalogue: Catalogue,
+  subject: Subject,
+  text: string,
+  at: number,
+): Catalogue => {
+  const { address, point, variant, key } = subject;
+  return {
+    ...catalogue,
+    comments: [
+      ...catalogue.comments,
+      { id: nextCommentId(catalogue), address, point, variant, key, text, at },
     ],
   };
 };
 
-/** `catalogue` with `text` said of `render` as it is stamped, under `id`. */
-export const comment = (
-  catalogue: Catalogue,
-  render: Render,
-  text: string,
-  id: string,
-  at: number,
-): Catalogue => ({
-  ...catalogue,
-  comments: [
-    ...catalogue.comments,
-    { id, address: render.address, variant: render.variant, key: render.stamp.key, text, at },
-  ],
-});
+/** The comments on `topic`, oldest first, on any version of it. */
+export const commentsOn = (catalogue: Catalogue, topic: Topic): ReadonlyArray<Comment> =>
+  catalogue.comments.filter((c) => about(c, topic)).toSorted((a, b) => a.at - b.at);
 
-/** The comments on `render`'s address and variant, oldest first, on any of its renders. */
-export const commentsOn = (catalogue: Catalogue, render: Slot): ReadonlyArray<Comment> =>
-  catalogue.comments.filter((c) => about(c, render)).toSorted((a, b) => a.at - b.at);
-
-/** A comment as the project lists it: whether it was made on the render there now. */
-export const ProjectComment = Schema.Struct({
+/** A comment as it is listed beside what it is about: whether it was said of it as it is now. */
+export const SaidComment = Schema.Struct({
   ...Comment.fields,
-  onThisRender: Schema.Boolean,
+  onThis: Schema.Boolean,
 });
-export type ProjectComment = typeof ProjectComment.Type;
+export type SaidComment = typeof SaidComment.Type;
+
+/** The comments on `subject`, oldest first, each marked whether it was said of it as it is now. */
+export const saidOn = (catalogue: Catalogue, subject: Subject): ReadonlyArray<SaidComment> =>
+  commentsOn(catalogue, subject).map((c) => ({ ...c, onThis: c.key === subject.key }));
 
 /** One scene of the project: its sources' key now, its render, and the owner's say. */
 export const ProjectScene = Schema.Struct({
@@ -239,14 +287,34 @@ export const ProjectScene = Schema.Struct({
   state: RenderState,
   approval: ApprovalState,
   render: maybe(Render),
-  comments: Schema.Array(ProjectComment),
+  comments: Schema.Array(SaidComment),
 });
 export type ProjectScene = typeof ProjectScene.Type;
 
-/** `film project <film> --json`: every scene of the film, in film order, for one variant. */
+/**
+ * One act of the project: its scenes (in film order), the key its sources
+ * have now, and what was said of it. Its approval is its scenes'.
+ */
+export const ProjectAct = Schema.Struct({
+  name: Schema.String,
+  scenes: Schema.Array(Schema.String),
+  key: Schema.String,
+  comments: Schema.Array(SaidComment),
+});
+export type ProjectAct = typeof ProjectAct.Type;
+
+/**
+ * `film project <film> --json`: the film by its address tree for one
+ * variant: what was said of the whole film, its acts (none when it declares
+ * no look), and every scene in film order.
+ */
 export const Project = Schema.Struct({
   film: Schema.String,
   variant: Schema.String,
+  /** The key the whole film's sources have now. */
+  key: Schema.String,
+  comments: Schema.Array(SaidComment),
+  acts: Schema.Array(ProjectAct),
   scenes: Schema.Array(ProjectScene),
 });
 export type Project = typeof Project.Type;
@@ -259,6 +327,20 @@ export interface SceneKey {
   readonly key: string;
 }
 
+/** An act of the film: its scenes, with the key its sources have now. */
+export interface ActKey {
+  readonly act: string;
+  readonly scenes: ReadonlyArray<string>;
+  readonly key: string;
+}
+
+/** The film's address tree with each part's key now: the film's own, its acts', its scenes'. */
+export interface Keyed {
+  readonly key: string;
+  readonly acts: ReadonlyArray<ActKey>;
+  readonly scenes: ReadonlyArray<SceneKey>;
+}
+
 /** The video slot of one scene's `variant`. */
 export const sceneSlot = (scene: string, variant: string): Slot => ({
   address: sceneAddress(scene),
@@ -266,31 +348,42 @@ export const sceneSlot = (scene: string, variant: string): Slot => ({
   kind: 'video',
 });
 
-/** The film's scenes (in film order, with their keys now) as the project lists them for `variant`. */
-export const projectOf = (
-  catalogue: Catalogue,
-  scenes: ReadonlyArray<SceneKey>,
-  variant: string,
-): Project => ({
+/** `address`'s render set's `variant` as it is now (`key`): what is said of a film or an act. */
+export const partSubject = (address: Address, variant: string, key: string): Subject => ({
+  address,
+  point: Option.none(),
+  variant,
+  key,
+});
+
+/** The film (its parts in film order, with their keys now) as the project lists it for `variant`. */
+export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): Project => ({
   film: catalogue.film,
   variant,
-  scenes: scenes.map(({ scene, key }): ProjectScene => {
-    const slot = sceneSlot(scene, variant);
-    const render = renderIn(catalogue, slot);
-    const approval = Option.match(render, {
-      onNone: (): ApprovalState => 'none',
-      onSome: (r) => approvalState(catalogue, r),
-    });
+  key: keyed.key,
+  comments: saidOn(catalogue, partSubject({ _tag: 'Film' }, variant, keyed.key)),
+  acts: keyed.acts.map((act): ProjectAct => ({
+    name: act.act,
+    scenes: act.scenes,
+    key: act.key,
+    comments: saidOn(catalogue, partSubject({ _tag: 'Act', act: act.act }, variant, act.key)),
+  })),
+  scenes: keyed.scenes.map(({ scene, key }): ProjectScene => {
+    const render = renderIn(catalogue, sceneSlot(scene, variant));
     return {
       scene,
       key,
       state: renderState(render, key),
-      approval,
+      approval: Option.match(render, {
+        onNone: (): ApprovalState => 'none',
+        onSome: (r) => approvalState(catalogue, subjectOf(r)),
+      }),
       render,
-      comments: commentsOn(catalogue, slot).map((c) => ({
-        ...c,
-        onThisRender: Option.exists(render, (r) => r.stamp.key === c.key),
-      })),
+      // A comment is on this render when it was said of the render shown.
+      comments: saidOn(catalogue, {
+        ...topicOf(sceneSlot(scene, variant)),
+        key: Option.match(render, { onNone: () => key, onSome: (r) => r.stamp.key }),
+      }),
     };
   }),
 });
@@ -318,7 +411,7 @@ export const approveCurrent = (
     ),
   );
   return {
-    catalogue: current.reduce((cat, render) => approve(cat, render, at), catalogue),
+    catalogue: current.reduce((cat, render) => approve(cat, subjectOf(render), at), catalogue),
     approved: current.flatMap((r) =>
       Match.valueTags(r.address, {
         Scenes: ({ ids }) => ids,

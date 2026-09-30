@@ -115,7 +115,16 @@ a.rv-card:hover { border-color: var(--rv-dim); }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: 8px; }
 .rv-option audio, .rv-take audio { width: 100%; max-width: 320px; height: 36px; }
 .rv-take { border-top: 1px solid var(--rv-line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-.rv-take[data-state="kept"] .rv-letter { background: var(--rv-gold); }
+.rv-take[data-picked="true"] > .rv-row .rv-name { color: var(--rv-gold); }
+.rv-comments { margin: 4px 0; padding-left: 18px; font-size: 12px; overflow-wrap: anywhere; }
+.rv-say { flex-wrap: nowrap; }
+.rv-say .rv-comment-input {
+  flex: 1; min-width: 0; background: #0004; color: var(--rv-ink);
+  border: 1px solid var(--rv-line); border-radius: 6px; padding: 6px 8px; font: inherit;
+}
+.rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
+.rv-film, .rv-act { margin-bottom: 18px; }
+.rv-scene video { max-height: 40vh; }
 .rv-tag[data-state="stale"] { color: var(--rv-gold); }
 .rv-writes {
   background: var(--rv-panel); border: 1px solid var(--rv-line); border-radius: var(--rv-radius);

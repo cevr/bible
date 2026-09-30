@@ -52,13 +52,14 @@ bun run render <film> ... --variant <name>     # another render of the same addr
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force)
-bun run project approve <film> --scene id | --all  # approve one scene's render, or every current one; a re-render leaves the approval stale
-bun run project comment <film> <scene> "text"  # a comment on the scene's render as it is now
+bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders, an act's current scenes, or every current one; a re-render leaves the approval stale
+bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now, an act, or (neither) the film
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
-bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> picks its options (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
-bun cli.ts options list <film>                 # the film's options as the review reads them, fresh from disk (one line of JSON)
-bun cli.ts options mix <film> [--score o] [--take sound:sha256] --to f.m4a  # the mix the review plays for an option or a take
+bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
+bun cli.ts options list <film>                 # the film's choice points as the review reads them, fresh from disk (one line of JSON)
+bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
+bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -219,12 +220,20 @@ folder are a comparison set, played on one clock (all of them, the first
 against one other, every variant's frame at a few moments, or the notes;
 space plays, ←/→ step 2 s, 🔊 picks whose sound is heard), titled and
 annotated by an optional `review.json`. A film's page (`?film=<film>`) plays
-its newest render with the film's whole mix heard over it: each score option
-of `sound.ts`, and each take of each library sound the film places, in place
-(or alone). **Pick** writes `play` in `sound.ts`; **Keep**, **Unkeep** and
-**Reject** curate the take in `sounds/library.lock.json`, as `sfx keep`,
-`unkeep` and `reject` do. Each write is checked and undoable (Undo, Redo);
-review it with `git diff`. The review answers loopback, and the names in
+its newest render with the film's whole mix heard over it and lists its
+choice points: the score's options, each library sound's takes, each beat's
+voice attempts, each look's levels (`looks` in `palette.ts`) and each sound
+layer's level (a knob). **Pick** writes `play` in `sound.ts` (a score) or
+`palette.ts` (a look); **Pick**, **Unpick** and **Reject** on a take curate it
+in `sounds/library.lock.json`, as `sfx keep`, `unkeep` and `reject` do; Pick
+on a voice attempt keeps it as the beat's take; a knob writes the level's one
+number in `sound.ts`. Each write is checked and undoable (Undo, Redo), and a
+pick or a knob runs `check --sound`, its findings shown; review it with `git
+diff`. Every variant can be approved and commented on. The project view
+(`?project=<film>`) is the film by acts and scenes: each scene's render, its
+state (current, stale, missing), approval and comments, with approve and
+comment per scene, per act and for the film, "Approve all current", and the
+choice points at the scenes they play in. The review answers loopback, and the names in
 `FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
 `server.ts` builds it in process and serves it behind the check); writes are
 same-origin JSON.

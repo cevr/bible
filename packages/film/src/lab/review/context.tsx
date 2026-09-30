@@ -28,7 +28,8 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import type { RenderChoice, ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/schema.ts';
+import type { SeenPoint } from '../../core/choice.ts';
+import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import type { LabFailure } from '../api.ts';
 import { localStore } from '../studio/mic-choice.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
@@ -205,7 +206,7 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
 
 export interface SetContextValue {
   readonly folder: ReviewFolder;
-  readonly set: RenderChoice;
+  readonly set: SeenPoint;
   /** The synced player's state. */
   readonly sync: Accessor<SyncState>;
   readonly view: Accessor<ViewState>;
@@ -246,7 +247,7 @@ export const typing = (target: EventTarget) =>
 const SetBody = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
-    readonly set: RenderChoice;
+    readonly set: SeenPoint;
     readonly actors: SetActors;
   }>,
 ) => {
@@ -341,7 +342,7 @@ const SetBody = (
 const SetReady = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
-    readonly set: RenderChoice;
+    readonly set: SeenPoint;
     readonly actors: Atom.Atom<AsyncResult.AsyncResult<SetActors, never>>;
   }>,
 ) => {
@@ -359,7 +360,7 @@ const SetReady = (
 
 /** One comparison set's player, view and moments, for its page. */
 export const SetProvider = (
-  props: ParentProps<{ readonly folder: ReviewFolder; readonly set: RenderChoice }>,
+  props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
   const { meta } = useReview();
   const ids = props.set.variants.map((v) => v.id);
