@@ -235,7 +235,7 @@ describe('renderMix', () => {
 });
 
 describe('mixPlan', () => {
-  const placed = layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} });
+  const placed = Result.getOrThrow(layout([{ id: 'a', min: 8 }], { voice: '', scenes: {} }));
   const option = (styles: ReadonlyArray<string>): Music => ({
     model: 'music_v2',
     styles,
@@ -315,7 +315,7 @@ describe('mixPlan', () => {
       },
       { id: 'b', min: 8 },
     ];
-    const film = layout(scenes, { voice: '', scenes: {} });
+    const film = Result.getOrThrow(layout(scenes, { voice: '', scenes: {} }));
     const library = defineLibrary({
       'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
       'wood.knock': { kind: 'generated', prompt: 'a knock', secs: 1, use: 'one-shot', level: -4 },

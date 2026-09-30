@@ -79,6 +79,7 @@ import {
   type UnknownScene,
   type UnknownSound,
   type UnknownVoice,
+  type WordMissing,
   WordPinFar,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -95,6 +96,7 @@ export type StaticFinding =
   | UnknownScene
   | UnknownCue
   | UnknownMark
+  | WordMissing
   | CueInvalid
   | ActLength
   | UnknownVoice
@@ -222,7 +224,19 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     });
   });
 
-const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
+/** A scene's line read; one that does not parse is the layout's `LineError`, so it reads as silent here. */
+const said = (scene: Timed) =>
+  Result.getOrElse(
+    parse(
+      scene.id,
+      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
+    ),
+    () => ({
+      spoken: '',
+      marks: new Map<string, number>(),
+      turns: [],
+    }),
+  );
 
 /**
  * Beats with words whose take is missing or was recorded for other text,

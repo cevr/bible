@@ -127,7 +127,7 @@ const timeline = {
   walkIn: { mark: 'fair', word: 'fair', until: 'notes', ease: 'inOutSine' },
   close: { mark: 'treated', offset: -0.4, dur: 1, ease: 'inOutCubic' },
   // The figure's hand to the cloth on their chest, it lifts across to him, and his hand takes it.
-  give: { with: 'lift', offset: -0.4, dur: 0.4 },
+  give: { with: 'lift', dur: 0.4, ends: true },
   lift: { mark: 'took', dur: 1.2, ease: 'inOutSine' },
   letGo: { with: 'lift', offset: 0.5, dur: 0.5 },
   receive: { with: 'lift', offset: 0.5, dur: 0.5 },

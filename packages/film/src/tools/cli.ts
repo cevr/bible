@@ -476,7 +476,8 @@ const script = Command.make(
       const beats = Option.getOrElse(lines, () =>
         loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
       );
-      return yield* Console.log(sheetMarkdown(input.film, sheetBeats(beats, [])));
+      const sheet = yield* Effect.fromResult(sheetBeats(beats, []));
+      return yield* Console.log(sheetMarkdown(input.film, sheet));
     }
     const written = yield* writeSheet(loaded, lines);
     yield* Console.log(written.markdown);

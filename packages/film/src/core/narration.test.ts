@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
+import { Option, Result } from 'effect';
+import { DuplicateMark, TurnInvalid } from './errors.ts';
 import { layout } from './layout.ts';
 import type { Timings, Cast, Reader } from './schema.ts';
 
@@ -17,16 +18,21 @@ import {
 } from './narration.ts';
 import { unmeasured } from './voiced.ts';
 
+/** A line read that must parse. */
+const read = (text: string) => Result.getOrThrow(parse('s', text));
+
 describe('narration', () => {
   test('marks are removed from speech and point at the next word', () => {
-    const p = parse('God {speak}spoke, and {so}it was so.');
+    const p = read('God {speak}spoke, and {so}it was so.');
     expect(p.spoken).toBe('God spoke, and it was so.');
     expect(p.marks.get('speak')).toBe(1);
     expect(p.marks.get('so')).toBe(3);
   });
 
-  test('a duplicate mark is an authoring error', () => {
-    expect(() => parse('{a}one {a}two')).toThrow('duplicate mark');
+  test('a duplicate mark is an authoring error naming its scene', () => {
+    expect(Result.getFailure(parse('s', '{a}one {a}two'))).toEqual(
+      Option.some(DuplicateMark.make({ scene: 's', mark: 'a' })),
+    );
   });
 
   test("alignment characters regroup into the script's words", () => {
@@ -54,8 +60,8 @@ describe('narration', () => {
       source: 'elevenlabs' as const,
     };
     const timings = { voice: 'v', scenes: { s: take } };
-    expect(voiceFor('s', 'Look and {live}live.', timings).recorded).toBe(true);
-    expect(voiceFor('s', 'Look and die.', timings).recorded).toBe(false);
+    expect(Result.getOrThrow(voiceFor('s', 'Look and {live}live.', timings)).recorded).toBe(true);
+    expect(Result.getOrThrow(voiceFor('s', 'Look and die.', timings)).recorded).toBe(false);
   });
 
   test('a take changes with its words, not with its marks', () => {
@@ -68,17 +74,21 @@ describe('narration', () => {
       source: 'elevenlabs' as const,
     };
     const timings = { voice: 'v', scenes: { s: take } };
-    expect(voiceFor('s', '{look}Look and {live}live.', timings).recorded).toBe(true);
+    expect(Result.getOrThrow(voiceFor('s', '{look}Look and {live}live.', timings)).recorded).toBe(
+      true,
+    );
   });
 
   test('scenes are laid end to end and sized by their speech', () => {
     const draw = () => {};
-    const placed = layout(
-      [
-        { id: 'a', say: 'One two three.', lead: 0.5, tail: 1, draw },
-        { id: 'b', min: 4, draw },
-      ],
-      noTakes,
+    const placed = Result.getOrThrow(
+      layout(
+        [
+          { id: 'a', say: 'One two three.', lead: 0.5, tail: 1, draw },
+          { id: 'b', min: 4, draw },
+        ],
+        noTakes,
+      ),
     );
     const a = placed[0];
     const b = placed[1];
@@ -103,7 +113,7 @@ describe('turns', () => {
   const line = "That's the law. {@ask}So where does that {stuck}leave us? {@lead}Stuck.";
 
   test('a turn hands the next word to another voice, and is not spoken', () => {
-    const p = parse(line);
+    const p = read(line);
     expect(p.spoken).toBe("That's the law. So where does that leave us? Stuck.");
     expect(p.turns).toEqual([
       { voice: 'ask', word: 3 },
@@ -112,27 +122,37 @@ describe('turns', () => {
     expect(p.marks.get('stuck')).toBe(7);
   });
 
-  test('two turns before one word, or a turn at the end, is an authoring error', () => {
-    expect(() => parse('One {@ask}{@lead}two.')).toThrow('two turns before one word');
-    expect(() => parse('One two. {@ask}')).toThrow('a turn with no words after it');
+  test('two turns before one word, or a turn at the end, is an authoring error naming its scene', () => {
+    expect(Result.getFailure(parse('s', 'One {@ask}{@lead}two.'))).toEqual(
+      Option.some(
+        TurnInvalid.make({
+          scene: 's',
+          voice: 'lead',
+          reason: 'follows another turn before any word',
+        }),
+      ),
+    );
+    expect(Result.getFailure(parse('s', 'One two. {@ask}'))).toEqual(
+      Option.some(TurnInvalid.make({ scene: 's', voice: 'ask', reason: 'has no word after it' })),
+    );
   });
 
   test('the take script carries the turns, and is the spoken text without them', () => {
-    expect(takeScript(parse(line))).toBe(
+    expect(takeScript(read(line))).toBe(
       "That's the law. {@ask}So where does that leave us? {@lead}Stuck.",
     );
-    expect(takeScript(parse('Look and {live}live.'))).toBe('Look and live.');
+    expect(takeScript(read('Look and {live}live.'))).toBe('Look and live.');
   });
 
   test('moving a turn changes the take; moving a mark does not', () => {
     const moved = "That's the law. So {@ask}where does that leave us? {@lead}Stuck.";
-    expect(hashText(takeScript(parse(moved)))).not.toBe(hashText(takeScript(parse(line))));
+    expect(hashText(takeScript(read(moved)))).not.toBe(hashText(takeScript(read(line))));
     const marked = line.replace('{stuck}', '');
-    expect(hashText(takeScript(parse(marked)))).toBe(hashText(takeScript(parse(line))));
+    expect(hashText(takeScript(read(marked)))).toBe(hashText(takeScript(read(line))));
   });
 
   test("a cast reads a line per turn, the first by the cast's first voice", () => {
-    const lines = Result.getOrThrow(linesOf('s', parse(line), cast));
+    const lines = Result.getOrThrow(linesOf('s', read(line), cast));
     expect(lines).toEqual([
       { name: 'lead', voiceId: 'L', text: "That's the law." },
       { name: 'ask', voiceId: 'A', text: 'So where does that leave us?' },
@@ -142,7 +162,7 @@ describe('turns', () => {
 
   test('a turn to the voice already reading continues its line', () => {
     const lines = Result.getOrThrow(
-      linesOf('s', parse('{@lead}One. {@ask}Two. {@ask}Three.'), cast),
+      linesOf('s', read('{@lead}One. {@ask}Two. {@ask}Three.'), cast),
     );
     expect(lines.map((l) => [l.name, l.text])).toEqual([
       ['lead', 'One.'],
@@ -151,20 +171,20 @@ describe('turns', () => {
   });
 
   test('one voice reads the whole take', () => {
-    const lines = Result.getOrThrow(linesOf('s', parse('Look and {live}live.'), reader));
+    const lines = Result.getOrThrow(linesOf('s', read('Look and {live}live.'), reader));
     expect(lines).toEqual([{ name: '', voiceId: 'r', text: 'Look and live.' }]);
-    expect(Result.getOrThrow(linesOf('s', parse(''), cast))).toEqual([]);
+    expect(Result.getOrThrow(linesOf('s', read(''), cast))).toEqual([]);
   });
 
   test('a turn to a voice the film does not have names the voices it does', () => {
-    const unknown = linesOf('s', parse('One. {@narrator}Two.'), cast);
+    const unknown = linesOf('s', read('One. {@narrator}Two.'), cast);
     expect(Result.isFailure(unknown) && unknown.failure).toMatchObject({
       _tag: 'UnknownVoice',
       scene: 's',
       voice: 'narrator',
       known: ['lead', 'ask'],
     });
-    const single = linesOf('s', parse('One. {@ask}Two.'), reader);
+    const single = linesOf('s', read('One. {@ask}Two.'), reader);
     expect(Result.isFailure(single) && single.failure).toMatchObject({ voice: 'ask', known: [] });
   });
 
@@ -187,7 +207,7 @@ describe('turns', () => {
   });
 
   test('a recorded take keeps its turns for the captions', () => {
-    const parsed = parse(line);
+    const parsed = read(line);
     const take = {
       hash: hashText(takeScript(parsed)),
       file: 'a.mp3',
@@ -195,12 +215,14 @@ describe('turns', () => {
       words: unmeasured(estimate(parsed.spoken)),
       source: 'elevenlabs' as const,
     };
-    const voice = voiceFor('s', line, { voice: 'v', scenes: { s: take } });
+    const voice = Result.getOrThrow(voiceFor('s', line, { voice: 'v', scenes: { s: take } }));
     expect(voice.recorded).toBe(true);
     expect(voice.turns).toEqual(parsed.turns);
     // The same words under the old, turnless hash are another take.
     const old = { ...take, hash: hashText(parsed.spoken) };
-    expect(voiceFor('s', line, { voice: 'v', scenes: { s: old } }).recorded).toBe(false);
+    expect(
+      Result.getOrThrow(voiceFor('s', line, { voice: 'v', scenes: { s: old } })).recorded,
+    ).toBe(false);
   });
 });
 

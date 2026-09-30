@@ -12,6 +12,7 @@ import { BunServices } from '@effect/platform-bun';
 import {
   type Lock,
   type MixPlan,
+  type Placed,
   type Placement,
   type Sound,
   type SoundManifest,
@@ -73,7 +74,7 @@ const load = Effect.fn('test.load')(function* () {
     yield* read(`../${FILM}/sound/manifest.json`),
   );
   const plans = yield* Schema.decodeEffect(Plans)(yield* read('fixtures/mix-plan.json'));
-  return { placed: layout(scenes, timings), manifest, plans };
+  return { placed: Result.getOrThrow(layout(scenes, timings)), manifest, plans };
 });
 
 /** A made variant of `name`, measured at `momentaryMax` (and integrated 4 dB under it). */
@@ -117,7 +118,7 @@ const generated: Sound = {
 
 /** The plan, with the film's files under `<app>`. */
 const plan = (
-  placed: ReturnType<typeof layout>,
+  placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
   lock: Lock,
   played: Sound = sound,

@@ -6,7 +6,7 @@
 // and other outputs go under `FILMS_OUT` (default `<cwd>/out`).
 
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { type Placed, layout } from '../core/layout.ts';
+import { type LayoutError, type Placed, layout } from '../core/layout.ts';
 import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds, StoreConfig } from '../core/sfx.ts';
 import {
   HeardAs,
@@ -21,7 +21,7 @@ import {
   Voice,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmNotFound, LayoutInvalid, WordMissing } from './errors.ts';
+import { FilmModuleInvalid, FilmNotFound } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -125,23 +125,12 @@ export const lockManifest = (dir: string): Manifest<Lock> => ({
   empty: {},
 });
 
-/** Why a film does not lay out: a word pin with no word to land on, or any other authoring error. */
-export type PlaceError = WordMissing | LayoutInvalid;
+/** Why a film does not lay out: each authoring error names its scene (`LayoutError`). */
+export type PlaceError = LayoutError;
 
-const isWordMissing = Schema.is(WordMissing);
-
-/**
- * Lay the film out, turning `layout()`'s authoring errors into a typed
- * failure: `WordMissing` as itself, every other one as `LayoutInvalid`.
- */
+/** Lay the film out; an authoring error fails as itself, naming its scene and cue. */
 export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>, PlaceError> =>
-  Effect.try({
-    try: () => layout(film.scenes, film.timings),
-    catch: (cause) =>
-      Option.getOrElse(Option.liftPredicate(cause, isWordMissing), () =>
-        LayoutInvalid.make({ film: film.paths.name, reason: String(cause) }),
-      ),
-  });
+  Effect.fromResult(layout(film.scenes, film.timings));
 
 export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
   '@bible/film/tools/FilmRepo',

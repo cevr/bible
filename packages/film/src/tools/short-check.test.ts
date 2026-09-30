@@ -118,10 +118,12 @@ describe('the hook and the loop read when words are heard', () => {
     words,
     source: 'elevenlabs' as const,
   };
-  const film = layout([{ id: 'a', say, lead: 0, draw: () => {} }], {
-    voice: 'v',
-    scenes: { a: take },
-  });
+  const film = Result.getOrThrow(
+    layout([{ id: 'a', say, lead: 0, draw: () => {} }], {
+      voice: 'v',
+      scenes: { a: take },
+    }),
+  );
   const short = Result.getOrThrow(
     resolveShort(
       film,
@@ -129,7 +131,7 @@ describe('the hook and the loop read when words are heard', () => {
         id: 'cut',
         title: 'Cut',
         // From the scene's start, which is no word: a span opening on the voice would hide the late word.
-        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'speechEnd' } }],
+        spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'speechEnd' } }],
       },
       30,
     ),

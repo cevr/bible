@@ -284,7 +284,14 @@ the word there fails the layout with `WordMissing` (`film check`, the player,
 the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
 or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
 a re-take moves its end as well as its start; a span declares one or the
-other, and a lab `dur` write replaces its `until`. Read it in
+other, and a lab `dur` write replaces its `until`. A motion that must land on
+its moment `ends` there: `{ mark: 'true', dur: 0.5, ends: true }` ends on
+`{true}` and starts its `dur` before it (never `offset: -0.5, dur: 0.5`, the
+same number twice), so a lab `dur` write or drag keeps the landing. A
+timeline that does not resolve fails the layout naming its scene and cue
+(`UnknownCue`, `UnknownMark`, `CueCycle`, `UntilBeforeStart`, `WordMissing`),
+as does a line with a mark named twice (`DuplicateMark`) or a turn with no
+word (`TurnInvalid`). Read it in
 `draw` with `f.cue(name)` (scene-local `{ start, end, dur }`) or
 `f.at(name)` (0→1 across it, eased by the span's `ease`), or keyframe a
 motion across it with `f.keys(name, [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`:
@@ -364,11 +371,14 @@ A change of staging voice leaves recorded takes current.
 options (`score.options`: each a whole score in its own musical language, in
 acts that each start at a scene and last 3–120 s), `play` naming the one the
 mix plays, with its `under` and `alone` levels; and effects and beds as library
-sounds placed at a scene's named cue —
-`{ scene, cue, edge }`, the cue's start or end — so the sound lands where the
-picture does and a re-recorded line carries both. A sound with no picture event
-(a page turn at a scene's start) takes `{ scene, offset }`; `{ scene, mark }`
-still works for a sound on a word. `score` sends each option's
+sounds placed at a point in a scene, the same `ScenePoint` a short's span
+names: a named cue, `{ scene, cue, edge }` (the cue's start or end), so the
+sound lands where the picture does and a re-recorded line carries both; a
+`{ scene, mark }` (or a word pinned after it) for a sound on a word; or a
+landmark, `{ scene, at: 'speech' }`, for a bed that hands over where the next
+scene's voice starts (never `offset: 0.4`, a copy of the scene's `lead`). A
+sound at a scene's start names only its scene (`{ scene, offset }`). A point
+names one anchor: a cue and a mark together do not compile. `score` sends each option's
 acts as one timed ElevenLabs composition plan (music v2 enforces the section
 lengths, so the score turns where the film does). Assets are content-addressed
 like takes: re-timing a scene makes every option stale; a level change only
@@ -388,13 +398,13 @@ need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `shorts`, each `{ id, title, hook?, spans }`, a span being `{ scene, from, to }`
 where a point is a `{ mark }`, a named `{ cue }` (its start, or its end as a
 span's `to`, or `edge` to say which) or a scene landmark
-(`{ scene: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
+(`{ at: 'start' | 'speech' | 'speechEnd' | 'end' }`), never a second, so a
 re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
 back to back at 1080×1920 with the track cut from `full.wav` under the same
 spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>.mp4` and `<id>.vtt`. A scene, mark or cue the film
-lacks fails before a page starts (`ShortUnknownMark` and kin, naming what the
-scene has). `cues <film> --short <id>` prints each span's film time and the
+lacks fails before a page starts (`ShortUnknownScene`, `UnknownMark`,
+`UnknownCue`, naming what the scene has). `cues <film> --short <id>` prints each span's film time and the
 short's length, on the frames at the rate the film declares (read from its page,
 as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px
 down, byte for byte the film's own frame at that time (a band crop of

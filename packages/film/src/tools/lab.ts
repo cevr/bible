@@ -251,9 +251,7 @@ const resolveCue = Effect.fn('lab.resolveCue')(function* (
     onFailure: () => Option.none(),
     onSuccess: (p) =>
       Option.flatMap(
-        Result.getSuccess(
-          Result.try(() => resolveTimeline({ ...p.spec.timeline, ...fresh }, sceneClock(p))),
-        ),
+        Result.getSuccess(resolveTimeline({ ...p.spec.timeline, ...fresh }, sceneClock(p))),
         (cues) => Option.fromUndefinedOr(cues.get(cue)),
       ),
   });

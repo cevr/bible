@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
 import { layout } from './layout.ts';
-import { type Music, Score, type Timings } from './schema.ts';
+import { UnknownCue, UnknownMark } from './errors.ts';
+import { Cue, type Music, Score, type Timings } from './schema.ts';
 import {
   MAX_CHUNK_MS,
   MUSIC_TAIL,
@@ -22,20 +23,22 @@ const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>)
   Result.match(r, { onSuccess: () => 'ok', onFailure: (e) => e._tag });
 
 const draw = () => {};
-const placed = layout(
-  [
-    {
-      id: 'a',
-      say: 'Look {live}and live.',
-      lead: 0.5,
-      tail: 1,
-      timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
-      draw,
-    },
-    { id: 'b', min: 4, draw },
-    { id: 'c', min: 5, draw },
-  ],
-  noTakes,
+const placed = Result.getOrThrow(
+  layout(
+    [
+      {
+        id: 'a',
+        say: 'Look {live}and live.',
+        lead: 0.5,
+        tail: 1,
+        timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
+        draw,
+      },
+      { id: 'b', min: 4, draw },
+      { id: 'c', min: 5, draw },
+    ],
+    noTakes,
+  ),
 );
 
 const music: Music = {
@@ -70,12 +73,37 @@ describe('sound', () => {
     ).toBeCloseTo(start + 0.1);
   });
 
-  test('an unknown scene, mark or cue is an authoring error', () => {
+  test('a landmark lands where the scene’s voice starts or ends, or on its start or end', () => {
+    const a = placed[0];
+    const at = (landmark: 'start' | 'speech' | 'speechEnd' | 'end') =>
+      Result.getOrThrow(cueTime({ scene: 'a', at: landmark }, placed));
+    expect(at('start')).toBe(0);
+    expect(at('speech')).toBe(0.5);
+    expect(at('speechEnd')).toBe(0.5 + (a?.voice.duration ?? NaN));
+    expect(at('end')).toBe(a?.dur ?? NaN);
+    expect(Result.getOrThrow(cueTime({ scene: 'b', at: 'speech', offset: 0.2 }, placed))).toBe(
+      (placed[1]?.start ?? NaN) + 0.2,
+    );
+  });
+
+  test('an unknown scene, mark or cue is an authoring error naming what the scene has', () => {
     expect(outcome(cueTime({ scene: 'z' }, placed))).toBe('UnknownScene');
-    expect(outcome(cueTime({ scene: 'a', mark: 'nope' }, placed))).toBe('UnknownMark');
-    expect(outcome(cueTime({ scene: 'a', cue: 'nope' }, placed))).toBe('UnknownCue');
-    expect(outcome(cueTime({ scene: 'a', cue: 'lift', mark: 'live' }, placed))).toBe('CueInvalid');
-    expect(outcome(cueTime({ scene: 'a', mark: 'live', edge: 'end' }, placed))).toBe('CueInvalid');
+    expect(Result.getFailure(cueTime({ scene: 'a', mark: 'nope' }, placed))).toEqual(
+      Option.some(UnknownMark.make({ scene: 'a', mark: 'nope', by: 'sound', known: ['live'] })),
+    );
+    expect(Result.getFailure(cueTime({ scene: 'a', cue: 'nope' }, placed))).toEqual(
+      Option.some(UnknownCue.make({ scene: 'a', cue: 'nope', by: 'sound', known: ['lift'] })),
+    );
+  });
+
+  test('a cue names one point: a cue and a mark, or an edge on a mark, do not decode', () => {
+    const decodes = (cue: Readonly<Record<string, string | number>>) =>
+      Result.isSuccess(Schema.decodeUnknownResult(Cue)(cue));
+    expect(decodes({ scene: 'a', cue: 'lift', mark: 'live' })).toBe(false);
+    expect(decodes({ scene: 'a', mark: 'live', edge: 'end' })).toBe(false);
+    expect(decodes({ scene: 'a', at: 'speech', cue: 'lift' })).toBe(false);
+    expect(decodes({ scene: 'a', cue: 'lift', edge: 'end', offset: -0.1 })).toBe(true);
+    expect(decodes({ scene: 'a', mark: 'live', word: 'live' })).toBe(true);
   });
 
   test('acts cover the whole film, split at their scenes, and the last runs past its end', () => {
@@ -129,7 +157,7 @@ describe('sound', () => {
   });
 
   test('an act longer than the API composes in one chunk is refused', () => {
-    const long = layout([{ id: 'a', min: 130 }], noTakes);
+    const long = Result.getOrThrow(layout([{ id: 'a', min: 130 }], noTakes));
     const one = { ...music, acts: [{ from: 'a', name: 'Whole', styles: [] }] };
     expect(outcome(musicPlan(one, long))).toBe('ActTooLong');
     expect(MAX_CHUNK_MS).toBe(120_000);

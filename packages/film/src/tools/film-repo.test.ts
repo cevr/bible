@@ -80,14 +80,19 @@ describe('placeFilm', () => {
     Effect.gen(function* () {
       const error = yield* Effect.flip(placeFilm(pinned('hope')));
       expect(error._tag).toBe('WordMissing');
-      expect(error).toMatchObject({ scene: 'gift', cue: 'lit', mark: 'gift', word: 'hope' });
+      expect(error).toMatchObject({ scene: 'gift', by: 'cue "lit"', mark: 'gift', word: 'hope' });
     }),
   );
 
-  it.effect('fails with LayoutInvalid for any other authoring error', () =>
+  it.effect('fails with the authoring error itself, naming its scene and cue', () =>
     Effect.gen(function* () {
       const film = testFilm([{ id: 'a', timeline: { x: { after: 'nope' } } }], empty);
-      expect((yield* Effect.flip(placeFilm(film)))._tag).toBe('LayoutInvalid');
+      expect(yield* Effect.flip(placeFilm(film))).toMatchObject({
+        _tag: 'UnknownCue',
+        scene: 'a',
+        cue: 'nope',
+        by: 'cue "x"',
+      });
     }),
   );
 });

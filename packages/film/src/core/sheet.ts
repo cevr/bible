@@ -6,8 +6,9 @@
 //
 // Pure: the CLI reads the script and the quotes, and writes what this returns.
 
-import { Array as Arr, Option } from 'effect';
-import { normalizeWords, parse } from './narration.ts';
+import { Array as Arr, Option, Result } from 'effect';
+import type { LineError } from './errors.ts';
+import { type Parsed, normalizeWords, parse } from './narration.ts';
 import { isAbbreviation } from './spoken.ts';
 
 /** A verified quotation (a film's `quotes.jsonl`): whose words, where they are. */
@@ -83,8 +84,7 @@ const partsOf = (
     });
 
 /** The words of a line, cut where each turn hands it on. */
-const voicesOf = (say: string) => {
-  const parsed = parse(say);
+const voicesOf = (parsed: Parsed) => {
   const words = parsed.spoken.split(' ');
   const starts = [0, ...parsed.turns.map((t) => t.word).filter((w) => w > 0)];
   return starts.map((from, k) => ({
@@ -101,23 +101,29 @@ const voicesOf = (say: string) => {
   }));
 };
 
-/** The sheet's beats: every beat with words, in script order. */
+/** The sheet's beats: every beat with words, in script order; a line that does not parse fails naming its beat. */
 export const sheetBeats = (
   script: ReadonlyArray<ScriptLine>,
   quotes: ReadonlyArray<Quote>,
-): ReadonlyArray<SheetBeat> =>
-  script.flatMap((beat) =>
-    Option.toArray(
-      Option.map(
-        Option.filter(Option.fromNullishOr(beat.say), (say) => parse(say).spoken.length > 0),
-        (say): SheetBeat => ({
-          id: beat.id,
-          file: `${beat.id}.wav`,
-          parts: voicesOf(say).flatMap((v) => partsOf(v.voice, v.text, quotes)),
-          sources: beat.cite,
-        }),
+): Result.Result<ReadonlyArray<SheetBeat>, LineError> =>
+  Result.map(
+    Result.all(
+      script.map((beat) =>
+        Result.map(parse(beat.id, beat.say ?? ''), (parsed) => ({ beat, parsed })),
       ),
     ),
+    (read) =>
+      read.flatMap(({ beat, parsed }): ReadonlyArray<SheetBeat> => {
+        if (parsed.spoken.length === 0) return [];
+        return [
+          {
+            id: beat.id,
+            file: `${beat.id}.wav`,
+            parts: voicesOf(parsed).flatMap((v) => partsOf(v.voice, v.text, quotes)),
+            sources: beat.cite,
+          },
+        ];
+      }),
   );
 
 const HOW_TO =

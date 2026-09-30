@@ -48,7 +48,7 @@ const face = (scene: string, size: number, alpha = 1): FaceMark => ({
 
 // Three spoken scenes: `held` never changes, `brief` flips black and white
 // each sample, `ambient` is the paper's grey. Each declares one face.
-const placed = layout(holdScenes, holdTimings);
+const placed = Result.getOrThrow(layout(holdScenes, holdTimings));
 const samples = lookSamples(placed, FPS, 1_000_000);
 const drawn = samples.map((s, k): Drawn => {
   if (s.scene === 'held') return { thumb: thumb(128), faces: [face('held', 400)], hands: [] };
@@ -104,7 +104,7 @@ describe('HeldShare', () => {
 
   test('a scene the voice does not speak in is not judged', () => {
     const silent: ReadonlyArray<Timed> = [{ id: 'quiet', min: 6 }];
-    const quiet = layout(silent, { voice: '', scenes: {} });
+    const quiet = Result.getOrThrow(layout(silent, { voice: '', scenes: {} }));
     const at = lookSamples(quiet, FPS, 1_000_000);
     const still = sceneLooks(
       quiet,
@@ -236,7 +236,7 @@ describe('chapters', () => {
     { id: 'b', min: 12 },
     { id: 'c', min: 12 },
   ];
-  const laid = layout(three, { voice: '', scenes: {} });
+  const laid = Result.getOrThrow(layout(three, { voice: '', scenes: {} }));
   const named = (look: Look) => chapters('f', Result.getOrThrow(actSpans(look, laid)), laid);
 
   test('a chapter starts at mm:ss, or h:mm:ss past an hour', () => {
@@ -263,7 +263,9 @@ describe('chapters', () => {
   test('YouTube refuses fewer than three chapters, a first past 00:00, or one under 10 s', () => {
     const tooFew = named({ acts: [{ from: 'a', name: 'one', chapter: 'Who?' }] });
     expect(Result.isFailure(tooFew) && tooFew.failure.reason).toContain('YouTube needs 3');
-    const four = layout([...three, { id: 'd', min: 12 }], { voice: '', scenes: {} });
+    const four = Result.getOrThrow(
+      layout([...three, { id: 'd', min: 12 }], { voice: '', scenes: {} }),
+    );
     const lateActs = Result.getOrThrow(
       actSpans(
         {
@@ -284,7 +286,7 @@ describe('chapters', () => {
       { id: 'b', min: 4 },
       { id: 'c', min: 12 },
     ];
-    const tight = layout(short, { voice: '', scenes: {} });
+    const tight = Result.getOrThrow(layout(short, { voice: '', scenes: {} }));
     const acts = Result.getOrThrow(
       actSpans(
         {

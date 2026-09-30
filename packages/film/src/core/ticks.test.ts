@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import { layout } from './layout.ts';
 import type { Sound, Timed, Timings } from './schema.ts';
 import { timelineTicks } from './ticks.ts';
@@ -15,7 +15,7 @@ const scenes: ReadonlyArray<Timed> = [
     timeline: { slam: { mark: 'fiction', offset: 0.5, dur: 0.4 } },
   },
 ];
-const placed = layout(scenes, noTakes);
+const placed = Result.getOrThrow(layout(scenes, noTakes));
 const [, stamp] = placed;
 
 const sound: Sound = {

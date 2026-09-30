@@ -2,7 +2,7 @@
 // drawing; the film lays them end to end, sizes each to its voice, and draws
 // any instant T — the same function serves the preview player and the export.
 
-import { Predicate, Schema } from 'effect';
+import { Predicate, Result, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
@@ -461,7 +461,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
   const height = spec.height ?? 1080;
   const fps = spec.fps ?? FILM_FPS;
-  const placed = layout(spec.scenes, spec.timings);
+  const placed = Result.getOrThrow(layout(spec.scenes, spec.timings));
   const last = placed[placed.length - 1];
   const duration = last === undefined ? 0 : last.start + last.dur;
   const allRecorded = everyTakeRecorded(placed);
@@ -538,7 +538,10 @@ export const createFilm = (spec: FilmSpec): Film => {
 
   /** An edit's timeline and knobs, resolved on the scene's own clock as `layout()` resolves them. */
   const resolveEdit = (p: Placed<SceneSpec>, edit: SceneEdit): Shown => ({
-    cues: edit.timeline === undefined ? p.cues : resolveTimeline(edit.timeline, sceneClock(p)),
+    cues:
+      edit.timeline === undefined
+        ? p.cues
+        : Result.getOrThrow(resolveTimeline(edit.timeline, sceneClock(p))),
     knobs: edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs)),
   });
 

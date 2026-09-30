@@ -28,7 +28,7 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type BeatSpan, cutPcm, cutsAround, placeBeats, timeScript } from '../core/align.ts';
-import type { BeatUnplaced, UnknownVoice } from '../core/errors.ts';
+import type { BeatUnplaced, LineError, UnknownVoice } from '../core/errors.ts';
 import type { Pcm } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
@@ -109,6 +109,7 @@ export type TakesError =
   | TakeMismatch
   | BeatUnplaced
   | UnknownVoice
+  | LineError
   | ElevenLabsFailed
   | SttUntimed
   | MediaFailed

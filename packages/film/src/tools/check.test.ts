@@ -559,7 +559,7 @@ describe('layoutSamples', () => {
     },
     { id: 'two', say: 'And {late}then', enter: { kind: 'fade', dur: 1 }, lead: 0.2, tail: 0.3 },
   ];
-  const placed = layout(scenes, noTakes);
+  const placed = Result.getOrThrow(layout(scenes, noTakes));
 
   test('every mark, cue edge and the 60% point, as frames inside the scene', () => {
     const one = layoutSamples(placed, 30).filter((s) => s.scene === 'one');
@@ -641,7 +641,7 @@ describe('staleTakes', () => {
     const said = 'Declared? {@ask}But he is guilty.';
     const recorded: Timings = {
       voice: voiceKey(cast),
-      scenes: { d: take(takeScript(parse(said))) },
+      scenes: { d: take(takeScript(Result.getOrThrow(parse('d', said)))) },
     };
     const film = (say: string) => testFilm([{ id: 'd', say }], recorded, cast);
     expect(staleTakes(film(said))).toEqual([]);
@@ -670,7 +670,7 @@ describe('unknownVoices', () => {
     const film = testFilm(scenes, noTakes, cast);
     const found = staticFindings(
       film,
-      layout(scenes, noTakes),
+      Result.getOrThrow(layout(scenes, noTakes)),
       { allowStale: true },
       Option.none(),
     );
@@ -689,13 +689,13 @@ describe('farPins', () => {
   });
 
   test('a word pin in its mark’s sentence or the next is quiet', () => {
-    expect(farPins(layout([scene('two')], noTakes))).toEqual([]);
-    expect(farPins(layout([scene('faith')], noTakes))).toEqual([]);
-    expect(farPins(layout([scene('four')], noTakes))).toEqual([]);
+    expect(farPins(Result.getOrThrow(layout([scene('two')], noTakes)))).toEqual([]);
+    expect(farPins(Result.getOrThrow(layout([scene('faith')], noTakes)))).toEqual([]);
+    expect(farPins(Result.getOrThrow(layout([scene('four')], noTakes)))).toEqual([]);
   });
 
   test('a word pin that lands more than a sentence past its mark warns, naming how far', () => {
-    const found = farPins(layout([scene('six')], noTakes));
+    const found = farPins(Result.getOrThrow(layout([scene('six')], noTakes)));
     expect(found.map((f) => [f._tag, f.scene, f.cue, f.word, f.sentences])).toEqual([
       ['WordPinFar', 's', 'lit', 'six', 2],
     ]);
@@ -704,7 +704,7 @@ describe('farPins', () => {
     );
     const reported = staticFindings(
       testFilm([scene('six')], noTakes),
-      layout([scene('six')], noTakes),
+      Result.getOrThrow(layout([scene('six')], noTakes)),
       { allowStale: false },
       Option.none(),
     );
@@ -716,14 +716,18 @@ describe('farPins', () => {
 
 describe('lateCues', () => {
   test('a cue that ends after its scene', () => {
-    const placed = layout(
-      [{ id: 's', min: 4, timeline: { ok: { scene: 'start', dur: 4 }, over: { scene: 'end' } } }],
-      noTakes,
+    const placed = Result.getOrThrow(
+      layout(
+        [{ id: 's', min: 4, timeline: { ok: { scene: 'start', dur: 4 }, over: { scene: 'end' } } }],
+        noTakes,
+      ),
     );
     expect(lateCues(placed)).toEqual([]);
-    const late = layout(
-      [{ id: 's', min: 4, timeline: { over: { scene: 'end', offset: -0.5, dur: 1 } } }],
-      noTakes,
+    const late = Result.getOrThrow(
+      layout(
+        [{ id: 's', min: 4, timeline: { over: { scene: 'end', offset: -0.5, dur: 1 } } }],
+        noTakes,
+      ),
     );
     expect(lateCues(late).map((c) => [c.scene, c.cue, c.end])).toEqual([['s', 'over', 4.5]]);
   });
@@ -737,7 +741,9 @@ describe('longSeams', () => {
   });
 
   test('a default lead stretched by a long entrance makes a seam over 0.6 s', () => {
-    const placed = layout([said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })], noTakes);
+    const placed = Result.getOrThrow(
+      layout([said('a'), said('b', { enter: { kind: 'fade', dur: 1.2 } })], noTakes),
+    );
     const found = longSeams(placed);
     expect(found.map((f) => [f._tag, f.from, f.to])).toEqual([['SeamLong', 'a', 'b']]);
     expect(found[0]?.seam).toBeCloseTo(0.94);
@@ -745,27 +751,35 @@ describe('longSeams', () => {
 
   test('a declared lead or tail is a meant pause; the default seam is 0.6 s', () => {
     const fade = { kind: 'fade', dur: 1.2 } as const;
-    expect(longSeams(layout([said('a'), said('b', { enter: fade, lead: 1 })], noTakes))).toEqual(
-      [],
-    );
     expect(
-      longSeams(layout([said('a', { tail: 1 }), said('b', { enter: fade })], noTakes)),
+      longSeams(
+        Result.getOrThrow(layout([said('a'), said('b', { enter: fade, lead: 1 })], noTakes)),
+      ),
     ).toEqual([]);
-    expect(longSeams(layout([said('a'), said('b')], noTakes))).toEqual([]);
+    expect(
+      longSeams(
+        Result.getOrThrow(layout([said('a', { tail: 1 }), said('b', { enter: fade })], noTakes)),
+      ),
+    ).toEqual([]);
+    expect(longSeams(Result.getOrThrow(layout([said('a'), said('b')], noTakes)))).toEqual([]);
   });
 
   test('a min the words outrun declares nothing; a min that stretches the scene does', () => {
     const fade = { kind: 'fade', dur: 1.2 } as const;
-    const short = longSeams(layout([said('a', { min: 1 }), said('b', { enter: fade })], noTakes));
+    const short = longSeams(
+      Result.getOrThrow(layout([said('a', { min: 1 }), said('b', { enter: fade })], noTakes)),
+    );
     expect(short.map((f) => [f.from, f.to])).toEqual([['a', 'b']]);
     expect(
-      longSeams(layout([said('a', { min: 30 }), said('b', { enter: fade })], noTakes)),
+      longSeams(
+        Result.getOrThrow(layout([said('a', { min: 30 }), said('b', { enter: fade })], noTakes)),
+      ),
     ).toEqual([]);
   });
 
   test('the default seam is the layout default lead plus its default tail', () => {
     expect(MAX_SEAM).toBe(MIN_LEAD + DEFAULT_TAIL);
-    const [a, b] = layout([said('a'), said('b')], noTakes);
+    const [a, b] = Result.getOrThrow(layout([said('a'), said('b')], noTakes));
     expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM);
   });
 
@@ -774,15 +788,17 @@ describe('longSeams', () => {
     // The take trails 2 s of silence after its last word (heard to 1.9 s).
     const trailing = { ...spoken, duration: spoken.duration + 2 };
     const timings: Timings = { voice: voiceKey(testVoice), scenes: { a: trailing, b: spoken } };
-    const [a, b] = layout([said('a'), said('b')], timings);
+    const [a, b] = Result.getOrThrow(layout([said('a'), said('b')], timings));
     expect(Option.getOrThrow(seamAfter(a!, b!))).toBeCloseTo(MAX_SEAM + 2);
-    expect(longSeams(layout([said('a'), said('b')], timings))).toMatchObject([
+    expect(longSeams(Result.getOrThrow(layout([said('a'), said('b')], timings)))).toMatchObject([
       { _tag: 'SeamLong', from: 'a', to: 'b' },
     ]);
   });
 
   test('a scene with no words between two voices is a pause of its own', () => {
-    const placed = layout([said('a'), { id: 'title', min: 3 }, said('b')], noTakes);
+    const placed = Result.getOrThrow(
+      layout([said('a'), { id: 'title', min: 3 }, said('b')], noTakes),
+    );
     expect(longSeams(placed)).toEqual([]);
   });
 
@@ -791,7 +807,7 @@ describe('longSeams', () => {
     const film = testFilm(scenes, noTakes);
     const found = staticFindings(
       film,
-      layout(scenes, noTakes),
+      Result.getOrThrow(layout(scenes, noTakes)),
       { allowStale: true },
       Option.none(),
     );
@@ -806,7 +822,7 @@ const soundScenes: ReadonlyArray<Timed> = [
   { id: 'middle', min: 2 },
   { id: 'close', min: 8 },
 ];
-const placedSound = layout(soundScenes, noTakes);
+const placedSound = Result.getOrThrow(layout(soundScenes, noTakes));
 const option = (acts: Music['acts']): Music => ({
   model: 'music_v2',
   styles: [],
@@ -977,7 +993,7 @@ describe('balanceFindings', () => {
       plane[i] = amp * Math.sin((2 * Math.PI * 220 * i) / RATE);
     return { rate: RATE, frames, channels: [plane, plane] };
   };
-  const placed = layout([{ id: 'said', min: 10 }], noTakes);
+  const placed = Result.getOrThrow(layout([{ id: 'said', min: 10 }], noTakes));
   const mixOf = (voice: Pcm, effects: MixPlan<Pcm>['effects'] = []) => {
     const plan: MixPlan<Pcm> = {
       seconds: 10,
@@ -1032,7 +1048,7 @@ describe('staticFindings', () => {
     }),
     sounds,
   };
-  const placed = layout(film.scenes, film.timings);
+  const placed = Result.getOrThrow(layout(film.scenes, film.timings));
 
   test('stale work is an error, a stale library sound a warning', () => {
     expect(
@@ -1082,7 +1098,7 @@ describe('the audio master', () => {
   ];
   const recorded: Timings = { voice: voiceKey(testVoice), scenes: { said: take('Hi there.') } };
   const film = testFilm(scenes, recorded);
-  const placed = layout(scenes, recorded);
+  const placed = Result.getOrThrow(layout(scenes, recorded));
   const end = filmEnd(placed);
   const found = (master: Option.Option<number>, allowStale = false) =>
     staticFindings(film, placed, { allowStale }, master)
@@ -1110,7 +1126,7 @@ describe('the audio master', () => {
 
   test('a film with a take still to record has no master to check', () => {
     const unrecorded = testFilm(scenes, noTakes);
-    const laid = layout(scenes, noTakes);
+    const laid = Result.getOrThrow(layout(scenes, noTakes));
     const tagsOf = staticFindings(unrecorded, laid, { allowStale: true }, Option.none())
       .filter(besideEnding)
       .map((r) => r.finding._tag);
@@ -1119,7 +1135,7 @@ describe('the audio master', () => {
 });
 
 describe('static holds', () => {
-  const placed = layout(holdScenes, holdTimings);
+  const placed = Result.getOrThrow(layout(holdScenes, holdTimings));
   const seven = 'one two three four five six seven';
 
   test('a spoken stretch over HOLD with no cue is a candidate; one of 3 s is not', () => {
@@ -1135,7 +1151,7 @@ describe('static holds', () => {
     // Words 0.5–3.9 s, then 10 s of scene with no cue and no voice.
     const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: seven, min: 14 }];
     const timings: Timings = { voice: holdTimings.voice, scenes: { a: spokenTake(seven) } };
-    expect(holdCandidates(layout(scenes, timings))).toEqual([]);
+    expect(holdCandidates(Result.getOrThrow(layout(scenes, timings)))).toEqual([]);
   });
 
   test('a cue running through the words, or the scene arriving, is motion', () => {
@@ -1154,12 +1170,14 @@ describe('static holds', () => {
       scenes: { first: spokenTake(say), a: spokenTake(say) },
     };
     // `first` speaks 0.5–6.4 s with nothing declared; `a` fades in to 1.5 s and drifts at 4–5 s.
-    expect(holdCandidates(layout(scenes, timings)).map((c) => c.scene)).toEqual(['first']);
+    expect(holdCandidates(Result.getOrThrow(layout(scenes, timings))).map((c) => c.scene)).toEqual([
+      'first',
+    ]);
   });
 
   test('a storyboard card holds still by design and is never a candidate', () => {
     const card: Timed = { ...Arr.getUnsafe(holdScenes, 0), storyboard: true };
-    expect(holdCandidates(layout([card], holdTimings))).toEqual([]);
+    expect(holdCandidates(Result.getOrThrow(layout([card], holdTimings)))).toEqual([]);
   });
 
   test('the ticks span the stretch a boil tick apart, from its first frame to its last', () => {

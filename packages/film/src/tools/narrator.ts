@@ -27,7 +27,7 @@ import {
   Result,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
-import type { UnknownVoice } from '../core/errors.ts';
+import type { LineError, UnknownVoice } from '../core/errors.ts';
 import {
   type Line,
   hashText,
@@ -143,18 +143,25 @@ const currentTakes = (timings: Timings, voice: string): Timings['scenes'] => {
 };
 
 /** One beat's lines, or the voice a turn names that the film does not have. */
-const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) => {
-  const parsed = parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
-  return Result.map(linesOf(scene.id, parsed, film.voice), (lines): Beat => ({
-    id: scene.id,
-    text: parsed.spoken,
-    script: takeScript(parsed),
-    lines,
-  }));
-};
+const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) =>
+  Result.flatMap(
+    parse(
+      scene.id,
+      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
+    ),
+    (parsed) =>
+      Result.map(linesOf(scene.id, parsed, film.voice), (lines): Beat => ({
+        id: scene.id,
+        text: parsed.spoken,
+        script: takeScript(parsed),
+        lines,
+      })),
+  );
 
 /** Every beat's lines, in film order, or the voice a turn names that the film does not have. */
-export const beatsOf = (film: LoadedFilm): Result.Result<ReadonlyArray<Beat>, UnknownVoice> =>
+export const beatsOf = (
+  film: LoadedFilm,
+): Result.Result<ReadonlyArray<Beat>, UnknownVoice | LineError> =>
   Result.all(film.scenes.map((scene) => beatOf(film, scene)));
 
 /** Whether the options ask staging for this beat, before a person's take has its say. */
@@ -176,7 +183,7 @@ const keptBy = (options: NarrateOptions, state: TakeState): Option.Option<Kept['
 export const planNarration = (
   film: LoadedFilm,
   options: NarrateOptions,
-): Result.Result<NarrationPlan, UnknownVoice> => {
+): Result.Result<NarrationPlan, UnknownVoice | LineError> => {
   const voice = voiceKey(film.voice);
   return Result.map(beatsOf(film), (beats): NarrationPlan => {
     const spoken = beats.filter((b) => b.text.length > 0);

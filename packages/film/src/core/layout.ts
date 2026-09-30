@@ -1,12 +1,19 @@
 // The film clock, without the canvas: scenes laid end to end, each sized to its
 // voice. Pure — the player, the renderer and the Bun scripts all read it, and
-// it names no drawing type, so it runs where there is no DOM.
+// it names no drawing type, so it runs where there is no DOM. A film that does
+// not lay out fails as a value naming the scene (and cue) at fault.
 
-import { Array as Arr, Result } from 'effect';
-import { UnknownScene } from './errors.ts';
+import { Array as Arr, Option, Result } from 'effect';
+import {
+  DuplicateScene,
+  type LineError,
+  type PointError,
+  UnknownCue,
+  UnknownScene,
+} from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
-import type { Knob, ResolvedCue, Timed, Timings, Transition, Word } from './schema.ts';
-import { type SceneClock, resolveTimeline } from './timeline.ts';
+import type { Knob, ResolvedCue, ScenePoint, Timed, Timings, Transition, Word } from './schema.ts';
+import { type SceneClock, type TimelineError, pointOn, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
   readonly spec: S;
@@ -53,18 +60,23 @@ export const MIN_LEAD = 0.5;
 /** The time after a scene's last word, unless it declares a `tail`. */
 export const DEFAULT_TAIL = 0.1;
 
+/** Why a film does not lay out: two scenes with one id, a line that does not parse, or a timeline that does not resolve. */
+export type LayoutError = DuplicateScene | LineError | TimelineError;
+
 /** Lay scenes end to end. Pure. */
 export const layout = <S extends Timed>(
   scenes: ReadonlyArray<S>,
   timings: Timings | undefined,
-): Placed<S>[] => {
+): Result.Result<Placed<S>[], LayoutError> => {
   const out: Placed<S>[] = [];
   let start = 0;
   const ids = new Set<string>();
-  scenes.forEach((spec, index) => {
-    if (ids.has(spec.id)) throw new Error(`duplicate scene id ${spec.id}`);
+  for (const [index, spec] of scenes.entries()) {
+    if (ids.has(spec.id)) return Result.fail(DuplicateScene.make({ scene: spec.id }));
     ids.add(spec.id);
-    const voice = voiceFor(spec.id, spec.say ?? '', timings);
+    const said = voiceFor(spec.id, spec.say ?? '', timings);
+    if (Result.isFailure(said)) return Result.fail(said.failure);
+    const voice = said.success;
     const lead = spec.lead ?? Math.max(MIN_LEAD, transitionDur(spec.enter) * 0.7);
     // With the minimum lead, the default seam between two scenes' words is
     // MIN_LEAD + DEFAULT_TAIL = 0.6 s (the film skill's CRAFT rule 9); a meant
@@ -73,12 +85,34 @@ export const layout = <S extends Timed>(
     const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
     const speechStart = voice.duration > 0 ? lead : 0;
     const cues = resolveTimeline(spec.timeline, clockOf(spec.id, voice, speechStart, dur));
+    if (Result.isFailure(cues)) return Result.fail(cues.failure);
     const knobs = new Map(Object.entries(spec.knobs ?? {}));
-    out.push({ spec, index, start, dur, voice, speechStart, cues, knobs });
+    out.push({ spec, index, start, dur, voice, speechStart, cues: cues.success, knobs });
     start += dur;
-  });
-  return out;
+  }
+  return Result.succeed(out);
 };
+
+/**
+ * Where `point` lands in placed scene `p`, scene-local (`pointOn`): a cue it
+ * names is one of the scene's resolved cues. `by` names who asked.
+ */
+export const pointIn = (
+  p: Placed,
+  point: ScenePoint,
+  by: string,
+  edge: 'start' | 'end' = 'start',
+): Result.Result<number, PointError> =>
+  pointOn(
+    sceneClock(p),
+    (cue) =>
+      Result.fromOption(Option.fromUndefinedOr(p.cues.get(cue)), () =>
+        UnknownCue.make({ scene: p.spec.id, cue, by, known: [...p.cues.keys()] }),
+      ),
+    point,
+    by,
+    edge,
+  );
 
 /**
  * Group words into short caption lines, breaking at punctuation and before

@@ -14,8 +14,6 @@ export {
   CueInvalid,
   ScoreUnknown,
   ShortSpanEmpty,
-  ShortUnknownCue,
-  ShortUnknownMark,
   ShortUnknownScene,
   UnknownCue,
   UnknownMark,

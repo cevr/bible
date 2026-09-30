@@ -18,7 +18,9 @@
 //
 // Beds sit 17–20 dB under the voice. The parchment (IDEA) has one bed, the
 // paper room (`room.paper`); each STORY place has its own air from the
-// library. The procedural tones carry the film's one grammar:
+// library. A bed that hands over to the next place ends where that scene's
+// voice begins (`at: 'speech'`), so the room changes as the new speaker does.
+// The procedural tones carry the film's one grammar:
 //   - a chime each time an icon lights on the row (the library's five
 //     variants rotate, so no two lightings in a row ring the same);
 //   - a low drone under `exchange`'s one black moment;
@@ -32,7 +34,7 @@
 // courts (`woman`'s temple court, and `accuser` into `robe`'s heavenly one),
 // the town's under `centurion` until its row.
 
-import type { Act, Cue, Music, Sound } from '@bible/film/core';
+import type { Act, Music, Sound } from '@bible/film/core';
 
 /**
  * The score's acts, one per turn of the film (each 3–120 s, from its scene to
@@ -166,16 +168,6 @@ const option = (styles: ReadonlyArray<string>, extra: ReadonlyArray<string> = []
  */
 const PAPER = -25;
 
-const cue = (scene: string, name: string, offset = 0): Cue => ({ scene, cue: name, offset });
-const ends = (scene: string, name: string, offset = 0): Cue => ({
-  scene,
-  cue: name,
-  edge: 'end',
-  offset,
-});
-const mark = (scene: string, name: string, offset = 0): Cue => ({ scene, mark: name, offset });
-const start = (scene: string, offset = 0): Cue => ({ scene, offset });
-
 export const sound: Sound = {
   score: {
     play: 'piano',
@@ -214,124 +206,246 @@ export const sound: Sound = {
   },
   beds: [
     // IDEA: the parchment page.
-    { sound: 'room.paper', level: PAPER, from: start('cold'), to: start('mirror', 0.4) },
-    { sound: 'room.paper', level: PAPER, from: mark('message', 'three'), to: start('roof', 0.4) },
-    { sound: 'room.paper', level: PAPER, from: cue('woman', 'toIdea'), to: cue('spoke', 'plunge') },
     {
       sound: 'room.paper',
       level: PAPER,
-      from: cue('centurion', 'toIcons'),
-      to: cue('look', 'toDesert'),
+      from: { scene: 'cold' },
+      to: { scene: 'mirror', at: 'speech' },
     },
-    { sound: 'room.paper', level: PAPER, from: cue('look', 'toIcons'), to: start('exchange', 0.4) },
-    { sound: 'room.paper', level: PAPER, from: cue('robe', 'toIcons'), to: mark('daily', 'will') },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: { scene: 'message', mark: 'three' },
+      to: { scene: 'roof', at: 'speech' },
+    },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: { scene: 'woman', cue: 'toIdea' },
+      to: { scene: 'spoke', cue: 'plunge' },
+    },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: { scene: 'centurion', cue: 'toIcons' },
+      to: { scene: 'look', cue: 'toDesert' },
+    },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: { scene: 'look', cue: 'toIcons' },
+      to: { scene: 'exchange', at: 'speech' },
+    },
+    {
+      sound: 'room.paper',
+      level: PAPER,
+      from: { scene: 'robe', cue: 'toIcons' },
+      to: { scene: 'daily', mark: 'will' },
+    },
 
     // STORY: each place's own air. Each level is set so the bed measures
     // about 19 dB under the voice while it speaks (the stems, 400 ms windows,
     // ducked as the mix plays it): a sparse take (the garden's birds, the
     // dawn's) sits higher than a dense one (a crowd).
-    { sound: 'amb.garden', level: -6, from: start('mirror'), to: mark('mirror', 'mirror') },
-    { sound: 'amb.hall', level: -17, from: cue('message', 'window'), to: mark('message', 'three') },
-    { sound: 'amb.house', level: -15, from: start('roof'), to: start('woman', 0.4) },
-    { sound: 'amb.court', level: -16, from: start('woman'), to: cue('woman', 'toIdea') },
-    { sound: 'amb.dawn', level: -3, from: mark('spoke', 'spake'), to: start('centurion', 0.4) },
-    { sound: 'amb.town', level: -15, from: start('centurion'), to: cue('centurion', 'toIcons') },
-    { sound: 'amb.desert', level: -15, from: cue('look', 'toDesert'), to: cue('look', 'toIcons') },
-    { sound: 'amb.dawn', level: -16, from: cue('exchange', 'dawn'), to: mark('exchange', 'up') },
-    { sound: 'amb.court', level: -17, from: start('accuser'), to: cue('robe', 'toIcons') },
-    { sound: 'amb.dawn', level: -8, from: mark('daily', 'will'), to: start('rain', 0.4) },
-    { sound: 'amb.rain', level: -12, from: start('rain'), to: start('name', 0.6) },
+    {
+      sound: 'amb.garden',
+      level: -6,
+      from: { scene: 'mirror' },
+      to: { scene: 'mirror', mark: 'mirror' },
+    },
+    {
+      sound: 'amb.hall',
+      level: -17,
+      from: { scene: 'message', cue: 'window' },
+      to: { scene: 'message', mark: 'three' },
+    },
+    {
+      sound: 'amb.house',
+      level: -15,
+      from: { scene: 'roof' },
+      to: { scene: 'woman', at: 'speech' },
+    },
+    {
+      sound: 'amb.court',
+      level: -16,
+      from: { scene: 'woman' },
+      to: { scene: 'woman', cue: 'toIdea' },
+    },
+    {
+      sound: 'amb.dawn',
+      level: -3,
+      from: { scene: 'spoke', mark: 'spake' },
+      to: { scene: 'centurion', at: 'speech' },
+    },
+    {
+      sound: 'amb.town',
+      level: -15,
+      from: { scene: 'centurion' },
+      to: { scene: 'centurion', cue: 'toIcons' },
+    },
+    {
+      sound: 'amb.desert',
+      level: -15,
+      from: { scene: 'look', cue: 'toDesert' },
+      to: { scene: 'look', cue: 'toIcons' },
+    },
+    {
+      sound: 'amb.dawn',
+      level: -16,
+      from: { scene: 'exchange', cue: 'dawn' },
+      to: { scene: 'exchange', mark: 'up' },
+    },
+    {
+      sound: 'amb.court',
+      level: -17,
+      from: { scene: 'accuser' },
+      to: { scene: 'robe', cue: 'toIcons' },
+    },
+    {
+      sound: 'amb.dawn',
+      level: -8,
+      from: { scene: 'daily', mark: 'will' },
+      to: { scene: 'rain', at: 'speech' },
+    },
+    {
+      sound: 'amb.rain',
+      level: -12,
+      from: { scene: 'rain' },
+      to: { scene: 'name', at: 'speech', offset: 0.2 },
+    },
 
     // The one black moment: the drone under the silhouette, until dawn.
-    { sound: 'tone.low', level: -22, from: cue('exchange', 'dark'), to: cue('exchange', 'dawn') },
+    {
+      sound: 'tone.low',
+      level: -22,
+      from: { scene: 'exchange', cue: 'dark' },
+      to: { scene: 'exchange', cue: 'dawn' },
+    },
   ],
   effects: {
     // ── The tones ──────────────────────────────────────────────────────────
     lit: {
       sound: 'tone.chime',
       at: [
-        cue('message', 'faith'),
-        cue('message', 'forgiveness'),
-        cue('message', 'power'),
-        cue('roof', 'oneLit'),
-        cue('roof', 'twoLit'),
-        cue('roof', 'threeLit'),
-        cue('woman', 'oneLit'),
-        cue('woman', 'twoLit'),
-        cue('woman', 'threeLit'),
-        cue('spoke', 'lead'),
-        cue('centurion', 'faithLit'),
-        cue('look', 'iconGlow'),
-        cue('declared', 'robeLit'),
-        cue('robe', 'iconGlow'),
-        cue('within', 'heartLit'),
+        { scene: 'message', cue: 'faith' },
+        { scene: 'message', cue: 'forgiveness' },
+        { scene: 'message', cue: 'power' },
+        { scene: 'roof', cue: 'oneLit' },
+        { scene: 'roof', cue: 'twoLit' },
+        { scene: 'roof', cue: 'threeLit' },
+        { scene: 'woman', cue: 'oneLit' },
+        { scene: 'woman', cue: 'twoLit' },
+        { scene: 'woman', cue: 'threeLit' },
+        { scene: 'spoke', cue: 'lead' },
+        { scene: 'centurion', cue: 'faithLit' },
+        { scene: 'look', cue: 'iconGlow' },
+        { scene: 'declared', cue: 'robeLit' },
+        { scene: 'robe', cue: 'iconGlow' },
+        { scene: 'within', cue: 'heartLit' },
       ],
     },
-    drain: { sound: 'tone.drain', at: [cue('cold', 'drain')] },
-    bloom: { sound: 'tone.bloom', at: [cue('declared', 'bloom'), mark('name', 'true')] },
+    drain: { sound: 'tone.drain', at: [{ scene: 'cold', cue: 'drain' }] },
+    bloom: {
+      sound: 'tone.bloom',
+      at: [
+        { scene: 'declared', cue: 'bloom' },
+        { scene: 'name', mark: 'true' },
+      ],
+    },
 
     // ── Paper, wood and stone on the parchment ─────────────────────────────
     // A level named here is where `check`'s EffectHot (each effect's loudest
     // 50 ms against the voice around it) found the library's too hot.
-    evidence: { sound: 'paper.stack', at: [ends('cold', 'drop', -0.3)] },
+    evidence: {
+      sound: 'paper.stack',
+      at: [{ scene: 'cold', cue: 'drop', edge: 'end', offset: -0.3 }],
+    },
     gavel: {
       sound: 'wood.gavel',
       level: -16,
-      at: [ends('cold', 'gavel'), ends('name', 'gavel')],
+      at: [
+        { scene: 'cold', cue: 'gavel', edge: 'end' },
+        { scene: 'name', cue: 'gavel', edge: 'end' },
+      ],
     },
     stamp: {
       sound: 'stamp.press',
       level: -13,
-      at: [ends('cold', 'stamp'), ends('name', 'stamp')],
+      at: [
+        { scene: 'cold', cue: 'stamp', edge: 'end' },
+        { scene: 'name', cue: 'stamp', edge: 'end' },
+      ],
     },
     flip: {
       sound: 'paper.flip',
       level: -14,
-      at: [cue('word', 'flip', 0.2), cue('spoke', 'bookOpen')],
+      at: [
+        { scene: 'word', cue: 'flip', offset: 0.2 },
+        { scene: 'spoke', cue: 'bookOpen' },
+      ],
     },
-    tablets: { sound: 'tablet.set', level: -15, at: [ends('word', 'drop', -0.1)] },
-    tear: { sound: 'paper.tear', at: [cue('word', 'cardOut')] },
-    tape: { sound: 'tape.measure', at: [cue('word', 'tape')] },
-    book: { sound: 'book.close', level: -18, at: [cue('within', 'book')] },
+    tablets: {
+      sound: 'tablet.set',
+      level: -15,
+      at: [{ scene: 'word', cue: 'drop', edge: 'end', offset: -0.1 }],
+    },
+    tear: { sound: 'paper.tear', at: [{ scene: 'word', cue: 'cardOut' }] },
+    tape: { sound: 'tape.measure', at: [{ scene: 'word', cue: 'tape' }] },
+    book: { sound: 'book.close', level: -18, at: [{ scene: 'within', cue: 'book' }] },
 
     // ── The garden ─────────────────────────────────────────────────────────
-    leaves: { sound: 'leaves.rustle', at: [cue('mirror', 'leaves')] },
-    scrub: { sound: 'glass.scrub', at: [cue('mirror', 'scrub')] },
-    needle: { sound: 'needle.thread', level: -14, at: [ends('mirror', 'toSew')] },
+    leaves: { sound: 'leaves.rustle', at: [{ scene: 'mirror', cue: 'leaves' }] },
+    scrub: { sound: 'glass.scrub', at: [{ scene: 'mirror', cue: 'scrub' }] },
+    needle: {
+      sound: 'needle.thread',
+      level: -14,
+      at: [{ scene: 'mirror', cue: 'toSew', edge: 'end' }],
+    },
 
     // ── The hall ───────────────────────────────────────────────────────────
     banner: {
       sound: 'cloth.banner',
       level: -17,
-      at: [mark('message', 'banner'), cue('rain', 'fly')],
+      at: [
+        { scene: 'message', mark: 'banner' },
+        { scene: 'rain', cue: 'fly' },
+      ],
     },
-    crowd: { sound: 'crowd.swell', at: [cue('message', 'turn', -0.3)] },
-    wings: { sound: 'wings.pass', level: -17, at: [cue('message', 'fly')] },
+    crowd: { sound: 'crowd.swell', at: [{ scene: 'message', cue: 'turn', offset: -0.3 }] },
+    wings: { sound: 'wings.pass', level: -17, at: [{ scene: 'message', cue: 'fly' }] },
 
     // ── Capernaum ──────────────────────────────────────────────────────────
-    tiles: { sound: 'roof.tiles', at: [cue('roof', 'tiles')] },
-    rope: { sound: 'rope.creak', at: [cue('roof', 'lower')] },
-    mat: { sound: 'mat.roll', at: [cue('roof', 'roll')] },
+    tiles: { sound: 'roof.tiles', at: [{ scene: 'roof', cue: 'tiles' }] },
+    rope: { sound: 'rope.creak', at: [{ scene: 'roof', cue: 'lower' }] },
+    mat: { sound: 'mat.roll', at: [{ scene: 'roof', cue: 'roll' }] },
     steps: {
       sound: 'steps.dirt',
       level: -15,
-      at: [cue('roof', 'walk'), cue('woman', 'walkOut'), cue('look', 'approach')],
+      at: [
+        { scene: 'roof', cue: 'walk' },
+        { scene: 'woman', cue: 'walkOut' },
+        { scene: 'look', cue: 'approach' },
+      ],
     },
 
     // ── The temple court ───────────────────────────────────────────────────
-    writing: { sound: 'dust.writing', at: [cue('woman', 'writing')] },
-    stones: { sound: 'stones.dust', level: -13, at: [cue('woman', 'drop')] },
+    writing: { sound: 'dust.writing', at: [{ scene: 'woman', cue: 'writing' }] },
+    stones: { sound: 'stones.dust', level: -13, at: [{ scene: 'woman', cue: 'drop' }] },
 
     // ── The word flies ─────────────────────────────────────────────────────
     whoosh: {
       sound: 'paper.whoosh',
-      at: [cue('spoke', 'flight'), cue('centurion', 'fly'), cue('declared', 'speak')],
+      at: [
+        { scene: 'spoke', cue: 'flight' },
+        { scene: 'centurion', cue: 'fly' },
+        { scene: 'declared', cue: 'speak' },
+      ],
     },
 
     // ── The desert ─────────────────────────────────────────────────────────
-    coins: { sound: 'coins.clatter', at: [cue('look', 'slide')] },
-    snakes: { sound: 'snake.hiss', at: [mark('look', 'desert')] },
-    pole: { sound: 'pole.creak', at: [cue('look', 'rise')] },
+    coins: { sound: 'coins.clatter', at: [{ scene: 'look', cue: 'slide' }] },
+    snakes: { sound: 'snake.hiss', at: [{ scene: 'look', mark: 'desert' }] },
+    pole: { sound: 'pole.creak', at: [{ scene: 'look', cue: 'rise' }] },
 
     // ── The cross and the tomb ─────────────────────────────────────────────
     // The lift's take opens on a soft thud 12 dB over its body (every
@@ -340,14 +454,17 @@ export const sound: Sound = {
     cloth: {
       sound: 'cloth.lift',
       level: -19,
-      at: [cue('exchange', 'lift'), cue('robe', 'lift')],
+      at: [
+        { scene: 'exchange', cue: 'lift' },
+        { scene: 'robe', cue: 'lift' },
+      ],
     },
-    stone: { sound: 'stone.roll', level: -12, at: [cue('exchange', 'dawn')] },
+    stone: { sound: 'stone.roll', level: -12, at: [{ scene: 'exchange', cue: 'dawn' }] },
 
     // ── The heavenly court ─────────────────────────────────────────────────
-    stain: { sound: 'stain.hiss', at: [cue('accuser', 'flare')] },
-    loom: { sound: 'loom.weave', level: -19, at: [cue('robe', 'weave')] },
-    settle: { sound: 'cloth.settle', level: -19, at: [cue('robe', 'settle')] },
-    hall: { sound: 'steps.stone', level: -15, at: [cue('accuser', 'enter')] },
+    stain: { sound: 'stain.hiss', at: [{ scene: 'accuser', cue: 'flare' }] },
+    loom: { sound: 'loom.weave', level: -19, at: [{ scene: 'robe', cue: 'weave' }] },
+    settle: { sound: 'cloth.settle', level: -19, at: [{ scene: 'robe', cue: 'settle' }] },
+    hall: { sound: 'steps.stone', level: -15, at: [{ scene: 'accuser', cue: 'enter' }] },
   },
 };

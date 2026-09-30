@@ -90,7 +90,7 @@ describe('jobOf', () => {
     const short = {
       id: 'cut',
       title: 'A cut',
-      spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+      spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
     } as const;
     const job = Result.getOrThrow(jobOf({ ...flags, short: Option.some(short) }));
     expect(job).toMatchObject({ _tag: 'Video', cut: Cut.Short({ short }) });
@@ -105,7 +105,7 @@ describe('jobOf', () => {
       short: {
         id: 'cut',
         title: 'A cut',
-        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+        spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
       },
     });
     expect(cutPage('film', Cut.Whole())).toBe('film');
@@ -180,13 +180,15 @@ describe('ranges', () => {
   });
 
   test('--scene spans its scenes, from the layout', () => {
-    const placed = layout(
-      [
-        { id: 'a', min: 4 },
-        { id: 'b', min: 5 },
-        { id: 'c', min: 6 },
-      ],
-      { voice: '', scenes: {} },
+    const placed = Result.getOrThrow(
+      layout(
+        [
+          { id: 'a', min: 4 },
+          { id: 'b', min: 5 },
+          { id: 'c', min: 6 },
+        ],
+        { voice: '', scenes: {} },
+      ),
     );
     expect(Result.getOrThrow(sceneSpan(placed, ['b', 'c']))).toEqual({ from: 4, to: 15 });
     const unknown = Result.match(sceneSpan(placed, ['b', 'z']), {

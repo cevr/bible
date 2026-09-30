@@ -376,15 +376,15 @@ smaller: righteousness-by-faith (457 s, 13712 frames) rendered in 293.5 s at
 
 A film's `shorts.ts` (optional; `Shorts` in `core/schema.ts`, decoded by
 `FilmRepo`) declares vertical cuts: `{ id, title, spans: [{ scene, from, to }] }`,
-each point a `{ mark }`, a named `{ cue, edge? }` or a scene landmark, never a
-second. A span that opens on a word (a `{ mark }` or `{ scene: 'speech' }`)
+each point a `ScenePoint`: a `{ mark }`, a named `{ cue, edge? }` or a scene
+landmark `{ at }`, never a second. A span that opens on a word (a `{ mark }` or `{ at: 'speech' }`)
 opens `SHORT_PREROLL` (0.1 s) before the word is heard, never before its
 aligned start: the aligner gives a word the pause before it, and a short
 opened on that pause starts on silence. A close stays where it is marked.
 `core/shorts.ts` resolves a short against the layout on whole frames
 (`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
-and short seconds), or fails with `ShortUnknownScene`, `ShortUnknownMark`,
-`ShortUnknownCue` or `ShortSpanEmpty` naming what the film has; `--short`
+and short seconds), or fails with `ShortUnknownScene`, `UnknownMark`,
+`UnknownCue` (each `by: 'short "<id>"'`) or `ShortSpanEmpty` naming what the film has; `--short`
 naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
 the film stretches under it.
 
@@ -1093,13 +1093,24 @@ export const justified = drawing({
 ```
 
 `layout()` resolves every timeline once (`Placed.cues`, scene-local
-`{ start, end, dur, ease }`); an unknown mark or cue, or a cycle, is an error naming
-the scene and the cue. A mark anchor may pin to a word instead of the mark:
+`{ start, end, dur, ease }`) and returns a `Result`: a film that does not lay
+out fails as a value (`LayoutError`) naming the scene and the cue:
+`UnknownMark` or `UnknownCue` (with `by`, the cue that named it, and `known`,
+what the scene has), `CueCycle`, `UntilBeforeStart`, `WordMissing`,
+`DuplicateScene`, or a line that does not parse (`DuplicateMark`,
+`TurnInvalid`; `parse(scene, text)` returns a `Result` too). The browser
+turns it into a thrown error once, at load (`createFilm`). Every point in a
+scene resolves through one function: `pointOn` in `core/timeline.ts` (on a
+`SceneClock`), and `pointIn(placed, point, by)` in `core/layout.ts` over a
+placed scene. A timeline anchor becomes a `ScenePoint` (`anchorPoint`:
+`after` a cue is its end, `with` it its start), as a short's span and a sound
+cue already are. A span that `ends: true` ends at its anchor and starts its
+`dur` before it. A mark anchor may pin to a word instead of the mark:
 `{ mark: 'gift', word: 'faith', dur: 0.6 }` starts on the first word said at
 or after `{gift}` that reads `faith` (`wordAfter`/`readsWord` in
 `core/narration.ts`, normalised by `normalizeWords` as the take check's word error is: any case, apostrophes dropped, each hyphenated part, accents kept, NFC). `film check` warns `WordPinFar` when the pin lands more than `PIN_REACH` (one) sentence past its mark, where a re-take that lost the word would have moved it. A line that never says it
-there throws `WordMissing` (`core/errors.ts`) at layout, which the tools'
-`placeFilm` fails with as itself (`PlaceError = WordMissing | LayoutInvalid`),
+there fails the layout with `WordMissing` (`core/errors.ts`), which the tools'
+`placeFilm` fails with as itself (`PlaceError = LayoutError`),
 so `film check` and every tool refuse the film by name; there is no fall back
 to the mark. `f.cue(name)` reads a resolved cue and `f.at(name)`
 its eased progress. A span declares its easing as data, `ease: 'inQuad'` (one

@@ -1,23 +1,20 @@
 // Sound: a film's music, beds and effects, declared as data and placed on the
 // same clock as the pictures. A music act starts at a scene; an effect fires
-// at one of a scene's named cues (the same cue its picture reads), or at a
-// mark, and a bed runs from one cue to another, so re-recording a line moves
-// its sounds with it. Effects and beds name sounds from the app's library
+// at a point in a scene (one of its named cues, the same cue its picture
+// reads, a mark, or a landmark such as where its voice starts), and a bed runs
+// from one point to another, so re-recording a line moves its sounds with it. Effects and beds name sounds from the app's library
 // (`sfx.ts`). Pure — the score and mix scripts read it without a DOM.
 
-import { Array as Arr, Option, Result, Schema } from 'effect';
+import { Array as Arr, Option, Predicate, Result, Schema } from 'effect';
 import {
   type ActLength,
   ActTooLong,
   ActTooShort,
-  CueInvalid,
   ScoreUnknown,
   type SoundCueError,
-  UnknownCue,
-  UnknownMark,
   type UnknownScene,
 } from './errors.ts';
-import { type Placed, sceneOf } from './layout.ts';
+import { type Placed, pointIn, sceneOf } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
   type Act,
@@ -27,6 +24,7 @@ import {
   type Plan,
   type PlanChunk,
   type Score,
+  type ScenePoint,
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
@@ -71,36 +69,17 @@ export const playedOption = (
 export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
   Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
 
-/** Where in its scene a cue lands, from the scene's start, before its offset. */
-const anchorOf = (cue: Cue, p: Placed): Result.Result<number, SoundCueError> => {
-  const { scene } = cue;
-  const named = Option.fromNullishOr(cue.cue);
-  const mark = Option.fromNullishOr(cue.mark);
-  const edge = Option.fromNullishOr(cue.edge);
-  if (Option.isSome(named) && Option.isSome(mark))
-    return Result.fail(CueInvalid.make({ scene, reason: 'names both cue and mark' }));
-  if (Option.isSome(edge) && Option.isNone(named))
-    return Result.fail(CueInvalid.make({ scene, reason: 'has an edge but names no cue' }));
-  if (Option.isSome(named)) {
-    const name = named.value;
-    const end = Option.contains(edge, 'end');
-    return Result.fromOption(
-      Option.map(Option.fromNullishOr(p.cues.get(name)), (c) => {
-        if (end) return c.end;
-        return c.start;
-      }),
-      () => UnknownCue.make({ scene, cue: name }),
-    );
-  }
-  if (Option.isSome(mark))
-    return Result.fromOption(
-      Option.map(Option.fromNullishOr(p.voice.marks.get(mark.value)), (m) => p.speechStart + m),
-      () => UnknownMark.make({ scene, mark: mark.value }),
-    );
-  return Result.succeed(0);
+/** Where in its scene a cue lands, before its offset: its point (`pointIn`), or the scene's start. */
+const anchorOf = (cue: Cue, p: Placed) => {
+  if (!pointed(cue)) return Result.succeed(0);
+  return pointIn(p, cue, 'sound');
 };
 
-/** Absolute film time of a cue. */
+/** Whether a cue names a point in its scene: a mark, a cue or a landmark. */
+const pointed = (cue: Cue): cue is Cue & ScenePoint =>
+  [cue.mark, cue.cue, cue.at].some(Predicate.isNotUndefined);
+
+/** Absolute film time of a cue: its scene's start, its offset, and its point in the scene. */
 export const cueTime = (
   cue: Cue,
   placed: ReadonlyArray<Placed>,

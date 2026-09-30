@@ -113,7 +113,7 @@ const POLE_H = 620;
 
 const timeline = {
   wonder: { mark: 'faith', dur: 0.5 },
-  holdUp: { mark: 'saviour', offset: -0.6, dur: 0.6, ease: 'outBack' },
+  holdUp: { mark: 'saviour', dur: 0.6, ends: true, ease: 'outBack' },
   // Their hands go up to where the stack comes down into them, and down once it has slid off.
   handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
   slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
@@ -122,10 +122,10 @@ const timeline = {
   // As the stack goes, their near hand comes down open, and the camera
   // pushes into it: the close-up. Once the light is laid in it, back out
   // to them holding it.
-  offer: { with: 'handIn', offset: -0.5, dur: 0.5 },
+  offer: { with: 'handIn', dur: 0.5, ends: true },
   // Coming down, the hand that held the stack turns palm up: the close-up's shape.
   palmUp: { mark: 'hand', offset: -0.85, dur: 0.25, ease: 'inOutSine' },
-  handIn: { mark: 'hand', offset: -0.6, dur: 0.6, ease: 'inOutCubic' },
+  handIn: { mark: 'hand', dur: 0.6, ends: true, ease: 'inOutCubic' },
   light: { mark: 'hand', offset: 0.3, dur: 1, ease: 'outCubic' },
   handOut: { after: 'light', dur: 0.6, ease: 'inOutCubic' },
   toDesert: { mark: 'desert', offset: -0.4, dur: 0.6 },
