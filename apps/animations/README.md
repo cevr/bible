@@ -58,7 +58,7 @@ bun run chapters <film>                        # the YouTube chapters film.ts's 
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
 bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
-bun cli.ts options take <film> --point p --variant v --verb keep|unkeep|reject  # keep, unkeep or reject a sound's take in the library as it stands
+bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
 bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
@@ -238,7 +238,11 @@ choice points at the scenes they play in. The review answers loopback, and the n
 `FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
 `server.ts` builds it in process and serves it behind the check); writes are
 same-origin JSON.
-It never edits a scene: that stays in the lab.
+It never edits a scene: that stays in the lab. The player, the lab and the
+review serve a film's narration through one route in `server.ts`,
+`/films/<film>/narration/<file>`: the film one of the app's films, the file
+one directly in its `narration/` (never `attempts/`); any other name is a 404
+before the disk is read.
 
 ## How a film is built
 

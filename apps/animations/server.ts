@@ -5,7 +5,8 @@
 
 import { type LabBound, type LabHandler, ReviewPageFailed } from '@bible/film/tools';
 import { Effect, Option } from 'effect';
-import { join, normalize } from 'node:path';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import index from './index.html';
 import labPage from './lab.html';
 
@@ -42,8 +43,9 @@ const labRoutes = (lab: Option.Option<Handler>) => ({
  * page and routes too. The narration is served from `films` (a test's copy
  * of the films folder, so the studio's writes never touch the real one).
  */
-export const serve = (port: number, development: boolean, lab?: Handler, films: string = FILMS) =>
-  Bun.serve({
+export const serve = (port: number, development: boolean, lab?: Handler, films: string = FILMS) => {
+  const spoken = narration(films);
+  return Bun.serve({
     hostname: HOST,
     port,
     development,
@@ -51,30 +53,57 @@ export const serve = (port: number, development: boolean, lab?: Handler, films: 
     routes: {
       '/': index,
       ...labRoutes(Option.fromUndefinedOr(lab)),
-      '/films/*': narration(films),
+      '/films/*': (req) => spoken(new URL(req.url).pathname),
     },
   });
+};
+
+/** A narration URL: `/films/<film>/narration/<file>`, the file directly in the folder. */
+const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
+
+/** A file name as it may sit in a narration folder: no path, no dotfile. */
+const NARRATION_FILE = /^[\w-][\w.-]*$/;
+
+/** The app's films: the folders under `films` (read once, when the server starts). */
+const filmsIn = (films: string): ReadonlySet<string> =>
+  new Set(
+    readdirSync(films, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name),
+  );
+
+/** The file a narration URL names, when its film is one of `known` and its name a plain file's. */
+const narrationFile = (films: string, known: ReadonlySet<string>, pathname: string) =>
+  Option.flatMap(Option.fromNullishOr(NARRATION_URL.exec(pathname)), ([, film, file]) =>
+    Option.filter(
+      Option.all([Option.fromUndefinedOr(film), Option.fromUndefinedOr(file)]),
+      ([f, n]) => known.has(f) && NARRATION_FILE.test(n),
+    ).pipe(Option.map(([f, n]) => join(films, f, 'narration', n))),
+  );
 
 /**
- * Narration takes: /films/<film>/narration/<file>. The studio rewrites them
- * in place (a take kept, the track remixed), so the browser asks again on
- * every load rather than play a take it cached.
+ * The narration route, `/films/<film>/narration/<file>`, for the player, the
+ * lab and the review page alike: the film one of the app's films, the file
+ * one directly in its `narration/` (never `attempts/`, never a path). Any
+ * other name is a 404 before the disk is read. The studio rewrites these
+ * files in place (a take kept, the track remixed), so the browser asks again
+ * on every load rather than play a take it cached.
  */
-const spoken = (films: string, pathname: string) =>
-  Effect.gen(function* () {
-    const rel = normalize(decodeURIComponent(pathname.slice('/films/'.length)));
-    if (rel.startsWith('..') || !rel.includes('/narration/'))
-      return new Response('not found', { status: 404 });
-    const file = Bun.file(join(films, rel));
-    if (!(yield* Effect.promise(() => file.exists())))
-      return new Response('not found', { status: 404 });
-    return new Response(file, { headers: { 'Cache-Control': 'no-cache' } });
-  });
-
-const narration =
-  (films: string): Handler =>
-  (req) =>
-    Effect.runPromise(spoken(films, new URL(req.url).pathname));
+export const narration = (films: string) => {
+  const known = filmsIn(films);
+  const answer = (pathname: string) =>
+    Option.match(narrationFile(films, known, pathname), {
+      onNone: () => Effect.succeed(new Response('not found', { status: 404 })),
+      onSome: (path) =>
+        Effect.gen(function* () {
+          const file = Bun.file(path);
+          if (!(yield* Effect.promise(() => file.exists())))
+            return new Response('not found', { status: 404 });
+          return new Response(file, { headers: { 'Cache-Control': 'no-cache' } });
+        }),
+    });
+  return (pathname: string) => Effect.runPromise(answer(pathname));
+};
 
 /** The review page's source, built in this process (`reviewPage`). */
 const REVIEW_HTML = join(import.meta.dir, 'review.html');
@@ -130,10 +159,13 @@ const builtFile = (files: BuiltPage, pathname: string) =>
  * (`ReviewPageFailed`) rather than a request.
  */
 export const reviewPage = (films: string) =>
-  Effect.map(buildReviewPage, (files): LabHandler => (req) => {
-    const { pathname } = new URL(req.url);
-    if (pathname.startsWith('/films/')) return Effect.runPromise(spoken(films, pathname));
-    return Effect.runPromise(Effect.sync(() => builtFile(files, pathname)));
+  Effect.map(buildReviewPage, (files): LabHandler => {
+    const spoken = narration(films);
+    return (req) => {
+      const { pathname } = new URL(req.url);
+      if (pathname.startsWith('/films/')) return spoken(pathname);
+      return Effect.runPromise(Effect.sync(() => builtFile(files, pathname)));
+    };
   });
 
 /**

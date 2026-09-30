@@ -4,11 +4,12 @@
 // `serve`. The review's page is built in this process and answered by a
 // handler (`reviewPage`), so the review's `admit` stands in front of it.
 
+import { BunServices } from '@effect/platform-bun';
 import type { LabHandler } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Option } from 'effect';
+import { Effect, FileSystem, Option, Path } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
-import { FILMS, reviewPage, serve } from '../server.ts';
+import { FILMS, narration, reviewPage, serve } from '../server.ts';
 
 /** The server `serve` starts, stopped when the test's scope closes. */
 const served = (development: boolean) =>
@@ -39,6 +40,40 @@ describe('serve', () => {
         expect(res.status).toBe(200);
         expect(res.headers['cache-control']).toBe('no-cache');
       }).pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer)),
+  );
+
+  it.live(
+    "answers only a film's own narration files: no other film, no attempts, no path, no dotfile",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const films = yield* fs.makeTempDirectoryScoped({ prefix: 'narration-' });
+        yield* fs.makeDirectory(path.join(films, 'f/narration/attempts'), { recursive: true });
+        for (const file of ['timings.json', 'attempts/a.wav', '.hidden'])
+          yield* fs.writeFileString(path.join(films, 'f/narration', file), '{}');
+        const spoken = narration(films);
+        const status = (url: string) =>
+          Effect.map(
+            Effect.promise(() => spoken(url)),
+            (res) => [url, res.status],
+          );
+        expect(
+          yield* Effect.all([
+            status('/films/f/narration/timings.json'),
+            status('/films/nope/narration/timings.json'),
+            status('/films/f/narration/attempts/a.wav'),
+            status('/films/f/narration/attempts%2Fa.wav'),
+            status('/films/f/narration/.hidden'),
+          ]),
+        ).toEqual([
+          ['/films/f/narration/timings.json', 200],
+          ['/films/nope/narration/timings.json', 404],
+          ['/films/f/narration/attempts/a.wav', 404],
+          ['/films/f/narration/attempts%2Fa.wav', 404],
+          ['/films/f/narration/.hidden', 404],
+        ]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });
 
