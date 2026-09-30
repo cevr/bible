@@ -1,0 +1,32 @@
+// Fixture for film/no-cue-remap: each line marked RED fires the rule, and
+// nothing else does.
+import { drawing } from '@bible/film/canvas';
+import { clamp } from '@bible/film/core';
+
+/** A share of a cue, in a module const. */
+const SHARE = 0.6;
+
+export const scene = drawing({
+  timeline: {
+    answer: { mark: 'dark', dur: 1.6, ease: 'linear' },
+    answerIn: { with: 'answer', dur: 0.4, ease: 'linear' },
+  },
+  draw: (f) => {
+    const answer = f.at('answer');
+    const grow = clamp(f.t);
+    const passed = (p: number) => clamp(p * 3);
+    return [
+      clamp(answer * 4), // RED film/no-cue-remap
+      clamp(4 * f.at('answer')), // RED film/no-cue-remap
+      clamp(answer / SHARE), // RED film/no-cue-remap
+      clamp(3 * answer - 2), // RED film/no-cue-remap
+      clamp((answer - 0.75) / 0.25), // RED film/no-cue-remap
+      clamp((answer - 2) * 3), // RED film/no-cue-remap
+      clamp(f.at('answerIn')),
+      clamp(answer),
+      clamp(grow * 2),
+      clamp(answer * grow),
+      passed(answer),
+    ];
+  },
+});

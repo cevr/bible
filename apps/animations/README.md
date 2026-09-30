@@ -319,9 +319,11 @@ starts on the first word said at or after `{gift}` that reads `faith` (read as
 a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
 the word there fails the layout with `WordMissing` (`film check`, the player,
 the gate's every-scene test), never falling back to the mark. It lasts its `dur`,
-or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`), so
+or runs `until` a mark (`{ mark: 'right', offset: -0.4, until: 'notes' }`) or a
+landmark (`{ mark: 'daily', until: { at: 'speechEnd' } }`, never a progress rolled
+by hand to `f.speech.end`), so
 a re-take moves its end as well as its start; a span declares one or the
-other, and a lab `dur` write replaces its `until`. A motion that must land on
+other, and a lab `dur` write replaces a mark's `until`. A motion that must land on
 its moment `ends` there: `{ mark: 'true', dur: 0.5, ends: true }` ends on
 `{true}` and starts its `dur` before it (never `offset: -0.5, dur: 0.5`, the
 same number twice), so a lab `dur` write or drag keeps the landing. A
@@ -341,7 +343,7 @@ scales every item (`drop: { mark: 'evidence', dur: 1.4, ease: 'inCubic', stagger
 A set spread by place rather than count (fields greening as the rain reaches
 each) reads `f.staggerAt(name, at)`, `at` 0 for the first and 1 for the last.
 A part of a cue (a fill over its last tenth) is a cue of its own, `{ after:
-'into', dur: 0.1, ends: true }`, never `clamp((f.at('into') - 0.75) / 0.25)`:
+'into', dur: 0.1, ends: true }`, never `clamp((f.at('into') - 0.75) / 0.25)` (`film/no-cue-remap`):
 the lab cannot reach a fraction written in the draw. A set that takes a
 number staggers its pieces with `staggered(p, at, share)` (`@bible/film/core`).
 Plain `keys(t, …)` is for ornament. Wrap the drawing in `drawing({ timeline,
@@ -358,10 +360,11 @@ move is declared on the drawing, `knobs: { palm: [960, 800] }`, and read with
 `f.knob('palm')` (a number or an `[x, y]` point), never repeated as a
 constant. A framing is knobs too: a point and a zoom (and a tilt),
 `face: [800, 610], faceZoom: 1.22`, made a camera in the draw with
-`knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`, which
-a film's kit re-exports); the lab gives that pair a reticle. Only the unmoved
+`knobCamera(f.knob('face'), f.knob('faceZoom'))` (`@bible/film/canvas`); the lab gives that pair a reticle. Only the unmoved
 frame (`{ x: 960, y: 540, zoom: 1 }`), a framing derived from another
-constant and one shared across scenes stay code. A push is a `shotPath` stop
+constant and one shared across scenes (in a set file) stay code; a framing
+written out in a scene or blended by hand with `lerp` fails `film/framing-is-a-knob`,
+and `film check`'s `KnobRepeated` compares a framing by its point and zoom. A push is a `shotPath` stop
 to a knob camera, `shotPath(REST, [[f.at('plunge'), knobCamera(f.knob('page'),
 f.knob('pageZoom')), pushInto]])`, never a zoom eased again by hand
 (`film/no-ease-on-cue`); a held close-up that keeps pushing in is
@@ -428,12 +431,15 @@ scene's voice starts (never `offset: 0.4`, a copy of the scene's `lead`). A
 sound at a scene's start names that landmark too (`{ scene, at: 'start' }`),
 so a timeline, a short and the sound spell a point one way. A one-shot whose
 loudest moment is its event (a stack settling, a page landing) says
-`sync: 'hit'` and anchors on the cue where the picture lands: the lock
-records each take's `onset` and `hit` (seconds into its file, measured when
-kept, or by `sfx describe`), and the mix starts each take its own hit early,
-so a re-rolled take stays on the picture. Never an `offset: -0.3` sized to
-one take's lead-in; `sfx check` warns `LeadIn` on a take whose sound starts
-more than 0.05 s in. A point names one
+`sync: 'hit'` and anchors on the cue where the picture lands; a sustained
+one (steps, a creak, a whoosh) says `sync: 'onset'`, so its sound, not its
+file's silent lead-in, begins on the cue (its hit may be a second in, and
+hit-sync would start it that early). The lock records each take's `onset`
+and `hit` (seconds into its file, measured when kept, or by `sfx describe`),
+and the mix starts each take its own onset or hit early, so a re-rolled take
+stays on the picture. Never an `offset: -0.3` sized to one take's lead-in;
+`check` warns `LeadIn` on an effect placed from its first sample (no `sync`)
+whose take starts more than 0.05 s in. A point names one
 anchor: a cue and a mark together do not compile. `score` sends each option's
 movements as one timed ElevenLabs composition plan (music v2 enforces the
 section lengths, so the score turns where the film does). Movements are the
@@ -595,7 +601,7 @@ browser.
 Rules that keep renders deterministic: never call `Math.random` (use
 `f.hand(key)` seeds and `random.ts` from `@bible/film/core`), and never keep
 state between frames — compute everything from `f.t`. A callback, or a shot
-carried over a cut, draws another scene's paper with `f.handsOf('message')`:
+carried over a cut, draws another scene's paper with `f.handsOf(message)` (found by its drawing, so a mistyped scene fails to compile; an id string works too):
 that scene's hands as its own `f.hand` gives them, boiling on this frame's
 tick; a scene the film lacks throws, naming it. It frames what that scene
 framed with its knobs, `f.knobsOf(thesis)('city')` (found by its drawing,
@@ -611,6 +617,8 @@ for every film:
 | `film/no-unprobed-ink`       | `stroke`, `strokeRect`, `fillText` or `strokeText` read off the raw context however it is spelled (`ctx.stroke()`, `ctx['stroke']`, `.call`, destructured), which `film check` cannot see cross text: draw with the kit (`stroke`, `write`, `block`), or wrap texture that never crosses text in the kit's `unprobed(ctx, () => …)` (imported by name, aliased, or off a namespace import; a local function named `unprobed` exempts nothing)                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `film/no-hand-timed-seconds` | a second written by hand, which the lab cannot reach, a sound cannot follow and a re-take leaves behind: `clamp(t / 2)` or `clamp((t - cue.end) / 1.5)` over the scene clock, `(t - cue.start) / 0.5`, `progress`/`envelope(t, …)` with a literal start or length, `keys(t, …)` on the scene clock, `cue.end + 0.5`, `f.mark('x') - 0.4`, `f.dur - 1.5` or `t - 4.2`, the clock compared with a second (`t > 3.5`, `t - cue.start > 0.5`), a second hidden in a module `const`, and a span whose literal `offset` sits over 1 s from its `mark` or the scene's `start`/`speech`. Declare a cue and read `f.at`/`f.keys`/`f.stagger`, anchored to a word pin, another cue (`after`/`with`) or the voice's end (`at: 'speechEnd'`); a pause the script means is a named cue with its reason in a comment. A rate (`Math.sin(t * 7)`) and a lead-in under 1 s are not times |
 | `film/no-ease-on-cue`        | a cue's progress eased a second time, `ease.inCubic(f.at('plunge'))`: the span's `ease` already curves it, and the lab's picker cannot reach the second; a push is a `shotPath` stop with `pushInto`, another curve its own cue or `f.keys`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `film/framing-is-a-knob`     | in a scene file, a framing written out, `{ x: 1060, y: 580, zoom: 1.18 }`, or blended by hand, `zoom: lerp(1, 1.12, f.at('hold'))` or a scratch camera's `cam.zoom = lerp(…, 2.75, …)`: make it knobs read with `knobCamera`, a move a `shotPath` of them, a push that keeps going `pushOn` with a number knob. The unmoved frame and a framing derived from the scene's geometry pass; a framing shared across scenes lives in a set file                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `film/no-cue-remap`          | a cue split by a fraction written in the draw, `clamp(f.at('answer') * 4)` or `clamp((into - 0.75) / 0.25)` over a cue's progress: the part is a cue of its own, `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`, which the lab can reach                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `film/span-ends-on-anchor`   | a span that lands on its anchor written as `offset: -d, dur: d` (its length twice, so a `dur` edit moves the landing): write `{ mark, dur, ends: true }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 One rule holds the tools as well as the films, over all of `packages/film` and

@@ -8,9 +8,16 @@
 // drops and the accuser shrinks back. It ends on the frame `robe` opens on:
 // both draw the court's `zechCourt`.
 
-import { type Gesture, camera, drawing, shotPath } from '@bible/film/canvas';
+import {
+  type Gesture,
+  camera,
+  drawing,
+  shotPath,
+  type Posed,
+  knobCamera,
+} from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { type Posed, knobCamera } from '../kit.ts';
+
 import { JOSHUA, TUNIC_STAINS, ZECH_REST as REST, courtWall, zechCourt } from '../court.ts';
 
 /** Christ's hand raised on "angel", palm out beside his head; its reach rewritten each frame (scratch). */

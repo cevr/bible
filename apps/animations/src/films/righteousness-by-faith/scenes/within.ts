@@ -28,8 +28,15 @@ import {
   shotPath,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  knobCamera,
+  mix,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
+import { clamp, lerp, gait } from '@bible/film/core';
 import {
   type GestureAt,
   C,
@@ -40,22 +47,16 @@ import {
   ICON_X,
   type IconCount,
   type Person,
-  type Posed,
-  blob,
-  gait,
-  glow,
   handOf,
-  knobCamera,
   heart as drawHeart,
   icons,
-  mix,
   person,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
 import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../gospel.ts';
+import { roof } from './roof.ts';
+import { woman } from './woman.ts';
 
 /** The panel beside them. */
 const PANEL: Pt = [1260, 520];
@@ -77,6 +78,8 @@ const timeline = {
   ask: { mark: 'out', dur: 0.4 },
   shrink: { mark: 'never', dur: 1.5, ease: 'inOutCubic' },
   heart: { mark: 'write', offset: -0.1, dur: 0.5, ease: 'outBack' },
+  // The circle fades as the heart pops in, gone by the time it is well in.
+  heartOut: { with: 'heart', dur: 0.08, ease: 'linear' },
   // `robe`'s row: the woman's plate goes as the row settles, and the heart lights on "power".
   settle: { at: 'start', dur: 0.8, ease: 'inOutCubic' },
   heartLit: { mark: 'power', dur: 0.55, ease: 'outBack' },
@@ -146,14 +149,14 @@ const page = (f: WithinFrame) => {
 /** The circle, as big as the universe, coming home to the chest; gone once the heart is in. */
 const circle = (f: WithinFrame, chest: Pt) => {
   const { ctx } = f;
-  const heart = f.at('heart');
-  if (heart >= 0.6) return;
+  const gone = f.at('heartOut');
+  if (gone >= 1) return;
   const { hand } = f;
   const shrink = f.at('shrink');
   const r = lerp(720, 40, shrink);
   const [cx, cy] = [lerp(960, chest[0], shrink), lerp(470, chest[1], shrink)];
   ctx.save();
-  ctx.globalAlpha *= 1 - clamp(heart / 0.6);
+  ctx.globalAlpha *= 1 - gone;
   glow(ctx, cx, cy, r * 1.1, C.glow, 0.5);
   stroke(
     ctx,
@@ -398,13 +401,7 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
   at(ctx, { x: ICON_ROW.x, y, scale: ICON_ROW.scale }, () => {
     icons(ctx, hand, LIT, undefined, COUNT);
     at(ctx, { x: ICON_X[1], y: 0 }, () =>
-      recall(
-        ctx,
-        hand,
-        court,
-        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
-        LEAD[1],
-      ),
+      recall(ctx, hand, court, () => temple(ctx, w, h, f.handsOf(woman), COURT_FORGIVEN), LEAD[1]),
     );
     at(ctx, { x: ICON_X[2], y: 0 }, () =>
       recall(
@@ -416,7 +413,7 @@ const iconsShot = (f: WithinFrame, alpha: number) => {
             ctx,
             w,
             h,
-            f.handsOf('roof'),
+            f.handsOf(roof),
             went(lerp(WALKED[0], WALKED[1], f.at('going')), gait(f.t, f.cue('going'))),
           ),
         LEAD[2],

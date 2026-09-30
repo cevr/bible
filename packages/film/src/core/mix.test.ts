@@ -474,10 +474,14 @@ describe('mixPlan', () => {
       expect([failed(wrong), failed(typo)]).toEqual(['SoundUseMismatch', 'UnknownSound']);
     });
 
-    test("a sync: 'hit' placement starts each take its own hit early, so the hit lands on the cue", () => {
+    test("a sync: 'hit' placement starts each take its own hit early, and 'onset' its onset, so that moment lands on the cue", () => {
       const hitAt = new Map([
         ['/lib/files/paper.tap/1.flac', 0.2],
         ['/lib/files/paper.tap/2.flac', 0.35],
+      ]);
+      const onsetAt = new Map([
+        ['/lib/files/paper.tap/1.flac', 0],
+        ['/lib/files/paper.tap/2.flac', 0.01],
       ]);
       const timed: Lock = {
         ...lock,
@@ -490,7 +494,7 @@ describe('mixPlan', () => {
           rejected: [],
         },
       };
-      const taps = (sync: 'start' | 'hit') =>
+      const taps = (sync: 'start' | 'hit' | 'onset') =>
         Result.getOrThrow(
           mixPlan({
             ...input,
@@ -505,6 +509,13 @@ describe('mixPlan', () => {
       hit.forEach((t, i) =>
         expect(t.at).toBeCloseTo((started[i]?.at ?? Number.NaN) - (hitAt.get(t.label) ?? 0), 9),
       );
+      const onset = taps('onset');
+      expect(onset.map((t) => t.label)).toEqual(started.map((t) => t.label));
+      onset.forEach((t, i) =>
+        expect(t.at).toBeCloseTo((started[i]?.at ?? Number.NaN) - (onsetAt.get(t.label) ?? 0), 9),
+      );
+      // Each take moves by its own onset: the second, 10 ms in, starts 10 ms early.
+      expect(onset.some((t, i) => t.at !== started[i]?.at)).toBe(true);
     });
 
     test("a sync: 'hit' sound whose takes carry no hit plays from its start, and says so", () => {

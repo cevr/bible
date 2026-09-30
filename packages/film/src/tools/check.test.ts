@@ -738,6 +738,19 @@ describe('storyboards and repeated knobs', () => {
     ]);
     expect(repeatedKnobs(placed)[0]?.message).toContain('f.knobsOf(a)');
   });
+
+  test('a framing (a point with its `<name>Zoom`) repeats only when its zoom does too', () => {
+    const framed = (id: string, knobs: Timed['knobs']): Timed => ({ id, say: 'One.', knobs });
+    const scenes = [
+      framed('a', { wide: [960, 560], wideZoom: 1 }),
+      framed('b', { rest: [960, 560], restZoom: 1.1 }),
+      framed('c', { back: [960, 560], backZoom: 1 }),
+    ];
+    const found = repeatedKnobs(Result.getOrThrow(layout(scenes, noTakes)));
+    expect(found.map((f) => [f.scene, f.knob, f.of, f.ofKnob])).toEqual([
+      ['c', 'back', 'a', 'wide'],
+    ]);
+  });
 });
 
 describe('farPins', () => {
@@ -1039,6 +1052,37 @@ describe('soundFindings', () => {
       name: 'paper.new',
       candidates: 1,
     });
+  });
+
+  test("a placement that lands a late-starting take's first sample on its cue is heard late; one synced to its onset or hit is not", () => {
+    const slow = { ...variant(requestKey(library['paper.hit'])), onset: 0.12, hit: 0.7 };
+    const tight = { ...variant(requestKey(library['paper.hit'])), onset: 0.01, hit: 0.05 };
+    const timed: Sounds = {
+      ...sounds,
+      lock: { ...lock, 'paper.hit': { variants: [tight, slow], candidates: [], rejected: [] } },
+    };
+    const at = [{ scene: 'open', cue: 'hit' }];
+    const found = soundFindings(
+      {
+        effects: {
+          steps: { sound: 'paper.hit', at },
+          walk: { sound: 'paper.hit', at, sync: 'onset' },
+          tap: { sound: 'paper.hit', at, sync: 'hit' },
+        },
+      },
+      placedSound,
+      timed,
+    );
+    expect(found).toMatchObject([
+      { _tag: 'LeadIn', effect: 'steps', name: 'paper.hit', variant: 2, onset: 0.12, hit: 0.7 },
+    ]);
+    // A tight take is heard on its cue.
+    expect(
+      soundFindings({ effects: { steps: { sound: 'paper.hit', at } } }, placedSound, {
+        ...sounds,
+        lock: { ...lock, 'paper.hit': { variants: [tight], candidates: [], rejected: [] } },
+      }),
+    ).toEqual([]);
   });
 
   test('a loud effect is not judged here: its level is measured on the mix', () => {

@@ -6,7 +6,7 @@
 // that does not resolve fails as a value naming its scene and cue. Pure and
 // DOM-free.
 
-import { Option, Result } from 'effect';
+import { Option, Predicate, Result } from 'effect';
 import {
   CueCycle,
   type PointError,
@@ -16,7 +16,7 @@ import {
   WordMissing,
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
-import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Word } from './schema.ts';
+import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
 import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
@@ -212,6 +212,10 @@ export const anchorPoint = (span: Span): ScenePoint => {
   return { at: span.at };
 };
 
+/** Where a span runs `until`, as the lab and an error say it: `{mark}`, or the landmark's name. */
+export const untilText = (until: Until): string =>
+  Predicate.isString(until) ? `{${until}}` : until.at;
+
 /** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */
 export type TimelineError = PointError | CueCycle | UntilBeforeStart;
 
@@ -225,27 +229,26 @@ export const resolveTimeline = (
   const visiting: Array<string> = [];
   const known = Object.keys(timeline);
 
-  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark. */
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark or landmark. */
   const length = (
     name: string,
     span: Span,
     start: number,
   ): Result.Result<number, TimelineError> => {
-    if (span.until === undefined) return Result.succeed(span.dur ?? 0);
-    const mark = span.until;
-    const m = clock.marks.get(mark);
-    if (m === undefined)
-      return Result.fail(
-        UnknownMark.make({
-          scene: clock.scene,
-          mark,
-          by: `cue "${name}"`,
-          known: [...clock.marks.keys()],
-        }),
-      );
-    const dur = clock.speechStart + m - start;
-    if (dur < 0) return Result.fail(UntilBeforeStart.make({ scene: clock.scene, cue: name, mark }));
-    return Result.succeed(dur);
+    const until = span.until;
+    if (until === undefined) return Result.succeed(span.dur ?? 0);
+    const self = `cue "${name}"`;
+    const point: ScenePoint = Predicate.isString(until) ? { mark: until } : { at: until.at };
+    return Result.flatMap(
+      pointOn(clock, (n) => resolve(n, self), point, self),
+      (end): Result.Result<number, TimelineError> => {
+        if (end < start)
+          return Result.fail(
+            UntilBeforeStart.make({ scene: clock.scene, cue: name, until: untilText(until) }),
+          );
+        return Result.succeed(end - start);
+      },
+    );
   };
 
   const resolve = (name: string, by: string): Result.Result<ResolvedCue, TimelineError> => {

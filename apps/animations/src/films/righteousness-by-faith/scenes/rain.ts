@@ -7,9 +7,23 @@
 // camera comes down over the city, the angel with the third angel's banner
 // flies across again, and figures on the rooftops turn to look and wave.
 
-import { type Camera, type Pt, at, drawing, multiplane, unprobed, sub } from '@bible/film/canvas';
+import {
+  type Camera,
+  type Pt,
+  at,
+  drawing,
+  knobCamera,
+  shotPath,
+  multiplane,
+  unprobed,
+  sub,
+  blob,
+  glow,
+  sky,
+  mix,
+} from '@bible/film/canvas';
 import { type Key, keys, lerp, rng } from '@bible/film/core';
-import { type GestureAt, C, blob, glow, person, piece, sky, mix } from '../kit.ts';
+import { type GestureAt, C, person, piece } from '../kit.ts';
 import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
 import { herald, ministry } from '../heaven.ts';
 
@@ -28,13 +42,21 @@ const FIELDS = [
   { x: 1600, y: 1080, w: 1500, h: 240, seed: 65, reach: 0.9 },
 ] as const;
 
-/** The scarlet specks over the land. */
 /** The banner's words, written across the angel's flight once it has slowed to glide. */
 const WRITTEN: ReadonlyArray<Key> = [
   [0.2, 0],
   [0.32, 1, 'linear'],
 ];
 
+/** The angel's way across the sky over `fly`: in fast, a slow glide while the words can be read, out fast. */
+const FLY_X: ReadonlyArray<Key> = [
+  [0, -200],
+  [0.25, 1150, 'outCubic'],
+  [0.8, 1600, 'linear'],
+  [1, 3400, 'inCubic'],
+];
+
+/** The scarlet specks over the land. */
 const SPECKS = (() => {
   const r = rng(1844);
   return Array.from({ length: 11 }, (_, i) => ({
@@ -79,6 +101,7 @@ export const rain = drawing({
   knobs: {
     // Tilted up to the sanctuary.
     up: [960, -40],
+    upZoom: 1,
     // Down over the city on the horizon.
     city: [1000, 560],
     cityZoom: 1.7,
@@ -88,13 +111,10 @@ export const rain = drawing({
     const hand = (k: string) => f.hand(k);
     const up = f.at('tiltUp') * (1 - f.at('down'));
     const down = f.at('down');
-    const upAt = f.knob('up');
-    const city = f.knob('city');
-    const cam: Camera = {
-      x: lerp(lerp(REST.x, upAt[0], up), city[0], down),
-      y: lerp(lerp(REST.y, upAt[1], up), city[1], down),
-      zoom: lerp(1, f.knob('cityZoom'), down),
-    };
+    const cam = shotPath(REST, [
+      [up, knobCamera(f.knob('up'), f.knob('upZoom'))],
+      [down, knobCamera(f.knob('city'), f.knob('cityZoom'))],
+    ]);
     const turn = f.at('turn');
 
     sky(ctx, w, h, [
@@ -219,14 +239,8 @@ export const rain = drawing({
     // The angel with the banner, across the sky above the city.
     const fly = f.cue('fly');
     if (t >= fly.start && t <= fly.end) {
-      const k = (t - fly.start) / fly.dur;
-      // In fast, a slow glide while the words can be read, out fast.
-      const x = keys(k, [
-        [0, -200],
-        [0.25, 1150, 'outCubic'],
-        [0.8, 1600, 'linear'],
-        [1, 3400, 'inCubic'],
-      ]);
+      const k = f.at('fly');
+      const x = f.keys('fly', FLY_X);
       const written = f.keys('fly', WRITTEN);
       at(ctx, { x, y: 300 + Math.sin(k * 6) * 12, scale: 0.6 }, () =>
         herald(ctx, hand, t, written, f.at('grasp')),

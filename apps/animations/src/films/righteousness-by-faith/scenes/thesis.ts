@@ -5,9 +5,18 @@
 // the figure in the robe and Christ sit together on the same rooftop the
 // title's figure stood on, under the landing sky.
 
-import { type Camera, drawing, probePlate, rectShape, shotPath, write } from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
-import { C, F, glow, knobCamera, piece } from '../kit.ts';
+import {
+  type Camera,
+  drawing,
+  probePlate,
+  rectShape,
+  shotPath,
+  write,
+  glow,
+  knobCamera,
+} from '@bible/film/canvas';
+import { lerp } from '@bible/film/core';
+import { C, F, piece } from '../kit.ts';
 import { ROOF, landingSky, rooftop } from '../city.ts';
 import {
   ADVOCATE_POSE,
@@ -38,6 +47,8 @@ export const thesis = drawing({
   timeline: {
     lookUp: { at: 'speech', dur: 0.5 },
     answer: { at: 'speech', dur: 1.6, ease: 'linear' },
+    // The plate fades in over the answer's first words.
+    answerIn: { with: 'answer', dur: 0.4, ease: 'linear' },
     // The gavel lifts back from where `name` laid it down.
     gavel: { at: 'start', dur: 2, ease: 'linear' },
     // The judge, who held it down through `name`'s last line, lets it go once it stands again.
@@ -115,7 +126,7 @@ export const thesis = drawing({
     const answer = f.at('answer');
     if (out < 1 && answer > 0) {
       ctx.save();
-      ctx.globalAlpha *= clamp(answer * 4) * (1 - out);
+      ctx.globalAlpha *= f.at('answerIn') * (1 - out);
       piece(ctx, PLATE, C.cream, f.hand('plate'), {
         role: 'scenery',
         kind: 'cut',

@@ -193,7 +193,7 @@ export const lockTiming = (described: VariantTiming): VariantTiming => ({
   hit: Math.round(described.hit * 1000) / 1000,
 });
 
-/** A one-shot's lead-in (its onset) over this many seconds is heard late on its cue: `sfx check` says so. */
+/** A one-shot's lead-in (its onset) over this many seconds is heard late on a cue that places its first sample: `check` says so (`LeadIn`). */
 export const LEAD_IN = 0.05;
 
 /**
@@ -472,16 +472,18 @@ export const sourceLabel = (source: SoundSource): string => {
   return `synth:${hashText(Schema.encodeSync(Schema.fromJsonString(Recipe))(source.recipe))}/${source.seed}`;
 };
 
-/** One variant a placement may play: its audio, how loud it measured, and where it hits (none unrecorded). */
+/** One variant a placement may play: its audio, how loud it measured, and where its sound begins and hits (none unrecorded). */
 export interface Playable {
   readonly source: SoundSource;
   readonly loudness: VariantLoudness;
+  readonly onset: Option.Option<number>;
   readonly hit: Option.Option<number>;
 }
 
-/** A procedural variant as measured: its loudness and its hit. */
+/** A procedural variant as measured: its loudness, its onset and its hit. */
 interface SynthMeasure {
   readonly loudness: VariantLoudness;
+  readonly onset: number;
   readonly hit: number;
 }
 
@@ -492,10 +494,7 @@ const measureSynth = (recipe: Recipe, seed: number): SynthMeasure => {
   const key = sourceLabel({ _tag: 'Synth', recipe, seed });
   return Option.getOrElse(Option.fromUndefinedOr(synthMeasured.get(key)), () => {
     const pcm = synthesize(recipe, seed);
-    const measured = {
-      loudness: lockLoudness(loudness(pcm)),
-      hit: lockTiming(describeSound(pcm)).hit,
-    };
+    const measured = { loudness: lockLoudness(loudness(pcm)), ...lockTiming(describeSound(pcm)) };
     synthMeasured.set(key, measured);
     return measured;
   });
@@ -517,6 +516,7 @@ export const playablesOf = (
       return {
         source: { _tag: 'Synth', recipe: entry.recipe, seed: i + 1 },
         loudness: measured.loudness,
+        onset: Option.some(measured.onset),
         hit: Option.some(measured.hit),
       };
     });
@@ -527,6 +527,7 @@ export const playablesOf = (
   return kept.map((v) => ({
     source: fileSource(`${sounds.dir}/${v.file}`),
     loudness: v.loudness,
+    onset: Option.fromUndefinedOr(v.onset),
     hit: Option.fromUndefinedOr(v.hit),
   }));
 };

@@ -107,12 +107,13 @@ const anchorLabel = (cue: Cue): string =>
     () => '',
   );
 
-/** How an effect meets its cue, as the report marks it: its start (unmarked) or its hit. */
-const SYNC_LABEL = { start: '', hit: ' hit' } as const;
+/** How an effect meets its cue, as the report marks it: its start (unmarked), its onset or its hit. */
+const SYNC_LABEL = { start: '', onset: ' onset', hit: ' hit' } as const;
 
 /**
- * Each effect placement's film time and library sound (marked `hit` where the
- * sound's loudest moment, not its start, lands there), then each bed's span.
+ * Each effect placement's film time and library sound (marked `onset` or
+ * `hit` where that moment of the sound, not its first sample, lands there),
+ * then each bed's span.
  */
 export const soundReport = (
   sound: Sound,

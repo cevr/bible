@@ -13,21 +13,12 @@ import {
   stroke,
   write,
   sub,
-} from '@bible/film/canvas';
-import { lerp } from '@bible/film/core';
-import {
-  type GestureAt,
-  C,
-  F,
-  type Person,
-  christ,
   glow,
-  person,
-  piece,
   plate,
   rounded,
-  type Hands,
-} from './kit.ts';
+} from '@bible/film/canvas';
+import { lerp } from '@bible/film/core';
+import { type GestureAt, C, F, type Person, christ, person, piece, type Hands } from './kit.ts';
 
 /** Christ as high priest: the white robe and sash, and the breastplate over them. */
 export const highPriest = (ctx: CanvasRenderingContext2D, pose: Person, hand: Hands, plate = 1) => {

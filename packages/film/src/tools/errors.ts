@@ -156,15 +156,20 @@ export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   }
 }
 
-/** A one-shot's kept take whose sound starts late in its file: placed from its start, it is heard late on its cue. */
+/**
+ * An effect placed from its takes' first sample (`sync: 'start'`) whose kept
+ * take starts late in its file: it is heard `onset` late on its cue. The
+ * latest such take is named.
+ */
 export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
+  effect: Schema.String,
   name: Schema.String,
   variant: Schema.Int,
   onset: Schema.Finite,
   hit: Schema.Finite,
 }) {
   override get message() {
-    return `one-shot "${this.name}" variant ${this.variant}: its sound starts ${Math.round(this.onset * 1000)} ms in and hits at ${this.hit.toFixed(2)} s; place it with sync: 'hit', or keep a tighter take`;
+    return `effect "${this.effect}" (${this.name} variant ${this.variant}): its sound starts ${Math.round(this.onset * 1000)} ms in, so it is heard late on its cue; place it with sync: 'onset' for a sustained sound (its hit, ${this.hit.toFixed(2)} s in, would start it that early), sync: 'hit' for an impact, or keep a tighter take`;
   }
 }
 

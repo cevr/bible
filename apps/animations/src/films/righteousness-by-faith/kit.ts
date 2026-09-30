@@ -37,30 +37,6 @@ import { fonts, palette } from './palette.ts';
 export const C = palette;
 export const F = fonts;
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * The framework's drawing helpers every scene reaches for, named from the kit
- * so a film's scenes speak one vocabulary: a framing from its knobs, the
- * contact shadow, the shapes (a plate, a rounded rectangle, a blob), the soft
- * lights (`sky`, `glow`), a colour between two (`mix`), a pose kept as scratch
- * (`Posed`, `reset`) and a walker's bob (`gait`).
- */
-export {
-  CLOSE_SPAN,
-  type Posed,
-  blob,
-  glow,
-  ground,
-  knobCamera,
-  mix,
-  plate,
-  reset,
-  rounded,
-  sky,
-} from '@bible/film/canvas';
-export { gait } from '@bible/film/core';
-
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [
   [-80, -48],

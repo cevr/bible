@@ -143,13 +143,16 @@ back while it has another), each nudged late, louder or quieter and up or
 down in pitch by the sound's jitter, seeded by the film, the effect and the
 placement, so a repeated sound never repeats exactly and a film always mixes
 the same way; a procedural variant is its recipe played with a seed. A
-placement meets its cue with the variant's start, or with its hit for an
-effect that says `sync: 'hit'`: the lock's `Variant` carries `onset` and
-`hit` (`describeSound` in `core/synth/analyse.ts`, recorded on keep and by
-`SoundLibrary.describe`, `sfx describe`), a procedural one is measured from
-its seed, and the mix starts each variant its hit early (`mix.unsynced`
-warns where a take has none recorded). `sfx check` warns `TimingUnrecorded`
-and `LeadIn` (a one-shot whose onset is past `LEAD_IN`, 0.05 s). It logs
+placement meets its cue with the variant's start, with its onset for an
+effect that says `sync: 'onset'` (a sustained sound), or with its hit for
+one that says `sync: 'hit'` (an impact): the lock's `Variant` carries
+`onset` and `hit` (`describeSound` in `core/synth/analyse.ts`, recorded on
+keep and by `SoundLibrary.describe`, `sfx describe`), a procedural one is
+measured from its seed, and the mix starts each variant that much early
+(`mix.unsynced` warns where a take has none recorded). `sfx check` warns
+`TimingUnrecorded`; the film's check warns `LeadIn` on an effect placed from
+its first sample whose kept take's onset is past `LEAD_IN`, 0.05 s (the
+placement's finding, since only it can say `sync`). It logs
 each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The
@@ -930,7 +933,7 @@ not resolve is not shown, and the status says why. Compare with HEAD resolves
 HEAD's literals over today's the same way: when they name what today's
 narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs (for an `until` cue, `until {mark}` and its resolved end instead of
+inputs (for an `until` cue, `until {mark}` or `until speechEnd` and its resolved end instead of
 `dur`), and an ease picker drawing each curve (the ease is only ever data:
 `f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
@@ -1441,6 +1444,19 @@ that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
 second curve is one the lab's picker cannot change, and a push whose zoom
 takes it runs on another clock than its x and y. A push is a `shotPath` stop
 with `pushInto`; another curve is its own cue or `f.keys`.
+`film/no-cue-remap` (`lint/no-cue-remap.ts`) refuses a cue split by a
+fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
+`clamp(3 * x - 2)` or `clamp((x - 0.75) / 0.25)` over a cue's progress `x`
+(`f.at(cue)` or a const bound to one): the part is a cue of its own,
+`{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
+which the lab can reach.
+`film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
+files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
+blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,
+ARK_IN, …)`): a framing is knobs read with `knobCamera`, a move a
+`shotPath` of them, a held push `pushOn` with a number knob. The unmoved
+frame and a framing derived from the scene's geometry (a point that is not
+two numbers) pass; one shared across scenes lives in a set file.
 `film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
 over all of `packages/film` and `apps/animations`: a variadic logger
 (`Console.*`, `console.*`, `Effect.log*`) handed point-free to a callback that
@@ -1477,7 +1493,7 @@ fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
 tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
-frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(scene)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
+frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)` (or its id). Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
 bun run gate   # repo root, as CI: lint, format check, the repo guards, every package's typecheck, build and tests, then the perf tests

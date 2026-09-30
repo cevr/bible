@@ -359,7 +359,10 @@ export const sound: Sound = {
     // A level named here is where `check`'s EffectHot (each effect's loudest
     // 50 ms against the voice around it) found the library's too hot.
     // A one-shot with `sync: 'hit'` lands its loudest moment on the cue (the
-    // lock records where each take hits), so a swapped take stays on it.
+    // lock records where each take hits), so a swapped take stays on it; a
+    // sustained one with `sync: 'onset'` lands where its sound begins, past
+    // the take's silent lead-in (`check` warns `LeadIn` on one placed from
+    // its first sample that starts late).
     evidence: {
       sound: 'paper.stack',
       // The stack settles as the last sheet lands.
@@ -408,6 +411,7 @@ export const sound: Sound = {
     needle: {
       sound: 'needle.thread',
       level: -14,
+      sync: 'onset',
       at: [{ scene: 'mirror', cue: 'toSew', edge: 'end' }],
     },
 
@@ -422,7 +426,12 @@ export const sound: Sound = {
     },
     // The hall stirs as the light comes, and swells as the angel flies in.
     crowd: { sound: 'crowd.swell', at: [{ scene: 'message', cue: 'light' }] },
-    wings: { sound: 'wings.pass', level: -17, at: [{ scene: 'message', cue: 'fly' }] },
+    wings: {
+      sound: 'wings.pass',
+      level: -17,
+      sync: 'onset',
+      at: [{ scene: 'message', cue: 'fly' }],
+    },
 
     // ── Capernaum ──────────────────────────────────────────────────────────
     tiles: { sound: 'roof.tiles', at: [{ scene: 'roof', cue: 'tiles' }] },
@@ -431,6 +440,7 @@ export const sound: Sound = {
     steps: {
       sound: 'steps.dirt',
       level: -15,
+      sync: 'onset',
       at: [
         { scene: 'roof', cue: 'walk' },
         { scene: 'woman', cue: 'walkOut' },
@@ -445,6 +455,7 @@ export const sound: Sound = {
     // ── The word flies ─────────────────────────────────────────────────────
     whoosh: {
       sound: 'paper.whoosh',
+      sync: 'onset',
       at: [
         { scene: 'spoke', cue: 'flight' },
         { scene: 'centurion', cue: 'fly' },
@@ -455,7 +466,7 @@ export const sound: Sound = {
     // ── The desert ─────────────────────────────────────────────────────────
     coins: { sound: 'coins.clatter', at: [{ scene: 'look', cue: 'slide' }] },
     snakes: { sound: 'snake.hiss', at: [{ scene: 'look', mark: 'desert' }] },
-    pole: { sound: 'pole.creak', at: [{ scene: 'look', cue: 'rise' }] },
+    pole: { sound: 'pole.creak', sync: 'onset', at: [{ scene: 'look', cue: 'rise' }] },
 
     // ── The cross and the tomb ─────────────────────────────────────────────
     // The lift's take opens on a soft thud 12 dB over its body (every

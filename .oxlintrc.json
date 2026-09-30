@@ -290,6 +290,20 @@
       }
     },
     {
+      // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
+      "files": ["**/apps/animations/src/films/**/*.ts"],
+      "rules": {
+        "film/no-cue-remap": "error"
+      }
+    },
+    {
+      // A scene's framing is knobs; a framing shared across scenes lives in a set file.
+      "files": ["**/apps/animations/src/films/*/scenes/*.ts"],
+      "rules": {
+        "film/framing-is-a-knob": "error"
+      }
+    },
+    {
       // A variadic logger handed point-free to a callback passed an index
       // prints the index after each line (packages/film/lint/no-point-free-log.ts).
       "files": [

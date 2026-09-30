@@ -35,6 +35,8 @@ export const ease = {
   outExpo: (t) => (t === 1 ? 1 : 1 - 2 ** (-10 * t)),
   inOutExpo: (t) =>
     t === 0 ? 0 : t === 1 ? 1 : t < 0.5 ? 2 ** (20 * t - 10) / 2 : (2 - 2 ** (-20 * t + 10)) / 2,
+  // Pinned at 1: cos(π/2) lands at ~6e-17, which would read as "not quite there".
+  inSine: (t) => (t >= 1 ? 1 : 1 - Math.cos((Math.PI * t) / 2)),
   inOutSine: (t) => (1 - Math.cos(Math.PI * t)) / 2,
   outBack: (t) => {
     // Pinned ends: the polynomial lands at ~1e-16 for t = 0, which would read as "started".

@@ -22,9 +22,16 @@ import {
   spline,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  knobCamera,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { AT_THE_HOLE, RECALL_RISE, house, recall } from '../gospel.ts';
+import { AT_THE_HOLE, type House, RECALL_RISE, house, recall } from '../gospel.ts';
+import { roof } from './roof.ts';
 import {
   type GestureAt,
   C,
@@ -32,18 +39,12 @@ import {
   ICON_SKY,
   ICON_X,
   type IconCount,
-  type Posed,
-  blob,
-  glow,
   icons,
-  knobCamera,
   type HandPush,
   person,
   pushZoom,
   pushedHand,
   piece,
-  rounded,
-  sky,
 } from '../kit.ts';
 
 /** The desert wide: the unmoved frame (the canvas itself, so not a knob). */
@@ -159,6 +160,9 @@ const knobs = {
   // Close on the face looking up at the serpent.
   face: [1060, 600],
   faceZoom: 2,
+  // The four at the hole in the roof, framed for the recall plate under faith.
+  hole: [740, 240],
+  holeZoom: 2.2,
 } as const;
 
 type LookFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -485,6 +489,9 @@ export const look = drawing({
 const LIT: [number, number, number] = [1, 0, 0];
 const LEAD: [number, number, number] = [0, 0, 0];
 const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+/** The four at the hole, framed by the `hole` knobs (its camera rewritten every frame). */
+const HOLE_CAM: Camera = { x: 960, y: 540, zoom: 1 };
+const HOLE: House = { ...AT_THE_HOLE, cam: HOLE_CAM };
 
 /**
  * After the last word: faith's icon, close, pulls back to the section head's
@@ -498,6 +505,10 @@ const row = (f: LookFrame, shown: number) => {
   const hole = f.at('hole') * (1 - f.at('holeOut'));
   LEAD[0] = f.at('iconGlow');
   COUNT.dim = Math.min(1, LEAD[0]);
+  const framed = f.knob('hole');
+  HOLE_CAM.x = framed[0];
+  HOLE_CAM.y = framed[1];
+  HOLE_CAM.zoom = f.knob('holeZoom');
   ctx.save();
   ctx.globalAlpha *= shown;
   sky(ctx, w, h, ICON_SKY);
@@ -512,7 +523,7 @@ const row = (f: LookFrame, shown: number) => {
     () => {
       icons(ctx, f.hand, LIT, undefined, COUNT);
       at(ctx, { x: ICON_X[0], y: 0 }, () =>
-        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf('roof'), AT_THE_HOLE), LEAD[0]),
+        recall(ctx, f.hand, hole, () => house(ctx, w, h, f.handsOf(roof), HOLE), LEAD[0]),
       );
     },
   );

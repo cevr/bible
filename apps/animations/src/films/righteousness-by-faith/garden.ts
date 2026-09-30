@@ -11,20 +11,13 @@ import {
   spline,
   stroke,
   sub,
-} from '@bible/film/canvas';
-import { type Key, clamp, hash2, keys, lerp } from '@bible/film/core';
-import {
-  C,
-  CHEST,
-  type Person,
   blob,
   glow,
-  person,
-  piece,
   rounded,
   sky,
-  type Hands,
-} from './kit.ts';
+} from '@bible/film/canvas';
+import { type Key, clamp, hash2, keys, lerp } from '@bible/film/core';
+import { C, CHEST, type Person, person, piece, type Hands } from './kit.ts';
 
 /** A fig leaf, stem at (0, 0), pointing up, about 60 units long at size 1. */
 export const leafShape = (s: number, seed: number): Pt[] =>

@@ -32,8 +32,13 @@ import {
   shotPath,
   stroke,
   sub,
+  type Posed,
+  blob,
+  glow,
+  rounded,
+  sky,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp } from '@bible/film/core';
+import { clamp, ease, lerp, gait } from '@bible/film/core';
 import {
   C,
   ICON_KEPT,
@@ -42,20 +47,15 @@ import {
   ICON_X,
   type IconCount,
   type Person,
-  type Posed,
   ROBE,
-  blob,
-  gait,
-  glow,
   icons,
   person,
   piece,
-  rounded,
-  sky,
   turban,
 } from '../kit.ts';
 import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
 import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
+import { woman } from './woman.ts';
 import { LIGHT } from '../light.ts';
 
 const LOOM: Pt = [1045, 560];
@@ -145,13 +145,15 @@ const timeline = {
 const knobs = {
   /** The court on "judicial", framed on Joshua, the Angel and the bench; it drifts in toward "reclaim". */
   judged: [1180, 600],
+  judgedZoom: 1.22,
+  /** How close the drift has come by "reclaim". */
+  judgedInZoom: 1.3,
   /** How much of the first light is left once the loom has woven: the rest is day. */
   woven: 0.5,
   /** Where the push from the court ends, on the loom, and how close. */
   atLoom: [1045, 560],
   atLoomZoom: 4.2,
 } as const;
-const JUDGED_ZOOM = [1.22, 1.3] as const;
 
 type RobeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
@@ -464,11 +466,13 @@ const judged = (f: RobeFrame) => {
   const { ctx, w, h } = f;
   const { hand } = f;
   const beyond = f.at('beyond');
-  const [jx, jy] = f.knob('judged');
+  const court = f.knob('judged');
   courtWall(ctx, w, h);
   camera(
     ctx,
-    { x: jx, y: jy, zoom: lerp(JUDGED_ZOOM[0], JUDGED_ZOOM[1], f.at('drift')) },
+    shotPath(knobCamera(court, f.knob('judgedZoom')), [
+      [f.at('drift'), knobCamera(court, f.knob('judgedInZoom'))],
+    ]),
     w,
     h,
     () => {
@@ -551,7 +555,7 @@ const iconsBack = (f: RobeFrame, toIcons: number) => {
         ctx,
         hand,
         forgiven,
-        () => temple(ctx, w, h, f.handsOf('woman'), COURT_FORGIVEN),
+        () => temple(ctx, w, h, f.handsOf(woman), COURT_FORGIVEN),
         ICONS_LEAD[1],
       ),
     );

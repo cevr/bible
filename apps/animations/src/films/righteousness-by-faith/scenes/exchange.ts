@@ -30,24 +30,15 @@ import {
   rectShape,
   shotPath,
   sub,
-} from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
-import {
-  type GestureAt,
-  C,
-  type Hands,
-  type Person,
   blob,
-  christ,
-  gait,
   glow,
   knobCamera,
   mix,
-  person,
-  piece,
   rounded,
   sky,
-} from '../kit.ts';
+} from '@bible/film/canvas';
+import { gait, lerp } from '@bible/film/core';
+import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../kit.ts';
 import { FIGURE_STAINS } from '../court.ts';
 import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
 
@@ -77,14 +68,8 @@ const SANCTUARY: Pt = [960, -280];
 const SS = 0.8;
 const inHeaven = ([x, y]: Pt): Pt => [SANCTUARY[0] + x * SS, SANCTUARY[1] + y * SS];
 
-/**
- * After the cut: close in the most holy place, the veil at the left edge,
- * Christ before the ark (the `ark` knobs); the camera eases in a little, to
- * `ARK_IN`, as the last words are spoken.
- */
-const ARK_IN = 2.75;
 /** The ark framing this frame: rewritten each frame, never made per frame. */
-const AT_ARK: Camera = { x: 0, y: 0, zoom: 1 };
+const AT_ARK: Camera = { x: 960, y: 540, zoom: 1 };
 
 /** The ground under the hill and the garden. */
 const GROUND = rectShape(-200, 950, 2400, 300);
@@ -134,6 +119,8 @@ const timeline = {
   // Back out on "that we might take His righteousness", and he walks up the hill.
   back: { mark: 'took', word: 'take', offset: -0.05, dur: 1.3, ease: 'inOutCubic' },
   walkUp: { with: 'back', offset: 0.2, dur: 1.9, ease: 'inOutSine' },
+  // The figure turns to watch him over the first half of his walk up.
+  watch: { with: 'walkUp', dur: 0.95, ease: 'inSine' },
   dark: { mark: 'cross', offset: -0.4, dur: 0.9, ease: 'inOutSine' },
   // His hands out along the beam as the silhouette comes up with the dark.
   nailed: { with: 'dark', dur: 0.9, ease: 'inOutSine' },
@@ -154,9 +141,12 @@ const knobs = {
   // Up in heaven at the sanctuary.
   heaven: [960, -560],
   heavenZoom: 1,
-  // Close in the most holy place, before the ark.
+  // After the cut: close in the most holy place, the veil at the left edge,
+  // Christ before the ark; the camera eases in a little, to `arkInZoom`, as
+  // the last words are spoken.
   ark: [1224, -450],
   arkZoom: 2.5,
+  arkInZoom: 2.75,
 } as const;
 
 type ExchangeFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -242,7 +232,7 @@ const hill = (f: ExchangeFrame) => {
       // The figure: turned toward the hill, puzzled on "fair", then watching him go.
       const turn = f.at('turn') * (1 - walkIn);
       const puzzle = f.at('puzzle') * (1 - f.at('close'));
-      const after = clamp(walkUp * 2);
+      const after = f.at('watch');
       at(ctx, { x: fx, y: fy, scale: SCALE }, () =>
         person(
           ctx,
@@ -485,10 +475,12 @@ const mostHoly = (f: ExchangeFrame) => {
     [1, C.tealLow],
   ]);
   const ark = f.knob('ark');
-  AT_ARK.x = ark[0];
-  AT_ARK.y = ark[1];
-  AT_ARK.zoom = lerp(f.knob('arkZoom'), ARK_IN, f.spoken('now'));
-  camera(ctx, AT_ARK, w, h, () =>
+  const cam = shotPath(
+    knobCamera(ark, f.knob('arkZoom')),
+    [[f.spoken('now'), knobCamera(ark, f.knob('arkInZoom'))]],
+    AT_ARK,
+  );
+  camera(ctx, cam, w, h, () =>
     at(ctx, { x: SANCTUARY[0], y: SANCTUARY[1], scale: SS }, () =>
       ministry(ctx, hand, 1, f.at('hands')),
     ),

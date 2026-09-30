@@ -3,10 +3,20 @@
 // looks up at it. The camera tilts up a little, so the two rows of buildings
 // part in depth. `word` opens on a match cut from the name (`NAME`).
 
-import { at, drawing, multiplane, write } from '@bible/film/canvas';
+import {
+  type Camera,
+  at,
+  drawing,
+  knobCamera,
+  multiplane,
+  shotPath,
+  write,
+  glow,
+  sky,
+} from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { ROOF, cityBack, cityFront } from '../city.ts';
-import { C, F, glow, person, sky } from '../kit.ts';
+import { C, F, person } from '../kit.ts';
 import { TITLE } from '../script.ts';
 
 /** Where the film's name splits: its first word drops into `word`. */
@@ -25,12 +35,22 @@ export const NAME = {
   style: { family: F.display, size: 132, weight: 700, color: C.cream, align: 'center' },
 } as const;
 
+/** The unmoved frame (the canvas itself, so not a knob): where the tilt comes to rest. */
+const REST: Camera = { x: 960, y: 540, zoom: 1 };
+
 export const title = drawing({
   timeline: {
     rise: { at: 'start', dur: 1.2, ease: 'outCubic' },
     settle: { at: 'start', offset: 0.17, dur: 0.6, ease: 'outCubic' },
     // The figure looks up as the rise comes to rest.
     lookUp: { after: 'rise', offset: -0.03, dur: 0.5 },
+    // A slow tilt up over the whole title.
+    tilt: { at: 'start', until: { at: 'end' }, ease: 'linear' },
+  },
+  knobs: {
+    // Where the tilt starts, a little low and close; it rests on the unmoved frame.
+    low: [960, 580],
+    lowZoom: 1.04,
   },
   draw: (f) => {
     const { ctx, w, h } = f;
@@ -42,9 +62,8 @@ export const title = drawing({
     ]);
     glow(ctx, 960, 380, 750, C.glow, 0.55);
 
-    // A slow tilt up over the whole title.
-    const drift = f.t / Math.max(f.dur, 1);
-    multiplane(ctx, { x: 960, y: lerp(580, 540, drift), zoom: lerp(1.04, 1, drift) }, w, h, [
+    const tilt = shotPath(knobCamera(f.knob('low'), f.knob('lowZoom')), [[f.at('tilt'), REST]]);
+    multiplane(ctx, tilt, w, h, [
       {
         z: 1.6,
         draw: () => cityBack(ctx, f.hand, (1 - rise) * 60),

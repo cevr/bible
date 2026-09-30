@@ -21,21 +21,14 @@ import {
   shotPath,
   stroke,
   sub,
-} from '@bible/film/canvas';
-import { clamp, lerp } from '@bible/film/core';
-import {
-  type GestureAt,
-  C,
-  type Person,
   blob,
   ground,
   glow,
-  handOf,
   knobCamera,
-  person,
-  piece,
   sky,
-} from '../kit.ts';
+} from '@bible/film/canvas';
+import { clamp, lerp } from '@bible/film/core';
+import { type GestureAt, C, type Person, handOf, person, piece } from '../kit.ts';
 import { apron, tree } from '../garden.ts';
 import { ring, tabletShape, tablets } from '../law.ts';
 

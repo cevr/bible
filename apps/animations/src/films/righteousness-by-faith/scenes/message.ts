@@ -37,6 +37,11 @@ import {
   stroke,
   write,
   sub,
+  glow,
+  knobCamera,
+  rounded,
+  sky,
+  plate,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -48,18 +53,13 @@ import {
   type IconCount,
   type Three,
   type Person,
-  glow,
   handOf,
-  knobCamera,
   icons,
   handCloseUp,
   person,
   pushZoom,
   pushedHand,
   piece,
-  rounded,
-  sky,
-  plate,
 } from '../kit.ts';
 import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
 import { apron } from '../garden.ts';
@@ -131,10 +131,13 @@ const timeline = {
   handIn: { mark: 'gifts', offset: -0.4, dur: 0.7, ease: 'inOutCubic' },
   // Close on the palm, its fingers curl a little on "gifts": the hand that takes hold of them.
   take: { mark: 'gifts', dur: 0.7, ease: 'inOutSine' },
-  // The days start on "daily" and run to the last word (`page` reads the speech's end).
-  days: { mark: 'daily' },
+  // The days start on "daily" and run to the last word.
+  days: { mark: 'daily', until: { at: 'speechEnd' }, ease: 'linear' },
 } as const;
 const knobs = {
+  // Outside the hall at dusk, where the push through the lit window starts.
+  outside: [960, 560],
+  outsideZoom: 1,
   // The hall at rest.
   rest: [960, 560],
   restZoom: 1.1,
@@ -198,7 +201,6 @@ const DARK_WINDOWS = [720, 900] as const;
  * the frame's corners (75 × 16 = 1200 > the half-diagonal, 1101).
  */
 const THROUGH_WINDOW: Camera = { x: LIT_WINDOW[0], y: LIT_WINDOW[1] - 90, zoom: 16 };
-const OUTSIDE: Camera = { x: 960, y: 560, zoom: 1 };
 /** The unmoved frame (the canvas itself, so not a knob): where the push through the emblem starts. */
 const FRAME: Camera = { x: 960, y: 540, zoom: 1 };
 /** The figure from `mirror`, small and screen-left, in the rags of their own sewing. */
@@ -220,7 +222,9 @@ const outside = (f: MessageFrame, into: number, inside: () => void) => {
     [0.7, C.peachTop],
     [1, C.peachLow],
   ]);
-  const cam = shotPath(OUTSIDE, [[into, THROUGH_WINDOW, pushInto]]);
+  const cam = shotPath(knobCamera(f.knob('outside'), f.knob('outsideZoom')), [
+    [into, THROUGH_WINDOW, pushInto],
+  ]);
   const up = f.at('lookUp');
   LOOKER_LOOK[0] = lerp(2, 4, up);
   LOOKER_LOOK[1] = lerp(1, -4, up);
@@ -420,8 +424,7 @@ const page = (f: MessageFrame) => {
   // one and how high, and how deep into dusk the page is, which eases in over
   // the first half day and out over the last, so the page, the icons and the
   // hand leave and rejoin the day before and after without a step.
-  const from = f.cue('days').start;
-  const days = clamp((f.t - from) / (f.speech.end - from));
+  const days = f.at('days');
   const k = (days * DAYS) % 1;
   const noon = Math.sin(Math.PI * k);
   const settle = clamp(Math.min(days, 1 - days) * (DAYS / DAYS_EASE));
