@@ -9,7 +9,7 @@
 import { Context, Duration, Effect, Layer, Option, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { FilmChoice } from '../core/schema.ts';
-import { ChoiceUnknown, TakeUnknown } from './errors.ts';
+import { ChoiceUnknown, ChoicesProcessFailed, TakeUnknown } from './errors.ts';
 import type { FilmName } from './film-repo.ts';
 import type { TakeInPlace } from './mixer.ts';
 import { collectWithin } from './process.ts';
@@ -28,19 +28,6 @@ export type OptionsLine = typeof OptionsLine.Type;
 
 /** `OptionsLine` as the JSON text the child prints and the review reads. */
 export const OptionsLineJson = Schema.fromJsonString(OptionsLine);
-
-/** A `film options` run that gave no answer: it failed, timed out, or printed something else. */
-export class ChoicesProcessFailed extends Schema.TaggedError<ChoicesProcessFailed>()(
-  'ChoicesProcessFailed',
-  {
-    command: Schema.String,
-    reason: Schema.String,
-  },
-) {
-  override get message() {
-    return `${this.command} failed: ${this.reason}`;
-  }
-}
 
 /** How long listing may take (a cold start and the film's modules, under a second), and one mix. */
 const LIST_LIMIT = Duration.seconds(60);

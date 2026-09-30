@@ -17,12 +17,15 @@ import {
   mergeUnsafe,
   openFrames,
   shortLength,
-  shortLevel,
   hookWord,
   stillOpen,
   titleOpen,
   unsafeTexts,
 } from './short-check.ts';
+import { type ShortFinding, levelOf } from './findings.ts';
+
+/** How bad a short's finding is; `--allow-stale` does not touch any. */
+const level = (finding: ShortFinding) => levelOf(finding, { allowStale: false });
 
 const resolved = (duration: number): ResolvedShort => ({
   id: 'probe',
@@ -75,11 +78,11 @@ describe('shortLength', () => {
   test('under 45 s or over 75 s is a warning, over 90 s an error', () => {
     const short = Option.getOrThrow(shortLength(resolved(32)));
     expect(short.message).toContain('outside the 45–75s');
-    expect(shortLevel(short)).toBe('warning');
+    expect(level(short)).toBe('warning');
     const long = Option.getOrThrow(shortLength(resolved(95)));
     expect(long.message).toContain('over the 90s');
-    expect(shortLevel(long)).toBe('error');
-    expect(shortLevel(Option.getOrThrow(shortLength(resolved(80))))).toBe('warning');
+    expect(level(long)).toBe('error');
+    expect(level(Option.getOrThrow(shortLength(resolved(80))))).toBe('warning');
   });
 });
 
@@ -92,7 +95,7 @@ describe('hookWord', () => {
     const late = Option.getOrThrow(hookWord(resolved(60), [phrase(0.8, 2)]));
     expect(late.reason).toBe('late word');
     expect(late.at).toBeCloseTo(0.8);
-    expect(shortLevel(late)).toBe('error');
+    expect(level(late)).toBe('error');
     expect(Option.getOrThrow(hookWord(resolved(60), [])).reason).toBe('late word');
   });
 });
@@ -157,7 +160,7 @@ describe('loopGap', () => {
     const gap = Option.getOrThrow(loopGap(resolved(10), [phrase(0.2, 5), phrase(5, 9)]));
     expect(gap.reason).toBe('gap');
     expect(gap.value).toBeCloseTo(1.2);
-    expect(shortLevel(gap)).toBe('warning');
+    expect(level(gap)).toBe('warning');
   });
 });
 
@@ -171,7 +174,7 @@ describe('lumaDiff and loopPicture', () => {
     expect(Option.isNone(loopPicture('probe', [10, 10], [12, 11]))).toBe(true);
     const cut = Option.getOrThrow(loopPicture('probe', [0, 0], [255, 0]));
     expect(cut.reason).toBe('picture');
-    expect(shortLevel(cut)).toBe('warning');
+    expect(level(cut)).toBe('warning');
     // It says what it measured: cell by cell, not two frames' means.
     expect(cut.message).toContain('mean absolute per-cell luma difference on a 64×36 grid');
   });
@@ -212,10 +215,10 @@ describe('unsafeTexts', () => {
     // ads: the bottom 35% (672 px) is covered, so text must end by 1248 px.
     expect(mine?.side).toBe('bottom');
     expect(mine?.own).toBe(true);
-    expect(shortLevel(mine!)).toBe('error');
+    expect(level(mine!)).toBe('error');
     const [film] = unsafeTexts('probe', 'default', 3, frame(box('label', 10, 1400, 80, 50)), k);
     expect(film?.side).toBe('left');
-    expect(shortLevel(film!)).toBe('warning');
+    expect(level(film!)).toBe('warning');
   });
 
   test('text faded out is not seen', () => {

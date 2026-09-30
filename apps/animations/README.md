@@ -38,8 +38,9 @@ bun run cues <film> [scene] --sound            # every effect placement's film t
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg (software share copy): ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
-bun run check <film> --static --allow-stale    # the no-browser leg (no StaticHold or look pass: they need the frames)
-bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message} (the lab reads this)
+bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
+bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
+bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{scene,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
@@ -91,17 +92,19 @@ fails narrate before anything is planned with `UnknownScene`. The films are
 always `src/films`, the folder the player imports (`cli.ts` hands it and
 `sounds/` to the tools); `FILMS_OUT` overrides `out`.
 
-Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes,
-sound and audio master are warnings), `--scene id,id` (probe only these
-scenes' layout), `--act name` (probe that act's scenes and judge its colour
-script), `--workers n`. The address (`--act`, `--scene`, `--short`: one of
-them) is resolved once, in `core/address.ts`, before a page opens: a name the
-film lacks fails with `UnknownAct`, `UnknownScene` or `UnknownShort`, listing
-what the film has, and two at once with `AddressConflict` (`cues <film>
-<scene>` fails the same way for its scene).
-Once every take is recorded, the static leg also measures `narration/full.wav`:
-missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
-(a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
+Check flags: `--static` (the files alone: no mix and no browser), `--sound`
+(the static leg and the mix, no browser), `--allow-stale` (stale takes, sound
+and audio master are warnings), `--scene id,id` (probe only these scenes'
+layout), `--act name` (probe that act's scenes and judge its colour script),
+`--workers n`. The address (`--act`, `--scene`, `--short`: one of them) is
+resolved once, in `core/address.ts`, before a page opens: a name the film
+lacks fails with `UnknownAct`, `UnknownScene` or `UnknownShort`, listing what
+the film has, and two at once with `AddressConflict` (`cues <film> <scene>`
+fails the same way for its scene).
+Once every take is recorded, the static leg also reads `narration/full.wav`
+and the stamp `mix` writes beside it (`full.json`): missing is
+`AudioMissing`; longer or shorter than the film, or mixed for another plan
+(a score pick, a re-take, a moved effect), is `AudioStale`; `mix` fixes both. `check` is a
 review step, run by hand: the app's `gate` runs typecheck and tests only. One
 of those tests (`test/every-scene-draws.test.ts`) draws every scene of every
 film in `src/films/index.ts` at its first frame, each cue's edges and midpoint, its 60% point

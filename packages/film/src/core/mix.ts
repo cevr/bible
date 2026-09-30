@@ -9,9 +9,9 @@
 // Effects and beds name sounds from the app's library (`sfx.ts`), levelled in
 // dB relative to the voice's speech level by what each variant measured.
 
-import { Option, Result } from 'effect';
-import { type Pcm, toStereo } from './audio.ts';
-import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
+import { Option, Result, Schema } from 'effect';
+import { type Pcm, SPEECH_GATE, toStereo } from './audio.ts';
+import { type Duck, type Limit, addInto, duck, fade, limitInto, toFrames } from './dsp.ts';
 import {
   CueInvalid,
   type MovementLength,
@@ -24,7 +24,8 @@ import {
   type WordMissing,
 } from './errors.ts';
 import type { Placed } from './layout.ts';
-import { takeLift } from './recording.ts';
+import { hashText } from './narration.ts';
+import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundManifest } from './schema.ts';
 import {
   type Placing,
@@ -38,11 +39,12 @@ import {
   playPlacings,
   playablesOf,
   resolveUse,
+  sourceLabel,
   soundState,
 } from './sfx.ts';
-import { aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
+import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
-import { cueTime, filmEnd, musicKey, musicPlan, playedOption } from './sound.ts';
+import { cueTime, filmEnd, playedOption, scoreOptionState } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
 export const MIX_RATE = 44100;
@@ -296,24 +298,22 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
     if (Option.isSome(declared)) {
       const score = declared.value;
       const option = yield* playedOption(score, input.play);
-      const made = Option.fromNullishOr(manifest.scores?.[option.name]);
-      if (Option.isNone(made))
+      const state = scoreOptionState(option, placed, manifest);
+      if (state._tag === 'Missing')
         warnings.push(
           `mix.missing asset=score.${option.name} hint="run score to compose it, or score pull"`,
         );
-      if (Option.isSome(made)) {
-        const plan = yield* musicPlan(option.music, placed);
-        if (made.value.hash !== musicKey(option.music, plan))
-          warnings.push(
-            `mix.stale asset=score.${option.name} hint="acts or timing changed; run score to compose it again"`,
-          );
+      if (state._tag === 'Stale')
+        warnings.push(
+          `mix.stale asset=score.${option.name} why=${state.why._tag} hint="movements or timing changed; run score to compose it again"`,
+        );
+      if (state._tag !== 'Missing')
         played = Option.some({
           option: option.name,
-          sound: fileSource(`${input.soundDir}/${made.value.file}`),
+          sound: fileSource(`${input.soundDir}/${state.asset.file}`),
           under: score.under,
           alone: score.alone,
         });
-      }
     }
 
     let beds: ReadonlyArray<BedSpan<SoundSource>> = [];
@@ -325,6 +325,53 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
 
     return { seconds: filmEnd(placed), voice, score: played, beds, effects, warnings };
   });
+
+/**
+ * A sound as the key reads it: a file by its name, which carries its content
+ * hash (a take's `<scene>.<hash>`, a score's `<option>-<hash>`, a library
+ * variant's sha256), so the key reads the same in every checkout; a recipe by
+ * its request and seed.
+ */
+const soundKey = (source: SoundSource): string => {
+  if (source._tag === 'File') return source.file.slice(source.file.lastIndexOf('/') + 1);
+  return sourceLabel(source);
+};
+
+/** A key's fields as one line of JSON. */
+const KeyJson = Schema.fromJsonString(Schema.Json);
+
+/**
+ * What a mix of `plan` sounds like, as one hash: every sound it plays, where,
+ * how loud and at what pitch, the score option and its levels, and the
+ * levels `renderMix` masters, fades and ducks by. Two plans with one key mix
+ * to the same track; `mix` writes the key beside the master, so a master
+ * mixed for another plan (another score option, a new take, a moved effect)
+ * is known stale although it is as long as the film. Warnings are not heard.
+ */
+export const mixKey = (plan: MixPlan<SoundSource>): string =>
+  hashText(
+    Schema.encodeSync(KeyJson)({
+      levels: {
+        MASTER,
+        LIMIT: { ...LIMIT },
+        BED_DUCK: { ...BED_DUCK },
+        MUSIC_FADE_IN,
+        MUSIC_FADE_OUT,
+        BED_FADE,
+        BED_CROSSFADE,
+        SCORE,
+        SPEECH_GATE,
+        TAKE_LEVEL,
+      },
+      seconds: plan.seconds,
+      voice: plan.voice.map((t) => [t.name, soundKey(t.sound), t.at, t.gain, t.pitch, t.staged]),
+      score: Option.getOrNull(
+        Option.map(plan.score, (s) => [s.option, soundKey(s.sound), s.under, s.alone]),
+      ),
+      beds: plan.beds.map((b) => [soundKey(b.sound), b.from, b.to, b.gain, b.fade, b.duck]),
+      effects: plan.effects.map((e) => [e.name, soundKey(e.sound), e.at, e.gain, e.pitch]),
+    }),
+  );
 
 /** The track, and each bus alone (for balancing by measurement): all `MIX_RATE`, stereo, the film's length. */
 export interface Mixed {
@@ -490,12 +537,14 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   ])
     addInto(sum, channels, 0, 1);
 
+  // The master is `sum` itself, lifted and limited in place: no bus of its own.
   const masterGain = masteringGain(pcm(frames, sum));
-  const mastered = bus(frames);
-  addInto(mastered, sum, 0, 10 ** (masterGain / 20));
+  const lift = 10 ** (masterGain / 20);
+  for (const plane of sum) for (let i = 0; i < frames; i++) plane[i] = (plane[i] ?? 0) * lift;
+  limitInto(sum, MIX_RATE, LIMIT, sum);
 
   return {
-    master: pcm(frames, limit(mastered, MIX_RATE, LIMIT)),
+    master: pcm(frames, sum),
     masterGain,
     voice: pcm(frames, voice),
     music: Option.map(music, (channels) => pcm(frames, channels)),

@@ -35,7 +35,8 @@ mode with the lab's routes mounted, because only the app can bundle its HTML
 and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
 key=value`) go to stderr, a failed command's report too (logged under the
 same logger before the runtime exits, not by `runMain`'s own reporter, which
-would print to stdout); stdout carries only what a command prints, so a
+would print to stdout; a typed failure as its tag and message, a defect with
+its stack); stdout carries only what a command prints, so a
 failing `check --json` still prints only findings. The player imports the same folder, so the tools
 and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
@@ -43,7 +44,8 @@ effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 produces an asset only when its stored hash is stale, and every manifest
 update is serialized. At most three paid jobs run at once. Failures are
 tagged errors (`TakeMismatch`, `ApiKeyMissing`, `EncoderMissing`, ...) in
-`tools/errors.ts`; logs are `Effect.log` lines `event key=value`.
+`tools/errors.ts`; `film check`'s findings, with their levels and addresses,
+are in `tools/findings.ts`. Logs are `Effect.log` lines `event key=value`.
 `tools/testing.ts` has the in-memory doubles the tool tests use.
 
 `film sfx` is the app's sound library (`SoundLibrary`, `tools/library.ts`).
@@ -125,7 +127,11 @@ where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited: ported from the ffmpeg graph
 it replaced, which it matched to a −98.8 dB residual) and writes the film's
 one track, `narration/full.wav` (16-bit), to `full.partial.wav`, renamed only
-once whole: a failed or interrupted mix leaves the previous track. A bed or
+once whole: a failed or interrupted mix leaves the previous track. Beside it,
+once it is whole, `full.json` stamps the key of the plan it played
+(`mixKey`: every sound it plays by its file name, which carries its hash, or
+its recipe, with where, how loud and at what pitch, the score option and its
+levels, and the levels it masters, fades and ducks by). A bed or
 effect names a library sound (`core/sfx.ts`) and a level in dB relative to
 the voice; its gain comes from the level its variant measured when made
 (one-shots by momentary max, beds by integrated loudness). An effect's
@@ -138,9 +144,10 @@ each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The
 player streams the WAV (the preview server answers range requests);
-`masterFinding` holds it to the film's length (`AudioMissing`, `AudioStale`);
-the renderer checks it before the first frame and `check` in its static
-leg.
+`masterFinding` holds it to the film's length and to the plan the film
+mixes to now (`AudioMissing`; `AudioStale`, `length` or `mixed for another
+plan`, which an unstamped track is too): the renderer checks it before the
+first frame and `check` in its static leg.
 
 `narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
 only by rewriting `timings.json`, so no crash leaves a take and its timings
@@ -704,8 +711,9 @@ uninterruptible (the reload a write causes drops its request). The last write
 can be undone once, only while the file is exactly as that write left it.
 
 **StaticCheck** (`static-check.ts`) runs `film check <film> --static
---allow-stale` in a new process after each write (this one imported the
-scene modules at start) and returns its findings, which the lab lists.
+--allow-stale --json` in a new process after each write (this one imported the
+scene modules at start) and returns its findings, each with its address,
+which the lab lists. The static leg never mixes or opens a browser.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
@@ -944,15 +952,26 @@ the film's check shows under them after every write.
 ## Check
 
 `film check <film>` fails (after reporting every finding, not the first) on
-what a review used to find by eye:
+what a review used to find by eye. It runs in legs (`tools/film-check.ts`),
+each typed by what it needs: the static leg (`staticLeg`: the film's files,
+FileSystem and Media), the sound leg (`soundLeg`: the mix, Mixer), and the
+layout and look legs (`layoutLeg`: the browser, Checker and Looker).
+`--static` runs the static leg alone, with no mix and no browser: it is what
+the lab runs after each write. `--sound` adds the sound leg, still with no
+browser. With neither, all of them run. Every finding comes back in one
+`Report` (`tools/findings.ts`): levelled by `levelOf` (one exhaustive
+table, `--allow-stale` included) and addressed by `addressOf` (its scene and
+the film second it starts at; a finding about the whole film has neither).
+`--json` prints each as a `CheckLine`, `{ level, tag, message, address? }`.
 
 - **Static** (no browser, `--static`): a named cue that ends after its scene
   (`CueLate`); a sound cue naming an unknown scene, cue or mark; a score movement
   out of film order or under 3 s (`MovementTooShort`); a take that is missing or
   was recorded for other text or another voice (`TakeStale`); a generated
   sound whose request hash has moved (`AssetStale`); once every take is
-  recorded, an audio master that is missing (`AudioMissing`) or not the
-  film's length (`AudioStale`). `--allow-stale` reports stale takes, sounds
+  recorded, an audio master that is missing (`AudioMissing`), not the
+  film's length or mixed for another plan than the film's now (`AudioStale`:
+  a score pick, a re-take or a moved effect since the last `mix`). `--allow-stale` reports stale takes, sounds
   and master as warnings. `--scene id,id` or `--act name` limits the
   layout leg to that address's scenes. Every command that takes a part of
   the film (`render`, `check`, `cues --short`, the look pass) names it as
@@ -1012,13 +1031,18 @@ what a review used to find by eye:
   `STILL_DRIFT` and reads as motion. `film check` stays
   green on it; `--static` skips it, since telling a still picture from
   undeclared motion needs the frames.
-- **The ending and the air** (static): the stretch after the last word under
-  20 s, or an end card (a last scene that speaks nothing) under 5 s, is an
-  `EndShort` warning. Once the master covers the film, it is read mono at
-  16 kHz in 50 ms windows: a run under −60 dBFS longer than 1.5 s is
-  `DeadAir`, an error, less any span a cue declares with `silence: true`
-  (`{ scene: 'start', offset: 2, dur: 3, silence: true }`), the designed
-  silences the script means.
+- **The ending and the air**: the stretch after the last word under 20 s, or
+  an end card (a last scene that speaks nothing) under 5 s, is an `EndShort`
+  warning (static). Once every take is recorded, the sound leg renders the
+  mix the film makes now in memory (not read from `full.wav`, which may be
+  stale) and reads it in 50 ms windows, its sides' power summed as a listener
+  hears it (`windowPowers`): a run under −60 dBFS longer than
+  1.5 s is `DeadAir`, an error, less any span a cue declares with
+  `silence: true` (`{ scene: 'start', offset: 2, dur: 3, silence: true }`),
+  the designed silences the script means. The same mix is held to the
+  balance, as warnings: a master more than 3 LU off −18 LUFS
+  (`MasterLoudness`: a hot peak held the mastering lift back), and an effect
+  whose loudest 50 ms comes within 3 dB of the voice around it (`EffectHot`).
 - **The look pass** (headless pages, `looker.ts`, measures in `look.ts`):
   every scene drawn at 2 fps and shrunk to a 64×36 thumb (the research's
   measure). A second holds when both its half-second steps change the mean

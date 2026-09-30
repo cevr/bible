@@ -8,13 +8,20 @@ import { Array as Arr, Effect, Option, Schema, SchemaTransformation } from 'effe
 import type { ease } from './time.ts';
 
 /**
- * A JSON file as the repo keeps it: two-space indent and a final newline, which
- * is what the formatter leaves, so a file the tools rewrite never churns.
+ * `schema` as a JSON file the repo keeps: two-space indent and a final
+ * newline, which is what the formatter leaves, so a file the tools rewrite
+ * never churns.
  */
-const fileText = SchemaTransformation.transform<string, string>({
-  decode: (text) => text,
-  encode: (json) => `${json}\n`,
-});
+export const repoJson = <S extends Parameters<typeof Schema.fromJsonString>[0]>(schema: S) =>
+  Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.fromJsonString(schema, { space: 2 }),
+      SchemaTransformation.transform<string, string>({
+        decode: (text) => text,
+        encode: (json) => `${json}\n`,
+      }),
+    ),
+  );
 
 // ---------------------------------------------------------------------------
 // Narration
@@ -121,9 +128,7 @@ export const Timings = Schema.Struct({
 export type Timings = typeof Timings.Type;
 
 /** `timings.json` on disk. */
-export const TimingsJson = Schema.String.pipe(
-  Schema.decodeTo(Schema.fromJsonString(Timings, { space: 2 }), fileText),
-);
+export const TimingsJson = repoJson(Timings);
 
 /** Voice settings as the API takes them: named numbers. */
 const VoiceSettings = Schema.Record(Schema.String, Schema.Finite);
@@ -599,9 +604,7 @@ export const SoundManifest = Schema.Struct({
 export type SoundManifest = typeof SoundManifest.Type;
 
 /** `sound/manifest.json` on disk. */
-export const SoundManifestJson = Schema.String.pipe(
-  Schema.decodeTo(Schema.fromJsonString(SoundManifest, { space: 2 }), fileText),
-);
+export const SoundManifestJson = repoJson(SoundManifest);
 
 /**
  * One timed chunk of the ElevenLabs composition plan for the v2 music models.
@@ -895,9 +898,7 @@ export const NotesFile = Schema.Struct({
 export type NotesFile = typeof NotesFile.Type;
 
 /** `notes.json` on disk. */
-export const NotesFileJson = Schema.String.pipe(
-  Schema.decodeTo(Schema.fromJsonString(NotesFile, { space: 2 }), fileText),
-);
+export const NotesFileJson = repoJson(NotesFile);
 
 /** A change after a cursor: a new note, a reply in a thread, or a note resolved. */
 export const NoteEvent = Schema.Union([
@@ -958,11 +959,23 @@ export const ResolvedCue = Schema.Struct({
 });
 export type ResolvedCue = typeof ResolvedCue.Type;
 
-/** One finding of `film check --static`, as it prints it. */
+/**
+ * Where in the film a finding is: the scene it names, and the film second it
+ * starts at. A finding about the whole film (a stale master, a missing sound)
+ * has neither; one about a scene's declarations has only the scene.
+ */
+export const FindingAddress = Schema.Struct({
+  scene: Schema.optionalKey(Schema.String),
+  time: Schema.optionalKey(Schema.Finite),
+});
+export type FindingAddress = typeof FindingAddress.Type;
+
+/** One finding of `film check`, as `--json` prints it; `address` is absent when it has none. */
 export const CheckLine = Schema.Struct({
   level: Schema.Literals(['error', 'warning']),
   tag: Schema.String,
   message: Schema.String,
+  address: Schema.optionalKey(FindingAddress),
 });
 export type CheckLine = typeof CheckLine.Type;
 

@@ -9,9 +9,10 @@
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option, Result } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Result, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type Pcm, levels, windowLevels } from '../core/audio.ts';
+import { type Pcm, levels } from '../core/audio.ts';
+import type { Placed } from '../core/layout.ts';
 import {
   type BedSpan,
   MIX_RATE,
@@ -21,9 +22,11 @@ import {
   type Placement,
   type ScoreBed,
   type Take,
+  mixKey,
   mixPlan,
   renderMix,
 } from '../core/mix.ts';
+import { repoJson } from '../core/schema.ts';
 import type { SoundSource, Sounds } from '../core/sfx.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import type { StoreError } from './content-store.ts';
@@ -36,7 +39,13 @@ import {
   SampleRateMismatch,
   TakeUnknown,
 } from './errors.ts';
-import { type FilmPaths, FilmRepo, type PlaceError, placeFilm } from './film-repo.ts';
+import {
+  type FilmPaths,
+  FilmRepo,
+  type LoadedFilm,
+  type PlaceError,
+  placeFilm,
+} from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
 
 /** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
@@ -45,48 +54,60 @@ export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full
 /** Where a file is written until it is whole: `full.wav` → `full.partial.wav`. */
 const partialFile = (file: string): string => file.replace(/(\.[^./]+)$/, '.partial$1');
 
-/** The track's measured length in seconds, or none when there is no track. */
-export const measureMaster = (
+/** What the track was mixed from: `full.json`, written beside `full.wav` by the same mix. */
+export const stampFile = (paths: FilmPaths): string => `${paths.narration}/full.json`;
+
+/** `full.json`: the key (`mixKey`) of the plan the track was mixed from. */
+export const MasterStampJson = repoJson(Schema.Struct({ key: Schema.String }));
+
+/** The track on disk: its measured length in seconds, and the key its stamp names. */
+export interface Master {
+  readonly length: number;
+  /** None when the track has no stamp, or one that does not read. */
+  readonly key: Option.Option<string>;
+}
+
+/** The film's track on disk, or none when there is no track. */
+export const readMaster = (
   fs: FileSystem.FileSystem,
   media: MediaService,
-  file: string,
-): Effect.Effect<Option.Option<number>, MediaFailed | PlatformError> =>
+  paths: FilmPaths,
+): Effect.Effect<Option.Option<Master>, MediaFailed | PlatformError> =>
   Effect.gen(function* () {
+    const file = masterFile(paths);
     if (!(yield* fs.exists(file))) return Option.none();
-    return Option.some(yield* media.duration(file));
+    const length = yield* media.duration(file);
+    const key = yield* fs.readFileString(stampFile(paths)).pipe(
+      Effect.flatMap(Schema.decodeEffect(MasterStampJson)),
+      Effect.map((stamp) => stamp.key),
+      Effect.option,
+    );
+    return Option.some({ length, key });
   });
 
-/** The rate the master is read at for its levels: speech and room tone both sit under 8 kHz. */
-const LEVEL_RATE = 16000;
-
-/** The master's RMS level in dBFS over each `window` seconds, in order (`DeadAir` reads it). */
-export const masterLevels = (
-  media: MediaService,
-  file: string,
-  window: number,
-): Effect.Effect<Float64Array, MediaFailed> =>
-  Effect.map(media.load(file, LEVEL_RATE), (pcm) =>
-    windowLevels(pcm.channels[0] ?? new Float32Array(), Math.round(window * LEVEL_RATE)),
-  );
-
 /**
- * The track against the film it must cover: missing, or longer or shorter
- * than `seconds` by more than `tolerance` (a frame), it is not this film's
- * track. A mix is exactly the film's length, so a current one always passes.
+ * The track against the film it must cover: missing; longer or shorter than
+ * `film.seconds` by more than `tolerance` (a frame); or mixed for another
+ * plan than `film.key`, the one the film mixes to now (none when the plan
+ * does not build: the check names why). A mix is exactly the film's length
+ * and stamped with its plan, so a current one always passes.
  */
 export const masterFinding = (
   file: string,
-  length: Option.Option<number>,
-  seconds: number,
+  master: Option.Option<Master>,
+  film: { readonly seconds: number; readonly key: Option.Option<string> },
   tolerance: number,
 ): Option.Option<AudioMissing | AudioStale> =>
-  Option.match(length, {
+  Option.match(master, {
     onNone: () => Option.some(AudioMissing.make({ file })),
-    onSome: (measured) =>
-      Option.liftPredicate(
-        AudioStale.make({ file, length: measured, film: seconds }),
-        () => Math.abs(measured - seconds) > tolerance,
-      ),
+    onSome: ({ length, key }) => {
+      const stale = (reason: AudioStale['reason']) =>
+        Option.some(AudioStale.make({ file, reason, length, film: film.seconds }));
+      if (Math.abs(length - film.seconds) > tolerance) return stale('length');
+      const another = Option.exists(film.key, (now) => !Option.contains(key, now));
+      if (another) return stale('mixed for another plan');
+      return Option.none();
+    },
   });
 
 export interface MixOptions {
@@ -141,10 +162,11 @@ export const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sound
   });
 };
 
-/** A mix rendered in memory, and the decoded plan it played. */
+/** A mix rendered in memory, the decoded plan it played, and that plan's key (`mixKey`). */
 export interface Rendered {
   readonly plan: MixPlan<Pcm>;
   readonly mixed: Mixed;
+  readonly key: string;
 }
 
 export interface MixerService {
@@ -231,6 +253,60 @@ export const presentOnly = (
     };
   });
 
+/** `film`'s plan, by source, with `options`' score or take in place of its own. Pure. */
+export const planOf = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+  options: Pick<RenderOptions, 'score' | 'take'>,
+): Result.Result<MixPlan<SoundSource>, MixPlanError | TakeUnknown> =>
+  Result.flatMap(
+    Option.match(options.take, {
+      onNone: () => Result.succeed(film.sounds),
+      onSome: (take) => withTake(film.sounds, take),
+    }),
+    (sounds) =>
+      mixPlan({
+        film: film.paths.name,
+        placed,
+        sound: film.sound,
+        manifest: film.manifest,
+        sounds,
+        narration: film.paths.narration,
+        soundDir: film.paths.sound,
+        play: options.score,
+      }),
+  );
+
+/** What `film` mixes to now: its plan (`planOf`), less the files not on disk, each named in a warning. */
+export const filmPlan = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+  options: Pick<RenderOptions, 'score' | 'take'>,
+): Effect.Effect<
+  MixPlan<SoundSource>,
+  MixPlanError | TakeUnknown | PlatformError,
+  FileSystem.FileSystem
+> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const planned = yield* Effect.fromResult(planOf(film, placed, options));
+    return yield* presentOnly((file) => fs.exists(file), planned);
+  });
+
+/**
+ * The key of the plan `film` mixes to now (`mix`'s own): what a current
+ * master's stamp names. None when the plan does not build; the check names
+ * why.
+ */
+export const planKey = (
+  film: LoadedFilm,
+  placed: ReadonlyArray<Placed>,
+): Effect.Effect<Option.Option<string>, never, FileSystem.FileSystem> =>
+  filmPlan(film, placed, { score: Option.none(), take: Option.none() }).pipe(
+    Effect.map(mixKey),
+    Effect.option,
+  );
+
 /** One bus of the mix, by the name its levels log and its stem take. */
 interface Bus {
   readonly bus: string;
@@ -265,32 +341,18 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const render = Effect.fn('Mixer.render')(function* (name: string, options: RenderOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
-        const sounds = yield* Option.match(options.take, {
-          onNone: () => Effect.succeed(film.sounds),
-          onSome: (take) => Effect.fromResult(withTake(film.sounds, take)),
-        });
-        const planned = yield* Effect.fromResult(
-          mixPlan({
-            film: name,
-            placed,
-            sound: film.sound,
-            manifest: film.manifest,
-            sounds,
-            narration: film.paths.narration,
-            soundDir: film.paths.sound,
-            play: options.score,
-          }),
+        const present = yield* filmPlan(film, placed, options).pipe(
+          Effect.provideService(FileSystem.FileSystem, fs),
         );
-        const present = yield* presentOnly((file) => fs.exists(file), planned);
         if (options.warn) for (const warning of present.warnings) yield* Effect.logWarning(warning);
         const plan = yield* decodePlan(media, present);
-        const rendered: Rendered = { plan, mixed: renderMix(plan) };
+        const rendered: Rendered = { plan, mixed: renderMix(plan), key: mixKey(present) };
         return rendered;
       });
 
       const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
         const film = yield* repo.load(name);
-        const { plan, mixed } = yield* render(name, {
+        const { plan, mixed, key } = yield* render(name, {
           warn: true,
           score: options.score,
           take: Option.none(),
@@ -314,6 +376,9 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
 
         const master = masterFile(film.paths);
         yield* writeWhole(master, mixed.master);
+        // Stamped once the track is whole: a track with no stamp, or an old one, reads as stale.
+        const stamp = yield* Effect.orDie(Schema.encodeEffect(MasterStampJson)({ key }));
+        yield* fs.writeFileString(stampFile(film.paths), stamp);
         if (options.stems) {
           const dir = `${film.paths.out}/stems`;
           yield* fs.makeDirectory(dir, { recursive: true });

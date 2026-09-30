@@ -3,17 +3,17 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, Layer, Option, Result } from 'effect';
+import { Deferred, Effect, Fiber, Layer, Option, Result, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
 import { layout } from '../core/layout.ts';
-import { MIX_RATE } from '../core/mix.ts';
+import { MIX_RATE, mixKey } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { filmEnd } from '../core/sound.ts';
 import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
-import { Mixer } from './mixer.ts';
+import { MasterStampJson, Mixer, planOf } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
 import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
 
@@ -26,12 +26,21 @@ const timings: Timings = {
 };
 const film = testFilm(scenes, timings);
 const TRACK = '/films/test/narration/full.wav';
+const STAMP = '/films/test/narration/full.json';
 const TAKE = '/films/test/narration/a.mp3';
 
 type Finish = 'done' | 'fail' | 'hang';
 
-/** Media whose sounds decode to a second of silence at `rate`, and whose WAV writes land, then finish, fail or hang. */
-const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: number) =>
+/**
+ * Media whose sounds decode to a second of silence at `rate`, and whose WAV
+ * writes land, then finish, fail or hang (completing `hung` as they do).
+ */
+const writingMedia = (
+  files: Map<string, Uint8Array>,
+  finish: Finish,
+  rate: number,
+  hung: Deferred.Deferred<void>,
+) =>
   Layer.succeed(
     Media,
     Media.of({
@@ -44,7 +53,10 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
           files.set(file, text(`wav ${pcm.frames}`));
           if (finish === 'fail')
             return yield* MediaFailed.make({ op: 'write', file, reason: 'no space' });
-          if (finish === 'hang') return yield* Effect.never;
+          if (finish === 'hang') {
+            yield* Deferred.complete(hung, Effect.void);
+            return yield* Effect.never;
+          }
         }),
       join: () => Effect.void,
       shareCopy: () => Effect.void,
@@ -54,6 +66,7 @@ const writingMedia = (files: Map<string, Uint8Array>, finish: Finish, rate: numb
 const setup = (finish: Finish, rate = MIX_RATE) => {
   const files = new Map<string, Uint8Array>([[TRACK, text('old')]]);
   const decoded: Array<string> = [];
+  const hung = Deferred.makeUnsafe<void>();
   const repo = Layer.succeed(
     FilmRepo,
     FilmRepo.of({
@@ -74,7 +87,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
           inner.decode(file).pipe(Effect.tap(() => Effect.sync(() => void decoded.push(file)))),
       });
     }),
-  ).pipe(Layer.provide(writingMedia(files, finish, rate)));
+  ).pipe(Layer.provide(writingMedia(files, finish, rate, hung)));
   const layer = Mixer.layer.pipe(Layer.provide([memoryFileSystem(files), repo, media]));
   const mix = (stems = false) =>
     Effect.gen(function* () {
@@ -82,7 +95,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
     }).pipe(Effect.provide(layer));
   const read = (file: string) => new TextDecoder().decode(files.get(file));
   const partials = () => [...files.keys()].filter((f) => f.includes('partial'));
-  return { files, decoded, mix, read, partials };
+  return { files, decoded, hung, mix, read, partials };
 };
 
 /** The film's length in frames: every track is exactly that long. */
@@ -99,6 +112,20 @@ describe('Mixer', () => {
     }),
   );
 
+  it.effect('beside the track, the mix stamps the key of the plan it played: the film’s now', () =>
+    Effect.gen(function* () {
+      const { mix, read } = setup('done');
+      yield* mix();
+      const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
+      // The film has no score or library sound to be missing: its plan is the one `mix` played.
+      const now = planOf(film, Result.getOrThrow(layout(scenes, timings)), {
+        score: Option.none(),
+        take: Option.none(),
+      });
+      expect(stamp.key).toBe(mixKey(Result.getOrThrow(now)));
+    }),
+  );
+
   it.effect('with stems, each bus is written beside the render', () =>
     Effect.gen(function* () {
       const { files, mix, read } = setup('done');
@@ -112,19 +139,21 @@ describe('Mixer', () => {
 
   it.effect('a failed mix leaves the previous track', () =>
     Effect.gen(function* () {
-      const { mix, read, partials } = setup('fail');
+      const { files, mix, read, partials } = setup('fail');
       const error = yield* Effect.flip(mix());
       expect(error._tag).toBe('MediaFailed');
       expect(read(TRACK)).toBe('old');
+      expect(files.has(STAMP)).toBe(false);
       expect(partials()).toEqual([]);
     }),
   );
 
   it.live('an interrupted mix leaves the previous track', () =>
     Effect.gen(function* () {
-      const { mix, read, partials } = setup('hang');
+      const { hung, mix, read, partials } = setup('hang');
       const fiber = yield* Effect.forkChild(mix());
-      yield* Effect.sleep('10 millis');
+      // Interrupted while the track is being written, as a Ctrl-C mid-mix is.
+      yield* Deferred.await(hung);
       yield* Fiber.interrupt(fiber);
       expect(read(TRACK)).toBe('old');
       expect(partials()).toEqual([]);

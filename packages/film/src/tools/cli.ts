@@ -40,6 +40,7 @@ import {
   Logger,
   Option,
   Path,
+  Predicate,
   Result,
   Runtime,
   Schema,
@@ -49,27 +50,18 @@ import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
-import { type Placed, everyTakeRecorded, scenesOf } from '../core/layout.ts';
+import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { eventsSince } from '../core/notes.ts';
 import type { Short } from '../core/schema.ts';
 import { SAFE_ZONE_NAMES, SHORT_RULES, type SafeZoneName } from '../core/shorts.ts';
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
 import { Browser, browserReady } from './browser.ts';
-import {
-  DEAD_WINDOW,
-  HOLD,
-  type Level,
-  type Reported,
-  balanceFindings,
-  deadAir,
-  designedSilences,
-  layoutLevel,
-  masterFindings,
-  staticFindings,
-} from './check.ts';
+import { HOLD } from './check.ts';
+import { CHECK_RULES, layoutLeg, shortLeg, soundLeg, staticLeg } from './film-check.ts';
+import { type Finding, type Report, lineOf, report } from './findings.ts';
 import { Checker } from './checker.ts';
-import { filmChapters, lookFindings, lookLines } from './look.ts';
+import { filmChapters, lookLines } from './look.ts';
 import { Looker } from './looker.ts';
 import { Composer } from './composer.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -87,7 +79,7 @@ import {
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media, ffmpegReady } from './media.ts';
-import { Mixer, masterFile, masterLevels, measureMaster } from './mixer.ts';
+import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine } from './narrator.ts';
@@ -110,7 +102,6 @@ import { FreshFilm } from './choices-process.ts';
 import { sfx } from './sfx-cli.ts';
 import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
-import { shortLevel } from './short-check.ts';
 import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
@@ -540,50 +531,19 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 
 const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
-  /**
-   * The browser legs, on one server and browser that start only when they
-   * run: the layout at every sampled frame, then the look pass over the film.
-   */
-  const layoutLeg = Effect.fn('film.check.layout')(function* (
+  const layout = Effect.fn('film.check.layout')(function* (
     loaded: LoadedFilm,
     scope: Scope,
     workers: number,
   ) {
-    // The layout probes the scope's scenes; the whole film probes them all.
-    const scenes = Option.map(
-      Option.liftPredicate(scope, (s) => s.address._tag !== 'Film'),
-      (s) => new Set(s.scenes.map((p) => p.spec.id)),
-    );
-    const layout = yield* (yield* Checker).layout(loaded, { workers, scenes });
-    const looked = yield* (yield* Looker).look(loaded, workers, scope);
-    return [
-      ...layout.map((finding): Reported => ({ level: layoutLevel(finding), finding })),
-      // Each act the scope covers whole is judged against its colour script.
-      ...lookFindings(looked, scope.acts),
-    ];
+    return yield* layoutLeg(loaded, scope, workers);
   }, Effect.provide(checkLayer));
-  /**
-   * `check --short`: the short resolved on its page's frame rate, its words
-   * (its length, its first word, its loop's silence), then, unless
-   * `--static`, its page's frames. `--static` still opens the page, for its rate.
-   */
-  const shortLeg = Effect.fn('film.check.short')(function* (
+  const onShort = Effect.fn('film.check.short')(function* (
     loaded: LoadedFilm,
     declared: Short,
-    input: {
-      readonly static: boolean;
-      readonly workers: number;
-      readonly zone: SafeZoneName;
-      readonly json: boolean;
-    },
+    input: { readonly static: boolean; readonly workers: number; readonly zone: SafeZoneName },
   ) {
-    const found = yield* (yield* Checker).short(loaded, declared, {
-      workers: input.workers,
-      zone: input.zone,
-      static: input.static,
-    });
-    const leveled = found.map((finding) => ({ level: shortLevel(finding), finding }));
-    yield* reportFindings(declared.id, 'short', !input.static, leveled, input.json);
+    return yield* shortLeg(loaded, declared, input);
   }, Effect.provide(checkLayer));
   return Command.make(
     'check',
@@ -592,7 +552,13 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       static: Flag.Boolean('static').pipe(
         Flag.withDefault(false),
         Flag.withDescription(
-          'skip the layout leg: no browser, only cues, takes and sound (no static holds: telling one needs the frames)',
+          'only what the files tell: cues, takes, sounds and the master on disk; no mix and no browser (the lab runs this after each write)',
+        ),
+      ),
+      sound: Flag.Boolean('sound').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription(
+          'the static leg and the mix the film makes now (dead air, balance), without the browser',
         ),
       ),
       allowStale: Flag.Boolean('allow-stale').pipe(
@@ -605,7 +571,9 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
-        Flag.withDescription('print each finding as one line of JSON (level, tag, message)'),
+        Flag.withDescription(
+          'print each finding as one line of JSON (level, tag, message, and its address: scene, time)',
+        ),
       ),
       workers: Flag.Int('workers').pipe(
         Flag.withDefault(4),
@@ -620,68 +588,53 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       ),
     },
     Effect.fn('film.check')(function* (input) {
+      yield* Effect.fromResult(
+        flagConflicts(
+          givenFlags({
+            static: Option.liftPredicate(input.static, Boolean),
+            sound: Option.liftPredicate(input.sound, Boolean),
+            short: input.short,
+          }),
+          CHECK_RULES,
+        ),
+      );
+      const options = { allowStale: input.allowStale };
       const loaded = yield* (yield* FilmRepo).load(input.film);
       const placed = yield* placeFilm(loaded);
       // A misspelt act, scene or short fails here, in either leg, rather than probing nothing.
       const scope = yield* scopeOf(loaded, placed, input);
-      if (Option.isSome(scope.short)) return yield* shortLeg(loaded, scope.short.value, input);
-      const master = yield* measureMaster(
-        yield* FileSystem.FileSystem,
-        yield* Media,
-        masterFile(loaded.paths),
-      );
-      const found: Array<Reported> = [
-        ...staticFindings(loaded, placed, { allowStale: input.allowStale }, master),
-      ];
-      // Dead air is read from a master that covers this film; a missing or
-      // stale one is its own finding.
-      if (everyTakeRecorded(placed) && masterFindings(loaded, placed, master).length === 0) {
-        const levels = yield* masterLevels(yield* Media, masterFile(loaded.paths), DEAD_WINDOW);
-        for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
-          found.push({ level: 'error', finding });
-        // The balance is measured on the mix itself, bus by bus, as `mix` makes it.
-        const { plan, mixed } = yield* (yield* Mixer).render(input.film, {
-          warn: false,
-          score: Option.none(),
-          take: Option.none(),
-        });
-        for (const finding of balanceFindings(placed, plan, mixed))
-          found.push({ level: 'warning', finding });
+      if (Option.isSome(scope.short)) {
+        const declared = scope.short.value;
+        const found = yield* onShort(loaded, declared, input);
+        return yield* printReport(declared.id, 'short', report(found, options), input.json);
       }
-      if (!input.static) found.push(...(yield* layoutLeg(loaded, scope, input.workers)));
-      yield* reportFindings(input.film, 'film', !input.static, found, input.json);
+      const found: Array<Finding> = [...(yield* staticLeg(loaded, placed))];
+      if (!input.static) found.push(...(yield* soundLeg(loaded, placed)));
+      if (!input.static && !input.sound)
+        found.push(...(yield* layout(loaded, scope, input.workers)));
+      yield* printReport(input.film, 'film', report(found, options), input.json);
     }),
   ).pipe(
     Command.withDescription(
-      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the master, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
+      `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,
     ),
   );
 };
 
-/** One finding and how bad it is, whichever leg found it. */
-interface Leveled {
-  readonly level: Level;
-  readonly finding: { readonly _tag: string; readonly message: string };
-}
-
 /** Print each finding (a line, or a line of JSON), log the count, and fail on any error. */
-const reportFindings = Effect.fn('film.check.report')(function* (
+const printReport = Effect.fn('film.check.report')(function* (
   name: string,
   what: 'film' | 'short',
-  layout: boolean,
-  found: ReadonlyArray<Leveled>,
+  found: Report,
   json: boolean,
 ) {
-  for (const { level, finding } of found) {
-    if (json)
-      yield* Console.log(encodeCheckLine({ level, tag: finding._tag, message: finding.message }));
+  for (const reported of found.findings) {
+    const { level, finding } = reported;
+    if (json) yield* Console.log(encodeCheckLine(lineOf(reported)));
     else yield* Console.log(`${level.padEnd(7)} ${finding._tag.padEnd(12)} ${finding.message}`);
   }
-  const errors = found.filter((r) => r.level === 'error').length;
-  const warnings = found.length - errors;
-  yield* Effect.log(
-    `check.done ${what}=${name} layout=${layout} errors=${errors} warnings=${warnings}`,
-  );
+  const { errors, warnings } = found;
+  yield* Effect.log(`check.done ${what}=${name} errors=${errors} warnings=${warnings}`);
   if (errors > 0) return yield* CheckFailed.make({ errors, warnings });
 });
 
@@ -1128,10 +1081,27 @@ export const runFilmCli = <E>({
   );
 };
 
+/**
+ * A failure as the CLI reports it: a typed error by its tag and message only
+ * (its stack is where Schema built the error, not where the run went wrong);
+ * a defect, or anything but an Error, as the whole cause, stack included.
+ */
+const reportOf = (cause: Cause.Cause<unknown>): unknown =>
+  Option.match(
+    Option.filter(
+      Cause.findErrorOption(cause),
+      (error) => !Cause.hasDies(cause) && Predicate.isError(error),
+    ),
+    {
+      onNone: () => cause,
+      onSome: (error) => String(error),
+    },
+  );
+
 /** What runMain reports of a failure (not an interrupt, nor an error marked unreported), as an error log. */
 const reportFailure = (cause: Cause.Cause<unknown>) =>
   Effect.when(
-    Effect.logError(cause),
+    Effect.logError(reportOf(cause)),
     Effect.sync(
       () => !Cause.hasInterruptsOnly(cause) && Runtime.getErrorReported(Cause.squash(cause)),
     ),
