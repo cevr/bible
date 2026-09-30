@@ -3,7 +3,7 @@
 // and its films), so the app hands the `film` CLI a scoped layer for it.
 
 import { Context, type Layer } from 'effect';
-import type { LabHandler } from './lab.ts';
+import type { LabHandler } from './api-server.ts';
 
 export interface PreviewServerService {
   /** The player's root URL, e.g. `http://localhost:51234/`. */

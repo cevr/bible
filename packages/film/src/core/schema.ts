@@ -980,51 +980,6 @@ export const CheckLine = Schema.Struct({
 export type CheckLine = typeof CheckLine.Type;
 
 /**
- * The lab API's root for one film: every route is under `/lab/<film>/`, so a
- * page for another film cannot read or write this one's (the server answers
- * 409 for a film it does not serve).
- */
-export const labBase = (film: string): `/lab/${string}` => `/lab/${encodeURIComponent(film)}`;
-
-/** Where the review serves a file by its ref, and its phone copy. */
-export const REVIEW_FILES = '/review/files/';
-export const REVIEW_PHONE = '/review/phone/';
-
-/** A ref as a URL path: each segment encoded, the slashes kept. */
-const refPath = (ref: string) =>
-  ref
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-
-/** The review's URL for a file, by its ref. */
-export const reviewFileUrl = (ref: string): string => `${REVIEW_FILES}${refPath(ref)}`;
-
-/** The review's URL for a video's 720p phone copy, by its ref. */
-export const reviewPhoneUrl = (ref: string): string => `${REVIEW_PHONE}${refPath(ref)}`;
-
-/** The review's URL for a frame of a video, `w` px wide, at `t` s (10% in when none). */
-export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number): string => {
-  const at = Option.match(t, { onNone: () => '', onSome: (s) => `&t=${s.toFixed(2)}` });
-  return `/review/frame?ref=${encodeURIComponent(ref)}&w=${Math.round(w)}${at}`;
-};
-
-/** A film's options (`GET`), under its lab base. */
-export const optionsUrl = (film: string): string => `${labBase(film)}/options`;
-
-/** The film's whole mix with the score option `option` playing (an m4a). */
-export const scoreMixUrl = (film: string, option: string): string =>
-  `${optionsUrl(film)}/score/${encodeURIComponent(option)}/mix`;
-
-/** A library sound's take (by its sha256) alone: its file as the library keeps it. */
-export const takeAudioUrl = (film: string, sound: string, take: string): string =>
-  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/audio`;
-
-/** The film's whole mix with `sound` playing only this take at each of its placements (an m4a). */
-export const takeMixUrl = (film: string, sound: string, take: string): string =>
-  `${optionsUrl(film)}/effect/${encodeURIComponent(sound)}/takes/${encodeURIComponent(take)}/mix`;
-
-/**
  * One change the lab made to a file, as a page is told of it: a scene's (its
  * cue or knob) or a film's (its score's pick, its library's takes), named by
  * the scene when there is one.

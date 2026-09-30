@@ -15,9 +15,10 @@ import {
   type Json,
   json,
   openLab,
+  refused,
   route,
-  text,
 } from '../fixtures/harness.ts';
+import { ServerFailed } from '../../core/api.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
 import { RETRY_MS } from './feed.ts';
 import type { Note, Reply } from '../../core/schema.ts';
@@ -238,7 +239,13 @@ describe('marking a frame', () => {
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab(
-          [route('POST', /^\/notes$/, () => text('StoreFailed: the notes file is locked', 500))],
+          [
+            route('POST', /^\/notes$/, () =>
+              refused(
+                ServerFailed.make({ tag: 'StoreFailed', reason: 'the notes file is locked' }),
+              ),
+            ),
+          ],
           { hash: '#1' },
         );
         yield* waitFor(page, '.lab-overlay');
@@ -328,7 +335,10 @@ describe('the feed', () => {
           [
             route('GET', /^\/notes$/, () => {
               tries.push(tries.length);
-              if (tries.length === 1) return text('StoreFailed: notes.json is being written', 503);
+              if (tries.length === 1)
+                return refused(
+                  ServerFailed.make({ tag: 'StoreFailed', reason: 'notes.json is being written' }),
+                );
               return notesFile(0, []);
             }),
           ],

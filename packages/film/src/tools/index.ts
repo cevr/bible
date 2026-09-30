@@ -39,7 +39,8 @@ export {
   type ReviewService,
   parseRoots,
 } from './review.ts';
-export { reviewAllowed, reviewHandler, reviewRoutes } from './review-http.ts';
+export { reviewAllowed, reviewHandler } from './review-http.ts';
+export { type Allowed, type LabBound, type LabHandler } from './api-server.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

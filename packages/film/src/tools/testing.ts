@@ -15,6 +15,7 @@ import {
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
+import type { Route } from '../core/api.ts';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { NO_SOUNDS } from '../core/sfx.ts';
@@ -49,7 +50,14 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
+import { Mixer } from './mixer.ts';
 import { PreviewServer } from './preview-server.ts';
+import { SceneHead } from './scene-head.ts';
+import { SceneSources } from './scene-sources.ts';
+import { SceneWriter } from './scene-writer.ts';
+import { SourceWriter } from './source-writer.ts';
+import { StaticCheck } from './static-check.ts';
+import { Takes } from './takes.ts';
 
 const notFound = (method: string, path: string) =>
   PlatformError.systemError({
@@ -183,6 +191,88 @@ export const memoryFileSystem = (
   files: Map<string, Uint8Array>,
   folders: Set<string> = new Set(),
 ) => FileSystem.layerNoop(memoryOps(files, folders));
+
+/**
+ * A request for each of `routes` as a page on a foreign Host would send it:
+ * every `:film` naming `film`, every other param and a trailing `*` naming
+ * `x`, a write with a JSON body; the URL on `origin`.
+ */
+export const foreignRequests = (
+  routes: ReadonlyArray<Route>,
+  origin: string,
+  film: string,
+): ReadonlyArray<Request> =>
+  routes.map((route) => {
+    const path = route.path
+      .split('/')
+      .map((segment) => {
+        if (segment === ':film') return film;
+        if (segment.startsWith(':') || segment === '*') return 'x';
+        return segment;
+      })
+      .join('/');
+    const headers = { host: 'evil.example:4401', 'content-type': 'application/json' };
+    if (route.method === 'GET') return new Request(`${origin}${path}`, { headers });
+    return new Request(`${origin}${path}`, { method: route.method, headers, body: '{}' });
+  });
+
+const unusedSource = Effect.die('the scene source is not called here');
+
+/**
+ * The scene source's services where a test calls none of its routes: the
+ * lab's handler serves them too, so they only have to exist.
+ */
+export const noSource = Layer.mergeAll(
+  Layer.succeed(
+    SceneSources,
+    SceneSources.of({
+      locate: () => unusedSource,
+      site: () => unusedSource,
+      writable: () => unusedSource,
+      editable: () => unusedSource,
+    }),
+  ),
+  Layer.succeed(
+    SceneWriter,
+    SceneWriter.of({ setCue: () => unusedSource, setKnob: () => unusedSource }),
+  ),
+  Layer.succeed(
+    SourceWriter,
+    SourceWriter.of({
+      write: () => unusedSource,
+      around: () => unusedSource,
+      undo: () => unusedSource,
+      redo: () => unusedSource,
+      history: () => unusedSource,
+    }),
+  ),
+  Layer.succeed(StaticCheck, StaticCheck.of({ run: () => unusedSource })),
+  Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
+);
+
+/**
+ * The studio's services where a test calls none of its routes: the lab's
+ * handler serves the studio too, so they only have to exist.
+ */
+export const noStudio = Layer.mergeAll(
+  Layer.succeed(
+    Takes,
+    Takes.of({
+      importPath: () => Effect.die('the studio is not called here'),
+      importBeat: () => Effect.die('the studio is not called here'),
+      attempts: () => Effect.die('the studio is not called here'),
+      attemptFile: () => Effect.die('the studio is not called here'),
+      keepAttempt: () => Effect.die('the studio is not called here'),
+    }),
+  ),
+  Layer.succeed(
+    Mixer,
+    Mixer.of({
+      mix: () => Effect.die('the studio is not called here'),
+      render: () => Effect.die('the studio is not called here'),
+    }),
+  ),
+);
 
 /**
  * `files`, whose `nth` write, rename or remove (counting from 1) fails as a

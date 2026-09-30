@@ -69,7 +69,7 @@ loads and, for `lab`, the same server in development mode with the lab's own
 page at `/lab` (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`;
 `bunfig.toml` compiles its Solid JSX; the render's server never serves it) and
 the lab's routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
-is answered 409, so it cannot touch this film's notes or source). Lab notes and their stills are
+is answered 404 `FilmUnknown`, so it cannot touch this film's notes or source). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
 `stale` with why, record nothing), `--accept-mismatch id,id` (keep these

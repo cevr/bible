@@ -2,13 +2,8 @@
 // plays: pure, so each reads the same in a test as on the page.
 
 import { Array as Arr, Option } from 'effect';
-import {
-  type ReviewFile,
-  type ReviewFolder,
-  type ReviewVideo,
-  reviewFileUrl,
-  reviewPhoneUrl,
-} from '../../core/schema.ts';
+import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/schema.ts';
+import { reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
 export const sizeText = (bytes: number): string => {

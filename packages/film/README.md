@@ -536,45 +536,48 @@ URL, and runs until Ctrl-C, which stops the server and the routes with the
 command's scope. The page is the app's (`lab.html`, whose entry calls
 `mountLab(films)`, bundled with `@bible/film/solid-plugin`); only the lab's
 server serves it, so the render's server never bundles Solid. The framework
-owns the routes (`lab.ts`, an `HttpRouter` web handler over NotesStore); the
-app mounts them at `/lab/*`:
+owns the routes (the lab API, below: `labHandler` in `lab.ts`, one web
+handler over NotesStore, the scene source and the studio); the app mounts
+them at `/lab/*`:
 
-| Route                                    | What it does                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| `GET /lab/notes`                         | the film's notes file; its `seq` is the cursor                       |
-| `POST /lab/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
-| `POST /lab/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
-| `POST /lab/notes/:id/resolve`            | resolves it                                                          |
-| `GET /lab/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
-| `GET /lab/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
+| Route                                           | What it does                                                         |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| `GET /lab/<film>/notes`                         | the film's notes file; its `seq` is the cursor                       |
+| `POST /lab/<film>/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
+| `POST /lab/<film>/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
+| `POST /lab/<film>/notes/:id/resolve`            | resolves it (`{}`)                                                   |
+| `GET /lab/<film>/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
+| `GET /lab/<film>/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
 
-A bad body is a 400, an unknown note a 404, and every failure is logged.
+A bad body is a 400, an unknown note a 404 `NoteNotFound`, an unknown still
+a 404 `StillUnknown`, and every failure is logged.
 
 **The studio** (`tools/studio.ts`, over `Takes`, `FilmRepo` and `Mixer`)
-records takes from the lab through the same import as `takes import`. It
-answers `/lab/<film>/studio/*` (`withStudio` routes that prefix to it and the
-rest to the lab) with the same admission: same-origin JSON, and the film the
-lab serves (another film is a 409). Every body and answer is a Schema in
-`core/studio.ts`:
+records takes from the lab through the same import as `takes import`. Its
+routes are the lab API's `studio` group, under `/lab/<film>/studio/`, behind
+the same gate and for the film the lab serves (another film is a 404
+`FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`:
 
 | Route                                    | Body → answer                                                                                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GET /studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts             |
 | `POST /studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, what was heard, the word error, the new `timings`, `mixed`) |
 | `GET /studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: what each heard, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
-| `GET /studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404                                                                            |
+| `GET /studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404 `AttemptUnknown`                                                           |
 | `POST /studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                  |
 
-A take not kept answers `StudioRefusal` (`_tag`, `message`, and for a
-`TakeMismatch` the `script`, what was `heard`, the `wer` and the `attempt` it
-saved, which `keep` with `acceptMismatch` makes the take: "accept anyway").
+A take not kept answers its failure as the whole API does (below): a
+`TakeMismatch` carries the beat (`id`), the `script`, what was `heard`, the
+`wer` and the `attempt` it saved, which `keep` with `acceptMismatch` makes
+the take ("accept anyway"); the panel shows each as a `StudioRefusal`.
 A body that is not a recording, or of a media type the studio is not told how to
 read (`AudioInvalid`), is a 400; a lossy one (`audio/webm`, `ogg`, `mp4`,
 `aac`, `mpeg`: what MediaRecorder makes) a 415 `RecordingLossy`, since the
 take is the film's master; the panel records PCM (an AudioWorklet) and posts
 WAV. `TakeMismatch`, `RecordingInvalid` (a beat
 with no line, silence, an attempt never recorded) a 422; a failed
-speech-to-text (or `SttUntimed`) a 502. `:beat` is decoded and must be one of the film's
+speech-to-text (or `SttUntimed`) or a recording the media tools could not
+read (`MediaFailed`) a 502. `:beat` is decoded and must be one of the film's
 beats before a route reads a body or writes a thing: any other name (an
 encoded `/` or `..` included) is a 404 `UnknownScene`. A body over
 `STUDIO_MAX_BODY` (64 MiB) is a 413 `BodyTooLarge`, counted as it streams (a
@@ -583,8 +586,86 @@ upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
 when the request ends. Takes are kept one at a time (a semaphore per studio):
 the keep, the timings write and the mix after it finish before the next post
 begins. After a take is kept the film remixes; `mixed: false` says the mix
-failed (logged) and the take stands. The lab's **Studio** section records
-through these routes (below).
+failed (logged) and the take stands. A take posted, or an attempt kept,
+holds its connection open for `STUDIO_IMPORT_IDLE_S` past the server's idle
+limit (`Connection.hold`). The lab's **Studio** section records through
+these routes (below).
+
+### The HTTP API
+
+The lab's and the review's routes are declared once, as Effect `HttpApi`s,
+in `core/api.ts`: every path, its params, query, body and answer, and every
+failure with its status. Both ends derive from that declaration: the
+servers' handlers (`HttpApiBuilder.group` in `tools/lab.ts`, `studio.ts`,
+`steps-http.ts`, `review-http.ts`, `choices-http.ts`) and the pages'
+clients (`HttpApiClient` in `lab/api.ts`, `lab/studio/api.ts`,
+`lab/review/api.ts`, `lab/review/options/api.ts`) with the URLs a page puts
+in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
+`reviewPhoneUrl`, `reviewFrameUrl`, `scoreMixUrl`, `takeAudioUrl`,
+`takeMixUrl`, from `urlBuilder`).
+
+| API             | Served by                        | Groups                                                                             |
+| --------------- | -------------------------------- | ---------------------------------------------------------------------------------- |
+| `LabHttpApi`    | `film lab <film>` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio` |
+| `ReviewHttpApi` | `film review` (`reviewHandler`)  | `review` (index, file, phone, frame, duration), `options`, `steps`                 |
+
+**Failures cross as themselves.** A failure a route answers is one of
+`Refusals` (`core/api.ts`; the classes are `core/refusals.ts` and
+`core/errors.ts`), each annotated with its status (`HttpApiSchema.status`):
+the one status table (`statusOf` reads it). It crosses as its JSON with its
+`_tag` (`{"_tag":"SourceRefused","file":…,"target":…,"reason":…}`), and the
+page's client decodes it into the same class, so its `message` reads the
+same on both ends. A handler's failure that is not a Refusal answers 500 as
+`ServerFailed` (its tag and words), logged `api.request.failed`; a param, a
+query or a body that does not decode is an empty 400. On the page a call
+fails with `LabFailure`: the server's Refusal, or `LabUnreachable` (no
+answer, or one that does not decode).
+
+**One gate.** `serveApi` (`tools/api-server.ts`) composes an API's routes
+behind one global middleware, the only place a request is admitted
+(`admit`): the Host must be the bound port on a loopback name or one the
+server is told (`FILM_REVIEW_HOSTS`), a browser's `Sec-Fetch-Site`
+same-origin, a write's Origin one of those hosts' with a JSON body
+(`WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
+streams (`BodyTooLarge`, 413). Anything else is a 403 `RequestRefused`,
+logged `api.request.refused`. A new route is behind the gate by being a
+route; every route of both APIs answers a foreign Host 403 (`lab.test.ts`,
+`review-http.test.ts` walk `routesOf(api)`). Every film route names its
+film: `FilmScope` says which the server answers for (the lab its own, the
+review the app's), and any other name is a 404 `FilmUnknown` before a
+handler reads a thing. The review's page answers every path outside the
+API's own prefixes (`/lab/`, `/review/`).
+
+**To add an endpoint:**
+
+1. Declare it in its group in `core/api.ts` with `HttpApiEndpoint.get` or
+   `.post(name, path, { params, query, payload, success, error: Refusals })`.
+   A write takes a JSON `payload` (`NoBody` when it says nothing). A new
+   failure class goes in `core/refusals.ts` and into `Refusals` with its
+   status. A new group is `HttpApiGroup.make(name).add(…)`, added to the API
+   that serves it (`LabHttpApi`, `ReviewHttpApi`, or both).
+2. Handle it in the group's `HttpApiBuilder.group(api, name, …)` in tools:
+   `.handle(name, ({ params, query, payload, request }) =>
+answered(Effect.gen(…)))`, naming the film with `named(params.film)`.
+   Return the success value (the API encodes it), or an
+   `HttpServerResponse` for a file (`serveFile` answers byte ranges). A new
+   group's layer joins `labHandler` or `reviewHandler`, and a service its
+   handlers need joins that handler's `Effect.context`.
+3. Call it from the page through the derived client
+   (`client.<group>.<name>({ params, payload })`, wrapped in `heard` for
+   `LabFailure`), or put its URL in an element through `urlBuilder`.
+4. The foreign-Host test covers it by itself; add a test of what it answers.
+
+For example, the review's project routes (`GET /review/project/<film>?variant=`
+answering a `Project`; `POST /review/project/<film>/approve` `{scene, variant?}`,
+`…/approve-all` `{variant?}` and `…/comment` `{scene, text, variant?}`, each
+answering the fresh `Project`) are one group: a `project` group in
+`core/api.ts` with those four endpoints, added to `ReviewHttpApi` (its
+`/review/project` paths fall under the API's prefixes by themselves);
+one `HttpApiBuilder.group(ReviewHttpApi, 'project', …)` whose handlers run
+`film project <film> --variant v --json` (or the write) in a fresh process,
+as `FreshFilm` does, and decode its `Project`; its layer joins the
+`Layer.mergeAll` in `reviewHandler`; and the page calls `client.project.<name>`.
 
 ### Studio
 
@@ -727,14 +808,14 @@ server rebuilds and reloads the page at the same `#T`, with the selection
 kept in the URL (`&sel=cue:hand:topple`, `&sel=knob:hand:palm`); review the
 change with `git diff`.
 
-| Route                           | What it does                                                                                        |
-| ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `GET /lab/scenes/:scene/source` | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
-| `POST /lab/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`, `ease?`, at least one); answers the span, the cue resolved, findings |
-| `POST /lab/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
-| `POST /lab/undo`                | puts the last write's file back, byte for byte; once                                                |
-| `GET /lab/check`                | `film check --static` now, and the write Undo would revert (`last`)                                 |
-| `GET /lab/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
+| Route                                  | What it does                                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `GET /lab/<film>/scenes/:scene/source` | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
+| `POST /lab/<film>/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`, `ease?`, at least one); answers the span, the cue resolved, findings |
+| `POST /lab/<film>/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
+| `POST /lab/<film>/undo`, `/redo`       | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
+| `GET /lab/<film>/check`                | `film check --static` now, the latest change, and what Undo and Redo would do                       |
+| `GET /lab/<film>/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
@@ -985,10 +1066,10 @@ frames and phone copies are the Media service's (`duration`, `still`,
 a phone, so `REVIEW_HOST` defaults to loopback and a box's unit binds
 `0.0.0.0` with the names it is reached by in `FILM_REVIEW_HOSTS`
 (comma-separated Host values as the browser sends them, port included:
-`bite-cristian.exe.xyz:8229`). Every request passes the lab's `admit`, the
-page and its script included: the app's server has no route of its own, only
-`reviewHandler`, which admits first and then hands what is not `/review/*` or
-`/lab/*` to the app's page (built in process when `review` starts, so a page
+`bite-cristian.exe.xyz:8229`). Every request passes the API's one gate (The
+HTTP API, above), the page and its script included: the app's server has no
+route of its own, only `reviewHandler`, which admits first and then hands what
+is not `/review/*` or `/lab/*` to the app's page (built in process when `review` starts, so a page
 that does not build stops the command as `ReviewPageFailed`). A Host
 that is neither the server's own nor one of those is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`). A write

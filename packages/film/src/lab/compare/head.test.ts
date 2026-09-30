@@ -6,7 +6,7 @@
 import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { LabRefused } from '../api.ts';
+import { HeadUnavailable } from '../../core/refusals.ts';
 import { compareText, headEdit } from './head.ts';
 
 const head = {
@@ -52,8 +52,10 @@ describe('compareText', () => {
       "scenes/one.ts at HEAD · code changed since HEAD — compare shows data only · HEAD's timeline and knobs are the same as now",
     );
   });
-  test("HEAD refused: the server's reason, without its tag", () => {
-    const refused = LabRefused.make({ status: 404, message: 'SceneNotFound: not in HEAD' });
-    expect(compareText('wipe', 'one', AsyncResult.fail(refused))).toBe('one: not in HEAD');
+  test("HEAD refused: the server's reason, in its words", () => {
+    const refused = HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' });
+    expect(compareText('wipe', 'one', AsyncResult.fail(refused))).toBe(
+      'one: scenes/one.ts: no HEAD version to compare with: not in git',
+    );
   });
 });

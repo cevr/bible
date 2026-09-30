@@ -5,8 +5,9 @@
 // so a test can read what the lab wrote.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Option } from 'effect';
+import { Effect, FileSystem, Option, Schema } from 'effect';
 import { type Page, type Route, chromium } from 'playwright-core';
+import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
 import { PROBE } from './probe-film.ts';
 
@@ -29,9 +30,10 @@ export interface Asked {
   readonly body: Option.Option<Json>;
 }
 
-/** How a fake route answers: JSON with a status, or text (a refusal, as the server words it). */
+/** How a fake route answers: JSON with a status, a refusal as the server answers it, or text. */
 export type Answer =
   | { readonly _tag: 'Json'; readonly status: number; readonly json: Json }
+  | { readonly _tag: 'Refused'; readonly refusal: Refusal }
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
   | { readonly _tag: 'File'; readonly path: string }
   | { readonly _tag: 'Hold' };
@@ -41,6 +43,8 @@ export const json = (value: Json, status = 200): Answer => ({
   status,
   json: value,
 });
+/** A refusal as the server answers it: its JSON, at the status the contract gives it. */
+export const refused = (refusal: Refusal): Answer => ({ _tag: 'Refused', refusal });
 export const text = (value: string, status: number): Answer => ({
   _tag: 'Text',
   status,
@@ -168,11 +172,19 @@ const bodyOf = (r: Route): Option.Option<Json> =>
     Option.fromNullishOr<Json>(r.request().postDataJSON()),
   );
 
+const encodeRefusal = Schema.encodeSync(Schema.fromJsonString(Refusal));
+
 const answer = (r: Route, found: Answer) => {
   if (found._tag === 'Hold') return;
   if (found._tag === 'File') return r.fulfill({ path: found.path });
   if (found._tag === 'Text')
     return r.fulfill({ status: found.status, contentType: 'text/plain', body: found.text });
+  if (found._tag === 'Refused')
+    return r.fulfill({
+      status: statusOf(found.refusal),
+      contentType: 'application/json',
+      body: encodeRefusal(found.refusal),
+    });
   return r.fulfill({ status: found.status, json: found.json });
 };
 
