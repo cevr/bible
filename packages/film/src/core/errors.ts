@@ -46,6 +46,22 @@ export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownSho
   }
 }
 
+/**
+ * An address (`--scene a,c`) names scenes the film does not play one after
+ * another: they are no one stretch of it, so no render or stamp can cover
+ * exactly them. Name the scenes between too, or address each alone.
+ */
+export class ScenesApart extends Schema.TaggedError<ScenesApart>()('ScenesApart', {
+  /** The scenes named, in film order. */
+  named: Schema.Array(Schema.String),
+  /** The film's scenes between the first and last named that were not named. */
+  between: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `scenes ${this.named.join(', ')} are not one stretch of the film (between them: ${this.between.join(', ')}); name those too, or address each scene alone`;
+  }
+}
+
 /** An address that names more than one scope: a film, one act, some scenes or one short. */
 export class AddressConflict extends Schema.TaggedError<AddressConflict>()('AddressConflict', {
   /** The scopes it names: `act`, `scene`, `short`. */

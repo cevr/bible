@@ -22,7 +22,7 @@
 // the points, and the review page shows them.
 
 import { Array as Arr, Option, Schema } from 'effect';
-import { Address, addressKey } from './address.ts';
+import { Address } from './address.ts';
 import {
   ApprovalState,
   type Catalogue,
@@ -126,10 +126,6 @@ export type ChoicePoint = typeof ChoicePoint.Type;
 export const pointId = (_kind: 'render', clip: string): string =>
   pointIdOf({ _tag: 'Montage', clip });
 
-/** The point `point` is (its id read back), when its id names one. */
-export const refOf = (point: Pick<ChoicePoint, 'id'>): Option.Option<PointRef> =>
-  pointRefOf(point.id);
-
 /** A variant as its adapter describes it, before the owner's say is read. */
 export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes' | 'staleBy'> & {
   readonly notes?: Option.Option<ReviewFile>;
@@ -164,7 +160,7 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
   knob: draft.knob ?? Option.none(),
   variants: draft.variants.map((variant): ChoiceVariant => {
     const said = Option.map(
-      Option.all({ cat: catalogue, address: draft.address, ref: refOf(draft) }),
+      Option.all({ cat: catalogue, address: draft.address, ref: pointRefOf(draft.id) }),
       ({ cat, address, ref }) => ({ cat, subject: subjectAt(ref, address, variant) }),
     );
     return {
@@ -218,14 +214,6 @@ export const seenPoint = (point: ChoicePoint): SeenPoint => ({
   ...point,
   variants: seenVariants(point),
 });
-
-/** Whether `point` belongs at `address` or inside it: a scene's points include those of its layers. */
-export const isAt = (point: ChoicePoint, address: Address): boolean =>
-  Option.exists(point.address, (at) => {
-    if (addressKey(at) === addressKey(address)) return true;
-    if (address._tag !== 'Scenes' || at._tag !== 'Scenes') return false;
-    return at.ids.some((id) => address.ids.includes(id));
-  });
 
 // ---------------------------------------------------------------------------
 // On the wire: the review's `choices` routes (`api.ts`).

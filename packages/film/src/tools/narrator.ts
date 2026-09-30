@@ -28,7 +28,6 @@ import {
 import { Base64 } from 'effect/encoding';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
 import {
-  type Line,
   hashText,
   heldInside,
   linesOf,
@@ -49,6 +48,7 @@ import {
   isCast,
 } from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
+import type { ReadBeat } from '../core/studio.ts';
 import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
@@ -65,17 +65,6 @@ import { settleAll } from './settle.ts';
 
 /** A take whose transcript is further than this from its script is a mismatch. */
 export const MAX_WORD_ERROR = 0.08;
-
-/** One beat's spoken line, in film order. */
-export interface Beat {
-  readonly id: string;
-  /** What is said. */
-  readonly text: string;
-  /** What is said and who says it: a take is kept under this text's hash. */
-  readonly script: string;
-  /** Who reads what: the whole beat for a film with one voice, a line per turn for a cast. */
-  readonly lines: ReadonlyArray<Line>;
-}
 
 export interface NarrateOptions {
   /** Record just these beats, current or not (a current recorded take is never replaced). */
@@ -116,11 +105,11 @@ const orphansOf = (timings: Timings, beats: ReadonlyArray<{ readonly id: string 
 };
 
 export interface NarrationPlan {
-  readonly beats: ReadonlyArray<Beat>;
+  readonly beats: ReadonlyArray<ReadBeat>;
   /** Every beat with words and where its take stands, in film order. */
   readonly states: ReadonlyArray<BeatTake>;
   /** The beats to record, in film order. */
-  readonly stale: ReadonlyArray<Beat>;
+  readonly stale: ReadonlyArray<ReadBeat>;
   /** The beats staging would have recorded but a person's take holds. */
   readonly kept: ReadonlyArray<Kept>;
   /**
@@ -157,7 +146,7 @@ const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) =>
       Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
     ),
     (parsed) =>
-      Result.map(linesOf(scene.id, parsed, film.voice), (lines): Beat => ({
+      Result.map(linesOf(scene.id, parsed, film.voice), (lines): ReadBeat => ({
         id: scene.id,
         text: parsed.spoken,
         script: takeScript(parsed),
@@ -168,7 +157,7 @@ const beatOf = (film: LoadedFilm, scene: LoadedFilm['scenes'][number]) =>
 /** Every beat's lines, in film order, or the voice a turn names that the film does not have. */
 export const beatsOf = (
   film: LoadedFilm,
-): Result.Result<ReadonlyArray<Beat>, UnknownVoice | LineError> =>
+): Result.Result<ReadonlyArray<ReadBeat>, UnknownVoice | LineError> =>
   Result.all(film.scenes.map((scene) => beatOf(film, scene)));
 
 /**
@@ -182,7 +171,7 @@ export interface VoicedFilm {
   readonly paths: FilmPaths;
   readonly voice: Voice;
   readonly heardAs: HeardAs;
-  readonly beats: ReadonlyArray<Beat>;
+  readonly beats: ReadonlyArray<ReadBeat>;
 }
 
 /** The film as a take is kept against it, or the voice a turn names that the film does not have. */
@@ -277,7 +266,7 @@ const withTake =
  * swept with the staging takes.
  */
 const withoutRemoved =
-  (voice: string, beats: ReadonlyArray<Beat>) =>
+  (voice: string, beats: ReadonlyArray<ReadBeat>) =>
   (timings: Timings): Timings => {
     const ids = new Set(beats.map((b) => b.id));
     const scenes = Object.entries(currentTakes(timings, voice)).filter(
@@ -311,7 +300,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
        * The beat read aloud: one voice through text-to-speech, a cast as one
        * dialogue. `breaks` is where each line starts in the alignment.
        */
-      const read = (film: LoadedFilm, plan: NarrationPlan, beat: Beat) => {
+      const read = (film: LoadedFilm, plan: NarrationPlan, beat: ReadBeat) => {
         const { voice } = film;
         if (isCast(voice))
           return Effect.map(elevenLabs.dialogue({ lines: beat.lines, cast: voice }), (reply) => ({
@@ -339,7 +328,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         film: LoadedFilm,
         plan: NarrationPlan,
         options: NarrateOptions,
-        beat: Beat,
+        beat: ReadBeat,
       ) {
         const reply = yield* read(film, plan, beat);
         const { alignment } = reply;

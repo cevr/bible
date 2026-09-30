@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { Option, Result, Schema } from 'effect';
+import { Arbitrary, Effect, Option, Result, Schema } from 'effect';
 import { CatalogueJson } from './catalogue.ts';
-import { PointId, type PointRef, pointIdOf, pointRefOf } from './point.ts';
+import { PointId, PointRef, pointIdOf, pointRefOf } from './point.ts';
 
 /** Every kind of point, and the string it has always been written as. */
 const written: ReadonlyArray<readonly [PointRef, string]> = [
@@ -43,6 +43,34 @@ describe('the choice point id', () => {
       expect(Schema.encodeSync(PointId)(ref)).toBe(id);
       expect(Schema.decodeSync(PointId)(id)).toEqual(ref);
     }
+  });
+
+  test('every point the schema admits is written as an id that reads back as itself', () => {
+    const same = Schema.toEquivalence(PointRef);
+    const result = Effect.runSync(
+      Arbitrary.checkEffect(
+        Arbitrary.schema(PointRef),
+        (ref) =>
+          Result.isSuccess(Schema.decodeResult(PointId)(pointIdOf(ref))) &&
+          Option.exists(pointRefOf(pointIdOf(ref)), (back) => same(back, ref)),
+        { runs: 2000, seed: 7 },
+      ),
+    );
+    expect(Arbitrary.formatCheckFailure(result)).toBeUndefined();
+  });
+
+  test('a montage named like an address, and an empty name, are no point', () => {
+    for (const ref of [
+      { _tag: 'Montage', clip: 'film' },
+      { _tag: 'Montage', clip: 'act:valley' },
+      { _tag: 'Montage', clip: 'scenes:a' },
+      { _tag: 'Montage', clip: 'short:hook' },
+      { _tag: 'Take', sound: '' },
+      { _tag: 'Render', address: { _tag: 'Act', act: '' } },
+      { _tag: 'Render', address: { _tag: 'Scenes', ids: ['a,b'] } },
+      { _tag: 'Level', target: { _tag: 'Layer', layer: { _tag: 'Bed', index: -1, sound: 'x' } } },
+    ])
+      expect(Result.isFailure(Schema.decodeUnknownResult(PointRef)(ref))).toBe(true);
   });
 
   test('a string that names no point does not decode', () => {

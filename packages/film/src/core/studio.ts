@@ -5,8 +5,12 @@
 // them.
 
 import { Schema } from 'effect';
-import { TakeStaleReason } from './narration.ts';
+import { Line, TakeStaleReason } from './narration.ts';
 import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
+import { Part, SheetBeat } from './sheet.ts';
+
+/** A stretch of a beat as the studio's panel shows it: the sheet's own `Part`. */
+export type StudioPart = Part;
 
 /**
  * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
@@ -31,23 +35,6 @@ export const STUDIO_IMPORT_WAIT_S = 210;
  */
 export const STUDIO_IMPORT_IDLE_S = 240;
 
-/** A stretch of a beat on the sheet: words to read (and who reads them), or a quotation. */
-export const StudioPart = Schema.Union([
-  Schema.Struct({
-    kind: Schema.Literal('line'),
-    /** The reader a turn names; absent for the film's one voice. */
-    voice: Schema.optionalKey(Schema.String),
-    text: Schema.String,
-  }),
-  Schema.Struct({
-    kind: Schema.Literal('quotation'),
-    text: Schema.String,
-    /** `author, ref` of the `quotes.jsonl` record whose words hold it. */
-    by: Schema.optionalKey(Schema.String),
-  }),
-]);
-export type StudioPart = typeof StudioPart.Type;
-
 /** A beat as a take is kept against it: its words, the text a take is hashed under, and who reads what. */
 export const ReadBeat = Schema.Struct({
   id: Schema.String,
@@ -56,19 +43,9 @@ export const ReadBeat = Schema.Struct({
   /** What is said and who says it: a take is kept under this text's hash. */
   script: Schema.String,
   /** Who reads what: the whole beat for a film with one voice, a line per turn for a cast. */
-  lines: Schema.Array(
-    Schema.Struct({ name: Schema.String, voiceId: Schema.String, text: Schema.String }),
-  ),
+  lines: Schema.Array(Line),
 });
 export type ReadBeat = typeof ReadBeat.Type;
-
-/** A beat on the reading sheet: its parts to read and the sources it cites. */
-export const SheetRow = Schema.Struct({
-  id: Schema.String,
-  parts: Schema.Array(StudioPart),
-  sources: Schema.Array(Schema.String),
-});
-export type SheetRow = typeof SheetRow.Type;
 
 /**
  * What the studio reads of a film's script and voice, as `film read voice`
@@ -81,7 +58,7 @@ export const StudioReading = Schema.Struct({
   voice: Voice,
   heardAs: HeardAs,
   beats: Schema.Array(ReadBeat),
-  sheet: Schema.Array(SheetRow),
+  sheet: Schema.Array(SheetBeat),
 });
 export type StudioReading = typeof StudioReading.Type;
 
@@ -90,7 +67,7 @@ export const StudioBeat = Schema.Struct({
   id: Schema.String,
   /** The name `takes import` reads it under, for a recording made elsewhere. */
   file: Schema.String,
-  parts: Schema.Array(StudioPart),
+  parts: Schema.Array(Part),
   sources: Schema.Array(Schema.String),
   /** `recorded`: a person's take, current; `staging`: ElevenLabs'; `stale`: see `staleReason`. */
   state: Schema.Literals(['recorded', 'staging', 'stale']),

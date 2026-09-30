@@ -29,7 +29,9 @@ taken over Schema-encoded requests, so a committed hash stays current.
 The export page's handle and what its probe records (`ExportInfo`,
 `TextBox`, `InkMark`, `FaceMark`, `HandMark`, `Probed`) are declared beside
 the handle in `core/export-handle.ts`; a choice point's id in
-`core/point.ts`.
+`core/point.ts`; an address as data (`Address`, `addressKey`) in
+`core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
+(`address.ts` re-exports it beside `resolveAddress`).
 
 ## Tools
 
@@ -642,7 +644,10 @@ which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
 routes are the lab API's `studio` group, under `/lab/<film>/studio/`, behind
 the same gate and for the film the lab serves (another film is a 404
-`FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`:
+`FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`,
+over the one reading the tools use too: a beat's `Line`s
+(`core/narration.ts`) and the sheet's `Part` and `SheetBeat`
+(`core/sheet.ts`):
 
 | Route                                               | Body → answer                                                                                                                                                            |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -1185,7 +1190,7 @@ sound (`paper.page.hush`), placed there, and picked the same way.
 that option playing (a score) or only that take at every placement of its
 sound (`RenderOptions.take`), encoded AAC and cached under a key of the film,
 the option, the take and the film's source stamp (the newest file under its
-folder, and the lock). A mix renders the whole film (45–55 s for
+folder, the library's module and its lock). A mix renders the whole film (45–55 s for
 righteousness-by-faith on the box under load), so mixes are made one at a time in the
 service's scope, not the request's: a page that stops waiting leaves one
 running, the next ask joins it or finds it made, and the page's `<audio>`
@@ -1312,7 +1317,10 @@ the film second it starts at; a finding about the whole film has neither).
   it once with `resolveAddress` into a `Scope`: its placed scenes, its span
   in film seconds (an act or scenes; none for the film or a short), the acts
   it covers whole, and its short. A name the film lacks fails there with
-  `UnknownAct`, `UnknownScene` or `UnknownShort`. `sceneAt(placed, T)`
+  `UnknownAct`, `UnknownScene` or `UnknownShort`, and scenes the film does
+  not play one after another (`--scene a,c` with `b` between) with
+  `ScenesApart`: a part is one stretch, so its span, its render and its
+  stamp cover exactly the scenes named. `sceneAt(placed, T)`
   (`core/layout.ts`) is the one rule for the scene playing at a time: the
   last to have started, within `SCENE_EPSILON`. A sound never generated
   (`AssetMissing`) is always a warning: the mix plays without it.

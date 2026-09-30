@@ -20,8 +20,8 @@
 
 import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { ChoiceVerb, refOf } from '../core/choice.ts';
-import { PointRef } from '../core/point.ts';
+import { ChoiceVerb } from '../core/choice.ts';
+import { PointRef, pointRefOf } from '../core/point.ts';
 import { hashText } from '../core/narration.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
@@ -130,7 +130,7 @@ const take = Command.make(
     );
     if (Result.isFailure(found)) return yield* refuseWith(found.failure);
     const { point, variant } = found.success;
-    const take = Option.filter(refOf(point), PointRef.guards.Take);
+    const take = Option.filter(pointRefOf(point.id), PointRef.guards.Take);
     if (Option.isNone(take))
       return yield* refuseWith(
         VerbRefused.make({
@@ -174,7 +174,7 @@ const mix = Command.make(
     );
     if (Result.isFailure(found)) return yield* refuseWith(found.failure);
     const { point, variant } = found.success;
-    const ref = refOf(point);
+    const ref = pointRefOf(point.id);
     const score = Option.filter(ref, PointRef.guards.Score);
     const take = Option.map(Option.filter(ref, PointRef.guards.Take), (r) => ({
       sound: r.sound,

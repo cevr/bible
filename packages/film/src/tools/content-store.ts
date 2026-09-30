@@ -203,7 +203,8 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
        * Break the lock if it is stale. Moved aside first (a rename is atomic,
        * so of two writers breaking it at once only one moves it), then checked
        * to be the very lock judged stale; a live lock moved by mistake (taken
-       * between the judging and the move) is put back.
+       * between the judging and the move) is put back, unless a third writer
+       * has taken the lock since: its lock stays.
        */
       const breakStale = Effect.fn('ContentStore.breakStale')(function* (lock: string) {
         const held = yield* fs.readFileString(lock).pipe(Effect.option);
@@ -231,7 +232,9 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         const buried = yield* fs.readFileString(grave).pipe(Effect.option);
         const text = (o: Option.Option<string>) => Option.getOrElse(o, () => '');
         if (text(buried) !== text(held)) {
-          yield* fs.rename(grave, lock).pipe(Effect.ignore);
+          // Back only where no lock is: a link fails on one a third writer took meanwhile.
+          yield* fs.link(grave, lock).pipe(Effect.ignore);
+          yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
           return;
         }
         yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);

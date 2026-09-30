@@ -97,7 +97,7 @@ export interface FilmFolderService {
   /**
    * What the film is made from as it stands: the newest mtime of any file
    * under its folder (its scenes, script, takes, score and `sound.ts`) and of
-   * the library's lock. A process that keeps what it read of a film fresh
+   * the library's module (`library.ts`) and lock. A process that keeps what it read of a film fresh
    * keys it by this, and reads again when it moves.
    */
   readonly stamp: (film: string) => Effect.Effect<number, PlatformError>;
@@ -254,9 +254,13 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           const dir = paths(film).dir;
           const files = yield* fs.readDirectory(dir, { recursive: true });
           const made = files.filter((f) => !NOT_SOURCE.includes(f.split('/')[0] ?? ''));
-          const lock = Option.map(sounds, (at) => lockManifest(at).file);
+          // The library's module and its lock: its levels, prompts and kept takes enter the mix.
+          const library = Option.match(sounds, {
+            onNone: () => [],
+            onSome: (at) => [path.join(at, 'library.ts'), lockManifest(at).file],
+          });
           const times = yield* Effect.forEach(
-            [...made.map((f) => path.join(dir, f)), ...Option.toArray(lock)],
+            [...made.map((f) => path.join(dir, f)), ...library],
             (file) =>
               fs.stat(file).pipe(
                 Effect.map((info) =>

@@ -17,8 +17,8 @@ import { Argument, Command, Flag } from 'effect/cli';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
 import { type Placed, sceneClock, sceneOf } from '../core/layout.ts';
 import type { Span } from '../core/schema.ts';
-import { type Part, type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
-import type { StudioPart, StudioReading } from '../core/studio.ts';
+import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
+import type { StudioReading } from '../core/studio.ts';
 import { resolveTimeline } from '../core/timeline.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { CueRead, TimelineJson, VoiceRead, printLine } from './fresh-film.ts';
@@ -28,19 +28,6 @@ import { quotesOf } from './script-sheet.ts';
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
 );
-
-/** A sheet part as the wire carries it. */
-const wirePart = (part: Part): StudioPart => {
-  if (part._tag === 'Line')
-    return Option.match(part.voice, {
-      onNone: () => ({ kind: 'line', text: part.text }),
-      onSome: (voice) => ({ kind: 'line', voice, text: part.text }),
-    });
-  return Option.match(part.by, {
-    onNone: () => ({ kind: 'quotation', text: part.text }),
-    onSome: (by) => ({ kind: 'quotation', text: part.text, by }),
-  });
-};
 
 /**
  * What the studio reads of `loaded`: its voice, its script's `heardAs`, each
@@ -56,16 +43,11 @@ export const studioReading = (
     const lines = Option.getOrElse(script, () =>
       loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
     );
-    const sheet = yield* sheetBeats(lines, quotes);
     return {
       voice: loaded.voice,
       heardAs: loaded.heardAs,
       beats: yield* beatsOf(loaded),
-      sheet: sheet.map((beat) => ({
-        id: beat.id,
-        parts: beat.parts.map(wirePart),
-        sources: beat.sources,
-      })),
+      sheet: yield* sheetBeats(lines, quotes),
     };
   });
 

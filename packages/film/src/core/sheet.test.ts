@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Result } from 'effect';
 import { type Quote, sheetBeats, sheetHtml, sheetMarkdown } from './sheet.ts';
 
 const quotes: ReadonlyArray<Quote> = [
@@ -34,26 +34,25 @@ describe('the reading sheet', () => {
     const [message] = beats;
     expect(message?.parts).toEqual([
       {
-        _tag: 'Line',
-        voice: Option.none(),
+        kind: 'line',
         text: 'In 1888, two preachers came. / Ellen White said God sent',
       },
       {
-        _tag: 'Quotation',
+        kind: 'quotation',
         text: '“a most precious message”',
-        by: Option.some('Ellen G. White, Lt 57, 1895'),
+        by: 'Ellen G. White, Lt 57, 1895',
       },
-      { _tag: 'Line', voice: Option.none(), text: 'through them. / Job asked it:' },
-      { _tag: 'Quotation', text: '“How should man be just with God?”', by: Option.none() },
+      { kind: 'line', text: 'through them. / Job asked it:' },
+      { kind: 'quotation', text: '“How should man be just with God?”' },
     ]);
     expect(message?.sources).toEqual(['Job 9:2', 'Lt 57, 1895']);
   });
 
   test('a turn names who reads the words after it', () => {
     expect(beats[1]?.parts).toEqual([
-      { _tag: 'Line', voice: Option.none(), text: 'Is that justice?' },
-      { _tag: 'Line', voice: Option.some('ask'), text: 'Wait.' },
-      { _tag: 'Line', voice: Option.some('lead'), text: 'Right.' },
+      { kind: 'line', text: 'Is that justice?' },
+      { kind: 'line', voice: 'ask', text: 'Wait.' },
+      { kind: 'line', voice: 'lead', text: 'Right.' },
     ]);
   });
 
@@ -72,8 +71,7 @@ describe('the reading sheet', () => {
     );
     expect(beat?.parts).toEqual([
       {
-        _tag: 'Line',
-        voice: Option.none(),
+        kind: 'line',
         text: 'Mrs. White and Dr. Kellogg met at St. Helena. / Then Mr. Jones spoke.',
       },
     ]);
