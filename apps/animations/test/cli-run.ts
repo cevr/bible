@@ -10,6 +10,7 @@
 // test timeout) while sibling renders loaded every core. So a test that
 // spawns declares its budget as spawns × SPAWN_MS, ten times the gate median:
 // it still fails a CLI that hangs, and no longer fails a loaded machine.
+// `film/spawn-budget` refuses a test that calls `runCli` with no timeout.
 
 import { Effect, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
