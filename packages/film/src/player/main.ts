@@ -103,7 +103,7 @@ export interface Staged {
 }
 
 /** The film a page names (`?film=<name>`), else the registry's first. */
-export const filmName = (films: Films): string =>
+const filmName = (films: Films): string =>
   new URLSearchParams(location.search).get('film') ?? Object.keys(films)[0] ?? '';
 
 export { labUrl, lookbookUrl } from './pages.ts';

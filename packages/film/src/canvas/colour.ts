@@ -18,7 +18,7 @@ export type Clear = `rgba(${number}, ${number}, ${number}, 0)`;
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /** The red, green and blue of a hex colour, 0..255 each, written into `out`; throws naming any other colour. */
-export const rgbOf = (out: [number, number, number], hex: Hex): [number, number, number] => {
+const rgbOf = (out: [number, number, number], hex: Hex): [number, number, number] => {
   if (!HEX.test(hex)) throw new Error(`colour "${hex}" is not #rgb or #rrggbb hex`);
   const short = hex.length === 4;
   for (let i = 0; i < 3; i++) {

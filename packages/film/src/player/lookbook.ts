@@ -56,7 +56,7 @@ const fit = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
 };
 
 /** The family of a CSS font (`600 64px "Fraunces"` → `"Fraunces"`): what follows its size. */
-export const familyOf = (font: string): string =>
+export const fontFamilyOf = (font: string): string =>
   /\d(?:px|pt|em|rem|%)(?:\/\S+)?\s+(.+)$/.exec(font)?.[1] ?? 'sans-serif';
 
 /** `cue topple start` reads as `topple ▸`, `cue topple end` as `topple ◂`. */
@@ -119,8 +119,8 @@ export const composeLookbook = async (
   ctx.scale(scale, scale);
   ctx.fillStyle = PAGE;
   ctx.fillRect(0, 0, width, height);
-  const display = familyOf(film.look.short.hook.font);
-  const body = familyOf(film.look.short.caption.font);
+  const display = fontFamilyOf(film.look.short.hook.font);
+  const body = fontFamilyOf(film.look.short.caption.font);
 
   // The title, and what the sheet shows.
   ctx.textBaseline = 'alphabetic';

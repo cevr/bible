@@ -8,7 +8,7 @@
 // encoded down to 1080 × 1920 (`shortPage`).
 
 import { Result, Schema } from 'effect';
-import type { Placed } from '../core/layout.ts';
+import { type Placed, sceneOf } from '../core/layout.ts';
 import { Short } from '../core/schema.ts';
 import {
   type ResolvedShort,
@@ -22,7 +22,7 @@ import {
   shortSpanAt,
 } from '../core/shorts.ts';
 import { shortPhrases } from '../core/phrases.ts';
-import { BOIL_FPS } from './ink.ts';
+import { boilTick } from './ink.ts';
 import { burnedCaptions } from './short-captions.ts';
 import type { Film, RenderOptions, SceneSpec } from './film.ts';
 import {
@@ -40,7 +40,7 @@ import { type Probe, type ProbeSink, recordText } from './probe.ts';
 /** A scene of the film on the short's clock: its start moved so its own clock reads the same. */
 const retimed = (film: Film, short: ResolvedShort): ReadonlyArray<Placed<SceneSpec>> =>
   short.spans.map((span, index) => {
-    const p = film.placed.find((q) => q.spec.id === span.scene) ?? film.sceneAt(span.from);
+    const p = Result.getOrThrow(sceneOf(film.placed, span.scene));
     return { ...p, index, start: span.at - (span.from - p.start) };
   });
 
@@ -255,7 +255,7 @@ export const createShort = (film: Film, declared: Short): Film => {
       page.width,
       page.height - below,
     );
-    const boil = Math.floor(T * BOIL_FPS + 1e-6);
+    const boil = boilTick(T);
     grainRect(ctx, grain, boil, 0, 0, page.width, band.top, finish.grain);
     grainRect(
       ctx,

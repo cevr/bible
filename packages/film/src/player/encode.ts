@@ -96,7 +96,7 @@ const KEY_FRAME_EVERY = 2;
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
 /** The size a frame is encoded at: the canvas, scaled by `scale`. */
-export const encodedSize = (width: number, height: number, scale: number) => ({
+const encodedSize = (width: number, height: number, scale: number) => ({
   width: even(width * scale),
   height: even(height * scale),
 });

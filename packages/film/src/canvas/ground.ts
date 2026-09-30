@@ -7,7 +7,7 @@
 import { unitGradient } from './glow.ts';
 
 /** A warm dark, the same as a cutout's cast shadow, as r, g, b. */
-export const GROUND_TINT: readonly [number, number, number] = [40, 28, 16];
+const GROUND_TINT: readonly [number, number, number] = [40, 28, 16];
 
 /** How dark the shadow is at its heart, 0..1: within the 15–30 % the direction asks. */
 export const GROUND_ALPHA = 0.28;

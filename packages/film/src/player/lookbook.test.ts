@@ -7,17 +7,17 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
-import { composeLookbook, familyOf } from './lookbook.ts';
+import { composeLookbook, fontFamilyOf } from './lookbook.ts';
 
-describe('familyOf', () => {
+describe('fontFamilyOf', () => {
   test("what follows a CSS font's size", () => {
-    expect(familyOf('600 64px "Fraunces"')).toBe('"Fraunces"');
-    expect(familyOf('italic 700 18.5px/1.2 "EB Garamond", serif')).toBe('"EB Garamond", serif');
-    expect(familyOf('600 60px serif')).toBe('serif');
+    expect(fontFamilyOf('600 64px "Fraunces"')).toBe('"Fraunces"');
+    expect(fontFamilyOf('italic 700 18.5px/1.2 "EB Garamond", serif')).toBe('"EB Garamond", serif');
+    expect(fontFamilyOf('600 60px serif')).toBe('serif');
   });
 
   test('a font it cannot read sets in sans-serif', () => {
-    expect(familyOf('bold')).toBe('sans-serif');
+    expect(fontFamilyOf('bold')).toBe('sans-serif');
   });
 });
 
