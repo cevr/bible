@@ -29,6 +29,7 @@
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\" && bun run test:perf",
     "guard": "bun run lint && bun run fmt:check && bun packages/scripts/src/typecheck-inputs.ts && bun x lefthook run pre-commit --all-files --tag repo-guard --no-auto-install --no-tty",
     "ci": "bun packages/scripts/src/ci-verdict.ts",
+    "merge-audit": "bun packages/scripts/src/merge-audit.ts",
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch --force"
