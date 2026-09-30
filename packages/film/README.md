@@ -365,9 +365,9 @@ player server will not start (the encoder line then says so).
 | encoders at once | 14 (past it the encoder hangs)      | one per core                                                         |
 | default pages    | 6                                   | 8, or half the cores below 16                                        |
 
-`SETTINGS` (`player/encode.ts`) holds both columns; a test pins the hardware
-one (quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode
-quality), which is the look the films were made in.
+`SETTINGS` (`player/encode.ts`) holds both columns; the hardware one
+(quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode
+quality) is the look the films were made in.
 
 ### Software master: the pre-roll
 

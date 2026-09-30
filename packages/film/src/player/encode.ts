@@ -51,10 +51,10 @@ export const SETTINGS = {
     hardwareAcceleration: 'prefer-software',
     /**
      * Chromium's software H.264 encoder (OpenH264) refuses quantizer rate
-     * control ("Unsupported bitrate mode"), so it takes a bitrate. The master
-     * asks for the rate the hardware master's quantizer 16 comes to: 31 Mbps
-     * over righteousness-by-faith, keeping 82–87% of the paper's fine grain
-     * (packages/film/README.md, "Encoders").
+     * control ("Unsupported bitrate mode"), so it takes a bitrate: the
+     * master asks for 37 Mbps, variable, about what the hardware master's
+     * quantizer 16 comes to. What it comes to and the grain it keeps are
+     * measured in packages/film/README.md ("Encoders").
      */
     master: new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' }),
     /**
@@ -64,11 +64,12 @@ export const SETTINGS = {
      */
     share: null,
     /**
-     * OpenH264 codes a session's first frame at a fixed starting quantizer,
-     * whatever the bitrate: a chunk's first frames kept 27–48% of the grain
-     * against 73–90% once settled, a blink every chunk. The session's second
-     * key frame is coded at the settled quantizer, so the chunk's first frame
-     * goes in twice ahead of itself, stamped before 0, and is dropped.
+     * OpenH264 codes a session's first frame at a coarse fixed quantizer,
+     * whatever the bitrate, so a chunk would open on a soft frame, a blink
+     * every chunk (measured in packages/film/README.md, "Software master: the
+     * pre-roll"). A later frame is coded at the settled quantizer, so the
+     * chunk's first frame goes in twice ahead of itself, stamped before 0, and
+     * is dropped.
      */
     preroll: 2,
   },

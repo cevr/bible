@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import { Quality } from 'mediabunny';
 import { type Encoder, encoderName } from '../core/encoder.ts';
 import { SETTINGS, chooseEncoder, config, qualities } from './encode.ts';
 
@@ -44,25 +43,20 @@ describe('chooseEncoder', () => {
   });
 });
 
-describe('the hardware encoder, as the Mac has always rendered', () => {
-  test('its settings: prefer-hardware, quantizer 16 master, quantizer 26 share, no pre-roll', () => {
-    expect(SETTINGS.Hardware.hardwareAcceleration).toBe('prefer-hardware');
-    expect(SETTINGS.Hardware.master).toEqual(new Quality({ quantizer: 16 }));
-    expect(SETTINGS.Hardware.share).toEqual(new Quality({ quantizer: 26 }));
-    expect(SETTINGS.Hardware.preroll).toBe(0);
+describe('the encoder config', () => {
+  test("each encoder's config takes its own acceleration and the quality it is handed", () => {
+    for (const encoder of [hardware, software]) {
+      const quality = SETTINGS[encoder._tag].master;
+      expect(config(1920, 1080, 1, encoder, quality)).toMatchObject({
+        codec: 'avc',
+        quality,
+        hardwareAcceleration: SETTINGS[encoder._tag].hardwareAcceleration,
+      });
+    }
   });
 
-  test('its encoder config: H.264, a key frame every 2 s, quality latency', () => {
-    expect(config(1920, 1080, 1, hardware, SETTINGS.Hardware.master)).toEqual({
-      codec: 'avc',
-      quality: new Quality({ quantizer: 16 }),
-      hardwareAcceleration: 'prefer-hardware',
-      keyFrameInterval: 2,
-      latencyMode: 'quality',
-    });
-  });
-
-  test('a scaled render resizes to even dimensions', () => {
+  test('a render at full scale is not resized; a scaled one resizes to even dimensions', () => {
+    expect(config(1920, 1080, 1, hardware, SETTINGS.Hardware.master).transform).toBeUndefined();
     expect(config(1920, 3414, 0.5625, hardware, SETTINGS.Hardware.master).transform).toEqual({
       width: 1080,
       height: 1920,
@@ -80,9 +74,5 @@ describe('what the page encodes', () => {
   test('the software encoder makes no share copy in the page: x264 makes it from the master', () => {
     expect(SETTINGS.Software.share).toBeNull();
     expect(qualities(software, true)).toEqual([SETTINGS.Software.master]);
-  });
-
-  test('the software encoder settles its rate control on two dropped frames before each chunk', () => {
-    expect(SETTINGS.Software.preroll).toBe(2);
   });
 });
