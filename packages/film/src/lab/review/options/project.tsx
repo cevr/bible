@@ -15,7 +15,7 @@ import { For, Show } from '@solidjs/web';
 import { Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect, createMemo, createSignal } from 'solid-js';
-import { type Address, sceneAddress } from '../../../core/address.ts';
+import { type Address, type PartAddress, sceneAddress } from '../../../core/address.ts';
 import {
   type Project,
   type ProjectAct as Act,
@@ -74,7 +74,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
   const { state } = useReview();
   const { choices } = useFilm();
   const scene = props.scene;
-  const address = sceneAddress(scene.scene);
+  const address: PartAddress = { _tag: 'Scenes', ids: [scene.scene] };
   const video = () =>
     Option.flatMap(AsyncResult.value(state.index()), (index) =>
       sceneVideo(index, props.at.film, scene.scene, props.at.project.variant),
@@ -120,7 +120,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
 
 const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   const { choices } = useFilm();
-  const address: Address = { _tag: 'Act', act: props.act.name };
+  const address: PartAddress = { _tag: 'Act', act: props.act.name };
   const scenes = () => props.at.project.scenes.filter((s) => props.act.scenes.includes(s.scene));
   const current = () => scenes().filter((s) => s.state === 'current').length;
   return (
@@ -158,7 +158,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
 const ProjectBody = (props: { readonly at: ProjectValue }) => {
   const { choices } = useFilm();
   const project = () => props.at.project;
-  const film: Address = { _tag: 'Film' };
+  const film: PartAddress = { _tag: 'Film' };
   const inActs = () => new Set(project().acts.flatMap((a) => a.scenes));
   const loose = () => project().scenes.filter((s) => !inActs().has(s.scene));
   const current = () => project().scenes.filter((s) => s.state === 'current').length;

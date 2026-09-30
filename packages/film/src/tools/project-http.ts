@@ -7,7 +7,7 @@
 
 import { Effect, Match, Option } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
-import type { Address } from '../core/address.ts';
+import type { PartAddress } from '../core/address.ts';
 import { ReviewHttpApi } from '../core/api.ts';
 import { answered, named } from './api-server.ts';
 import { FreshFilm } from './choices-process.ts';
@@ -23,12 +23,14 @@ const variantArgs = (given: { readonly variant?: string }): ReadonlyArray<string
  * The flags naming `address` to `film project approve` and `comment`: `film`
  * for the whole film (`--all` to approve, none to comment on it).
  */
-export const addressArgs = (address: Address, film: ReadonlyArray<string>): ReadonlyArray<string> =>
+export const addressArgs = (
+  address: PartAddress,
+  film: ReadonlyArray<string>,
+): ReadonlyArray<string> =>
   Match.valueTags(address, {
     Film: () => film,
     Act: ({ act }) => ['--act', act],
     Scenes: ({ ids }) => ['--scene', ids.join(',')],
-    Short: ({ id }) => ['--short', id],
   });
 
 /**

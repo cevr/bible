@@ -9,7 +9,7 @@
 import { Context, Data, Effect, Layer, Match, Option, Predicate } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
-import type { Address } from '../../../core/address.ts';
+import type { PartAddress } from '../../../core/address.ts';
 import { ReviewHttpApi } from '../../../core/api.ts';
 import type { Project } from '../../../core/catalogue.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
@@ -48,9 +48,9 @@ export interface Wrote {
 
 /** What is said of a film's project: an approval at an address, every current scene, a comment. */
 export type ProjectAct = Data.TaggedEnum<{
-  Approve: { readonly address: Address };
+  Approve: { readonly address: PartAddress };
   ApproveAll: {};
-  Comment: { readonly address: Address; readonly text: string };
+  Comment: { readonly address: PartAddress; readonly text: string };
 }>;
 export const ProjectAct = Data.taggedEnum<ProjectAct>();
 

@@ -679,7 +679,9 @@ answering a `Project`; `POST /review/project/<film>/approve` `{address,
 variant?}`, `…/approve-all` `{variant?}` and `…/comment` `{address, text,
 variant?}`, each answering the fresh `Project`) are one group: `ProjectGroup`
 in `core/api.ts`, added to `ReviewHttpApi` (its `/review/project` paths fall
-under the API's prefixes by themselves). `projectGroup` (`tools/project-http.ts`) runs `film project …
+under the API's prefixes by themselves). The address is a `PartAddress` (the
+film, an act, scenes: a short is no branch of the tree, so it does not
+decode, 400). `projectGroup` (`tools/project-http.ts`) runs `film project …
 --json` in a fresh process (`FreshFilm.project`) and decodes its `Project`,
 or its refusal into the refusal's own class and status; a comment's text
 goes after `--`, so one starting with a dash is never a flag. Its layer

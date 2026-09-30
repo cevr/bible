@@ -28,7 +28,7 @@ import {
   HttpApiGroup,
   HttpApiSchema,
 } from 'effect/http-api';
-import { Address } from './address.ts';
+import { PartAddress } from './address.ts';
 import { Project } from './catalogue.ts';
 import {
   ApprovePost,
@@ -437,7 +437,7 @@ export class ProjectGroup extends HttpApiGroup.make('project').add(
   /** The scenes named approved as they are rendered, or an act's current scenes. */
   HttpApiEndpoint.post('approve', '/review/project/:film/approve', {
     params: film,
-    payload: Schema.Struct({ address: Address, ...variantField }),
+    payload: Schema.Struct({ address: PartAddress, ...variantField }),
     success: Project,
     error: Refusals,
   }),
@@ -452,7 +452,7 @@ export class ProjectGroup extends HttpApiGroup.make('project').add(
   HttpApiEndpoint.post('comment', '/review/project/:film/comment', {
     params: film,
     payload: Schema.Struct({
-      address: Address,
+      address: PartAddress,
       text: Schema.String.check(Schema.isNonEmpty()),
       ...variantField,
     }),

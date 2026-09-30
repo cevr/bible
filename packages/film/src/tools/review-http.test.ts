@@ -495,4 +495,23 @@ describe("a film's project", () => {
       expect(unknown.status).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
+
+  it.effect('a short is no part of the project tree: its address is a 400, and nothing runs', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      const short = yield* ask(
+        post('/review/project/f/approve', '{"address":{"_tag":"Short","id":"s"}}', HOME),
+      );
+      expect(short.status).toBe(400);
+      const said = yield* ask(
+        post(
+          '/review/project/f/comment',
+          '{"address":{"_tag":"Short","id":"s"},"text":"cut it"}',
+          HOME,
+        ),
+      );
+      expect(said.status).toBe(400);
+      expect(projectRuns).toEqual([]);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
 });
