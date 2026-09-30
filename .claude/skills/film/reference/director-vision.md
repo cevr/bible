@@ -31,7 +31,7 @@ Numbers in brackets (#n) are findings in [longform-research.md](longform-researc
 
 - **Three grounds, one per world:**
   - **parchment** (`paper` #eeddc8) for IDEA;
-  - **chipboard and sky gradients** (`board` #ab8163 under 2–3-stop skies) for STORY, lifted toward light paper by the film's one ground level (`GROUND` in `palette.ts`: `now` 0, `light` 0.5, `lighter` 0.75). The walls rise past the figures' grey (`figure` #b7b2a8) and the floors and dark props stay under it, so a figure reads against both; what the people wear and carry is the unlifted `cut` chipboard;
+  - **chipboard and sky gradients** (`board` #ab8163 under 2–3-stop skies) for STORY;
   - **night** (#1b150d) only for the one black moment and at most one IDEA stretch.
 
   _(CRAFT 3 and 11; BibleProject tone-art.)_
@@ -45,12 +45,12 @@ Numbers in brackets (#n) are findings in [longform-research.md](longform-researc
   Saturation stays at 0.2–0.35 everywhere else, so an accent always reads as the loudest thing in frame. _(Measured: BibleProject 0.16–0.33, Lost Sheep 0.18–0.24; ours 0.25–0.34.)_
 
 - **Values:**
-  - the film's mean luma is 155–170 on the light ground (140–150 before the owner chose it, 2026-09-30);
-  - the valley act sits 30–50 below the acts round it (105–130 on the light ground, 90–110 before);
+  - the film's mean luma is 140–150;
+  - the valley act runs 90–110;
   - 5 % of frames or fewer are darker than 60;
   - the cross is the only frame that is fully black.
 
-  _(CRAFT 11, extended by the 2025–26 BibleProject dips #4. The first cut measured 177 with no dip; the lit colour script 140 with a 109 valley; the light ground 158 with a 125 valley.)_
+  _(CRAFT 11, extended by the 2025–26 BibleProject dips #4. Ours is 177 and has no dip.)_
 
 ### Colour script per act
 
@@ -64,7 +64,7 @@ The acts are the explainer's shape, and each has a tent-pole frame to paint firs
 | Power / life        | 65–82 %          | early gold morning, warm cream               | 150–160 / 0.3                           | the heart lit from inside               |
 | Landing             | 82–100 %         | teal day, the opening's layout returned      | 150–165 / 0.35, the most saturated act  | the stamp landing solid                 |
 
-The targets are for the chipboard as first cut. On the light ground every act measures about 15–20 higher and keeps its gap to the others; `film.ts` holds each act's measured band per ground level. The last row is the rule that the landing is both the most saturated and the calmest act. _(Eggleston #36; the Kurzgesagt, TED-Ed and LEMMiNO bookends #13, #15, #16.)_
+The last row is the rule that the landing is both the most saturated and the calmest act. _(Eggleston #36; the Kurzgesagt, TED-Ed and LEMMiNO bookends #13, #15, #16.)_
 
 ### Paper, light, texture
 
