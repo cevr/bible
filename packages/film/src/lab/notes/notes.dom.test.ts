@@ -20,6 +20,7 @@ import {
 } from '../fixtures/harness.ts';
 import { ServerFailed } from '../../core/api.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
+import { attached, textHas, textIs, valueIs, waitFor } from '../fixtures/settled.ts';
 import { RETRY_MS } from './feed.ts';
 import type { Note, Reply } from '../../core/schema.ts';
 
@@ -41,21 +42,6 @@ const answered = (page: Page, suffix: string, act: () => Promise<unknown>) =>
     yield* Effect.promise(act);
     yield* Effect.promise(() => answer);
   });
-
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-/** Present in the page, shown or not (a hidden composer). */
-const waitAttached = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector, { state: 'attached' }));
-
-const textOf = (page: Page, selector: string, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      ([sel, want]) => (document.querySelector(sel ?? '')?.textContent ?? '').includes(want ?? ''),
-      [selector, part],
-    ),
-  );
 
 /** The note the fake server keeps, as `film notes` would write it. */
 const noteJson = (id: string, over: Partial<Note> = {}): Note => ({
@@ -141,8 +127,8 @@ describe('marking a frame', () => {
         const at = yield* onFrame(page, 520, 300);
         yield* Effect.promise(() => page.mouse.click(at.x, at.y));
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textOf(page, '.lab-where', 'one · 1.00s · f30');
-        yield* waitAttached(page, '.lab-overlay circle.lab-draft');
+        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* attached(page, '.lab-overlay circle.lab-draft');
         yield* save(page, 'the ball rises too early');
         yield* waitFor(page, '.lab-notes .lab-note-item.selected[data-id="n1"]');
         const body = theNote(asked);
@@ -153,8 +139,8 @@ describe('marking a frame', () => {
         expect(field(body, 'box')).toEqual(Option.some({ x: 520, y: 300, w: 0, h: 0 }));
         const still = Option.getOrElse(field(body, 'still'), () => '');
         expect(String(still).length).toBeGreaterThan(100);
-        yield* waitAttached(page, '.lab-compose[hidden]');
-        yield* waitAttached(page, '.track .tick.note');
+        yield* attached(page, '.lab-compose[hidden]');
+        yield* attached(page, '.track .tick.note');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -167,7 +153,7 @@ describe('marking a frame', () => {
         const { page, asked } = yield* openLab(store(), { hash: '#1' });
         yield* waitFor(page, '.lab-overlay');
         yield* drag(page, [420, 60], [600, 160]);
-        yield* waitAttached(page, '.lab-overlay rect.lab-draft');
+        yield* attached(page, '.lab-overlay rect.lab-draft');
         yield* save(page, 'too wide');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const box = field(theNote(asked), 'box');
@@ -188,9 +174,9 @@ describe('marking a frame', () => {
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
         yield* waitFor(page, '[data-act="pen"].on');
-        yield* waitAttached(page, '.lab-overlay .lab-notes-surface.pen');
+        yield* attached(page, '.lab-overlay .lab-notes-surface.pen');
         yield* drag(page, [420, 60], [560, 140]);
-        yield* waitAttached(page, '.lab-overlay polyline.lab-draft-ink');
+        yield* attached(page, '.lab-overlay polyline.lab-draft-ink');
         yield* save(page, 'this arc');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const body = theNote(asked);
@@ -213,7 +199,7 @@ describe('marking a frame', () => {
         const warned: Array<string> = [];
         page.on('console', (m) => warned.push(m.text()));
         yield* Effect.promise(() => page.reload());
-        yield* waitAttached(page, '.track .tick.note');
+        yield* attached(page, '.track .tick.note');
         yield* waitFor(page, '.lab-overlay');
         expect(warned.filter((w) => w.includes('NO_OWNER_CLEANUP'))).toEqual([]);
       }).pipe(Effect.scoped),
@@ -229,7 +215,7 @@ describe('marking a frame', () => {
         yield* Effect.promise(() => page.keyboard.press('n'));
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* Effect.promise(() => page.keyboard.press('Escape'));
-        yield* waitAttached(page, '.lab-compose[hidden]');
+        yield* attached(page, '.lab-compose[hidden]');
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -251,12 +237,9 @@ describe('marking a frame', () => {
         yield* waitFor(page, '.lab-overlay');
         yield* Effect.promise(() => page.keyboard.press('n'));
         yield* save(page, 'hold longer');
-        yield* textOf(page, '.lab-status', 'the notes file is locked');
-        const status = yield* Effect.promise(() => page.textContent('.lab-status'));
-        expect(status).toBe('the notes file is locked');
+        yield* textIs(page, '.lab-status', 'the notes file is locked');
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        const kept = yield* Effect.promise(() => page.inputValue('.lab-compose textarea'));
-        expect(kept).toBe('hold longer');
+        yield* valueIs(page, '.lab-compose textarea', 'hold longer');
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -318,10 +301,7 @@ describe('the feed', () => {
           { hash: '#1' },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"] .lab-reply.agent');
-        const reply = yield* Effect.promise(() =>
-          page.textContent('.lab-reply.agent .lab-reply-text'),
-        );
-        expect(reply).toBe('moved rise to {lift}');
+        yield* textIs(page, '.lab-reply.agent .lab-reply-text', 'moved rise to {lift}');
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -347,15 +327,11 @@ describe('the feed', () => {
         // The feed says nothing while it connects again, before the read goes
         // out, so the test waits for the read that succeeds, not the quiet.
         const again = page.waitForResponse((r) => r.url().endsWith('/notes') && r.ok());
-        yield* textOf(page, '.lab-feed', 'notes.json is being written');
+        yield* textHas(page, '.lab-feed', 'notes.json is being written');
         // The retry's wait, on the page's clock.
         yield* Effect.promise(() => page.clock.fastForward(RETRY_MS));
         yield* Effect.promise(() => again);
-        yield* Effect.promise(() =>
-          page.waitForFunction(
-            () => (document.querySelector('.lab-feed')?.textContent ?? 'absent') === '',
-          ),
-        );
+        yield* textIs(page, '.lab-feed', '');
         expect(tries).toHaveLength(2);
       }).pipe(Effect.scoped),
     SLOW,

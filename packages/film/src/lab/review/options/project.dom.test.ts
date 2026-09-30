@@ -18,6 +18,7 @@ import { Array as Arr, Effect, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { type FakeRoute, type Json, json, openReview, route } from '../../fixtures/harness.ts';
+import { attached, until, waitFor } from '../../fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -295,15 +296,6 @@ const fakeProject = (elsewhere = false) => {
 
 const PROJECT = '?project=toy';
 
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-/** Wait for `selector` in the page, shown or folded away. */
-const waitAttached = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector, { state: 'attached' }));
-
-const until = (page: Page, check: string) => Effect.promise(() => page.waitForFunction(check));
-
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
 const evaluate = <A>(page: Page, script: string) =>
@@ -380,14 +372,14 @@ describe("a film's project", () => {
         ).toBe('not rendered yet: film project render toy --scene end');
         // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
         yield* waitFor(page, '.rv-film [data-point="score"]');
-        yield* waitAttached(
+        yield* attached(
           page,
           '[data-act-name="opening"] > .rv-layers [data-point="take:paper.hum"]',
         );
-        yield* waitAttached(page, '.rv-film [data-point="take:room.tone"]');
+        yield* attached(page, '.rv-film [data-point="take:room.tone"]');
         // The take with its scene, the voice with its beat.
-        yield* waitAttached(page, `${scene('open')} [data-point="take:paper.page"]`);
-        yield* waitAttached(page, `${scene('close')} [data-point="voice:close"]`);
+        yield* attached(page, `${scene('open')} [data-point="take:paper.page"]`);
+        yield* attached(page, `${scene('close')} [data-point="voice:close"]`);
         // Each card once: a scene links the layers that play in it but sit elsewhere.
         expect(
           yield* evaluate<number>(
@@ -528,7 +520,7 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeProject(), { search: PROJECT });
         const take = `${scene('open')} [data-point="take:paper.page"]`;
-        yield* waitAttached(page, take);
+        yield* attached(page, take);
         const reads = (from: number) =>
           asked
             .slice(from)

@@ -8,6 +8,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { openLab } from './fixtures/harness.ts';
+import { attributeIs, textHas } from './fixtures/settled.ts';
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -34,10 +35,8 @@ describe('the lab shell', () => {
   it.live('mounts the panel with its header and the look-book link', () =>
     Effect.gen(function* () {
       const { page, errors } = yield* openLab();
-      const header = yield* Effect.promise(() => page.textContent('.lab-panel header'));
-      expect(header).toContain('Lab');
-      const href = yield* Effect.promise(() => page.getAttribute('.lab-lookbook', 'href'));
-      expect(href).toBe('/?film=probe&lookbook');
+      yield* textHas(page, '.lab-panel header', 'Lab');
+      yield* attributeIs(page, '.lab-lookbook', 'href', '/?film=probe&lookbook');
       const lab = yield* Effect.promise(() =>
         page.evaluate(() => document.body.classList.contains('lab')),
       );
@@ -103,19 +102,27 @@ describe('the lab shell', () => {
       yield* Effect.promise(() => page.waitForSelector('.lab-strip-row'));
       // 35 cue rows, as roof's busiest scene has: the probe's own rows, copied.
       yield* Effect.promise(() =>
-        page.$eval('.lab-strip-rows', (rows) => {
-          const row = rows.querySelector('.lab-strip-row');
-          for (let i = rows.querySelectorAll('.lab-strip-row').length; i < 35; i++)
-            if (row) rows.append(row.cloneNode(true));
+        page.evaluate(() => {
+          const rows = document.querySelector('.lab-strip-rows');
+          const row = rows?.querySelector('.lab-strip-row');
+          for (let i = rows?.querySelectorAll('.lab-strip-row').length ?? 35; i < 35; i++)
+            if (row) rows?.append(row.cloneNode(true));
         }),
       );
       const width = (sel: string) =>
-        Effect.promise(() => page.$eval(sel, (el) => el.getBoundingClientRect().width));
+        Effect.promise(() =>
+          page.evaluate(
+            (at) => document.querySelector(at)?.getBoundingClientRect().width ?? 0,
+            sel,
+          ),
+        );
       const canvas = yield* width('.stage canvas');
       const column = yield* width('.stage');
       // Scrolled to its end, the strip still shows the words row at its top.
       const strip = (yield* Effect.promise(() =>
-        page.$eval('.lab-strip-scroll', (scroller) => {
+        page.evaluate(() => {
+          const scroller = document.querySelector('.lab-strip-scroll');
+          if (!(scroller instanceof HTMLElement)) return { scrolls: false, wordsAtTop: false };
           scroller.scrollTop = scroller.scrollHeight;
           const words = scroller.querySelector('.lab-strip-words')?.getBoundingClientRect().top;
           return {

@@ -2,13 +2,16 @@
 // `fixtures/` with only this plugin on, and what it reports must be exactly the
 // lines a fixture marks `// RED film/<rule>`. no-unprobed-ink resolves names
 // through scope, which only a real oxlint run provides, so its fixture is its
-// test; drawing-literal is the lab locator's `unlocatable`, tested on source in
-// src/tools/scene-source.test.ts.
+// test. drawing-literal has its fixture here too, and the lab locator it runs
+// (`unlocatable`) is tested on source in src/tools/scene-source.test.ts.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+
+/** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (film/spawn-budget). */
+const SPAWNS_MS = 30_000;
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
   Stream.mkString(Stream.decodeText(stream));
@@ -63,21 +66,24 @@ const lintFixtures = Effect.fn('test.lintFixtures')(function* () {
 });
 
 describe('film oxlint plugin', () => {
-  it.effect.layer(BunServices.layer)('fires on every RED fixture line and nowhere else', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const dir = path.join(import.meta.dir, 'fixtures');
-      const files = (yield* fs.readDirectory(dir)).filter((f) => f.endsWith('.ts'));
-      const expected = (yield* Effect.forEach(files, (file) =>
-        Effect.map(fs.readFileString(path.join(dir, file)), (source) => marked(file, source)),
-      ))
-        .flat()
-        .sort();
-      const run = yield* lintFixtures();
-      expect(expected.length).toBeGreaterThan(0);
-      expect(reported(run.out)).toEqual(expected);
-      expect(run.exitCode).not.toBe(0);
-    }),
+  it.effect.layer(BunServices.layer)(
+    'fires on every RED fixture line and nowhere else',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = path.join(import.meta.dir, 'fixtures');
+        const files = (yield* fs.readDirectory(dir)).filter((f) => f.endsWith('.ts'));
+        const expected = (yield* Effect.forEach(files, (file) =>
+          Effect.map(fs.readFileString(path.join(dir, file)), (source) => marked(file, source)),
+        ))
+          .flat()
+          .sort();
+        const run = yield* lintFixtures();
+        expect(expected.length).toBeGreaterThan(0);
+        expect(reported(run.out)).toEqual(expected);
+        expect(run.exitCode).not.toBe(0);
+      }),
+    SPAWNS_MS,
   );
 });

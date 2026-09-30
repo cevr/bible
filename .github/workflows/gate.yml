@@ -110,10 +110,24 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: chromium-${{ runner.os }}-${{ hashFiles('packages/film/package.json') }}
+      # Its system libraries come through apt, whose mirror sometimes stalls for
+      # many minutes: each attempt has 6 of the job's 20, a stalled one is
+      # tried once more, and a second stall fails this named step (which
+      # `bun run ci` names) instead of the job's clock.
       - name: Install Chromium
+        id: install-chromium
         if: matrix.browser
+        continue-on-error: true
+        timeout-minutes: 6
         working-directory: packages/film
         run: bun x playwright-core install --with-deps chromium chromium-headless-shell
+      - name: Install Chromium, second attempt
+        if: matrix.browser && steps.install-chromium.outcome == 'failure'
+        timeout-minutes: 6
+        working-directory: packages/film
+        run: |
+          sudo dpkg --configure -a
+          bun x playwright-core install --with-deps chromium chromium-headless-shell
 
       # EmbeddingGemma's weights are not committed (core §10): fetched once
       # from Hugging Face into a cache the embedder reads by BIBLE_MODEL_CACHE.

@@ -10,17 +10,12 @@ import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { type Asked, json, openLab, route, sourceOne } from '../fixtures/harness.ts';
+import { attributeIs, textHas, valueIs } from '../fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
 
-const statusSays = (page: Page, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (want) => (document.querySelector('.lab-edit-status')?.textContent ?? '').includes(want),
-      part,
-    ),
-  );
+const statusSays = (page: Page, part: string) => textHas(page, '.lab-edit-status', part);
 
 const boxOf = (page: Page, selector: string) =>
   Effect.promise(() => page.locator(selector).boundingBox()).pipe(
@@ -73,10 +68,7 @@ describe('the knob rows', () => {
       expect(posted(asked)).toEqual([
         { path: '/knobs/one/size', body: Option.some({ value: 30 }) },
       ]);
-      const selected = yield* Effect.promise(() =>
-        page.getAttribute('.lab-knob[data-knob="size"]', 'class'),
-      );
-      expect(selected).toContain('selected');
+      yield* attributeIs(page, '.lab-knob[data-knob="size"]', 'class', /\bselected\b/);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
@@ -86,7 +78,7 @@ describe('the knob rows', () => {
       const { page, asked } = yield* openLab([], { query: '&sel=knob:one:tilt', hash: '#1' });
       const field = '.lab-knob[data-knob="tilt"] input';
       yield* Effect.promise(() => page.waitForSelector(`${field}:not([disabled])`));
-      expect(yield* Effect.promise(() => page.inputValue(field))).toBe('0');
+      yield* valueIs(page, field, '0');
       yield* Effect.promise(() => page.fill(field, '0.2'));
       yield* Effect.promise(() => page.press(field, 'Enter'));
       yield* statusSays(page, 'wrote');
@@ -124,11 +116,7 @@ describe('the handles on the frame', () => {
         { hash: '#1' },
       );
       yield* Effect.promise(() => page.waitForSelector('.lab-handle[data-knob="spot"]'));
-      yield* Effect.promise(() =>
-        page.waitForFunction(() =>
-          document.querySelector('.lab-strip-head')?.textContent?.includes('scenes/one.ts'),
-        ),
-      );
+      yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       yield* dragHandle(page, 'spot', 40, 0);
       yield* statusSays(page, 'cannot move spot: it is computed in the source');
       expect(posted(asked)).toEqual([]);
@@ -155,11 +143,7 @@ describe('a camera pushed in on its target', () => {
       const [x, y] = yield* handleAt(page, 'face');
       expect(x).toBeCloseTo(320, 0);
       expect(y).toBeCloseTo(180, 0);
-      yield* Effect.promise(() =>
-        page.waitForFunction(() =>
-          document.querySelector('.lab-strip-head')?.textContent?.includes('scenes/three.ts'),
-        ),
-      );
+      yield* textHas(page, '.lab-strip-head', 'scenes/three.ts');
       yield* dragHandle(page, 'face', 40, 0);
       yield* statusSays(page, 'wrote');
       expect(posted(asked)).toEqual([

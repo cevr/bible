@@ -16,7 +16,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test src lint"
+    "test": "bun test --timeout 20000 src lint"
   },
   "dependencies": {
     "@bible/atom-solid": "workspace:*",

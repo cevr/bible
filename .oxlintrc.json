@@ -286,13 +286,8 @@
         "film/no-hand-timed-seconds": "error",
         "film/no-unprobed-ink": "error",
         "film/span-ends-on-anchor": "error",
-        "film/no-ease-on-cue": "error"
-      }
-    },
-    {
-      // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
-      "files": ["**/apps/animations/src/films/**/*.ts"],
-      "rules": {
+        "film/no-ease-on-cue": "error",
+        // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
         "film/no-cue-remap": "error"
       }
     },
@@ -314,6 +309,68 @@
       ],
       "rules": {
         "film/no-point-free-log": "error"
+      }
+    },
+    {
+      // The purity rule (packages/film/README.md): core imports none of the
+      // film's other layers, and the engine neither the player nor the tools.
+      "files": ["**/packages/film/src/core/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/canvas/**",
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/*"
+                ],
+                "message": "core never imports canvas, player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/packages/film/src/canvas/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/player",
+                  "@bible/film/tools",
+                  "@bible/film/lab"
+                ],
+                "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // A lab browser test waits for the value it asserts, never reads the
+      // page once (packages/film/lint/no-read-once.ts, lab/fixtures/settled.ts).
+      "files": ["**/*.dom.test.ts"],
+      "rules": {
+        "film/no-read-once": "error"
+      }
+    },
+    {
+      // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
+      "files": ["**/packages/film/**/*.test.ts", "**/apps/animations/test/**/*.test.ts"],
+      "rules": {
+        "film/spawn-budget": "error"
       }
     },
     {

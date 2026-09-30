@@ -52,7 +52,7 @@ Counsel defects:
 | ID  | Defect | Red test | Status |
 | --- | ------ | -------- | ------ |
 
-CI: one `bun run ci <sha>` line per commit pushed to main; a red run is a finding with its run id.
+CI: the lines `bun run ci <before>..<after>` prints for each push to main, one per commit; a red or cancelled run is a finding with its run id and the step it stopped in.
 
 Live check: `<check, cues diff, mix, lab drive, stills for the owner's review: what was run and the result>`
 

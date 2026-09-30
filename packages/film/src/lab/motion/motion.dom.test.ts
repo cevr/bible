@@ -8,14 +8,9 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { openLab } from '../fixtures/harness.ts';
+import { attributeIs, textIs } from '../fixtures/settled.ts';
 
-const motionSays = (page: Page, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (want) => (document.querySelector('.lab-motion-status')?.textContent ?? '') === want,
-      part,
-    ),
-  );
+const motionSays = (page: Page, part: string) => textIs(page, '.lab-motion-status', part);
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
@@ -63,8 +58,7 @@ describe('loops', () => {
       yield* Effect.promise(() => page.keyboard.press('Shift+ArrowRight'));
       yield* click(page, '.lab-motion [data-act="b"]');
       yield* motionSays(page, 'looping A 1.00 – B 2.00');
-      const playing = yield* Effect.promise(() => page.textContent('[data-act="play"]'));
-      expect(playing).toBe('❚❚');
+      yield* textIs(page, '[data-act="play"]', '❚❚');
       // Played on past B by the page's clock: the loop has come round again inside the range.
       // Then a few frames more, past the quarter second `#T` is written at most once in.
       yield* Effect.promise(() => page.clock.fastForward(2500));
@@ -123,10 +117,7 @@ describe('the onion', () => {
         }),
       );
       expect(inked).toBeTruthy();
-      const on = yield* Effect.promise(() =>
-        page.getAttribute('.lab-motion [data-act="onion"]', 'class'),
-      );
-      expect(on).toContain('on');
+      yield* attributeIs(page, '.lab-motion [data-act="onion"]', 'class', /\bon\b/);
     }).pipe(Effect.scoped),
   );
 });

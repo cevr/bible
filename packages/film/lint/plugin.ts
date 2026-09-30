@@ -10,8 +10,10 @@ import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noPointFreeLog } from './no-point-free-log.ts';
+import { noReadOnce } from './no-read-once.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
+import { spawnBudget } from './spawn-budget.ts';
 
 export default Plugin.define({
   name: 'film',
@@ -22,7 +24,9 @@ export default Plugin.define({
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
     'no-point-free-log': noPointFreeLog,
+    'no-read-once': noReadOnce,
     'no-unprobed-ink': noUnprobedInk,
     'span-ends-on-anchor': spanEndsOnAnchor,
+    'spawn-budget': spawnBudget,
   },
 });
