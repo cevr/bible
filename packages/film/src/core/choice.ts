@@ -251,18 +251,6 @@ export type PickPost = typeof PickPost.Type;
 export const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });
 export type KnobPost = typeof KnobPost.Type;
 
-/** `POST /lab/<film>/choices/approve`: one variant approved as it is now. */
-export const ApprovePost = Schema.Struct({ point: Schema.String, variant: Schema.String });
-export type ApprovePost = typeof ApprovePost.Type;
-
-/** `POST /lab/<film>/choices/comment`: something said of one variant as it is now. */
-export const CommentPost = Schema.Struct({
-  point: Schema.String,
-  variant: Schema.String,
-  text: Schema.String.check(Schema.isNonEmpty()),
-});
-export type CommentPost = typeof CommentPost.Type;
-
 /** What a pick answers: the file it changed, the film's choices as they now stand, and the check after it. */
 export const ChoiceWrite = Schema.Struct({
   file: Schema.String,

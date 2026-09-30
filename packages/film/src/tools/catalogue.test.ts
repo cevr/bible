@@ -3,9 +3,11 @@
 // process, and every write lands.
 
 import { BunServices } from '@effect/platform-bun';
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Context, Effect, FileSystem, Layer } from 'effect';
-import { comment, partSubject } from '../core/catalogue.ts';
+import { sceneAddress } from '../core/address.ts';
+import { approvalState, comment, emptyCatalogue, partSubject, said } from '../core/catalogue.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 
@@ -36,4 +38,23 @@ describe('RenderCatalogue', () => {
       expect(yield* fs.readDirectory(out)).toEqual(['catalogue.json']);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
+});
+
+describe('said', () => {
+  test('withdraws every approval of the variant, whatever version, and no other', () => {
+    const now = partSubject(sceneAddress('open'), 'main', 'k2');
+    const earlier = { ...now, key: 'k1' };
+    const other = partSubject(sceneAddress('close'), 'main', 'k2');
+    const approved = [earlier, now, other].reduce(
+      (cat, subject) => said(cat, subject, { _tag: 'Approve' }, 1),
+      emptyCatalogue('f'),
+    );
+    expect(approvalState(approved, now)).toBe('approved');
+    const withdrawn = said(approved, now, { _tag: 'Withdraw' }, 2);
+    expect(approvalState(withdrawn, now)).toBe('none');
+    expect(approvalState(withdrawn, earlier)).toBe('none');
+    expect(approvalState(withdrawn, other)).toBe('approved');
+    const commented = said(withdrawn, now, { _tag: 'Comment', text: 'late' }, 3);
+    expect(commented.comments.map((c) => [c.text, c.key])).toEqual([['late', 'k2']]);
+  });
 });

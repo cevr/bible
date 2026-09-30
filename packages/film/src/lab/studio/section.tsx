@@ -37,7 +37,7 @@ const Part = (props: { readonly part: StudioPart }) => {
 };
 
 /** The selected beat's words, large, to read from. */
-export const Prompter = () => {
+const Prompter = () => {
   const { state } = useStudio();
   return (
     <div class="studio-prompter" data-role="prompter">
@@ -79,7 +79,7 @@ export const Beats = () => {
 };
 
 /** The microphone picked (remembered in this browser) and its level while it is open. */
-export const Mic = () => {
+const Mic = () => {
   const { state, actions } = useStudio();
   return (
     <div class="studio-mic">
@@ -138,7 +138,7 @@ export const Meter = () => {
 };
 
 /** What the owner can do now, and where the recorder stands. */
-export const Controls = () => {
+const Controls = () => {
   const { state, actions } = useStudio();
   return (
     <div class="studio-controls">

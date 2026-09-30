@@ -18,8 +18,11 @@
 //   film project approve <film> (--scene id,id | --act name | --all) [--variant v] [--json]
 //       approve those scenes' renders as they are stamped, an act's current
 //       scenes, or every current scene
+//   film project withdraw <film> (--scene id,id | --act name | --all) [--variant v] [--json]
+//       withdraw every approval of those scenes' renders, whatever version
 //   film project comment <film> <text> [--scene id | --act name] [--variant v] [--json]
-//       say something of one scene's render, an act or the whole film
+//       say something of one scene's render (of its sources while it has
+//       none), an act or the whole film
 //
 // `--json` prints the project as it leaves it (`ProjectRead`, `fresh-film.ts`)
 // as one line, or the refusal it failed with: what the review's project
@@ -40,6 +43,7 @@ import {
   type SaidComment,
   type SceneKey,
   type Stamp,
+  type Topic,
   approve,
   approveCurrent,
   comment,
@@ -50,6 +54,7 @@ import {
   renderNeed,
   sceneSlot,
   subjectOf,
+  withdraw,
 } from '../core/catalogue.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
@@ -384,43 +389,64 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     ),
   );
 
+/** What a say on `scene`'s render of `variant` is about, whichever version it is. */
+const topicOfScene = (scene: string, variant: string): Topic => ({
+  address: sceneAddress(scene),
+  point: Option.none(),
+  variant,
+});
+
 /** `scene`'s render of `variant` in `catalogue`, or `SceneNotRendered`. */
 const renderOf = (catalogue: Catalogue, film: string, scene: string, variant: string) =>
   Effect.fromOption(renderIn(catalogue, sceneSlot(scene, variant)), () =>
     SceneNotRendered.make({ film, scene, variant }),
   );
 
+/** What `--act` and `--all` do, said for each verb that takes them. */
+const PART_TEXT = {
+  approve: {
+    act: 'approve every scene of this act whose render is current',
+    all: 'approve every scene whose render is current',
+  },
+  withdraw: {
+    act: "withdraw the approvals of this act's scenes",
+    all: 'withdraw the approval of every scene',
+  },
+} as const;
+
+/** `--scene id,id`, `--act name` or `--all`: which parts an approval or a withdrawal is of. */
+const partFlags = (verb: 'approve' | 'withdraw') => ({
+  scene: sceneIds.pipe(Flag.withDescription(`${verb} these scenes' renders (id,id)`)),
+  act: Flag.String('act').pipe(Flag.optional, Flag.withDescription(PART_TEXT[verb].act)),
+  all: Flag.Boolean('all').pipe(Flag.withDefault(false), Flag.withDescription(PART_TEXT[verb].all)),
+});
+
+/** The parts named: at most one of `--scene`, `--act` and `--all`. */
+const partsNamed = (input: {
+  readonly scene: Option.Option<ReadonlyArray<string>>;
+  readonly act: Option.Option<string>;
+  readonly all: boolean;
+}) =>
+  Effect.fromResult(
+    flagConflicts(
+      new Set([
+        ...Arr.filter(['all'], () => input.all),
+        ...Option.toArray(Option.as(input.scene, 'scene')),
+        ...Option.toArray(Option.as(input.act, 'act')),
+      ]),
+      [
+        ['all', 'excludes', 'scene', 'name the scenes or every scene, not both'],
+        ['all', 'excludes', 'act', 'name an act or every scene, not both'],
+        ['act', 'excludes', 'scene', 'name the scenes or an act, not both'],
+      ],
+    ),
+  );
+
 const approveScenes = Command.make(
   'approve',
-  {
-    film,
-    variant: variantFlag,
-    scene: sceneIds.pipe(Flag.withDescription("approve these scenes' renders (id,id)")),
-    act: Flag.String('act').pipe(
-      Flag.optional,
-      Flag.withDescription('approve every scene of this act whose render is current'),
-    ),
-    all: Flag.Boolean('all').pipe(
-      Flag.withDefault(false),
-      Flag.withDescription('approve every scene whose render is current'),
-    ),
-    json,
-  },
+  { film, variant: variantFlag, ...partFlags('approve'), json },
   Effect.fn('film.project.approve')(function* (input) {
-    yield* Effect.fromResult(
-      flagConflicts(
-        new Set([
-          ...Arr.filter(['all'], () => input.all),
-          ...Option.toArray(Option.as(input.scene, 'scene')),
-          ...Option.toArray(Option.as(input.act, 'act')),
-        ]),
-        [
-          ['all', 'excludes', 'scene', 'approve the scenes named or every current one, not both'],
-          ['all', 'excludes', 'act', "approve an act's current scenes or every one, not both"],
-          ['act', 'excludes', 'scene', 'approve the scenes named or an act, not both'],
-        ],
-      ),
-    );
+    yield* partsNamed(input);
     const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
     const catalogues = yield* RenderCatalogue;
     const at = yield* Clock.currentTimeMillis;
@@ -454,7 +480,7 @@ const approveScenes = Command.make(
       if (Option.isSome(input.scene)) return yield* named(input.scene.value);
       if (Option.isSome(input.act)) return yield* inAct(input.act.value);
       if (input.all) return yield* current(tree.scenes);
-      return yield* ApprovalUnnamed.make({ film: input.film });
+      return yield* ApprovalUnnamed.make({ film: input.film, verb: 'approve' });
     });
     const approved = yield* answeringIf(input.json, which);
     yield* Effect.log(`project.approve film=${input.film} scenes=${approved.join(',')}`);
@@ -464,6 +490,36 @@ const approveScenes = Command.make(
 ).pipe(
   Command.withDescription(
     "Approve scenes' renders as they are stamped (--scene id,id), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
+  ),
+);
+
+const withdrawApprovals = Command.make(
+  'withdraw',
+  { film, variant: variantFlag, ...partFlags('withdraw'), json },
+  Effect.fn('film.project.withdraw')(function* (input) {
+    yield* partsNamed(input);
+    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const catalogues = yield* RenderCatalogue;
+    const which = Effect.gen(function* () {
+      if (Option.isSome(input.scene)) {
+        yield* scenesNamed(loaded, placed, input.scene);
+        return input.scene.value;
+      }
+      if (Option.isSome(input.act)) return (yield* actNamed(tree, input.act.value)).scenes;
+      if (input.all) return tree.scenes.map((s) => s.scene);
+      return yield* ApprovalUnnamed.make({ film: input.film, verb: 'withdraw' });
+    });
+    const ids = yield* answeringIf(input.json, which);
+    const catalogue = yield* catalogues.update(loaded.paths, (now) => {
+      const next = ids.reduce((cat, id) => withdraw(cat, topicOfScene(id, input.variant)), now);
+      return [next, next] as const;
+    });
+    yield* Effect.log(`project.withdraw film=${input.film} scenes=${ids.join(',')}`);
+    yield* show(projectOf(catalogue, tree, input.variant), input.json);
+  }),
+).pipe(
+  Command.withDescription(
+    "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on",
   ),
 );
 
@@ -493,14 +549,29 @@ const commentOn = Command.make(
         [['act', 'excludes', 'scene', 'say it of a scene or of an act, not both']],
       ),
     );
-    const { loaded, tree } = yield* answeringIf(input.json, keyed(input.film));
+    const { loaded, placed, tree } = yield* answeringIf(input.json, keyed(input.film));
     const at = yield* Clock.currentTimeMillis;
     const catalogues = yield* RenderCatalogue;
-    // A scene's comment is on its render as stamped; an act's or the film's on it as it is now.
+    // A scene's comment is on its render as stamped, or on its sources as they are now
+    // while it has none; an act's or the film's on it as it is now.
     const about = Effect.gen(function* () {
       if (Option.isSome(input.scene)) {
+        const scene = input.scene.value;
+        yield* scenesNamed(loaded, placed, Option.some([scene]));
         const catalogue = yield* catalogues.read(loaded.paths);
-        return subjectOf(yield* renderOf(catalogue, input.film, input.scene.value, input.variant));
+        return Option.match(renderIn(catalogue, sceneSlot(scene, input.variant)), {
+          onSome: subjectOf,
+          onNone: () => ({
+            ...topicOfScene(scene, input.variant),
+            key: Option.getOrElse(
+              Option.map(
+                Arr.findFirst(tree.scenes, (s) => s.scene === scene),
+                (s) => s.key,
+              ),
+              () => '',
+            ),
+          }),
+        });
       }
       if (Option.isSome(input.act)) {
         const act = yield* actNamed(tree, input.act.value);
@@ -521,7 +592,7 @@ const commentOn = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    "Say something of one scene's render (--scene), an act (--act) or the whole film, kept with the version it was said on",
+    "Say something of one scene's render (--scene; of its sources as they are now while it has none), an act (--act) or the whole film, kept with the version it was said on",
   ),
 );
 
@@ -531,5 +602,10 @@ export const project = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
     Command.withDescription(
       "A film's project folder scene by scene: each scene's render (current, stale or missing), its approval and its comments",
     ),
-    Command.withSubcommands([renderScenes(renderLayer), approveScenes, commentOn]),
+    Command.withSubcommands([
+      renderScenes(renderLayer),
+      approveScenes,
+      withdrawApprovals,
+      commentOn,
+    ]),
   );

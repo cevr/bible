@@ -2,7 +2,7 @@
 // plays: pure, so each reads the same in a test as on the page.
 
 import { Array as Arr, Match, Option } from 'effect';
-import type { ApprovalState } from '../../core/catalogue.ts';
+import type { ApprovalState, StaleBy, VariantState } from '../../core/catalogue.ts';
 import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 
@@ -81,10 +81,36 @@ export const pressed = (on: boolean) => `${on}` as const;
 /** Whether a doc reads as markdown (shown inline); the rest are linked. */
 export const isMarkdown = (doc: ReviewFile): boolean => doc.name.endsWith('.md');
 
+/** What each approval state says, wherever a page says it. */
+export const APPROVAL_TEXT = {
+  none: 'not approved',
+  approved: 'approved',
+  stale: 'approved an earlier version',
+} as const satisfies Record<ApprovalState, string>;
+
 /** An approval as a variant's verdict says it, after its label: none said for none. */
 export const approvalText = (approval: ApprovalState): string =>
   Match.value(approval).pipe(
-    Match.when('approved', () => ' — approved'),
-    Match.when('stale', () => ' — approved an earlier version'),
-    Match.orElse(() => ''),
+    Match.when('none', () => ''),
+    Match.orElse((a) => ` — ${APPROVAL_TEXT[a]}`),
+  );
+
+/** What a variant's state says: a render, a take, a score option alike. */
+const STATE_TEXT = {
+  current: 'current',
+  stale: 'stale: made for an earlier version',
+  missing: 'not made yet',
+} as const satisfies Record<VariantState, string>;
+
+/** Why a variant is stale, when it knows: its own sources, or the film's sound alone (a re-mux, not a redraw). */
+const STALE_BY_TEXT = {
+  sources: 'stale: its sources changed since it was made',
+  sound: "stale: the film's sound changed since it was made",
+} as const satisfies Record<StaleBy, string>;
+
+/** A variant's state as its badge says it, with why it is stale when that is known. */
+export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>): string =>
+  Option.match(
+    Option.filter(staleBy, () => state === 'stale'),
+    { onNone: () => STATE_TEXT[state], onSome: (by) => STALE_BY_TEXT[by] },
   );

@@ -135,11 +135,6 @@ const Harness = Layer.unwrap(
     const sounds = Option.some(path.join(app, 'sounds'));
     const Repo = FilmRepo.layer(root, sounds).pipe(Layer.provide([Store, Platform]));
     const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-    const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
-      Layer.provideMerge(SourceWriter.layer),
-      Layer.provideMerge(SceneSources.layer),
-      Layer.provide([Repo, Store, Platform]),
-    );
     // The film CLI over the copy, for the lab's fresh check, reading and mix: they never touch
     // the real films.
     const cli = path.join(root, 'cli.ts');
@@ -152,6 +147,11 @@ const Harness = Layer.unwrap(
       `import { appCli } from ${appAt};\nappCli(${rootAt}, ${soundsAt}, import.meta.path);\n`,
     );
     const Check = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
+    const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+      Layer.provideMerge(SourceWriter.layer),
+      Layer.provideMerge(SceneSources.layer),
+      Layer.provide([Repo, Store, Check, Platform]),
+    );
     const Heard = harnessElevenLabs(film, misheard).pipe(
       Layer.provideMerge(Media.layer),
       Layer.provide([Repo, Platform]),

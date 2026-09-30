@@ -54,7 +54,8 @@ bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.j
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders, an act's current scenes, or every current one; a re-render leaves the approval stale
-bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now, an act, or (neither) the film
+bun run project withdraw <film> --scene id,id | --act name | --all  # withdraw those scenes' approvals
+bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now (or the scene, before its first render), an act, or (neither) the film
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
@@ -63,7 +64,7 @@ bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
 bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
-bun cli.ts read cue <film> <scene> <cue>       # a cue on its scene's clock as the files declare it (one line of JSON)
+bun cli.ts read cue <film> <scene> <cue> [--spans <json>]  # a cue on its scene's clock as the files declare it (or with these spans), or why it does not resolve (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -235,11 +236,15 @@ in `sounds/library.lock.json`, as `sfx keep`, `unkeep` and `reject` do; Pick
 on a voice attempt keeps it as the beat's take; a knob writes the level's one
 number in `sound.ts`. Each write is checked and undoable (Undo, Redo), and a
 pick or a knob runs `check --sound`, its findings shown; review it with `git
-diff`. Every variant can be approved and commented on. The project view
-(`?project=<film>`) is the film by acts and scenes: each scene's render, its
-state (current, stale by its sources or its sound, missing), approval and comments, with approve and
-comment per scene, per act and for the film, "Approve all current", and the
-choice points at the scenes they play in. The review answers loopback, and the names in
+diff`; Undo and Redo name what they would undo. Every current variant can be
+approved, an approval withdrawn, and any variant commented on. The project view
+(`?project=<film>`) is the film by acts and scenes, with the same card and
+controls at every level: each scene's render (this checkout's), its state
+(current, stale by its sources or its sound, missing with the command that
+renders it), approval and comments, with approve, withdraw and comment per
+scene, per act and for the film, "Approve all current", and each choice point
+once, at the scene, act or film it plays in (a scene links the layers placed
+elsewhere). The review answers loopback, and the names in
 `FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
 `server.ts` builds it in process and serves it behind the check); writes are
 same-origin JSON.

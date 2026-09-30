@@ -56,7 +56,9 @@ import {
   type PageError,
   MediaFailed,
 } from './errors.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FreshProcessFailed } from '../core/refusals.ts';
+import { cueOf } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -249,6 +251,39 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
     }),
   );
 };
+
+/**
+ * `freshFilm(given)` whose `film read cue` runs in this process over the
+ * test's `FilmRepo`, as the fresh run would over the same files: a film that
+ * does not load fails the run.
+ */
+export const freshCue = (given: Partial<FreshFilmService>) =>
+  Layer.unwrap(
+    Effect.map(Effect.context<FilmRepo>(), (context) =>
+      freshFilm({
+        cue: (film, scene, cue, spans) =>
+          FilmRepo.use((repo) => repo.load(film)).pipe(
+            Effect.flatMap(placeFilm),
+            Effect.map((placed) =>
+              cueOf(
+                placed,
+                scene,
+                cue,
+                Option.getOrElse(spans, () => ({})),
+              ),
+            ),
+            Effect.mapError((error) =>
+              FreshProcessFailed.make({
+                command: 'film read cue',
+                reason: `${error._tag}: ${error.message}`,
+              }),
+            ),
+            Effect.provideContext(context),
+          ),
+        ...given,
+      }),
+    ),
+  );
 
 /**
  * The scene source's services where a test calls none of its routes: the

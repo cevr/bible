@@ -54,7 +54,7 @@ import { type SyncDriver, makeSync } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
-export interface ReviewStateValue {
+interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
   /** Every folder with something to review, as last read. */
   readonly index: Accessor<AsyncResult.AsyncResult<ReviewIndex, LabFailure>>;
@@ -67,7 +67,7 @@ export interface ReviewStateValue {
   readonly lightbox: Accessor<Option.Option<string>>;
 }
 
-export interface ReviewActions {
+interface ReviewActions {
   /** Go to `place`, as a link does (Back returns). */
   readonly go: (place: ReviewPlace) => void;
   /** Walk the roots again now. */
@@ -78,7 +78,7 @@ export interface ReviewActions {
   readonly show: (src: Option.Option<string>) => void;
 }
 
-export interface ReviewMeta {
+interface ReviewMeta {
   /** A video's length, read once per ref. */
   readonly duration: (ref: string) => Loaded<number>;
   /** A doc's text, read once per ref. */

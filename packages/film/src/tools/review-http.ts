@@ -115,7 +115,8 @@ const stepsGroup = HttpApiBuilder.group(ReviewHttpApi, 'steps', (handlers) =>
   handlers
     .handle('undo', stepHandlers.undo)
     .handle('redo', stepHandlers.redo)
-    .handle('check', stepHandlers.check),
+    .handle('check', stepHandlers.check)
+    .handle('steps', stepHandlers.steps),
 );
 
 /**

@@ -921,16 +921,16 @@ export const runFilmCli = <E>({
 }: FilmApp<E>): void => {
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer, Stamps.layer).pipe(
-    Layer.provideMerge(SourceWriter.layer),
-    Layer.provideMerge(SceneSources.layer),
-    Layer.provide([Repo, Store, Platform]),
-  );
-  // Each film's project folder: its renders, and the owner's approvals and comments on them.
-  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
+  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer, Stamps.layer).pipe(
+    Layer.provideMerge(SourceWriter.layer),
+    Layer.provideMerge(SceneSources.layer),
+    Layer.provide([Repo, Store, Fresh, Platform]),
+  );
+  // Each film's project folder: its renders, and the owner's approvals and comments on them.
+  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
   const Reviewed = Review.layerConfig(reviewApp.roots).pipe(

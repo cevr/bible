@@ -17,8 +17,9 @@
 // Pure: `tools/catalogue.ts` keeps it as `catalogue.json` in the project
 // folder, and computes the stamps.
 
-import { Array as Arr, Option, Schema } from 'effect';
+import { Array as Arr, Match, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import type { Say } from './api.ts';
 import { PointId, type PointRef, pointIdOf } from './point.ts';
 import { maybe } from './schema.ts';
 import { FilmPiece } from './shorts.ts';
@@ -329,6 +330,23 @@ export const approve = (catalogue: Catalogue, subject: Subject, at: number): Cat
     approvals: [...catalogue.approvals, { address, point, variant, key, at }],
   };
 };
+
+/**
+ * `catalogue` with every approval of `topic` withdrawn, whatever version it
+ * was given on (the same point's same variant).
+ */
+export const withdraw = (catalogue: Catalogue, topic: Topic): Catalogue => ({
+  ...catalogue,
+  approvals: catalogue.approvals.filter((a) => !about(a, topic)),
+});
+
+/** `catalogue` after `say` on `subject` (as it is now) at `at`: the one change a say makes. */
+export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
+  Match.valueTags(say, {
+    Approve: () => approve(catalogue, subject, at),
+    Withdraw: () => withdraw(catalogue, subject),
+    Comment: ({ text }) => comment(catalogue, subject, text, at),
+  });
 
 /** The next comment's id in `catalogue`: `c1`, `c2`, … */
 export const nextCommentId = (catalogue: Catalogue): string => `c${catalogue.comments.length + 1}`;

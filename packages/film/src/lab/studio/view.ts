@@ -23,7 +23,7 @@ export type Act =
   | 'retry';
 
 /** The studio's keys, as the panel names them. */
-export type StudioKey = 'R' | 'Space' | 'K' | 'Esc';
+type StudioKey = 'R' | 'Space' | 'K' | 'Esc';
 
 /** One button: what it does, what it says, and its key. */
 export interface Control {
@@ -67,7 +67,7 @@ export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
   );
 
 /** What a studio key does now: a control, a step through the beats, or nothing yet. */
-export type KeyAct =
+type KeyAct =
   | { readonly _tag: 'Act'; readonly act: Act }
   | { readonly _tag: 'Beat'; readonly step: 1 | -1 }
   | { readonly _tag: 'None' };
@@ -141,7 +141,7 @@ const percent = (wer: number) => `${(wer * 100).toFixed(1)}%`;
 const seconds = (s: number) => `${s.toFixed(1)} s`;
 
 /** Within this many seconds of the take limit, the recording warns. */
-export const NEAR_LIMIT_S = 30;
+const NEAR_LIMIT_S = 30;
 
 /** The seconds kept so far, by the meter's count; 0 before any. */
 const keptOf = (level: Option.Option<Level>) =>

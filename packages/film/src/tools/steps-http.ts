@@ -1,12 +1,13 @@
 // A film's writes as the lab and the review answer them: each write with the
 // file it changed and `film check --static` after it, and the `steps`
-// group's handlers (undo, redo, check), which both APIs serve for the film
-// their route names.
+// group's handlers (undo, redo, check, and the steps alone, in this process),
+// which both APIs serve for the film their route names.
 
 import { Effect, Option, Path } from 'effect';
+import type { Steps } from '../core/api.ts';
 import { type LabWrite } from '../core/schema.ts';
 import { answered, named } from './api-server.ts';
-import { FilmFolder } from './film-repo.ts';
+import { FilmFolder, type FilmName } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
 
@@ -64,29 +65,33 @@ const redo = ({ params }: FilmParams) =>
     }),
   );
 
+/** The film's latest change, and what Undo and Redo would do, each named by its file and target. */
+const history = Effect.fn('lab.history')(function* (film: FilmName) {
+  const path = yield* Path.Path;
+  const dir = (yield* FilmFolder).paths(film).dir;
+  const kept = yield* (yield* SourceWriter).history(film);
+  const step = (key: 'latest' | 'undo' | 'redo') =>
+    Option.match(kept[key], {
+      onNone: () => ({}),
+      onSome: (c) => ({
+        [key]: { ...sceneField(c), file: path.relative(dir, c.file), target: c.target },
+      }),
+    });
+  const steps: Steps = { ...step('latest'), ...step('undo'), ...step('redo') };
+  return steps;
+});
+
 /** The film's check now, its latest change, and what Undo and Redo would do. */
 const check = ({ params }: FilmParams) =>
   answered(
     Effect.gen(function* () {
       const film = yield* named(params.film);
-      const path = yield* Path.Path;
-      const dir = (yield* FilmFolder).paths(film).dir;
-      const history = yield* (yield* SourceWriter).history(film);
-      const step = (key: 'latest' | 'undo' | 'redo') =>
-        Option.match(history[key], {
-          onNone: () => ({}),
-          onSome: (c) => ({
-            [key]: { ...sceneField(c), file: path.relative(dir, c.file), target: c.target },
-          }),
-        });
-      return {
-        findings: yield* findings(film),
-        ...step('latest'),
-        ...step('undo'),
-        ...step('redo'),
-      };
+      return { findings: yield* findings(film), ...(yield* history(film)) };
     }),
   );
 
+/** The film's steps without the check: what a page reads after a write that answered its findings. */
+const steps = ({ params }: FilmParams) => answered(Effect.flatMap(named(params.film), history));
+
 /** The `steps` group's handlers, for `HttpApiBuilder.group(api, 'steps', …)` in either API. */
-export const stepHandlers = { undo, redo, check } as const;
+export const stepHandlers = { undo, redo, check, steps } as const;

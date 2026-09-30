@@ -14,8 +14,9 @@
 //   process (it reads the script), recorded around the timings' rewrite;
 // - level: a sound layer's level (or the constant layers share) written into
 //   `sound.ts` through the SourceWriter;
-// - approve and comment: the catalogue's records (`RenderCatalogue`), on the
-//   variant as it is now.
+// - a say (approve, withdraw, comment): the catalogue's records
+//   (`RenderCatalogue`), on the variant as it is now; the points last read
+//   are said of again from the catalogue it leaves, in this process.
 //
 // The review runs for days and its own imports of a film stay as they were at
 // start, so the film's points are read, and its takes and mixes made, in a
@@ -45,13 +46,11 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type Catalogue, type Subject, approve, comment } from '../core/catalogue.ts';
+import type { SayPost } from '../core/api.ts';
 import {
-  type ApprovePost,
   type ChoicePoint,
   type ChoiceVariant,
   type ChoiceVerb,
-  type CommentPost,
   type FilmChoices,
   type KnobPost,
   type PickPost,
@@ -59,7 +58,9 @@ import {
   refOf,
   subjectAt,
   variantNamed,
+  withSay,
 } from '../core/choice.ts';
+import { said } from '../core/catalogue.ts';
 import { PointRef } from '../core/point.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
@@ -111,15 +112,13 @@ export interface ChoicesService {
     film: FilmName,
     knob: KnobPost,
   ) => Effect.Effect<Picked, ChoicesError | RewriteError>;
-  /** One variant approved as it is now; the choices after it. */
-  readonly approve: (
+  /**
+   * One variant approved, its approvals withdrawn, or commented on, as it is
+   * now; the choices after it (the points last read, said of again).
+   */
+  readonly say: (
     film: FilmName,
-    said: ApprovePost,
-  ) => Effect.Effect<FilmChoices, ChoicesError | CatalogueError>;
-  /** Something said of one variant as it is now; the choices after it. */
-  readonly comment: (
-    film: FilmName,
-    said: CommentPost,
+    asked: SayPost,
   ) => Effect.Effect<FilmChoices, ChoicesError | CatalogueError>;
   /** A variant's own file: a take's, an attempt's. */
   readonly alone: (
@@ -304,7 +303,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
               ),
             check: () => Effect.void,
           }),
-          (change): Picked => ({
+          ([change]): Picked => ({
             file,
             target: `${site.target} ${option}`,
             change: Option.liftPredicate(change, (c) => c.before !== c.after),
@@ -398,7 +397,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         );
         const value = Math.min(knob.max, Math.max(knob.min, asked.value));
         const file = fileIn(film, 'sound.ts');
-        const change = yield* writer.write({
+        const [change] = yield* writer.write({
           film,
           scene: Option.none(),
           file,
@@ -415,14 +414,15 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return picked;
       });
 
-      /** Record what the owner says of one variant in the film's catalogue, then list again. */
-      const say = Effect.fn('Choices.say')(function* (
-        film: FilmName,
-        asked: { readonly point: string; readonly variant: string },
-        change: (catalogue: Catalogue, subject: Subject, at: number) => Catalogue,
-      ) {
+      /**
+       * Record what the owner says of one variant in the film's catalogue. The
+       * answer is the points last read, their say read again from the
+       * catalogue the say left: no fresh run, since a say changes no source.
+       */
+      const say = Effect.fn('Choices.say')(function* (film: FilmName, asked: SayPost) {
+        const known = yield* points(film);
         const { point, variant } = yield* Effect.fromResult(
-          offered(film, yield* points(film), asked.point, asked.variant),
+          offered(film, known, asked.point, asked.variant),
         );
         const address = yield* Effect.fromOption(point.address, () =>
           VerbRefused.make({
@@ -442,20 +442,20 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           }),
         );
         const subject = subjectAt(ref, address, variant);
-        yield* catalogues.update(folder.paths(film), (catalogue) => [
-          subject,
-          change(catalogue, subject, at),
-        ]);
+        const after = yield* catalogues.update(folder.paths(film), (catalogue) => {
+          const next = said(catalogue, subject, asked.say, at);
+          return [next, next] as const;
+        });
         yield* Effect.log(
-          `choices.say film=${film} point=${point.id} variant=${variant.id.slice(0, 12)}`,
+          `choices.say film=${film} point=${point.id} variant=${variant.id.slice(0, 12)} say=${asked.say._tag}`,
         );
-        return yield* list(film);
+        const result: FilmChoices = {
+          film,
+          pictures: yield* review.pictures(film),
+          points: known.map((p) => withSay(Option.some(after), p)),
+        };
+        return result;
       });
-
-      const approveVariant = (film: FilmName, asked: ApprovePost) => say(film, asked, approve);
-
-      const commentVariant = (film: FilmName, asked: CommentPost) =>
-        say(film, asked, (catalogue, subject, at) => comment(catalogue, subject, asked.text, at));
 
       const alone = Effect.fn('Choices.alone')(function* (
         film: FilmName,
@@ -533,8 +533,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         checked,
         pick,
         knob,
-        approve: approveVariant,
-        comment: commentVariant,
+        say,
         alone,
         inPlace,
       });

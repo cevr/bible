@@ -9,7 +9,7 @@ import { type Cause, Effect, Option } from 'effect';
 import { type SyncEvent, SyncEvent as Events, type SyncState, runningOf } from './machine.ts';
 
 /** How far a video may drift from the clock before it is put back on it, in seconds. */
-export const DRIFT_S = 0.2;
+const DRIFT_S = 0.2;
 
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;

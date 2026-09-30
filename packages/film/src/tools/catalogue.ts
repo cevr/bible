@@ -1,8 +1,9 @@
 // The render catalogue on disk: `catalogue.json` in a film's project folder
 // (`out/<film>`, git-ignored), beside the renders it names. The renderer's
 // caller records each render there; the review and the options page list
-// renders from it; approvals and comments are written to it. The domain (what
-// a render is, when it is current, what an approval means) is
+// renders from it; approvals and comments are written to it, and approvals
+// withdrawn from it. The domain (what a render is, when it is current, what
+// an approval means, `said`: the one change a say makes) is
 // `core/catalogue.ts`.
 //
 // The catalogue is a `ContentStore` manifest: each update reads the file,

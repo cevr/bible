@@ -3,9 +3,9 @@
 // film has (`core/choice.ts`), a card each (`choice.tsx`), by kind: the
 // score's options (`play` in `sound.ts`), its looks (`looks` in
 // `palette.ts`), each library sound's takes (the library's lock), each
-// beat's recorded voice, and each sound layer's level (a knob). Undo, redo
-// and the film's check follow every write; after a pick or a knob the sound
-// check runs (`film check --sound`: dead air, balance against the picked
+// beat's recorded voice, and each sound layer's level (a knob). Undo and
+// redo name the source change they step, and the film's check is the one the
+// last write answered; after a pick or a knob the sound check runs (`film check --sound`: dead air, balance against the picked
 // score) and its findings are shown.
 
 import { For, Show } from '@solidjs/web';
@@ -18,9 +18,10 @@ import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoUrl } from '../format.ts';
 import { Transport } from '../section.tsx';
+import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
-import { FilmProvider, Heard, PICTURE, failedText, useFilm } from './context.tsx';
+import { FilmProvider, Heard, PICTURE, useFilm } from './context.tsx';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -126,66 +127,44 @@ const Mix = (props: { readonly src: string }) => {
   return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };
 
-/** Undo, redo, what the last write did, and the film's check after it. */
+const STEP_WORD = { undo: 'Undo', redo: 'Redo' } as const;
+
+/** An undo's or a redo's button: it names what it would do, and is disabled when there is nothing to. */
+const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: ChoiceAct }) => {
+  const { steps, write } = useFilm();
+  const step = () => Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[props.which]));
+  const word = () => STEP_WORD[props.which];
+  return (
+    <button
+      type="button"
+      class="rv-chip"
+      data-act={props.which}
+      disabled={Option.isNone(step())}
+      title={Option.getOrElse(
+        Option.map(step(), (s) => `${props.which} ${s.target} in ${s.file}`),
+        () => `nothing to ${props.which}`,
+      )}
+      onClick={() => write(props.act)}
+    >
+      {Option.match(step(), { onNone: word, onSome: (s) => `${word()} ${s.target}` })}
+    </button>
+  );
+};
+
+/** Undo and redo, each naming the source change it steps; what the last write did; the film's check after it. */
 export const WriteBar = () => {
-  const { check, wrote, write } = useFilm();
-  const report = () => AsyncResult.value(check());
-  const step = (which: 'undo' | 'redo') =>
-    Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[which]));
-  const findings = () =>
-    Option.getOrElse(
-      Option.map(report(), (r) => r.findings),
-      () => [],
-    );
-  const status = () =>
-    Match.value(wrote()).pipe(
-      Match.when(
-        (r) => r.waiting,
-        () => 'writing…',
-      ),
-      Match.orElse((r) =>
-        AsyncResult.match(r, {
-          onInitial: () => '',
-          onSuccess: (s) => `wrote ${s.value.target} · ${s.value.file}`,
-          onFailure: () => failedText(r),
-        }),
-      ),
-    );
+  const { findings, wrote } = useFilm();
   return (
     <section class="rv-writes">
       <div class="rv-row">
-        <button
-          type="button"
-          class="rv-chip"
-          data-act="undo"
-          disabled={Option.isNone(step('undo'))}
-          title={Option.getOrElse(
-            Option.map(step('undo'), (s) => `undo ${s.target} in ${s.file}`),
-            () => 'nothing to undo',
-          )}
-          onClick={() => write(ChoiceAct.Undo())}
-        >
-          Undo
-        </button>
-        <button
-          type="button"
-          class="rv-chip"
-          data-act="redo"
-          disabled={Option.isNone(step('redo'))}
-          title={Option.getOrElse(
-            Option.map(step('redo'), (s) => `redo ${s.target} in ${s.file}`),
-            () => 'nothing to redo',
-          )}
-          onClick={() => write(ChoiceAct.Redo())}
-        >
-          Redo
-        </button>
+        <StepButton which="undo" act={ChoiceAct.Undo()} />
+        <StepButton which="redo" act={ChoiceAct.Redo()} />
         <span class="rv-hint rv-status" data-failed={pressed(AsyncResult.isFailure(wrote()))}>
-          {status()}
+          {statusText(wrote(), 'writing…', (w) => `wrote ${w.target} · ${w.file}`)}
         </span>
       </div>
       {/* The check folds away: its findings are read when asked for, not over the player. */}
-      <Findings name="check" findings={findings()} />
+      <Findings name="check" findings={Option.getOrElse(findings(), () => [])} />
       <SoundFindings />
     </section>
   );
@@ -259,7 +238,7 @@ const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }
 ];
 
 /** A heading and a card for each of `points`. */
-export const ChoiceSection = (props: {
+const ChoiceSection = (props: {
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => (
@@ -268,7 +247,9 @@ export const ChoiceSection = (props: {
       {props.title} <small>{props.points.length}</small>
     </h2>
     <div class="rv-grid rv-wide">
-      <For each={props.points}>{(point) => <ChoiceCard point={point} />}</For>
+      <For each={props.points} keyed={(p) => p.id}>
+        {(point) => <ChoiceCard point={point()} />}
+      </For>
     </div>
   </Show>
 );

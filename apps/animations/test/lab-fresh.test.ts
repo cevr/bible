@@ -2,7 +2,8 @@
 // a line fixed in a film's scenes while `film lab` is open must still reach
 // the studio: its sheet, the take state, and a take recorded now. These run
 // the lab's handler over a copy of the fixture film and edit the copy's
-// files while it runs. No paid call: ElevenLabs refuses everything here.
+// files while it runs; a cue write is judged on the clock those files give
+// now. No paid call: ElevenLabs refuses everything here.
 
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { LabWrite, StudioBeats } from '@bible/film/core';
@@ -103,7 +104,7 @@ const fixture = Layer.unwrap(
     const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
       Layer.provideMerge(SourceWriter.layer),
       Layer.provideMerge(SceneSources.layer),
-      Layer.provide([Repo, Store, Platform]),
+      Layer.provide([Repo, Store, Fresh, Platform]),
     );
     const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
     return Layer.mergeAll(Takes.layer, StudioReadings.layer).pipe(
@@ -177,6 +178,46 @@ describe('the lab reads the film as it stands', () => {
         );
         const after = yield* write;
         expect(after.resolved?.start).toBeGreaterThan(before.resolved?.start ?? Infinity);
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+    spawnBudget(3),
+  );
+
+  it.live(
+    'a cue write is judged on the clock the files now give: a renamed mark its cue follows is no refusal',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* Copy;
+        const lab = yield* labHandler('tiny');
+        const write = Effect.promise(() =>
+          lab(
+            new Request('http://127.0.0.1:4401/lab/tiny/cues/turn/fold', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: '{"offset":0.1}',
+            }),
+            bound,
+          ),
+        );
+        // The lab imports the film as it stands.
+        expect((yield* write).status).toBe(200);
+        // The agent renames the mark, and the cue with it; the lab keeps running.
+        const scenes = path.join(root, SCENES);
+        const beats = path.join(root, 'films/tiny/scenes/beats.ts');
+        yield* fs.writeFileString(
+          scenes,
+          (yield* fs.readFileString(scenes)).replace('{page}page', '{leaf}page'),
+        );
+        yield* fs.writeFileString(
+          beats,
+          (yield* fs.readFileString(beats)).replace("mark: 'page'", "mark: 'leaf'"),
+        );
+        const res = yield* write;
+        expect([res.status, yield* Effect.promise(() => res.text())]).toEqual([
+          200,
+          expect.stringContaining('"resolved"'),
+        ]);
       }).pipe(Effect.scoped, Effect.provide(fixture)),
     spawnBudget(3),
   );
