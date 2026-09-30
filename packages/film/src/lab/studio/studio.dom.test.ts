@@ -102,16 +102,18 @@ const studioRoutes: ReadonlyArray<FakeRoute> = [
 const textOf = (page: Page, sel: string) =>
   Effect.promise(() => page.textContent(sel)).pipe(Effect.map((t) => t ?? ''));
 
-/** Wait until the status line reads `pattern`. */
-const statusIs = (page: Page, pattern: RegExp) =>
+/** Wait until the element at `sel` reads `pattern`: a settled value, never the first one drawn. */
+const textIs = (page: Page, sel: string, pattern: RegExp) =>
   Effect.promise(() =>
     page.waitForFunction(
-      (source) =>
-        new RegExp(source).test(document.querySelector('[data-role="status"]')?.textContent ?? ''),
-      pattern.source,
+      ([source, at]) => new RegExp(source).test(document.querySelector(at)?.textContent ?? ''),
+      [pattern.source, sel] as const,
       { timeout: 10_000 },
     ),
   );
+
+/** Wait until the status line reads `pattern`. */
+const statusIs = (page: Page, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
 
 /** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
 const recorded = (page: Page, seconds: number) =>
@@ -247,9 +249,8 @@ describe('the studio', () => {
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* countedIn(page);
-          yield* Effect.promise(() => page.waitForSelector('[data-role="peak"]'));
-          const peak = yield* textOf(page, '[data-role="peak"]');
-          expect(peak).toMatch(/^peak −[5-7]\.\d dBFS$/);
+          // The meter reads its floor until the tone's chunks arrive: wait for the tone's level.
+          yield* textIs(page, '[data-role="peak"]', /^peak −[5-7]\.\d dBFS$/);
           yield* recorded(page, 1.2);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);

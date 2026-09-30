@@ -17,8 +17,9 @@ import { LibraryEntityId, type ReaderLocation } from '@bible/core/library-state'
 import { NoteId } from '@bible/core/local-first';
 import { DEFAULT_READING_PREFERENCES } from '@bible/core/reading-preferences';
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Option, Schema, Stream } from 'effect';
+import { Deferred, Effect, Option, Schedule, Schema, Stream } from 'effect';
 import { RpcTest } from 'effect/rpc';
+import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { RegistryContext, useAtomInitialValues } from '@bible/atom-solid';
 import { createRoot, flush, resolve, type Accessor } from 'solid-js';
@@ -272,6 +273,19 @@ const mount = (procedures: ProcedureClient) => {
       },
     };
   });
+};
+
+/**
+ * Done once `registry` has swept a node idle past its TTL: a canary read and
+ * left unmounted, waited on until it is gone.
+ */
+const sweptOnce = (registry: AtomRegistry.AtomRegistry) => {
+  const canary = Atom.make(0);
+  registry.get(canary);
+  return Effect.sync(() => registry.getNodes().has(canary)).pipe(
+    Effect.repeat({ while: (present) => present, schedule: Schedule.spaced('10 millis') }),
+    Effect.asVoid,
+  );
 };
 
 const settle = Effect.gen(function* () {
@@ -535,8 +549,9 @@ describe('reading data', () => {
         route.dispose();
         yield* settle;
 
-        // Idle for longer than the default TTL.
-        yield* Effect.sleep('700 millis');
+        // Idle for longer than the default TTL: a canary made idle after the
+        // route's entry is swept by the TTL, so the entry has been idle as long.
+        yield* sweptOnce(session);
         yield* settle;
 
         // Navigating back must not re-fetch: the entry survives idleness for as
