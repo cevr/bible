@@ -46,7 +46,7 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { actSpans, cueTime, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
+import { actSpans, cueTime, filmEnd, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type {
   ActLength,
   SoundUseMismatch,
@@ -207,48 +207,32 @@ export const unknownVoices = (film: LoadedFilm): ReadonlyArray<UnknownVoice> =>
   );
 
 /** A generated asset against the hash its request has now. */
-const assetFinding = (
-  asset: string,
-  stored: Option.Option<string>,
-  wanted: string,
-): ReadonlyArray<AssetStale | AssetMissing> =>
-  Option.match(stored, {
-    onNone: () => [AssetMissing.make({ asset })],
-    onSome: (hash) => {
-      if (hash === wanted) return [];
-      return [AssetStale.make({ asset, stored: hash, wanted })];
-    },
-  });
-
 /**
  * Each score option's acts: each names a scene, and each runs in film order
  * for as long as the API's chunks may last (`actSpans`, every failure rather
- * than the first). Only a plan that holds is checked for a stale option
- * (asset `score.<option>`).
+ * than the first). Only acts that hold are checked for the option's state
+ * (`scoreOptionState`, asset `score.<option>`): missing, or composed for
+ * another plan.
  */
 export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
 ): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
-  scoreOptions(score).flatMap(({ name, music }) =>
-    Result.match(actSpans(music, placed), {
-      onFailure: (unknown): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
-        unknown,
-      onSuccess: (spans) => {
-        const wrong = Arr.getFailures(spans);
-        if (wrong.length > 0) return wrong;
-        return Result.match(musicPlan(music, placed), {
-          onFailure: (error) => [error],
-          onSuccess: (plan) =>
-            assetFinding(
-              `score.${name}`,
-              Option.map(Option.fromUndefinedOr(manifest.scores?.[name]), (a) => a.hash),
-              musicKey(music, plan),
-            ),
-        });
-      },
-    }),
+  scoreOptions(score).flatMap(
+    (option): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> => {
+      const acts = Result.match(actSpans(option.music, placed), {
+        onFailure: (unknown): ReadonlyArray<UnknownScene | ActLength> => unknown,
+        onSuccess: (spans) => Arr.getFailures(spans),
+      });
+      if (acts.length > 0) return acts;
+      const asset = `score.${option.name}`;
+      const state = scoreOptionState(option, placed, manifest);
+      if (state._tag === 'Missing') return [AssetMissing.make({ asset })];
+      if (state._tag === 'Current') return [];
+      if (state.why._tag !== 'Retimed') return [state.why];
+      return [AssetStale.make({ asset, stored: state.asset.hash, wanted: state.why.key })];
+    },
   );
 
 /**

@@ -43,7 +43,7 @@ import {
 } from './sfx.ts';
 import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
-import { cueTime, filmEnd, musicKey, musicPlan, playedOption } from './sound.ts';
+import { cueTime, filmEnd, playedOption, scoreOptionState } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
 export const MIX_RATE = 44100;
@@ -296,24 +296,22 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
     if (Option.isSome(declared)) {
       const score = declared.value;
       const option = yield* playedOption(score, input.play);
-      const made = Option.fromNullishOr(manifest.scores?.[option.name]);
-      if (Option.isNone(made))
+      const state = scoreOptionState(option, placed, manifest);
+      if (state._tag === 'Missing')
         warnings.push(
           `mix.missing asset=score.${option.name} hint="run score to compose it, or score pull"`,
         );
-      if (Option.isSome(made)) {
-        const plan = yield* musicPlan(option.music, placed);
-        if (made.value.hash !== musicKey(option.music, plan))
-          warnings.push(
-            `mix.stale asset=score.${option.name} hint="acts or timing changed; run score to compose it again"`,
-          );
+      if (state._tag === 'Stale')
+        warnings.push(
+          `mix.stale asset=score.${option.name} why=${state.why._tag} hint="acts or timing changed; run score to compose it again"`,
+        );
+      if (state._tag !== 'Missing')
         played = Option.some({
           option: option.name,
-          sound: fileSource(`${input.soundDir}/${made.value.file}`),
+          sound: fileSource(`${input.soundDir}/${state.asset.file}`),
           under: score.under,
           alone: score.alone,
         });
-      }
     }
 
     let beds: ReadonlyArray<BedSpan<SoundSource>> = [];

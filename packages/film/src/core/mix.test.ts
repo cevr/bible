@@ -293,12 +293,30 @@ describe('mixPlan', () => {
       Option.some('s/pads-0.mp3'),
     );
     expect(pads.warnings).toEqual([
-      'mix.stale asset=score.pads hint="acts or timing changed; run score to compose it again"',
+      'mix.stale asset=score.pads why=Retimed hint="acts or timing changed; run score to compose it again"',
     ]);
     const lost = mixPlan({ ...input, manifest, sound: scored, play: Option.some('organ') });
     expect(Result.match(lost, { onSuccess: () => 'none', onFailure: (e) => e._tag })).toBe(
       'ScoreUnknown',
     );
+  });
+
+  test('an option whose acts no longer hold still plays, with a warning naming why', () => {
+    const lost: Score = {
+      ...score,
+      options: {
+        piano: { ...option(['felt piano']), acts: [{ from: 'gone', name: 'Open', styles: [] }] },
+      },
+    };
+    const planned = Result.getOrThrow(
+      mixPlan({ ...input, manifest, sound: Option.some<Sound>({ score: lost, effects: {} }) }),
+    );
+    expect(Option.map(planned.score, (s) => sourceLabel(s.sound))).toEqual(
+      Option.some('s/piano-1.mp3'),
+    );
+    expect(planned.warnings).toEqual([
+      'mix.stale asset=score.piano why=UnknownScene hint="acts or timing changed; run score to compose it again"',
+    ]);
   });
 
   test('no score declared, no warning', () => {
