@@ -6,11 +6,29 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import type { Page } from 'playwright-core';
 import { openLab } from './fixtures/harness.ts';
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
 const rects = (sel: string) =>
   `[...document.querySelectorAll('${sel}')].map((e) => { const r = e.getBoundingClientRect(); const s = e.style; return (s.left === '' ? [r.left, r.top, r.width, r.height] : [s.left, s.top, s.width, s.height].map(parseFloat)).map(Math.round); })`;
+
+/**
+ * Resize the window, and wait until the page has handled it: its `resize`
+ * event has fired. The lab places its layers in its own listener, added
+ * before this one, and on the canvas's ResizeObserver in the same rendering
+ * step, so the next read sees them placed.
+ */
+const resize = (page: Page, size: { readonly width: number; readonly height: number }) =>
+  Effect.gen(function* () {
+    yield* Effect.promise(() =>
+      page.evaluate(
+        `window.labResized = new Promise((done) => addEventListener('resize', () => done(true), { once: true })); true`,
+      ),
+    );
+    yield* Effect.promise(() => page.setViewportSize(size));
+    yield* Effect.promise(() => page.evaluate('window.labResized'));
+  });
 
 describe('the lab shell', () => {
   it.live('mounts the panel with its header and the look-book link', () =>
@@ -40,8 +58,7 @@ describe('the lab shell', () => {
       const before = (yield* over()) as { canvas: number[]; layers: number[][] };
       expect(before.layers.length).toBeGreaterThan(0);
       for (const layer of before.layers) expect(layer).toEqual(before.canvas);
-      yield* Effect.promise(() => page.setViewportSize({ width: 1000, height: 800 }));
-      yield* Effect.promise(() => page.waitForTimeout(100));
+      yield* resize(page, { width: 1000, height: 800 });
       const after = (yield* over()) as { canvas: number[]; layers: number[][] };
       expect(after.canvas).not.toEqual(before.canvas);
       for (const layer of after.layers) expect(layer).toEqual(after.canvas);
@@ -55,8 +72,7 @@ describe('the lab shell', () => {
         { width: 1400, height: 480 },
         { width: 1100, height: 420 },
       ]) {
-        yield* Effect.promise(() => page.setViewportSize(size));
-        yield* Effect.promise(() => page.waitForTimeout(100));
+        yield* resize(page, size);
         const box = (yield* Effect.promise(() =>
           page.evaluate(
             `({ stage: ${rects('.stage')}[0], canvas: ${rects('.stage canvas')}[0], overlay: ${rects('.lab-overlay')}[0], bar: ${rects('.bar')}[0] })`,

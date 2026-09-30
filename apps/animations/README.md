@@ -238,10 +238,8 @@ the script means (rule 9 of the film skill's CRAFT.md). `cues` prints each
 seam (`seam=0.60`), and `check` warns `SeamLong` where a seam runs over 0.6 s
 with neither scene declaring it (no `tail` before it, and no `min` that
 stretches that scene past its words; no `lead` after it): a long entrance stretching the default lead. A
-seam is measured from the end of the take file, not from its last voiced word,
-so silence a take carries after its line (staging takes are not trimmed as a
-person's imports are) is heard as pause but not counted: `look`'s 2 s tail
-reads as `seam=0.60` before `within`. Put
+seam is measured from the last voiced word, not the end of the take file
+(below). Put
 `{mark}` cues in the narration before the word the picture should hit;
 `f.mark('name')` returns that word's scene-local time from the recorded take
 (or an estimate before recording). Marks are stripped before speech, so adding
