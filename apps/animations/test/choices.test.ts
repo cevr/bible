@@ -27,6 +27,7 @@ import {
   ContentStore,
   ElevenLabs,
   ElevenLabsFailed,
+  FilmFolder,
   FilmRepo,
   FreshFilm,
   Media,
@@ -274,7 +275,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { kept, waiting } = yield* seedLock;
-        expect(yield* FilmRepo.use((repo) => repo.names)).toEqual(['tiny']);
+        expect(yield* FilmFolder.use((folder) => folder.names)).toEqual(['tiny']);
         const tiny = yield* filmNamed('tiny');
         const listed = yield* (yield* Choices).list(tiny);
         expect(listed.pictures.map((p) => p.ref)).toEqual(['out/tiny/film/main.mp4']);
@@ -424,6 +425,60 @@ describe("a film's choices", () => {
         expect(missing._tag).toBe('VariantUnknown');
       }).pipe(Effect.scoped, Effect.provide(fixture)),
     60_000,
+  );
+
+  it.live(
+    'keeps a candidate made for a prompt changed while it runs: the take verbs read the library as it stands',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const media = yield* Media;
+        const { sounds } = yield* Copy;
+        const choices = yield* Choices;
+        const tiny = yield* filmNamed('tiny');
+        // This process has imported the library (`seedLock` loads it) before the prompt changes.
+        const { lock } = yield* seedLock;
+        const entry = (yield* (yield* SoundLibrary).load).library['paper.page'];
+        if (entry?.kind !== 'generated') return yield* Effect.die('paper.page is generated');
+        const file = path.join(sounds, 'library.ts');
+        const prompt = 'a heavy parchment page turning once';
+        yield* fs.writeFileString(
+          file,
+          (yield* fs.readFileString(file)).replace(entry.prompt, prompt),
+        );
+        // `sfx make` for the new prompt: one candidate, recorded under its request.
+        const made = 'files/paper.page/dd44.wav';
+        yield* media.writeWav(path.join(sounds, made), burst(1, 7));
+        const fresh = variant(made, `dd44${'0'.repeat(60)}`, requestKey({ ...entry, prompt }));
+        const record = yield* Option.match(
+          Option.fromUndefinedOr(
+            (yield* Schema.decodeEffect(LockJson)(yield* fs.readFileString(lock)))['paper.page'],
+          ),
+          { onNone: () => Effect.die('the lock has no paper.page'), onSome: Effect.succeed },
+        );
+        yield* fs.writeFileString(
+          lock,
+          yield* Schema.encodeEffect(LockJson)({
+            'paper.page': { ...record, candidates: [...record.candidates, fresh] },
+          }),
+        );
+        expect(variantsOf(yield* choices.list(tiny), TAKE).map(([id]) => id)).toContain(
+          fresh.sha256,
+        );
+        const kept = yield* choices.pick(tiny, {
+          point: TAKE,
+          variant: fresh.sha256,
+          verb: 'pick',
+        });
+        expect(Option.map(kept.change, (c) => c.target)).toEqual(
+          Option.some(`sound paper.page keep ${fresh.sha256.slice(0, 12)}`),
+        );
+        const after = yield* Schema.decodeEffect(LockJson)(yield* fs.readFileString(lock));
+        // Kept for the prompt as it stands: the old request's variant is dropped, as `sfx keep` drops it.
+        expect(after['paper.page']?.variants.map((v) => v.sha256)).toEqual([fresh.sha256]);
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+    spawnBudget(4),
   );
 
   it.live(

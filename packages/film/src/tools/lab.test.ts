@@ -10,21 +10,29 @@ import { LabHttpApi, Refusal, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
-import { foreignRequests, memoryFileSystem, noSource, noStudio, text } from './testing.ts';
+import {
+  foreignRequests,
+  freshFilm,
+  memoryFileSystem,
+  noSource,
+  noStudio,
+  text,
+} from './testing.ts';
 
 const files = () => new Map<string, Uint8Array>();
 
 const labLayer = (store: Map<string, Uint8Array>) =>
   Layer.mergeAll(
     NotesStore.layer,
-    FilmRepo.layer('/films'),
+    FilmFolder.layer('/films'),
     noSource,
     noStudio,
+    freshFilm({}),
     HttpPlatform.layer,
   ).pipe(
-    Layer.provide(ContentStore.layer),
+    Layer.provideMerge(ContentStore.layer),
     Layer.provideMerge([
       memoryFileSystem(store),
       Path.layer,

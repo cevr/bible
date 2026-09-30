@@ -2,15 +2,21 @@
 // typed failures; the browser, which cannot recover from a broken film, turns
 // them into a thrown error once at load.
 
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownScene', {
   scene: Schema.String,
   /** The scenes the film has, in film order. */
   known: Schema.Array(Schema.String),
+  /** What named it, when it is not the address given (`short "reel"`). */
+  by: Schema.optionalKey(Schema.String),
 }) {
   override get message() {
-    return `the film has no scene "${this.scene}"; its scenes are ${this.known.join(', ')}`;
+    const said = `the film has no scene "${this.scene}"; its scenes are ${this.known.join(', ')}`;
+    return Option.match(Option.fromUndefinedOr(this.by), {
+      onNone: () => said,
+      onSome: (by) => `${by}: ${said}`,
+    });
   }
 }
 
@@ -256,20 +262,6 @@ export class UnknownVoice extends Schema.TaggedError<UnknownVoice>()('UnknownVoi
 // Shorts: a span of a short (`shorts.ts`) that names what its film lacks.
 
 /** A short's span names a scene the film does not have. */
-export class ShortUnknownScene extends Schema.TaggedError<ShortUnknownScene>()(
-  'ShortUnknownScene',
-  {
-    short: Schema.String,
-    scene: Schema.String,
-    /** The film's scenes, in film order. */
-    known: Schema.Array(Schema.String),
-  },
-) {
-  override get message() {
-    return `short "${this.short}": the film has no scene "${this.scene}"; its scenes are ${this.known.join(', ')}`;
-  }
-}
-
 /** A short's span that ends where it starts, or before. */
 export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortSpanEmpty', {
   short: Schema.String,
@@ -283,7 +275,7 @@ export class ShortSpanEmpty extends Schema.TaggedError<ShortSpanEmpty>()('ShortS
   }
 }
 
-export type ShortError = ShortUnknownScene | PointError | ShortSpanEmpty;
+export type ShortError = UnknownScene | PointError | ShortSpanEmpty;
 
 /** A film names a sound the library does not declare. */
 export class UnknownSound extends Schema.TaggedError<UnknownSound>()('UnknownSound', {

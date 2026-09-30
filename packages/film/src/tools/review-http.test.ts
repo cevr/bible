@@ -18,15 +18,12 @@ import {
 import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
 import { SceneNotRendered } from '../core/refusals.ts';
-import { FreshFilm } from './choices-process.ts';
 import { Choices } from './choices.ts';
-import { ContentStore } from './content-store.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder } from './film-repo.ts';
 import { reviewHandler, refFromUrl } from './review-http.ts';
 import { Review } from './review.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
-import { foreignRequests, reviewMedia } from './testing.ts';
+import { foreignRequests, freshFilm, reviewMedia } from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
@@ -91,6 +88,7 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
       Choices,
       Choices.of({
         list: () => Effect.succeed(CHOICES),
+        checked: () => Effect.succeed({ choices: CHOICES, findings: [] }),
         pick: (_, asked) =>
           Effect.succeed({
             file: PICK.file,
@@ -104,21 +102,22 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
         inPlace: () => unused,
       }),
     ),
-    Layer.succeed(
-      FreshFilm,
-      FreshFilm.of({
-        choices: () => unused,
-        mix: () => unused,
-        keepVoice: () => unused,
-        project: (args) =>
-          Effect.suspend(() => {
-            projectRuns.push(args);
-            if (args.includes('--scene'))
-              return Effect.fail(SceneNotRendered.make({ film: 'f', scene: 'a', variant: 'main' }));
-            return Effect.succeed(PROJECT);
-          }),
-      }),
-    ),
+    freshFilm({
+      project: (args) =>
+        Effect.suspend(() => {
+          projectRuns.push(args);
+          if (args.includes('--scene'))
+            return Effect.fail(SceneNotRendered.make({ film: 'f', scene: 'a', variant: 'main' }));
+          return Effect.succeed(PROJECT);
+        }),
+      check: (_, leg) =>
+        Effect.succeed(
+          Arr.filter(
+            [{ level: 'warning', tag: 'DeadAir', message: 'no sound 3.0-4.2 s' }] as const,
+            () => leg === 'sound',
+          ),
+        ),
+    }),
     Layer.succeed(
       SourceWriter,
       SourceWriter.of({
@@ -130,15 +129,7 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
           Effect.succeed({ undo: Option.none(), redo: Option.some(PICK), latest: Option.none() }),
       }),
     ),
-    Layer.succeed(
-      StaticCheck,
-      StaticCheck.of({
-        run: () => Effect.succeed([]),
-        sound: () =>
-          Effect.succeed([{ level: 'warning', tag: 'DeadAir', message: 'no sound 3.0-4.2 s' }]),
-      }),
-    ),
-    FilmRepo.layer(films).pipe(Layer.provide(ContentStore.layer)),
+    FilmFolder.layer(films),
   );
 
 /** The review over `out/art` (a set of two), its videos 12.5 s long and a frame the video copied. */

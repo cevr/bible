@@ -52,7 +52,9 @@ describe('film cli', () => {
       Effect.gen(function* () {
         const run = yield* cli('check', 'nofilm', '--static');
         expect(run.exitCode).not.toBe(0);
-        expect(run.out).toContain('FilmNotFound: no film "nofilm"');
+        expect(run.out).toContain('FilmUnknown: no film "nofilm" (the films: ');
+        // A 404's words name the films there are, never a path on the box.
+        expect(run.out).not.toContain('/src/films');
         expect(run.out).not.toContain('    at ');
       }),
     spawnBudget(1),

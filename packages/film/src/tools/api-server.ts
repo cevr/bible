@@ -47,7 +47,7 @@ import {
 import type { HttpApi, HttpApiGroup } from 'effect/http-api';
 import { BodyTooLarge, FilmUnknown } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
-import { type FilmName, FilmRepo, filmNamed } from './film-repo.ts';
+import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 
 /** Where the server listens: Bun hands each request its server. */
 export interface LabBound {
@@ -112,11 +112,11 @@ export class FilmScope extends Context.Service<FilmScope, FilmScopeService>()(
   }
 
   /** The review's: any film in the app's folder (`filmNamed`). */
-  static readonly repo: Effect.Effect<FilmScopeService, never, FilmRepo> = Effect.map(
-    FilmRepo,
-    (repo) =>
+  static readonly repo: Effect.Effect<FilmScopeService, never, FilmFolder> = Effect.map(
+    FilmFolder,
+    (folder) =>
       FilmScope.of({
-        named: (film) => filmNamed(film).pipe(Effect.provideService(FilmRepo, repo)),
+        named: (film) => filmNamed(film).pipe(Effect.provideService(FilmFolder, folder)),
       }),
   );
 }

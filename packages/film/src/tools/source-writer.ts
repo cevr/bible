@@ -45,7 +45,7 @@ import {
   UndoUnavailable,
   WriteUnverified,
 } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
 
 /** One change to a film's source: its file's text before and after it. */
@@ -163,7 +163,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const repo = yield* FilmRepo;
+      const repo = yield* FilmFolder;
       const store = yield* ContentStore;
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const writer = yield* Semaphore.make(1);

@@ -23,11 +23,16 @@
 
 import {
   Array as Arr,
+  Cache,
   Clock,
   Config,
   Context,
+  Data,
   Duration,
   Effect,
+  Exit,
+  Fiber,
+  FiberMap,
   FileSystem,
   Layer,
   Option,
@@ -37,7 +42,6 @@ import {
   Record as Rec,
   Ref,
   Schema,
-  Semaphore,
 } from 'effect';
 import { addressKey } from '../core/address.ts';
 import {
@@ -480,14 +484,42 @@ export interface ReviewService {
   readonly phone: (ref: string) => Effect.Effect<Option.Option<string>, ReviewFileUnknown>;
   /**
    * A derived file in the cache at `name` (`mix/<key>.m4a`): there already, or
-   * made once by `make` (into the temporary path it is given, renamed into
-   * place when it succeeds). Concurrent asks for one name make it once.
+   * made by `make` (into the temporary path it is given, renamed into place
+   * when it succeeds). One maker per name at a time: a caller that may be
+   * asked twice at once runs it through `once`.
    */
   readonly derive: <E, R>(
     name: string,
     make: (temporary: string) => Effect.Effect<void, E, R>,
   ) => Effect.Effect<string, E | ReviewToolFailed, R>;
 }
+
+/**
+ * `effect` run once per `key` in `running` (a FiberMap in the service's
+ * scope): an ask while it runs joins it, and a caller that stops waiting
+ * leaves it running. The map drops a fiber when it ends.
+ */
+export const once = <K, A, E>(
+  running: FiberMap.FiberMap<K, A, E>,
+  key: K,
+  effect: Effect.Effect<A, E>,
+): Effect.Effect<A, E> =>
+  Effect.flatMap(FiberMap.get(running, key), (had) =>
+    Option.match(had, {
+      onSome: Fiber.join,
+      onNone: () => Effect.flatMap(FiberMap.run(running, key, effect), Fiber.join),
+    }),
+  );
+
+/** How long a cache keeps what it read: for good once it is read, a failed read not at all. */
+export const keptWhenMade = <A, E>(exit: Exit.Exit<A, E>): Duration.Duration =>
+  Exit.match(exit, { onFailure: () => Duration.zero, onSuccess: () => Duration.infinity });
+
+/** A file as it stands: its path and mtime, the key of what is read from it. */
+class AtMtime extends Data.Class<{ readonly file: string; readonly mtime: number }> {}
+
+/** How many lengths the review keeps: every video a long review shows, with room. */
+const LENGTHS_KEPT = 4096;
 
 /** Every file ref a folder of the index lists: its sets' videos and notes, and what is in no set. */
 const refsIn = (folder: ReviewFolder): ReadonlyArray<string> => [
@@ -564,15 +596,6 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           return at.value;
         });
 
-        // One maker per name at a time: a second ask waits, then finds the file made.
-        const locks = new Map<string, Semaphore.Semaphore>();
-        const lockOf = (name: string) =>
-          Option.getOrElse(Option.fromUndefinedOr(locks.get(name)), () => {
-            const made = Semaphore.makeUnsafe(1);
-            locks.set(name, made);
-            return made;
-          });
-
         const derive = <E, R>(
           name: string,
           make: (temporary: string) => Effect.Effect<void, E, R>,
@@ -580,7 +603,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const out = path.join(config.cache, name);
           const ext = path.extname(name);
           const temporary = `${out.slice(0, out.length - ext.length)}.part${ext}`;
-          const made = fs.exists(out).pipe(
+          return fs.exists(out).pipe(
             Effect.mapError(cacheFailed(name)),
             Effect.flatMap((there) => {
               if (there) return Effect.succeed(out);
@@ -597,20 +620,21 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
               );
             }),
           );
-          return Semaphore.withPermits(lockOf(name), 1)(made);
         };
 
-        const durations = new Map<string, number>();
+        /** Each video's length, by path and mtime, the newest kept; a failed read is not. */
+        const lengths = yield* Cache.makeWith((at: AtMtime) => media.duration(at.file), {
+          capacity: LENGTHS_KEPT,
+          timeToLive: keptWhenMade,
+        });
 
         const duration = Effect.fn('Review.duration')(function* (ref: string) {
           const file = yield* resolve(ref);
-          const key = `${file}|${yield* mtimeOf(file)}`;
-          const had = Option.fromUndefinedOr(durations.get(key));
-          if (Option.isSome(had)) return had.value;
-          const seconds = yield* media.duration(file);
-          durations.set(key, seconds);
-          return seconds;
+          return yield* Cache.get(lengths, new AtMtime({ file, mtime: yield* mtimeOf(file) }));
         });
+
+        /** The frames being made, by name: a scrub that asks for one twice makes it once. */
+        const framing = yield* FiberMap.make<string, string, ReviewToolFailed | MediaFailed>();
 
         const sourceKey = Effect.fn('Review.sourceKey')(function* (
           file: string,
@@ -630,8 +654,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           else t = (yield* duration(ref)) * 0.1;
           const w = Math.round(Math.min(1920, Math.max(160, width)));
           const key = yield* sourceKey(file, [t.toFixed(3), w]);
-          return yield* derive(`frames/${key}.jpg`, (temporary) =>
-            media.still(file, t, w, temporary),
+          const name = `frames/${key}.jpg`;
+          return yield* once(
+            framing,
+            name,
+            derive(name, (temporary) => media.still(file, t, w, temporary)),
           );
         });
 

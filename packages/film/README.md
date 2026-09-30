@@ -15,7 +15,7 @@ recorded words, and every frame is a pure function of that film and a time.
 | `@bible/film/review`       | `Review`: the review page (`film review`, served at `/`) as compound components, `<Review.Root>`, `<Review.SetProvider>` and its pages: renders compared in sync, a film's options and its project.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `@bible/film/stand-in`     | The one stand-in 2D context for tests (bun has no canvas): `recorder` keeps the transform, alpha, composite and fill style and records each fill and image, and with `onCall` tells a test of every call and property set (how `every-scene-draws` logs a frame to check it is pure); with `measure` it sets text with a test's own advances in the context's font; each canvas it makes carries its number (`isStandInCanvas`, `made`); `withDom`/`standInDom` put up a document whose canvases are stand-ins; it refuses what a real canvas refuses (a negative radius, a colour stop off 0..1, a stop colour made of NaN or undefined, a non-finite gradient coordinate). The framework's canvas tests and a film's `every-scene-draws` draw into it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmRepo, ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy, and the review's stills and phone copies), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through the app's private store), MediaStore (`media-store.ts`: the store interface, `put`/`get`/`hashOf`/`list`/`read` with a byte range, and the folder store), `r2-store.ts` (the R2 store, SigV4 in `sigv4.ts` through `HttpClient`), PrivateStore (`private-store.ts`: the store `library.ts` declares, reached with the `FILM_STORE_*` key read as `Config.Redacted`), Browser, Pages (`pages.ts`: the export page pool check, look and render share), PreviewServer, Renderer (`render-plan.ts` is its pure plan), RenderCatalogue (`catalogue.ts`: a film's `catalogue.json`; the domain is `core/catalogue.ts`), Stamps (`stamp.ts`: each scene's content key), `film project` (`project-cli.ts`), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead, StaticCheck; and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked, each read in a fresh process through `FreshFilm`, `choices-process.ts`, and `film options`, `choices-cli.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `@bible/film/tools`        | The `film` CLI (`runFilmCli`) and its Effect services: FilmFolder and FilmRepo (`film-repo.ts`: a film's paths, and its modules loaded), ContentStore, ElevenLabs, Media (mediabunny + mpg123 + WASM AAC and FLAC + FFmpeg in-process through NodeAV: durations, decode, WAV, a person's recordings loaded and their FLAC masters, joining a film; the ffmpeg CLI for a software share copy, and the review's stills and phone copies), Narrator, Takes (a person's recordings), Composer, Mixer, SoundLibrary (`library.ts`: an app's `sounds/`, its candidates made, kept, rejected, imported, auditioned, checked, and its private `files/` synced through the app's private store), MediaStore (`media-store.ts`: the store interface, `put`/`get`/`hashOf`/`list`/`read` with a byte range, and the folder store), `r2-store.ts` (the R2 store, SigV4 in `sigv4.ts` through `HttpClient`), PrivateStore (`private-store.ts`: the store `library.ts` declares, reached with the `FILM_STORE_*` key read as `Config.Redacted`), Browser, Pages (`pages.ts`: the export page pool check, look and render share), PreviewServer, Renderer (`render-plan.ts` is its pure plan), RenderCatalogue (`catalogue.ts`: a film's `catalogue.json`; the domain is `core/catalogue.ts`), Stamps (`stamp.ts`: each scene's content key), `film project` (`project-cli.ts`), Checker (`check.ts` holds its pure detectors), NotesStore, the lab's routes (`lab.ts`), its studio (`studio.ts`, StudioReadings) and its source editing: SceneSources, SourceWriter (every write, its undo and redo), SceneWriter, SceneHead; FreshFilm (`fresh-film.ts`: the film CLI run again in a new process, its answer or refusal read back: options, takes, the project, the check, the studio's reading, a cue, the mix; `film read`, `read-cli.ts`); and the review (`review.ts`, `review-http.ts`): Review, and Choices (`choices.ts`, a film's options: listed, heard, picked, each read in a fresh process through `FreshFilm` and `film options`, `choices-cli.ts`).                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Data
 
@@ -344,8 +344,9 @@ first), its pictures and its share copy's are copied, and no page opens
 scene (a stale or missing scene is left, and named). `film project comment
 <film> "text" [--scene id | --act name]` records a comment on a scene's render
 as it is now, on an act, or (with neither) on the whole film. With `--json`
-each prints the project (`ProjectRead`) as one line, or its refusal
-(`FreshRefused`), which is how the review runs it. Approvals and comments are keyed by address,
+each prints the project (`ProjectRead`) as one line, or its refusal as
+itself (`SceneNotRendered`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
+a `FreshRefusal`), which is how the review runs it. Approvals and comments are keyed by address,
 variant and the render's version (`renderVersion`: the stamp's key and the
 mix it carries): a re-render or a re-mux leaves an approval in place, stale,
 and a render that returns to the approved sources and sound is approved
@@ -478,7 +479,7 @@ aligned start: the aligner gives a word the pause before it, and a short
 opened on that pause starts on silence. A close stays where it is marked.
 `core/shorts.ts` resolves a short against the layout on whole frames
 (`resolveShort`: the spans back to back, each `{ scene, from, to, at }` in film
-and short seconds), or fails with `ShortUnknownScene`, `UnknownMark`,
+and short seconds), or fails with `UnknownScene`, `UnknownMark`,
 `UnknownCue` (each `by: 'short "<id>"'`) or `ShortSpanEmpty` naming what the film has; `--short`
 naming no short is `UnknownShort`. `shortPieces` maps a range of the short to
 the film stretches under it.
@@ -589,8 +590,18 @@ them at `/lab/*`:
 A bad body is a 400, an unknown note a 404 `NoteNotFound`, an unknown still
 a 404 `StillUnknown`, and every failure is logged.
 
-**The studio** (`tools/studio.ts`, over `Takes`, `FilmRepo` and `Mixer`)
-records takes from the lab through the same import as `takes import`. Its
+**The studio** (`tools/studio.ts`, over `Takes`, `StudioReadings` and
+`FreshFilm`) records takes from the lab through the same import as `takes
+import`. The lab runs for hours and keeps each film module as it first
+imported it, so the studio never loads the film in its own process: it reads
+the voice, the script's `heardAs`, each beat's line and the reading sheet
+fresh (`film read voice <film>`, `StudioReading` in `core/studio.ts`), kept
+by `StudioReadings` under the film's source stamp (`FilmFolder.stamp`: one
+fresh process after any file under the film changed, none before), and
+remixes with `film mix <film>`. A take is kept against that reading
+(`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
+which `takes import` makes with `voicedOf`), so a line fixed while the lab
+is open is on the sheet, and a take of it current, at the next read. Its
 routes are the lab API's `studio` group, under `/lab/<film>/studio/`, behind
 the same gate and for the film the lab serves (another film is a 404
 `FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`:
@@ -828,7 +839,7 @@ wait says so in the panel and connects again after 2 s (a state timeout);
 a note, reply or resolve made on the page reads the notes at once. (Scene
 hot reload is Bun's own HMR client, not the lab's.)
 
-`film notes <film>` prints each unresolved note as one line:
+`film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
 note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
@@ -861,6 +872,11 @@ change with `git diff`.
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
+A cue written answers the cue resolved on its scene's clock as the film's
+files now declare it (`film read cue <film> <scene> <cue>`, in a fresh
+process), so a line that moved a mark while the lab runs moves the cue's
+answer too. The lab's handlers run with `LabContext` (`lab.ts`), which holds
+no `FilmRepo`, `SoundLibrary` or `Mixer` (`review-context.types.ts`).
 
 **SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
 not by name: the parser (oxc) lists every exported `drawing({...})` call in
@@ -886,10 +902,12 @@ starts. Writes run one at a time and are
 uninterruptible (the reload a write causes drops its request); their undo and
 redo are `SourceWriter`'s (below, "How a pick lands").
 
-**StaticCheck** (`static-check.ts`) runs `film check <film> --static
---allow-stale --json` in a new process after each write (this one imported the
-scene modules at start) and returns its findings, each with its address,
-which the lab lists. The static leg never mixes or opens a browser.
+**The check after a write** is `FreshFilm.check(film, 'static')`
+(`fresh-film.ts`): `film check <film> --static --allow-stale --json` in a new
+process (this one imported the scene modules at start), its findings each
+with its address, which the lab lists. The static leg never mixes or opens a
+browser. A check that does not run (a line that does not decode, a crash, 30 s
+gone) is itself one error finding, `FreshProcessFailed`, in its words.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
@@ -1117,10 +1135,20 @@ running, the next ask joins it or finds it made, and the page's `<audio>`
 asks again when its load fails. Their URLs name the option, not the source, so they
 are served `no-cache` and revalidated; the page asks again after each write
 (`?v=`). The review imports no film itself: a process keeps the modules it
-imported as they were, so each read of a film's options, and each mix, runs
-the film CLI again (`film options list|mix|keep-voice`, `FreshFilm` in
-`choices-process.ts`, through the app's `self`), and a hand edit to
-`sound.ts` shows on the next read. A film is named in a route as one of the
+imported as they were, so each read of a film's options or checks, each mix,
+and each keep, unkeep or reject of a take runs the film CLI again (`film
+options list [--check]|mix|take|keep-voice`, `film check --json`, `film
+project --json`: `FreshFilm` in `fresh-film.ts`, through the app's `self`),
+and a hand edit to `sound.ts` or to a prompt in the sound library shows on
+the next read. The type says so: a review handler runs with `ReviewContext`
+(`review-http.ts`) and `Choices` is built on `ChoicesNeeds`, neither of which
+holds `FilmRepo` or `SoundLibrary` (`review-context.types.ts` fails the
+typecheck if one joins). The film's folder (`FilmFolder`: its paths, the
+app's films, the sounds folder) is all the review reads of a film in
+process. The points a film read at its source stamp are kept (`Choices`,
+a cache keyed by film and stamp), so a pick checks its point against them
+and a pick costs one fresh run, `options list --check` for the page's answer,
+not three. A film is named in a route as one of the
 app's films (`filmNamed`): any other name is a 404 listing the films, never
 a path. `/review/files/<ref>` answers only what the index lists (a video, an
 image or a doc where a walk looks, or a file a manifest names). Lengths,

@@ -40,7 +40,14 @@ import {
   wordsFromAlignment,
 } from '../core/narration.ts';
 import { trimTail } from '../core/recording.ts';
-import { TAKE_TOLERANCE, type Timings, type VoiceTiming, isCast } from '../core/schema.ts';
+import {
+  type HeardAs,
+  TAKE_TOLERANCE,
+  type Timings,
+  type Voice,
+  type VoiceTiming,
+  isCast,
+} from '../core/schema.ts';
 import { lineError } from '../core/spoken.ts';
 import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -52,7 +59,7 @@ import {
   type MediaFailed,
   TakeMismatch,
 } from './errors.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { FilmPaths, LoadedFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 
@@ -163,6 +170,29 @@ export const beatsOf = (
   film: LoadedFilm,
 ): Result.Result<ReadonlyArray<Beat>, UnknownVoice | LineError> =>
   Result.all(film.scenes.map((scene) => beatOf(film, scene)));
+
+/**
+ * A film as a take is kept against it: where its narration lives, its voice,
+ * how speech-to-text writes its names, and its beats as the script says them.
+ * `voicedOf` reads it from a loaded film; the lab's studio has it from a fresh
+ * process (`film read voice`), since its own imports of the script stay as
+ * they were at its start.
+ */
+export interface VoicedFilm {
+  readonly paths: FilmPaths;
+  readonly voice: Voice;
+  readonly heardAs: HeardAs;
+  readonly beats: ReadonlyArray<Beat>;
+}
+
+/** The film as a take is kept against it, or the voice a turn names that the film does not have. */
+export const voicedOf = (film: LoadedFilm): Result.Result<VoicedFilm, UnknownVoice | LineError> =>
+  Result.map(beatsOf(film), (beats) => ({
+    paths: film.paths,
+    voice: film.voice,
+    heardAs: film.heardAs,
+    beats,
+  }));
 
 /** Whether the options ask staging for this beat, before a person's take has its say. */
 const asked = (options: NarrateOptions, take: BeatTake): boolean =>

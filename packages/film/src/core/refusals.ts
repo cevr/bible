@@ -6,15 +6,6 @@
 
 import { Schema } from 'effect';
 
-export class FilmNotFound extends Schema.TaggedError<FilmNotFound>()('FilmNotFound', {
-  film: Schema.String,
-  dir: Schema.String,
-}) {
-  override get message() {
-    return `no film "${this.film}" at ${this.dir}`;
-  }
-}
-
 /** A name that is none of the films in the folder: answered with the films there are, no path. */
 export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown', {
   film: Schema.String,

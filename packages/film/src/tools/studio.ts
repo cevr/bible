@@ -3,7 +3,11 @@
 // browser, beat by beat. A recording posted for a beat goes through the same
 // pipeline as `film takes import` (Takes: load, trim, level, encode,
 // transcribe, time, keep) and the track is remixed, so the page plays the
-// new take at once; a take that says something else is refused as a
+// new take at once. The lab runs for hours and keeps the film's modules as it
+// first imported them, so the studio reads the script, the voice and the
+// beats from a fresh process (`FreshFilm.reading`, kept under the film's
+// source stamp) and remixes in one (`film mix`): a line fixed while the lab
+// is open reaches the sheet, the take and the mix at once; a take that says something else is refused as a
 // TakeMismatch naming the attempt it saved, which "accept anyway" keeps. The
 // routes answer only the lab's own page for its film, as the lab's other
 // writes do (the gate in `api-server.ts`), with a body of at most
@@ -11,8 +15,11 @@
 
 import {
   Array as Arr,
+  Cache,
+  Context,
   Effect,
   FileSystem,
+  Layer,
   Option,
   Path,
   Result,
@@ -25,15 +32,17 @@ import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { type TakeState, hashText, takeState, voiceKey } from '../core/narration.ts';
-import { type VoiceTiming } from '../core/schema.ts';
-import { type Part, type SheetBeat, sheetBeats } from '../core/sheet.ts';
+import { type Timings, type Voice, type VoiceTiming } from '../core/schema.ts';
 import {
+  type ReadBeat,
   STUDIO_IMPORT_IDLE_S,
   STUDIO_MAX_BODY,
+  type SheetRow,
   type StudioBeat,
-  type StudioPart,
+  type StudioReading,
   type StudioTake,
 } from '../core/studio.ts';
+import type { PlatformError } from 'effect/PlatformError';
 import { Connection, answered, named } from './api-server.ts';
 import {
   AttemptUnknown,
@@ -42,10 +51,11 @@ import {
   TakeMismatch,
   UnknownScene,
 } from './errors.ts';
-import { FilmRepo, type LoadedFilm } from './film-repo.ts';
-import { Mixer } from './mixer.ts';
-import { type Beat, beatsOf } from './narrator.ts';
-import { quotesOf } from './script-sheet.ts';
+import { ContentStore } from './content-store.ts';
+import { FilmFolder, type FilmName, Stamped } from './film-repo.ts';
+import { type FreshError, FreshFilm } from './fresh-film.ts';
+import type { VoicedFilm } from './narrator.ts';
+import { keptWhenMade } from './review.ts';
 import { type Imported, Takes } from './takes.ts';
 
 /**
@@ -89,28 +99,16 @@ const staleness = (state: TakeState): Pick<StudioBeat, 'staleReason'> => {
   return {};
 };
 
-/** A sheet part as the wire carries it. */
-const wirePart = (part: Part): StudioPart => {
-  if (part._tag === 'Line')
-    return Option.match(part.voice, {
-      onNone: () => ({ kind: 'line', text: part.text }),
-      onSome: (voice) => ({ kind: 'line', voice, text: part.text }),
-    });
-  return Option.match(part.by, {
-    onNone: () => ({ kind: 'quotation', text: part.text }),
-    onSome: (by) => ({ kind: 'quotation', text: part.text, by }),
-  });
-};
-
 /** One beat's row: its sheet text, the take the timings name, and where it stands. */
 const beatRow = (
-  film: LoadedFilm,
-  beat: Beat,
-  sheet: Option.Option<SheetBeat>,
+  timings: Timings,
+  voice: Voice,
+  beat: ReadBeat,
+  sheet: Option.Option<SheetRow>,
   attempts: number,
 ): StudioBeat => {
-  const state = takeState(beat.id, beat.script, film.timings, voiceKey(film.voice));
-  const timing = Option.fromNullishOr(film.timings.scenes[beat.id]);
+  const state = takeState(beat.id, beat.script, timings, voiceKey(voice));
+  const timing = Option.fromNullishOr(timings.scenes[beat.id]);
   const take = Option.match(timing, {
     onNone: () => ({}),
     onSome: (t: VoiceTiming) => ({
@@ -120,7 +118,7 @@ const beatRow = (
   return {
     id: beat.id,
     file: `${beat.id}.wav`,
-    parts: Option.match(sheet, { onNone: () => [], onSome: (s) => s.parts.map(wirePart) }),
+    parts: Option.match(sheet, { onNone: () => [], onSome: (s) => s.parts }),
     sources: Option.match(sheet, { onNone: () => [], onSome: (s) => s.sources }),
     state: STATES[state._tag],
     ...staleness(state),
@@ -132,11 +130,59 @@ const beatRow = (
 
 const isMismatch = Schema.is(TakeMismatch);
 
-/** The film as it is stored now: a take kept a moment ago is in its timings. */
-const current = (film: string) =>
-  Effect.gen(function* () {
-    return yield* (yield* FilmRepo).load(film);
-  });
+/** How many films' readings the lab keeps: one film, a few stamps of it. */
+const READINGS_KEPT = 8;
+
+export interface StudioReadingsService {
+  /** The film's script, voice and beats as they stand: read fresh only when its stamp moved. */
+  readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError | PlatformError>;
+}
+
+/**
+ * What the studio read of each film (`FreshFilm.reading`), kept under the
+ * film's source stamp (`FilmFolder.stamp`), so the studio's routes cost a
+ * fresh process only after a file under the film changed. A failed read is
+ * not kept.
+ */
+export class StudioReadings extends Context.Service<StudioReadings, StudioReadingsService>()(
+  '@bible/film/tools/StudioReadings',
+) {
+  static readonly layer = Layer.effect(
+    StudioReadings,
+    Effect.gen(function* () {
+      const fresh = yield* FreshFilm;
+      const folder = yield* FilmFolder;
+      const read = yield* Cache.makeWith((at: Stamped) => fresh.reading(at.film), {
+        capacity: READINGS_KEPT,
+        timeToLive: keptWhenMade,
+      });
+      return StudioReadings.of({
+        reading: (film) =>
+          Effect.flatMap(folder.stamp(film), (stamp) =>
+            Cache.get(read, new Stamped({ film, stamp })),
+          ),
+      });
+    }),
+  );
+}
+
+/** The film's script, voice and beats as they stand. */
+const reading = (film: FilmName) => StudioReadings.use((readings) => readings.reading(film));
+
+/** The film as a take is kept against it, as it stands. */
+const voiced = Effect.fn('studio.voiced')(function* (film: FilmName) {
+  const r = yield* reading(film);
+  const paths = (yield* FilmFolder).paths(film);
+  return { paths, voice: r.voice, heardAs: r.heardAs, beats: r.beats } satisfies VoicedFilm;
+});
+
+/** The film's timings as they are stored now: a take kept a moment ago is in them. */
+const timingsOf = Effect.fn('studio.timings')(function* (film: FilmName) {
+  return yield* (yield* ContentStore).read((yield* FilmFolder).paths(film).timings);
+});
+
+/** Where the film's narration and attempts are. */
+const pathsOf = (film: FilmName) => FilmFolder.use((folder) => Effect.succeed(folder.paths(film)));
 
 /**
  * The film a studio route names and its `:beat`, when that is one of the
@@ -148,14 +194,14 @@ const filmBeat = Effect.fn('studio.filmBeat')(function* (params: {
   readonly beat: string;
 }) {
   const film = yield* named(params.film);
-  const known = (yield* Effect.fromResult(beatsOf(yield* current(film)))).map((b) => b.id);
+  const known = (yield* reading(film)).beats.map((b) => b.id);
   if (!known.includes(params.beat)) return yield* UnknownScene.make({ scene: params.beat, known });
   return { film, beat: params.beat };
 });
 
-/** The kept take, remixed into the track, as the panel reads it. */
-const kept = Effect.fn('studio.kept')(function* (film: string, imported: Imported) {
-  const mixed = yield* (yield* Mixer).mix(film, { stems: false, score: Option.none() }).pipe(
+/** The kept take, the track rebuilt fresh (`film mix`), as the panel reads it. */
+const kept = Effect.fn('studio.kept')(function* (film: FilmName, imported: Imported) {
+  const mixed = yield* (yield* FreshFilm).remix(film).pipe(
     Effect.as(true),
     Effect.catch((error) =>
       Effect.logWarning(
@@ -168,15 +214,15 @@ const kept = Effect.fn('studio.kept')(function* (film: string, imported: Importe
     take: imported.take,
     heard: imported.heard,
     wer: imported.wer,
-    timings: (yield* current(film)).timings,
+    timings: yield* timingsOf(film),
     mixed,
   };
   return take;
 });
 
 /** A take refused for what it says, naming the attempt it saved to keep anyway. */
-const mismatch = Effect.fn('studio.mismatch')(function* (film: string, error: TakeMismatch) {
-  const saved = Arr.head(yield* (yield* Takes).attempts(yield* current(film), error.id));
+const mismatch = Effect.fn('studio.mismatch')(function* (film: FilmName, error: TakeMismatch) {
+  const saved = Arr.head(yield* (yield* Takes).attempts(yield* pathsOf(film), error.id));
   yield* Effect.logWarning(`studio.mismatch beat=${error.id} wer=${(error.wer * 100).toFixed(1)}%`);
   return yield* TakeMismatch.make({
     id: error.id,
@@ -207,7 +253,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
     const writing = yield* Semaphore.make(1);
 
     /** A take made (`make`) and, when kept, remixed, holding `writing` the whole way. */
-    const keeping = <E, R>(film: string, make: Effect.Effect<Imported, E, R>) =>
+    const keeping = <E, R>(film: FilmName, make: Effect.Effect<Imported, E, R>) =>
       writing.withPermits(1)(
         make.pipe(
           Effect.catchIf(
@@ -223,20 +269,16 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
         answered(
           Effect.gen(function* () {
             const film = yield* named(params.film);
-            const repo = yield* FilmRepo;
+            const { voice, beats, sheet } = yield* reading(film);
+            const timings = yield* timingsOf(film);
+            const spoken = beats.filter((b) => b.text.length > 0);
             const takes = yield* Takes;
-            const loaded = yield* current(film);
-            const beats = (yield* Effect.fromResult(beatsOf(loaded))).filter(
-              (b) => b.text.length > 0,
-            );
-            const lines = Option.getOrElse(yield* repo.script(film), () =>
-              loaded.scenes.map((scene) => ({ ...scene, cite: [] })),
-            );
-            const sheet = yield* Effect.fromResult(sheetBeats(lines, yield* quotesOf(loaded)));
-            const rows = yield* Effect.forEach(beats, (beat) =>
-              Effect.map(takes.attempts(loaded, beat.id), (attempts) =>
+            const paths = yield* pathsOf(film);
+            const rows = yield* Effect.forEach(spoken, (beat) =>
+              Effect.map(takes.attempts(paths, beat.id), (attempts) =>
                 beatRow(
-                  loaded,
+                  timings,
+                  voice,
                   beat,
                   Arr.findFirst(sheet, (s) => s.id === beat.id),
                   attempts.length,
@@ -264,7 +306,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
                   const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-studio-' });
                   const file = (yield* Path.Path).join(dir, `recording${extension}`);
                   yield* fs.writeFile(file, bytes);
-                  return yield* (yield* Takes).importBeat(yield* current(film), beat, file, {
+                  return yield* (yield* Takes).importBeat(yield* voiced(film), beat, file, {
                     acceptMismatch: payload.acceptMismatch === true,
                   });
                 }),
@@ -277,13 +319,9 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
         answered(
           Effect.gen(function* () {
             const { film, beat } = yield* filmBeat(params);
-            const loaded = yield* current(film);
-            const timing = Option.fromNullishOr(loaded.timings.scenes[beat]);
-            const script = Arr.findFirst(
-              yield* Effect.fromResult(beatsOf(loaded)),
-              (b) => b.id === beat,
-            );
-            const attempts = yield* (yield* Takes).attempts(loaded, beat);
+            const timing = Option.fromNullishOr((yield* timingsOf(film)).scenes[beat]);
+            const script = Arr.findFirst((yield* reading(film)).beats, (b) => b.id === beat);
+            const attempts = yield* (yield* Takes).attempts(yield* pathsOf(film), beat);
             return {
               beat,
               attempts: attempts.map((a) => ({
@@ -304,7 +342,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           Effect.gen(function* () {
             const { film, beat } = yield* filmBeat(params);
             const found = yield* (yield* Takes).attemptFile(
-              yield* current(film),
+              yield* pathsOf(film),
               beat,
               params.file,
             );
@@ -324,16 +362,13 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           Effect.gen(function* () {
             yield* holdOpen;
             const { film, beat } = yield* filmBeat(params);
-            const takes = yield* Takes;
             return yield* keeping(
               film,
-              current(film).pipe(
-                Effect.flatMap((loaded) =>
-                  takes.keepAttempt(loaded, beat, payload.file, {
-                    acceptMismatch: payload.acceptMismatch === true,
-                  }),
-                ),
-              ),
+              Effect.gen(function* () {
+                return yield* (yield* Takes).keepAttempt(yield* voiced(film), beat, payload.file, {
+                  acceptMismatch: payload.acceptMismatch === true,
+                });
+              }),
             );
           }),
         ),

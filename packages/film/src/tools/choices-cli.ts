@@ -1,39 +1,48 @@
-// `film options`: a film's choice points read, a mix of one variant made, and
-// a beat's attempt kept, in this process, as the film's sources stand on
-// disk. The review runs these in a fresh process (`FreshFilm`,
-// `choices-process.ts`) because its own imports of the film are as they were
-// at its start. Each prints one line of JSON (`FreshLine`) on stdout: its
-// answer, or the refusal it failed with; logs go to stderr.
+// `film options`: a film's choice points read, a mix of one variant made, a
+// library take kept, unkept or rejected, and a beat's attempt kept, in this
+// process, as the film's sources stand on disk. The review runs these in a
+// fresh process (`FreshFilm`, `fresh-film.ts`) because its own imports of the
+// film and the app's sound library are as they were at its start. Each prints
+// one line of JSON (`FreshLine`) on stdout: its answer, or the refusal it
+// failed with; logs go to stderr.
 //
-//   film options list <film>
+//   film options list <film> [--check]
 //       the film's choice points (`choice-points.ts`): score, looks, takes,
-//       voices, levels, each with the owner's approvals and comments
+//       voices, levels, each with the owner's approvals and comments; with
+//       --check, the static check of the same sources beside them
 //   film options mix <film> --point <id> --variant <id> --to <file.m4a>
 //       the film's whole mix with that variant in place (a score option, a
 //       take at every placement of its sound), written as an m4a
+//   film options take <film> --point take:<sound> --variant <sha256> --verb pick|unpick|reject
+//       the take kept, unkept or rejected through the library, as it stands
 //   film options keep-voice <film> <beat> <file>
 //       the beat's attempt `file` kept as its take, and the track remixed
 
-import { Effect, FileSystem, Option, Path, Result } from 'effect';
+import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { pointName } from '../core/choice.ts';
+import { ChoiceVerb, pointName } from '../core/choice.ts';
 import { hashText } from '../core/narration.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
+import { offered, verbFits } from './choices.ts';
+import { VerbRefused } from './errors.ts';
+import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { staticLeg } from './film-check.ts';
+import { lineOf, report } from './findings.ts';
 import {
+  OptionsChecked,
   OptionsKept,
   OptionsListed,
   OptionsMixed,
+  OptionsTaken,
   answering,
   printLine,
   refuseWith,
-} from './choices-process.ts';
-import { offered } from './choices.ts';
-import { VerbRefused } from './errors.ts';
-import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+} from './fresh-film.ts';
+import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
-import { beatsOf } from './narrator.ts';
+import { beatsOf, voicedOf } from './narrator.ts';
 import { Takes } from './takes.ts';
 
 const film = Argument.String('film').pipe(
@@ -45,7 +54,7 @@ const beatAttempts = Effect.fn('film.options.beats')(function* (loaded: LoadedFi
   const takes = yield* Takes;
   const beats = yield* Effect.fromResult(beatsOf(loaded));
   return yield* Effect.forEach(beats, (beat) =>
-    Effect.map(takes.attempts(loaded, beat.id), (attempts): BeatAttempts => ({
+    Effect.map(takes.attempts(loaded.paths, beat.id), (attempts): BeatAttempts => ({
       beat: beat.id,
       hash: hashText(beat.script),
       attempts,
@@ -72,16 +81,75 @@ const pointsOf = Effect.fn('film.options.points')(function* (loaded: LoadedFilm)
   });
 });
 
+/** `film check --static --allow-stale` of the loaded film, as the lab and review show it. */
+const staticLines = Effect.fn('film.options.static')(function* (loaded: LoadedFilm) {
+  const found = yield* staticLeg(loaded, yield* placeFilm(loaded));
+  return report(found, { allowStale: true }).findings.map(lineOf);
+});
+
 const list = Command.make(
   'list',
-  { film },
+  {
+    film,
+    check: Flag.Boolean('check').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        'also answer the static check of the same sources (what a write answers)',
+      ),
+    ),
+  },
   Effect.fn('film.options.list')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
-    yield* printLine(OptionsListed.make({ points: yield* answering(pointsOf(loaded)) }));
+    const points = yield* answering(pointsOf(loaded));
+    if (!input.check) return yield* printLine(OptionsListed.make({ points }));
+    yield* printLine(OptionsChecked.make({ points, findings: yield* staticLines(loaded) }));
   }),
 ).pipe(
-  Command.withDescription("The film's choice points as its sources stand, as one line of JSON"),
+  Command.withDescription(
+    "The film's choice points as its sources stand (and, with --check, its static check), as one line of JSON",
+  ),
 );
+
+const take = Command.make(
+  'take',
+  {
+    film,
+    point: Flag.String('point').pipe(Flag.withDescription('the take point: take:<sound>')),
+    variant: Flag.String('variant').pipe(Flag.withDescription('the take, by its sha256')),
+    verb: Flag.Literals('verb', ChoiceVerb.literals).pipe(
+      Flag.withDescription('pick keeps it, unpick unkeeps it, reject rejects it'),
+    ),
+  },
+  Effect.fn('film.options.take')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    // The take and the verb are checked against the film and its library as they stand.
+    const found = Result.flatMap(
+      offered(input.film, yield* answering(pointsOf(loaded)), input.point, input.variant),
+      (at) => Result.map(verbFits(at.point, at.variant, input.verb), () => at),
+    );
+    if (Result.isFailure(found)) return yield* refuseWith(found.failure);
+    const { point, variant } = found.success;
+    if (point.kind !== 'take')
+      return yield* refuseWith(
+        VerbRefused.make({
+          point: point.id,
+          variant: variant.id,
+          verb: input.verb,
+          reason: `a ${point.kind} is not a library take`,
+        }),
+      );
+    const library = yield* SoundLibrary;
+    const sound = pointName(point);
+    yield* answering(
+      Match.value(input.verb).pipe(
+        Match.when('pick', () => library.keep(sound, [variant.id])),
+        Match.when('unpick', () => library.unkeep(sound, [variant.id])),
+        Match.orElse(() => library.reject(sound, [variant.id])),
+      ),
+    );
+    yield* printLine(OptionsTaken.make({}));
+  }),
+).pipe(Command.withDescription("Keep, unkeep or reject one of a sound's takes, by its sha256"));
 
 const mix = Command.make(
   'mix',
@@ -136,9 +204,9 @@ const keepVoice = Command.make(
     ),
   },
   Effect.fn('film.options.keepVoice')(function* (input) {
-    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(input.film)));
     yield* answering(
-      (yield* Takes).keepAttempt(loaded, input.beat, input.file, { acceptMismatch: false }),
+      (yield* Takes).keepAttempt(voiced, input.beat, input.file, { acceptMismatch: false }),
     );
     // The track is remixed with the take; a failed mix leaves the take kept and says why.
     const mixed = yield* (yield* Mixer)
@@ -157,7 +225,7 @@ const keepVoice = Command.make(
 
 export const options = Command.make('options').pipe(
   Command.withDescription(
-    "A film's choices, their mixes and a voice kept, read fresh from disk (what `film review` asks)",
+    "A film's choices, their mixes, a take or a voice kept, read fresh from disk (what `film review` asks)",
   ),
-  Command.withSubcommands([list, mix, keepVoice]),
+  Command.withSubcommands([list, mix, take, keepVoice]),
 );

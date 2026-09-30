@@ -1,6 +1,6 @@
 // A film's choice points (`core/choice.ts`) as its sources declare them: one
 // adapter per kind, each a pure function of the loaded film. `film options
-// list` runs them in a fresh process (`choices-process.ts`), so every point is
+// list` runs them in a fresh process (`FreshFilm`, `fresh-film.ts`), so every point is
 // the film as it stands on disk:
 //
 // - score: the score's options, `play` picked; heard in the film's mix;

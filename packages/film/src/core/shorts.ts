@@ -6,7 +6,7 @@
 // frame. Pure: the page, the tools and the tests read it alike.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
-import { type ShortError, ShortSpanEmpty, ShortUnknownScene } from './errors.ts';
+import { type ShortError, ShortSpanEmpty, UnknownScene } from './errors.ts';
 import { type Placed, pointIn } from './layout.ts';
 import type { ScenePoint, Short, ShortSpan } from './schema.ts';
 
@@ -213,7 +213,11 @@ const spanFrames = (
     const p = yield* Result.fromOption(
       Arr.findFirst(placed, (q) => q.spec.id === span.scene),
       () =>
-        ShortUnknownScene.make({ short, scene: span.scene, known: placed.map((q) => q.spec.id) }),
+        UnknownScene.make({
+          scene: span.scene,
+          known: placed.map((q) => q.spec.id),
+          by: `short "${short}"`,
+        }),
     );
     const from = Math.round((p.start + (yield* pointAt(short, p, span.from, 'start'))) * fps);
     const to = Math.round((p.start + (yield* pointAt(short, p, span.to, 'end'))) * fps);

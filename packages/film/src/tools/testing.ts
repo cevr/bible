@@ -58,13 +58,13 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
-import { Mixer } from './mixer.ts';
+import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
+import { FreshFilm, type FreshFilmService } from './fresh-film.ts';
 import { Takes } from './takes.ts';
 
 const notFound = (method: string, path: string) =>
@@ -227,6 +227,30 @@ export const foreignRequests = (
 const unusedSource = Effect.die('the scene source is not called here');
 
 /**
+ * FreshFilm that answers only the runs a test gives it: any other run dies,
+ * naming itself, since no test here spawns the film CLI unless it says so.
+ */
+export const freshFilm = (given: Partial<FreshFilmService>) => {
+  const unused = (run: string) => () => Effect.die(`no fresh \`film ${run}\` here`);
+  return Layer.succeed(
+    FreshFilm,
+    FreshFilm.of({
+      choices: unused('options list'),
+      checked: unused('options list --check'),
+      mix: unused('options mix'),
+      keepVoice: unused('options keep-voice'),
+      take: unused('options take'),
+      reading: unused('read voice'),
+      cue: unused('read cue'),
+      remix: unused('mix'),
+      project: unused('project'),
+      check: unused('check'),
+      ...given,
+    }),
+  );
+};
+
+/**
  * The scene source's services where a test calls none of its routes: the
  * lab's handler serves them too, so they only have to exist.
  */
@@ -254,10 +278,6 @@ export const noSource = Layer.mergeAll(
       history: () => unusedSource,
     }),
   ),
-  Layer.succeed(
-    StaticCheck,
-    StaticCheck.of({ run: () => unusedSource, sound: () => unusedSource }),
-  ),
   Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
 );
 
@@ -277,11 +297,8 @@ export const noStudio = Layer.mergeAll(
     }),
   ),
   Layer.succeed(
-    Mixer,
-    Mixer.of({
-      mix: () => Effect.die('the studio is not called here'),
-      render: () => Effect.die('the studio is not called here'),
-    }),
+    StudioReadings,
+    StudioReadings.of({ reading: () => Effect.die('the studio is not called here') }),
   ),
 );
 

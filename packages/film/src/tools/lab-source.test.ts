@@ -12,32 +12,46 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
+import { FreshProcessFailed } from '../core/refusals.ts';
 import { labHandler } from './lab.ts';
+import { cueOf } from './read-cli.ts';
 import { NotesStore } from './notes-store.ts';
 import { collect } from './process.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
-import { noStudio, sceneFixture } from './testing.ts';
+import { freshFilm, noStudio, sceneFixture } from './testing.ts';
 
 /** The fixture's hand scene file. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
 /** A check that reports one warning, and counts its runs. */
 const checks: Array<string> = [];
-const fakeCheck = Layer.succeed(
-  StaticCheck,
-  StaticCheck.of({
-    run: (film) =>
-      Effect.sync(() => {
-        checks.push(film);
-        return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
-      }),
-    sound: () => Effect.succeed([]),
-  }),
+const fakeCheck = Layer.unwrap(
+  Effect.map(Effect.context<FilmRepo>(), (context) =>
+    freshFilm({
+      check: (film) =>
+        Effect.sync(() => {
+          checks.push(film);
+          return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
+        }),
+      // `film read cue` over the fixture's films: a film that does not load fails the run.
+      cue: (film, scene, cue) =>
+        FilmRepo.use((repo) => repo.load(film)).pipe(
+          Effect.flatMap(placeFilm),
+          Effect.map((placed) => cueOf(placed, scene, cue)),
+          Effect.mapError((error) =>
+            FreshProcessFailed.make({
+              command: 'film read cue',
+              reason: `${error._tag}: ${error.message}`,
+            }),
+          ),
+          Effect.provideContext(context),
+        ),
+    }),
+  ),
 );
 
 /** The film repo over `films`, but loading the film fails (its paths still resolve). */
@@ -46,17 +60,15 @@ const brokenRepo = (films: string) =>
     FilmRepo,
     Effect.map(FilmRepo, (repo) =>
       FilmRepo.of({
-        paths: repo.paths,
         load: (film) =>
           Effect.fail(
             FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
           ),
         script: repo.script,
         scores: repo.scores,
-        names: repo.names,
       }),
     ),
-  ).pipe(Layer.provide(FilmRepo.layer(films)));
+  ).pipe(Layer.provide(FilmRepo.layer(films)), Layer.merge(FilmFolder.layer(films)));
 
 const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.layer>) =>
   Layer.unwrap(
@@ -72,7 +84,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
           Layer.provideMerge(repoOver(films)),
         ),
         NotesStore.layer,
-        fakeCheck,
+        fakeCheck.pipe(Layer.provide(repoOver(films))),
         noStudio,
         HttpPlatform.layer,
         Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),

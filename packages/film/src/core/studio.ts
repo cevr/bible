@@ -6,7 +6,7 @@
 
 import { Schema } from 'effect';
 import { TakeStaleReason } from './narration.ts';
-import { TakeSource, Timings, VoiceTiming } from './schema.ts';
+import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
 
 /**
  * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
@@ -47,6 +47,43 @@ export const StudioPart = Schema.Union([
   }),
 ]);
 export type StudioPart = typeof StudioPart.Type;
+
+/** A beat as a take is kept against it: its words, the text a take is hashed under, and who reads what. */
+export const ReadBeat = Schema.Struct({
+  id: Schema.String,
+  /** What is said. */
+  text: Schema.String,
+  /** What is said and who says it: a take is kept under this text's hash. */
+  script: Schema.String,
+  /** Who reads what: the whole beat for a film with one voice, a line per turn for a cast. */
+  lines: Schema.Array(
+    Schema.Struct({ name: Schema.String, voiceId: Schema.String, text: Schema.String }),
+  ),
+});
+export type ReadBeat = typeof ReadBeat.Type;
+
+/** A beat on the reading sheet: its parts to read and the sources it cites. */
+export const SheetRow = Schema.Struct({
+  id: Schema.String,
+  parts: Schema.Array(StudioPart),
+  sources: Schema.Array(Schema.String),
+});
+export type SheetRow = typeof SheetRow.Type;
+
+/**
+ * What the studio reads of a film's script and voice, as `film read voice`
+ * answers it from a fresh process: the lab's own imports of `script.ts`,
+ * `voice.ts` and the scenes stay as they were when it started, so a line
+ * fixed while the lab is open reaches the sheet and the take only through
+ * this.
+ */
+export const StudioReading = Schema.Struct({
+  voice: Voice,
+  heardAs: HeardAs,
+  beats: Schema.Array(ReadBeat),
+  sheet: Schema.Array(SheetRow),
+});
+export type StudioReading = typeof StudioReading.Type;
 
 /** One beat as the studio lists it. */
 export const StudioBeat = Schema.Struct({

@@ -5,6 +5,12 @@
 // undo, redo and check for the film named. Every route names a file by its
 // ref (`Review`), never a path on the box.
 //
+// The review runs for days, and Bun keeps a module as it first imported it,
+// so its handlers run with no service that imports a film module
+// (`ReviewContext`): a film is read, and its takes and voices kept, by the
+// film CLI in a fresh process (`FreshFilm`), and a handler that reached for
+// `FilmRepo` or `SoundLibrary` would not compile.
+//
 // The review is served on a host the owner reaches from a phone, so it
 // answers only the hosts it is told (`FILM_REVIEW_HOSTS`, beside loopback),
 // on every path, the app's page included: the gate in `api-server.ts` stands
@@ -25,14 +31,13 @@ import {
   withServices,
 } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
-import type { FreshFilm } from './choices-process.ts';
-import { projectGroup } from './project-http.ts';
 import type { Choices } from './choices.ts';
-import type { FilmRepo } from './film-repo.ts';
+import type { FilmFolder } from './film-repo.ts';
+import type { FreshFilm } from './fresh-film.ts';
+import { projectGroup } from './project-http.ts';
 import { serveFile } from './review-file.ts';
 import { Review } from './review.ts';
 import type { SourceWriter } from './source-writer.ts';
-import type { StaticCheck } from './static-check.ts';
 import { stepHandlers } from './steps-http.ts';
 
 /** A file the page asks again for each time (a render is rewritten in place). */
@@ -129,6 +134,21 @@ export const reviewAllowed = Config.String('FILM_REVIEW_HOSTS').pipe(
 );
 
 /**
+ * What the review's handlers run with: paths and files, the review's own
+ * index and cache, the choices, the source writer and fresh runs of the film
+ * CLI. None imports a film module or the app's sound library.
+ */
+export type ReviewContext =
+  | Review
+  | FileSystem.FileSystem
+  | Path.Path
+  | HttpPlatform.HttpPlatform
+  | Choices
+  | FilmFolder
+  | SourceWriter
+  | FreshFilm;
+
+/**
  * The review's whole server as one web handler over the services the caller
  * runs with: every request passes the gate with `allowed` first, the page and
  * its assets included, so a foreign Host reads nothing; then the review's
@@ -139,17 +159,7 @@ export const reviewHandler = Effect.fn('film.review.handler')(function* (
   allowed: Allowed,
   page: LabHandler,
 ) {
-  const services = yield* Effect.context<
-    | Review
-    | FileSystem.FileSystem
-    | Path.Path
-    | HttpPlatform.HttpPlatform
-    | Choices
-    | FilmRepo
-    | SourceWriter
-    | StaticCheck
-    | FreshFilm
-  >();
+  const services = yield* Effect.context<ReviewContext>();
   const routes = HttpApiBuilder.layer(ReviewHttpApi).pipe(
     Layer.provide(Layer.mergeAll(reviewGroup, choicesGroup, projectGroup, stepsGroup)),
     withServices(services, yield* FilmScope.repo),

@@ -5,7 +5,7 @@
 // listed and played back. No network, no ffmpeg.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, Path, Schema } from 'effect';
+import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { HttpPlatform } from 'effect/http';
 import { hashText, voiceKey } from '../core/narration.ts';
@@ -19,17 +19,18 @@ import {
 } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
 import { TakeMismatch } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
-import { Mixer } from './mixer.ts';
+import { readingOf } from './read-cli.ts';
 import { NO_SCORES } from './media-store.ts';
 import { NotesStore } from './notes-store.ts';
-import { STUDIO_MAX_BODY } from './studio.ts';
+import { STUDIO_MAX_BODY, StudioReadings } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
   emptyCalls,
   fakeElevenLabs,
   fakeMedia,
+  freshFilm,
   memoryFileSystem,
   noSource,
   storeLayer,
@@ -59,7 +60,11 @@ const staged: Timings = {
 
 const film = testFilm(scenes, staged);
 
-const setup = (recorded: ReadonlyMap<string, string>) => {
+const setup = (
+  recorded: ReadonlyMap<string, string>,
+  /** What `film mix` does beside being counted: a test that times the mixes slows it. */
+  remixing: Effect.Effect<void> = Effect.void,
+) => {
   const files = new Map<string, Uint8Array>([
     [film.paths.timings.file, text(Schema.encodeSync(TimingsJson)(staged))],
     ['/films/test/narration/a.mp3', text('Hello world.')],
@@ -69,26 +74,47 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
     ],
   ]);
   const mixes: Array<string> = [];
+  /** How many fresh reads of the script and voice the studio asked for. */
+  const reads: Array<string> = [];
+  /** The film's sources' stamp: a test moves it when it changes a source. */
+  const stamp = { now: 1 };
+  /** The film's lines as its files say them now: a test edits one while the lab runs. */
+  const source = { scenes: film.scenes };
   const repo = Layer.effect(
     FilmRepo,
     Effect.gen(function* () {
       const store = yield* ContentStore;
       return FilmRepo.of({
-        paths: () => film.paths,
-        // The film as it is stored now, as the lab reloads it for each request.
-        load: () => Effect.map(store.read(film.paths.timings), (timings) => ({ ...film, timings })),
+        load: () =>
+          Effect.map(store.read(film.paths.timings), (timings) => ({
+            ...film,
+            scenes: source.scenes,
+            timings,
+          })),
         script: () => Effect.succeedNone,
         scores: Effect.succeed(NO_SCORES),
-        names: Effect.succeed([]),
       });
     }),
   );
-  const mixer = Layer.succeed(
-    Mixer,
-    Mixer.of({
-      mix: (name) => Effect.sync(() => void mixes.push(name)),
-      render: () => Effect.die('the studio never renders a mix in memory'),
-    }),
+  // The fresh process: `film read voice` over the film as it is stored now, and `film mix`.
+  const fresh = Layer.unwrap(
+    Effect.map(
+      Effect.context<FilmRepo | ContentStore | FileSystem.FileSystem | Path.Path>(),
+      (context) =>
+        freshFilm({
+          reading: (name) =>
+            Effect.gen(function* () {
+              reads.push(name);
+              const loaded = yield* (yield* FilmRepo).load(name);
+              return yield* readingOf(loaded);
+            }).pipe(Effect.provideContext(context), Effect.orDie),
+          remix: (name) =>
+            Effect.andThen(
+              Effect.sync(() => void mixes.push(name)),
+              remixing,
+            ),
+        }),
+    ),
   );
   const base = Layer.mergeAll(
     memoryFileSystem(files),
@@ -97,11 +123,22 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
     fakeMedia(files),
   );
   // The lab's handler serves the studio: its notes and source services only have to exist.
-  const layer = Layer.mergeAll(Takes.layer, repo, NotesStore.layer, noSource).pipe(
-    Layer.provideMerge(storeLayer(files)),
-    Layer.provideMerge(Layer.mergeAll(base, mixer, HttpPlatform.layer.pipe(Layer.provide(base)))),
+  const folder = Layer.succeed(
+    FilmFolder,
+    FilmFolder.of({
+      paths: () => film.paths,
+      names: Effect.succeed([film.paths.name]),
+      sounds: Option.none(),
+      stamp: () => Effect.sync(() => stamp.now),
+    }),
   );
-  return { files, mixes, layer };
+  const layer = Layer.mergeAll(Takes.layer, NotesStore.layer, noSource, StudioReadings.layer).pipe(
+    Layer.provideMerge(Layer.mergeAll(folder, fresh)),
+    Layer.provideMerge(repo),
+    Layer.provideMerge(storeLayer(files)),
+    Layer.provideMerge(Layer.mergeAll(base, HttpPlatform.layer.pipe(Layer.provide(base)))),
+  );
+  return { files, mixes, reads, stamp, source, layer };
 };
 
 const Json = Schema.fromJsonString(Schema.Unknown);
@@ -157,6 +194,35 @@ describe('studio routes', () => {
           { kind: 'line', text: 'to them.' },
         ]);
         expect(listed.beats[0]?.take).toEqual({ file: 'a.mp3', duration: 1, source: 'elevenlabs' });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a line fixed while the lab runs is on the sheet, and a take of it is current, at the next read',
+    () => {
+      const { reads, stamp, source, layer } = setup(new Map([...said, ['a', 'Hello there.']]));
+      return Effect.gen(function* () {
+        const beats = Effect.flatMap(call(get('/lab/test/studio/beats')), (res) =>
+          Schema.decodeUnknownEffect(StudioBeats)(res.body),
+        );
+        expect((yield* beats).beats[0]).toMatchObject({ state: 'staging' });
+        // The agent fixes the line; the lab keeps running, its own imports as they were.
+        source.scenes = [
+          { id: 'a', say: 'Hello {wave} there.' },
+          ...source.scenes.filter((scene) => scene.id !== 'a'),
+        ];
+        stamp.now += 1;
+        const fixed = (yield* beats).beats[0];
+        expect(fixed?.parts).toEqual([{ kind: 'line', text: 'Hello there.' }]);
+        expect([fixed?.state, fixed?.staleReason]).toEqual(['stale', 'text changed']);
+        // The owner reads the new line: it is kept as the take, current.
+        const { status } = yield* call(post('/lab/test/studio/takes/a', recording('Hello there.')));
+        expect(status).toBe(200);
+        stamp.now += 1;
+        expect((yield* beats).beats[0]).toMatchObject({ state: 'recorded', recorded: true });
+        // One fresh read per stamp: the first, the fix, and the take's.
+        expect(reads).toEqual(['test', 'test', 'test']);
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );
@@ -367,18 +433,13 @@ describe('studio routes', () => {
   );
 
   it.effect('takes posted at once are kept and mixed one after the other', () => {
-    const { layer } = setup(said);
     const events: Array<string> = [];
-    const slowMixer = Layer.succeed(
-      Mixer,
-      Mixer.of({
-        mix: () =>
-          Effect.gen(function* () {
-            events.push('mix');
-            for (let i = 0; i < 5; i++) yield* Effect.yieldNow;
-            events.push('mixed');
-          }),
-        render: () => Effect.die('the studio never renders a mix in memory'),
+    const { layer } = setup(
+      said,
+      Effect.gen(function* () {
+        events.push('mix');
+        for (let i = 0; i < 5; i++) yield* Effect.yieldNow;
+        events.push('mixed');
       }),
     );
     return Effect.gen(function* () {
@@ -399,7 +460,7 @@ describe('studio routes', () => {
         (yield* call(get('/lab/test/studio/beats'))).body,
       );
       expect(listed.beats.map((b) => b.recorded)).toEqual([true, true]);
-    }).pipe(Effect.scoped, Effect.provide(Layer.merge(layer, slowMixer)));
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
   it.effect('answers only the lab page, for its film: another origin 403, another film 404', () => {

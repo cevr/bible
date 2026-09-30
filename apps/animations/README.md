@@ -57,9 +57,12 @@ bun run project comment <film> "text" [--scene id | --act name]  # a comment on 
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
-bun cli.ts options list <film>                 # the film's choice points as the review reads them, fresh from disk (one line of JSON)
+bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
+bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
 bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
+bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
+bun cli.ts read cue <film> <scene> <cue>       # a cue on its scene's clock as the files declare it (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>
@@ -236,7 +239,11 @@ choice points at the scenes they play in. The review answers loopback, and the n
 `FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
 `server.ts` builds it in process and serves it behind the check); writes are
 same-origin JSON.
-It never edits a scene: that stays in the lab.
+It never edits a scene: that stays in the lab. The player, the lab and the
+review serve a film's narration through one route in `server.ts`,
+`/films/<film>/narration/<file>`: the film one of the app's films, the file
+one directly in its `narration/` (never `attempts/`); any other name is a 404
+before the disk is read.
 
 ## How a film is built
 
@@ -454,7 +461,7 @@ re-timed scene carries its shorts. `render <film> --short <id>` plays the spans
 back to back at 1080×1920 with the track cut from `full.wav` under the same
 spans (a 10 ms fade either side of each join, so no join clicks), and writes
 `out/<film>/shorts/<id>/main.mp4` and `main.vtt`. A scene, mark or cue the film
-lacks fails before a page starts (`ShortUnknownScene`, `UnknownMark`,
+lacks fails before a page starts (`UnknownScene`, `UnknownMark`,
 `UnknownCue`, naming what the scene has). `cues <film> --short <id>` prints each span's film time and the
 short's length, on the frames at the rate the film declares (read from its page,
 as the render and `check --short` do). The page is stacked: the film's 16:9 frame in a band 620 px

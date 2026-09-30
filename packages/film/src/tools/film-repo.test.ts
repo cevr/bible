@@ -5,7 +5,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import { ConfigProvider, Effect, Layer, Option, Path } from 'effect';
 import { ContentStore } from './content-store.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
 import { memoryFileSystem, storeLayer, testFilm } from './testing.ts';
 
 const files = new Map<string, Uint8Array>();
@@ -17,7 +17,7 @@ const repo = FilmRepo.layer('/app/src/films').pipe(
 describe('FilmRepo', () => {
   it.effect('reads films from the root it is given, whatever FILMS_DIR says', () =>
     Effect.gen(function* () {
-      const paths = (yield* FilmRepo).paths('test');
+      const paths = (yield* FilmFolder).paths('test');
       expect(paths.dir).toBe('/app/src/films/test');
     }).pipe(Effect.provide(repo)),
   );
