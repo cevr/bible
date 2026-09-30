@@ -4,12 +4,9 @@
 // procedural room tone and effects, each cue's placement a scene offset, a
 // cue's start or a cue's end); and with the library's generated sounds placed
 // too, over a faked lock, so each variant's rotation, jitter and level from
-// its measured loudness is checked. The track is pinned to the levels this
-// mix made of the committed film (fixtures/mix-levels.json: mean and peak
-// dBFS per 1-second window), so a change that moves the mixed sound is seen.
-// (The mix matched ffmpeg n9.0.1's master to a −98.8 dB residual when it
-// replaced the ffmpeg graph; the voice-and-score levels held unchanged when
-// the library's beds and levels came in.)
+// its measured loudness is checked. How the mix sounds is checked by ear and
+// its change by diff; the mixing itself is tested on synthetic sound in
+// `@bible/film` (core/mix.test.ts).
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -24,15 +21,12 @@ import {
   TimingsJson,
   type Variant,
   layout,
-  levels,
   mixPlan,
-  renderMix,
   requestKey,
   sourceLabel,
 } from '@bible/film/core';
-import { Media, decodePlan } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Result, Schema } from 'effect';
 import { scenes } from './fixtures/films/tiny/scenes/index.ts';
 import { sound } from './fixtures/films/tiny/sound.ts';
 import { library } from './fixtures/sounds/library.ts';
@@ -64,19 +58,9 @@ const Plan = Schema.Struct({
   effects: Schema.Array(Placed),
 });
 const Plans = Schema.fromJsonString(Schema.Struct({ plain: Plan, made: Plan }));
-const Levels = Schema.fromJsonString(
-  Schema.Struct({
-    window: Schema.Finite,
-    frames: Schema.Int,
-    levels: Schema.Array(Schema.Tuple([Schema.Finite, Schema.Finite])),
-  }),
-);
 
 const FILM = 'test/fixtures/films/tiny';
 const SOUNDS = 'test/fixtures/sounds';
-
-/** The pinned levels hold to this, in dB: far above an LSB, far below anything audible. */
-const LEVEL_TOLERANCE = 0.01;
 
 const load = Effect.fn('test.load')(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -89,9 +73,7 @@ const load = Effect.fn('test.load')(function* () {
     yield* read(`../${FILM}/sound/manifest.json`),
   );
   const plans = yield* Schema.decodeEffect(Plans)(yield* read('fixtures/mix-plan.json'));
-  const golden = yield* Schema.decodeEffect(Levels)(yield* read('fixtures/mix-levels.json'));
-  const app = path.join(import.meta.dir, '..');
-  return { placed: layout(scenes, timings), manifest, plans, golden, app };
+  return { placed: layout(scenes, timings), manifest, plans };
 });
 
 /** A made variant of `name`, measured at `momentaryMax` (and integrated 4 dB under it). */
@@ -133,14 +115,14 @@ const generated: Sound = {
   },
 };
 
-/** The plan with the film under `dir` (this app's directory, or `<app>`). */
+/** The plan, with the film's files under `<app>`. */
 const plan = (
   placed: ReturnType<typeof layout>,
   manifest: SoundManifest,
-  dir: string,
   lock: Lock,
   played: Sound = sound,
 ) => {
+  const dir = '<app>';
   const sounds: Sounds = { library, lock, dir: `${dir}/${SOUNDS}` };
   return Result.getOrThrow(
     mixPlan({
@@ -194,7 +176,7 @@ describe('mix', () => {
   it.effect.layer(BunServices.layer)('the plan: as committed', () =>
     Effect.gen(function* () {
       const { placed, manifest, plans } = yield* load();
-      const planned = plan(placed, manifest, '<app>', {});
+      const planned = plan(placed, manifest, {});
       expect(planned.warnings).toEqual([]);
       expect(pinned(planned)).toEqual(plans.plain);
     }),
@@ -205,7 +187,7 @@ describe('mix', () => {
     () =>
       Effect.gen(function* () {
         const { placed, manifest, plans } = yield* load();
-        const planned = plan(placed, manifest, '<app>', {}, generated);
+        const planned = plan(placed, manifest, {}, generated);
         expect(planned.warnings).toEqual(
           ['amb.hall', 'paper.page', 'paper.fold'].map(
             (name) => `mix.missing sound=${name} hint="run sfx make ${name}, then sfx keep"`,
@@ -218,34 +200,9 @@ describe('mix', () => {
   it.effect.layer(BunServices.layer)('the plan: with every library sound made', () =>
     Effect.gen(function* () {
       const { placed, manifest, plans } = yield* load();
-      const planned = plan(placed, manifest, '<app>', made, generated);
+      const planned = plan(placed, manifest, made, generated);
       expect(planned.warnings).toEqual([]);
       expect(pinned(planned)).toEqual(plans.made);
     }),
-  );
-
-  it.effect.layer(Layer.provideMerge(Media.layer, BunServices.layer))(
-    'the track: the pinned levels, window by window',
-    () =>
-      Effect.gen(function* () {
-        const { placed, manifest, golden, app } = yield* load();
-        const mixed = renderMix(yield* decodePlan(yield* Media, plan(placed, manifest, app, {})));
-        const { master } = mixed;
-        expect(master.frames).toBe(golden.frames);
-        const size = golden.window * master.rate;
-        const windows = golden.levels.map(([mean, peak], k) => {
-          const at = k * size;
-          const frames = Math.min(size, master.frames - at);
-          const window = levels({
-            ...master,
-            frames,
-            channels: master.channels.map((c) => c.subarray(at, at + frames)),
-          });
-          const drift = Math.max(Math.abs(window.mean - mean), Math.abs(window.peak - peak));
-          return { from: k * golden.window, window, golden: { mean, peak }, drift };
-        });
-        expect(windows.filter((w) => w.drift > LEVEL_TOLERANCE)).toEqual([]);
-      }),
-    30_000,
   );
 });
