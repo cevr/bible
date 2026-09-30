@@ -4,7 +4,8 @@
 // decodes gapless (its encoder padding trimmed, a mono file one channel), a
 // person's recording (WAV, M4A, AIFF, MP3) loads and its take encodes, a film
 // joins from its segments with its track (and a failed join leaves the file
-// that was there), a share copy, a still and a phone copy are made, and a
+// that was there), a share copy is made and re-muxes with a new track, a
+// still and a phone copy are made, and a
 // file that is missing or not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
 // 440 Hz, mono, 44.1 kHz, with a LAME gapless header. fixtures/segment-*.mp4
 // are fifteen frames of H.264 at 30 fps each, encoded in headless Chromium as
@@ -352,6 +353,39 @@ describe('Media', () => {
             'film.mp4',
             'film.share.mp4',
           ]);
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    "a share copy re-muxes with a new track: x264's reordered frames and the track reach the file side by side",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const dir = yield* tempDir;
+          const media = yield* Media;
+          // Two seconds: past x264's first reordered frames, where a re-mux that
+          // wrote every video packet before the track's first one failed.
+          const wave = Float32Array.from({ length: 88200 }, (_, i) => Math.sin(i / 7) * 0.5);
+          const track = (gain: number) =>
+            media.encodeAac({ rate: 44100, frames: 88200, channels: [wave.map((s) => s * gain)] });
+          yield* media.join({
+            out: `${dir}/film.mp4`,
+            segments: [
+              { file: fixture('segment-a.mp4'), at: 0 },
+              { file: fixture('segment-b.mp4'), at: 0.5 },
+              { file: fixture('segment-a.mp4'), at: 1 },
+              { file: fixture('segment-b.mp4'), at: 1.5 },
+            ],
+            frames: 60,
+            audio: Option.some(yield* track(1)),
+          });
+          yield* media.shareCopy(`${dir}/film.mp4`, `${dir}/film.share.mp4`);
+          yield* media.remux(`${dir}/film.share.mp4`, yield* track(0.5));
+          const [video, audio] = yield* readBack(`${dir}/film.share.mp4`);
+          expect([video?.codec, audio?.codec]).toEqual(['avc', 'aac']);
+          expect(video?.times.length).toBe(60);
+          expect(audio?.duration).toBeCloseTo(2, 1);
         }),
       ),
   );

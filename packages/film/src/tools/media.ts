@@ -6,9 +6,11 @@
 // (@mediabunny/aac-encoder). Every byte moves through the FileSystem service
 // but a joined film's, which mediabunny writes by position itself, and a
 // container's length, which it reads in place. A render's master is a
-// browser's H.264 (player/encode.ts), and joining only copies its packets;
-// so is a hardware render's share copy. A software render's share copy is
-// made here after the join, a mediabunny conversion through x264 (`x264.ts`).
+// browser's H.264 (player/encode.ts), and joining only copies its packets,
+// as it does a hardware render's share copy. A software render's share copy
+// is made here after the join, a mediabunny conversion through x264
+// (`x264.ts`); a re-mux copies its packets, reordered frames and all, beside
+// the new track.
 //
 // The review's stills and phone copies of a render are made here too: a
 // still is the frame at a time, decoded by mediabunny and written as a JPEG
@@ -367,31 +369,34 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
       return { aac, source, written: 0 };
     });
 
-    /** The track's packets that start before `until` seconds, so video and audio reach the file side by side. */
+    /**
+     * The track's packets that start before `until` seconds and are not yet
+     * written. Each video packet is preceded by the sound due before it, so
+     * the two reach the muxer side by side: it holds every track's chunks in
+     * memory until all of its tracks have one, and a fast start sizes its
+     * index only then (a track of reordered frames, x264's, with no sound yet
+     * fails there).
+     */
     const soundTo = (until: number) =>
       Option.match(audio, {
         onNone: () => Effect.void,
         onSome: (track) =>
           Effect.gen(function* () {
             const { packets, meta } = track.aac;
-            const from = track.written;
-            const due = Arr.takeWhile(packets.slice(from), (packet) => packet.timestamp < until);
-            yield* Effect.forEach(
-              due,
-              (packet, k) =>
-                attempt('write', out, () =>
-                  track.source.add(
-                    packet,
-                    Option.getOrUndefined(Option.filter(Option.some(meta), () => from + k === 0)),
-                  ),
-                ),
-              { discard: true },
-            );
-            track.written = from + due.length;
+            const due = () =>
+              Option.filter(Arr.get(packets, track.written), (packet) => packet.timestamp < until);
+            for (let next = due(); Option.isSome(next); next = due()) {
+              const packet = next.value;
+              const first = Option.liftPredicate(meta, () => track.written === 0);
+              yield* attempt('write', out, () =>
+                track.source.add(packet, Option.getOrUndefined(first)),
+              );
+              track.written += 1;
+            }
           }),
       });
 
-    /** One segment's packets, moved to its place; its end, in seconds. */
+    /** One segment's packets, moved to its place, each after the sound due before it; its config's key. */
     const copy = (segment: Segment, first: Option.Option<string>) =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -425,7 +430,6 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
               file: segment.file,
               reason: `encoded unlike the first segment (${key} vs ${first.value})`,
             });
-          let end = segment.at;
           let meta = Option.filter(Option.some({ decoderConfig: config }), () =>
             Option.isNone(first),
           );
@@ -436,12 +440,12 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
           yield* Stream.runForEach(packets, (packet) =>
             Effect.gen(function* () {
               const moved = packet.clone({ timestamp: packet.timestamp + segment.at });
+              yield* soundTo(moved.timestamp);
               yield* attempt('write', out, () => video.add(moved, Option.getOrUndefined(meta)));
               meta = Option.none();
-              end = Math.max(end, moved.timestamp + moved.duration);
             }),
           );
-          return { end, key };
+          return key;
         }),
       );
 
@@ -449,9 +453,7 @@ const joinInto = (fs: FileSystem.FileSystem, film: JoinedFilm) =>
       yield* attempt('write', out, () => output.start());
       let first = Option.none<string>();
       for (const segment of film.segments) {
-        const copied = yield* copy(segment, first);
-        first = Option.some(copied.key);
-        yield* soundTo(copied.end);
+        first = Option.some(yield* copy(segment, first));
       }
       yield* soundTo(Infinity);
       yield* attempt('write', out, () => output.finalize());
