@@ -877,11 +877,15 @@ change with `git diff`.
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
-A cue written answers the cue resolved on its scene's clock as the film's
-files now declare it (`film read cue <film> <scene> <cue>`, in a fresh
-process), so a line that moved a mark while the lab runs moves the cue's
-answer too. The lab's handlers run with `LabContext` (`lab.ts`), which holds
-no `FilmRepo`, `SoundLibrary` or `Mixer` (`review-context.types.ts`).
+A cue write is judged, and answered with the cue resolved on its scene's
+clock, as the film's files now declare it with the new spans in place
+(`film read cue <film> <scene> <cue> --spans <json>`, one fresh process,
+before the file is touched): a line that moved or renamed a mark while the
+lab runs moves the cue's answer and its judgement too. The lab's handlers run
+with `LabContext` (`lab.ts`), which holds no `FilmRepo`, `SoundLibrary` or
+`Mixer`, and SceneWriter's and SceneHead's layers are built on none
+(`review-context.types.ts`). SceneSources still imports the film's registry
+in process to find a drawing by identity (below).
 
 **SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
 not by name: the parser (oxc) lists every exported `drawing({...})` call in
@@ -902,8 +906,10 @@ is as it was. It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
 computed key, a shorthand) and names it. A cue write is also refused
 (`TimelineUnresolved`) when the scene's timeline, read back from the new text,
-does not resolve: an `until` span dragged past its mark would end before it
-starts. Writes run one at a time and are
+does not resolve on the clock the film's files give now (the fresh `film read
+cue --spans` above): an `until` span dragged past its mark would end before it
+starts. A film that does not load in that run is not the write's to judge:
+it lands, and answers why the cue could not be resolved. Writes run one at a time and are
 uninterruptible (the reload a write causes drops its request); their undo and
 redo are `SourceWriter`'s (below, "How a pick lands").
 

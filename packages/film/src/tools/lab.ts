@@ -37,9 +37,9 @@ import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
-import { SceneWriter, type Written } from './scene-writer.ts';
+import { type CueWritten, SceneWriter } from './scene-writer.ts';
 import type { SourceWriter } from './source-writer.ts';
-import { FreshFilm } from './fresh-film.ts';
+import type { FreshFilm } from './fresh-film.ts';
 import { stepHandlers, writeAnswer } from './steps-http.ts';
 import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
@@ -50,29 +50,18 @@ export const MAX_WAIT = Duration.seconds(60);
 /** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
 const cueWritten = Effect.fn('lab.cueWritten')(function* (
   film: FilmName,
-  scene: string,
   cue: string,
-  written: Written,
+  done: CueWritten,
 ) {
+  const { written, read } = done;
   const spans = readSpans(written.file, written.after, written.exportName);
   const span = Option.match(Rec.get(spans, cue), {
     onNone: () => ({}),
     onSome: (s) => ({ span: s }),
   });
-  // The write landed: the cue on its scene's clock as the film's files now declare it, read
-  // fresh (this process's scenes are as it imported them). One that does not resolve says why.
-  const read = FreshFilm.use((fresh) => fresh.cue(film, scene, cue)).pipe(
-    Effect.map((resolved) => ({
-      ...span,
-      ...Option.match(resolved, { onNone: () => ({}), onSome: (r) => ({ resolved: r }) }),
-    })),
-    Effect.catch((error) =>
-      Effect.logWarning(
-        `lab.cue.unresolved film=${film} scene=${scene} cue=${cue} tag=${error._tag} reason=${error.message}`,
-      ).pipe(Effect.as({ ...span, unresolved: `${error._tag}: ${error.message}` })),
-    ),
-  );
-  return yield* writeAnswer(film, written, read);
+  // Where the cue lands is the write's own check: run fresh, on the text the write made.
+  const { _tag, ...where } = read;
+  return yield* writeAnswer(film, written, Effect.succeed({ ...span, ...where }));
 });
 
 /** The film's writes stepped back and on, and its check (the review serves the same three). */
@@ -190,7 +179,7 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
           const film = yield* named(params.film);
           const { scene, cue } = params;
           const written = yield* (yield* SceneWriter).setCue(film, scene, cue, payload);
-          return yield* cueWritten(film, scene, cue, written);
+          return yield* cueWritten(film, cue, written);
         }),
       ),
     )
@@ -221,7 +210,8 @@ const asFilmName = Schema.decodeSync(FilmName);
  * read of the film's modules. The lab runs for hours and keeps a module as it
  * first imported it, so nothing here loads the film (`FilmRepo`) or mixes it
  * in process (`Mixer`): the studio reads the script and voice fresh
- * (`StudioReadings`) and remixes fresh, and a cue written is resolved fresh.
+ * (`StudioReadings`) and remixes fresh, and a cue write is judged and
+ * resolved fresh (SceneWriter's check).
  * `review-context.types.ts` fails the typecheck if a loader joins.
  */
 export type LabContext =

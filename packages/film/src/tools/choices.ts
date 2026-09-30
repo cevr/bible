@@ -310,7 +310,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
               ),
             check: () => Effect.void,
           }),
-          (change): Picked => ({
+          ([change]): Picked => ({
             file,
             target: `${site.target} ${option}`,
             change: Option.liftPredicate(change, (c) => c.before !== c.after),
@@ -404,7 +404,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         );
         const value = Math.min(knob.max, Math.max(knob.min, asked.value));
         const file = fileIn(film, 'sound.ts');
-        const change = yield* writer.write({
+        const [change] = yield* writer.write({
           film,
           scene: Option.none(),
           file,

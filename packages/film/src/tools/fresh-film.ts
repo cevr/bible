@@ -29,7 +29,7 @@ import {
   VariantUnknown,
   VerbRefused,
 } from '../core/refusals.ts';
-import { CheckLine, ResolvedCue } from '../core/schema.ts';
+import { CheckLine, ResolvedCue, Timeline } from '../core/schema.ts';
 import { StudioReading } from '../core/studio.ts';
 import type { FilmName } from './film-repo.ts';
 import { type Finished, collectWithin } from './process.ts';
@@ -62,14 +62,22 @@ export class ProjectRead extends Schema.TaggedClass<ProjectRead>()('ProjectRead'
   project: Project,
 }) {}
 
+/** A scene's spans as `film read cue --spans` takes them. */
+export const TimelineJson = Schema.fromJsonString(Timeline);
+const encodeTimeline = Schema.encodeEffect(TimelineJson);
+
 /** `film read voice`'s answer: what the studio reads of the film's script and voice. */
 export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
   reading: StudioReading,
 }) {}
 
-/** `film read cue`'s answer: the cue on its scene's clock, absent when its timeline does not resolve. */
+/**
+ * `film read cue`'s answer: the cue on its scene's clock, or why the scene's
+ * timeline does not resolve; neither when the scene or the cue is not there.
+ */
 export class CueRead extends Schema.TaggedClass<CueRead>()('CueRead', {
   resolved: Schema.optionalKey(ResolvedCue),
+  unresolved: Schema.optionalKey(Schema.String),
 }) {}
 
 /** What a fresh run refuses with: the choice, variant, scene or act it could not find, or the take it would not keep. */
@@ -187,12 +195,17 @@ export interface FreshFilmService {
   ) => Effect.Effect<void, FreshError>;
   /** What the studio reads of the film's script and voice (`film read voice`). */
   readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError>;
-  /** `cue` on `scene`'s clock as the film's files now declare it (`film read cue`); none when it does not resolve. */
+  /**
+   * `cue` on `scene`'s clock as the film's files now declare it, `spans` in
+   * place of the scene's own where given (`film read cue`), or why the
+   * scene's timeline does not resolve.
+   */
   readonly cue: (
     film: FilmName,
     scene: string,
     cue: string,
-  ) => Effect.Effect<Option.Option<ResolvedCue>, FreshError>;
+    spans: Option.Option<Timeline>,
+  ) => Effect.Effect<CueRead, FreshError>;
   /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
   readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
@@ -353,11 +366,17 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           film: FilmName,
           scene: string,
           name: string,
+          spans: Option.Option<Timeline>,
         ) {
-          const line = yield* answer(['read', 'cue', film, scene, name], READ_LIMIT);
+          // Spans are data the lab read from a scene's source: they encode as their schema says.
+          const given = yield* Option.match(spans, {
+            onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
+            onSome: (s) => Effect.map(Effect.orDie(encodeTimeline(s)), (json) => ['--spans', json]),
+          });
+          const line = yield* answer(['read', 'cue', film, scene, name, ...given], READ_LIMIT);
           return yield* expect('film read cue', line, (l) =>
             Match.value(l).pipe(
-              Match.tag('CueRead', (read) => Option.some(Option.fromUndefinedOr(read.resolved))),
+              Match.tag('CueRead', (read) => Option.some(read)),
               Match.orElse(() => Option.none()),
             ),
           );
