@@ -97,7 +97,7 @@ export const movementSpans = (
   placed: ReadonlyArray<Placed>,
 ): Result.Result<ReadonlyArray<Result.Result<MovementSpan, MovementLength>>, PartError> =>
   Result.map(stretchesOf(music.movements, placed), (stretches) => {
-    const bounds = [...stretches.map((s) => s.start), filmEnd(placed) + MUSIC_TAIL].map((s) =>
+    const bounds = [...stretches.map((s) => s.from), filmEnd(placed) + MUSIC_TAIL].map((s) =>
       Math.round(s * 1000),
     );
     return stretches.map(({ part: movement }, i): Result.Result<MovementSpan, MovementLength> => {

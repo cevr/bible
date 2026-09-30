@@ -49,11 +49,8 @@ describe('membersOf', () => {
 describe('stretchesOf', () => {
   test('a stretch spans its scenes: from the first one’s start to the last one’s end', () => {
     const [first, second] = Result.getOrThrow(stretchesOf([part('a'), part('c')], placed));
-    expect([first?.start, first?.end]).toEqual([
-      0,
-      (placed[1]?.start ?? 0) + (placed[1]?.dur ?? 0),
-    ]);
-    expect(second?.start).toBe(placed[2]?.start ?? Number.NaN);
-    expect(second?.end).toBe((placed[3]?.start ?? 0) + (placed[3]?.dur ?? 0));
+    expect([first?.from, first?.to]).toEqual([0, (placed[1]?.start ?? 0) + (placed[1]?.dur ?? 0)]);
+    expect(second?.from).toBe(placed[2]?.start ?? Number.NaN);
+    expect(second?.to).toBe((placed[3]?.start ?? 0) + (placed[3]?.dur ?? 0));
   });
 });

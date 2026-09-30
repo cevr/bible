@@ -157,7 +157,9 @@ export const resolveAddress = (
             Arr.findFirst(all, (a) => a.part.name === named.act),
             (act): Scope => ({
               address: named,
-              ...stretch(inFilmOrder(film, new Set(act.scenes))),
+              scenes: inFilmOrder(film, new Set(act.scenes)),
+              span: Option.some({ from: act.from, to: act.to }),
+              short: Option.none(),
               acts: [act],
             }),
           ),

@@ -17,12 +17,10 @@
 // Pure: `tools/catalogue.ts` keeps it as `catalogue.json` in the project
 // folder, and computes the stamps.
 
-import { Array as Arr, Match, Option, Schema } from 'effect';
+import { Array as Arr, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import { maybe } from './schema.ts';
 import { FilmPiece } from './shorts.ts';
-
-/** A key a JSON file may leave out, read as an `Option`. */
-const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
 
 /**
  * What a render drew: the commit it was made at (none outside a git
@@ -196,7 +194,7 @@ export const subjectOf = (render: Render): Subject => ({
 });
 
 /** A slot's video render set as a topic (its point and variant). */
-export const topicOf = (slot: Slot): Topic => ({
+const topicOf = (slot: Slot): Topic => ({
   address: slot.address,
   point: Option.none(),
   variant: slot.variant,
@@ -254,7 +252,7 @@ export const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> 
 };
 
 /** `render` against `now`: its state, and why it is stale. */
-export const renderState = (
+const renderState = (
   render: Option.Option<Render>,
   now: RenderNow,
 ): { readonly state: VariantState; readonly staleBy: Option.Option<StaleBy> } =>
@@ -402,8 +400,6 @@ export const Project = Schema.Struct({
 });
 export type Project = typeof Project.Type;
 
-export const ProjectJson = Schema.fromJsonString(Project);
-
 /** A scene of the film, with the key its sources have now. */
 export interface SceneKey {
   readonly scene: string;
@@ -496,20 +492,16 @@ export const approveCurrent = (
 ): Approved => {
   const current = scenes.flatMap(({ scene, key }) =>
     Option.toArray(
-      Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) =>
-        Option.isNone(staleBy(r, { key, sound })),
+      Option.map(
+        Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) =>
+          Option.isNone(staleBy(r, { key, sound })),
+        ),
+        (render) => ({ scene, render }),
       ),
     ),
   );
   return {
-    catalogue: current.reduce((cat, render) => approve(cat, subjectOf(render), at), catalogue),
-    approved: current.flatMap((r) =>
-      Match.valueTags(r.address, {
-        Scenes: ({ ids }) => ids,
-        Film: () => [],
-        Act: () => [],
-        Short: () => [],
-      }),
-    ),
+    catalogue: current.reduce((cat, { render }) => approve(cat, subjectOf(render), at), catalogue),
+    approved: current.map(({ scene }) => scene),
   };
 };

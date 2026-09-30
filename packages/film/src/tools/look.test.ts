@@ -184,7 +184,7 @@ describe('ColourScript', () => {
 
   test('each act spans its scene to the next act', () => {
     expect(acts.map((a) => a.scenes)).toEqual([['held'], ['brief', 'ambient']]);
-    expect(acts[1]?.start).toBe(lookOf('brief')?.start);
+    expect(acts[1]?.from).toBe(lookOf('brief')?.start);
   });
 
   test('an act warns for each measure outside its target, and only those', () => {

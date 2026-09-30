@@ -616,8 +616,8 @@ export const lookLines = (
         `scene=${l.scene.padEnd(11)} secs=${l.dur.toFixed(1).padStart(5)} held=${shareOf(l.held, l.seconds)} longest=${(l.heldTo - l.heldFrom).toFixed(0).padStart(2)}s face=${l.face.toFixed(0).padStart(4)}px ${lightLine(l.light)}`,
     ),
     ...acts.map(
-      ({ part: act, start, end, scenes }) =>
-        `act="${act.name}" ${start.toFixed(1)}–${end.toFixed(1)}s ${lightLine(lightOf(within(looks, scenes)))}${targetLine(act)}`,
+      ({ part: act, from, to, scenes }) =>
+        `act="${act.name}" ${from.toFixed(1)}–${to.toFixed(1)}s ${lightLine(lightOf(within(looks, scenes)))}${targetLine(act)}`,
     ),
     `film held=${shareOf(held, seconds)} ${lightLine(lightOf(looks))}`,
   ];
@@ -651,7 +651,7 @@ export const chapters = (
   acts: ReadonlyArray<ActSpan>,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<ReadonlyArray<string>, ChaptersInvalid> => {
-  const named = acts.flatMap(({ part: act, start }) =>
+  const named = acts.flatMap(({ part: act, from: start }) =>
     Option.toArray(Option.map(Option.fromNullishOr(act.chapter), (title) => ({ start, title }))),
   );
   const invalid = (reason: string) => Result.fail(ChaptersInvalid.make({ film, reason }));

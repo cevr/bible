@@ -32,13 +32,8 @@ import {
   approvalState,
   saidOn,
 } from './catalogue.ts';
-import { CheckLine } from './schema.ts';
+import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
-
-/** A key a JSON file may leave out, read as an `Option`. */
-const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
-
-const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 
 /** What a choice point chooses between; each kind has one adapter. */
 export const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);

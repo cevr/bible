@@ -8,6 +8,7 @@
 import { Array as Arr, Option, Result } from 'effect';
 import { PartOutOfOrder, UnknownScene } from './errors.ts';
 import type { Placed } from './layout.ts';
+import type { Interval } from './time.ts';
 
 /** What a part declares: the scene it begins on and its name. */
 export interface PartOf {
@@ -21,11 +22,8 @@ export interface Members<P> {
   readonly scenes: ReadonlyArray<string>;
 }
 
-/** A part laid over the placed film: its scenes and the seconds they span. */
-export interface Stretch<P> extends Members<P> {
-  readonly start: number;
-  readonly end: number;
-}
+/** A part laid over the placed film: its scenes and the film seconds they span. */
+export interface Stretch<P> extends Members<P>, Interval {}
 
 /** Why parts cannot be laid over a film. */
 export type PartError = UnknownScene | PartOutOfOrder;
@@ -85,8 +83,8 @@ export const stretchesOf = <P extends PartOf>(
       members.map(({ part, scenes }) => ({
         part,
         scenes,
-        start: Option.match(scene(Arr.head(scenes)), { onNone: () => 0, onSome: (p) => p.start }),
-        end: Option.match(scene(Arr.last(scenes)), {
+        from: Option.match(scene(Arr.head(scenes)), { onNone: () => 0, onSome: (p) => p.start }),
+        to: Option.match(scene(Arr.last(scenes)), {
           onNone: () => 0,
           onSome: (p) => p.start + p.dur,
         }),

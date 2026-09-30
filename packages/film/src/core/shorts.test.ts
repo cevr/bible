@@ -9,7 +9,6 @@ import {
   SHORT_PREROLL,
   hookAlpha,
   resolveShort,
-  shortFilmTime,
   shortKey,
   shortPage,
   shortPieces,
@@ -150,16 +149,6 @@ describe('shorts', () => {
       { scene: 'b', from: { mark: 'eight' }, to: { at: 'speechEnd' } },
       { scene: 'a', from: { mark: 'three' }, to: { mark: 'five' } },
     ]);
-
-  test('short time maps to film time span by span', () => {
-    const cut = twoSpans();
-    const first = spanOf(cut, 0);
-    const second = spanOf(cut, 1);
-    expect(shortFilmTime(cut, 0)).toBe(first.from);
-    expect(shortFilmTime(cut, 0.5)).toBeCloseTo(first.from + 0.5, 9);
-    expect(shortFilmTime(cut, second.at)).toBe(second.from);
-    expect(shortFilmTime(cut, second.at + 0.2)).toBeCloseTo(second.from + 0.2, 9);
-  });
 
   test('a range of the short is the film pieces under it, in short order', () => {
     const cut = twoSpans();

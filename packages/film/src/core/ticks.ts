@@ -64,10 +64,10 @@ export const timelineTicks = (
       Result.match(stretchesOf(music.movements, placed), {
         onFailure: () => [],
         onSuccess: (stretches) =>
-          stretches.map(({ part, start }): Tick => ({
+          stretches.map(({ part, from }): Tick => ({
             kind: 'movement',
             name: `movement ${part.name}`,
-            at: start,
+            at: from,
             dur: 0,
           })),
       }),

@@ -22,7 +22,6 @@ import {
   resolveSound,
   resolveUse,
   soundState,
-  variantCount,
 } from './sfx.ts';
 
 const library = defineLibrary({
@@ -242,7 +241,6 @@ describe('soundState', () => {
       rejected: [],
     });
     expect(soundState(slide, lock)).toEqual({ _tag: 'Stale', variants: 1, candidates: 1 });
-    expect(variantCount(slide, lock)).toBe(1);
     expect(pendingOf({ ...slide, prompt: 'else' }, lock)).toHaveLength(0);
   });
 

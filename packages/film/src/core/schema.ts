@@ -27,7 +27,10 @@ export const repoJson = <S extends Parameters<typeof Schema.fromJsonString>[0]>(
 // Narration
 
 /** Seconds: finite, never negative. */
-const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+export const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
+/** A key a JSON file may leave out, read as an `Option`. */
+export const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
 
 /**
  * How far a take's last word may end past its measured length: the alignment

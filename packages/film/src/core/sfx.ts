@@ -301,13 +301,6 @@ export const soundState = (entry: LibraryEntry, lock: Option.Option<LockEntry>):
   return { _tag: 'Current', variants: kept.length, candidates };
 };
 
-/** How many variants of `entry` play: its seeds, or its kept files. */
-export const variantCount = (entry: LibraryEntry, lock: Option.Option<LockEntry>): number => {
-  const state = soundState(entry, lock);
-  if (state._tag === 'Missing') return 0;
-  return state.variants;
-};
-
 /** How many candidates a generated sound is made as, when it names no number. */
 // About a third of the sweet-spot takes were usable (p4-sfx2): six one-shots,
 // or three beds, give one usable take nearly always.
