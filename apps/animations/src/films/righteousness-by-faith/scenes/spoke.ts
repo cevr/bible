@@ -15,12 +15,14 @@ import {
   type Pt,
   at,
   camera,
+  clearOf,
   drawing,
   knobCamera,
   pushInto,
   rectShape,
   shotPath,
   sub,
+  wash,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import {
@@ -58,6 +60,11 @@ const SHRUG_NEAR: GestureAt = { to: [78, -112], reach: 0, grip: 'palm' };
 const LIT: [number, number, number] = [1, 1, 1];
 const LEAD: [number, number, number] = [0, 0, 0];
 const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+/** The gold that falls from the hung word to the tree: the word's light, clear at the ground. */
+const BEAM = [
+  [0, C.glow],
+  [1, clearOf(C.glow)],
+] as const;
 
 export const spoke = drawing({
   timeline: {
@@ -241,11 +248,7 @@ export const spoke = drawing({
         if (grow > 0) {
           ctx.save();
           ctx.globalAlpha *= 0.35 * Math.sin(Math.PI * clamp(grow));
-          const beam = ctx.createLinearGradient(0, hy, 0, TREE[1]);
-          beam.addColorStop(0, C.glow);
-          beam.addColorStop(1, `${C.glow}00`);
-          ctx.fillStyle = beam;
-          ctx.fillRect(hx - 70, hy, 140, Math.max(0, TREE[1] - hy));
+          wash(ctx, hx - 70, hy, 140, TREE[1] - hy, BEAM);
           ctx.restore();
         }
         at(ctx, { x: hx, y: hy + 6 * Math.sin(t * 2.2) }, () =>
