@@ -13,6 +13,7 @@ import {
   shortPage,
   shortPieces,
 } from './shorts.ts';
+import { voicedAt } from './voiced.ts';
 
 const draw = () => {};
 /** No recorded takes: every scene is estimated. */
@@ -89,7 +90,7 @@ describe('shorts', () => {
       .split(' ')
       .map((text, i) => {
         const [start, end, on, off] = heardAt[i] ?? [0, 0, 0, 0];
-        return { text, start, end, voiced: { start: on, end: off } };
+        return { text, start, end, voiced: voicedAt(on, off) };
       });
     const take = {
       hash: hashText('So, back to it.'),

@@ -8,7 +8,7 @@
 // its hook, its loop) reads the voice. Pure and DOM-free: no decode here.
 
 import type { Pcm } from './audio.ts';
-import type { TakeWord, Voiced, Word } from './schema.ts';
+import { Heard, type HeardWord, type TakeWord, type Voiced, type Word } from './schema.ts';
 
 /** A window is voiced when its level is over this, in dBFS. */
 export const VOICE_GATE_DB = -40;
@@ -17,6 +17,12 @@ export const VOICE_WINDOW = 0.01;
 
 /** The gate as a mean square: `VOICE_GATE_DB` is 10·log10 of it. */
 const GATE = 10 ** (VOICE_GATE_DB / 10);
+
+/** A voice heard from `start` to `end` seconds of its take: where heard seconds are made. */
+export const voicedAt = (start: number, end: number): Voiced => ({
+  start: Heard.make(start),
+  end: Heard.make(end),
+});
 
 /** Seconds to the millisecond, as the timings keep them. */
 const ms = (s: number) => Math.round(s * 1000) / 1000;
@@ -53,10 +59,10 @@ export const voicedSpan = (pcm: Pcm, start: number, end: number): Voiced => {
     if (first < 0) first = a;
     last = b;
   }
-  if (first < 0) return { start: end, end };
+  if (first < 0) return voicedAt(end, end);
   // On the timings' millisecond grid, and never outside the span it was read in.
   const on = Math.min(end, Math.max(start, ms(first / pcm.rate)));
-  return { start: on, end: Math.min(end, Math.max(on, ms(last / pcm.rate))) };
+  return voicedAt(on, Math.min(end, Math.max(on, ms(last / pcm.rate))));
 };
 
 /** Each word of a take with where its voice is heard, read from the take's audio. */
@@ -68,10 +74,10 @@ export const voicedWords = (words: ReadonlyArray<Word>, pcm: Pcm): Array<TakeWor
     voiced: voicedSpan(pcm, w.start, w.end),
   }));
 
-/** Words with no audio to measure (an estimate's): each is heard over its whole span. */
+/** Words with no audio to measure (an estimate's): each is heard over its whole span, by declaration. */
 export const unmeasured = (words: ReadonlyArray<Word>): Array<TakeWord> =>
-  words.map((w) => ({ ...w, voiced: { start: w.start, end: w.end } }));
+  words.map((w) => ({ ...w, voiced: voicedAt(w.start, w.end) }));
 
 /** Words timed by their voice: each word's span is where it is heard. */
-export const heard = (words: ReadonlyArray<TakeWord>): Array<Word> =>
+export const heard = (words: ReadonlyArray<TakeWord>): Array<HeardWord> =>
   words.map((w) => ({ text: w.text, start: w.voiced.start, end: w.voiced.end }));

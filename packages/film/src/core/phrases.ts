@@ -9,7 +9,7 @@ import { Array as Arr, Option } from 'effect';
 import type { CaptionCue } from './captions.ts';
 import type { Placed } from './layout.ts';
 import { CLAUSE, SENTENCE } from './narration.ts';
-import type { Word } from './schema.ts';
+import type { HeardWord, Word } from './schema.ts';
 import type { ResolvedShort } from './shorts.ts';
 import { heard } from './voiced.ts';
 
@@ -158,6 +158,56 @@ export const phrasesOf = (
 };
 
 /**
+ * One span's phrases, from its scene's words timed by the voice: only heard
+ * seconds reach here (a word shows when it is heard, not when the aligner
+ * starts it, with the pause before it), so an aligned take is a type error.
+ */
+const spanPhrases = (
+  words: ReadonlyArray<HeardWord>,
+  p: Placed,
+  span: ResolvedShort['spans'][number],
+  fps: number,
+): ReadonlyArray<Phrase> => {
+  const quoted = quotedWords(words);
+  const offset = p.start + p.speechStart;
+  // A span's ends sit on frames, within half a frame of the words they name.
+  const slack = 0.5 / fps + 1e-6;
+  const inside = run(0, words.length).filter((i) =>
+    Option.exists(Arr.get(words, i), (w) => {
+      const at = offset + w.start;
+      return at >= span.from - slack && at < span.to - slack;
+    }),
+  );
+  const shift = span.at - span.from + offset;
+  const turnAt = new Set(p.voice.turns.map((t) => t.word));
+  const local = inside.flatMap((i) =>
+    Option.toArray(
+      Option.map(Arr.get(words, i), (w) => ({
+        text: w.text,
+        start: w.start + shift,
+        end: w.end + shift,
+      })),
+    ),
+  );
+  const turns = new Set(
+    inside.flatMap((i, j) => Option.toArray(Option.liftPredicate(j, () => turnAt.has(i)))),
+  );
+  const spanEnd = span.at + (span.to - span.from);
+  return phrasesOf(
+    local,
+    turns,
+    inside.map((i) => quoted[i] === true),
+  ).map((phrase) => ({
+    ...phrase,
+    // Shown from the frame nearest its first word, so a span cut on
+    // that word's mark shows it on its first frame; ends move with
+    // starts, so no phrase overlaps the next.
+    start: Math.max(phrase.start - slack, span.at),
+    end: Math.min(phrase.end - slack, spanEnd),
+  }));
+};
+
+/**
  * A short's phrases on its clock, timed by the voice (`heard`): each span's
  * words (those first heard inside it), phrased apart so no phrase crosses a
  * join, each ended by its span's end. A word keeps the quotation its scene's
@@ -172,48 +222,7 @@ export const shortPhrases = (
       Arr.findFirst(placed, (p) => p.spec.id === span.scene),
       {
         onNone: () => [],
-        onSome: (p) => {
-          // Timed by the voice: a word shows when it is heard, not when the
-          // aligner starts it (with the pause before it).
-          const words = heard(p.voice.words);
-          const quoted = quotedWords(words);
-          const offset = p.start + p.speechStart;
-          // A span's ends sit on frames, within half a frame of the words they name.
-          const slack = 0.5 / short.fps + 1e-6;
-          const inside = run(0, words.length).filter((i) =>
-            Option.exists(Arr.get(words, i), (w) => {
-              const at = offset + w.start;
-              return at >= span.from - slack && at < span.to - slack;
-            }),
-          );
-          const shift = span.at - span.from + offset;
-          const turnAt = new Set(p.voice.turns.map((t) => t.word));
-          const local = inside.flatMap((i) =>
-            Option.toArray(
-              Option.map(Arr.get(words, i), (w) => ({
-                text: w.text,
-                start: w.start + shift,
-                end: w.end + shift,
-              })),
-            ),
-          );
-          const turns = new Set(
-            inside.flatMap((i, j) => Option.toArray(Option.liftPredicate(j, () => turnAt.has(i)))),
-          );
-          const spanEnd = span.at + (span.to - span.from);
-          return phrasesOf(
-            local,
-            turns,
-            inside.map((i) => quoted[i] === true),
-          ).map((phrase) => ({
-            ...phrase,
-            // Shown from the frame nearest its first word, so a span cut on
-            // that word's mark shows it on its first frame; ends move with
-            // starts, so no phrase overlaps the next.
-            start: Math.max(phrase.start - slack, span.at),
-            end: Math.min(phrase.end - slack, spanEnd),
-          }));
-        },
+        onSome: (p) => spanPhrases(heard(p.voice.words), p, span, short.fps),
       },
     ),
   );

@@ -9,6 +9,7 @@ import { hashText } from './narration.ts';
 import { PHRASE_HOLD, phraseCues, phrasesOf, quotedWords, shortPhrases } from './phrases.ts';
 import type { Word } from './schema.ts';
 import { resolveShort } from './shorts.ts';
+import { voicedAt } from './voiced.ts';
 
 /** Words half a second apart, each 0.4 s long. */
 const said = (text: string, from = 0): Array<Word> =>
@@ -199,7 +200,7 @@ describe('shortPhrases', () => {
     ];
     const words = say.split(' ').map((text, i) => {
       const [start, end, on, off] = heardAt[i] ?? [0, 0, 0, 0];
-      return { text, start, end, voiced: { start: on, end: off } };
+      return { text, start, end, voiced: voicedAt(on, off) };
     });
     const take = {
       hash: hashText(say),

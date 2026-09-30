@@ -180,7 +180,9 @@ itself when it is timed (`core/voiced.ts` `voicedWords`; `narrate`,
 voice, since the aligner put it past the span, so it is heard from the span's
 end, never sooner). A mark and the long film's captions read the aligned start;
 what must meet the ear (a short's captions, its hook and its loop) reads the
-voice (`heard`). It removes the takes (`.mp3` or a person's `.flac`) the timings
+voice (`heard`). Heard seconds are branded (`Heard`, made only by
+`voicedAt`), so aligned seconds passed where the ear is met are a type
+error. It removes the takes (`.mp3` or a person's `.flac`) the timings
 no longer name, and partial writes, at the start and end of every run. A
 replaced person's take loses only its copy in `narration/`: its master and
 its original stay in `narration/attempts/`.

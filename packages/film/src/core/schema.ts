@@ -47,9 +47,23 @@ export const Word = Schema.Struct({
 }).check(Schema.makeFilter((w) => w.start <= w.end || `"${w.text}" ends before it starts`));
 export type Word = typeof Word.Type;
 
+/**
+ * Seconds at which a voice is heard (measured from the take's audio,
+ * `voiced.ts`), not where the aligner puts a word, pause before it and all.
+ * Branded, so aligned seconds passed where the ear is met (a short's
+ * captions, its hook, its loop, a take's speech end) are a type error.
+ */
+export const Heard = Seconds.pipe(Schema.brand('Heard'));
+export type Heard = typeof Heard.Type;
+
 /** Where a word's voice is heard, in seconds from the start of its take. */
-export const Voiced = Schema.Struct({ start: Seconds, end: Seconds });
+export const Voiced = Schema.Struct({ start: Heard, end: Heard });
 export type Voiced = typeof Voiced.Type;
+
+/** A word timed by its voice (`heard` in `voiced.ts`): its span is where it is heard. */
+export interface HeardWord extends Voiced {
+  readonly text: string;
+}
 
 /**
  * A word of a take: its span as the aligner timed it (`start`, `end`, which

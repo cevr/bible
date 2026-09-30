@@ -23,6 +23,7 @@ import {
   unsafeTexts,
 } from './short-check.ts';
 import { type ShortFinding, levelOf } from './findings.ts';
+import { voicedAt } from '../core/voiced.ts';
 
 /** How bad a short's finding is; `--allow-stale` does not touch any. */
 const level = (finding: ShortFinding) => levelOf(finding, { allowStale: false });
@@ -112,7 +113,7 @@ describe('the hook and the loop read when words are heard', () => {
   ];
   const words = say.split(' ').map((text, i) => {
     const [start, end, on, off] = aligned[i] ?? [0, 0, 0, 0];
-    return { text, start, end, voiced: { start: on, end: off } };
+    return { text, start, end, voiced: voicedAt(on, off) };
   });
   const take = {
     hash: hashText(say),
