@@ -93,8 +93,7 @@ export const scorePoint = (
   Option.map(
     Option.flatMap(loaded.sound, (s) => Option.fromUndefinedOr(s.score)),
     (score): PointDraft => ({
-      id: pointIdOf({ _tag: 'Score' }),
-      kind: 'score',
+      ref: { _tag: 'Score' },
       address: Option.some({ _tag: 'Film' }),
       title: 'score',
       lines: [`plays ${score.play}`],
@@ -248,8 +247,7 @@ export const takePoints = (
             const takes = takesOf(entry, Option.fromUndefinedOr(loaded.sounds.lock[name]));
             return [
               {
-                id: pointIdOf({ _tag: 'Take', sound: name }),
-                kind: 'take',
+                ref: { _tag: 'Take', sound: name },
                 address: Option.some(scenesAddress(here.map((w) => sceneOfTime(placed, w.at)))),
                 title: name,
                 lines: [
@@ -272,8 +270,7 @@ export const takePoints = (
 /** Each look the film chooses between (`looks` in `palette.ts`), its levels, `play` picked. */
 export const lookPoints = (loaded: LoadedFilm): ReadonlyArray<PointDraft> =>
   Object.entries(loaded.looks).map(([name, look]): PointDraft => ({
-    id: pointIdOf({ _tag: 'Look', name }),
-    kind: 'look',
+    ref: { _tag: 'Look', name },
     address: Option.some({ _tag: 'Film' }),
     title: `look ${name}`,
     lines: [`drawn at ${look.play}`],
@@ -313,8 +310,7 @@ export const voicePoints = (
     .map((b): PointDraft => {
       const kept = Option.map(Option.fromNullishOr(loaded.timings.scenes[b.beat]), (t) => t.file);
       return {
-        id: pointIdOf({ _tag: 'Voice', beat: b.beat }),
-        kind: 'voice',
+        ref: { _tag: 'Voice', beat: b.beat },
         address: Option.some(sceneAddress(b.beat)),
         title: `voice ${b.beat}`,
         lines: [counted(b.attempts.length, 'attempt')],
@@ -460,7 +456,7 @@ export const levelPoints = (
         knob: knobOf(layer, readLevel(file, source, layer.layer)),
       }));
       const byId = Arr.groupBy(knobs, (k) => pointIdOf({ _tag: 'Level', target: k.knob.target }));
-      return Object.entries(byId).map(([id, all]): PointDraft => {
+      return Object.values(byId).map((all): PointDraft => {
         const first = all[0];
         const scenes = all.flatMap((k) => k.layer.scenes);
         const title = Match.valueTags(first.knob.target, {
@@ -468,8 +464,7 @@ export const levelPoints = (
           Layer: () => first.layer.title,
         });
         return {
-          id,
-          kind: 'level',
+          ref: { _tag: 'Level', target: first.knob.target },
           address: Option.some(scenesAddress(scenes)),
           title,
           lines: [

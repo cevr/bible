@@ -28,8 +28,7 @@ import {
   type ProjectScene,
   renderVersion,
 } from '../../../core/catalogue.ts';
-import type { ChoicePoint, VariantMedia } from '../../../core/choice.ts';
-import { pointIdOf } from '../../../core/point.ts';
+import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/choice.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
 import { Loaded, statusText } from '../loaded.tsx';
@@ -83,8 +82,7 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
     onSome: (video): VariantMedia => ({ _tag: 'Seen', video }),
   });
   const point: ChoicePoint = {
-    id: pointIdOf({ _tag: 'Render', address }),
-    kind: 'render',
+    ...pointHead({ _tag: 'Render', address }),
     address: Option.some(address),
     title: `scene ${scene.scene}`,
     lines: [],

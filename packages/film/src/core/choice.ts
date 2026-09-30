@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { type PointRef, pointRefOf } from './point.ts';
+import { type PointRef, pointIdOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -128,11 +128,29 @@ export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes'
   readonly staleBy?: Option.Option<StaleBy>;
 };
 
-/** A point as its adapter describes it: its variants' say still to read. */
+/** Each kind of point's kind: what it chooses between (a montage's set is a render set). */
+const KIND = {
+  Render: 'render',
+  Montage: 'render',
+  Score: 'score',
+  Take: 'take',
+  Voice: 'voice',
+  Look: 'look',
+  Level: 'level',
+} as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
+
+/** A point's id and kind, both read off the one ref it is. */
+export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'kind'> => ({
+  id: pointIdOf(ref),
+  kind: KIND[ref._tag],
+});
+
+/** A point as its adapter describes it: which point it is, and its variants' say still to read. */
 export interface PointDraft extends Omit<
   ChoicePoint,
-  'variants' | 'moments' | 'marks' | 'knob' | 'start'
+  'id' | 'kind' | 'variants' | 'moments' | 'marks' | 'knob' | 'start'
 > {
+  readonly ref: PointRef;
   readonly variants: ReadonlyArray<VariantDraft>;
   readonly start?: number;
   readonly moments?: Option.Option<ReadonlyArray<number>>;
@@ -147,33 +165,37 @@ export const subjectAt = (
   variant: { readonly id: string; readonly key: string },
 ): Subject => ({ ...topicAt(address, ref, variant.id), key: variant.key });
 
-/** `draft` with each variant's approval and comments as `catalogue` records them. */
-export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => ({
-  ...draft,
-  start: draft.start ?? 0,
-  moments: draft.moments ?? Option.none(),
-  marks: draft.marks ?? [],
-  knob: draft.knob ?? Option.none(),
-  variants: draft.variants.map((variant): ChoiceVariant => {
-    const said = Option.map(
-      Option.all({ cat: catalogue, address: draft.address, ref: pointRefOf(draft.id) }),
-      ({ cat, address, ref }) => ({ cat, subject: subjectAt(ref, address, variant) }),
-    );
-    return {
-      ...variant,
-      notes: variant.notes ?? Option.none(),
-      staleBy: variant.staleBy ?? Option.none(),
-      approval: Option.match(said, {
-        onNone: (): ApprovalState => 'none',
-        onSome: ({ cat, subject }) => approvalState(cat, subject),
-      }),
-      comments: Option.match(said, {
-        onNone: () => [],
-        onSome: ({ cat, subject }) => saidOn(cat, subject),
-      }),
-    };
-  }),
-});
+/** `draft` as its point, with each variant's approval and comments as `catalogue` records them. */
+export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => {
+  const { ref, ...rest } = draft;
+  return {
+    ...pointHead(ref),
+    ...rest,
+    start: draft.start ?? 0,
+    moments: draft.moments ?? Option.none(),
+    marks: draft.marks ?? [],
+    knob: draft.knob ?? Option.none(),
+    variants: draft.variants.map((variant): ChoiceVariant => {
+      const said = Option.map(
+        Option.all({ cat: catalogue, address: draft.address }),
+        ({ cat, address }) => ({ cat, subject: subjectAt(ref, address, variant) }),
+      );
+      return {
+        ...variant,
+        notes: variant.notes ?? Option.none(),
+        staleBy: variant.staleBy ?? Option.none(),
+        approval: Option.match(said, {
+          onNone: (): ApprovalState => 'none',
+          onSome: ({ cat, subject }) => approvalState(cat, subject),
+        }),
+        comments: Option.match(said, {
+          onNone: () => [],
+          onSome: ({ cat, subject }) => saidOn(cat, subject),
+        }),
+      };
+    }),
+  };
+};
 
 /** A point of `points` by its id. */
 export const pointNamed = (

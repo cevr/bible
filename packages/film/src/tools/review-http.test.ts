@@ -47,8 +47,7 @@ const CHOICES: FilmChoices = {
   pictures: [],
   points: [
     withSay(Option.none(), {
-      id: 'score',
-      kind: 'score',
+      ref: { _tag: 'Score' },
       address: Option.some({ _tag: 'Film' }),
       title: 'score',
       lines: [],
