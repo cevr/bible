@@ -71,24 +71,20 @@ jobs:
             filters: --filter=@bible/film
             args: --shard=1/3
             browser: true
-            ffmpeg: true
           - name: film 2/3
             filters: --filter=@bible/film
             args: --shard=2/3
             browser: true
-            ffmpeg: true
           - name: film 3/3
             filters: --filter=@bible/film
             args: --shard=3/3
             browser: true
-            ffmpeg: true
           - name: core
             filters: --filter=@bible/core
             model: true
           - name: animations
             filters: --filter=@bible/animations
             browser: true
-            ffmpeg: true
           - name: apps and packages
             filters: --filter=!@bible/film --filter=!@bible/core --filter=!@bible/animations
     steps:
@@ -96,11 +92,6 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-key: test
-
-      # The media tests encode and probe through the ffmpeg CLI.
-      - name: Install ffmpeg
-        if: matrix.ffmpeg
-        run: command -v ffmpeg || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; }
 
       # Headless Chromium for the canvas and lab tests, at playwright-core's version.
       - name: Cache Chromium

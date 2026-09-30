@@ -9,12 +9,13 @@ import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
 import { mixKey } from '../core/mix.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
-import { Cores, Platform, type Remuxed, Renderer } from './renderer.ts';
+import { Cores, Platform, type Remuxed, Renderer, remuxVideo } from './renderer.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
   emptyLedger,
   fakeRenderHost,
+  fakeRenderMedia,
   memoryFileSystem,
   testExportInfo,
   testFilm,
@@ -68,11 +69,14 @@ const setup = (
     Effect.gen(function* () {
       return yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
-  /** `video`'s sound cut again from the master now, as `project render` re-muxes it. */
+  /**
+   * `video`'s sound cut again from the master now, as `project render`
+   * re-muxes it: with media and the disk alone, no browser to open.
+   */
   const remux = (video: Remuxed) =>
-    Effect.gen(function* () {
-      return yield* (yield* Renderer).remux(rendered, video);
-    }).pipe(Effect.provide(layer));
+    remuxVideo(rendered, video).pipe(
+      Effect.provide([fakeRenderMedia(ledger, host), memoryFileSystem(files, folders), Path.layer]),
+    );
   /** `jobs` rendered one after another in one session, as `project render` draws its scenes. */
   const session = (jobs: ReadonlyArray<RenderJob>) =>
     Effect.gen(function* () {
@@ -204,6 +208,7 @@ describe('Renderer', () => {
           chapters: Option.none(),
           images: [],
           sound: Option.none(),
+          span: Option.none(),
         });
 
         const files = new Map([['/out/test/film/look/stills/t0001.00.png', text('png')]]);
@@ -490,8 +495,13 @@ describe('Renderer', () => {
             cut: Cut.Whole(),
           }),
         );
-      yield* sheet(-5, 2);
-      yield* sheet(18, 25);
+      const early = yield* sheet(-5, 2);
+      const late = yield* sheet(18, 25);
+      // Each records the stretch it drew, not the film's whole.
+      expect([early.span, late.span]).toEqual([
+        Option.some({ from: 0, to: 2 }),
+        Option.some({ from: 18, to: 20 }),
+      ]);
       expect(ledger.contacts).toEqual([
         [0, 30],
         [540, 570],

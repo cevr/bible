@@ -9,7 +9,7 @@
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option, Result, Schema } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Random, Result, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels } from '../core/audio.ts';
 import type { Placed } from '../core/layout.ts';
@@ -29,7 +29,7 @@ import {
 import { repoJson } from '../core/schema.ts';
 import type { SoundSource, Sounds } from '../core/sfx.ts';
 import { synthesize } from '../core/synth/recipes.ts';
-import { type StoreError, writeWhole } from './content-store.ts';
+import { ContentStore, type Manifest, type StoreError, writeWhole } from './content-store.ts';
 import {
   AudioMissing,
   AudioStale,
@@ -56,6 +56,17 @@ export const stampFile = (paths: FilmPaths): string => `${paths.narration}/full.
 
 /** `full.json`: the key (`mixKey`) of the plan the track was mixed from. */
 export const MasterStampJson = repoJson(Schema.Struct({ key: Schema.String }));
+
+/**
+ * The stamp as the store keeps it, as text: a mix writes the track and then
+ * the stamp under this file's lock (`ContentStore.transact`), so two mixes
+ * finishing together never leave one's track under the other's key.
+ */
+export const stampManifest = (paths: FilmPaths): Manifest<string> => ({
+  file: stampFile(paths),
+  codec: Schema.String,
+  empty: '',
+});
 
 /** The track on disk: its measured length in seconds, and the key its stamp names. */
 export interface Master {
@@ -324,6 +335,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const fs = yield* FileSystem.FileSystem;
       const repo = yield* FilmRepo;
       const media = yield* Media;
+      const store = yield* ContentStore;
 
       /** `pcm` written to `file` as a WAV, whole (`writeWhole`). */
       const writeWav = (file: string, pcm: Pcm) =>
@@ -366,10 +378,19 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         yield* Effect.log(`mix.master gain=${mixed.masterGain.toFixed(1)}dB`);
 
         const master = masterFile(film.paths);
-        yield* writeWav(master, mixed.master);
-        // Stamped once the track is whole: a track with no stamp, or an old one, reads as stale.
         const stamp = yield* Effect.orDie(Schema.encodeEffect(MasterStampJson)({ key }));
-        yield* fs.writeFileString(stampFile(film.paths), stamp);
+        // The track is written beside the old one, then it and its stamp land
+        // as one step under the stamp's lock: no other mix between the two,
+        // and the stamp only once the track is whole (a track with no stamp,
+        // or an old one, reads as stale). The lock is held for a rename, not
+        // for the write.
+        const partial = `${master}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial`;
+        yield* Effect.gen(function* () {
+          yield* media.writeWav(partial, mixed.master);
+          yield* store.transact(stampManifest(film.paths), () =>
+            Effect.as(fs.rename(partial, master), [master, stamp] as const),
+          );
+        }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
         if (options.stems) {
           const dir = `${film.paths.out}/stems`;
           yield* fs.makeDirectory(dir, { recursive: true });

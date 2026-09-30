@@ -96,9 +96,9 @@ export const fadeEdges = (pcm: Pcm, seconds: number): Pcm => {
 };
 
 /**
- * Two channels. Mono spreads to both sides at −3 dB, as ffmpeg's rematrix did
- * in the graph the mix was balanced with (libswresample/rematrix.c,
- * `center_mix_level`); stereo passes through; more channels keep their first two.
+ * Two channels. Mono spreads to both sides at −3 dB, as libswresample's
+ * rematrix does (rematrix.c, `center_mix_level`), which the mix was balanced
+ * with; stereo passes through; more channels keep their first two.
  */
 export const toStereo = (pcm: Pcm): Pcm => {
   const [first, second] = pcm.channels;
@@ -130,7 +130,7 @@ export const toInt16 = (pcm: Pcm): Int16Array => {
   return out;
 };
 
-/** How loud a sound is, in dBFS: its mean power and its peak (what ffmpeg's volumedetect reports). */
+/** How loud a sound is, in dBFS: its mean power and its peak (what libavfilter's volumedetect reports). */
 export interface Levels {
   readonly mean: number;
   readonly peak: number;

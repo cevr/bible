@@ -1,7 +1,7 @@
 // The lab with its studio, for a live drive of the recording panel without a
 // paid call or a write to the real films: the film is copied into a temp
 // folder under `out/` (git-ignored, removed when the harness stops), the lab
-// and its studio run over that copy with the real media (ffmpeg) and mixer,
+// and its studio run over that copy with the real media (in-process) and mixer,
 // and ElevenLabs is a fake whose speech-to-text hears each beat's own line,
 // timed evenly across the take, or, for a beat it is told to mis-hear,
 // something else. A fixture, not a product flag: `bun run lab` never runs it.

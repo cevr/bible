@@ -91,10 +91,20 @@ export interface RenderOutput {
   readonly images: ReadonlyArray<string>;
   /** The sound a video carries: none for a silent one, and for images. */
   readonly sound: Option.Option<RenderSound>;
+  /**
+   * The seconds it drew when the command's own range narrowed it (a contact
+   * sheet's `--from/--to`, clipped to what it covers); none when it drew all
+   * its address spans.
+   */
+  readonly span: Scope['span'];
 }
 
-/** What an image job wrote: its images and nothing else. */
-export const imagesOutput = (kind: RenderKind, images: ReadonlyArray<string>): RenderOutput => ({
+/** What an image job wrote: its images and nothing else, over `span` when a range narrowed it. */
+export const imagesOutput = (
+  kind: RenderKind,
+  images: ReadonlyArray<string>,
+  span: Scope['span'] = Option.none(),
+): RenderOutput => ({
   kind,
   clip: Option.none(),
   share: Option.none(),
@@ -102,6 +112,7 @@ export const imagesOutput = (kind: RenderKind, images: ReadonlyArray<string>): R
   chapters: Option.none(),
   images,
   sound: Option.none(),
+  span,
 });
 
 /** A render: the film as video, a few stills, a contact sheet, or its look-book. */
@@ -199,6 +210,17 @@ const RENDER_RULES: ReadonlyArray<FlagRule> = [
   ['contact', 'excludes', 'encoder', VIDEO],
 ];
 
+const STRETCH = "a stretch is not the film's render: write it with --out";
+
+/**
+ * A video's own rules: a stretch of the film or a short written to the
+ * address's clip would replace its whole render, and be catalogued as it.
+ */
+const VIDEO_RULES: ReadonlyArray<FlagRule> = [
+  ['from', 'needs', 'out', STRETCH],
+  ['to', 'needs', 'out', STRETCH],
+];
+
 /** The flag an address was named by: none for the whole film. */
 const addressFlag = (address: Address): Option.Option<string> =>
   Match.valueTags(address, {
@@ -287,7 +309,11 @@ export const jobOf = (flags: RenderFlags): Result.Result<RenderJob, FlagsConflic
           }),
       }),
   });
-  return Result.map(flagConflicts(given, RENDER_RULES), () => job);
+  const rules = Match.value(job).pipe(
+    Match.tag('Video', () => [...RENDER_RULES, ...VIDEO_RULES]),
+    Match.orElse(() => RENDER_RULES),
+  );
+  return Result.map(flagConflicts(given, rules), () => job);
 };
 
 /** Pages drawing stills at once when `--workers` is not given: they encode nothing. */

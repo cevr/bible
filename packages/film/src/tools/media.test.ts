@@ -2,8 +2,9 @@
 // FLAC encoders, reading over the in-memory file system and joining films on
 // the real disk: a WAV written reads back as the same 16-bit samples, an MP3
 // decodes gapless (its encoder padding trimmed, a mono file one channel), a
-// person's recording (WAV, M4A, AIFF, MP3) loads and its take encodes with no
-// ffmpeg on the machine, a film joins from its segments with its track, and a
+// person's recording (WAV, M4A, AIFF, MP3) loads and its take encodes, a film
+// joins from its segments with its track (and a failed join leaves the file
+// that was there), a share copy, a still and a phone copy are made, and a
 // file that is missing or not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
 // 440 Hz, mono, 44.1 kHz, with a LAME gapless header. fixtures/segment-*.mp4
 // are fifteen frames of H.264 at 30 fps each, encoded in headless Chromium as
@@ -25,7 +26,7 @@ import {
   Output,
 } from 'mediabunny';
 import { type Pcm, toInt16 } from '../core/audio.ts';
-import { Media, ffmpegReady } from './media.ts';
+import { Media } from './media.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -76,17 +77,11 @@ const MediaOnFixtures = Layer.unwrap(
  */
 const MediaOnDisk = Layer.provideMerge(Media.layer, BunServices.layer);
 
-/** A machine with no ffmpeg: any process a take's load or encode started would fail the test. */
-const noProcesses = ChildProcessSpawner.make(() => Effect.die('a take started a process'));
-
-/** Media over an in-memory disk holding the MP3 fixture, where no process can start. */
-const MediaWithoutFfmpeg = Layer.unwrap(
+/** Media over an in-memory disk holding the MP3 fixture. */
+const MediaWithTone = Layer.unwrap(
   Effect.gen(function* () {
     const tone = yield* (yield* FileSystem.FileSystem).readFile(fixture('tone.mp3'));
-    return Media.layer.pipe(
-      Layer.provideMerge(memoryFileSystem(new Map([['/tone.mp3', tone]]))),
-      Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, noProcesses)),
-    );
+    return Media.layer.pipe(Layer.provideMerge(memoryFileSystem(new Map([['/tone.mp3', tone]]))));
   }),
 ).pipe(Layer.provide(BunServices.layer));
 
@@ -194,7 +189,7 @@ describe('Media', () => {
     }),
   );
 
-  it.effect.layer(MediaWithoutFfmpeg)(
+  it.effect.layer(MediaWithTone)(
     'a recording at 48 kHz loads as one channel at the rate asked for, its top octave filtered, not folded down',
     () =>
       Effect.gen(function* () {
@@ -212,7 +207,7 @@ describe('Media', () => {
         const voice = yield* media.load('/voice.wav', 44100);
         expect([voice.rate, voice.channels.length]).toEqual([44100, 1]);
         expect(Math.abs(voice.frames - 44100)).toBeLessThanOrEqual(2);
-        // Two equal sides meet at libswresample's −3 dB each (ffmpeg's `-ac 1`).
+        // Two equal sides meet at libswresample's −3 dB each.
         expect(rms(voice)).toBeCloseTo(0.5, 2);
         // 23.5 kHz is past 44.1 kHz's limit: filtered down (to under a tenth), not folded to
         // 20.6 kHz at nearly half its level as a linear resampler would.
@@ -223,7 +218,7 @@ describe('Media', () => {
       }),
   );
 
-  it.effect.layer(MediaWithoutFfmpeg)(
+  it.effect.layer(MediaWithTone)(
     "an M4A (AAC) loads from its first frame: the encoder's priming is not in it",
     () =>
       Effect.gen(function* () {
@@ -243,7 +238,7 @@ describe('Media', () => {
       }),
   );
 
-  it.effect.layer(MediaWithoutFfmpeg)('an AIFF loads sample for sample', () =>
+  it.effect.layer(MediaWithTone)('an AIFF loads sample for sample', () =>
     Effect.gen(function* () {
       const media = yield* Media;
       const ints = Int16Array.from({ length: 5000 }, (_, i) => Math.round(Math.sin(i / 5) * 20000));
@@ -254,7 +249,7 @@ describe('Media', () => {
     }),
   );
 
-  it.effect.layer(MediaWithoutFfmpeg)('an MP3 at the rate asked for loads as it decodes', () =>
+  it.effect.layer(MediaWithTone)('an MP3 at the rate asked for loads as it decodes', () =>
     Effect.gen(function* () {
       const media = yield* Media;
       const loaded = yield* media.load('/tone.mp3', 44100);
@@ -262,8 +257,6 @@ describe('Media', () => {
       expect(loaded.channels[0]).toEqual((yield* media.decode('/tone.mp3')).channels[0]);
     }),
   );
-
-  it.effect.layer(MediaOnDisk)('doctor finds ffmpeg', () => ffmpegReady());
 
   it.live.layer(MediaOnDisk)(
     'the extension encoders run in their workers and the process ends by itself',
@@ -281,7 +274,7 @@ describe('Media', () => {
     40_000,
   );
 
-  it.effect.layer(MediaWithoutFfmpeg)(
+  it.effect.layer(MediaWithTone)(
     "a person's take is a 24-bit FLAC master: it decodes to its samples, and measures its length",
     () =>
       Effect.gen(function* () {
@@ -332,7 +325,7 @@ describe('Media', () => {
   );
 
   it.effect.layer(MediaOnDisk)(
-    "a share copy is x264's encode of the joined film, every frame in place, its track copied",
+    "a share copy is x264's encode of the joined film, in-process, every frame in place, its track copied",
     () =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -456,5 +449,32 @@ describe('Media', () => {
         ]);
       }),
     ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    'a join that fails leaves the film that was there, and nothing beside it',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const media = yield* Media;
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* tempDir;
+          const out = `${dir}/film.mp4`;
+          const film = (second: string) => ({
+            out,
+            segments: [
+              { file: fixture('segment-a.mp4'), at: 0 },
+              { file: fixture(second), at: 0.5 },
+            ],
+            frames: 30,
+            audio: Option.none(),
+          });
+          yield* media.join(film('segment-b.mp4'));
+          const before = yield* fs.readFile(out);
+          yield* Effect.flip(media.join(film('segment-wide.mp4')));
+          expect(yield* fs.readFile(out)).toEqual(before);
+          expect(yield* fs.readDirectory(dir)).toEqual(['film.mp4']);
+        }),
+      ),
   );
 });

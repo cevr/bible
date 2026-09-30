@@ -86,9 +86,10 @@ Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its
 login (`auth status`, free), the H.264 encoder a render would use (a page
 chooses it as a render does; the line says `hardware` or `software`, the
-default pages and the encoder budget) and `ffmpeg` (`-version`: it makes a
-software render's x264 share copy, and the review's stills and phone copies), reports
-each, and fails if any is missing. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
+default pages and the encoder budget), reports each, and fails if any is
+missing. Nothing needs an ffmpeg on the machine: every media file is read and
+written in-process (below), and `tools/no-ffmpeg.test.ts` fails on a source
+that names `ffmpeg` or `ffprobe` as a command. `narrate`, `takes import` and `score` run the ElevenLabs check before their first paid call,
 and the `ElevenLabs` service uses `ELEVENLABS_API_KEY` when the environment
 or the Keychain holds one (effects need it) and the CLI's OAuth login
 otherwise, one OAuth call at a time (concurrent refreshes race and fail);
@@ -100,29 +101,33 @@ the containers in-process, and MP3 decodes through mpg123 (WASM), gapless, so
 a take measures what it plays (`duration`). `join` writes a film: its H.264
 segments' packets copied in order (never re-encoded; segments encoded unlike
 the first fail), and its track encoded to AAC beside them through
-`@mediabunny/aac-encoder` (ffmpeg's encoder built to WASM), one frame of
-priming early so the MP4's edit list starts it on the first frame. Every byte
+`@mediabunny/aac-encoder` (FFmpeg's encoder built to WASM), one frame of
+priming early so the MP4's edit list starts it on the first frame, into a
+partial beside the film renamed over it once whole. Every byte
 moves through the FileSystem service but the joined film's, which mediabunny's
 `FilePathTarget` writes by position on Bun's file system (Effect's file handle
 appends under Bun: its `fs.write` passes no offset, and Bun then ignores the
 position). Failures are `MediaFailed`. A person's recordings arrive in
 whatever format a recorder saves (WAV, FLAC, AIFF, M4A, MP3, at any rate) and
 load in-process: `load` decodes any of them to one channel of 32-bit float at
-the rate asked for, sample for sample as the ffmpeg CLI it replaced did.
-mediabunny opens the containers; FLAC and AAC decode through FFmpeg's own
+the rate asked for. mediabunny opens the containers; FLAC and AAC decode through FFmpeg's own
 decoders in-process (`@mediabunny/server`, NodeAV: Bun has no WebCodecs
 audio decoder), an AAC's priming dropped as its edit list says; AIFF, which
 mediabunny cannot read, is plain PCM read by `tools/aiff.ts`; the mixdown and
 the rate change are libswresample's at its defaults (`tools/resample.ts`,
-through NodeAV), as `ffmpeg -ac 1 -ar` did. `encodeFlac` writes a take as a
+through NodeAV). `encodeFlac` writes a take as a
 24-bit FLAC master through libFLAC (`@mediabunny/flac-encoder`, WASM, in a
 worker; float in, one quantisation 144 dB down, no dither needed). A person's
 take is the film's final voice, so it is never lossy after the recorder, and
 the mix reads it as it reads a staging MP3. Staging takes stay the MP3s
 ElevenLabs sends. mediabunny picks the first coder registered that can, so
-the AAC and FLAC encoders register before `@mediabunny/server`'s FFmpeg
-ones. The ffmpeg binary makes a software render's share copy (x264, below)
-and the review's stills and phone copies.
+the AAC and FLAC encoders and x264 (`tools/x264.ts`) register before
+`@mediabunny/server`'s FFmpeg ones, which it registers with no hardware
+context. Video is converted by mediabunny too: a software render's share
+copy (x264, below) and the review's phone copy (720p, x264 at 3 Mbps
+average) re-encode the film with its track copied, and a review's still is a
+frame mediabunny decodes, scaled by libswscale and written by FFmpeg's MJPEG
+encoder (`tools/jpeg.ts`, through NodeAV).
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, a staging take
 lifted to the speech level `takes import` sets and a person's take as
@@ -131,11 +136,12 @@ wherever anyone speaks and `alone` dB where no one has for 3 s or more, each
 levelled by BS.1770 loudness against the voice bus, ramped, and faded in and
 out (`core/score.ts`); the library's beds looped over their spans, crossfaded
 where they wrap, faded at each end and ducked unless the library says not,
-the effects on their cues, summed and limited: ported from the ffmpeg graph
-it replaced, which it matched to a −98.8 dB residual) and writes the film's
-one track, `narration/full.wav` (16-bit), whole (`writeWhole`: a partial of
-its own, renamed only once written): a failed or interrupted mix leaves the previous track. Beside it,
-once it is whole, `full.json` stamps the key of the plan it played
+the effects on their cues, summed and limited) and writes the film's
+one track, `narration/full.wav` (16-bit), whole (a partial of its own,
+renamed only once written): a failed or interrupted mix leaves the previous
+track. The track's rename and its stamp are one step under `full.json`'s
+store lock (`ContentStore.transact`), so two mixes finishing together never
+leave one's track under the other's stamp. `full.json` stamps the key of the plan it played
 (`mixKey`: every sound it plays by its file name, which carries its hash, or
 its recipe, with where, how loud and at what pitch, the score option and its
 levels, and the levels it masters, fades and ducks by). A bed or
@@ -315,7 +321,13 @@ out/<film>/
 
 `--variant <name>` (default `main`) renders beside `main` at the same address:
 a look or score option, a lab note's `lab-<id>`. `--out file` writes a video
-outside the folder and is not catalogued.
+outside the folder and is not catalogued. A video's `--from/--to` on the film
+or a short needs `--out` (`FlagsConflict` otherwise, before a browser opens):
+a stretch is not the film's render, so it never replaces the address's clip
+or its record. A contact sheet over a range records the seconds it drew as
+its span. Every file a render leaves (the clip, its share copy, captions,
+chapters, stills, a sheet) is written beside itself and renamed into place
+once whole, so a failed or interrupted render leaves the last good file.
 
 **The catalogue** (`core/catalogue.ts`, kept by `tools/catalogue.ts`) records
 each render's address, variant, kind (video, stills, contact, look-book),
@@ -348,7 +360,9 @@ pages (`Renderer.session`: 1 + workers page loads a run, not that a scene;
 settings, and re-muxes one stale by its sound alone: its sound is cut again
 from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens
-(`render.remux frames_drawn=0`). `film project approve <film> --scene id,id | --act name |
+(`render.remux frames_drawn=0`, `remuxVideo`: media and the disk only).
+Chromium launches with the first page a scene opens (`Browser.layer`), so a
+run where every scene is current or re-muxed opens no browser. `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
 scene (a stale or missing scene is left, and named); `film project withdraw
 <film> --scene id,id | --act name | --all` withdraws those scenes' approvals,
@@ -429,23 +443,33 @@ same or better. The hardware path is untouched (preroll 0, the same
 
 ### Software share: x264 after the join
 
-The share is x264's (`Media.shareCopy`, `SHARE_X264`), since the in-page
-software encoder kept the grain only at 24 Mbps (1.16 GB for 7 minutes): from
-the joined master, through the ffmpeg CLI the doctor already checks: CRF 22,
-preset slow, tune grain, level 4.1 (preset slow's reference frames would raise
-it to 5.0), AAC copied, written whole (`writeWhole`: ffmpeg writes a partial
-of its own, told `-f mp4`, renamed over `<out>` once whole). The review's
-derived files (a frame, a phone copy, a mix) are written the same way. It
-logs `render.share by=x264 secs=…`.
+The share is x264's (`Media.shareCopy`, `SHARE_CRF`), since the in-page
+software encoder kept the grain only at 24 Mbps (1.16 GB for 7 minutes): a
+mediabunny conversion of the joined master, its video encoded again by x264
+in-process (`tools/x264.ts`, libx264 through NodeAV, registered as
+mediabunny's `avc` encoder): CRF 22, preset slow, tune grain, level 4.1
+(preset slow's reference frames would raise it to 5.0), AAC copied, written
+into a partial beside `<out>` and renamed over it once whole. The review's
+derived files (a frame, a phone copy, a mix) are written whole too. It logs
+`render.share by=x264 secs=…`.
+
+The settings x264 writes into the stream are the ones the ffmpeg CLI's
+x264 wrote. Only the build differs (core 165 against 164), and it spends
+about 18% more at the same CRF: 3.6 MB against 3.1 MB for 8 s of paper at
+78–86 s, 4.0 against 3.4 at 158–166 s, the grain kept alike to the eye.
+The in-page software share at 6, 10 and 14 Mbps (6.2, 10.1 and 12.7 MB for
+those 8 s) smoothed the paper flat.
 
 Not `@mediabunny/server`'s libx264: it (through NodeAV) runs a fixed
 `qp` with qmin = qmax on the default preset, with no CRF, preset or tune to
 pass (`@mediabunny/server`'s `src/video-encoder.ts`), and at equal size it kept far
 less grain: q23 was 444 MB and kept 0.33–0.67, against x264 CRF 23 tune
-grain's 487 MB at 0.75–0.83.
+grain's 487 MB at 0.75–0.83; over those 8 s of paper, 4 Mbps (4.3 MB) and
+q22 (2.7 MB) both smoothed it flat.
 
 The share at righteousness-by-faith's 7 review frames (grain kept / SSIM Y),
-beside the master it came from:
+beside the master it came from, measured with the same settings on x264
+core 164:
 
 | t (s) | master      | x264 share  |
 | ----- | ----------- | ----------- |

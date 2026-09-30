@@ -37,7 +37,7 @@ bun run mix <film> [--stems]                   # remix full.wav in-process (no A
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
-bun run doctor                                 # headless Chromium, elevenlabs CLI + login, ffmpeg (software share copy): ok or how to fix
+bun run doctor                                 # headless Chromium and its H.264 encoder, elevenlabs CLI + login: ok or how to fix
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir, DrawThrew, FrameImpure (fails on any); warns SeamLong, AssetMissing, SoundStale, LeadIn, WordPinFar, DurOnWord, Storyboard, KnobRepeated, MasterLoudness, EffectHot, InkOverFace, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
@@ -135,7 +135,9 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--act`,
 film like a video's, so no frame repeats; a range wholly outside it is
 `RangeEmpty`) but no video flag (`--workers` and `--encoder` included: one
 page composes the sheet);
-`--scene` and `--act` go with neither `--from` nor `--to`.
+`--scene` and `--act` go with neither `--from` nor `--to`; a video's
+`--from/--to` needs `--out` (a stretch is not the film's render, so it never
+replaces the film's clip or its catalogue record).
 
 Render flags: `--from/--to` seconds, `--scene id,id` or `--act name`, `--workers n`
 (pages; the measured knee on each encoder: 6 on the Mac's
@@ -150,7 +152,7 @@ choice on its `encoder` line. The Mac renders on its hardware encoder only:
 if the GPU encoder fails the render stops with `EncoderMissing` rather than
 changing the film's look (`--encoder software` renders there in software on
 purpose). A Linux box (GPU launch flags are macOS-only) renders on Chromium's
-software encoder, and its share copy is made after the join by x264 from the
+software encoder, and its share copy is made after the join by x264, in-process, from the
 master (`render.share by=x264`), which adds minutes but keeps the grain at
 half the size the in-page encoder needed (`packages/film/README.md`,
 "Encoders"). Each page runs one encoder, two on the Mac with the share copy.
