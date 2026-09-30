@@ -30,6 +30,7 @@ import {
   sceneLooks,
   smallFaces,
 } from './look.ts';
+import { report } from './findings.ts';
 import { holdScenes, holdTimings } from './testing.ts';
 
 const FPS = 30;
@@ -205,12 +206,12 @@ describe('ColourScript', () => {
     expect(Result.isFailure(swapped) && swapped.failure._tag).toBe('PartOutOfOrder');
   });
 
-  test('the look pass reports every finding as a warning', () => {
+  test('the look pass finds each kind, and the check levels every one a warning', () => {
     const jumps = handJumps(popping);
     const far = farHands(outOfReach);
     const hidden = hiddenHands(behind);
     const found = lookFindings({ looks, height: HEIGHT, jumps, far, hidden }, acts);
-    expect(found.map((r) => r.finding._tag)).toEqual([
+    expect(found.map((f) => f._tag)).toEqual([
       'HeldShare',
       'HeldShare',
       'FaceSmall',
@@ -221,7 +222,8 @@ describe('ColourScript', () => {
       'HandFar',
       'HandHidden',
     ]);
-    expect(found.every((r) => r.level === 'warning')).toBe(true);
+    const levels = report(found, { allowStale: false }).findings.map((r) => r.level);
+    expect(levels.every((l) => l === 'warning')).toBe(true);
   });
 
   test('the look-book prints a line per scene, per act and for the film', () => {

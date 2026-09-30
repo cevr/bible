@@ -5,11 +5,10 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Predicate, Result, Schema } from 'effect';
-import { layout } from '../core/layout.ts';
+import { filmEnd, layout } from '../core/layout.ts';
 import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
-import { filmEnd } from '../core/sound.ts';
 import { staticLeg } from './film-check.ts';
 import type { StaticFinding } from './findings.ts';
 import type { Media } from './media.ts';

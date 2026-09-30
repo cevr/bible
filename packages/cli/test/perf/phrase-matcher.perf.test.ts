@@ -8,11 +8,14 @@
  *  precomputed spans, so a regression that quietly makes them false invalidates
  *  the decision rather than merely slowing something down.
  *
- *  The thresholds here are deliberately loose multiples of the measured values.
- *  A perf test that fails on a busy laptop teaches everyone to ignore it; what
- *  this one has to catch is a *class* change — an accidental per-character
- *  normalization pass, an automaton rebuilt per paragraph, or a fallback to
- *  regex alternation — each of which costs an order of magnitude, not 30%.
+ *  What this has to catch is a *class* change — a trie that stops sharing
+ *  prefixes, a walk that backtracks per phrase, or a fallback to regex
+ *  alternation — each of which costs an order of magnitude, not 30%. So it
+ *  counts the work rather than timing it (the automaton's `edges` and the
+ *  `transitions` its walk takes): a count does not move when the machine is
+ *  busy, where a stopwatch fails on a loaded box and teaches everyone to
+ *  ignore it. (A rebuild per paragraph cannot happen: `matchSection` takes a
+ *  built automaton and never sees the dictionary.)
  */
 
 import {
@@ -21,18 +24,15 @@ import {
   PhraseDictionary,
   PhraseDictionaryEntry,
   normalizeAlias,
+  normalizeScan,
   topicSlug,
 } from '@bible/core/wiki';
-import { Clock, Duration, Effect, Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  Effect.gen(function* () {
-    const start = yield* Clock.currentTimeNanos;
-    const value = yield* effect;
-    const end = yield* Clock.currentTimeNanos;
-    return [value, Duration.toMillis(Duration.nanos(end - start))] as const;
-  });
+/** The transitions a walk over every text takes. */
+const transitions = (automaton: PhraseAutomaton, texts: readonly string[]) =>
+  texts.reduce((n, text) => n + automaton.transitions(normalizeScan(text)), 0);
 
 /** A dictionary the size §4.1 calls the realistic v1 ceiling and then some:
  *  1,000 phrases against a realistic 250-400, so the assertion holds with
@@ -84,51 +84,43 @@ const PARAGRAPH =
 
 const SCREENFUL: readonly string[] = Array.from({ length: 30 }, () => PARAGRAPH);
 
-/** Repetitions per measurement. A single screenful is sub-millisecond, and
- *  `Clock.currentTimeNanos` on this host quantizes to about that — so one pass
- *  measures 0.00 ms and the assertion becomes vacuous. Timing a hundred passes
- *  and dividing gives a number with signal in it. */
-const REPEATS = 100;
+/** The screenful's length in characters: what one pass of the walk steps over. */
+const SCREENFUL_CHARS = SCREENFUL.reduce((n, text) => n + text.length, 0);
 
 describe('phrase matcher performance (§4.1)', () => {
-  it.live('builds the automaton over 1,000 phrases in well under 20 ms', () =>
+  it.live('builds the automaton over 1,000 phrases, one trie edge per new character', () =>
     Effect.gen(function* () {
       const entries = dictionary(1000);
-      const [automaton, elapsed] = yield* timed(Effect.sync(() => PhraseAutomaton.make(entries)));
-      yield* Effect.logInfo(`perf.phraseAutomaton.build elapsedMs=${elapsed.toFixed(2)}`);
+      const automaton = PhraseAutomaton.make(entries);
+      const aliasChars = entries.entries.reduce((n, entry) => n + entry.alias.length, 0);
+      yield* Effect.logInfo(
+        `perf.phraseAutomaton.build edges=${automaton.edges} aliasChars=${aliasChars}`,
+      );
 
-      // Construct-once is the contract (§4.2); the measured build is ~1 ms and
-      // the bound is a class check, not a stopwatch.
-      expect(elapsed).toBeLessThan(20);
-      // The automaton is real, not an empty trie the timer flew through.
+      // A trie shares prefixes: never more edges than the aliases have
+      // characters (2,047 against 18,690 measured).
+      expect(automaton.edges).toBeLessThanOrEqual(aliasChars);
+      // The automaton is real, not an empty trie.
       expect(matchSection(automaton, [PARAGRAPH])[0]?.length).toBeGreaterThan(0);
     }),
   );
 
-  it.live('matches a 30-paragraph screenful in well under 5 ms', () =>
+  it.live('matches a 30-paragraph screenful in about one transition per character', () =>
     Effect.gen(function* () {
       const automaton = PhraseAutomaton.make(dictionary(1000));
-      const [spans, total] = yield* timed(
-        Effect.sync(() => {
-          let last = matchSection(automaton, SCREENFUL);
-          for (let pass = 1; pass < REPEATS; pass += 1) {
-            last = matchSection(automaton, SCREENFUL);
-          }
-          return last;
-        }),
-      );
-      const elapsed = total / REPEATS;
+      const spans = matchSection(automaton, SCREENFUL);
+      const steps = transitions(automaton, SCREENFUL);
       yield* Effect.logInfo(
-        `perf.phraseMatcher.screenful elapsedMs=${elapsed.toFixed(3)} runs=${String(spans.length)}`,
+        `perf.phraseMatcher.screenful steps=${steps} chars=${SCREENFUL_CHARS} runs=${String(spans.length)}`,
       );
 
-      // 0.38 ms measured on an M4 Pro; 5 ms catches the order-of-magnitude
-      // regressions this test exists for without flaking on a loaded machine.
-      expect(elapsed).toBeLessThan(5);
+      // Aho-Corasick steps each character once, plus a failure link now and
+      // then: a walk that backtracks per phrase costs a multiple.
+      expect(steps).toBeGreaterThanOrEqual(SCREENFUL_CHARS);
+      expect(steps).toBeLessThan(2 * SCREENFUL_CHARS);
       expect(spans.length).toBe(30);
       // §4.5 across the section: the six distinct phrases are hot in the first
-      // paragraph and cold in the other twenty-nine — which is also why the
-      // later paragraphs cost the match loop and not the span allocator.
+      // paragraph and cold in the other twenty-nine.
       expect(spans[0]?.length).toBe(6);
       expect(spans.slice(1).every((run) => run.length === 0)).toBe(true);
     }),
@@ -137,30 +129,16 @@ describe('phrase matcher performance (§4.1)', () => {
   it.live('stays flat as the dictionary grows', () =>
     Effect.gen(function* () {
       // §4.1's load-bearing property: Aho-Corasick is flat in dictionary size
-      // (11.9 µs at 100 phrases, 16.3 µs at 2,000) where regex alternation
-      // degrades superlinearly (13 µs → 603 µs). A rewrite that reintroduced
-      // alternation would pass the absolute bound above on a fast machine and
-      // fail here.
-      const small = PhraseAutomaton.make(dictionary(100));
-      const large = PhraseAutomaton.make(dictionary(2000));
-
-      const measure = (automaton: PhraseAutomaton) =>
-        timed(
-          Effect.sync(() => {
-            for (let pass = 0; pass < REPEATS; pass += 1) matchSection(automaton, SCREENFUL);
-          }),
-        );
-
-      const [, smallMs] = yield* measure(small);
-      const [, largeMs] = yield* measure(large);
+      // where regex alternation degrades superlinearly (13 µs → 603 µs from
+      // 100 to 2,000 phrases). The walk over the same text takes as many
+      // transitions against a dictionary twenty times the size.
+      const smallSteps = transitions(PhraseAutomaton.make(dictionary(100)), SCREENFUL);
+      const largeSteps = transitions(PhraseAutomaton.make(dictionary(2000)), SCREENFUL);
       yield* Effect.logInfo(
-        `perf.phraseMatcher.scaling smallMs=${(smallMs / REPEATS).toFixed(3)} ` +
-          `largeMs=${(largeMs / REPEATS).toFixed(3)}`,
+        `perf.phraseMatcher.scaling smallSteps=${smallSteps} largeSteps=${largeSteps}`,
       );
 
-      // A 20x dictionary must not cost 20x. The generous factor absorbs timer
-      // noise; alternation's measured 46x would not fit inside it.
-      expect(largeMs).toBeLessThan(smallMs * 8);
+      expect(largeSteps).toBeLessThanOrEqual(smallSteps * 1.25);
     }),
   );
 });

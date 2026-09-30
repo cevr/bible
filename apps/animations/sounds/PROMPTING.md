@@ -30,7 +30,7 @@ Before you declare new settings, run `sfx try <name> --influence … --secs … 
 
 ## What measuring caught that listening would miss
 
-The trials measured each take with throwaway scripts; `sfx list` and `sfx check` report only loudness and loop seams. The measures were:
+The trials measured each take with throwaway scripts; `sfx list` and `sfx check` report loudness, loop seams and each one-shot's start and hit (the lock's `onset` and `hit`, which `sync: 'hit'` placements land on). The measures were:
 
 - integrated and momentary-max loudness;
 - start time and peak time;

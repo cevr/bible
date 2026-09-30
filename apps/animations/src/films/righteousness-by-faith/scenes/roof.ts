@@ -30,6 +30,7 @@ import {
   camera,
   drawing,
   knobCamera,
+  pushOn,
   pushInto,
   shotPath,
   stroke,
@@ -122,6 +123,8 @@ const knobs = {
   ariseZoom: 1.7,
   // The row of icons along the top, over the story.
   band: [960, 262],
+  // How far each held close-up keeps pushing in while it is on screen.
+  pushOn: 1.12,
 } as const;
 
 type RoofFrame = Frame<keyof typeof timeline & string, typeof knobs>;
@@ -136,8 +139,6 @@ const FAITH: Camera = {
 };
 /** The window into the house inside the icon's disc, in the icon's units: just inside its rim. */
 const WINDOW_R = 140;
-/** How far each held close-up keeps pushing in while it is on screen. */
-const PUSH_ON = 1.12;
 /** The band row's scale over the story, and how far above the frame it waits. */
 export const BAND_S = 0.32;
 const BAND_ABOVE = -120;
@@ -301,14 +302,18 @@ const replay = (f: RoofFrame) => {
   if (t < f.mark('two')) {
     // One: up on the four faces at the hole, as Jesus saw their faith, lit as its icon lights.
     s.holeLit = f.at('oneLit');
-    s.cam = held(knobCamera(f.knob('up'), f.knob('upZoom')), f.at('oneHold'));
+    s.cam = pushOn(knobCamera(f.knob('up'), f.knob('upZoom')), f.knob('pushOn'), f.at('oneHold'));
   } else if (t < f.mark('three')) {
     // Two: close on his face as the specks lift, and the robe comes over him.
     s.reach = 1;
     s.specks = f.at('twoSpecks');
     s.robed = f.at('robed');
     s.glad = clamp(2 * s.specks - 1);
-    s.cam = held(knobCamera(f.knob('manFace'), f.knob('manFaceZoom')), f.at('twoHold'));
+    s.cam = pushOn(
+      knobCamera(f.knob('manFace'), f.knob('manFaceZoom')),
+      f.knob('pushOn'),
+      f.at('twoHold'),
+    );
   } else {
     // The robe he was given, and his heart lit as he stands.
     s.robed = 1;
@@ -330,13 +335,6 @@ const replay = (f: RoofFrame) => {
   }
   house(ctx, w, h, f.hand, s);
 };
-
-/** A framing held, breathing in by `PUSH_ON` as `k` goes 0..1. */
-const held = (cam: Camera, k: number): Camera => ({
-  x: cam.x,
-  y: cam.y,
-  zoom: (cam.zoom ?? 1) * lerp(1, PUSH_ON, k),
-});
 
 /**
  * The band of three icons along the top, from "count", the unlit faded: each

@@ -5,11 +5,10 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Fiber, Layer, Option, Result, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
-import { layout } from '../core/layout.ts';
+import { filmEnd, layout } from '../core/layout.ts';
 import { MIX_RATE, mixKey } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
-import { filmEnd } from '../core/sound.ts';
 import { MediaFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';

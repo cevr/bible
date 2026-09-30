@@ -25,13 +25,13 @@ const PAPER = -24;
 export const sound: Sound = {
   score: { play: 'piano', under: -18, options: { piano: {}, strings: {} } },
   beds: [
-    { sound: 'room.paper', level: PAPER, from: { scene: 'a' } },
-    { sound: 'amb.hall', level: -30, from: { scene: 'b' } },
-    { sound: 'amb.wind', from: { scene: 'c' } },
-    { sound: 'amb.rain', level: PAPER - 2, from: { scene: 'd' } },
+    { sound: 'room.paper', level: PAPER, from: { scene: 'a', at: 'start' } },
+    { sound: 'amb.hall', level: -30, from: { scene: 'b', at: 'start' } },
+    { sound: 'amb.wind', from: { scene: 'c', at: 'start' } },
+    { sound: 'amb.rain', level: PAPER - 2, from: { scene: 'd', at: 'start' } },
   ],
   effects: {
-    page: { sound: 'tone.chime', level: -20, at: [{ scene: 'a' }] },
+    page: { sound: 'tone.chime', level: -20, at: [{ scene: 'a', at: 'start' }] },
   },
 };
 `;

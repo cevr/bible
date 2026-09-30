@@ -20,10 +20,10 @@ export const scene = drawing({
     far: { mark: 'go', offset: 1.4, dur: 0.4 }, // RED film/no-hand-timed-seconds
     early: { mark: 'go', offset: -1.2, dur: 0.4 }, // RED film/no-hand-timed-seconds
     word: { mark: 'go', word: 'then', offset: -0.2, dur: 0.4 },
-    held: { scene: 'start', offset: 10, dur: 1.2 }, // RED film/no-hand-timed-seconds
-    voice: { scene: 'speech', offset: 2.5, dur: 1 }, // RED film/no-hand-timed-seconds
-    open: { scene: 'start', offset: 0.2, dur: 1 },
-    after: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
+    held: { at: 'start', offset: 10, dur: 1.2 }, // RED film/no-hand-timed-seconds
+    voice: { at: 'speech', offset: 2.5, dur: 1 }, // RED film/no-hand-timed-seconds
+    open: { at: 'start', offset: 0.2, dur: 1 },
+    after: { at: 'speechEnd', offset: 7.9, dur: 1.2 },
     chained: { after: 'held', offset: 0.6, dur: 4.5 },
     farConst: { mark: 'go', offset: LATE, dur: 0.4 }, // RED film/no-hand-timed-seconds
   },

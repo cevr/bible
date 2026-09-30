@@ -116,7 +116,8 @@ const timeline = {
   holdUp: { mark: 'saviour', dur: 0.6, ends: true, ease: 'outBack' },
   // Their hands go up to where the stack comes down into them, and down once it has slid off.
   handsUp: { mark: 'saviour', offset: -0.9, dur: 0.8, ease: 'inOutSine' },
-  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear' },
+  // The stack slides off one piece at a time, each falling over the rest of the cue.
+  slide: { mark: 'saviour', word: 'said', offset: -0.2, dur: 1.3, ease: 'linear', stagger: 0.41 },
   armsDown: { after: 'slide', dur: 0.5 },
   handsDown: { after: 'slide', dur: 0.8, ease: 'inOutSine' },
   // As the stack goes, their near hand comes down open, and the camera
@@ -145,12 +146,12 @@ const timeline = {
   // After the last word: the face gives way to faith's icon close, pulled back
   // to the row, faith glowing; for a breath, under it, the four faces at the
   // hole in the roof, lit gold (the callback to `roof`).
-  toIcons: { scene: 'speechEnd', offset: 0.1, dur: 0.4 },
-  pullBack: { scene: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
+  toIcons: { at: 'speechEnd', offset: 0.1, dur: 0.4 },
+  pullBack: { at: 'speechEnd', offset: 0.1, dur: 0.9, ease: 'inOutSine' },
   // Faith pops forward in gold as the row settles, the other two faded back.
-  iconGlow: { scene: 'speechEnd', offset: 0.3, dur: 0.6, ease: 'outBack' },
-  hole: { scene: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
-  holeOut: { scene: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
+  iconGlow: { at: 'speechEnd', offset: 0.3, dur: 0.6, ease: 'outBack' },
+  hole: { at: 'speechEnd', offset: 1, dur: 0.6, ease: 'inOutSine' },
+  holeOut: { at: 'end', offset: -0.6, dur: 0.5, ease: 'inOutSine' },
 } as const;
 const knobs = {
   pole: [1180, 930],
@@ -227,7 +228,7 @@ export const look = drawing({
           // The stack: held up, then sliding off one piece at a time.
           if (up > 0 || slide > 0)
             STACK.forEach(([kind, dx], i) => {
-              const fall = clamp(slide * 1.7 - i * 0.13);
+              const fall = f.stagger('slide', i, STACK.length);
               const x0 = dx;
               const y0 = bottom - i * 22;
               const x = lerp(x0, 70 + i * 26, fall);

@@ -348,8 +348,8 @@ const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
  * after it (a word pin, for a beat on a word that has no mark:
  * `{ mark: 'gift', word: 'faith' }`; a line that never says it there is
  * `WordMissing` at layout), at the end of another cue (`after`), at its start
- * (`with`), or at a scene landmark (its start, where the voice starts or
- * ends, or its end). Each anchor is a `ScenePoint` (`anchorPoint`), resolved
+ * (`with`), or at a scene landmark (`at`: its start, where the voice starts
+ * or ends, or its end). Each anchor is a `ScenePoint` (`anchorPoint`), resolved
  * as every other point in a scene is.
  */
 export const Span = Schema.Union([
@@ -360,7 +360,7 @@ export const Span = Schema.Union([
   }),
   ...anchored({ after: Schema.String }),
   ...anchored({ with: Schema.String }),
-  ...anchored({ scene: Landmark }),
+  ...anchored({ at: Landmark }),
 ]);
 export type Span = typeof Span.Type;
 
@@ -426,6 +426,15 @@ export const Beat = Schema.Struct({
 export type Beat = typeof Beat.Type;
 
 /**
+ * A film's script: its beats in order, each id kept as written, so a
+ * registry keyed by beat (`scenesOf`'s drawings, a light per scene) names only
+ * beats the script has. An identity.
+ */
+export const defineScript = <const Id extends string>(
+  beats: ReadonlyArray<Beat & { readonly id: Id }>,
+): ReadonlyArray<Beat & { readonly id: Id }> => beats;
+
+/**
  * `script.ts`'s optional `heardAs`: a word of the script (a name, mostly) and
  * the ways speech-to-text writes it, so a take that reads it right is not a
  * mismatch: `{ Ellet: ['Elliot', 'Elliott'] }`.
@@ -481,13 +490,12 @@ const inScene = { scene: Schema.String, offset: Schema.optionalKey(Schema.Finite
  * A moment on the film clock: a scene, a point in it (`ScenePoint`: a mark,
  * a named cue's edge or a landmark such as `speech`), and an offset in
  * seconds: `{ scene: 'mirror', at: 'speech' }`, `{ scene: 'roof', cue: 'lower' }`.
- * A cue that names only its scene is at the scene's start.
+ * The scene's start is a landmark like the rest: `{ scene: 'cold', at: 'start' }`.
  */
 export const Cue = Schema.Union([
   Schema.Struct({ ...inScene, ...onMark }),
   Schema.Struct({ ...inScene, ...onCue }),
   Schema.Struct({ ...inScene, ...onLandmark }),
-  Schema.Struct({ ...inScene, mark: none, word: none, cue: none, edge: none, at: none }),
 ]);
 export type Cue = typeof Cue.Type;
 
@@ -546,6 +554,13 @@ export const SoundEffect = Schema.Struct({
   sound: Schema.String,
   /** Its level in dB relative to the voice; else the library's, else the one-shot default. */
   level: Schema.optionalKey(Schema.Finite),
+  /**
+   * What lands on each cue: `'hit'`, the take's loudest moment (its lead-in
+   * played before it, as the lock records it, so a take with a slow start
+   * needs no hand offset and a kept take swapped for another stays on the
+   * cue); `'start'` (the default), its first sample.
+   */
+  sync: Schema.optionalKey(Schema.Literals(['start', 'hit'])),
   at: Schema.Array(Cue),
 });
 export type SoundEffect = typeof SoundEffect.Type;

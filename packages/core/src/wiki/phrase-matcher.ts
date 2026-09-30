@@ -33,6 +33,7 @@
  */
 
 import { Schema } from 'effect';
+import { constVoid } from 'effect/Function';
 
 import type { Node as EgwNode, Text as EgwText } from '../egw/ast.js';
 import type { TextSegment } from '../bible-rendering/segments.js';
@@ -179,16 +180,45 @@ export class PhraseAutomaton {
     return new PhraseAutomaton(nodes);
   };
 
+  /** The trie's edges: one per distinct alias prefix, so never more than the
+   *  aliases have characters. What the build cost, as a count. */
+  get edges(): number {
+    return this.nodes.length - 1;
+  }
+
   /** Every dictionary hit in one normalized run, in end-position order, before
    *  §4.4 and §4.5 have had their say. Boundary-invalid hits are dropped here
    *  because a phrase inside a longer word is not a hit at all (§4.3 "matches
    *  only on word boundaries"), not a hit that loses a tie-break. */
   candidates(run: NormalizedText): readonly Candidate[] {
     const found: Candidate[] = [];
+    this.walk(run, (outputs, end) => {
+      // One end position is a boundary or it is not, so the test that does not
+      // depend on the pattern is hoisted out of the pattern loop.
+      if (isBoundaryAt(run.text, end)) pushHits(run, end, outputs, found);
+    });
+    return found;
+  }
+
+  /** How many transitions (a goto or a failure link, each one) the walk over
+   *  `run` takes: about one a character, whatever the dictionary's size. The
+   *  matcher's cost as a count, which a busy machine does not move. */
+  transitions(run: NormalizedText): number {
+    return this.walk(run, constVoid);
+  }
+
+  /** Steps the automaton over `run`, handing `visit` the patterns that end at
+   *  each position that has any; returns the transitions it took. */
+  private walk(
+    run: NormalizedText,
+    visit: (outputs: readonly Pattern[], end: number) => void,
+  ): number {
     let node = ROOT;
+    let taken = 0;
     for (let index = 0; index < run.text.length; index += 1) {
       const character = run.text.charAt(index);
       for (;;) {
+        taken += 1;
         const next = this.at(node).next.get(character) ?? NO_NODE;
         if (next !== NO_NODE) {
           node = next;
@@ -198,13 +228,9 @@ export class PhraseAutomaton {
         node = this.at(node).failure;
       }
       const outputs = this.at(node).outputs;
-      if (outputs.length === 0) continue;
-      // One end position is a boundary or it is not, so the test that does not
-      // depend on the pattern is hoisted out of the pattern loop.
-      if (!isBoundaryAt(run.text, index + 1)) continue;
-      pushHits(run, index + 1, outputs, found);
+      if (outputs.length > 0) visit(outputs, index + 1);
     }
-    return found;
+    return taken;
   }
 }
 

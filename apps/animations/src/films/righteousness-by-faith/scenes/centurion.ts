@@ -20,7 +20,7 @@ import {
   shotPath,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, lerp, rng } from '@bible/film/core';
+import { clamp, lerp, rng } from '@bible/film/core';
 import {
   type GestureAt,
   type Hands,
@@ -158,6 +158,9 @@ const timeline = {
   handShot: { mark: 'room', word: 'room', dur: 1.2, ease: 'outCubic' },
   open: { mark: 'def', dur: 0.6 },
   settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
+  // The word's fall into the palm, beside its glide across: down fast, then
+  // resting, so its path arcs over into the hand.
+  drop: { with: 'settle', dur: 1.5, ease: 'outExpo' },
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
   // Faith's disc opens on the word in his hand and pulls back to the row's
   // place; the robe and the heart pop in beside it as it settles, so no disc
@@ -467,7 +470,7 @@ const street = (f: CenturionFrame, hand: Hands) => {
               ctx,
               {
                 x: lerp(palm[0] + 260, palm[0], settle),
-                y: lerp(palm[1] - 320, palm[1], ease.outCubic(settle)) + 3 * Math.sin(t * 2),
+                y: lerp(palm[1] - 320, palm[1], f.at('drop')) + 3 * Math.sin(t * 2),
                 rot: 0.3 * (1 - settle),
               },
               () => wordLight(ctx, hand('held'), 0.4, lerp(0.6, 1, settle)),

@@ -78,7 +78,7 @@ const timeline = {
   shrink: { mark: 'never', dur: 1.5, ease: 'inOutCubic' },
   heart: { mark: 'write', offset: -0.1, dur: 0.5, ease: 'outBack' },
   // `robe`'s row: the woman's plate goes as the row settles, and the heart lights on "power".
-  settle: { scene: 'start', dur: 0.8, ease: 'inOutCubic' },
+  settle: { at: 'start', dur: 0.8, ease: 'inOutCubic' },
   heartLit: { mark: 'power', dur: 0.55, ease: 'outBack' },
   toPage: { mark: 'out', offset: -0.3, dur: 0.4 },
   // The row again on "bed", the callback to `roof`'s house under the heart:

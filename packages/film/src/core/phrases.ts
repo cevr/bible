@@ -8,6 +8,7 @@
 import { Array as Arr, Option } from 'effect';
 import type { CaptionCue } from './captions.ts';
 import type { Placed } from './layout.ts';
+import { CLAUSE, SENTENCE } from './narration.ts';
 import type { Word } from './schema.ts';
 import type { ResolvedShort } from './shorts.ts';
 import { heard } from './voiced.ts';
@@ -31,11 +32,6 @@ export interface Phrase {
 
 /** A lone word joins a neighbour only across a pause in the voice of at most this, in seconds. */
 export const PHRASE_GAP = 0.3;
-
-/** A sentence ends here: on a full stop, a question or an exclamation (a closing quote or bracket may follow). */
-const SENTENCE = /[.?!][”’"')\]]*$/;
-/** A clause ends here: on a comma, a dash, a colon, a semicolon or an ellipsis. */
-const CLAUSE = /[,—–;:…][”’"')\]]*$/;
 
 /** Whether each word sits inside a quotation: from the word that opens “ to the one that closes ”. */
 export const quotedWords = (words: ReadonlyArray<Word>): ReadonlyArray<boolean> => {

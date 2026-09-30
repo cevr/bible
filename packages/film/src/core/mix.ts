@@ -23,7 +23,7 @@ import {
   type UnknownSound,
   type WordMissing,
 } from './errors.ts';
-import type { Placed } from './layout.ts';
+import { type Placed, filmEnd } from './layout.ts';
 import { hashText } from './narration.ts';
 import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundManifest } from './schema.ts';
@@ -44,7 +44,7 @@ import {
 } from './sfx.ts';
 import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
-import { cueTime, filmEnd, playedOption, scoreOptionState } from './sound.ts';
+import { cueTime, playedOption, scoreOptionState } from './sound.ts';
 
 /** Every mix runs at this rate; the takes, score and library sounds are made at it. */
 export const MIX_RATE = 44100;
@@ -182,7 +182,14 @@ const variantsFor = (
 interface Pending extends Placing {
   readonly playables: ReadonlyArray<Playable>;
   readonly level: number;
+  readonly sync: 'start' | 'hit';
 }
+
+/** How far before its cue a variant starts: its hit, for a `sync: 'hit'` placement. */
+const leadOf = (p: Pending, playable: Playable): number => {
+  if (p.sync === 'start') return 0;
+  return Option.getOrElse(playable.hit, () => 0);
+};
 
 /** Each effect on each of its cues, its variant chosen and nudged, levelled against the voice. */
 const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>) =>
@@ -193,6 +200,9 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
       const playables = variantsFor(input.sounds, fx.sound, entry, warnings);
       if (playables.length === 0) continue;
       const level = levelOf(entry, Option.fromUndefinedOr(fx.level));
+      const sync = fx.sync ?? 'start';
+      if (sync === 'hit' && playables.some((p) => Option.isNone(p.hit)))
+        warnings.push(`mix.unsynced sound=${fx.sound} hint="run sfx describe"`);
       for (const cue of fx.at)
         pending.push({
           effect: id,
@@ -200,6 +210,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
           at: yield* cueTime(cue, input.placed),
           playables,
           level,
+          sync,
         });
     }
     const played = playPlacings(
@@ -219,7 +230,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
             (playable): Placement<SoundSource> => ({
               name: p.effect,
               sound: playable.source,
-              at: p.at + choice.delay,
+              at: p.at + choice.delay - leadOf(p, playable),
               gain: gainFor(p.level, playable.loudness, 'one-shot') * 10 ** (choice.gain / 20),
               pitch: choice.pitch,
             }),

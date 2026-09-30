@@ -248,6 +248,18 @@ export const knobCamera = (
 ): Camera => (rot === undefined ? { x, y, zoom } : { x, y, zoom, rot });
 
 /**
+ * A held framing that keeps pushing in while it is on screen: `cam`, its zoom
+ * grown by `by` (a number knob, `1.12` for an eighth closer) as `k` goes 0..1
+ * (the hold's cue):
+ * `pushOn(knobCamera(f.knob('face'), f.knob('faceZoom')), f.knob('pushOn'), f.at('hold'))`.
+ * A fresh camera; `cam` is not written.
+ */
+export const pushOn = (cam: Camera, by: number, k: number): Camera => ({
+  ...cam,
+  zoom: (cam.zoom ?? 1) * lerp(1, by, k),
+});
+
+/**
  * `out` part way from camera `a` to `b` at `t` (0 is `a`, 1 is `b`), every
  * field blended, a missing zoom read as 1 and a missing turn as 0. `out` may
  * be `a`: each field is read before it is written.

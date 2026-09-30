@@ -14,13 +14,19 @@ const BRIEF_WIDTH = 1080;
 /** From the first baseline to the card's lower margin. */
 const BRIEF_HEIGHT = 340;
 
+/** The card's type: the families its brief and its label are set in (the film's own). */
+export interface CardType {
+  readonly brief: string;
+  readonly label: string;
+}
+
 /**
  * The brief's type, a size small enough that the whole brief fits on the
  * card: a long brief never runs off it into the captions.
  */
-const briefStyle = (ctx: CanvasRenderingContext2D, picture: string): TextStyle => {
+const briefStyle = (ctx: CanvasRenderingContext2D, picture: string, family: string): TextStyle => {
   const at = (size: number): TextStyle => ({
-    family: 'Fraunces',
+    family,
     size,
     color: '#2a3440',
     leading: 1.35,
@@ -31,7 +37,12 @@ const briefStyle = (ctx: CanvasRenderingContext2D, picture: string): TextStyle =
   return at(size);
 };
 
-export const storyboard = (id: string, picture: string): Omit<SceneSpec, 'id' | 'say'> => ({
+/** Beat `id`'s card: its id and its picture brief, set in `type`. */
+export const storyboard = (
+  id: string,
+  picture: string,
+  type: CardType,
+): Omit<SceneSpec, 'id' | 'say'> => ({
   storyboard: true,
   enter: { kind: 'fade', dur: 0.4 },
   draw: (f) => {
@@ -51,12 +62,21 @@ export const storyboard = (id: string, picture: string): Omit<SceneSpec, 'id' | 
         `storyboard · ${id}`,
         420,
         330,
-        { family: 'Inter', size: 28, weight: 600, color: '#b5533c', tracking: 0.08 },
+        { family: type.label, size: 28, weight: 600, color: '#b5533c', tracking: 0.08 },
         f.hand('id'),
       );
-      block(ctx, picture, 420, 400, BRIEF_WIDTH, briefStyle(ctx, picture), f.hand('brief'), {
-        boil: 0.3,
-      });
+      block(
+        ctx,
+        picture,
+        420,
+        400,
+        BRIEF_WIDTH,
+        briefStyle(ctx, picture, type.brief),
+        f.hand('brief'),
+        {
+          boil: 0.3,
+        },
+      );
     });
   },
 });

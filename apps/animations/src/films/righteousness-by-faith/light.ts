@@ -9,7 +9,8 @@
 //   - faith: a hazed noon, the dark world's own black in `spoke`;
 //   - forgiveness, the valley: sunset on `declared` and the cross, the court
 //     at first light after it, and the day coming up in `robe` as the loom
-//     weaves, so the robe is white again when it settles on him;
+//     weaves (its drawing's own light), so the robe is white again when it
+//     settles on him;
 //   - power: early gold morning, warm cream;
 //   - landing: teal day, the lightest touch.
 // As the ground lifts (`GROUND` in palette.ts), each light lifts with it: its
@@ -19,15 +20,12 @@
 // valley rises by about as much as the acts round it and stays as far below
 // them. Every act gets lighter and their order and gaps hold.
 
-import { type Frame, type Light, mix } from '@bible/film/canvas';
+import { type Light, mix } from '@bible/film/canvas';
 import { membersOf } from '@bible/film/core';
-import { Option, Result } from 'effect';
+import { Result } from 'effect';
 import { type ActName, look } from './acts.ts';
 import { LIFT } from './palette.ts';
-import { script } from './script.ts';
-
-/** How much of the first light is left once `robe`'s loom has woven: the rest is day. */
-const WOVEN = 0.5;
+import { type BeatId, script } from './script.ts';
 
 /** The share of the lift the valley's lights (sunset, first light) take. */
 const VALLEY = 0.5;
@@ -50,14 +48,6 @@ export const LIGHT = {
   day: lit('#f6f8f7', '#d6e0dd'),
 } as const satisfies Record<string, Light>;
 
-/** `robe`'s first light, its amount rewritten each frame (scratch). */
-const DAWN = { ...LIGHT.firstLight, amount: 1 };
-/** The first light lifting as the loom weaves the robe. */
-const dawn = (f: Frame): Light => {
-  DAWN.amount = 1 - (1 - WOVEN) * f.at('weave');
-  return DAWN;
-};
-
 /** Each act's light (`acts.ts` declares the acts and the scenes they hold). */
 const byAct: Readonly<Record<ActName, Light>> = {
   'cold open': LIGHT.room,
@@ -68,26 +58,24 @@ const byAct: Readonly<Record<ActName, Light>> = {
   landing: LIGHT.day,
 };
 
-/** A scene's light: fixed, or read from its frame. */
-type SceneLight = Light | ((f: Frame) => Light);
+/**
+ * The scenes lit apart from their act: the valley's court at first light. A
+ * light that changes on a scene's own cue (`robe`'s dawn as the loom weaves)
+ * is that drawing's `light`, typed by its cues.
+ */
+const byScene: Partial<Record<BeatId, Light>> = {
+  accuser: LIGHT.firstLight,
+};
 
-/** The scenes lit apart from their act: the valley's court at first light, and `robe`'s dawn. */
-const byScene: ReadonlyMap<string, SceneLight> = new Map<string, SceneLight>([
-  ['accuser', LIGHT.firstLight],
-  ['robe', dawn],
-]);
-
-/** Each scene's light: its own where `byScene` names one, else its act's. */
-export const lights: ReadonlyMap<string, SceneLight> = new Map(
+/** Each scene's act light. */
+const byActOf: ReadonlyMap<string, Light> = new Map(
   Result.getOrThrow(
     membersOf(
       look.acts,
       script.map((beat) => beat.id),
     ),
-  ).flatMap(({ part, scenes }) =>
-    scenes.map((id): readonly [string, SceneLight] => [
-      id,
-      Option.getOrElse(Option.fromUndefinedOr(byScene.get(id)), () => byAct[part.name]),
-    ]),
-  ),
+  ).flatMap(({ part, scenes }) => scenes.map((id) => [id, byAct[part.name]] as const)),
 );
+
+/** A scene's light, where its drawing brings none: its own where `byScene` names one, else its act's. */
+export const lightOf = (id: BeatId): Light | undefined => byScene[id] ?? byActOf.get(id);

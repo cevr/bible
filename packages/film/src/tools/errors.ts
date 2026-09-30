@@ -61,10 +61,6 @@ export {
   VerbRefused,
 } from '../core/refusals.ts';
 
-// The look pass's findings, for the modules that import them from here; they
-// are declared, levelled and addressed with every other finding in findings.ts.
-export { ColourScript, FaceSmall, HandFar, HandHidden, HandJump, HeldShare } from './findings.ts';
-
 // ---------------------------------------------------------------------------
 // The sound library (`sounds/`): what `sfx check` and `film check` report.
 
@@ -159,6 +155,28 @@ export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
 }) {
   override get message() {
     return `bed "${this.name}" variant ${this.variant}: its loop point jumps ${this.db.toFixed(1)} dB with a ${this.click.toFixed(1)}x step; pick another take or trim it`;
+  }
+}
+
+/** A one-shot's kept take whose sound starts late in its file: placed from its start, it is heard late on its cue. */
+export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
+  name: Schema.String,
+  variant: Schema.Int,
+  onset: Schema.Finite,
+  hit: Schema.Finite,
+}) {
+  override get message() {
+    return `one-shot "${this.name}" variant ${this.variant}: its sound starts ${Math.round(this.onset * 1000)} ms in and hits at ${this.hit.toFixed(2)} s; place it with sync: 'hit', or keep a tighter take`;
+  }
+}
+
+/** A kept take whose onset and hit the lock does not record: a `sync: 'hit'` placement cannot land it. */
+export class TimingUnrecorded extends Schema.TaggedError<TimingUnrecorded>()('TimingUnrecorded', {
+  name: Schema.String,
+  variant: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" variant ${this.variant}: no onset or hit in the lock; run sfx describe (free)`;
   }
 }
 

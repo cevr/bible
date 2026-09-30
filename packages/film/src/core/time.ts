@@ -73,6 +73,17 @@ export const envelope = (
 export const gait = (t: number, walk: { readonly start: number; readonly end: number }): number =>
   t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
 
+/**
+ * 0→1 for the item at `at` (0 the first, 1 the last) of a set spread over a
+ * progress `p`: the items' starts spread over the first `share` of `p` and
+ * each lasts the rest, so the last ends with it. A set's own stagger, for
+ * sets that take a number (`dawn`'s land, the roof's tiles); a scene reads
+ * a cue's with `f.stagger` or `f.staggerAt`, where the lab can reach it.
+ * A `share` of 1 starts every item at once, at its place.
+ */
+export const staggered = (p: number, at: number, share: number): number =>
+  share >= 1 ? (p >= at ? 1 : 0) : clamp((p - share * at) / (1 - share));
+
 /** A keyframe: its time, its value, and the ease (by name, as data) of the segment arriving at it. */
 export type Key = readonly [time: number, value: number, ease?: EaseName];
 

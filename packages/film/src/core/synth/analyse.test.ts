@@ -31,6 +31,19 @@ describe('describeSound', () => {
     expect(hiss.centroid).toBeGreaterThan(9000);
   });
 
+  test('the hit is where the sound is loudest, however soft its lead-in', () => {
+    const plane = new Float32Array(RATE * 2);
+    // A soft swell from 0.2 s, then a hit at 1.3 s.
+    plane.set(
+      sine(440, 1.1).map((v) => v * 0.1),
+      Math.round(RATE * 0.2),
+    );
+    plane.set(sine(440, 0.1), Math.round(RATE * 1.3));
+    const d = describeSound(mono(plane));
+    expect(d.onset).toBeCloseTo(0.2, 1);
+    expect(d.hit).toBeCloseTo(1.3, 1);
+  });
+
   test('onset and end find the sound inside its silence', () => {
     const plane = new Float32Array(RATE * 2);
     plane.set(sine(440, 0.5), RATE / 2);

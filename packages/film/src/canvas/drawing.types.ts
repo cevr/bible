@@ -9,7 +9,7 @@ export const declared = drawing({
     stamp: { mark: 'justified' },
     cord: { after: 'stamp', dur: 0.4 },
     thud: { with: 'cord', offset: 0.1 },
-    fade: { scene: 'speechEnd' },
+    fade: { at: 'speechEnd' },
   },
   draw: (f) => {
     f.cue('stamp');
@@ -67,5 +67,17 @@ export const knobless = drawing({
   draw: (f) => {
     // @ts-expect-error: a drawing with no knobs has no `f.knob` names.
     f.knob('handY');
+  },
+});
+
+export const callback = drawing({
+  timeline: {},
+  draw: (f) => {
+    // Another scene's knobs read by its drawing, typed as it declares them.
+    const theirs = f.knobsOf(knobbed);
+    is<number>()(theirs('handY'));
+    is<readonly [number, number]>()(theirs('quoteAt'));
+    // @ts-expect-error: `f.knobsOf` names only the knobs that drawing declares.
+    theirs('handX');
   },
 });

@@ -10,6 +10,7 @@ import { sceneCaptions } from '../core/captions.ts';
 import {
   type Placed,
   everyTakeRecorded,
+  filmEnd,
   layout,
   sceneClock,
   sceneIndexAt,
@@ -27,7 +28,13 @@ import type {
   Timings,
   Word,
 } from '../core/schema.ts';
-import { cueKeys, cueProgress, resolveTimeline, staggerProgress } from '../core/timeline.ts';
+import {
+  cueKeys,
+  cueProgress,
+  resolveTimeline,
+  staggerAt,
+  staggerProgress,
+} from '../core/timeline.ts';
 import {
   type Grain,
   type Offscreen,
@@ -88,6 +95,12 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * and each lasts the rest, so a `dur` edit scales every item.
    */
   stagger(name: C, i: number, n: number): number;
+  /**
+   * 0→1 for the item at `at` (0 the first, 1 the last) across a named cue
+   * (`staggerAt`): `f.stagger` for a set spread by place rather than count,
+   * `f.staggerAt('green', field.reach)`.
+   */
+  staggerAt(name: C, at: number): number;
   /** A knob the drawing declares (`knobs: { handY: 800 }`): a number or a point. */
   knob<N extends keyof K & string>(name: N): KnobValue<K[N]>;
   /** The spoken words, scene-local. */
@@ -106,7 +119,37 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs> {
    * scene the film lacks.
    */
   handsOf(scene: string): (key: string | number) => Hand;
+  /**
+   * Another scene's knobs, as that scene reads them on this frame (a lab
+   * edit to them included), found by its drawing: a callback that frames
+   * what another scene framed reads it there, so a drag of that knob moves
+   * both: `f.knobsOf(thesis)('city')`. Throws, naming it, for a drawing no
+   * scene of the film draws, or that more than one does.
+   */
+  knobsOf<K extends Knobs>(drawing: KnobsOwner<K>): KnobReader<K>;
 }
+
+/** A scene's knobs, read by name as its drawing declares them; a name it lacks throws. */
+function knobReader<K extends Knobs>(
+  knobs: ReadonlyMap<string, Knob>,
+  scene: string,
+): KnobReader<K>;
+function knobReader(knobs: ReadonlyMap<string, Knob>, scene: string) {
+  return (name: string): Knob => {
+    const k = knobs.get(name);
+    if (k === undefined) throw new Error(`scene ${scene} has no knob "${name}"`);
+    return k;
+  };
+}
+
+/** A drawing, as `f.knobsOf` finds its scene: by its `draw`, typed by its knobs. */
+export interface KnobsOwner<K extends Knobs> {
+  readonly draw: (f: never) => void;
+  readonly knobs?: K;
+}
+
+/** Reads a scene's knobs by name, typed as that drawing declares them. */
+export type KnobReader<K extends Knobs> = <N extends keyof K & string>(name: N) => KnobValue<K[N]>;
 
 /** The hand scene `scene` gives `key` on boil tick `boil`: what `f.hand` and `f.handsOf` both give. */
 const sceneHand = (scene: string, key: string | number, boil: number): Hand => ({
@@ -477,8 +520,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const height = spec.height ?? 1080;
   const fps = spec.fps ?? FILM_FPS;
   const placed = Result.getOrThrow(layout(spec.scenes, spec.timings));
-  const last = placed[placed.length - 1];
-  const duration = last === undefined ? 0 : last.start + last.dur;
+  const duration = filmEnd(placed);
   const allRecorded = everyTakeRecorded(placed);
   const finish = finishOf(spec.finish);
   /** Each scene's breath: its own `drift` where it sets one, `DRIFT` where it does not. */
@@ -564,6 +606,17 @@ export const createFilm = (spec: FilmSpec): Film => {
     const p = placed[sceneIndexAt(placed, T)];
     if (p === undefined) throw new Error('film has no scenes');
     return p;
+  };
+
+  /** The one scene `draw` draws, for `f.knobsOf`; `by` names the scene that asked. */
+  const drawnBy = (draw: (f: never) => void, by: string) => {
+    const found = placed.filter((q) => q.spec.draw === draw);
+    const one = found[0];
+    if (one === undefined || found.length > 1)
+      throw new Error(
+        `scene ${by}: f.knobsOf takes the drawing of one scene; ${found.length} scenes draw it (${found.map((q) => q.spec.id).join(', ')})`,
+      );
+    return one;
   };
 
   /** Every scene's id, for `f.handsOf`. */
@@ -672,6 +725,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       at: (name) => cueProgress(frame.cue(name), t),
       keys: (name, frames) => cueKeys(frame.cue(name), t, frames),
       stagger: (name, i, n) => staggerProgress(frame.cue(name), t, i, n),
+      staggerAt: (name, at) => staggerAt(frame.cue(name), t, at),
       knob: (name) => {
         const k = shown.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
@@ -689,6 +743,12 @@ export const createFilm = (spec: FilmSpec): Film => {
         if (!ids.has(scene))
           throw new Error(`scene ${p.spec.id}: film has no scene "${scene}" to take hands from`);
         return (key) => sceneHand(scene, key, boil);
+      },
+      knobsOf: <K extends Knobs>(of: KnobsOwner<K>) => {
+        const q = drawnBy(of.draw, p.spec.id);
+        const knobs = shownOf(q, edits).knobs;
+        // The scene is the one `of` draws, so each name holds the kind `of` declares.
+        return knobReader<K>(knobs, q.spec.id);
       },
       words,
       spoken: (from, to) => {

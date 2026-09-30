@@ -20,10 +20,12 @@
 //
 // and, in a timeline, the spans whose offset stands in for a word or a pause:
 //
-// 6. a span anchored to a `mark`, or to the scene's `start` or `speech`, whose
-//    literal `offset` is over 1 s: past a word or two from its anchor. Pin it
-//    to the word (`{ mark, word }`), to a nearer mark, to a named cue
-//    (`after`/`with`) or to the voice's end (`scene: 'speechEnd'`).
+// 6. a span anchored to a `mark`, or to the scene's `start` or `speech`
+//    (`at`, the one landmark key every point uses), whose literal `offset` is
+//    over 1 s: past a word or two from its anchor. Pin it to the word
+//    (`{ mark, word }`), to a nearer mark, to a named cue (`after`/`with`)
+//    or to the voice's end (`at: 'speechEnd'`). A sound cue's point is the
+//    same shape and is read the same way.
 //
 // The clock is `t` or `T` (`f.t`, `f.T`). A literal is a number written out,
 // or a module `const` holding one (`const HOLD = 0.5`).
@@ -49,65 +51,10 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, memberName } from './nodes.ts';
+import { ancestors, memberName, numberOf, property } from './nodes.ts';
 
 /** The most a span may sit off its mark or scene landmark before it skips words: 1 s. */
 const MAX_OFFSET = 1;
-
-/** The file a node is in. */
-const programOf = (n: ESTree.Node): ESTree.Node => {
-  let at = n;
-  while (at.type !== 'Program') at = at.parent;
-  return at;
-};
-
-/** A top-level statement's declaration: itself, or what an `export` declares. */
-const declared = (statement: ESTree.Node) => {
-  if (statement.type === 'ExportNamedDeclaration') return statement.declaration;
-  return statement;
-};
-
-/** The numbers a file names at its top level: `const HOLD = 0.5`, exported or not. */
-const moduleNumbers = (program: ESTree.Node): ReadonlyMap<string, number> => {
-  const out = new Map<string, number>();
-  if (program.type !== 'Program') return out;
-  for (const statement of program.body) {
-    const declaration = declared(statement);
-    if (declaration?.type !== 'VariableDeclaration' || declaration.kind !== 'const') continue;
-    for (const d of declaration.declarations)
-      if (
-        d.id.type === 'Identifier' &&
-        d.init?.type === 'Literal' &&
-        Predicate.isNumber(d.init.value)
-      )
-        out.set(d.id.name, d.init.value);
-  }
-  return out;
-};
-
-/** `moduleNumbers`, read once per file. */
-const numbersByFile = new WeakMap<ESTree.Node, ReadonlyMap<string, number>>();
-const namedNumber = (n: ESTree.Node, name: string): Option.Option<number> => {
-  const program = programOf(n);
-  const known = Option.getOrElse(Option.fromUndefinedOr(numbersByFile.get(program)), () => {
-    const found = moduleNumbers(program);
-    numbersByFile.set(program, found);
-    return found;
-  });
-  return Option.fromUndefinedOr(known.get(name));
-};
-
-/**
- * The value of a number written as a literal (`0.3`, `-0.3`), or named by a
- * module const holding one (`HOLD` for `const HOLD = 0.5`).
- */
-const numberOf = (n: ESTree.Node): Option.Option<number> => {
-  if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
-  if (n.type === 'Identifier') return namedNumber(n, n.name);
-  if (n.type === 'UnaryExpression' && n.operator === '-')
-    return Option.map(numberOf(n.argument), (v) => -v);
-  return Option.none();
-};
 
 /** A number written as a literal, or a module const naming one. */
 const isNumber = (n: ESTree.Node): boolean => Option.isSome(numberOf(n));
@@ -238,21 +185,12 @@ const stringOf = (p: ESTree.ObjectProperty): Option.Option<string> => {
   return Option.none();
 };
 
-/** The property `key` of an object literal, by plain name. */
-const property = (n: ESTree.ObjectExpression, key: string): Option.Option<ESTree.ObjectProperty> =>
-  Option.fromUndefinedOr(
-    n.properties.find(
-      (p): p is ESTree.ObjectProperty =>
-        p.type === 'Property' && !p.computed && p.key.type === 'Identifier' && p.key.name === key,
-    ),
-  );
-
 /** Shape 6: a span's literal offset over `MAX_OFFSET` from a mark or the scene's start or voice. */
 const farOffset = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectProperty> => {
   const anchored =
     Option.isSome(Option.flatMap(property(n, 'mark'), stringOf)) ||
     Option.exists(
-      Option.flatMap(property(n, 'scene'), stringOf),
+      Option.flatMap(property(n, 'at'), stringOf),
       (s) => s === 'start' || s === 'speech',
     );
   if (!anchored) return Option.none();

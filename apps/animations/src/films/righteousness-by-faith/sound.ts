@@ -211,7 +211,7 @@ export const sound: Sound = {
     {
       sound: 'room.paper',
       level: PAPER,
-      from: { scene: 'cold' },
+      from: { scene: 'cold', at: 'start' },
       to: { scene: 'mirror', at: 'speech' },
     },
     {
@@ -252,7 +252,7 @@ export const sound: Sound = {
     {
       sound: 'amb.garden',
       level: -6,
-      from: { scene: 'mirror' },
+      from: { scene: 'mirror', at: 'start' },
       to: { scene: 'mirror', mark: 'mirror' },
     },
     {
@@ -264,13 +264,13 @@ export const sound: Sound = {
     {
       sound: 'amb.house',
       level: -15,
-      from: { scene: 'roof' },
+      from: { scene: 'roof', at: 'start' },
       to: { scene: 'woman', at: 'speech' },
     },
     {
       sound: 'amb.court',
       level: -16,
-      from: { scene: 'woman' },
+      from: { scene: 'woman', at: 'start' },
       to: { scene: 'woman', cue: 'toIdea' },
     },
     {
@@ -282,7 +282,7 @@ export const sound: Sound = {
     {
       sound: 'amb.town',
       level: -15,
-      from: { scene: 'centurion' },
+      from: { scene: 'centurion', at: 'start' },
       to: { scene: 'centurion', cue: 'toIcons' },
     },
     {
@@ -300,7 +300,7 @@ export const sound: Sound = {
     {
       sound: 'amb.court',
       level: -17,
-      from: { scene: 'accuser' },
+      from: { scene: 'accuser', at: 'start' },
       to: { scene: 'robe', cue: 'toIcons' },
     },
     {
@@ -312,7 +312,7 @@ export const sound: Sound = {
     {
       sound: 'amb.rain',
       level: -12,
-      from: { scene: 'rain' },
+      from: { scene: 'rain', at: 'start' },
       to: { scene: 'name', at: 'speech', offset: 0.2 },
     },
 
@@ -358,9 +358,13 @@ export const sound: Sound = {
     // ── Paper, wood and stone on the parchment ─────────────────────────────
     // A level named here is where `check`'s EffectHot (each effect's loudest
     // 50 ms against the voice around it) found the library's too hot.
+    // A one-shot with `sync: 'hit'` lands its loudest moment on the cue (the
+    // lock records where each take hits), so a swapped take stays on it.
     evidence: {
       sound: 'paper.stack',
-      at: [{ scene: 'cold', cue: 'drop', edge: 'end', offset: -0.3 }],
+      // The stack settles as the last sheet lands.
+      sync: 'hit',
+      at: [{ scene: 'cold', cue: 'drop', edge: 'end' }],
     },
     gavel: {
       sound: 'wood.gavel',
@@ -381,15 +385,18 @@ export const sound: Sound = {
     flip: {
       sound: 'paper.flip',
       level: -14,
+      // The page lands as the flip ends, and as the book falls open.
+      sync: 'hit',
       at: [
-        { scene: 'word', cue: 'flip', offset: 0.2 },
-        { scene: 'spoke', cue: 'bookOpen' },
+        { scene: 'word', cue: 'flip', edge: 'end' },
+        { scene: 'spoke', cue: 'bookOpen', edge: 'end' },
       ],
     },
     tablets: {
       sound: 'tablet.set',
       level: -15,
-      at: [{ scene: 'word', cue: 'drop', edge: 'end', offset: -0.1 }],
+      sync: 'hit',
+      at: [{ scene: 'word', cue: 'drop', edge: 'end' }],
     },
     tear: { sound: 'paper.tear', at: [{ scene: 'word', cue: 'cardOut' }] },
     tape: { sound: 'tape.measure', at: [{ scene: 'word', cue: 'tape' }] },
@@ -413,7 +420,8 @@ export const sound: Sound = {
         { scene: 'rain', cue: 'fly' },
       ],
     },
-    crowd: { sound: 'crowd.swell', at: [{ scene: 'message', cue: 'turn', offset: -0.3 }] },
+    // The hall stirs as the light comes, and swells as the angel flies in.
+    crowd: { sound: 'crowd.swell', at: [{ scene: 'message', cue: 'light' }] },
     wings: { sound: 'wings.pass', level: -17, at: [{ scene: 'message', cue: 'fly' }] },
 
     // ── Capernaum ──────────────────────────────────────────────────────────

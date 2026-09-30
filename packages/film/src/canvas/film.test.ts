@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Drift } from './camera.ts';
-import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm } from './film.ts';
+import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
 
 const spec = (finish: FinishStyle = {}, plate?: Partial<CaptionStyle>): FilmSpec => ({
@@ -80,7 +80,7 @@ describe('an edit is a value a frame draws with', () => {
           say: 'A line.',
           min: 4,
           knobs: { x: 3 },
-          timeline: { go: { scene: 'start', dur: 2 } },
+          timeline: { go: { at: 'start', dur: 2 } },
           draw: (f) => {
             seen.push([f.knob('x'), f.at('go')]);
           },
@@ -89,7 +89,7 @@ describe('an edit is a value a frame draws with', () => {
     });
     return { film, seen };
   };
-  const edit = { knobs: { x: 7 }, timeline: { go: { scene: 'start' as const, dur: 1 } } };
+  const edit = { knobs: { x: 7 }, timeline: { go: { at: 'start' as const, dur: 1 } } };
 
   test('draws the edit it is handed, and the frame after with none draws the scene as declared', () => {
     const { film, seen } = seeing();
@@ -113,5 +113,57 @@ describe('an edit is a value a frame draws with', () => {
     const { film } = seeing();
     expect(film.cuesOf('a', edit).get('go')).toMatchObject({ start: 0, end: 1 });
     expect(film.cuesOf('a').get('go')).toMatchObject({ start: 0, end: 2 });
+  });
+});
+
+describe("a callback reads another scene's knobs", () => {
+  const city = drawing({ timeline: {}, knobs: { at: [1200, 640], zoom: 1.3 }, draw: () => {} });
+  /** A film whose second scene reads the first's framing, logging what it saw. */
+  const calling = () => {
+    const seen: Array<readonly [readonly [number, number], number]> = [];
+    const back = drawing({
+      timeline: {},
+      draw: (f) => {
+        const knobs = f.knobsOf(city);
+        seen.push([knobs('at'), knobs('zoom')]);
+      },
+    });
+    const film = createFilm({
+      ...spec(),
+      scenes: [
+        { id: 'city', say: 'A line.', ...city },
+        { id: 'back', say: 'Another.', ...back },
+      ],
+    });
+    return { film, seen, back };
+  };
+
+  test('as that scene reads them, a lab edit to them included', () => {
+    const { film, seen } = calling();
+    const T = film.placed[1]?.start ?? 0;
+    withDom(
+      () => {
+        film.render(recorder().ctx, T + 0.1);
+        film.render(recorder().ctx, T + 0.1, {
+          edits: new Map([['city', { knobs: { at: [1000, 500], zoom: 2 } }]]),
+        });
+      },
+      { record: false },
+    );
+    expect(seen.slice(-2)).toEqual([
+      [[1200, 640], 1.3],
+      [[1000, 500], 2],
+    ]);
+  });
+
+  test('throws, naming the scene, for a drawing the film does not draw', () => {
+    const lost = drawing({ timeline: {}, knobs: { at: [0, 0] }, draw: () => {} });
+    const film = createFilm({
+      ...spec(),
+      scenes: [{ id: 'a', say: 'A line.', draw: (f) => void f.knobsOf(lost) }],
+    });
+    expect(() => withDom(() => film.render(recorder().ctx, 0.1), { record: false })).toThrow(
+      'scene a: f.knobsOf',
+    );
   });
 });

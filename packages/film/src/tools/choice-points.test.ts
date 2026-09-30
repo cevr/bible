@@ -37,8 +37,15 @@ const SOUND: Sound = {
     alone: -6,
     options: { piano: music('felt piano'), strings: music('strings') },
   },
-  beds: [{ sound: 'room.paper', level: -24, from: { scene: 'held' }, to: { scene: 'brief' } }],
-  effects: { page: { sound: 'tone.chime', level: -26, at: [{ scene: 'brief' }] } },
+  beds: [
+    {
+      sound: 'room.paper',
+      level: -24,
+      from: { scene: 'held', at: 'start' },
+      to: { scene: 'brief', at: 'start' },
+    },
+  ],
+  effects: { page: { sound: 'tone.chime', level: -26, at: [{ scene: 'brief', at: 'start' }] } },
 };
 
 /** `sound.ts` as the level adapter reads it: an own level, a shared constant, a computed one. */

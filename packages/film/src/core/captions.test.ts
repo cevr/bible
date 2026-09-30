@@ -52,6 +52,10 @@ describe('captionCues', () => {
       '- Three.',
     ]);
   });
+  test('a line breaks where a clause ends, on an en dash or an ellipsis too', () => {
+    const said = ['Wait…', 'one', 'moment–', 'then', 'go.'].map((t, i) => word(t, i, i + 0.5));
+    expect(captionCues(said).map((c) => c.text)).toEqual(['Wait…', 'one moment–', 'then go.']);
+  });
 });
 
 const timings: Timings = {

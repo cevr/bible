@@ -19,6 +19,7 @@ import { clamp } from '@bible/film/core';
 import { landingSky, rooftop } from '../city.ts';
 import { C, F, glow, piece } from '../kit.ts';
 import { CREDITS } from '../credits.ts';
+import { thesis } from './thesis.ts';
 
 const STYLES = {
   name: { family: F.display, size: 52, weight: 700, color: C.ink, align: 'center' },
@@ -58,16 +59,14 @@ export const end = drawing({
   drift: 0,
   timeline: {
     // The strip comes in, the credits roll up it, and it goes: the rest is clear for the end screens.
-    stripIn: { scene: 'start', dur: 0.8 },
-    roll: { scene: 'start', dur: 22, ease: 'linear' },
+    stripIn: { at: 'start', dur: 0.8 },
+    roll: { at: 'start', dur: 22, ease: 'linear' },
     stripOut: { after: 'roll', dur: 0.8 },
     // The pull back, from where `thesis` leaves the city, settling as the strip goes.
     back: { with: 'roll', dur: 24, ease: 'inOutSine' },
   },
   knobs: {
-    // Where `thesis` leaves the city (its `city` knob), and the wider city the card ends on.
-    from: [1200, 640],
-    fromZoom: 1.3,
+    // The wider city the card ends on.
     wide: [1060, 560],
     wideZoom: 1,
   },
@@ -75,7 +74,9 @@ export const end = drawing({
     const { ctx, w, h } = f;
     landingSky(ctx, w, h);
     glow(ctx, 960, 380, 750, C.glow, 0.55);
-    const cam: Camera = shotPath(knobCamera(f.knob('from'), f.knob('fromZoom')), [
+    // It starts where `thesis` leaves the city: that scene's `city` framing, read there.
+    const city = f.knobsOf(thesis);
+    const cam: Camera = shotPath(knobCamera(city('city'), city('cityZoom')), [
       [f.at('back'), knobCamera(f.knob('wide'), f.knob('wideZoom'))],
     ]);
     // `thesis`'s rooftop, its paper cut as it was, the two turned to each other.

@@ -36,16 +36,19 @@ const answerStyle = {
 
 export const thesis = drawing({
   timeline: {
-    lookUp: { scene: 'speech', dur: 0.5 },
-    answer: { scene: 'speech', dur: 1.6, ease: 'linear' },
+    lookUp: { at: 'speech', dur: 0.5 },
+    answer: { at: 'speech', dur: 1.6, ease: 'linear' },
     // The gavel lifts back from where `name` laid it down.
-    gavel: { scene: 'start', dur: 2, ease: 'linear' },
+    gavel: { at: 'start', dur: 2, ease: 'linear' },
     // The judge, who held it down through `name`'s last line, lets it go once it stands again.
     letGo: { after: 'gavel', dur: 0.5 },
     // A pause the script means: the answer stands alone on screen while the
     // music rises, then lets go. What follows it hangs off it.
-    textOut: { scene: 'speechEnd', offset: 7.9, dur: 1.2 },
+    textOut: { at: 'speechEnd', offset: 7.9, dur: 1.2 },
     away: { with: 'textOut', offset: 0.6, dur: 4.5, ease: 'inOutSine' },
+    // The court lets go to the sky, then the city comes in: no double image.
+    courtOut: { with: 'away', offset: 1.66, dur: 0.88, ease: 'linear' },
+    cityIn: { with: 'away', offset: 2.39, dur: 2.11, ease: 'outQuad' },
     city: { with: 'away', offset: 2.6, dur: 11, ease: 'inOutSine' },
     // The two of them turn to each other once the city has settled.
     turn: { after: 'city', offset: 1.3, dur: 1.2 },
@@ -66,9 +69,8 @@ export const thesis = drawing({
     const away = f.at('away');
     const city = f.at('city');
     const turn = f.at('turn');
-    // The court lets go to the sky, then the city comes in: no double image.
-    const courtOut = clamp((away - 0.3) / 0.3);
-    const cityIn = clamp((away - 0.55) / 0.45);
+    const courtOut = f.at('courtOut');
+    const cityIn = f.at('cityIn');
 
     // The rooftop and the two of them, sitting on its edge.
     if (cityIn > 0) {

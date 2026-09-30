@@ -1,6 +1,6 @@
 // `film sfx`: the app's sound library from the command line. Every command
 // but `make` is free: `list`, `plan`, `check` and `guard` read the library and
-// its lock; `audition` and `render` write WAVs under `<FILMS_OUT>/sounds`;
+// its lock; `describe` records each variant's onset and hit from its file; `audition` and `render` write WAVs under `<FILMS_OUT>/sounds`;
 // `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
 // private `files/` (and the films' scores) with the store; `push --from` sends
 // from an older folder store too (the move to R2). `make` is the one paid command: it prints
@@ -16,7 +16,7 @@
 //   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
 //   film sfx import <file> <name>
 //   film sfx render <name> [--seed n]
-//   film sfx check [--json]
+//   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
 //   film sfx guard <file…>         (the pre-commit hook: staged audio the repo may not take)
 
@@ -381,7 +381,20 @@ const check = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Every library finding: unmade or stale sounds, files missing or not their hash, licences, loop seams',
+    'Every library finding: unmade or stale sounds, files missing or not their hash, licences, loop seams, lead-ins and unrecorded hits',
+  ),
+);
+
+const describe = Command.make(
+  'describe',
+  {},
+  Effect.fn('film.sfx.describe')(function* () {
+    const wrote = yield* (yield* SoundLibrary).describe;
+    yield* Effect.log(`sfx.describe variants=${wrote}`);
+  }),
+).pipe(
+  Command.withDescription(
+    "Record each variant's onset and hit in the lock, measured from its file (free; no generation)",
   ),
 );
 
@@ -463,6 +476,7 @@ export const sfx = Command.make('sfx').pipe(
     importCommand,
     render,
     check,
+    describe,
     pull,
     push,
     guard,

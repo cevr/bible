@@ -49,8 +49,8 @@ describe('DeadAir', () => {
       id: 'a',
       min: 6,
       timeline: {
-        hush: { scene: 'start', offset: 1, dur: 2, silence: true },
-        other: { scene: 'start', offset: 3, dur: 1 },
+        hush: { at: 'start', offset: 1, dur: 2, silence: true },
+        other: { at: 'start', offset: 3, dur: 1 },
       },
     },
   ];

@@ -11,9 +11,9 @@
 import { Console, Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { Plan, Score, SoundManifest } from '../core/schema.ts';
+import { filmEnd } from '../core/layout.ts';
 import {
   MUSIC_TAIL,
-  filmEnd,
   musicKey,
   musicPlan,
   playedOption,

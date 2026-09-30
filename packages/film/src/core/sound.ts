@@ -6,7 +6,7 @@
 // with it. Effects and beds name sounds from the app's library (`sfx.ts`).
 // Pure — the score and mix scripts read it without a DOM.
 
-import { Array as Arr, Option, Predicate, Result, Schema } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
   type MovementLength,
   MovementTooLong,
@@ -16,7 +16,7 @@ import {
   type UnknownScene,
 } from './errors.ts';
 import { partStarts } from './acts.ts';
-import { type Placed, pointIn, sceneOf } from './layout.ts';
+import { type Placed, filmEnd, pointIn, sceneOf } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
   type Cue,
@@ -26,7 +26,6 @@ import {
   type Plan,
   type PlanChunk,
   type Score,
-  type ScenePoint,
   type ScoreAsset,
   type SoundManifest,
 } from './schema.ts';
@@ -70,19 +69,6 @@ export const playedOption = (
   );
 };
 
-export const filmEnd = (placed: ReadonlyArray<Placed>): number =>
-  Option.match(Arr.last(placed), { onNone: () => 0, onSome: (p) => p.start + p.dur });
-
-/** Where in its scene a cue lands, before its offset: its point (`pointIn`), or the scene's start. */
-const anchorOf = (cue: Cue, p: Placed) => {
-  if (!pointed(cue)) return Result.succeed(0);
-  return pointIn(p, cue, 'sound');
-};
-
-/** Whether a cue names a point in its scene: a mark, a cue or a landmark. */
-const pointed = (cue: Cue): cue is Cue & ScenePoint =>
-  [cue.mark, cue.cue, cue.at].some(Predicate.isNotUndefined);
-
 /** Absolute film time of a cue: its scene's start, its offset, and its point in the scene. */
 export const cueTime = (
   cue: Cue,
@@ -90,7 +76,7 @@ export const cueTime = (
 ): Result.Result<number, SoundCueError> =>
   Result.gen(function* () {
     const p = yield* sceneOf(placed, cue.scene);
-    const anchor = yield* anchorOf(cue, p);
+    const anchor = yield* pointIn(p, cue, 'sound');
     return p.start + Option.getOrElse(Option.fromNullishOr(cue.offset), () => 0) + anchor;
   });
 

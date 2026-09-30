@@ -1,6 +1,7 @@
 // Every scene of every registered film draws: at its first frame, at each cue's
-// edges and midpoint, at its 60% point and at its last frame, through the film's own
-// compositor (`createFilm(...).render`). A scene that reads a mark, a cue or a
+// edges and midpoint, at its 60% point and at its last frame, as its page
+// builds it: the film's own `film()` (its title, paper, captions and shorts'
+// styles) from its committed timings, drawn by the compositor. A scene that reads a mark, a cue or a
 // knob its film no longer has throws at draw time, and until now only a render
 // or `film check`'s layout leg (run by hand) drew it: 4f46add3 was a `declared`
 // card reading `{declared}` after the revised script removed the mark.
@@ -31,6 +32,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { type Film, type SceneSpec, createFilm } from '@bible/film/canvas';
+import type { FilmModule } from '@bible/film/player';
 import { TimingsJson, sceneMoments } from '@bible/film/core';
 import { isStandInCanvas, recorder, standInDom } from '@bible/film/stand-in';
 import { importFilmModule } from '@bible/film/tools';
@@ -206,28 +208,21 @@ const impureAt = (film: Film, frame: number): Option.Option<string> => {
   );
 };
 
-const ScenesModule = Schema.Struct({ scenes: Schema.Array(Schema.Any) });
+/** A film's module: the film, built from its narration (`narratedFilms`). */
+const FilmFile = Schema.Struct({
+  film: Schema.declare((u): u is FilmModule['film'] => Predicate.isFunction(u)),
+});
 
-/** A film's scenes and committed timings, read as the player reads them. */
+/** A film as its page builds it: its own `film()`, from its committed timings. */
 const filmOf = Effect.fn('test.filmOf')(function* (film: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const module = yield* Effect.promise(() =>
-    importFilmModule(path.join(FILMS, film, 'scenes', 'index.ts')),
-  );
-  const scenes: ReadonlyArray<SceneSpec> = (yield* Schema.decodeUnknownEffect(ScenesModule)(module))
-    .scenes;
+  const module = yield* Effect.promise(() => importFilmModule(path.join(FILMS, film, 'film.ts')));
+  const build = (yield* Schema.decodeUnknownEffect(FilmFile)(module)).film;
   const timings = yield* Schema.decodeEffect(TimingsJson)(
     yield* fs.readFileString(path.join(FILMS, film, 'narration', 'timings.json')),
   );
-  return createFilm({
-    title: film,
-    paper: { base: '#fff', tone: '#000', seed: 1 },
-    shade: '#000',
-    scenes,
-    timings,
-    captions: { font: '38px x', color: '#000', plate: '#fff' },
-  });
+  return build({ timings, audio: `/films/${film}/narration/full.wav` });
 });
 
 /** A moment a test draws, and whether it is also checked for purity. */

@@ -36,7 +36,7 @@ const pads: Music = { ...piano, styles: ['ambient pads'] };
 
 const sound: Sound = {
   score: { play: 'piano', under: -18, alone: -6, options: { piano, pads } },
-  effects: { page: { sound: 'paper.page', at: [{ scene: 'open', offset: 1 }] } },
+  effects: { page: { sound: 'paper.page', at: [{ scene: 'open', at: 'start', offset: 1 }] } },
 };
 
 const timings: Timings = { voice: '', scenes: {} };

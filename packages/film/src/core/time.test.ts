@@ -1,7 +1,27 @@
 import { describe, expect, test } from 'bun:test';
-import { DEFAULT_EASE, clamp, ease, envelope, invLerp, keys, lerp, progress } from './time.ts';
+import {
+  DEFAULT_EASE,
+  clamp,
+  ease,
+  envelope,
+  invLerp,
+  keys,
+  lerp,
+  progress,
+  staggered,
+} from './time.ts';
 
 describe('time', () => {
+  test("a set's stagger spreads its items' starts over a share of the progress", () => {
+    // Three tiles over the first 2/7: the middle one starts at 1/7 and lasts 5/7,
+    // what `clamp(p * 1.4 - i * 0.2)` drew by hand.
+    for (const p of [0, 0.1, 0.3, 0.55, 0.8, 1])
+      for (const i of [0, 1, 2])
+        expect(staggered(p, i / 2, 2 / 7)).toBeCloseTo(clamp(p * 1.4 - i * 0.2), 12);
+    // A share of 1 starts each item at its place, at once.
+    expect([staggered(0.49, 0.5, 1), staggered(0.5, 0.5, 1)]).toEqual([0, 1]);
+  });
+
   test('eases are exactly 0 before their start and 1 after', () => {
     for (const e of Object.values(ease)) {
       expect(progress(0, 1, 1, e)).toBe(0);

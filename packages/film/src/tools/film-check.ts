@@ -73,7 +73,7 @@ export const layoutLeg = Effect.fn('check.layout')(function* (
 ) {
   const layout = yield* (yield* Checker).layout(film, { workers, scope });
   const looked = yield* (yield* Looker).look(film, workers, scope);
-  return [...layout, ...lookFindings(looked, scope.acts).map((r) => r.finding)];
+  return [...layout, ...lookFindings(looked, scope.acts)];
 });
 
 /**

@@ -20,6 +20,7 @@ import {
   DEFAULT_TAIL,
   MIN_LEAD,
   everyTakeRecorded,
+  filmEnd,
   sceneAt,
   transitionDur,
 } from '../core/layout.ts';
@@ -50,7 +51,7 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { cueTime, filmEnd, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type { Interval } from '../core/time.ts';
 import type {
   MovementLength,
@@ -69,12 +70,13 @@ import {
   EndShort,
   type FrameFinding,
   InkOverText,
+  KnobRepeated,
   MasterLoudness,
   type MixFinding,
   PlateOffFrame,
-  type Reported as Levelled,
   SeamLong,
   type StaticFinding,
+  Storyboard,
   TakeStale,
   TextOffFrame,
   TextOffPlate,
@@ -83,12 +85,6 @@ import {
 } from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type Master, masterFile, masterFinding } from './mixer.ts';
-
-/**
- * A finding and its level, as the look pass (`lookFindings`) hands them back;
- * the check re-levels and addresses them with `report`.
- */
-export type Reported = Pick<Levelled, 'level' | 'finding'>;
 
 // ---------------------------------------------------------------------------
 // Static
@@ -129,6 +125,39 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
       },
     ),
   );
+
+/** The beats that play as storyboard cards: no drawing yet. */
+export const storyboards = (placed: ReadonlyArray<Placed>): ReadonlyArray<Storyboard> =>
+  placed
+    .filter((p) => p.spec.storyboard === true)
+    .map((p) => Storyboard.make({ scene: p.spec.id }));
+
+/**
+ * Point knobs a later scene writes with the value an earlier scene's knob
+ * holds (`KnobRepeated`): the first scene to write a point owns it. A number
+ * knob is left out: a zoom of 1 is no callback.
+ */
+export const repeatedKnobs = (placed: ReadonlyArray<Placed>): ReadonlyArray<KnobRepeated> => {
+  const owners = new Map<string, { readonly scene: string; readonly knob: string }>();
+  return placed.flatMap((p) =>
+    [...p.knobs].flatMap(([knob, value]) => {
+      if (Predicate.isNumber(value)) return [];
+      const key = value.join(',');
+      return Option.match(Option.fromUndefinedOr(owners.get(key)), {
+        onNone: () => {
+          owners.set(key, { scene: p.spec.id, knob });
+          return [];
+        },
+        onSome: (owner) => {
+          if (owner.scene === p.spec.id) return [];
+          return [
+            KnobRepeated.make({ scene: p.spec.id, knob, of: owner.scene, ofKnob: owner.knob }),
+          ];
+        },
+      });
+    }),
+  );
+};
 
 /** Named cues that end after their scene. */
 export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> =>
@@ -481,6 +510,8 @@ export const staticFindings = (
     ...lateCues(placed),
     ...longSeams(placed),
     ...farPins(placed),
+    ...storyboards(placed),
+    ...repeatedKnobs(placed),
     ...takes,
     ...sound,
     ...master,

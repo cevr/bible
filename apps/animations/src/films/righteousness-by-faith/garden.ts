@@ -12,7 +12,7 @@ import {
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { clamp, ease, hash2, lerp } from '@bible/film/core';
+import { type Key, clamp, hash2, keys, lerp } from '@bible/film/core';
 import {
   C,
   CHEST,
@@ -108,6 +108,17 @@ export interface Tree {
   readonly grow?: number;
 }
 
+/** The trunk climbs over the first 0.6 of a tree's growth. */
+const TRUNK: ReadonlyArray<Key> = [
+  [0, 0],
+  [0.6, 1, 'outCubic'],
+];
+/** The crown opens out of it over the last 0.6, a settling pop. */
+const CROWN: ReadonlyArray<Key> = [
+  [0.4, 0],
+  [1, 1, 'outBack'],
+];
+
 /**
  * A tree, feet at (0, 0): a board trunk and a crown of leaf lobes ringed
  * around its top, each lobe about 2 × `spread` wide.
@@ -115,7 +126,7 @@ export interface Tree {
 export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
   const seed = t.seed ?? 0;
   const grow = t.grow ?? 1;
-  const height = t.height * ease.outCubic(clamp(grow / 0.6));
+  const height = t.height * keys(grow, TRUNK);
   if (height <= 0) return;
   piece(
     ctx,
@@ -124,7 +135,7 @@ export const tree = (ctx: CanvasRenderingContext2D, hand: Hand, t: Tree) => {
     sub(hand, seed),
     { role: 'scenery', line: 3, torn: 2, shadow: 0.4 },
   );
-  const crown = ease.outBack(clamp((grow - 0.4) / 0.6));
+  const crown = keys(grow, CROWN);
   if (crown <= 0) return;
   const s = t.spread;
   at(ctx, { x: 0, y: -height - 0.57 * s, scale: crown }, () => {
