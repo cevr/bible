@@ -5,7 +5,7 @@
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
-import { Address } from './address.ts';
+import { Address } from './address-schema.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -883,9 +883,7 @@ export type ResolvedCue = typeof ResolvedCue.Type;
  * short's has no film second, its seconds being its own.
  */
 export const FindingAddress = Schema.Struct({
-  // Read when a line is decoded, not when this module loads: address.ts
-  // reaches this module through layout.ts.
-  part: Schema.suspend((): Schema.Codec<Address> => Address),
+  part: Address,
   time: Schema.optionalKey(Schema.Finite),
 });
 export type FindingAddress = typeof FindingAddress.Type;

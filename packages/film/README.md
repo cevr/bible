@@ -29,7 +29,9 @@ taken over Schema-encoded requests, so a committed hash stays current.
 The export page's handle and what its probe records (`ExportInfo`,
 `TextBox`, `InkMark`, `FaceMark`, `HandMark`, `Probed`) are declared beside
 the handle in `core/export-handle.ts`; a choice point's id in
-`core/point.ts`.
+`core/point.ts`; an address as data (`Address`, `addressKey`) in
+`core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
+(`address.ts` re-exports it beside `resolveAddress`).
 
 ## Tools
 
@@ -618,7 +620,10 @@ which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
 routes are the lab API's `studio` group, under `/lab/<film>/studio/`, behind
 the same gate and for the film the lab serves (another film is a 404
-`FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`:
+`FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`,
+over the one reading the tools use too: a beat's `Line`s
+(`core/narration.ts`) and the sheet's `Part` and `SheetBeat`
+(`core/sheet.ts`):
 
 | Route                                    | Body → answer                                                                                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

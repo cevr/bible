@@ -6,7 +6,8 @@
 // scenes, span and acts, and a misspelt name fails here with what the film
 // has. Pure: it reads only the placed film and its declarations.
 
-import { Array as Arr, Match, Option, Order, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Order, Result } from 'effect';
+import type { Address } from './address-schema.ts';
 import { type PartError, type Stretch, stretchesOf } from './acts.ts';
 import {
   AddressConflict,
@@ -21,43 +22,7 @@ import type { Act, Look, Short } from './schema.ts';
 import { resolveShort } from './shorts.ts';
 import { FILM_FPS, type Interval } from './time.ts';
 
-/** A scene's id as an address names it: never empty, and without the `,` that joins a key's ids. */
-const SceneName = Schema.NonEmptyString.check(Schema.isPattern(/^[^,]*$/));
-
-const FilmPart = Schema.TaggedStruct('Film', {});
-const ActPart = Schema.TaggedStruct('Act', { act: Schema.NonEmptyString });
-const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(SceneName) });
-
-/** Which part of a film: the whole, one act, some scenes (in the order named), or one short. */
-export const Address = Schema.Union([
-  FilmPart,
-  ActPart,
-  ScenesPart,
-  Schema.TaggedStruct('Short', { id: Schema.NonEmptyString }),
-]);
-export type Address = typeof Address.Type;
-
-/**
- * A part of the film's own tree (the project's): the whole, one act, some
- * scenes. A short is cut across the film, not a branch of it.
- */
-export const PartAddress = Schema.Union([FilmPart, ActPart, ScenesPart]);
-export type PartAddress = typeof PartAddress.Type;
-
-/**
- * One address as a string, equal for equal addresses: `film`, `act:<name>`,
- * `scenes:<id>,<id>`, `short:<id>`. A record keyed by address compares these.
- */
-export const addressKey = (address: Address): string =>
-  Match.valueTags(address, {
-    Film: () => 'film',
-    Act: ({ act }) => `act:${act}`,
-    Scenes: ({ ids }) => `scenes:${ids.join(',')}`,
-    Short: ({ id }) => `short:${id}`,
-  });
-
-/** One scene's address. */
-export const sceneAddress = (id: string): Address => ({ _tag: 'Scenes', ids: [id] });
+export { Address, PartAddress, addressKey, sceneAddress } from './address-schema.ts';
 
 /** What a command was given to name its part: `--act`, `--scene a,b`, `--short`. */
 export interface AddressFlags {
