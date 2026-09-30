@@ -19,7 +19,6 @@ import {
 } from '../../core/choice.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
-import type { LabFailure } from '../api.ts';
 import { SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -45,6 +44,7 @@ import {
   runningOf,
   viewNameOf,
 } from './machine.ts';
+import { Loaded, failedText } from './loaded.tsx';
 import { markdownHtml } from './markdown.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
 
@@ -81,31 +81,17 @@ const Go = (props: {
   );
 };
 
-/** What a failed read says. */
-const failureText = (result: AsyncResult.AsyncResult<unknown, LabFailure>) =>
-  Option.getOrElse(
-    Option.map(AsyncResult.error(result), (e) => e.message),
-    () => 'could not read the review',
-  );
-
-/** The index once read, else what it is waiting on or why it failed. */
-const WithIndex = (props: { readonly children: (index: ReviewIndex) => JSX.Element }) => {
+/** The index once read, kept in place as it is read again; else what it waits on or why it failed. */
+const WithIndex = (props: { readonly children: (index: Accessor<ReviewIndex>) => JSX.Element }) => {
   const { state } = useReview();
   return (
-    <Show
-      when={Option.getOrUndefined(AsyncResult.value(state.index()))}
-      fallback={
-        <p class="empty">
-          {Match.value(AsyncResult.isFailure(state.index())).pipe(
-            Match.when(true, () => failureText(state.index())),
-            Match.orElse(() => 'Reading the renders…'),
-          )}
-        </p>
-      }
-      keyed
+    <Loaded
+      value={AsyncResult.value(state.index())}
+      result={state.index()}
+      reading="Reading the renders…"
     >
-      {(index: ReviewIndex) => props.children(index)}
-    </Show>
+      {props.children}
+    </Loaded>
   );
 };
 
@@ -204,7 +190,7 @@ export const Home = () => {
     <WithIndex>
       {(index) => {
         const shown = createMemo(() =>
-          index.folders.filter((f) => folderMatches(f, state.filter())),
+          index().folders.filter((f) => folderMatches(f, state.filter())),
         );
         const sets = createMemo(() => shown().filter((f) => f.sets.length > 0));
         const rest = createMemo(() => shown().filter((f) => f.sets.length === 0));
@@ -261,7 +247,7 @@ const Markdown = (props: { readonly file: string }) => {
       class="rv-note"
       innerHTML={Option.getOrElse(Option.map(AsyncResult.value(read()), markdownHtml), () =>
         Match.value(AsyncResult.isFailure(read())).pipe(
-          Match.when(true, () => `<p class="rv-hint">${failureText(read())}</p>`),
+          Match.when(true, () => `<p class="rv-hint">${failedText(read())}</p>`),
           Match.orElse(() => '<p class="rv-hint">loading…</p>'),
         ),
       )}
@@ -396,7 +382,7 @@ export const FolderPage = (props: { readonly folder: string }) => (
   <WithIndex>
     {(index) => (
       <Show
-        when={Option.getOrUndefined(folderIn(index, props.folder))}
+        when={Option.getOrUndefined(folderIn(index(), props.folder))}
         keyed
         fallback={<Missing what="folder" />}
       >
@@ -740,7 +726,7 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
   <WithIndex>
     {(index) => (
       <Show
-        when={Option.getOrUndefined(folderIn(index, props.folder))}
+        when={Option.getOrUndefined(folderIn(index(), props.folder))}
         keyed
         fallback={<Missing what="folder" />}
       >

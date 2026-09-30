@@ -79,7 +79,7 @@ export class Capture extends Context.Service<Capture, CaptureOps>()('@bible/film
 export const dbfs = (linear: number): number => 20 * Math.log10(linear);
 
 /** A peak at or above −1 dBFS is a hair from clipping: the meter warns to turn the input down. */
-export const CLIP_DBFS = -1;
+const CLIP_DBFS = -1;
 
 /** Whether `level`'s peak is at or past the clip warning. */
 export const clipping = (level: Option.Option<Level>): boolean =>

@@ -64,7 +64,7 @@ export interface AttemptRow {
 }
 
 /** How the status line reads: at rest, working, near the take limit, a take kept, or refused. */
-export type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
+type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 
 export interface StudioStateValue {
   /** Every beat with a line, in the film's order. */

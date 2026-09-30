@@ -1,7 +1,9 @@
 // The lab's writes to scene source: a cue's `offset`, `dur`, `until`, `ease`
 // or `stagger`, or a knob's value, in the `drawing({...})` literal
 // SceneSources locates. A cue write the scene's timeline cannot resolve with
-// is refused (`TimelineUnresolved`).
+// is refused (`TimelineUnresolved`): judged in a fresh `film read cue
+// --spans` (`FreshFilm`), on the clock the film's files give now, never this
+// process's first import of them; its answer is the cue where it lands.
 //
 // Each write splices the one value (`scene-source.ts`) and reads it back from
 // the formatted text, through SourceWriter: oxfmt, the compare-and-swap over
@@ -9,16 +11,15 @@
 // are its.
 
 import { Array as Arr, Context, Effect, Layer, Option, Predicate, Result } from 'effect';
-import { sceneClock, sceneOf } from '../core/layout.ts';
 import type { CuePatch, Knob } from '../core/schema.ts';
-import { resolveTimeline } from '../core/timeline.ts';
 import {
   type SceneNotLocated,
   type SourceRefused,
   type SourceShared,
   TimelineUnresolved,
 } from './errors.ts';
-import { FilmRepo, placeFilm } from './film-repo.ts';
+import type { FilmName } from './film-repo.ts';
+import { CueRead, FreshFilm } from './fresh-film.ts';
 import { editCue, editKnob, readCue, readKnob, readSpans, roundValue } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
@@ -36,13 +37,19 @@ export type WriteError =
   | TimelineUnresolved
   | RewriteError;
 
+/** A cue written, and where it resolves as the film's files now give it (or why it does not). */
+export interface CueWritten {
+  readonly written: Written;
+  readonly read: CueRead;
+}
+
 export interface SceneWriterService {
   readonly setCue: (
-    film: string,
+    film: FilmName,
     scene: string,
     cue: string,
     patch: CuePatch,
-  ) => Effect.Effect<Written, WriteError>;
+  ) => Effect.Effect<CueWritten, WriteError>;
   readonly setKnob: (
     film: string,
     scene: string,
@@ -95,7 +102,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
   static readonly layer = Layer.effect(
     SceneWriter,
     Effect.gen(function* () {
-      const repo = yield* FilmRepo;
+      const fresh = yield* FreshFilm;
       const sources = yield* SceneSources;
       const writer = yield* SourceWriter;
 
@@ -104,7 +111,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
        * `verify` reads the formatted text back, naming what did not land, and
        * `check` refuses a text the scene cannot play.
        */
-      const write = (
+      const write = <A>(
         film: string,
         scene: string,
         slot: Field,
@@ -114,11 +121,11 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           at: SceneSite,
           after: string,
         ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
-        check: (at: SceneSite, after: string) => Effect.Effect<void, TimelineUnresolved>,
+        check: (at: SceneSite, after: string) => Effect.Effect<A, TimelineUnresolved>,
       ) =>
         Effect.gen(function* () {
           const at = yield* sources.writable(film, scene, slot);
-          const change = yield* writer.write({
+          const [change, checked] = yield* writer.write({
             film,
             scene: Option.some(scene),
             file: at.file,
@@ -128,41 +135,48 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             check: (after) => check(at, after),
           });
           const written: Written = { ...change, exportName: at.exportName };
-          return written;
+          return [written, checked] as const;
         });
 
       /**
        * Refuse `after` when the scene's timeline, its spans read from `after`
-       * where they are literals, does not resolve. A film that does not load or
-       * lay out as it stands is not this write's to judge: the check passes.
+       * where they are literals, does not resolve on the clock the film's
+       * files give now (a fresh `film read cue --spans`); else answer where
+       * `cue` lands. A film that does not load or lay out as it stands is not
+       * this write's to judge: the check passes, saying why it could not
+       * resolve the cue.
        */
       const resolves =
-        (film: string, scene: string, target: string) => (at: SceneSite, after: string) =>
+        (film: FilmName, scene: string, cue: string, target: string) =>
+        (at: SceneSite, after: string) =>
           Effect.gen(function* () {
-            const placed = yield* repo.load(film).pipe(Effect.flatMap(placeFilm), Effect.option);
-            const p = Option.flatMap(placed, (all) => Result.getSuccess(sceneOf(all, scene)));
-            if (Option.isNone(p)) return;
             const spans = readSpans(at.file, after, at.exportName);
-            const resolved = resolveTimeline(
-              { ...p.value.spec.timeline, ...spans },
-              sceneClock(p.value),
-            );
-            if (Result.isFailure(resolved))
+            const answered = yield* Effect.result(fresh.cue(film, scene, cue, Option.some(spans)));
+            if (Result.isFailure(answered)) {
+              const why = `${answered.failure._tag}: ${answered.failure.message}`;
+              yield* Effect.logWarning(
+                `lab.cue.unread film=${film} scene=${scene} cue=${cue} reason=${why}`,
+              );
+              return CueRead.make({ unresolved: why });
+            }
+            const read = answered.success;
+            if (Predicate.isString(read.unresolved))
               return yield* TimelineUnresolved.make({
                 file: at.file,
                 target,
-                reason: resolved.failure.message,
+                reason: read.unresolved,
               });
+            return read;
           });
 
       const setCue = Effect.fn('SceneWriter.setCue')(function* (
-        film: string,
+        film: FilmName,
         scene: string,
         cue: string,
         patch: CuePatch,
       ) {
         const target = `cue ${cue} ${fieldsOf(patch).join(',')}`;
-        return yield* write(
+        const [written, read] = yield* write(
           film,
           scene,
           'timeline',
@@ -172,8 +186,10 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             Result.map(readCue(at.file, after, at.exportName, cue), (read) =>
               cueMismatches(patch, read),
             ),
-          resolves(film, scene, target),
+          resolves(film, scene, cue, target),
         );
+        const done: CueWritten = { written, read };
+        return done;
       });
 
       const setKnob = Effect.fn('SceneWriter.setKnob')(function* (
@@ -182,7 +198,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         knob: string,
         value: Knob,
       ) {
-        return yield* write(
+        const [written] = yield* write(
           film,
           scene,
           'knobs',
@@ -194,6 +210,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             ),
           () => Effect.void,
         );
+        return written;
       });
 
       return SceneWriter.of({ setCue, setKnob });

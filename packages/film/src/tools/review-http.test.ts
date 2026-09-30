@@ -8,13 +8,15 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { CheckReport, LabWrite } from '../core/schema.ts';
-import { Refusal, ReviewHttpApi, reviewFileUrl, routesOf } from '../core/api.ts';
 import {
-  type Project,
-  Project as ProjectSchema,
-  emptyCatalogue,
-  projectOf,
-} from '../core/catalogue.ts';
+  ProjectView,
+  Refusal,
+  ReviewHttpApi,
+  Steps,
+  reviewFileUrl,
+  routesOf,
+} from '../core/api.ts';
+import { type Project, emptyCatalogue, projectOf } from '../core/catalogue.ts';
 import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
 import { SceneNotRendered } from '../core/refusals.ts';
@@ -96,8 +98,7 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
             change: Option.some(PICK),
           }),
         knob: () => unused,
-        approve: () => Effect.succeed(CHOICES),
-        comment: () => Effect.succeed(CHOICES),
+        say: () => Effect.succeed(CHOICES),
         alone: () => unused,
         inPlace: () => unused,
       }),
@@ -424,41 +425,74 @@ describe("a film's choices", () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
-  it.effect("a variant's approval and comment answer the choices as they stand", () =>
+  it.effect("a variant's say answers the choices as they stand", () =>
     Effect.gen(function* () {
       const approved = yield* ask(
-        post('/lab/f/choices/approve', '{"point":"score","variant":"warm"}', HOME),
+        post(
+          '/lab/f/choices/say',
+          '{"point":"score","variant":"warm","say":{"_tag":"Approve"}}',
+          HOME,
+        ),
       );
       expect(approved.status).toBe(200);
+      const withdrawn = yield* ask(
+        post(
+          '/lab/f/choices/say',
+          '{"point":"score","variant":"warm","say":{"_tag":"Withdraw"}}',
+          HOME,
+        ),
+      );
+      expect(withdrawn.status).toBe(200);
       const said = yield* ask(
-        post('/lab/f/choices/comment', '{"point":"score","variant":"warm","text":""}', HOME),
+        post(
+          '/lab/f/choices/say',
+          '{"point":"score","variant":"warm","say":{"_tag":"Comment","text":""}}',
+          HOME,
+        ),
       );
       // An empty comment is no comment.
       expect(said.status).toBe(400);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
+
+  it.effect("the steps are the film's history alone: no check runs", () =>
+    Effect.gen(function* () {
+      const steps = yield* ask(get('/lab/f/steps'));
+      expect(steps.status).toBe(200);
+      expect(yield* Schema.decodeEffect(Schema.fromJsonString(Steps))(yield* body(steps))).toEqual({
+        redo: { file: 'sound.ts', target: 'score play bright' },
+      });
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
 });
 
 describe("a film's project", () => {
-  const decodeProject = Schema.decodeEffect(Schema.fromJsonString(ProjectSchema));
+  const decodeView = Schema.decodeEffect(Schema.fromJsonString(ProjectView));
+  const say = (payload: string) => post('/review/project/f/say', payload, HOME);
 
-  it.effect('is read, approved and commented on in a fresh run of `film project … --json`', () =>
+  it.effect('is read, and said of, in a fresh run of `film project … --json`', () =>
     Effect.gen(function* () {
       projectRuns.length = 0;
       const read = yield* ask(get('/review/project/f'));
       expect(read.status).toBe(200);
-      expect(yield* decodeProject(yield* body(read))).toEqual(PROJECT);
-      const all = yield* ask(post('/review/project/f/approve-all', '{}', HOME));
-      expect(yield* decodeProject(yield* body(all))).toEqual(PROJECT);
+      expect(yield* decodeView(yield* body(read))).toEqual({
+        project: PROJECT,
+        folder: Option.none(),
+        videos: {},
+      });
+      const all = yield* ask(say('{"address":{"_tag":"Film"},"say":{"_tag":"Approve"}}'));
+      expect((yield* decodeView(yield* body(all))).project).toEqual(PROJECT);
       const act = yield* ask(
-        post('/review/project/f/approve', '{"address":{"_tag":"Act","act":"one"}}', HOME),
+        say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Approve"}}'),
       );
       expect(act.status).toBe(200);
+      const withdrawn = yield* ask(
+        say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw"}}'),
+      );
+      expect(withdrawn.status).toBe(200);
       const said = yield* ask(
-        post(
-          '/review/project/f/comment',
-          '{"address":{"_tag":"Film"},"text":"--all of it","variant":"ink"}',
-          HOME,
+        say(
+          '{"address":{"_tag":"Film"},"say":{"_tag":"Comment","text":"--all of it"},"variant":"ink"}',
         ),
       );
       expect(said.status).toBe(200);
@@ -467,6 +501,7 @@ describe("a film's project", () => {
         ['f', '--json'],
         ['approve', 'f', '--all', '--json'],
         ['approve', 'f', '--act', 'one', '--json'],
+        ['withdraw', 'f', '--act', 'one', '--json'],
         ['comment', 'f', '--variant', 'ink', '--json', '--', '--all of it'],
       ]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
@@ -475,7 +510,7 @@ describe("a film's project", () => {
   it.effect("a scene with no render is the run's refusal: 404", () =>
     Effect.gen(function* () {
       const refused = yield* ask(
-        post('/review/project/f/approve', '{"address":{"_tag":"Scenes","ids":["a"]}}', HOME),
+        say('{"address":{"_tag":"Scenes","ids":["a"]},"say":{"_tag":"Approve"}}'),
       );
       expect(refused.status).toBe(404);
       expect(refusalOf(yield* body(refused))).toMatchObject({
@@ -491,15 +526,11 @@ describe("a film's project", () => {
     Effect.gen(function* () {
       projectRuns.length = 0;
       const short = yield* ask(
-        post('/review/project/f/approve', '{"address":{"_tag":"Short","id":"s"}}', HOME),
+        say('{"address":{"_tag":"Short","id":"s"},"say":{"_tag":"Approve"}}'),
       );
       expect(short.status).toBe(400);
       const said = yield* ask(
-        post(
-          '/review/project/f/comment',
-          '{"address":{"_tag":"Short","id":"s"},"text":"cut it"}',
-          HOME,
-        ),
+        say('{"address":{"_tag":"Short","id":"s"},"say":{"_tag":"Comment","text":"cut it"}}'),
       );
       expect(said.status).toBe(400);
       expect(projectRuns).toEqual([]);
@@ -511,7 +542,9 @@ describe("a film's project", () => {
       projectRuns.length = 0;
       const flag = yield* ask(get('/review/project/f?variant=--all'));
       expect(flag.status).toBe(400);
-      const all = yield* ask(post('/review/project/f/approve-all', '{"variant":"Ink Two"}', HOME));
+      const all = yield* ask(
+        say('{"address":{"_tag":"Film"},"say":{"_tag":"Approve"},"variant":"Ink Two"}'),
+      );
       expect(all.status).toBe(400);
       expect(projectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),

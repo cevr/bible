@@ -55,7 +55,7 @@ export const draftOf = (
 };
 
 /** Where the frame sits on the page. */
-export interface FrameRect {
+interface FrameRect {
   readonly left: number;
   readonly top: number;
   readonly width: number;

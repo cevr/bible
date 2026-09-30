@@ -594,12 +594,13 @@ export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('Writ
 // ---------------------------------------------------------------------------
 // Review: the box's renders, served where they lie.
 
-/** `film project approve` with neither the scenes to approve nor `--all`. */
+/** `film project approve` or `withdraw` with neither the scenes, an act nor `--all`. */
 export class ApprovalUnnamed extends Schema.TaggedError<ApprovalUnnamed>()('ApprovalUnnamed', {
   film: Schema.String,
+  verb: Schema.Literals(['approve', 'withdraw']),
 }) {
   override get message() {
-    return `name the scenes of ${this.film} to approve (--scene id,id), or approve every current scene (--all)`;
+    return `name the scenes of ${this.film} to ${this.verb} (--scene id,id), an act (--act name), or every scene (--all)`;
   }
 }
 

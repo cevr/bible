@@ -1,7 +1,8 @@
 // The render catalogue on disk: `catalogue.json` in a film's project folder
 // (`out/<film>`, git-ignored), beside the renders it names. The renderer's
 // caller records each render there; the review and the options page list
-// renders from it; approvals and comments are written to it. The domain (what
+// renders from it; approvals and comments are written to it, and approvals
+// withdrawn from it (`said`, the one change a say makes). The domain (what
 // a render is, when it is current, what an approval means) is
 // `core/catalogue.ts`.
 //
@@ -13,12 +14,18 @@
 import { Context, Effect, Layer, Option, Path } from 'effect';
 import type { Scope } from '../core/address.ts';
 import type { PlatformError } from 'effect/PlatformError';
+import { Say } from '../core/api.ts';
 import {
   type Catalogue,
   CatalogueJson,
   type Render,
   type Stamp,
+  type Subject,
+  type Topic,
+  approve,
+  comment,
   emptyCatalogue,
+  pointIdOf,
   recordRender,
 } from '../core/catalogue.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
@@ -72,6 +79,25 @@ export const renderRecord = (
     at,
   };
 };
+
+/**
+ * `catalogue` with every approval of `topic` withdrawn, whatever version it
+ * was given on (the same point's same variant). Pure.
+ */
+export const withdraw = (catalogue: Catalogue, topic: Topic): Catalogue => ({
+  ...catalogue,
+  approvals: catalogue.approvals.filter(
+    (a) => pointIdOf(a) !== pointIdOf(topic) || a.variant !== topic.variant,
+  ),
+});
+
+/** `catalogue` after `say` on `subject` (as it is now) at `at`. Pure. */
+export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
+  Say.match(say, {
+    Approve: () => approve(catalogue, subject, at),
+    Withdraw: () => withdraw(catalogue, subject),
+    Comment: ({ text }) => comment(catalogue, subject, text, at),
+  });
 
 export type CatalogueError = CatalogueInvalid | StoreLocked | PlatformError;
 

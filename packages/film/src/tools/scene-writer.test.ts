@@ -15,11 +15,12 @@ import {
   Layer,
   Option,
   Path,
+  Schema,
 } from 'effect';
 import { TestClock } from 'effect/testing';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ContentStore } from './content-store.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmName, FilmRepo } from './film-repo.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import {
@@ -29,7 +30,10 @@ import {
   emptyHistory,
   recordChange,
 } from './source-writer.ts';
-import { sceneFixture } from './testing.ts';
+import { freshCue, sceneFixture } from './testing.ts';
+
+/** The fixture's film, by name. */
+const F = Schema.decodeSync(FilmName)('f');
 
 /** The fixture's hand scene: a fresh copy per test. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
@@ -63,10 +67,11 @@ const fixtureWith = (
           Effect.flatMap(real.spawn),
         ),
       );
+      const repo = FilmRepo.layer(films);
       return SceneWriter.layer.pipe(
         Layer.provideMerge(SourceWriter.layer),
         Layer.provideMerge(SceneSources.layer),
-        Layer.provide(FilmRepo.layer(films)),
+        Layer.provide(Layer.merge(repo, freshCue({}).pipe(Layer.provide(repo)))),
         Layer.provide(ContentStore.layer),
         Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
         Layer.merge(Layer.succeed(HandFile, file)),
@@ -120,7 +125,7 @@ describe('scene writer', () => {
       const before = yield* read();
       // The untouched file is already as oxfmt leaves it: formatting adds nothing of its own.
       expect(yield* oxfmtCheck()).toBe(0);
-      const written = yield* (yield* SceneWriter).setCue('f', 'hand', 'topple', { offset: 0.4 });
+      const { written } = yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { offset: 0.4 });
       const after = yield* read();
       expect(after).toBe(
         before.replace(
@@ -136,7 +141,7 @@ describe('scene writer', () => {
   it.effect('adds a missing ease; oxfmt reflows only the span it grew', () =>
     Effect.gen(function* () {
       const before = yield* read();
-      yield* (yield* SceneWriter).setCue('f', 'hand', 'topple', { ease: 'inQuad', dur: 2.25 });
+      yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { ease: 'inQuad', dur: 2.25 });
       const after = yield* read();
       const line = "    topple: { mark: 'earns', offset: 0.1, dur: 1.8 },\n";
       const at = before.indexOf(line);
@@ -163,7 +168,7 @@ describe('scene writer', () => {
     Effect.gen(function* () {
       const before = yield* read();
       const error = yield* Effect.flip(
-        (yield* SceneWriter).setCue('f', 'hand', 'late', { offset: 1 }),
+        (yield* SceneWriter).setCue(F, 'hand', 'late', { offset: 1 }),
       );
       expect(error._tag).toBe('SourceRefused');
       expect(error.message).toContain('it is `GAP * 2`, not a literal');
@@ -176,12 +181,12 @@ describe('scene writer', () => {
       const writer = yield* SceneWriter;
       const before = yield* read();
       // topple starts 0.1 s after {earns}: ending at {earns} ends it before it starts.
-      const error = yield* Effect.flip(writer.setCue('f', 'hand', 'topple', { until: 'earns' }));
+      const error = yield* Effect.flip(writer.setCue(F, 'hand', 'topple', { until: 'earns' }));
       expect(error._tag).toBe('TimelineUnresolved');
       expect(error.message).toContain('before it starts');
       expect(yield* read()).toBe(before);
       // Starting before the mark, the same end resolves and lands.
-      yield* writer.setCue('f', 'hand', 'topple', { offset: -0.5, until: 'earns' });
+      yield* writer.setCue(F, 'hand', 'topple', { offset: -0.5, until: 'earns' });
       expect(yield* read()).toBe(
         before.replace('offset: 0.1, dur: 1.8 }', "offset: -0.5, until: 'earns' }"),
       );
@@ -198,7 +203,7 @@ describe('scene writer', () => {
         latest: Option.map(h.latest, (w) => w.target),
       }));
       const before = yield* read();
-      yield* writer.setCue('f', 'hand', 'topple', { ease: 'outBack' });
+      yield* writer.setCue(F, 'hand', 'topple', { ease: 'outBack' });
       const afterEase = yield* read();
       yield* writer.setKnob('f', 'hand', 'palm', [1, 2]);
       const afterKnob = yield* read();
@@ -273,7 +278,7 @@ describe('scene writer', () => {
     Effect.gen(function* () {
       const before = yield* read();
       const error = yield* Effect.flip(
-        (yield* SceneWriter).setCue('f', 'hand', 'topple', { offset: 0.4 }),
+        (yield* SceneWriter).setCue(F, 'hand', 'topple', { offset: 0.4 }),
       );
       expect(error._tag).toBe('SourceChanged');
       // The editor's text survives, byte for byte: the lab neither overwrote nor "restored" it.
@@ -334,7 +339,7 @@ describe('scene writer', () => {
       Effect.gen(function* () {
         const before = yield* read();
         const write = yield* Effect.forkChild(
-          (yield* SceneWriter).setCue('f', 'hand', 'topple', { offset: 0.4 }),
+          (yield* SceneWriter).setCue(F, 'hand', 'topple', { offset: 0.4 }),
         );
         yield* Deferred.await(hung);
         // Let the write's timeout start its (test) clock before the clock moves.
@@ -364,7 +369,7 @@ describe('scene writer', () => {
         const writer = yield* SceneWriter;
         const before = yield* read();
         // hand.ts's topple is not what the scene plays (it plays offset 5): writing it would change nothing.
-        const refused = yield* Effect.flip(writer.setCue('f', 'hand', 'topple', { offset: 0.4 }));
+        const refused = yield* Effect.flip(writer.setCue(F, 'hand', 'topple', { offset: 0.4 }));
         expect(refused._tag).toBe('SceneNotLocated');
         expect(refused.message).toContain('the timeline scene "hand" reads is not the one');
         expect(yield* read()).toBe(before);
@@ -378,7 +383,7 @@ describe('scene writer', () => {
     Effect.gen(function* () {
       const writer = yield* SceneWriter;
       const before = yield* read();
-      const cue = yield* Effect.flip(writer.setCue('f', 'again', 'topple', { offset: 0.4 }));
+      const cue = yield* Effect.flip(writer.setCue(F, 'again', 'topple', { offset: 0.4 }));
       expect(cue._tag).toBe('SourceShared');
       expect(cue.message).toContain('scenes hand, again');
       const knob = yield* Effect.flip(writer.setKnob('f', 'hand', 'palm', [1, 2]));

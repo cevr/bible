@@ -22,10 +22,7 @@ interface Crumb {
 }
 
 /** The trail to `place`, titled from the index once read. */
-export const crumbsOf = (
-  place: ReviewPlace,
-  index: Option.Option<ReviewIndex>,
-): ReadonlyArray<Crumb> => {
+const crumbsOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): ReadonlyArray<Crumb> => {
   const folderAt = (ref: string) =>
     Option.flatMap(index, (i) => Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref)));
   const folder = (ref: string) =>

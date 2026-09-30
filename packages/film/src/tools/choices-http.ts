@@ -5,7 +5,8 @@
 // static check after it and the choices as they now stand, both from one
 // fresh run (`Choices.checked`). The page runs the sound check
 // (`soundCheck`, dead air and balance in the mix the film now makes) after a
-// pick. Approvals and comments land in the film's catalogue.
+// pick. A say (an approval, its withdrawal, a comment) lands in the film's
+// catalogue, and answers the choices it leaves.
 // A film is named as one of the films in the app's folder (`FilmScope.repo`)
 // before anything reads it: any other name is a 404 that lists the films,
 // never a path.
@@ -76,14 +77,9 @@ export const choicesGroup = HttpApiBuilder.group(ReviewHttpApi, 'choices', (hand
         }),
       ),
     )
-    .handle('approve', ({ params, payload }) =>
+    .handle('say', ({ params, payload }) =>
       answered(
-        Effect.flatMap(named(params.film), (film) => Choices.use((c) => c.approve(film, payload))),
-      ),
-    )
-    .handle('comment', ({ params, payload }) =>
-      answered(
-        Effect.flatMap(named(params.film), (film) => Choices.use((c) => c.comment(film, payload))),
+        Effect.flatMap(named(params.film), (film) => Choices.use((c) => c.say(film, payload))),
       ),
     )
     .handle('alone', ({ params, query, request }) =>

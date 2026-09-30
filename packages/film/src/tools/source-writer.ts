@@ -61,7 +61,7 @@ export interface Change {
 }
 
 /** A rewrite of one file, as a writer asks for it. */
-export interface Rewrite<E> {
+export interface Rewrite<E, A = void> {
   readonly film: string;
   readonly scene: Option.Option<string>;
   readonly file: string;
@@ -70,8 +70,8 @@ export interface Rewrite<E> {
   readonly edit: (source: string) => Result.Result<string, SourceRefused>;
   /** What of the change does not read back from the formatted text (none when it all does). */
   readonly verify: (after: string) => Result.Result<ReadonlyArray<string>, SourceRefused>;
-  /** Refuse a text the film cannot play. */
-  readonly check: (after: string) => Effect.Effect<void, E>;
+  /** Refuse a text the film cannot play, or answer what the check found of it. */
+  readonly check: (after: string) => Effect.Effect<A, E>;
 }
 
 export type RewriteError =
@@ -102,7 +102,9 @@ export interface WriteHistory {
 
 export interface SourceWriterService {
   /** Rewrite one file as `rewrite` says: formatted, read back, checked, and only over the text it read. */
-  readonly write: <E>(rewrite: Rewrite<E>) => Effect.Effect<Change, E | RewriteError>;
+  readonly write: <E, A = void>(
+    rewrite: Rewrite<E, A>,
+  ) => Effect.Effect<readonly [Change, A], E | RewriteError>;
   /**
    * `act`, which rewrites `file` its own way, recorded as one change of
    * `film`'s: the file's text before it and after it. Nothing is recorded when
@@ -216,7 +218,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           );
         });
 
-      const write = <E>(rewrite: Rewrite<E>) =>
+      const write = <E, A = void>(rewrite: Rewrite<E, A>) =>
         writer.withPermits(1)(
           Effect.gen(function* () {
             const { file, target } = rewrite;
@@ -229,7 +231,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             });
             if (missed.length > 0)
               return yield* WriteUnverified.make({ file, target, reason: missed.join(', ') });
-            yield* rewrite.check(after);
+            const checked = yield* rewrite.check(after);
             // Uninterruptible: the write may reload the page, which drops its
             // request; the file and the history must still agree once it lands.
             return yield* Effect.uninterruptible(
@@ -246,10 +248,10 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                   after,
                 };
                 // Already so (a pick of the option playing): nothing to write, nothing to undo.
-                if (after === before) return change;
+                if (after === before) return [change, checked] as const;
                 yield* put(file, after);
                 yield* record(change, 'lab.write');
-                return change;
+                return [change, checked] as const;
               }),
             );
           }),

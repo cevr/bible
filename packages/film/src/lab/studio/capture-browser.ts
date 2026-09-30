@@ -65,7 +65,7 @@ const STAGES = [
  * The stages a track's settings say are still on. A stage a browser does not
  * report is one it does not have (settings name only what it supports).
  */
-export const processingOn = (settings: MediaTrackSettings): ReadonlyArray<string> =>
+const processingOn = (settings: MediaTrackSettings): ReadonlyArray<string> =>
   STAGES.filter(([key]) => settings[key] === true).map(([, name]) => name);
 
 /** Why getUserMedia gave no microphone, by the DOMException's name, in the owner's words. */
@@ -110,7 +110,7 @@ const joined = (mic: OpenMic): Pcm => {
 
 const failed = (reason: string) => CaptureFailed.make({ reason });
 
-export const makeBrowserCapture = Effect.gen(function* () {
+const makeBrowserCapture = Effect.gen(function* () {
   const levels = yield* PubSub.sliding<Option.Option<Level>>(8);
   const lock = yield* Semaphore.make(1);
   const moduleUrl = URL.createObjectURL(new Blob([workletSource], { type: 'text/javascript' }));

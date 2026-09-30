@@ -1,28 +1,28 @@
 // A film's choices and project as the review page calls them, through the
 // client derived from the review API (`ChoicesGroup`, `ProjectGroup` and
 // `StepsGroup` in `core/api.ts`): the films, a film's choice points, a verb
-// on a variant, a knob, an approval or a comment, the sound check, the
-// film's project (its scenes by the address tree) and what is said of it,
-// and the film's undo, redo and check. Each source write answers the change
-// it made and the film's static check after it.
+// on a variant, a knob, a say on a variant (`Say`: approve, withdraw,
+// comment), the sound check, the film's project (its scenes by the address
+// tree, each with its render's video) and what is said of it, and the film's
+// undo, redo, check and steps. Each write answers what the page then shows:
+// a source write the change it made, the choices it leaves and the static
+// check after it; a say the choices, or the project, it leaves.
 
 import { Context, Data, Effect, Layer, Match, Option, Predicate } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import type { PartAddress } from '../../../core/address.ts';
-import { ReviewHttpApi } from '../../../core/api.ts';
-import type { Project } from '../../../core/catalogue.ts';
+import { type ProjectView, ReviewHttpApi, type Say, type Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, LabWrite } from '../../../core/schema.ts';
 import { type LabFailure, heard } from '../../api.ts';
 
-/** What a page asks of a film: a verb on a variant, a knob set, a say, a step back or on. */
+/** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
 export type ChoiceAct = Data.TaggedEnum<{
   Verb: { readonly point: string; readonly variant: string; readonly verb: ChoiceVerb };
   Knob: { readonly point: string; readonly value: number };
-  Approve: { readonly point: string; readonly variant: string };
-  Comment: { readonly point: string; readonly variant: string; readonly text: string };
+  Say: { readonly point: string; readonly variant: string; readonly say: Say };
   Undo: {};
   Redo: {};
 }>;
@@ -34,25 +34,38 @@ export const changesSound: (act: ChoiceAct) => boolean = Predicate.or(
   Predicate.isTagged('Knob'),
 );
 
+/** Whether `act` writes the film's source (all but a say, which writes the catalogue). */
+export const writesSource = (act: ChoiceAct): boolean => act._tag !== 'Say';
+
+/** A say as a write's target says it: `approve score warm`, `comment on score warm`. */
+export const sayTarget = (say: Say, subject: string): string =>
+  Match.value(say).pipe(
+    Match.tagsExhaustive({
+      Approve: () => `approve ${subject}`,
+      Withdraw: () => `withdraw the approval of ${subject}`,
+      Comment: () => `comment on ${subject}`,
+    }),
+  );
+
 /**
  * What a write did, as the page says it: its target (`score play warm`,
- * `undo …`, `approve score warm`), the file it wrote, the check after a
- * source write (none for a say, which writes the catalogue), and the act.
+ * `undo …`, `approve score warm`), the file it wrote, and the act; the check
+ * after a source write, and the choices it leaves, when its answer carries
+ * them (an undo's does not: the page reads them again).
  */
 export interface Wrote {
   readonly act: ChoiceAct;
   readonly target: string;
   readonly file: string;
-  readonly findings: ReadonlyArray<CheckLine>;
+  readonly findings: Option.Option<ReadonlyArray<CheckLine>>;
+  readonly choices: Option.Option<FilmChoices>;
 }
 
-/** What is said of a film's project: an approval at an address, every current scene, a comment. */
-export type ProjectAct = Data.TaggedEnum<{
-  Approve: { readonly address: PartAddress };
-  ApproveAll: {};
-  Comment: { readonly address: PartAddress; readonly text: string };
-}>;
-export const ProjectAct = Data.taggedEnum<ProjectAct>();
+/** What is said of a film's project: a say at an address (a scene's render, an act, the film). */
+export interface ProjectSay {
+  readonly address: PartAddress;
+  readonly say: Say;
+}
 
 export interface OptionsCalls {
   /** The app's films. */
@@ -61,6 +74,8 @@ export interface OptionsCalls {
   readonly choices: (film: string) => Effect.Effect<FilmChoices, LabFailure>;
   /** The film's check, its latest change, and what Undo and Redo would do. */
   readonly check: (film: string) => Effect.Effect<CheckReport, LabFailure>;
+  /** The film's latest change, and what Undo and Redo would do, without the check. */
+  readonly steps: (film: string) => Effect.Effect<Steps, LabFailure>;
   /** `film check --sound` now: dead air, and balance in the mix the film makes. */
   readonly soundCheck: (film: string) => Effect.Effect<SoundCheck, LabFailure>;
   /** Write `act` into the film's source or its catalogue. */
@@ -69,13 +84,13 @@ export interface OptionsCalls {
   readonly project: (
     film: string,
     variant: Option.Option<string>,
-  ) => Effect.Effect<Project, LabFailure>;
-  /** Say `act` of the film's project; the project as it leaves it. */
+  ) => Effect.Effect<ProjectView, LabFailure>;
+  /** Say `said` of the film's project; the project as it leaves it. */
   readonly sayOfProject: (
     film: string,
     variant: Option.Option<string>,
-    act: ProjectAct,
-  ) => Effect.Effect<Project, LabFailure>;
+    said: ProjectSay,
+  ) => Effect.Effect<ProjectView, LabFailure>;
 }
 
 export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
@@ -87,27 +102,43 @@ const variantOf = (variant: Option.Option<string>) =>
   Option.match(variant, { onNone: () => ({}), onSome: (v) => ({ variant: v }) });
 
 /** A film's choice and project routes on `origin`. */
-export const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
+const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
   const client = yield* HttpApiClient.make(ReviewHttpApi, { baseUrl: origin });
-  const wrote =
+  /** A pick or a knob: the change, the choices it leaves, and the check after it. */
+  const picked =
     (act: ChoiceAct) =>
-    (w: ChoiceWrite | LabWrite): Wrote => ({
+    (w: ChoiceWrite): Wrote => ({
       act,
       target: w.target,
       file: w.file,
-      findings: w.findings,
+      findings: Option.some(w.findings),
+      choices: Option.some(w.choices),
     });
-  /** A say answers the choices, not a change: it wrote the catalogue. */
-  const said = (act: ChoiceAct, target: string) => (): Wrote => ({
-    act,
-    target,
-    file: 'catalogue.json',
-    findings: [],
-  });
+  /** An undo or a redo: the change, and the check after it (the choices are read again). */
+  const stepped =
+    (act: ChoiceAct) =>
+    (w: LabWrite): Wrote => ({
+      act,
+      target: w.target,
+      file: w.file,
+      findings: Option.some(w.findings),
+      choices: Option.none(),
+    });
+  /** A say answers the choices it leaves: it wrote the catalogue, not a source. */
+  const said =
+    (act: ChoiceAct, target: string) =>
+    (choices: FilmChoices): Wrote => ({
+      act,
+      target,
+      file: 'catalogue.json',
+      findings: Option.none(),
+      choices: Option.some(choices),
+    });
   const api: OptionsCalls = {
     films: heard(client.choices.films()),
     choices: (film) => heard(client.choices.list({ params: { film } })),
     check: (film) => heard(client.steps.check({ params: { film } })),
+    steps: (film) => heard(client.steps.steps({ params: { film } })),
     soundCheck: (film) => heard(client.choices.soundCheck({ params: { film } })),
     write: (film, act) =>
       heard(
@@ -119,7 +150,7 @@ export const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: st
                   params: { film },
                   payload: { point: v.point, variant: v.variant, verb: v.verb },
                 }),
-                wrote(act),
+                picked(act),
               ),
             Knob: (k) =>
               Effect.map(
@@ -127,51 +158,31 @@ export const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: st
                   params: { film },
                   payload: { point: k.point, value: k.value },
                 }),
-                wrote(act),
+                picked(act),
               ),
-            Approve: (a) =>
+            Say: (s) =>
               Effect.map(
-                client.choices.approve({
+                client.choices.say({
                   params: { film },
-                  payload: { point: a.point, variant: a.variant },
+                  payload: { point: s.point, variant: s.variant, say: s.say },
                 }),
-                said(act, `approve ${a.point} ${a.variant}`),
-              ),
-            Comment: (c) =>
-              Effect.map(
-                client.choices.comment({
-                  params: { film },
-                  payload: { point: c.point, variant: c.variant, text: c.text },
-                }),
-                said(act, `comment on ${c.point} ${c.variant}`),
+                said(act, sayTarget(s.say, `${s.point} ${s.variant}`)),
               ),
             Undo: () =>
-              Effect.map(client.steps.undo({ params: { film }, payload: {} }), wrote(act)),
+              Effect.map(client.steps.undo({ params: { film }, payload: {} }), stepped(act)),
             Redo: () =>
-              Effect.map(client.steps.redo({ params: { film }, payload: {} }), wrote(act)),
+              Effect.map(client.steps.redo({ params: { film }, payload: {} }), stepped(act)),
           }),
         ),
       ),
     project: (film, variant) =>
       heard(client.project.get({ params: { film }, query: variantOf(variant) })),
-    sayOfProject: (film, variant, act) =>
+    sayOfProject: (film, variant, said) =>
       heard(
-        Match.value(act).pipe(
-          Match.tagsExhaustive({
-            Approve: (a) =>
-              client.project.approve({
-                params: { film },
-                payload: { address: a.address, ...variantOf(variant) },
-              }),
-            ApproveAll: () =>
-              client.project.approveAll({ params: { film }, payload: variantOf(variant) }),
-            Comment: (c) =>
-              client.project.comment({
-                params: { film },
-                payload: { address: c.address, text: c.text, ...variantOf(variant) },
-              }),
-          }),
-        ),
+        client.project.say({
+          params: { film },
+          payload: { address: said.address, say: said.say, ...variantOf(variant) },
+        }),
       ),
   };
   return api;

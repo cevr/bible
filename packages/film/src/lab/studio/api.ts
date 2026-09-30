@@ -79,7 +79,7 @@ export const takeBody = (wav: Uint8Array): string =>
 const ENVELOPE = takeBody(new Uint8Array(0)).length;
 
 /** The longest take the studio reads: in samples, and in seconds at its rate. */
-export interface TakeLimit {
+interface TakeLimit {
   readonly frames: number;
   readonly seconds: number;
 }
@@ -117,7 +117,7 @@ export const tooLong =
   };
 
 /** The studio's routes for `film` on `origin`. */
-export const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, film: string) {
+const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, film: string) {
   const client = (yield* labClient(origin)).studio;
   const api: StudioCalls = {
     beats: heard(client.beats({ params: { film } })).pipe(Effect.mapError(refusalOf)),

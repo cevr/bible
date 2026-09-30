@@ -1,9 +1,12 @@
 // One film's choices on the review page. `<FilmProvider>` holds the film's
-// choice points and its check (read from the film's routes, read again after
-// each write), the write itself (a verb on a variant, a knob, an approval or
-// a comment, an undo or a redo), the sound check run after each write that
-// changes what the film plays (`film check --sound`: dead air, balance
-// against the picked score), and the synced player: the film's newest render
+// choice points and its check (read once from the film's routes, then as
+// each write answers them: a source write answers the choices it leaves and
+// the check after it, a say the choices; only an undo or a redo reads the
+// choices again, and each source write the steps Undo and Redo offer), the
+// write itself (a verb on a variant, a knob, a say on a variant, an undo or
+// a redo), the sound check run after each write that changes what the film
+// plays (`film check --sound`: dead air, balance against the picked score),
+// and the synced player: the film's newest render
 // (its own sound muted) on the clock, and the sound heard over it, one
 // `<audio>` of the film's whole mix with a variant in place (a score option,
 // a take). Choosing what is heard swaps that one `<audio>`; it joins the
@@ -25,15 +28,16 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import { choiceMixUrl } from '../../../core/api.ts';
+import { type Steps, choiceMixUrl } from '../../../core/api.ts';
 import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
-import type { CheckReport } from '../../../core/schema.ts';
+import type { CheckLine, CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
 import { ARROWS, typing, useReview } from '../context.tsx';
+import { Loaded } from '../loaded.tsx';
 import { STEP_S, type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
 import { type SyncDriver, makeSync } from '../sync.ts';
-import { type ChoiceAct, OptionsApi, type Wrote, changesSound } from './api.ts';
+import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
 export const PICTURE = 'picture';
@@ -55,7 +59,7 @@ export const mixOf = (film: string, heard: Heard, version: number): Option.Optio
   );
 
 /** The player's id for what is heard: the picture, or the mix's URL. */
-export const trackOf = (film: string, heard: Heard, version: number): string =>
+const trackOf = (film: string, heard: Heard, version: number): string =>
   Option.getOrElse(mixOf(film, heard, version), () => PICTURE);
 
 /** Whether a variant is heard in the film's mix. */
@@ -63,7 +67,7 @@ const inPlace = (media: FilmChoices['points'][number]['variants'][number]['media
   media._tag === 'Heard' && media.inPlace;
 
 /** What is heard first: the score option the film plays, when it is heard; else the first that is. */
-export const firstHeard = (choices: FilmChoices): Heard =>
+const firstHeard = (choices: FilmChoices): Heard =>
   Option.getOrElse(
     Option.flatMap(
       Option.fromUndefinedOr(choices.points.find((p) => p.kind === 'score')),
@@ -86,7 +90,10 @@ export const sameHeard = (a: Heard, b: Heard): boolean => trackOf('', a, 0) === 
 export interface FilmContextValue {
   readonly film: string;
   readonly choices: Accessor<FilmChoices>;
-  readonly check: Accessor<AsyncResult.AsyncResult<CheckReport, LabFailure>>;
+  /** The film's static check: as first read, then as the last source write answered it. */
+  readonly findings: Accessor<Option.Option<ReadonlyArray<CheckLine>>>;
+  /** What Undo and Redo would do now. */
+  readonly steps: Accessor<Option.Option<Steps>>;
   /** The last write, as it went. */
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
   readonly write: (act: ChoiceAct) => void;
@@ -109,12 +116,13 @@ const FilmContext = createContext<FilmContextValue>();
 /** A film's context: only inside `<FilmProvider>`. */
 export const useFilm = (): FilmContextValue => useContext(FilmContext);
 
-type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
+type Read<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
 interface FilmAtoms {
   readonly film: string;
-  readonly choices: Loaded<FilmChoices>;
-  readonly check: Loaded<CheckReport>;
+  readonly choices: Read<FilmChoices>;
+  readonly check: Read<CheckReport>;
+  readonly steps: Atom.Writable<AsyncResult.AsyncResult<Steps, LabFailure>, void>;
   readonly write: Atom.Writable<AsyncResult.AsyncResult<Wrote, LabFailure>, ChoiceAct>;
   readonly soundCheck: Atom.Writable<AsyncResult.AsyncResult<SoundCheck, LabFailure>, void>;
 }
@@ -133,24 +141,42 @@ const FilmBody = (
   const choicesResult = useAtomValue(() => props.atoms.choices);
   const refreshChoices = useAtomRefresh(() => props.atoms.choices);
   const check = useAtomValue(() => props.atoms.check);
-  const refreshCheck = useAtomRefresh(() => props.atoms.check);
+  const stepsResult = useAtomValue(() => props.atoms.steps);
+  const readSteps = useAtomSet(() => props.atoms.steps);
   const wrote = useAtomValue(() => props.atoms.write);
   const write = useAtomSet(() => props.atoms.write);
   const soundCheck = useAtomValue(() => props.atoms.soundCheck);
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
-  const choices = createMemo(() =>
-    Option.getOrElse(AsyncResult.value(choicesResult()), () => props.first),
+  // The choices as last answered: the first read, a read again after an undo or a redo, or a write's answer.
+  const [choices, setChoices] = createSignal(props.first);
+  createEffect(choicesResult, (result) => {
+    if (result.waiting) return;
+    Option.map(AsyncResult.value(result), setChoices);
+  });
+  const [answered, setAnswered] = createSignal(Option.none<ReadonlyArray<CheckLine>>());
+  const findings = createMemo(() =>
+    Option.orElse(answered(), () =>
+      Option.map(AsyncResult.value(check()), (report) => report.findings),
+    ),
   );
-  // Each write bumps the version: every mix is asked for again, mixed from the source as it now stands.
+  const steps = createMemo(() =>
+    Option.orElse(AsyncResult.value(stepsResult()), () => AsyncResult.value(check())),
+  );
+  // Each source write bumps the version: every mix is asked for again, mixed from the source as it now stands.
   const [version, setVersion] = createSignal(0);
   createEffect(wrote, (result) => {
     if (!AsyncResult.isSuccess(result) || result.waiting) return;
+    const done = result.value;
+    Option.map(done.choices, setChoices);
+    Option.map(done.findings, (f) => setAnswered(Option.some(f)));
+    if (!writesSource(done.act)) return;
     setVersion((v) => v + 1);
-    refreshChoices();
-    refreshCheck();
+    readSteps();
+    // An undo or a redo answers no choices: they are read again.
+    if (Option.isNone(done.choices)) refreshChoices();
     // A pick or a knob changes the mix: the sound check hears it again.
-    if (changesSound(result.value.act)) runSoundCheck();
+    if (changesSound(done.act)) runSoundCheck();
   });
 
   const [pictureRef, setPictureRef] = createSignal(
@@ -192,7 +218,8 @@ const FilmBody = (
   const value: FilmContextValue = {
     film,
     choices,
-    check,
+    findings,
+    steps,
     wrote,
     write: (act) => write(act),
     soundCheck,
@@ -230,13 +257,6 @@ const FilmReady = (
   );
 };
 
-/** What a failed read says. */
-export const failedText = (result: AsyncResult.AsyncResult<unknown, LabFailure>): string =>
-  Option.getOrElse(
-    Option.map(AsyncResult.error(result), (e) => e.message.replace(/^\w+: /, '')),
-    () => '',
-  );
-
 /** A film's choices, its check, its writes and its player, around `children`, once its choices are read. */
 export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   const { meta } = useReview();
@@ -245,6 +265,7 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     film,
     choices: meta.runtime.atom(OptionsApi.use((api) => api.choices(film))),
     check: meta.runtime.atom(OptionsApi.use((api) => api.check(film))),
+    steps: meta.runtime.fn(() => OptionsApi.use((api) => api.steps(film))),
     write: meta.runtime.fn((act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act))),
     soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
@@ -257,25 +278,14 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     setOpened(AsyncResult.value(result));
   });
   return (
-    <Show
-      when={Option.getOrUndefined(opened())}
-      keyed
-      fallback={
-        <p class="empty">
-          {Match.value(AsyncResult.isFailure(first())).pipe(
-            Match.when(true, () => failedText(first())),
-            Match.orElse(() => `Reading ${film}'s choices…`),
-          )}
-        </p>
-      }
-    >
-      {(choices: FilmChoices) => (
+    <Loaded value={opened()} result={first()} reading={`Reading ${film}'s choices…`}>
+      {(choices) => (
         <Loading>
-          <FilmReady atoms={atoms} first={choices} actor={actor}>
+          <FilmReady atoms={atoms} first={choices()} actor={actor}>
             {props.children}
           </FilmReady>
         </Loading>
       )}
-    </Show>
+    </Loaded>
   );
 };

@@ -75,7 +75,7 @@ export const SyncEvent = Event({
 export type SyncEvent = typeof SyncEvent.Type;
 
 /** A state's clock, whatever the state. */
-export interface SyncClock {
+interface SyncClock {
   readonly t: number;
   readonly start: number;
   readonly end: number;
@@ -249,7 +249,7 @@ export type ViewEvent = typeof ViewEvent.Type;
 const VIEWS = [ViewState.All, ViewState.Pair, ViewState.Moments, ViewState.Notes] as const;
 
 /** The state `view` shows: a pair against `other`, the moments from the first. */
-export const viewEntered = (view: ViewName, other: string): ViewState =>
+const viewEntered = (view: ViewName, other: string): ViewState =>
   Match.value(view).pipe(
     Match.when('all', () => ViewState.All),
     Match.when('pair', () => ViewState.Pair({ other })),
@@ -303,7 +303,7 @@ export const viewNameOf = (state: ViewState): ViewName =>
 export const playsIn = (view: ViewName): boolean => view === 'all' || view === 'pair';
 
 /** The instants the moments show when the set names none: 5, 25, 50, 75 and 95% in. */
-export const MOMENT_SPREAD = [0.05, 0.25, 0.5, 0.75, 0.95] as const;
+const MOMENT_SPREAD = [0.05, 0.25, 0.5, 0.75, 0.95] as const;
 
 /** Five instants spread over a video of `seconds`, none before `start`, to a tenth. */
 export const spreadMoments = (seconds: number, start: number): ReadonlyArray<number> =>

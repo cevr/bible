@@ -511,21 +511,32 @@ describe("a film's choices", () => {
   );
 
   it.live(
-    'an approval and a comment land in the catalogue on the variant as it is now',
+    'an approval, its withdrawal and a comment land in the catalogue on the variant as it is now',
     () =>
       Effect.gen(function* () {
         const choices = yield* Choices;
         const tiny = yield* filmNamed('tiny');
-        const approved = yield* choices.approve(tiny, { point: 'score', variant: 'piano' });
+        const approved = yield* choices.say(tiny, {
+          point: 'score',
+          variant: 'piano',
+          say: { _tag: 'Approve' },
+        });
         const piano = (listed: FilmChoices) =>
           Option.flatMap(pointOf(listed, 'score'), (p) =>
             Option.fromUndefinedOr(p.variants.find((v) => v.id === 'piano')),
           );
         expect(Option.map(piano(approved), (v) => v.approval)).toEqual(Option.some('approved'));
-        const said = yield* choices.comment(tiny, {
+        const withdrawn = yield* choices.say(tiny, {
           point: 'score',
           variant: 'piano',
-          text: 'lower in the turn',
+          say: { _tag: 'Withdraw' },
+        });
+        expect(Option.map(piano(withdrawn), (v) => v.approval)).toEqual(Option.some('none'));
+        yield* choices.say(tiny, { point: 'score', variant: 'piano', say: { _tag: 'Approve' } });
+        const said = yield* choices.say(tiny, {
+          point: 'score',
+          variant: 'piano',
+          say: { _tag: 'Comment', text: 'lower in the turn' },
         });
         expect(Option.map(piano(said), (v) => v.comments.map((c) => c.text))).toEqual(
           Option.some(['lower in the turn']),

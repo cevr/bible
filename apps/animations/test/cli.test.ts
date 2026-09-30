@@ -205,7 +205,7 @@ describe('film cli', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    'project lists every scene, none rendered yet, and refuses a comment on a scene with no render',
+    'project lists every scene, none rendered yet; a scene with no render is commented on as its sources stand',
     () =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -240,14 +240,28 @@ describe('film cli', () => {
             'too slow',
             '--scene',
             'turn',
+            '--json',
           ]);
-          expect(said.exitCode).not.toBe(0);
-          expect(said.out).toContain('SceneNotRendered');
+          expect(said.exitCode).toBe(0);
+          const after = yield* Schema.decodeEffect(Schema.fromJsonString(ProjectRead))(
+            said.stdout.trim(),
+          );
+          const turn = after.project.scenes.find((s) => s.scene === 'turn');
+          expect(turn?.comments.map((c) => [c.text, c.onThis])).toEqual([['too slow', true]]);
+          // Nothing approved: a withdrawal of every scene's approval leaves the project as it was.
+          const withdrawn = yield* runCli({ FILMS_OUT: out }, [
+            'project',
+            'withdraw',
+            film,
+            '--all',
+            '--json',
+          ]);
+          expect(withdrawn.exitCode).toBe(0);
           const bad = yield* runCli({ FILMS_OUT: out }, ['render', film, '--variant', 'Not Safe']);
           expect(bad.exitCode).not.toBe(0);
           expect(bad.out).not.toContain('render.encoder');
         }),
       ),
-    spawnBudget(3),
+    spawnBudget(5),
   );
 });

@@ -129,7 +129,7 @@ export interface MediaService {
    * only once whole.
    */
   readonly shareCopy: (master: string, out: string) => Effect.Effect<void, MediaFailed>;
-  /** A JPEG of `video` at `at` seconds, `width` pixels wide, written to `out` (ffmpeg). */
+  /** A JPEG of `video` at `at` seconds, `width` pixels wide, written to `out` (ffmpeg), whatever its name. */
   readonly still: (
     video: string,
     at: number,
@@ -138,7 +138,8 @@ export interface MediaService {
   ) => Effect.Effect<void, MediaFailed>;
   /**
    * The 720p copy of `video` a phone streams (`PHONE_X264`), written to `out`
-   * by ffmpeg at low priority: the review makes one of every big render.
+   * (an MP4 whatever its name) by ffmpeg at low priority: the review makes one
+   * of every big render.
    */
   readonly phoneCopy: (video: string, out: string) => Effect.Effect<void, MediaFailed>;
 }
@@ -877,6 +878,9 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
             `scale=${width}:-2`,
             '-q:v',
             '3',
+            // Named by the caller (a partial written whole): the format is said, not guessed.
+            '-f',
+            'mjpeg',
             out,
           ],
           Option.some(STILL_LIMIT),
@@ -888,7 +892,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
           spawner,
           'encode',
           video,
-          ['-i', video, ...PHONE_X264, out],
+          ['-i', video, ...PHONE_X264, '-f', 'mp4', out],
           Option.some(PHONE_LIMIT),
           'low',
         );
