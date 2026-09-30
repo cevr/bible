@@ -164,7 +164,9 @@ const projectLines = (project: Project): ReadonlyArray<string> => {
 const show = (project: Project, asJson: boolean) =>
   Match.value(asJson).pipe(
     Match.when(true, () => printLine(ProjectRead.make({ project }))),
-    Match.orElse(() => Effect.forEach(projectLines(project), Console.log, { discard: true })),
+    Match.orElse(() =>
+      Effect.forEach(projectLines(project), (line) => Console.log(line), { discard: true }),
+    ),
   );
 
 /** `effect`, its refusals printed as the answer when the run answers in JSON (the review's read). */

@@ -217,6 +217,19 @@ describe('film cli', () => {
             ['turn', 'missing', 'none'],
             ['close', 'missing', 'none'],
           ]);
+          // Without --json, a line each: the film, then each scene, nothing after.
+          const plain = yield* runCli({ FILMS_OUT: out }, ['project', film]);
+          expect(
+            plain.stdout
+              .trimEnd()
+              .split('\n')
+              .map((line) => line.trimEnd()),
+          ).toEqual([
+            `${film} (main)`,
+            '  open             missing  none',
+            '  turn             missing  none',
+            '  close            missing  none',
+          ]);
           const said = yield* runCli({ FILMS_OUT: out }, [
             'project',
             'comment',
