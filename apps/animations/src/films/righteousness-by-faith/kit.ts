@@ -7,7 +7,6 @@ import {
   type Grip,
   type Hand,
   type HandRoot,
-  type HandStyle,
   type PieceStyle,
   type Pt,
   type StrokeStyle,
@@ -17,30 +16,50 @@ import {
   breathOf,
   closeHand,
   floatingHand,
+  glow,
   handAt,
   piece as paperPiece,
   cutout,
   ground,
   ellipseShape,
   probeFace,
-  probeHand,
   probesHands,
+  mix,
   quad,
-  rectShape,
+  rounded,
   spline,
   stroke,
   sub,
 } from '@bible/film/canvas';
-import { clamp, hash2, lerp } from '@bible/film/core';
-import { fonts, mix, palette } from './palette.ts';
+import { clamp, lerp } from '@bible/film/core';
+import { fonts, palette } from './palette.ts';
 
 export const C = palette;
 export const F = fonts;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-/** A framing from its knobs: the framework's, so every film's scenes name it from their kit. */
-export { CLOSE_SPAN, ground, knobCamera } from '@bible/film/canvas';
+/**
+ * The framework's drawing helpers every scene reaches for, named from the kit
+ * so a film's scenes speak one vocabulary: a framing from its knobs, the
+ * contact shadow, the shapes (a plate, a rounded rectangle, a blob), the soft
+ * lights (`sky`, `glow`), a colour between two (`mix`), a pose kept as scratch
+ * (`Posed`, `reset`) and a walker's bob (`gait`).
+ */
+export {
+  CLOSE_SPAN,
+  type Posed,
+  blob,
+  glow,
+  ground,
+  knobCamera,
+  mix,
+  plate,
+  reset,
+  rounded,
+  sky,
+} from '@bible/film/canvas';
+export { gait } from '@bible/film/core';
 
 /** The icon's word-bubble, centred on (0, 0): 160 units wide. The word of light is this bubble, lit. */
 export const BUBBLE: Pt[] = [
@@ -52,84 +71,6 @@ export const BUBBLE: Pt[] = [
   [-46, 40],
   [-80, 40],
 ];
-
-/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, drawn by `piece` and declared by `probePlate`. */
-export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
-  rectShape(x - w / 2, y - h / 2, w, h);
-
-/** A colour between two hex colours. */
-export { mix } from './palette.ts';
-
-// ─── shapes ──────────────────────────────────────────────────────────────────
-
-/** A rectangle centred on (x, y) with corners rounded to `r`. */
-export const rounded = (x: number, y: number, w: number, h: number, r: number): Pt[] => {
-  const k = Math.min(r, w / 2, h / 2);
-  const corner = (cx: number, cy: number, from: number): Pt[] =>
-    Array.from({ length: 7 }, (_, i): Pt => {
-      const a = from + (Math.PI / 2) * (i / 6);
-      return [cx + Math.cos(a) * k, cy + Math.sin(a) * k];
-    });
-  const l = x - w / 2 + k;
-  const rr = x + w / 2 - k;
-  const t = y - h / 2 + k;
-  const b = y + h / 2 - k;
-  return [
-    ...corner(rr, t, -Math.PI / 2),
-    ...corner(rr, b, 0),
-    ...corner(l, b, Math.PI / 2),
-    ...corner(l, t, Math.PI),
-  ];
-};
-
-/** An irregular round patch (a stain, a speck, a flake), centred on (x, y). */
-export const blob = (x: number, y: number, w: number, h: number, seed: number): Pt[] =>
-  spline(
-    Array.from({ length: 11 }, (_, i): Pt => {
-      const a = (2 * Math.PI * i) / 11;
-      const k = 0.78 + 0.3 * hash2(i, seed);
-      return [x + ((Math.cos(a) * w) / 2) * k, y + ((Math.sin(a) * h) / 2) * k];
-    }),
-    6,
-    true,
-  );
-
-// ─── light ───────────────────────────────────────────────────────────────────
-
-/** A vertical gradient over the whole frame: `stops` are [position 0..1, colour]. */
-export const sky = (
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  stops: ReadonlyArray<readonly [number, string]>,
-) => {
-  const g = ctx.createLinearGradient(0, 0, 0, h);
-  for (const [at, color] of stops) g.addColorStop(at, color);
-  ctx.save();
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
-};
-
-/** A soft round light of `color`, strongest at its centre. */
-export const glow = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  color: string,
-  alpha: number,
-) => {
-  if (alpha <= 0 || r <= 0) return;
-  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, color);
-  g.addColorStop(1, `${color}00`);
-  ctx.save();
-  ctx.globalAlpha *= Math.min(1, alpha);
-  ctx.fillStyle = g;
-  ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.restore();
-};
 
 // ─── paper pieces ────────────────────────────────────────────────────────────
 
@@ -781,22 +722,38 @@ const inFront = ([x, y]: Pt, [bw, bh]: readonly [number, number]) =>
 const farOver = (g: Gesture | undefined, build: readonly [number, number]) =>
   g !== undefined && g.reach > 0 && inFront(g.to, build);
 
-/** The floating hand on `side` of a person of build `build`, doing what `p` gives it. */
+/**
+ * The floating hand on `side` of a person of build `build`, doing what `p`
+ * gives it, drawn `over` the body or behind it, in the frame dropped `drop`
+ * onto a seat of `sit`. While a check probes hands it also hands the hand
+ * the body's silhouette, so the hand declares itself (`floatingHand`).
+ */
 const personHand = (
   ctx: CanvasRenderingContext2D,
   p: Person,
   side: 'far' | 'near',
   build: readonly [number, number],
   hand: Hand,
+  over: boolean,
+  sit: number,
+  drop: number,
 ) => {
   const g = p[side];
   HAND_STYLE.radius = reachOf(build);
   HAND_STYLE.mitten = PERSON_HAND.mitten;
+  const probed = probesHands(ctx);
   const kept = keptOf(g);
-  if (kept <= 0) return;
+  if (kept <= 0 && !probed) return;
   ctx.save();
   ctx.globalAlpha *= kept;
-  floatingHand(ctx, rootOf(p, side, hand), g, HAND_STYLE, sub(hand, side === 'near' ? 50 : 40));
+  floatingHand(
+    ctx,
+    rootOf(p, side, hand),
+    g,
+    HAND_STYLE,
+    sub(hand, side === 'near' ? 50 : 40),
+    probed ? { over, body: () => bodyOf(p, sit, drop) } : undefined,
+  );
   ctx.restore();
 };
 
@@ -841,7 +798,7 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   const farFront = farOver(p.far, build);
   if (!farFront) {
     frameOf(ctx, drop);
-    personHand(ctx, p, 'far', build, hand);
+    personHand(ctx, p, 'far', build, hand, false, sit, drop);
     ctx.restore();
   }
   // A build stretches the body from the feet; the head rides its neck.
@@ -852,97 +809,28 @@ export const person = (ctx: CanvasRenderingContext2D, p: Person, hand: Hand) => 
   garment(ctx, p, sit, colours[0], hand);
   ctx.restore();
   frameOf(ctx, drop);
-  if (farFront) personHand(ctx, p, 'far', build, hand);
+  if (farFront) personHand(ctx, p, 'far', build, hand, true, sit, drop);
   head(ctx, p, colours[1], hand, NECK[1] * (bh - 1));
-  personHand(ctx, p, 'near', build, hand);
-  if (probesHands(ctx)) {
-    declareHand(ctx, p, 'far', farFront, sit, drop, hand);
-    declareHand(ctx, p, 'near', true, sit, drop, hand);
-  }
+  personHand(ctx, p, 'near', build, hand, true, sit, drop);
   ctx.restore();
 };
 
 /**
- * Tell a check probing hands where the hand on `side` is, in its frame
- * (dropped `drop` onto a seat): its shoulder, where it is, where it works
- * (its rest, with no work), its size and the figure's reach, how far it has
- * travelled, whether it is drawn `over` the body, and the body's silhouette
- * (the garment as built and folded, and the head), at work or at rest, so
- * `film check` follows every hand frame to frame (`HandJump`), flags one
- * sent past the reach (`HandFar`) and sees one lost behind its own body
- * (`HandHidden`). Only called while a probe collects hands.
+ * A person's silhouette in the frame their hands float in (dropped `drop`
+ * onto a seat of `sit`): the garment as built and folded, and the head. What
+ * a check probing hands tests a hand against for `HandHidden`; built only
+ * while one probes.
  */
-const declareHand = (
-  ctx: CanvasRenderingContext2D,
-  p: Person,
-  side: 'far' | 'near',
-  over: boolean,
-  sit: number,
-  drop: number,
-  hand: Hand,
-) => {
-  const build = buildOf(p);
-  const [bw, bh] = build;
-  const g = p[side];
-  const root = rootOf(p, side, hand);
-  const shoulder: Pt = [root.shoulder[0], root.shoulder[1]];
-  const rest: Pt = [root.rest[0], root.rest[1]];
-  HAND_STYLE.mitten = PERSON_HAND.mitten;
-  const at = handAt(root, g, HAND_STYLE);
-  const reach = g?.reach ?? 0;
-  ctx.save();
-  ctx.globalAlpha *= keptOf(g);
-  probeHand(ctx, {
-    side,
-    shoulder,
-    at,
-    to: g === undefined || reach <= 0 ? rest : g.to,
-    size: PERSON_HAND.mitten,
-    radius: reachOf(build),
-    reach,
-    over,
-    body: () => {
-      const robe = p.garment === 'robe';
-      const [dy, sx, sy] = sit > 0 ? foldOf(robe, sit) : ([0, 1, 1] as const);
-      const garment = (robe ? ROBE_SHAPE : TUNIC_SHAPE).map(([x, y]): Pt => [
-        bw * sx * x,
-        bh * (dy + sy * y) - drop,
-      ]);
-      const lift = NECK[1] * (bh - 1) + (p.nod ?? 0);
-      return [garment, ellipseShape(HEAD[0], HEAD[1] + lift, HEAD_RX, HEAD_RY)];
-    },
-  });
-  ctx.restore();
-};
-
-/**
- * The floating hand of a figure that is not a `person` (the accuser, the
- * judge), at `root` doing `g`, in `style` with its own reach, drawn over
- * whatever is already drawn, and declared to a check probing hands like a
- * person's, `body` its figure's silhouette, so it too is followed frame to
- * frame (`HandJump`, `HandFar`, `HandHidden`).
- */
-export const figureHand = (
-  ctx: CanvasRenderingContext2D,
-  root: HandRoot,
-  g: Gesture,
-  style: HandStyle,
-  hand: Hand,
-  body: () => ReadonlyArray<ReadonlyArray<Pt>>,
-) => {
-  floatingHand(ctx, root, g, style, hand);
-  if (!probesHands(ctx)) return;
-  probeHand(ctx, {
-    side: root.away === 1 ? 'near' : 'far',
-    shoulder: root.shoulder,
-    at: handAt(root, g, style),
-    to: g.reach > 0 ? g.to : root.rest,
-    size: style.mitten,
-    radius: style.radius,
-    reach: g.reach,
-    over: true,
-    body,
-  });
+const bodyOf = (p: Person, sit: number, drop: number): ReadonlyArray<ReadonlyArray<Pt>> => {
+  const [bw, bh] = buildOf(p);
+  const robe = p.garment === 'robe';
+  const [dy, sx, sy] = sit > 0 ? foldOf(robe, sit) : ([0, 1, 1] as const);
+  const garment = (robe ? ROBE_SHAPE : TUNIC_SHAPE).map(([x, y]): Pt => [
+    bw * sx * x,
+    bh * (dy + sy * y) - drop,
+  ]);
+  const lift = NECK[1] * (bh - 1) + (p.nod ?? 0);
+  return [garment, ellipseShape(HEAD[0], HEAD[1] + lift, HEAD_RX, HEAD_RY)];
 };
 
 /**
@@ -1008,26 +896,11 @@ const head = (ctx: CanvasRenderingContext2D, p: Person, skin: string, hand: Hand
   ctx.restore();
 };
 
-/**
- * A walker's bob, in units (+ up), while the `walk` cue runs and 0 outside
- * it: a step every π/7 s counted from the cue's start, each rising up to 5
- * units, so the bob starts from rest and never jumps as the walk begins.
- */
-export const gait = (t: number, walk: { readonly start: number; readonly end: number }): number =>
-  t > walk.start && t < walk.end ? Math.abs(Math.sin((t - walk.start) * 7)) * 5 : 0;
-
 // ─── recurring figures and the icon row ──────────────────────────────────────
 // Figures and the icon row more than one scene draws, so a callback lands in
 // the same layout (CRAFT rule 8). Each takes a `hand` for its keys, so boil
 // seeds stay the scene's own. Sets live in their own modules: court.ts,
 // heaven.ts, city.ts, law.ts, garden.ts, spoken.ts, gospel.ts.
-
-/**
- * A pose written in place every frame (a `House`, a `Temple`, a hand's
- * `GestureAt`) with its fields writable, so a scene keeps one at module scope and
- * draws with no allocation.
- */
-export type Posed<T> = { -readonly [K in keyof T]: T[K] };
 
 /** A hand's gesture whose target and reach a scene rewrites in place every frame (scratch, so the draw allocates none). */
 export interface GestureAt extends PersonGesture {

@@ -16,8 +16,8 @@
 // render to find.
 
 import { BunServices } from '@effect/platform-bun';
-import { type SceneSpec, createFilm } from '@bible/film/canvas';
-import { TimingsJson, sceneMoments } from '@bible/film/core';
+import { type Film, type SceneSpec, createFilm } from '@bible/film/canvas';
+import { type Placed, TimingsJson, sceneMoments } from '@bible/film/core';
 import { recorder, standInDom } from '@bible/film/stand-in';
 import { importFilmModule } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
@@ -56,11 +56,42 @@ const filmOf = Effect.fn('test.filmOf')(function* (film: string) {
 });
 
 /** Why a frame failed to draw, or none. */
-const drawAt = (film: ReturnType<typeof createFilm>, T: number) =>
+const drawAt = (film: Film, T: number) =>
   Effect.sync(() => film.render(recorder(1920, 1080, BLANK).ctx, T, { captions: true })).pipe(
     Effect.as(Option.none<string>()),
     Effect.catchDefect((defect) => Effect.succeedSome(String(defect))),
   );
+
+/**
+ * The moments of scene `p` a test draws: its start, end and 60% point
+ * (`sceneMoments`), and each cue's edges and midpoint, each a frame inside it.
+ */
+const momentsOf = (film: Film, p: Placed<SceneSpec>) => {
+  const fps = film.fps;
+  const first = Math.ceil(p.start * fps - 1e-6);
+  const last = Math.ceil((p.start + p.dur) * fps - 1e-6) - 1;
+  // Mid-span, where a branch on `0 < f.at(cue) < 1` draws and neither edge does.
+  const mids = [...p.cues]
+    .filter(([, c]) => c.end > c.start)
+    .map(([cue, c]) => ({
+      scene: p.spec.id,
+      at: `cue ${cue} mid`,
+      frame: Math.min(last, Math.max(first, Math.round((p.start + (c.start + c.end) / 2) * fps))),
+    }));
+  return [
+    ...sceneMoments(film.placed, fps, { marks: false }).filter((m) => m.scene === p.spec.id),
+    { scene: p.spec.id, at: 'start', frame: first },
+    { scene: p.spec.id, at: 'end', frame: last },
+    ...mids,
+  ];
+};
+
+/**
+ * The whole film's draws take about 20 s alone; the gate runs this beside
+ * every other package's tests on a shared box, so its budget is wide. A
+ * failure names each scene and moment that threw.
+ */
+const BUDGET = 120_000;
 
 describe('every scene draws', () => {
   for (const name of FILM_NAMES)
@@ -70,37 +101,18 @@ describe('every scene draws', () => {
         Effect.gen(function* () {
           yield* standInDom(BLANK);
           const film = yield* filmOf(name);
-          const fps = film.fps;
-          const edges = film.placed.flatMap((p) => {
-            const first = Math.ceil(p.start * fps - 1e-6);
-            const last = Math.ceil((p.start + p.dur) * fps - 1e-6) - 1;
-            // Mid-span, where a branch on `0 < f.at(cue) < 1` draws and neither edge does.
-            const mids = [...p.cues]
-              .filter(([, c]) => c.end > c.start)
-              .map(([cue, c]) => ({
-                scene: p.spec.id,
-                at: `cue ${cue} mid`,
-                frame: Math.min(
-                  last,
-                  Math.max(first, Math.round((p.start + (c.start + c.end) / 2) * fps)),
-                ),
-              }));
-            return [
-              { scene: p.spec.id, at: 'start', frame: first },
-              { scene: p.spec.id, at: 'end', frame: last },
-              ...mids,
-            ];
-          });
-          const moments = [...sceneMoments(film.placed, fps, { marks: false }), ...edges];
           const failures: string[] = [];
-          for (const m of moments) {
-            const failed = yield* drawAt(film, m.frame / fps);
-            if (Option.isSome(failed))
-              failures.push(`${m.scene} (${m.at}, frame ${m.frame}): ${failed.value}`);
+          for (const p of film.placed) {
+            const moments = momentsOf(film, p);
+            expect([p.spec.id, moments.length >= 3]).toEqual([p.spec.id, true]);
+            for (const m of moments) {
+              const failed = yield* drawAt(film, m.frame / film.fps);
+              if (Option.isSome(failed))
+                failures.push(`${m.scene} (${m.at}, frame ${m.frame}): ${failed.value}`);
+            }
           }
-          expect(moments.length).toBeGreaterThan(film.placed.length * 3);
           expect(failures).toEqual([]);
         }).pipe(Effect.scoped),
-      30_000,
+      BUDGET,
     );
 });

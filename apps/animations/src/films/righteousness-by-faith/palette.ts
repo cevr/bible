@@ -12,19 +12,7 @@
 // lighter than the figures while the floors and dark props stay under them,
 // so a figure reads against both.
 
-import { lerp } from '@bible/film/core';
-
-/** A colour between two hex colours. */
-export const mix = (a: string, b: string, t: number): string => {
-  const ch = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-  const k = Math.min(1, Math.max(0, t));
-  const out = [0, 1, 2].map((i) =>
-    Math.round(lerp(ch(a, i), ch(b, i), k))
-      .toString(16)
-      .padStart(2, '0'),
-  );
-  return `#${out.join('')}`;
-};
+import { mix } from '@bible/film/canvas';
 
 /**
  * How far the ground is lifted toward light paper, by level: `now` the

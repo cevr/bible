@@ -1016,13 +1016,15 @@ what a review used to find by eye:
   its longest held run. A kit's person declares its head with
   `probeFace(ctx, x, y, height)`; a spoken scene whose largest face (seen at
   over 0.5 opacity, its centre on the frame) never reaches a third of the frame's height is
-  `FaceSmall`. A kit's figure declares each of its floating hands every
-  frame, at rest or at work, with `probeHand(ctx, { side, shoulder, at, to,
-size, radius, reach, over, body })`: where it is, where it works (its
-  rest, with no work), its mitten's size, the figure's reach radius and how
-  far it has travelled (asked only while `probesHands(ctx)`, so an unprobed
-  frame pays one lookup; `body`, the garment and head silhouette, is built
-  only then). Then the hands pass: between two samples of a scene across
+  `FaceSmall`. A floating hand declares itself every frame, at rest or at
+  work: `floatingHand(ctx, root, g, style, hand, { over, body })`, given
+  whether it is drawn over its figure and the figure's silhouette (`HandBody`),
+  calls `probeHand(ctx, { side, shoulder, at, to, size, radius, reach, over,
+body })` from what it knows (its side from `root.away`, where it is, where
+  it works (its rest, with no work), its mitten's size, the figure's reach
+  radius and how far it has travelled), so any film's hands are checked; it
+  is declared even while its alpha hides it. A kit builds the body only
+  while `probesHands(ctx)`, so an unprobed frame pays one lookup. Then the hands pass: between two samples of a scene across
   which any hand travels to or from its work, or comes or goes at work,
   every frame is drawn again (`handSpans`); a hand (found a frame on by its
   shoulder, within 24 px) that moves about its shoulder by more than 1.5 of

@@ -148,6 +148,42 @@ export const rectShape = (x: number, y: number, w: number, h: number): Pt[] => [
   [x, y + h],
 ];
 
+/** A rectangle centred on (x, y), `w` by `h`: a text plate's shape, drawn by `piece` and declared by `probePlate`. */
+export const plate = (x: number, y: number, w: number, h: number): Pt[] =>
+  rectShape(x - w / 2, y - h / 2, w, h);
+
+/** A rectangle centred on (x, y) with corners rounded to `r`. */
+export const rounded = (x: number, y: number, w: number, h: number, r: number): Pt[] => {
+  const k = Math.min(r, w / 2, h / 2);
+  const corner = (cx: number, cy: number, from: number): Pt[] =>
+    Array.from({ length: 7 }, (_, i): Pt => {
+      const a = from + (Math.PI / 2) * (i / 6);
+      return [cx + Math.cos(a) * k, cy + Math.sin(a) * k];
+    });
+  const l = x - w / 2 + k;
+  const rr = x + w / 2 - k;
+  const t = y - h / 2 + k;
+  const b = y + h / 2 - k;
+  return [
+    ...corner(rr, t, -Math.PI / 2),
+    ...corner(rr, b, 0),
+    ...corner(l, b, Math.PI / 2),
+    ...corner(l, t, Math.PI),
+  ];
+};
+
+/** An irregular round patch (a stain, a speck, a flake), centred on (x, y), its wobble seeded by `seed`. */
+export const blob = (x: number, y: number, w: number, h: number, seed: number): Pt[] =>
+  spline(
+    Array.from({ length: 11 }, (_, i): Pt => {
+      const a = (2 * Math.PI * i) / 11;
+      const k = 0.78 + 0.3 * hash2(i, seed);
+      return [x + ((Math.cos(a) * w) / 2) * k, y + ((Math.sin(a) * h) / 2) * k];
+    }),
+    6,
+    true,
+  );
+
 // ─── wobble ──────────────────────────────────────────────────────────────────
 
 /** Scratch for the unit normal at each point, written and read within one step. */

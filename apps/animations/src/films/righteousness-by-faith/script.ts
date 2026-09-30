@@ -78,6 +78,9 @@
 
 import type { Beat } from '@bible/film/core';
 
+/** The film's name: the film, its title card and its credits all read it here. */
+export const TITLE = 'Righteousness by Faith';
+
 export const script: ReadonlyArray<Beat> = [
   {
     id: 'cold',

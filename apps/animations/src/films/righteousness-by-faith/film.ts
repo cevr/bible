@@ -5,6 +5,7 @@ import { type Look, type Timings, TimingsJson } from '@bible/film/core';
 import { Schema } from 'effect';
 import { GROUND, type Ground, fonts, palette } from './palette.ts';
 import { scenes } from './scenes/index.ts';
+import { TITLE } from './script.ts';
 
 /**
  * An act's target at the film's ground level (`GROUND` in palette.ts). Each
@@ -78,7 +79,7 @@ const loadTimings = async (): Promise<Timings | undefined> => {
 
 export const film = async () =>
   createFilm({
-    title: 'Righteousness by Faith',
+    title: TITLE,
     paper: { base: palette.paper, tone: palette.paperTone, seed: 1888 },
     shade: palette.boardDeep,
     scenes,
