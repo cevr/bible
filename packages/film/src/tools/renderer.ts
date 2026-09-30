@@ -18,6 +18,8 @@ import {
   Path,
   Ref,
   Result,
+  Scope,
+  Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { splice } from '../core/audio.ts';
@@ -32,6 +34,7 @@ import { filmCaptions, shortCaptions, webVtt } from '../core/captions.ts';
 import type { RenderSound } from '../core/catalogue.ts';
 import type { ChunkTiming } from '../core/export-handle.ts';
 import type { ShortError } from '../core/errors.ts';
+import type { ExportInfo } from '../core/schema.ts';
 import { type Placed, everyTakeRecorded, filmEnd } from '../core/layout.ts';
 import {
   type FilmPiece,
@@ -225,7 +228,51 @@ export interface RendererService {
    * sound the video now carries is the answer.
    */
   readonly remux: (film: LoadedFilm, video: Remuxed) => Effect.Effect<RenderSound, RemuxError>;
+  /**
+   * A run of many renders (`project render`'s scenes): videos that draw the
+   * same page the same way are probed once and drawn on one pool of pages,
+   * open until the caller's scope closes.
+   */
+  readonly session: Effect.Effect<RenderSession, never, Scope.Scope>;
 }
+
+/** Renders that share their probe and their pages (`RendererService.session`). */
+export interface RenderSession {
+  readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
+}
+
+/** What one page says of a video before its pool opens: what it draws, and the encoder every page uses. */
+interface Probed {
+  readonly info: ExportInfo;
+  readonly short: Option.Option<ResolvedShort>;
+  readonly scale: number;
+  readonly encoder: Encoder;
+}
+
+/**
+ * How a video gets its probe and its pages: made for it alone (`render`), or
+ * kept by a session under a key naming what they were made for.
+ */
+interface Drawing {
+  readonly probe: <E>(key: string, make: Effect.Effect<Probed, E>) => Effect.Effect<Probed, E>;
+  readonly pool: <E>(
+    key: string,
+    open: Effect.Effect<ExportPages, E, Scope.Scope>,
+  ) => Effect.Effect<ExportPages, E, Scope.Scope>;
+}
+
+/** What a video's probe was made for: two videos alike in all of it share one. */
+const probeKey = (
+  page: string,
+  job: Extract<RenderJob, { _tag: 'Video' }>,
+  platform: string,
+): string => {
+  const asked = Option.match(job.encoder, { onNone: () => 'any', onSome: (e) => e._tag });
+  return `${page}|captions=${job.captions}|scale=${job.scale}|share=${job.share}|encoder=${asked}|${platform}`;
+};
+
+/** Each video its own probe and its own pages, closed with it. */
+const alone: Drawing = { probe: (_, make) => make, pool: (_, open) => open };
 
 /** A recorded video whose sound is cut again: its files, and the pieces of the master it carries. */
 export interface Remuxed {
@@ -302,25 +349,32 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         page: string,
         placed: ReadonlyArray<Placed>,
         clip: string,
+        drawing: Drawing,
       ) {
         // One page first says what the render draws and which encoder every
         // page encodes with: the pages, and the encoders they may run, are
         // sized from that choice before the pool opens.
-        const { info, short, scale, encoder } = yield* Effect.scoped(
-          Effect.gen(function* () {
-            const first = yield* pages.open(page, { workers: 1, captions: job.captions });
-            const found = yield* shortOn(placed, job.cut, first.info.fps);
-            // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
-            const k = Option.match(found, {
-              onNone: () => job.scale,
-              onSome: () => shortPage(first.info.width).scale * job.scale,
-            });
-            // Before a frame is drawn: a browser that cannot encode the film with
-            // one of the encoders this platform allows fails here.
-            const candidates = encoderCandidates(yield* Platform, job.encoder);
-            const by = yield* first.use((one) => pageEncoder(one, k, job.share, candidates));
-            return { info: first.info, short: found, scale: k, encoder: by };
-          }),
+        const platform = yield* Platform;
+        const made = probeKey(page, job, platform);
+        const { info, short, scale, encoder } = yield* drawing.probe(
+          made,
+          Effect.scoped(
+            Effect.gen(function* () {
+              const first = yield* pages.open(page, { workers: 1, captions: job.captions });
+              const found = yield* shortOn(placed, job.cut, first.info.fps);
+              // A short's page is 9:16 at the film's density: it encodes down to 1080 × 1920.
+              const k = Option.match(found, {
+                onNone: () => job.scale,
+                onSome: () => shortPage(first.info.width).scale * job.scale,
+              });
+              // Before a frame is drawn: a browser that cannot encode the film with
+              // one of the encoders this platform allows fails here.
+              const candidates = encoderCandidates(platform, job.encoder);
+              const by = yield* first.use((one) => pageEncoder(one, k, job.share, candidates));
+              const probed: Probed = { info: first.info, short: found, scale: k, encoder: by };
+              return probed;
+            }),
+          ),
         );
         const where: Where = { placed, short };
         const { start, end } = frameSpan(info, job.from, job.to);
@@ -374,7 +428,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         yield* Effect.log(
           `render.encoder kind=${encoderName(encoder)} workers=${workers} encoders=${encoders} cores=${cores}`,
         );
-        const pool = yield* pages.open(page, { workers, captions: job.captions });
+        const pool = yield* drawing.pool(
+          `${made}|workers=${workers}`,
+          pages.open(page, { workers, captions: job.captions }),
+        );
 
         // The track, cut and encoded once beside the pages; both joins copy its packets.
         const aac = Option.match(audio, {
@@ -612,44 +669,73 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         return imagesOutput('lookbook', [file]);
       });
 
-      const render = Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
-        const cut = RenderJob.$match(job, {
-          Video: (v) => v.cut,
-          Stills: (st) => st.cut,
-          Contact: (c) => c.cut,
-          LookBook: () => Cut.Whole(),
-        });
-        const placed = yield* placeFilm(film);
-        const page = cutPage(film.paths.name, cut);
-        const where = renderPaths(film.paths.out, job.address, job.variant);
-        const dir = where.dir;
+      /** `job` rendered, its video's probe and pages got through `drawing`. */
+      const renderWith = (drawing: Drawing) =>
+        Effect.fn('Renderer.render')(function* (film: LoadedFilm, job: RenderJob) {
+          const cut = RenderJob.$match(job, {
+            Video: (v) => v.cut,
+            Stills: (st) => st.cut,
+            Contact: (c) => c.cut,
+            LookBook: () => Cut.Whole(),
+          });
+          const placed = yield* placeFilm(film);
+          const page = cutPage(film.paths.name, cut);
+          const where = renderPaths(film.paths.out, job.address, job.variant);
+          const dir = where.dir;
 
-        /** A job drawn on `workers` pages that encode nothing, handed the pool. */
-        const drawn = <E>(
-          workers: number,
-          run: (pool: ExportPages) => Effect.Effect<RenderOutput, E>,
-        ) =>
-          Effect.scoped(
-            Effect.gen(function* () {
-              yield* fs.makeDirectory(dir, { recursive: true });
-              const pool = yield* pages.open(page, { workers, captions: job.captions });
-              // A short's spans must resolve on the page's frames, as a video's do.
-              yield* shortOn(placed, cut, pool.info.fps);
-              return yield* run(pool);
+          /** A job drawn on `workers` pages that encode nothing, handed the pool. */
+          const drawn = <E>(
+            workers: number,
+            run: (pool: ExportPages) => Effect.Effect<RenderOutput, E>,
+          ) =>
+            Effect.scoped(
+              Effect.gen(function* () {
+                yield* fs.makeDirectory(dir, { recursive: true });
+                const pool = yield* pages.open(page, { workers, captions: job.captions });
+                // A short's spans must resolve on the page's frames, as a video's do.
+                yield* shortOn(placed, cut, pool.info.fps);
+                return yield* run(pool);
+              }),
+            );
+
+          return yield* RenderJob.$match(job, {
+            // A video writes its file (`--out`, else its clip) and what goes beside it; its segments are its own.
+            Video: (v) => video(film, v, page, placed, where.clip, drawing),
+            Stills: (s) =>
+              drawn(Math.min(s.workers, s.times.length), (pool) => stills(s, pool, dir)),
+            // One page composes the whole sheet.
+            Contact: (c) => drawn(1, (pool) => contact(c, pool, dir)),
+            LookBook: () => drawn(1, (pool) => lookbook(pool, dir)),
+          });
+        });
+
+      const render = renderWith(alone);
+
+      /**
+       * Renders that keep each probe and pool they open, by what it was made
+       * for, until the caller's scope closes: one at a time makes or finds one.
+       */
+      const session = Effect.gen(function* () {
+        const scope = yield* Effect.scope;
+        const lock = yield* Semaphore.make(1);
+        const probes = new Map<string, Probed>();
+        const pools = new Map<string, ExportPages>();
+        const kept = <A, E>(held: Map<string, A>, key: string, make: Effect.Effect<A, E>) =>
+          lock.withPermits(1)(
+            Option.match(Option.fromUndefinedOr(held.get(key)), {
+              onSome: Effect.succeed,
+              onNone: () => Effect.tap(make, (made) => Effect.sync(() => held.set(key, made))),
             }),
           );
-
-        return yield* RenderJob.$match(job, {
-          // A video writes its file (`--out`, else its clip) and what goes beside it; its segments are its own.
-          Video: (v) => video(film, v, page, placed, where.clip),
-          Stills: (s) => drawn(Math.min(s.workers, s.times.length), (pool) => stills(s, pool, dir)),
-          // One page composes the whole sheet.
-          Contact: (c) => drawn(1, (pool) => contact(c, pool, dir)),
-          LookBook: () => drawn(1, (pool) => lookbook(pool, dir)),
-        });
+        const drawing: Drawing = {
+          probe: (key, make) => kept(probes, key, make),
+          pool: (key, open) => kept(pools, key, Scope.provide(scope)(open)),
+        };
+        const run: RenderSession = { render: renderWith(drawing) };
+        return run;
       });
 
-      return Renderer.of({ render, remux });
+      return Renderer.of({ render, remux, session });
     }),
   ).pipe(Layer.provide(Pages.layer));
 }

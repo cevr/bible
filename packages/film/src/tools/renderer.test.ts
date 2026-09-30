@@ -73,7 +73,13 @@ const setup = (
     Effect.gen(function* () {
       return yield* (yield* Renderer).remux(rendered, video);
     }).pipe(Effect.provide(layer));
-  return { ledger, files, folders, render, remux };
+  /** `jobs` rendered one after another in one session, as `project render` draws its scenes. */
+  const session = (jobs: ReadonlyArray<RenderJob>) =>
+    Effect.gen(function* () {
+      const run = yield* (yield* Renderer).session;
+      return yield* Effect.forEach(jobs, (job) => run.render(rendered, job));
+    }).pipe(Effect.scoped, Effect.provideService(Platform, 'darwin'), Effect.provide(layer));
+  return { ledger, files, folders, render, remux, session };
 };
 
 /** A render whose joins keep, by file, the bytes each segment held when it was joined. */
@@ -214,6 +220,33 @@ describe('Renderer', () => {
       const { ledger, render } = setup();
       yield* render({ ...video, address: { _tag: 'Scenes', ids: ['a'] }, to: Option.some(2) });
       expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test/scenes/a/main.mp4']);
+    }),
+  );
+
+  it.live('scenes drawn in one run share one probe and one pool of pages', () =>
+    Effect.gen(function* () {
+      const scenes = [0, 2, 4].map((from): RenderJob => ({
+        ...video,
+        address: { _tag: 'Scenes', ids: ['a'] },
+        variant: `v${from}`,
+        from: Option.some(from),
+        to: Option.some(from + 2),
+      }));
+      // Each render alone opens its own: the probe's page and four to draw on, three times.
+      const alone = setup();
+      yield* Effect.forEach(scenes, (job) => alone.render(job));
+      expect(alone.ledger.pages.opened).toBe(15);
+      const { ledger, session } = setup();
+      yield* session(scenes);
+      expect(ledger.joins.map((j) => j.out)).toEqual([
+        '/out/test/scenes/a/v0.mp4',
+        '/out/test/scenes/a/v2.mp4',
+        '/out/test/scenes/a/v4.mp4',
+      ]);
+      expect(ledger.frames.length).toBe(180);
+      // In one session: the page that chose the encoder, then the four every scene is drawn on.
+      expect(ledger.pages.opened).toBe(5);
+      expectAllClosed(ledger);
     }),
   );
 

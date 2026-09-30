@@ -330,7 +330,9 @@ score pick, a level, a kept take, then `mix`) or `missing`; its approval
 `approved`, `stale` (given on an earlier render) or `none`; and its comments,
 each marked when it was made on an earlier render. `film project render
 <film> [--scene id,id] [--scale s] [--variant v] [--force]` renders each scene
-on its own into `scenes/<id>/`, skips one whose render is current at the same
+on its own into `scenes/<id>/`, every one through one probe and one pool of
+pages (`Renderer.session`: 1 + workers page loads a run, not that a scene;
+`pages.open` logs each), skips one whose render is current at the same
 settings, and re-muxes one stale by its sound alone: its sound is cut again
 from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens

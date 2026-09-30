@@ -13,7 +13,8 @@
 //   film project render <film> [--variant v] [--scene id,id] [--scale k] [--no-captions]
 //                              [--no-share] [--workers n] [--encoder e] [--force]
 //       render every scene (or those named) that is not current, each to
-//       scenes/<id>/<variant>.mp4; one stale by its sound alone is re-muxed
+//       scenes/<id>/<variant>.mp4, all through one probe and one pool of pages
+//       (`Renderer.session`); one stale by its sound alone is re-muxed
 //   film project approve <film> (--scene id,id | --act name | --all) [--variant v] [--json]
 //       approve those scenes' renders as they are stamped, an act's current
 //       scenes, or every current scene
@@ -57,7 +58,7 @@ import { RenderCatalogue, renderRecord } from './catalogue.ts';
 import { ProjectRead, answering, printLine } from './choices-process.ts';
 import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { type RenderJob, flagConflicts, jobOf } from './render-plan.ts';
+import { type RenderJob, type RenderOutput, flagConflicts, jobOf } from './render-plan.ts';
 import { planKey } from './mixer.ts';
 import { Renderer } from './renderer.ts';
 import { type SceneKeys, Stamps, sceneStamps, stampOf } from './stamp.ts';
@@ -97,6 +98,17 @@ export const renderAndRecord = Effect.fn('film.renderAndRecord')(function* (
   stamp: Stamp,
 ) {
   const output = yield* (yield* Renderer).render(loaded, job);
+  return yield* recordOutput(loaded, scope, job, stamp, output);
+});
+
+/** What `job` wrote recorded in the film's catalogue, unless it went to `--out`. */
+const recordOutput = Effect.fn('film.recordOutput')(function* (
+  loaded: LoadedFilm,
+  scope: Pick<Scope, 'span'>,
+  job: RenderJob,
+  stamp: Stamp,
+  output: RenderOutput,
+) {
   if (job._tag === 'Video' && Option.isSome(job.out)) {
     yield* Effect.log(`catalogue.skip reason=out file=${job.out.value}`);
     return output;
@@ -294,64 +306,78 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         Flag.withDescription('render every scene named, current or not'),
       ),
     },
-    Effect.fn('film.project.render')(function* (input) {
-      const { loaded, placed, keys, tree } = yield* keyed(input.film);
-      const catalogues = yield* RenderCatalogue;
-      const settings = { scale: input.scale, captions: input.captions };
-      const scopes = yield* scenesNamed(loaded, placed, input.scene);
-      let rendered = 0;
-      let remuxed = 0;
-      for (const scope of scopes) {
-        const id = scope.scenes[0]?.spec.id ?? '';
-        const stamp = stampOf(keys, scope);
-        const catalogue = yield* catalogues.read(loaded.paths);
-        const slot = sceneSlot(id, input.variant);
-        const need = Match.value(input.force).pipe(
-          Match.when(true, () => 'draw' as const),
-          Match.orElse(() =>
-            renderNeed(catalogue, slot, { key: stamp.key, sound: tree.sound }, settings),
-          ),
-        );
-        if (need === 'current') {
-          yield* Console.log(`${id.padEnd(16)} current`);
-          continue;
-        }
-        const recut = yield* Option.match(
-          Option.filter(renderIn(catalogue, slot), () => need === 'remux'),
-          {
-            onNone: () => Effect.succeedNone,
-            onSome: (render) => remuxAndRecord(loaded, render),
-          },
-        );
-        if (Option.isSome(recut)) {
-          remuxed += 1;
-          yield* Console.log(`${id.padEnd(16)} remuxed ${recut.value}`);
-          continue;
-        }
-        const job = yield* Effect.fromResult(
-          jobOf({
-            variant: input.variant,
-            captions: input.captions,
-            workers: input.workers,
-            stills: Option.none(),
-            contact: Option.none(),
+    Effect.fn('film.project.render')(
+      function* (input) {
+        const { loaded, placed, keys, tree } = yield* keyed(input.film);
+        const catalogues = yield* RenderCatalogue;
+        const settings = { scale: input.scale, captions: input.captions };
+        const scopes = yield* scenesNamed(loaded, placed, input.scene);
+        // Every scene drawn in this run shares one probe and one pool of pages.
+        const drawn = yield* (yield* Renderer).session;
+        let rendered = 0;
+        let remuxed = 0;
+        for (const scope of scopes) {
+          const id = scope.scenes[0]?.spec.id ?? '';
+          const stamp = stampOf(keys, scope);
+          const catalogue = yield* catalogues.read(loaded.paths);
+          const slot = sceneSlot(id, input.variant);
+          const need = Match.value(input.force).pipe(
+            Match.when(true, () => 'draw' as const),
+            Match.orElse(() =>
+              renderNeed(catalogue, slot, { key: stamp.key, sound: tree.sound }, settings),
+            ),
+          );
+          if (need === 'current') {
+            yield* Console.log(`${id.padEnd(16)} current`);
+            continue;
+          }
+          const recut = yield* Option.match(
+            Option.filter(renderIn(catalogue, slot), () => need === 'remux'),
+            {
+              onNone: () => Effect.succeedNone,
+              onSome: (render) => remuxAndRecord(loaded, render),
+            },
+          );
+          if (Option.isSome(recut)) {
+            remuxed += 1;
+            yield* Console.log(`${id.padEnd(16)} remuxed ${recut.value}`);
+            continue;
+          }
+          const job = yield* Effect.fromResult(
+            jobOf({
+              variant: input.variant,
+              captions: input.captions,
+              workers: input.workers,
+              stills: Option.none(),
+              contact: Option.none(),
+              scope,
+              from: Option.none(),
+              to: Option.none(),
+              scale: Option.some(input.scale),
+              out: Option.none(),
+              share: Option.some(input.share),
+              encoder: input.encoder,
+            }),
+          );
+          const output = yield* recordOutput(
+            loaded,
             scope,
-            from: Option.none(),
-            to: Option.none(),
-            scale: Option.some(input.scale),
-            out: Option.none(),
-            share: Option.some(input.share),
-            encoder: input.encoder,
-          }),
+            job,
+            stamp,
+            yield* drawn.render(loaded, job),
+          );
+          rendered += 1;
+          yield* Console.log(
+            `${id.padEnd(16)} rendered ${Option.getOrElse(output.clip, () => '')}`,
+          );
+        }
+        yield* Effect.log(
+          `project.render film=${input.film} variant=${input.variant} rendered=${rendered} remuxed=${remuxed} current=${scopes.length - rendered - remuxed}`,
         );
-        const output = yield* renderAndRecord(loaded, scope, job, stamp);
-        rendered += 1;
-        yield* Console.log(`${id.padEnd(16)} rendered ${Option.getOrElse(output.clip, () => '')}`);
-      }
-      yield* Effect.log(
-        `project.render film=${input.film} variant=${input.variant} rendered=${rendered} remuxed=${remuxed} current=${scopes.length - rendered - remuxed}`,
-      );
-    }, Effect.provide(renderLayer)),
+      },
+      Effect.scoped,
+      Effect.provide(renderLayer),
+    ),
   ).pipe(
     Command.withDescription(
       "Render each scene on its own into the film's project folder (out/<film>/scenes/<id>/<variant>.mp4), skipping a scene whose render is current and re-muxing one stale by its sound alone (its sound cut again from the master, nothing drawn)",
