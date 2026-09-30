@@ -12,7 +12,7 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, type FileSystem, Option, type Path, Result, type Scope } from 'effect';
+import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scope } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { TakeMismatch } from '../../core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
@@ -110,6 +110,16 @@ const textIs = (page: Page, sel: string, pattern: RegExp) =>
       [pattern.source, sel] as const,
       { timeout: 10_000 },
     ),
+  );
+
+/**
+ * How often the page has asked for `path`, once it has more than `least`
+ * times: a request the page makes after what it shows (a list read again).
+ */
+const askedMoreThan = (asked: ReadonlyArray<Asked>, path: string, least: number) =>
+  Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
+    Effect.repeat({ until: (n) => n > least, schedule: Schedule.spaced('20 millis') }),
+    Effect.timeout('10 seconds'),
   );
 
 /** Wait until the status line reads `pattern`. */
@@ -338,9 +348,9 @@ describe('the studio', () => {
             /^kept thesis\.new\.flac: heard “the law is holy” · 0\.0% words differ · the mix failed; the lab log says why$/,
           );
           // The attempts are read again after the keep.
-          expect(
-            asked.filter((a) => a.path === '/studio/takes/thesis/attempts').length,
-          ).toBeGreaterThan(1);
+          expect(yield* askedMoreThan(asked, '/studio/takes/thesis/attempts', 1)).toBeGreaterThan(
+            1,
+          );
           const [keep] = posted(asked, /^\/studio\/takes\/thesis\/keep$/);
           expect(
             Option.getOrUndefined(Option.fromUndefinedOr(keep).pipe(Option.flatMap((k) => k.body))),
