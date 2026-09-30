@@ -31,7 +31,11 @@ The export page's handle and what its probe records (`ExportInfo`,
 the handle in `core/export-handle.ts`; a choice point's id in
 `core/point.ts`; an address as data (`Address`, `addressKey`) in
 `core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
-(`address.ts` re-exports it beside `resolveAddress`).
+(`address.ts` re-exports it beside `resolveAddress`). A scene's and a short's
+id is one shape, `PartId` (lower case, digits and dashes, starting with a
+letter or a digit), and an act's name (`ActName`) never starts with `-`: the
+film is refused at load, naming the id, when one names no address, point or
+argument.
 
 ## Tools
 

@@ -5,7 +5,7 @@
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
-import { Address } from './address-schema.ts';
+import { ActName, Address, PartId } from './address-schema.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -409,7 +409,8 @@ export type Knobs = typeof Knobs.Type;
 
 /** The part of a scene the clock reads. */
 export const Timed = Schema.Struct({
-  id: Schema.String,
+  /** Names the scene's files, its address and its render's choice point. */
+  id: PartId,
   /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
   say: Schema.optionalKey(Schema.String),
   /** Silence before the voice starts. */
@@ -480,12 +481,10 @@ export const ShortSpan = Schema.Struct({
 });
 export type ShortSpan = typeof ShortSpan.Type;
 
-/** A short's id names its files (`out/<film>/shorts/<id>.mp4`): lower case, digits and dashes. */
-const ShortId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/));
-
 /** A vertical short cut from a film (`shorts.ts`): its spans, played back to back. */
 export const Short = Schema.Struct({
-  id: ShortId,
+  /** Names its files (`out/<film>/shorts/<id>.mp4`) and its address. */
+  id: PartId,
   title: Schema.String,
   /**
    * The line set above the picture from the first frame for its first
@@ -684,9 +683,9 @@ const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
  */
 export const Act = Schema.Struct({
   /** The scene the act starts on; it runs until the next act's. The first holds every scene before it. */
-  from: Schema.String,
+  from: PartId,
   /** The act's name, for the report: `cold open`, `valley`. */
-  name: Schema.String,
+  name: ActName,
   /**
    * The narrator's question that opens the act, in the viewer's words: its
    * YouTube chapter title (`film chapters`).

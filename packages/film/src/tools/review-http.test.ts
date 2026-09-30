@@ -594,4 +594,23 @@ describe("a film's project", () => {
       expect(projectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
+
+  it.effect('a scene or an act named like a flag is a 400, and never reaches its argv', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      for (const address of [
+        '{"_tag":"Scenes","ids":["--all"]}',
+        '{"_tag":"Scenes","ids":["a","-x"]}',
+        '{"_tag":"Act","act":"--all"}',
+      ]) {
+        const said = yield* ask(say(`{"address":${address},"say":{"_tag":"Approve"}}`));
+        expect(said.status).toBe(400);
+        expect(refusalOf(yield* body(said))).toMatchObject({
+          _tag: 'RequestInvalid',
+          part: 'Payload',
+        });
+      }
+      expect(projectRuns).toEqual([]);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
 });
