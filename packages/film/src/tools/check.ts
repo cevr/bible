@@ -8,6 +8,10 @@
 
 import { Array as Arr, Match, Option, Order, Predicate, Result } from 'effect';
 import { BOIL_FPS, STROKE_JITTER } from '../canvas/ink.ts';
+import type { Pcm } from '../core/audio.ts';
+import { BALANCE, hotEffects, voiceLevel } from '../core/balance.ts';
+import type { MixPlan, Mixed } from '../core/mix.ts';
+import { loudness } from '../core/synth/loudness.ts';
 import type { Placed } from '../core/layout.ts';
 import { DEFAULT_TAIL, MIN_LEAD, everyTakeRecorded, transitionDur } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
@@ -36,7 +40,6 @@ import {
   type LibraryEntry,
   type SoundUse,
   type Sounds,
-  levelOf as soundLevel,
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
@@ -54,6 +57,8 @@ import {
   DeadAir,
   EffectHot,
   EndShort,
+  MasterLoudness,
+  VoiceLevel,
   type ColourScript,
   type CueInvalid,
   type FaceSmall,
@@ -100,7 +105,9 @@ export type StaticFinding =
   | EffectHot
   | WordPinFar
   | EndShort
-  | DeadAir;
+  | DeadAir
+  | VoiceLevel
+  | MasterLoudness;
 /** What one probed frame shows wrong. */
 export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFrame | TextOffPlate;
 export type LayoutFinding = FrameFinding | StaticHold;
@@ -283,16 +290,34 @@ export const musicFindings = (
   });
 
 /**
- * How close to the voice's level (dB) an effect may sit where the voice
- * speaks: nearer, it competes with the words.
+ * The mix measured against the film's sound rules: the voice's level and the
+ * master's loudness off their targets, and each effect that crowds the voice
+ * around it (`hotEffects`: its loudest 50 ms, as the mix plays it).
  */
-export const EFFECT_HOT = 3;
-
-/** The film seconds each scene's voice speaks. */
-const speechSpans = (placed: ReadonlyArray<Placed>): ReadonlyArray<Span> =>
-  placed
-    .filter((p) => p.voice.duration > 0)
-    .map((p): Span => [p.start + p.speechStart, p.start + p.speechStart + p.voice.duration]);
+export const balanceFindings = (
+  placed: ReadonlyArray<Placed>,
+  plan: MixPlan<Pcm>,
+  mixed: Mixed,
+): ReadonlyArray<VoiceLevel | MasterLoudness | EffectHot> => {
+  const { tolerance } = BALANCE;
+  const found: Array<VoiceLevel | MasterLoudness | EffectHot> = [];
+  const voice = voiceLevel(mixed.voice);
+  if (Number.isFinite(voice) && Math.abs(voice - BALANCE.voice) > tolerance)
+    found.push(VoiceLevel.make({ level: voice, target: BALANCE.voice, tolerance }));
+  const master = loudness(mixed.master).integrated;
+  if (Number.isFinite(master) && Math.abs(master - BALANCE.master) > tolerance)
+    found.push(MasterLoudness.make({ loudness: master, target: BALANCE.master, tolerance }));
+  for (const hot of hotEffects(mixed.voice, plan.effects))
+    found.push(
+      EffectHot.make({
+        effect: hot.name,
+        scene: sceneAt(placed, hot.at),
+        at: hot.at,
+        over: hot.over,
+      }),
+    );
+  return found;
+};
 
 /** The scene playing at film second `at`. */
 const sceneAt = (placed: ReadonlyArray<Placed>, at: number): string =>
@@ -321,9 +346,9 @@ const libraryFindings = (
 
 /**
  * Every bed and effect: each cue names a real scene, cue or mark; each sound
- * is in the library, declared for how it is placed, made and current; and no
- * effect sits within `EFFECT_HOT` dB of the voice where the voice speaks. A
- * sound named twice is reported once.
+ * is in the library, declared for how it is placed, made and current. A
+ * sound named twice is reported once. (How loud each plays against the voice
+ * is measured on the mix: `balanceFindings`.)
  */
 export const soundFindings = (
   sound: Sound,
@@ -338,7 +363,6 @@ export const soundFindings = (
   };
   const cueFindings = (cue: Sound['effects'][string]['at'][number]) =>
     Result.match(cueTime(cue, placed), { onFailure: (e) => [e], onSuccess: () => [] });
-  const speech = speechSpans(placed);
   const beds = (sound.beds ?? []).flatMap((bed) => [
     ...cueFindings(bed.from),
     ...cueFindings(bed.to),
@@ -347,24 +371,11 @@ export const soundFindings = (
       onSuccess: ({ findings }) => once(bed.sound, findings),
     }),
   ]);
-  const effects = Object.entries(sound.effects).flatMap(([id, effect]) => [
+  const effects = Object.values(sound.effects).flatMap((effect) => [
     ...effect.at.flatMap(cueFindings),
     ...Result.match(libraryFindings(sounds, effect.sound, 'one-shot'), {
       onFailure: (e) => once(effect.sound, [e]),
-      onSuccess: ({ entry, findings }) => {
-        const level = soundLevel(entry, Option.fromUndefinedOr(effect.level));
-        const hot = effect.at.flatMap((cue) =>
-          Result.match(cueTime(cue, placed), {
-            onFailure: () => [],
-            onSuccess: (at) => {
-              if (level <= -EFFECT_HOT) return [];
-              if (!speech.some(([a, b]) => at >= a && at <= b)) return [];
-              return [EffectHot.make({ effect: id, scene: sceneAt(placed, at), at, level })];
-            },
-          }),
-        );
-        return [...once(effect.sound, findings), ...hot];
-      },
+      onSuccess: ({ findings }) => once(effect.sound, findings),
     }),
   ]);
   return [...beds, ...effects];
@@ -381,6 +392,8 @@ const levelOf = (finding: StaticFinding, options: CheckOptions): Level => {
     case 'AssetMissing':
     case 'SoundStale':
     case 'EffectHot':
+    case 'VoiceLevel':
+    case 'MasterLoudness':
     case 'SeamLong':
     case 'WordPinFar':
     case 'EndShort':

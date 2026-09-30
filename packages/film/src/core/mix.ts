@@ -21,6 +21,7 @@ import {
   type UnknownSound,
 } from './errors.ts';
 import type { Placed } from './layout.ts';
+import { takeLift } from './recording.ts';
 import type { Sound, SoundManifest } from './schema.ts';
 import {
   type Placing,
@@ -62,11 +63,23 @@ export const BED_CROSSFADE = 0.5;
 
 /** One sound on a bus: where it starts (seconds into the film), how loud, and its pitch nudge. */
 export interface Placement<A> {
+  /** What the film calls it: the effect's id in `sound.ts`, or the take's scene. */
+  readonly name: string;
   readonly sound: A;
   readonly at: number;
   readonly gain: number;
   /** Semitones; the sound is resampled, so its length changes with it. */
   readonly pitch: number;
+}
+
+/**
+ * A take on the voice bus. A staging take (`staged`) is levelled here, as
+ * `takes import` levels a recording (`takeLift`): ElevenLabs sends each at its
+ * own level, so the mix brings its speech to the one the film is balanced
+ * on. A person's take was levelled when it was imported and plays as it is.
+ */
+export interface Take<A> extends Placement<A> {
+  readonly staged: boolean;
 }
 
 /** The score: one sound under the whole film, from its start. */
@@ -92,7 +105,7 @@ export interface MixPlan<A> {
   /** The track's length: the film's. */
   readonly seconds: number;
   /** Each recorded take. */
-  readonly voice: ReadonlyArray<Placement<A>>;
+  readonly voice: ReadonlyArray<Take<A>>;
   /** The score, or none. */
   readonly music: Option.Option<Bed<A>>;
   /** Each bed over its span. */
@@ -181,6 +194,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
           Option.map(
             Option.fromUndefinedOr(p.playables[choice.variant]),
             (playable): Placement<SoundSource> => ({
+              name: p.effect,
               sound: playable.source,
               at: p.at + choice.delay,
               gain: gainFor(p.level, playable.loudness, 'one-shot') * 10 ** (choice.gain / 20),
@@ -241,12 +255,14 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
         Option.filter(Option.fromNullishOr(p.voice.file), () => p.voice.recorded),
         {
           onNone: () => [],
-          onSome: (file): ReadonlyArray<Placement<SoundSource>> => [
+          onSome: (file): ReadonlyArray<Take<SoundSource>> => [
             {
+              name: p.spec.id,
               sound: fileSource(`${input.narration}/${file}`),
               at: p.start + p.speechStart,
               gain: 1,
               pitch: 0,
+              staged: p.voice.source !== 'recorded',
             },
           ],
         },
@@ -389,8 +405,11 @@ export const renderMix = (plan: MixPlan<Pcm>): Mixed => {
   const at = (secs: number) => toFrames(secs, MIX_RATE);
 
   const voice = bus(frames);
-  for (const take of plan.voice)
-    addInto(voice, toStereo(take.sound).channels, at(take.at), take.gain);
+  for (const take of plan.voice) {
+    let lift = 1;
+    if (take.staged) lift = 10 ** (takeLift(take.sound) / 20);
+    addInto(voice, toStereo(take.sound).channels, at(take.at), take.gain * lift);
+  }
 
   const music = Option.map(plan.music, (bed) => {
     const out = bus(frames);

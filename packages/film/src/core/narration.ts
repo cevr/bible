@@ -14,7 +14,15 @@
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import { AlignmentMismatch, UnknownVoice } from './errors.ts';
 import { fnv1a } from './random.ts';
-import { type TakeWord, type Timings, type Voice, VoiceKey, type Word, isCast } from './schema.ts';
+import {
+  type TakeSource,
+  type TakeWord,
+  type Timings,
+  type Voice,
+  VoiceKey,
+  type Word,
+  isCast,
+} from './schema.ts';
 import { unmeasured } from './voiced.ts';
 
 /** Another voice takes the line: `{@name}` before a word. */
@@ -302,6 +310,8 @@ export interface SceneVoice {
   /** Audio file, when a current recording exists. */
   readonly file: string | undefined;
   readonly recorded: boolean;
+  /** Who read the current take (the staging voice or a person); none without one. */
+  readonly source: TakeSource | undefined;
 }
 
 /**
@@ -331,6 +341,7 @@ export const voiceFor = (id: string, text: string, timings: Timings | undefined)
       turns: [],
       file: undefined,
       recorded: false,
+      source: undefined,
     };
   const take = timings?.scenes[id];
   const recorded = take !== undefined && take.hash === hashText(takeScript(parsed));
@@ -349,5 +360,6 @@ export const voiceFor = (id: string, text: string, timings: Timings | undefined)
     turns,
     file: recorded ? take.file : undefined,
     recorded,
+    source: recorded ? take.source : undefined,
   };
 };

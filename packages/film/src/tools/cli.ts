@@ -58,6 +58,7 @@ import {
   HOLD,
   type Level,
   type Reported,
+  balanceFindings,
   deadAir,
   designedSilences,
   layoutLevel,
@@ -615,6 +616,10 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
         const levels = yield* masterLevels(yield* Media, masterFile(loaded.paths), DEAD_WINDOW);
         for (const finding of deadAir(levels, DEAD_WINDOW, designedSilences(placed)))
           found.push({ level: 'error', finding });
+        // The balance is measured on the mix itself, bus by bus, as `mix` makes it.
+        const { plan, mixed } = yield* (yield* Mixer).render(input.film, { warn: false });
+        for (const finding of balanceFindings(placed, plan, mixed))
+          found.push({ level: 'warning', finding });
       }
       if (!input.static) found.push(...(yield* layoutLeg(loaded, placed, input.workers, only)));
       yield* reportFindings(input.film, 'film', !input.static, found, input.json);

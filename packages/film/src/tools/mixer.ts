@@ -17,7 +17,9 @@ import {
   MIX_RATE,
   type MixPlan,
   type MixPlanError,
+  type Mixed,
   type Placement,
+  type Take,
   mixPlan,
   renderMix,
 } from '../core/mix.ts';
@@ -99,6 +101,18 @@ export type MixError =
   | MediaFailed
   | SampleRateMismatch;
 
+/** What a mix is rendered from beyond the film. */
+export interface RenderOptions {
+  /** Log each warning the plan earns (stale, missing). */
+  readonly warn: boolean;
+}
+
+/** A mix rendered in memory, and the decoded plan it played. */
+export interface Rendered {
+  readonly plan: MixPlan<Pcm>;
+  readonly mixed: Mixed;
+}
+
 export interface MixerService {
   /**
    * Rebuild `narration/full.wav` from the film's current takes, score and
@@ -106,6 +120,14 @@ export interface MixerService {
    * whole; a failed or interrupted mix leaves the old track as it was.
    */
   readonly mix: (film: string, options: MixOptions) => Effect.Effect<void, MixError>;
+  /**
+   * The film's mix in memory, as `mix` would write it, with the plan it
+   * played (decoded): what `check` measures the balance on.
+   */
+  readonly render: (
+    film: string,
+    options: RenderOptions,
+  ) => Effect.Effect<Rendered, MixError | PlatformError>;
 }
 
 /**
@@ -126,6 +148,8 @@ export const decodePlan = (
   };
   const place = (p: Placement<SoundSource>) =>
     Effect.map(decodeAt(p.sound), (sound): Placement<Pcm> => ({ ...p, sound }));
+  const read = (take: Take<SoundSource>) =>
+    Effect.map(decodeAt(take.sound), (sound): Take<Pcm> => ({ ...take, sound }));
   const lay = (bed: Bed<SoundSource>) =>
     Effect.map(decodeAt(bed.sound), (sound): Bed<Pcm> => ({ ...bed, sound }));
   const span = (bed: BedSpan<SoundSource>) =>
@@ -133,7 +157,7 @@ export const decodePlan = (
   return Effect.gen(function* () {
     const decoded: MixPlan<Pcm> = {
       ...plan,
-      voice: yield* Effect.forEach(plan.voice, place, { concurrency: 4 }),
+      voice: yield* Effect.forEach(plan.voice, read, { concurrency: 4 }),
       music: yield* Effect.transposeOption(Option.map(plan.music, lay)),
       beds: yield* Effect.forEach(plan.beds, span, { concurrency: 4 }),
       effects: yield* Effect.forEach(plan.effects, place, { concurrency: 4 }),
@@ -199,7 +223,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
           yield* fs.rename(partial, file);
         });
 
-      const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
+      const render = Effect.fn('Mixer.render')(function* (name: string, options: RenderOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
         const planned = yield* Effect.fromResult(
@@ -213,9 +237,16 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
             soundDir: film.paths.sound,
           }),
         );
-        const plan = yield* presentOnly((file) => fs.exists(file), planned);
-        for (const warning of plan.warnings) yield* Effect.logWarning(warning);
-        const mixed = renderMix(yield* decodePlan(media, plan));
+        const present = yield* presentOnly((file) => fs.exists(file), planned);
+        if (options.warn) for (const warning of present.warnings) yield* Effect.logWarning(warning);
+        const plan = yield* decodePlan(media, present);
+        const rendered: Rendered = { plan, mixed: renderMix(plan) };
+        return rendered;
+      });
+
+      const mix = Effect.fn('Mixer.mix')(function* (name: string, options: MixOptions) {
+        const film = yield* repo.load(name);
+        const { plan, mixed } = yield* render(name, { warn: true });
         const buses: ReadonlyArray<Bus> = [
           { bus: 'voice', pcm: mixed.voice },
           ...Option.toArray(Option.map(mixed.music, (pcm) => ({ bus: 'music', pcm }))),
@@ -242,7 +273,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         );
       });
 
-      return Mixer.of({ mix });
+      return Mixer.of({ mix, render });
     }),
   );
 }

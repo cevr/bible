@@ -77,7 +77,10 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
   );
   const mixer = Layer.succeed(
     Mixer,
-    Mixer.of({ mix: (name) => Effect.sync(() => void mixes.push(name)) }),
+    Mixer.of({
+      mix: (name) => Effect.sync(() => void mixes.push(name)),
+      render: () => Effect.die('the studio never renders a mix in memory'),
+    }),
   );
   const base = Layer.mergeAll(
     memoryFileSystem(files),
@@ -366,6 +369,7 @@ describe('studio routes', () => {
             for (let i = 0; i < 5; i++) yield* Effect.yieldNow;
             events.push('mixed');
           }),
+        render: () => Effect.die('the studio never renders a mix in memory'),
       }),
     );
     return Effect.gen(function* () {

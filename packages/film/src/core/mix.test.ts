@@ -3,6 +3,7 @@ import { Option, Result } from 'effect';
 import type { Pcm } from './audio.ts';
 import { layout } from './layout.ts';
 import { BED_DUCK, MIX_RATE, type MixPlan, loopFill, mixPlan, renderMix, repitch } from './mix.ts';
+import { TAKE_LEVEL } from './recording.ts';
 import type { Music, Sound, Timed } from './schema.ts';
 import {
   type Lock,
@@ -39,7 +40,14 @@ const at = (bus: Pcm, secs: number) => bus.channels[0]?.[Math.round(secs * RATE)
 /** Mono at 0.5, spread to a side: −3 dB. */
 const SIDE = Math.fround(0.5 * Math.SQRT1_2);
 
-const take = (sound: Pcm, secs: number) => ({ sound, at: secs, gain: 1, pitch: 0 });
+const take = (sound: Pcm, secs: number) => ({
+  name: 'take',
+  sound,
+  at: secs,
+  gain: 1,
+  pitch: 0,
+  staged: false,
+});
 
 describe('renderMix', () => {
   test('a take lands on its frame, on both sides at −3 dB; the track is the film’s length', () => {
@@ -54,6 +62,24 @@ describe('renderMix', () => {
       true,
       true,
     ]);
+  });
+
+  test('a staging take plays at the speech level by one clean gain; a person’s take as it is', () => {
+    const quiet = mono(1, 0.05);
+    const lift = 10 ** ((TAKE_LEVEL.speech - 20 * Math.log10(0.05)) / 20);
+    const staged = renderMix(plan({ voice: [{ ...take(quiet, 2), staged: true }] }));
+    const read = renderMix(plan({ voice: [{ ...take(quiet, 2), staged: false }] }));
+    expect(at(staged.voice, 2.5)).toBeCloseTo(0.05 * Math.SQRT1_2 * lift, 5);
+    expect(at(read.voice, 2.5)).toBeCloseTo(0.05 * Math.SQRT1_2, 6);
+  });
+
+  test('a staging take is never lifted past the ceiling', () => {
+    // A take that peaks at 0.5 with quiet speech around it: the peak holds the lift back.
+    const spiky = mono(1, 0.02);
+    spiky.channels[0]?.fill(0.5, 100, 110);
+    const staged = renderMix(plan({ voice: [{ ...take(spiky, 0), staged: true }] }));
+    const peak = Math.max(...(staged.voice.channels[0] ?? []).map(Math.abs));
+    expect(20 * Math.log10(peak / Math.SQRT1_2)).toBeCloseTo(TAKE_LEVEL.ceiling, 3);
   });
 
   test('the master is the buses summed, one limiter window behind', () => {
@@ -87,8 +113,8 @@ describe('renderMix', () => {
     const mixed = renderMix(
       plan({
         effects: [
-          { sound: tick, at: 1, gain: 1, pitch: 0 },
-          { sound: tick, at: 4, gain: 0.5, pitch: 0 },
+          { name: 'tick', sound: tick, at: 1, gain: 1, pitch: 0 },
+          { name: 'tick', sound: tick, at: 4, gain: 0.5, pitch: 0 },
         ],
       }),
     );

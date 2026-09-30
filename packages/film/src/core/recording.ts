@@ -186,9 +186,20 @@ export const prepareTake = (recording: Pcm): Option.Option<Pcm> => {
     ]),
     TAKE_FADE,
   );
+  return Option.some(gain(trimmed, takeLift(trimmed)));
+};
+
+/**
+ * The one gain, in dB, that puts a take's speech at `TAKE_LEVEL.speech`, or
+ * less when that would take its peak past `TAKE_LEVEL.ceiling`: how a
+ * recording is levelled on import, and a staging take in the mix. 0 for a
+ * take with no speech.
+ */
+export const takeLift = (take: Pcm): number => {
   const lift = Math.min(
-    TAKE_LEVEL.speech - speechLevel(trimmed),
-    TAKE_LEVEL.ceiling - levels(trimmed).peak,
+    TAKE_LEVEL.speech - speechLevel(take),
+    TAKE_LEVEL.ceiling - levels(take).peak,
   );
-  return Option.some(gain(trimmed, lift));
+  if (!Number.isFinite(lift)) return 0;
+  return lift;
 };

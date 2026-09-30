@@ -120,15 +120,42 @@ export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   }
 }
 
-/** An effect placed within `EFFECT_HOT` dB of the voice while the voice speaks. */
+/**
+ * An effect whose loudest moment (`BALANCE.hotWindow`, as the mix plays it)
+ * comes within `BALANCE.hot` dB under the voice around it, or over it: it
+ * covers the words.
+ */
 export class EffectHot extends Schema.TaggedError<EffectHot>()('EffectHot', {
   effect: Schema.String,
   scene: Schema.String,
   at: Schema.Finite,
-  level: Schema.Finite,
+  /** Its loudest moment against the voice around it, in dB. */
+  over: Schema.Finite,
 }) {
   override get message() {
-    return `effect "${this.effect}" at ${this.at.toFixed(2)}s (scene ${this.scene}) sits ${this.level.toFixed(1)} dB from the voice while it speaks; lower its level`;
+    return `effect "${this.effect}" at ${this.at.toFixed(2)}s (scene ${this.scene}) peaks ${this.over.toFixed(1)} dB against the voice around it; lower its level, or re-roll a take whose hit is the problem`;
+  }
+}
+
+/** The voice bus's level (its 70th percentile) off the film's target. */
+export class VoiceLevel extends Schema.TaggedError<VoiceLevel>()('VoiceLevel', {
+  level: Schema.Finite,
+  target: Schema.Finite,
+  tolerance: Schema.Finite,
+}) {
+  override get message() {
+    return `the voice sits at ${this.level.toFixed(1)} dBFS (70th percentile), outside ${this.target} ± ${this.tolerance} dB: level the takes (a staging take is levelled in the mix; a person's on import)`;
+  }
+}
+
+/** The master's integrated loudness off the film's target. */
+export class MasterLoudness extends Schema.TaggedError<MasterLoudness>()('MasterLoudness', {
+  loudness: Schema.Finite,
+  target: Schema.Finite,
+  tolerance: Schema.Finite,
+}) {
+  override get message() {
+    return `the master measures ${this.loudness.toFixed(1)} LUFS, outside ${this.target} ± ${this.tolerance}: balance the voice first, then the beds, music and effects against it`;
   }
 }
 

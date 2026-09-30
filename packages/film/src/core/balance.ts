@@ -1,0 +1,99 @@
+// How a mix measures against the film's sound rules (CRAFT rule 10): the
+// voice's level, and each effect against the voice around it. A bus is read
+// as a listener hears it: its sides' power summed, so a take played mono at
+// −3 dB a side reads as the take itself (and as BS.1770 sums them). Pure: the
+// check renders the mix and hands its buses here.
+
+import { Array as Arr } from 'effect';
+import type { Pcm } from './audio.ts';
+import { type Placement, repitch } from './mix.ts';
+
+export const BALANCE = {
+  /** The voice's level at its 70th percentile over `levelWindow`s, in dBFS (CRAFT rule 10). */
+  voice: -17,
+  /** The master's integrated loudness, in LUFS (CRAFT rule 10). */
+  master: -18,
+  /**
+   * How far either may sit from its target, in dB: a clean gain to the
+   * speech level can be held 1–2 dB short by a take's own peaks (the ceiling).
+   */
+  tolerance: 3,
+  /** The window the voice's level is read over, in seconds (BS.1770's block). */
+  levelWindow: 0.4,
+  /** A window quieter than this, in dBFS, is a pause, not the voice. */
+  gate: -50,
+  /** How close under the voice (dB) an effect's loudest moment may come where the voice speaks. */
+  hot: 3,
+  /** The window an effect's loudest moment is read over, in seconds: a thud's attack is this short. */
+  hotWindow: 0.05,
+  /** The voice around an effect: this many seconds either side of it. */
+  around: 1,
+  /** Less voice than this around an effect (seconds over the gate) is no one speaking. */
+  speaking: 0.25,
+} as const;
+
+/** The level in dBFS of each `window` seconds of `pcm`, its sides' power summed; silence is −Infinity. */
+const windowPowers = (pcm: Pcm, from: number, to: number, window: number): Array<number> => {
+  const size = Math.max(1, Math.round(window * pcm.rate));
+  const start = Math.max(0, Math.round(from * pcm.rate));
+  const end = Math.min(pcm.frames, Math.round(to * pcm.rate));
+  const out: Array<number> = [];
+  for (let w = start; w + size <= end; w += size) {
+    let power = 0;
+    for (const plane of pcm.channels)
+      for (let i = w; i < w + size; i++) power += (plane[i] ?? 0) ** 2;
+    out.push(10 * Math.log10(power / size));
+  }
+  return out;
+};
+
+/** The `p`th fraction of `values`, low to high; −Infinity when there are none. */
+const percentile = (values: ReadonlyArray<number>, p: number): number => {
+  const sorted = values.toSorted((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) * p)] ?? Number.NEGATIVE_INFINITY;
+};
+
+/** The voice's level: the 70th percentile of its `levelWindow`s over the gate, in dBFS. */
+export const voiceLevel = (voice: Pcm): number =>
+  percentile(
+    windowPowers(voice, 0, voice.frames / voice.rate, BALANCE.levelWindow).filter(
+      (db) => db > BALANCE.gate,
+    ),
+    0.7,
+  );
+
+/** An effect whose loudest `hotWindow` comes within `BALANCE.hot` dB under the voice around it. */
+export interface HotEffect {
+  readonly name: string;
+  readonly at: number;
+  /** Its loudest moment against the voice around it, in dB (negative: under it). */
+  readonly over: number;
+}
+
+/**
+ * The effects that crowd the words: each placement's loudest `hotWindow` (at
+ * its gain and pitch, as the mix plays it) against the voice's 70th
+ * percentile over `hotWindow`s from `around` seconds before it to `around`
+ * after it ends. An effect with no one speaking around it is not held to the
+ * voice.
+ */
+export const hotEffects = (
+  voice: Pcm,
+  effects: ReadonlyArray<Placement<Pcm>>,
+): ReadonlyArray<HotEffect> =>
+  Arr.flatMap(effects, (fx) => {
+    const sound = repitch(fx.sound, fx.pitch);
+    const secs = sound.frames / sound.rate;
+    const heard = windowPowers(sound, 0, secs, BALANCE.hotWindow);
+    const loudest = Math.max(...heard) + 20 * Math.log10(fx.gain);
+    const around = windowPowers(
+      voice,
+      fx.at - BALANCE.around,
+      fx.at + secs + BALANCE.around,
+      BALANCE.hotWindow,
+    ).filter((db) => db > BALANCE.gate);
+    if (around.length * BALANCE.hotWindow < BALANCE.speaking) return [];
+    const over = loudest - percentile(around, 0.7);
+    if (over <= -BALANCE.hot) return [];
+    return [{ name: fx.name, at: fx.at, over }];
+  });

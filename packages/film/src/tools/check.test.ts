@@ -32,9 +32,12 @@ import {
   STILL_DRIFT,
   staticFindings,
   stillSpan,
-  EFFECT_HOT,
+  balanceFindings,
   unknownVoices,
 } from './check.ts';
+import type { Pcm } from '../core/audio.ts';
+import { BALANCE } from '../core/balance.ts';
+import type { MixPlan, Mixed } from '../core/mix.ts';
 import { StaticHold } from './errors.ts';
 import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import {
@@ -937,24 +940,67 @@ describe('soundFindings', () => {
     });
   });
 
-  test('an effect within EFFECT_HOT dB of the voice is hot only where the voice speaks', () => {
-    const scenes: ReadonlyArray<Timed> = [
-      { id: 'said', say: 'Hi there.' },
-      { id: 'quiet', min: 3 },
-    ];
-    const recorded: Timings = { voice: voiceKey(testVoice), scenes: { said: take('Hi there.') } };
-    const placed = layout(scenes, recorded);
-    const speaking = Option.getOrThrow(Arr.head(placed)).speechStart + 1;
-    const at = [{ scene: 'said', offset: speaking }, { scene: 'quiet' }];
-    const hit = (effect: Sound['effects'][string]): Sound => ({ effects: { hit: effect } });
-    expect(soundFindings(hit({ sound: 'paper.hit', at }), placed, sounds)).toEqual([]);
-    expect(soundFindings(hit({ sound: 'paper.loud', at }), placed, sounds)).toMatchObject([
-      { _tag: 'EffectHot', effect: 'hit', scene: 'said', level: 0 },
+  test('a loud effect is not judged here: its level is measured on the mix', () => {
+    const at = [{ scene: 'open', cue: 'hit' }];
+    expect(
+      soundFindings({ effects: { hit: { sound: 'paper.loud', at } } }, placedSound, sounds),
+    ).toEqual([]);
+  });
+});
+
+describe('balanceFindings', () => {
+  const RATE = 44100;
+  /** `secs` of a 220 Hz tone at `db` dBFS on both sides, their power summed (silence past `until`). */
+  const tone = (secs: number, db: number, until = secs): Pcm => {
+    const frames = Math.round(secs * RATE);
+    const amp = 10 ** (db / 20);
+    const plane = new Float32Array(frames);
+    for (let i = 0; i < Math.round(until * RATE); i++)
+      plane[i] = amp * Math.sin((2 * Math.PI * 220 * i) / RATE);
+    return { rate: RATE, frames, channels: [plane, plane] };
+  };
+  const placed = layout([{ id: 'said', min: 10 }], noTakes);
+  const mixOf = (voice: Pcm, effects: MixPlan<Pcm>['effects'] = []) => {
+    const plan: MixPlan<Pcm> = {
+      seconds: 10,
+      voice: [],
+      music: Option.none(),
+      beds: [],
+      effects,
+      warnings: [],
+    };
+    const mixed: Mixed = {
+      master: voice,
+      voice,
+      music: Option.none(),
+      beds: Option.none(),
+      effects: Option.none(),
+    };
+    return balanceFindings(placed, plan, mixed);
+  };
+
+  test('a voice and master on target find nothing', () => {
+    expect(mixOf(tone(10, BALANCE.voice))).toEqual([]);
+  });
+
+  test('a voice under target is a VoiceLevel, and its master a MasterLoudness', () => {
+    const found = mixOf(tone(10, BALANCE.voice - BALANCE.tolerance - 2));
+    expect(tags(found)).toEqual(['VoiceLevel', 'MasterLoudness']);
+    expect(found[0]).toMatchObject({ target: BALANCE.voice });
+  });
+
+  test('an effect whose 50 ms hit sits over the voice around it is an EffectHot, named', () => {
+    const thud = tone(0.05, BALANCE.voice + 6).channels[0] ?? new Float32Array();
+    const found = mixOf(tone(10, BALANCE.voice), [
+      {
+        name: 'cloth',
+        sound: { rate: RATE, frames: thud.length, channels: [thud] },
+        at: 4,
+        gain: 1,
+        pitch: 0,
+      },
     ]);
-    const quieter = hit({ sound: 'paper.loud', level: -EFFECT_HOT, at });
-    expect(soundFindings(quieter, placed, sounds)).toEqual([]);
-    const louder = hit({ sound: 'paper.hit', level: -1, at });
-    expect(tags(soundFindings(louder, placed, sounds))).toEqual(['EffectHot']);
+    expect(found).toMatchObject([{ _tag: 'EffectHot', effect: 'cloth', scene: 'said', at: 4 }]);
   });
 });
 
