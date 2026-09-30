@@ -4,7 +4,7 @@
 // collects, never the first failure only; the run fails with `CheckFailed`
 // once every one is reported. The legs that find them are in `film-check.ts`.
 
-import { Match, Schema } from 'effect';
+import { Array as Arr, Match, Schema } from 'effect';
 import type {
   CueCycle,
   DuplicateMark,
@@ -511,6 +511,61 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
   }
 }
 
+/**
+ * A scene that throws when it draws, at a moment the draw leg samples: a
+ * mark, a cue or a knob it reads that its film no longer has (4f46add3), or
+ * an argument a real canvas refuses.
+ */
+export class DrawThrew extends Schema.TaggedError<DrawThrew>()('DrawThrew', {
+  ...sampled,
+  why: Schema.String,
+}) {
+  override get message() {
+    return `${where(this)}: the frame throws when drawn: ${this.why}`;
+  }
+}
+
+/**
+ * A frame that is not a function of its time: drawn after the frame after
+ * it, then after the frame before it, it leaves a different picture
+ * (ab75a2a1, 5da347fd). `why` names the first call that differs.
+ */
+export class FrameImpure extends Schema.TaggedError<FrameImpure>()('FrameImpure', {
+  ...sampled,
+  why: Schema.String,
+}) {
+  override get message() {
+    return `${where(this)}: the frame depends on the frame drawn before it: ${this.why}`;
+  }
+}
+
+/**
+ * Ink or text drawn over a face: visible strokes or lines of text drawn after
+ * a visible face (its person done), running through its core. A rope across
+ * a man's face, a stamp over a mouth: caught here, not by eye.
+ */
+export class InkOverFace extends Schema.TaggedError<InkOverFace>()('InkOverFace', {
+  ...sampled,
+  /** The face's centre and height on screen, in canvas pixels. */
+  x: Schema.Finite,
+  y: Schema.Finite,
+  size: Schema.Finite,
+  /** How many strokes cross it. */
+  strokes: Schema.Int,
+  /** The lines of text over it. */
+  texts: Schema.Array(Schema.String),
+  frames: Schema.Int,
+}) {
+  override get message() {
+    const texts = this.texts.map((t) => `"${t}"`).join(', ');
+    const over = [
+      ...Arr.filter([`${this.strokes} stroke(s)`], () => this.strokes > 0),
+      ...Arr.filter([`text ${texts}`], () => this.texts.length > 0),
+    ].join(' and ');
+    return `${where(this)}: ${over} drawn over the face at ${Math.round(this.x)},${Math.round(this.y)} (${Math.round(this.size)} px tall) (${this.frames} sampled frame(s))`;
+  }
+}
+
 /** A line of text running off the plate under it (a card, a tag), past the plate's edge. */
 export class TextOffPlate extends Schema.TaggedError<TextOffPlate>()('TextOffPlate', {
   ...sampled,
@@ -614,9 +669,17 @@ export type FrameFinding = TextOverlap | TextOffFrame | InkOverText | PlateOffFr
 export type LayoutFinding = FrameFinding | StaticHold;
 /** What the look pass measures across the film (`look.ts`). */
 export type LookFinding = HeldShare | ColourScript | FaceSmall | HandJump | HandFar | HandHidden;
+/** What the draw leg (`check --draw`) finds, drawing each scene in-process at its moments. */
+export type DrawFinding = DrawThrew | FrameImpure | InkOverFace;
 /** What `check --short` finds on a short. */
 export type ShortFinding = ShortUnsafeText | ShortHook | ShortLoop | ShortLength;
-export type Finding = StaticFinding | MixFinding | LayoutFinding | LookFinding | ShortFinding;
+export type Finding =
+  | StaticFinding
+  | MixFinding
+  | LayoutFinding
+  | DrawFinding
+  | LookFinding
+  | ShortFinding;
 
 export type Level = 'error' | 'warning';
 
@@ -687,6 +750,9 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       InkOverText: error,
       PlateOffFrame: error,
       TextOffPlate: error,
+      DrawThrew: error,
+      FrameImpure: error,
+      InkOverFace: warning,
       StaticHold: warning,
       HeldShare: warning,
       ColourScript: warning,
@@ -777,6 +843,9 @@ export const addressOf = (finding: Finding): FindingAddress => {
       InkOverText: sampledAt,
       PlateOffFrame: sampledAt,
       TextOffPlate: sampledAt,
+      DrawThrew: sampledAt,
+      FrameImpure: sampledAt,
+      InkOverFace: sampledAt,
       StaticHold: span,
       HeldShare: span,
       ColourScript: (f): FindingAddress => ({ part: { _tag: 'Act', act: f.act } }),

@@ -45,6 +45,7 @@ const face = (scene: string, size: number, alpha = 1): FaceMark => ({
   y: 400,
   size,
   alpha,
+  order: 0,
 });
 
 // Three spoken scenes: `held` never changes, `brief` flips black and white

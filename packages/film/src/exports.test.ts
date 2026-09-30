@@ -10,13 +10,17 @@
 // The entries guarded, and who uses them:
 //   canvas    films, their kits and tests: the draw kit
 //   player    the app's page, its film registry, a film's `Narrated` type
-//   stand-in  the framework's and a film's tests: the one stand-in context
+//   stand-in  the framework's and a film's tests, and `check --draw`'s leg
+//             (tools/draw-check.ts), which draws every scene into it
 // `core`, `tools`, `lab` and `review` are not guarded here: the pure core
 // and the tooling entries are read by the CLI and the tools by path.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, FileSystem, Option, Path } from 'effect';
+
+/** The tools that use a guarded entry as its users do: the draw leg draws into the stand-in. */
+const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-check.ts']);
 
 /** Each guarded entry: its specifier under `@bible/film/` and its file under packages/film. */
 const ENTRIES = [
@@ -94,7 +98,7 @@ describe('the package entries', () => {
             (f) => `packages/film/src/${f}`,
           ),
         ],
-        isUser,
+        (file) => isUser(file) || TOOL_USERS.has(file),
       );
       const sources = new Map<string, string>();
       for (const file of files) sources.set(file, yield* fs.readFileString(path.join(root, file)));

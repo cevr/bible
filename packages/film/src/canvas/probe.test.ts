@@ -8,8 +8,10 @@ import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
 import {
   type Probe,
+  probeFace,
   probeOf,
   probeHand,
+  probesFaces,
   probePlate,
   probing,
   recordInk,
@@ -237,5 +239,40 @@ describe('probeHand', () => {
     probing(ctx, p, () => probeHand(ctx, hand));
     expect(p.sink).toEqual({ texts: [], inks: [] });
     expect(asked).toBe(0);
+  });
+
+  test('a face takes its place in the drawing order, so what is drawn after it is known to lie over it', () => {
+    const ctx = drawable();
+    const p: Probe = { sink: { texts: [], inks: [], faces: [] }, scene: 'a', dx: 0, alpha: 1 };
+    probing(ctx, p, () => {
+      recordInk(
+        ctx,
+        p,
+        'fill',
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+        ],
+        0,
+        1,
+      );
+      expect(probesFaces(ctx)).toBe(true);
+      probeFace(ctx, 5, 5, 40);
+      recordInk(
+        ctx,
+        p,
+        'stroke',
+        [
+          [0, 5],
+          [10, 5],
+        ],
+        2,
+        1,
+      );
+    });
+    expect(p.sink.faces?.map((f) => f.order)).toEqual([1]);
+    expect(p.sink.inks.map((m) => m.order)).toEqual([0, 1]);
+    expect(probesFaces(ctx)).toBe(false);
   });
 });

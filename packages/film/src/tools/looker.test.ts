@@ -50,7 +50,7 @@ const setup = () => {
       fakeRenderHost(ledger, {
         looked: (i) => ({
           grey: 100 + 100 * heldFrame(i),
-          faces: [{ scene: 'held', x: 0, y: 0, size: 500, alpha: 1 }],
+          faces: [{ scene: 'held', x: 0, y: 0, size: 500, alpha: 1, order: 0 }],
           hands: [hand(i)],
         }),
       }),

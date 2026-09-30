@@ -41,6 +41,7 @@ bun run doctor                                 # headless Chromium, elevenlabs C
 bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir (fails on any); warns SeamLong, AssetMissing, SoundStale, WordPinFar, DurOnWord, Storyboard, KnobRepeated, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
+bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace), no browser
 bun run check <film> ... --json                # each finding as one line of JSON {level,tag,message,address:{part,time}} (the lab reads this)
 bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone, a hook by 0.5 s, a clean loop, 45–75 s (--static: no frames probed)
 bun run render <film>                          # out/<film>/film/main.mp4 + .share.mp4 + .vtt (+ .chapters.txt when film.ts declares a look), recorded in out/<film>/catalogue.json
@@ -103,7 +104,9 @@ always `src/films`, the folder the player imports (`cli.ts` hands it and
 `sounds/` to the tools); `FILMS_OUT` overrides `out`.
 
 Check flags: `--static` (the files alone: no mix and no browser), `--sound`
-(the static leg and the mix, no browser), `--allow-stale` (stale takes, sound
+(the static leg and the mix, no browser), `--draw` (the static leg and every
+scene drawn in this process into the stand-in context: a scene that throws,
+a frame that is not pure, ink or text over a face; no browser), `--allow-stale` (stale takes, sound
 and audio master are warnings), `--scene id,id` (probe only these scenes'
 layout), `--act name` (probe that act's scenes and judge its colour script),
 `--workers n`. The address (`--act`, `--scene`, `--short`: one of them) is
@@ -116,13 +119,14 @@ and the stamp `mix` writes beside it (`full.json`): missing is
 `AudioMissing`; longer or shorter than the film, or mixed for another plan
 (a score pick, a re-take, a moved effect), is `AudioStale`; `mix` fixes both. `check` is a
 review step, run by hand: the app's `gate` runs typecheck and tests only. One
-of those tests (`test/every-scene-draws.test.ts`) draws every scene of every
-film in `src/films/index.ts` at its first frame, each cue's edges and midpoint, its 60% point
-and its last frame, through the film's own compositor into the framework's
-stand-in 2D context (`@bible/film/stand-in`, the one every canvas test draws into),
-so a scene that reads a mark, cue or knob its film no longer has, or draws
-what a real canvas refuses (a negative arc radius), fails the gate, not the
-next render.
+of those tests (`test/every-scene-draws.test.ts`) runs `check --draw`'s leg
+(`drawFindings`, the one implementation) on every film in
+`src/films/index.ts`: every scene at its first frame, each cue's edges and
+midpoint, its 60% point and its last frame, through the film's own
+compositor into the framework's stand-in 2D context, so a scene that reads a
+mark, cue or knob its film no longer has, or draws what a real canvas
+refuses (a negative arc radius), or a frame that depends on the one drawn
+before it, fails the gate, not the next render.
 
 Render flags that would be ignored fail with `FlagsConflict` before a browser
 opens: `--stills` goes with none of `--contact`, `--scene`, `--act`,

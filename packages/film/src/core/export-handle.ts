@@ -92,9 +92,12 @@ export const InkMark = Schema.Struct({
 export type InkMark = typeof InkMark.Type;
 
 /**
- * A face the probe saw (`probeFace`, called by a kit's person): its centre and
- * its height on screen in canvas pixels, and its effective opacity. What
- * `FaceSmall` reads to tell whether a scene ever gives a face human scale.
+ * A face the probe saw (`probeFace`, called by a kit's person once the person
+ * is drawn): its centre and its height on screen in canvas pixels, its
+ * effective opacity, and its place in the frame's drawing order (the count
+ * text and ink share), so what is drawn after it is known to lie over it.
+ * What `FaceSmall` reads to tell whether a scene ever gives a face human
+ * scale, and `InkOverFace` what crosses it.
  */
 export const FaceMark = Schema.Struct({
   scene: Schema.String,
@@ -103,6 +106,7 @@ export const FaceMark = Schema.Struct({
   /** The face's height on screen, in canvas pixels. */
   size: Schema.Finite,
   alpha: Schema.Finite,
+  order: Schema.Int,
 });
 export type FaceMark = typeof FaceMark.Type;
 

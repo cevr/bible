@@ -4,7 +4,7 @@ import { Array as Arr, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, filmEnd, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Score, Sound, Timed, Timings } from '../core/schema.ts';
-import type { Probed } from '../core/export-handle.ts';
+import type { FaceMark, Probed } from '../core/export-handle.ts';
 import { stroke } from '../canvas/ink.ts';
 import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { recorder } from '../canvas/fixtures/stand-in.ts';
@@ -21,6 +21,7 @@ import {
   frameFindings,
   heldStill,
   holdCandidates,
+  inkOverFace,
   holdGrid,
   holdTicks,
   lateCues,
@@ -203,6 +204,53 @@ describe('a plate and the lines it carries', () => {
     const stray = textBox('Let there be light', 1130, 505, 130, 60, { order: 5 });
     const found = frameFindings(sample, { texts: [...lines, stray], inks: [plate] }, frame);
     expect(found).toMatchObject([{ _tag: 'TextOverlap', a: card, b: 'Let there be light' }]);
+  });
+});
+
+describe('ink over a face', () => {
+  // A face 200 px tall centred on (960, 400), declared once its person is drawn (order 4).
+  const face: FaceMark = { scene: 'a', x: 960, y: 400, size: 200, alpha: 1, order: 4 };
+  const rope = (order: number, options: Parameters<typeof inkMark>[2] = {}) =>
+    inkMark(
+      'stroke',
+      [
+        [700, 380],
+        [1220, 420],
+      ],
+      { order, ...options },
+    );
+
+  test('a stroke drawn after a face, across it, is a finding at that face', () => {
+    const found = inkOverFace(sample, { texts: [], inks: [rope(6)], faces: [face] });
+    expect(found).toMatchObject([{ _tag: 'InkOverFace', scene: 'a', strokes: 1, texts: [] }]);
+  });
+
+  test('a line of text stamped after a face, over it, is a finding naming the text', () => {
+    const stamp = textBox('GUILTY', 880, 420, 160, 60, { order: 7 });
+    const found = inkOverFace(sample, { texts: [stamp], inks: [], faces: [face] });
+    expect(found).toMatchObject([{ _tag: 'InkOverFace', strokes: 0, texts: ['GUILTY'] }]);
+  });
+
+  test('ink drawn before the face, beside it, faint, marking a line, or the caption, is quiet', () => {
+    const quiet = inkOverFace(sample, {
+      texts: [textBox('— he said', 700, 440, 520, 50, { order: 9, caption: true })],
+      inks: [
+        rope(2),
+        inkMark(
+          'stroke',
+          [
+            [1200, 100],
+            [1400, 900],
+          ],
+          { order: 6 },
+        ),
+        rope(6, { alpha: 0.2 }),
+        rope(6, { marks: [3] }),
+      ],
+      faces: [face],
+    });
+    expect(quiet).toEqual([]);
+    expect(inkOverFace(sample, { texts: [], inks: [rope(6)] })).toEqual([]);
   });
 });
 

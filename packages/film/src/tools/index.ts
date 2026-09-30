@@ -17,6 +17,7 @@ export * from './cues.ts';
 export * from './check.ts';
 export * from './findings.ts';
 export * from './film-check.ts';
+export * from './draw-check.ts';
 export * from './checker.ts';
 export * from './preview-server.ts';
 export * from './browser.ts';

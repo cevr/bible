@@ -78,6 +78,7 @@ import {
   TextOffPlate,
   TextOverlap,
   DurOnWord,
+  InkOverFace,
   WordPinFar,
 } from './findings.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -964,6 +965,74 @@ export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOv
       ...boundsOf(marks),
     });
   });
+};
+
+/**
+ * Ink crosses a face only through its core, this share of its radius: its
+ * rim meets what the figure wears and holds (a brim, a collar, its own hands)
+ * and what stands beside it.
+ */
+export const FACE_CORE = 0.7;
+
+/** How far `p` is from the polyline `points`. */
+const distanceTo = (points: ReadonlyArray<Point>, p: Point): number =>
+  Arr.match(points, {
+    onEmpty: () => Number.POSITIVE_INFINITY,
+    onNonEmpty: (all) =>
+      Math.min(
+        Math.hypot(...sub(Arr.headNonEmpty(all), p)),
+        ...all
+          .slice(1)
+          .map((b, i) => Math.hypot(...sub(nearestOnSegment(Arr.getUnsafe(all, i), b, p), p))),
+      ),
+  });
+
+/**
+ * Ink and text drawn over a face (`InkOverFace`): for each visible face, the
+ * visible strokes and lines of text of its scene drawn after it (the kit
+ * declares a face once its person is drawn, so its own features, headwear and
+ * hands come before) that run through its core (`FACE_CORE` of its radius). A
+ * stroke that `marks` a line on purpose, the caption line, and fills and
+ * plates (a figure or a card staged in front) are not read; a gradient glow
+ * is invisible to the probe.
+ */
+export const inkOverFace = (sample: Sample, probed: Probed): ReadonlyArray<InkOverFace> => {
+  const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
+  const faces = Option.getOrElse(Option.fromUndefinedOr(probed.faces), () => []);
+  return faces
+    .filter((face) => face.alpha > VISIBLE_ALPHA)
+    .flatMap((face) => {
+      const centre: Point = [face.x, face.y];
+      const core = (face.size / 2) * FACE_CORE;
+      const after = (mark: { readonly scene: string; readonly order: number }) =>
+        mark.scene === face.scene && mark.order >= face.order;
+      const strokes = probed.inks.filter(
+        (m) =>
+          m.kind === 'stroke' &&
+          m.alpha > VISIBLE_ALPHA &&
+          after(m) &&
+          Option.isNone(Option.fromUndefinedOr(m.marks)) &&
+          distanceTo(m.points, centre) <= core + m.width / 2,
+      );
+      const texts = probed.texts.filter(
+        (t) =>
+          visible(t) &&
+          after(t) &&
+          t.caption !== true &&
+          Math.hypot(...sub(nearestIn(t.corners, centre), centre)) <= core,
+      );
+      if (strokes.length === 0 && texts.length === 0) return [];
+      return [
+        InkOverFace.make({
+          ...where,
+          x: face.x,
+          y: face.y,
+          size: face.size,
+          strokes: strokes.length,
+          texts: Arr.dedupe(texts.map((t) => t.text)),
+        }),
+      ];
+    });
 };
 
 /** The plate under a line of text: the topmost fill or plate under its centre, drawn before it. */

@@ -13,12 +13,21 @@ export const hash = (n: number): number => {
 export const hash2 = (a: number, b: number): number =>
   hash(Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263));
 
-/** FNV-1a over a string's UTF-16 code units, as an unsigned 32-bit integer. */
-export const fnv1a = (s: string): number => {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
+/** Where an FNV-1a hash starts: its offset basis. */
+export const FNV_START = 2166136261;
+
+/** One step of FNV-1a: `h` with the 32-bit `unit` folded in (unsigned only at the end, by the caller). */
+export const fnvStep = (h: number, unit: number): number => Math.imul(h ^ unit, 16777619);
+
+/** FNV-1a over a string's UTF-16 code units, continued from `h`. */
+export const fnvText = (h: number, s: string): number => {
+  let out = h;
+  for (let i = 0; i < s.length; i++) out = fnvStep(out, s.charCodeAt(i));
+  return out;
 };
+
+/** FNV-1a over a string's UTF-16 code units, as an unsigned 32-bit integer. */
+export const fnv1a = (s: string): number => fnvText(FNV_START, s) >>> 0;
 
 /** Hash a string to a seed, so seeds can be named ("sheep", "robe"). */
 export const seedOf = fnv1a;
