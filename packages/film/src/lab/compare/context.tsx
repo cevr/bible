@@ -13,7 +13,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, useContext } from 'solid-js';
-import type { SceneEdit } from '../../canvas/film.ts';
+import type { ShownEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { HeadSource } from '../../core/schema.ts';
 import { LabApi, type LabFailure } from '../api.ts';
@@ -41,8 +41,8 @@ export interface CompareStateValue {
   readonly split: Accessor<Option.Option<number>>;
   /** The scene under the playhead. */
   readonly scene: Accessor<string>;
-  /** HEAD drawn through today's code, once HEAD has been read. */
-  readonly edit: Accessor<Option.Option<SceneEdit>>;
+  /** HEAD drawn through today's code, once HEAD has been read and resolves on today's narration. */
+  readonly edit: Accessor<Option.Option<ShownEdit>>;
   /** What the section says. */
   readonly status: Accessor<string>;
 }
@@ -80,15 +80,23 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
     if (mode() === 'off') return unread;
     return heads(scene());
   });
-  const edit = createMemo(() =>
+  // HEAD's edit, resolved once where it is made: a timeline that names what
+  // today's narration lacks is a reason the status gives, and no layer.
+  const resolved = createMemo(() =>
     Option.map(AsyncResult.value(head()), (h) =>
-      headEdit(
-        Option.map(Result.getSuccess(sceneOf(film.placed, scene())), (p) => p.spec),
-        h,
+      film.edit(
+        scene(),
+        headEdit(
+          Option.map(Result.getSuccess(sceneOf(film.placed, scene())), (p) => p.spec),
+          h,
+        ),
       ),
     ),
   );
-  const status = createMemo(() => compareText(mode(), scene(), head()));
+  const edit = createMemo(() => Option.flatMap(resolved(), Result.getSuccess));
+  const status = createMemo(() =>
+    compareText(mode(), scene(), head(), Option.flatMap(resolved(), Result.getFailure)),
+  );
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
 
   const value: CompareContextValue = {

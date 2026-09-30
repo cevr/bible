@@ -30,6 +30,7 @@ import {
   type HttpClientResponse,
 } from 'effect/http';
 import type { R2StoreConfig } from '../core/store.ts';
+import { writeWhole } from './content-store.ts';
 import { StoreFailed } from './errors.ts';
 import {
   type ByteRange,
@@ -249,27 +250,30 @@ export const r2Store = (
     const call = object('get', key, 'GET');
     const response = yield* send(call);
     if (response.status !== 200) return yield* refused(call, response);
-    // Streamed beside `to`, hashed as it lands; renamed into place only when
-    // the hash holds. A fetch cut off, or bytes that are not what was stored,
-    // leave nothing behind.
-    const partial = `${to}.partial`;
+    // Written whole (`writeWhole`), hashed as it lands; renamed into place
+    // only when the hash holds. A fetch cut off, or bytes that are not what
+    // was stored, leave nothing behind.
     const into = hashing();
-    yield* Effect.gen(function* () {
-      yield* fs
-        .makeDirectory(platform.path.dirname(to), { recursive: true })
-        .pipe(Effect.andThen(Stream.run(hashed(response.stream, into), fs.sink(partial))))
-        .pipe(Effect.mapError((error) => failed('get', key, error.message)));
-      const stored = Option.fromUndefinedOr(response.headers[HASH_HEADER]);
-      if (Option.isSome(stored) && stored.value !== into.hex())
-        return yield* failed(
-          'get',
-          key,
-          `the bytes fetched are not the sha256 they were stored under`,
-        );
-      yield* fs
-        .rename(partial, to)
-        .pipe(Effect.mapError((error) => failed('get', key, error.message)));
-    }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
+    yield* fs.makeDirectory(platform.path.dirname(to), { recursive: true }).pipe(
+      Effect.andThen(
+        writeWhole(fs, to, (partial) =>
+          Effect.gen(function* () {
+            yield* Stream.run(hashed(response.stream, into), fs.sink(partial));
+            const stored = Option.fromUndefinedOr(response.headers[HASH_HEADER]);
+            if (Option.isSome(stored) && stored.value !== into.hex())
+              return yield* failed(
+                'get',
+                key,
+                `the bytes fetched are not the sha256 they were stored under`,
+              );
+          }),
+        ),
+      ),
+      Effect.catchTags({
+        PlatformError: (error) => failed('get', key, error.message),
+        HttpClientError: (error) => failed('get', key, error.message),
+      }),
+    );
   });
 
   const list = Effect.fn('R2Store.list')(function* (prefix: string) {

@@ -1,11 +1,11 @@
-// A glow and a sky build their gradient once per context and what they hold,
+// A glow, a sky and a wash build their gradient once per context and what they hold,
 // and lay it by the transform: the frame after builds none. Drawn into the
 // stand-in, which records each fill's gradient, its alpha and its transform.
 
 import { describe, expect, test } from 'bun:test';
 import { mix } from './colour.ts';
 import { recorder } from './fixtures/stand-in.ts';
-import { GRADIENTS_KEPT, glow, sky } from './glow.ts';
+import { GRADIENTS_KEPT, glow, sky, wash } from './glow.ts';
 import { reset } from './scratch.ts';
 
 describe('glow', () => {
@@ -89,12 +89,27 @@ describe('sky', () => {
   });
 });
 
-describe('mix', () => {
-  test('a colour between two, rounded per channel, clamped to the two', () => {
-    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
-    expect(mix('#ab8163', '#f3ebdd', 0)).toBe('#ab8163');
-    expect(mix('#ab8163', '#f3ebdd', 2)).toBe('#f3ebdd');
-    expect(mix('#fff', '#000', 0.25)).toBe('#bfbfbf');
+describe('wash', () => {
+  const BEAM = [
+    [0, '#e6b347'],
+    [1, 'rgba(230, 179, 71, 0)'],
+  ] as const;
+
+  test("down its rect, sharing the sky's gradient for the same stops", () => {
+    const r = recorder();
+    wash(r.ctx, 100, 200, 140, 300, BEAM);
+    sky(r.ctx, 1920, 1080, BEAM);
+    const [beam, whole] = r.fills;
+    expect(beam?.m).toEqual([1, 0, 0, 300, 100, 200]);
+    expect(beam?.rect).toEqual([0, 0, 140, 1]);
+    expect(beam?.style).toBe(whole?.style ?? '');
+  });
+
+  test('draws nothing over no height', () => {
+    const r = recorder();
+    wash(r.ctx, 0, 500, 140, 0, BEAM);
+    wash(r.ctx, 0, 500, 140, -20, BEAM);
+    expect(r.fills).toEqual([]);
   });
 });
 

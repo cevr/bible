@@ -6,7 +6,7 @@
 // scenes, span and acts, and a misspelt name fails here with what the film
 // has. Pure: it reads only the placed film and its declarations.
 
-import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Order, Result, Schema } from 'effect';
 import { type PartError, type Stretch, stretchesOf } from './acts.ts';
 import {
   AddressConflict,
@@ -164,12 +164,21 @@ export const resolveAddress = (
           () => UnknownAct.make({ act: named.act, known: all.map((a) => a.part.name) }),
         ),
       ),
+    // Named in any order, the scenes are one part: its address lists them as
+    // the film plays them, so `b,a` and `a,b` key one slot and one stamp.
     Scenes: (named) =>
-      Result.map(scenesOf(film.placed, named.ids), (hit): Scope => ({
-        address: named,
-        ...stretch(inFilmOrder(film, new Set(hit.map((p) => p.spec.id)))),
-        acts: [],
-      })),
+      Result.map(scenesOf(film.placed, named.ids), (hit): Scope => {
+        // Every id is the film's here: `scenesOf` refused any other.
+        const at = new Map(film.placed.map((p, i) => [p.spec.id, i]));
+        const played = Order.mapInput(Order.Number, (id: string) =>
+          Option.getOrElse(Option.fromUndefinedOr(at.get(id)), () => 0),
+        );
+        return {
+          address: { _tag: 'Scenes', ids: Arr.sort(Arr.dedupe(named.ids), played) },
+          ...stretch(inFilmOrder(film, new Set(hit.map((p) => p.spec.id)))),
+          acts: [],
+        };
+      }),
     Short: (named) =>
       Result.flatMap(
         Result.fromOption(

@@ -6,7 +6,7 @@ import { Predicate, Result, Schema } from 'effect';
 import { BOIL_FPS, type Hand } from './ink.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
-import { sceneCaptions } from '../core/captions.ts';
+import { type CaptionCue, sceneCaptions } from '../core/captions.ts';
 import {
   type Placed,
   everyTakeRecorded,
@@ -14,8 +14,10 @@ import {
   layout,
   sceneClock,
   sceneIndexAt,
+  sceneOf,
   transitionDur,
 } from '../core/layout.ts';
+import type { UnknownScene } from '../core/errors.ts';
 import type {
   Knob,
   Knobs,
@@ -31,6 +33,7 @@ import type {
 import {
   cueKeys,
   cueProgress,
+  type TimelineError,
   resolveTimeline,
   staggerAt,
   staggerProgress,
@@ -370,15 +373,29 @@ export interface SceneEdit {
   readonly knobs?: Knobs;
 }
 
+/**
+ * An edit resolved for its scene (`Film.edit`), on the scene's own clock as
+ * `layout()` resolves its drawing's: the cues and knobs a frame draws with in
+ * place of the scene's own, and the literals they came from.
+ */
+export interface ShownEdit {
+  readonly edit: SceneEdit;
+  readonly cues: ReadonlyMap<string, ResolvedCue>;
+  readonly knobs: ReadonlyMap<string, Knob>;
+}
+
+/** Why an edit does not resolve: the film has no such scene, or its timeline names what the scene lacks. */
+export type EditError = UnknownScene | TimelineError;
+
 export interface RenderOptions {
   readonly captions?: boolean;
   /**
-   * Draw each scene named here with its edit's timeline and knobs in place of
-   * its drawing's, for this frame only (resolved on the scene's own clock, as
-   * `layout()` resolves them): the lab's live preview of a drag, and its
-   * compare with HEAD. Nothing is kept: the next frame draws what it is given.
+   * Draw each scene named here with its resolved edit's cues and knobs in
+   * place of its drawing's, for this frame only: the lab's live preview of a
+   * drag, and its compare with HEAD. Nothing is kept: the next frame draws
+   * what it is given.
    */
-  readonly edits?: ReadonlyMap<string, SceneEdit>;
+  readonly edits?: ReadonlyMap<string, ShownEdit>;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
   /**
@@ -406,11 +423,11 @@ export interface Film {
   sceneAt(T: number): Placed<SceneSpec>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
   /**
-   * A scene's cues as a frame draws them with `edit` (`RenderOptions.edits`),
-   * or as laid out with none. Throws what `layout()` would for a timeline
-   * that cannot resolve.
+   * `edit` resolved for `scene` as a frame draws it (`RenderOptions.edits`):
+   * its timeline on the scene's clock, else the scene's cues; its knobs, else
+   * the scene's. Fails as `layout()` would for a timeline that cannot resolve.
    */
-  cuesOf(scene: string, edit?: SceneEdit): ReadonlyMap<string, ResolvedCue>;
+  edit(scene: string, edit: SceneEdit): Result.Result<ShownEdit, EditError>;
 }
 
 /** A film's paper, shade and finish, every finish value at its default where it declares none. */
@@ -623,54 +640,26 @@ export const createFilm = (spec: FilmSpec): Film => {
   /** Every scene's id, for `f.handsOf`. */
   const ids = new Set(placed.map((p) => p.spec.id));
 
-  const placedOf = (scene: string) => {
-    const p = placed.find((x) => x.spec.id === scene);
-    if (p === undefined) throw new Error(`film has no scene "${scene}"`);
-    return p;
-  };
+  const edit = (scene: string, e: SceneEdit): Result.Result<ShownEdit, EditError> =>
+    Result.flatMap(sceneOf(placed, scene), (p) =>
+      Result.map(
+        e.timeline === undefined
+          ? Result.succeed(p.cues)
+          : resolveTimeline(e.timeline, sceneClock(p)),
+        (cues): ShownEdit => ({
+          edit: e,
+          cues,
+          knobs: e.knobs === undefined ? p.knobs : new Map(Object.entries(e.knobs)),
+        }),
+      ),
+    );
 
-  /** A scene's cues and knobs as a frame draws them. */
-  interface Shown {
-    readonly cues: ReadonlyMap<string, ResolvedCue>;
-    readonly knobs: ReadonlyMap<string, Knob>;
-  }
-
-  /** An edit's timeline and knobs, resolved on the scene's own clock as `layout()` resolves them. */
-  const resolveEdit = (p: Placed<SceneSpec>, edit: SceneEdit): Shown => ({
-    cues:
-      edit.timeline === undefined
-        ? p.cues
-        : Result.getOrThrow(resolveTimeline(edit.timeline, sceneClock(p))),
-    knobs: edit.knobs === undefined ? p.knobs : new Map(Object.entries(edit.knobs)),
-  });
-
-  /**
-   * Each edit as resolved for its scene: a frame keyed by the edit value it
-   * was handed, so a drag's frames resolve its timeline once and a new edit
-   * (a new value) resolves again. Nothing here is what the film shows; the
-   * caller's edits are.
-   */
-  const resolved = new WeakMap<
-    SceneEdit,
-    { readonly p: Placed<SceneSpec>; readonly shown: Shown }
-  >();
-  const shownWith = (p: Placed<SceneSpec>, edit: SceneEdit): Shown => {
-    const hit = resolved.get(edit);
-    if (hit !== undefined && hit.p === p) return hit.shown;
-    const shown = resolveEdit(p, edit);
-    resolved.set(edit, { p, shown });
-    return shown;
-  };
   /** Scene `p` as `edits` show it: its edit's cues and knobs, or its own. */
-  const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, SceneEdit> | undefined) => {
-    const edit = edits?.get(p.spec.id);
-    return edit === undefined ? p : shownWith(p, edit);
-  };
+  const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) =>
+    edits?.get(p.spec.id) ?? p;
 
-  const cuesOf = (scene: string, edit?: SceneEdit) => {
-    const p = placedOf(scene);
-    return edit === undefined ? p.cues : shownWith(p, edit).cues;
-  };
+  /** Each scene's captions, built once from its words: a captioned frame only finds its line. */
+  const captionsOf = new Map(placed.map((p) => [p, sceneCaptions(p)]));
 
   const localWords = new Map(
     placed.map((p) => [
@@ -689,7 +678,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, SceneEdit> | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
@@ -807,7 +796,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, SceneEdit> | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     const { paper } = getAssets();
     const id = p.spec.id;
@@ -843,7 +832,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, SceneEdit> | undefined,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
@@ -916,7 +905,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       const style = captions;
       const voice = probe(cur, 0, 1);
       probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
-        caption(ctx, cur, local, width, height, style),
+        caption(ctx, captionsOf.get(cur) ?? [], local - cur.speechStart, width, height, style),
       );
     }
     ctx.restore();
@@ -936,7 +925,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     look: { paper: spec.paper, shade: spec.shade, finish, short },
     sceneAt,
     render,
-    cuesOf,
+    edit,
   };
 };
 
@@ -977,16 +966,16 @@ const inkWipe = (
   ctx.restore();
 };
 
+/** The caption of `cues` spoken at `t` (speech-relative) on its plate, if one is. */
 const caption = (
   ctx: CanvasRenderingContext2D,
-  p: Placed<SceneSpec>,
-  local: number,
+  cues: ReadonlyArray<CaptionCue>,
+  t: number,
   w: number,
   h: number,
   style: Required<CaptionStyle>,
 ) => {
-  const t = local - p.speechStart;
-  const line = sceneCaptions(p).find((c) => t >= c.start && t < c.end);
+  const line = cues.find((c) => t >= c.start && t < c.end);
   if (line === undefined) return;
   const text = line.text;
   ctx.save();

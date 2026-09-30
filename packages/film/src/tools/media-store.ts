@@ -17,6 +17,7 @@
 
 import { Effect, type FileSystem, Option, type Path, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { writeWhole } from './content-store.ts';
 import { sha256OfFile } from './digest.ts';
 import { StoreFailed } from './errors.ts';
 
@@ -137,13 +138,11 @@ export const folderStore = (
     (op: string, key: string) =>
     (error: PlatformError): StoreFailed =>
       StoreFailed.make({ store: root, op, key, reason: error.message });
-  /** `from` copied to `to` beside it first, then renamed over it. */
+  /** `from` copied to `to` whole (`writeWhole`). */
   const copyWhole = (from: string, to: string) =>
     Effect.gen(function* () {
       yield* fs.makeDirectory(path.dirname(to), { recursive: true });
-      const partial = `${to}.partial`;
-      yield* fs.copyFile(from, partial);
-      yield* fs.rename(partial, to);
+      yield* writeWhole(fs, to, (partial) => fs.copyFile(from, partial));
     });
   const hashOf = (key: string) =>
     Effect.gen(function* () {

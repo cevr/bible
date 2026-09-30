@@ -199,6 +199,7 @@ describe('film cli', () => {
         expect(run.out).toContain('FlagsConflict');
         expect(run.out).not.toContain('render.still');
       }),
+    spawnBudget(1),
   );
 
   it.effect.layer(BunServices.layer)(
@@ -226,9 +227,9 @@ describe('film cli', () => {
               .map((line) => line.trimEnd()),
           ).toEqual([
             `${film} (main)`,
-            '  open             missing  none',
-            '  turn             missing  none',
-            '  close            missing  none',
+            '  open             missing     none',
+            '  turn             missing     none',
+            '  close            missing     none',
           ]);
           const said = yield* runCli({ FILMS_OUT: out }, [
             'project',

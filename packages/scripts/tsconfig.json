@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.json",
   "include": [
     "src/checkpoint.ts",
+    "src/ci-verdict.ts",
+    "src/ci-verdict/**/*.ts",
     "src/typecheck-inputs.ts",
     "src/typecheck-inputs/**/*.ts",
     "src/checkpoint/**/*.ts",

@@ -179,8 +179,11 @@ describe('film notes', () => {
           'note id=n5 seq=5',
           'cursor seq=6',
         ]);
-        expect(lines[1]).toContain('by=user');
-        expect(lines[1]).toContain('text="lower still"');
+        // Whole lines: each ends at its text, with nothing printed after it.
+        expect(lines[1]).toMatch(
+          /^reply id=n1 seq=3 by=user scene=.* still=\S+ text="lower still"$/,
+        );
+        expect(lines[2]).toMatch(/^note id=n5 seq=5 status=open scene=.* text="and the saucer"$/);
         // --since picks the cursor instead: past 6, nothing new.
         const since = yield* cli(lab, 'notes', 'reply', film, 'n1', 'ok', '--since', '6');
         expect(since.stdout.trim().split('\n').map(head3)).toEqual([
@@ -208,8 +211,8 @@ describe('film notes', () => {
         // Each line carries its own change number.
         const got = yield* watch.next(2);
         expect(got.map(head3)).toEqual(['note id=n2 seq=2', 'reply id=n2 seq=4']);
-        expect(got[1]).toContain('by=user');
-        expect(got[1]).toContain('text="and lower"');
+        expect(got[0]).toMatch(/^note id=n2 seq=2 status=open scene=.* text="after"$/);
+        expect(got[1]).toMatch(/^reply id=n2 seq=4 by=user scene=.* still=\S+ text="and lower"$/);
       }).pipe(Effect.scoped, Effect.provide(LabStore)),
     spawnBudget(1),
   );

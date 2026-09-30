@@ -5,12 +5,12 @@
 // a render is, when it is current, what an approval means) is
 // `core/catalogue.ts`.
 //
-// Each update reads the file, applies a pure change and writes it back whole
-// (to a temporary name, then renamed over), one update at a time in this
-// process. Two processes updating one film's catalogue at the same instant
-// can still lose the earlier write.
+// The catalogue is a `ContentStore` manifest: each update reads the file,
+// applies a pure change and writes it back whole, one writer at a time across
+// processes (the review, a `film project` child per request, a terminal's
+// `project render`), so every approval, comment and render record lands.
 
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema, Semaphore } from 'effect';
+import { Context, Effect, Layer, Option, Path } from 'effect';
 import type { Scope } from '../core/address.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import {
@@ -21,7 +21,8 @@ import {
   emptyCatalogue,
   recordRender,
 } from '../core/catalogue.ts';
-import { CatalogueInvalid } from './errors.ts';
+import { ContentStore, type Manifest } from './content-store.ts';
+import { CatalogueInvalid, type FileInvalid, type StoreLocked } from './errors.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { RenderJob, type RenderOutput } from './render-plan.ts';
 
@@ -67,11 +68,12 @@ export const renderRecord = (
       chapters: Option.map(output.chapters, rel),
       images: output.images.map(rel),
     },
+    sound: output.sound,
     at,
   };
 };
 
-export type CatalogueError = CatalogueInvalid | PlatformError;
+export type CatalogueError = CatalogueInvalid | StoreLocked | PlatformError;
 
 export interface CatalogueService {
   /** The film's catalogue as it is on disk: empty before its first render. */
@@ -85,8 +87,9 @@ export interface CatalogueService {
   readonly record: (project: ProjectFolder, render: Render) => Effect.Effect<void, CatalogueError>;
 }
 
-const decode = Schema.decodeEffect(CatalogueJson);
-const encode = Schema.encodeEffect(CatalogueJson);
+/** A catalogue that does not read (or write) as its schema says: the catalogue's own refusal. */
+const invalid = (error: FileInvalid) =>
+  CatalogueInvalid.make({ file: error.file, reason: error.reason });
 
 export class RenderCatalogue extends Context.Service<RenderCatalogue, CatalogueService>()(
   '@bible/film/tools/RenderCatalogue',
@@ -94,48 +97,26 @@ export class RenderCatalogue extends Context.Service<RenderCatalogue, CatalogueS
   static readonly layer = Layer.effect(
     RenderCatalogue,
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const one = yield* Semaphore.make(1);
+      const store = yield* ContentStore;
 
-      const fileOf = (project: ProjectFolder) => path.join(project.out, CATALOGUE_FILE);
-
-      const read = Effect.fn('RenderCatalogue.read')(function* (project: ProjectFolder) {
-        const file = fileOf(project);
-        if (!(yield* fs.exists(file))) return emptyCatalogue(project.name);
-        return yield* decode(yield* fs.readFileString(file)).pipe(
-          Effect.mapError((error) => CatalogueInvalid.make({ file, reason: error.message })),
-        );
+      const manifestOf = (project: ProjectFolder): Manifest<Catalogue> => ({
+        file: path.join(project.out, CATALOGUE_FILE),
+        codec: CatalogueJson,
+        empty: emptyCatalogue(project.name),
       });
 
-      const write = Effect.fn('RenderCatalogue.write')(function* (
-        project: ProjectFolder,
-        catalogue: Catalogue,
-      ) {
-        const file = fileOf(project);
-        const text = yield* encode(catalogue).pipe(
-          Effect.mapError((error) => CatalogueInvalid.make({ file, reason: error.message })),
-        );
-        yield* fs.makeDirectory(project.out, { recursive: true });
-        const partial = `${file}.partial`;
-        yield* fs.writeFileString(partial, `${text}\n`);
-        yield* fs.rename(partial, file);
+      const read = Effect.fn('RenderCatalogue.read')(function* (project: ProjectFolder) {
+        return yield* store.read(manifestOf(project)).pipe(Effect.catchTag('FileInvalid', invalid));
       });
 
       const update = <A>(
         project: ProjectFolder,
         change: (catalogue: Catalogue) => readonly [A, Catalogue],
       ) =>
-        Semaphore.withPermits(
-          one,
-          1,
-        )(
-          Effect.gen(function* () {
-            const [answer, next] = change(yield* read(project));
-            yield* write(project, next);
-            return answer;
-          }),
-        ).pipe(Effect.withSpan('RenderCatalogue.update'));
+        store
+          .transact(manifestOf(project), (catalogue) => Effect.succeed(change(catalogue)))
+          .pipe(Effect.catchTag('FileInvalid', invalid), Effect.withSpan('RenderCatalogue.update'));
 
       const record = Effect.fn('RenderCatalogue.record')(function* (
         project: ProjectFolder,

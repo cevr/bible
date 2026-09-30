@@ -873,7 +873,7 @@ const notesReply = Command.make(
     const news = eventsSince(yield* store.read(input.film), cursor);
     for (const event of news.events)
       if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
-        yield* Effect.forEach(Option.toArray(eventLine(at, event)), Console.log);
+        yield* Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line));
     yield* Console.log(cursorLine(news.cursor));
   }),
 ).pipe(
@@ -931,7 +931,7 @@ const notes = Command.make(
       store.wait(input.film, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
           Effect.forEach(waited.events, (event) =>
-            Effect.forEach(Option.toArray(eventLine(at, event)), Console.log),
+            Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line)),
           ),
         ),
         Effect.flatMap((waited) => watch(waited.cursor)),
@@ -1005,7 +1005,7 @@ export const runFilmCli = <E>({
     Layer.provide([Repo, Store, Platform]),
   );
   // Each film's project folder: its renders, and the owner's approvals and comments on them.
-  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide(Platform));
+  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
   // The review reads a film's options, and makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));

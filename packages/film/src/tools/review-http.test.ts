@@ -61,7 +61,7 @@ const CHOICES: FilmChoices = {
 /** Film `f`'s project: one scene, `a`, not yet rendered. */
 const PROJECT: Project = projectOf(
   emptyCatalogue('f'),
-  { key: 'fk', acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
+  { key: 'fk', sound: Option.none(), acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
   'main',
 );
 
@@ -511,6 +511,17 @@ describe("a film's project", () => {
         ),
       );
       expect(said.status).toBe(400);
+      expect(projectRuns).toEqual([]);
+    }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect('a variant the CLI would refuse is a 400, and never reaches its argv', () =>
+    Effect.gen(function* () {
+      projectRuns.length = 0;
+      const flag = yield* ask(get('/review/project/f?variant=--all'));
+      expect(flag.status).toBe(400);
+      const all = yield* ask(post('/review/project/f/approve-all', '{"variant":"Ink Two"}', HOME));
+      expect(all.status).toBe(400);
       expect(projectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );

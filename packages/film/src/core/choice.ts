@@ -28,6 +28,7 @@ import {
   type Catalogue,
   SaidComment,
   type Subject,
+  VariantState,
   approvalState,
   saidOn,
 } from './catalogue.ts';
@@ -42,14 +43,6 @@ const Seconds = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 /** What a choice point chooses between; each kind has one adapter. */
 export const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);
 export type ChoiceKind = typeof ChoiceKind.Type;
-
-/**
- * Where a variant stands against the sources it was made for: `current`,
- * `stale` (made for an earlier version: it still plays) or `missing`
- * (nothing made here: nothing to see or hear).
- */
-export const VariantState = Schema.Literals(['current', 'stale', 'missing']);
-export type VariantState = typeof VariantState.Type;
 
 /**
  * What may be done to a variant beside comparing, commenting and approving:

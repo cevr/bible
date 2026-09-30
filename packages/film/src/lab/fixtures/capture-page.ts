@@ -14,12 +14,13 @@
 // recording has run (the interface unplugged), and `dropFlush` loses the
 // worklet's flush on the way (the last part-block never comes).
 
-import { Effect, Option, Stream } from 'effect';
+import { Deferred, Effect, Option, Stream } from 'effect';
 import { Capture, type Level } from '../studio/capture.ts';
 import { audioConstraints, browserCaptureLayer } from '../studio/capture-browser.ts';
 
 /** What the page stands in for, and how long it records. */
 export interface ProbeSetup {
+  /** The seconds of the microphone the capture keeps before the stop, counted in its frames. */
   readonly seconds: number;
   readonly outputRate?: number;
   readonly stuckRate?: number;
@@ -43,6 +44,9 @@ export interface Probed {
   /** The capture said the microphone went away. */
   readonly lost: boolean;
 }
+
+/** How long the page waits for what it waits on before it answers what it has. */
+const WITHIN = 10;
 
 const nothing: Probed = {
   refused: '',
@@ -127,22 +131,31 @@ const probe = (setup: ProbeSetup) =>
     if (setup.dropFlush === true) flushesLost();
     const capture = yield* Capture;
     const seen: Array<Level> = [];
-    const closed: Array<boolean> = [];
+    // Done when the capture has kept `seconds` of the microphone, however slow the machine.
+    const enough = yield* Deferred.make<boolean>();
+    // Done when the meter says closed.
+    const closed = yield* Deferred.make<boolean>();
     yield* capture.levels.pipe(
       Stream.runForEach((level) =>
-        Effect.sync(() =>
-          Option.match(level, {
-            onNone: () => void closed.push(true),
-            onSome: (l) => void seen.push(l),
-          }),
-        ),
+        Option.match(level, {
+          onNone: () => Effect.asVoid(Deferred.succeed(closed, true)),
+          onSome: (l) =>
+            Effect.sync(() => void seen.push(l)).pipe(
+              Effect.andThen(
+                Effect.when(
+                  Deferred.succeed(enough, true),
+                  Effect.succeed(l.kept >= setup.seconds),
+                ),
+              ),
+            ),
+        }),
       ),
       Effect.forkScoped,
     );
     yield* Effect.yieldNow;
     yield* capture.open(Option.none());
     yield* capture.start;
-    yield* Effect.sleep(`${setup.seconds} seconds`);
+    yield* Deferred.await(enough).pipe(Effect.timeoutOption(`${WITHIN} seconds`));
     // Unplugged: the capture says the microphone went, within a second.
     const lost =
       setup.lose === true &&
@@ -154,7 +167,9 @@ const probe = (setup: ProbeSetup) =>
         ).pipe(Effect.andThen(capture.lost), Effect.timeoutOption('1 second')),
       );
     const pcm = yield* capture.stop;
-    yield* Effect.sleep('50 millis');
+    const closedAfter = Option.isSome(
+      yield* Deferred.await(closed).pipe(Effect.timeoutOption(`${WITHIN} seconds`)),
+    );
     let peak = 0;
     let sum = 0;
     for (const x of pcm.samples) {
@@ -170,7 +185,7 @@ const probe = (setup: ProbeSetup) =>
       rms: Math.sqrt(sum / Math.max(1, pcm.samples.length)),
       levels: seen.length,
       loudest: Math.max(0, ...seen.map((l) => l.peak)),
-      closedAfter: closed.length > 0,
+      closedAfter,
       lost,
     };
     return probed;

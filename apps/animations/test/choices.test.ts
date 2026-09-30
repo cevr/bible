@@ -186,6 +186,7 @@ const fixture = Layer.unwrap(
               chapters: Option.none(),
               images: [],
             },
+            sound: Option.none(),
             at: 1,
           },
         ],
@@ -216,7 +217,7 @@ const fixture = Layer.unwrap(
     }).pipe(Layer.provide([Tools, Platform]));
     const Writer = SourceWriter.layer.pipe(Layer.provide([Repo, Store, Platform]));
     const Fresh = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
-    const Catalogues = RenderCatalogue.layer.pipe(Layer.provide(Platform));
+    const Catalogues = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
     const Taken = Takes.layer.pipe(Layer.provide([Store, Tools, Platform]));
     return Choices.layer.pipe(
       Layer.provideMerge(
