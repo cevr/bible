@@ -5,6 +5,7 @@
 // them.
 
 import { Schema } from 'effect';
+import { TakeStaleReason } from './narration.ts';
 import { TakeSource, Timings, VoiceTiming } from './schema.ts';
 
 /**
@@ -47,9 +48,6 @@ export const StudioPart = Schema.Union([
 ]);
 export type StudioPart = typeof StudioPart.Type;
 
-/** Why a take is stale. */
-export const StudioStaleReason = Schema.Literals(['missing', 'text changed', 'voice changed']);
-
 /** One beat as the studio lists it. */
 export const StudioBeat = Schema.Struct({
   id: Schema.String,
@@ -59,7 +57,7 @@ export const StudioBeat = Schema.Struct({
   sources: Schema.Array(Schema.String),
   /** `recorded`: a person's take, current; `staging`: ElevenLabs'; `stale`: see `staleReason`. */
   state: Schema.Literals(['recorded', 'staging', 'stale']),
-  staleReason: Schema.optionalKey(StudioStaleReason),
+  staleReason: Schema.optionalKey(TakeStaleReason),
   /** Whether the take the timings name (current or stale) is a person's. */
   recorded: Schema.Boolean,
   /** The take the timings name, if any. */
