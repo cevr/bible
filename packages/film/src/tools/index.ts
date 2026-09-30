@@ -24,6 +24,8 @@ export * from './preview-server.ts';
 export * from './browser.ts';
 export * from './render-plan.ts';
 export * from './renderer.ts';
+export * from './catalogue.ts';
+export * from './stamp.ts';
 export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';

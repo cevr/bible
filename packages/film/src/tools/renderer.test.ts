@@ -40,7 +40,8 @@ const mixed = (files: Map<string, Uint8Array>, rendered: LoadedFilm = film) =>
 
 /** The whole 20 s test film on four pages: 600 frames in 16 chunks. */
 const video = RenderJob.Video({
-  tag: '',
+  address: { _tag: 'Film' },
+  variant: 'main',
   captions: true,
   workers: Option.some(4),
   from: Option.none(),
@@ -65,7 +66,7 @@ const setup = (
   /** `job` rendered on `platform`: the Mac, unless a test says otherwise. */
   const render = (job: RenderJob, platform = 'darwin') =>
     Effect.gen(function* () {
-      yield* (yield* Renderer).render(rendered, job);
+      return yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
   return { ledger, files, folders, render };
 };
@@ -110,7 +111,7 @@ describe('Renderer', () => {
       // The page that chose the encoder, then the four the chunks are drawn on.
       expect(ledger.pages.opened).toBe(5);
       const [join] = ledger.joins;
-      expect(join?.out).toBe('/out/test.mp4');
+      expect(join?.out).toBe('/out/test/film/main.mp4');
       expect(join?.frames).toBe(600);
       // Sixteen chunks of 38 frames (the last 30), each placed where its first frame plays.
       expect(join?.segments.map((s) => s.at)).toEqual(
@@ -118,7 +119,7 @@ describe('Renderer', () => {
       );
       expect(joined.get(join?.segments[1]?.file ?? '')).toEqual(text('mp4 38-76'));
       expect(join?.audio).toEqual(Option.none());
-      expect(files.has('/out/test.vtt')).toBe(true);
+      expect(files.has('/out/test/film/main.vtt')).toBe(true);
       expectAllClosed(ledger);
     }),
   );
@@ -128,7 +129,10 @@ describe('Renderer', () => {
       const { ledger, joined, render } = joinedBytes();
       yield* render({ ...video, share: true });
       expect(ledger.encoders.spawned).toBe(16);
-      expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
+      expect(ledger.joins.map((j) => j.out)).toEqual([
+        '/out/test/film/main.mp4',
+        '/out/test/film/main.share.mp4',
+      ]);
       const [, share] = ledger.joins;
       expect(joined.get(share?.segments[1]?.file ?? '')).toEqual(text('share 38-76'));
       expect(share?.segments.map((s) => s.at)).toEqual(ledger.joins[0]?.segments.map((s) => s.at));
@@ -165,23 +169,44 @@ describe('Renderer', () => {
     }),
   );
 
-  it.live('a video makes nothing under out/<film>, tagged or not, and keeps what is there', () =>
-    Effect.gen(function* () {
-      const bare = setup();
-      yield* bare.render({ ...video, tag: 'trial', share: true });
-      const under = (p: string) => p === '/out/test' || p.startsWith('/out/test/');
-      expect([...bare.folders, ...bare.files.keys()].filter(under)).toEqual([]);
-      // Its own segments folder goes too, once joined.
-      expect([...bare.folders].filter((f) => f.startsWith('/tmp/film-segments-'))).toEqual([]);
-      expect(bare.ledger.joins[0]?.out).toBe('/out/test.mp4');
-      expect(bare.files.has('/out/test.vtt')).toBe(true);
+  it.live(
+    'a video writes its variant beside its address, says what it wrote, and keeps what is there',
+    () =>
+      Effect.gen(function* () {
+        const bare = setup();
+        const output = yield* bare.render({ ...video, variant: 'trial', share: true });
+        // The joins land the clip and its share copy; the renderer writes the captions itself.
+        expect(bare.ledger.joins.map((j) => j.out)).toEqual([
+          '/out/test/film/trial.mp4',
+          '/out/test/film/trial.share.mp4',
+        ]);
+        const under = (p: string) => p.startsWith('/out/test/');
+        expect([...bare.files.keys()].filter(under)).toEqual(['/out/test/film/trial.vtt']);
+        // Its own segments folder goes, once joined.
+        expect([...bare.folders].filter((f) => f.startsWith('/tmp/film-segments-'))).toEqual([]);
+        expect(output).toEqual({
+          kind: 'video',
+          clip: Option.some('/out/test/film/trial.mp4'),
+          share: Option.some('/out/test/film/trial.share.mp4'),
+          captions: Option.some('/out/test/film/trial.vtt'),
+          chapters: Option.none(),
+          images: [],
+        });
 
-      const files = new Map([['/out/test/look/stills/t0001.00.png', text('png')]]);
-      const kept = setup({}, files);
-      yield* kept.render({ ...video, tag: 'look' });
-      expect([...kept.files.keys()].filter((f) => f.startsWith('/out/test/look/'))).toEqual([
-        '/out/test/look/stills/t0001.00.png',
-      ]);
+        const files = new Map([['/out/test/film/look/stills/t0001.00.png', text('png')]]);
+        const kept = setup({}, files);
+        yield* kept.render({ ...video, variant: 'look' });
+        expect([...kept.files.keys()].filter((f) => f.startsWith('/out/test/film/look/'))).toEqual([
+          '/out/test/film/look/stills/t0001.00.png',
+        ]);
+      }),
+  );
+
+  it.live('a scene renders into its own folder', () =>
+    Effect.gen(function* () {
+      const { ledger, render } = setup();
+      yield* render({ ...video, address: { _tag: 'Scenes', ids: ['a'] }, to: Option.some(2) });
+      expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test/scenes/a/main.mp4']);
     }),
   );
 
@@ -217,7 +242,10 @@ describe('Renderer', () => {
         expect(ledger.encoderAsked).toEqual([['Hardware']]);
         expect(ledger.pages.opened).toBe(1 + HARDWARE_WORKERS);
         expect(new Set(ledger.encodedBy)).toEqual(new Set(['Hardware']));
-        expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4', '/out/test.share.mp4']);
+        expect(ledger.joins.map((j) => j.out)).toEqual([
+          '/out/test/film/main.mp4',
+          '/out/test/film/main.share.mp4',
+        ]);
         expect(ledger.shareCopies).toEqual([]);
       }),
   );
@@ -257,9 +285,9 @@ describe('Renderer', () => {
         expect(ledger.encodedBy.length).toBe(ledger.encoders.spawned);
         expect(new Set(ledger.encodedBy)).toEqual(new Set(['Software']));
         // One join, the master's; the share is x264's encode of it.
-        expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test.mp4']);
+        expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test/film/main.mp4']);
         expect(ledger.shareCopies).toEqual([
-          { master: '/out/test.mp4', out: '/out/test.share.mp4' },
+          { master: '/out/test/film/main.mp4', out: '/out/test/film/main.share.mp4' },
         ]);
         expectAllClosed(ledger);
 
@@ -371,18 +399,29 @@ describe('Renderer', () => {
       const { ledger, files, render } = setup();
       yield* render(
         RenderJob.Stills({
-          tag: 'g',
+          address: { _tag: 'Film' },
+          variant: 'g',
           captions: true,
           workers: 4,
-          times: [1, 2.5],
+          times: [2.5, 1],
           cut: Cut.Whole(),
         }),
+      ).pipe(
+        Effect.tap((output) =>
+          Effect.sync(() =>
+            expect(output.images).toEqual([
+              '/out/test/film/g/stills/t0001.00.png',
+              '/out/test/film/g/stills/t0002.50.png',
+            ]),
+          ),
+        ),
       );
-      expect(files.has('/out/test/g/stills/t0002.50.png')).toBe(true);
+      expect(files.has('/out/test/film/g/stills/t0002.50.png')).toBe(true);
       expect(ledger.pages.opened).toBe(2);
       yield* render(
         RenderJob.Contact({
-          tag: 'g',
+          address: { _tag: 'Film' },
+          variant: 'g',
           captions: false,
           every: 5,
           from: Option.none(),
@@ -391,7 +430,7 @@ describe('Renderer', () => {
         }),
       );
       // One page tiles every fifth second's frame into the sheet.
-      expect(files.has('/out/test/g/contact.jpg')).toBe(true);
+      expect(files.has('/out/test/film/g/contact.jpg')).toBe(true);
       expect(ledger.contacts).toEqual([[0, 150, 300, 450]]);
     }),
   );
@@ -402,7 +441,8 @@ describe('Renderer', () => {
       const sheet = (from: number, to: number) =>
         render(
           RenderJob.Contact({
-            tag: 'g',
+            address: { _tag: 'Film' },
+            variant: 'g',
             captions: false,
             every: 1,
             from: Option.some(from),
@@ -425,8 +465,10 @@ describe('Renderer', () => {
   it.live('a look-book is one page composing one sheet, written beside the stills', () =>
     Effect.gen(function* () {
       const { ledger, files, render } = setup();
-      yield* render(RenderJob.LookBook({ tag: '', captions: false }));
-      expect(files.has('/out/test/lookbook.jpg')).toBe(true);
+      yield* render(
+        RenderJob.LookBook({ address: { _tag: 'Film' }, variant: 'main', captions: false }),
+      );
+      expect(files.has('/out/test/film/main/lookbook.jpg')).toBe(true);
       expect(ledger.pages.opened).toBe(1);
       expect(ledger.lookbooks.composed).toBe(1);
       expectAllClosed(ledger);
@@ -435,7 +477,7 @@ describe('Renderer', () => {
 
   describe('with the mixed track', () => {
     const info: ExportInfo = { ...testExportInfo, audio: '/films/test/narration/full.wav' };
-    const tagOf = (exit: Exit.Exit<void, { readonly _tag: string }>) =>
+    const tagOf = (exit: Exit.Exit<unknown, { readonly _tag: string }>) =>
       Exit.findErrorOption(exit).pipe(Option.map((e) => e._tag));
 
     it.live('joins the master under the film when it covers it', () =>
@@ -565,20 +607,20 @@ describe('Renderer', () => {
     const page: ExportInfo = { width: 1920, height: 3414, fps: 30, duration: 10, frames: 300 };
 
     it.live(
-      'renders its page to out/<film>/shorts/<id>.mp4 at 1080×1920, with its spans of the track',
+      'renders its page to out/<film>/shorts/<id>/<variant>.mp4 at 1080×1920, with its spans of the track',
       () =>
         Effect.gen(function* () {
           const files = new Map<string, Uint8Array>();
           yield* mixed(files, three);
           const { ledger, render } = setup({ info: page, master: 15 }, files, three);
-          yield* render({ ...video, cut: short });
+          yield* render({ ...video, address: { _tag: 'Short', id: 'cut' }, cut: short });
           expect(ledger.urls[0]).toBe('http://preview.test/?film=test%2Fshorts%2Fcut&export');
           const [join] = ledger.joins;
-          expect(join?.out).toBe('/out/test/shorts/cut.mp4');
+          expect(join?.out).toBe('/out/test/shorts/cut/main.mp4');
           expect(join?.frames).toBe(300);
           // The track is the film's c then a: 6 s and 4 s, cut from the 15 s master.
           expect(ledger.aac).toEqual([10 * 44100]);
-          expect(files.has('/out/test/shorts/cut.vtt')).toBe(true);
+          expect(files.has('/out/test/shorts/cut/main.vtt')).toBe(true);
           expectAllClosed(ledger);
         }),
     );
@@ -589,7 +631,14 @@ describe('Renderer', () => {
         yield* mixed(files, three);
         const { render } = setup({ info: page, master: 15 }, files, three);
         yield* render(
-          RenderJob.Stills({ tag: 'g', captions: true, workers: 1, times: [1], cut: short }),
+          RenderJob.Stills({
+            address: { _tag: 'Short', id: 'cut' },
+            variant: 'g',
+            captions: true,
+            workers: 1,
+            times: [1],
+            cut: short,
+          }),
         );
         expect(files.has('/out/test/shorts/cut/g/stills/t0001.00.png')).toBe(true);
       }),
