@@ -9,9 +9,6 @@ import { Line, TakeStaleReason } from './narration.ts';
 import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
 import { Part, SheetBeat } from './sheet.ts';
 
-/** A stretch of a beat as the studio's panel shows it: the sheet's own `Part`. */
-export type StudioPart = Part;
-
 /**
  * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
  * about six minutes of 48 kHz 24-bit mono (a beat's line runs seconds). The
