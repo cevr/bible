@@ -8,8 +8,9 @@
 
 import { Array as Arr, Option, Order, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import { type PartError, type Stretch, stretchesOf } from '../core/acts.ts';
-import type { Act, FaceMark, HandMark, Look } from '../core/schema.ts';
+import type { Stretch } from '../core/acts.ts';
+import { type AddressError, resolveAddress } from '../core/address.ts';
+import type { Act, FaceMark, HandMark } from '../core/schema.ts';
 import { filmEnd } from '../core/sound.ts';
 import type { Reported } from './check.ts';
 import {
@@ -481,16 +482,6 @@ const handsTravel = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>)
 /** An act laid over the film (`stretchesOf`): its declaration and the scenes it holds. */
 export type ActSpan = Stretch<Act>;
 
-/** The film's declared acts laid over it (`stretchesOf`); none when it declares no look. */
-export const actsOf = (
-  look: Option.Option<Look>,
-  placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<ActSpan>, PartError> =>
-  Option.match(look, {
-    onNone: () => Result.succeed([]),
-    onSome: (declared) => stretchesOf(declared.acts, placed),
-  });
-
 /** The light of `looks` summed. */
 export const lightOf = (looks: ReadonlyArray<SceneLook>): Light =>
   looks.reduce((sum, l) => addLight(sum, l.light), emptyLight());
@@ -679,9 +670,18 @@ export const chapters = (
   return Result.succeed(named.map((c) => `${chapterTime(c.start)} ${c.title}`));
 };
 
-/** A film's chapters from its declared look: `film chapters` prints them, a full render writes them. */
+/**
+ * A film's chapters from the acts of its whole (`resolveAddress`): `film
+ * chapters` prints them, a full render writes them.
+ */
 export const filmChapters = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<string>, PartError | ChaptersInvalid> =>
-  Result.flatMap(actsOf(film.look, placed), (acts) => chapters(film.paths.name, acts, placed));
+): Result.Result<ReadonlyArray<string>, AddressError | ChaptersInvalid> =>
+  Result.flatMap(
+    resolveAddress(
+      { name: film.paths.name, placed, look: film.look, shorts: film.shorts },
+      { _tag: 'Film' },
+    ),
+    (whole) => chapters(film.paths.name, whole.acts, placed),
+  );

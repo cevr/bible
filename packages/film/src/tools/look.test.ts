@@ -3,7 +3,7 @@
 // chapters the acts name.
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Result } from 'effect';
 import { stretchesOf } from '../core/acts.ts';
 import { type Placed, layout } from '../core/layout.ts';
 import type { FaceMark, HandMark, Look, Timed } from '../core/schema.ts';
@@ -15,7 +15,6 @@ import {
   HELD_MAX,
   SIZE_JUMP,
   THUMB_BYTES,
-  actsOf,
   chapterTime,
   chapters,
   colourScript,
@@ -202,12 +201,8 @@ describe('ColourScript', () => {
   });
 
   test('acts declared out of film order fail rather than being reordered', () => {
-    const swapped = actsOf(Option.some({ acts: [...look.acts].reverse() }), placed);
+    const swapped = actsIn({ acts: [...look.acts].reverse() }, placed);
     expect(Result.isFailure(swapped) && swapped.failure._tag).toBe('PartOutOfOrder');
-  });
-
-  test('no declared look means no acts', () => {
-    expect(Result.getOrThrow(actsOf(Option.none(), placed))).toEqual([]);
   });
 
   test('the look pass reports every finding as a warning', () => {

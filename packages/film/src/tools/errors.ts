@@ -20,6 +20,7 @@ export {
   UnknownMark,
   SoundUseMismatch,
   UnknownScene,
+  UnknownShort,
   UnknownSound,
   UnknownVoice,
   WordMissing,
@@ -586,20 +587,6 @@ export class FlagsConflict extends Schema.TaggedError<FlagsConflict>()('FlagsCon
 }) {
   override get message() {
     return `--${this.flag} ${FLAG_RULE[this.rule]} --${this.other}: ${this.reason}`;
-  }
-}
-
-/** `--short` names a short the film's `shorts.ts` does not declare. */
-export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
-  film: Schema.String,
-  id: Schema.String,
-  /** The shorts the film declares, in order; empty when it has no `shorts.ts`. */
-  known: Schema.Array(Schema.String),
-}) {
-  override get message() {
-    if (this.known.length === 0)
-      return `film "${this.film}" has no short "${this.id}": it declares none (a shorts.ts beside its script)`;
-    return `film "${this.film}" has no short "${this.id}"; its shorts are ${this.known.join(', ')}`;
   }
 }
 

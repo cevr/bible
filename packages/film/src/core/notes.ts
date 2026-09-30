@@ -5,7 +5,7 @@
 // tools both read these. Pure and DOM-free.
 
 import { Array as Arr, Option, Order } from 'effect';
-import type { Placed } from './layout.ts';
+import { type Placed, sceneAt } from './layout.ts';
 import type {
   Note,
   NoteAuthor,
@@ -24,13 +24,6 @@ export interface Moment {
   readonly cue: Option.Option<NoteCue>;
   readonly mark: Option.Option<string>;
 }
-
-/** The placed scene playing at film time `T` (the first before it starts, the last after it ends). */
-const sceneAtTime = (placed: ReadonlyArray<Placed>, T: number): Option.Option<Placed> =>
-  Option.orElse(
-    Arr.findLast(placed, (p) => T >= p.start),
-    () => Arr.head(placed),
-  );
 
 interface Candidate<A> {
   readonly value: A;
@@ -55,7 +48,7 @@ const closest = <A>(local: number, candidates: ReadonlyArray<Candidate<A>>): Opt
 
 /** The scene at `T` and, in it, the nearest named-cue edge and the nearest `{mark}`. */
 export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.Option<Moment> =>
-  Option.map(sceneAtTime(placed, T), (p) => {
+  Option.map(sceneAt(placed, T), (p) => {
     const local = T - p.start;
     const edges = [...p.cues].flatMap(([name, c]): Array<Candidate<NoteCue>> => {
       const start: Candidate<NoteCue> = { value: { name, edge: 'start' }, at: c.start };

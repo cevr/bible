@@ -43,7 +43,7 @@ bun run check <film> --short <id> [--zone ads] # a short: text in the safe zone,
 bun run render <film>                          # out/<film>.mp4 + .vtt (+ .chapters.txt when film.ts declares a look) (parallel pages, each encoding H.264)
 bun run render <film> --contact 1 --from 0 --to 40   # contact sheet, a frame per second
 bun run render <film> --stills 3,10.5          # PNG stills in out/<film>/stills/t0003.00.png ...
-bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills)
+bun run render <film> --scene id[,id] ...      # a video or contact sheet over those scenes (not --stills); --act name for one act
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run lookbook <film> [--captions]           # out/<film>/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
@@ -90,8 +90,12 @@ always `src/films`, the folder the player imports (`cli.ts` hands it and
 
 Check flags: `--static` (skip the browser leg), `--allow-stale` (stale takes,
 sound and audio master are warnings), `--scene id,id` (probe only these
-scenes' layout), `--workers n`. A scene id the film lacks (`--scene`, or
-`cues <film> <scene>`) fails with `UnknownScene`, listing the film's scenes.
+scenes' layout), `--act name` (probe that act's scenes and judge its colour
+script), `--workers n`. The address (`--act`, `--scene`, `--short`: one of
+them) is resolved once, in `core/address.ts`, before a page opens: a name the
+film lacks fails with `UnknownAct`, `UnknownScene` or `UnknownShort`, listing
+what the film has, and two at once with `AddressConflict` (`cues <film>
+<scene>` fails the same way for its scene).
 Once every take is recorded, the static leg also measures `narration/full.wav`:
 missing is `AudioMissing`, and longer or shorter than the film is `AudioStale`
 (a mix cut short, or made before a re-timing); `mix` fixes both. `check` is a
@@ -109,9 +113,9 @@ opens: `--stills` goes with none of `--contact`, `--scene`, `--from/--to`,
 film like a video's, so no frame repeats; a range wholly outside it is
 `RangeEmpty`) but no video flag (`--workers` and `--encoder` included: one
 page composes the sheet);
-`--scene` goes with neither `--from` nor `--to`.
+`--scene` and `--act` go with neither `--from` nor `--to`.
 
-Render flags: `--from/--to` seconds or `--scene id,id`, `--workers n`
+Render flags: `--from/--to` seconds, `--scene id,id` or `--act name`, `--workers n`
 (pages; the measured knee on each encoder: 6 on the Mac's
 hardware encoder, 8 in software, or half the cores on a software machine with
 fewer than 16), `--scale 0.5`, `--no-captions`, `--tag name` (output

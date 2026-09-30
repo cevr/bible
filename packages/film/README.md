@@ -946,8 +946,17 @@ what a review used to find by eye:
   sound whose request hash has moved (`AssetStale`); once every take is
   recorded, an audio master that is missing (`AudioMissing`) or not the
   film's length (`AudioStale`). `--allow-stale` reports stale takes, sounds
-  and master as warnings. `--scene id,id` limits the layout leg; an id the
-  film lacks fails with `UnknownScene`. A sound never generated
+  and master as warnings. `--scene id,id` or `--act name` limits the
+  layout leg to that address's scenes. Every command that takes a part of
+  the film (`render`, `check`, `cues --short`, the look pass) names it as
+  one `Address` (`core/address.ts`: `Film`, `Act`, `Scenes` or `Short`;
+  `addressOf` from the flags, two at once an `AddressConflict`) and resolves
+  it once with `resolveAddress` into a `Scope`: its placed scenes, its span
+  in film seconds (an act or scenes; none for the film or a short), the acts
+  it covers whole, and its short. A name the film lacks fails there with
+  `UnknownAct`, `UnknownScene` or `UnknownShort`. `sceneAt(placed, T)`
+  (`core/layout.ts`) is the one rule for the scene playing at a time: the
+  last to have started, within `SCENE_EPSILON`. A sound never generated
   (`AssetMissing`) is always a warning: the mix plays without it.
 - **Layout** (headless pages, like `render`): each scene is sampled at every
   mark, every cue's start and end, and its 60% point, pulled after its
@@ -1038,8 +1047,9 @@ size, radius, reach, over, body })`: where it is, where it works (its
   and fails with `UnknownScene` or `PartOutOfOrder`; `stretchesOf` adds their
   seconds, and `partStarts` is where each part begins (the first at 0), which
   the score's `movements` read. A film lights its scenes from the same
-  acts. `--scene` skips the acts: an act
-  measured on part of itself is not the act.
+  acts. The look pass judges only the acts its address covers whole (the
+  film: all of them; `--act`: that one; `--scene`: none): an act measured
+  on part of itself is not the act.
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn

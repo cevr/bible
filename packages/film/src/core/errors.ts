@@ -14,6 +14,42 @@ export class UnknownScene extends Schema.TaggedError<UnknownScene>()('UnknownSce
   }
 }
 
+/** A film's act named by an address (`--act`) that its `look` does not declare. */
+export class UnknownAct extends Schema.TaggedError<UnknownAct>()('UnknownAct', {
+  act: Schema.String,
+  /** The acts the film declares, in order; empty when it declares no look. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0) return `the film has no act "${this.act}": it declares no acts`;
+    return `the film has no act "${this.act}"; its acts are ${this.known.join(', ')}`;
+  }
+}
+
+/** An address (`--short`) names a short the film's `shorts.ts` does not declare. */
+export class UnknownShort extends Schema.TaggedError<UnknownShort>()('UnknownShort', {
+  film: Schema.String,
+  id: Schema.String,
+  /** The shorts the film declares, in order; empty when it has no `shorts.ts`. */
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.known.length === 0)
+      return `film "${this.film}" has no short "${this.id}": it declares none (a shorts.ts beside its script)`;
+    return `film "${this.film}" has no short "${this.id}"; its shorts are ${this.known.join(', ')}`;
+  }
+}
+
+/** An address that names more than one scope: a film, one act, some scenes or one short. */
+export class AddressConflict extends Schema.TaggedError<AddressConflict>()('AddressConflict', {
+  /** The scopes it names: `act`, `scene`, `short`. */
+  given: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `an address names one scope (an act, scenes or a short), not ${this.given.join(' and ')}`;
+  }
+}
+
 /**
  * A point names a cue its scene's timeline does not have. `by` says who
  * named it: a cue of the timeline (`cue "lift"`), the sound, or a short.
