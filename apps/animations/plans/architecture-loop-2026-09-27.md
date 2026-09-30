@@ -333,6 +333,22 @@ Owner: "run the architecture loop until no more findings, fix all findings, no n
 
 Owner questions: FL5 (`lead: 0.4` ×11 would re-key the paid score), R11, PF5-2 share preset (a comparison only).
 
+## Pass 6 (2026-09-30)
+
+- Baseline: main 3c4d886d, 93,192 source lines (+13 % over pass 5's baseline). Six sweeps (engine, core, tools, lab, films, guardrails), reports in `SP/film-pass6/`.
+- Findings: 3 P1 (the review's sound-take verbs read a stale library; a scene render's stamp leaves out its sound, so a remix leaves stale clips "current" and approved; CI red on main 3 of 10 runs from flaky studio/capture tests), about 25 P2, the rest P3. Close rule not met.
+- Triage: `SP/film-pass6/triage.md`.
+
+| Wave | Batch     | Items                                                                                                                        | Result |
+| ---- | --------- | ---------------------------------------------------------------------------------------------------------------------------- | ------ |
+| A    | p6-store  | sound in the render stamp + audio-only re-mux, one cross-process store lock, typed variant, one page pool for project render |        |
+| A    | p6-fresh  | sound-take verbs fresh, one fresh-process adapter, one process per pick, duplicate errors, narration route in the API        |        |
+| A    | p6-guard  | CI flakes, main runs never cancelled, notes index leak + lint, lint throw allowances, G3–G5, stale docs                      |        |
+| A    | p6-engine | an edit resolved once (compare never blank), play during narration load, one bounded cache, stand-in NaN, captions once      |        |
+| A    | p6-films  | nine hand framings → knobs + lint, `sync: 'onset'`, cue-remap lint, film P3s                                                 |        |
+| B    | p6-core   | movements through stretchesOf, a film that won't lay out reports its address, findings addressed by Address, `check --draw`  |        |
+| B    | p6-page   | the project page updates in place, withdraw an approval, clips from this checkout's record, a layer's card once, one card    |        |
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
