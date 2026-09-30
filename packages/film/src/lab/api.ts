@@ -106,7 +106,7 @@ export const WAIT_S = 55;
 export const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
 
 /** The scene source routes for `film` on `origin`. */
-export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: string) {
+const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: string) {
   const client = yield* labClient(origin);
   const api: LabCalls = {
     source: (scene) => heard(client.scenes.source({ params: { film, scene } })),
@@ -122,7 +122,7 @@ export const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, f
 });
 
 /** The notes routes for `film` on `origin`. */
-export const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film: string) {
+const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film: string) {
   const client = yield* labClient(origin);
   const api: NotesCalls = {
     notes: heard(client.notes.list({ params: { film } })),

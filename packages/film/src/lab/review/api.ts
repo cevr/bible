@@ -32,7 +32,7 @@ const fileText = (res: HttpClientResponse.HttpClientResponse) => {
 };
 
 /** The review's routes on `origin`. */
-export const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
+const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
   const client = (yield* HttpApiClient.make(ReviewHttpApi, { baseUrl: origin })).review;
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {

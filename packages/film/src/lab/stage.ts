@@ -60,7 +60,7 @@ export interface StageOps {
 }
 
 /** The canvas gave no PNG for the frame. */
-export class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
+class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
   T: Schema.Finite,
 }) {
   override get message() {

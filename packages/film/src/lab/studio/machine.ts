@@ -64,7 +64,7 @@ export const Kept = Schema.Struct({
 export type Kept = typeof Kept.Type;
 
 /** What an import sends: the recording made just now, or an attempt the server keeps. */
-export const Work = Schema.Union([
+const Work = Schema.Union([
   Schema.TaggedStruct('Upload', { wav: Wav }),
   Schema.TaggedStruct('Keep', {
     file: Schema.String,
@@ -73,7 +73,7 @@ export const Work = Schema.Union([
     wav: Schema.Option(Wav),
   }),
 ]);
-export type Work = typeof Work.Type;
+type Work = typeof Work.Type;
 
 export const RecorderState = State({
   /** At rest on a beat: `kept` is the take the last import kept, if it kept one. */

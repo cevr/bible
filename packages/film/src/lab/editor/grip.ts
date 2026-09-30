@@ -25,7 +25,7 @@ import { type DragEdge, dragPatch, patchSpan } from '../../core/timeline.ts';
 import { StepVerb } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
-export const SNAP_PX = 8;
+const SNAP_PX = 8;
 /** How wide (screen pixels) a cue's edge is to grab. */
 export const EDGE_PX = 6;
 
@@ -45,7 +45,7 @@ export const dragModeAt = (x: number, width: number, alt: boolean): DragEdge => 
 };
 
 /** What an edge may snap to: scene-local seconds, and how many pixels a second is on the strip. */
-export interface Snap {
+interface Snap {
   readonly targets: ReadonlyArray<number>;
   readonly perSec: number;
   readonly fps: number;

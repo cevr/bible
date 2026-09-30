@@ -38,7 +38,3 @@ export const searchWithSelection = (
 /** Whether `selection` is the cue `name` of `scene`. */
 export const selectsCue = (selection: Option.Option<Selection>, scene: string, name: string) =>
   Option.exists(selection, (s) => s.kind === 'cue' && s.scene === scene && s.name === name);
-
-/** Whether `selection` is the knob `name` of `scene`. */
-export const selectsKnob = (selection: Option.Option<Selection>, scene: string, name: string) =>
-  Option.exists(selection, (s) => s.kind === 'knob' && s.scene === scene && s.name === name);

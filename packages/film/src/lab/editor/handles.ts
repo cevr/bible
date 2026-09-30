@@ -31,7 +31,7 @@ export interface NoHandle {
   readonly why: string;
 }
 
-export type HandleAt = Handle | NoHandle;
+type HandleAt = Handle | NoHandle;
 
 const none = (why: string): HandleAt => ({ _tag: 'NoHandle', why });
 

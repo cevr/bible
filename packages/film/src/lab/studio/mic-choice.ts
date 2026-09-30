@@ -9,7 +9,7 @@ import type { StorageLike } from '../../player/view-state.ts';
 
 const KEY = 'film-lab-mic';
 
-export interface MicChoice {
+interface MicChoice {
   /** The device picked, or none for the browser's default. */
   readonly get: () => Option.Option<string>;
   readonly set: (device: Option.Option<string>) => void;
