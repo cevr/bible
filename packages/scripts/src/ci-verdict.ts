@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // CI's verdict on a commit pushed to main: finds the gate workflow's run for
 // it, waits until it finishes, and prints one line with the run id, the
-// conclusion and the jobs that failed. Exits non-zero unless the run passed,
+// conclusion and the jobs that failed, each with the step it stopped in and
+// how long that step ran. Exits non-zero unless the run passed,
 // so the loop records a red run as a finding with its id, not a re-run.
 //
 //   bun run ci              # the checkout's HEAD
