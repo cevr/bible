@@ -59,7 +59,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 
 - BibleProject asks the viewer's question at every turn, in 2 to 15 words, and answers it with a wrap line of 12 words or fewer.
 - **One narrator asks it.** A film has one reader: the narrator asks the question in the viewer's own words, not a setup line, and answers it with the wrap line: "…and God calls him righteous. Declared? But he's guilty. Exactly. And that's the point."
-- **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film: the act's `chapter` in `film.ts`'s `look`. `bun run chapters <film>` prints them.
+- **Chapters:** the question that opens each act titles its YouTube chapter, in the viewer's words, 4–6 per film: the act's `chapter` in the film's `look` (`acts.ts`, re-exported by `film.ts`). `bun run chapters <film>` prints them.
 - **Check:** every register switch in the script comes with a question.
 
 ## 7. The shape in time
@@ -120,7 +120,7 @@ BibleProject is informative, curious and hopeful. The weight sits on explanation
   - teal day for the open and the landing, peach to explain, sunset at the cross, dawn at the answer;
   - the landing is the most saturated act;
   - the `script.ts` header names the film's 3–5 tent-pole frames and their act lighting, next to its motifs.
-- **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. Declare the acts and their targets as `look.acts` in `film.ts`: `bun run lookbook` prints each act's luma, dark share and saturation, and `check` warns `ColourScript` outside a target. In the contact sheet, only the cross's tiles read dark.
+- **Check:** tag each sentence of the script P (problem), A (answer) or E (explanation), and sum the words of each. Declare the acts and their targets once, as `look.acts` in `acts.ts` (re-exported by `film.ts`; the lights read the same acts): `bun run lookbook` prints each act's luma, dark share and saturation, and `check` warns `ColourScript` outside a target. In the contact sheet, only the cross's tiles read dark.
 
 ## 12. The look
 

@@ -59,7 +59,7 @@ export const name = drawing({
   timeline: {
     wide: { mark: 'how', offset: -0.9, dur: 1.2 },
     close: { mark: 'receive', offset: -0.4, dur: 0.9 },
-    back: { mark: 'verdict', offset: -0.9, dur: 0.9 },
+    back: { mark: 'verdict', dur: 0.9, ends: true },
     lookUp: { mark: 'how', dur: 0.5 },
     questionOut: { mark: 'receive', offset: -0.6, dur: 0.4 },
     // On "taking" their near hand opens palm up and a gold word of light comes
@@ -80,13 +80,13 @@ export const name = drawing({
     // The Advocate's hand opens to the figure's chest on "not" (a cover-up), a word with no mark.
     show: { mark: 'verdict', word: 'not', offset: -0.3, dur: 0.6 },
     // The judge's hand goes to the gavel before it falls, and holds it down into `thesis`.
-    grasp: { with: 'gavel', offset: -0.5, dur: 0.5 },
+    grasp: { with: 'gavel', dur: 0.5, ends: true },
     gavel: { mark: 'verdict', offset: 0.2, dur: 0.59 },
     // To the pair as "righteous" is said, a word with no mark.
     toPair: { mark: 'verdict', word: 'righteous', offset: 0.35, dur: 0.9 },
     toBench: { mark: 'real', offset: -0.3, dur: 0.8 },
     hollow: { mark: 'real', dur: 0.5 },
-    land: { mark: 'true', offset: -0.5, dur: 0.5, ease: 'inCubic' },
+    land: { mark: 'true', dur: 0.5, ends: true, ease: 'inCubic' },
     lower: { mark: 'true', offset: 0.3, dur: 0.6 },
     stamp: { mark: 'true', dur: 0.3 },
     shine: { mark: 'true', dur: 0.6 },

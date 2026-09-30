@@ -46,7 +46,7 @@ const timeline = {
   match: { scene: 'start', offset: 0.2, dur: 0.9, ease: 'inOutCubic' },
   fall: { scene: 'start', dur: 0.6, ease: 'inQuad' },
   // The card comes up under the word as it lands.
-  card: { after: 'match', offset: -0.3, dur: 0.3, ease: 'outCubic' },
+  card: { after: 'match', dur: 0.3, ends: true, ease: 'outCubic' },
   shrug: { mark: 'church', offset: 0.2, dur: 0.4, ease: 'outBack' },
   unshrug: { mark: 'fair', dur: 0.5 },
   flip: { mark: 'right', offset: -0.1, dur: 0.5, ease: 'inOutSine' },
@@ -54,7 +54,7 @@ const timeline = {
   tape: { mark: 'whose', offset: 0.1, dur: 0.9, ease: 'outCubic' },
   wonder: { mark: 'whose', offset: 0.3, dur: 0.4 },
   tapeUp: { mark: 'psalm', offset: 0.2, dur: 0.6, ease: 'inCubic' },
-  drop: { mark: 'all', offset: -0.5, dur: 0.5, ease: 'outBack' },
+  drop: { mark: 'all', dur: 0.5, ends: true, ease: 'outBack' },
   light: { mark: 'char', dur: 1.6 },
   grow: { mark: 'circle', offset: 0.1, dur: 1.9, ease: 'inCubic' },
   awe: { mark: 'circle', offset: 0.3, dur: 0.5 },

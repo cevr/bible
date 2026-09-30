@@ -15,6 +15,7 @@ import {
 } from '../core/sheet.ts';
 import { FileInvalid } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import type { LineError } from '../core/errors.ts';
 
 /** One line of `quotes.jsonl`: the fields the sheet reads. */
 const QuoteLine = Schema.fromJsonString(
@@ -47,13 +48,17 @@ export interface SheetWritten {
 export const writeSheet = Effect.fn('ScriptSheet.write')(function* (
   film: LoadedFilm,
   script: Option.Option<ReadonlyArray<ScriptLine>>,
-): Effect.fn.Return<SheetWritten, FileInvalid | PlatformError, FileSystem.FileSystem | Path.Path> {
+): Effect.fn.Return<
+  SheetWritten,
+  FileInvalid | LineError | PlatformError,
+  FileSystem.FileSystem | Path.Path
+> {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const lines = Option.getOrElse(script, () =>
     film.scenes.map((scene): ScriptLine => ({ ...scene, cite: [] })),
   );
-  const beats = sheetBeats(lines, yield* quotesOf(film));
+  const beats = yield* Effect.fromResult(sheetBeats(lines, yield* quotesOf(film)));
   const written: SheetWritten = {
     markdown: path.join(film.paths.out, 'script-sheet.md'),
     html: path.join(film.paths.out, 'script-sheet.html'),

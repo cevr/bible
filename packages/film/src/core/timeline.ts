@@ -1,14 +1,22 @@
 // Named cues: a scene's moments, declared once as data beside its drawing.
-// Each span anchors to a narration mark (or a word said after it), another
-// cue or a scene landmark —
-// never to an absolute second — so a re-recorded take carries every cue with
-// it. Resolved once per layout; the picture and the sound both read the result.
-// Pure and DOM-free.
+// Each span anchors to a point in its scene (`ScenePoint`: a narration mark or
+// a word said after it, another cue, or a scene landmark) — never to an
+// absolute second — so a re-recorded take carries every cue with it. Resolved
+// once per layout; the picture and the sound both read the result. A timeline
+// that does not resolve fails as a value naming its scene and cue. Pure and
+// DOM-free.
 
-import { Option } from 'effect';
-import { WordMissing } from './errors.ts';
+import { Option, Result } from 'effect';
+import {
+  CueCycle,
+  type PointError,
+  UnknownCue,
+  UnknownMark,
+  UntilBeforeStart,
+  WordMissing,
+} from './errors.ts';
 import { wordAfter } from './narration.ts';
-import type { CuePatch, ResolvedCue, Span, Timeline, Word } from './schema.ts';
+import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Word } from './schema.ts';
 import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
@@ -46,18 +54,20 @@ const anchorField = (span: Span) => {
   return { scene: span.scene };
 };
 
-/** A span's end: its `dur`, or the mark it runs `until`. */
+/** A span's end: its `dur` (from its anchor, or up to it with `ends`), or the mark it runs `until`. */
 const endField = (span: Span, patch: CuePatch) => {
   if (patch.until !== undefined) return { until: patch.until };
-  if (patch.dur !== undefined) return { dur: patch.dur };
+  const ends = span.ends === true ? { ends: true as const } : {};
+  if (patch.dur !== undefined) return { dur: patch.dur, ...ends };
   if (span.until !== undefined) return { until: span.until };
-  if (span.dur !== undefined) return { dur: span.dur };
-  return {};
+  if (span.dur !== undefined) return { dur: span.dur, ...ends };
+  return ends;
 };
 
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
- * its `until` and an `until` its `dur`.
+ * its `until` and an `until` its `dur`; a span that `ends` on its anchor
+ * keeps landing there as its `dur` changes.
  */
 export const patchSpan = (span: Span, patch: CuePatch): Span => ({
   ...anchorField(span),
@@ -82,7 +92,9 @@ const ms = (v: number) => Math.round(v * 1000) / 1000 + 0;
 /**
  * The patch a lab drag of `span` writes, given its cue as resolved before the
  * drag and where the bar now sits; none when the drag changes nothing. The
- * body moves the offset, the right edge the dur, the left edge both.
+ * body moves the offset, the right edge the dur, the left edge both. A span
+ * that `ends` on its anchor mirrors it: its offset moves the end, so the left
+ * edge sets only the dur and the right edge both.
  *
  * A span that runs `until` a mark keeps ending on the mark (narration is the
  * clock): the body and the left edge move only its offset, its start held
@@ -96,13 +108,15 @@ export const dragPatch = (
   at: DraggedBar,
   frame: number,
 ): Option.Option<CuePatch> => {
-  const anchor = cue.start - (span.offset ?? 0);
-  if (span.until !== undefined) return untilPatch(span, cue, edge, at, anchor, frame);
-  const offset = ms(at.start - anchor);
+  if (span.until !== undefined)
+    return untilPatch(span, cue, edge, at, cue.start - (span.offset ?? 0), frame);
+  const lands = span.ends === true;
+  const anchor = (lands ? cue.end : cue.start) - (span.offset ?? 0);
+  const offset = ms((lands ? at.end : at.start) - anchor);
   const dur = ms(at.end - at.start);
   if (offset === ms(span.offset ?? 0) && dur === ms(cue.dur)) return Option.none();
   if (edge === 'move') return Option.some({ offset });
-  if (edge === 'end') return Option.some({ dur });
+  if (edge === (lands ? 'start' : 'end')) return Option.some({ dur });
   return Option.some({ offset, dur });
 };
 
@@ -136,82 +150,127 @@ export interface SceneClock {
   readonly dur: number;
 }
 
-/** Resolve every cue in dependency order. Unknown names and cycles are authoring errors. */
+/**
+ * Where `point` lands on `clock`, scene-local: a mark where its word starts
+ * (or the first word it pins, said at or after it), a named cue's start or
+ * end (`cueOf` resolves it; a point that names no edge takes `edge`), or a
+ * landmark. `by` names who asked, for the error: `cue "lift"`, `sound`.
+ */
+export const pointOn = <E>(
+  clock: SceneClock,
+  cueOf: (name: string) => Result.Result<ResolvedCue, E>,
+  point: ScenePoint,
+  by: string,
+  edge: 'start' | 'end' = 'start',
+): Result.Result<number, E | PointError> => {
+  if (point.mark !== undefined) {
+    const { mark, word } = point;
+    const m = clock.marks.get(mark);
+    if (m === undefined)
+      return Result.fail(
+        UnknownMark.make({ scene: clock.scene, mark, by, known: [...clock.marks.keys()] }),
+      );
+    if (word === undefined) return Result.succeed(clock.speechStart + m);
+    return Result.map(
+      Result.fromOption(wordAfter(clock.words, m, word), () =>
+        WordMissing.make({ scene: clock.scene, by, mark, word }),
+      ),
+      (w) => clock.speechStart + w,
+    );
+  }
+  if (point.cue !== undefined) {
+    const named = point.edge ?? edge;
+    return Result.map(cueOf(point.cue), (c) => (named === 'end' ? c.end : c.start));
+  }
+  switch (point.at) {
+    case 'start':
+      return Result.succeed(0);
+    case 'speech':
+      return Result.succeed(clock.speechStart);
+    case 'speechEnd':
+      return Result.succeed(clock.speechEnd);
+    case 'end':
+      return Result.succeed(clock.dur);
+  }
+};
+
+/** A span's anchor as a point: `after` a cue is its end, `with` it its start. */
+export const anchorPoint = (span: Span): ScenePoint => {
+  if ('mark' in span)
+    return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
+  if ('after' in span) return { cue: span.after, edge: 'end' };
+  if ('with' in span) return { cue: span.with };
+  return { at: span.scene };
+};
+
+/** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */
+export type TimelineError = PointError | CueCycle | UntilBeforeStart;
+
+/** Resolve every cue in dependency order; an unknown name, a cycle or a backward `until` fails naming its cue. */
 export const resolveTimeline = (
   timeline: Timeline | undefined,
   clock: SceneClock,
-): ReadonlyMap<string, ResolvedCue> => {
+): Result.Result<ReadonlyMap<string, ResolvedCue>, TimelineError> => {
   const out = new Map<string, ResolvedCue>();
-  if (timeline === undefined) return out;
-  const visiting = new Set<string>();
+  if (timeline === undefined) return Result.succeed(out);
+  const visiting: Array<string> = [];
+  const known = Object.keys(timeline);
 
-  const resolve = (name: string, from: string | undefined): ResolvedCue => {
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark. */
+  const length = (
+    name: string,
+    span: Span,
+    start: number,
+  ): Result.Result<number, TimelineError> => {
+    if (span.until === undefined) return Result.succeed(span.dur ?? 0);
+    const mark = span.until;
+    const m = clock.marks.get(mark);
+    if (m === undefined)
+      return Result.fail(
+        UnknownMark.make({
+          scene: clock.scene,
+          mark,
+          by: `cue "${name}"`,
+          known: [...clock.marks.keys()],
+        }),
+      );
+    const dur = clock.speechStart + m - start;
+    if (dur < 0) return Result.fail(UntilBeforeStart.make({ scene: clock.scene, cue: name, mark }));
+    return Result.succeed(dur);
+  };
+
+  const resolve = (name: string, by: string): Result.Result<ResolvedCue, TimelineError> => {
     const done = out.get(name);
-    if (done !== undefined) return done;
+    if (done !== undefined) return Result.succeed(done);
     const span = Object.hasOwn(timeline, name) ? timeline[name] : undefined;
     if (span === undefined)
-      throw new Error(`scene ${clock.scene}: cue "${from}" refers to unknown cue "${name}"`);
-    if (visiting.has(name))
-      throw new Error(
-        `scene ${clock.scene}: cue "${name}" is part of a cycle (${[...visiting, name].join(' → ')})`,
-      );
-    visiting.add(name);
-    const start = anchor(name, span) + (span.offset ?? 0);
-    visiting.delete(name);
+      return Result.fail(UnknownCue.make({ scene: clock.scene, cue: name, by, known }));
+    if (visiting.includes(name))
+      return Result.fail(CueCycle.make({ scene: clock.scene, cycle: [...visiting, name] }));
+    visiting.push(name);
+    const self = `cue "${name}"`;
+    const anchor = pointOn(clock, (n) => resolve(n, self), anchorPoint(span), self);
+    visiting.pop();
+    if (Result.isFailure(anchor)) return Result.fail(anchor.failure);
+    const at = anchor.success + (span.offset ?? 0);
+    // A span that `ends` on its anchor starts its length before it.
+    const start = span.ends === true ? at - (span.dur ?? 0) : at;
     const dur = length(name, span, start);
+    if (Result.isFailure(dur)) return Result.fail(dur.failure);
     const cue = {
       start,
-      end: start + dur,
-      dur,
+      end: start + dur.success,
+      dur: dur.success,
       ease: span.ease ?? DEFAULT_EASE,
       stagger: span.stagger ?? 0,
     };
     out.set(name, cue);
-    return cue;
+    return Result.succeed(cue);
   };
 
-  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark. */
-  const length = (name: string, span: Span, start: number): number => {
-    if (span.until === undefined) return span.dur ?? 0;
-    const m = clock.marks.get(span.until);
-    if (m === undefined)
-      throw new Error(`scene ${clock.scene}: cue "${name}" ends at unknown mark {${span.until}}`);
-    const dur = clock.speechStart + m - start;
-    if (dur < 0)
-      throw new Error(
-        `scene ${clock.scene}: cue "${name}" ends at {${span.until}}, before it starts`,
-      );
-    return dur;
-  };
-
-  const anchor = (name: string, span: Span): number => {
-    if ('mark' in span) {
-      const m = clock.marks.get(span.mark);
-      if (m === undefined)
-        throw new Error(`scene ${clock.scene}: cue "${name}" names unknown mark {${span.mark}}`);
-      if (span.word === undefined) return clock.speechStart + m;
-      const word = span.word;
-      return (
-        clock.speechStart +
-        Option.getOrThrowWith(wordAfter(clock.words, m, word), () =>
-          WordMissing.make({ scene: clock.scene, cue: name, mark: span.mark, word }),
-        )
-      );
-    }
-    if ('after' in span) return resolve(span.after, name).end;
-    if ('with' in span) return resolve(span.with, name).start;
-    switch (span.scene) {
-      case 'start':
-        return 0;
-      case 'speech':
-        return clock.speechStart;
-      case 'speechEnd':
-        return clock.speechEnd;
-      case 'end':
-        return clock.dur;
-    }
-  };
-
-  for (const name of Object.keys(timeline)) resolve(name, undefined);
-  return out;
+  for (const name of known) {
+    const cue = resolve(name, 'timeline');
+    if (Result.isFailure(cue)) return Result.fail(cue.failure);
+  }
+  return Result.succeed(out);
 };

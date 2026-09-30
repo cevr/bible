@@ -53,7 +53,7 @@ const load = Effect.fn('test.load')(function* () {
   const manifest = yield* Schema.decodeEffect(SoundManifestJson)(
     yield* read(`../${FILM}/sound/manifest.json`),
   );
-  return { placed: layout(scenes, timings), manifest };
+  return { placed: Result.getOrThrow(layout(scenes, timings)), manifest };
 });
 
 /** A made variant of `name`, measured at `momentaryMax` (and integrated 4 dB under it). */

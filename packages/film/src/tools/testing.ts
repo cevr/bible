@@ -11,6 +11,7 @@ import {
   Option,
   Path,
   Redacted,
+  Result,
   Schema,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
@@ -790,7 +791,7 @@ export const testFilm = (
  * twelve words speak from 0 to 5.9 s.
  */
 export const spokenTake = (say: string): VoiceTiming => {
-  const parsed = parse(say);
+  const parsed = Result.getOrThrow(parse('take', say));
   const words = parsed.spoken
     .split(' ')
     .map((text, i) => ({ text, start: i * 0.5, end: i * 0.5 + 0.4 }));

@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
 import { layout } from './layout.ts';
-import { type Music, Score, type Timings } from './schema.ts';
+import { UnknownCue, UnknownMark } from './errors.ts';
+import { Cue, type Music, Score, type Timings } from './schema.ts';
 import {
   MAX_CHUNK_MS,
   MUSIC_TAIL,
-  actSpans,
+  movementSpans,
   cueTime,
   filmEnd,
   musicKey,
@@ -22,27 +23,29 @@ const outcome = <A, E extends { readonly _tag: string }>(r: Result.Result<A, E>)
   Result.match(r, { onSuccess: () => 'ok', onFailure: (e) => e._tag });
 
 const draw = () => {};
-const placed = layout(
-  [
-    {
-      id: 'a',
-      say: 'Look {live}and live.',
-      lead: 0.5,
-      tail: 1,
-      timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
-      draw,
-    },
-    { id: 'b', min: 4, draw },
-    { id: 'c', min: 5, draw },
-  ],
-  noTakes,
+const placed = Result.getOrThrow(
+  layout(
+    [
+      {
+        id: 'a',
+        say: 'Look {live}and live.',
+        lead: 0.5,
+        tail: 1,
+        timeline: { lift: { mark: 'live', offset: 0.2, dur: 0.6 } },
+        draw,
+      },
+      { id: 'b', min: 4, draw },
+      { id: 'c', min: 5, draw },
+    ],
+    noTakes,
+  ),
 );
 
 const music: Music = {
   model: 'music_v2_5',
   styles: ['piano'],
   avoid: ['vocals'],
-  acts: [
+  movements: [
     { from: 'a', name: 'Open', styles: ['sparse'] },
     { from: 'c', name: 'Close', styles: ['warm'] },
   ],
@@ -70,15 +73,40 @@ describe('sound', () => {
     ).toBeCloseTo(start + 0.1);
   });
 
-  test('an unknown scene, mark or cue is an authoring error', () => {
-    expect(outcome(cueTime({ scene: 'z' }, placed))).toBe('UnknownScene');
-    expect(outcome(cueTime({ scene: 'a', mark: 'nope' }, placed))).toBe('UnknownMark');
-    expect(outcome(cueTime({ scene: 'a', cue: 'nope' }, placed))).toBe('UnknownCue');
-    expect(outcome(cueTime({ scene: 'a', cue: 'lift', mark: 'live' }, placed))).toBe('CueInvalid');
-    expect(outcome(cueTime({ scene: 'a', mark: 'live', edge: 'end' }, placed))).toBe('CueInvalid');
+  test('a landmark lands where the scene’s voice starts or ends, or on its start or end', () => {
+    const a = placed[0];
+    const at = (landmark: 'start' | 'speech' | 'speechEnd' | 'end') =>
+      Result.getOrThrow(cueTime({ scene: 'a', at: landmark }, placed));
+    expect(at('start')).toBe(0);
+    expect(at('speech')).toBe(0.5);
+    expect(at('speechEnd')).toBe(0.5 + (a?.voice.duration ?? NaN));
+    expect(at('end')).toBe(a?.dur ?? NaN);
+    expect(Result.getOrThrow(cueTime({ scene: 'b', at: 'speech', offset: 0.2 }, placed))).toBe(
+      (placed[1]?.start ?? NaN) + 0.2,
+    );
   });
 
-  test('acts cover the whole film, split at their scenes, and the last runs past its end', () => {
+  test('an unknown scene, mark or cue is an authoring error naming what the scene has', () => {
+    expect(outcome(cueTime({ scene: 'z' }, placed))).toBe('UnknownScene');
+    expect(Result.getFailure(cueTime({ scene: 'a', mark: 'nope' }, placed))).toEqual(
+      Option.some(UnknownMark.make({ scene: 'a', mark: 'nope', by: 'sound', known: ['live'] })),
+    );
+    expect(Result.getFailure(cueTime({ scene: 'a', cue: 'nope' }, placed))).toEqual(
+      Option.some(UnknownCue.make({ scene: 'a', cue: 'nope', by: 'sound', known: ['lift'] })),
+    );
+  });
+
+  test('a cue names one point: a cue and a mark, or an edge on a mark, do not decode', () => {
+    const decodes = (cue: Readonly<Record<string, string | number>>) =>
+      Result.isSuccess(Schema.decodeUnknownResult(Cue)(cue));
+    expect(decodes({ scene: 'a', cue: 'lift', mark: 'live' })).toBe(false);
+    expect(decodes({ scene: 'a', mark: 'live', edge: 'end' })).toBe(false);
+    expect(decodes({ scene: 'a', at: 'speech', cue: 'lift' })).toBe(false);
+    expect(decodes({ scene: 'a', cue: 'lift', edge: 'end', offset: -0.1 })).toBe(true);
+    expect(decodes({ scene: 'a', mark: 'live', word: 'live' })).toBe(true);
+  });
+
+  test('movements cover the whole film, split at their scenes, and the last runs past its end', () => {
     const plan = Result.getOrThrow(musicPlan(music, placed));
     const ms = plan.chunks.map((c) => c.duration_ms);
     // The composed ending lands after the cut, so the mix's fade-out, not the
@@ -87,30 +115,30 @@ describe('sound', () => {
     expect(ms[0]).toBe(Math.round((placed[2]?.start ?? 0) * 1000));
   });
 
-  test('every act carries the film-wide styles ahead of its own', () => {
+  test('every movement carries the film-wide styles ahead of its own', () => {
     const [open] = Result.getOrThrow(musicPlan(music, placed)).chunks;
     expect(open?.positive_styles).toEqual(['piano', 'sparse']);
     expect(open?.negative_styles).toEqual(['vocals']);
     expect(open?.text).toBe('[Open]');
   });
 
-  test('an act naming no scene is refused, the first one too', () => {
-    const lost = { ...music, acts: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
+  test('a movement naming no scene is refused, the first one too', () => {
+    const lost = { ...music, movements: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
     expect(outcome(musicPlan(lost, placed))).toBe('UnknownScene');
   });
 
-  test('actSpans gives every act its length or its refusal, and every act naming no scene', () => {
+  test('movementSpans gives every movement its length or its refusal, and every movement naming no scene', () => {
     const spans = Result.getOrThrow(
-      actSpans({ ...music, acts: [...music.acts].reverse() }, placed),
+      movementSpans({ ...music, movements: [...music.movements].reverse() }, placed),
     );
-    // Reversed, the first act runs from the film's start to `a`, which also starts it.
+    // Reversed, the first movement runs from the film's start to `a`, which also starts it.
     expect(
       spans.map((r) => Result.match(r, { onSuccess: (a) => a.ms, onFailure: (e) => e._tag })),
-    ).toEqual(['ActTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
-    const lost = actSpans(
+    ).toEqual(['MovementTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
+    const lost = movementSpans(
       {
         ...music,
-        acts: [
+        movements: [
           { from: 'x', name: 'X', styles: [] },
           { from: 'a', name: 'A', styles: [] },
           { from: 'y', name: 'Y', styles: [] },
@@ -123,15 +151,15 @@ describe('sound', () => {
     ).toEqual(['x', 'y']);
   });
 
-  test('acts out of film order are refused', () => {
-    const backwards = { ...music, acts: [...music.acts].reverse() };
-    expect(outcome(musicPlan(backwards, placed))).toBe('ActTooShort');
+  test('movements out of film order are refused', () => {
+    const backwards = { ...music, movements: [...music.movements].reverse() };
+    expect(outcome(musicPlan(backwards, placed))).toBe('MovementTooShort');
   });
 
-  test('an act longer than the API composes in one chunk is refused', () => {
-    const long = layout([{ id: 'a', min: 130 }], noTakes);
-    const one = { ...music, acts: [{ from: 'a', name: 'Whole', styles: [] }] };
-    expect(outcome(musicPlan(one, long))).toBe('ActTooLong');
+  test('a movement longer than the API composes in one chunk is refused', () => {
+    const long = Result.getOrThrow(layout([{ id: 'a', min: 130 }], noTakes));
+    const one = { ...music, movements: [{ from: 'a', name: 'Whole', styles: [] }] };
+    expect(outcome(musicPlan(one, long))).toBe('MovementTooLong');
     expect(MAX_CHUNK_MS).toBe(120_000);
   });
 

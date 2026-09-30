@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
+import { type Address, resolveAddress } from '../core/address.ts';
 import { layout } from '../core/layout.ts';
 import {
   Cut,
@@ -17,12 +18,36 @@ import {
   jobOf,
   frameSpan,
   planChunks,
-  sceneSpan,
   stillName,
   videoEncoders,
   videoWorkers,
 } from './render-plan.ts';
 import { testExportInfo } from './testing.ts';
+
+/** A film of three scenes, 4, 5 and 6 s, and one short over its first. */
+const cutShort = {
+  id: 'cut',
+  title: 'A cut',
+  spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
+} as const;
+const threeScenes = {
+  name: 'f',
+  placed: Result.getOrThrow(
+    layout(
+      [
+        { id: 'a', min: 4 },
+        { id: 'b', min: 5 },
+        { id: 'c', min: 6 },
+      ],
+      { voice: '', scenes: {} },
+    ),
+  ),
+  look: Option.none(),
+  shorts: [cutShort],
+};
+/** `address` resolved against the three-scene film. */
+const scoped = (address: Address) => Result.getOrThrow(resolveAddress(threeScenes, address));
+const bc = scoped({ _tag: 'Scenes', ids: ['b', 'c'] });
 
 const flags = {
   tag: 't',
@@ -30,14 +55,13 @@ const flags = {
   workers: Option.none(),
   stills: Option.none(),
   contact: Option.none(),
-  span: Option.none(),
+  scope: scoped({ _tag: 'Film' }),
   from: Option.none(),
   to: Option.none(),
   scale: Option.none(),
   out: Option.none(),
   share: Option.none(),
   encoder: Option.none(),
-  short: Option.none(),
 } as const;
 
 const conflict = (over: Partial<Parameters<typeof jobOf>[0]>) =>
@@ -48,15 +72,11 @@ const conflict = (over: Partial<Parameters<typeof jobOf>[0]>) =>
 
 describe('jobOf', () => {
   test('a flag the job would ignore fails as FlagsConflict', () => {
-    expect(conflict({ stills: Option.some([3]), span: Option.some({ from: 0, to: 9 }) })).toBe(
-      'stills excludes scene',
-    );
+    expect(conflict({ stills: Option.some([3]), scope: bc })).toBe('stills excludes scene');
     expect(conflict({ stills: Option.some([3]), contact: Option.some(5) })).toBe(
       'stills excludes contact',
     );
-    expect(conflict({ span: Option.some({ from: 0, to: 9 }), from: Option.some(2) })).toBe(
-      'scene excludes from',
-    );
+    expect(conflict({ scope: bc, from: Option.some(2) })).toBe('scene excludes from');
     expect(conflict({ contact: Option.some(5), share: Option.some(false) })).toBe(
       'contact excludes share',
     );
@@ -74,30 +94,43 @@ describe('jobOf', () => {
     expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ _tag: 'Video', share: true });
   });
 
-  test('--scene sets the range of a contact sheet', () => {
-    const job = Result.getOrThrow(
-      jobOf({ ...flags, contact: Option.some(5), span: Option.some({ from: 3, to: 7 }) }),
-    );
+  test('an address of scenes or an act sets the range of a contact sheet', () => {
+    const job = Result.getOrThrow(jobOf({ ...flags, contact: Option.some(5), scope: bc }));
     expect(job).toMatchObject({
       _tag: 'Contact',
       every: 5,
-      from: Option.some(3),
-      to: Option.some(7),
+      from: Option.some(4),
+      to: Option.some(15),
     });
+    const act = Result.getOrThrow(
+      resolveAddress(
+        {
+          ...threeScenes,
+          look: Option.some({
+            acts: [
+              { from: 'a', name: 'one' },
+              { from: 'c', name: 'two' },
+            ],
+          }),
+        },
+        { _tag: 'Act', act: 'two' },
+      ),
+    );
+    expect(Result.getOrThrow(jobOf({ ...flags, scope: act }))).toMatchObject({
+      from: Option.some(9),
+      to: Option.some(15),
+    });
+    expect(conflict({ scope: act, to: Option.some(12) })).toBe('act excludes to');
   });
 
-  test('--short cuts the job to that short, and excludes --scene', () => {
-    const short = {
-      id: 'cut',
-      title: 'A cut',
-      spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
-    } as const;
-    const job = Result.getOrThrow(jobOf({ ...flags, short: Option.some(short) }));
-    expect(job).toMatchObject({ _tag: 'Video', cut: Cut.Short({ short }) });
+  test('a short address cuts the job to that short, on its own clock', () => {
+    const job = Result.getOrThrow(jobOf({ ...flags, scope: scoped({ _tag: 'Short', id: 'cut' }) }));
+    expect(job).toMatchObject({
+      _tag: 'Video',
+      cut: Cut.Short({ short: cutShort }),
+      from: Option.none(),
+    });
     expect(Result.getOrThrow(jobOf(flags))).toMatchObject({ cut: Cut.Whole() });
-    expect(conflict({ short: Option.some(short), span: Option.some({ from: 0, to: 9 }) })).toBe(
-      'short excludes scene',
-    );
   });
 
   test('a short draws on its own page and writes under out/<film>/shorts', () => {
@@ -105,7 +138,7 @@ describe('jobOf', () => {
       short: {
         id: 'cut',
         title: 'A cut',
-        spans: [{ scene: 'a', from: { scene: 'start' }, to: { scene: 'end' } }],
+        spans: [{ scene: 'a', from: { at: 'start' }, to: { at: 'end' } }],
       },
     });
     expect(cutPage('film', Cut.Whole())).toBe('film');
@@ -177,23 +210,6 @@ describe('ranges', () => {
       start: 0,
       end: 60,
     });
-  });
-
-  test('--scene spans its scenes, from the layout', () => {
-    const placed = layout(
-      [
-        { id: 'a', min: 4 },
-        { id: 'b', min: 5 },
-        { id: 'c', min: 6 },
-      ],
-      { voice: '', scenes: {} },
-    );
-    expect(Result.getOrThrow(sceneSpan(placed, ['b', 'c']))).toEqual({ from: 4, to: 15 });
-    const unknown = Result.match(sceneSpan(placed, ['b', 'z']), {
-      onSuccess: () => 'ok',
-      onFailure: (e) => `${e._tag}:${e.scene}`,
-    });
-    expect(unknown).toBe('UnknownScene:z');
   });
 
   test('contact times step from `from` while before `to`', () => {

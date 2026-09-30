@@ -8,8 +8,9 @@
 
 import { Array as Arr, Option, Order, Result } from 'effect';
 import type { Placed } from '../core/layout.ts';
-import type { FaceMark, HandMark, Look, LookAct } from '../core/schema.ts';
-import { UnknownScene } from '../core/errors.ts';
+import type { Stretch } from '../core/acts.ts';
+import { type AddressError, resolveAddress } from '../core/address.ts';
+import type { Act, FaceMark, HandMark } from '../core/schema.ts';
 import { filmEnd } from '../core/sound.ts';
 import type { Reported } from './check.ts';
 import {
@@ -478,48 +479,8 @@ const handsTravel = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>)
     }),
   ) || now.some((h) => h.reach > 0 && Option.isNone(sameHand(h, was)));
 
-/** An act laid over the film: its declaration and the scenes it spans. */
-export interface ActSpan {
-  readonly act: LookAct;
-  readonly start: number;
-  readonly end: number;
-  readonly scenes: ReadonlyArray<string>;
-}
-
-/** The declared acts laid over the film, each from its scene to the next act's; a scene it cannot find fails. */
-export const actSpans = (
-  look: Look,
-  placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<ActSpan>, UnknownScene> => {
-  const known = placed.map((p) => p.spec.id);
-  const unknown = look.acts.find((act) => !known.includes(act.from));
-  if (unknown) return Result.fail(UnknownScene.make({ scene: unknown.from, known }));
-  const ordered = look.acts
-    .map((act) => [act, known.indexOf(act.from)] as const)
-    .sort((a, b) => a[1] - b[1]);
-  return Result.succeed(
-    ordered.map(([act, at], i) => {
-      const next = ordered[i + 1]?.[1] ?? placed.length;
-      const inside = placed.slice(at, next);
-      return {
-        act,
-        start: inside[0]?.start ?? 0,
-        end: Option.match(Arr.last(inside), { onNone: () => 0, onSome: (p) => p.start + p.dur }),
-        scenes: inside.map((p) => p.spec.id),
-      };
-    }),
-  );
-};
-
-/** The film's declared acts laid over it; none when it declares no look. */
-export const actsOf = (
-  look: Option.Option<Look>,
-  placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<ActSpan>, UnknownScene> =>
-  Option.match(look, {
-    onNone: () => Result.succeed([]),
-    onSome: (declared) => actSpans(declared, placed),
-  });
+/** An act laid over the film (`stretchesOf`): its declaration and the scenes it holds. */
+export type ActSpan = Stretch<Act>;
 
 /** The light of `looks` summed. */
 export const lightOf = (looks: ReadonlyArray<SceneLook>): Light =>
@@ -561,7 +522,7 @@ export const hues = (light: Light): ReadonlyArray<readonly [string, number]> => 
 type Target = readonly [ColourScript['measure'], readonly [number, number]];
 
 /** An act's declared targets, each measure with its [low, high] range. */
-const targetsOf = (act: LookAct): ReadonlyArray<Target> => {
+const targetsOf = (act: Act): ReadonlyArray<Target> => {
   const targets: ReadonlyArray<Option.Option<Target>> = [
     Option.map(Option.fromNullishOr(act.luma), (range) => ['luma', range]),
     Option.map(Option.fromNullishOr(act.saturation), (range) => ['saturation', range]),
@@ -575,7 +536,7 @@ export const colourScript = (
   acts: ReadonlyArray<ActSpan>,
   looks: ReadonlyArray<SceneLook>,
 ): ReadonlyArray<ColourScript> =>
-  acts.flatMap(({ act, scenes }) => {
+  acts.flatMap(({ part: act, scenes }) => {
     const m = measures(lightOf(within(looks, scenes)));
     return targetsOf(act)
       .filter(([measure, [low, high]]) => m[measure] < low || m[measure] > high)
@@ -625,7 +586,7 @@ const lightLine = (light: Light) => {
 };
 
 /** An act's targets as the report writes them, e.g. ` target=luma 90–110, dark ≤5%`. */
-const targetLine = (act: LookAct) => {
+const targetLine = (act: Act) => {
   const shown = targetsOf(act).map(([measure, [low, high]]) =>
     Option.match(
       Option.liftPredicate(measure, (m) => m === 'dark'),
@@ -656,7 +617,7 @@ export const lookLines = (
         `scene=${l.scene.padEnd(11)} secs=${l.dur.toFixed(1).padStart(5)} held=${shareOf(l.held, l.seconds)} longest=${(l.heldTo - l.heldFrom).toFixed(0).padStart(2)}s face=${l.face.toFixed(0).padStart(4)}px ${lightLine(l.light)}`,
     ),
     ...acts.map(
-      ({ act, start, end, scenes }) =>
+      ({ part: act, start, end, scenes }) =>
         `act="${act.name}" ${start.toFixed(1)}–${end.toFixed(1)}s ${lightLine(lightOf(within(looks, scenes)))}${targetLine(act)}`,
     ),
     `film held=${shareOf(held, seconds)} ${lightLine(lightOf(looks))}`,
@@ -691,7 +652,7 @@ export const chapters = (
   acts: ReadonlyArray<ActSpan>,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<ReadonlyArray<string>, ChaptersInvalid> => {
-  const named = acts.flatMap(({ act, start }) =>
+  const named = acts.flatMap(({ part: act, start }) =>
     Option.toArray(Option.map(Option.fromNullishOr(act.chapter), (title) => ({ start, title }))),
   );
   const invalid = (reason: string) => Result.fail(ChaptersInvalid.make({ film, reason }));
@@ -709,9 +670,18 @@ export const chapters = (
   return Result.succeed(named.map((c) => `${chapterTime(c.start)} ${c.title}`));
 };
 
-/** A film's chapters from its declared look: `film chapters` prints them, a full render writes them. */
+/**
+ * A film's chapters from the acts of its whole (`resolveAddress`): `film
+ * chapters` prints them, a full render writes them.
+ */
 export const filmChapters = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-): Result.Result<ReadonlyArray<string>, UnknownScene | ChaptersInvalid> =>
-  Result.flatMap(actsOf(film.look, placed), (acts) => chapters(film.paths.name, acts, placed));
+): Result.Result<ReadonlyArray<string>, AddressError | ChaptersInvalid> =>
+  Result.flatMap(
+    resolveAddress(
+      { name: film.paths.name, placed, look: film.look, shorts: film.shorts },
+      { _tag: 'Film' },
+    ),
+    (whole) => chapters(film.paths.name, whole.acts, placed),
+  );

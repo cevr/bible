@@ -36,8 +36,8 @@ const CHOICES: FilmChoices = {
       _tag: 'ScoreChoice',
       picked: 'warm',
       variants: [
-        { id: 'warm', styles: ['felt piano'], acts: [], state: 'current' },
-        { id: 'bright', styles: ['strings'], acts: [], state: 'missing' },
+        { id: 'warm', styles: ['felt piano'], movements: [], state: 'current' },
+        { id: 'bright', styles: ['strings'], movements: [], state: 'missing' },
       ],
     },
   ],

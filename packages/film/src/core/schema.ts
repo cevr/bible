@@ -247,6 +247,50 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
 export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
+/** A scene's landmarks: its start, where its voice starts and ends, and its end. */
+export const Landmark = Schema.Literals(['start', 'speech', 'speechEnd', 'end']);
+export type Landmark = typeof Landmark.Type;
+
+/** A key a point must not name beside its own anchor. */
+const none = Schema.optionalKey(Schema.Never);
+
+/** A `{mark}` in the scene's narration, or the first `word` said at or after it. */
+const onMark = {
+  mark: Schema.String,
+  /** Pin to this word at or after the mark, not the mark; read as a take is checked (`normalizeWords`). */
+  word: Schema.optionalKey(Schema.String),
+  cue: none,
+  edge: none,
+  at: none,
+};
+
+/** A named cue's start, or its end with `edge: 'end'`. */
+const onCue = {
+  cue: Schema.String,
+  edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
+  mark: none,
+  word: none,
+  at: none,
+};
+
+/** A scene landmark. */
+const onLandmark = { at: Landmark, mark: none, word: none, cue: none, edge: none };
+
+/**
+ * A point in a scene, never at a second: a `{mark}` (where the word it
+ * precedes starts) or a word pinned after it, a named cue (its start, or its
+ * end with `edge: 'end'`; a short's `to` takes the end when no edge is
+ * named), or a landmark. A point names one anchor. A short's spans, the
+ * sound's cues and a timeline's anchors (`anchorPoint`) all resolve through
+ * one function, `pointIn`.
+ */
+export const ScenePoint = Schema.Union([
+  Schema.Struct(onMark),
+  Schema.Struct(onCue),
+  Schema.Struct(onLandmark),
+]);
+export type ScenePoint = typeof ScenePoint.Type;
+
 /** A share of a cue, from none of it to all of it. */
 const Share = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }));
 
@@ -267,10 +311,15 @@ const spanTiming = {
   silence: Schema.optionalKey(Schema.Literal(true)),
 };
 
-/** A span that ends by its length. */
+/** A span that lasts its length: from its anchor, or up to it. */
 const byDur = {
   /** Defaults to 0, an instant. */
   dur: Schema.optionalKey(Seconds),
+  /**
+   * The span ends at its anchor (plus `offset`) and starts `dur` before it:
+   * a motion that lands on its moment, so a `dur` edit keeps the landing.
+   */
+  ends: Schema.optionalKey(Schema.Literal(true)),
   until: Schema.optionalKey(Schema.Never),
 };
 
@@ -278,6 +327,7 @@ const byDur = {
 const untilMark = {
   until: Schema.String,
   dur: Schema.optionalKey(Schema.Never),
+  ends: Schema.optionalKey(Schema.Never),
 };
 
 /** One anchor's two spans: ended by `dur`, or `until` a mark; never both. */
@@ -288,12 +338,14 @@ const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
   ] as const;
 
 /**
- * Where a named cue starts, plus how long it lasts: at a `{mark}` in the
- * scene's narration, or at the first `word` said at or after it (a word pin,
- * for a beat on a word that has no mark: `{ mark: 'gift', word: 'faith' }`;
- * a line that never says it there is `WordMissing` at layout), at the end of
- * another cue (`after`), at its start (`with`), or at a scene landmark (its
- * start, where the voice starts or ends, or its end).
+ * Where a named cue starts (or, with `ends`, lands), plus how long it lasts:
+ * at a `{mark}` in the scene's narration, or at the first `word` said at or
+ * after it (a word pin, for a beat on a word that has no mark:
+ * `{ mark: 'gift', word: 'faith' }`; a line that never says it there is
+ * `WordMissing` at layout), at the end of another cue (`after`), at its start
+ * (`with`), or at a scene landmark (its start, where the voice starts or
+ * ends, or its end). Each anchor is a `ScenePoint` (`anchorPoint`), resolved
+ * as every other point in a scene is.
  */
 export const Span = Schema.Union([
   ...anchored({
@@ -303,7 +355,7 @@ export const Span = Schema.Union([
   }),
   ...anchored({ after: Schema.String }),
   ...anchored({ with: Schema.String }),
-  ...anchored({ scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']) }),
+  ...anchored({ scene: Landmark }),
 ]);
 export type Span = typeof Span.Type;
 
@@ -379,38 +431,11 @@ export type HeardAs = typeof HeardAs.Type;
 // ---------------------------------------------------------------------------
 // Shorts
 
-/** A key a point must not name beside its own anchor. */
-const none = Schema.optionalKey(Schema.Never);
-
-/**
- * Where a short's span starts or ends inside its scene, never at a second: a
- * `{mark}` (the word it precedes starts), a named cue (its start, or its end
- * with `edge: 'end'`; a span's `to` takes the end when no edge is named), or
- * a scene landmark (its start, where the voice starts or ends, or its end).
- * A point names one anchor.
- */
-export const ShortPoint = Schema.Union([
-  Schema.Struct({ mark: Schema.String, cue: none, edge: none, scene: none }),
-  Schema.Struct({
-    cue: Schema.String,
-    edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
-    mark: none,
-    scene: none,
-  }),
-  Schema.Struct({
-    scene: Schema.Literals(['start', 'speech', 'speechEnd', 'end']),
-    mark: none,
-    cue: none,
-    edge: none,
-  }),
-]);
-export type ShortPoint = typeof ShortPoint.Type;
-
 /** One stretch of one scene a short plays: `from` a point `to` a later one. */
 export const ShortSpan = Schema.Struct({
   scene: Schema.String,
-  from: ShortPoint,
-  to: ShortPoint,
+  from: ScenePoint,
+  to: ScenePoint,
 });
 export type ShortSpan = typeof ShortSpan.Type;
 
@@ -444,37 +469,44 @@ export type Shorts = typeof Shorts.Type;
 // ---------------------------------------------------------------------------
 // Sound
 
+/** A sound cue's scene and its nudge off the point, in seconds. */
+const inScene = { scene: Schema.String, offset: Schema.optionalKey(Schema.Finite) };
+
 /**
- * A moment on the film clock: a scene, then one of its named cues (its start,
- * or its end with `edge: 'end'`) or a mark in its narration, then an offset in
- * seconds. With neither, the offset counts from the scene's start.
+ * A moment on the film clock: a scene, a point in it (`ScenePoint`: a mark,
+ * a named cue's edge or a landmark such as `speech`), and an offset in
+ * seconds: `{ scene: 'mirror', at: 'speech' }`, `{ scene: 'roof', cue: 'lower' }`.
+ * A cue that names only its scene is at the scene's start.
  */
-export const Cue = Schema.Struct({
-  scene: Schema.String,
-  cue: Schema.optionalKey(Schema.String),
-  edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
-  mark: Schema.optionalKey(Schema.String),
-  offset: Schema.optionalKey(Schema.Finite),
-});
+export const Cue = Schema.Union([
+  Schema.Struct({ ...inScene, ...onMark }),
+  Schema.Struct({ ...inScene, ...onCue }),
+  Schema.Struct({ ...inScene, ...onLandmark }),
+  Schema.Struct({ ...inScene, mark: none, word: none, cue: none, edge: none, at: none }),
+]);
 export type Cue = typeof Cue.Type;
 
-/** One stretch of the score, from the start of `from` until the next act begins. */
-export const Act = Schema.Struct({
+/**
+ * One movement of the score: from the start of `from` until the next movement
+ * begins (the first opens the film). Movements turn where the music does, so
+ * they need not fall on the film's acts (`look.acts`).
+ */
+export const Movement = Schema.Struct({
   from: Schema.String,
   name: Schema.String,
   styles: Schema.Array(Schema.String),
   avoid: Schema.optionalKey(Schema.Array(Schema.String)),
 });
-export type Act = typeof Act.Type;
+export type Movement = typeof Movement.Type;
 
 export const MusicModel = Schema.Literals(['music_v2', 'music_v2_5']);
 
-/** One score for the film: a musical language (its styles), in acts timed to the film. */
+/** One score for the film: a musical language (its styles), in movements timed to the film. */
 export const Music = Schema.Struct({
   model: MusicModel,
   styles: Schema.Array(Schema.String),
   avoid: Schema.Array(Schema.String),
-  acts: Schema.Array(Act),
+  movements: Schema.Array(Movement),
 });
 export type Music = typeof Music.Type;
 
@@ -747,11 +779,13 @@ export type Probed = typeof Probed.Type;
 const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
 
 /**
- * One act of a film's colour script and shape (`film.ts`'s `look.acts`):
- * where it starts, its chapter title, and the light it should measure.
+ * One act of a film (`look.acts`, declared in film order): where it starts,
+ * its chapter title, and the light it should measure. An act holds its
+ * scenes (`membersOf`): the film's colour script, lights and chapters all
+ * read them.
  */
-export const LookAct = Schema.Struct({
-  /** The scene the act starts on; it runs until the next act's. */
+export const Act = Schema.Struct({
+  /** The scene the act starts on; it runs until the next act's. The first holds every scene before it. */
   from: Schema.String,
   /** The act's name, for the report: `cold open`, `valley`. */
   name: Schema.String,
@@ -767,10 +801,10 @@ export const LookAct = Schema.Struct({
   /** The most of its frames that may be darker than luma 60, 0–1. */
   dark: Schema.optionalKey(Share),
 });
-export type LookAct = typeof LookAct.Type;
+export type Act = typeof Act.Type;
 
 /** A film's declared look (`export const look` in `film.ts`): its acts, in film order. */
-export const Look = Schema.Struct({ acts: Schema.Array(LookAct) });
+export const Look = Schema.Struct({ acts: Schema.Array(Act) });
 export type Look = typeof Look.Type;
 
 // ---------------------------------------------------------------------------
@@ -1204,18 +1238,18 @@ export type ReviewFilms = typeof ReviewFilms.Type;
 
 /**
  * Where a score option stands in the film's store: `current` (composed for
- * the acts and timing as they are), `stale` (composed before they changed:
+ * the movements and timing as they are), `stale` (composed before they changed:
  * it still plays) or `missing` (never composed here: nothing to hear).
  */
 export const ScoreState = Schema.Literals(['current', 'stale', 'missing']);
 export type ScoreState = typeof ScoreState.Type;
 
-/** One of the film's score options: its musical language, its acts, its state. */
+/** One of the film's score options: its musical language, its movements, its state. */
 export const ScoreVariant = Schema.Struct({
   /** The option's name in `sound.ts`. */
   id: Schema.String,
   styles: Schema.Array(Schema.String),
-  acts: Schema.Array(Act),
+  movements: Schema.Array(Movement),
   state: ScoreState,
 });
 export type ScoreVariant = typeof ScoreVariant.Type;

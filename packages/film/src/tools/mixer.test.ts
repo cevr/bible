@@ -3,7 +3,7 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, Layer, Option } from 'effect';
+import { Effect, Fiber, Layer, Option, Result } from 'effect';
 import { silence } from '../core/audio.ts';
 import { layout } from '../core/layout.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -86,7 +86,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
 };
 
 /** The film's length in frames: every track is exactly that long. */
-const frames = Math.round(filmEnd(layout(scenes, timings)) * MIX_RATE);
+const frames = Math.round(filmEnd(Result.getOrThrow(layout(scenes, timings))) * MIX_RATE);
 
 describe('Mixer', () => {
   it.effect('a finished mix replaces the track with one the film’s length', () =>

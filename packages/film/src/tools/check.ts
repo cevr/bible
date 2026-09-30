@@ -43,9 +43,16 @@ import {
   resolveUse,
   soundState,
 } from '../core/sfx.ts';
-import { actSpans, cueTime, filmEnd, musicKey, musicPlan, scoreOptions } from '../core/sound.ts';
 import {
-  type ActLength,
+  cueTime,
+  filmEnd,
+  musicKey,
+  movementSpans,
+  musicPlan,
+  scoreOptions,
+} from '../core/sound.ts';
+import {
+  type MovementLength,
   type HandFar,
   type HandHidden,
   type HandJump,
@@ -79,6 +86,7 @@ import {
   type UnknownScene,
   type UnknownSound,
   type UnknownVoice,
+  type WordMissing,
   WordPinFar,
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
@@ -95,8 +103,9 @@ export type StaticFinding =
   | UnknownScene
   | UnknownCue
   | UnknownMark
+  | WordMissing
   | CueInvalid
-  | ActLength
+  | MovementLength
   | UnknownVoice
   | UnknownSound
   | SoundUseMismatch
@@ -222,7 +231,19 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     });
   });
 
-const said = (scene: Timed) => parse(Option.getOrElse(Option.fromNullishOr(scene.say), () => ''));
+/** A scene's line read; one that does not parse is the layout's `LineError`, so it reads as silent here. */
+const said = (scene: Timed) =>
+  Result.getOrElse(
+    parse(
+      scene.id,
+      Option.getOrElse(Option.fromNullishOr(scene.say), () => ''),
+    ),
+    () => ({
+      spoken: '',
+      marks: new Map<string, number>(),
+      turns: [],
+    }),
+  );
 
 /**
  * Beats with words whose take is missing or was recorded for other text,
@@ -263,8 +284,8 @@ const assetFinding = (
   });
 
 /**
- * Each score option's acts: each names a scene, and each runs in film order
- * for as long as the API's chunks may last (`actSpans`, every failure rather
+ * Each score option's movements: each names a scene, and each runs in film order
+ * for as long as the API's chunks may last (`movementSpans`, every failure rather
  * than the first). Only a plan that holds is checked for a stale option
  * (asset `score.<option>`).
  */
@@ -272,11 +293,12 @@ export const musicFindings = (
   score: Score,
   placed: ReadonlyArray<Placed>,
   manifest: SoundManifest,
-): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
+): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> =>
   scoreOptions(score).flatMap(({ name, music }) =>
-    Result.match(actSpans(music, placed), {
-      onFailure: (unknown): ReadonlyArray<UnknownScene | ActLength | AssetStale | AssetMissing> =>
+    Result.match(movementSpans(music, placed), {
+      onFailure: (
         unknown,
+      ): ReadonlyArray<UnknownScene | MovementLength | AssetStale | AssetMissing> => unknown,
       onSuccess: (spans) => {
         const wrong = Arr.getFailures(spans);
         if (wrong.length > 0) return wrong;

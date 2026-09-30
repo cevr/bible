@@ -13,14 +13,15 @@ import { Option, Result } from 'effect';
 import { type Pcm, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
 import {
-  type ActLength,
   CueInvalid,
+  type MovementLength,
   type ScoreUnknown,
   type SoundUseMismatch,
   type UnknownCue,
   type UnknownMark,
   type UnknownScene,
   type UnknownSound,
+  type WordMissing,
 } from './errors.ts';
 import type { Placed } from './layout.ts';
 import { takeLift } from './recording.ts';
@@ -152,8 +153,9 @@ export type MixPlanError =
   | UnknownScene
   | UnknownCue
   | UnknownMark
+  | WordMissing
   | CueInvalid
-  | ActLength
+  | MovementLength
   | ScoreUnknown
   | UnknownSound
   | SoundUseMismatch;

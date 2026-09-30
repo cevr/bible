@@ -1,3 +1,4 @@
+import { Result } from 'effect';
 import { describe, expect, test } from 'bun:test';
 import { captionCues, filmCaptions, vttTime, webVtt } from './captions.ts';
 import { hashText } from './narration.ts';
@@ -72,12 +73,14 @@ const timings: Timings = {
     },
   },
 };
-const placed = layout(
-  [
-    { id: 'a', say: 'Grace, freely given.', lead: 1, tail: 0.1 },
-    { id: 'b', say: 'Amen.', lead: 0.5, tail: 1 },
-  ],
-  timings,
+const placed = Result.getOrThrow(
+  layout(
+    [
+      { id: 'a', say: 'Grace, freely given.', lead: 1, tail: 0.1 },
+      { id: 'b', say: 'Amen.', lead: 0.5, tail: 1 },
+    ],
+    timings,
+  ),
 );
 
 describe('filmCaptions', () => {
