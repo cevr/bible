@@ -47,7 +47,6 @@ import {
   Layer,
   Match,
   Option,
-  Random,
   Stream,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
@@ -78,6 +77,7 @@ import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
 import { isAiff, readAiff } from './aiff.ts';
 import type { PlatformError } from 'effect/PlatformError';
+import { writeWhole } from './content-store.ts';
 import { MediaFailed, type ProcessTimedOut } from './errors.ts';
 import { collect, collectWithin, type Finished, isNotFound } from './process.ts';
 import { resample } from './resample.ts';
@@ -791,57 +791,53 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
           }),
         );
 
-      const remux = Effect.fn('Media.remux')(function* (video: string, audio: AacTrack) {
-        const frames = yield* videoPackets(video);
-        const partial = `${video}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial.mp4`;
-        yield* joinInto(fs, {
-          out: partial,
-          segments: [{ file: video, at: 0 }],
-          frames,
-          audio: Option.some(audio),
-        }).pipe(
-          Effect.andThen(fs.rename(partial, video)),
+      /** `file` written whole by `write` (`writeWhole`); a failure is the file's `MediaFailed`. */
+      const mediaWhole = <E extends { readonly message: string }>(
+        file: string,
+        write: (partial: string) => Effect.Effect<void, E | MediaFailed>,
+      ) =>
+        writeWhole(fs, file, write).pipe(
           Effect.mapError((error) =>
             Match.value(error).pipe(
               Match.tag('MediaFailed', (failed) => failed),
               Match.orElse((other) =>
-                MediaFailed.make({ op: 'write', file: video, reason: other.message }),
+                MediaFailed.make({ op: 'write', file, reason: other.message }),
               ),
             ),
           ),
-          Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))),
+        );
+
+      const remux = Effect.fn('Media.remux')(function* (video: string, audio: AacTrack) {
+        const frames = yield* videoPackets(video);
+        yield* mediaWhole(video, (partial) =>
+          joinInto(fs, {
+            out: partial,
+            segments: [{ file: video, at: 0 }],
+            frames,
+            audio: Option.some(audio),
+          }),
         );
       });
 
       const copySound = Effect.fn('Media.copySound')(function* (video: string, from: string) {
-        const partial = `${video}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial.mp4`;
-        yield* runFfmpeg(spawner, 'write', video, [
-          '-i',
-          video,
-          '-i',
-          from,
-          '-map',
-          '0:v',
-          '-map',
-          '1:a',
-          '-c',
-          'copy',
-          '-movflags',
-          '+faststart',
-          '-f',
-          'mp4',
-          partial,
-        ]).pipe(
-          Effect.andThen(fs.rename(partial, video)),
-          Effect.mapError((error) =>
-            Match.value(error).pipe(
-              Match.tag('MediaFailed', (failed) => failed),
-              Match.orElse((other) =>
-                MediaFailed.make({ op: 'write', file: video, reason: other.message }),
-              ),
-            ),
-          ),
-          Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))),
+        yield* mediaWhole(video, (partial) =>
+          runFfmpeg(spawner, 'write', video, [
+            '-i',
+            video,
+            '-i',
+            from,
+            '-map',
+            '0:v',
+            '-map',
+            '1:a',
+            '-c',
+            'copy',
+            '-movflags',
+            '+faststart',
+            '-f',
+            'mp4',
+            partial,
+          ]),
         );
       });
 
@@ -936,26 +932,9 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       });
 
       const shareCopy = Effect.fn('Media.shareCopy')(function* (master: string, out: string) {
-        // Beside `out` until whole, so a failed or cut-off encode leaves no share behind.
-        const part = `${out}.part`;
-        yield* runFfmpeg(spawner, 'encode', out, [
-          '-i',
-          master,
-          ...SHARE_X264,
-          '-f',
-          'mp4',
-          part,
-        ]).pipe(
-          Effect.andThen(fs.rename(part, out)),
-          Effect.mapError((error) =>
-            Match.value(error).pipe(
-              Match.tag('MediaFailed', (failed) => failed),
-              Match.orElse((other) =>
-                MediaFailed.make({ op: 'write', file: out, reason: other.message }),
-              ),
-            ),
-          ),
-          Effect.onExit(() => Effect.ignore(fs.remove(part, { force: true }))),
+        // Written whole, so a failed or cut-off encode leaves no share behind.
+        yield* mediaWhole(out, (partial) =>
+          runFfmpeg(spawner, 'encode', out, ['-i', master, ...SHARE_X264, '-f', 'mp4', partial]),
         );
       });
 

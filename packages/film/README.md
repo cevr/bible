@@ -127,8 +127,8 @@ out (`core/score.ts`); the library's beds looped over their spans, crossfaded
 where they wrap, faded at each end and ducked unless the library says not,
 the effects on their cues, summed and limited: ported from the ffmpeg graph
 it replaced, which it matched to a −98.8 dB residual) and writes the film's
-one track, `narration/full.wav` (16-bit), to `full.partial.wav`, renamed only
-once whole: a failed or interrupted mix leaves the previous track. Beside it,
+one track, `narration/full.wav` (16-bit), whole (`writeWhole`: a partial of
+its own, renamed only once written): a failed or interrupted mix leaves the previous track. Beside it,
 once it is whole, `full.json` stamps the key of the plan it played
 (`mixKey`: every sound it plays by its file name, which carries its hash, or
 its recipe, with where, how loud and at what pitch, the score option and its
@@ -344,10 +344,10 @@ each prints the project (`ProjectRead`) as one line, or its refusal
 variant and the render's version (`renderVersion`: the stamp's key and the
 mix it carries): a re-render or a re-mux leaves an approval in place, stale,
 and a render that returns to the approved sources and sound is approved
-again. Each
-write reads the file, changes it and writes it back whole (a temp name, then a
-rename), one at a time in a process; two processes writing one film's
-catalogue at the same instant can lose the earlier write.
+again. The catalogue is a `ContentStore` manifest: each write reads the file,
+changes it and writes it back whole, one writer at a time across processes
+(the review, a `film project` child, a terminal's `project render`), so every
+approval, comment and render record lands.
 
 ## Encoders
 
@@ -768,11 +768,12 @@ status, still, thread, createdAt }`, plus `seq` (the change that made it) and
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
 a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
-the CLI wrote while the server was waiting. Writes are atomic (a partial
-file renamed into place, through ContentStore), serialized in the process
-(a Semaphore) and across processes (a `notes.lock` directory held for each
-change; a lock held past about 5 s fails with `NotesLocked`, naming it). A
-note's still is written before the note that names it.
+the CLI wrote while the server was waiting. Each change is one
+`ContentStore.transact`, as every manifest's is: written whole, one writer at
+a time across processes (`notes.json.lock`, created only if there is none and
+naming its holder; a lock whose holder is gone, or older than 30 s, is
+broken; one held past about 5 s fails with `StoreLocked`, naming it). A
+note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
 it, the nearest named-cue edge and `{mark}`; the page computes it from the
