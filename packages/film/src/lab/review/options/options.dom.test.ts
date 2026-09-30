@@ -24,6 +24,7 @@ import {
   route,
   text,
 } from '../../fixtures/harness.ts';
+import { until, waitFor } from '../../fixtures/settled.ts';
 import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
@@ -249,11 +250,6 @@ const fakeFilm = () => {
 };
 
 const FILM = '?film=toy';
-
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-const until = (page: Page, check: string) => Effect.promise(() => page.waitForFunction(check));
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 

@@ -11,6 +11,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { type FakeRoute, type Json, json, openReview, route, text } from '../fixtures/harness.ts';
+import { textHas, until, waitFor } from '../fixtures/settled.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
@@ -92,22 +93,6 @@ const routes: ReadonlyArray<FakeRoute> = [
 
 const SET = '?folder=out%2Fart&set=render%3Aroof';
 
-const waitFor = (page: Page, selector: string) =>
-  Effect.promise(() => page.waitForSelector(selector));
-
-const textIn = (page: Page, selector: string, part: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      ([sel, want]) =>
-        Array.from(document.querySelectorAll(sel ?? '')).some((el) =>
-          (el.textContent ?? '').includes(want ?? ''),
-        ),
-      [selector, part],
-    ),
-  );
-
-const until = (page: Page, check: string) => Effect.promise(() => page.waitForFunction(check));
-
 const evaluate = <A>(page: Page, script: string) =>
   Effect.promise(() => page.evaluate(script) as Promise<A>);
 
@@ -117,17 +102,17 @@ describe('the review page', () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes);
-        yield* textIn(page, '.rv-h', 'Comparisons');
-        yield* textIn(page, '.rv-h', 'Renders');
-        yield* textIn(page, 'a.rv-card', 'Roofs at dusk');
+        yield* textHas(page, '.rv-h', 'Comparisons');
+        yield* textHas(page, '.rv-h', 'Renders');
+        yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
         yield* Effect.promise(() => page.fill('.rv-filter', 'sea'));
         yield* until(page, "!document.body.textContent.includes('Roofs at dusk')");
         yield* Effect.promise(() => page.fill('.rv-filter', ''));
         yield* Effect.promise(() => page.click('a.rv-card >> text=Roofs at dusk'));
         yield* until(page, "location.search === '?folder=out%2Fart'");
-        yield* textIn(page, '.rv-crumbs', 'Roofs at dusk');
-        yield* textIn(page, 'a.rv-card', 'compare 3');
-        yield* textIn(page, '.rv-card', 'walk.mp4');
+        yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
+        yield* textHas(page, 'a.rv-card', 'compare 3');
+        yield* textHas(page, '.rv-card', 'walk.mp4');
         expect(
           yield* evaluate<string>(
             page,
@@ -145,7 +130,7 @@ describe('the review page', () => {
           yield* evaluate<number>(page, "document.querySelectorAll('.rv-note script').length"),
         ).toBe(0);
         yield* Effect.promise(() => page.goBack());
-        yield* textIn(page, '.rv-h', 'Renders');
+        yield* textHas(page, '.rv-h', 'Renders');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -172,14 +157,14 @@ describe('the review page', () => {
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
         // Space plays and pauses; ←/→ step 2 s while paused.
         yield* Effect.promise(() => page.keyboard.press('Space'));
-        yield* textIn(page, '.rv-big', '❚❚');
+        yield* textHas(page, '.rv-big', '❚❚');
         yield* Effect.promise(() => page.keyboard.press('Space'));
-        yield* textIn(page, '.rv-big', '▶');
+        yield* textHas(page, '.rv-big', '▶');
         yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
         yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
-        yield* textIn(page, '.rv-time', '0:04.0');
+        yield* textHas(page, '.rv-time', '0:04.0');
         yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
-        yield* textIn(page, '.rv-time', '0:02.0');
+        yield* textHas(page, '.rv-time', '0:02.0');
         // Every video stands where the clock does.
         yield* until(
           page,
@@ -236,9 +221,9 @@ describe('the review page', () => {
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
 
         yield* Effect.promise(() => page.click('.rv-views button[data-view="notes"]'));
-        yield* textIn(page, '.rv-verdict', 'verdict B');
+        yield* textHas(page, '.rv-verdict', 'verdict B');
         yield* waitFor(page, '.rv-note[data-id="A"] i');
-        yield* textIn(page, '.rv-note[data-id="A"]', 'Warm reads best.');
+        yield* textHas(page, '.rv-note[data-id="A"]', 'Warm reads best.');
 
         // A reload opens the view the URL keeps.
         yield* Effect.promise(() => page.goto(`http://lab.test/${SET}&view=moments&m=2`));

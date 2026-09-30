@@ -1516,6 +1516,14 @@ over all of `packages/film` and `apps/animations`: a variadic logger
 is passed an index (`Effect.forEach(lines, Console.log)`, `xs.map(console.log)`)
 prints the index after each line, so a reader of `film notes --watch` gets a
 field that is not there. Write `(line) => Console.log(line)`.
+`film/no-read-once` (`lint/no-read-once.ts`) holds the lab's browser tests
+(`*.dom.test.ts`): a test waits for the value it asserts through
+`src/lab/fixtures/settled.ts` (`textIs`, `textHas`, `textsAre`,
+`attributeIs`, `attributesAre`, `valueIs`, `countIs`, `waitFor`, `attached`,
+`until`), and a read that times out fails naming what it wanted and what the
+page last showed. A one-shot read (`textContent()`, `inputValue()`, `$eval`,
+`$$eval`, `isVisible()`, and `getAttribute()` or `count()` on the page or a
+locator) takes whatever the page had drawn at that instant, and is refused.
 
 ## Knobs
 

@@ -286,13 +286,8 @@
         "film/no-hand-timed-seconds": "error",
         "film/no-unprobed-ink": "error",
         "film/span-ends-on-anchor": "error",
-        "film/no-ease-on-cue": "error"
-      }
-    },
-    {
-      // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
-      "files": ["**/apps/animations/src/films/**/*.ts"],
-      "rules": {
+        "film/no-ease-on-cue": "error",
+        // A part of a cue is a cue of its own, never clamp(f.at(cue) * k).
         "film/no-cue-remap": "error"
       }
     },
@@ -314,6 +309,14 @@
       ],
       "rules": {
         "film/no-point-free-log": "error"
+      }
+    },
+    {
+      // A lab browser test waits for the value it asserts, never reads the
+      // page once (packages/film/lint/no-read-once.ts, lab/fixtures/settled.ts).
+      "files": ["**/*.dom.test.ts"],
+      "rules": {
+        "film/no-read-once": "error"
       }
     },
     {
