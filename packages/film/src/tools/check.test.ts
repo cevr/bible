@@ -989,6 +989,7 @@ describe('balanceFindings', () => {
     };
     const mixed: Mixed = {
       master: voice,
+      masterGain: 0,
       voice,
       music: Option.none(),
       beds: Option.none(),

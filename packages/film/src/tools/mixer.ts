@@ -273,6 +273,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
           const { mean, peak } = levels(pcm);
           yield* Effect.log(`mix.levels bus=${bus} mean=${db(mean)}dB peak=${db(peak)}dB`);
         }
+        yield* Effect.log(`mix.master gain=${mixed.masterGain.toFixed(1)}dB`);
 
         const master = masterFile(film.paths);
         yield* writeWhole(master, mixed.master);

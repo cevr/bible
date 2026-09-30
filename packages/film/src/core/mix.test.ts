@@ -3,7 +3,17 @@ import { Option, Result } from 'effect';
 import { type Pcm, slice } from './audio.ts';
 import { layout } from './layout.ts';
 import { loudness } from './synth/loudness.ts';
-import { BED_DUCK, MIX_RATE, type MixPlan, loopFill, mixPlan, renderMix, repitch } from './mix.ts';
+import {
+  BED_DUCK,
+  LIMIT,
+  MASTER,
+  MIX_RATE,
+  type MixPlan,
+  loopFill,
+  mixPlan,
+  renderMix,
+  repitch,
+} from './mix.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import type { Music, Score, Sound, SoundManifest, Timed } from './schema.ts';
 import { musicKey, musicPlan } from './sound.ts';
@@ -92,11 +102,42 @@ describe('renderMix', () => {
     expect(20 * Math.log10(peak / Math.SQRT1_2)).toBeCloseTo(TAKE_LEVEL.ceiling, 3);
   });
 
-  test('the master is the buses summed, one limiter window behind', () => {
+  test('the master is the buses summed at the mastering gain, one limiter window behind', () => {
     const mixed = renderMix(plan({ voice: [take(mono(1, 0.5), 2)] }));
     const late = Math.trunc(RATE * 0.005) - 1;
-    expect(mixed.master.channels[0]?.[2 * RATE + late]).toBe(SIDE);
+    const gain = 10 ** (mixed.masterGain / 20);
+    expect(mixed.master.channels[0]?.[2 * RATE + late]).toBeCloseTo(SIDE * gain, 6);
     expect(mixed.master.channels[0]?.[2 * RATE + late - 1]).toBe(0);
+  });
+
+  describe('mastering', () => {
+    // A 1 kHz tone reads close to its RMS in LUFS, so each is a known loudness.
+    test('a quiet track is brought up to the target loudness', () => {
+      const mixed = renderMix(plan({ voice: [take(tone(8, 0.02, 1000), 1)] }));
+      expect(loudness(mixed.master).integrated).toBeCloseTo(MASTER.loudness, 0);
+      expect(mixed.masterGain).toBeGreaterThan(0);
+    });
+
+    test('a loud track is brought down to it', () => {
+      const mixed = renderMix(plan({ voice: [take(tone(8, 0.5, 1000), 1)] }));
+      expect(loudness(mixed.master).integrated).toBeCloseTo(MASTER.loudness, 0);
+      expect(mixed.masterGain).toBeLessThan(0);
+    });
+
+    test('a lift never takes a peak past the limiter: headroom caps it', () => {
+      // Quiet overall, with one peak near full scale: the peak holds the lift back.
+      const quiet = tone(8, 0.01, 1000);
+      quiet.channels[0]?.fill(0.8, RATE, RATE + 20);
+      const mixed = renderMix(plan({ voice: [take(quiet, 1)] }));
+      const peak = Math.max(...(mixed.master.channels[0] ?? []).map(Math.abs));
+      expect(peak).toBeLessThanOrEqual(LIMIT.limit + 1e-6);
+      expect(loudness(mixed.master).integrated).toBeLessThan(MASTER.loudness - 3);
+      expect(mixed.masterGain).toBeCloseTo(20 * Math.log10(LIMIT.limit / (0.8 * Math.SQRT1_2)), 3);
+    });
+
+    test('silence stays silence', () => {
+      expect(renderMix(plan({})).masterGain).toBe(0);
+    });
   });
 
   test('the score fades in over its first two seconds and out over the film’s last six', () => {
