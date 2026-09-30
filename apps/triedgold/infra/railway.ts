@@ -29,7 +29,7 @@ export const Ids = {
 /** The port the server listens on. `triedgold.com` already targets it. */
 export const PORT = 8080;
 
-/** The public hostname. Its DNS is at name.com, not Cloudflare. */
+/** The public hostname. Its DNS is on Cloudflare (`infra/domains.ts`). */
 export const DOMAIN = 'triedgold.com';
 
 /** True on the one stage that owns production. */

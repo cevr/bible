@@ -32,6 +32,8 @@
     "react-router": "8.4.0"
   },
   "devDependencies": {
+    "@distilled.cloud/core": "https://pkg.alchemy.run/@distilled.cloud/core/-/d01a5e00b11539b4120841e2641c24f35edc23fb0b27be300e7a02676ab979ae.tgz",
+    "@distilled.cloud/railway": "https://pkg.alchemy.run/@distilled.cloud/railway/-/ec5d6074943be486156a6fb48bbb22c4f7899943a7b52535725ba0b14f45e20b.tgz",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "@react-router/dev": "8.4.0",

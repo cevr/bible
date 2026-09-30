@@ -5,33 +5,34 @@
  *   project, its `tried-gold` service, and the `triedgold.com` custom domain.
  *   The service's source moves from a GitHub/Nixpacks build to this app's
  *   bundle. Deploying prod is the owner's call (`bun run deploy`).
+ * - `prod` also owns the hostnames (`infra/domains.ts`): the apex and `www`
+ *   as Railway custom domains, in the Cloudflare zone it adopts and retains,
+ *   with the DNS-only CNAME records Railway asks for.
  * - Every other stage (`test_$USER`, `agent-*`) is a throwaway: its own
  *   project and a generated `*.up.railway.app` URL, created and destroyed
- *   whole.
- *
- * DNS for triedgold.com is at name.com, not Cloudflare, so this stack
- * declares no DNS records. The records Railway asks for stay manual.
+ *   whole. It declares no zone, domain or DNS record.
  *
  * Run it from this directory after `react-router build` (the package scripts
  * do both): the service ships `build/client` and bundles `build/server`.
  */
 import * as Alchemy from 'alchemy';
-import { CustomDomain } from 'alchemy/Railway/CustomDomain';
+import * as Cloudflare from 'alchemy/Cloudflare';
 import { providers as railwayProviders } from 'alchemy/Railway/Providers';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 
-import { DOMAIN, PORT, TriedGold } from './infra/railway.ts';
+import { Domains } from './infra/domains.ts';
+import { TriedGold } from './infra/railway.ts';
 import Server from './src/deploy/Server.ts';
 
 /** The stack's providers, shared with the deploy test's harness. */
-export const providers = railwayProviders();
+export const providers = Cloudflare.providers().pipe(Layer.provideMerge(railwayProviders()));
 
 export default Alchemy.Stack(
   'triedgold',
   { providers, state: Alchemy.localState() },
   Effect.gen(function* () {
     const { stage } = yield* Alchemy.Stack;
-    const project = yield* TriedGold;
+    yield* TriedGold;
     const service = yield* Server.pipe(
       Alchemy.AdoptPolicy.adopt(stage === 'prod'),
       Alchemy.RemovalPolicy.retain(stage === 'prod'),
@@ -41,19 +42,13 @@ export default Alchemy.Stack(
       return { url: service.url, serviceId: service.serviceId };
     }
 
-    // Found by hostname on the service, so the existing domain is adopted.
-    const domain = yield* CustomDomain('Domain', {
-      service,
-      environment: project,
-      domain: DOMAIN,
-      targetPort: PORT,
-    }).pipe(Alchemy.RemovalPolicy.retain());
+    const { apex, www } = yield* Domains(service);
 
     return {
-      url: `https://${DOMAIN}`,
+      url: apex.url,
       serviceId: service.serviceId,
       deploymentStatus: service.deploymentStatus,
-      certificateStatus: domain.certificateStatus,
+      certificateStatus: { apex: apex.certificateStatus, www: www.certificateStatus },
     };
   }),
 );

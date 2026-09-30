@@ -45,8 +45,10 @@ test(
     const css = yield* get(asset);
     expect(css.headers['cache-control']).toBe('public, max-age=31536000, immutable');
 
-    const missing = yield* raw.get(`${url}/nope`);
-    expect(missing.status).toBe(404);
+    for (const path of ['/nope', '/events']) {
+      const missing = yield* raw.get(`${url}${path}`);
+      expect([path, missing.status]).toEqual([path, 404]);
+    }
   }).pipe(Effect.scoped),
   { timeout: 600_000 },
 );
