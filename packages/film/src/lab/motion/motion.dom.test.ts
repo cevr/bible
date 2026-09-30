@@ -52,9 +52,10 @@ describe('loops', () => {
       yield* motionSays(page, 'looping A 1.00 – B 2.00');
       const playing = yield* Effect.promise(() => page.textContent('[data-act="play"]'));
       expect(playing).toBe('❚❚');
-      yield* Effect.sleep('1500 millis');
+      // Played on past B by the page's clock: the loop has come round again inside the range.
+      yield* Effect.promise(() => page.clock.fastForward(2500));
       const T = yield* shownT(page);
-      expect(T).toBeGreaterThanOrEqual(1);
+      expect(T).toBeGreaterThan(1);
       expect(T).toBeLessThanOrEqual(2);
       yield* click(page, '.lab-motion [data-act="loop-off"]');
       yield* motionSays(page, '');

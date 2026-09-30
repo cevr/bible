@@ -19,6 +19,7 @@ import {
   text,
 } from '../fixtures/harness.ts';
 import { PROBE } from '../fixtures/probe-film.ts';
+import { RETRY_MS } from './feed.ts';
 import type { Note, Reply } from '../../core/schema.ts';
 
 /** Long enough to open the lab, draw, save and read the list back. */
@@ -337,12 +338,12 @@ describe('the feed', () => {
         // out, so the test waits for the read that succeeds, not the quiet.
         const again = page.waitForResponse((r) => r.url().endsWith('/notes') && r.ok());
         yield* textOf(page, '.lab-feed', 'notes.json is being written');
+        // The retry's wait, on the page's clock.
+        yield* Effect.promise(() => page.clock.fastForward(RETRY_MS));
         yield* Effect.promise(() => again);
         yield* Effect.promise(() =>
           page.waitForFunction(
             () => (document.querySelector('.lab-feed')?.textContent ?? 'absent') === '',
-            0,
-            { timeout: 6000 },
           ),
         );
         expect(tries).toHaveLength(2);

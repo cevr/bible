@@ -253,6 +253,11 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
       });
     }),
   );
+  // The page's clock (timers, animation frames, `Date`, `performance.now`) is
+  // the test's: it runs on with real time, and a test moves it on with
+  // `page.clock.runFor` rather than waiting out a count-in, a retry or a
+  // loop's playback. Audio still runs on its own, real, clock.
+  yield* Effect.promise(() => tab.clock.install());
   yield* Effect.promise(() =>
     tab.goto(`${ORIGIN}/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`),
   );
