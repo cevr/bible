@@ -45,7 +45,7 @@ import {
   type SttUntimed,
   TakeMismatch,
 } from './errors.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { FilmPaths, LoadedFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { type Beat, MAX_WORD_ERROR, beatsOf, contentHash, takeFile } from './narrator.ts';
 
@@ -182,12 +182,12 @@ export interface TakesService {
   ) => Effect.Effect<Imported, TakesError>;
   /** A beat's attempts, newest first. */
   readonly attempts: (
-    film: LoadedFilm,
+    film: FilmPaths,
     beat: string,
   ) => Effect.Effect<ReadonlyArray<Attempt>, StoreError>;
   /** Where an attempt's audio is on disk, when `file` is one of the beat's attempts. */
   readonly attemptFile: (
-    film: LoadedFilm,
+    film: FilmPaths,
     beat: string,
     file: string,
   ) => Effect.Effect<Option.Option<string>, StoreError>;
@@ -210,9 +210,9 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       const elevenLabs = yield* ElevenLabs;
       const media = yield* Media;
 
-      const attemptsDir = (film: LoadedFilm, beat: string) =>
-        path.join(film.paths.narration, 'attempts', beat);
-      const ledger = (film: LoadedFilm, beat: string): Manifest<Attempts> => ({
+      const attemptsDir = (film: FilmPaths, beat: string) =>
+        path.join(film.narration, 'attempts', beat);
+      const ledger = (film: FilmPaths, beat: string): Manifest<Attempts> => ({
         file: path.join(attemptsDir(film, beat), 'attempts.json'),
         codec: AttemptsJson,
         empty: { attempts: [] },
@@ -242,7 +242,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       ) {
         const bytes = yield* fs.readFile(file);
         const name = `${dir}.${contentHash(bytes)}.orig${path.extname(file).toLowerCase()}`;
-        yield* store.writeFile(path.join(attemptsDir(film, dir), name), bytes);
+        yield* store.writeFile(path.join(attemptsDir(film.paths, dir), name), bytes);
         if (!LOSSLESS_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)))
           yield* Effect.logWarning(
             `takes.lossy file=${file} (the master is lossless from here, but this recording already lost what its codec drops; record WAV or FLAC for the final voice)`,
@@ -267,7 +267,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         );
         const audio = yield* media.encodeFlac(prepared);
         const file = takeFile(beat.id, audio, '.flac');
-        const at = path.join(attemptsDir(film, beat.id), file);
+        const at = path.join(attemptsDir(film.paths, beat.id), file);
         yield* store.writeFile(at, audio);
         const reply = yield* elevenLabs.stt(at);
         const heard = yield* Effect.fromResult(heardWords(reply, source.file));
@@ -290,7 +290,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           wer,
           at: yield* Clock.currentTimeMillis,
         };
-        yield* store.update(ledger(film, beat.id), (kept) => ({
+        yield* store.update(ledger(film.paths, beat.id), (kept) => ({
           attempts: [...kept.attempts.filter((a) => a.file !== file), made],
         }));
         yield* Effect.log(
@@ -319,7 +319,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           if (!options.acceptMismatch) return yield* mismatch;
           yield* Effect.logWarning(`takes.mismatch accepted=true ${mismatch.message}`);
         }
-        const bytes = yield* fs.readFile(path.join(attemptsDir(film, beat.id), made.file));
+        const bytes = yield* fs.readFile(path.join(attemptsDir(film.paths, beat.id), made.file));
         yield* store.writeFile(path.join(film.paths.narration, made.file), bytes);
         const before = yield* store.read(film.paths.timings);
         // The commit: timings.json names the person's take.
@@ -481,7 +481,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         );
       });
 
-      const attempts = Effect.fn('Takes.attempts')(function* (film: LoadedFilm, beat: string) {
+      const attempts = Effect.fn('Takes.attempts')(function* (film: FilmPaths, beat: string) {
         const stored = yield* store.read(ledger(film, beat));
         return [...stored.attempts].reverse();
       });
@@ -493,7 +493,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         options: BeatOptions,
       ) {
         const beat = yield* beatFor(film, id, file);
-        const made = Arr.findFirst(yield* attempts(film, id), (a) => a.file === file);
+        const made = Arr.findFirst(yield* attempts(film.paths, id), (a) => a.file === file);
         if (Option.isNone(made))
           return yield* RecordingInvalid.make({
             file,
@@ -509,7 +509,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       });
 
       const attemptFile = Effect.fn('Takes.attemptFile')(function* (
-        film: LoadedFilm,
+        film: FilmPaths,
         beat: string,
         file: string,
       ) {

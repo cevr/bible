@@ -57,7 +57,8 @@ bun run project comment <film> "text" [--scene id | --act name]  # a comment on 
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
 bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
 bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
-bun cli.ts options list <film>                 # the film's choice points as the review reads them, fresh from disk (one line of JSON)
+bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
+bun cli.ts options take <film> --point p --variant v --verb keep|unkeep|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
 bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=

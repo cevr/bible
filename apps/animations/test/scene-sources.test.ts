@@ -14,7 +14,7 @@ import {
   FilmRepo,
   SceneSources,
   type Slot,
-  StaticCheck,
+  FreshFilm,
   drawingSites,
   importFilmModule,
   parseModule,
@@ -160,13 +160,12 @@ describe('scene sources', () => {
     "the lab's check runs its CLI fresh and reads its findings",
     () =>
       Effect.gen(function* () {
-        const check = yield* StaticCheck;
-        const findings = yield* check.run(FIXTURE_FILM);
+        const findings = yield* (yield* FreshFilm).check(FIXTURE_FILM, 'static');
         // No static errors; the fixture is too short for an end screen, a warning.
         expect(findings.length).toBeGreaterThan(0);
         expect(findings.filter((f) => f.level === 'error')).toEqual([]);
         expect(findings.map((f) => f.tag)).toContain('EndShort');
-      }).pipe(Effect.provide(StaticCheck.layer(['bun', FIXTURE_CLI]))),
+      }).pipe(Effect.provide(FreshFilm.layer(['bun', FIXTURE_CLI]))),
     spawnBudget(1),
   );
 });

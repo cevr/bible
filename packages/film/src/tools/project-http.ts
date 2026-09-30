@@ -10,7 +10,7 @@ import { HttpApiBuilder } from 'effect/http-api';
 import type { PartAddress } from '../core/address.ts';
 import { ReviewHttpApi } from '../core/api.ts';
 import { answered, named } from './api-server.ts';
-import { FreshFilm } from './choices-process.ts';
+import { FreshFilm } from './fresh-film.ts';
 
 /** `--variant v` when one is named (`main` otherwise). */
 const variantArgs = (given: { readonly variant?: string }): ReadonlyArray<string> =>

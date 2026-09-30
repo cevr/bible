@@ -99,11 +99,10 @@ import { media } from './media-cli.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Choices } from './choices.ts';
 import { options } from './choices-cli.ts';
-import { FreshFilm } from './choices-process.ts';
+import { CheckLineJson, FreshFilm } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
 import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
-import { CheckLineJson, StaticCheck } from './static-check.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { project, renderAndRecord, variantFlag } from './project-cli.ts';
@@ -979,7 +978,8 @@ export interface FilmApp<E> {
    * The command that runs this CLI (e.g. `['bun', '/app/cli.ts']`): the lab
    * runs `check --static` through it in a fresh process after each write, so
    * the check reads the scene files as the write left them, and the review
-   * reads a film's options and makes their mixes through it (`options`).
+   * reads a film's options, keeps its takes and makes their mixes through it
+   * (`options`, `FreshFilm`).
    */
   readonly self: ReadonlyArray<string>;
 }
@@ -1006,8 +1006,8 @@ export const runFilmCli = <E>({
   );
   // Each film's project folder: its renders, and the owner's approvals and comments on them.
   const Catalogue = RenderCatalogue.layer.pipe(Layer.provide(Platform));
-  const Check = StaticCheck.layer(self).pipe(Layer.provide(Platform));
-  // The review reads a film's options, and makes its mixes, through this CLI in a fresh process.
+  // The lab checks each write, and the review reads a film's options, keeps its takes and
+  // makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
@@ -1025,7 +1025,6 @@ export const runFilmCli = <E>({
             Repo,
             Notes,
             Source,
-            Check,
             Library,
             Private,
             Store,

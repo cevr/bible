@@ -19,7 +19,7 @@ import {
 } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
 import { TakeMismatch } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { Mixer } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
@@ -74,12 +74,10 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
     Effect.gen(function* () {
       const store = yield* ContentStore;
       return FilmRepo.of({
-        paths: () => film.paths,
         // The film as it is stored now, as the lab reloads it for each request.
         load: () => Effect.map(store.read(film.paths.timings), (timings) => ({ ...film, timings })),
         script: () => Effect.succeedNone,
         scores: Effect.succeed(NO_SCORES),
-        names: Effect.succeed([]),
       });
     }),
   );
@@ -97,7 +95,15 @@ const setup = (recorded: ReadonlyMap<string, string>) => {
     fakeMedia(files),
   );
   // The lab's handler serves the studio: its notes and source services only have to exist.
-  const layer = Layer.mergeAll(Takes.layer, repo, NotesStore.layer, noSource).pipe(
+  const folder = Layer.succeed(
+    FilmFolder,
+    FilmFolder.of({
+      paths: () => film.paths,
+      names: Effect.succeed([film.paths.name]),
+      sounds: Option.none(),
+    }),
+  );
+  const layer = Layer.mergeAll(Takes.layer, repo, folder, NotesStore.layer, noSource).pipe(
     Layer.provideMerge(storeLayer(files)),
     Layer.provideMerge(Layer.mergeAll(base, mixer, HttpPlatform.layer.pipe(Layer.provide(base)))),
   );

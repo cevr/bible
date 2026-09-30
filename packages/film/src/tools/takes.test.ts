@@ -120,7 +120,7 @@ describe('Takes', () => {
         ['a', '/rec/a.wav'],
         ['b', '/rec/b.m4a'],
       ] as const) {
-        const [made] = yield* takes.attempts(yield* loaded, id);
+        const [made] = yield* takes.attempts((yield* loaded).paths, id);
         const original = Option.getOrThrow(Option.fromNullishOr(made?.original));
         expect(original).toMatch(
           new RegExp(`^${id}/${id}\\.[0-9a-f]{12}\\.orig${source.slice(source.lastIndexOf('.'))}$`),
@@ -165,9 +165,9 @@ describe('Takes', () => {
       expect(after.scenes['b']).toBeUndefined();
       expect([...files.keys()].filter((f) => f.startsWith(`${NARRATION}/b.`))).toEqual([]);
       // The attempt is kept in the beat's history, to hear or keep later.
-      expect((yield* (yield* Takes).attempts(yield* loaded, 'b')).map((a) => a.wer)).toHaveLength(
-        1,
-      );
+      expect(
+        (yield* (yield* Takes).attempts((yield* loaded).paths, 'b')).map((a) => a.wer),
+      ).toHaveLength(1);
       // --accept-mismatch names the beats it accepts: another beat's does not cover b.
       const other = yield* Effect.flip(
         importing('/rec/b.m4a', { ...defaults, acceptMismatch: new Set(['a']) }),
@@ -213,7 +213,7 @@ describe('Takes', () => {
       const error = yield* Effect.flip(importing('/rec/b.m4a'));
       expect(error).toMatchObject({ _tag: 'SttUntimed' });
       expect((yield* loaded).timings.scenes['b']).toBeUndefined();
-      expect(yield* (yield* Takes).attempts(yield* loaded, 'b')).toEqual([]);
+      expect(yield* (yield* Takes).attempts((yield* loaded).paths, 'b')).toEqual([]);
       const whole = yield* Effect.flip(importing('/rec/a.wav', { ...defaults, whole: true }));
       expect(whole).toMatchObject({ _tag: 'SttUntimed', file: '/rec/a.wav' });
     }).pipe(Effect.provide(layer));
@@ -240,7 +240,7 @@ describe('Takes', () => {
       // The replaced take is gone from narration, not from the history.
       expect(files.has(`${NARRATION}/${firstFile}`)).toBe(false);
       const takes = yield* Takes;
-      const history = yield* takes.attempts(yield* loaded, 'b');
+      const history = yield* takes.attempts((yield* loaded).paths, 'b');
       expect(history.length).toBe(2);
       const earlier = history.find((a) => a.file === firstFile);
       expect(earlier).toBeDefined();
@@ -276,7 +276,7 @@ describe('Takes', () => {
         expect(imported.map((i) => i.id)).toEqual(['b']);
         expect(after.scenes['a']?.source).toBe('elevenlabs');
         // b's audio starts after a's last word ("world." heard 0.5–0.9 s), not at the reading's start.
-        const [made] = yield* (yield* Takes).attempts(yield* loaded, 'b');
+        const [made] = yield* (yield* Takes).attempts((yield* loaded).paths, 'b');
         const cut = Option.getOrThrow(Option.fromNullishOr(made?.cut));
         expect(cut.from).toBeGreaterThanOrEqual(0.9);
         expect(cut.to).toBeGreaterThanOrEqual(2.4);

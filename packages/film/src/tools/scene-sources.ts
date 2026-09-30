@@ -34,12 +34,12 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import {
   FilmModuleInvalid,
-  FilmNotFound,
+  FilmUnknown,
   SceneNotLocated,
   type SourceRefused,
   SourceShared,
 } from './errors.ts';
-import { FilmRepo, importFilmModule } from './film-repo.ts';
+import { FilmFolder, importFilmModule } from './film-repo.ts';
 import {
   type DrawingSite,
   type Editable,
@@ -81,7 +81,7 @@ interface Owned {
   readonly at: number;
 }
 
-export type LocateError = FilmNotFound | FilmModuleInvalid | PlatformError;
+export type LocateError = FilmUnknown | FilmModuleInvalid | PlatformError;
 
 export interface SceneSourcesService {
   /** Find every scene's drawing in the film's source. */
@@ -172,7 +172,7 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const repo = yield* FilmRepo;
+      const folder = yield* FilmFolder;
 
       const importModule = (film: string, file: string) =>
         Effect.tryPromise({
@@ -182,8 +182,9 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
         });
 
       const locate = Effect.fn('SceneSources.locate')(function* (film: string) {
-        const dir = repo.paths(film).dir;
-        if (!(yield* fs.exists(dir))) return yield* FilmNotFound.make({ film, dir });
+        const dir = folder.paths(film).dir;
+        if (!(yield* fs.exists(dir)))
+          return yield* FilmUnknown.make({ film, known: yield* folder.names });
         const files = (yield* fs.readDirectory(dir, { recursive: true }))
           .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
           .map((f) => path.join(dir, f))

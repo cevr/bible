@@ -33,7 +33,7 @@ import {
   Voice,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmNotFound, FilmUnknown } from './errors.ts';
+import { FilmModuleInvalid, FilmUnknown } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -69,7 +69,7 @@ export interface LoadedFilm {
   readonly sounds: Sounds;
 }
 
-export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
+export type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
 
 /**
  * A film's name as a request gives it, checked against the films folder: one
@@ -79,8 +79,22 @@ export type LoadError = FilmNotFound | FilmModuleInvalid | StoreError;
 export const FilmName = Schema.String.pipe(Schema.brand('FilmName'));
 export type FilmName = typeof FilmName.Type;
 
-export interface FilmRepoService {
+/**
+ * Where a film lives, and which films there are: paths and a folder listing,
+ * never a module import. A process that runs for days (the review) holds this
+ * and not `FilmRepo`: its imports of a film stay as they were at the first
+ * one (Bun keeps a module as it first evaluated it), so it reads a film only
+ * through a fresh process (`FreshFilm`).
+ */
+export interface FilmFolderService {
   readonly paths: (film: string) => FilmPaths;
+  /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
+  readonly names: Effect.Effect<ReadonlyArray<string>>;
+  /** The app's sound library folder (`library.ts`, its lock, `files/`), when it has one. */
+  readonly sounds: Option.Option<string>;
+}
+
+export interface FilmRepoService {
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
   /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
   readonly script: (
@@ -91,8 +105,6 @@ export interface FilmRepoService {
    * each film's `sound/` folder (the pre-commit guard refuses audio there).
    */
   readonly scores: Effect.Effect<Scores, StoreError>;
-  /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
-  readonly names: Effect.Effect<ReadonlyArray<string>>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
@@ -158,9 +170,9 @@ export const placeFilm = (film: LoadedFilm): Effect.Effect<ReadonlyArray<Placed>
 
 const asFilmName = Schema.decodeSync(FilmName);
 
-/** `name` as one of the films in the repo's folder, or `FilmUnknown` naming the films there are. */
-export const filmNamed = Effect.fn('FilmRepo.named')(function* (name: string) {
-  const known = yield* (yield* FilmRepo).names;
+/** `name` as one of the films in the folder, or `FilmUnknown` naming the films there are. */
+export const filmNamed = Effect.fn('FilmFolder.named')(function* (name: string) {
+  const known = yield* (yield* FilmFolder).names;
   return yield* Effect.fromOption(
     Option.map(
       Arr.findFirst(known, (film) => film === name),
@@ -170,20 +182,19 @@ export const filmNamed = Effect.fn('FilmRepo.named')(function* (name: string) {
   );
 });
 
-export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
-  '@bible/film/tools/FilmRepo',
+export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()(
+  '@bible/film/tools/FilmFolder',
 ) {
   /**
-   * The repo over the films in `films`: the app's films folder, which its
-   * player imports; `sounds`, the app's sound library folder, when it has one.
+   * The films in `films`: the app's films folder, which its player imports;
+   * `sounds`, the app's sound library folder, when it has one.
    */
   static readonly layer = (films: string, sounds: Option.Option<string> = Option.none()) =>
     Layer.effect(
-      FilmRepo,
+      FilmFolder,
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const store = yield* ContentStore;
         const outputs = yield* Config.String('FILMS_OUT').pipe(
           Config.withDefault(path.resolve('out')),
         );
@@ -211,6 +222,44 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           };
         };
 
+        const names = fs.readDirectory(films).pipe(
+          Effect.flatMap((entries) =>
+            // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
+            Effect.filter(entries, (name) =>
+              fs
+                .exists(path.join(films, name, 'scenes', 'index.ts'))
+                .pipe(Effect.orElseSucceed(() => false)),
+            ),
+          ),
+          Effect.map((found) => [...found].sort()),
+          Effect.orElseSucceed((): ReadonlyArray<string> => []),
+        );
+
+        return FilmFolder.of({ paths, names, sounds });
+      }),
+    );
+}
+
+export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
+  '@bible/film/tools/FilmRepo',
+) {
+  /**
+   * The repo over the films in `films` (`FilmFolder.layer`, which it
+   * provides beside itself): each film's modules imported, its data read.
+   */
+  static readonly layer = (films: string, sounds: Option.Option<string> = Option.none()) =>
+    Layer.effect(
+      FilmRepo,
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const store = yield* ContentStore;
+        const { paths, names, sounds } = yield* FilmFolder;
+
+        /** A film not in the folder: `FilmUnknown`, naming the films there are (never a path). */
+        const unknown = (film: string) =>
+          Effect.flatMap(names, (known) => Effect.fail(FilmUnknown.make({ film, known })));
+
         const loadModule = <A, I>(film: string, file: string, schema: Schema.Codec<A, I>) =>
           Effect.tryPromise({
             try: () => importFilmModule(file),
@@ -230,8 +279,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
 
         const load = Effect.fn('FilmRepo.load')(function* (name: string) {
           const at = paths(name);
-          if (!(yield* fs.exists(at.dir)))
-            return yield* FilmNotFound.make({ film: name, dir: at.dir });
+          if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
           const { scenes } = yield* loadModule(
             name,
             path.join(at.dir, 'scenes', 'index.ts'),
@@ -292,25 +340,11 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
 
         const script = Effect.fn('FilmRepo.script')(function* (name: string) {
           const at = paths(name);
-          if (!(yield* fs.exists(at.dir)))
-            return yield* FilmNotFound.make({ film: name, dir: at.dir });
+          if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
           const file = path.join(at.dir, 'script.ts');
           if (!(yield* fs.exists(file))) return Option.none<ScriptModule['script']>();
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });
-
-        const names = fs.readDirectory(films).pipe(
-          Effect.flatMap((entries) =>
-            // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
-            Effect.filter(entries, (name) =>
-              fs
-                .exists(path.join(films, name, 'scenes', 'index.ts'))
-                .pipe(Effect.orElseSucceed(() => false)),
-            ),
-          ),
-          Effect.map((found) => [...found].sort()),
-          Effect.orElseSucceed((): ReadonlyArray<string> => []),
-        );
 
         const readScores = Effect.fn('FilmRepo.scores')(function* () {
           const found = yield* names;
@@ -330,7 +364,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
         });
         const scores = readScores();
 
-        return FilmRepo.of({ paths, load, script, scores, names });
+        return FilmRepo.of({ load, script, scores });
       }),
-    );
+    ).pipe(Layer.provideMerge(FilmFolder.layer(films, sounds)));
 }

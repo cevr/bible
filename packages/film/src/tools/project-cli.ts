@@ -16,7 +16,7 @@
 //   film project comment <film> <text> [--scene id | --act name] [--variant v] [--json]
 //       say something of one scene's render, an act or the whole film
 //
-// `--json` prints the project as it leaves it (`ProjectRead`, `choices-process.ts`)
+// `--json` prints the project as it leaves it (`ProjectRead`, `fresh-film.ts`)
 // as one line, or the refusal it failed with: what the review's project
 // routes read, each in a fresh process.
 
@@ -49,7 +49,7 @@ import { UnknownAct } from '../core/errors.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import type { Placed } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
-import { ProjectRead, answering, printLine } from './choices-process.ts';
+import { ProjectRead, answering, printLine } from './fresh-film.ts';
 import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, flagConflicts, jobOf } from './render-plan.ts';

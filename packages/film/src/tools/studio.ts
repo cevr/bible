@@ -176,7 +176,7 @@ const kept = Effect.fn('studio.kept')(function* (film: string, imported: Importe
 
 /** A take refused for what it says, naming the attempt it saved to keep anyway. */
 const mismatch = Effect.fn('studio.mismatch')(function* (film: string, error: TakeMismatch) {
-  const saved = Arr.head(yield* (yield* Takes).attempts(yield* current(film), error.id));
+  const saved = Arr.head(yield* (yield* Takes).attempts((yield* current(film)).paths, error.id));
   yield* Effect.logWarning(`studio.mismatch beat=${error.id} wer=${(error.wer * 100).toFixed(1)}%`);
   return yield* TakeMismatch.make({
     id: error.id,
@@ -234,7 +234,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
             );
             const sheet = yield* Effect.fromResult(sheetBeats(lines, yield* quotesOf(loaded)));
             const rows = yield* Effect.forEach(beats, (beat) =>
-              Effect.map(takes.attempts(loaded, beat.id), (attempts) =>
+              Effect.map(takes.attempts(loaded.paths, beat.id), (attempts) =>
                 beatRow(
                   loaded,
                   beat,
@@ -283,7 +283,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
               yield* Effect.fromResult(beatsOf(loaded)),
               (b) => b.id === beat,
             );
-            const attempts = yield* (yield* Takes).attempts(loaded, beat);
+            const attempts = yield* (yield* Takes).attempts(loaded.paths, beat);
             return {
               beat,
               attempts: attempts.map((a) => ({
@@ -304,7 +304,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           Effect.gen(function* () {
             const { film, beat } = yield* filmBeat(params);
             const found = yield* (yield* Takes).attemptFile(
-              yield* current(film),
+              (yield* current(film)).paths,
               beat,
               params.file,
             );

@@ -33,7 +33,7 @@ import {
 import { LibraryCheckFailed, SoundsRefused } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
-import { CheckLineJson } from './static-check.ts';
+import { CheckLineJson } from './fresh-film.ts';
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 

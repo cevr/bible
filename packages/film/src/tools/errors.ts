@@ -34,7 +34,6 @@ export {
   CatalogueInvalid,
   ChoiceUnknown,
   ElevenLabsFailed,
-  FilmNotFound,
   FilmUnknown,
   FreshProcessFailed,
   HeadUnavailable,
@@ -607,16 +606,6 @@ export class ProcessTimedOut extends Schema.TaggedError<ProcessTimedOut>()('Proc
 }) {
   override get message() {
     return `${this.command} did not finish within ${this.seconds} s and was stopped`;
-  }
-}
-
-/** `film check --static`, run for the lab after a write, did not run to a report. */
-export class StaticCheckFailed extends Schema.TaggedError<StaticCheckFailed>()(
-  'StaticCheckFailed',
-  { reason: Schema.String },
-) {
-  override get message() {
-    return `the static check did not run: ${this.reason}`;
   }
 }
 

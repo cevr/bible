@@ -4,39 +4,31 @@
 // their route names.
 
 import { Effect, Option, Path } from 'effect';
-import { type CheckLine, type LabWrite } from '../core/schema.ts';
+import { type LabWrite } from '../core/schema.ts';
 import { answered, named } from './api-server.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder } from './film-repo.ts';
+import { FreshFilm } from './fresh-film.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
 
-/** `film check --static` as the lab shows it: a check that cannot run is itself a finding. */
-export const findings = Effect.fn('lab.findings')(function* (film: string) {
-  const check = yield* StaticCheck;
-  return yield* check.run(film).pipe(
-    Effect.catchTag('StaticCheckFailed', (error) => {
-      const line: CheckLine = { level: 'error', tag: error._tag, message: error.message };
-      return Effect.succeed([line]);
-    }),
-  );
-});
+/** `film check --static` as the lab shows it, in a fresh process: a check that cannot run is itself a finding. */
+const findings = (film: string) => FreshFilm.use((fresh) => fresh.check(film, 'static'));
 
 /** A change's scene as an answer names it: none for a film's own file. */
 const sceneField = (change: Change) =>
   Option.match(change.scene, { onNone: () => ({}), onSome: (scene) => ({ scene }) });
 
 /** What a write answers: the file relative to the film, the value as the file now reads, the check. */
-export const writeAnswer = Effect.fn('lab.writeAnswer')(function* (
+export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
   film: string,
   written: Change,
   read: Effect.Effect<
     Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob'>>,
     never,
-    FilmRepo
+    R
   >,
 ) {
   const path = yield* Path.Path;
-  const dir = (yield* FilmRepo).paths(film).dir;
+  const dir = (yield* FilmFolder).paths(film).dir;
   const found = yield* findings(film);
   const wrote: LabWrite = {
     ...sceneField(written),
@@ -78,7 +70,7 @@ const check = ({ params }: FilmParams) =>
     Effect.gen(function* () {
       const film = yield* named(params.film);
       const path = yield* Path.Path;
-      const dir = (yield* FilmRepo).paths(film).dir;
+      const dir = (yield* FilmFolder).paths(film).dir;
       const history = yield* (yield* SourceWriter).history(film);
       const step = (key: 'latest' | 'undo' | 'redo') =>
         Option.match(history[key], {

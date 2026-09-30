@@ -21,6 +21,7 @@ import {
   ContentStore,
   ElevenLabs,
   FilmRepo,
+  FreshFilm,
   type LabHandler,
   Media,
   Mixer,
@@ -29,7 +30,6 @@ import {
   SceneSources,
   SceneWriter,
   SourceWriter,
-  StaticCheck,
   Takes,
   beatsOf,
   labHandler,
@@ -140,9 +140,7 @@ const Harness = Layer.unwrap(
       Layer.provideMerge(SceneSources.layer),
       Layer.provide([Repo, Store, Platform]),
     );
-    const Check = StaticCheck.layer(['bun', path.join(app, 'cli.ts')]).pipe(
-      Layer.provide(Platform),
-    );
+    const Check = FreshFilm.layer(['bun', path.join(app, 'cli.ts')]).pipe(Layer.provide(Platform));
     const Heard = harnessElevenLabs(film, misheard).pipe(
       Layer.provideMerge(Media.layer),
       Layer.provide([Repo, Platform]),

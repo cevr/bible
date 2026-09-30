@@ -34,7 +34,7 @@ import { StillUnknown } from '../core/refusals.ts';
 import { type Span } from '../core/schema.ts';
 import { resolveTimeline } from '../core/timeline.ts';
 import { FilmScope, LOOPBACK_ONLY, answered, named, serveApi, withServices } from './api-server.ts';
-import { FilmName, FilmRepo, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmName, FilmRepo, placeFilm } from './film-repo.ts';
 import type { Mixer } from './mixer.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
@@ -42,7 +42,7 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter, type Written } from './scene-writer.ts';
 import type { SourceWriter } from './source-writer.ts';
-import type { StaticCheck } from './static-check.ts';
+import type { FreshFilm } from './fresh-film.ts';
 import { stepHandlers, writeAnswer } from './steps-http.ts';
 import { studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
@@ -180,7 +180,7 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
         Effect.gen(function* () {
           const film = yield* named(params.film);
           const found = yield* (yield* SceneSources).editable(film, params.scene);
-          const dir = (yield* FilmRepo).paths(film).dir;
+          const dir = (yield* FilmFolder).paths(film).dir;
           return {
             scene: params.scene,
             file: (yield* Path.Path).relative(dir, found.site.file),
@@ -196,7 +196,7 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
         Effect.gen(function* () {
           const film = yield* named(params.film);
           const head = yield* (yield* SceneHead).head(film, params.scene);
-          const dir = (yield* FilmRepo).paths(film).dir;
+          const dir = (yield* FilmFolder).paths(film).dir;
           return {
             scene: params.scene,
             file: (yield* Path.Path).relative(dir, head.site.file),
@@ -249,12 +249,13 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (film: string)
     | NotesStore
     | FileSystem.FileSystem
     | Path.Path
+    | FilmFolder
     | FilmRepo
     | SceneSources
     | SceneWriter
     | SourceWriter
     | SceneHead
-    | StaticCheck
+    | FreshFilm
     | Takes
     | Mixer
   >();

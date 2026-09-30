@@ -34,7 +34,7 @@ import {
   AudioMissing,
   AudioStale,
   type FilmModuleInvalid,
-  type FilmNotFound,
+  type FilmUnknown,
   type MediaFailed,
   SampleRateMismatch,
   TakeUnknown,
@@ -120,7 +120,7 @@ export interface MixOptions {
 export type MixError =
   | MixPlanError
   | PlaceError
-  | FilmNotFound
+  | FilmUnknown
   | FilmModuleInvalid
   | StoreError
   | MediaFailed

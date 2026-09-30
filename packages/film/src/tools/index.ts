@@ -29,7 +29,7 @@ export * from './cli.ts';
 export * from './notes-store.ts';
 export * from './lab.ts';
 export * from './choices.ts';
-export * from './choices-process.ts';
+export * from './fresh-film.ts';
 export {
   type LevelTarget,
   type PickSite,
@@ -59,6 +59,5 @@ export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
 export * from './source-writer.ts';
-export * from './static-check.ts';
 export * from './takes.ts';
 export * from './studio.ts';

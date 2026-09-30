@@ -12,7 +12,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
 import { collect } from './process.ts';
@@ -20,25 +20,20 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { StaticCheck } from './static-check.ts';
-import { noStudio, sceneFixture } from './testing.ts';
+import { freshFilm, noStudio, sceneFixture } from './testing.ts';
 
 /** The fixture's hand scene file. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
 /** A check that reports one warning, and counts its runs. */
 const checks: Array<string> = [];
-const fakeCheck = Layer.succeed(
-  StaticCheck,
-  StaticCheck.of({
-    run: (film) =>
-      Effect.sync(() => {
-        checks.push(film);
-        return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
-      }),
-    sound: () => Effect.succeed([]),
-  }),
-);
+const fakeCheck = freshFilm({
+  check: (film) =>
+    Effect.sync(() => {
+      checks.push(film);
+      return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
+    }),
+});
 
 /** The film repo over `films`, but loading the film fails (its paths still resolve). */
 const brokenRepo = (films: string) =>
@@ -46,17 +41,15 @@ const brokenRepo = (films: string) =>
     FilmRepo,
     Effect.map(FilmRepo, (repo) =>
       FilmRepo.of({
-        paths: repo.paths,
         load: (film) =>
           Effect.fail(
             FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
           ),
         script: repo.script,
         scores: repo.scores,
-        names: repo.names,
       }),
     ),
-  ).pipe(Layer.provide(FilmRepo.layer(films)));
+  ).pipe(Layer.provide(FilmRepo.layer(films)), Layer.merge(FilmFolder.layer(films)));
 
 const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.layer>) =>
   Layer.unwrap(

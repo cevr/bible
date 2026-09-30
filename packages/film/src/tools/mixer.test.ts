@@ -69,11 +69,9 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
   const repo = Layer.succeed(
     FilmRepo,
     FilmRepo.of({
-      paths: () => film.paths,
       load: () => Effect.succeed(film),
       script: () => Effect.succeedNone,
       scores: Effect.succeed(NO_SCORES),
-      names: Effect.succeed([]),
     }),
   );
   const media = Layer.effect(
