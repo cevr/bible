@@ -1,5 +1,5 @@
 // The fixture film's score, bed and effects: a score of one option in two
-// acts, room tone from the second scene into the last, and effects placed
+// movements, room tone from the second scene into the last, and effects placed
 // every way a cue can place one (a scene's start, a cue's start, a cue's end).
 // The bed and the effects are the fixture library's procedural sounds
 // (`fixtures/sounds`), so the film needs no generated file; only the score is
@@ -17,7 +17,7 @@ export const sound: Sound = {
         model: 'music_v2_5',
         styles: ['instrumental', 'felt piano'],
         avoid: ['vocals'],
-        acts: [
+        movements: [
           { from: 'open', name: 'The page', styles: ['quiet', 'searching'] },
           { from: 'turn', name: 'The turn', styles: ['resolved'] },
         ],

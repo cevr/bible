@@ -240,7 +240,7 @@ describe('mixPlan', () => {
     model: 'music_v2',
     styles,
     avoid: [],
-    acts: [{ from: 'a', name: 'Open', styles: [] }],
+    movements: [{ from: 'a', name: 'Open', styles: [] }],
   });
   const score: Score = {
     play: 'piano',

@@ -13,8 +13,8 @@ import { Option, Result } from 'effect';
 import { type Pcm, toStereo } from './audio.ts';
 import { type Duck, type Limit, addInto, duck, fade, limit, toFrames } from './dsp.ts';
 import {
-  type ActLength,
   CueInvalid,
+  type MovementLength,
   type ScoreUnknown,
   type SoundUseMismatch,
   type UnknownCue,
@@ -155,7 +155,7 @@ export type MixPlanError =
   | UnknownMark
   | WordMissing
   | CueInvalid
-  | ActLength
+  | MovementLength
   | ScoreUnknown
   | UnknownSound
   | SoundUseMismatch;

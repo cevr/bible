@@ -15,6 +15,7 @@ export * from './studio.ts';
 export * from './sound.ts';
 export * from './timeline.ts';
 export * from './layout.ts';
+export * from './acts.ts';
 export * from './shorts.ts';
 export * from './captions.ts';
 export * from './phrases.ts';

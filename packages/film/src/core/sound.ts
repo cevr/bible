@@ -1,24 +1,26 @@
 // Sound: a film's music, beds and effects, declared as data and placed on the
-// same clock as the pictures. A music act starts at a scene; an effect fires
-// at a point in a scene (one of its named cues, the same cue its picture
-// reads, a mark, or a landmark such as where its voice starts), and a bed runs
-// from one point to another, so re-recording a line moves its sounds with it. Effects and beds name sounds from the app's library
-// (`sfx.ts`). Pure — the score and mix scripts read it without a DOM.
+// same clock as the pictures. A score movement starts at a scene; an effect
+// fires at a point in a scene (one of its named cues, the same cue its
+// picture reads, a mark, or a landmark such as where its voice starts), and a
+// bed runs from one point to another, so re-recording a line moves its sounds
+// with it. Effects and beds name sounds from the app's library (`sfx.ts`).
+// Pure — the score and mix scripts read it without a DOM.
 
 import { Array as Arr, Option, Predicate, Result, Schema } from 'effect';
 import {
-  type ActLength,
-  ActTooLong,
-  ActTooShort,
+  type MovementLength,
+  MovementTooLong,
+  MovementTooShort,
   ScoreUnknown,
   type SoundCueError,
   type UnknownScene,
 } from './errors.ts';
+import { partStarts } from './acts.ts';
 import { type Placed, pointIn, sceneOf } from './layout.ts';
 import { hashText } from './narration.ts';
 import {
-  type Act,
   type Cue,
+  type Movement,
   type Music,
   MusicRequestKey,
   type Plan,
@@ -34,7 +36,7 @@ export const MIN_CHUNK_MS = 3000;
 export const MAX_CHUNK_MS = 120_000;
 
 /**
- * Seconds the score's last act is composed past the film's end. A composed
+ * Seconds the score's last movement is composed past the film's end. A composed
  * ending decays to silence on its own; landing it after the cut means the
  * film's last seconds hear the mix's fade-out over music still playing, not
  * dead air (the mix trims the tail).
@@ -90,70 +92,62 @@ export const cueTime = (
     return p.start + Option.getOrElse(Option.fromNullishOr(cue.offset), () => 0) + anchor;
   });
 
-/** Where an act starts: the first always opens the film, though its scene must exist too. */
-const actStart = (
-  act: Act,
-  index: number,
-  placed: ReadonlyArray<Placed>,
-): Result.Result<number, UnknownScene> =>
-  Result.map(sceneOf(placed, act.from), (p) => {
-    if (index === 0) return 0;
-    return p.start;
-  });
-
-/** How long one act of the score lasts, in whole milliseconds, as its plan sends it. */
-export interface ActSpan {
-  readonly act: Act;
+/** How long one movement of the score lasts, in whole milliseconds, as its plan sends it. */
+export interface MovementSpan {
+  readonly movement: Movement;
   readonly ms: number;
 }
 
 /**
- * Each act's length, from its scene to the next act's (the last to the film's
- * end and `MUSIC_TAIL` past it), with `ActTooShort` or `ActTooLong` in place of an act outside the
- * API's chunk lengths; or, when any act names no scene, every such act.
+ * Each movement's length, from where it starts (`partStarts`: its scene, the
+ * first at 0) to the next one's (the last to the film's end and `MUSIC_TAIL`
+ * past it), with `MovementTooShort` or `MovementTooLong` in place of a
+ * movement outside the API's chunk lengths; or, when any movement names no
+ * scene, every such movement.
  */
-export const actSpans = (
+export const movementSpans = (
   music: Music,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<
-  ReadonlyArray<Result.Result<ActSpan, ActLength>>,
+  ReadonlyArray<Result.Result<MovementSpan, MovementLength>>,
   Arr.NonEmptyReadonlyArray<UnknownScene>
-> => {
-  const [unknown, starts] = Arr.partition(music.acts, (act, i) => actStart(act, i, placed));
-  if (Arr.isReadonlyArrayNonEmpty(unknown)) return Result.fail(unknown);
-  const bounds = [...starts, filmEnd(placed) + MUSIC_TAIL].map((s) => Math.round(s * 1000));
-  return Result.succeed(
-    music.acts.map((act, i): Result.Result<ActSpan, ActLength> => {
+> =>
+  Result.map(partStarts(music.movements, placed), (starts) => {
+    const bounds = [...starts, filmEnd(placed) + MUSIC_TAIL].map((s) => Math.round(s * 1000));
+    return music.movements.map((movement, i): Result.Result<MovementSpan, MovementLength> => {
       const ms = Arr.getUnsafe(bounds, i + 1) - Arr.getUnsafe(bounds, i);
-      if (ms < MIN_CHUNK_MS) return Result.fail(ActTooShort.make({ act: act.name, ms }));
+      if (ms < MIN_CHUNK_MS)
+        return Result.fail(MovementTooShort.make({ movement: movement.name, ms }));
       if (ms > MAX_CHUNK_MS)
-        return Result.fail(ActTooLong.make({ act: act.name, ms, max: MAX_CHUNK_MS }));
-      return Result.succeed({ act, ms });
-    }),
-  );
-};
+        return Result.fail(
+          MovementTooLong.make({ movement: movement.name, ms, max: MAX_CHUNK_MS }),
+        );
+      return Result.succeed({ movement, ms });
+    });
+  });
 
 /**
- * The score's plan: each act lasts from its scene to the next act's scene, and
- * carries the film-wide styles ahead of its own. The act name is a structure
- * tag, never a lyric. Fails with the first act `actSpans` refuses.
+ * The score's plan: each movement lasts from its scene to the next one's, and
+ * carries the film-wide styles ahead of its own. The movement's name is a
+ * structure tag, never a lyric. Fails with the first movement
+ * `movementSpans` refuses.
  */
 export const musicPlan = (
   music: Music,
   placed: ReadonlyArray<Placed>,
-): Result.Result<Plan, UnknownScene | ActLength> =>
+): Result.Result<Plan, UnknownScene | MovementLength> =>
   Result.gen(function* () {
-    const spans = yield* Result.mapError(actSpans(music, placed), Arr.headNonEmpty);
+    const spans = yield* Result.mapError(movementSpans(music, placed), Arr.headNonEmpty);
     const chunks: PlanChunk[] = [];
     for (const span of spans) {
-      const { act, ms } = yield* span;
+      const { movement, ms } = yield* span;
       chunks.push({
-        text: `[${act.name}]`,
+        text: `[${movement.name}]`,
         duration_ms: ms,
-        positive_styles: [...music.styles, ...act.styles],
+        positive_styles: [...music.styles, ...movement.styles],
         negative_styles: [
           ...music.avoid,
-          ...Option.getOrElse(Option.fromNullishOr(act.avoid), () => []),
+          ...Option.getOrElse(Option.fromNullishOr(movement.avoid), () => []),
         ],
         context_adherence: 'high',
       });

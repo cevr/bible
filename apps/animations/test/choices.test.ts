@@ -36,7 +36,7 @@ const STRINGS = `      strings: {
         model: 'music_v2_5',
         styles: ['instrumental', 'strings'],
         avoid: ['vocals'],
-        acts: [{ from: 'open', name: 'The page', styles: ['quiet'] }],
+        movements: [{ from: 'open', name: 'The page', styles: ['quiet'] }],
       },
 `;
 const HUSH = `    hush: {

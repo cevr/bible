@@ -279,7 +279,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
               return {
                 id: option.name,
                 styles: option.music.styles,
-                acts: option.music.acts,
+                movements: option.music.movements,
                 state: scoreState(
                   Option.flatMap(Option.fromUndefinedOr(loaded.manifest.scores), (made) =>
                     Option.fromUndefinedOr(made[option.name]),

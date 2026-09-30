@@ -823,28 +823,28 @@ const soundScenes: ReadonlyArray<Timed> = [
   { id: 'close', min: 8 },
 ];
 const placedSound = Result.getOrThrow(layout(soundScenes, noTakes));
-const option = (acts: Music['acts']): Music => ({
+const option = (movements: Music['movements']): Music => ({
   model: 'music_v2',
   styles: [],
   avoid: [],
-  acts,
+  movements,
 });
 
-/** A score of one option, `piano`, in `acts`. */
-const music = (acts: Music['acts']): Score => ({
+/** A score of one option, `piano`, in `movements`. */
+const music = (movements: Music['movements']): Score => ({
   play: 'piano',
   under: -18,
   alone: -6,
-  options: { piano: option(acts) },
+  options: { piano: option(movements) },
 });
 
 describe('musicFindings', () => {
-  const acts: Music['acts'] = [
+  const movements: Music['movements'] = [
     { from: 'open', name: 'Opening', styles: [] },
     { from: 'close', name: 'Closing', styles: [] },
   ];
-  const inOrder = music(acts);
-  const piano = option(acts);
+  const inOrder = music(movements);
+  const piano = option(movements);
   const hash = musicKey(piano, Result.getOrThrow(musicPlan(piano, placedSound)));
   const asset = (h: string) => ({ hash: h, file: `piano-${h}.mp3`, sha256: 'x' });
 
@@ -879,12 +879,12 @@ describe('musicFindings', () => {
       {},
     );
     const acts = found.map((f) => {
-      if (f._tag === 'ActTooShort') return [f._tag, f.act];
+      if (f._tag === 'MovementTooShort') return [f._tag, f.movement];
       return [f._tag];
     });
     expect(acts).toEqual([
-      ['ActTooShort', 'Closing'],
-      ['ActTooShort', 'Middle'],
+      ['MovementTooShort', 'Closing'],
+      ['MovementTooShort', 'Middle'],
     ]);
   });
 

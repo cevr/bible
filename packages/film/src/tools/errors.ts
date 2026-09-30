@@ -7,11 +7,12 @@ import { EncoderName } from '../core/encoder.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
 
 export {
-  type ActLength,
-  ActTooLong,
-  ActTooShort,
   AlignmentMismatch,
   CueInvalid,
+  type MovementLength,
+  MovementTooLong,
+  MovementTooShort,
+  PartOutOfOrder,
   ScoreUnknown,
   ShortSpanEmpty,
   ShortUnknownScene,

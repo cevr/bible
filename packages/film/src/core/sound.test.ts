@@ -6,7 +6,7 @@ import { Cue, type Music, Score, type Timings } from './schema.ts';
 import {
   MAX_CHUNK_MS,
   MUSIC_TAIL,
-  actSpans,
+  movementSpans,
   cueTime,
   filmEnd,
   musicKey,
@@ -45,7 +45,7 @@ const music: Music = {
   model: 'music_v2_5',
   styles: ['piano'],
   avoid: ['vocals'],
-  acts: [
+  movements: [
     { from: 'a', name: 'Open', styles: ['sparse'] },
     { from: 'c', name: 'Close', styles: ['warm'] },
   ],
@@ -106,7 +106,7 @@ describe('sound', () => {
     expect(decodes({ scene: 'a', mark: 'live', word: 'live' })).toBe(true);
   });
 
-  test('acts cover the whole film, split at their scenes, and the last runs past its end', () => {
+  test('movements cover the whole film, split at their scenes, and the last runs past its end', () => {
     const plan = Result.getOrThrow(musicPlan(music, placed));
     const ms = plan.chunks.map((c) => c.duration_ms);
     // The composed ending lands after the cut, so the mix's fade-out, not the
@@ -115,30 +115,30 @@ describe('sound', () => {
     expect(ms[0]).toBe(Math.round((placed[2]?.start ?? 0) * 1000));
   });
 
-  test('every act carries the film-wide styles ahead of its own', () => {
+  test('every movement carries the film-wide styles ahead of its own', () => {
     const [open] = Result.getOrThrow(musicPlan(music, placed)).chunks;
     expect(open?.positive_styles).toEqual(['piano', 'sparse']);
     expect(open?.negative_styles).toEqual(['vocals']);
     expect(open?.text).toBe('[Open]');
   });
 
-  test('an act naming no scene is refused, the first one too', () => {
-    const lost = { ...music, acts: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
+  test('a movement naming no scene is refused, the first one too', () => {
+    const lost = { ...music, movements: [{ from: 'nowhere', name: 'Lost', styles: [] }] };
     expect(outcome(musicPlan(lost, placed))).toBe('UnknownScene');
   });
 
-  test('actSpans gives every act its length or its refusal, and every act naming no scene', () => {
+  test('movementSpans gives every movement its length or its refusal, and every movement naming no scene', () => {
     const spans = Result.getOrThrow(
-      actSpans({ ...music, acts: [...music.acts].reverse() }, placed),
+      movementSpans({ ...music, movements: [...music.movements].reverse() }, placed),
     );
-    // Reversed, the first act runs from the film's start to `a`, which also starts it.
+    // Reversed, the first movement runs from the film's start to `a`, which also starts it.
     expect(
       spans.map((r) => Result.match(r, { onSuccess: (a) => a.ms, onFailure: (e) => e._tag })),
-    ).toEqual(['ActTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
-    const lost = actSpans(
+    ).toEqual(['MovementTooShort', Math.round((filmEnd(placed) + MUSIC_TAIL) * 1000)]);
+    const lost = movementSpans(
       {
         ...music,
-        acts: [
+        movements: [
           { from: 'x', name: 'X', styles: [] },
           { from: 'a', name: 'A', styles: [] },
           { from: 'y', name: 'Y', styles: [] },
@@ -151,15 +151,15 @@ describe('sound', () => {
     ).toEqual(['x', 'y']);
   });
 
-  test('acts out of film order are refused', () => {
-    const backwards = { ...music, acts: [...music.acts].reverse() };
-    expect(outcome(musicPlan(backwards, placed))).toBe('ActTooShort');
+  test('movements out of film order are refused', () => {
+    const backwards = { ...music, movements: [...music.movements].reverse() };
+    expect(outcome(musicPlan(backwards, placed))).toBe('MovementTooShort');
   });
 
-  test('an act longer than the API composes in one chunk is refused', () => {
+  test('a movement longer than the API composes in one chunk is refused', () => {
     const long = Result.getOrThrow(layout([{ id: 'a', min: 130 }], noTakes));
-    const one = { ...music, acts: [{ from: 'a', name: 'Whole', styles: [] }] };
-    expect(outcome(musicPlan(one, long))).toBe('ActTooLong');
+    const one = { ...music, movements: [{ from: 'a', name: 'Whole', styles: [] }] };
+    expect(outcome(musicPlan(one, long))).toBe('MovementTooLong');
     expect(MAX_CHUNK_MS).toBe(120_000);
   });
 

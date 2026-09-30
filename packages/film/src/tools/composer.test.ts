@@ -27,7 +27,7 @@ const piano: Music = {
   model: 'music_v2',
   styles: ['felt piano'],
   avoid: ['drums'],
-  acts: [
+  movements: [
     { from: 'open', name: 'Opening', styles: ['quiet'] },
     { from: 'close', name: 'Closing', styles: ['warm'] },
   ],

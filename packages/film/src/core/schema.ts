@@ -486,23 +486,27 @@ export const Cue = Schema.Union([
 ]);
 export type Cue = typeof Cue.Type;
 
-/** One stretch of the score, from the start of `from` until the next act begins. */
-export const Act = Schema.Struct({
+/**
+ * One movement of the score: from the start of `from` until the next movement
+ * begins (the first opens the film). Movements turn where the music does, so
+ * they need not fall on the film's acts (`look.acts`).
+ */
+export const Movement = Schema.Struct({
   from: Schema.String,
   name: Schema.String,
   styles: Schema.Array(Schema.String),
   avoid: Schema.optionalKey(Schema.Array(Schema.String)),
 });
-export type Act = typeof Act.Type;
+export type Movement = typeof Movement.Type;
 
 export const MusicModel = Schema.Literals(['music_v2', 'music_v2_5']);
 
-/** One score for the film: a musical language (its styles), in acts timed to the film. */
+/** One score for the film: a musical language (its styles), in movements timed to the film. */
 export const Music = Schema.Struct({
   model: MusicModel,
   styles: Schema.Array(Schema.String),
   avoid: Schema.Array(Schema.String),
-  acts: Schema.Array(Act),
+  movements: Schema.Array(Movement),
 });
 export type Music = typeof Music.Type;
 
@@ -775,11 +779,13 @@ export type Probed = typeof Probed.Type;
 const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
 
 /**
- * One act of a film's colour script and shape (`film.ts`'s `look.acts`):
- * where it starts, its chapter title, and the light it should measure.
+ * One act of a film (`look.acts`, declared in film order): where it starts,
+ * its chapter title, and the light it should measure. An act holds its
+ * scenes (`membersOf`): the film's colour script, lights and chapters all
+ * read them.
  */
-export const LookAct = Schema.Struct({
-  /** The scene the act starts on; it runs until the next act's. */
+export const Act = Schema.Struct({
+  /** The scene the act starts on; it runs until the next act's. The first holds every scene before it. */
   from: Schema.String,
   /** The act's name, for the report: `cold open`, `valley`. */
   name: Schema.String,
@@ -795,10 +801,10 @@ export const LookAct = Schema.Struct({
   /** The most of its frames that may be darker than luma 60, 0–1. */
   dark: Schema.optionalKey(Share),
 });
-export type LookAct = typeof LookAct.Type;
+export type Act = typeof Act.Type;
 
 /** A film's declared look (`export const look` in `film.ts`): its acts, in film order. */
-export const Look = Schema.Struct({ acts: Schema.Array(LookAct) });
+export const Look = Schema.Struct({ acts: Schema.Array(Act) });
 export type Look = typeof Look.Type;
 
 // ---------------------------------------------------------------------------
@@ -1232,18 +1238,18 @@ export type ReviewFilms = typeof ReviewFilms.Type;
 
 /**
  * Where a score option stands in the film's store: `current` (composed for
- * the acts and timing as they are), `stale` (composed before they changed:
+ * the movements and timing as they are), `stale` (composed before they changed:
  * it still plays) or `missing` (never composed here: nothing to hear).
  */
 export const ScoreState = Schema.Literals(['current', 'stale', 'missing']);
 export type ScoreState = typeof ScoreState.Type;
 
-/** One of the film's score options: its musical language, its acts, its state. */
+/** One of the film's score options: its musical language, its movements, its state. */
 export const ScoreVariant = Schema.Struct({
   /** The option's name in `sound.ts`. */
   id: Schema.String,
   styles: Schema.Array(Schema.String),
-  acts: Schema.Array(Act),
+  movements: Schema.Array(Movement),
   state: ScoreState,
 });
 export type ScoreVariant = typeof ScoreVariant.Type;

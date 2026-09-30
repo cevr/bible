@@ -28,18 +28,17 @@ const sound: Sound = {
         model: 'music_v2',
         styles: [],
         avoid: [],
-        acts: [
+        movements: [
           { from: 'stamp', name: 'Opening', styles: [] },
           { from: 'stamp', name: 'Turn', styles: [] },
-          { from: 'nowhere', name: 'Lost', styles: [] },
         ],
       },
-      // Another option's acts are not the ones the bar marks.
+      // Another option's movements are not the ones the bar marks.
       pads: {
         model: 'music_v2',
         styles: [],
         avoid: [],
-        acts: [{ from: 'open', name: 'Pads', styles: [] }],
+        movements: [{ from: 'open', name: 'Pads', styles: [] }],
       },
     },
   },
@@ -76,11 +75,34 @@ describe('timelineTicks', () => {
     expect(effects[0]?.at).toBeCloseTo(fiction + 0.9);
   });
 
-  test('the first act opens the film; later acts start at their scene', () => {
-    expect(ticks.filter((t) => t.kind === 'act').map((t) => [t.name, t.at])).toEqual([
-      ['act Opening', 0],
-      ['act Turn', start],
+  test('the first movement opens the film; later ones start at their scene', () => {
+    expect(ticks.filter((t) => t.kind === 'movement').map((t) => [t.name, t.at])).toEqual([
+      ['movement Opening', 0],
+      ['movement Turn', start],
     ]);
+  });
+
+  test('a score with a movement that names no scene marks no movements: check reports it', () => {
+    const piano = sound.score?.options['piano'];
+    const lost: Sound = {
+      ...sound,
+      score: {
+        play: 'piano',
+        under: -18,
+        alone: -6,
+        options: {
+          piano: {
+            model: 'music_v2',
+            styles: [],
+            avoid: [],
+            movements: [...(piano?.movements ?? []), { from: 'nowhere', name: 'Lost', styles: [] }],
+          },
+        },
+      },
+    };
+    expect(timelineTicks(placed, Option.some(lost)).filter((t) => t.kind === 'movement')).toEqual(
+      [],
+    );
   });
 
   test('a film without sound has only marks and cues', () => {

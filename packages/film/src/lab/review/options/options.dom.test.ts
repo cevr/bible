@@ -16,7 +16,7 @@ const SLOW = 30_000;
 const variant = (id: string, state: string): Json => ({
   id,
   styles: [`${id} style`],
-  acts: [],
+  movements: [],
   state,
 });
 

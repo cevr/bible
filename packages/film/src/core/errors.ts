@@ -127,28 +127,40 @@ export class CueInvalid extends Schema.TaggedError<CueInvalid>()('CueInvalid', {
   }
 }
 
-export class ActTooShort extends Schema.TaggedError<ActTooShort>()('ActTooShort', {
-  act: Schema.String,
+/** A score movement under the music API's shortest chunk, or one declared out of film order. */
+export class MovementTooShort extends Schema.TaggedError<MovementTooShort>()('MovementTooShort', {
+  movement: Schema.String,
   ms: Schema.Finite,
 }) {
   override get message() {
-    return `sound: act "${this.act}" is ${this.ms}ms; acts must run in film order, 3s or more`;
+    return `sound: movement "${this.movement}" is ${this.ms}ms; movements must run in film order, 3s or more`;
   }
 }
 
-/** A score act longer than the music API's longest chunk: start another act inside it. */
-export class ActTooLong extends Schema.TaggedError<ActTooLong>()('ActTooLong', {
-  act: Schema.String,
+/** A score movement longer than the music API's longest chunk: start another movement inside it. */
+export class MovementTooLong extends Schema.TaggedError<MovementTooLong>()('MovementTooLong', {
+  movement: Schema.String,
   ms: Schema.Finite,
   max: Schema.Finite,
 }) {
   override get message() {
-    return `sound: act "${this.act}" is ${this.ms}ms, over the ${this.max}ms one act may last; start another act at a scene inside it`;
+    return `sound: movement "${this.movement}" is ${this.ms}ms, over the ${this.max}ms one movement may last; start another at a scene inside it`;
   }
 }
 
-/** An act the music API cannot compose at its length. */
-export type ActLength = ActTooShort | ActTooLong;
+/** A movement the music API cannot compose at its length. */
+export type MovementLength = MovementTooShort | MovementTooLong;
+
+/** A part of the film (an act) declared out of film order: it starts on or before the one declared ahead of it. */
+export class PartOutOfOrder extends Schema.TaggedError<PartOutOfOrder>()('PartOutOfOrder', {
+  part: Schema.String,
+  from: Schema.String,
+  after: Schema.String,
+}) {
+  override get message() {
+    return `"${this.part}" starts on scene "${this.from}", which does not play after "${this.after}", the part declared ahead of it; declare parts in film order`;
+  }
+}
 
 /** A score option asked for by name (`mix --score`) that the film's score does not have. */
 export class ScoreUnknown extends Schema.TaggedError<ScoreUnknown>()('ScoreUnknown', {

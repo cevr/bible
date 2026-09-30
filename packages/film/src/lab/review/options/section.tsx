@@ -175,8 +175,8 @@ const ScoreCard = (props: { readonly score: ScoreChoice; readonly variant: Score
       <div class="rv-body">
         <div class="rv-meta">{props.variant.styles.join(' · ')}</div>
         <div class="rv-meta">
-          {props.variant.acts.length} act
-          {Match.value(props.variant.acts.length === 1).pipe(
+          {props.variant.movements.length} movement
+          {Match.value(props.variant.movements.length === 1).pipe(
             Match.when(true, () => ''),
             Match.orElse(() => 's'),
           )}

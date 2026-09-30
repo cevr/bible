@@ -23,7 +23,7 @@ import {
 import { ContentStore, type StoreError, isStale } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import {
-  type ActLength,
+  type MovementLength,
   CreditsOverCap,
   type ElevenLabsFailed,
   ScoreUnknown,
@@ -64,7 +64,7 @@ export type ScoreError =
   | ScoreUnknown
   | PlaceError
   | UnknownScene
-  | ActLength
+  | MovementLength
   | CreditsOverCap
   | ElevenLabsFailed
   | StoreError
@@ -168,13 +168,13 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
             planned += credits;
           }
           yield* Console.log(
-            `option ${option.name}  ${option.music.model}  ${plan.chunks.length} acts  ${(ms / 1000).toFixed(1)}s (the film's ${secs.toFixed(1)}s and ${MUSIC_TAIL}s past its end)  ~${credits} credits  ${state}  (${hash})`,
+            `option ${option.name}  ${option.music.model}  ${plan.chunks.length} movements  ${(ms / 1000).toFixed(1)}s (the film's ${secs.toFixed(1)}s and ${MUSIC_TAIL}s past its end)  ~${credits} credits  ${state}  (${hash})`,
           );
           yield* Console.log(`  styles  ${option.music.styles.join(', ')}`);
           yield* Console.log(`  avoid   ${option.music.avoid.join(', ')}`);
           for (const [i, chunk] of plan.chunks.entries())
             yield* Console.log(
-              `  ${chunk.text.padEnd(20)} ${(chunk.duration_ms / 1000).toFixed(1).padStart(6)}s  ${(option.music.acts[i]?.styles ?? []).join(', ')}`,
+              `  ${chunk.text.padEnd(20)} ${(chunk.duration_ms / 1000).toFixed(1).padStart(6)}s  ${(option.music.movements[i]?.styles ?? []).join(', ')}`,
             );
           if (options.dryRun || !stale) continue;
 

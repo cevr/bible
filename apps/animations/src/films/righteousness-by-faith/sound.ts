@@ -3,18 +3,18 @@
 // The score: three options, one film in three musical languages, all warm and
 // hopeful, never cinematic-epic: `piano` (felt piano and soft strings),
 // `ensemble` (a warm acoustic chamber group) and `ambient` (pads with a
-// four-note motif). They share one set of acts, so each turns where the film
-// does: the courtroom's question, the title's first statement of the theme,
-// the law's measure and our coming up short (a bass pedal swells), 1888's
-// message rising, the gifts shown, faith from the word, forgiveness (the low
-// end thins), the exchange and the accuser (the climax: the bass pedal at its
-// loudest, dark, then dawn), the robe, power, the name, and the landing
-// lifting (`thesis`, music alone) into the credits. The generated music
-// carries little under 70 Hz on its own, so the swells are asked for by
-// instrument (bowed basses, a pedal tone, a soft timpani roll), not by band.
-// The mix holds the score about 18.5 dB under the voice wherever anyone
-// speaks and lets it rise to about 6 dB under where no one does (the title
-// card, the landing, the credits).
+// four-note motif). They share one set of movements, so each turns where the
+// film does: the courtroom's question, the title's first statement of the
+// theme, the law's measure and our coming up short (a bass pedal swells),
+// 1888's message rising, the gifts shown, faith from the word, forgiveness (the
+// low end thins), the exchange and the accuser (the climax: the bass pedal at
+// its loudest, dark, then dawn), the robe, power, the name, and the landing
+// lifting (`thesis`, music alone) into the credits. The generated music carries
+// little under 70 Hz on its own, so the swells are asked for by instrument
+// (bowed basses, a pedal tone, a soft timpani roll), not by band. The mix holds
+// the score about 18.5 dB under the voice wherever anyone speaks and lets it
+// rise to about 6 dB under where no one does (the title card, the landing, the
+// credits).
 //
 // Beds sit 17–20 dB under the voice. The parchment (IDEA) has one bed, the
 // paper room (`room.paper`); each STORY place has its own air from the
@@ -34,14 +34,16 @@
 // courts (`woman`'s temple court, and `accuser` into `robe`'s heavenly one),
 // the town's under `centurion` until its row.
 
-import type { Act, Music, Sound } from '@bible/film/core';
+import type { Movement, Music, Sound } from '@bible/film/core';
 
 /**
- * The score's acts, one per turn of the film (each 3–120 s, from its scene to
- * the next act's). Styles here are the mood and shape; each option brings its
- * own instruments.
+ * The score's movements, one per turn of the music (each 3–120 s, from its
+ * scene to the next movement's). They turn more often than the film's acts
+ * (`acts.ts`) and need not fall on them: `Power within` runs from `within`
+ * across the landing's first scene. Styles here are the mood and shape; each
+ * option brings its own instruments.
  */
-const acts: ReadonlyArray<Act> = [
+const movements: ReadonlyArray<Movement> = [
   {
     from: 'cold',
     name: 'The courtroom',
@@ -158,7 +160,7 @@ const option = (styles: ReadonlyArray<string>, extra: ReadonlyArray<string> = []
   model: 'music_v2_5',
   styles: ['instrumental', 'film score', 'warm', 'hopeful', ...styles],
   avoid: [...avoid, ...extra],
-  acts,
+  movements,
 });
 
 /**
