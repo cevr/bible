@@ -619,7 +619,7 @@ export interface MasterAudio {
  * Once every take is recorded the film has a mixed track, and its master must
  * cover the film and be mixed for the plan the film plays now.
  */
-export const masterFindings = (
+const masterFindings = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
   audio: MasterAudio,
@@ -932,7 +932,7 @@ const CROSS_STEP = 2;
  * fractions of the way along it where it enters and leaves (Cyrus–Beck); none
  * when it misses.
  */
-export const clipSegment = (
+const clipSegment = (
   p: Point,
   q: Point,
   poly: ReadonlyArray<Point>,
@@ -969,7 +969,7 @@ const nearestOnSegment = (a: Point, b: Point, p: Point): Point => {
 };
 
 /** The point of the quad `q` (its inside or its outline) nearest `p`: `p` itself when inside. */
-export const nearestIn = (q: Quad, p: Point): Point => {
+const nearestIn = (q: Quad, p: Point): Point => {
   if (insidePolygon(q, p)) return p;
   const candidates = q.map((a, i) => nearestOnSegment(a, Arr.getUnsafe(q, (i + 1) % q.length), p));
   return Arr.reduce(candidates.slice(1), Arr.getUnsafe(candidates, 0), (best, c) => {
@@ -1070,7 +1070,7 @@ const textureUnder = (stroke: InkMark, text: TextBox) =>
  * probe records as a fill (`unprobed` in the draw path), so its lines are not
  * where its ink shows; the cutout's outline is what the check sees.
  */
-export const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOverText> => {
+const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOverText> => {
   const texts = probed.texts.filter(visible);
   const strokes = probed.inks.filter((m) => m.kind === 'stroke' && m.alpha > VISIBLE_ALPHA);
   const covers = probed.inks.filter((m) => m.kind !== 'stroke');
@@ -1279,7 +1279,7 @@ const pastBox = (
  * would. Only a declared plate counts: text over scenery (a sky, a pillar, a
  * coin) has no plate to run off.
  */
-export const textsOffPlate = (sample: Sample, probed: Probed): ReadonlyArray<TextOffPlate> => {
+const textsOffPlate = (sample: Sample, probed: Probed): ReadonlyArray<TextOffPlate> => {
   const where = { scene: sample.scene, time: sample.time, at: sample.at, frames: 1 };
   const plates = new Map(probed.texts.map((t) => [t.order, t] as const));
   return probed.texts.filter(visible).flatMap((text) =>

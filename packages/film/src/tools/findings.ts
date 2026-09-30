@@ -152,8 +152,9 @@ export class KnobRepeated extends Schema.TaggedError<KnobRepeated>()('KnobRepeat
 /**
  * A cue declared twice for the same moment: another cue of its scene has the
  * same edges on the same anchors (a `with` it at its length is the same) and
- * the same ease, so the two differ only by name, and a lab drag of one leaves
- * the other behind. Read the first one where both are read.
+ * the same ease, stagger and silence, so the two differ only by name, and a
+ * lab drag of one leaves the other behind. Read the first one where both are
+ * read.
  */
 export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
   scene: Schema.String,
@@ -162,7 +163,7 @@ export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
   twin: Schema.String,
 }) {
   override get message() {
-    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same anchor, offset, length and ease); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
+    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same edges on the same anchors, ease, stagger and silence); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
   }
 }
 
