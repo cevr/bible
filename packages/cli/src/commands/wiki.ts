@@ -420,10 +420,9 @@ export const lookupInput = (args: {
   readonly context: Option.Option<string>;
 }): Effect.Effect<LookupInput, NotOneVerseContextError | EmptySelectionError> =>
   Effect.flatMap(lookupContext(args.context), (context) =>
-    Option.match(lookupInputOf({ text: args.text, context }), {
-      onNone: () => Effect.fail(EmptySelectionError.make({ text: args.text })),
-      onSome: (input) => Effect.succeed(input),
-    }),
+    Effect.fromOption(lookupInputOf({ text: args.text, context }), () =>
+      EmptySelectionError.make({ text: args.text }),
+    ),
   );
 
 export const wikiLookup = Command.make(

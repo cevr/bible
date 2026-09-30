@@ -110,10 +110,7 @@ const writeProvenance = (
   provenance: CorpusProvenance,
 ): Effect.Effect<void, unknown> =>
   Effect.gen(function* () {
-    const digest = yield* Option.match(provenance.digest, {
-      onNone: () => Effect.fail('Artifact digest is required'),
-      onSome: Effect.succeed,
-    });
+    const digest = yield* Effect.fromOption(provenance.digest, () => 'Artifact digest is required');
     const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(StoredProvenance))({
       source: provenance.source,
       revision: provenance.revision,

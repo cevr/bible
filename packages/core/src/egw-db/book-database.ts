@@ -1464,7 +1464,7 @@ export class EGWParagraphDatabase extends Context.Service<
             Option.fromNullishOr(rows[0]).pipe(
               Option.match({
                 onNone: () => Effect.succeed(Option.none<EGWSchemas.Paragraph>()),
-                onSome: (row) => rowToParagraph(row).pipe(Effect.map(Option.some)),
+                onSome: (row) => rowToParagraph(row).pipe(Effect.asSome),
               }),
             ),
           ),

@@ -229,9 +229,7 @@ const Dependencies = Layer.mergeAll(
   Layer.succeed(
     ReadingContinuityRuntime,
     ReadingContinuityRuntime.of({
-      get: Effect.succeed(
-        Option.some({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
-      ),
+      get: Effect.succeedSome({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
       record: () =>
         Effect.succeed({
           _tag: 'MutationCommit',

@@ -98,10 +98,7 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
           [...files.keys()].some((f) => f.startsWith(`${path}/`)),
       ),
     readFile: (path) =>
-      Option.match(Option.fromNullishOr(files.get(path)), {
-        onNone: () => Effect.fail(notFound('readFile', path)),
-        onSome: Effect.succeed,
-      }),
+      Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('readFile', path)),
     readFileString: (path) =>
       Option.match(Option.fromNullishOr(files.get(path)), {
         onNone: () => Effect.fail(notFound('readFileString', path)),
@@ -507,17 +504,12 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
   const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<Encoder, EncoderMissing> =>
     Effect.sync(() => void ledger.encoderAsked.push(candidates.map((c) => c._tag))).pipe(
       Effect.andThen(
-        Option.match(
+        Effect.fromOption(
           Arr.findFirst(candidates, (c) => has.includes(c._tag)),
-          {
-            onNone: () =>
-              Effect.fail(
-                EncoderMissing.make({
-                  reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
-                }),
-              ),
-            onSome: (found) => Effect.succeed(found),
-          },
+          () =>
+            EncoderMissing.make({
+              reason: `no ${candidates.map((c) => c._tag.toLowerCase()).join(' or ')} H.264 encoder`,
+            }),
         ),
       ),
     );

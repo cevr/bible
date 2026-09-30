@@ -63,10 +63,7 @@ export class Composer extends Context.Service<Composer, ComposerService>()(
         options: ScoreOptions,
       ) {
         const name = film.paths.name;
-        const sound = yield* Option.match(film.sound, {
-          onNone: () => Effect.fail(SoundMissing.make({ film: name })),
-          onSome: Effect.succeed,
-        });
+        const sound = yield* Effect.fromOption(film.sound, () => SoundMissing.make({ film: name }));
         const manifest = film.paths.manifest;
         const declared = Option.fromNullishOr(sound.music);
         if (Option.isNone(declared)) {

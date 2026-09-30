@@ -58,7 +58,7 @@ const findPage = (book: Publication, page: number) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
     return yield* service.page(Reference.page(book.id, page)).pipe(
-      Effect.map(Option.some),
+      Effect.asSome,
       Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
     );
   });
@@ -122,8 +122,8 @@ export const lookupReference = (parsed: LookupReference) =>
     const service = yield* WritingsService;
 
     const book = yield* service.publicationByCode(parsed.bookCode).pipe(
-      Effect.map(Option.some),
-      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
+      Effect.asSome,
+      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeedNone),
     );
     if (Option.isNone(book)) {
       yield* Console.log(`Book "${parsed.bookCode}" not found in local database.`);
@@ -149,8 +149,8 @@ const collectLookupData = (parsed: LookupReference) =>
     const refStr = formatEGWRef(parsed);
 
     const book = yield* service.publicationByCode(parsed.bookCode).pipe(
-      Effect.map(Option.some),
-      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
+      Effect.asSome,
+      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeedNone),
     );
     if (Option.isNone(book)) {
       return { ref: refStr, found: false as const, bookCode: parsed.bookCode };
@@ -161,7 +161,7 @@ const collectLookupData = (parsed: LookupReference) =>
       case 'paragraph-range':
       case 'page': {
         const maybePage = yield* service.page(Reference.page(book.value.id, parsed.page)).pipe(
-          Effect.map(Option.some),
+          Effect.asSome,
           Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
         );
         if (Option.isNone(maybePage)) {

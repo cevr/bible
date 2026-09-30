@@ -178,9 +178,8 @@ const settleAll = (
   registry: AtomRegistry.AtomRegistry,
   affected: readonly QueryAtom[],
 ): Effect.Effect<unknown> =>
-  Effect.all(
-    affected.map((atom) =>
-      Effect.exit(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })),
-    ),
+  Effect.forEach(
+    affected,
+    (atom) => Effect.exit(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })),
     { concurrency: 16 },
   );

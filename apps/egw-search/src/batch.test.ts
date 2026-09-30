@@ -22,8 +22,9 @@ describe('makeBatcher', () => {
               });
             }),
         });
-        const answers = yield* Effect.all(
-          ['a', 'bad', 'b'].map((input) => Effect.result(batcher.submit(input))),
+        const answers = yield* Effect.forEach(
+          ['a', 'bad', 'b'],
+          (input) => Effect.result(batcher.submit(input)),
           { concurrency: 3 },
         );
         expect(batches).toEqual([['a', 'bad', 'b']]);
@@ -42,8 +43,9 @@ describe('makeBatcher', () => {
           maxSize: 8,
           run: () => Effect.fail('transport down'),
         });
-        const answers = yield* Effect.all(
-          ['a', 'b'].map((input) => Effect.flip(batcher.submit(input))),
+        const answers = yield* Effect.forEach(
+          ['a', 'b'],
+          (input) => Effect.flip(batcher.submit(input)),
           { concurrency: 3 },
         );
         expect(answers).toEqual(['transport down', 'transport down']);
@@ -63,10 +65,9 @@ describe('makeBatcher', () => {
               return inputs.map((input) => Exit.succeed(input));
             }),
         });
-        const answers = yield* Effect.all(
-          [1, 2, 3].map((input) => batcher.submit(input)),
-          { concurrency: 3 },
-        );
+        const answers = yield* Effect.forEach([1, 2, 3], (input) => batcher.submit(input), {
+          concurrency: 3,
+        });
         expect(answers).toEqual([1, 2, 3]);
         expect(sizes.toSorted()).toEqual([1, 2]);
       }),

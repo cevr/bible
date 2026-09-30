@@ -56,17 +56,13 @@ export const makeSqliteDatabase = (
   let handle = Option.none<number>();
 
   const requireHandle = (): Effect.Effect<number, SqliteDatabaseError> =>
-    Option.match(handle, {
-      onSome: (current) => Effect.succeed(current),
-      onNone: () =>
-        Effect.fail(
-          SqliteDatabaseError.make({
-            operation: 'require-open-database',
-            filename,
-            cause: 'database is not initialized',
-          }),
-        ),
-    });
+    Effect.fromOption(handle, () =>
+      SqliteDatabaseError.make({
+        operation: 'require-open-database',
+        filename,
+        cause: 'database is not initialized',
+      }),
+    );
 
   const open = Effect.fn('SqliteDatabase.open')(function* (flags: number) {
     if (Option.isSome(handle)) {
@@ -137,17 +133,13 @@ export const makeSqliteDatabaseFamily = (
   let activeDatabase = Option.none<SqliteDatabase>();
   let filename = Option.none<string>();
   const requireActive = (): Effect.Effect<SqliteDatabase, SqliteDatabaseError> =>
-    Option.match(activeDatabase, {
-      onSome: (database) => Effect.succeed(database),
-      onNone: () =>
-        Effect.fail(
-          SqliteDatabaseError.make({
-            operation: 'require-active-generation',
-            filename: '',
-            cause: 'no SQLite generation is active',
-          }),
-        ),
-    });
+    Effect.fromOption(activeDatabase, () =>
+      SqliteDatabaseError.make({
+        operation: 'require-active-generation',
+        filename: '',
+        cause: 'no SQLite generation is active',
+      }),
+    );
   const active: SqliteDatabase = {
     get isOpen() {
       return Option.exists(activeDatabase, (database) => database.isOpen);

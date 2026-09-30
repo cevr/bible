@@ -785,7 +785,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                 fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
             )?.notes ?? [],
           ),
-        getChapterStrongs: () => Effect.succeed(Option.none()),
+        getChapterStrongs: () => Effect.succeedNone,
         versesWithCrossRefs: () => Effect.succeed(new Set()),
         versesWithNotes: () => Effect.succeed(new Set()),
         chapterMarginNotes: (book, chapter) =>

@@ -607,7 +607,7 @@ const makeResolve =
         // An unreadable artifact is an empty topic group. §3.5's degradation
         // posture: the other four groups still answer, and the reader gets a
         // smaller panel rather than a failure.
-        Effect.map(Option.some),
+        Effect.asSome,
         Effect.orElseSucceed(() => Option.none<PhraseDictionary>()),
       );
       const topics = Option.match(dictionary, {

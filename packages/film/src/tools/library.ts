@@ -436,19 +436,14 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               raw,
             );
             const bytes = yield* fs.readFile(raw);
-            const channels = yield* Option.match(
+            const channels = yield* Effect.fromOption(
               channelsFor(bytes.byteLength / 2, LIBRARY_RATE, entry.secs),
-              {
-                onNone: () =>
-                  Effect.fail(
-                    ElevenLabsFailed.make({
-                      op: 'sfx',
-                      exitCode: 0,
-                      reason: `${bytes.byteLength} bytes of ${SFX_FORMAT} for ${entry.secs} s: neither mono nor stereo`,
-                    }),
-                  ),
-                onSome: Effect.succeed,
-              },
+              () =>
+                ElevenLabsFailed.make({
+                  op: 'sfx',
+                  exitCode: 0,
+                  reason: `${bytes.byteLength} bytes of ${SFX_FORMAT} for ${entry.secs} s: neither mono nor stereo`,
+                }),
             );
             const pcm = pcmFromS16(bytes, LIBRARY_RATE, channels);
             const variant = yield* keepFile(name, pcm, 'files', {

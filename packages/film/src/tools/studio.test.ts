@@ -371,11 +371,12 @@ describe('studio routes', () => {
     return Effect.gen(function* () {
       // One studio, as the lab runs it, taking two posts at once.
       const studio = yield* studioHandler('test');
-      const answers = yield* Effect.all(
+      const answers = yield* Effect.forEach(
         [
           post('/lab/test/studio/takes/a', recording('Hello world.')),
           post('/lab/test/studio/takes/b', recording('He said be still to them.')),
-        ].map((request) => Effect.promise(() => studio(request, bound))),
+        ],
+        (request) => Effect.promise(() => studio(request, bound)),
         { concurrency: 2 },
       );
       expect(answers.map((a) => a.status)).toEqual([200, 200]);

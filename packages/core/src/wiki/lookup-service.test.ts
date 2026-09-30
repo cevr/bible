@@ -204,7 +204,7 @@ const wikiLayer = (dictionary: PhraseDictionary): Layer.Layer<WikiService> =>
       list: () => Effect.succeed([]),
       topic: () => Effect.die('unused'),
       dictionary: Effect.succeed(dictionary),
-      availability: Effect.succeed(Option.none()),
+      availability: Effect.succeedNone,
     }),
   );
 
@@ -763,7 +763,7 @@ describe('LookupService.resolve — degradation (§3.5, §6.3)', () => {
           message: 'artifact is corrupt',
         }),
       ),
-      availability: Effect.succeed(Option.none()),
+      availability: Effect.succeedNone,
     }),
   );
 

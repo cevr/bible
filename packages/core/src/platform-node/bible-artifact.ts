@@ -439,10 +439,10 @@ export const sidecarProvenanceStore: NativeFileArtifactProvenanceStore = {
   write: (filename, provenance) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const digest = yield* Option.match(provenance.digest, {
-        onNone: () => Effect.fail('Artifact digest is required'),
-        onSome: Effect.succeed,
-      });
+      const digest = yield* Effect.fromOption(
+        provenance.digest,
+        () => 'Artifact digest is required',
+      );
       const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(StoredProvenance))({
         source: provenance.source,
         revision: provenance.revision,
@@ -494,10 +494,10 @@ const writeSidecarPointer = (input: {
 }): Effect.Effect<void, unknown> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const digest = yield* Option.match(input.provenance.digest, {
-      onNone: () => Effect.fail('Artifact digest is required'),
-      onSome: Effect.succeed,
-    });
+    const digest = yield* Effect.fromOption(
+      input.provenance.digest,
+      () => 'Artifact digest is required',
+    );
     const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(StoredProvenance))({
       source: input.provenance.source,
       revision: input.provenance.revision,
@@ -602,10 +602,10 @@ const readActive = (input: {
     // A sidecar written before versioned filenames named the destination
     // itself, which is still the file it described.
     const file = Option.getOrElse(pointer.artifact, () => input.destination);
-    const stated = yield* Option.match(pointer.provenance.digest, {
-      onNone: () => Effect.fail('Artifact provenance states no digest'),
-      onSome: Effect.succeed,
-    });
+    const stated = yield* Effect.fromOption(
+      pointer.provenance.digest,
+      () => 'Artifact provenance states no digest',
+    );
     // The check the pointer exists to make possible. A file that is not the one
     // the pointer describes is not an activation, whatever the sidecar says.
     if ((yield* fileDigest(file)) !== stated) {

@@ -492,10 +492,9 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
         return;
       }
       if (input.sound) {
-        const sound = yield* Option.match(loaded.sound, {
-          onNone: () => Effect.fail(SoundMissing.make({ film: input.film })),
-          onSome: Effect.succeed,
-        });
+        const sound = yield* Effect.fromOption(loaded.sound, () =>
+          SoundMissing.make({ film: input.film }),
+        );
         const lines = yield* Effect.fromResult(soundReport(sound, placed, input.scene));
         for (const line of lines) yield* Console.log(line);
         return;
@@ -723,13 +722,12 @@ const render = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
       // `--scene` sets the range from the film's own layout.
       const span = yield* Option.match(input.scene, {
         onNone: () => Effect.succeedNone,
-        onSome: (ids) => Effect.map(Effect.fromResult(sceneSpan(placed, ids)), Option.some),
+        onSome: (ids) => Effect.asSome(Effect.fromResult(sceneSpan(placed, ids))),
       });
       const cut = yield* pickShort(loaded, placed, input.short);
       const stills = yield* Option.match(input.stills, {
         onNone: () => Effect.succeedNone,
-        onSome: (list) =>
-          Effect.map(Schema.decodeEffect(Seconds)(list.split(',')), (times) => Option.some(times)),
+        onSome: (list) => Effect.asSome(Schema.decodeEffect(Seconds)(list.split(','))),
       });
       const job = yield* Effect.fromResult(
         jobOf({
@@ -852,7 +850,7 @@ const notesReply = Command.make(
     const at = store.paths(input.film);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
-      onSome: (file) => Effect.map(fs.readFile(file), Option.some),
+      onSome: (file) => Effect.asSome(fs.readFile(file)),
     });
     // Where the agent left off, read before its reply moves it.
     const cursor = yield* Option.match(input.since, {

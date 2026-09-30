@@ -15,7 +15,7 @@ import type { SearchService } from '@bible/core/search';
 import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
 import type { LookupService, WikiService } from '@bible/core/wiki';
-import { Effect, Layer, Option, Queue, Schema } from 'effect';
+import { Effect, Layer, Queue, Schema } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
@@ -64,7 +64,7 @@ export const layerDesktopProcedureProtocol = (
           send: (_clientId, response) => Effect.sync(() => port.send(response)),
           end: () => Effect.void,
           clientIds: Effect.succeed(clientIds),
-          initialMessage: Effect.succeed(Option.none()),
+          initialMessage: Effect.succeedNone,
           supportsAck: false,
           supportsTransferables: false,
           supportsSpanPropagation: false,

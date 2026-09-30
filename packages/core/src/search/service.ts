@@ -523,7 +523,7 @@ const allowedBookCodes = (
   bookCode: Option.Option<string>,
 ): Effect.Effect<Option.Option<ReadonlySet<string>>> => {
   if (Option.isSome(bookCode)) {
-    return Effect.succeed(Option.some(new Set([bookCode.value])));
+    return Effect.succeedSome(new Set([bookCode.value]));
   }
   return Stream.runFold(
     sources.paragraphs.getAllBooks,

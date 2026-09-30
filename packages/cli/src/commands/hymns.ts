@@ -83,7 +83,7 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const hymn = yield* service.getHymn(args.hymnNumber as HymnId).pipe(
-      Effect.map(Option.some),
+      Effect.asSome,
       Effect.catch(() => Effect.succeedNone),
     );
 

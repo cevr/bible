@@ -693,7 +693,7 @@ const writingsHits = (
       Effect.orElseSucceed((): readonly WikiWritingsHit[] => []),
     );
   const matches = sources.writings.searchCount(query, { scope }).pipe(
-    Effect.map(Option.some),
+    Effect.asSome,
     Effect.orElseSucceed(() => Option.none<number>()),
   );
   return Effect.all([hits, matches], { concurrency: 'unbounded' }).pipe(

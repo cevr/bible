@@ -222,16 +222,12 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
 
       const beatFor = (film: LoadedFilm, id: string, file: string) =>
         Effect.flatMap(beatsById(film), (beats) =>
-          Option.match(Option.fromNullishOr(beats.get(id)), {
-            onSome: Effect.succeed,
-            onNone: () =>
-              Effect.fail(
-                RecordingInvalid.make({
-                  file,
-                  reason: `the film has no beat "${id}" with a line; its beats are ${[...beats.keys()].join(', ')}`,
-                }),
-              ),
-          }),
+          Effect.fromOption(Option.fromNullishOr(beats.get(id)), () =>
+            RecordingInvalid.make({
+              file,
+              reason: `the film has no beat "${id}" with a line; its beats are ${[...beats.keys()].join(', ')}`,
+            }),
+          ),
         );
 
       /**
