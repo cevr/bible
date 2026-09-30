@@ -29,7 +29,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
-import { Project } from './catalogue.ts';
+import { Project, RenderVariantName } from './catalogue.ts';
 import {
   ApprovePost,
   CommentPost,
@@ -416,8 +416,12 @@ export class ChoicesGroup extends HttpApiGroup.make('choices').add(
   }),
 ) {}
 
-/** Which render of each scene a project call is about (`main` when none). */
-const variantField = { variant: Schema.optionalKey(Schema.String) };
+/**
+ * Which render of each scene a project call is about (`main` when none),
+ * decoded as the CLI reads it: a name it would refuse is a 400 here, and
+ * never a token in the child's argv.
+ */
+const variantField = { variant: Schema.optionalKey(RenderVariantName) };
 
 /**
  * A film's project folder by its address tree (`catalogue.ts`): each scene's

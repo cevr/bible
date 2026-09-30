@@ -9,7 +9,7 @@ import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
 import { mixKey } from '../core/mix.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
-import { Cores, Platform, Renderer } from './renderer.ts';
+import { Cores, Platform, type Remuxed, Renderer } from './renderer.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
@@ -68,7 +68,18 @@ const setup = (
     Effect.gen(function* () {
       return yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
-  return { ledger, files, folders, render };
+  /** `video`'s sound cut again from the master now, as `project render` re-muxes it. */
+  const remux = (video: Remuxed) =>
+    Effect.gen(function* () {
+      return yield* (yield* Renderer).remux(rendered, video);
+    }).pipe(Effect.provide(layer));
+  /** `jobs` rendered one after another in one session, as `project render` draws its scenes. */
+  const session = (jobs: ReadonlyArray<RenderJob>) =>
+    Effect.gen(function* () {
+      const run = yield* (yield* Renderer).session;
+      return yield* Effect.forEach(jobs, (job) => run.render(rendered, job));
+    }).pipe(Effect.scoped, Effect.provideService(Platform, 'darwin'), Effect.provide(layer));
+  return { ledger, files, folders, render, remux, session };
 };
 
 /** A render whose joins keep, by file, the bytes each segment held when it was joined. */
@@ -192,6 +203,7 @@ describe('Renderer', () => {
           captions: Option.some('/out/test/film/trial.vtt'),
           chapters: Option.none(),
           images: [],
+          sound: Option.none(),
         });
 
         const files = new Map([['/out/test/film/look/stills/t0001.00.png', text('png')]]);
@@ -208,6 +220,33 @@ describe('Renderer', () => {
       const { ledger, render } = setup();
       yield* render({ ...video, address: { _tag: 'Scenes', ids: ['a'] }, to: Option.some(2) });
       expect(ledger.joins.map((j) => j.out)).toEqual(['/out/test/scenes/a/main.mp4']);
+    }),
+  );
+
+  it.live('scenes drawn in one run share one probe and one pool of pages', () =>
+    Effect.gen(function* () {
+      const scenes = [0, 2, 4].map((from): RenderJob => ({
+        ...video,
+        address: { _tag: 'Scenes', ids: ['a'] },
+        variant: `v${from}`,
+        from: Option.some(from),
+        to: Option.some(from + 2),
+      }));
+      // Each render alone opens its own: the probe's page and four to draw on, three times.
+      const alone = setup();
+      yield* Effect.forEach(scenes, (job) => alone.render(job));
+      expect(alone.ledger.pages.opened).toBe(15);
+      const { ledger, session } = setup();
+      yield* session(scenes);
+      expect(ledger.joins.map((j) => j.out)).toEqual([
+        '/out/test/scenes/a/v0.mp4',
+        '/out/test/scenes/a/v2.mp4',
+        '/out/test/scenes/a/v4.mp4',
+      ]);
+      expect(ledger.frames.length).toBe(180);
+      // In one session: the page that chose the encoder, then the four every scene is drawn on.
+      expect(ledger.pages.opened).toBe(5);
+      expectAllClosed(ledger);
     }),
   );
 
@@ -489,6 +528,53 @@ describe('Renderer', () => {
         expect(ledger.aac).toEqual([20 * 44100]);
         expect(Option.isSome(ledger.joins[0]?.audio ?? Option.none())).toBe(true);
         expectAllClosed(ledger);
+      }),
+    );
+
+    it.live(
+      'a video records the sound it carries: the plan its master was mixed from, and its cut',
+      () =>
+        Effect.gen(function* () {
+          const { files, render } = setup({ info });
+          yield* mixed(files);
+          const output = yield* render({ ...video, from: Option.some(2), to: Option.some(5) });
+          const plan = mixKey(Result.getOrThrow(planOf(film, yield* placeFilm(film), NOW)));
+          expect(output.sound).toEqual(
+            Option.some({ mix: Option.some(plan), pieces: [{ start: 2, duration: 3 }] }),
+          );
+        }),
+    );
+
+    const clip = '/out/test/scenes/a/main.mp4';
+    const cut = {
+      clip,
+      share: Option.some('/out/test/scenes/a/main.share.mp4'),
+      pieces: [{ start: 2, duration: 3 }],
+    };
+
+    it.live('a re-mux cuts the sound again from the master now and draws nothing', () =>
+      Effect.gen(function* () {
+        const { ledger, files, remux } = setup({ info });
+        yield* mixed(files);
+        const sound = yield* remux(cut);
+        const plan = mixKey(Result.getOrThrow(planOf(film, yield* placeFilm(film), NOW)));
+        expect(sound).toEqual({ mix: Option.some(plan), pieces: [{ start: 2, duration: 3 }] });
+        expect(ledger.pages.opened).toBe(0);
+        expect(ledger.frames).toEqual([]);
+        // One track, encoded once, under the clip and its share copy.
+        expect(ledger.aac).toEqual([3 * 44100]);
+        expect(ledger.remuxes).toEqual([clip, '/out/test/scenes/a/main.share.mp4']);
+      }),
+    );
+
+    it.live('a re-mux from a master mixed for another plan fails and leaves the clip alone', () =>
+      Effect.gen(function* () {
+        const { ledger, files, remux } = setup({ info });
+        yield* mixed(files);
+        files.set(stampFile(film.paths), text('{\n  "key": "another plan"\n}\n'));
+        const exit = yield* Effect.exit(remux(cut));
+        expect(tagOf(exit)).toEqual(Option.some('AudioStale'));
+        expect(ledger.remuxes).toEqual([]);
       }),
     );
 

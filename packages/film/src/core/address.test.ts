@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import { type Addressable, addressOf, resolveAddress } from './address.ts';
+import { type Addressable, addressKey, addressOf, resolveAddress } from './address.ts';
 import { layout } from './layout.ts';
 
 const none = { act: Option.none(), scene: Option.none(), short: Option.none() };
@@ -93,6 +93,14 @@ describe('resolveAddress', () => {
     );
     expect(named.acts).toEqual([]);
     expect(a?.start).toBe(0);
+  });
+
+  test('scenes named in either order are one part: one address, one key', () => {
+    const keyOf = (ids: readonly [string, ...Array<string>]) =>
+      addressKey(Result.getOrThrow(resolveAddress(film, { _tag: 'Scenes', ids })).address);
+    expect(keyOf(['c', 'b'])).toBe('scenes:b,c');
+    expect(keyOf(['b', 'c'])).toBe(keyOf(['c', 'b']));
+    expect(keyOf(['c', 'b', 'c'])).toBe('scenes:b,c');
   });
 
   test('a short covers its spans’ scenes and runs on its own clock', () => {

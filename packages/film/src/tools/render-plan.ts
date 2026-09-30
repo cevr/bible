@@ -4,7 +4,7 @@
 
 import { Array as Arr, Data, Match, Option, Result } from 'effect';
 import type { Address, Scope } from '../core/address.ts';
-import type { RenderKind } from '../core/catalogue.ts';
+import type { RenderKind, RenderSound } from '../core/catalogue.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import type { ExportInfo, Short } from '../core/schema.ts';
@@ -88,6 +88,8 @@ export interface RenderOutput {
   readonly chapters: Option.Option<string>;
   /** Stills (in time order), a contact sheet or a look-book. */
   readonly images: ReadonlyArray<string>;
+  /** The sound a video carries: none for a silent one, and for images. */
+  readonly sound: Option.Option<RenderSound>;
 }
 
 /** What an image job wrote: its images and nothing else. */
@@ -98,6 +100,7 @@ export const imagesOutput = (kind: RenderKind, images: ReadonlyArray<string>): R
   captions: Option.none(),
   chapters: Option.none(),
   images,
+  sound: Option.none(),
 });
 
 /** A render: the film as video, a few stills, a contact sheet, or its look-book. */

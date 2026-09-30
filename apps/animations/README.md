@@ -50,8 +50,8 @@ bun run render <film> --scene id[,id] ...      # a video or contact sheet over t
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
-bun run project <film> [--variant v] [--json]  # every scene: its render current, stale or missing, approved or not, its comments
-bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force)
+bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
+bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders, an act's current scenes, or every current one; a re-render leaves the approval stale
 bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now, an act, or (neither) the film
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
@@ -163,8 +163,8 @@ whole film to within a frame before a frame is drawn (`AudioMissing` or
 `AudioStale` otherwise: run `mix`). Its captions are also
 written as WebVTT beside it. `mix` runs in-process (`@bible/film/core`'s
 `mixPlan` and `renderMix`, its filters in `core/dsp.ts`) and logs each bus's mean and peak dBFS (`mix.levels`), so balancing
-needs no other tool; it writes `full.partial.wav` and renames it only once
-whole, so a failed or interrupted mix leaves the previous track as it was. The
+needs no other tool; it writes `full.wav` whole (a partial of its own,
+renamed only once written), so a failed or interrupted mix leaves the previous track as it was. The
 player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
@@ -233,7 +233,7 @@ number in `sound.ts`. Each write is checked and undoable (Undo, Redo), and a
 pick or a knob runs `check --sound`, its findings shown; review it with `git
 diff`. Every variant can be approved and commented on. The project view
 (`?project=<film>`) is the film by acts and scenes: each scene's render, its
-state (current, stale, missing), approval and comments, with approve and
+state (current, stale by its sources or its sound, missing), approval and comments, with approve and
 comment per scene, per act and for the film, "Approve all current", and the
 choice points at the scenes they play in. The review answers loopback, and the names in
 `FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
@@ -386,7 +386,8 @@ leaves every take the timings name on disk and matching them. The next
 longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
-one writer at a time, so takes finishing together never lose entries.
+one writer at a time across processes (`ContentStore`: a `<file>.lock` held
+for each change), so takes finishing together never lose entries.
 
 **ElevenLabs stages; the owner's voice replaces it.** A film is staged with
 ElevenLabs (`narrate`), then read by a person beat by beat:

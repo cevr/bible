@@ -18,14 +18,13 @@
 
 import { Array as Arr, DateTime, Match, Option, Result } from 'effect';
 import { type Address, sceneAddress } from '../core/address.ts';
-import type { Catalogue } from '../core/catalogue.ts';
+import type { Catalogue, VariantState } from '../core/catalogue.ts';
 import {
   type ChoiceMark,
   type ChoiceVerb,
   type ChoicePoint,
   type PointDraft,
   type VariantDraft,
-  type VariantState,
   pointId,
   withSay,
 } from '../core/choice.ts';

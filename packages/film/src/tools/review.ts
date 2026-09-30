@@ -298,7 +298,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
               picked: false,
               verbs: [],
               media: { _tag: 'Seen', video },
-              key: render.stamp.key,
+              key: subjectOf(render).key,
               approval: approvalState(catalogue, subjectOf(render)),
               comments: saidOn(catalogue, subjectOf(render)),
               notes: Option.none(),

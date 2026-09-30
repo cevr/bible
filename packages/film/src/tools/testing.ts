@@ -474,7 +474,7 @@ export const fakeRecording = (said: string, rate: number): Pcm => {
 /**
  * The rest of a fake media that neither loads a recording nor serves a
  * review: loading fails, encoding writes nothing, and the review's stills,
- * phone copies and `.m4a` mixes do nothing.
+ * phone copies and `.m4a` mixes, and a re-mux, do nothing.
  */
 export const noRecording = {
   load: (file: string) =>
@@ -483,7 +483,12 @@ export const noRecording = {
   writeAac: () => Effect.void,
   still: () => Effect.void,
   phoneCopy: () => Effect.void,
-} satisfies Pick<MediaService, 'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy'>;
+  remux: () => Effect.void,
+  copySound: () => Effect.void,
+} satisfies Pick<
+  MediaService,
+  'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy' | 'remux' | 'copySound'
+>;
 
 /**
  * Media as the review uses it, on disk: every video lasts `seconds`, and a
@@ -540,7 +545,7 @@ const fakeDuration = (bytes: Uint8Array) =>
  * Media over `files`: a file measures `fakeLength` of its bytes (2.5 s when it
  * is not there) and decodes to `decoded` (a second of mono silence at the
  * mix's rate unless given), a WAV written lands as `wav <frames>`, and a
- * joined film as `mp4 <frames>`. A recording loads as `fakeRecording` of its
+ * joined film as `mp4 <frames>`, a re-muxed one as `remuxed <video>`. A recording loads as `fakeRecording` of its
  * bytes, and a take encodes to `flac <frames>/<rate>`, which measures its own
  * length. A review's mix lands as `aac <frames>`, a still as `still of
  * <video> at <t> (<width>)`, a phone copy as `phone of <video>`.
@@ -563,6 +568,9 @@ export const fakeMedia = (
       writeWav: (file, pcm) => Effect.sync(() => void files.set(file, text(`wav ${pcm.frames}`))),
       encodeAac: () => Effect.succeed({ packets: [], meta: {} }),
       join: (film) => Effect.sync(() => void files.set(film.out, text(`mp4 ${film.frames}`))),
+      remux: (video) => Effect.sync(() => void files.set(video, text(`remuxed ${video}`))),
+      copySound: (video, from) =>
+        Effect.sync(() => void files.set(video, text(`sound of ${from} under ${video}`))),
       shareCopy: (master, out) =>
         Effect.sync(() => void files.set(out, text(`share of ${master}`))),
       load: (file, rate) =>
@@ -630,6 +638,8 @@ export interface RenderLedger {
   readonly contacts: Array<ReadonlyArray<number>>;
   /** Every film joined. */
   readonly joins: Array<JoinedFilm>;
+  /** Every video whose sound was replaced, in order. */
+  readonly remuxes: Array<string>;
   /** The frames of every track encoded to AAC. */
   readonly aac: Array<number>;
   /** The URL of every page opened. */
@@ -650,6 +660,7 @@ export const emptyLedger = (): RenderLedger => ({
   lookbooks: { composed: 0 },
   contacts: [],
   joins: [],
+  remuxes: [],
   aac: [],
   aacInterrupted: { count: 0 },
   urls: [],
@@ -872,6 +883,8 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
           Effect.as({ packets: [], meta: {} }),
         ),
       shareCopy: (master, out) => Effect.sync(() => void ledger.shareCopies.push({ master, out })),
+      remux: (video) => Effect.sync(() => void ledger.remuxes.push(video)),
+      copySound: (video) => Effect.sync(() => void ledger.remuxes.push(video)),
       join: (film) =>
         Effect.sync(() => void ledger.joins.push(film)).pipe(
           Effect.andThen(

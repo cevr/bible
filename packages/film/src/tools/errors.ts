@@ -553,8 +553,8 @@ export class CheckFailed extends Schema.TaggedError<CheckFailed>()('CheckFailed'
   }
 }
 
-/** Another process held the notes lock for too long: a crashed writer left it behind. */
-export class NotesLocked extends Schema.TaggedError<NotesLocked>()('NotesLocked', {
+/** Another writer held a manifest's lock (`ContentStore`) past every try: a slow or stuck writer. */
+export class StoreLocked extends Schema.TaggedError<StoreLocked>()('StoreLocked', {
   lock: Schema.String,
 }) {
   override get message() {

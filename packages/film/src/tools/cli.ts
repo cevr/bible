@@ -907,7 +907,7 @@ export const runFilmCli = <E>({
     Layer.provide([Repo, Store, Platform]),
   );
   // Each film's project folder: its renders, and the owner's approvals and comments on them.
-  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide(Platform));
+  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));

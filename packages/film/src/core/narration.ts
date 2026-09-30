@@ -168,8 +168,9 @@ export const voiceKey = (voice: Voice): string => {
   return `${voices}/${voice.model}/${settings}`;
 };
 
-/** Why a beat's take no longer fits it. */
-export type StaleReason = 'missing' | 'text changed' | 'voice changed';
+/** Why a beat's take no longer fits it: said once, read by the studio and `check`. */
+export const TakeStaleReason = Schema.Literals(['missing', 'text changed', 'voice changed']);
+export type TakeStaleReason = typeof TakeStaleReason.Type;
 
 /**
  * Where a beat's take stands: current and read by a person (`Recorded`),
@@ -181,7 +182,7 @@ export type StaleReason = 'missing' | 'text changed' | 'voice changed';
 export type TakeState =
   | { readonly _tag: 'Recorded' }
   | { readonly _tag: 'Staging' }
-  | { readonly _tag: 'Stale'; readonly reason: StaleReason; readonly recorded: boolean };
+  | { readonly _tag: 'Stale'; readonly reason: TakeStaleReason; readonly recorded: boolean };
 
 /** The state of the take `timings` keep for beat `id`, whose take script is `script`, under `voice` (`voiceKey`). */
 export const takeState = (

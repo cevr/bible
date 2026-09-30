@@ -38,6 +38,16 @@ const SCENE_STATE = {
   missing: 'not rendered',
 } as const;
 
+/** A scene's badge: a render stale by its sound alone says so (a re-mux, not a redraw). */
+const stateText = (scene: ProjectScene): string =>
+  Option.match(
+    Option.filter(scene.staleBy, (by) => by === 'sound'),
+    {
+      onNone: () => SCENE_STATE[scene.state],
+      onSome: () => "stale: the film's sound changed since it was rendered",
+    },
+  );
+
 /** A scene's render as the review serves it: the render set at its address in the film's folder. */
 export const sceneVideo = (
   index: ReviewIndex,
@@ -85,7 +95,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
       <div class="rv-cap">
         <span class="rv-name">{scene.scene}</span>
         <span class="rv-tag" data-state={scene.state}>
-          {SCENE_STATE[scene.state]}
+          {stateText(scene)}
         </span>
         <span class="rv-badge" data-approval={scene.approval}>
           {Match.value(scene.approval).pipe(

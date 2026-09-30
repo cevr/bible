@@ -5,7 +5,7 @@
 // so the picture the page draws and the track the renderer cuts agree to the
 // frame. Pure: the page, the tools and the tests read it alike.
 
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
 import { type ShortError, ShortSpanEmpty, UnknownScene } from './errors.ts';
 import { type Placed, pointIn } from './layout.ts';
 import type { ScenePoint, Short, ShortSpan } from './schema.ts';
@@ -265,10 +265,8 @@ export const shortFilmTime = (short: ResolvedShort, s: number): number => {
 };
 
 /** A stretch of the film's track: `duration` seconds from film second `start`. */
-export interface FilmPiece {
-  readonly start: number;
-  readonly duration: number;
-}
+export const FilmPiece = Schema.Struct({ start: Schema.Finite, duration: Schema.Finite });
+export type FilmPiece = typeof FilmPiece.Type;
 
 /** The film's stretches under the short's seconds `[from, to)`, in the order the short plays them. */
 export const shortPieces = (

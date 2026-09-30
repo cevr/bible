@@ -29,7 +29,7 @@ import {
 import { repoJson } from '../core/schema.ts';
 import type { SoundSource, Sounds } from '../core/sfx.ts';
 import { synthesize } from '../core/synth/recipes.ts';
-import type { StoreError } from './content-store.ts';
+import { type StoreError, writeWhole } from './content-store.ts';
 import {
   AudioMissing,
   AudioStale,
@@ -50,9 +50,6 @@ import { Media, type MediaService } from './media.ts';
 
 /** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
 export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full.wav`;
-
-/** Where a file is written until it is whole: `full.wav` → `full.partial.wav`. */
-const partialFile = (file: string): string => file.replace(/(\.[^./]+)$/, '.partial$1');
 
 /** What the track was mixed from: `full.json`, written beside `full.wav` by the same mix. */
 export const stampFile = (paths: FilmPaths): string => `${paths.narration}/full.json`;
@@ -328,15 +325,9 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const repo = yield* FilmRepo;
       const media = yield* Media;
 
-      /** `pcm` written to `file` whole: beside it first, renamed over it once written. */
-      const writeWhole = (file: string, pcm: Pcm) =>
-        Effect.gen(function* () {
-          const partial = partialFile(file);
-          yield* media
-            .writeWav(partial, pcm)
-            .pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
-          yield* fs.rename(partial, file);
-        });
+      /** `pcm` written to `file` as a WAV, whole (`writeWhole`). */
+      const writeWav = (file: string, pcm: Pcm) =>
+        writeWhole(fs, file, (partial) => media.writeWav(partial, pcm));
 
       const render = Effect.fn('Mixer.render')(function* (name: string, options: RenderOptions) {
         const film = yield* repo.load(name);
@@ -375,14 +366,14 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         yield* Effect.log(`mix.master gain=${mixed.masterGain.toFixed(1)}dB`);
 
         const master = masterFile(film.paths);
-        yield* writeWhole(master, mixed.master);
+        yield* writeWav(master, mixed.master);
         // Stamped once the track is whole: a track with no stamp, or an old one, reads as stale.
         const stamp = yield* Effect.orDie(Schema.encodeEffect(MasterStampJson)({ key }));
         yield* fs.writeFileString(stampFile(film.paths), stamp);
         if (options.stems) {
           const dir = `${film.paths.out}/stems`;
           yield* fs.makeDirectory(dir, { recursive: true });
-          yield* Effect.forEach(buses, ({ bus, pcm }) => writeWhole(`${dir}/${bus}.wav`, pcm), {
+          yield* Effect.forEach(buses, ({ bus, pcm }) => writeWav(`${dir}/${bus}.wav`, pcm), {
             discard: true,
           });
           yield* Effect.log(`mix.stems names=${buses.map(({ bus }) => bus).join(',')} dir=${dir}`);

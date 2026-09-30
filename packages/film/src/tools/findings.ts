@@ -17,6 +17,7 @@ import type {
   UnknownVoice,
   WordMissing,
 } from '../core/errors.ts';
+import { TakeStaleReason } from '../core/narration.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
 import type { AudioMissing, AudioStale, SoundStale, SoundUnmade } from './errors.ts';
@@ -375,7 +376,7 @@ export class ShortLength extends Schema.TaggedError<ShortLength>()('ShortLength'
 /** A beat whose take is missing, or was recorded for other text or another voice. */
 export class TakeStale extends Schema.TaggedError<TakeStale>()('TakeStale', {
   scene: Schema.String,
-  reason: Schema.Literals(['missing', 'text changed', 'voice changed']),
+  reason: TakeStaleReason,
   /** The stale take was read by a person: staging does not replace it unasked. */
   recorded: Schema.Boolean,
 }) {

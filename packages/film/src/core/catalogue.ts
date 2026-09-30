@@ -6,15 +6,20 @@
 //
 // A render's slot is its address, variant and kind: a new render of a slot
 // replaces the one before it, and an approval of the old render stays,
-// stale, because an approval (and a comment) is keyed by the stamp's key it
-// was given on. A render is current while its key is the key its address's
-// sources have now (`tools/stamp.ts`); the catalogue never computes a key.
+// stale, because an approval (and a comment) is keyed by the version it was
+// given on: the stamp's key, and the mix a video carries. A render is current
+// while its key is the key its address's sources have now (`tools/stamp.ts`)
+// and a video carries the mix the film makes now (`mixKey`); a video that
+// drew its sources as they are but carries an older mix is stale by its
+// sound, and its sound is cut again from the master (a re-mux), not drawn.
+// The catalogue never computes a key.
 //
 // Pure: `tools/catalogue.ts` keeps it as `catalogue.json` in the project
 // folder, and computes the stamps.
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import { FilmPiece } from './shorts.ts';
 
 /** A key a JSON file may leave out, read as an `Option`. */
 const maybe = <S extends Schema.Top>(schema: S) => Schema.OptionFromOptionalKey(schema);
@@ -61,6 +66,17 @@ export const RenderFiles = Schema.Struct({
 });
 export type RenderFiles = typeof RenderFiles.Type;
 
+/**
+ * The sound a video carries: the film's master as mixed from the plan `mix`
+ * names (`mixKey`; none when the plan did not build), cut at `pieces`, in
+ * order: the cut a re-mux takes again from a new master.
+ */
+export const RenderSound = Schema.Struct({
+  mix: maybe(Schema.String),
+  pieces: Schema.Array(FilmPiece),
+});
+export type RenderSound = typeof RenderSound.Type;
+
 /** One render the project folder holds. */
 export const Render = Schema.Struct({
   address: Address,
@@ -72,6 +88,8 @@ export const Render = Schema.Struct({
   /** The film seconds it covers, for a stretch of the film (an act, scenes). */
   span: maybe(Schema.Struct({ from: Schema.Finite, to: Schema.Finite })),
   files: RenderFiles,
+  /** The sound a video carries; none for a silent video, stills and sheets. */
+  sound: maybe(RenderSound),
   /** When it was recorded, ms since the epoch. */
   at: Schema.Finite,
 });
@@ -156,12 +174,25 @@ export const renderPointId = (address: Address): string => `render:${addressKey(
 export const pointIdOf = (topic: Pick<Topic, 'address' | 'point'>): string =>
   Option.getOrElse(topic.point, () => renderPointId(topic.address));
 
-/** A render as what the owner's say is about: its render set's variant, as stamped. */
+/**
+ * A render's version, what the owner's say is keyed by: its stamp's key, and
+ * the mix it carries (`<stamp>+<mix>`), so a re-mux is a new version.
+ */
+export const renderVersion = (render: Render): string =>
+  Option.match(
+    Option.flatMap(render.sound, (s) => s.mix),
+    {
+      onNone: () => render.stamp.key,
+      onSome: (mix) => `${render.stamp.key}+${mix}`,
+    },
+  );
+
+/** A render as what the owner's say is about: its render set's variant, as it is now. */
 export const subjectOf = (render: Render): Subject => ({
   address: render.address,
   point: Option.none(),
   variant: render.variant,
-  key: render.stamp.key,
+  key: renderVersion(render),
 });
 
 /** A slot's video render set as a topic (its point and variant). */
@@ -185,38 +216,88 @@ export const recordRender = (catalogue: Catalogue, render: Render): Catalogue =>
 export const renderIn = (catalogue: Catalogue, slot: Slot): Option.Option<Render> =>
   Arr.findFirst(catalogue.renders, (r) => sameSlot(r, slot));
 
-/** Whether a render was made from its address's sources as they are: `key` is theirs now. */
-export const RenderState = Schema.Literals(['missing', 'current', 'stale']);
-export type RenderState = typeof RenderState.Type;
+/**
+ * Where a variant (a render, a score option, a take) stands against the
+ * sources it was made for: `current`, `stale` (made for an earlier version:
+ * it still plays) or `missing` (nothing made here: nothing to see or hear).
+ */
+export const VariantState = Schema.Literals(['current', 'stale', 'missing']);
+export type VariantState = typeof VariantState.Type;
 
-/** `render` against its sources' key now: `current` when it drew them as they are. */
-export const renderState = (render: Option.Option<Render>, key: string): RenderState =>
+/** Why a render is stale: its scene's `sources` changed, or only the film's `sound` did. */
+export const StaleBy = Schema.Literals(['sources', 'sound']);
+export type StaleBy = typeof StaleBy.Type;
+
+/**
+ * What a slot's render is measured against: the key its address's sources
+ * have now, and the mix the film makes now (`mixKey`), none when the film
+ * has no track yet or its plan does not build (the check names why): then
+ * no render is judged by its sound.
+ */
+export interface RenderNow {
+  readonly key: string;
+  readonly sound: Option.Option<string>;
+}
+
+/** Whether `render` carries the film's mix now (always, when there is none to judge by). */
+const soundsNow = (render: Render, sound: Option.Option<string>): boolean =>
+  Option.match(sound, {
+    onNone: () => true,
+    onSome: (now) => Option.exists(render.sound, (s) => Option.contains(s.mix, now)),
+  });
+
+/** Why `render` is stale against `now`, or none while it is current. */
+export const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> => {
+  if (render.stamp.key !== now.key) return Option.some('sources');
+  if (!soundsNow(render, now.sound)) return Option.some('sound');
+  return Option.none();
+};
+
+/** `render` against `now`: its state, and why it is stale. */
+export const renderState = (
+  render: Option.Option<Render>,
+  now: RenderNow,
+): { readonly state: VariantState; readonly staleBy: Option.Option<StaleBy> } =>
   Option.match(render, {
-    onNone: () => 'missing',
-    onSome: (r) =>
-      Match.value(r.stamp.key === key).pipe(
-        Match.when(true, (): RenderState => 'current'),
-        Match.orElse((): RenderState => 'stale'),
-      ),
+    onNone: () => ({ state: 'missing' as const, staleBy: Option.none() }),
+    onSome: (r) => {
+      const why = staleBy(r, now);
+      return {
+        state: Option.match(why, {
+          onNone: (): VariantState => 'current',
+          onSome: (): VariantState => 'stale',
+        }),
+        staleBy: why,
+      };
+    },
   });
 
 /**
- * Whether the slot must be rendered again: it holds no render, or one that
- * drew other sources (`key`) or was made at other `settings`.
+ * What a slot needs to be current: nothing; a `remux` (its video drew its
+ * sources as they are, at these settings, and only the film's sound changed:
+ * the sound is cut again at the pieces it recorded); or a `draw` (no render,
+ * other sources or settings, or a video that recorded no sound to re-cut).
  */
-export const needsRender = (
+export type RenderNeed = 'current' | 'remux' | 'draw';
+
+/** What `slot` needs to be current against `now`, rendered at `settings` (`RenderNeed`). */
+export const renderNeed = (
   catalogue: Catalogue,
   slot: Slot,
-  key: string,
+  now: RenderNow,
   settings: RenderSettings,
-): boolean =>
-  !Option.exists(
-    renderIn(catalogue, slot),
-    (r) =>
-      r.stamp.key === key &&
-      r.settings.scale === settings.scale &&
-      r.settings.captions === settings.captions,
-  );
+): RenderNeed =>
+  Option.match(renderIn(catalogue, slot), {
+    onNone: (): RenderNeed => 'draw',
+    onSome: (r): RenderNeed => {
+      const same = r.settings.scale === settings.scale && r.settings.captions === settings.captions;
+      const why = staleBy(r, now);
+      if (!same || Option.contains(why, 'sources')) return 'draw';
+      if (Option.isNone(why)) return 'current';
+      if (Option.isSome(r.sound)) return 'remux';
+      return 'draw';
+    },
+  });
 
 /**
  * The owner's say on a variant: `approved` as it is now, `stale` when an
@@ -284,7 +365,9 @@ export const ProjectScene = Schema.Struct({
   scene: Schema.String,
   /** The key the scene's sources have now. */
   key: Schema.String,
-  state: RenderState,
+  state: VariantState,
+  /** Why its render is stale, when it is. */
+  staleBy: maybe(StaleBy),
   approval: ApprovalState,
   render: maybe(Render),
   comments: Schema.Array(SaidComment),
@@ -334,9 +417,13 @@ export interface ActKey {
   readonly key: string;
 }
 
-/** The film's address tree with each part's key now: the film's own, its acts', its scenes'. */
+/**
+ * The film's address tree with each part's key now (the film's own, its
+ * acts', its scenes'), and the mix the film makes now (`RenderNow.sound`).
+ */
 export interface Keyed {
   readonly key: string;
+  readonly sound: Option.Option<string>;
   readonly acts: ReadonlyArray<ActKey>;
   readonly scenes: ReadonlyArray<SceneKey>;
 }
@@ -373,7 +460,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
     return {
       scene,
       key,
-      state: renderState(render, key),
+      ...renderState(render, { key, sound: keyed.sound }),
       approval: Option.match(render, {
         onNone: (): ApprovalState => 'none',
         onSome: (r) => approvalState(catalogue, subjectOf(r)),
@@ -382,7 +469,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
       // A comment is on this render when it was said of the render shown.
       comments: saidOn(catalogue, {
         ...topicOf(sceneSlot(scene, variant)),
-        key: Option.match(render, { onNone: () => key, onSome: (r) => r.stamp.key }),
+        key: Option.match(render, { onNone: () => key, onSome: renderVersion }),
       }),
     };
   }),
@@ -396,18 +483,22 @@ export interface Approved {
 
 /**
  * `catalogue` with every scene render of `variant` that is current (drawn
- * from its scene's sources as they are now) approved, and the scenes it
- * approved. A stale or missing scene is left for a render first.
+ * from its scene's sources as they are now, carrying the mix `sound` the
+ * film makes now) approved, and the scenes it approved. A stale or missing
+ * scene is left for a render (or a re-mux) first.
  */
 export const approveCurrent = (
   catalogue: Catalogue,
   scenes: ReadonlyArray<SceneKey>,
+  sound: Option.Option<string>,
   variant: string,
   at: number,
 ): Approved => {
   const current = scenes.flatMap(({ scene, key }) =>
     Option.toArray(
-      Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) => r.stamp.key === key),
+      Option.filter(renderIn(catalogue, sceneSlot(scene, variant)), (r) =>
+        Option.isNone(staleBy(r, { key, sound })),
+      ),
     ),
   );
   return {
