@@ -12,8 +12,10 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
-import { FilmFolder, FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
+import { FreshProcessFailed } from '../core/refusals.ts';
 import { labHandler } from './lab.ts';
+import { cueOf } from './read-cli.ts';
 import { NotesStore } from './notes-store.ts';
 import { collect } from './process.ts';
 import { SceneHead } from './scene-head.ts';
@@ -27,13 +29,30 @@ class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
 /** A check that reports one warning, and counts its runs. */
 const checks: Array<string> = [];
-const fakeCheck = freshFilm({
-  check: (film) =>
-    Effect.sync(() => {
-      checks.push(film);
-      return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
+const fakeCheck = Layer.unwrap(
+  Effect.map(Effect.context<FilmRepo>(), (context) =>
+    freshFilm({
+      check: (film) =>
+        Effect.sync(() => {
+          checks.push(film);
+          return [{ level: 'warning', tag: 'AssetMissing', message: 'sound "coins" is missing' }];
+        }),
+      // `film read cue` over the fixture's films: a film that does not load fails the run.
+      cue: (film, scene, cue) =>
+        FilmRepo.use((repo) => repo.load(film)).pipe(
+          Effect.flatMap(placeFilm),
+          Effect.map((placed) => cueOf(placed, scene, cue)),
+          Effect.mapError((error) =>
+            FreshProcessFailed.make({
+              command: 'film read cue',
+              reason: `${error._tag}: ${error.message}`,
+            }),
+          ),
+          Effect.provideContext(context),
+        ),
     }),
-});
+  ),
+);
 
 /** The film repo over `films`, but loading the film fails (its paths still resolve). */
 const brokenRepo = (films: string) =>
@@ -65,7 +84,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
           Layer.provideMerge(repoOver(films)),
         ),
         NotesStore.layer,
-        fakeCheck,
+        fakeCheck.pipe(Layer.provide(repoOver(films))),
         noStudio,
         HttpPlatform.layer,
         Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),

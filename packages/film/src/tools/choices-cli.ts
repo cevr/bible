@@ -42,7 +42,7 @@ import {
 import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
-import { beatsOf } from './narrator.ts';
+import { beatsOf, voicedOf } from './narrator.ts';
 import { Takes } from './takes.ts';
 
 const film = Argument.String('film').pipe(
@@ -204,9 +204,9 @@ const keepVoice = Command.make(
     ),
   },
   Effect.fn('film.options.keepVoice')(function* (input) {
-    const loaded = yield* (yield* FilmRepo).load(input.film);
+    const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(input.film)));
     yield* answering(
-      (yield* Takes).keepAttempt(loaded, input.beat, input.file, { acceptMismatch: false }),
+      (yield* Takes).keepAttempt(voiced, input.beat, input.file, { acceptMismatch: false }),
     );
     // The track is remixed with the take; a failed mix leaves the take kept and says why.
     const mixed = yield* (yield* Mixer)

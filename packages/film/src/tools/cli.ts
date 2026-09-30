@@ -10,6 +10,7 @@
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
 //   film options …    (choices-cli.ts) a film's choice points, read fresh for the review
+//   film read …       (read-cli.ts)    the studio's reading and a cue, read fresh for the lab
 //   film lab | review                                          the servers (Ctrl-C stops them)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
 //
@@ -71,13 +72,15 @@ import { Media, ffmpegReady } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
-import { Narrator, planNarration, stateLine } from './narrator.ts';
+import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import type { LabHandler } from './api-server.ts';
 import { labHandler } from './lab.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
+import { read } from './read-cli.ts';
+import { StudioReadings } from './studio.ts';
 import { type LabServer, PreviewServer, type PreviewServerService } from './preview-server.ts';
 import {
   DRAW_WORKERS,
@@ -410,7 +413,8 @@ const takesImport = Command.make(
     );
     // Every take is transcribed back: the CLI must be logged in.
     yield* paidPreflight;
-    const imported = yield* (yield* Takes).importPath(loaded, at, {
+    const voiced = yield* Effect.fromResult(voicedOf(loaded));
+    const imported = yield* (yield* Takes).importPath(voiced, at, {
       only: input.only,
       acceptMismatch: accepted,
       whole: input.whole,
@@ -914,8 +918,9 @@ export const runFilmCli = <E>({
     // Its lengths, frames and phone copies are the Media service's.
     Layer.provide([Tools, Platform]),
   );
-  const Services = Choices.layer.pipe(
-    // The review hears each option in the mix, and writes a pick through the source writer.
+  const Services = Layer.mergeAll(Choices.layer, StudioReadings.layer).pipe(
+    // The review hears each option in the mix, and writes a pick through the source writer;
+    // the lab's studio reads the film's script and voice fresh.
     Layer.provideMerge(
       Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
         Layer.provideMerge(
@@ -954,6 +959,7 @@ export const runFilmCli = <E>({
       media,
       mix,
       options,
+      read,
       cues(checkLayer),
       check(checkLayer),
       render(renderLayer),

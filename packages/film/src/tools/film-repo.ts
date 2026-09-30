@@ -9,6 +9,7 @@ import {
   Array as Arr,
   Config,
   Context,
+  Data,
   Effect,
   FileSystem,
   Layer,
@@ -32,6 +33,7 @@ import {
   TimingsJson,
   Voice,
 } from '../core/schema.ts';
+import type { PlatformError } from 'effect/PlatformError';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { FilmModuleInvalid, FilmUnknown } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
@@ -92,6 +94,13 @@ export interface FilmFolderService {
   readonly names: Effect.Effect<ReadonlyArray<string>>;
   /** The app's sound library folder (`library.ts`, its lock, `files/`), when it has one. */
   readonly sounds: Option.Option<string>;
+  /**
+   * What the film is made from as it stands: the newest mtime of any file
+   * under its folder (its scenes, script, takes, score and `sound.ts`) and of
+   * the library's lock. A process that keeps what it read of a film fresh
+   * keys it by this, and reads again when it moves.
+   */
+  readonly stamp: (film: string) => Effect.Effect<number, PlatformError>;
 }
 
 export interface FilmRepoService {
@@ -182,6 +191,12 @@ export const filmNamed = Effect.fn('FilmFolder.named')(function* (name: string) 
   );
 });
 
+/** A film's sources at one stamp (`FilmFolder.stamp`): the key what was read of them is kept under. */
+export class Stamped extends Data.Class<{ readonly film: FilmName; readonly stamp: number }> {}
+
+/** What is under a film's folder that it is not made from: renders, installs, history. */
+const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
+
 export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()(
   '@bible/film/tools/FilmFolder',
 ) {
@@ -235,7 +250,26 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           Effect.orElseSucceed((): ReadonlyArray<string> => []),
         );
 
-        return FilmFolder.of({ paths, names, sounds });
+        const stamp = Effect.fn('FilmFolder.stamp')(function* (film: string) {
+          const dir = paths(film).dir;
+          const files = yield* fs.readDirectory(dir, { recursive: true });
+          const made = files.filter((f) => !NOT_SOURCE.includes(f.split('/')[0] ?? ''));
+          const lock = Option.map(sounds, (at) => lockManifest(at).file);
+          const times = yield* Effect.forEach(
+            [...made.map((f) => path.join(dir, f)), ...Option.toArray(lock)],
+            (file) =>
+              fs.stat(file).pipe(
+                Effect.map((info) =>
+                  Option.match(info.mtime, { onNone: () => 0, onSome: (d) => d.getTime() }),
+                ),
+                Effect.orElseSucceed(() => 0),
+              ),
+            { concurrency: 16 },
+          );
+          return Math.max(0, ...times);
+        });
+
+        return FilmFolder.of({ paths, names, sounds, stamp });
       }),
     );
 }

@@ -1,12 +1,13 @@
 // A film read, checked or changed by the film CLI in a fresh process: the one
 // seam "run this CLI again and read what it prints". The review runs for
-// days, and Bun keeps every module it imported as it was at the import, so a
-// film's `sound.ts` (its score options, what `play` names), its palette's
-// looks, its script, its scenes and the app's sound library, read in the
-// review's own process, stay as they were at start. Each call here runs the
-// film CLI again (`film options …`, `choices-cli.ts`; `film project …
-// --json`, `project-cli.ts`; `film check … --json`), which imports the film
-// as it stands on disk.
+// days, and the lab for hours, and Bun keeps every module it imported as it
+// was at the import, so a film's `sound.ts` (its score options, what `play`
+// names), its palette's looks, its script, its voice, its scenes and the
+// app's sound library, read in their own process, stay as they were at
+// start. Each call here runs the film CLI again (`film options …`,
+// `choices-cli.ts`; `film read …`, `read-cli.ts`; `film project … --json`,
+// `project-cli.ts`; `film check … --json`; `film mix`), which imports the
+// film as it stands on disk.
 //
 // Two answers come back. A command answers with one line of JSON
 // (`FreshLine`): its answer, or the refusal it failed with, raised here again
@@ -28,7 +29,8 @@ import {
   VariantUnknown,
   VerbRefused,
 } from '../core/refusals.ts';
-import { CheckLine } from '../core/schema.ts';
+import { CheckLine, ResolvedCue } from '../core/schema.ts';
+import { StudioReading } from '../core/studio.ts';
 import type { FilmName } from './film-repo.ts';
 import { type Finished, collectWithin } from './process.ts';
 
@@ -60,6 +62,16 @@ export class ProjectRead extends Schema.TaggedClass<ProjectRead>()('ProjectRead'
   project: Project,
 }) {}
 
+/** `film read voice`'s answer: what the studio reads of the film's script and voice. */
+export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
+  reading: StudioReading,
+}) {}
+
+/** `film read cue`'s answer: the cue on its scene's clock, absent when its timeline does not resolve. */
+export class CueRead extends Schema.TaggedClass<CueRead>()('CueRead', {
+  resolved: Schema.optionalKey(ResolvedCue),
+}) {}
+
 /** What a fresh run refuses with: the choice, variant, scene or act it could not find, or the take it would not keep. */
 export const FreshRefusal = Schema.Union([
   ChoiceUnknown,
@@ -82,6 +94,8 @@ export const FreshLine = Schema.Union([
   OptionsKept,
   OptionsTaken,
   ProjectRead,
+  VoiceRead,
+  CueRead,
   FreshRefusal,
 ]);
 export type FreshLine = typeof FreshLine.Type;
@@ -171,6 +185,16 @@ export interface FreshFilmService {
     take: string,
     verb: ChoiceVerb,
   ) => Effect.Effect<void, FreshError>;
+  /** What the studio reads of the film's script and voice (`film read voice`). */
+  readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError>;
+  /** `cue` on `scene`'s clock as the film's files now declare it (`film read cue`); none when it does not resolve. */
+  readonly cue: (
+    film: FilmName,
+    scene: string,
+    cue: string,
+  ) => Effect.Effect<Option.Option<ResolvedCue>, FreshError>;
+  /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
+  readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
   readonly project: (args: ReadonlyArray<string>) => Effect.Effect<Project, FreshError>;
   /**
@@ -315,6 +339,39 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           );
         });
 
+        const reading = Effect.fn('FreshFilm.reading')(function* (film: FilmName) {
+          const line = yield* answer(['read', 'voice', film], READ_LIMIT);
+          return yield* expect('film read voice', line, (l) =>
+            Match.value(l).pipe(
+              Match.tag('VoiceRead', (read) => Option.some(read.reading)),
+              Match.orElse(() => Option.none()),
+            ),
+          );
+        });
+
+        const cue = Effect.fn('FreshFilm.cue')(function* (
+          film: FilmName,
+          scene: string,
+          name: string,
+        ) {
+          const line = yield* answer(['read', 'cue', film, scene, name], READ_LIMIT);
+          return yield* expect('film read cue', line, (l) =>
+            Match.value(l).pipe(
+              Match.tag('CueRead', (read) => Option.some(Option.fromUndefinedOr(read.resolved))),
+              Match.orElse(() => Option.none()),
+            ),
+          );
+        });
+
+        const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
+          const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
+          if (done.exitCode !== 0)
+            return yield* FreshProcessFailed.make({
+              command: 'film mix',
+              reason: `exit ${done.exitCode}: ${tailOf(done)}`,
+            });
+        });
+
         const project = Effect.fn('FreshFilm.project')(function* (args: ReadonlyArray<string>) {
           const line = yield* answer(['project', ...args], READ_LIMIT);
           return yield* expect('film project', line, (l) =>
@@ -352,7 +409,18 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
             ),
           );
 
-        return FreshFilm.of({ choices, checked, mix, keepVoice, take, project, check });
+        return FreshFilm.of({
+          choices,
+          checked,
+          mix,
+          keepVoice,
+          take,
+          reading,
+          cue,
+          remix,
+          project,
+          check,
+        });
       }),
     );
 }

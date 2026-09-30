@@ -9,6 +9,7 @@ import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import type { LoadedFilm } from './film-repo.ts';
+import { voicedOf } from './narrator.ts';
 import { type ImportOptions, Takes } from './takes.ts';
 import {
   type ElevenLabsCalls,
@@ -80,10 +81,13 @@ const loaded = Effect.gen(function* () {
   return { ...film, timings } satisfies LoadedFilm;
 });
 
+/** `film` as a take is kept against it. */
+const voiced = (film: LoadedFilm) => Effect.orDie(Effect.fromResult(voicedOf(film)));
+
 const importing = (path: string, options: ImportOptions = defaults) =>
   Effect.gen(function* () {
     const takes = yield* Takes;
-    const imported = yield* takes.importPath(yield* loaded, path, options);
+    const imported = yield* takes.importPath(yield* voiced(yield* loaded), path, options);
     return { imported, after: (yield* loaded).timings };
   });
 
@@ -187,10 +191,12 @@ describe('Takes', () => {
     return Effect.gen(function* () {
       const film = { ...(yield* loaded), scenes: [{ id: 'b', say: 'The second Ellet line.' }] };
       const takes = yield* Takes;
-      const strict = yield* Effect.flip(takes.importPath(film, '/rec/b.wav', defaults));
+      const strict = yield* Effect.flip(
+        takes.importPath(yield* voiced(film), '/rec/b.wav', defaults),
+      );
       expect(strict).toMatchObject({ _tag: 'TakeMismatch', id: 'b' });
       const imported = yield* takes.importPath(
-        { ...film, heardAs: { Ellet: ['Elliot'] } },
+        yield* voiced({ ...film, heardAs: { Ellet: ['Elliot'] } }),
         '/rec/b.wav',
         defaults,
       );
@@ -244,7 +250,9 @@ describe('Takes', () => {
       expect(history.length).toBe(2);
       const earlier = history.find((a) => a.file === firstFile);
       expect(earlier).toBeDefined();
-      yield* takes.keepAttempt(yield* loaded, 'b', firstFile ?? '', { acceptMismatch: false });
+      yield* takes.keepAttempt(yield* voiced(yield* loaded), 'b', firstFile ?? '', {
+        acceptMismatch: false,
+      });
       expect((yield* loaded).timings.scenes['b']?.file).toBe(firstFile);
     }).pipe(Effect.provide(layer));
   });

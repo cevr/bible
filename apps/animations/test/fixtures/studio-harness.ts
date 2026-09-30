@@ -24,17 +24,17 @@ import {
   FreshFilm,
   type LabHandler,
   Media,
-  Mixer,
   NotesStore,
   SceneHead,
   SceneSources,
   SceneWriter,
   SourceWriter,
+  StudioReadings,
   Takes,
   beatsOf,
   labHandler,
 } from '@bible/film/tools';
-import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { serve } from '../../server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
@@ -140,12 +140,23 @@ const Harness = Layer.unwrap(
       Layer.provideMerge(SceneSources.layer),
       Layer.provide([Repo, Store, Platform]),
     );
-    const Check = FreshFilm.layer(['bun', path.join(app, 'cli.ts')]).pipe(Layer.provide(Platform));
+    // The film CLI over the copy, for the lab's fresh check, reading and mix: they never touch
+    // the real films.
+    const cli = path.join(root, 'cli.ts');
+    const [appAt, rootAt, soundsAt] = yield* Effect.forEach(
+      [path.join(app, 'cli.ts'), root, path.join(app, 'sounds')],
+      (at) => Schema.encodeEffect(Schema.fromJsonString(Schema.String))(at),
+    );
+    yield* fs.writeFileString(
+      cli,
+      `import { appCli } from ${appAt};\nappCli(${rootAt}, ${soundsAt}, import.meta.path);\n`,
+    );
+    const Check = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
     const Heard = harnessElevenLabs(film, misheard).pipe(
       Layer.provideMerge(Media.layer),
       Layer.provide([Repo, Platform]),
     );
-    const Services = Layer.mergeAll(Takes.layer, Mixer.layer).pipe(
+    const Services = Layer.mergeAll(Takes.layer, StudioReadings.layer).pipe(
       Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Heard, Platform)),
     );
 

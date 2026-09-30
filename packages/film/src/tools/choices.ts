@@ -35,10 +35,8 @@ import {
   Cache,
   Clock,
   Context,
-  Data,
   Effect,
   FiberMap,
-  FileSystem,
   Layer,
   Match,
   Option,
@@ -82,7 +80,7 @@ import {
   VariantUnknown,
   VerbRefused,
 } from './errors.ts';
-import { FilmFolder, type FilmName, lockManifest } from './film-repo.ts';
+import { FilmFolder, type FilmName, Stamped, lockManifest } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import { Review, keptWhenMade, once } from './review.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
@@ -150,7 +148,6 @@ export interface ChoicesService {
  * film in this process does not compile; it goes through `FreshFilm`.
  */
 export type ChoicesNeeds =
-  | FileSystem.FileSystem
   | Path.Path
   | FilmFolder
   | ContentStore
@@ -159,9 +156,6 @@ export type ChoicesNeeds =
   | FreshFilm
   | RenderCatalogue
   | Takes;
-
-/** The folders under a film's that hold no source of its sound (renders, caches). */
-const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
 /** The point `id` among `points`, or `ChoiceUnknown` naming the ones there are. */
 export const offeredPoint = (
@@ -224,9 +218,6 @@ export const verbFits = (
 /** How a verb reads in a change's target: `keep`, `unkeep`, `reject`, `play`. */
 const TAKE_ACT = { pick: 'keep', unpick: 'unkeep', reject: 'reject' } as const;
 
-/** A film's sources at one stamp: the key its points were read under. */
-class Stamped extends Data.Class<{ readonly film: FilmName; readonly stamp: number }> {}
-
 /** The films whose points are kept at a time: the review's films, with room. */
 const POINTS_KEPT = 16;
 
@@ -236,7 +227,6 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
   static readonly layer: Layer.Layer<Choices, never, ChoicesNeeds> = Layer.effect(
     Choices,
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const folder = yield* FilmFolder;
       const store = yield* ContentStore;
@@ -252,29 +242,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const lockOf = (refused: () => VerbRefused) =>
         Effect.fromOption(Option.map(folder.sounds, lockManifest), refused);
 
-      /**
-       * What the film is made from: the newest mtime of any file under its
-       * folder (its scenes, takes, score and `sound.ts`) and of the library's
-       * lock. A change to any of them reads its points, and makes a mix, again.
-       */
-      const stamp = Effect.fn('Choices.stamp')(function* (film: FilmName) {
-        const dir = folder.paths(film).dir;
-        const files = yield* fs.readDirectory(dir, { recursive: true });
-        const sources = files.filter((f) => !NOT_SOURCE.includes(f.split('/')[0] ?? ''));
-        const lock = Option.map(folder.sounds, (sounds) => lockManifest(sounds).file);
-        const times = yield* Effect.forEach(
-          [...sources.map((f) => path.join(dir, f)), ...Option.toArray(lock)],
-          (file) =>
-            fs.stat(file).pipe(
-              Effect.map((info) =>
-                Option.match(info.mtime, { onNone: () => 0, onSome: (d) => d.getTime() }),
-              ),
-              Effect.orElseSucceed(() => 0),
-            ),
-          { concurrency: 16 },
-        );
-        return Math.max(0, ...times);
-      });
+      const stamp = folder.stamp;
 
       /** The points read at each stamp; a failed read is not kept. */
       const read = yield* Cache.makeWith((at: Stamped) => fresh.choices(at.film), {

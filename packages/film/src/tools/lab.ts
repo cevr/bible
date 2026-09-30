@@ -29,52 +29,27 @@ import {
 import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
-import { sceneClock, sceneOf } from '../core/layout.ts';
 import { StillUnknown } from '../core/refusals.ts';
-import { type Span } from '../core/schema.ts';
-import { resolveTimeline } from '../core/timeline.ts';
 import { FilmScope, LOOPBACK_ONLY, answered, named, serveApi, withServices } from './api-server.ts';
-import { FilmFolder, FilmName, FilmRepo, placeFilm } from './film-repo.ts';
-import type { Mixer } from './mixer.ts';
+import type { ContentStore } from './content-store.ts';
+import { FilmFolder, FilmName } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter, type Written } from './scene-writer.ts';
 import type { SourceWriter } from './source-writer.ts';
-import type { FreshFilm } from './fresh-film.ts';
+import { FreshFilm } from './fresh-film.ts';
 import { stepHandlers, writeAnswer } from './steps-http.ts';
-import { studioGroup } from './studio.ts';
+import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
 
 /** The longest a wait may hold a request open. */
 export const MAX_WAIT = Duration.seconds(60);
 
-/**
- * The cue on the scene's clock, its timeline as the file now declares it:
- * each span read back from source where it is a literal, the rest as this
- * process loaded them. None when it does not resolve.
- */
-const resolveCue = Effect.fn('lab.resolveCue')(function* (
-  film: string,
-  scene: string,
-  fresh: Readonly<Record<string, Span>>,
-  cue: string,
-) {
-  const placed = yield* placeFilm(yield* (yield* FilmRepo).load(film));
-  return Result.match(sceneOf(placed, scene), {
-    onFailure: () => Option.none(),
-    onSuccess: (p) =>
-      Option.flatMap(
-        Result.getSuccess(resolveTimeline({ ...p.spec.timeline, ...fresh }, sceneClock(p))),
-        (cues) => Option.fromUndefinedOr(cues.get(cue)),
-      ),
-  });
-});
-
 /** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
 const cueWritten = Effect.fn('lab.cueWritten')(function* (
-  film: string,
+  film: FilmName,
   scene: string,
   cue: string,
   written: Written,
@@ -84,8 +59,9 @@ const cueWritten = Effect.fn('lab.cueWritten')(function* (
     onNone: () => ({}),
     onSome: (s) => ({ span: s }),
   });
-  // The write landed; a cue that does not resolve says why in the answer, and in the log.
-  const read = resolveCue(film, scene, spans, cue).pipe(
+  // The write landed: the cue on its scene's clock as the film's files now declare it, read
+  // fresh (this process's scenes are as it imported them). One that does not resolve says why.
+  const read = FreshFilm.use((fresh) => fresh.cue(film, scene, cue)).pipe(
     Effect.map((resolved) => ({
       ...span,
       ...Option.match(resolved, { onNone: () => ({}), onSome: (r) => ({ resolved: r }) }),
@@ -240,25 +216,34 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
 const asFilmName = Schema.decodeSync(FilmName);
 
 /**
+ * What the lab's handlers run with: the notes store, the film's folder,
+ * its source (read, written, stepped), its takes, and `FreshFilm` for every
+ * read of the film's modules. The lab runs for hours and keeps a module as it
+ * first imported it, so nothing here loads the film (`FilmRepo`) or mixes it
+ * in process (`Mixer`): the studio reads the script and voice fresh
+ * (`StudioReadings`) and remixes fresh, and a cue written is resolved fresh.
+ * `review-context.types.ts` fails the typecheck if a loader joins.
+ */
+export type LabContext =
+  | NotesStore
+  | FileSystem.FileSystem
+  | Path.Path
+  | ContentStore
+  | FilmFolder
+  | SceneSources
+  | SceneWriter
+  | SourceWriter
+  | SceneHead
+  | FreshFilm
+  | Takes
+  | StudioReadings;
+
+/**
  * The lab's whole API for `film` as one web handler over the services the
- * caller runs with (the notes store, the film's source and its check, its
- * takes and mixer), closed when the scope closes.
+ * caller runs with (`LabContext`), closed when the scope closes.
  */
 export const labHandler = Effect.fn('film.lab.handler')(function* (film: string) {
-  const services = yield* Effect.context<
-    | NotesStore
-    | FileSystem.FileSystem
-    | Path.Path
-    | FilmFolder
-    | FilmRepo
-    | SceneSources
-    | SceneWriter
-    | SourceWriter
-    | SceneHead
-    | FreshFilm
-    | Takes
-    | Mixer
-  >();
+  const services = yield* Effect.context<LabContext>();
   const routes = HttpApiBuilder.layer(LabHttpApi).pipe(
     Layer.provide(Layer.mergeAll(notesGroup, scenesGroup, stepsGroup, studioGroup)),
     withServices(services, FilmScope.only(asFilmName(film))),

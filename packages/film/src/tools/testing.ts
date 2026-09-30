@@ -58,7 +58,7 @@ import {
 } from './errors.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
-import { Mixer } from './mixer.ts';
+import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
@@ -240,6 +240,9 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       mix: unused('options mix'),
       keepVoice: unused('options keep-voice'),
       take: unused('options take'),
+      reading: unused('read voice'),
+      cue: unused('read cue'),
+      remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),
       ...given,
@@ -275,7 +278,6 @@ export const noSource = Layer.mergeAll(
       history: () => unusedSource,
     }),
   ),
-  freshFilm({}),
   Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
 );
 
@@ -295,11 +297,8 @@ export const noStudio = Layer.mergeAll(
     }),
   ),
   Layer.succeed(
-    Mixer,
-    Mixer.of({
-      mix: () => Effect.die('the studio is not called here'),
-      render: () => Effect.die('the studio is not called here'),
-    }),
+    StudioReadings,
+    StudioReadings.of({ reading: () => Effect.die('the studio is not called here') }),
   ),
 );
 
