@@ -6,17 +6,8 @@
 // is computed, a bed that no longer plays the sound its knob was listed for).
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
-import {
-  SCORE_PLAY,
-  editLevel,
-  editPick,
-  levelPointId,
-  levelTargetOf,
-  lookPlay,
-  readLevel,
-  readPick,
-} from './choice-source.ts';
+import { Result } from 'effect';
+import { SCORE_PLAY, editLevel, editPick, lookPlay, readLevel, readPick } from './choice-source.ts';
 
 const SOUND = `import type { Sound } from '@bible/film/core';
 
@@ -93,17 +84,5 @@ describe('a level', () => {
   test('a bed that no longer plays the sound its knob was listed for is refused', () => {
     expect(Result.isFailure(editLevel('sound.ts', SOUND, bed(1, 'amb.wind'), -20))).toBe(true);
     expect(Result.isFailure(editLevel('sound.ts', SOUND, bed(9, 'amb.hall'), -20))).toBe(true);
-  });
-
-  test('a point id names its target and reads back', () => {
-    for (const target of [
-      bed(3, 'amb.hall'),
-      { _tag: 'Layer', layer: { _tag: 'Effect', name: 'gavel' } } as const,
-      { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } } as const,
-      { _tag: 'Const', name: 'PAPER' } as const,
-    ])
-      expect(levelTargetOf(levelPointId(target))).toEqual(Option.some(target));
-    expect(levelTargetOf('take:paper.page')).toEqual(Option.none());
-    expect(levelTargetOf('level:bed:x:amb')).toEqual(Option.none());
   });
 });

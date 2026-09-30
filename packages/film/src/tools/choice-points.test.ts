@@ -176,7 +176,7 @@ describe("the owner's say", () => {
   test('an approval and a comment read onto the variant they were given on, and no other', () => {
     const [ground] = lookPoints(film());
     const light = Option.getOrThrow(Option.fromUndefinedOr(ground?.variants[1]));
-    const subject = subjectAt('look:ground', 'look', { _tag: 'Film' }, light);
+    const subject = subjectAt({ _tag: 'Look', name: 'ground' }, { _tag: 'Film' }, light);
     const said = comment(approve(emptyCatalogue('test'), subject, 1), subject, 'warmer', 2);
     const look = named(points(Option.some(said)), 'look:ground');
     expect(

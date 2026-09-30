@@ -19,6 +19,7 @@
 
 import { Array as Arr, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import { PointId, type PointRef, pointIdOf } from './point.ts';
 import { maybe } from './schema.ts';
 import { FilmPiece } from './shorts.ts';
 
@@ -102,7 +103,7 @@ export type Render = typeof Render.Type;
  */
 const SayFields = {
   address: Address,
-  point: maybe(Schema.String),
+  point: maybe(PointId),
   variant: Schema.String,
   key: Schema.String,
 };
@@ -156,7 +157,7 @@ const sameSlot = (a: Slot, b: Slot) =>
 export interface Topic {
   readonly address: Address;
   /** The point, when it is not the address's render set. */
-  readonly point: Option.Option<string>;
+  readonly point: Option.Option<PointRef>;
   readonly variant: string;
 }
 
@@ -166,11 +167,22 @@ export interface Subject extends Topic {
 }
 
 /** The id of an address's render set as a choice point: `render:scenes:cold`. */
-export const renderPointId = (address: Address): string => `render:${addressKey(address)}`;
+export const renderPointId = (address: Address): string => pointIdOf({ _tag: 'Render', address });
 
-/** The id of the choice point `topic` is on. */
-export const pointIdOf = (topic: Pick<Topic, 'address' | 'point'>): string =>
-  Option.getOrElse(topic.point, () => renderPointId(topic.address));
+/**
+ * One variant of the point `ref` at `address` as a topic. A render set's
+ * point is its address's, so it is recorded without one; any other point
+ * names itself.
+ */
+export const topicAt = (address: Address, ref: PointRef, variant: string): Topic => ({
+  address,
+  point: Option.liftPredicate(ref, (r) => r._tag !== 'Render'),
+  variant,
+});
+
+/** The point `topic` is on. */
+const pointOf = (topic: Topic): PointRef =>
+  Option.getOrElse(topic.point, (): PointRef => ({ _tag: 'Render', address: topic.address }));
 
 /**
  * A render's version, what the owner's say is keyed by: its stamp's key, and
@@ -187,22 +199,17 @@ export const renderVersion = (render: Render): string =>
 
 /** A render as what the owner's say is about: its render set's variant, as it is now. */
 export const subjectOf = (render: Render): Subject => ({
-  address: render.address,
-  point: Option.none(),
-  variant: render.variant,
+  ...topicOf(render),
   key: renderVersion(render),
 });
 
 /** A slot's video render set as a topic (its point and variant). */
-const topicOf = (slot: Slot): Topic => ({
-  address: slot.address,
-  point: Option.none(),
-  variant: slot.variant,
-});
+const topicOf = (slot: Pick<Slot, 'address' | 'variant'>): Topic =>
+  topicAt(slot.address, { _tag: 'Render', address: slot.address }, slot.variant);
 
 /** Whether `on` (an approval or comment) is about `topic`: the same point's same variant. */
 const about = (on: Topic, topic: Topic) =>
-  pointIdOf(on) === pointIdOf(topic) && on.variant === topic.variant;
+  pointIdOf(pointOf(on)) === pointIdOf(pointOf(topic)) && on.variant === topic.variant;
 
 /** `catalogue` with `render` in its slot, in place of the render there before. */
 export const recordRender = (catalogue: Catalogue, render: Render): Catalogue => ({
@@ -433,9 +440,7 @@ export const sceneSlot = (scene: string, variant: string): Slot => ({
 
 /** `address`'s render set's `variant` as it is now (`key`): what is said of a film or an act. */
 export const partSubject = (address: Address, variant: string, key: string): Subject => ({
-  address,
-  point: Option.none(),
-  variant,
+  ...topicOf({ address, variant }),
   key,
 });
 

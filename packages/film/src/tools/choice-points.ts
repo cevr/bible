@@ -25,9 +25,9 @@ import {
   type ChoicePoint,
   type PointDraft,
   type VariantDraft,
-  pointId,
   withSay,
 } from '../core/choice.ts';
+import { type SoundLayer, pointIdOf } from '../core/point.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import { type MixPlan, mixPlan } from '../core/mix.ts';
 import type { Cue, Sound } from '../core/schema.ts';
@@ -43,7 +43,7 @@ import {
 import { type ScoreOptionState, cueTime, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import type { Attempt } from './takes.ts';
-import { type LevelWritten, type SoundLayer, levelPointId, readLevel } from './choice-source.ts';
+import { type LevelWritten, readLevel } from './choice-source.ts';
 
 /** How a score option's state in the store reads as a variant's. */
 const SCORE_STATE: Record<ScoreOptionState['_tag'], VariantState> = {
@@ -93,7 +93,7 @@ export const scorePoint = (
   Option.map(
     Option.flatMap(loaded.sound, (s) => Option.fromUndefinedOr(s.score)),
     (score): PointDraft => ({
-      id: pointId('score', ''),
+      id: pointIdOf({ _tag: 'Score' }),
       kind: 'score',
       address: Option.some({ _tag: 'Film' }),
       title: 'score',
@@ -230,7 +230,7 @@ export const takePoints = (
             const takes = takesOf(entry, Option.fromUndefinedOr(loaded.sounds.lock[name]));
             return [
               {
-                id: pointId('take', name),
+                id: pointIdOf({ _tag: 'Take', sound: name }),
                 kind: 'take',
                 address: Option.some(scenesAddress(here.map((w) => sceneOfTime(placed, w.at)))),
                 title: name,
@@ -253,7 +253,7 @@ export const takePoints = (
 /** Each look the film chooses between (`looks` in `palette.ts`), its levels, `play` picked. */
 export const lookPoints = (loaded: LoadedFilm): ReadonlyArray<PointDraft> =>
   Object.entries(loaded.looks).map(([name, look]): PointDraft => ({
-    id: pointId('look', name),
+    id: pointIdOf({ _tag: 'Look', name }),
     kind: 'look',
     address: Option.some({ _tag: 'Film' }),
     title: `look ${name}`,
@@ -294,7 +294,7 @@ export const voicePoints = (
     .map((b): PointDraft => {
       const kept = Option.map(Option.fromNullishOr(loaded.timings.scenes[b.beat]), (t) => t.file);
       return {
-        id: pointId('voice', b.beat),
+        id: pointIdOf({ _tag: 'Voice', beat: b.beat }),
         kind: 'voice',
         address: Option.some(sceneAddress(b.beat)),
         title: `voice ${b.beat}`,
@@ -394,7 +394,7 @@ const LEVEL_KNOB = { min: -40, max: 0, step: 0.5, unit: 'dB' } as const;
 
 /** A layer's level knob: its point id, its value and whether a write can reach it. */
 const knobOf = (layer: LayerLevel, written: Result.Result<LevelWritten, unknown>) => {
-  const own = levelPointId({ _tag: 'Layer', layer: layer.layer });
+  const own = pointIdOf({ _tag: 'Level', target: { _tag: 'Layer', layer: layer.layer } });
   const fixed = (why: string) => ({
     id: own,
     value: Option.getOrElse(layer.fallback, () => 0),
@@ -405,7 +405,7 @@ const knobOf = (layer: LayerLevel, written: Result.Result<LevelWritten, unknown>
   if (w._tag === 'Own') return { id: own, value: w.value, fixed: Option.none<string>() };
   if (w._tag === 'Shared')
     return {
-      id: levelPointId({ _tag: 'Const', name: w.name }),
+      id: pointIdOf({ _tag: 'Level', target: { _tag: 'Const', name: w.name } }),
       value: w.value,
       fixed: Option.none<string>(),
     };

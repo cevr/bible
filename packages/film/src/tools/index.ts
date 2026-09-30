@@ -31,13 +31,10 @@ export * from './lab.ts';
 export * from './choices.ts';
 export * from './fresh-film.ts';
 export {
-  type LevelTarget,
   type PickSite,
   SCORE_PLAY,
   editLevel,
   editPick,
-  levelPointId,
-  levelTargetOf,
   lookPlay,
   readLevel,
   readPick,

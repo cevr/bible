@@ -31,7 +31,9 @@ import {
   VariantState,
   approvalState,
   saidOn,
+  topicAt,
 } from './catalogue.ts';
+import { type PointRef, pointIdOf, pointRefOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -97,7 +99,10 @@ export type ChoiceKnob = typeof ChoiceKnob.Type;
 
 /** A choice point: at an address, variants to compare, pick, comment on and approve. */
 export const ChoicePoint = Schema.Struct({
-  /** Unique in its film: `score`, `take:paper.slide`, `look:ground`, `render:scenes:cold`. */
+  /**
+   * Unique in its film: `score`, `take:paper.slide`, `look:ground`,
+   * `render:scenes:cold`; a `PointRef` as `point.ts` writes it.
+   */
   id: Schema.String,
   kind: ChoiceKind,
   /** Where in the film it belongs; none for a montage's set, which no film owns. */
@@ -114,18 +119,13 @@ export const ChoicePoint = Schema.Struct({
 });
 export type ChoicePoint = typeof ChoicePoint.Type;
 
-/**
- * A point's id from its kind and its name at that kind: `take:paper.slide`,
- * `look:ground`, `voice:cold`; the score, the film's one, is `score`.
- */
-export const pointId = (kind: ChoiceKind, name: string): string => {
-  if (name === '') return kind;
-  return `${kind}:${name}`;
-};
+/** A montage clip's render set as a choice point, as the review names it: `render:<clip>`. */
+export const pointId = (_kind: 'render', clip: string): string =>
+  pointIdOf({ _tag: 'Montage', clip });
 
-/** A point's name at its kind (`pointId` read back): `paper.slide` of `take:paper.slide`. */
-export const pointName = (point: Pick<ChoicePoint, 'id' | 'kind'>): string =>
-  point.id.slice(point.kind.length + 1);
+/** The point `point` is (its id read back), when its id names one. */
+export const refOf = (point: Pick<ChoicePoint, 'id'>): Option.Option<PointRef> =>
+  pointRefOf(point.id);
 
 /** A variant as its adapter describes it, before the owner's say is read. */
 export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes'> & {
@@ -144,22 +144,12 @@ export interface PointDraft extends Omit<
   readonly knob?: Option.Option<ChoiceKnob>;
 }
 
-/**
- * What the owner's say on `variant` of the point `id` at `address` is
- * about. A render set's say is recorded without a point (its address names
- * it); any other point's with its id.
- */
+/** What the owner's say on `variant` of the point `ref` at `address` is about. */
 export const subjectAt = (
-  id: string,
-  kind: ChoiceKind,
+  ref: PointRef,
   address: Address,
   variant: { readonly id: string; readonly key: string },
-): Subject => ({
-  address,
-  point: Option.liftPredicate(id, () => kind !== 'render'),
-  variant: variant.id,
-  key: variant.key,
-});
+): Subject => ({ ...topicAt(address, ref, variant.id), key: variant.key });
 
 /** `draft` with each variant's approval and comments as `catalogue` records them. */
 export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => ({
@@ -169,11 +159,9 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
   marks: draft.marks ?? [],
   knob: draft.knob ?? Option.none(),
   variants: draft.variants.map((variant): ChoiceVariant => {
-    const said = Option.flatMap(catalogue, (cat) =>
-      Option.map(draft.address, (address) => ({
-        cat,
-        subject: subjectAt(draft.id, draft.kind, address, variant),
-      })),
+    const said = Option.map(
+      Option.all({ cat: catalogue, address: draft.address, ref: refOf(draft) }),
+      ({ cat, address, ref }) => ({ cat, subject: subjectAt(ref, address, variant) }),
     );
     return {
       ...variant,
