@@ -154,9 +154,11 @@ describe('Renderer', () => {
       expect(Exit.isFailure(exit)).toBe(true);
       expect(left(failed)).toEqual([]);
 
-      const cut = setup();
+      // Interrupted once a page is drawing a frame: its segments are being written.
+      const drawing = yield* Deferred.make<void>();
+      const cut = setup({ frame: () => Deferred.done(drawing, Exit.void) });
       const fiber = yield* Effect.forkChild(cut.render(video));
-      yield* Effect.sleep('30 millis');
+      yield* Deferred.await(drawing);
       expect(left(cut).length).toBeGreaterThan(0);
       yield* Fiber.interrupt(fiber);
       expect(left(cut)).toEqual([]);
