@@ -6,6 +6,7 @@
 import { Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import { UnknownMark } from '../../core/errors.ts';
 import { HeadUnavailable } from '../../core/refusals.ts';
 import { compareText, headEdit } from './head.ts';
 
@@ -37,16 +38,21 @@ describe('headEdit', () => {
 
 describe('compareText', () => {
   test('off says nothing; reading says so', () => {
-    expect(compareText('off', 'one', AsyncResult.success(head))).toBe('');
-    expect(compareText('wipe', 'one', AsyncResult.initial())).toBe('reading one at HEAD…');
+    expect(compareText('off', 'one', AsyncResult.success(head), Option.none())).toBe('');
+    expect(compareText('wipe', 'one', AsyncResult.initial(), Option.none())).toBe(
+      'reading one at HEAD…',
+    );
   });
   test('the file it read, and what changed since', () => {
-    expect(compareText('wipe', 'one', AsyncResult.success(head))).toBe('scenes/one.ts at HEAD');
+    expect(compareText('wipe', 'one', AsyncResult.success(head), Option.none())).toBe(
+      'scenes/one.ts at HEAD',
+    );
     expect(
       compareText(
         'blink',
         'one',
         AsyncResult.success({ ...head, codeChanged: true, sameData: true }),
+        Option.none(),
       ),
     ).toBe(
       "scenes/one.ts at HEAD · code changed since HEAD — compare shows data only · HEAD's timeline and knobs are the same as now",
@@ -54,8 +60,19 @@ describe('compareText', () => {
   });
   test("HEAD refused: the server's reason, in its words", () => {
     const refused = HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' });
-    expect(compareText('wipe', 'one', AsyncResult.fail(refused))).toBe(
+    expect(compareText('wipe', 'one', AsyncResult.fail(refused), Option.none())).toBe(
       'one: scenes/one.ts: no HEAD version to compare with: not in git',
+    );
+  });
+  test("HEAD's timeline that does not resolve now: why, in the timeline's words", () => {
+    const missing = UnknownMark.make({
+      scene: 'one',
+      mark: 'soar',
+      by: 'cue "rise"',
+      known: ['rise'],
+    });
+    expect(compareText('wipe', 'one', AsyncResult.success(head), Option.some(missing))).toBe(
+      `one: HEAD's timeline does not resolve now: cue "rise": scene "one" has no mark {soar}; its marks are {rise}`,
     );
   });
 });

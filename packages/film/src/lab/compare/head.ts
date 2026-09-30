@@ -5,7 +5,7 @@
 // when it cannot be, that, in the server's words.
 
 import { Option } from 'effect';
-import type { SceneEdit } from '../../canvas/film.ts';
+import type { EditError, SceneEdit } from '../../canvas/film.ts';
 import type { HeadSource, Knobs, Timeline } from '../../core/schema.ts';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type LabFailure, reasonOf } from '../api.ts';
@@ -27,31 +27,40 @@ export const headEdit = (today: Option.Option<Declared>, head: HeadSource): Scen
   };
 };
 
-/** What the compare says of `scene` in `mode`, HEAD read as `head`. */
+/**
+ * What the compare says of `scene` in `mode`, HEAD read as `head`, and why
+ * HEAD's edit does not resolve on today's narration when it does not
+ * (`Film.edit`): then nothing is drawn, and the line says so.
+ */
 export const compareText = (
   mode: CompareMode,
   scene: string,
   head: AsyncResult.AsyncResult<HeadSource, LabFailure>,
+  unresolved: Option.Option<EditError>,
 ): string => {
   if (mode === 'off') return '';
   return AsyncResult.match(head, {
     onInitial: () => `reading ${scene} at HEAD…`,
     onFailure: (f) => `${scene}: ${reasonOf(f.cause)}`,
     onSuccess: ({ value }) =>
-      [
-        `${value.file} at HEAD`,
-        ...Option.toArray(
-          Option.liftPredicate(
-            'code changed since HEAD — compare shows data only',
-            () => value.codeChanged,
-          ),
-        ),
-        ...Option.toArray(
-          Option.liftPredicate(
-            "HEAD's timeline and knobs are the same as now",
-            () => value.sameData,
-          ),
-        ),
-      ].join(' · '),
+      Option.match(unresolved, {
+        onSome: (err) => `${scene}: HEAD's timeline does not resolve now: ${err.message}`,
+        onNone: () => headText(value),
+      }),
   });
 };
+
+/** The file HEAD was read from, and what changed since. */
+const headText = (value: HeadSource): string =>
+  [
+    `${value.file} at HEAD`,
+    ...Option.toArray(
+      Option.liftPredicate(
+        'code changed since HEAD — compare shows data only',
+        () => value.codeChanged,
+      ),
+    ),
+    ...Option.toArray(
+      Option.liftPredicate("HEAD's timeline and knobs are the same as now", () => value.sameData),
+    ),
+  ].join(' · ');

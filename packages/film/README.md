@@ -884,13 +884,17 @@ only its offset, its start held a frame before the mark, and its right edge
 sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
 marks and other cues' edges within 8 px, else move by whole frames; shift
 places them freely. While dragging, the frame previews the edit in memory:
-the lab's stage holds each scene's edit and hands them to the player whole
-(`Player.showEdits`), which draws every frame with them (`film.render(…, {
-edits })` resolves an edited timeline on the scene's own clock,
-`sceneClock(p)`, as `layout()` does; the film keeps nothing, so the next frame
-draws what it is handed, and `film.cuesOf(scene, edit)` gives the cues it
-draws); an edit that does not resolve is not shown, and the status says why;
-the release writes. The
+an edit is resolved once, where it is made: `film.edit(scene, edit)` resolves
+its timeline on the scene's own clock, `sceneClock(p)`, as `layout()` does,
+and returns a `Result`: the `ShownEdit` (its cues and knobs, and the literals
+they came from) or why it does not resolve (`UnknownScene`, a `TimelineError`).
+The lab's stage holds each scene's `ShownEdit` and hands them to the player
+whole (`Player.showEdits`), which draws every frame with them (`film.render(…,
+{ edits })`, which resolves nothing and never throws for an edit; the film
+keeps nothing, so the next frame draws what it is handed); an edit that does
+not resolve is not shown, and the status says why. Compare with HEAD resolves
+HEAD's literals over today's the same way: when they name what today's
+narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
 inputs (for an `until` cue, `until {mark}` and its resolved end instead of
 `dur`), and an ease picker drawing each curve (the ease is only ever data:
