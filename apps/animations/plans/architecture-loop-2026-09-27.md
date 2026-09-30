@@ -308,6 +308,31 @@ Merge proofs: v1 byte-identical at 7.5/140.4/236.8; ArmPop 0, HandHidden 0 over 
 - p4-score (8b8f4d28..494f7f41, merged 2026-09-30, a provisional yes): RBF scored three ways (piano, ensemble, ambient), `play` piano until the owner picks in the lab; the mix masters to −18 LUFS; the last act runs past the end. Open: the low end barely swells under mirror and exchange (0–3 dB against ~15).
 - p4-review (dfee482c..04912013, merged 2026-09-30): the review and options page in the lab (Effect routes, Solid 2 page), serving renders, score options and sound takes with picks written back and undone; `film-review.service` on :8229 runs from the main checkout, every path behind the Host check.
 
+## Pass 5 (2026-09-30)
+
+Owner: "run the architecture loop until no more findings, fix all findings, no need to ask". Owner checkpoints stay only for paid calls, deploys, and looks judged on the review page.
+
+- Baseline: main e42381ce, 82,203 source lines (`apps/animations/**/*.ts`, `packages/film/**/*.ts{,x}`; pass 1's 32,527 left out `.tsx`).
+- Coverage: 18 of 31 directories had never been swept (infra, sounds, test fixtures, canvas/fixtures, core/synth, every lab/* folder, tools/fixtures). Pass 5's seven sweeps (engine, core, tools, lab, films, guardrails, performance) covered all of them. Reports are in `SP/film-pass5/`.
+- Review: R1–R9 were already done in code and are closed here. R11 (the Sabbath appears only in script comments) needs a paid take, so it goes to the owner.
+- Performance (load 12–17, noisy, recorded not claimed): draw median 68.3 ms and p95 168 ms (roof 168, centurion 138, message 117); `check` takes 187 s at 5.2 GB; cues 0.76 s; lab ready 0.94 s, first frame 2.28 s; render 18.4 fps (pages 39.7). x264 `medium` takes 53 % of render time.
+- Triage: `SP/film-pass5/triage.md`. Apply rules: `SP/film-pass5/apply-rules.md`. Batches can't prove behaviour with the hook now, so each one runs `bun run gate` into a log before it commits.
+
+| Wave | Batch        | Items                                                                                                             | Result |
+| ---- | ------------ | ----------------------------------------------------------------------------------------------------------------- | ------ |
+| 1    | p5-guard     | G1 turbo inputs, G2/T8 licence guard in CI, G6 frame purity, G7 no fixed waits, goldens to properties, stale docs |        |
+| 1    | p5-address   | A2 one address, FL9, C4/FL4 ScenePoint, FL3 spans to an anchor, C10, C5                                           |        |
+| 1    | p5-engine    | E1–E7, FL12–FL14, FL17, A7 edit as value, PF5-4                                                                   |        |
+| 1    | p5-mixcheck  | C1 mix key, L5-1 lab check leaves the mix out, A3 Report, C6–C9, C11, PF5-6                                       |        |
+| 1    | p5-review    | T1–T12, C2/C3, C12, A8, L5-2–L5-5, MaxListeners                                                                   |        |
+| 2    | p5-films     | FL1, FL2, FL6, FL10, FL11, FL15, FL16, FL18                                                                       |        |
+| 2    | p5-contract  | A4 lab routes as http-api, G9                                                                                     |        |
+| 2    | p5-pages     | A6 export page, PF5-5, PF5-2 comparison                                                                           |        |
+| 2    | p5-catalogue | A5 render catalogue and project folder                                                                            |        |
+| 2    | p5-choice    | A1 choice point, FL7, FL8                                                                                         |        |
+
+Owner questions: FL5 (`lead: 0.4` ×11 would re-key the paid score), R11, PF5-2 share preset (a comparison only).
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
