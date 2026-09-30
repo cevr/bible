@@ -19,6 +19,18 @@ const motionSays = (page: Page, part: string) =>
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
+/**
+ * Stop the page's clock where it stands: from here the page moves only as
+ * the test runs it on (`page.clock.runFor`), so what a loop has played
+ * never depends on how long a loaded machine took between two clicks.
+ */
+const holdClock = (page: Page) =>
+  Effect.flatMap(
+    // The page's own (installed) clock, read in the page: not this process's.
+    Effect.promise(() => page.evaluate<number>('Date.now()')),
+    (now) => Effect.promise(() => page.clock.pauseAt(now + 10)),
+  );
+
 /** The film seconds the player shows, as its readout has them. */
 const shownT = (page: Page) =>
   Effect.promise(() =>
@@ -45,6 +57,7 @@ describe('loops', () => {
     Effect.gen(function* () {
       const { page } = yield* openLab([], { hash: '#1' });
       yield* Effect.promise(() => page.waitForSelector('.lab-motion [data-act="a"]'));
+      yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="a"]');
       yield* motionSays(page, 'A 1.00');
       yield* Effect.promise(() => page.keyboard.press('Shift+ArrowRight'));
@@ -75,14 +88,18 @@ describe('loops', () => {
 
   it.live('the cue button waits for a cue, and loops the selected one', () =>
     Effect.gen(function* () {
-      const bare = yield* openLab([], { hash: '#1' });
+      // One browser: with no cue selected the button waits, then the same tab
+      // opens with a cue selected.
+      const { page } = yield* openLab([], { hash: '#1' });
       yield* Effect.promise(() =>
-        bare.page.waitForSelector('.lab-motion [data-act="loop-cue"][disabled]'),
+        page.waitForSelector('.lab-motion [data-act="loop-cue"][disabled]'),
       );
-      const { page } = yield* openLab([], { query: '&sel=cue:one:rise', hash: '#1' });
+      const selected = page.url().replace('#', '&sel=cue:one:rise#');
+      yield* Effect.promise(() => page.goto(selected));
       yield* Effect.promise(() =>
         page.waitForSelector('.lab-motion [data-act="loop-cue"]:not([disabled])'),
       );
+      yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="loop-cue"]');
       yield* motionSays(page, 'looping rise');
     }).pipe(Effect.scoped),

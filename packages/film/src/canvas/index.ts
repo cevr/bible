@@ -32,7 +32,7 @@ export { glow, sky } from './glow.ts';
 export { type Posed, reset } from './scratch.ts';
 export { type Author, type Credit, CREDIT_MEASURE, creditRoll } from './credits.ts';
 export { type WriteOptions, measure, write } from './type.ts';
-export { probeFace, probeHand, probePlate, probesHands, unprobed } from './probe.ts';
+export { probeFace, probePlate, probesHands, unprobed } from './probe.ts';
 export {
   CLOSE_LINE,
   CLOSE_SPAN,
@@ -48,8 +48,6 @@ export {
 } from './hand.ts';
 export {
   type Camera,
-  DRIFT,
-  type Drift,
   camera,
   driftHeld,
   inset,
@@ -59,7 +57,6 @@ export {
   pushOn,
   shotPath,
 } from './camera.ts';
-export { type CardType, storyboard } from './storyboard.ts';
-export { type SceneDrawing, type SceneLight, type SceneParts, scenesOf } from './scenes.ts';
+export { scenesOf } from './scenes.ts';
 export { type Film, type Frame, type Light, type SceneSpec, createFilm, drawing } from './film.ts';
 export { shortPages } from './short.ts';
