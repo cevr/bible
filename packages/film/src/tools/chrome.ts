@@ -10,7 +10,7 @@
 // install left in `~/.cache/ms-playwright`. None of them: `BrowserMissing`,
 // which names `BUN_CHROME_PATH`.
 
-import { Config, Effect, FileSystem, Option, Order, Path, type Scope } from 'effect';
+import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
 
 /** A view's viewport, and where the page's `console.*` calls go (dropped when not given). */
@@ -146,3 +146,28 @@ export const openView = (
     (view) => Effect.sync(() => view.close()),
   );
 };
+
+/** `Runtime.exceptionThrown`'s parameters, as far as a page's error is read. */
+const Thrown = Schema.Struct({
+  exceptionDetails: Schema.Struct({
+    text: Schema.String,
+    exception: Schema.optionalKey(
+      Schema.Struct({ description: Schema.optionalKey(Schema.String) }),
+    ),
+  }),
+});
+
+/**
+ * What a page threw, from a view's `Runtime.exceptionThrown` event (with
+ * `Runtime` enabled): the error as the page's console says it (`Error: boom`
+ * and its stack), else the protocol's text.
+ */
+export const thrownBy = (event: Event): Option.Option<string> =>
+  Option.map(Schema.decodeUnknownOption(Thrown)(Reflect.get(event, 'data')), (thrown) =>
+    Option.getOrElse(
+      Option.flatMap(Option.fromUndefinedOr(thrown.exceptionDetails.exception), (e) =>
+        Option.fromUndefinedOr(e.description),
+      ),
+      () => thrown.exceptionDetails.text,
+    ),
+  );

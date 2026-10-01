@@ -1,13 +1,13 @@
-// Headless Chromium, as a service: the Playwright glue, and the one typed
-// path every call on an export page takes (`framePage`). The browser is
-// launched when the layer is built and closed when its scope closes; each
-// page lives in the scope that opened it. A call names one of the handle's
-// calls (`ExportCalls`, core/export-handle.ts), its answer is decoded by that
-// call's schema, and its failure is that call's own error (`CALLS`). Playwright
-// and the test fake (tools/testing.ts) are the two ways a call reaches a page
-// (`Invoke`). Everything the film does wrong in a page arrives as a typed
-// failure: an uncaught error (`pageerror`) is `PageError`, a dead renderer
-// process is `PageCrashed`.
+// Headless Chrome, as a service: a player page in a tab of the process's
+// Chrome (`tools/chrome.ts`, Bun.WebView), and the one typed path every call
+// on an export page takes (`framePage`). Each page lives in the scope that
+// opened it; Chrome lives as long as the process. A call names one of the
+// handle's calls (`ExportCalls`, core/export-handle.ts), its answer is
+// decoded by that call's schema, and its failure is that call's own error
+// (`CALLS`). The tab and the test fake (tools/testing.ts) are the two ways a
+// call reaches a page (`Invoke`). Everything the film does wrong in a page
+// arrives as a typed failure: an uncaught error (`Runtime.exceptionThrown`)
+// is `PageError`, a dead renderer process is `PageCrashed`.
 
 import {
   Array as Arr,
@@ -15,13 +15,15 @@ import {
   Deferred,
   Duration,
   Effect,
+  FileSystem,
   Layer,
   Option,
   Path,
   Schema,
-  Scope,
+  type Scope,
+  Semaphore,
 } from 'effect';
-import { type Page, chromium } from 'playwright-core';
+import { openView, thrownBy } from './chrome.ts';
 import {
   type CallAnswers,
   type CallArgs,
@@ -32,8 +34,8 @@ import {
   ExportInfo,
 } from '../core/export-handle.ts';
 import {
-  BrowserFailed,
-  BrowserMissing,
+  type BrowserFailed,
+  type BrowserMissing,
   ContactFailed,
   EncodeFailed,
   EncoderMissing,
@@ -194,15 +196,12 @@ interface BrowserService {
 }
 
 /** How long the player may take to load its fonts and film. */
-const LOAD_TIMEOUT_MS = 60_000;
+const LOAD_TIMEOUT = Duration.minutes(1);
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
 
-/** Playwright reports a missing browser only in its message; this is the one place it is read. */
-const MISSING = /Executable doesn't exist at (\S+)/;
-
 /**
- * Chromium's flags on `platform` (`process.platform`). On every platform the
+ * Chrome's flags on `platform` (`process.platform`). On every platform the
  * 2D canvas draws in software, so a frame's pixels are the same wherever it
  * is drawn. On macOS the GPU process runs too, through Metal (a macOS-only
  * ANGLE backend): it holds the hardware H.264 encoder a render encodes with.
@@ -216,41 +215,42 @@ export const launchArgs = (platform: string): ReadonlyArray<string> => [
   '--disable-accelerated-2d-canvas',
 ];
 
-const launch = Effect.suspend(() =>
-  Effect.tryPromise({
-    try: () =>
-      chromium.launch({
-        args: [...launchArgs(process.platform)],
-        // The scope closes the browser; Playwright must not race it on a signal.
-        handleSIGINT: false,
-        handleSIGTERM: false,
-        handleSIGHUP: false,
-      }),
-    catch: (cause) => {
-      const reason = String(cause);
-      return Option.match(
-        Option.flatMap(Option.fromNullishOr(MISSING.exec(reason)), (m) => Arr.get(m, 1)),
-        {
-          onNone: () => BrowserFailed.make({ reason }),
-          onSome: (executable) => BrowserMissing.make({ executable }),
-        },
-      );
-    },
-  }),
-);
+/** A tab of this process's Chrome, with the renderer's flags, 1920 × 1080 CSS pixels at one device pixel each; closed with the scope. */
+const frameView = openView(launchArgs(process.platform), { width: 1920, height: 1080 });
 
-const openPage = (page: Page, url: string) =>
+/** A script the page runs, `answer` once it is there: the export handle, waited for on the page's own timers. */
+const HANDLE = `new Promise((done) => {
+  const look = () => (window.__film ? done(true) : setTimeout(look, 50));
+  look();
+})`;
+
+/** Any value as JSON text, to write into a script the page runs. */
+const jsonOf = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+
+const openPage = (view: Bun.WebView, url: string) =>
   Effect.gen(function* () {
     const broken = yield* Deferred.make<never, PageError | PageCrashed>();
-    page.on('pageerror', (error) => {
-      Deferred.doneUnsafe(broken, Effect.fail(PageError.make({ reason: error.message })));
+    const loadFailed = (cause: unknown) => PageLoadFailed.make({ url, reason: String(cause) });
+    // A view takes one script at a time.
+    const one = yield* Semaphore.make(1);
+    const evaluate = <A>(script: string) =>
+      one.withPermits(1)(Effect.tryPromise(() => view.evaluate<A>(script)));
+
+    // The protocol answers once the view has navigated.
+    yield* Effect.tryPromise({ try: () => view.navigate('about:blank'), catch: loadFailed });
+    view.addEventListener('Runtime.exceptionThrown', (event: Event) => {
+      Option.map(thrownBy(event), (reason) =>
+        Deferred.doneUnsafe(broken, Effect.fail(PageError.make({ reason }))),
+      );
     });
-    page.on('crash', () => {
+    view.addEventListener('Inspector.targetCrashed', () => {
       Deferred.doneUnsafe(
         broken,
         Effect.fail(PageCrashed.make({ reason: 'the renderer process died' })),
       );
     });
+    for (const domain of ['Runtime', 'Inspector'])
+      yield* Effect.tryPromise({ try: () => view.cdp(`${domain}.enable`), catch: loadFailed });
 
     /** Fail as soon as the page breaks; a failed call first waits briefly for the break that caused it. */
     const guarded = <A, E>(call: Effect.Effect<A, E>) =>
@@ -266,38 +266,32 @@ const openPage = (page: Page, url: string) =>
         Deferred.await(broken),
       );
 
-    const loadFailed = (cause: unknown) => PageLoadFailed.make({ url, reason: String(cause) });
-    page.setDefaultTimeout(LOAD_TIMEOUT_MS);
-    yield* guarded(Effect.tryPromise({ try: () => page.goto(url), catch: loadFailed }));
-    yield* guarded(
-      Effect.tryPromise({
-        try: () => page.waitForFunction(() => window.__film),
-        catch: loadFailed,
-      }),
-    );
+    /** A step of the load: the page's own, within the load's time. */
+    const loading = <A>(step: Effect.Effect<A, unknown>) =>
+      guarded(
+        step.pipe(
+          Effect.mapError(loadFailed),
+          Effect.timeoutOrElse({
+            duration: LOAD_TIMEOUT,
+            orElse: () => Effect.fail(loadFailed('the player did not load in time')),
+          }),
+        ),
+      );
+
+    yield* loading(Effect.tryPromise(() => view.navigate(url)));
+    yield* loading(evaluate(HANDLE));
     // The player names the page after the film it mounted.
-    const title = yield* guarded(Effect.tryPromise({ try: () => page.title(), catch: loadFailed }));
-    const reported = yield* guarded(
-      Effect.tryPromise({ try: () => page.evaluate(() => window.__film?.info), catch: loadFailed }),
-    );
+    const title = yield* loading(evaluate<string>('document.title'));
+    const reported = yield* loading(evaluate('window.__film.info'));
     const info = yield* Schema.decodeUnknownEffect(ExportInfo)(reported).pipe(
       Effect.mapError((error) => PageLoadFailed.make({ url, reason: error.message })),
     );
 
-    /** A call through Playwright: the arguments cross into the page, the answer back. */
+    /** A call into the page: the arguments cross in as JSON, the answer back. */
     const invoke: Invoke = (name, args, timeout) =>
       guarded(
-        Effect.tryPromise({
-          try: () =>
-            page.evaluate(
-              ([n, a]) => {
-                const handle = window.__film;
-                return handle && Reflect.apply(handle[n], handle, a);
-              },
-              [name, args] satisfies [ExportCall, ReadonlyArray<unknown>],
-            ),
-          catch: (cause) => CallRefused.make({ reason: String(cause) }),
-        }).pipe(
+        evaluate(`window.__film[${jsonOf(name)}](...${jsonOf(args)})`).pipe(
+          Effect.mapError((cause) => CallRefused.make({ reason: String(cause) })),
           Effect.timeoutOrElse({
             duration: timeout,
             orElse: () => Effect.fail(CallRefused.make({ reason: 'timed out' })),
@@ -308,60 +302,38 @@ const openPage = (page: Page, url: string) =>
     return framePage(info, title, invoke);
   });
 
-/** Preflight: headless Chromium launches (and closes again); `BrowserMissing` says how to install it. */
-export const browserReady: Effect.Effect<void, BrowserMissing | BrowserFailed, Path.Path> =
-  Effect.scoped(
-    Effect.asVoid(
-      Effect.acquireRelease(launch, (b) => Effect.ignore(Effect.tryPromise(() => b.close()))),
-    ),
-  ).pipe(Effect.withSpan('Browser.ready'));
+/** Preflight: Chrome opens a page (and closes it again); `BrowserMissing` says how to get one. */
+export const browserReady: Effect.Effect<
+  void,
+  BrowserMissing | BrowserFailed,
+  FileSystem.FileSystem | Path.Path
+> = Effect.scoped(Effect.asVoid(frameView)).pipe(Effect.withSpan('Browser.ready'));
 
 export class Browser extends Context.Service<Browser, BrowserService>()(
   '@bible/film/tools/Browser',
 ) {
   /**
-   * Headless Chromium through Playwright, launched when the first page opens
-   * and closed when the layer's scope closes: a command that draws nothing
-   * (a `project render` of current scenes, a refused flag) never starts it,
-   * and never needs it installed.
+   * Pages in this process's Chrome (`tools/chrome.ts`), spawned when the first
+   * page opens: a command that draws nothing (a `project render` of current
+   * scenes, a refused flag) never starts it, and never needs it there.
    */
   static readonly layer = Layer.effect(
     Browser,
-    Effect.gen(function* () {
-      const scope = yield* Effect.scope;
-      const path = yield* Path.Path;
-      const launched = yield* Effect.cached(
-        Effect.suspend(() => makeBrowser).pipe(
-          Effect.provideService(Path.Path, path),
-          Scope.provide(scope),
-        ),
-      );
-      return Browser.of({
-        open: (url) => Effect.flatMap(launched, (browser) => browser.open(url)),
-      });
-    }),
+    Effect.suspend(() => makeBrowser),
   );
 }
 
-/** Headless Chromium launched in the current scope, and closed with it. */
-export const makeBrowser: Effect.Effect<
-  BrowserService,
-  BrowserMissing | BrowserFailed,
-  Scope.Scope | Path.Path
-> = Effect.gen(function* () {
-  const browser = yield* Effect.acquireRelease(launch, (b) =>
-    Effect.ignore(Effect.tryPromise(() => b.close())),
-  );
-  const open = Effect.fn('Browser.open')(function* (url: string) {
-    const page = yield* Effect.acquireRelease(
-      Effect.tryPromise({
-        try: () =>
-          browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 }),
-        catch: (cause) => BrowserFailed.make({ reason: String(cause) }),
-      }),
-      (p) => Effect.ignore(Effect.tryPromise(() => p.close())),
-    );
-    return yield* openPage(page, url);
+/** Pages in this process's Chrome, each a tab closed with the scope that opened it. */
+export const makeBrowser: Effect.Effect<BrowserService, never, FileSystem.FileSystem | Path.Path> =
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const open = Effect.fn('Browser.open')(function* (url: string) {
+      const view = yield* frameView.pipe(
+        Effect.provideService(FileSystem.FileSystem, fs),
+        Effect.provideService(Path.Path, path),
+      );
+      return yield* openPage(view, url);
+    });
+    return Browser.of({ open });
   });
-  return Browser.of({ open });
-});

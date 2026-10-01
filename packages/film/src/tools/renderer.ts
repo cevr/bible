@@ -140,11 +140,11 @@ export type EncoderReadyError = PageOpenError | PageError | PageCrashed | Encode
 export const encoderReady: Effect.Effect<
   string,
   EncoderReadyError | BrowserMissing,
-  PreviewServer | Path.Path
+  PreviewServer | FileSystem.FileSystem | Path.Path
 > = Effect.scoped(
   Effect.gen(function* () {
     const server = yield* PreviewServer;
-    // A browser of its own, so the doctor's other lines print when Chromium is missing.
+    // Pages of its own, so the doctor's other lines print when Chrome is missing.
     const browser = yield* makeBrowser;
     const page = yield* browser.open(`${server.url}?export`);
     const candidates = encoderCandidates(yield* Platform, Option.none());

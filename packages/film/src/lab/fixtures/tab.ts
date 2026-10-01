@@ -7,6 +7,7 @@
 // there and shown, up to `WAIT_MS`, and fails saying what it waited for.
 
 import { Effect, FiberSet, Option, Schema, Semaphore } from 'effect';
+import { thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
 
@@ -219,16 +220,6 @@ const Paused = Schema.Struct({
   }),
 });
 
-/** `Runtime.exceptionThrown`'s parameters, as far as the tab reads them. */
-const Thrown = Schema.Struct({
-  exceptionDetails: Schema.Struct({
-    text: Schema.String,
-    exception: Schema.optionalKey(
-      Schema.Struct({ description: Schema.optionalKey(Schema.String) }),
-    ),
-  }),
-});
-
 /** A request's body as text: its parts (base64) joined, or its text, or nothing. */
 const bodyOf = (request: typeof Paused.Type.request) =>
   Option.match(Option.fromUndefinedOr(request.postDataEntries), {
@@ -244,15 +235,6 @@ const bodyOf = (request: typeof Paused.Type.request) =>
         .map((bytes) => bytes.toString('utf8'))
         .join(''),
   });
-
-/** A thrown error as the page's console would say it. */
-const thrownText = (thrown: typeof Thrown.Type) =>
-  Option.getOrElse(
-    Option.flatMap(Option.fromUndefinedOr(thrown.exceptionDetails.exception), (e) =>
-      Option.fromUndefinedOr(e.description),
-    ),
-    () => thrown.exceptionDetails.text,
-  );
 
 /** A protocol call's parameters. */
 type Wire = string | number | boolean | ReadonlyArray<Wire> | { readonly [key: string]: Wire };
@@ -319,9 +301,7 @@ export const makeTab = (
       );
 
     view.addEventListener('Runtime.exceptionThrown', (event: Event) => {
-      Option.map(Schema.decodeUnknownOption(Thrown)(Reflect.get(event, 'data')), (thrown) =>
-        errors.push(thrownText(thrown)),
-      );
+      Option.map(thrownBy(event), (thrown) => errors.push(thrown));
     });
     view.addEventListener('Fetch.requestPaused', (event: Event) => {
       Option.map(Schema.decodeUnknownOption(Paused)(Reflect.get(event, 'data')), (paused) =>

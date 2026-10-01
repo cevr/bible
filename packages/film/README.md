@@ -87,8 +87,9 @@ use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
 as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
 trials (`apps/animations/sounds/PROMPTING.md`).
 
-Preflights: `film doctor` checks headless Chromium (launched and closed;
-`BrowserMissing` carries the install command), the `elevenlabs` CLI and its
+Preflights: `film doctor` checks headless Chrome (a page opened and closed
+in Bun.WebView's Chrome: `BUN_CHROME_PATH`, else the Chrome Bun finds, else
+Playwright's cached Chromium; `BrowserMissing` names `BUN_CHROME_PATH`), the `elevenlabs` CLI and its
 login (`auth status`, free), the H.264 encoder a render would use (a page
 chooses it as a render does; the line says `hardware` or `software`, the
 default pages and the encoder budget), reports each, and fails if any is
@@ -278,8 +279,8 @@ apart with the `quotes.jsonl` record whose words hold it, and `/` at each
 sentence end for a breath (not after an abbreviation such as `Mrs.` or `St.`,
 the same list the take check reads out).
 
-`render` opens the app's server, headless Chromium (`Browser`, the only
-Playwright code) and a pool of player pages (`Pages`, `tools/pages.ts`: the
+`render` opens the app's server, headless Chrome (`Browser`: tabs of the
+process's one Chrome, `tools/chrome.ts`) and a pool of player pages (`Pages`, `tools/pages.ts`: the
 one pool `check`, `look` and `render` open, bounded, a crashed page dropped
 for a fresh one) in one scope; a failure in any page, or Ctrl-C, closes every
 page, the browser and the server. The export page's handle is declared once
@@ -369,7 +370,7 @@ first), its pictures and its share copy's are copied, and no page opens
 (`render.remux frames_drawn=0`, `remuxer`: media and the disk only). The run decides
 every scene's need from the catalogue first; when it re-muxes any, the master is
 checked and decoded once for all of them, and each scene cuts and encodes only its own piece.
-Chromium launches with the first page a scene opens (`Browser.layer`), so a
+Chrome starts with the first page a scene opens (`Browser.layer`), so a
 run where every scene is current or re-muxed opens no browser. `film project
 approve <film> --scene id,id | --act name | --all` approves the scenes'
 renders, an act's current scenes, or every current scene. An approval is of
