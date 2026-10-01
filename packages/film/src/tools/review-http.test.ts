@@ -104,7 +104,7 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
     ),
     freshFilm({
       project: (args) =>
-        Effect.suspend(() => {
+        Effect.suspend((): Effect.Effect<Project, SceneNotRendered | VerbRefused> => {
           projectRuns.push(args);
           if (args.includes('b'))
             return Effect.fail(
