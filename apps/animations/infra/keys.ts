@@ -43,10 +43,7 @@ const PREFIX = 'FILM_STORE_';
  * `.env` text with `entries` in place of every `FILM_STORE_*` line it had,
  * every other line kept as it was.
  */
-export const envWith = (
-  existing: string,
-  entries: ReadonlyArray<readonly [string, string]>,
-): string => {
+const envWith = (existing: string, entries: ReadonlyArray<readonly [string, string]>): string => {
   const kept = existing
     .split('\n')
     .filter((line) => !line.trimStart().startsWith(PREFIX))

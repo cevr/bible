@@ -27,16 +27,16 @@ import * as Cloudflare from 'alchemy/Cloudflare';
 import * as Effect from 'effect/Effect';
 
 /** The prod bucket's name, as `sounds/library.ts` names it in `store`. */
-export const PROD_BUCKET = 'film-store';
+const PROD_BUCKET = 'film-store';
 
 /** A bucket name for `stage`: the prod one, else one per stage (R2 takes `a-z 0-9 -`). */
-export const bucketName = (stage: string): string => {
+const bucketName = (stage: string): string => {
   if (stage === 'prod') return PROD_BUCKET;
   return `${PROD_BUCKET}-${stage.toLowerCase().replaceAll(/[^a-z0-9-]/g, '-')}`.slice(0, 63);
 };
 
 /** The API token policy resource for one bucket (`<account>_<jurisdiction>_<bucket>`). */
-export const bucketResource = (accountId: string, bucket: string) =>
+const bucketResource = (accountId: string, bucket: string) =>
   `com.cloudflare.edge.r2.bucket.${accountId}_default_${bucket}`;
 
 /** The bucket and its key, for `stage`. */
