@@ -45,6 +45,27 @@ pre-commit:
       glob: '**/*.{flac,wav,mp3,ogg,opus,m4a,aac,aif,aiff,FLAC,WAV,MP3}'
       run: bun apps/animations/cli.ts sfx guard {staged_files}
 
+    # Guard rail: `git stash` is one ref every worktree of this repository
+    # shares, so a batch's `stash pop` in one worktree takes the entry another
+    # batch pushed in its own (passes 7 and 8 lost work that way). While other
+    # worktrees exist, a stash entry left behind refuses the commit and the
+    # gate (`bun run guard` runs the repo-guard jobs), naming each entry.
+    # Lefthook's own "lefthook auto backup" entry, which it pushes and pops
+    # around a hook run on a partly staged file, is not one. No glob: it runs
+    # on every commit, in well under a second.
+    - name: no-shared-stash
+      tags: [repo-guard]
+      run: |
+        left="$(git stash list | grep -v ': lefthook auto backup$' || true)"
+        if [ "$(git worktree list | wc -l)" -gt 1 ] && [ -n "$left" ]; then
+          echo "git stash holds entries while other worktrees share it:"
+          echo "$left"
+          echo "The stash is shared by every worktree: another worktree's pop takes these."
+          echo "Put each back where it belongs (git stash show -p <entry>), then drop it."
+          echo "Read old code with git show <commit>:<path>; never git stash."
+          exit 1
+        fi
+
     # Guard rail: a render carries the film's mix, and the mix carries the
     # generated score and effects, so no video (or m4a) is committed under the
     # films or their framework. The only ones allowed are the renderer's test
