@@ -25,7 +25,7 @@ import { codeOf, readKnobs, readSpans } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 
 /** A scene's data at HEAD beside the file now. */
-export interface SceneAtHead {
+interface SceneAtHead {
   readonly site: SceneSite;
   readonly timeline: Readonly<Record<string, Span>>;
   readonly knobs: Readonly<Record<string, Knob>>;
@@ -33,7 +33,7 @@ export interface SceneAtHead {
   readonly sameData: boolean;
 }
 
-export interface SceneHeadService {
+interface SceneHeadService {
   readonly head: (
     film: string,
     scene: string,

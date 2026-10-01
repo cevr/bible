@@ -20,10 +20,10 @@ export interface TextStyle {
   leading?: number;
 }
 
-export const font = (s: TextStyle) =>
+const font = (s: TextStyle) =>
   `${s.italic === true ? 'italic ' : ''}${s.weight ?? 400} ${s.size}px "${s.family}"`;
 
-export type Reveal =
+type Reveal =
   /** A pen writes each glyph left to right. */
   | 'write'
   /** Glyphs rise and fade in. */

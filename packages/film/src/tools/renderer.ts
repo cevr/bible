@@ -22,7 +22,7 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { splice } from '../core/audio.ts';
+import { type Pcm, splice } from '../core/audio.ts';
 import {
   type Encoder,
   EncoderChoice,
@@ -155,7 +155,7 @@ export const encoderReady: Effect.Effect<
   }),
 ).pipe(Effect.withSpan('Renderer.encoderReady'));
 
-export type RenderError =
+type RenderError =
   | PageOpenError
   | PageError
   | PageCrashed
@@ -215,7 +215,7 @@ interface Where {
   readonly short: Option.Option<ResolvedShort>;
 }
 
-export interface RendererService {
+interface RendererService {
   /**
    * Draw `job` into the film's project folder (`renderPaths`), or a video to
    * its `--out`, and say what it wrote.
@@ -230,7 +230,7 @@ export interface RendererService {
 }
 
 /** Renders that share their probe and their pages (`RendererService.session`). */
-export interface RenderSession {
+interface RenderSession {
   readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
 }
 
@@ -274,8 +274,6 @@ export interface Remuxed {
   readonly pieces: ReadonlyArray<FilmPiece>;
 }
 
-export type RemuxError = AudioMissing | AudioStale | MediaFailed | PlaceError | PlatformError;
-
 /**
  * The film's master checked, before anything is drawn or cut, against the
  * film it must cover (`seconds`, to within `tolerance`) and the plan the film
@@ -297,44 +295,53 @@ const masterChecked = (
     return key;
   });
 
-/** The master cut at `cut`'s pieces, each join faded, and encoded to AAC once. */
-const trackCut = (media: MediaService, cut: AudioCut) =>
-  media.decode(cut.file).pipe(
-    Effect.map((pcm) =>
-      splice(
-        pcm,
-        cut.pieces.map((piece) => ({
-          from: Math.round(piece.start * pcm.rate),
-          frames: Math.round(piece.duration * pcm.rate),
-        })),
-        Math.round(JOIN_FADE * pcm.rate),
-      ),
+/** `pcm` cut at `pieces`, each join faded, and encoded to AAC once. */
+const cutTrack = (media: MediaService, pcm: Pcm, pieces: ReadonlyArray<FilmPiece>) =>
+  media.encodeAac(
+    splice(
+      pcm,
+      pieces.map((piece) => ({
+        from: Math.round(piece.start * pcm.rate),
+        frames: Math.round(piece.duration * pcm.rate),
+      })),
+      Math.round(JOIN_FADE * pcm.rate),
     ),
-    Effect.flatMap(media.encodeAac),
   );
 
+/** The master cut at `cut`'s pieces, each join faded, and encoded to AAC once. */
+const trackCut = (media: MediaService, cut: AudioCut) =>
+  media.decode(cut.file).pipe(Effect.flatMap((pcm) => cutTrack(media, pcm, cut.pieces)));
+
 /**
- * A recorded video's sound cut again from the film's master now, at the
- * pieces it recorded: its pictures (and its share copy's) copied, no page
- * opened, nothing drawn, so it needs no browser. The master is checked first,
- * as a render checks it; the sound the video now carries is the answer.
+ * A run's re-muxes of `film`'s recorded videos: each video's sound cut again
+ * from the film's master now, at the pieces it recorded, its pictures (and
+ * its share copy's) copied, no page opened, nothing drawn, so it needs no
+ * browser; the sound the video now carries is the answer. The master is
+ * checked here, as a render checks it, and decoded once for every video the
+ * run re-muxes; a run that re-muxes none makes no remuxer.
  */
-export const remuxVideo = Effect.fn('film.remux')(function* (film: LoadedFilm, video: Remuxed) {
+export const remuxer = Effect.fn('film.remuxer')(function* (film: LoadedFilm) {
   const fs = yield* FileSystem.FileSystem;
   const media = yield* Media;
   const placed = yield* placeFilm(film);
   const mix = yield* masterChecked(fs, media, film, placed, filmEnd(placed), 1 / FILM_FPS);
-  const track = yield* trackCut(media, { file: masterFile(film.paths), pieces: video.pieces });
-  // The share copy takes the same track, as a render gives both.
-  yield* Effect.forEach([video.clip, ...Option.toArray(video.share)], (file) =>
-    media.remux(file, track),
-  );
-  yield* Effect.log(
-    `render.remux frames_drawn=0 pieces=${video.pieces.length} mix=${Option.getOrElse(mix, () => 'none').slice(0, 12)} file=${video.clip} share=${Option.getOrElse(video.share, () => 'none')}`,
-  );
-  const sound: RenderSound = { mix, pieces: video.pieces };
-  return sound;
+  const pcm = yield* media.decode(masterFile(film.paths));
+  return Effect.fn('film.remux')(function* (video: Remuxed) {
+    const track = yield* cutTrack(media, pcm, video.pieces);
+    // The share copy takes the same track, as a render gives both.
+    yield* Effect.forEach([video.clip, ...Option.toArray(video.share)], (file) =>
+      media.remux(file, track),
+    );
+    yield* Effect.log(
+      `render.remux frames_drawn=0 pieces=${video.pieces.length} mix=${Option.getOrElse(mix, () => 'none').slice(0, 12)} file=${video.clip} share=${Option.getOrElse(video.share, () => 'none')}`,
+    );
+    const sound: RenderSound = { mix, pieces: video.pieces };
+    return sound;
+  });
 });
+
+/** One video re-muxed in a run (`remuxer`). */
+export type Remux = Effect.Success<ReturnType<typeof remuxer>>;
 
 export class Renderer extends Context.Service<Renderer, RendererService>()(
   '@bible/film/tools/Renderer',

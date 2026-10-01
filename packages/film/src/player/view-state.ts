@@ -52,7 +52,7 @@ export interface StorageLike {
 }
 
 /** A change to the view: the keys it names; `loop: undefined` turns the loop off. */
-export type ViewPatch = Partial<Omit<LabView, 'loop'>> & {
+type ViewPatch = Partial<Omit<LabView, 'loop'>> & {
   readonly loop?: LabView['loop'] | undefined;
 };
 

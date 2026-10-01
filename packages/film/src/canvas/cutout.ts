@@ -8,7 +8,7 @@ import { offscreen, patternOf } from './paper.ts';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
 
-export interface CutoutStyle {
+interface CutoutStyle {
   color: string;
   /** Torn-edge roughness in px; 0 cuts clean like scissors. */
   torn?: number;
@@ -193,7 +193,7 @@ export const preblends = (s: FaceState): boolean =>
   shadowless(s);
 
 /** The linear part of a canvas transform: what scales, squashes and turns a face. */
-export type Linear = Pick<DOMMatrixReadOnly, 'a' | 'b' | 'c' | 'd'>;
+type Linear = Pick<DOMMatrixReadOnly, 'a' | 'b' | 'c' | 'd'>;
 
 /** How far `m` stretches a face at most, along any direction: its larger singular value. */
 export const stretchOf = (m: Linear): number => {

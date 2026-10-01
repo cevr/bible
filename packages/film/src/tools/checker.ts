@@ -52,9 +52,9 @@ import { type LayoutFinding, type ShortFinding, StaticHold } from './findings.ts
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
 import { type ExportPages, Pages } from './pages.ts';
 
-export type LayoutCheckError = PageOpenError | PageError | PageCrashed | FrameFailed | PlaceError;
+type LayoutCheckError = PageOpenError | PageError | PageCrashed | FrameFailed | PlaceError;
 
-export interface LayoutCheckOptions {
+interface LayoutCheckOptions {
   /** Pages probing at once. */
   readonly workers: number;
   /** The part of the film probed (`resolveAddress`): every scene for the whole film. */
@@ -150,7 +150,7 @@ const confirmHold = (
     };
   });
 
-export interface ShortCheckOptions {
+interface ShortCheckOptions {
   /** Pages probing at once. */
   readonly workers: number;
   /** The safe zone its text is held to. */
@@ -159,9 +159,9 @@ export interface ShortCheckOptions {
   readonly static: boolean;
 }
 
-export type ShortCheckError = LayoutCheckError | ShortError;
+type ShortCheckError = LayoutCheckError | ShortError;
 
-export interface CheckerService {
+interface CheckerService {
   /**
    * Probe every sampled frame and return what collides, one finding per pair
    * and scene; then probe across each hold candidate and return the ones that

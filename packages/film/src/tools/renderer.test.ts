@@ -9,7 +9,7 @@ import { type LoadedFilm, placeFilm } from './film-repo.ts';
 import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
 import { mixKey } from '../core/mix.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
-import { Cores, Platform, type Remuxed, Renderer, remuxVideo } from './renderer.ts';
+import { Cores, Platform, type Remuxed, Renderer, remuxer } from './renderer.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
@@ -70,20 +70,25 @@ const setup = (
       return yield* (yield* Renderer).render(rendered, job);
     }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
   /**
-   * `video`'s sound cut again from the master now, as `project render`
-   * re-muxes it: with media and the disk alone, no browser to open.
+   * `videos`' sounds cut again from the master now, in one run, as `project
+   * render` re-muxes them: with media and the disk alone, no browser to open.
    */
-  const remux = (video: Remuxed) =>
-    remuxVideo(rendered, video).pipe(
+  const remuxAll = (videos: ReadonlyArray<Remuxed>) =>
+    Effect.gen(function* () {
+      const remux = yield* remuxer(rendered);
+      return yield* Effect.forEach(videos, remux);
+    }).pipe(
       Effect.provide([fakeRenderMedia(ledger, host), memoryFileSystem(files, folders), Path.layer]),
     );
+  /** `video`'s sound cut again, alone in its run. */
+  const remux = (video: Remuxed) => Effect.map(remuxAll([video]), ([sound]) => sound);
   /** `jobs` rendered one after another in one session, as `project render` draws its scenes. */
   const session = (jobs: ReadonlyArray<RenderJob>) =>
     Effect.gen(function* () {
       const run = yield* (yield* Renderer).session;
       return yield* Effect.forEach(jobs, (job) => run.render(rendered, job));
     }).pipe(Effect.scoped, Effect.provideService(Platform, 'darwin'), Effect.provide(layer));
-  return { ledger, files, folders, render, remux, session };
+  return { ledger, files, folders, render, remux, remuxAll, session };
 };
 
 /** A render whose joins keep, by file, the bytes each segment held when it was joined. */
@@ -574,6 +579,21 @@ describe('Renderer', () => {
         // One track, encoded once, under the clip and its share copy.
         expect(ledger.aac).toEqual([3 * 44100]);
         expect(ledger.remuxes).toEqual([clip, '/out/test/scenes/a/main.share.mp4']);
+      }),
+    );
+
+    it.live('a run re-muxing many videos decodes the master once, and each cuts its own', () =>
+      Effect.gen(function* () {
+        const { ledger, files, remuxAll } = setup({ info });
+        yield* mixed(files);
+        const other = {
+          clip: '/out/test/scenes/b/main.mp4',
+          share: Option.none(),
+          pieces: [{ start: 5, duration: 4 }],
+        };
+        yield* remuxAll([cut, other, cut]);
+        expect(ledger.decodes).toEqual([masterFile(film.paths)]);
+        expect(ledger.aac).toEqual([3 * 44100, 4 * 44100, 3 * 44100]);
       }),
     );
 

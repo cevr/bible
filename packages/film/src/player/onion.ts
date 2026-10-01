@@ -15,7 +15,7 @@ const BEFORE: readonly [number, number, number] = [226, 84, 70];
 const AFTER: readonly [number, number, number] = [60, 150, 230];
 
 /** How many frames either side the onion ghosts, and how many frames apart. */
-export interface OnionSpread {
+interface OnionSpread {
   readonly count: number;
   readonly spacing: number;
 }
@@ -75,7 +75,7 @@ const ghostInto = (
 };
 
 /** Paints `player`'s onion skin into a layer `ONION_SCALE` × the film's size. */
-export interface OnionPainter {
+interface OnionPainter {
   paint(into: CanvasRenderingContext2D, spread: OnionSpread): void;
 }
 

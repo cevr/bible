@@ -101,7 +101,7 @@ import {
 import { PrivateStore, type StoreUnavailable } from './private-store.ts';
 
 /** Every path the library touches. */
-export interface SoundsPaths {
+interface SoundsPaths {
   readonly dir: string;
   /** `library.ts`: the declarations and the store. */
   readonly module: string;
@@ -122,7 +122,7 @@ export interface LoadedLibrary {
 }
 
 /** What a mix reads of a loaded library. */
-export const soundsOf = (loaded: LoadedLibrary): Sounds => ({
+const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   library: loaded.library,
   lock: loaded.lock,
   dir: loaded.paths.dir,
@@ -152,7 +152,7 @@ export const pcmFromS16 = (bytes: Uint8Array, rate: number, channels: number): P
 };
 
 /** A recording's quiet ends cut away: from `pad` seconds before the first sample over `floor` dBFS to `pad` after the last. */
-export const trimQuiet = (pcm: Pcm, floor: number, pad: number): Pcm => {
+const trimQuiet = (pcm: Pcm, floor: number, pad: number): Pcm => {
   const threshold = 10 ** (floor / 20);
   const loud = (i: number) => pcm.channels.some((plane) => Math.abs(plane[i] ?? 0) > threshold);
   let first = 0;
@@ -166,14 +166,14 @@ export const trimQuiet = (pcm: Pcm, floor: number, pad: number): Pcm => {
 };
 
 /** A recording is trimmed at this level, in dBFS, keeping this much air, in seconds. */
-export const TRIM_FLOOR = -60;
-export const TRIM_PAD = 0.01;
+const TRIM_FLOOR = -60;
+const TRIM_PAD = 0.01;
 
 /** Between two variants in an audition, in seconds. */
-export const AUDITION_GAP = 0.5;
+const AUDITION_GAP = 0.5;
 
 /** The audio rate every library sound is made, kept and played at. */
-export const LIBRARY_RATE = 44100;
+const LIBRARY_RATE = 44100;
 
 /** The credits a tally file (name, variant, seconds, credits; a header first) records as spent. */
 export const talliedCredits = (text: string): number =>
@@ -186,7 +186,7 @@ export const talliedCredits = (text: string): number =>
 
 export const TALLY_HEADER = 'name\tvariant\tseconds\tcredits\n';
 
-export interface MakeOptions extends SpendOptions {
+interface MakeOptions extends SpendOptions {
   /** Just these sounds; every declared one otherwise. */
   readonly names: Option.Option<ReadonlySet<string>>;
   /** A full set of candidates again, even for a current sound. */
@@ -194,7 +194,7 @@ export interface MakeOptions extends SpendOptions {
 }
 
 /** How a paid run may spend: confirmed, under a cap, tallied. */
-export interface SpendOptions {
+interface SpendOptions {
   /** Spend: without it, `make` prints the plan and refuses a paid run. */
   readonly yes: boolean;
   /** The most credits spent in all, counting what the tally already records. */
@@ -204,7 +204,7 @@ export interface SpendOptions {
 }
 
 /** Where a library finding stands. */
-export type LibraryFinding =
+type LibraryFinding =
   | SoundUnmade
   | SoundStale
   | SoundFileMissing
@@ -224,9 +224,9 @@ export const libraryLevel = (finding: LibraryFinding): 'error' | 'warning' => {
   }
 };
 
-export type LibraryError = LibraryMissing | FilmModuleInvalid | StoreError;
+type LibraryError = LibraryMissing | FilmModuleInvalid | StoreError;
 
-export type MakeError =
+type MakeError =
   | LibraryError
   | CreditsOverCap
   | PaidUnconfirmed
@@ -236,7 +236,7 @@ export type MakeError =
   | PlatformError;
 
 /** What `push` did: the files it copied, those the store already held, those it had nowhere, and the lock's total. */
-export interface PushReport {
+interface PushReport {
   readonly sent: ReadonlyArray<string>;
   readonly had: number;
   /** Lock files neither here with their bytes nor in the store: lost unless a copy exists elsewhere. */
@@ -245,14 +245,14 @@ export interface PushReport {
 }
 
 /** What `pull` did: how many files it fetched, how many were here, and those the store lacks. */
-export interface PullReport {
+interface PullReport {
   readonly fetched: number;
   readonly had: number;
   /** Lock files the store does not hold with their bytes, and not here either. */
   readonly missing: ReadonlyArray<string>;
 }
 
-export interface SoundLibraryService {
+interface SoundLibraryService {
   readonly paths: SoundsPaths;
   readonly load: Effect.Effect<LoadedLibrary, LibraryError>;
   /** What `make` would generate now, and its cost. Free. */

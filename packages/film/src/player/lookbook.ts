@@ -33,7 +33,7 @@ const MUTED = '#9d927f';
 const PAGE = '#16130f';
 
 /** A still on the sheet: where it sits and the frame it shows. */
-export interface Tile {
+interface Tile {
   readonly x: number;
   readonly y: number;
   readonly w: number;
@@ -42,7 +42,7 @@ export interface Tile {
 }
 
 /** A composed look-book: the sheet and where each still sits on it, in the sheet's px. */
-export interface Lookbook {
+interface Lookbook {
   readonly canvas: HTMLCanvasElement;
   readonly tiles: ReadonlyArray<Tile>;
 }

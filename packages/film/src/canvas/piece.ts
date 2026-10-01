@@ -9,10 +9,10 @@ import { cutout } from './cutout.ts';
 import { type Boil, type Hand, type Pt, stroke, sub } from './ink.ts';
 
 /** How a piece was made: cut with scissors, torn by hand, or inked on. */
-export type PaperKind = 'cut' | 'torn' | 'ink';
+type PaperKind = 'cut' | 'torn' | 'ink';
 
 /** What a piece is in the picture: part of a figure (a person, what they wear and hold) or scenery. */
-export type PieceRole = 'figure' | 'scenery';
+type PieceRole = 'figure' | 'scenery';
 
 /** Each kind's edge: its roughness and the width of its white core, in px. */
 export const PAPER_EDGES = {

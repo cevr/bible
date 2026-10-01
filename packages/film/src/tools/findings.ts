@@ -541,7 +541,8 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
 
 /**
  * A scene that throws when it draws, at a moment the draw leg samples: a
- * mark, a cue or a knob it reads that its film no longer has (4f46add3), or
+ * mark, a cue or a knob it reads that its film no longer has (a card reading
+ * a mark a revised script removed), or
  * an argument a real canvas refuses.
  */
 export class DrawThrew extends Schema.TaggedError<DrawThrew>()('DrawThrew', {
@@ -651,7 +652,7 @@ export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOff
  * Why the film does not lay out, or the part a check names does not resolve
  * on it: the one finding a check reports when it cannot place the film.
  */
-export type PlaceFinding =
+type PlaceFinding =
   | DuplicateScene
   | DuplicateMark
   | TurnInvalid
@@ -711,7 +712,7 @@ export type Finding =
   | LookFinding
   | ShortFinding;
 
-export type Level = 'error' | 'warning';
+type Level = 'error' | 'warning';
 
 export interface CheckOptions {
   /** Report a stale take, asset or audio master as a warning: work in progress, not a broken film. */

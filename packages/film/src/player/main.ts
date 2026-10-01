@@ -94,7 +94,7 @@ export interface Player {
 export type Films = Record<string, () => Promise<Film>>;
 
 /** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
-export interface Staged {
+interface Staged {
   readonly name: string;
   readonly film: Film;
   readonly canvas: HTMLCanvasElement;
@@ -105,8 +105,6 @@ export interface Staged {
 /** The film a page names (`?film=<name>`), else the registry's first. */
 const filmName = (films: Films): string =>
   new URLSearchParams(location.search).get('film') ?? Object.keys(films)[0] ?? '';
-
-export { labUrl, lookbookUrl } from './pages.ts';
 
 /**
  * Load the page's film (every font the page declares first, so text measures

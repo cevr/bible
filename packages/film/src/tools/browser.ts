@@ -188,7 +188,7 @@ export type PageOpenError =
   | BrowserFailed
   | BrowserMissing;
 
-export interface BrowserService {
+interface BrowserService {
   /** Open the player at `url` and wait for its export handle; the page closes with the scope. */
   readonly open: (url: string) => Effect.Effect<FramePage, PageOpenError, Scope.Scope>;
 }

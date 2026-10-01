@@ -52,7 +52,7 @@ import {
 export type Field = 'timeline' | 'knobs';
 
 /** Whether the lab may write a field of a scene's drawing: only the literal the scene reads, alone. */
-export type FieldAccess =
+type FieldAccess =
   | { readonly _tag: 'Writable' }
   | { readonly _tag: 'Refused'; readonly error: SceneNotLocated | SourceShared };
 
@@ -69,7 +69,7 @@ export interface SceneSite {
 }
 
 /** Every scene with a timeline or knobs: located, or why not. */
-export interface Located {
+interface Located {
   readonly sites: ReadonlyMap<string, SceneSite>;
   readonly unlocated: ReadonlyArray<SceneNotLocated>;
 }
@@ -83,7 +83,7 @@ interface Owned {
 
 export type LocateError = FilmUnknown | FilmModuleInvalid | PlatformError;
 
-export interface SceneSourcesService {
+interface SceneSourcesService {
   /** Find every scene's drawing in the film's source. */
   readonly locate: (film: string) => Effect.Effect<Located, LocateError>;
   /** One scene's drawing, or why it has none the lab can edit. */

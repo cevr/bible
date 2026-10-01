@@ -23,6 +23,7 @@ import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Cause,
+  ConfigProvider,
   Console,
   Context,
   Effect,
@@ -74,7 +75,7 @@ import {
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
-import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmRepo, filmNamed, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
@@ -827,7 +828,7 @@ const lab = <E>(labServer: LabServer<E>) =>
       yield* (yield* FilmRepo).load(input.film);
       // The lab's whole API: notes, scene source, steps and the studio.
       const handler = yield* labHandler(input.film);
-      const notes = (yield* NotesStore).paths(input.film).notes.file;
+      const notes = (yield* NotesStore).paths(yield* filmNamed(input.film)).notes.file;
       return yield* serveUntilInterrupted(labServer(handler), (server) => {
         const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
         return [url, `lab.ready film=${input.film} url=${url} notes=${notes}`];
@@ -862,11 +863,18 @@ const Store = ContentStore.layer.pipe(Layer.provide(Platform));
 const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(Platform));
 
 /** What the app hands the CLI: where its films are, and the servers for its player page. */
-export interface FilmApp<E> {
+interface FilmApp<E> {
   /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
   readonly films: string;
   /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`), shared by its films. */
   readonly sounds: string;
+  /**
+   * The app's own folders for what a run makes: `out`, its renders, sheets and
+   * project folders (`FILMS_OUT`), and `lab`, the lab's notes (`FILMS_LAB`).
+   * The environment's value wins when it names one, so a test points a run
+   * elsewhere; the shell's directory never decides.
+   */
+  readonly folders: { readonly out: string; readonly lab: string };
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /** The player in development mode with the lab's routes, served while `lab` runs. */
@@ -905,11 +913,16 @@ export interface FilmApp<E> {
 export const runFilmCli = <E>({
   films,
   sounds,
+  folders,
   previewServer,
   labServer,
   review: reviewApp,
   self,
 }: FilmApp<E>): void => {
+  // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
+  const Folders = ConfigProvider.layerAdd(
+    ConfigProvider.fromUnknown({ FILMS_OUT: folders.out, FILMS_LAB: folders.lab }),
+  );
   const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
   const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
   // The lab checks each write, and the review reads a film's options, keeps its takes and
@@ -998,7 +1011,7 @@ export const runFilmCli = <E>({
     // runMain would report a failure after these layers are gone, through the
     // default logger, onto stdout; it is reported here instead, under `Logs`.
     Effect.tapCause(reportFailure),
-    Effect.provide(Layer.mergeAll(Services, Logs)),
+    Effect.provide(Layer.mergeAll(Services, Logs).pipe(Layer.provideMerge(Folders))),
     BunRuntime.runMain({ disableErrorReporting: true }),
   );
 };

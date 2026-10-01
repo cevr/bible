@@ -314,14 +314,14 @@ export const pushInto = (out: Camera, a: Camera, b: Camera, t: number): Camera =
 };
 
 /** How a shot's leg blends the camera toward its stop: `lerpCamera` (straight) or `pushInto`. */
-export type CameraBlend = (out: Camera, a: Camera, b: Camera, t: number) => Camera;
+type CameraBlend = (out: Camera, a: Camera, b: Camera, t: number) => Camera;
 
 /**
  * One leg of a shot: how far along it is (a cue's `f.at`), where it goes, and
  * how it gets there (`lerpCamera` unless it names `pushInto`, for a deep push
  * that must keep its target in frame).
  */
-export type ShotStop =
+type ShotStop =
   | readonly [progress: number, to: Camera]
   | readonly [progress: number, to: Camera, blend: CameraBlend];
 
@@ -386,7 +386,7 @@ export const PLANE_LIFT_MAX = 2.5;
 const planeLift = (z: number) =>
   Math.min(PLANE_LIFT_MAX, Math.max(PLANE_LIFT_MIN, 1 / Math.max(z, 1e-3)));
 
-export interface Depth {
+interface Depth {
   /**
    * The world point every plane lines up on while the camera sits on it;
    * planes drift apart as the camera leaves it. Defaults to the frame centre.

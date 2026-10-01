@@ -8,7 +8,7 @@
 
 import { type Throttled, browserTimers, throttled } from './throttle.ts';
 
-export interface TInUrl {
+interface TInUrl {
   /** T moved: write it, at most once per period. Held, nothing. */
   moved(): void;
   /** T settled: write it now, and let T move the URL again. */

@@ -43,9 +43,9 @@ export interface DrawingSite {
 }
 
 /** What a field holds in the source: a literal the lab may rewrite, nothing yet, or code. */
-export type FieldState = 'literal' | 'absent' | 'computed';
+type FieldState = 'literal' | 'absent' | 'computed';
 
-export interface EditableCue {
+interface EditableCue {
   readonly name: string;
   readonly offset: FieldState;
   readonly dur: FieldState;
@@ -54,7 +54,7 @@ export interface EditableCue {
   readonly stagger: FieldState;
 }
 
-export interface EditableKnob {
+interface EditableKnob {
   readonly name: string;
   readonly state: FieldState;
 }
@@ -65,7 +65,7 @@ export interface Editable {
   readonly knobs: ReadonlyArray<EditableKnob>;
 }
 
-export interface Splice {
+interface Splice {
   readonly start: number;
   readonly end: number;
   readonly text: string;
@@ -315,7 +315,7 @@ export const drawingSites = (source: string, program: Program): ReadonlyArray<Dr
 };
 
 /** A place in a module the lab cannot locate or edit: the source range to point at, and why. */
-export interface Unlocatable {
+interface Unlocatable {
   readonly start: number;
   readonly end: number;
   readonly reason: string;

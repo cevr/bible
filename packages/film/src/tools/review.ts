@@ -79,7 +79,7 @@ export interface ReviewRoot {
   readonly path: string;
 }
 
-export interface ReviewConfig {
+interface ReviewConfig {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Where derived files are kept. */
   readonly cache: string;
@@ -476,7 +476,7 @@ const walked = (rel: string): boolean => {
   return !dirs.some((d) => d.startsWith('.') || SKIP_DIRS.includes(d));
 };
 
-export interface ReviewService {
+interface ReviewService {
   readonly roots: ReadonlyArray<ReviewRoot>;
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;

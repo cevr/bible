@@ -3,7 +3,8 @@
 // generated data (timings, sound manifest) through the content store. The
 // films directory is the one the app passes in, the folder its player page
 // imports, so the tools and the page never read two different films; stems
-// and other outputs go under `FILMS_OUT` (default `<cwd>/out`).
+// and other outputs go under `FILMS_OUT`: the app's `out/` under `runFilmCli`
+// (`FilmApp.folders`), `<cwd>/out` where nothing sets it.
 
 import {
   Array as Arr,
@@ -71,7 +72,7 @@ export interface LoadedFilm {
   readonly sounds: Sounds;
 }
 
-export type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
+type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
 
 /**
  * A film's name as a request gives it, checked against the films folder: one
@@ -88,7 +89,7 @@ export type FilmName = typeof FilmName.Type;
  * one (Bun keeps a module as it first evaluated it), so it reads a film only
  * through a fresh process (`FreshFilm`).
  */
-export interface FilmFolderService {
+interface FilmFolderService {
   readonly paths: (film: string) => FilmPaths;
   /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
   readonly names: Effect.Effect<ReadonlyArray<string>>;
@@ -103,7 +104,7 @@ export interface FilmFolderService {
   readonly stamp: (film: string) => Effect.Effect<number, PlatformError>;
 }
 
-export interface FilmRepoService {
+interface FilmRepoService {
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
   /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
   readonly script: (

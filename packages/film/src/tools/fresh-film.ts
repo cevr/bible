@@ -83,7 +83,7 @@ export class CueRead extends Schema.TaggedClass<CueRead>()('CueRead', {
 }) {}
 
 /** What a fresh run refuses with: the choice, variant, scene or act it could not find, or the take it would not keep. */
-export const FreshRefusal = Schema.Union([
+const FreshRefusal = Schema.Union([
   ChoiceUnknown,
   VariantUnknown,
   VerbRefused,
@@ -94,10 +94,10 @@ export const FreshRefusal = Schema.Union([
   UnknownAct,
   CatalogueInvalid,
 ]);
-export type FreshRefusal = typeof FreshRefusal.Type;
+type FreshRefusal = typeof FreshRefusal.Type;
 
 /** The one line a fresh run prints: its answer, or its refusal. */
-export const FreshLine = Schema.Union([
+const FreshLine = Schema.Union([
   OptionsListed,
   OptionsChecked,
   OptionsMixed,
@@ -109,7 +109,7 @@ export const FreshLine = Schema.Union([
   FreshRefusal,
   ServerFailed,
 ]);
-export type FreshLine = typeof FreshLine.Type;
+type FreshLine = typeof FreshLine.Type;
 
 /** `FreshLine` as the JSON text the child prints and the review reads. */
 const FreshLineJson = Schema.fromJsonString(FreshLine);
@@ -206,7 +206,7 @@ const READ_LIMIT = Duration.seconds(60);
 const MIX_LIMIT = Duration.minutes(10);
 
 /** A check leg a fresh run can take: `static` reads files only; `sound` also mixes the film. */
-export type CheckLeg = 'static' | 'sound';
+type CheckLeg = 'static' | 'sound';
 
 /** The longest each leg may take: a lab request waits on `static`; `sound` renders the whole mix. */
 const CHECK_LIMITS: Record<CheckLeg, Duration.Duration> = {

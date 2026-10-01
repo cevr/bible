@@ -39,7 +39,7 @@ export interface ExportPages {
   ) => Effect.Effect<CallAnswers[K], PageOpenError | PageError | PageCrashed | CallErrors[K]>;
 }
 
-export interface PagesService {
+interface PagesService {
   /** `film`'s export page (a film's name, a cut's or a short's page name), pooled, in the current scope. */
   readonly open: (
     film: string,

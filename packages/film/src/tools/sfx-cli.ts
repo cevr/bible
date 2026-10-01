@@ -38,7 +38,7 @@ import { CheckLineJson } from './fresh-film.ts';
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
 
 /** Which sounds `sfx list` prints. */
-export type ListFilter = 'all' | 'missing' | 'stale';
+type ListFilter = 'all' | 'missing' | 'stale';
 
 /** Where a sound's audio comes from, as `list` names it. */
 const sourceOf = (entry: LibraryEntry): string => {
@@ -69,7 +69,7 @@ const keptLoudness = (entry: LibraryEntry, lock: Option.Option<LockEntry>): stri
  * level in dB relative to the voice, kept loudness and source. `family`
  * narrows to one family (`paper`); `filter` to the missing or stale.
  */
-export const listLines = (
+const listLines = (
   loaded: Pick<LoadedLibrary, 'library' | 'lock'>,
   family: Option.Option<string>,
   filter: ListFilter,
@@ -103,7 +103,7 @@ export const listLines = (
     });
 
 /** Each job `make` would run, and the total it would spend. */
-export const planLines = (jobs: ReadonlyArray<MakeJob>): ReadonlyArray<string> => [
+const planLines = (jobs: ReadonlyArray<MakeJob>): ReadonlyArray<string> => [
   ...jobs.map(
     (job) =>
       `${job.name.padEnd(18)} ${job.count} × ${job.entry.secs}s  ${job.credits} credits  "${job.entry.prompt}"`,

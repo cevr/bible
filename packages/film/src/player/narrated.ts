@@ -18,7 +18,7 @@ export interface Narrated {
 }
 
 /** A film's module as the registry loads it: the film, built from its narration. */
-export interface FilmModule {
+interface FilmModule {
   readonly film: (narrated: Narrated) => Film;
 }
 

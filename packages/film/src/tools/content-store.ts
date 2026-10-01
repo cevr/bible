@@ -76,7 +76,7 @@ export const writeWhole = <E, R>(
   writeWholeWith(fs, file, write, (partial) => fs.rename(partial, file));
 
 /** One generated asset, requested by the hash of what makes it. */
-export interface Ensure<M, A, E, R> {
+interface Ensure<M, A, E, R> {
   readonly manifest: Manifest<M>;
   /** The hash of the request. */
   readonly hash: string;
@@ -90,7 +90,7 @@ export interface Ensure<M, A, E, R> {
 }
 
 /** Whether an asset must be (re)made. */
-export const isStale = (stored: Option.Option<string>, hash: string, force: boolean): boolean =>
+const isStale = (stored: Option.Option<string>, hash: string, force: boolean): boolean =>
   force || !Option.contains(stored, hash);
 
 /** How often, and how many times, a writer tries another process's lock before giving up. */
@@ -98,12 +98,12 @@ const LOCK_TRIES = 250;
 const LOCK_SPACING = Duration.millis(20);
 
 /** Who holds a manifest's lock: its process, when it took it (epoch ms), and a token of its own. */
-export const LockOwner = Schema.Struct({
+const LockOwner = Schema.Struct({
   pid: Schema.Int,
   created: Schema.Finite,
   token: Schema.String,
 });
-export type LockOwner = typeof LockOwner.Type;
+type LockOwner = typeof LockOwner.Type;
 export const LockOwnerJson = Schema.fromJsonString(LockOwner);
 const decodeOwner = Schema.decodeUnknownOption(LockOwnerJson);
 const encodeOwner = Schema.encodeSync(LockOwnerJson);
@@ -113,7 +113,7 @@ const encodeOwner = Schema.encodeSync(LockOwnerJson);
  * milliseconds (a read, a still and the file written), so no live writer
  * comes near it.
  */
-export const LOCK_STALE = Duration.seconds(30);
+const LOCK_STALE = Duration.seconds(30);
 
 /** The lock of the manifest at `file`. */
 export const lockFile = (file: string): string => `${file}.lock`;
@@ -150,7 +150,7 @@ export const lockVerdict = (
 
 const isAlreadyExists = (error: PlatformError) => error.reason._tag === 'AlreadyExists';
 
-export interface ContentStoreService {
+interface ContentStoreService {
   /** The manifest as stored, or its empty value when there is no file yet. */
   readonly read: <A>(manifest: Manifest<A>) => Effect.Effect<A, StoreError>;
   /** Read, change and write the manifest back, one writer at a time across processes. */

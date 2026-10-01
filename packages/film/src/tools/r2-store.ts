@@ -49,7 +49,7 @@ export interface R2Access {
 }
 
 /** What the R2 store runs on. */
-export interface R2Platform {
+interface R2Platform {
   readonly fs: FileSystem.FileSystem;
   readonly path: Path.Path;
   readonly crypto: Crypto.Crypto;
@@ -81,7 +81,7 @@ const TYPES = new Map([
 ]);
 
 /** A file's media type by its extension, else bytes. */
-export const contentTypeOf = (key: string): string =>
+const contentTypeOf = (key: string): string =>
   TYPES.get(key.split('.').at(-1)?.toLowerCase() ?? '') ?? 'application/octet-stream';
 
 const XML_ENTITIES = new Map([
@@ -101,13 +101,13 @@ const xmlText = (xml: string, tag: string): Option.Option<string> =>
   );
 
 /** One page of a ListObjectsV2 answer: its objects, and the token for the next page when it was cut. */
-export interface ListPage {
+interface ListPage {
   readonly objects: ReadonlyArray<StoredObject>;
   readonly next: Option.Option<string>;
 }
 
 /** The page a ListObjectsV2 answer holds. */
-export const listPage = (xml: string): ListPage => {
+const listPage = (xml: string): ListPage => {
   const objects = Array.from(xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g), (match) => {
     const block = match[1] ?? '';
     const object: StoredObject = {

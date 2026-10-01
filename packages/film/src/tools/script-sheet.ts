@@ -38,7 +38,7 @@ export const quotesOf = Effect.fn('ScriptSheet.quotes')(function* (film: LoadedF
 });
 
 /** Where the sheet was written, and how many beats it has. */
-export interface SheetWritten {
+interface SheetWritten {
   readonly markdown: string;
   readonly html: string;
   readonly beats: number;

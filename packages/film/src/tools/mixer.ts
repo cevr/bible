@@ -124,14 +124,14 @@ export const masterFinding = (
     },
   });
 
-export interface MixOptions {
+interface MixOptions {
   /** Also write each bus to `<out>/<film>/stems/<bus>.wav` (the score's as `music.<option>.wav`). */
   readonly stems: boolean;
   /** The score option to play in place of the one the score names (`mix --score`). */
   readonly score: Option.Option<string>;
 }
 
-export type MixError =
+type MixError =
   | MixPlanError
   | PlaceError
   | FilmUnknown
@@ -142,7 +142,7 @@ export type MixError =
   | TakeUnknown;
 
 /** What a mix is rendered from beyond the film. */
-export interface RenderOptions {
+interface RenderOptions {
   /** Log each warning the plan earns (stale, missing). */
   readonly warn: boolean;
   /** The score option to play in place of the one the score names. */
@@ -152,7 +152,7 @@ export interface RenderOptions {
 }
 
 /** A take of a library sound, by its sha256, heard where the film plays that sound. */
-export interface TakeInPlace {
+interface TakeInPlace {
   readonly sound: string;
   readonly take: string;
 }
@@ -161,7 +161,7 @@ export interface TakeInPlace {
  * `sounds` with `sound` playing only the take `take` names (kept or waiting),
  * at every placement; `TakeUnknown` when it has no such take.
  */
-export const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sounds, TakeUnknown> => {
+const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sounds, TakeUnknown> => {
   const entry = Option.fromUndefinedOr(sounds.lock[take.sound]);
   const found = Option.flatMap(entry, (e) =>
     Option.fromUndefinedOr([...e.variants, ...e.candidates].find((v) => v.sha256 === take.take)),
@@ -177,13 +177,13 @@ export const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sound
 };
 
 /** A mix rendered in memory, the decoded plan it played, and that plan's key (`mixKey`). */
-export interface Rendered {
+interface Rendered {
   readonly plan: MixPlan<Pcm>;
   readonly mixed: Mixed;
   readonly key: string;
 }
 
-export interface MixerService {
+interface MixerService {
   /**
    * Rebuild `narration/full.wav` from the film's current takes, score and
    * effects. The track is written beside the old one and replaces it once
@@ -204,7 +204,7 @@ export interface MixerService {
  * `plan` with every sound it plays decoded (a file) or played (a recipe); the
  * mix never resamples, so a file at another rate fails.
  */
-export const decodePlan = (
+const decodePlan = (
   media: MediaService,
   plan: MixPlan<SoundSource>,
 ): Effect.Effect<MixPlan<Pcm>, MediaFailed | SampleRateMismatch> => {
@@ -240,7 +240,7 @@ export const decodePlan = (
  * `plan` without the generated files that are not on disk (a clone that has
  * not run `sfx pull`), each named in a warning: the mix plays what it has.
  */
-export const presentOnly = (
+const presentOnly = (
   exists: (file: string) => Effect.Effect<boolean, PlatformError>,
   plan: MixPlan<SoundSource>,
 ): Effect.Effect<MixPlan<SoundSource>, PlatformError> =>
@@ -292,7 +292,7 @@ export const planOf = (
   );
 
 /** What `film` mixes to now: its plan (`planOf`), less the files not on disk, each named in a warning. */
-export const filmPlan = (
+const filmPlan = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
   options: Pick<RenderOptions, 'score' | 'take'>,

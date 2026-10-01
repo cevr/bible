@@ -26,14 +26,14 @@ import {
 } from './look.ts';
 import { Pages } from './pages.ts';
 
-export type LookError = PageOpenError | PageError | PageCrashed | FrameFailed;
+type LookError = PageOpenError | PageError | PageCrashed | FrameFailed;
 
 /** Frames one page draws per call. */
 const BATCH = 40;
 /** The hands pass keeps no picture: its thumbs are one pixel. */
 const HANDS_THUMB = 1;
 
-export interface LookerService {
+interface LookerService {
   /**
    * Draw the scenes `scope` covers (`resolveAddress`: every one for the whole
    * film) at 2 fps, small, on `workers` pages, and measure each.

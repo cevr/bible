@@ -13,7 +13,7 @@ export const sha256Hex = (bytes: Uint8Array | string): string =>
   createHash('sha256').update(bytes).digest('hex');
 
 /** An incremental sha256: fed chunk by chunk as bytes stream past, read once at the end. */
-export interface Hashing {
+interface Hashing {
   readonly update: (chunk: Uint8Array) => void;
   readonly hex: () => string;
 }

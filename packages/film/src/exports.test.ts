@@ -9,6 +9,10 @@
 // only while another file imports them: a name its own file alone reads is
 // not exported. A directory joins `SWEPT` once its unread exports are gone.
 //
+// Imports and exports are read by the parser (oxc), so a comment or a string
+// that looks like code names nothing. A namespace import, an `import()` and
+// an `export * as` take a module whole.
+//
 // The entries guarded, and who uses them:
 //   canvas    films, their kits and tests: the draw kit
 //   player    the app's page, its film registry, a film's `Narrated` type
@@ -23,6 +27,12 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import {
+  type ExportExportName,
+  type ExportImportName,
+  type ImportName,
+  parseSync,
+} from 'oxc-parser';
 
 /** The tools that use a guarded entry as its users do: the draw leg draws into the stand-in. */
 const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-check.ts']);
@@ -32,7 +42,42 @@ const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-c
  * name (a test or a lint fixture counts, an `export * from` passes a name
  * through): an export its own file alone reads is not exported.
  */
-const SWEPT = ['packages/film/src/core/', 'packages/film/src/lab/'] as const;
+const SWEPT = [
+  'packages/film/src/core/',
+  'packages/film/src/lab/',
+  'packages/film/src/tools/',
+  'packages/film/src/canvas/',
+  'packages/film/src/player/',
+  'packages/film/lint/',
+] as const;
+
+/**
+ * The modules in a swept directory whose exports have a reader the sweep
+ * cannot see, and so are not swept:
+ * - a `.types.ts` file is a compile-time check, and its exports keep its
+ *   `@ts-expect-error` lines compiled;
+ * - a fixture film's modules export what the film loader reads by name
+ *   (`scenes`, `voice`, `look`, `script`);
+ * - a lint fixture is a film's code a rule reads.
+ * A default export is its loader's (oxlint's plugin), and is not swept either.
+ */
+const UNSWEPT = (file: string) =>
+  file.endsWith('.types.ts') ||
+  file.includes('/fixtures/films/') ||
+  file.startsWith('packages/film/lint/fixtures/');
+
+/**
+ * The unread exports still exported, each to drop: the sweep lists exactly
+ * these, so a new unread export is not hidden among them, and an entry goes
+ * once its `export` does.
+ */
+const UNREAD = [
+  'src/tools/choices.ts ChoicesError',
+  'src/tools/choices.ts Checked',
+  'src/tools/choices.ts ChoicesService',
+  'src/tools/choice-points.ts PointInputs',
+  'src/tools/project-http.ts addressArgs',
+];
 
 /** `packages/film/package.json`'s specifiers: `./core` → `./src/core/index.ts`. */
 const PackageExports = Schema.fromJsonString(
@@ -47,51 +92,95 @@ const ENTRIES = [
   { entry: 'core', file: 'src/core/index.ts' },
 ] as const;
 
-/** A module's code without its comments, so a doc's `export const look` names nothing. */
-const codeOf = (source: string): string =>
-  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+/** What one import or re-export takes from `from`: some of its names, or (None) the module whole. */
+interface Take {
+  readonly from: string;
+  readonly names: Option.Option<ReadonlyArray<string>>;
+}
 
-/** `a, type B, c as d` → the names each part gives: the left of `as` (`pick` 0) or its right (1). */
-const namesIn = (list: string, pick: 0 | 1): ReadonlyArray<string> =>
-  list
-    .split(',')
-    .map((part) => {
-      const sides = part.replace(/^\s*type\s+/, '').split(/\s+as\s+/);
-      return (sides[pick] ?? sides[0])?.trim();
-    })
-    .flatMap((name) =>
-      Option.toArray(Option.filter(Option.fromUndefinedOr(name), (n) => n !== '')),
-    );
+/** A module's imports and exports, as the parser reads them. */
+interface ModuleRecord {
+  /** The names it exports (as renamed): declarations, `export { … }` and re-exports. */
+  readonly exports: ReadonlyArray<string>;
+  /** Its `import`s, `import()`s and `export … from`s. */
+  readonly takes: ReadonlyArray<Take>;
+  /** Its `export * from` sources: a name taken from it is taken from them too. */
+  readonly stars: ReadonlyArray<string>;
+}
 
-/** The names a module exports: its `export { … }` blocks (as renamed) and its exported declarations. */
-const exported = (source: string): ReadonlyArray<string> => [
-  ...Arr.flatMap([...source.matchAll(/export\s*(?:type\s*)?\{([^}]*)\}/g)], (m) =>
-    namesIn(
-      Option.getOrElse(Option.fromUndefinedOr(m[1]), () => ''),
-      1,
+/** A name as an import or export entry spells it; a default is `default`. */
+const nameOf = (entry: ImportName | ExportImportName | ExportExportName): Option.Option<string> => {
+  if (entry.kind === 'Default') return Option.some('default');
+  return Option.fromNullishOr(entry.name);
+};
+
+type Parsed = ReturnType<typeof parseSync>['module'];
+
+/** An `import … from`: its names, or the module whole for `import * as`. */
+const importTake = (i: Parsed['staticImports'][number]): Take => {
+  if (i.entries.some((e) => e.importName.kind === 'NamespaceObject'))
+    return { from: i.moduleRequest.value, names: Option.none() };
+  return {
+    from: i.moduleRequest.value,
+    names: Option.some(i.entries.flatMap((e) => Option.toArray(nameOf(e.importName)))),
+  };
+};
+
+/** An `export … from` but `export *`: its one name, or the module whole for `export * as`. */
+const reexportTake = (e: Parsed['staticExports'][number]['entries'][number]): ReadonlyArray<Take> =>
+  Option.toArray(
+    Option.map(
+      Option.filter(
+        Option.fromNullishOr(e.moduleRequest),
+        () => e.importName.kind !== 'AllButDefault',
+      ),
+      (request): Take => ({
+        from: request.value,
+        names: Option.map(nameOf(e.importName), (name) => [name]),
+      }),
     ),
-  ),
-  ...Arr.flatMap(
-    [
-      ...source.matchAll(
-        /export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g,
-      ),
-    ],
-    (m) => Option.toArray(Option.fromUndefinedOr(m[1])),
-  ),
-];
-
-/** Each `import`/`export … from` of a file: the names it takes, and from where. */
-const takes = (source: string) =>
-  [...source.matchAll(/(?:import|export)\s*(?:type\s*)?\{([^}]*)\}\s*from\s*'([^']+)'/g)].map(
-    (m) => ({
-      names: namesIn(
-        Option.getOrElse(Option.fromUndefinedOr(m[1]), () => ''),
-        0,
-      ),
-      from: m[2] ?? '',
-    }),
   );
+
+/** How the parser reads `file`: JSX only in a `.tsx`. */
+const langOf = (file: string): 'ts' | 'tsx' => {
+  if (file.endsWith('.tsx')) return 'tsx';
+  return 'ts';
+};
+
+/** An `import('…')` with a literal specifier: the module whole. */
+const dynamicTake = (source: string, d: Parsed['dynamicImports'][number]): ReadonlyArray<Take> =>
+  Option.toArray(
+    Option.map(
+      Option.fromNullishOr(
+        /^['"`]([^'"`]*)['"`]$/.exec(source.slice(d.moduleRequest.start, d.moduleRequest.end))?.[1],
+      ),
+      (from): Take => ({ from, names: Option.none() }),
+    ),
+  );
+
+const recordOf = (file: string, source: string): ModuleRecord => {
+  const { module } = parseSync(file, source, { lang: langOf(file), sourceType: 'module' });
+  const entries = module.staticExports.flatMap((e) => e.entries);
+  return {
+    exports: entries.flatMap((e) => Option.toArray(nameOf(e.exportName))),
+    takes: [
+      ...module.staticImports.map(importTake),
+      ...entries.flatMap(reexportTake),
+      ...module.dynamicImports.flatMap((d) => dynamicTake(source, d)),
+    ],
+    stars: entries.flatMap((e) =>
+      Option.toArray(
+        Option.filter(
+          Option.map(Option.fromNullishOr(e.moduleRequest), (r) => r.value),
+          () => e.importName.kind === 'AllButDefault',
+        ),
+      ),
+    ),
+  };
+};
+
+/** The key a module's name is marked used under; `*` marks the module whole. */
+const WHOLE = '*';
 
 /**
  * Whether `file` is where a user of an entry lives: a film's code, or a test
@@ -105,6 +194,28 @@ const isUser = (file: string) =>
   (file.startsWith('apps/') || /\.test\.tsx?$/.test(file) || file.includes('/fixtures/'));
 
 describe('the package entries', () => {
+  it.effect('a comment or a string that looks like code hides nothing and names nothing', () =>
+    Effect.sync(() => {
+      // tools/lab.ts's shape: a line comment holding `/*`, code, then a doc comment's `*/`.
+      const record = recordOf(
+        'm.ts',
+        [
+          '// the routes under /lab/* answer the page',
+          "import { kept } from './a.ts';",
+          "const s = 'export const fake = 1';",
+          'export const real = kept, also = 2;',
+          '/** the end */',
+          "export { other } from './b.ts';",
+        ].join('\n'),
+      );
+      expect(record.exports).toEqual(['real', 'also', 'other']);
+      expect(record.takes).toEqual([
+        { from: './a.ts', names: Option.some(['kept']) },
+        { from: './b.ts', names: Option.some(['other']) },
+      ]);
+    }),
+  );
+
   it.effect('each names its exports, and exports only names its users import from it', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -126,28 +237,29 @@ describe('the package entries', () => {
         ],
         (file) => isUser(file) || TOOL_USERS.has(file),
       );
-      const sources = new Map<string, string>();
+      const records = new Map<string, ModuleRecord>();
       for (const file of files)
-        sources.set(file, codeOf(yield* fs.readFileString(path.join(root, file))));
+        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
 
       const found: Record<string, { readonly whole: boolean; readonly unused: string[] }> = {};
       for (const { entry, file } of ENTRIES) {
         const at = path.join(films, file);
-        const source = codeOf(yield* fs.readFileString(at));
+        const own = recordOf(at, yield* fs.readFileString(at));
         const used = new Set<string>();
-        for (const [user, text] of sources) {
+        for (const [user, record] of records) {
           if (path.join(root, user) === at) continue;
-          for (const take of takes(text)) {
+          for (const take of record.takes) {
             const fromEntry =
               take.from === `@bible/film/${entry}` ||
               (take.from.startsWith('.') &&
                 path.resolve(path.dirname(path.join(root, user)), take.from) === at);
-            if (fromEntry) for (const name of take.names) used.add(name);
+            if (fromEntry)
+              for (const name of Option.getOrElse(take.names, () => [WHOLE])) used.add(name);
           }
         }
         found[entry] = {
-          whole: /export\s*\*/.test(source),
-          unused: exported(source).filter((name) => !used.has(name)),
+          whole: own.stars.length > 0,
+          unused: own.exports.filter((name) => !used.has(name) && !used.has(WHOLE)),
         };
       }
       expect(found).toEqual(
@@ -177,9 +289,9 @@ describe('the package entries', () => {
           !file.includes('node_modules') &&
           !/^apps\/[^/]+\/out\//.test(file),
       );
-      const sources = new Map<string, string>();
+      const records = new Map<string, ModuleRecord>();
       for (const file of files)
-        sources.set(file, codeOf(yield* fs.readFileString(path.join(root, file))));
+        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
       const specifiers = yield* Schema.decodeEffect(PackageExports)(
         yield* fs.readFileString(path.join(films, 'package.json')),
       );
@@ -193,35 +305,39 @@ describe('the package entries', () => {
           (file) => path.join('packages/film', file),
         );
       };
-      /** Each module's `export * from` sources: a name taken from it is taken from them too. */
       const stars = new Map<string, ReadonlyArray<string>>();
-      for (const [file, text] of sources)
+      for (const [file, record] of records)
         stars.set(
           file,
-          [...text.matchAll(/export\s*\*\s*from\s*'([^']+)'/g)].flatMap((m) =>
-            Option.toArray(resolved(file, m[1] ?? '')),
-          ),
+          record.stars.flatMap((from) => Option.toArray(resolved(file, from))),
         );
       const used = new Set<string>();
       const take = (module: string, name: string) => {
         used.add(`${module}#${name}`);
         for (const star of stars.get(module) ?? []) used.add(`${star}#${name}`);
       };
-      for (const [user, text] of sources)
-        for (const { names, from } of takes(text))
+      for (const [user, record] of records)
+        for (const { names, from } of record.takes)
           for (const module of Option.toArray(resolved(user, from)))
-            if (module !== user) for (const name of names) take(module, name);
+            if (module !== user)
+              for (const name of Option.getOrElse(names, () => [WHOLE])) take(module, name);
 
-      const unused = [...sources]
+      const unused = [...records]
         .filter(
-          ([file]) => SWEPT.some((dir) => file.startsWith(dir)) && !/\.test\.tsx?$/.test(file),
+          ([file]) =>
+            SWEPT.some((dir) => file.startsWith(dir)) &&
+            !/\.test\.tsx?$/.test(file) &&
+            !UNSWEPT(file),
         )
-        .flatMap(([file, text]) =>
-          exported(text)
-            .filter((name) => !used.has(`${file}#${name}`))
-            .map((name) => `${file.slice('packages/film/src/'.length)} ${name}`),
+        .flatMap(([file, record]) =>
+          record.exports
+            .filter(
+              (name) =>
+                name !== 'default' && !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`),
+            )
+            .map((name) => `${file.slice('packages/film/'.length)} ${name}`),
         );
-      expect(unused).toEqual([]);
+      expect(unused.toSorted()).toEqual(UNREAD.toSorted());
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

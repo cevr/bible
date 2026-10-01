@@ -21,10 +21,11 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { TestClock } from 'effect/testing';
 import { type NoteDraft, NotesFileJson } from '../core/schema.ts';
 import { ContentStore, LockOwnerJson } from './content-store.ts';
+import { FilmName } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { crashingFileSystem, memoryFileSystem, text } from './testing.ts';
 
-const film = 'f';
+const film = FilmName.make('f');
 const draft = (text: string): NoteDraft => ({ scene: 'a', T: 1.5, frame: 45, text });
 const png = text('png');
 

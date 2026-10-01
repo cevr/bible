@@ -496,7 +496,7 @@ export const turning = (turn: number): Turned => {
   return TURNED;
 };
 /** A turning hand: whether the palm-up shape shows (`cup`), and its length along the fingers as a share (`along`). */
-export interface Turned {
+interface Turned {
   readonly cup: boolean;
   readonly along: number;
 }
@@ -657,7 +657,7 @@ export const floatingHand = (
 // function of `open`, written into buffers this module keeps.
 
 /** How a close-up hand is cut. */
-export interface CloseStyle {
+interface CloseStyle {
   readonly skin: string;
   /** The lifeline's and the joints' ink, softer than the outline. */
   readonly crease: string;
@@ -985,7 +985,7 @@ const cupped = (
 };
 
 /** How a close-up is drawn beyond its shape: whose hand it is, its line, and how much of its ink shows. */
-export interface CloseDraw {
+interface CloseDraw {
   /**
    * Which of its figure's hands it is, as a `HandRoot`'s `away` (the near,
    * 1, unless given): the far hand's close-up is mirrored, so its thumb lies

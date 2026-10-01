@@ -9,7 +9,7 @@ import type { Note, NoteEvent, NotesFile, Reply } from '../core/schema.ts';
 import type { NotesPaths } from './notes-store.ts';
 
 /** Text in double quotes, on one line. */
-export const quoted = (text: string) =>
+const quoted = (text: string) =>
   `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n')}"`;
 
 const fields = (note: Note) => {
@@ -34,7 +34,7 @@ export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
   `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;
 
 /** A reply in a note's thread; its still is the reply's own, else the note's frame. */
-export const replyLine = (at: NotesPaths, note: Note, reply: Reply) => {
+const replyLine = (at: NotesPaths, note: Note, reply: Reply) => {
   const still = Option.getOrElse(Option.fromNullishOr(reply.still), () => note.still);
   return `reply id=${note.id} seq=${reply.seq} by=${reply.by} ${fields(note)} still=${at.stills}/${still} text=${quoted(reply.text)}`;
 };
