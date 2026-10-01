@@ -884,8 +884,9 @@ component matches a state's tag, and a renamed state touches only its
 module. The browser tests (`lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chromium with the lab API faked
 (`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
-retry or a loop's playback is moved on with `page.clock`, not waited out.
-A test process launches one Chromium per way of launching it
+retry or a loop's playback is moved on with `page.clock`, not waited out,
+and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
+page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
 (`lab/fixtures/browsers.ts`: headless, or the full one with a fake
 microphone per tone) and each case opens its own context in it, so a file's
 cases run at once (`concurrentTestGlob` in `bunfig.toml`) and the page's

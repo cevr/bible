@@ -216,6 +216,20 @@ const answer = (r: Route, found: Answer) => {
 };
 
 /**
+ * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
+ * same type. Chromium encodes a toBlob in the renderer's idle time and, when
+ * a page animating on a loaded machine leaves none, only after its 5 s
+ * fallback, so a note's still took 1 s or 7 s by chance. Answered after the
+ * call, as the real one is.
+ */
+const TO_BLOB_AT_ONCE = `HTMLCanvasElement.prototype.toBlob = function (done, type, quality) {
+  const url = this.toDataURL(type, quality);
+  const bytes = Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: url.slice(5, url.indexOf(';')) });
+  queueMicrotask(() => done(blob));
+};`;
+
+/**
  * The lab open in a fresh page: the page, what it asked of the API, and any
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
@@ -303,6 +317,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   // `page.clock.runFor` rather than waiting out a count-in, a retry or a
   // loop's playback. Audio still runs on its own, real, clock.
   yield* Effect.promise(() => tab.clock.install());
+  yield* Effect.promise(() => tab.addInitScript(TO_BLOB_AT_ONCE));
   yield* Effect.promise(() =>
     tab.goto(`${ORIGIN}/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`),
   );
