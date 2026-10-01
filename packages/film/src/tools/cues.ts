@@ -11,7 +11,7 @@ import { cueTime } from '../core/sound.ts';
 import { longSeams, seamAfter } from './check.ts';
 import type { FlagRule } from './render-plan.ts';
 
-export interface CueReport {
+interface CueReport {
   readonly lines: ReadonlyArray<string>;
   /** Named cues that end after their scene does. */
   readonly late: number;

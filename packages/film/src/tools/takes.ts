@@ -51,10 +51,10 @@ import { Media } from './media.ts';
 import { MAX_WORD_ERROR, type VoicedFilm, contentHash, takeFile } from './narrator.ts';
 
 /** The files a recording may be: what the owner's recorder saves. */
-export const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
+const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
 
 /** The recordings that lose nothing: a take made from any other carries its codec's loss. */
-export const LOSSLESS_EXTENSIONS = ['.wav', '.aif', '.aiff', '.flac'] as const;
+const LOSSLESS_EXTENSIONS = ['.wav', '.aif', '.aiff', '.flac'] as const;
 
 /** One recording of a beat, kept or not. */
 export const Attempt = Schema.Struct({
@@ -95,7 +95,7 @@ export interface ImportOptions {
 }
 
 /** What keeping one beat's take allows. */
-export interface BeatOptions {
+interface BeatOptions {
   /** Keep it even when its transcript does not match its line ("accept anyway"). */
   readonly acceptMismatch: boolean;
 }
@@ -105,7 +105,7 @@ const forBeat = (options: ImportOptions, id: string): BeatOptions => ({
   acceptMismatch: options.acceptMismatch.has(id),
 });
 
-export type TakesError =
+type TakesError =
   | RecordingInvalid
   | TakeMismatch
   | BeatUnplaced
@@ -118,7 +118,7 @@ export type TakesError =
   | PlatformError;
 
 /** Whether a file name is a recording's. */
-export const isRecording = (name: string): boolean =>
+const isRecording = (name: string): boolean =>
   RECORDING_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
 
 /** A recording's beat: its file name without the extension. */
@@ -167,7 +167,7 @@ export interface Imported {
   readonly wer: number;
 }
 
-export interface TakesService {
+interface TakesService {
   /** Import the recordings at `path`: a folder of `<beat>.<ext>`, one file, or with `whole`, one reading of the script. */
   readonly importPath: (
     film: VoicedFilm,

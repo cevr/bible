@@ -31,7 +31,7 @@ import { RenderJob, type RenderOutput } from './render-plan.ts';
 export const CATALOGUE_FILE = 'catalogue.json';
 
 /** A film's project folder: its name and where its renders go. */
-export type ProjectFolder = Pick<FilmPaths, 'name' | 'out'>;
+type ProjectFolder = Pick<FilmPaths, 'name' | 'out'>;
 
 /**
  * The catalogue's record of `output`, which `job` wrote drawing `scope`'s
@@ -76,7 +76,7 @@ export const renderRecord = (
 
 export type CatalogueError = CatalogueInvalid | StoreLocked | PlatformError;
 
-export interface CatalogueService {
+interface CatalogueService {
   /** The film's catalogue as it is on disk: empty before its first render. */
   readonly read: (project: ProjectFolder) => Effect.Effect<Catalogue, CatalogueError>;
   /** Apply `change` to the catalogue on disk and write it back; `change` also answers. */

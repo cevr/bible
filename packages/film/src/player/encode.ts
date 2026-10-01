@@ -19,7 +19,7 @@ import {
 import type { Encoder, EncoderChoice } from '../core/encoder.ts';
 
 /** How one encoder encodes the master, and the share copy when it makes one in the page. */
-export interface Settings {
+interface Settings {
   readonly hardwareAcceleration: 'prefer-hardware' | 'prefer-software';
   readonly master: Quality;
   /** The share copy encoded beside the master, or `null`: that encoder's share is made after the join. */
@@ -161,7 +161,7 @@ export const encoderChoice = (
 };
 
 /** A chunk encoded: the master, and the share copy when one was made in the page. */
-export interface EncodedChunk {
+interface EncodedChunk {
   readonly master: Uint8Array;
   readonly share: Uint8Array | undefined;
 }

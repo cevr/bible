@@ -51,7 +51,7 @@ const slug = (name: string): string =>
  * `acts/<act>`, `scenes/<id>[+<id>…]` or `shorts/<id>`. Written only: the
  * catalogue records every file, so nothing reads a path back.
  */
-export const addressFolder = (address: Address): string =>
+const addressFolder = (address: Address): string =>
   Match.valueTags(address, {
     Film: () => 'film',
     Act: ({ act }) => `acts/${slug(act)}`,
@@ -60,7 +60,7 @@ export const addressFolder = (address: Address): string =>
   });
 
 /** Where one render's files go in the film's project folder (`out/<film>`). */
-export interface RenderPaths {
+interface RenderPaths {
   /** `<address>/<variant>.mp4`; its share copy, captions and chapters beside it (`shareName`, `captionsName`, `chaptersName`). */
   readonly clip: string;
   /** `<address>/<variant>/`: its stills (`stills/`), contact sheet and look-book. */
@@ -231,7 +231,7 @@ const addressFlag = (address: Address): Option.Option<string> =>
   });
 
 /** `film render`'s flags, parsed; `scope` is the address (`--act`, `--scene`, `--short`) resolved against the layout. */
-export interface RenderFlags {
+interface RenderFlags {
   readonly variant: string;
   readonly captions: boolean;
   /** `--workers`; none takes the job's default (`DRAW_WORKERS`, or the encoder's). */
@@ -344,7 +344,7 @@ export const MAX_HARDWARE_ENCODERS = 14;
 export const SOFTWARE_WORKERS = 8;
 
 /** What an encoder allows a render: the encoders it may run at once, and the pages it opens by default. */
-export interface EncoderLimits {
+interface EncoderLimits {
   readonly max: number;
   readonly workers: number;
 }
@@ -392,7 +392,7 @@ export const videoEncoders = (
 };
 
 /** Frames `[start, end)`. */
-export interface FrameSpan {
+interface FrameSpan {
   readonly start: number;
   readonly end: number;
 }
@@ -415,7 +415,7 @@ export interface Chunk {
 }
 
 /** About four chunks per page, so a page that finishes early pulls more work… */
-export const CHUNKS_PER_WORKER = 4;
+const CHUNKS_PER_WORKER = 4;
 /** …but never under a second of frames, where the encoder's start-up would dominate… */
 export const MIN_CHUNK_FRAMES = 30;
 /**

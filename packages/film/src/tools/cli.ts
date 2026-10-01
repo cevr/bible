@@ -862,7 +862,7 @@ const Store = ContentStore.layer.pipe(Layer.provide(Platform));
 const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(Platform));
 
 /** What the app hands the CLI: where its films are, and the servers for its player page. */
-export interface FilmApp<E> {
+interface FilmApp<E> {
   /** The films folder (`<film>/scenes`, `<film>/narration`, ...), the one the player imports. */
   readonly films: string;
   /** The app's sound library folder (`library.ts`, its lock, `files/`, `public/`), shared by its films. */

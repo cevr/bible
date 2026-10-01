@@ -11,13 +11,13 @@ import type { SceneSpec } from './film.ts';
 import { type CardType, storyboard } from './storyboard.ts';
 
 /** What a drawing gives its scene: its picture, the cues and knobs it reads, its breath and its light. */
-export type SceneDrawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift' | 'light'>;
+type SceneDrawing = Pick<SceneSpec, 'draw' | 'timeline' | 'knobs' | 'drift' | 'light'>;
 
 /** A scene's light, fixed or read from its frame. */
-export type SceneLight = NonNullable<SceneSpec['light']>;
+type SceneLight = NonNullable<SceneSpec['light']>;
 
 /** What a film pairs its beats with, keyed by the beats' ids. */
-export interface SceneParts<Id extends string> {
+interface SceneParts<Id extends string> {
   readonly drawings: { readonly [K in Id]?: SceneDrawing };
   /** The light of a beat whose drawing brings none: its act's. None leaves it unlit. */
   readonly light?: (id: Id) => SceneLight | undefined;

@@ -154,7 +154,7 @@ const refused = (reason: string) => Option.some<Refusal>(RequestRefused.make({ r
  * Whether the server answers `request` at all: `None` when it does, else the
  * refusal. Pure: see the gate above.
  */
-export const admit = (
+const admit = (
   request: HttpServerRequest.HttpServerRequest,
   connection: ConnectionService,
   allowed: Allowed,

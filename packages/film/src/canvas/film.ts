@@ -58,7 +58,7 @@ import { seedOf } from '../core/random.ts';
 import { FILM_FPS, type Key, clamp, ease } from '../core/time.ts';
 
 /** What `f.knob` returns for a knob declared as `V`: a number stays a number, a point a point. */
-export type KnobValue<V extends Knob> = V extends number ? number : Point;
+type KnobValue<V extends Knob> = V extends number ? number : Point;
 
 /**
  * One instant of one scene. `C` names the scene's cues and `K` its knobs, when
@@ -150,13 +150,13 @@ function knobReader(knobs: ReadonlyMap<string, Knob>, scene: string) {
 }
 
 /** A drawing, as `f.knobsOf` finds its scene: by its `draw`, typed by its knobs. */
-export interface KnobsOwner<K extends Knobs> {
+interface KnobsOwner<K extends Knobs> {
   readonly draw: (f: never) => void;
   readonly knobs?: K;
 }
 
 /** Reads a scene's knobs by name, typed as that drawing declares them. */
-export type KnobReader<K extends Knobs> = <N extends keyof K & string>(name: N) => KnobValue<K[N]>;
+type KnobReader<K extends Knobs> = <N extends keyof K & string>(name: N) => KnobValue<K[N]>;
 
 /** The hand scene `scene` gives `key` on boil tick `boil`: what `f.hand` and `f.handsOf` both give. */
 const sceneHand = (scene: string, key: string | number, boil: number): Hand => ({
@@ -296,7 +296,7 @@ const Font = Schema.NonEmptyString;
  * quotation take the `highlight` as they are read. Checked where the film is
  * made (`createFilm`); each value it leaves out takes its default.
  */
-export const ShortStyle = Schema.Struct({
+const ShortStyle = Schema.Struct({
   hook: Schema.optionalKey(Schema.Struct({ font: Font, color: Schema.String })),
   caption: Schema.optionalKey(
     Schema.Struct({
@@ -306,7 +306,7 @@ export const ShortStyle = Schema.Struct({
     }),
   ),
 });
-export type ShortStyle = typeof ShortStyle.Type;
+type ShortStyle = typeof ShortStyle.Type;
 
 /** A short style with every value it leaves out at its default. */
 export interface ShortLook {
@@ -434,7 +434,7 @@ export interface Film {
 }
 
 /** A film's paper, shade and finish, every finish value at its default where it declares none. */
-export interface FilmLook {
+interface FilmLook {
   readonly paper: PaperStyle;
   readonly shade: string;
   readonly finish: Required<FinishStyle>;

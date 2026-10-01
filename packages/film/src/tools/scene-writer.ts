@@ -25,7 +25,7 @@ import { type Field, type LocateError, type SceneSite, SceneSources } from './sc
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
 
 /** One write to a scene file: the change, and the name the file exports the drawing under. */
-export interface Written extends Change {
+interface Written extends Change {
   /** Where the written value reads back. */
   readonly exportName: string;
 }

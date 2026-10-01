@@ -77,7 +77,7 @@ const objectAt = (
 // A pick: `play`.
 
 /** Where a pick names its variant: `play` in the object `exported` declares, down `path`. */
-export interface PickSite {
+interface PickSite {
   readonly exported: string;
   readonly path: ReadonlyArray<string>;
   /** How the write names itself: `score play`, `look ground play`. */

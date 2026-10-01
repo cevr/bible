@@ -393,7 +393,7 @@ const beatOfTake = (file: string) =>
   Option.getOrElse(Arr.head(file.slice(file.lastIndexOf('/') + 1).split('.')), () => '');
 
 /** A transcript's words, one every half second, each 0.4 s long. */
-export const heardAt = (said: string) =>
+const heardAt = (said: string) =>
   said
     .split(/\s+/)
     .filter((w) => w.length > 0)
@@ -512,7 +512,7 @@ export const fakeLength = (bytes: Uint8Array) => bytes.length / 10;
  * noise, 0.4 s of tone for each word of what the file says (its bytes are the
  * words, as a staging take's are), then half a second of room noise.
  */
-export const fakeRecording = (said: string, rate: number): Pcm => {
+const fakeRecording = (said: string, rate: number): Pcm => {
   const words = said.split(/\s+/).filter((w) => w.length > 0).length;
   const frames = Math.round((1 + words * 0.4) * rate);
   const plane = Float32Array.from({ length: frames }, (_, i) => {
@@ -638,7 +638,7 @@ export const fakeMedia = (
   );
 
 /** How a fake page answers the export handle's calls: decoded answers, or the failure a page would give. */
-export type FakeHandle = {
+type FakeHandle = {
   readonly [K in ExportCall]: (
     ...args: CallArgs[K]
   ) => Effect.Effect<
@@ -724,7 +724,7 @@ export const testExportInfo: ExportInfo = {
 };
 
 /** A frame as a fake page's look pass draws it: one flat grey, and the faces it declares. */
-export interface FakeLook {
+interface FakeLook {
   readonly grey: number;
   readonly faces: ReadonlyArray<FaceMark>;
   readonly hands?: ReadonlyArray<HandMark>;

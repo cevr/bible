@@ -39,7 +39,7 @@ import { TALLY_HEADER, talliedCredits } from './library.ts';
  * does Eleven Music cost?": about 900 credits a minute). An estimate for the
  * plan and the cap; the account's own count is the measure.
  */
-export const MUSIC_CREDITS_PER_MINUTE = 900;
+const MUSIC_CREDITS_PER_MINUTE = 900;
 
 /** The credits a plan is estimated to cost. */
 export const musicCredits = (plan: Plan): number =>
@@ -60,7 +60,7 @@ export interface ScoreOptions {
   readonly tally: Option.Option<string>;
 }
 
-export type ScoreError =
+type ScoreError =
   | SoundMissing
   | ScoreUnknown
   | PlaceError
@@ -80,7 +80,7 @@ const keepScores = (manifest: SoundManifest, keep: ReadonlySet<string>): SoundMa
   return { scores };
 };
 
-export interface ComposerService {
+interface ComposerService {
   readonly score: (film: LoadedFilm, options: ScoreOptions) => Effect.Effect<void, ScoreError>;
 }
 

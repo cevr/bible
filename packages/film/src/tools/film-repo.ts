@@ -71,7 +71,7 @@ export interface LoadedFilm {
   readonly sounds: Sounds;
 }
 
-export type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
+type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
 
 /**
  * A film's name as a request gives it, checked against the films folder: one
@@ -88,7 +88,7 @@ export type FilmName = typeof FilmName.Type;
  * one (Bun keeps a module as it first evaluated it), so it reads a film only
  * through a fresh process (`FreshFilm`).
  */
-export interface FilmFolderService {
+interface FilmFolderService {
   readonly paths: (film: string) => FilmPaths;
   /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
   readonly names: Effect.Effect<ReadonlyArray<string>>;
@@ -103,7 +103,7 @@ export interface FilmFolderService {
   readonly stamp: (film: string) => Effect.Effect<number, PlatformError>;
 }
 
-export interface FilmRepoService {
+interface FilmRepoService {
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
   /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
   readonly script: (

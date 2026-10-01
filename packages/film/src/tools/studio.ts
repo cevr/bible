@@ -133,7 +133,7 @@ const isMismatch = Schema.is(TakeMismatch);
 /** How many films' readings the lab keeps: one film, a few stamps of it. */
 const READINGS_KEPT = 8;
 
-export interface StudioReadingsService {
+interface StudioReadingsService {
   /** The film's script, voice and beats as they stand: read fresh only when its stamp moved. */
   readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError | PlatformError>;
 }

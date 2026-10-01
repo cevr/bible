@@ -651,7 +651,7 @@ export class PlateOffFrame extends Schema.TaggedError<PlateOffFrame>()('PlateOff
  * Why the film does not lay out, or the part a check names does not resolve
  * on it: the one finding a check reports when it cannot place the film.
  */
-export type PlaceFinding =
+type PlaceFinding =
   | DuplicateScene
   | DuplicateMark
   | TurnInvalid
@@ -711,7 +711,7 @@ export type Finding =
   | LookFinding
   | ShortFinding;
 
-export type Level = 'error' | 'warning';
+type Level = 'error' | 'warning';
 
 export interface CheckOptions {
   /** Report a stale take, asset or audio master as a warning: work in progress, not a broken film. */

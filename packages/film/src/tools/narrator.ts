@@ -78,20 +78,20 @@ export interface NarrateOptions {
 }
 
 /** A beat's take as the plan found it. */
-export interface BeatTake {
+interface BeatTake {
   readonly id: string;
   readonly state: TakeState;
 }
 
 /** A beat staging was asked for and left alone, because a person read it. */
-export interface Kept {
+interface Kept {
   readonly id: string;
   /** `recorded`: current; `recorded, stale`: its line changed, and it waits to be read again. */
   readonly why: 'recorded' | 'recorded, stale';
 }
 
 /** A person's take for a beat the film no longer has. */
-export interface Orphan {
+interface Orphan {
   readonly id: string;
   readonly file: string;
 }
@@ -122,12 +122,7 @@ export interface NarrationPlan {
   readonly voice: string;
 }
 
-export type NarrateError =
-  | TakeMismatch
-  | AlignmentMismatch
-  | ElevenLabsFailed
-  | MediaFailed
-  | StoreError;
+type NarrateError = TakeMismatch | AlignmentMismatch | ElevenLabsFailed | MediaFailed | StoreError;
 
 /**
  * Takes recorded under the current voice; a different voice leaves only the
@@ -242,8 +237,8 @@ export const stateLine = (take: BeatTake): string =>
   )(take.state);
 
 /** A take's audio: a staging take is ElevenLabs' MP3, a person's a FLAC master. */
-export const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
-export type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
+const TAKE_EXTENSIONS = ['.mp3', '.flac'] as const;
+type TakeExtension = (typeof TAKE_EXTENSIONS)[number];
 
 /** Twelve hex digits of the SHA-256 of `bytes`: a file named by what it holds. */
 export const contentHash = (bytes: Uint8Array): string => sha256Hex(bytes).slice(0, 12);
@@ -275,7 +270,7 @@ const withoutRemoved =
     return { voice, scenes: Object.fromEntries(scenes) };
   };
 
-export interface NarratorService {
+interface NarratorService {
   /** Record every stale beat of the plan, then drop the takes of removed beats. */
   readonly record: (
     film: LoadedFilm,

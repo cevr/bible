@@ -35,7 +35,7 @@ export const CHECK_RULES: ReadonlyArray<FlagRule> = [
 ];
 
 /** The film laid out, and the part of it a check covers. */
-export interface LaidOut {
+interface LaidOut {
   readonly placed: ReadonlyArray<Placed>;
   readonly scope: Scope;
 }

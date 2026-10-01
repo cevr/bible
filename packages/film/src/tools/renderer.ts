@@ -155,7 +155,7 @@ export const encoderReady: Effect.Effect<
   }),
 ).pipe(Effect.withSpan('Renderer.encoderReady'));
 
-export type RenderError =
+type RenderError =
   | PageOpenError
   | PageError
   | PageCrashed
@@ -215,7 +215,7 @@ interface Where {
   readonly short: Option.Option<ResolvedShort>;
 }
 
-export interface RendererService {
+interface RendererService {
   /**
    * Draw `job` into the film's project folder (`renderPaths`), or a video to
    * its `--out`, and say what it wrote.
@@ -230,7 +230,7 @@ export interface RendererService {
 }
 
 /** Renders that share their probe and their pages (`RendererService.session`). */
-export interface RenderSession {
+interface RenderSession {
   readonly render: (film: LoadedFilm, job: RenderJob) => Effect.Effect<RenderOutput, RenderError>;
 }
 
@@ -273,8 +273,6 @@ export interface Remuxed {
   readonly share: Option.Option<string>;
   readonly pieces: ReadonlyArray<FilmPiece>;
 }
-
-export type RemuxError = AudioMissing | AudioStale | MediaFailed | PlaceError | PlatformError;
 
 /**
  * The film's master checked, before anything is drawn or cut, against the

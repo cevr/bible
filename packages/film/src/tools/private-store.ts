@@ -23,7 +23,7 @@ export const R2_ENV = {
 /** Why the store cannot be reached: its declaration does not decode, or the bucket's credentials are not set. */
 export type StoreUnavailable = FilmModuleInvalid | StoreCredentialsMissing;
 
-export interface PrivateStoreService {
+interface PrivateStoreService {
   /** The declared store, resolved (and its credentials read) on first use. */
   readonly store: Effect.Effect<MediaStoreService, StoreUnavailable>;
 }

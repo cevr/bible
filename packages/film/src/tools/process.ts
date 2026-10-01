@@ -14,7 +14,7 @@ export interface Finished {
 }
 
 /** A byte stream as text. */
-export const text = (stream: Stream.Stream<Uint8Array, PlatformError>) =>
+const text = (stream: Stream.Stream<Uint8Array, PlatformError>) =>
   Stream.mkString(Stream.decodeText(stream));
 
 /** Run `command` and collect its output; stdout and stderr drain together so neither blocks. */

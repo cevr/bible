@@ -102,7 +102,7 @@ import { type Master, masterFile, masterFinding } from './mixer.ts';
  * sentence's end, into the next sentence. Past that, the word it meant near
  * the mark is likely gone from the take.
  */
-export const PIN_REACH = 1;
+const PIN_REACH = 1;
 
 /**
  * Word pins that land more than `PIN_REACH` sentences past their mark. A pin
@@ -135,10 +135,10 @@ export const farPins = (placed: ReadonlyArray<Placed>): ReadonlyArray<WordPinFar
   );
 
 /** How near a hand-sized edge must land to a phrase edge to read as sized to it, in seconds. */
-export const DUR_ON_WORD = 0.08;
+const DUR_ON_WORD = 0.08;
 
 /** The shortest `dur` `durOnWords` reads: a shorter motion is a gesture, not a length sized to a line. */
-export const DUR_MIN = 1;
+const DUR_MIN = 1;
 
 /** A word's heard edge that bounds a phrase: where the voice starts after a pause or stops before one. */
 interface PhraseEdge {
@@ -607,7 +607,7 @@ export const soundFindings = (
  * no looser than the render's one frame at any rate up to that; a mix is
  * trimmed to the film's length, so a current master is exact.
  */
-export const MASTER_TOLERANCE = 1 / 60;
+const MASTER_TOLERANCE = 1 / 60;
 
 /** The track on disk (`readMaster`), and the key of the plan the film mixes to now (`planKey`). */
 export interface MasterAudio {
@@ -639,9 +639,9 @@ const masterFindings = (
 // The ending and the air
 
 /** After the last word, credits and music alone need at least this long (research #6, #44). */
-export const TAIL_MIN = 20;
+const TAIL_MIN = 20;
 /** YouTube's end screens need at least this long at the end. */
-export const CARD_MIN = 5;
+const CARD_MIN = 5;
 
 /**
  * The ending, against what YouTube needs: the stretch after the last word
@@ -671,11 +671,11 @@ export const endShort = (placed: ReadonlyArray<Placed>): ReadonlyArray<EndShort>
 };
 
 /** The master counts as silent below this level, in dBFS. */
-export const DEAD_FLOOR = -60;
+const DEAD_FLOOR = -60;
 /** A silence longer than this, in seconds, that no cue declares is dead air. */
 export const DEAD_MAX = 1.5;
 /** The master's level is read in windows this long, in seconds, its sides' power summed (`windowPowers`). */
-export const DEAD_WINDOW = 0.05;
+const DEAD_WINDOW = 0.05;
 
 /** The film seconds every cue declared `silence: true` spans. */
 export const designedSilences = (placed: ReadonlyArray<Placed>): ReadonlyArray<Interval> =>
@@ -796,9 +796,9 @@ export const layoutSamples = (placed: ReadonlyArray<Placed>, fps: number): Reado
  * to collide, so a word fading out where another fades in is a crossfade, not
  * a collision.
  */
-export const VISIBLE_ALPHA = 0.3;
+const VISIBLE_ALPHA = 0.3;
 /** Two lines collide only where they overlap by more than this many pixels, across and down. */
-export const OVERLAP_TOLERANCE = 4;
+const OVERLAP_TOLERANCE = 4;
 
 const visible = (box: TextBox) => box.alpha > VISIBLE_ALPHA;
 
@@ -875,7 +875,7 @@ export const overlapArea = (a: TextBox, b: TextBox): number => {
 };
 
 /** Whether a box lies wholly outside a `width` × `height` frame: it shows nothing. */
-export const offFrame = (
+const offFrame = (
   box: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
   width: number,
   height: number,
@@ -906,7 +906,7 @@ export const pastFrame = (
  * than `VISIBLE_ALPHA`, the opacity below which ink does not read over text
  * (so a full-strength stroke is hidden by one layer at 0.7 or more).
  */
-export const showing = (stroke: InkMark, layers: ReadonlyArray<InkMark>): number =>
+const showing = (stroke: InkMark, layers: ReadonlyArray<InkMark>): number =>
   layers.reduce((left, layer) => left * (1 - layer.alpha), stroke.alpha);
 /**
  * A stroke drawn before a line of text lies under it, and one that is both
@@ -916,14 +916,14 @@ export const showing = (stroke: InkMark, layers: ReadonlyArray<InkMark>): number
  * over it. Only a stroke drawn over the text, or a heavier or wider one under
  * it, strikes it.
  */
-export const UNDER_ALPHA = 0.5;
+const UNDER_ALPHA = 0.5;
 /**
  * Thin, for texture: at most this share of the letters' height (the text box
  * measured down its own side, so a turned line counts its real height). A
  * rule that thin sits across a third of each glyph at most and every letter
  * keeps its shape; a wider one is a bar through the words.
  */
-export const TEXTURE_WIDTH = 1 / 3;
+const TEXTURE_WIDTH = 1 / 3;
 /** Along a crossing, the check looks for a plate over the stroke every this many pixels. */
 const CROSS_STEP = 2;
 
@@ -989,11 +989,7 @@ const nearestIn = (q: Quad, p: Point): Point => {
  * that stretch when it covers the point of the letters (less the tolerance)
  * nearest the centre.
  */
-export const crossing = (
-  stroke: InkMark,
-  text: TextBox,
-  covers: ReadonlyArray<InkMark>,
-): number => {
+const crossing = (stroke: InkMark, text: TextBox, covers: ReadonlyArray<InkMark>): number => {
   const box = inset(text.corners, OVERLAP_TOLERANCE / 2 - stroke.width / 2);
   if (Option.isNone(box)) return 0;
   const over = covers.filter((c) => c.order > stroke.order);
@@ -1102,7 +1098,7 @@ const inkOverText = (sample: Sample, probed: Probed): ReadonlyArray<InkOverText>
  * rim meets what the figure wears and holds (a brim, a collar, its own hands)
  * and what stands beside it.
  */
-export const FACE_CORE = 0.7;
+const FACE_CORE = 0.7;
 
 /** How far `p` is from the polyline `points`. */
 const distanceTo = (points: ReadonlyArray<Point>, p: Point): number =>
@@ -1455,7 +1451,7 @@ export const HOLD = 4;
  */
 export const STILL_DRIFT = 2 * STROKE_JITTER;
 /** How far a mark's opacity may change and still be at rest. */
-export const STILL_FADE = 0.02;
+const STILL_FADE = 0.02;
 
 /**
  * A stretch where the voice speaks and nothing is declared to move: no cue

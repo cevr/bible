@@ -42,7 +42,42 @@ const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-c
  * name (a test or a lint fixture counts, an `export * from` passes a name
  * through): an export its own file alone reads is not exported.
  */
-const SWEPT = ['packages/film/src/core/', 'packages/film/src/lab/'] as const;
+const SWEPT = [
+  'packages/film/src/core/',
+  'packages/film/src/lab/',
+  'packages/film/src/tools/',
+  'packages/film/src/canvas/',
+  'packages/film/src/player/',
+  'packages/film/lint/',
+] as const;
+
+/**
+ * The modules in a swept directory whose exports have a reader the sweep
+ * cannot see, and so are not swept:
+ * - a `.types.ts` file is a compile-time check, and its exports keep its
+ *   `@ts-expect-error` lines compiled;
+ * - a fixture film's modules export what the film loader reads by name
+ *   (`scenes`, `voice`, `look`, `script`);
+ * - a lint fixture is a film's code a rule reads.
+ * A default export is its loader's (oxlint's plugin), and is not swept either.
+ */
+const UNSWEPT = (file: string) =>
+  file.endsWith('.types.ts') ||
+  file.includes('/fixtures/films/') ||
+  file.startsWith('packages/film/lint/fixtures/');
+
+/**
+ * The unread exports still exported, each to drop: the sweep lists exactly
+ * these, so a new unread export is not hidden among them, and an entry goes
+ * once its `export` does.
+ */
+const UNREAD = [
+  'src/tools/choices.ts ChoicesError',
+  'src/tools/choices.ts Checked',
+  'src/tools/choices.ts ChoicesService',
+  'src/tools/choice-points.ts PointInputs',
+  'src/tools/project-http.ts addressArgs',
+];
 
 /** `packages/film/package.json`'s specifiers: `./core` → `./src/core/index.ts`. */
 const PackageExports = Schema.fromJsonString(
@@ -289,14 +324,20 @@ describe('the package entries', () => {
 
       const unused = [...records]
         .filter(
-          ([file]) => SWEPT.some((dir) => file.startsWith(dir)) && !/\.test\.tsx?$/.test(file),
+          ([file]) =>
+            SWEPT.some((dir) => file.startsWith(dir)) &&
+            !/\.test\.tsx?$/.test(file) &&
+            !UNSWEPT(file),
         )
         .flatMap(([file, record]) =>
           record.exports
-            .filter((name) => !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`))
-            .map((name) => `${file.slice('packages/film/src/'.length)} ${name}`),
+            .filter(
+              (name) =>
+                name !== 'default' && !used.has(`${file}#${name}`) && !used.has(`${file}#${WHOLE}`),
+            )
+            .map((name) => `${file.slice('packages/film/'.length)} ${name}`),
         );
-      expect(unused).toEqual([]);
+      expect(unused.toSorted()).toEqual(UNREAD.toSorted());
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

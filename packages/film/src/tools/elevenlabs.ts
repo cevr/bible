@@ -75,7 +75,7 @@ const AuthStatus = Schema.fromJsonString(
 );
 
 /** `text-to-speech convert_with_timestamps`: the audio, and when each character is spoken. */
-export const TtsResponse = Schema.Struct({
+const TtsResponse = Schema.Struct({
   audio_base64: Schema.String,
   alignment: Schema.Struct({
     characters: Schema.Array(Schema.String),
@@ -83,19 +83,19 @@ export const TtsResponse = Schema.Struct({
     character_end_times_seconds: Schema.Array(Schema.Finite),
   }),
 });
-export type TtsResponse = typeof TtsResponse.Type;
+type TtsResponse = typeof TtsResponse.Type;
 
 /**
  * `text-to-dialogue convert_with_timestamps`: as for speech, over the lines
  * joined with nothing between them, and where each voice's stretch starts.
  */
-export const DialogueResponse = Schema.Struct({
+const DialogueResponse = Schema.Struct({
   ...TtsResponse.fields,
   voice_segments: Schema.Array(
     Schema.Struct({ character_start_index: Schema.Int, voice_id: Schema.String }),
   ),
 });
-export type DialogueResponse = typeof DialogueResponse.Type;
+type DialogueResponse = typeof DialogueResponse.Type;
 
 /** One stretch of a transcript: a word, the spacing after it, or a sound (`(breath)`). */
 const SttWord = Schema.Struct({
@@ -163,7 +163,7 @@ export interface SoundEffectRequest {
   readonly format: string;
 }
 
-export interface ElevenLabsService {
+interface ElevenLabsService {
   readonly tts: (request: TtsRequest) => Effect.Effect<TtsResponse, ElevenLabsFailed>;
   readonly dialogue: (
     request: DialogueRequest,

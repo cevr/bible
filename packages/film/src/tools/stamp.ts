@@ -62,7 +62,7 @@ export interface Keyed {
   readonly timings: Timings;
 }
 
-export type StampError = LocateError | PlatformError | Schema.SchemaError;
+type StampError = LocateError | PlatformError | Schema.SchemaError;
 
 const SOURCE = ['.ts', '.tsx', '.js', '.mjs'];
 const GIT_LIMIT = Duration.seconds(10);
@@ -141,7 +141,7 @@ export const sceneStamps = (
     stamp: stampOf(keys, { address: sceneAddress(p.spec.id), short: Option.none(), scenes: [p] }),
   }));
 
-export interface StampsService {
+interface StampsService {
   /** Every scene's key, its sources read as they stand now. */
   readonly scenes: (
     film: Keyed,

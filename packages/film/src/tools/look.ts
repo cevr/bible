@@ -33,11 +33,11 @@ export const THUMB_BYTES = THUMB_W * THUMB_H * 4;
 /** Seconds between samples: 2 fps. */
 export const LOOK_STEP = 0.5;
 /** A step whose mean grey difference is under this barely changes (paper grain alone scores 0.5–2). */
-export const HELD_DIFF = 2;
+const HELD_DIFF = 2;
 /** The most of a scene's seconds that may hold still (CRAFT rule 5). */
 export const HELD_MAX = 0.4;
 /** A frame darker than this mean luma counts as dark (CRAFT rule 11). */
-export const DARK_LUMA = 60;
+const DARK_LUMA = 60;
 /** A face at human scale fills this share of the frame's height (CRAFT rule 5). */
 export const FACE_SHARE = 1 / 3;
 /** How many colours the report names per scene or act. */
@@ -74,7 +74,7 @@ export const lookSamples = (
   );
 
 /** The light of a run of frames, summed so scenes add up to acts and the film. */
-export interface Light {
+interface Light {
   readonly frames: number;
   readonly luma: number;
   readonly dark: number;
@@ -150,7 +150,7 @@ const greyDiff = (a: Float32Array, b: Float32Array): number => {
 };
 
 /** One scene's look. */
-export interface SceneLook {
+interface SceneLook {
   readonly scene: string;
   readonly start: number;
   readonly dur: number;
@@ -282,15 +282,15 @@ export const SIZE_JUMP = 0.25;
  */
 export const GRIP_JUMP = 0.5;
 /** A hand is seen at this opacity or more. */
-export const HAND_SEEN = 0.5;
+const HAND_SEEN = 0.5;
 /**
  * A hand is at work once it has travelled this far: at its target, not on
  * its way there. A far hand going to work in front of its body passes behind
  * it on the way; that is travel (`HandJump` judges it), not a hand hidden.
  */
-export const HAND_AT_WORK = 0.9;
+const HAND_AT_WORK = 0.9;
 /** A hand a frame on is the same hand when its shoulder moved at most this many px. */
-export const SHOULDER_MATCH = 24;
+const SHOULDER_MATCH = 24;
 
 /** One frame drawn for its hands: in a scene, frame `frame` at film time `T`. */
 export interface HandFrame {
@@ -486,10 +486,10 @@ const handsTravel = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>)
   ) || now.some((h) => h.reach > 0 && Option.isNone(sameHand(h, was)));
 
 /** An act laid over the film (`stretchesOf`): its declaration and the scenes it holds. */
-export type ActSpan = Stretch<Act>;
+type ActSpan = Stretch<Act>;
 
 /** The light of `looks` summed. */
-export const lightOf = (looks: ReadonlyArray<SceneLook>): Light =>
+const lightOf = (looks: ReadonlyArray<SceneLook>): Light =>
   looks.reduce((sum, l) => addLight(sum, l.light), emptyLight());
 
 /** The looks of `scenes`. */
@@ -497,13 +497,13 @@ const within = (looks: ReadonlyArray<SceneLook>, scenes: ReadonlyArray<string>) 
   looks.filter((l) => scenes.includes(l.scene));
 
 /** A light's mean luma (0–255), dark share (0–1) and mean saturation (0–1). */
-export const measures = (light: Light) => {
+const measures = (light: Light) => {
   const n = Math.max(1, light.frames);
   return { luma: light.luma / n, dark: light.dark / n, saturation: light.saturation / n };
 };
 
 /** A light's commonest colours, each as `#rrggbb` (its bin's mean) and its share of pixels. */
-export const hues = (light: Light): ReadonlyArray<readonly [string, number]> => {
+const hues = (light: Light): ReadonlyArray<readonly [string, number]> => {
   let total = 0;
   const found: Array<readonly [number, number]> = [];
   for (let bin = 0; bin < BINS; bin++) {
@@ -631,8 +631,8 @@ export const lookLines = (
 };
 
 /** YouTube's rules for chapters (research #43): the first at 0:00, at least 3, each at least 10 s. */
-export const CHAPTERS_MIN = 3;
-export const CHAPTER_MIN_SECS = 10;
+const CHAPTERS_MIN = 3;
+const CHAPTER_MIN_SECS = 10;
 
 /** `secs` as YouTube writes a chapter's start: `mm:ss`, or `h:mm:ss` past an hour. */
 export const chapterTime = (secs: number): string => {

@@ -48,15 +48,15 @@ export interface NotesPaths {
 }
 
 /** A reply as a writer hands it in: its still, when it has one, as PNG bytes. */
-export interface ReplyInput {
+interface ReplyInput {
   readonly by: NoteAuthor;
   readonly text: string;
   readonly still: Option.Option<Uint8Array>;
 }
 
-export type NotesError = StoreError;
+type NotesError = StoreError;
 
-export interface NotesStoreService {
+interface NotesStoreService {
   readonly paths: (film: FilmName) => NotesPaths;
   /** Every note of the film; an empty log before the first. */
   readonly read: (film: FilmName) => Effect.Effect<NotesFile, StoreError>;

@@ -144,18 +144,18 @@ export interface MediaService {
  * against righteousness-by-faith's lossless stills (packages/film/README.md,
  * "Software share").
  */
-export const SHARE_CRF = 22;
+const SHARE_CRF = 22;
 
 /** A phone copy's height, in pixels, and the bitrate its video is capped at. */
-export const PHONE_HEIGHT = 720;
-export const PHONE_BITRATE = 3_000_000;
+const PHONE_HEIGHT = 720;
+const PHONE_BITRATE = 3_000_000;
 
 /** How long one still may take, and one phone copy. */
 const STILL_LIMIT = Duration.minutes(1);
 const PHONE_LIMIT = Duration.minutes(30);
 
 /** A run of H.264 video in its own MP4, played from `at` seconds into the film. */
-export interface Segment {
+interface Segment {
   readonly file: string;
   readonly at: number;
 }
@@ -172,7 +172,7 @@ export interface JoinedFilm {
 }
 
 /** A track encoded once to AAC, so every film joined with it copies the same packets. */
-export interface AacTrack {
+interface AacTrack {
   /** In decode order; the first carries the priming, stamped before zero. */
   readonly packets: ReadonlyArray<EncodedPacket>;
   /** The encoder's metadata for the first packet: its decoder config. */

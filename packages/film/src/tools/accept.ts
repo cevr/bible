@@ -10,7 +10,7 @@ import { Array as Arr, Option, Result, Schema } from 'effect';
 import { AcceptMismatchUnnamed, TakeMismatch, UnknownScene } from './errors.ts';
 
 /** The flag's name on the command line. */
-export const ACCEPT_MISMATCH = '--accept-mismatch';
+const ACCEPT_MISMATCH = '--accept-mismatch';
 
 /**
  * The beats `--accept-mismatch` accepts: none without it, the ones it names,

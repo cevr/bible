@@ -61,7 +61,7 @@ export interface Change {
 }
 
 /** A rewrite of one file, as a writer asks for it. */
-export interface Rewrite<E, A = void> {
+interface Rewrite<E, A = void> {
   readonly film: string;
   readonly scene: Option.Option<string>;
   readonly file: string;
@@ -82,7 +82,7 @@ export type RewriteError =
   | PlatformError;
 
 /** What a film's changes are: those Undo may put back, and those Redo may make again. */
-export interface History {
+interface History {
   /** Oldest first; Undo takes the last. */
   readonly undos: ReadonlyArray<Change>;
   /** Oldest undo first; Redo takes the last. */
@@ -92,7 +92,7 @@ export interface History {
 }
 
 /** The history as a page asks for it (`GET /lab/<film>/check`). */
-export interface WriteHistory {
+interface WriteHistory {
   /** The change Undo would put back. */
   readonly undo: Option.Option<Change>;
   /** The change Redo would make again. */
@@ -100,7 +100,7 @@ export interface WriteHistory {
   readonly latest: Option.Option<Change>;
 }
 
-export interface SourceWriterService {
+interface SourceWriterService {
   /** Rewrite one file as `rewrite` says: formatted, read back, checked, and only over the text it read. */
   readonly write: <E, A = void>(
     rewrite: Rewrite<E, A>,

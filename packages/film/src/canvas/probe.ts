@@ -233,7 +233,7 @@ export const probesHands = (ctx: CanvasRenderingContext2D): boolean =>
   probes.get(ctx)?.sink.hands !== undefined;
 
 /** One floating hand a kit's person declares to `probeHand`, in the current transform's space. */
-export interface HandSeen {
+interface HandSeen {
   readonly side: 'far' | 'near';
   /** The shoulder it floats round. */
   readonly shoulder: Point;

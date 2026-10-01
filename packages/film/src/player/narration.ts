@@ -11,7 +11,7 @@
 // loads this.
 
 /** What the preview knows of its narration. */
-export type NarrationState =
+type NarrationState =
   | { readonly _tag: 'None' }
   | { readonly _tag: 'Loading' }
   | { readonly _tag: 'Ready' }
@@ -27,7 +27,7 @@ export interface NarrationAudio {
   readonly addEventListener: (type: 'error' | 'canplay', listener: () => void) => void;
 }
 
-export interface Narration {
+interface Narration {
   readonly state: () => NarrationState;
   /** Whether it can follow the clock now: loaded and not refused. */
   readonly ready: () => boolean;
