@@ -24,6 +24,7 @@ export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown'
 export class TakeMismatch extends Schema.TaggedError<TakeMismatch>()('TakeMismatch', {
   id: Schema.String,
   script: Schema.String,
+  /** The transcript; the wire keeps `heard` for existing lab and CLI readers. */
   heard: Schema.String,
   wer: Schema.Finite,
   /** The attempt the studio saved of it, which its panel's "accept anyway" keeps. */
@@ -93,7 +94,7 @@ export class ElevenLabsFailed extends Schema.TaggedError<ElevenLabsFailed>()('El
 /** Speech-to-text heard words in a take but timed none of them: nothing to time the script by. */
 export class SttUntimed extends Schema.TaggedError<SttUntimed>()('SttUntimed', {
   file: Schema.String,
-  /** How many words its text holds. */
+  /** The word count in its transcript; `heard` is the established wire key. */
   heard: Schema.Int,
 }) {
   override get message() {

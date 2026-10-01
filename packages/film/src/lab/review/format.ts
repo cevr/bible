@@ -4,6 +4,7 @@
 import { Array as Arr, Match, Option } from 'effect';
 import type { ApprovalState, StaleBy, VariantState } from '../../core/catalogue.ts';
 import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/review.ts';
+import { STALE_BY } from '../../core/choice.ts';
 import { reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
@@ -102,17 +103,11 @@ const STATE_TEXT = {
   missing: 'not made yet',
 } as const satisfies Record<VariantState, string>;
 
-/** Why a variant is stale, when it knows: its own sources, or the film's sound alone (a re-mux, not a redraw). */
-const STALE_BY_TEXT = {
-  sources: 'stale: its sources changed since it was made',
-  sound: "stale: the film's sound changed since it was made",
-} as const satisfies Record<StaleBy, string>;
-
 /** A variant's state as its badge says it, with why it is stale when that is known. */
 export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>): string =>
   Option.match(
     Option.filter(staleBy, () => state === 'stale'),
-    { onNone: () => STATE_TEXT[state], onSome: (by) => STALE_BY_TEXT[by] },
+    { onNone: () => STATE_TEXT[state], onSome: (by) => `stale: ${STALE_BY[by].why}` },
   );
 
 /**

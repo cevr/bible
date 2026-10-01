@@ -136,7 +136,7 @@ export interface MixPlan<A> {
 }
 
 interface MixInput {
-  /** The film's name: it seeds each effect's variant and jitter. */
+  /** The film's name: the default identity for each effect's variant and jitter. */
   readonly film: string;
   readonly placed: ReadonlyArray<Placed>;
   readonly sound: Option.Option<Sound>;
@@ -217,7 +217,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
         });
     }
     const played = playPlacings(
-      input.film,
+      sound.seed ?? input.film,
       pending,
       (name) => pending.find((p) => p.sound === name)?.playables.length ?? 1,
       (name) =>

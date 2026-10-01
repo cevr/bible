@@ -316,8 +316,6 @@ interface SoundLibraryService {
     Variant,
     LibraryError | UnknownSound | SoundKindMismatch | MediaFailed | PlatformError
   >;
-  /** A source's audio: its file decoded, or its recipe played. */
-  readonly heard: (source: SoundSource) => Effect.Effect<Pcm, MediaFailed>;
   /** Every variant (or candidate) of a sound, levelled as it would play, `AUDITION_GAP` apart, as one WAV. */
   readonly audition: (
     name: string,
@@ -749,7 +747,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           return variant;
         });
 
-        const heard = (source: SoundSource): Effect.Effect<Pcm, MediaFailed> => {
+        const decoded = (source: SoundSource): Effect.Effect<Pcm, MediaFailed> => {
           if (source._tag === 'File') return media.decode(source.file);
           return Effect.sync(() => synthesize(source.recipe, source.seed));
         };
@@ -759,7 +757,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           Effect.gen(function* () {
             const level = levelOf(entry, Option.none());
             const blocks = yield* Effect.forEach(playables, (p) =>
-              Effect.map(heard(p.source), (pcm): Pcm => {
+              Effect.map(decoded(p.source), (pcm): Pcm => {
                 const gain = gainFor(level, p.loudness, entry.use);
                 const plane = new Float32Array(pcm.frames);
                 for (const channel of pcm.channels)
@@ -894,7 +892,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             for (const [i, p] of playablesOf(sounds, name, entry).entries()) {
               // A missing or corrupt file is reported above; its seam cannot be heard.
               if (p.source._tag === 'File' && broken.has(p.source.file)) continue;
-              const seam = loopSeam(yield* heard(p.source));
+              const seam = loopSeam(yield* decoded(p.source));
               if (seamHeard(seam))
                 findings.push(
                   LoopSeam.make({ name, variant: i + 1, db: seam.db, click: seam.click }),
@@ -1072,7 +1070,6 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           unkeep,
           reject,
           importFile,
-          heard,
           audition,
           render,
           check,

@@ -212,11 +212,11 @@ const videoOf = <A>(
     (f) => ({ ...fileOf(f), phone: parts.phone(f) }),
   );
 
+const uniqueFiles = (files: ReadonlyArray<Found>): ReadonlyArray<Found> =>
+  Arr.dedupeWith(files, (a, b) => a.path === b.path);
+
 const newestFiles = (files: ReadonlyArray<Found>): ReadonlyArray<ReviewFile> =>
-  Arr.sort(
-    Arr.dedupeWith(files, (a, b) => a.path === b.path),
-    newestFirst,
-  ).map(fileOf);
+  Arr.sort(uniqueFiles(files), newestFirst).map(fileOf);
 
 const newestMtime = (files: ReadonlyArray<Found>) => Math.max(0, ...files.map((f) => f.mtime));
 
@@ -401,9 +401,9 @@ export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> 
 /**
  * A montage as the review lists it, from its manifest: its sets (in clip
  * order) as render choice points at no address of a film, each variant it
- * names with its tag and verdict as its lines, and the videos, images and
- * docs it names, newest first. A variant whose video is not there is left
- * out. Pure.
+ * names with its tag and verdict as its lines, its images in manifest
+ * order, and its videos and docs newest first. Missing files are left out
+ * and each image path appears once. Pure.
  */
 export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder => {
   const manifest = parts.record;
@@ -464,7 +464,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
     mtime: newestMtime(found(parts, namesInMontage(manifest))),
     sets,
     videos: Arr.sort(videos, newestFirst).map((f) => ({ ...fileOf(f), phone: parts.phone(f) })),
-    images: newestFiles(found(parts, manifest.images)),
+    images: uniqueFiles(found(parts, manifest.images)).map(fileOf),
     docs: newestFiles(found(parts, manifest.docs)),
   };
 };

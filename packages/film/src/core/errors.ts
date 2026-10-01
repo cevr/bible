@@ -248,7 +248,7 @@ export class AlignmentMismatch extends Schema.TaggedError<AlignmentMismatch>()(
  */
 export class BeatUnplaced extends Schema.TaggedError<BeatUnplaced>()('BeatUnplaced', {
   beat: Schema.String,
-  /** The share of the beat's words heard, 0 to 1. */
+  /** The share of the beat's words matched, 0 to 1; `heard` is the established failure field. */
   heard: Schema.Finite,
 }) {
   override get message() {
