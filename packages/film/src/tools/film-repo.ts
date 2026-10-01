@@ -199,6 +199,17 @@ export class Stamped extends Data.Class<{ readonly film: FilmName; readonly stam
 /** What is under a film's folder that it is not made from: renders, installs, history. */
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
+/**
+ * The file that makes `name` under `films` a film: its scene registry,
+ * `<films>/<name>/scenes/index.ts`. None for a name no folder of `films`
+ * has (`.`, `..`, a path). `FilmFolder.names` and the app's narration
+ * route both ask it.
+ */
+export const filmMark = (films: string, name: string): Option.Option<string> => {
+  if (name === '' || name === '.' || name === '..' || name.includes('/')) return Option.none();
+  return Option.some(`${films}/${name}/scenes/index.ts`);
+};
+
 /** The folder outputs go under: `FILMS_OUT` (the app's `out/` under `runFilmCli`), else `<cwd>/out`. */
 export const filmsOut = Effect.gen(function* () {
   const path = yield* Path.Path;
@@ -247,9 +258,10 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           Effect.flatMap((entries) =>
             // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
             Effect.filter(entries, (name) =>
-              fs
-                .exists(path.join(films, name, 'scenes', 'index.ts'))
-                .pipe(Effect.orElseSucceed(() => false)),
+              Option.match(filmMark(films, name), {
+                onNone: () => Effect.succeed(false),
+                onSome: (mark) => fs.exists(mark).pipe(Effect.orElseSucceed(() => false)),
+              }),
             ),
           ),
           Effect.map((found) => [...found].sort()),
