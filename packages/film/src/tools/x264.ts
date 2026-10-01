@@ -2,23 +2,44 @@
 // @mediabunny/server decodes with), registered as mediabunny's encoder for
 // `avc`, so a mediabunny conversion encodes with it. @mediabunny/server's own
 // libx264 runs the default preset with no tune and loses the paper's grain
-// at any size measured; this one runs preset slow, tune grain, level 4.1
+// at any size measured. This one encodes the two copies the tools make, told
+// apart by the quality a conversion asks for (all mediabunny hands a
+// registered encoder): a quantizer is a render's share copy, a bitrate a
+// review's phone copy (`SHARE_X264`, `PHONE_X264`). Both are level 4.1
 // (preset slow's reference frames would otherwise raise it to 5.0, which some
-// phones refuse). A quantizer quality is x264's CRF at that value; a bitrate
-// is its average, capped at that rate over two seconds of buffer. Packets
-// leave in Annex B, and mediabunny's MP4 muxer writes them as AVC.
+// phones refuse). Packets leave in Annex B, and mediabunny's MP4 muxer writes
+// them as AVC.
 
 import { toAvFrame } from '@mediabunny/server';
 import { Array as Arr, Effect, Match, Option, Stream } from 'effect';
 import { CustomVideoEncoder, EncodedPacket, type VideoCodec, type VideoSample } from 'mediabunny';
 import * as NodeAv from 'node-av';
+import { FILM_FPS } from '../core/time.ts';
 
-/** x264's settings for every encode: the grain kept, playable on every phone. */
-const X264_SETTINGS = {
+/**
+ * A share copy (a quantizer quality): x264's CRF at that value, preset slow,
+ * tune grain, the paper's grain kept, on as many threads as x264 takes.
+ */
+const SHARE_X264 = {
   preset: 'slow',
   tune: 'grain',
   level: '4.1',
 };
+
+/**
+ * A phone copy (a bitrate quality), made in the review's own process in the
+ * background: CRF 23 at preset medium, no tune, capped at that rate over two
+ * seconds of buffer, on `PHONE_THREADS` threads, so the review answers while
+ * it encodes.
+ */
+const PHONE_X264 = {
+  preset: 'medium',
+  level: '4.1',
+  crf: 23,
+};
+
+/** The threads a phone copy's encode may use. */
+const PHONE_THREADS = 2;
 
 /** Microseconds: the time base frames and packets carry. */
 const MICROS = 1_000_000;
@@ -41,19 +62,25 @@ const spsBytes = (data: Uint8Array): Option.Option<Uint8Array> =>
 const codecString = (sps: Uint8Array) =>
   `avc1.${Array.from(sps, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 
-/** x264's rate control for mediabunny's config: a CRF for a quantizer, else a capped average. */
-const rateOf = (config: VideoEncoderConfig, options: VideoEncoderEncodeOptions) =>
+/** x264's context and settings for the copy mediabunny's config asks for (above). */
+const settingsOf = (config: VideoEncoderConfig, options: VideoEncoderEncodeOptions) =>
   Match.value(config.bitrateMode).pipe(
     Match.when('quantizer', () => ({
       context: {},
-      crf: Option.fromNullishOr(options.avc?.quantizer),
+      options: Option.match(Option.fromNullishOr(options.avc?.quantizer), {
+        onNone: () => SHARE_X264,
+        onSome: (crf) => ({ ...SHARE_X264, crf }),
+      }),
     })),
     Match.orElse(() => ({
-      context: Option.match(Option.fromNullishOr(config.bitrate), {
-        onNone: () => ({}),
-        onSome: (bitrate) => ({ bitRate: bitrate, rcMaxRate: bitrate, rcBufferSize: 2 * bitrate }),
-      }),
-      crf: Option.none<number>(),
+      context: {
+        threadCount: PHONE_THREADS,
+        ...Option.match(Option.fromNullishOr(config.bitrate), {
+          onNone: () => ({}),
+          onSome: (bitrate) => ({ rcMaxRate: bitrate, rcBufferSize: 2 * bitrate }),
+        }),
+      },
+      options: PHONE_X264,
     })),
   );
 
@@ -118,23 +145,21 @@ export class X264Encoder extends CustomVideoEncoder {
     this.frame.free();
   }
 
-  /** The encoder, made on the first frame at the rate its options ask. */
+  /** The encoder, made on the first frame with the settings its copy asks (`settingsOf`). */
   private opened(options: VideoEncoderEncodeOptions): Effect.Effect<NodeAv.Encoder> {
     return Option.match(this.encoder, {
       onSome: Effect.succeed,
       onNone: () => {
-        const rate = rateOf(this.config, options);
+        const settings = settingsOf(this.config, options);
+        // A video that does not say its rate plays at the films' own.
         const fps = Math.round(
-          Option.getOrElse(Option.fromNullishOr(this.config.framerate), () => 30),
+          Option.getOrElse(Option.fromNullishOr(this.config.framerate), () => FILM_FPS),
         );
         return Effect.promise(() =>
           // The time base comes with each frame (`encode`), in microseconds.
           NodeAv.Encoder.create(NodeAv.FF_ENCODER_LIBX264, {
-            context: { ...rate.context, framerate: new NodeAv.Rational(fps, 1) },
-            options: {
-              ...X264_SETTINGS,
-              ...Option.match(rate.crf, { onNone: () => ({}), onSome: (crf) => ({ crf }) }),
-            },
+            context: { ...settings.context, framerate: new NodeAv.Rational(fps, 1) },
+            options: settings.options,
           }),
         ).pipe(Effect.tap((made) => Effect.sync(() => (this.encoder = Option.some(made)))));
       },

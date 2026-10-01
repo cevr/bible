@@ -14,9 +14,10 @@
 // and the next writer breaks it and says so.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
-// writer's own (`<file>.<pid>-<n>.partial`), then renamed over it, and the
-// partial removed if the write fails. A reader never sees half a file, and
-// two writers never share a partial.
+// writer's own (`<file>.<pid>-<n>.partial`), then renamed over it (by the
+// caller, under a lock, with `writeWholeWith`: the mix's track and its
+// stamp), and the partial removed if the write fails. A reader never sees
+// half a file, and two writers never share a partial.
 
 import {
   Clock,
@@ -48,21 +49,31 @@ export type StoreError = FileInvalid | StoreLocked | PlatformError;
 
 /**
  * `file` written whole by `write`, which writes the partial it is handed:
- * a name of this writer's own beside `file`, renamed over it once written,
- * and removed when the write fails or is interrupted.
+ * a name of this writer's own beside `file`, landed by `land` once written
+ * (a rename over `file`, made under a lock or beside another file's write),
+ * and removed when the write or the landing fails or is interrupted.
  */
+export const writeWholeWith = <E, R, L, LR>(
+  fs: FileSystem.FileSystem,
+  file: string,
+  write: (partial: string) => Effect.Effect<void, E, R>,
+  land: (partial: string) => Effect.Effect<void, L, LR>,
+): Effect.Effect<void, E | L | PlatformError, R | LR> =>
+  Effect.gen(function* () {
+    const partial = `${file}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial`;
+    yield* Effect.gen(function* () {
+      yield* write(partial);
+      yield* land(partial);
+    }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
+  });
+
+/** `file` written whole by `write` (`writeWholeWith`), its partial renamed over it once written. */
 export const writeWhole = <E, R>(
   fs: FileSystem.FileSystem,
   file: string,
   write: (partial: string) => Effect.Effect<void, E, R>,
 ): Effect.Effect<void, E | PlatformError, R> =>
-  Effect.gen(function* () {
-    const partial = `${file}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial`;
-    yield* Effect.gen(function* () {
-      yield* write(partial);
-      yield* fs.rename(partial, file);
-    }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
-  });
+  writeWholeWith(fs, file, write, (partial) => fs.rename(partial, file));
 
 /** One generated asset, requested by the hash of what makes it. */
 export interface Ensure<M, A, E, R> {
