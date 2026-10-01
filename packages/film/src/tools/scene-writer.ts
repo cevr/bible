@@ -18,9 +18,10 @@ import {
   type SourceShared,
   TimelineUnresolved,
 } from '../core/refusals.ts';
+import { toMs } from '../core/time.ts';
 import type { FilmName } from './film-repo.ts';
 import { CueRead, FreshFilm } from './fresh-film.ts';
-import { editCue, editKnob, readCue, readKnob, readSpans, roundValue } from './scene-source.ts';
+import { editCue, editKnob, readCue, readKnob, readSpans } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
 
@@ -54,7 +55,7 @@ interface SceneWriterService {
 }
 
 /** Whether two numbers are the same value as the lab writes it. */
-const same = (a: number, b: number) => roundValue(a) === roundValue(b);
+const same = (a: number, b: number) => toMs(a) === toMs(b);
 
 const sameKnob = (a: Knob, b: Knob): boolean => {
   if (Predicate.isNumber(a) || Predicate.isNumber(b))

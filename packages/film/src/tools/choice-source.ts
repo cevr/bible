@@ -18,12 +18,12 @@ import { Array as Arr, Match, Option, Predicate, Result } from 'effect';
 import type { ArrayExpression, Expression, ObjectExpression, Program } from 'oxc-parser';
 import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
 import { SourceRefused } from '../core/refusals.ts';
+import { toMs } from '../core/time.ts';
 import {
   declarations,
   objectOf,
   parseModule,
   propertyOf,
-  roundValue,
   spliced,
   stringText,
   valueOf,
@@ -322,7 +322,7 @@ export const editLevel = (
   target: LevelTarget,
   value: number,
 ): Result.Result<string, SourceRefused> => {
-  const text = String(roundValue(value));
+  const text = String(toMs(value));
   const id = levelId(target);
   return Result.flatMap(parseModule(file, source), (program) => {
     if (target._tag === 'Const')
