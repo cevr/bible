@@ -1565,9 +1565,12 @@ fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
 `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
 which the lab can reach. It refuses a step part way through a cue the same
 way, `x < k` (`<=`, `>`, `>=`, either way round) with `k` between 0.02 and
-0.98: the instant is a cue of no length, `{ with: 'flip', offset: 0.25, dur:
-0 }`, read as `f.at('turned') > 0`. A comparison nearer 0 or 1 asks whether
-the cue has begun, is seen or is done, and passes.
+0.98: the instant is a cue of no length, `{ with: 'sit', offset: 0.056, dur:
+0 }`, read as `f.at('colour') > 0`. A comparison nearer 0 or 1 asks whether
+the cue has begun, is seen or is done, and passes. An instant the drawing's
+own shape makes (a card that flips shows its other side once edge on) is
+read from the shape, `Math.cos(f.at('flip') * Math.PI) < 0`, which no
+comparison of a share refuses and a drag cannot leave behind.
 `film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
 files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
 blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,
