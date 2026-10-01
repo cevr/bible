@@ -60,7 +60,7 @@ import {
 import { approvalRefused } from '../core/choice.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { pointIdOf } from '../core/point.ts';
-import { SceneNotRendered, VerbRefused } from '../core/refusals.ts';
+import { SceneNotRendered, VerbRefused, renderCommand } from '../core/refusals.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
@@ -540,7 +540,7 @@ const approveScenes = Command.make(
           point: pointIdOf({ _tag: 'Render', address: sceneAddress(scene) }),
           variant: input.variant,
           verb: 'approve',
-          reason: `${refused.value} (film project render ${input.film} --scene ${scene})`,
+          reason: `${refused.value} (${renderCommand(input.film, scene, input.variant)})`,
         });
       });
     /** The scenes `ids` approved, each current, or none when any is not. */

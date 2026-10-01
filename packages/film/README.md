@@ -383,7 +383,8 @@ a render as it is now, so only a current one is approved: `--act` and
 `--all` leave a stale or missing scene, and `--scene` naming one refuses it
 and approves nothing (`VerbRefused`, 409 on the review's route, naming why it
 is stale and the render that makes it current; `SceneNotRendered`, 404, for
-one never rendered). The rule is `approvalRefused` (`core/choice.ts`), which
+one never rendered). Both name that render as a command to run,
+`film project render <film> --scene id --variant v` (`renderCommand`). The rule is `approvalRefused` (`core/choice.ts`), which
 the choices' say keeps too; `film project withdraw
 <film> --scene id,id | --act name | --all` withdraws those scenes' approvals,
 whatever version they were given on. `film project comment
@@ -391,7 +392,7 @@ whatever version they were given on. `film project comment
 as it is now (on the scene itself when it has no render yet), on an act, or
 (with neither) on the whole film. With `--json`
 each prints the project (`ProjectRead`) as one line, or its refusal as
-itself (`SceneNotRendered`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
+itself (`SceneNotRendered`, `VerbRefused`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
 a `FreshRefusal`), which is how the review runs it. Approvals and comments are keyed by address,
 variant and the render's version (`renderVersion`: the stamp's key and the
 mix it carries): a re-render or a re-mux leaves an approval in place, stale,
