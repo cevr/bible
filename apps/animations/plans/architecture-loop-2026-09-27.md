@@ -414,6 +414,17 @@ ci success run=36789813027 sha=6c79e4ec
 | A    | p8-guard  | merge audit, oxlint-plugin-effect 0.18.0 + no fixed waits, CI recorded per push, verdict names the long step                           | merged 689dc469 (audit: 0 conflicts): `bun run merge-audit <merge>` prints each conflicted file and whether both parents' edits survive (loop step 10 runs it); oxlint-plugin-effect 0.18.0 with `effect/noFixedWaitInTests` on (mixer.test.ts fixed wait gone); `bun run ci <a>..<b> --ledger` flags a commit the ledger lacks; the verdict names a cancelled job's slowest step; `film/no-read-once` sees local `evaluate` helpers; player imports neither tools nor lab; review seed R1–R9 closed |
 | A    | p8-core   | point-id codec edges, a scene id shape, choice-point ids made once, every module's unused exports guarded, fresh reads answer, lab P3s | merged e9df1b63 (audit: 0 conflicts): point ids no encoder writes refused; montage ids through the one codec; a declared scene-id shape (a leading `-` answers 400); choice-point ids made once; core exports guarded module by module; `StudioRefusal` gone; `film read` and `check --json` answer a broken film in one sentence; approve-all/approve-act disabled when nothing is left                                                                                                             |
 
+CI, pass 8 (`bun run ci 32759f52..76714126`): all green.
+
+```
+ci none sha=689dc469 (no run of its own: pushed inside a later push)
+ci none sha=eda67c7a (no run of its own: pushed inside a later push)
+ci none sha=6e129ccf (no run of its own: pushed inside a later push)
+ci none sha=c85c41d2 (no run of its own: pushed inside a later push)
+ci success run=36795636877 sha=e9df1b63
+ci success run=36795676262 sha=76714126
+```
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
