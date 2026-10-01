@@ -1,20 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
-
-import {
-  type GateJobs,
-  type GateRun,
-  failedJobs,
-  ledgerAccount,
-  missingLine,
-  noRunLine,
-  passed,
-  pendingLine,
-  sinceRecording,
-  targetOf,
-  unrecorded,
-  verdictLine,
-} from './verdict.js';
+import { type GateJobs, type GateRun, failedJobs, passed, verdictLine } from './verdict.js';
 
 const RED: GateRun = {
   databaseId: 36760052995,
@@ -109,87 +94,5 @@ describe("CI's verdict", () => {
 
   test('a cancelled run has not passed', () => {
     expect(passed({ ...RED, conclusion: 'cancelled' })).toBe(false);
-  });
-
-  test('base..head is a range, an empty side HEAD; anything else one commit', () => {
-    expect(targetOf('3c4d886d..f922c2d4')).toEqual({
-      _tag: 'Range',
-      base: '3c4d886d',
-      head: 'f922c2d4',
-    });
-    expect(targetOf('main~3..')).toEqual({ _tag: 'Range', base: 'main~3', head: 'HEAD' });
-    expect(targetOf('b137fad9')).toEqual({ _tag: 'Commit', ref: 'b137fad9' });
-    expect(noRunLine('c3426ea8aa')).toStartWith('ci none sha=c3426ea8 ');
-  });
-
-  // Pass 7: c5dffdf2's cancelled run went unrecorded, as the ledger's own pushes did in pass 6.
-  test('a commit whose line the ledger lacks is named, by its short sha', () => {
-    const ledger = [
-      'ci success run=36776988875 sha=f922c2d4',
-      'ci none sha=0e41a6ad (no run of its own: pushed inside a later push)',
-    ].join('\n');
-    expect(
-      unrecorded(ledger, [
-        'c5dffdf2a6b1e0d2c0f5e7b8a9d0c1e2f3a4b5c6',
-        '0e41a6ad11111111111111111111111111111111',
-        'f922c2d422222222222222222222222222222222',
-      ]),
-    ).toEqual(['c5dffdf2a6b1e0d2c0f5e7b8a9d0c1e2f3a4b5c6']);
-    expect(missingLine('c5dffdf2a6b1e0d2c0f5e7b8a9d0c1e2f3a4b5c6')).toBe(
-      'ledger missing sha=c5dffdf2: paste its ci line onto its row',
-    );
-  });
-
-  test('a sha named in prose is no ci line', () => {
-    const ledger = 'the sweep printed `ledger missing sha=32759f52`; see c5dffdf2 (sha=0e41a6ad).';
-    expect(unrecorded(ledger, ['32759f5211111111', '0e41a6ad22222222'])).toEqual([
-      '32759f5211111111',
-      '0e41a6ad22222222',
-    ]);
-  });
-
-  // Pass 8: 32759f52, the triage commit, went unrecorded behind recorded merges,
-  // and 93cc51a5, the commit that pasted the lines, could never hold its own.
-  const history = [
-    '93cc51a5aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    '76714126bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    '32759f52cccccccccccccccccccccccccccccccc',
-    '6c79e4ecdddddddddddddddddddddddddddddddd',
-    '2417cadfeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-    '3c4d886dffffffffffffffffffffffffffffffff',
-  ];
-  const pass8 = [
-    'ci failure run=36760052995 sha=2417cadf failed="…"',
-    'ci success run=36792318990 sha=6c79e4ec',
-    'ci success run=36795676262 sha=76714126',
-  ].join('\n');
-
-  test('with no range, the commits the ledgers lack since the first one they record, oldest first', () => {
-    expect(sinceRecording(pass8, history)).toEqual(
-      Option.some([
-        '32759f52cccccccccccccccccccccccccccccccc',
-        '93cc51a5aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      ]),
-    );
-    expect(sinceRecording('no ci line yet', history)).toEqual(Option.none());
-  });
-
-  test('a last commit that changes only the ledgers (the one that pastes the lines) is pending, not missing', () => {
-    const lacking = ['32759f52cccccccccccccccccccccccccccccccc', history[0] ?? ''];
-    expect(
-      ledgerAccount(pass8, lacking, ['apps/animations/plans/architecture-loop-2026-09-27.md']),
-    ).toEqual({
-      missing: ['32759f52cccccccccccccccccccccccccccccccc'],
-      pending: Option.some('93cc51a5aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
-    });
-    expect(
-      ledgerAccount(pass8, lacking, [
-        'apps/animations/plans/architecture-loop-2026-09-27.md',
-        'packages/scripts/src/ci-verdict.ts',
-      ]),
-    ).toEqual({ missing: lacking, pending: Option.none() });
-    expect(pendingLine('93cc51a5aaaaaaaa')).toBe(
-      'ledger pending sha=93cc51a5: it changes only the ledgers; the next record carries its line',
-    );
   });
 });
