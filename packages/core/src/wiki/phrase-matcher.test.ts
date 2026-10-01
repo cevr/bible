@@ -9,8 +9,7 @@
 
 // `bun:test` rather than `effect-bun-test`: the matcher is a pure function with
 // no services, no layers, and nothing to run inside an `Effect`. The repo's
-// other pure-function suites (`bible/parse.test.ts`,
-// `bible-cross-refs/authored.test.ts`) read the same way.
+// other pure-function suites (`bible/parse.test.ts`) read the same way.
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
