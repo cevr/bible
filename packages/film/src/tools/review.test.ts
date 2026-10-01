@@ -156,6 +156,37 @@ const MANIFEST = `{
 describe('a montage', () => {
   const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
 
+  test('explicit downloads retain oversized files in authored order without making inline videos', () => {
+    const master = { ...found('master.mp4', 2), size: 2000 };
+    const files = new Map([
+      ['master.mp4', master],
+      ['master-alias.mp4', master],
+      ['recipe.zip', found('recipe.zip', 9)],
+    ]);
+    const record = Schema.decodeSync(ReviewManifestJson)(
+      '{ "videos": ["master.mp4"], "downloads": ["master.mp4", "missing.zip", "recipe.zip", "master-alias.mp4"] }',
+    );
+    const folder = montageFolder({
+      ref: 'out/art',
+      record,
+      look: (name) => Option.fromUndefinedOr(files.get(name)),
+      phone: () => 'pending',
+      maxVideo: 1000,
+    });
+    expect(folder.videos).toEqual([]);
+    expect(folder.docs).toEqual([]);
+    expect(folder.downloads?.map((file) => [file.name, file.size])).toEqual([
+      ['master.mp4', 2000],
+      ['recipe.zip', 10],
+    ]);
+    expect(namesInMontage(record)).toEqual([
+      'master.mp4',
+      'missing.zip',
+      'recipe.zip',
+      'master-alias.mp4',
+    ]);
+  });
+
   test('keeps staged image order despite mtimes, skips missing images and shows each path once', () => {
     const cold = found('cold.jpg', 1);
     const files = new Map([

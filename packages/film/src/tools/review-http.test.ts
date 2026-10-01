@@ -231,6 +231,35 @@ describe('review routes', () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
+  it.effect(
+    'serves an oversized declared download by range and keeps undeclared files and outside links private',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const art = path.join(yield* Root, 'out', 'art');
+        yield* fs.writeFileString(path.join(art, 'master.mp4'), 'abcdefghij'.repeat(1001));
+        expect((yield* ask(get(reviewFileUrl('out/art/master.mp4')))).status).toBe(404);
+        yield* fs.symlink(path.join(yield* Root, 'secret.mp4'), path.join(art, 'leak.mp4'));
+        yield* fs.writeFileString(
+          path.join(art, 'review.json'),
+          '{ "videos": ["master.mp4"], "downloads": ["master.mp4", "leak.mp4"] }',
+        );
+        const index = yield* ask(get('/review/index?fresh'));
+        const decoded = yield* Schema.decodeUnknownEffect(ReviewIndex)(
+          yield* Effect.promise(() => index.json()),
+        );
+        expect(decoded.folders[0]?.videos).toEqual([]);
+        expect(decoded.folders[0]?.downloads?.map((file) => file.name)).toContain('master.mp4');
+        const part = yield* ask(get(reviewFileUrl('out/art/master.mp4'), { range: 'bytes=2-5' }));
+        expect(part.status).toBe(206);
+        expect(part.headers.get('content-range')).toBe('bytes 2-5/10010');
+        expect(yield* body(part)).toBe('cdef');
+        expect((yield* ask(get(reviewFileUrl('out/art/leak.mp4')))).status).toBe(404);
+        expect((yield* ask(get('/review/phone/out/art/master.mp4'))).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
   it.effect('serves a file whole, a range of it as 206, and past its end as 416', () =>
     Effect.gen(function* () {
       const whole = yield* ask(get(reviewFileUrl('out/art/roof.B.mp4')));
