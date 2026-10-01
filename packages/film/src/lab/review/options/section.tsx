@@ -21,7 +21,7 @@ import { Transport } from '../section.tsx';
 import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
-import { FilmProvider, Heard, PICTURE, useFilm } from './context.tsx';
+import { FilmProvider, PICTURE, Playing, useFilm } from './context.tsx';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -81,7 +81,7 @@ export const Player = () => {
             <div class="rv-cap">
               <span class="rv-name">{video.name}</span>
               <span class="rv-tag">{video.ref}</span>
-              <HearButton heard={Heard.Own()} />
+              <HearButton playing={Playing.Own()} />
             </div>
           </div>
           <For each={mixes()}>{(src) => <Mix src={src} />}</For>

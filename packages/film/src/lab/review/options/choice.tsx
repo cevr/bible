@@ -27,7 +27,7 @@ import { useReview } from '../context.tsx';
 import { APPROVAL_TEXT, pressed, stateText, videoUrl } from '../format.ts';
 import { SyncEvent, timeText } from '../machine.ts';
 import { ChoiceAct } from './api.ts';
-import { Heard, sameHeard, useFilm } from './context.tsx';
+import { Playing, samePlaying, useFilm } from './context.tsx';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
 const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
@@ -55,10 +55,10 @@ export interface Sayer {
   readonly busy: () => boolean;
 }
 
-/** The 🔊 that makes `heard` the sound over the picture. */
-export const HearButton = (props: { readonly heard: Heard; readonly disabled?: boolean }) => {
-  const { heard, hear } = useFilm();
-  const on = () => sameHeard(heard(), props.heard);
+/** The 🔊 that makes `playing` the sound over the picture. */
+export const HearButton = (props: { readonly playing: Playing; readonly disabled?: boolean }) => {
+  const { playing, hear } = useFilm();
+  const on = () => samePlaying(playing(), props.playing);
   return (
     <button
       type="button"
@@ -67,7 +67,7 @@ export const HearButton = (props: { readonly heard: Heard; readonly disabled?: b
       title="Hear this over the picture"
       aria-pressed={pressed(on())}
       disabled={props.disabled}
-      onClick={() => hear(props.heard)}
+      onClick={() => hear(props.playing)}
     >
       🔊
     </button>
@@ -193,7 +193,7 @@ const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVar
       <Show when={Option.exists(heard(), (h) => h.inPlace)}>
         <span class="rv-hint">in place</span>
         <HearButton
-          heard={Heard.InPlace({ point: props.point.id, variant: props.variant.id })}
+          playing={Playing.InPlace({ point: props.point.id, variant: props.variant.id })}
           disabled={missing()}
         />
       </Show>
