@@ -32,6 +32,7 @@ import {
   attributeIs,
   attributesAre,
   countIs,
+  evaluates,
   textIs,
   textsAre,
   until,
@@ -180,11 +181,9 @@ const withMic = (amplitude: number, permissions: ReadonlyArray<string>) =>
     return yield* openLab(studioRoutes, { hash: '#1', mic: { wav, permissions } });
   });
 
-/** The film seconds `#T` holds. */
-const shownT = (page: Page) =>
-  Effect.promise(() =>
-    page.evaluate(() => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '')),
-  );
+/** Wait until `#T` holds `t` film seconds. */
+const shownAt = (page: Page, t: number) =>
+  evaluates(page, "Number.parseFloat(location.hash.slice(1).split('&')[0])", t);
 
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
@@ -267,16 +266,16 @@ describe('the studio', () => {
             () => ({}),
           ) as { audio: string; type: string };
           expect(body.type).toBe('audio/wav');
-          const contextRate = yield* Effect.promise(() =>
-            page.evaluate(() => new AudioContext().sampleRate),
-          );
-          expect(Result.getOrUndefined(wavFormat(body.audio))).toEqual({
+          const format = Result.getOrUndefined(wavFormat(body.audio));
+          expect(format).toEqual({
             riff: 'RIFF',
             format: 1,
             channels: 1,
-            rate: contextRate,
+            rate: expect.any(Number),
             bits: 24,
           });
+          // Recorded at the page's own audio rate.
+          yield* evaluates(page, 'new AudioContext().sampleRate', Number(format?.rate));
           yield* attributeIs(page, '[data-role="status"]', 'data-tone', 'refused');
           yield* textIs(page, '[data-act="acceptAnyway"]', 'Accept anyway (K)');
 
@@ -293,7 +292,7 @@ describe('the studio', () => {
             acceptMismatch: true,
           });
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"].selected'));
-          expect(yield* shownT(page)).toBe(1);
+          yield* shownAt(page, 1);
           expect(asked.filter((a) => a.path === '/studio/beats').length).toBeGreaterThan(
             beatsBefore,
           );
@@ -358,7 +357,7 @@ describe('the studio', () => {
           yield* press(page, 'ArrowRight');
           yield* press(page, ' ');
           yield* runClock(page, 300);
-          expect(yield* shownT(page)).toBe(1);
+          yield* shownAt(page, 1);
           yield* textIs(page, '[data-act="play"]', PAUSED);
           yield* countIs(page, '[data-beat="close"].selected', 1);
           // Out of the studio the lab's keys are the lab's again: → steps the film, not the beat.
@@ -371,7 +370,7 @@ describe('the studio', () => {
               () => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '') === 2,
             ),
           );
-          expect(yield* shownT(page)).toBe(2);
+          yield* shownAt(page, 2);
           yield* countIs(page, '[data-beat="close"].selected', 1);
         }),
       ),
@@ -391,7 +390,7 @@ describe('the studio', () => {
           yield* recorded(page, 0.6);
           yield* press(page, ' ');
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
-          expect(yield* shownT(page)).toBe(1);
+          yield* shownAt(page, 1);
           yield* textIs(page, '[data-act="play"]', PAUSED);
           expect(errors).toEqual([]);
         }),
@@ -456,10 +455,7 @@ describe('the studio', () => {
             'the microphone picked before (not connected)',
           );
           yield* Effect.promise(() => page.selectOption('[data-field="mic"]', ''));
-          const stored = yield* Effect.promise(() =>
-            page.evaluate(() => window.localStorage.getItem('film-lab-mic')),
-          );
-          expect(stored).toBe('');
+          yield* evaluates(page, "window.localStorage.getItem('film-lab-mic')", '');
         }),
       ),
     60_000,

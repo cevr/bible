@@ -9,7 +9,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { HeadUnavailable } from '../../core/refusals.ts';
 import { json, openLab, refused, route } from '../fixtures/harness.ts';
-import { textHas } from '../fixtures/settled.ts';
+import { evaluates, textHas } from '../fixtures/settled.ts';
 
 const compareSays = (page: Page, part: string) => textHas(page, '.lab-compare-status', part);
 
@@ -80,12 +80,7 @@ describe('compare with HEAD', () => {
       yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'one: scenes/one.ts: no HEAD version to compare with: not in git');
-      const hidden = yield* Effect.promise(() =>
-        page.evaluate(
-          () => document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.hidden,
-        ),
-      );
-      expect(hidden).toBe(true);
+      yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
     }).pipe(Effect.scoped),
   );
 
@@ -111,12 +106,7 @@ describe('compare with HEAD', () => {
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, "one: HEAD's timeline does not resolve now: ");
       yield* compareSays(page, '{soar}');
-      const hidden = yield* Effect.promise(() =>
-        page.evaluate(
-          () => document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.hidden,
-        ),
-      );
-      expect(hidden).toBe(true);
+      yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );

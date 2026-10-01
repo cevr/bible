@@ -12,13 +12,16 @@
 // Prints `merge-audit <sha> conflicted=<n> resolved-by-hand=<n>`, then per
 // file either `… keeps both parents' edits` or one `dropped ^1|^2: "<line>"` /
 // `restored ^1|^2: "<line>"` line per edit lost (^1 is the branch merged into,
-// ^2 the one merged). The loop pastes the output onto the batch's ledger row,
-// each lost line with why. Exits non-zero only when the commit is not a merge
-// or git fails.
+// ^2 the one merged). Then each merge the merged branch made itself (a batch's
+// merge of main, where its conflicts were resolved), oldest first, the same
+// way under `merge-audit <sha> inside <merge> conflicted=<n> …`. The loop
+// pastes the output onto the batch's ledger row, each lost line with why.
+// Exits non-zero only when the commit is not a merge or git fails; a commit
+// that is not a merge prints its refusal alone.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, Effect, Option, Schema } from 'effect';
+import { Console, Effect, Option, Runtime, Schema } from 'effect';
 import { Argument, Command } from 'effect/cli';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
@@ -31,6 +34,7 @@ class NotAMerge extends Schema.TaggedError<NotAMerge>()('NotAMerge', {
   override get message() {
     return `${this.commit} is not a merge commit: it has no second parent`;
   }
+  override readonly [Runtime.errorReported] = false;
 }
 
 /** A git command's stdout, whatever its exit code (merge-tree exits 1 on a conflict). */
@@ -48,37 +52,56 @@ const shaOf = (ref: string) =>
 const textAt = (tree: string, file: string) =>
   git(['show', `${tree}:${file}`]).pipe(Effect.catch(() => Effect.succeed('')));
 
+const lines = (out: string) => out.split('\n').filter((line) => line !== '');
+
+/** Print one merge's audit: its head line, then each file its resolution changed. */
+const auditOne = (merge: string, second: string, inside: Option.Option<string>) =>
+  Effect.gen(function* () {
+    const first = `${merge}^1`;
+    const base = (yield* git(['merge-base', first, second])).trim();
+    const redone = yield* git(['merge-tree', '--write-tree', first, second]);
+    const tree = redone.split('\n')[0] ?? '';
+    const changed = lines(yield* git(['diff', '--name-only', tree, merge]));
+    yield* Console.log(headLine(merge, conflictedPaths(redone), changed, inside));
+    yield* Effect.forEach(changed, (file) =>
+      Effect.gen(function* () {
+        const [b, one, two, merged] = yield* Effect.all(
+          [textAt(base, file), textAt(first, file), textAt(second, file), textAt(merge, file)],
+          { concurrency: 4 },
+        );
+        const lost = fileLines(file, lostEdits({ base: b, first: one, second: two, merged }));
+        yield* Effect.forEach(lost, (line) => Console.log(line));
+      }),
+    );
+  });
+
+/** A merge's second parent, or NotAMerge naming `ref`. */
+const secondOf = (merge: string, ref: string) =>
+  Effect.flatMap(shaOf(`${merge}^2`), (sha) =>
+    Effect.fromOption(sha).pipe(Effect.mapError(() => NotAMerge.make({ commit: ref }))),
+  );
+
 const audit = Effect.fn('mergeAudit')(function* (ref: string) {
   const merge = yield* Effect.flatMap(shaOf(ref), (sha) =>
     Effect.fromOption(sha).pipe(Effect.mapError(() => NotAMerge.make({ commit: ref }))),
   );
-  const first = `${merge}^1`;
-  const second = yield* Effect.flatMap(shaOf(`${merge}^2`), (sha) =>
-    Effect.fromOption(sha).pipe(Effect.mapError(() => NotAMerge.make({ commit: ref }))),
-  );
-  const base = (yield* git(['merge-base', first, second])).trim();
-  const redone = yield* git(['merge-tree', '--write-tree', first, second]);
-  const tree = redone.split('\n')[0] ?? '';
-  const changed = (yield* git(['diff', '--name-only', tree, merge]))
-    .split('\n')
-    .filter((file) => file !== '');
-  yield* Console.log(headLine(merge, conflictedPaths(redone), changed));
-  yield* Effect.forEach(changed, (file) =>
-    Effect.gen(function* () {
-      const [b, one, two, merged] = yield* Effect.all(
-        [textAt(base, file), textAt(first, file), textAt(second, file), textAt(merge, file)],
-        { concurrency: 4 },
-      );
-      const lines = fileLines(file, lostEdits({ base: b, first: one, second: two, merged }));
-      yield* Effect.forEach(lines, (line) => Console.log(line));
-    }),
+  const second = yield* secondOf(merge, ref);
+  yield* auditOne(merge, second, Option.none());
+  // The merged branch's own merges (of main, mostly), oldest first: a conflict
+  // resolved there reaches this merge already resolved.
+  const inner = lines(yield* git(['rev-list', '--merges', '--reverse', `${merge}^1..${second}`]));
+  yield* Effect.forEach(inner, (sha) =>
+    Effect.flatMap(secondOf(sha, sha), (two) => auditOne(sha, two, Option.some(merge))),
   );
 });
 
 const command = Command.make(
   'merge-audit',
   { merge: Argument.String('merge').pipe(Argument.optional) },
-  ({ merge }) => audit(Option.getOrElse(merge, () => 'HEAD')),
+  ({ merge }) =>
+    audit(Option.getOrElse(merge, () => 'HEAD')).pipe(
+      Effect.tapErrorTag('NotAMerge', (error) => Console.error(error.message)),
+    ),
 ).pipe(
   Command.withDescription(
     "Print, for each file a merge resolved by hand, the lines of either parent's edits it lost",

@@ -10,7 +10,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { SourceRefused } from '../../core/refusals.ts';
 import { type Asked, hold, json, openLab, refused, route, sourceOne } from '../fixtures/harness.ts';
-import { attributeIs, attributesAre, textHas, textIs } from '../fixtures/settled.ts';
+import { attributeIs, attributesAre, evaluates, textHas, textIs } from '../fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
@@ -70,8 +70,7 @@ describe('the cue strip', () => {
       expect(Option.getOrThrow(Option.fromUndefinedOr(writes[0])).body).toMatchObject(
         Option.some({ offset: expect.any(Number) }),
       );
-      const search = yield* Effect.promise(() => page.evaluate(() => location.search));
-      expect(search).toContain('sel=cue%3Aone%3Arise');
+      yield* evaluates(page, "location.search.includes('sel=cue%3Aone%3Arise')", true);
       yield* attributeIs(page, '.lab-cue[data-cue="rise"]', 'class', /\bselected\b/);
     }).pipe(Effect.scoped),
   );

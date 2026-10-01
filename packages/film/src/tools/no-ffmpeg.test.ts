@@ -1,7 +1,8 @@
 // The film's media runs in-process (mediabunny, and FFmpeg's libraries
 // through NodeAV), never the ffmpeg CLI: no source in the film package or the
-// animations app names `ffmpeg` or `ffprobe` as a string, the only way to
-// start either as a process. And no doc tells an agent the tools use it:
+// animations app names `ffmpeg` or `ffprobe` as a word inside a string (the
+// bare name, a command line, a path, a template), the only way to start
+// either as a process. And no doc tells an agent the tools use it:
 // every clause of the READMEs and the film skill that names the CLI (`ffmpeg`,
 // `ffprobe`, "the ffmpeg CLI") says it is not used.
 
@@ -19,8 +20,11 @@ const SKIPPED = /(^|\/)(node_modules|plans|dist|out)\//;
 const SELF = 'packages/film/src/tools/no-ffmpeg.test.ts';
 const SOURCE = /\.tsx?$/;
 
-/** A string that is the name of a CLI and nothing more: `'ffmpeg'`, `"ffprobe"`, `` `ffmpeg` ``. */
-const COMMAND = /(['"`])(ffmpeg|ffprobe)\1/;
+/**
+ * A string that names a CLI as a word, in any form a command takes: `'ffmpeg'`,
+ * `'ffmpeg -i in.mp4'`, `"/usr/bin/ffprobe"`, `` `ffmpeg ${args}` ``.
+ */
+const COMMAND = /(['"`])[^'"`]*\b(ffmpeg|ffprobe)\b/;
 
 /** A comment line, which may name the CLI freely. */
 const COMMENT = /^\s*(\/\/|\/?\*).*$/;
@@ -73,6 +77,27 @@ const cliUsesIn = (text: string) =>
     .filter((clause) => NAMES_CLI.test(clause) && !REFUSES.test(clause));
 
 describe('no ffmpeg CLI', () => {
+  it.effect('a command naming the CLI in any form is found, a comment is not', () =>
+    Effect.sync(() => {
+      const named = (code: string) => COMMAND.test(code.replace(COMMENT, ''));
+      expect(
+        [
+          "spawn('ffmpeg', ['-i', input])",
+          "ChildProcess.make('ffmpeg -i in.mp4 out.webm')",
+          'Bun.spawn(["/usr/bin/ffprobe", file])',
+          'const cmd = `ffmpeg -y ${args.join(" ")}`',
+        ].map(named),
+      ).toEqual([true, true, true, true]);
+      expect(
+        [
+          "// spawn('ffmpeg', …) is refused",
+          "import { Media } from './media.ts'",
+          "throwIfError(ret, 'FFmpegError')",
+        ].map(named),
+      ).toEqual([false, false, false]);
+    }),
+  );
+
   it.effect('a doc clause that names the CLI as a tool the film uses is found', () =>
     Effect.sync(() => {
       // SKILL.md step 0 and the tools row of packages/film/README.md, as a merge restored them.
