@@ -159,7 +159,11 @@ placements rotate through the sound's variants (never the same one back to
 back while it has another), each nudged late, louder or quieter and up or
 down in pitch by the sound's jitter, seeded by the film, the effect and the
 placement, so a repeated sound never repeats exactly and a film always mixes
-the same way; a procedural variant is its recipe played with a seed. A
+the same way. `sound.ts` may declare `seed: '<original-film>'` to preserve that
+effect variant and jitter identity in another visual version; it defaults to
+the current film's name. With the same resolved cues and assets, the inherited
+seed gives the same effect placements and mix key. A procedural variant is its
+recipe played with a seed. A
 placement meets its cue with the variant's start, with its onset for an
 effect that says `sync: 'onset'` (a sustained sound), or with its hit for
 one that says `sync: 'hit'` (an impact): the lock's `Variant` carries

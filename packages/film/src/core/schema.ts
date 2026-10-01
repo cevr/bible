@@ -623,6 +623,8 @@ type SoundBed = typeof SoundBed.Type;
 
 /** A film's score, beds and effects (`sound.ts`). */
 export const Sound = Schema.Struct({
+  /** Effect variant and jitter identity. Defaults to the film's name; reuse it for another visual version. */
+  seed: Schema.optionalKey(Schema.String),
   score: Schema.optionalKey(Score),
   beds: Schema.optionalKey(Schema.Array(SoundBed)),
   effects: Schema.Record(Schema.String, SoundEffect),

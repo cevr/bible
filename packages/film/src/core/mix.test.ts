@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import { type Pcm, slice } from './audio.ts';
 import { layout } from './layout.ts';
 import { loudness } from './synth/loudness.ts';
@@ -16,7 +16,7 @@ import {
   repitch,
 } from './mix.ts';
 import { TAKE_LEVEL } from './recording.ts';
-import type { Music, Score, Sound, SoundManifest, Timed } from './schema.ts';
+import { type Music, type Score, Sound, type SoundManifest, type Timed } from './schema.ts';
 import { musicKey, musicPlan } from './sound.ts';
 import {
   type Lock,
@@ -530,6 +530,24 @@ describe('mixPlan', () => {
         }),
       );
       expect(planned.warnings).toEqual(['mix.unsynced sound=paper.tap hint="run sfx describe"']);
+    });
+
+    test('a renamed film can inherit effect placements and its real mix key through the declared seed', () => {
+      const forFilm = (name: string, declared: Sound) =>
+        Result.getOrThrow(
+          mixPlan({ ...input, film: name, placed: film, sound: Option.some(declared), sounds }),
+        );
+      const original = planned();
+      const renamed = forFilm('painted-version', sound);
+      expect(renamed.effects).not.toEqual(original.effects);
+      expect(mixKey(renamed)).not.toBe(mixKey(original));
+
+      // Decode the actual sound declaration so the seed must survive its owner schema.
+      const inherited = Schema.decodeSync(Sound)({ ...sound, seed: input.film });
+      expect(forFilm(input.film, inherited)).toEqual(original);
+      const reused = forFilm('painted-version', inherited);
+      expect(reused.effects).toEqual(original.effects);
+      expect(mixKey(reused)).toBe(mixKey(original));
     });
   });
 });
