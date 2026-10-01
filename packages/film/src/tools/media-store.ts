@@ -72,16 +72,14 @@ export interface PrivateFile {
 
 /**
  * The films' generated scores, kept beside the library's files in its store:
- * each composed option (keyed `scores/<film>/<file>`), and each film's
- * `sound/` folder, where no audio may be committed.
+ * each composed option, keyed `scores/<film>/<file>`.
  */
 export interface Scores {
   readonly files: ReadonlyArray<PrivateFile>;
-  readonly dirs: ReadonlyArray<string>;
 }
 
 /** No films' scores: the library's own files alone. */
-export const NO_SCORES: Scores = { files: [], dirs: [] };
+export const NO_SCORES: Scores = { files: [] };
 
 /** A score option's key in the store. */
 export const scoreKey = (film: string, file: string): string => `scores/${film}/${file}`;

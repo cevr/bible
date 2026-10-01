@@ -4,8 +4,7 @@
 // film's layout, so re-timing a scene makes every option stale, while its
 // levels never do. Each lands as `sound/<option>-<hash>.mp3`, recorded with
 // the sha256 of its bytes; generated music may not sit in the public repo, so
-// the file is git-ignored, kept in the private store (`sfx push`) and refused
-// by the pre-commit guard. Effects and beds are the app's sound library's
+// the file is git-ignored and kept in the private store (`sfx push`). Effects and beds are the app's sound library's
 // (`sfx make`), not the film's.
 
 import { Console, Context, Duration, Effect, FileSystem, Layer, Option, Path } from 'effect';

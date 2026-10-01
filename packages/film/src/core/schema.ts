@@ -632,8 +632,7 @@ export type Sound = typeof Sound.Type;
 /**
  * A score option as it was composed: its request hash, its file under the
  * film's `sound/` (private: generated music never sits in the public repo)
- * and the sha256 of its bytes, which the private store keeps it under and
- * the pre-commit guard knows it by.
+ * and the sha256 of its bytes, which the private store keeps it under.
  */
 export const ScoreAsset = Schema.Struct({
   hash: Schema.String,

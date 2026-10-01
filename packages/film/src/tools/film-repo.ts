@@ -111,10 +111,7 @@ interface FilmRepoService {
   readonly script: (
     film: string,
   ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
-  /**
-   * Every film's composed score options, as the private store keeps them, and
-   * each film's `sound/` folder (the pre-commit guard refuses audio there).
-   */
+  /** Every film's composed score options, as the private store keeps them. */
   readonly scores: Effect.Effect<Scores, StoreError>;
 }
 
@@ -415,7 +412,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
                 sha256: asset.sha256,
               });
           }
-          const scores: Scores = { files, dirs: found.map((name) => paths(name).sound) };
+          const scores: Scores = { files };
           return scores;
         });
         const scores = readScores();

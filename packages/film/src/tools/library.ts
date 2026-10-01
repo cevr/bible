@@ -39,14 +39,12 @@ import {
   SFX_MODEL,
   type SoundSource,
   type Sounds,
-  type StagedAudio,
   type Trial,
   type Variant,
   type VariantTiming,
   creditsOf,
   trialEntry,
   influenceOf,
-  refusedAudio,
   gainFor,
   levelOf,
   lockLoudness,
@@ -366,11 +364,6 @@ interface SoundLibraryService {
     PushReport,
     LibraryError | PlatformError | StoreCopyFailed | StoreFailed | StoreUnavailable
   >;
-  /** Of `files` (as staged for a commit), the audio a public repo may not take (`refusedAudio`). */
-  readonly guard: (
-    files: ReadonlyArray<string>,
-    scores: Scores,
-  ) => Effect.Effect<ReadonlyArray<SoundLicence>, LibraryError | PlatformError>;
 }
 
 /** Every variant and candidate of every sound, with its name. */
@@ -1068,34 +1061,6 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           return report;
         });
 
-        const guard = Effect.fn('SoundLibrary.guard')(function* (
-          files: ReadonlyArray<string>,
-          scores: Scores,
-        ) {
-          const loaded = yield* load;
-          const inside = (folder: string, at: string) =>
-            !path.relative(folder, at).startsWith('..');
-          const staged = yield* Effect.forEach(
-            files.filter((file) => AUDIO_FILE.test(file)),
-            (file) =>
-              Effect.gen(function* () {
-                const at = path.resolve(file);
-                const under = path.relative(dir, at);
-                const audio: StagedAudio = {
-                  file,
-                  inLibrary: Option.liftPredicate(under, (r) => !r.startsWith('..')),
-                  inScore: scores.dirs.some((folder) => inside(folder, at)),
-                  sha256: yield* sha256OfFile(fs, at),
-                };
-                return audio;
-              }),
-          );
-          const made = new Set(scores.files.map((f) => f.sha256));
-          const refused = refusedAudio(loaded.lock, staged, made).map((r) => SoundLicence.make(r));
-          yield* Effect.log(`sfx.guard audio=${staged.length} refused=${refused.length}`);
-          return refused;
-        });
-
         return SoundLibrary.of({
           paths,
           load,
@@ -1114,7 +1079,6 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           describe,
           pull: pullFiles,
           push: pushFiles,
-          guard,
         });
       }),
     );

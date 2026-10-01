@@ -17,7 +17,7 @@ src/films/*/narration/*.take.mp3
 # hear again or keep instead: only the take the timings name is committed.
 src/films/*/narration/attempts/
 # Generated sounds (ElevenLabs): never in this public repo. They sync with the
-# private store (`sfx pull` / `sfx push`); the pre-commit guard refuses them.
+# private store (`sfx pull` / `sfx push`).
 **/sounds/files/
 # A film's generated score (ElevenLabs music) likewise: only its manifest
 # (hashes) is committed; each option syncs with the same private store.

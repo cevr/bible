@@ -85,11 +85,7 @@ declaration is changed to say the same (`TrialInvalid` for settings no
 declaration could take). A sound that names no `influence` is made at its
 use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
 as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
-trials (`apps/animations/sounds/PROMPTING.md`). `guard` is the sound-licence
-pre-commit hook's: of the staged audio files it is given, it refuses any audio under `files/`,
-any copy of a variant or candidate that is not CC0 (by its sha256, wherever
-it is staged), and anything under `public/` the lock does not hold as a CC0
-variant (`SoundsRefused`).
+trials (`apps/animations/sounds/PROMPTING.md`).
 
 Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its
