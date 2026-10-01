@@ -6,10 +6,13 @@
 // script removed) throws at draw time: `DrawThrew`.
 //
 // Bun has no canvas, so each frame is drawn into the framework's stand-in
-// context (`canvas/fixtures/stand-in.ts`), keeping nothing: every call it does
-// not track answers a value that reads as nothing, except where a real canvas
-// refuses an argument (a negative arc, ellipse or gradient radius, a colour
-// stop off 0..1), where it throws as the real one does. Nothing is
+// context (`canvas/fixtures/stand-in.ts`), which holds a canvas's drawing
+// state (the transform, alpha and every property a draw sets, saved and
+// restored) and answers a pixel read with the colour of the last hex fill over
+// it, so a draw that reads its canvas back takes the branch it takes on a
+// canvas; a call it does not model answers a value that reads as nothing,
+// and an argument a real canvas refuses (a negative arc, ellipse or gradient
+// radius, a colour stop off 0..1) throws as the real one does. Nothing is
 // rasterised, which is the point: this is the draw path's logic, the part a
 // script edit can break. A throw only between samples (say, a branch at 30%
 // of a cue) still needs a render to find.

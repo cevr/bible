@@ -541,7 +541,8 @@ export class InkOverText extends Schema.TaggedError<InkOverText>()('InkOverText'
 
 /**
  * A scene that throws when it draws, at a moment the draw leg samples: a
- * mark, a cue or a knob it reads that its film no longer has (4f46add3), or
+ * mark, a cue or a knob it reads that its film no longer has (a card reading
+ * a mark a revised script removed), or
  * an argument a real canvas refuses.
  */
 export class DrawThrew extends Schema.TaggedError<DrawThrew>()('DrawThrew', {

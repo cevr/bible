@@ -637,8 +637,7 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
       const fs = yield* FileSystem.FileSystem;
       // Bun has no AAC of its own; this one is mediabunny's to use from here on.
       // It encodes in a worker thread, which listens on `worker_threads` under
-      // Bun since mediabunny 1.61.0 (before, on `self`, where no message ever
-      // arrived, and it hung).
+      // Bun (mediabunny 1.61.0 and later).
       // So is libFLAC's, for a take's master, in its own worker the same way.
       // mediabunny takes the first coder registered that can: these two come
       // before @mediabunny/server's FFmpeg ones, which are here for the
