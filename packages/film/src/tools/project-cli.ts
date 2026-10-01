@@ -266,7 +266,7 @@ const answeringIf = <A, E, R>(
   return effect;
 };
 
-/** The film's scenes named by `ids` (every one when none), each checked against the layout. */
+/** The film's scenes named by `ids` (every one when none), each checked against the layout and kept with its id. */
 const scenesNamed = (
   loaded: LoadedFilm,
   placed: ReadonlyArray<Placed>,
@@ -275,11 +275,14 @@ const scenesNamed = (
   Effect.forEach(
     Option.getOrElse(ids, () => placed.map((p) => p.spec.id)),
     (id) =>
-      Effect.fromResult(
-        resolveAddress(
-          { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts },
-          sceneAddress(id),
+      Effect.map(
+        Effect.fromResult(
+          resolveAddress(
+            { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts },
+            sceneAddress(id),
+          ),
         ),
+        (scope) => ({ ...scope, id }),
       ),
   );
 
@@ -330,7 +333,7 @@ const sceneRuns = (run: {
   readonly scopes: ReadonlyArray<SceneScope>;
 }): ReadonlyArray<SceneRun> =>
   run.scopes.map((scope) => {
-    const id = scope.scenes[0]?.spec.id ?? '';
+    const { id } = scope;
     const stamp = stampOf(run.keys, scope);
     const slot = sceneSlot(id, run.variant);
     const need = Match.value(run.force).pipe(
