@@ -5,7 +5,7 @@
 
 import { type LabBound, type LabHandler, ReviewPageFailed } from '@bible/film/tools';
 import { Effect, Option } from 'effect';
-import { readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import index from './index.html';
 import labPage from './lab.html';
@@ -64,35 +64,34 @@ const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
 /** A file name as it may sit in a narration folder: no path, no dotfile. */
 const NARRATION_FILE = /^[\w-][\w.-]*$/;
 
-/** The app's films: the folders under `films` (read once, when the server starts). */
-const filmsIn = (films: string): ReadonlySet<string> =>
-  new Set(
-    readdirSync(films, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name),
-  );
+/**
+ * Whether `name` is one of the app's films now: a folder under `films` with
+ * `scenes/index.ts`, as `FilmFolder.names` counts them. Asked per request, so
+ * a film made while the review runs is served like the rest of its routes.
+ */
+const isFilm = (films: string, name: string) =>
+  name !== '.' && name !== '..' && existsSync(join(films, name, 'scenes', 'index.ts'));
 
-/** The file a narration URL names, when its film is one of `known` and its name a plain file's. */
-const narrationFile = (films: string, known: ReadonlySet<string>, pathname: string) =>
+/** The file a narration URL names, when its name is a plain file's and its film one of the app's. */
+const narrationFile = (films: string, pathname: string) =>
   Option.flatMap(Option.fromNullishOr(NARRATION_URL.exec(pathname)), ([, film, file]) =>
     Option.filter(
       Option.all([Option.fromUndefinedOr(film), Option.fromUndefinedOr(file)]),
-      ([f, n]) => known.has(f) && NARRATION_FILE.test(n),
+      ([f, n]) => NARRATION_FILE.test(n) && isFilm(films, f),
     ).pipe(Option.map(([f, n]) => join(films, f, 'narration', n))),
   );
 
 /**
  * The narration route, `/films/<film>/narration/<file>`, for the player, the
- * lab and the review page alike: the film one of the app's films, the file
- * one directly in its `narration/` (never `attempts/`, never a path). Any
- * other name is a 404 before the disk is read. The studio rewrites these
- * files in place (a take kept, the track remixed), so the browser asks again
- * on every load rather than play a take it cached.
+ * lab and the review page alike: the film one of the app's films now
+ * (`isFilm`), the file one directly in its `narration/` (never `attempts/`,
+ * never a path). Any other name is a 404. The studio rewrites these files in
+ * place (a take kept, the track remixed), so the browser asks again on every
+ * load rather than play a take it cached.
  */
 export const narration = (films: string) => {
-  const known = filmsIn(films);
   const answer = (pathname: string) =>
-    Option.match(narrationFile(films, known, pathname), {
+    Option.match(narrationFile(films, pathname), {
       onNone: () => Effect.succeed(new Response('not found', { status: 404 })),
       onSome: (path) =>
         Effect.gen(function* () {

@@ -254,9 +254,10 @@ elsewhere). The review answers loopback, and the names in
 same-origin JSON.
 It never edits a scene: that stays in the lab. The player, the lab and the
 review serve a film's narration through one route in `server.ts`,
-`/films/<film>/narration/<file>`: the film one of the app's films, the file
-one directly in its `narration/` (never `attempts/`); any other name is a 404
-before the disk is read.
+`/films/<film>/narration/<file>`: the film one of the app's films now (a
+folder with `scenes/index.ts`, read per request, so a film made while the
+review runs is served), the file one directly in its `narration/` (never
+`attempts/`); any other name is a 404.
 
 ## How a film is built
 

@@ -50,8 +50,13 @@ describe('serve', () => {
         const path = yield* Path.Path;
         const films = yield* fs.makeTempDirectoryScoped({ prefix: 'narration-' });
         yield* fs.makeDirectory(path.join(films, 'f/narration/attempts'), { recursive: true });
+        yield* fs.makeDirectory(path.join(films, 'f/scenes'));
+        yield* fs.writeFileString(path.join(films, 'f/scenes/index.ts'), 'export {};\n');
         for (const file of ['timings.json', 'attempts/a.wav', '.hidden'])
           yield* fs.writeFileString(path.join(films, 'f/narration', file), '{}');
+        // A folder with no `scenes/index.ts` is no film, narration or not.
+        yield* fs.makeDirectory(path.join(films, 'loose/narration'), { recursive: true });
+        yield* fs.writeFileString(path.join(films, 'loose/narration/timings.json'), '{}');
         const spoken = narration(films);
         const status = (url: string) =>
           Effect.map(
@@ -62,6 +67,7 @@ describe('serve', () => {
           yield* Effect.all([
             status('/films/f/narration/timings.json'),
             status('/films/nope/narration/timings.json'),
+            status('/films/loose/narration/timings.json'),
             status('/films/f/narration/attempts/a.wav'),
             status('/films/f/narration/attempts%2Fa.wav'),
             status('/films/f/narration/.hidden'),
@@ -69,10 +75,28 @@ describe('serve', () => {
         ).toEqual([
           ['/films/f/narration/timings.json', 200],
           ['/films/nope/narration/timings.json', 404],
+          ['/films/loose/narration/timings.json', 404],
           ['/films/f/narration/attempts/a.wav', 404],
           ['/films/f/narration/attempts%2Fa.wav', 404],
           ['/films/f/narration/.hidden', 404],
         ]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live(
+    "serves a film made after it started: the films are read per request, as the review's routes read them",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const films = yield* fs.makeTempDirectoryScoped({ prefix: 'narration-' });
+        const spoken = narration(films);
+        yield* fs.makeDirectory(path.join(films, 'late/scenes'), { recursive: true });
+        yield* fs.makeDirectory(path.join(films, 'late/narration'));
+        yield* fs.writeFileString(path.join(films, 'late/scenes/index.ts'), 'export {};\n');
+        yield* fs.writeFileString(path.join(films, 'late/narration/timings.json'), '{}');
+        const res = yield* Effect.promise(() => spoken('/films/late/narration/timings.json'));
+        expect(res.status).toBe(200);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });
