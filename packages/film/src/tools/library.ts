@@ -88,7 +88,7 @@ import {
   TrialInvalid,
   VariantMissing,
 } from './errors.ts';
-import { libraryModule, lockManifest } from './film-repo.ts';
+import { filmsOut, libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import {
@@ -430,9 +430,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
         const privateStore = yield* PrivateStore;
-        const outputs = yield* Config.String('FILMS_OUT').pipe(
-          Config.withDefault(path.resolve('out')),
-        );
+        const outputs = yield* filmsOut;
         const home = yield* Config.String('HOME').pipe(Config.withDefault('~'));
 
         const paths: SoundsPaths = {

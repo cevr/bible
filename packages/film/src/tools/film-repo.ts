@@ -199,6 +199,12 @@ export class Stamped extends Data.Class<{ readonly film: FilmName; readonly stam
 /** What is under a film's folder that it is not made from: renders, installs, history. */
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
+/** The folder outputs go under: `FILMS_OUT` (the app's `out/` under `runFilmCli`), else `<cwd>/out`. */
+export const filmsOut = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  return yield* Config.String('FILMS_OUT').pipe(Config.withDefault(path.resolve('out')));
+});
+
 export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()(
   '@bible/film/tools/FilmFolder',
 ) {
@@ -212,9 +218,7 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const outputs = yield* Config.String('FILMS_OUT').pipe(
-          Config.withDefault(path.resolve('out')),
-        );
+        const outputs = yield* filmsOut;
 
         const paths = (name: string): FilmPaths => {
           const dir = path.join(films, name);
