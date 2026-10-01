@@ -8,18 +8,29 @@ import { describe, expect, test } from 'bun:test';
 import { BodyTooLarge, SttUntimed } from '../../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../../core/studio.ts';
 import { takeBody, takeLimit, tooLong } from './api.ts';
-import { encodeWav } from './wav.ts';
+import { encodeWav, wavBytes } from './wav.ts';
 
-// The body is ASCII (base64 in JSON): a character is a byte.
-const bodyBytes = (frames: number, rate: number) =>
-  takeBody(encodeWav({ rate, samples: new Float32Array(frames) })).length;
+/**
+ * A body's bytes for a WAV of `length` bytes: the envelope, then the WAV in
+ * base64, 4 bytes for every 3 (the last 3 padded). The body is ASCII (base64
+ * in JSON): a character is a byte.
+ */
+const bodyFor = (length: number) => takeBody(new Uint8Array(0)).length + 4 * Math.ceil(length / 3);
 
 describe('the take limit', () => {
+  test('a post is its envelope and the WAV in base64, whatever the samples', () => {
+    for (const frames of [0, 1, 2, 3, 4, 7, 100, 1001]) {
+      const wav = encodeWav({ rate: 44100, samples: new Float32Array(frames).fill(0.3) });
+      expect(wav.length).toBe(wavBytes(frames));
+      expect(takeBody(wav).length).toBe(bodyFor(wav.length));
+    }
+  });
+
   test('is the longest take whose post still fits the body the studio reads', () => {
     const { frames } = takeLimit(44100);
-    expect(bodyBytes(frames, 44100)).toBeLessThanOrEqual(STUDIO_MAX_BODY);
-    expect(bodyBytes(frames + 1, 44100)).toBeGreaterThan(STUDIO_MAX_BODY);
-  }, 60_000);
+    expect(bodyFor(wavBytes(frames))).toBeLessThanOrEqual(STUDIO_MAX_BODY);
+    expect(bodyFor(wavBytes(frames + 1))).toBeGreaterThan(STUDIO_MAX_BODY);
+  });
 
   test('is a length of time at the capture rate: shorter at a higher rate', () => {
     expect(takeLimit(44100).seconds).toBeCloseTo(380.4, 1);
