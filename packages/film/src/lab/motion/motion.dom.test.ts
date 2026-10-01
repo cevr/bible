@@ -15,15 +15,25 @@ const motionSays = (page: Page, part: string) => textIs(page, '.lab-motion-statu
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
 /**
- * Stop the page's clock where it stands: from here the page moves only as
- * the test runs it on (`page.clock.runFor`), so what a loop has played
- * never depends on how long a loaded machine took between two clicks.
+ * How far ahead of the page's clock it is paused: the test's own time limit
+ * (`bun test --timeout 20000`). The clock runs on in real time between the
+ * read and the pause, and `pauseAt` refuses a time already past ("Cannot
+ * fast-forward to the past", three gates in pass 8 at a lead of 10 ms); no
+ * test lives long enough to pass this one. The jump fires each timer due in
+ * it once; the player is paused, so the film stays where it stands.
+ */
+const PAUSE_LEAD_MS = 20_000;
+
+/**
+ * Stop the page's clock: from here the page moves only as the test runs it
+ * on (`page.clock.runFor`), so what a loop has played never depends on how
+ * long a loaded machine took between two clicks.
  */
 const holdClock = (page: Page) =>
   Effect.flatMap(
     // The page's own (installed) clock, read in the page: not this process's.
     Effect.promise(() => page.evaluate<number>('Date.now()')),
-    (now) => Effect.promise(() => page.clock.pauseAt(now + 10)),
+    (now) => Effect.promise(() => page.clock.pauseAt(now + PAUSE_LEAD_MS)),
   );
 
 /** The film seconds the player shows, as `#T` has them. */
