@@ -66,7 +66,7 @@ Not an output type, but used by both:
 verses, EGW, commentary, Strong's, hymns, and SS PDFs (Phase 1 of the workflow).
 
 Legacy trees (`outputs/{messages,studies,readings,analyses}/`) are frozen —
-files stay for the Sure Word site and live note IDs; new/regenerated content
+files stay for their live note IDs; new/regenerated content
 goes to `outputs/teachings/`.
 
 `bible` resolves `outputs/` against a build-time-baked CLI root, so commands

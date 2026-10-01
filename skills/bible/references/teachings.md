@@ -225,7 +225,7 @@ track: `reading-102-origin-history-destiny-of-satan.md` (matching the
 `series`/`chapter` frontmatter).
 
 Legacy files in `outputs/{messages,studies,readings,analyses}/` stay where
-they are (the Sure Word site reads `outputs/studies/`; note IDs are live).
+they are (their note IDs are live).
 New and regenerated documents go in the teachings tree.
 
 ## Export — folder per topic
