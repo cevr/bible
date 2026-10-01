@@ -51,7 +51,7 @@ export type Word = typeof Word.Type;
  * Seconds at which a voice is heard (measured from the take's audio,
  * `voiced.ts`), not where the aligner puts a word, pause before it and all.
  * Branded, so aligned seconds passed where the ear is met (a short's
- * captions, its hook, its loop, a take's speech end) are a type error.
+ * captions, its hook, its loop) are a type error.
  */
 export const Heard = Seconds.pipe(Schema.brand('Heard'));
 export type Heard = typeof Heard.Type;

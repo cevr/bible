@@ -163,7 +163,7 @@ const sayAgain =
     });
 
 /** The point `id` among `points`, or `ChoiceUnknown` naming the ones there are. */
-export const offeredPoint = (
+const offeredPoint = (
   film: string,
   points: ReadonlyArray<ChoicePoint>,
   id: string,
@@ -173,7 +173,7 @@ export const offeredPoint = (
   );
 
 /** The variant `id` of `point`, or `VariantUnknown` naming the ones it has. */
-export const offeredVariant = (
+const offeredVariant = (
   film: string,
   point: ChoicePoint,
   id: string,

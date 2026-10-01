@@ -36,7 +36,7 @@ const film = Argument.String('film').pipe(
  * beat's line, and the sheet set from `script` (each scene's `say` when the
  * film keeps no `script.ts`) and the film's quotations. Pure.
  */
-export const studioReading = (
+const studioReading = (
   loaded: LoadedFilm,
   script: Option.Option<ReadonlyArray<ScriptLine>>,
   quotes: ReadonlyArray<Quote>,

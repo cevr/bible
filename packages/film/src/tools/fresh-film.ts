@@ -119,7 +119,7 @@ export const printLine = (line: FreshLine) =>
   Effect.flatMap(Schema.encodeEffect(FreshLineJson)(line), (text) => Console.log(text));
 
 /** Whether an error is one a fresh run answers with (its line), not a failure of the run. */
-export const isRefusal = Schema.is(FreshRefusal);
+const isFreshRefusal = Schema.is(FreshRefusal);
 
 /** A failure that names itself: a tag, and words a page can show. */
 interface Named {
@@ -135,7 +135,7 @@ const isNamed = (u: unknown): u is Named =>
 
 /** The line a failure answers with: a refusal as itself, any other as `ServerFailed`. */
 const failureLine = (error: Named): FreshRefusal | ServerFailed => {
-  if (isRefusal(error)) return error;
+  if (isFreshRefusal(error)) return error;
   return ServerFailed.make({ tag: error._tag, reason: error.message });
 };
 

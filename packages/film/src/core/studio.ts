@@ -7,7 +7,7 @@
 import { Schema } from 'effect';
 import { Line, TakeStaleReason } from './narration.ts';
 import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
-import { Part, SheetBeat } from './sheet.ts';
+import { SheetBeat } from './sheet.ts';
 
 /**
  * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
@@ -61,11 +61,8 @@ export type StudioReading = typeof StudioReading.Type;
 
 /** One beat as the studio lists it. */
 export const StudioBeat = Schema.Struct({
-  id: Schema.String,
-  /** The name `takes import` reads it under, for a recording made elsewhere. */
-  file: Schema.String,
-  parts: Schema.Array(Part),
-  sources: Schema.Array(Schema.String),
+  /** Its line as the sheet sets it: the file `takes import` reads it under, its parts and sources. */
+  ...SheetBeat.fields,
   /** `recorded`: a person's take, current; `staging`: ElevenLabs'; `stale`: see `staleReason`. */
   state: Schema.Literals(['recorded', 'staging', 'stale']),
   staleReason: Schema.optionalKey(TakeStaleReason),
