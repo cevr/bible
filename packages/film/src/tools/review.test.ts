@@ -531,6 +531,19 @@ describe('the review service', () => {
     }).pipe(Effect.provide(fixture(false))),
   );
 
+  it.effect('a time before the start is the first frame, made and kept once', () =>
+    Effect.gen(function* () {
+      const review = yield* Review;
+      const spawned = yield* Spawned;
+      const first = yield* review.frame('out/art/roof.A.mp4', Option.some(0), 640);
+      const before = yield* review.frame('out/art/roof.A.mp4', Option.some(-2), 640);
+      expect(before).toBe(first);
+      expect(spawned.filter((c) => c.startsWith('still'))).toEqual([
+        expect.stringMatching(/roof\.A\.mp4 0 640$/),
+      ]);
+    }).pipe(Effect.provide(fixture(false))),
+  );
+
   it.effect('a failed make leaves nothing in the cache, and the next make lands whole', () =>
     Effect.gen(function* () {
       const review = yield* Review;

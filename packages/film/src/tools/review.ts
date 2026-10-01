@@ -663,8 +663,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           width: number,
         ) {
           const file = yield* resolve(ref);
+          // A time before the start is the first frame: one key, one still.
           let t = 0;
-          if (Option.isSome(at)) t = at.value;
+          if (Option.isSome(at)) t = Math.max(0, at.value);
           else t = (yield* duration(ref)) * 0.1;
           const w = Math.round(Math.min(1920, Math.max(160, width)));
           const key = yield* sourceKey(file, [t.toFixed(3), w]);
