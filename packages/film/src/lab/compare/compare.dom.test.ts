@@ -10,6 +10,7 @@ import { HeadUnavailable } from '../../core/refusals.ts';
 import { json, openLab, refused, route } from '../fixtures/harness.ts';
 import { evaluates, textHas } from '../fixtures/settled.ts';
 import { type Tab, jsonOf } from '../fixtures/tab.ts';
+import { BLINK_MS } from './machine.ts';
 
 const compareSays = (page: Tab, part: string) => textHas(page, '.lab-compare-status', part);
 
@@ -49,7 +50,9 @@ describe('compare with HEAD', () => {
       yield* page.waitFor('.lab-compare-tools [data-mode="blink"]');
       yield* click(page, '.lab-compare-tools [data-mode="blink"]');
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
+      yield* page.clock.fastForward(BLINK_MS);
       yield* page.attached('canvas.lab-compare[hidden]');
+      yield* page.clock.fastForward(BLINK_MS);
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
     }).pipe(Effect.scoped),
   );

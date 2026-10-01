@@ -96,7 +96,10 @@ const flushesLost = () => {
     MessagePort.prototype,
     'postMessage',
     function (this: MessagePort, ...args: ReadonlyArray<unknown>) {
-      if (args[0] === 'flush') return;
+      if (args[0] === 'flush') {
+        Reflect.set(window, 'captureFlushLost', true);
+        return;
+      }
       Reflect.apply(real, this, args);
     },
   );
