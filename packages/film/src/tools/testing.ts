@@ -689,6 +689,8 @@ export interface RenderLedger {
   readonly joins: Array<JoinedFilm>;
   /** Every video whose sound was replaced, in order. */
   readonly remuxes: Array<string>;
+  /** Every file decoded, in order. */
+  readonly decodes: Array<string>;
   /** The frames of every track encoded to AAC. */
   readonly aac: Array<number>;
   /** The URL of every page opened. */
@@ -710,6 +712,7 @@ export const emptyLedger = (): RenderLedger => ({
   contacts: [],
   joins: [],
   remuxes: [],
+  decodes: [],
   aac: [],
   aacInterrupted: { count: 0 },
   urls: [],
@@ -929,7 +932,10 @@ export const fakeRenderMedia = (ledger: RenderLedger, host: FakeRenderHost = {})
       ...noRecording,
       duration: () =>
         Effect.succeed(Option.getOrElse(Option.fromNullishOr(host.master), () => info.duration)),
-      decode: () => Effect.succeed(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
+      decode: (file) =>
+        Effect.sync(() => void ledger.decodes.push(file)).pipe(
+          Effect.as(silence(MIX_RATE, MIX_RATE * info.duration, 2)),
+        ),
       writeWav: () => Effect.void,
       encodeAac: (pcm) =>
         Effect.sync(() => void ledger.aac.push(pcm.frames)).pipe(

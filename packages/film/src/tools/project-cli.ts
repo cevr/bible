@@ -65,7 +65,7 @@ import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, type RenderOutput, flagConflicts, jobOf } from './render-plan.ts';
 import { planKey } from './mixer.ts';
-import { Renderer, remuxVideo } from './renderer.ts';
+import { type Remux, type Remuxed, Renderer, remuxer } from './renderer.ts';
 import { type SceneKeys, Stamps, sceneStamps, stampOf } from './stamp.ts';
 
 const film = Argument.String('film').pipe(
@@ -129,28 +129,41 @@ const recordOutput = Effect.fn('film.recordOutput')(function* (
   return output;
 });
 
-/**
- * Re-mux `render` (a scene video stale by its sound alone): its sound cut
- * again from the film's master now, and recorded as it now sounds. None when
- * it recorded no cut to take again (it is drawn instead).
- */
+/** A scene video stale by its sound alone, and the video a re-mux cuts its sound into again. */
+interface Recut {
+  readonly render: Render;
+  readonly clip: string;
+  readonly video: Remuxed;
+}
+
+/** `render` as a re-mux takes it: none when it recorded no cut to take again (it is drawn instead). */
+const recutOf = (loaded: LoadedFilm, path: Path.Path, render: Render): Option.Option<Recut> =>
+  Option.map(Option.all({ clip: render.files.clip, sound: render.sound }), ({ clip, sound }) => {
+    const inProject = (file: string) => path.join(loaded.paths.out, file);
+    return {
+      render,
+      clip,
+      video: {
+        clip: inProject(clip),
+        share: Option.map(render.files.share, inProject),
+        pieces: sound.pieces,
+      },
+    };
+  });
+
+/** Re-mux `recut` with the run's `remux`, and record it as it now sounds. */
 const remuxAndRecord = Effect.fn('film.remuxAndRecord')(function* (
   loaded: LoadedFilm,
-  render: Render,
+  remux: Remux,
+  recut: Recut,
 ) {
-  const path = yield* Path.Path;
-  const inProject = (file: string) => path.join(loaded.paths.out, file);
-  const cut = Option.all({ clip: render.files.clip, sound: render.sound });
-  if (Option.isNone(cut)) return Option.none<string>();
-  const { clip, sound } = cut.value;
-  const now = yield* remuxVideo(loaded, {
-    clip: inProject(clip),
-    share: Option.map(render.files.share, inProject),
-    pieces: sound.pieces,
-  });
+  const now = yield* remux(recut.video);
   const at = yield* Clock.currentTimeMillis;
-  yield* (yield* RenderCatalogue).record(loaded.paths, { ...render, sound: Option.some(now), at });
-  return Option.some(clip);
+  yield* (yield* RenderCatalogue).record(loaded.paths, {
+    ...recut.render,
+    sound: Option.some(now),
+    at,
+  });
 });
 
 /** The mix a scene's video carries now: the plan the film mixes to, once every take is recorded. */
@@ -283,6 +296,50 @@ const status = Command.make(
   }, answeringIf),
 );
 
+/** A scene of a `project render` run, as its `scenesNamed` scope. */
+type SceneScope = Effect.Success<ReturnType<typeof scenesNamed>>[number];
+
+/** One scene of a `project render` run: what it needs, and the video a re-mux cuts again. */
+interface SceneRun {
+  readonly scope: SceneScope;
+  readonly id: string;
+  readonly stamp: Stamp;
+  readonly need: ReturnType<typeof renderNeed>;
+  /** Some when the scene is stale by its sound alone and its video recorded the cut. */
+  readonly recut: Option.Option<Recut>;
+}
+
+/**
+ * What each of `scopes` needs against `catalogue`: current, a re-mux of its
+ * video, or a draw (every one with `force`). The run reads it before it
+ * draws or cuts anything; each scene's record touches its own slot only.
+ */
+const sceneRuns = (run: {
+  readonly loaded: LoadedFilm;
+  readonly path: Path.Path;
+  readonly catalogue: Catalogue;
+  readonly now: (stamp: Stamp) => Parameters<typeof renderNeed>[2];
+  readonly settings: Parameters<typeof renderNeed>[3];
+  readonly variant: string;
+  readonly force: boolean;
+  readonly keys: SceneKeys;
+  readonly scopes: ReadonlyArray<SceneScope>;
+}): ReadonlyArray<SceneRun> =>
+  run.scopes.map((scope) => {
+    const id = scope.scenes[0]?.spec.id ?? '';
+    const stamp = stampOf(run.keys, scope);
+    const slot = sceneSlot(id, run.variant);
+    const need = Match.value(run.force).pipe(
+      Match.when(true, () => 'draw' as const),
+      Match.orElse(() => renderNeed(run.catalogue, slot, run.now(stamp), run.settings)),
+    );
+    const recut = Option.flatMap(
+      Option.filter(renderIn(run.catalogue, slot), () => need === 'remux'),
+      (render) => recutOf(run.loaded, run.path, render),
+    );
+    return { scope, id, stamp, need, recut };
+  });
+
 const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
   Command.make(
     'render',
@@ -326,33 +383,36 @@ const renderScenes = <E, R>(renderLayer: Layer.Layer<Renderer, E, R>) =>
         // opened only once a scene draws (Chromium launches with the first
         // page): a run where each is current or re-muxed opens no browser.
         const drawn = yield* (yield* Renderer).session;
+        // What each scene needs, decided from the catalogue before anything is drawn or cut.
+        const runs = sceneRuns({
+          loaded,
+          path: yield* Path.Path,
+          catalogue: yield* catalogues.read(loaded.paths),
+          now: (stamp) => ({ key: stamp.key, sound: tree.sound }),
+          settings,
+          variant: input.variant,
+          force: input.force,
+          keys,
+          scopes,
+        });
+        // A scene stale by its sound alone is re-muxed: when the run re-muxes any, the master
+        // is checked and decoded once, for all of them.
+        const remux = yield* Effect.when(
+          remuxer(loaded),
+          Effect.sync(() => runs.some((run) => Option.isSome(run.recut))),
+        );
         let rendered = 0;
         let remuxed = 0;
-        for (const scope of scopes) {
-          const id = scope.scenes[0]?.spec.id ?? '';
-          const stamp = stampOf(keys, scope);
-          const catalogue = yield* catalogues.read(loaded.paths);
-          const slot = sceneSlot(id, input.variant);
-          const need = Match.value(input.force).pipe(
-            Match.when(true, () => 'draw' as const),
-            Match.orElse(() =>
-              renderNeed(catalogue, slot, { key: stamp.key, sound: tree.sound }, settings),
-            ),
-          );
+        for (const { scope, id, stamp, need, recut } of runs) {
           if (need === 'current') {
             yield* Console.log(`${id.padEnd(16)} current`);
             continue;
           }
-          const recut = yield* Option.match(
-            Option.filter(renderIn(catalogue, slot), () => need === 'remux'),
-            {
-              onNone: () => Effect.succeedNone,
-              onSome: (render) => remuxAndRecord(loaded, render),
-            },
-          );
-          if (Option.isSome(recut)) {
+          const remuxing = Option.all({ recut, remux });
+          if (Option.isSome(remuxing)) {
+            yield* remuxAndRecord(loaded, remuxing.value.remux, remuxing.value.recut);
             remuxed += 1;
-            yield* Console.log(`${id.padEnd(16)} remuxed ${recut.value}`);
+            yield* Console.log(`${id.padEnd(16)} remuxed ${remuxing.value.recut.clip}`);
             continue;
           }
           const job = yield* Effect.fromResult(

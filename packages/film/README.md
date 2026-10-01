@@ -371,7 +371,9 @@ pages (`Renderer.session`: 1 + workers page loads a run, not that a scene;
 settings, and re-muxes one stale by its sound alone: its sound is cut again
 from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens
-(`render.remux frames_drawn=0`, `remuxVideo`: media and the disk only).
+(`render.remux frames_drawn=0`, `remuxer`: media and the disk only). The run decides
+every scene's need from the catalogue first; when it re-muxes any, the master is
+checked and decoded once for all of them, and each scene cuts and encodes only its own piece.
 Chromium launches with the first page a scene opens (`Browser.layer`), so a
 run where every scene is current or re-muxed opens no browser. `film project approve <film> --scene id,id | --act name |
 --all` approves the scenes' renders, an act's current scenes, or every current
