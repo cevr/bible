@@ -12,13 +12,14 @@
 // the scene it plays in), and a scene links the layers that play in it. The
 // page updates in place (a half-typed comment and the clip survive a say
 // elsewhere) and shows what a say or a pick answered without reading it
-// twice; a read that lands after a say asked later leaves the say shown.
+// twice; a read that lands after a say asked later leaves the say shown,
+// and an approve refused because its scene went stale reads it again.
 // Every wait is on the page, or on what it asked, never a fixed time.
 
 import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
-import { FreshProcessFailed } from '../../../core/refusals.ts';
+import { FreshProcessFailed, VerbRefused } from '../../../core/refusals.ts';
 import {
   type FakeRoute,
   type Json,
@@ -47,8 +48,8 @@ const FILM_AT: Json = { _tag: 'Film' };
 /** A scene as `film project --json` encodes it. */
 interface ToyScene {
   readonly scene: string;
-  readonly state: 'current' | 'stale' | 'missing';
-  readonly staleBy?: 'sources' | 'sound';
+  state: 'current' | 'stale' | 'missing';
+  staleBy?: 'sources' | 'sound';
   approval: 'none' | 'approved' | 'stale';
   said: ReadonlyArray<string>;
 }
@@ -206,9 +207,11 @@ const PostedSay = Schema.decodeUnknownSync(
 /**
  * The fake project: the scenes as they stand, and what was said of the film
  * and the act. `elsewhere` adds another checkout's folder of the film to the
- * review's index, rendered since.
+ * review's index, rendered since; the scenes in `goneStale` were drawn again
+ * since the page read them, so an approve naming one is refused and leaves it
+ * stale by its sources.
  */
-const fakeProject = (elsewhere = false) => {
+const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) => {
   const scenes: ReadonlyArray<ToyScene> = [
     { scene: 'open', state: 'current', approval: 'none', said: [] },
     { scene: 'close', state: 'stale', staleBy: 'sound', approval: 'stale', said: [] },
@@ -290,6 +293,21 @@ const fakeProject = (elsewhere = false) => {
     route('POST', /^\/review\/project\/toy\/say$/, (asked) => {
       const p = posted(asked);
       const ids = scenesOf(p);
+      const gone = scenes.filter((s) => ids.includes(s.scene) && goneStale.includes(s.scene));
+      if (p.say._tag === 'Approve' && gone.length > 0) {
+        gone.forEach((s) => {
+          s.state = 'stale';
+          s.staleBy = 'sources';
+        });
+        return refused(
+          VerbRefused.make({
+            point: `render:scenes:${gone.map((s) => s.scene).join(',')}`,
+            variant: 'main',
+            verb: 'approve',
+            reason: 'its sources changed since it was made',
+          }),
+        );
+      }
       if (p.say._tag === 'Approve') approveCurrent(ids);
       if (p.say._tag === 'Withdraw')
         scenes
@@ -572,6 +590,35 @@ describe("a film's project", () => {
         yield* click(page, `${render('open')} [data-act="comment"]`);
         yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
         yield* valueIs(page, box(render('open')), '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'an approve refused because the scene went stale reads the project again: the card says why',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(false, ['coda']), {
+          search: PROJECT,
+        });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* until(
+          page,
+          `document.querySelector('p.rv-status').dataset.failed === 'true' && !document.querySelector('p.rv-status').textContent.endsWith('…')`,
+        );
+        yield* waitFor(page, `${scene('coda')}[data-state="stale"]`);
+        yield* textIs(
+          page,
+          `${render('coda')} .rv-tag[data-state]`,
+          'stale: its sources changed since it was made',
+        );
+        yield* evaluates(
+          page,
+          `document.querySelector('${render('coda')} [data-act="approve"]').disabled`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

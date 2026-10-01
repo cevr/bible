@@ -350,10 +350,15 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
   );
 };
 
+/** Whether a say was refused for the state its scenes are in now (one drawn again since the page read it). */
+const staleSinceRead = (exit: Exit.Exit<ProjectView, LabFailure>): boolean =>
+  Option.exists(Exit.findErrorOption(exit), (e) => e._tag === 'VerbRefused');
+
 /**
  * The project read, read again, and said: the page shows the answer to the
  * newest of them asked (`asked.ts`), kept in place. A say overtaken by a
  * read asked after it reads the project again: that read may not hold it.
+ * So does a say refused for its scenes' state: the cards then say why.
  */
 const ProjectReady = (props: { readonly film: string }) => {
   const { meta } = useReview();
@@ -391,7 +396,7 @@ const ProjectReady = (props: { readonly film: string }) => {
     const ask = asks.ask();
     return say(s).then((exit) => {
       const ok = answered(ask, exit);
-      if (ok && ask.overtaken()) readAgain();
+      if ((ok && ask.overtaken()) || staleSinceRead(exit)) readAgain();
       return ok;
     });
   };
