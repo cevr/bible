@@ -105,7 +105,7 @@ import { media } from './media-cli.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Choices } from './choices.ts';
 import { options } from './choices-cli.ts';
-import { CheckLineJson, FreshFilm } from './fresh-film.ts';
+import { FreshFilm, answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
 import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
@@ -532,8 +532,6 @@ const cues = <E, R>(checkLayer: Layer.Layer<Checker, E, R>) => {
   );
 };
 
-const encodeCheckLine = Schema.encodeSync(CheckLineJson);
-
 const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
   const layout = Effect.fn('film.check.layout')(function* (
     loaded: LoadedFilm,
@@ -629,7 +627,7 @@ const check = <E, R>(checkLayer: Layer.Layer<Checker | Looker, E, R>) => {
       if (!input.static && !input.sound && !input.draw)
         found.push(...(yield* layout(loaded, scope, input.workers)));
       yield* printReport(input.film, 'film', report(found, options), input.json);
-    }),
+    }, answeringCheck),
   ).pipe(
     Command.withDescription(
       `Check a film: cues inside their scenes, sound cues that resolve, current takes and sounds and a master mixed for the film as it is, no text over text or off the frame at any mark or cue, and a warning where the voice speaks over a still picture for more than ${HOLD} s; no dead air in the mix the film makes now, and warnings where a scene holds still for most of its seconds, no face reaches human scale, an act misses its colour script, or the ending leaves no room for end screens. With --short <id>, check that short instead: text inside the platform's safe zone (--zone), a hook in the first ${SHORT_RULES.motionBy} s, a clean loop and a length of at most ${SHORT_RULES.length.max} s`,

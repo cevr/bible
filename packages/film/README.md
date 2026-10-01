@@ -49,7 +49,7 @@ key=value`) go to stderr, a failed command's report too (logged under the
 same logger before the runtime exits, not by `runMain`'s own reporter, which
 would print to stdout; a typed failure as its tag and message, a defect with
 its stack); stdout carries only what a command prints, so a
-failing `check --json` still prints only findings. The player imports the same folder, so the tools
+failing `check --json` still prints only findings (a film that does not load is its one error finding). The player imports the same folder, so the tools
 and the page never read two different films. Paid calls (ElevenLabs speech, music,
 effects) go through the `ElevenLabs` service only; `mix`, `cues` and every
 `--dry-run` make none. Assets are content-addressed: `ContentStore.ensure`
@@ -977,8 +977,12 @@ which the lab lists. A film that does not lay out (a cue on a mark its line
 lacks, a cycle, a duplicate mark) or a part the check names that it lacks
 is the one finding the check reports, at its scene (`laidOut` in
 `film-check.ts`), not a failed run. The static leg never mixes or opens a
-browser. A check that does not run (a line that does not decode, a crash, 30 s
-gone) is itself one error finding, `FreshProcessFailed`, in its words.
+browser. A film that does not load prints its failure as the one error
+finding, in its own words (`FilmModuleInvalid`: `film "…": sound.ts is
+invalid: …`; `answeringCheck`), as `film read voice` and `film read cue`
+answer it as `ServerFailed` (`answering`). A check that does not run
+otherwise (a line that does not decode, a crash, 30 s gone) is itself one
+error finding, `FreshProcessFailed`, in its words.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's

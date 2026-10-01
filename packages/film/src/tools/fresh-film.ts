@@ -179,6 +179,28 @@ export const failedCheck = (error: FreshProcessFailed): ReadonlyArray<CheckLine>
   { level: 'error', tag: error._tag, message: error.message },
 ];
 
+/** A finding as one line of JSON, as `film check --json` prints it. */
+export const encodeCheckLine = Schema.encodeSync(CheckLineJson);
+
+/**
+ * `film check`'s run, answering with `--json` a check that cannot run (the
+ * film does not load, a flag it refuses) as its one error finding, in the
+ * failure's own words, then failing with it as before. A check that ran has
+ * printed its findings, and fails as CheckFailed.
+ */
+export const answeringCheck = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  input: { readonly json: boolean },
+) => {
+  if (!input.json) return effect;
+  return Effect.tapError(effect, (error) => {
+    if (!isNamed(error) || error._tag === 'CheckFailed') return Effect.void;
+    return Console.log(
+      encodeCheckLine({ level: 'error', tag: error._tag, message: error.message }),
+    );
+  });
+};
+
 /** How long a read may take (a cold start and the film's modules, a few seconds), a mix, a kept take. */
 const READ_LIMIT = Duration.seconds(60);
 const MIX_LIMIT = Duration.minutes(10);
