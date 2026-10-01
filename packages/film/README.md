@@ -29,8 +29,8 @@ taken over Schema-encoded requests, so a committed hash stays current.
 The export page's handle and what its probe records (`ExportInfo`,
 `TextBox`, `InkMark`, `FaceMark`, `HandMark`, `Probed`) are declared beside
 the handle in `core/export-handle.ts`; a choice point's id in
-`core/point.ts`; an address as data (`Address`, `addressKey`) in
-`core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
+`core/point.ts`; an address as data (`Address`, `addressKey` and its inverse
+`addressOfKey`) in `core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
 (`address.ts` re-exports it beside `resolveAddress`). A scene's and a short's
 id is one shape, `PartId` (lower case, digits and dashes, starting with a
 letter or a digit), and an act's name (`ActName`) never starts with `-`: the

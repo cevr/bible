@@ -22,7 +22,7 @@ import type { Act, Look, Short } from './schema.ts';
 import { resolveShort } from './shorts.ts';
 import { FILM_FPS, type Interval } from './time.ts';
 
-export { Address, PartAddress, addressKey, sceneAddress } from './address-schema.ts';
+export { Address, PartAddress, addressKey, addressOfKey, sceneAddress } from './address-schema.ts';
 
 /** What a command was given to name its part: `--act`, `--scene a,b`, `--short`. */
 export interface AddressFlags {
