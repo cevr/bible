@@ -202,8 +202,8 @@ const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 /**
  * The file that makes `name` under `films` a film: its scene registry,
  * `<films>/<name>/scenes/index.ts`. None for a name no folder of `films`
- * has (`.`, `..`, a path). `FilmFolder.names` and the app's narration
- * route both ask it.
+ * has (`.`, `..`, a path). `FilmFolder.names` and the narration route
+ * (`narration-route.ts`) both ask it.
  */
 export const filmMark = (films: string, name: string): Option.Option<string> => {
   if (name === '' || name === '.' || name === '..' || name.includes('/')) return Option.none();

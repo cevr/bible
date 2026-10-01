@@ -214,7 +214,7 @@ uncached for that). Use Chrome or Firefox on the Mac and allow the
 microphone for `127.0.0.1:4401`; pick the interface in the Studio's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
-own rate. `bun test/fixtures/studio-harness.ts` runs the same lab over a temp
+own rate. `bun studio-harness.ts` runs the same lab over a temp
 copy of a film with a fake speech-to-text (no paid call; `POST
 /lab/harness/mishear/<beat>` makes it mis-hear a beat, `POST
 /lab/harness/stop` stops it and removes the copy), for driving the panel
@@ -254,7 +254,8 @@ elsewhere). The review answers loopback, and the names in
 `server.ts` builds it in process and serves it behind the check); writes are
 same-origin JSON.
 It never edits a scene: that stays in the lab. The player, the lab and the
-review serve a film's narration through one route in `server.ts`,
+review serve a film's narration through the framework's one route
+(`narrationRoute`, `packages/film/src/tools/narration-route.ts`),
 `/films/<film>/narration/<file>`: the film one of the app's films now (a
 folder with `scenes/index.ts`, read per request, so a film made while the
 review runs is served), the file one directly in its `narration/` (never

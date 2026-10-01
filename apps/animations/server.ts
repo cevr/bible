@@ -3,9 +3,9 @@
 // with hot reload; `bun run lab` runs it in development mode with the lab's
 // page at /lab and its routes (the film framework's handler) at /lab/*.
 
-import { type LabBound, type LabHandler, ReviewPageFailed, filmMark } from '@bible/film/tools';
+import { type LabBound, type LabHandler, ReviewPageFailed, narrationFile } from '@bible/film/tools';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Option } from 'effect';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import index from './index.html';
 import labPage from './lab.html';
@@ -40,8 +40,8 @@ const labRoutes = (lab: Option.Option<Handler>) => ({
 
 /**
  * The player on `HOST`:`port`; with `lab` (the film lab's API), the lab's
- * page and routes too. The narration is served from `films` (a test's copy
- * of the films folder, so the studio's writes never touch the real one).
+ * page and routes too. The narration is served from `films` (the studio
+ * harness's copy of a film, so its writes never touch the real one).
  */
 export const serve = (port: number, development: boolean, lab?: Handler, films: string = FILMS) => {
   const spoken = narration(films);
@@ -58,51 +58,26 @@ export const serve = (port: number, development: boolean, lab?: Handler, films: 
   });
 };
 
-/** A narration URL: `/films/<film>/narration/<file>`, the file directly in the folder. */
-const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
-
-/** A file name as it may sit in a narration folder: no path, no dotfile. */
-const NARRATION_FILE = /^[\w-][\w.-]*$/;
-
-/**
- * Whether `name` is one of the app's films now: its `filmMark` exists, as
- * `FilmFolder.names` counts them. Asked per request, so a film made while the
- * review runs is served like the rest of its routes.
- */
-const isFilm = (films: string, name: string) =>
-  Option.exists(filmMark(films, name), (mark) => existsSync(mark));
-
-/** The file a narration URL names, when its name is a plain file's and its film one of the app's. */
-const narrationFile = (films: string, pathname: string) =>
-  Option.flatMap(Option.fromNullishOr(NARRATION_URL.exec(pathname)), ([, film, file]) =>
-    Option.filter(
-      Option.all([Option.fromUndefinedOr(film), Option.fromUndefinedOr(file)]),
-      ([f, n]) => NARRATION_FILE.test(n) && isFilm(films, f),
-    ).pipe(Option.map(([f, n]) => join(films, f, 'narration', n))),
-  );
-
 /**
  * The narration route, `/films/<film>/narration/<file>`, for the player, the
- * lab and the review page alike: the film one of the app's films now
- * (`isFilm`), the file one directly in its `narration/` (never `attempts/`,
- * never a path). Any other name is a 404. The studio rewrites these files in
- * place (a take kept, the track remixed), so the browser asks again on every
- * load rather than play a take it cached.
+ * lab and the review page alike: the file the framework's `narrationFile`
+ * names, else a 404. The studio rewrites these files in place (a take kept,
+ * the track remixed), so the browser asks again on every load rather than
+ * play a take it cached.
  */
-export const narration = (films: string) => {
-  const answer = (pathname: string) =>
-    Option.match(narrationFile(films, pathname), {
-      onNone: () => Effect.succeed(new Response('not found', { status: 404 })),
-      onSome: (path) =>
-        Effect.gen(function* () {
-          const file = Bun.file(path);
-          if (!(yield* Effect.promise(() => file.exists())))
-            return new Response('not found', { status: 404 });
-          return new Response(file, { headers: { 'Cache-Control': 'no-cache' } });
+export const narration = (films: string) => (pathname: string) =>
+  Effect.runPromise(
+    narrationFile(films, pathname).pipe(
+      Effect.map(
+        Option.match({
+          onNone: () => new Response('not found', { status: 404 }),
+          onSome: (file) =>
+            new Response(Bun.file(file), { headers: { 'Cache-Control': 'no-cache' } }),
         }),
-    });
-  return (pathname: string) => Effect.runPromise(answer(pathname));
-};
+      ),
+      Effect.provide(BunServices.layer),
+    ),
+  );
 
 /** The review page's source, built in this process (`reviewPage`). */
 const REVIEW_HTML = join(import.meta.dir, 'review.html');

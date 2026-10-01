@@ -20,6 +20,7 @@ export * from './film-check.ts';
 export * from './draw-check.ts';
 export * from './checker.ts';
 export * from './preview-server.ts';
+export * from './narration-route.ts';
 export * from './browser.ts';
 export * from './pages.ts';
 export * from './render-plan.ts';
