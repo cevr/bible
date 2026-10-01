@@ -30,11 +30,11 @@ import { FetchHttpClient } from 'effect/http';
 import { NO_SCORES, type Scores } from './media-store.ts';
 
 const LIBRARY = `export const library = {
-  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 1, candidates: 4, use: 'one-shot' },
-  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 2, loop: true, candidates: 2, use: 'bed' },
+  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 0.5, candidates: 4, use: 'one-shot' },
+  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 1, loop: true, candidates: 2, use: 'bed' },
   'tone.chime': {
     kind: 'procedural',
-    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },
+    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.6 },
     variants: 3,
     use: 'one-shot',
   },
@@ -217,8 +217,8 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const jobs = yield* (yield* SoundLibrary).plan(Option.none(), false);
         expect(jobs.map((j) => [j.name, j.count, j.credits])).toEqual([
-          ['amb.court', 2, 160],
-          ['paper.slide', 4, 160],
+          ['amb.court', 2, 80],
+          ['paper.slide', 4, 80],
         ]);
       }),
     ),
@@ -233,11 +233,11 @@ describe.concurrent('SoundLibrary', () => {
           const fs = yield* FileSystem.FileSystem;
           const unconfirmed = yield* Effect.flip(library.make({ ...all, yes: false }));
           expect(unconfirmed._tag).toBe('PaidUnconfirmed');
-          yield* fs.writeFileString(tally, `${TALLY_HEADER}old\tabc\t10\t39800\n`);
+          yield* fs.writeFileString(tally, `${TALLY_HEADER}old\tabc\t10\t39900\n`);
           const over = yield* Effect.flip(
             library.make({ ...all, cap: Option.some(40000), tally: Option.some(tally) }),
           );
-          expect(over).toMatchObject({ _tag: 'CreditsOverCap', credits: 39800 + 320, cap: 40000 });
+          expect(over).toMatchObject({ _tag: 'CreditsOverCap', credits: 39900 + 160, cap: 40000 });
           expect(calls).toHaveLength(0);
         }),
       ),
@@ -268,14 +268,14 @@ describe.concurrent('SoundLibrary', () => {
             'pcm_44100',
             0.3,
           ]);
-          expect(talliedCredits(yield* fs.readFileString(tally))).toBe(320);
+          expect(talliedCredits(yield* fs.readFileString(tally))).toBe(160);
           for (const v of made) {
             expect(v.file).toMatch(/^files\/(paper\.slide|amb\.court)\/[0-9a-f]{12}\.flac$/);
             expect(yield* fs.exists(`${dir}/${v.file}`)).toBe(true);
             // Stereo bytes are read as stereo: the sound lasts what was asked, both sides kept.
             const asked = new Map([
-              ['amb.court', 2],
-              ['paper.slide', 1],
+              ['amb.court', 1],
+              ['paper.slide', 0.5],
             ]);
             expect(v.secs).toBe(asked.get(v.file.split('/')[1] ?? '') ?? 0);
             const heard = yield* media.decode(`${dir}/${v.file}`);
@@ -641,8 +641,8 @@ describe.concurrent('SoundLibrary', () => {
           expect(renders).toHaveLength(3);
           const heard = yield* library.audition('tone.chime', false);
           expect(yield* fs.exists(heard)).toBe(true);
-          // Three one-second chimes, each followed by the gap.
-          expect((yield* media.decode(heard)).frames).toBe(3 * (44100 + 22050));
+          // Three 0.6-second chimes, each followed by the half-second gap.
+          expect((yield* media.decode(heard)).frames).toBe(3 * (26460 + 22050));
           expect(calls).toHaveLength(0);
         }),
       ),

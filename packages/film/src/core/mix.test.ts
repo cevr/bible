@@ -40,7 +40,7 @@ const mono = (secs: number, value: number): Pcm => {
 };
 
 const plan = (over: Partial<MixPlan<Pcm>>): MixPlan<Pcm> => ({
-  seconds: 10,
+  seconds: 5,
   voice: [],
   score: Option.none(),
   beds: [],
@@ -75,7 +75,7 @@ const take = (sound: Pcm, secs: number) => ({
 describe('renderMix', () => {
   test('a take lands on its frame, on both sides at −3 dB; the track is the film’s length', () => {
     const mixed = renderMix(plan({ voice: [take(mono(1, 0.5), 2)] }));
-    expect(mixed.master.frames).toBe(10 * RATE);
+    expect(mixed.master.frames).toBe(5 * RATE);
     expect(mixed.voice.channels[0]?.[2 * RATE - 1]).toBe(0);
     expect(at(mixed.voice, 2)).toBe(SIDE);
     expect(at(mixed.voice, 3)).toBe(0);
@@ -116,20 +116,20 @@ describe('renderMix', () => {
   describe('mastering', () => {
     // A 1 kHz tone reads close to its RMS in LUFS, so each is a known loudness.
     test('a quiet track is brought up to the target loudness', () => {
-      const mixed = renderMix(plan({ voice: [take(tone(8, 0.02, 1000), 1)] }));
+      const mixed = renderMix(plan({ voice: [take(tone(2, 0.02, 1000), 1)] }));
       expect(loudness(mixed.master).integrated).toBeCloseTo(MASTER.loudness, 0);
       expect(mixed.masterGain).toBeGreaterThan(0);
     });
 
     test('a loud track is brought down to it', () => {
-      const mixed = renderMix(plan({ voice: [take(tone(8, 0.5, 1000), 1)] }));
+      const mixed = renderMix(plan({ voice: [take(tone(2, 0.5, 1000), 1)] }));
       expect(loudness(mixed.master).integrated).toBeCloseTo(MASTER.loudness, 0);
       expect(mixed.masterGain).toBeLessThan(0);
     });
 
     test('a lift never takes a peak past the limiter: headroom caps it', () => {
       // Quiet overall, with one peak near full scale: the peak holds the lift back.
-      const quiet = tone(8, 0.01, 1000);
+      const quiet = tone(2, 0.01, 1000);
       quiet.channels[0]?.fill(0.8, RATE, RATE + 20);
       const mixed = renderMix(plan({ voice: [take(quiet, 1)] }));
       const peak = Math.max(...(mixed.master.channels[0] ?? []).map(Math.abs));
@@ -146,7 +146,9 @@ describe('renderMix', () => {
   test('the score fades in over its first two seconds and out over the film’s last six', () => {
     // No voice: nothing to level against, so the score plays as it is.
     const score = { option: 'piano', sound: mono(10, 0.5), under: -18, alone: -6 };
-    const music = Option.getOrThrow(renderMix(plan({ score: Option.some(score) })).music);
+    const music = Option.getOrThrow(
+      renderMix(plan({ seconds: 10, score: Option.some(score) })).music,
+    );
     expect(at(music, 0)).toBe(0);
     expect(at(music, 1)).toBeCloseTo(SIDE / 2, 6);
     expect(at(music, 3)).toBeCloseTo(SIDE, 6);
@@ -210,7 +212,7 @@ describe('renderMix', () => {
 
   test('a bed loops over its span, faded at each end, on its own bus', () => {
     const bed = { sound: mono(2, 0.5), from: 1, to: 9, gain: 1, fade: 1, duck: false };
-    const beds = Option.getOrThrow(renderMix(plan({ beds: [bed] })).beds);
+    const beds = Option.getOrThrow(renderMix(plan({ seconds: 10, beds: [bed] })).beds);
     expect(at(beds, 0.5)).toBe(0);
     expect(at(beds, 1.5)).toBeCloseTo(SIDE / 2, 4);
     // Across each wrap the equal-power crossfade never drops a constant sound below −3 dB.
@@ -220,14 +222,14 @@ describe('renderMix', () => {
   });
 
   test('a bed ducks under the voice unless it sits under everything', () => {
-    const voice = [take(mono(10, 0.5), 0)];
-    const bed = { sound: mono(10, 0.5), from: 0, to: 10, gain: 0.5, fade: 0, duck: true };
+    const voice = [take(mono(3, 0.5), 0)];
+    const bed = { sound: mono(3, 0.5), from: 0, to: 3, gain: 0.5, fade: 0, duck: true };
     const ducked = Option.getOrThrow(renderMix(plan({ voice, beds: [bed] })).beds);
     const room = Option.getOrThrow(
       renderMix(plan({ voice, beds: [{ ...bed, duck: false }] })).beds,
     );
-    expect(at(room, 5)).toBeCloseTo(SIDE * 0.5, 6);
-    const ratio = (at(ducked, 5) ?? 0) / (at(room, 5) ?? 1);
+    expect(at(room, 2.5)).toBeCloseTo(SIDE * 0.5, 6);
+    const ratio = (at(ducked, 2.5) ?? 0) / (at(room, 2.5) ?? 1);
     expect(ratio).toBeCloseTo((0.02 / SIDE) ** (1 - 1 / BED_DUCK.ratio), 2);
   });
 
