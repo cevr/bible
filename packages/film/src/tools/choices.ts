@@ -60,7 +60,7 @@ import {
   withSay,
 } from '../core/choice.ts';
 import { type Catalogue, said } from '../core/catalogue.ts';
-import { PointRef, pointRefOf } from '../core/point.ts';
+import { PointRef } from '../core/point.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { SCORE_PLAY, editLevel, editPick, lookPlay, readPick } from './choice-source.ts';
@@ -149,18 +149,11 @@ export type ChoicesNeeds =
   | RenderCatalogue
   | Takes;
 
-/**
- * `point`'s say read again from `catalogue`. The point came from a fresh
- * run, so which point it is is read back from its id; one whose id names no
- * point is left as it came.
- */
+/** `point`'s say read again from `catalogue`. */
 const sayAgain =
   (catalogue: Catalogue) =>
   (point: ChoicePoint): ChoicePoint =>
-    Option.match(pointRefOf(point.id), {
-      onNone: () => point,
-      onSome: (ref) => withSay(Option.some(catalogue), { ...point, ref }),
-    });
+    withSay(Option.some(catalogue), point);
 
 /** The point `id` among `points`, or `ChoiceUnknown` naming the ones there are. */
 const offeredPoint = (
@@ -382,8 +375,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             reason: `a ${point.kind} has no pick`,
           });
         const noPick = () => Effect.fail(refusal());
-        const ref = yield* Effect.fromOption(pointRefOf(point.id), refusal);
-        return yield* Match.valueTags(ref, {
+        return yield* Match.valueTags(point.ref, {
           Score: () => writePick(film, fileIn(film, 'sound.ts'), SCORE_PLAY, variant.id),
           Look: ({ name }) =>
             writePick(film, fileIn(film, 'palette.ts'), lookPlay(name), variant.id),
@@ -403,13 +395,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           VerbRefused.make({ point: point.id, variant: '', verb: 'set', reason });
         const knob = yield* Effect.fromOption(point.knob, () => refused('it has no knob'));
         if (Option.isSome(knob.fixed)) return yield* refused(knob.fixed.value);
-        const target = yield* Effect.fromOption(
-          Option.map(
-            Option.filter(pointRefOf(point.id), PointRef.guards.Level),
-            (ref) => ref.target,
-          ),
-          () => refused('it is not a level'),
-        );
+        if (!PointRef.guards.Level(point.ref)) return yield* refused('it is not a level');
+        const { target } = point.ref;
         const value = Math.min(knob.max, Math.max(knob.min, asked.value));
         const file = fileIn(film, 'sound.ts');
         const [change] = yield* writer.write({
@@ -448,15 +435,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           }),
         );
         const at = yield* Clock.currentTimeMillis;
-        const ref = yield* Effect.fromOption(pointRefOf(point.id), () =>
-          VerbRefused.make({
-            point: point.id,
-            variant: variant.id,
-            verb: 'say',
-            reason: 'its id names no choice point',
-          }),
-        );
-        const subject = subjectAt(ref, address, variant);
+        const subject = subjectAt(point.ref, address, variant);
         const after = yield* catalogues.update(folder.paths(film), (catalogue) => {
           const next = said(catalogue, subject, asked.say, at);
           return [next, next] as const;
@@ -487,7 +466,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           });
         if (!Option.exists(Option.some(found.variant.media), (m) => m._tag === 'Heard' && m.alone))
           return yield* unheard();
-        const ref = yield* Effect.fromOption(pointRefOf(found.point.id), unheard);
+        const { ref } = found.point;
         if (ref._tag === 'Voice') {
           const at = yield* takes.attemptFile(folder.paths(film), ref.beat, variant);
           return yield* Effect.fromOption(at, unheard);

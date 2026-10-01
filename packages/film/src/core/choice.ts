@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { type PointRef, pointIdOf } from './point.ts';
+import { PointRef, pointIdOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -104,9 +104,11 @@ export type ChoiceKnob = typeof ChoiceKnob.Type;
 export const ChoicePoint = Schema.Struct({
   /**
    * Unique in its film: `score`, `take:paper.slide`, `look:ground`,
-   * `render:scenes:cold`; a `PointRef` as `point.ts` writes it.
+   * `render:scenes:cold`; its `ref` as `point.ts` writes it.
    */
   id: Schema.String,
+  /** Which point it is, as data: what a verb on it reads, never its id parsed back. */
+  ref: PointRef,
   kind: ChoiceKind,
   /** Where in the film it belongs; none for a montage's set, which no film owns. */
   address: maybe(Address),
@@ -139,9 +141,10 @@ const KIND = {
   Level: 'level',
 } as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
 
-/** A point's id and kind, both read off the one ref it is. */
-export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'kind'> => ({
+/** A point's ref, with its id and kind, both read off it. */
+export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'ref' | 'kind'> => ({
   id: pointIdOf(ref),
+  ref,
   kind: KIND[ref._tag],
 });
 
@@ -150,7 +153,6 @@ export interface PointDraft extends Omit<
   ChoicePoint,
   'id' | 'kind' | 'variants' | 'moments' | 'marks' | 'knob' | 'start'
 > {
-  readonly ref: PointRef;
   readonly variants: ReadonlyArray<VariantDraft>;
   readonly start?: number;
   readonly moments?: Option.Option<ReadonlyArray<number>>;
@@ -167,10 +169,10 @@ export const subjectAt = (
 
 /** `draft` as its point, with each variant's approval and comments as `catalogue` records them. */
 export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => {
-  const { ref, ...rest } = draft;
+  const { ref } = draft;
   return {
+    ...draft,
     ...pointHead(ref),
-    ...rest,
     start: draft.start ?? 0,
     moments: draft.moments ?? Option.none(),
     marks: draft.marks ?? [],

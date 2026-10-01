@@ -1116,7 +1116,9 @@ options in `lab/review/options/`), dark and made for a phone first.
 
 **A choice point** (`ChoicePoint`, `core/choice.ts`) is the one shape:
 at an address in the film, variants to compare, pick, comment on and
-approve. Each variant has a state (`current`, `stale`, `missing`), whether
+approve. It carries which point it is as data (`ref`, a `PointRef`) beside
+the id that ref is written as, so a verb reads the ref and never parses the
+id back. Each variant has a state (`current`, `stale`, `missing`), whether
 it is picked, the verbs its state allows (`pick`, `unpick`, `reject`), its
 media (`Seen`: a video; `Heard`: alone and/or in the film's whole mix;
 `Unseen`), the key the owner's say is given on, and that say (approval and
