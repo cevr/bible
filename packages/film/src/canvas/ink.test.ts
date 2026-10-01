@@ -1,7 +1,8 @@
 // How a line boils (DIRECTION, "Boil"): ink re-jitters on every boil tick;
 // a figure's line only crawls, each point moving at most about 0.3 px a tick;
 // scenery holds its line still. The wobble stays: a held line is still drawn
-// by hand, it just does not move.
+// by hand, it just does not move. And how a path is spaced before it is
+// inked (`resample`): evenly, ending once on its last point.
 
 import { describe, expect, test } from 'bun:test';
 import { Schema } from 'effect';
@@ -12,6 +13,7 @@ import {
   STROKE_JITTER,
   type StrokeStyle,
   ellipseShape,
+  resample,
   stroke,
 } from './ink.ts';
 
@@ -125,5 +127,38 @@ describe('boil', () => {
     const straight = outline('none', 0).filter(([, y]) => Math.abs(y) < 10);
     const ys = straight.map(([, y]) => Math.abs(y));
     expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(0.2);
+  });
+});
+
+describe('resample', () => {
+  test('a path a whole number of spacings long ends once on its last point', () => {
+    const pts = resample(
+      [
+        [0, 0],
+        [120, 0],
+      ],
+      6,
+    );
+    expect(pts).toHaveLength(21);
+    expect(pts.at(-1)).toEqual([120, 0]);
+    expect(pts.at(-2)).toEqual([114, 0]);
+  });
+
+  test('any other length ends on its last point after the last whole spacing', () => {
+    const pts = resample(
+      [
+        [0, 0],
+        [0, 100],
+        [3, 100],
+      ],
+      6,
+    );
+    expect(pts.at(-1)).toEqual([3, 100]);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1] ?? [0, 0];
+      const b = pts[i] ?? [0, 0];
+      expect(Math.hypot(b[0] - a[0], b[1] - a[1])).toBeGreaterThan(0);
+    }
+    expect(pts).toHaveLength(19);
   });
 });
