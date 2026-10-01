@@ -68,6 +68,7 @@ import type {
 } from '../core/review.ts';
 import { ReviewManifestJson } from '../core/review.ts';
 import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from '../core/refusals.ts';
+import { clamp } from '../core/time.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
@@ -663,10 +664,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           width: number,
         ) {
           const file = yield* resolve(ref);
-          // A time before the start is the first frame: one key, one still.
+          // A time outside the video is its first or last frame: one key, one still.
+          const length = yield* duration(ref);
           let t = 0;
-          if (Option.isSome(at)) t = Math.max(0, at.value);
-          else t = (yield* duration(ref)) * 0.1;
+          if (Option.isSome(at)) t = clamp(at.value, 0, length);
+          else t = length * 0.1;
           const w = Math.round(Math.min(1920, Math.max(160, width)));
           const key = yield* sourceKey(file, [t.toFixed(3), w]);
           const name = `frames/${key}.jpg`;

@@ -544,6 +544,20 @@ describe('the review service', () => {
     }).pipe(Effect.provide(fixture(false))),
   );
 
+  it.effect('a time past the end is the last frame, made and kept once', () =>
+    Effect.gen(function* () {
+      const review = yield* Review;
+      const spawned = yield* Spawned;
+      const last = yield* review.frame('out/art/roof.A.mp4', Option.some(12.5), 640);
+      const past = yield* review.frame('out/art/roof.A.mp4', Option.some(500), 640);
+      const further = yield* review.frame('out/art/roof.A.mp4', Option.some(700), 640);
+      expect([past, further]).toEqual([last, last]);
+      expect(spawned.filter((c) => c.startsWith('still'))).toEqual([
+        expect.stringMatching(/roof\.A\.mp4 12\.5 640$/),
+      ]);
+    }).pipe(Effect.provide(fixture(false))),
+  );
+
   it.effect('a failed make leaves nothing in the cache, and the next make lands whole', () =>
     Effect.gen(function* () {
       const review = yield* Review;
