@@ -137,7 +137,7 @@ const KIND = {
  * approve. Which point it is is data (`ref`): read from its id once, where
  * the point is decoded (`PointId`), and written back as the id alone, so the
  * wire carries one name for it and a verb reads the ref, never the id parsed
- * back. Its kind is the ref's too: a `kind` on the wire is the page's to
+ * back. Its kind is the ref's too: a `kind` on the wire is a JSON reader's to
  * read, and the decoded point's is `KIND` of its ref.
  */
 export const ChoicePoint = Schema.Struct(pointFields).pipe(

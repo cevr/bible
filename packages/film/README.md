@@ -719,7 +719,11 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 the one status table (`statusOf` reads it). It crosses as its JSON with its
 `_tag` (`{"_tag":"SourceRefused","file":…,"target":…,"reason":…}`), and the
 page's client decodes it into the same class, so its `message` reads the
-same on both ends. A handler's failure that is not a Refusal answers 500 as
+same on both ends. Existing failure fields remain wire contracts:
+`TakeMismatch.heard` is the transcript, `SttUntimed.heard` the transcript's
+word count, and `BeatUnplaced.heard` the fraction of a beat's words matched.
+Changing their keys requires a compatible codec or a coordinated migration.
+A handler's failure that is not a Refusal answers 500 as
 `ServerFailed` (its tag and words), logged `api.request.failed`; a param, a
 query or a body that does not decode is a 400 `RequestInvalid` naming the
 part and the schema's words (`{"_tag":"RequestInvalid","part":"Payload",
@@ -974,15 +978,20 @@ same name cannot point a scene at the wrong literal; a scene built without a
 literal (a spread, a function) is reported as not located, with the reason.
 
 **SceneWriter** (`scene-writer.ts`, splices in `scene-source.ts`) re-reads the
-file, replaces only the value's text (a missing `offset`, `dur` or `ease` is
-added after the fields before it), formats the new text with `oxfmt` and
+file, replaces only the value's text (missing timing fields are added after
+the fields before them), formats the new text with `oxfmt` and
 reads the value back from it, all before the file is touched; then
 `SourceWriter` writes it whole, only if the file is still the text the edit
 was made from (`SourceChanged` otherwise). If oxfmt fails or the value does
 not read back, the write fails (`FormatFailed`, `WriteUnverified`) and the file
 is as it was. It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
-computed key, a shorthand) and names it. A cue write is also refused
+computed key, a shorthand) and names it. Literal `until` objects (`{ cue }`,
+`{ cue, edge }`, `{ at }`) are editable ends: a right-edge edit replaces the
+whole `until` property with `dur`, keeping the rest of the scene intact.
+Their members must be literal and unique, and decode against `Until`; a
+computed member, spread, duplicate key or conflicting anchor is refused.
+A cue write is also refused
 (`TimelineUnresolved`) when the scene's timeline, read back from the new text,
 does not resolve on the clock the film's files give now (the fresh `film read
 cue --spans` above): an `until` span dragged past its mark would end before it
@@ -1657,6 +1666,12 @@ today and why, and how it got here lives in the ledger and `git log`. It
 refuses the forms history takes on its face: a loop pass by number, a batch
 id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
+`lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
+location must report its rule, with no extra findings. Representative
+diagnostics for all eleven rules also assert the corrective message,
+including the distinct anchor-end and cue-part repairs, so a rule that
+fires but gives the wrong advice fails the fixture suite.
+
 The package's tests run with `bun test --parallel --no-isolate --timeout
 20000` (its `test` script): one worker per core, each keeping its module
 registry and its Chrome across the files it runs, so the module graph
