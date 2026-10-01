@@ -1410,19 +1410,23 @@ the film second it starts at; a finding about the whole film has neither).
   `FaceSmall`. A floating hand declares itself every frame, at rest or at
   work: `floatingHand(ctx, root, g, style, hand, { over, body })`, given
   whether it is drawn over its figure and the figure's silhouette (`HandBody`),
-  calls `probeHand(ctx, { side, shoulder, at, to, size, radius, reach, over,
-body })` from what it knows (its side from `root.away`, where it is, where
+  calls `probeHand(ctx, { side, shoulder, at, to, size, radius, reach, grip,
+formed, over, body })` from what it knows (its side from `root.away`, where it is, where
   it works (its rest, with no work), its mitten's size, the figure's reach
-  radius and how far it has travelled), so any film's hands are checked; it
+  radius, how far it has travelled, the grip it works with as shares of each
+  grip (`GripShares`: `grip`, or `was` changing into it) and how far that
+  grip is formed from the open rest), so any film's hands are checked; it
   is declared even while its alpha hides it. A kit builds the body only
   while `probesHands(ctx)`, so an unprobed frame pays one lookup. Then the hands pass: between two samples of a scene across
-  which any hand travels to or from its work, or comes or goes at work,
-  every frame is drawn again (`handSpans`); a hand (found a frame on by its
-  shoulder, within 24 px) that moves about its shoulder by more than 1.5 of
-  its length, or changes size against its reach by more than a quarter,
-  between adjacent frames while seen is a `HandJump` warning; each is
-  measured in the figure's own reach, so a pan, a zoom or the whole figure
-  scaled is no jump. A hand sent to a target farther from its shoulder than
+  which any hand travels to or from its work, changes its grip at work, or
+  comes or goes at work, every frame is drawn again (`handSpans`); a hand
+  (found a frame on by its shoulder, within 24 px) that moves about its
+  shoulder by more than 1.5 of its length, changes size against its reach
+  by more than a quarter, or, formed, swaps more than half of its grip
+  (`GRIP_JUMP`: a grip written `raised < 0.5 ? 'hold' : 'palm'`, where
+  `was` and `change` on a named cue would morph it) between adjacent frames
+  while seen is a `HandJump` warning; each is measured in the figure's own
+  reach, so a pan, a zoom or the whole figure scaled is no jump. A hand sent to a target farther from its shoulder than
   the reach, seen, is `HandFar`, one per scene and side. A hand at work
   (travelled 0.9 or more, seen at 0.5) inside its own body's silhouette and
   drawn behind it is a `HandHidden` warning, one per scene and side; a far
@@ -1550,7 +1554,11 @@ fraction written in the draw, `clamp(x * 4)`, `clamp(x / 0.6)`,
 `clamp(3 * x - 2)` or `clamp((x - 0.75) / 0.25)` over a cue's progress `x`
 (`f.at(cue)` or a const bound to one): the part is a cue of its own,
 `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
-which the lab can reach.
+which the lab can reach. It refuses a step part way through a cue the same
+way, `x < k` (`<=`, `>`, `>=`, either way round) with `k` between 0.02 and
+0.98: the instant is a cue of no length, `{ with: 'flip', offset: 0.25, dur:
+0 }`, read as `f.at('turned') > 0`. A comparison nearer 0 or 1 asks whether
+the cue has begun, is seen or is done, and passes.
 `film/framing-is-a-knob` (`lint/framing-is-a-knob.ts`), on a film's scene
 files, refuses a framing written out (`{ x: 1060, y: 580, zoom: 1.18 }`) or
 blended by hand (`zoom: lerp(1, 1.12, f.at('hold'))`, `cam.zoom = lerp(…,

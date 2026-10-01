@@ -240,7 +240,7 @@ export const impureAt = (
 };
 
 /** A moment the leg draws, and whether it is also checked for purity. */
-export interface DrawMoment {
+interface DrawMoment {
   readonly scene: string;
   readonly at: string;
   readonly frame: number;
@@ -255,7 +255,7 @@ export interface DrawMoment {
  * midpoint. Where a cue starts and each 60% point are also checked for
  * purity: a sample, as a frame there costs four draws.
  */
-export const drawMoments = (film: Film): ReadonlyArray<DrawMoment> => {
+const drawMoments = (film: Film): ReadonlyArray<DrawMoment> => {
   const fps = film.fps;
   const sampled = sceneMoments(film.placed, fps, { marks: false }).map((m) => ({
     ...m,
@@ -311,7 +311,8 @@ const drawAt = (film: Film, m: DrawMoment): Effect.Effect<ReadonlyArray<DrawFind
  * Ink over the faces of a scene in many frames, as one finding per scene: the
  * first seen face it lies over (the moment the owner is sent to), the most
  * strokes over any one face, every line of text, and how many sampled frames
- * show it (a frame with ink over two faces counts once).
+ * show it (a frame with ink over two faces counts once). They are listed in
+ * film order, by that first moment, as the owner reads them scene by scene.
  */
 const mergeFaces = (found: ReadonlyArray<DrawFinding>): ReadonlyArray<DrawFinding> => {
   const faces = Arr.groupBy(
@@ -332,7 +333,10 @@ const mergeFaces = (found: ReadonlyArray<DrawFinding>): ReadonlyArray<DrawFindin
       frames: new Set(same.map((f) => f.time)).size,
     });
   });
-  return [...found.filter((f) => f._tag !== 'InkOverFace'), ...merged];
+  return [
+    ...found.filter((f) => f._tag !== 'InkOverFace'),
+    ...Arr.sortWith(merged, (f) => f.time, Order.Number),
+  ];
 };
 
 /**

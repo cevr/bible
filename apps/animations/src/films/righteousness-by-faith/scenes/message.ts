@@ -117,6 +117,8 @@ const timeline = {
   flyOut: { mark: 'hand', offset: -0.2, dur: 0.9, ease: 'inCubic' },
   meet: { mark: 'hand', offset: 0.2, dur: 0.9, ease: 'outCubic' },
   golden: { after: 'meet', dur: 0.6 },
+  // Halfway through the gold coming up, the cross is cut in gold.
+  gilded: { with: 'golden', offset: 0.3, dur: 0 },
   through: { mark: 'three', offset: -0.1, dur: 0.6, ease: 'inCubic' },
   faith: { mark: 'faith', offset: -0.15, dur: 0.45, ease: 'outBack' },
   forgiveness: { mark: 'forgiveness', offset: -0.15, dur: 0.45, ease: 'outBack' },
@@ -879,7 +881,7 @@ const emblem = (f: MessageFrame, meet: number, golden: number) => {
     tablets(ctx, f.hand, 10 * golden),
   );
   at(ctx, { x: lerp(1300, 70, meet), y: 0, rot: lerp(0.4, 0, meet) }, () =>
-    piece(ctx, crossShape(1.35), golden > 0.5 ? C.gold : C.boardLight, f.hand('cross'), {
+    piece(ctx, crossShape(1.35), f.at('gilded') > 0 ? C.gold : C.boardLight, f.hand('cross'), {
       role: 'scenery',
       kind: 'cut',
       line: 4.5,

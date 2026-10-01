@@ -84,6 +84,32 @@ describe('the draw leg', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.effect('lists ink over faces in film order, a mid-cue finding in its own place', () =>
+    Effect.gen(function* () {
+      // `knot` is over before the scene's 60% point: its rope is seen only mid-cue.
+      const knotted: SceneSpec = {
+        id: 'knotted',
+        min: 4,
+        timeline: { knot: { at: 'start', offset: 0.2, dur: 0.6 } },
+        draw: (f) => {
+          const knot = f.at('knot');
+          if (knot > 0 && knot < 1) roped(f);
+        },
+      };
+      const found = yield* drawFindings(() =>
+        createFilm({
+          title: 'draw',
+          paper: { base: '#ffffff', tone: '#000000', seed: 1 },
+          shade: '#000000',
+          scenes: [knotted, { id: 'roof', min: 4, draw: roped }],
+          captions: { font: '38px x', color: '#000000', plate: '#ffffff' },
+        }),
+      );
+      const faces = found.filter((f) => f._tag === 'InkOverFace');
+      expect(faces.map((f) => f.scene)).toEqual(['knotted', 'roof']);
+    }).pipe(Effect.scoped),
+  );
+
   it.effect('draws only the scenes it is given, and each at several moments', () =>
     Effect.gen(function* () {
       const build = () => filmOf(['roof', roped], ['bare', (f) => f.ctx.fillRect(0, 0, 1, 1)]);

@@ -152,8 +152,9 @@ export class KnobRepeated extends Schema.TaggedError<KnobRepeated>()('KnobRepeat
 /**
  * A cue declared twice for the same moment: another cue of its scene has the
  * same edges on the same anchors (a `with` it at its length is the same) and
- * the same ease, so the two differ only by name, and a lab drag of one leaves
- * the other behind. Read the first one where both are read.
+ * the same ease, stagger and silence, so the two differ only by name, and a
+ * lab drag of one leaves the other behind. Read the first one where both are
+ * read.
  */
 export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
   scene: Schema.String,
@@ -162,7 +163,7 @@ export class CueTwin extends Schema.TaggedError<CueTwin>()('CueTwin', {
   twin: Schema.String,
 }) {
   override get message() {
-    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same anchor, offset, length and ease); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
+    return `scene "${this.scene}": cue "${this.cue}" is declared as "${this.twin}" is (same edges on the same anchors, ease, stagger and silence); read f.at('${this.twin}') where "${this.cue}" is read and drop it`;
   }
 }
 
@@ -289,31 +290,40 @@ export class FaceSmall extends Schema.TaggedError<FaceSmall>()('FaceSmall', {
   }
 }
 
-/** How a `HandJump` reads, by what jumped. */
+/** A travel's way out of a `HandJump`. */
+const TRAVEL =
+  "move it on a named cue with a duration, f.at('<cue>'), never on a threshold, a switch of target or a cue too short for the way it travels";
+
+/** How a `HandJump` reads, by what jumped, and the way out. */
 const JUMPED = {
-  place: (by: number) => `jumps ${by.toFixed(2)} of its length`,
-  size: (by: number) => `changes size by ${(100 * by).toFixed(0)}%`,
+  place: (by: number) => ({ jump: `jumps ${by.toFixed(2)} of its length`, fix: TRAVEL }),
+  size: (by: number) => ({ jump: `changes size by ${(100 * by).toFixed(0)}%`, fix: TRAVEL }),
+  grip: (by: number) => ({
+    jump: `swaps ${(100 * by).toFixed(0)}% of its grip`,
+    fix: "change it with `was` and `change: f.at('<cue>')` on a named cue with a duration, never on a threshold; what it holds rides the hand (`handOf`) until that cue lets it go",
+  }),
 } as const;
 
 /**
  * A hand jumps: between two adjacent frames of a scene it moves farther than
- * `max` of its own length about its shoulder (`what: 'place'`), or its size
- * changes by more than `max` of itself (`what: 'size'`), so it pops from one
- * place or size to another instead of travelling there.
+ * `max` of its own length about its shoulder (`what: 'place'`), its size
+ * changes by more than `max` of itself (`what: 'size'`), or, formed, more
+ * than `max` of its grip's shape changes (`what: 'grip'`), so it pops from
+ * one place, size or grip to another instead of travelling or changing there.
  */
 export class HandJump extends Schema.TaggedError<HandJump>()('HandJump', {
   scene: Schema.String,
   side: Schema.Literals(['far', 'near']),
   /** Film seconds of the second of the two frames. */
   T: Schema.Finite,
-  what: Schema.Literals(['place', 'size']),
-  /** How far it jumped: hand lengths moved, or the share its size changed. */
+  what: Schema.Literals(['place', 'size', 'grip']),
+  /** How far it jumped: hand lengths moved, or the share its size or its grip changed. */
   by: Schema.Finite,
   max: Schema.Finite,
 }) {
   override get message() {
-    const jump = JUMPED[this.what](this.by);
-    return `scene "${this.scene}": the ${this.side} hand ${jump} in one frame at ${this.T.toFixed(2)}s, over ${this.max} (move it on a named cue with a duration, f.at('<cue>'), never on a threshold, a switch of target or a cue too short for the way it travels)`;
+    const { jump, fix } = JUMPED[this.what](this.by);
+    return `scene "${this.scene}": the ${this.side} hand ${jump} in one frame at ${this.T.toFixed(2)}s, over ${this.max} (${fix})`;
   }
 }
 

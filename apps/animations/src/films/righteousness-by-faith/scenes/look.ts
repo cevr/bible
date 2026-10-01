@@ -142,6 +142,8 @@ const timeline = {
   push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
   // Healed on "I present Christ".
   heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
+  // Halfway through the healing, the bites are gone.
+  bitesGone: { with: 'heal', offset: 0.75, dur: 0 },
   // After the last word: the face gives way to faith's icon close, pulled back
   // to the row, faith glowing; for a breath, under it, the four faces at the
   // hole in the roof, lit gold (the callback to `roof`).
@@ -462,7 +464,7 @@ export const look = drawing({
                     browTilt: 0.35 + 0.1 * lookUp - 0.4 * heal,
                     browL: 2 * strain,
                     mouth: 0.5 * strain,
-                    stains: heal < 0.5 ? BITES : [],
+                    stains: f.at('bitesGone') > 0 ? [] : BITES,
                     near: lookUp > 0 ? AT_CHEST_NEAR : ON_POLE_HIGH,
                     far: lookUp > 0 ? AT_CHEST_FAR : ON_POLE_LOW,
                   },

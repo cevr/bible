@@ -11,6 +11,7 @@ import type { FaceMark, HandMark } from '../core/export-handle.ts';
 import {
   type Drawn,
   FACE_SHARE,
+  GRIP_JUMP,
   HAND_JUMP,
   type HandFrame,
   HELD_MAX,
@@ -313,8 +314,10 @@ describe('chapters', () => {
 
 // Hands, as a kit's person declares them: one hand 44 px long, its shoulder
 // fixed on screen unless moved, floating 60 px to the side of it at rest, a
-// reach of 240 px.
+// reach of 240 px, a formed hold.
 const REST = { x: 1020, y: 520 } as const;
+const HOLD = { open: 0, hold: 1, point: 0, palm: 0 } as const;
+const PALM = { open: 0, hold: 0, point: 0, palm: 1 } as const;
 const handAt = (reach: number, over: Partial<HandMark> = {}): HandMark => ({
   scene: 'held',
   side: 'near',
@@ -327,6 +330,8 @@ const handAt = (reach: number, over: Partial<HandMark> = {}): HandMark => ({
   size: 44,
   radius: 240,
   reach,
+  grip: HOLD,
+  formed: 1,
   inside: false,
   over: true,
   alpha: 1,
@@ -439,6 +444,29 @@ describe('HandJump', () => {
       handJumps(run('held', 0, [[onArc(0, { alpha: 0 })], [onArc(1, { alpha: 0.1 })]])),
     ).toEqual([]);
   });
+
+  test('a formed hand that swaps its grip in one frame jumps', () => {
+    // A needle hand at work, its grip written `raised < 0.5 ? 'hold' : 'palm'`.
+    const [jump, ...rest] = handJumps(run('held', 10, [[onArc(1)], [onArc(1, { grip: PALM })]]));
+    expect(rest).toEqual([]);
+    expect(jump).toMatchObject({ scene: 'held', side: 'near', what: 'grip', max: GRIP_JUMP });
+    expect(jump?.by).toBeCloseTo(1, 9);
+    expect(jump?.T).toBeCloseTo(11 / FPS, 9);
+  });
+
+  test('a grip changed over a cue, or swapped by a hand not yet formed, never jumps', () => {
+    // `was: 'hold'` into `grip: 'palm'` as `change` goes, eased over 0.3 s.
+    const changing = Array.from({ length: 10 }, (_, k) => {
+      const change = 0.5 - 0.5 * Math.cos((k / 9) * Math.PI);
+      return [onArc(1, { grip: { ...HOLD, hold: 1 - change, palm: change } })];
+    });
+    expect(handJumps(run('held', 0, changing))).toEqual([]);
+    const unformed = run('held', 0, [
+      [handAt(0, { formed: 0 })],
+      [handAt(0, { formed: 0, grip: PALM })],
+    ]);
+    expect(handJumps(unformed)).toEqual([]);
+  });
 });
 
 describe('HandFar', () => {
@@ -482,6 +510,14 @@ describe('handSpans', () => {
     const coarse: ReadonlyArray<HandFrame> = [
       { scene: 'held', frame: 0, T: 0, hands: [onArc(1)] },
       { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1, { x: 1100, tx: 1100 })] },
+    ];
+    expect(handSpans(coarse, FPS)).toHaveLength(16);
+  });
+
+  test('a hand at work whose grip changes between two samples is drawn across it', () => {
+    const coarse: ReadonlyArray<HandFrame> = [
+      { scene: 'held', frame: 0, T: 0, hands: [onArc(1)] },
+      { scene: 'held', frame: 15, T: 0.5, hands: [onArc(1, { grip: PALM })] },
     ];
     expect(handSpans(coarse, FPS)).toHaveLength(16);
   });
