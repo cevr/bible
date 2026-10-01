@@ -458,12 +458,25 @@ ci success run=36801133213 sha=cbe9a54a
 - Loop gap closed: every batch takes the P3 and not-worth lines in its files from every sweep report, not only its own area's (two pass-9 lab lines in tools files went untaken).
 - Triage: `SP/film-pass10/triage.md`.
 
-| Wave | Batch     | Items                                                                                                        | Result |
-| ---- | --------- | ------------------------------------------------------------------------------------------------------------ | ------ |
-| A    | p10-tools | SourceWriter writes under the store lock, carried trims (UNREAD, errors barrel, toMs, point.ref, one isFilm) |        |
-| A    | p10-page  | the newest-asked answer wins on the project and options pages, one meaning of "heard"                        |        |
-| A    | p10-films | cues follow their parent under a drag + a check, iconScratch lead/dim, resample end point                    |        |
-| A    | p10-guard | history-comment check, decisions carried by the template, no-read-once arithmetic, SKILL approve wording     |        |
+| Wave | Batch     | Items                                                                                                        | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---- | --------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A    | p10-tools | SourceWriter writes under the store lock, carried trims (UNREAD, errors barrel, toMs, point.ref, one isFilm) | merged 19e6fd1b (audit 0): every SourceWriter write a compare-and-swap under the file's store lock (race probe 1,389 → 1,500 of 1,500); `UNREAD` emptied; tools import core errors from core (barrel gone, 33 importers); `toMs` everywhere; a choice point's kind derived from its ref; `pointRefOf` gone; refusals name `film project render <film> --scene <id> --variant <v>`; one `filmsOut`, one `filmMark`; frames past the end clamp; the head refusal names a film-relative path; `ci none sha=19e6fd1b (no run of its own: pushed inside a later push)` |
+| A    | p10-page  | the newest-asked answer wins on the project and options pages, one meaning of "heard"                        | merged b4c768da (audit 0): review pages apply the answer to the newest ask, not the last to land (red on both pages); "heard" leaves the lab client and the studio wire (`transcript`); a refused approve reads the project again; `ci none sha=b4c768da (no run of its own: pushed inside a later push)`                                                                                                                                                                                                                                                         |
+| A    | p10-films | cues follow their parent under a drag + a check, iconScratch lead/dim, resample end point                    | merged 0f6424df (audit 0): `until` takes another cue's edge (`{ cue }`); robe, thesis, roof, centurion and look parts that end with their parent follow it under a drag, `span-ends-on-anchor` checks a cue against its parent (cues identical at today's lengths); `iconScratch` takes lead and dim; `resample` ends once on a path's last point (stills for the owner in SP/montages/p10-films); `#T` never reads back one scene early; `ci success run=36805925900 sha=0f6424df`                                                                               |
+| A    | p10-guard | history-comment check, decisions carried by the template, no-read-once arithmetic, SKILL approve wording     | merged 669411a0 (audit 0): `film/no-history-comment` refuses a comment that tells history (today's sites fixed); no-read-once follows a kept answer through arithmetic; a batch's hand-offs become Carried ledger rows (template + skill); SKILL: a stale scene's approval is refused, `--scene id,id`; `ci none sha=669411a0 (no run of its own: pushed inside a later push)`                                                                                                                                                                                    |
+
+CI, pass 10 (`bun run ci --ledger`): all green. Full gate on merged main 0f6424df: GATE EXIT 0, 32/32.
+
+```
+ci success run=36801583037 sha=44c93de3
+ci success run=36803033336 sha=c745b62d
+ci none sha=669411a0 (no run of its own: pushed inside a later push)
+ci none sha=19e6fd1b (no run of its own: pushed inside a later push)
+ci none sha=b4c768da (no run of its own: pushed inside a later push)
+ci success run=36805925900 sha=0f6424df
+```
+
+Carried from pass 10 hand-offs (open): "heard" still names three wire refusal fields (`TakeMismatch.heard` transcript, `SttUntimed.heard` word count, `BeatUnplaced.heard` fraction); `STALE_BY` words written twice (core and format.ts); `library.ts:323` `heard` → `decoded`; a right-edge drag over an object-literal `until` is refused as not a literal; film SKILL step 4 names `until: { cue }` / `ends: true`; plugin.test.ts compares line numbers only (a rule's message is not red-testable); history comments in packages/scripts tests; p9-guard row says 11 no-read-once sites (15).
 
 ## Close
 
