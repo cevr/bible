@@ -22,7 +22,12 @@ export const scene = drawing({
       clamp(3 * answer - 2), // RED film/no-cue-remap
       clamp((answer - 0.75) / 0.25), // RED film/no-cue-remap
       clamp((answer - 2) * 3), // RED film/no-cue-remap
+      Math.min(1, answer * 4), // RED film/no-cue-remap
+      Math.min((answer - 0.75) / 0.25, 1), // RED film/no-cue-remap
       clamp(f.at('answerIn')),
+      Math.min(1, answer),
+      Math.min(0.5, answer * 4),
+      Math.min(1, grow * 2),
       clamp(answer),
       clamp(grow * 2),
       clamp(answer * grow),

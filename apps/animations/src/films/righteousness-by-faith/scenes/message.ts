@@ -115,6 +115,8 @@ const timeline = {
   // The angel has the banner in hand as it flies in, still off frame.
   grasp: { with: 'fly', dur: 0 },
   flyOut: { mark: 'hand', offset: -0.2, dur: 0.9, ease: 'inCubic' },
+  // The banner fades as the angel starts to leave.
+  bannerOut: { with: 'flyOut', dur: 0.567, ease: 'inCubic' },
   meet: { mark: 'hand', offset: 0.2, dur: 0.9, ease: 'outCubic' },
   golden: { after: 'meet', dur: 0.6 },
   // Halfway through the gold coming up, the cross is cut in gold.
@@ -348,7 +350,7 @@ export const message = drawing({
         // The banner fades as the angel leaves; its words are written only
         // once the angel has come to rest.
         ctx.save();
-        ctx.globalAlpha *= 1 - Math.min(1, out * 4);
+        ctx.globalAlpha *= 1 - f.at('bannerOut');
         at(ctx, { x, y }, () =>
           herald(
             ctx,

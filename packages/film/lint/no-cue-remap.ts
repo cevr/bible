@@ -4,18 +4,22 @@
 // lab cannot reach it and a sound cannot follow it. Declare the part in the
 // timeline instead, `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur:
 // 0.1, ends: true }`, and read it with `f.at`. A step part way through a cue,
-// `f.at('flip') >= 0.5`, hides a moment the same way: declare it as a cue of
-// no length at that instant, `{ with: 'flip', offset: 0.25, dur: 0 }`, and
-// read whether it has come with `f.at('turned') > 0`.
+// `f.at('sit') >= 0.3`, hides a moment the same way: declare it as a cue of
+// no length at that instant, `{ with: 'sit', offset: 0.056, dur: 0 }`, and
+// read whether it has come with `f.at('colour') > 0`. An instant the drawing's
+// own shape makes (a card that flips shows its other side once edge on) is
+// read from that shape, `Math.cos(f.at('flip') * Math.PI) < 0`, so it stays
+// where the shape puts it however the cue is dragged.
 //
-// The rule reads `clamp(e)` where `e` rescales a cue's progress by a number:
-// `x * k`, `k * x`, `x / k`, each `± c`, and `(x - a) / b`; and a comparison
-// `x < k` (`<=`, `>`, `>=`, either way round) with `k` inside `STEP` (a
-// comparison within `STEP`'s margin of 0 or 1 asks whether the cue has
-// begun, is seen at all, or is done: the cue's own edges). `x` is a call to
-// `.at(…)` or a name bound (by `const`, anywhere in scope) to one, and `k`,
-// `a`, `b`, `c` are numbers written out or module consts. A progress passed
-// in as a parameter or kept on scratch is not traced.
+// The rule reads `clamp(e)`, and `Math.min(1, e)` either way round, where `e`
+// rescales a cue's progress by a number: `x * k`, `k * x`, `x / k`, each
+// `± c`, and `(x - a) / b`; and a comparison `x < k` (`<=`, `>`, `>=`,
+// either way round) with `k` inside `STEP` (a comparison within `STEP`'s
+// margin of 0 or 1 asks whether the cue has begun, is seen at all, or is
+// done: the cue's own edges). `x` is a call to `.at(…)` or a name bound (by
+// `const`, anywhere in scope) to one, and `k`, `a`, `b`, `c` are numbers
+// written out or module consts. A progress passed in as a parameter or kept
+// on scratch is not traced.
 
 import { Effect, Option } from 'effect';
 import {
@@ -85,10 +89,33 @@ const stepped = (n: ESTree.BinaryExpression): Reads => {
   return Effect.succeed(false);
 };
 
-/** `clamp(e, …)`: its first argument, when it is one. */
+/** A call's argument, when it is an expression. */
+const argument = (n: ESTree.CallExpression, i: number): Option.Option<ESTree.Node> =>
+  Option.filter(Option.fromUndefinedOr(n.arguments[i]), (a) => a.type !== 'SpreadElement');
+
+/** Whether `n` is the number 1, written out or a module const. */
+const isOne = (n: ESTree.Node) => Option.contains(numberOf(n), 1);
+
+/** `Math.min(1, e)` or `Math.min(e, 1)`: `e`, capped at the cue's end as `clamp` caps it. */
+const capped = (n: ESTree.CallExpression): Option.Option<ESTree.Node> => {
+  const callee = n.callee;
+  const isMin =
+    callee.type === 'MemberExpression' &&
+    callee.object.type === 'Identifier' &&
+    callee.object.name === 'Math' &&
+    callee.property.type === 'Identifier' &&
+    callee.property.name === 'min';
+  if (!isMin || n.arguments.length !== 2) return Option.none();
+  const [a, b] = [argument(n, 0), argument(n, 1)];
+  if (Option.exists(a, isOne)) return b;
+  if (Option.exists(b, isOne)) return a;
+  return Option.none();
+};
+
+/** `clamp(e, …)`, `Math.min(1, e)` or `Math.min(e, 1)`: `e`, when it is one. */
 const clamped = (n: ESTree.CallExpression): Option.Option<ESTree.Node> => {
-  if (n.callee.type !== 'Identifier' || n.callee.name !== 'clamp') return Option.none();
-  return Option.filter(Option.fromUndefinedOr(n.arguments[0]), (a) => a.type !== 'SpreadElement');
+  if (n.callee.type === 'Identifier' && n.callee.name === 'clamp') return argument(n, 0);
+  return capped(n);
 };
 
 export const noCueRemap = Rule.define({
