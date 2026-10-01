@@ -71,10 +71,8 @@ import { WikiService, type WikiServiceApi } from './service.js';
 export interface LookupServiceApi {
   /** The five resolver groups for one selection, in one call (§7).
    *
-   *  One call rather than five, for the reason `v1.study.verse.get` is one
-   *  procedure: the panel always draws all five groups, so granular per-group
-   *  resolution would buy nothing but round trips on the two hosts that reach
-   *  this over a MessagePort. */
+   *  One call rather than five: the panel always draws all five groups, so
+   *  granular per-group resolution would buy nothing. */
   readonly resolve: (input: LookupInput) => Effect.Effect<LookupResult>;
 }
 
@@ -625,9 +623,7 @@ const makeResolve =
       // The four corpus-backed groups run together. They are independent reads
       // over three databases and the panel wants all of them, so this is one
       // batch rather than four sequential awaits — the same argument §6.1's
-      // composer makes, and on the two visual hosts it is the difference
-      // between one MessagePort round trip and one that takes four times as
-      // long to answer.
+      // composer makes.
       const [strongs, verses, writings, catalog] = yield* resolveCorpusGroups(
         sources.sections,
         input,

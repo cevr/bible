@@ -387,7 +387,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         if (Option.isNone(matchQuery)) {
           // Punctuation only: after tokenizing, the query names no term at all.
           // That is the same unanswerable request as `""`, and it reuses that
-          // reason rather than widening an error schema three hosts map over.
+          // reason rather than widening an error schema every caller maps over.
           return Effect.fail(WritingsInvalidSearchError.make({ reason: 'empty-query' }));
         }
         return Effect.gen(function* () {

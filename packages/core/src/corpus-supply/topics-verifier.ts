@@ -37,10 +37,10 @@ export interface TopicsArtifactReader {
   readonly count: (table: string) => Effect.Effect<number, unknown>;
 }
 
-/** Every way the Topics verifier refuses a candidate, as the exact message both
- *  adapters report. Held here rather than written out at each call site so the
- *  native and browser gates cannot drift apart in their wording — a difference
- *  in what an operator is told is a difference in the gate. */
+/** Every way the Topics verifier refuses a candidate, as the exact message an
+ *  adapter reports. Held here rather than written out at each call site so the
+ *  wording cannot drift — a difference in what an operator is told is a
+ *  difference in the gate. */
 export const TOPICS_VERIFY_MESSAGES = {
   integrity: 'SQLite integrity check failed',
   unreadableSchemaMajor: 'Topics Artifact has no readable schema_major',

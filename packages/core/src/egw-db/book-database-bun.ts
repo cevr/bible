@@ -1,9 +1,9 @@
 /**
  * Bun-runtime layer constructors for EGWParagraphDatabase.
  *
- * Kept separate from `book-database.ts` so that consumers running on Node
- * (e.g. Electron main) can import the driver-agnostic core without pulling
- * `@effect/sql-sqlite-bun` (and its `bun:sqlite` import) into the bundle.
+ * Kept separate from `book-database.ts` so that consumers that bring their own
+ * `SqlClient` can import the driver-agnostic core without pulling
+ * `@effect/sql-sqlite-bun` (and its `bun:sqlite` import) in.
  */
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';

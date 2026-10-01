@@ -6,11 +6,8 @@
  *  content-only versions newer than it, refused when the artifact's
  *  `schema_major` exceeds what this build compiled against.
  *
- *  Everything here is portable and pure. What differs between the three hosts
- *  is only *how the manifest bytes arrive* — a same-origin proxy in the
- *  browser, `HttpClient` in Electron main, `HttpClient` under Bun — which is
- *  why the fetch is a separate service and this file has no transport in it at
- *  all.
+ *  Everything here is portable and pure. *How the manifest bytes arrive* is a
+ *  separate service, which is why this file has no transport in it at all.
  */
 
 import { Option, Predicate, Schema } from 'effect';
@@ -180,7 +177,7 @@ export class ContentFloor extends Schema.Class<ContentFloor>('ContentUpdate/Floo
 export const ContentRefusalReason = Schema.Literals(['schema-major']);
 export type ContentRefusalReason = typeof ContentRefusalReason.Type;
 
-/** The decision, as the three hosts render it.
+/** The decision, as a host renders it.
  *
  *  Four cases and no more. `UpToDate` and `Offline` are separate because they
  *  are different sentences to a reader — "you have the newest content" is not
@@ -209,9 +206,8 @@ export type ContentDecision = typeof ContentDecision.Type;
 /** What one host reports about topic content: what is installed, what the
  *  manifest offers, and what this build decided about the pair.
  *
- *  One value for the toast, the settings entry, `bible topics status` and
- *  `v1.content.status` — so the four surfaces cannot disagree about a version
- *  number, and adding a field reaches all four at once. */
+ *  One value behind `bible topics status`, so adding a field reaches its text
+ *  and its JSON at once. */
 export class ContentStatus extends Schema.Class<ContentStatus>('ContentUpdate/Status')({
   corpus: UpdatableCorpus,
   /** The revision the host has verified and activated, or `None` when nothing
@@ -254,9 +250,7 @@ export type ContentUpdateJson = typeof ContentUpdateJson.Encoded;
 
 /** The manifest URL, as one pinned constant (§3.6: "a stable GitHub-releases
  *  URL"). One release per content version publishes its artifact; this file is
- *  the index over them, and it is the same URL on all three hosts — the browser
- *  reaches it through a same-origin proxy because it cannot reach the release
- *  host directly, not because it reads a different manifest. */
+ *  the index over them. */
 export const CONTENT_MANIFEST_URL =
   'https://github.com/cevr/bible/releases/download/content-manifest/manifest.json';
 
@@ -287,7 +281,7 @@ export const CONTENT_ARTIFACT_PROXY_PATH = '/api/content/artifact';
  *  release host moves the trust boundary with it.
  *
  *  **Loopback is not on it.** It used to be, so that the fixture servers the
- *  suites and the desktop e2e bind would pass the gate — which meant the
+ *  suites bind would pass the gate — which meant the
  *  shipped list admitted `http://localhost` on every install, over plaintext,
  *  for a trust surface whose whole basis is "HTTPS plus digest" (round-4 F4).
  *  A test does not need the production list to admit it: the list is a
@@ -320,9 +314,9 @@ const parseOrigin = (url: string): Option.Option<string> =>
  *
  *  §3.6's manifest is one small JSON index over published releases — a few
  *  hundred bytes per artifact. A cap is what stops a compromised or confused
- *  upstream from streaming an unbounded body into a browser through the proxy,
- *  or into a host's decoder. 256 KiB is three orders of magnitude above any
- *  manifest this format can produce and still a bound. */
+ *  upstream from streaming an unbounded body into a host's decoder. 256 KiB is
+ *  three orders of magnitude above any manifest this format can produce and
+ *  still a bound. */
 export const CONTENT_MANIFEST_MAX_BYTES = 262_144;
 
 /** How long a manifest read may take before it counts as unreachable.

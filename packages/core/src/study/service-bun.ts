@@ -6,9 +6,7 @@
  *  construction.
  *
  *  Nothing about what a bundle contains is decided here — this module supplies
- *  drivers, exactly as `wiki/service-bun.ts` does for the wiki. The CLI resolves
- *  the same `StudyService` the worker and Electron main resolve, so the bundle
- *  `bible study verse --json` prints is the value `v1.study.verse.get` returns.
+ *  drivers, exactly as `wiki/service-bun.ts` does for the wiki.
  */
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';

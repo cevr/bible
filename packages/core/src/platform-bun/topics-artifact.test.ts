@@ -151,10 +151,9 @@ describe('Topics semantic verifier — native adapter', () => {
     );
   }
 
-  /** Not in the shared matrix: a browser generation is an OPFS file the store
-   *  reserved, so "the tables were never created" is a state only the native
-   *  adapter can be handed. The rule it proves is shared — a read that fails is
-   *  a refusal, not a defect — but the fixture is not portable. */
+  /** Not in the shared matrix: "the tables were never created" is a state only
+   *  a native adapter can be handed. The rule it proves is shared — a read
+   *  that fails is a refusal, not a defect — but the fixture is not portable. */
   it('rejects a file missing the artifact tables', () =>
     Effect.gen(function* () {
       const file = `${yield* scratch()}/topics.db`;

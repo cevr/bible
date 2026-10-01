@@ -23,7 +23,7 @@
  * resolves `BIBLE_CORPUS_DIR`, so composing the CLI's `FullLayer` here would
  * either open a *second* connection to the same 4.2 GB file or write to an
  * entirely different database. Two connections over one WAL file is the defect
- * behind the desktop reader's schema-rebuild bug, and `book-database.ts` drops
+ * behind an earlier schema-rebuild bug, and `book-database.ts` drops
  * and rebuilds `paragraphs` when it believes the schema is stale — which would
  * take the corpus out from under live search. One process, one connection.
  *

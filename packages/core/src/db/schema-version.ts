@@ -2,7 +2,7 @@
  * Per-service schema versioning over a shared SQLite file.
  *
  * Several services (EGW paragraphs, KJV bible, Strong's, cross-refs, margin
- * notes — and on desktop, the API-response cache) live in ONE cache.sqlite
+ * notes) live in ONE cache.sqlite
  * file behind ONE connection. They each evolve their own tables and need their
  * own "drop + rebuild on schema bump" check.
  *
@@ -17,8 +17,7 @@
  * table: each service owns ONE row keyed by a stable name and reads/writes only
  * that row, so services no longer clobber each other.
  *
- * Driver-agnostic: plain SQL over `SqlClient`, works under both the sqlite-node
- * (Electron main) and sqlite-bun (CLI/tests) drivers.
+ * Driver-agnostic: plain SQL over `SqlClient`.
  */
 
 import { Effect } from 'effect';

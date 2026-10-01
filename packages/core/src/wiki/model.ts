@@ -292,8 +292,8 @@ export class WikiMissingBook extends Schema.Class<WikiMissingBook>('Wiki/Missing
 /** §5's arrival rule as a type, not a runtime flag: key verses arrive open and
  *  every other section arrives collapsed. Literal rather than `Schema.Boolean`
  *  so a page that opens the wrong section does not decode — the arrival posture
- *  is part of the lineup's shape, and a boolean would let the three hosts
- *  disagree about it while still passing the schema. */
+ *  is part of the lineup's shape, and a boolean would let clients disagree
+ *  about it while still passing the schema. */
 const OpenOnArrival = Schema.Literal(true);
 const CollapsedOnArrival = Schema.Literal(false);
 
@@ -302,14 +302,14 @@ const CollapsedOnArrival = Schema.Literal(false);
  *  value rather than two that could disagree. */
 const section = <Item extends Schema.Top, Open extends Schema.Top>(item: Item, open: Open) => ({
   /** Already capped and already ordered by the composer, so no client re-sorts
-   *  or re-slices and the three of them cannot disagree. */
+   *  or re-slices and no two can disagree. */
   items: Schema.Array(item),
   /** How many items the source produced before the cap. `total > items.length`
    *  is exactly the condition a "show all" affordance exists for. */
   total: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   /** §5's arrival rule: key verses default open, everything else collapsed.
    *  Carried on the page model rather than hardcoded in each UI, so the CLI
-   *  emits the same fact the two visual hosts render. */
+   *  emits the same fact a UI renders. */
   defaultOpen: open,
 });
 
@@ -362,7 +362,7 @@ export type WikiSection = typeof WikiSection.Type;
  *  A tuple rather than an array of the section union: the lineup is the page's
  *  shape, and an array lets a five-section page, a reordered page, or a page
  *  with two key-verses sections decode successfully — three states no client
- *  could render and none of the three hosts should ever produce. Positional
+ *  could render and no host should ever produce. Positional
  *  typing makes the lineup a compile-time fact on every host at once. */
 export const WikiSectionLineup = Schema.Tuple([
   WikiKeyVersesSection,
@@ -392,15 +392,15 @@ export class WikiPage extends Schema.Class<WikiPage>('Wiki/Page')({
   /** The §6.1 lineup, always all six sections in order, each already capped.
    *  A section with nothing to show is present and empty rather than dropped:
    *  the lineup is the page's shape, and a client that has to reason about
-   *  which sections exist this time is a client that will render them in a
-   *  different order than its two siblings. */
+   *  which sections exist this time is a client that will eventually render
+   *  them in a different order. */
   sections: WikiSectionLineup,
   /** Why the authored core is absent when it is. A page is never a failure
    *  just because the topics artifact is not installed — §3.5's degradation
-   *  posture makes the absence a typed value the three clients agree on. */
+   *  posture makes the absence a typed value every client agrees on. */
   unavailable: Schema.Option(TopicsUnavailableReason),
   /** Why the lineup was not composed from live corpora, when it was not. `None`
-   *  on every host that wired its section sources — which is all three — so a
+   *  on every host that wired its section sources, so a
    *  `Some` here is a visible, deliberate host configuration rather than six
    *  silently empty sections nobody can tell apart from an empty library. */
   sectionsUnavailable: Schema.Option(WikiSectionsUnavailableReason),
@@ -409,14 +409,13 @@ export class WikiPage extends Schema.Class<WikiPage>('Wiki/Page')({
 /** The one wire encoding of a composed page, shared by every seam that has to
  *  serialize one.
  *
- *  `v1.wiki.topic.get` already encodes `WikiPage` through its schema; naming
- *  that encoding here means the CLI's `--json` is the *same* codec rather than a
- *  hand-written projection that drifts field by field as the model grows. Adding
- *  `missingBooks` to a section, or `sectionsUnavailable` to the page, now reaches
- *  both surfaces at once because neither surface enumerates fields.
+ *  Naming the encoding here means the CLI's `--json` is the `WikiPage` schema
+ *  itself rather than a hand-written projection that drifts field by field as
+ *  the model grows. Adding `missingBooks` to a section, or `sectionsUnavailable`
+ *  to the page, reaches the JSON at once because nothing enumerates fields.
  *
- *  `WikiPageJson.Encoded` is therefore the CLI's JSON contract and the RPC
- *  payload's shape, by construction. */
+ *  `WikiPageJson.Encoded` is therefore the CLI's JSON contract, by
+ *  construction. */
 export const WikiPageJson = WikiPage;
 export type WikiPageJson = typeof WikiPageJson.Encoded;
 

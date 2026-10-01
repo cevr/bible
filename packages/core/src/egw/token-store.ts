@@ -5,13 +5,10 @@
  * it doesn't hit /connect/token on every request. The "where" depends on the
  * host process:
  *   - CLI / sync workers: filesystem (data/tokens.json next to the binary)
- *   - Electron renderer: IPC bridge to the main process (no Node FS access)
  *   - Tests: in-memory ref
  *
- * Split out so each host wires its own layer. Without this split, EGWAuth.Live
- * would need a FileSystem + Path, which forces the renderer to ship a fake FS
- * shim that lies about non-token operations. Cleaner to make persistence the
- * explicit pluggable surface.
+ * Split out so each host wires its own layer, and persistence is the explicit
+ * pluggable surface.
  */
 
 import { Context, Effect, FileSystem, Layer, Option, Path, Redacted, Ref, Schema } from 'effect';
@@ -93,9 +90,8 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
     );
 
   /**
-   * Adapter for hosts that already have a JSON string read/write port (e.g.
-   * the Electron renderer reaching through an IPC bridge). Pass the two raw
-   * effects and EGWTokenStore handles the schema marshaling.
+   * Adapter for hosts that already have a JSON string read/write port. Pass
+   * the two raw effects and EGWTokenStore handles the schema marshaling.
    */
   static layerFromJsonPort = (port: {
     readonly readJson: Effect.Effect<Option.Option<string>>;

@@ -263,7 +263,7 @@ describe('§9.6 an absent index yields lexical-only results carrying the typed a
 
   it.effect('reports `embedder` when the index is present but no adapter is wired', () =>
     Effect.gen(function* () {
-      // The no-WebGPU web client (§9.5). A legal composition, not a broken one —
+      // A host with no embedder (§9.5). A legal composition, not a broken one —
       // which is why `QueryEmbedder` is read with `Effect.serviceOption`.
       const result = yield* search(
         { text: 'what happens at the close of probation' },
@@ -278,7 +278,7 @@ describe('§9.6 an absent index yields lexical-only results carrying the typed a
 
   it.effect('reports `embedder` when the adapter declines at embed time', () =>
     Effect.gen(function* () {
-      // WebGPU lost, or the model file gone after the layer was built. The same
+      // The model file gone after the layer was built. The same
       // reader-visible state as no adapter at all: one reason, one state.
       const declining = Layer.succeed(
         QueryEmbedder,
@@ -653,8 +653,8 @@ describe('§9.3 the locate-jump', () => {
 describe('§9.7 the golden query set', () => {
   it.effect('routes every query the way §9.3 says, with the absence §9.6 says', () =>
     Effect.gen(function* () {
-      // The set that the three clients run. Here it pins routing and fallback;
-      // the CLI/RPC parity tests pin that the *identities* agree across seams.
+      // The set every client runs. Here it pins routing and fallback; the CLI
+      // and daemon tests pin that the *identities* agree across seams.
       const layer = withIndex();
       for (const golden of GOLDEN_QUERIES) {
         const result = yield* queryWith(golden.query, layer);

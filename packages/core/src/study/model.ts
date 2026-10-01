@@ -1,9 +1,7 @@
 /** The study pane's wire model (§8).
  *
- *  Every type here crosses `v1.study.verse.get` and `v1.study.strongs.get`, and
- *  the same classes are the CLI's `--json` codec — one shared codec per payload,
- *  so the RPC response and `bible study verse --json` are the same value encoded
- *  by the same schema rather than two projections that drift.
+ *  The classes here are the CLI's `--json` codec — one shared codec per payload
+ *  rather than a projection that drifts.
  *
  *  The backing services (`BibleDatabase`, `EGWCommentaryService`,
  *  `EGWParagraphDatabase`) all speak plain interfaces with `Option` fields and
@@ -23,21 +21,16 @@ import { BookNumber, ChapterNumber, VerseNumber, VerseReference } from '../bible
 /** A Strong's number as `bible.db` stores it: `H` or `G` followed by digits,
  *  with no leading zero.
  *
- *  **The one decoder.** Both seams run this schema and nothing else — the RPC
- *  payload (`v1.study.strongs.get`) and the CLI argument — so what one accepts
- *  the other accepts. Before this, the CLI uppercased its argument before
- *  decoding and the RPC did not, which made `h8548` a valid CLI invocation and
- *  an invalid request over the wire: one input, two answers, and a divergence
- *  no test on either side could see alone.
+ *  **The one decoder.** The CLI argument runs this schema and nothing else.
  *
  *  Two rules, both read off the corpus rather than chosen:
  *
  *  - **Case is normalized, not rejected.** `bible.db`'s `strongs.number` column
  *    stores the uppercase form, so `h8548` names a row that exists and the only
  *    question is who spells it. Uppercasing here answers that once, on the
- *    decoding path — the direction a wire payload and a CLI argument both
- *    arrive on. Encoding is a passthrough: the branded value is already the
- *    stored spelling, so there is nothing to undo.
+ *    decoding path — the direction a CLI argument arrives on. Encoding is a
+ *    passthrough: the branded value is already the stored spelling, so there
+ *    is nothing to undo.
  *  - **A leading zero is rejected.** `H0001` is not a lexicon row: the corpus
  *    has no zero-padded numbers at all, so accepting the form would return an
  *    empty result for an input that *looks* answered. The pattern refuses it at
@@ -62,11 +55,11 @@ export const strongsNumber = Schema.decodeSync(StrongsNumber);
 
 /** How many concordance occurrences a caller asks for.
  *
- *  **The one limit rule.** Three seams take this number — the
- *  `v1.study.strongs.get` payload, the `bible study strongs --limit` flag, and
- *  the `StrongsStudy.limit` field that reports which cap a result was built
- *  under — and each used to restate `Schema.Int.check(isGreaterThan(0))` in its
- *  own words. Three copies of one rule is three places for it to drift: a flag
+ *  **The one limit rule.** Two seams take this number — the
+ *  `bible study strongs --limit` flag, and the `StrongsStudy.limit` field that
+ *  reports which cap a result was built under — and each used to restate
+ *  `Schema.Int.check(isGreaterThan(0))` in its own words. Copies of one rule
+ *  are places for it to drift: a flag
  *  that accepted zero while the wire refused it is exactly the divergence that
  *  produced, and the caller met it as a schema error from inside an encode
  *  rather than as "that flag needs a positive number". */
@@ -233,8 +226,7 @@ export class VerseStudy extends Schema.Class<VerseStudy>('Study/VerseStudy')({
    *  bundle still carries whatever the other four sources found — a study pane
    *  for a verse the Bible corpus is missing is degraded, not failed. */
   text: Schema.Option(Schema.String),
-  /** The verse's words with their Strong's numbers: the tap targets for the
-   *  `v1.study.strongs.get` path. */
+  /** The verse's words with their Strong's numbers. */
   words: Schema.Array(StudyWord),
   crossRefs: Schema.Array(StudyCrossReference),
   marginNotes: Schema.Array(StudyMarginNote),

@@ -1,9 +1,8 @@
 /**
  * Driver-agnostic query service for the unified Bible database.
  *
- * The schema is also consumed directly by the browser SQLite worker, so this
- * module owns the canonical query contract while platform modules provide a
- * concrete Effect SQL driver.
+ * This module owns the canonical query contract while platform modules provide
+ * a concrete Effect SQL driver.
  */
 
 import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
@@ -356,7 +355,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           // an accident. SQLite guarantees no row order without an ORDER BY, so
           // the same query could legitimately return a different sequence after
           // a VACUUM or a plan change — and §6.1 row 5 says section 5 is in
-          // source order, which the three hosts must agree on.
+          // source order.
           //
           // `rowid` is the key rather than a new `position` column: the Bible
           // artifact is shipped and pinned by digest, `cross_refs` is an

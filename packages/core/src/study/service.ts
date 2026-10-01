@@ -13,8 +13,8 @@
  *  and, for the word-tap path, `getStrongsEntry`, `getVersesWithStrongs` and
  *  `getStrongsCount`.
  *
- *  No new SQL. Every read is a call the three hosts already had and none of
- *  them exposed — §8's opening observation is that the data layer was finished
+ *  No new SQL. Every read is a call the data layer already had and nothing
+ *  exposed — §8's opening observation is that the data layer was finished
  *  and the seam was missing, and this module is only that seam.
  */
 
@@ -120,8 +120,7 @@ export interface StudyStrongsOptions {
 
 export interface StudyServiceApi {
   /** The whole bundle for one verse, in one call (§8.2). Every section the pane
-   *  draws comes back together because the pane always wants all of it — the
-   *  hosts turn this into exactly one MessagePort round trip. */
+   *  draws comes back together because the pane always wants all of it. */
   readonly verse: (
     reference: VerseReference,
     options?: StudyVerseOptions,

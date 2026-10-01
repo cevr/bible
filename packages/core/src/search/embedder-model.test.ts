@@ -5,9 +5,7 @@
  *  and the honest outcome is a *reported* skip — never a pass. A check that
  *  quietly succeeds when it ran nothing is the same green as a real one.
  *
- *  The Bun adapter is the only one left: the WebGPU adapter's host (the web
- *  reader) and the Electron-main adapter's host (the desktop reader) have both
- *  been removed, and with them the cross-adapter agreement check.
+ *  The Bun adapter is the only query embedder.
  */
 
 import { describe, expect, it } from 'bun:test';

@@ -14,10 +14,9 @@
  * content is still working.
  *
  * The `--json` payloads are produced by **the core schemas themselves**
- * (`ContentStatusJson`, `ContentUpdateJson`), not by a hand-written projection.
- * `v1.content.status` and `v1.content.update` encode the same schemas, so the
- * two seams cannot disagree, and a field added to the model reaches both at
- * once instead of silently missing from one.
+ * (`ContentStatusJson`, `ContentUpdateJson`), not by a hand-written projection,
+ * so a field added to the model reaches the JSON at once instead of silently
+ * missing from it.
  */
 
 import {
@@ -33,9 +32,8 @@ import { Command, Flag } from 'effect/cli';
 import { contentService } from './topics-layer.js';
 
 /** The two core encoders. Nothing below names a field of a status: the schema
- *  is the wire contract, so the CLI's job is to run it — the same encoder the
- *  RPC handler runs, which is what `test/commands/topics.test.ts` checks by
- *  comparing bytes. */
+ *  is the wire contract, so the CLI's job is to run it, which is what
+ *  `test/commands/topics.test.ts` checks by comparing bytes. */
 const encodeStatus = Schema.encodeEffect(Schema.fromJsonString(ContentStatusJson, { space: 2 }));
 const encodeUpdate = Schema.encodeEffect(Schema.fromJsonString(ContentUpdateJson, { space: 2 }));
 

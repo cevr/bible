@@ -540,8 +540,7 @@ const fileDigest = (filename: string): Effect.Effect<string, unknown> =>
  *  Derived from the digest the pointer records, so the name and the check are
  *  one fact: a pointer naming `vectors.bvi.g-abc123def456` is claiming the file
  *  at that path hashes to `sha256:abc123def456…`, and `readCurrent` verifies
- *  exactly that. Twelve hex characters, the same prefix length the browser
- *  generation store already uses. */
+ *  exactly that. Twelve hex characters. */
 /** Removes one retired generation's file, never the one that is live.
  *
  *  Best-effort: a file that cannot be removed is disk to reclaim, never a
@@ -671,8 +670,8 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
       }).pipe(Effect.provide(BunHttpClient.layer));
   }
   // A flat artifact cannot hold `meta` rows, so it gets the sidecar store; a
-  // SQLite artifact keeps writing provenance into itself, which is what the
-  // browser adapter reads back and what shipped. `layout` is declared by the
+  // SQLite artifact keeps writing provenance into itself, which is what
+  // shipped. `layout` is declared by the
   // caller rather than sniffed from the bytes: what an artifact *is* is a
   // property of the corpus, and probing a file to decide how to write its
   // provenance would be exactly the guess this milestone's audit found.

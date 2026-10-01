@@ -1,10 +1,10 @@
 /** The hybrid-search wire model (§9).
  *
- *  Every type here crosses `v1.search.query`, and the same classes are
- *  `bible egw search --json`'s codec — one shared codec per payload, exactly as
- *  `LookupResultJson` and `WikiPageJson` are, so the RPC response and the CLI's
- *  JSON are one value encoded by one schema rather than two projections that
- *  drift.
+ *  Every type here crosses the search daemon's `search.query`, and the same
+ *  classes are `bible egw search --json`'s codec — one shared codec per
+ *  payload, exactly as `LookupResultJson` and `WikiPageJson` are, so the daemon
+ *  response and the CLI's JSON are one value encoded by one schema rather than
+ *  two projections that drift.
  *
  *  Two shapes this module exists to enforce:
  *
@@ -13,7 +13,7 @@
  *     of answer, and a client that had to filter one out of a mixed list is a
  *     client that will eventually rank them together.
  *  2. **§9.6's typed absence.** `vector` carries why the vector leg did not run,
- *     as the same value in all three clients. A silent quality drop and a
+ *     as the same value in every client. A silent quality drop and a
  *     host-specific branch are the two failure modes it exists to prevent.
  */
 
@@ -49,8 +49,8 @@ export type SearchRoute = typeof SearchRoute.Type;
  *  different things from the reader: `absent` is an install away, `fingerprint`
  *  is an app update away, `embedder` is a capability the host lacks, and
  *  `short-circuit` is the engine working as designed. Collapsing them to
- *  "degraded" would tell a reader on a no-WebGPU browser the same thing it tells
- *  a reader whose index is simply not downloaded yet.
+ *  "degraded" would tell a reader on a host with no embedder the same thing it
+ *  tells a reader whose index is simply not downloaded yet.
  *
  *  `short-circuit` is here rather than modelled apart because §9.6 asks for one
  *  question — did the vector leg run, and if not, why — and a client rendering
@@ -62,8 +62,8 @@ export const VectorAbsenceReason = Schema.Literals([
   /** An artifact is installed, but its model fingerprint is not the one this
    *  build embeds queries with, so its neighbors would be meaningless. */
   'fingerprint',
-  /** No query embedder is available: no WebGPU on web, or no model files where
-   *  a native adapter was configured to find them. */
+  /** No query embedder is available: no model files where the adapter was
+   *  configured to find them. */
   'embedder',
   /** §9.3's strong-BM25 short-circuit fired: the lexical top hit was strong and
    *  clearly separated, so the vector leg was deliberately skipped. */
@@ -127,9 +127,9 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
    *  be derived at all — `bookCode` is a code (`GC`, `DA`), not a number, and
    *  the app's route decoder requires a positive integer in that segment. The
    *  UI built links out of `bookCode` and `paragraphId` and produced a path no
-   *  decoder accepts, so every result link 404'd (round-2 B2). Three clients
-   *  render these hits; putting the route's own inputs on the wire is what
-   *  keeps them from each inventing a different broken path. */
+   *  decoder accepts, so every result link 404'd (round-2 B2). Putting the
+   *  route's own inputs on the wire is what keeps each client from inventing a
+   *  different broken path. */
   publicationId: Schema.Finite.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1))),
   /** The corpus's own `para_id`, unqualified — the second half of the route.
    *
@@ -264,8 +264,8 @@ export class SearchResult extends Schema.Class<SearchResult>('Search/Result')({
   nonSelective: Schema.Boolean,
 }) {}
 
-/** The one wire encoding of a search result, shared by `v1.search.query`'s
- *  success schema and `bible egw search --json`, named for the same reason
+/** The one wire encoding of a search result, shared by the search daemon's
+ *  `search.query` and `bible egw search --json`, named for the same reason
  *  `LookupResultJson` is: neither surface enumerates fields, and a field added
  *  to `SearchResult` reaches both at once. */
 export const SearchResultJson = SearchResult;
@@ -337,8 +337,8 @@ export class SearchQuery extends Schema.Class<SearchQuery>('Search/Query')({
 
 /** The scope a query runs under, with the default applied once.
  *
- *  Here rather than at each of the three call sites, so the CLI, the RPC handler
- *  and the UI cannot disagree about what an unspecified scope means. */
+ *  Here rather than at each call site, so the CLI, the daemon and the web
+ *  surface cannot disagree about what an unspecified scope means. */
 export const queryScope = (query: SearchQuery): CorpusScope =>
   Option.getOrElse(query.scope, () => SEARCH_DEFAULT_SCOPE);
 

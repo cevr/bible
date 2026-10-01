@@ -381,8 +381,7 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
        *  replaces `topics.db` with an atomic `rename` over the path, and a
        *  connection opened `immutable=1` holds the old inode and will never see
        *  the new file. Seeing a replacement requires reopening the handle,
-       *  which happens when the layer is rebuilt — next app launch on the
-       *  desktop, next command on the CLI, next worker start on the web.
+       *  which happens when the layer is rebuilt — next command on the CLI.
        *
        *  What the per-call read does buy is that the schema major is one fact
        *  with one reader instead of a value captured once and then quoted by

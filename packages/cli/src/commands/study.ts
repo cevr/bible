@@ -7,16 +7,13 @@
  * it. `bible study strongs H8548 [--json]` prints one lexicon entry plus the
  * reverse concordance.
  *
- * Both call `StudyService` **directly**, so what they print is the value
- * `v1.study.verse.get` and `v1.study.strongs.get` return — the same service,
- * the same caps, the same result identities, with no second data path that
- * could drift from the two visual hosts.
+ * Both call `StudyService` **directly** — the same service, the same caps, the
+ * same result identities, with no second data path.
  *
  * The `--json` payloads are produced by **the core schemas themselves**
- * (`VerseStudyJson`, `StrongsStudyJson`), not by a hand-written projection.
- * Those are the procedure group's own success schemas, so the CLI's JSON and
- * the RPC wire cannot disagree, and a field added to the model reaches both at
- * once instead of silently missing from one.
+ * (`VerseStudyJson`, `StrongsStudyJson`), not by a hand-written projection, so
+ * a field added to the model reaches the JSON at once instead of silently
+ * missing from it.
  */
 
 import { parseBibleQuery } from '@bible/core/bible';
@@ -64,10 +61,10 @@ const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Emit stable JSON'),
 );
 
-/** The cap, under `StudyLimit` — the one schema `v1.study.strongs.get` declares
- *  for it and `StrongsStudy.limit` reports it under.
+/** The cap, under `StudyLimit` — the one schema `StrongsStudy.limit` reports it
+ *  under.
  *
- *  The rule used to be written out here and again in the procedure payload, so
+ *  The rule used to be written out here and again in the wire payload, so
  *  `--limit 0` was accepted by the flag and refused by the wire: the caller met
  *  a schema error from deep inside the encode rather than "that flag needs a
  *  positive number". One exported schema is what makes the two seams agree by
@@ -152,9 +149,8 @@ const reportCorpusRow = <A, E>(effect: Effect.Effect<A, E>): Effect.Effect<A, E>
 // bible study verse
 // ---------------------------------------------------------------------------
 
-/** The `--json` payload for one bundle: the core schema's own encoding, so the
- *  CLI emits the value `v1.study.verse.get` puts on the wire rather than a
- *  parallel projection of it. */
+/** The `--json` payload for one bundle: the core schema's own encoding rather
+ *  than a parallel projection of it. */
 export const verseStudyJson = (
   bundle: VerseStudy,
 ): Effect.Effect<VerseStudyJson, Schema.SchemaError> => encodeVerse(bundle);

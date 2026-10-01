@@ -170,13 +170,12 @@ describe('bible wiki topics --json', () => {
 // ---------------------------------------------------------------------------
 // The stdout seam
 //
-// The core host-parity test proves the CLI's exported `topicJson` and the RPC
-// handler run one codec. What it cannot prove is that the *command* still calls
-// it: replacing `topicJson(page)` in `wiki.ts` with a hand-mapped object leaves
-// that test green, because the test applies the encoder itself. These run the
-// real command — argument parsing, layer resolution, encoder, `Console.log` —
-// and compare what actually reached stdout with what `v1.wiki.topic.get` puts
-// on the wire for the same page.
+// A test of the exported `topicJson` alone cannot prove that the *command*
+// still calls it: replacing `topicJson(page)` in `wiki.ts` with a hand-mapped
+// object leaves such a test green, because it applies the encoder itself. These
+// run the real command — argument parsing, layer resolution, encoder,
+// `Console.log` — and compare what actually reached stdout with what
+// `WikiPageJson` encodes for the same page.
 // ---------------------------------------------------------------------------
 
 /** The layer the two commands resolve under test. Substituted through
@@ -202,13 +201,13 @@ const JsonText = Schema.Unknown.pipe(
 
 const serialize = Schema.encodeUnknownEffect(JsonText);
 
-/** The JSON text `v1.wiki.topic.get` puts on the wire for one page.
+/** The JSON text `WikiPageJson` encodes for one page.
  *
- *  Two steps, because that is what the seam is: `WikiPageJson` — the exported
- *  name for the procedure's declared success schema — encodes the page, and the
- *  result is serialized. Comparing text rather than objects is the point. JSON
- *  is what a client actually receives, and two encoders agreeing in memory
- *  while disagreeing on the wire is exactly the drift a shared codec removes. */
+ *  Two steps, because that is what the seam is: `WikiPageJson` encodes the
+ *  page, and the result is serialized. Comparing text rather than objects is
+ *  the point. JSON is what a client actually receives, and two encoders
+ *  agreeing in memory while disagreeing on the wire is exactly the drift a
+ *  shared codec removes. */
 const pageWireText = (page: WikiPage): Effect.Effect<string, Schema.SchemaError> =>
   Effect.flatMap(Schema.encodeEffect(WikiPageJson)(page), serialize);
 
@@ -412,11 +411,9 @@ describe('bible wiki matches', () => {
 // fixture and the shipped artifact carry the same identities and this test
 // keeps meaning what it says.
 //
-// **What "matches what the UI renders" is asserted as.** The UI renders from
-// `WikiPageJson` — `v1.wiki.topic.get`'s declared success schema — and
-// `wiki/host-parity.test.ts` already proves the RPC handler and the CLI encode
-// the *same value* through it. What is left for this file, and what a helper
-// test could not see, is that the **command** still runs that encoder: the
+// **What "matches what the UI renders" is asserted as.** A UI renders from
+// `WikiPageJson`. What is left for this file, and what a helper test could not
+// see, is that the **command** still runs that encoder: the
 // section identities and the default-open flags a UI would key on have to be
 // the ones that actually reached stdout.
 // ---------------------------------------------------------------------------
@@ -680,15 +677,13 @@ describe('bible wiki topic --json over a populated page', () => {
 //
 // Two claims, and they are different claims:
 //
-//  1. **The portable input.** §10's adapter check is that the DOM selection on
-//     web and desktop builds the same `LookupInput` the CLI builds from its
-//     argument. The CLI asserts against `@bible/core/wiki/testing`'s
-//     `LOOKUP_ADAPTER_INPUT` here; the DOM builders went with the readers.
-//  2. **The stdout seam.** `wiki/lookup-parity.test.ts` proves the RPC handler
-//     and `LookupService` encode one value through one codec. What it cannot
-//     prove is that the *command* still runs that codec, and that its human
-//     output really carries all five groups in §7's order. These run the real
-//     command — argument parsing, layer resolution, encoder, `Console.log`.
+//  1. **The portable input.** §10's adapter check is that every adapter builds
+//     the same `LookupInput`. The CLI asserts against
+//     `@bible/core/wiki/testing`'s `LOOKUP_ADAPTER_INPUT` here.
+//  2. **The stdout seam.** That the *command* still runs the `LookupResult`
+//     codec, and that its human output really carries all five groups in §7's
+//     order. These run the real command — argument parsing, layer resolution,
+//     encoder, `Console.log`.
 // ---------------------------------------------------------------------------
 
 const runLookup = (args: readonly string[]) =>

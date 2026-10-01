@@ -1,13 +1,9 @@
 /** Reading the installed vector index through Effect's `FileSystem` (§9.6).
  *
  *  Portable core, despite being the filesystem path: `FileSystem` is an Effect
- *  interface, and Bun and Electron main each already provide it. The two hosts
- *  therefore share one reader rather than each writing a `readFile` that could
- *  disagree about what an absent file means — which is the whole risk here, since
- *  "not installed" is this artifact's *normal* state.
- *
- *  The web worker does not use this: it reads OPFS, which is not a `FileSystem`.
- *  Its own reader lives beside it and produces the same `VectorIndexBytes`.
+ *  interface, so a host shares one reader rather than writing a `readFile` that
+ *  could disagree about what an absent file means — which is the whole risk
+ *  here, since "not installed" is this artifact's *normal* state.
  */
 
 import { Effect, FileSystem, Layer, Option } from 'effect';

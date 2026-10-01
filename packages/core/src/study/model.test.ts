@@ -1,16 +1,10 @@
-/** The one Strong's decoder, at the one place both seams read it (should-fix 5).
+/** The one Strong's decoder (should-fix 5).
  *
- *  `StrongsNumber` is the whole payload of `v1.study.strongs.get` and the whole
- *  argument of `bible study strongs`. Before this it was *also* two different
- *  contracts: the CLI uppercased its argument before decoding and the RPC did
- *  not, so `h8548` was a valid invocation of one seam and a rejected request at
- *  the other — a divergence neither side's tests could see, because each tested
- *  only what it accepted.
+ *  `StrongsNumber` is the whole argument of `bible study strongs`.
  *
  *  The assertions below are the contract itself rather than a sample of it, and
  *  `packages/cli/test/commands/study.test.ts` runs the real command against the
- *  same inputs, so the claim "both seams agree" is checked at both seams and not
- *  asserted here about one.
+ *  same inputs.
  */
 
 import { describe, expect, test } from 'bun:test';

@@ -58,8 +58,8 @@ import {
 // ---------------------------------------------------------------------------
 // Composer constants (§6.1)
 //
-// "Caps and ordering live in core as composer constants, so all three clients
-// cap identically." They are values here rather than call-site literals for
+// "Caps and ordering live in core as composer constants, so every client caps
+// identically." They are values here rather than call-site literals for
 // exactly that reason: a client cannot pass its own cap, and a test asserts the
 // constant rather than a number it copied.
 // ---------------------------------------------------------------------------
@@ -121,8 +121,8 @@ export const SECTION_SCOPES = {
  *  this library already has.
  *
  *  A named constant rather than an inline slice for the same reason
- *  `SECTION_CAPS` is: the three hosts run this composer, and a bound one of
- *  them could pass in is a bound they could disagree about. */
+ *  `SECTION_CAPS` is: a bound a caller could pass in is a bound callers could
+ *  disagree about. */
 export const PASSAGE_TEXT_CHAPTER_LIMIT = 12;
 
 /** A capped section's two numbers: the items that survived the cap, and how
@@ -218,8 +218,8 @@ export class WikiSectionSources extends Context.Service<WikiSectionSources, Sect
    *  **corpora that will not open** become `NotWired`; everything else keeps
    *  going up.
    *
-   *  All three hosts want the same thing here, and all three previously spelled
-   *  it `Layer.catchCause(() => NotWired)` — which converts *every* cause, so a
+   *  Every host wants the same thing here, and each previously spelled it
+   *  `Layer.catchCause(() => NotWired)` — which converts *every* cause, so a
    *  null dereference in a service constructor, a schema-migration bug and a
    *  shutdown interrupt all arrived at the reader as a cheerful
    *  "sections not wired". That is the round-one failure one level up: a real
@@ -1063,8 +1063,7 @@ export const composeSections = Effect.fn('Wiki.composeSections')(function* (
     ],
     // The five remaining sources are independent reads over three databases,
     // and §6's whole premise is that the batch is warm-fast (0.1-4.3 ms). Run
-    // them together: on the web host this is one MessagePort round trip for the
-    // page, which is the adapter contract Milestone 3 owes.
+    // them together.
     { concurrency: 'unbounded' },
   );
 

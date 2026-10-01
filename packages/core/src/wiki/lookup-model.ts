@@ -1,18 +1,16 @@
 /** The select-to-lookup wire model (§7).
  *
- *  Every type here crosses `v1.wiki.lookup.resolve`, and the same classes are
- *  `bible wiki lookup --json`'s codec — one shared codec per payload, exactly as
- *  `study/model.ts` and the `WikiPageJson` alias do, so the RPC response and the
- *  CLI's JSON are the same value encoded by the same schema rather than two
- *  projections that drift.
+ *  The classes here are `bible wiki lookup --json`'s codec — one shared codec
+ *  per payload, exactly as `study/model.ts` and the `WikiPageJson` alias do,
+ *  rather than a projection that drifts.
  *
  *  The shape this module exists to enforce is §7's **five groups, always
  *  present, always in order**. A resolver that found nothing yields an empty
  *  group, never an absent one: the panel's shape is the result's shape, and a
  *  client that has to work out which groups exist this time is a client that
- *  will eventually render them in a different order than its two siblings —
- *  the same argument §6.1's fixed section lineup makes, applied to a surface
- *  that has one more reason to need it. Selection lookup is a reflex gesture,
+ *  will eventually render them in a different order — the same argument
+ *  §6.1's fixed section lineup makes, applied to a surface that has one more
+ *  reason to need it. Selection lookup is a reflex gesture,
  *  and a panel whose rows move between invocations cannot be used by reflex.
  */
 
@@ -36,21 +34,16 @@ import { isWhitespace } from './normalize.js';
  *  the field a group does not consume is a field a host has to guess how to
  *  fill.
  *
- *  A `VerseReference` rather than three loose numbers, because this value is
- *  built by three different callers — the web DOM, the desktop DOM, and the
- *  CLI's `--context` argument — and the branded schema is what makes their
- *  agreement checkable rather than conventional. */
+ *  A `VerseReference` rather than three loose numbers, because the branded
+ *  schema is what makes callers' agreement checkable rather than conventional. */
 export const LookupContext = VerseReference;
 export type LookupContext = typeof LookupContext.Type;
 
 /** What a host asks about: the selected text, plus where it was selected.
  *
- *  **The portable input** §7 names. One schema, built identically from a DOM
- *  `Selection` on both visual hosts and from `bible wiki lookup`'s arguments,
- *  so "the same resolution everywhere" is a property of the type rather than a
- *  claim in a doc comment. The adapter test asserts the CLI builds this value
- *  from its arguments; core cannot import a DOM, so a visual host builds it in
- *  its own package.
+ *  **The portable input** §7 names. One schema, so "the same resolution
+ *  everywhere" is a property of the type rather than a claim in a doc comment.
+ *  The adapter test asserts the CLI builds this value from its arguments.
  *
  *  `text` is `NonEmptyString`: an empty selection is not a lookup, and refusing
  *  it at the boundary is what keeps every resolver below from restating the
@@ -89,13 +82,9 @@ const collapse = (raw: string): string => {
 
 /** The one builder every adapter's text goes through (§7, §10's adapter check).
  *
- *  Three callers build a lookup — the DOM selection on web and desktop, and
- *  `bible wiki lookup`'s argument — and §10 requires them to produce one value.
- *  That is only checkable if there is one rule, so the rule is here, in core,
- *  beside the schema it satisfies. Milestone 7's review found the two halves had
- *  drifted already: the DOM builder collapsed the markup's whitespace and the
- *  CLI passed its argument through raw, so `  the   daily  ` and `the daily`
- *  were two selections on the wire and one phrase on the screen.
+ *  §10 requires every caller that builds a lookup to produce one value. That is
+ *  only checkable if there is one rule, so the rule is here, in core, beside
+ *  the schema it satisfies.
  *
  *  `None` rather than an error for text that collapses away. Every click in a
  *  reading surface leaves one, and a drag that ended in a margin leaves one; a
@@ -247,13 +236,12 @@ export class LookupResult extends Schema.Class<LookupResult>('Wiki/LookupResult'
   /** §7's "a lone topic hit gets the peek-card treatment instead of the full
    *  panel", decided in core rather than by each client.
    *
-   *  A flag on the result rather than a rule the three hosts each re-derive
-   *  from the group contents. The condition is not simply `topics.length === 1`
-   *  — a single topic hit *alongside* forty verse hits is a full panel, because
-   *  the other groups have things to say — and a predicate that subtle,
-   *  restated per host, is a predicate that will be spelled three ways. Here it
-   *  is computed once, beside the data it reads, and the parity test asserts one
-   *  value rather than three renderings. */
+   *  A flag on the result rather than a rule each client re-derives from the
+   *  group contents. The condition is not simply `topics.length === 1` — a
+   *  single topic hit *alongside* forty verse hits is a full panel, because the
+   *  other groups have things to say — and a predicate that subtle, restated
+   *  per client, is a predicate that will be spelled several ways. Here it is
+   *  computed once, beside the data it reads. */
   lonePeek: Schema.Boolean,
 }) {}
 

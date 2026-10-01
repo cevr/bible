@@ -1,11 +1,8 @@
 /** §10 Milestone 9's adapter check, on the leg this process can run.
  *
- *  The fixture in `testing.ts` is one table every host answers. Two of the
- *  three hosts run it here — the CLI's Bun client and Electron main's Node
- *  client both resolve `HttpClient.HttpClient` from this runtime, so the
- *  adapter they share is exercised over both. The browser's leg cannot run
- *  under Bun (there is no same-origin proxy and no `fetch` against one); its
- *  host, the web reader, has been removed, so no suite runs that leg now.
+ *  The fixture in `testing.ts` is one table every host answers. The CLI's Bun
+ *  client resolves `HttpClient.HttpClient` from this runtime, so the adapter is
+ *  exercised here.
  *
  *  What is being checked is not "does HTTP work" — it is that the *mapping*
  *  from a response onto §3.6's outcomes is one mapping. Every non-arrival
@@ -160,10 +157,9 @@ describe('§10 M9 the manifest adapter', () => {
 
   /** **The origin gate** (round-3 F4).
    *
-   *  The manifest address is `Config`-resolved so a test and the desktop e2e
-   *  can point a host at a fixture. Unguarded, that made every host — and the
-   *  web proxy above all, which fetches server-side and streams the answer to a
-   *  browser — fetch whatever that variable named. The gate runs *before* the
+   *  The manifest address is `Config`-resolved so a test can point a host at a
+   *  fixture. Unguarded, that made every host fetch whatever that variable
+   *  named. The gate runs *before* the
    *  request, so the observable is that the client was never called at all. */
   it.effect('refuses an address outside the allowed release origins, without fetching', () =>
     Effect.gen(function* () {
