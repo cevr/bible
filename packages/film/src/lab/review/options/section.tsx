@@ -153,9 +153,9 @@ const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: Choi
 
 /** Undo and redo, each naming the source change it steps; what the last write did; the film's check after it. */
 export const WriteBar = () => {
-  const { findings, wrote } = useFilm();
+  const { findings, wrote, reading } = useFilm();
   return (
-    <section class="rv-writes">
+    <section class="rv-writes" data-reading={pressed(reading())}>
       <div class="rv-row">
         <StepButton which="undo" act={ChoiceAct.Undo()} />
         <StepButton which="redo" act={ChoiceAct.Redo()} />

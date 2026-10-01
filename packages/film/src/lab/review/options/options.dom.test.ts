@@ -6,12 +6,13 @@
 // offered, the check after it) and runs the sound check, showing its
 // findings; a take is kept; a look picked; a level's knob set; a variant
 // approved, commented on and its approval withdrawn; Undo, naming what it
-// undoes, is sent to the film's own route; a mark
+// undoes, is sent to the film's own route, and the choices it reads again,
+// landing after a say asked later, leave the say shown; a mark
 // jumps the clock; a mix whose first load failed is heard once its retry
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
 // page (a selector, a condition) or its clock, never a fixed time.
 
-import { Effect, FileSystem, Option, Schema } from 'effect';
+import { Deferred, Effect, Exit, FileSystem, Option, Schedule, Schema } from 'effect';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
@@ -20,6 +21,7 @@ import {
   type Json,
   file,
   json,
+  later,
   openReview,
   refused,
   route,
@@ -370,6 +372,54 @@ describe("a film's choices", () => {
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
         expect(asked.some((a) => a.method === 'POST' && a.path === '/lab/toy/undo')).toBe(true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'choices read again after an undo, landing after a say asked later, leave the say shown',
+    () =>
+      Effect.gen(function* () {
+        const routes = fakeFilm();
+        const plain = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            routes.find((r) => r.method === 'GET' && r.path.test('/lab/toy/choices')),
+          ),
+        );
+        // The read after the undo answers the choices as they stood when asked, once let land.
+        const land = yield* Deferred.make<void>();
+        let reads = 0;
+        const lateRead = route('GET', /^\/lab\/toy\/choices$/, (asked) => {
+          reads += 1;
+          const then = plain.answer(asked);
+          if (reads === 1) return then;
+          return later(land, then);
+        });
+        const { page, asked, errors } = yield* openReview([lateRead, ...routes], {
+          search: FILM,
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
+        yield* click(page, '[data-act="undo"]');
+        yield* Effect.sync(
+          () => asked.filter((a) => a.method === 'GET' && a.path === '/lab/toy/choices').length,
+        ).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* attributeIs(page, '.rv-writes', 'data-reading', 'true');
+        // Said while the read is out: the say answers the choices with the comment.
+        yield* Effect.promise(() =>
+          page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close'),
+        );
+        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        // The older read lands last: the page has read it, and the comment stays.
+        yield* Deferred.done(land, Exit.void);
+        yield* attributeIs(page, '.rv-writes', 'data-reading', 'false');
+        yield* countIs(page, `${at('score', 'strings')} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
