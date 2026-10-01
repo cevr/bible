@@ -963,6 +963,18 @@ describe('cueTwins', () => {
     ]);
   });
 
+  test('a span until a cue’s edge ends where that cue does, and on no other', () => {
+    expect(
+      found({
+        dark: { mark: 'four', dur: 0.9 },
+        light: { mark: 'two', dur: 0.4 },
+        fade: { mark: 'two', until: { cue: 'dark' } },
+        rise: { mark: 'two', offset: 0.1, until: { cue: 'light' } },
+        dim: { with: 'dark', until: { cue: 'dark' } },
+      }),
+    ).toEqual([['dim', 'dark']]);
+  });
+
   test('another ease, stagger, length or anchor is its own cue, even where the times agree today', () => {
     expect(
       found({

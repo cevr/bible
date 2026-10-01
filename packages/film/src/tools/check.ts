@@ -225,27 +225,28 @@ const plus = (p: DeclaredPoint, seconds: number): DeclaredPoint => ({
   offset: p.offset + seconds,
 });
 
-/** Where an `until` ends a span: its mark or its landmark. */
-const untilPoint = (until: Until): DeclaredPoint => ({
-  anchor: Match.value(until).pipe(
-    Match.when(Predicate.isString, (mark) => `mark ${mark}`),
-    Match.orElse((landmark) => `at ${landmark.at}`),
-  ),
+/** A mark, or a word pinned after it, as a declared point. */
+const markPoint = (mark: string, word?: string): DeclaredPoint => ({
+  anchor: `mark ${mark} ${word ?? ''}`,
   offset: 0,
 });
 
-/** A span's edges from its anchor's declared point, as `resolveTimeline` lays them. */
-const edgesFrom = (span: Span, anchor: DeclaredPoint): Pick<DeclaredCue, 'start' | 'end'> => {
+/** A span's edges from its anchor's declared point and its `until`'s (`ended`), as `resolveTimeline` lays them. */
+const edgesFrom = (
+  span: Span,
+  anchor: DeclaredPoint,
+  ended: (until: Until) => Option.Option<DeclaredPoint>,
+): Option.Option<Pick<DeclaredCue, 'start' | 'end'>> => {
   const at = plus(
     anchor,
     Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0),
   );
   return Option.match(Option.fromUndefinedOr(span.until), {
-    onSome: (until) => ({ start: at, end: untilPoint(until) }),
+    onSome: (until) => Option.map(ended(until), (end) => ({ start: at, end })),
     onNone: () => {
       const dur = Option.getOrElse(Option.fromUndefinedOr(span.dur), () => 0);
-      if (span.ends === true) return { start: plus(at, -dur), end: at };
-      return { start: at, end: plus(at, dur) };
+      if (span.ends === true) return Option.some({ start: plus(at, -dur), end: at });
+      return Option.some({ start: at, end: plus(at, dur) });
     },
   });
 };
@@ -263,10 +264,10 @@ const declaredCues = (timeline: Timeline): ReadonlyMap<string, DeclaredCue> => {
   const visiting = new Set<string>();
   const declare = (name: string, span: Span): Option.Option<DeclaredCue> => {
     visiting.add(name);
-    const anchor = anchorOf(span);
+    const edges = Option.flatMap(anchorOf(span), (a) => edgesFrom(span, a, untilOf));
     visiting.delete(name);
-    return Option.map(anchor, (a) => {
-      const declared = { ...edgesFrom(span, a), ...playOf(span) };
+    return Option.map(edges, (e) => {
+      const declared = { ...e, ...playOf(span) };
       out.set(name, declared);
       return declared;
     });
@@ -279,12 +280,28 @@ const declaredCues = (timeline: Timeline): ReadonlyMap<string, DeclaredCue> => {
       ),
     );
   const anchorOf = (span: Span): Option.Option<DeclaredPoint> => {
-    if ('mark' in span)
-      return Option.some({ anchor: `mark ${span.mark} ${span.word ?? ''}`, offset: 0 });
+    if ('mark' in span) return Option.some(markPoint(span.mark, span.word));
     if ('after' in span) return Option.map(cue(span.after), (c) => c.end);
     if ('with' in span) return Option.map(cue(span.with), (c) => c.start);
     return Option.some({ anchor: `at ${span.at}`, offset: 0 });
   };
+  /** Where an `until` ends a span: its mark, its landmark, or the named cue's edge (its end by default). */
+  const untilOf = (until: Until): Option.Option<DeclaredPoint> =>
+    Match.value(until).pipe(
+      Match.when(Predicate.isString, (mark) => Option.some(markPoint(mark))),
+      Match.orElse((point) =>
+        Option.match(Option.fromUndefinedOr(point.cue), {
+          onNone: () => Option.some({ anchor: `at ${point.at}`, offset: 0 }),
+          onSome: (name) =>
+            Option.map(cue(name), (c) =>
+              Match.value(point.edge).pipe(
+                Match.when('start', () => c.start),
+                Match.orElse(() => c.end),
+              ),
+            ),
+        }),
+      ),
+    );
   for (const name of Object.keys(timeline)) cue(name);
   return out;
 };

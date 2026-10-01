@@ -996,8 +996,8 @@ error finding, `FreshProcessFailed`, in its words.
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
-its right edge to move its end (dur). A cue that runs `until` a mark keeps
-ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
+its right edge to move its end (dur). A cue that runs `until` a mark (or a
+landmark, or another cue's edge) keeps ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
 only its offset, its start held a frame before the mark, and its right edge
 sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
 marks and other cues' edges within 8 px, else move by whole frames; shift
@@ -1014,7 +1014,7 @@ not resolve is not shown, and the status says why. Compare with HEAD resolves
 HEAD's literals over today's the same way: when they name what today's
 narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs (for an `until` cue, `until {mark}` or `until speechEnd` and its resolved end instead of
+inputs (for an `until` cue, `until {mark}`, `until speechEnd` or `until the end of cue "roll"` and its resolved end instead of
 `dur`), and an ease picker drawing each curve (the ease is only ever data:
 `f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the

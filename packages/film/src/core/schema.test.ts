@@ -159,6 +159,14 @@ describe('Timed', () => {
     expect(decodes('{"id":"a","timeline":{"walk":{"mark":"m","dur":1,"until":"n"}}}')).toBe(false);
   });
 
+  test('a span may run until a cue’s edge, naming one point', () => {
+    const until = (to: string) => decodes(`{"id":"a","timeline":{"s":{"with":"r","until":${to}}}}`);
+    expect(until('{"cue":"r"}')).toBe(true);
+    expect(until('{"cue":"r","edge":"start"}')).toBe(true);
+    expect(until('{"cue":"r","edge":"middle"}')).toBe(false);
+    expect(until('{"cue":"r","at":"end"}')).toBe(false);
+  });
+
   test('a stagger is a share of the cue, 0 to 1', () => {
     expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","dur":1,"stagger":0.5}}}')).toBe(true);
     expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","stagger":1.2}}}')).toBe(false);

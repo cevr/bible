@@ -102,10 +102,11 @@ interface DraggedBar {
  * that `ends` on its anchor mirrors it: its offset moves the end, so the left
  * edge sets only the dur and the right edge both.
  *
- * A span that runs `until` a mark keeps ending on the mark (narration is the
- * clock): the body and the left edge move only its offset, its start held
- * at least `frame` before the mark so it never ends before it starts, and the
- * right edge leaves the mark only when dropped off it, as a hand-set `dur`.
+ * A span that runs `until` a point (a mark, a landmark or a cue's edge) keeps
+ * ending on it: the body and the left edge move only its offset, its start
+ * held at least `frame` before the point so it never ends before it starts,
+ * and the right edge leaves the point only when dropped off it, as a hand-set
+ * `dur`.
  */
 export const dragPatch = (
   span: Span,
@@ -126,7 +127,7 @@ export const dragPatch = (
   return Option.some({ offset, dur });
 };
 
-/** `dragPatch` for a span that runs `until` a mark: see there. */
+/** `dragPatch` for a span that runs `until` a point: see there. */
 const untilPatch = (
   span: Span,
   cue: ResolvedCue,
@@ -209,9 +210,19 @@ const anchorPoint = (span: Span): ScenePoint => {
   return { at: span.at };
 };
 
-/** Where a span runs `until`, as the lab and an error say it: `{mark}`, or the landmark's name. */
-export const untilText = (until: Until): string =>
-  Predicate.isString(until) ? `{${until}}` : until.at;
+/** Where a span runs `until` as a point: a mark, a landmark, or a cue's edge (its end when none is named). */
+const untilPoint = (until: Until): ScenePoint => {
+  if (Predicate.isString(until)) return { mark: until };
+  if (until.cue !== undefined) return { cue: until.cue, edge: until.edge ?? 'end' };
+  return { at: until.at };
+};
+
+/** Where a span runs `until`, as the lab and an error say it: `{mark}`, the landmark's name, or `the end of cue "roll"`. */
+export const untilText = (until: Until): string => {
+  if (Predicate.isString(until)) return `{${until}}`;
+  if (until.cue !== undefined) return `the ${until.edge ?? 'end'} of cue "${until.cue}"`;
+  return until.at;
+};
 
 /** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */
 export type TimelineError = PointError | CueCycle | UntilBeforeStart;
@@ -226,7 +237,7 @@ export const resolveTimeline = (
   const visiting: Array<string> = [];
   const known = Object.keys(timeline);
 
-  /** How long a cue that starts at `start` lasts: its `dur`, or up to its `until` mark or landmark. */
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to where it runs `until`. */
   const length = (
     name: string,
     span: Span,
@@ -235,15 +246,31 @@ export const resolveTimeline = (
     const until = span.until;
     if (until === undefined) return Result.succeed(span.dur ?? 0);
     const self = `cue "${name}"`;
-    const point: ScenePoint = Predicate.isString(until) ? { mark: until } : { at: until.at };
     return Result.flatMap(
-      pointOn(clock, (n) => resolve(n, self), point, self),
+      pointOn(clock, (n) => resolve(n, self), untilPoint(until), self),
       (end): Result.Result<number, TimelineError> => {
         if (end < start)
           return Result.fail(
             UntilBeforeStart.make({ scene: clock.scene, cue: name, until: untilText(until) }),
           );
         return Result.succeed(end - start);
+      },
+    );
+  };
+
+  /** Where a cue starts and how long it lasts, read from the points its span names. */
+  const timed = (
+    name: string,
+    span: Span,
+  ): Result.Result<{ readonly start: number; readonly dur: number }, TimelineError> => {
+    const self = `cue "${name}"`;
+    return Result.flatMap(
+      pointOn(clock, (n) => resolve(n, self), anchorPoint(span), self),
+      (anchor) => {
+        const at = anchor + (span.offset ?? 0);
+        // A span that `ends` on its anchor starts its length before it.
+        const start = span.ends === true ? at - (span.dur ?? 0) : at;
+        return Result.map(length(name, span, start), (dur) => ({ start, dur }));
       },
     );
   };
@@ -256,20 +283,16 @@ export const resolveTimeline = (
       return Result.fail(UnknownCue.make({ scene: clock.scene, cue: name, by, known }));
     if (visiting.includes(name))
       return Result.fail(CueCycle.make({ scene: clock.scene, cycle: [...visiting, name] }));
+    // Held through both ends, so an `until` that leads back here is a cycle too.
     visiting.push(name);
-    const self = `cue "${name}"`;
-    const anchor = pointOn(clock, (n) => resolve(n, self), anchorPoint(span), self);
+    const at = timed(name, span);
     visiting.pop();
-    if (Result.isFailure(anchor)) return Result.fail(anchor.failure);
-    const at = anchor.success + (span.offset ?? 0);
-    // A span that `ends` on its anchor starts its length before it.
-    const start = span.ends === true ? at - (span.dur ?? 0) : at;
-    const dur = length(name, span, start);
-    if (Result.isFailure(dur)) return Result.fail(dur.failure);
+    if (Result.isFailure(at)) return Result.fail(at.failure);
+    const { start, dur } = at.success;
     const cue = {
       start,
-      end: start + dur.success,
-      dur: dur.success,
+      end: start + dur,
+      dur,
       ease: span.ease ?? DEFAULT_EASE,
       stagger: span.stagger ?? 0,
     };
