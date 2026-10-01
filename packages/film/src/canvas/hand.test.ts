@@ -443,6 +443,21 @@ describe('floatingHand declares itself', () => {
     expect(hand).toMatchObject({ tx: 42, ty: -50, reach: 0, alpha: 0 });
   });
 
+  test('it declares the grip it works with, a change split between the two, formed as it arrives', () => {
+    const to: Pt = [120, -150];
+    const [changing] = declared({ to, reach: 1, grip: 'palm', was: 'hold', change: 0.25 }, BODY);
+    expect(changing).toMatchObject({
+      grip: { open: 0, hold: 0.75, point: 0, palm: 0.25 },
+      formed: 1,
+    });
+    const [past] = declared({ to, reach: 1, grip: 'palm', was: 'hold', change: 1.5 }, BODY);
+    expect(past?.grip).toEqual({ open: 0, hold: 0, point: 0, palm: 1 });
+    const [setOff] = declared({ to, reach: 0, grip: 'hold' }, BODY);
+    expect(setOff).toMatchObject({ grip: { open: 0, hold: 1, point: 0, palm: 0 }, formed: 0 });
+    const [atRest] = declared(undefined, BODY);
+    expect(atRest).toMatchObject({ grip: { open: 1, hold: 0, point: 0, palm: 0 }, formed: 0 });
+  });
+
   test('without a body it declares nothing', () => {
     expect(declared({ to: [120, -150], reach: 1 })).toEqual([]);
   });
