@@ -3,7 +3,7 @@
 // any instant T — the same function serves the preview player and the export.
 
 import { Predicate, Result, Schema } from 'effect';
-import { BOIL_FPS, type Hand } from './ink.ts';
+import { type Hand, boilTick } from './ink.ts';
 import type { Hex } from './colour.ts';
 import { DRIFT, type Drift, breathes, hearingCameras, insideCamera } from './camera.ts';
 import type { Affine } from '../core/affine.ts';
@@ -44,6 +44,7 @@ import {
   type Offscreen,
   type PaperStyle,
   grain,
+  keepAtMost,
   makeGrain,
   makeLight,
   makePaper,
@@ -497,15 +498,6 @@ const shortOf = (declared: ShortStyle = {}, shade: string): ShortLook => {
 /** The most full-frame light sheets a film keeps of each kind (8 MB each at 1080p). */
 export const SHEETS_KEPT = 4;
 
-/** Keep `sheet` under `key`, letting go of the oldest past `SHEETS_KEPT`. */
-const keep = (sheets: Map<string, HTMLCanvasElement>, key: string, sheet: HTMLCanvasElement) => {
-  if (sheets.size >= SHEETS_KEPT) {
-    const oldest = sheets.keys().next();
-    if (oldest.done !== true) sheets.delete(oldest.value);
-  }
-  sheets.set(key, sheet);
-};
-
 /** How much a probe's sink held before a scene drew into it (scratch, one draw at a time). */
 const SINK_MARK = { texts: 0, inks: 0, faces: 0, hands: 0 };
 
@@ -579,9 +571,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const key = `${light.color} ${edge}`;
     const have = lights.get(key);
     if (have !== undefined) return have;
-    const made = makeLight(width, height, light.color, edge);
-    keep(lights, key, made);
-    return made;
+    return keepAtMost(lights, key, makeLight(width, height, light.color, edge), SHEETS_KEPT);
   };
   /** Multiply the frame by `light` at its amount. */
   const lightUp = (ctx: CanvasRenderingContext2D, light: Light) => {
@@ -599,8 +589,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     const have = litVignettes.get(key);
     if (have !== undefined) return have;
     const made = makeProduct(width, height, lightSheet(light), amount, getAssets().vignette);
-    keep(litVignettes, key, made);
-    return made;
+    return keepAtMost(litVignettes, key, made, SHEETS_KEPT);
   };
   /**
    * The light and the vignette over a whole frame: one multiply by their
@@ -665,8 +654,12 @@ export const createFilm = (spec: FilmSpec): Film => {
   const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) =>
     edits?.get(p.spec.id) ?? p;
 
-  /** Each scene's captions, built once from its words: a captioned frame only finds its line. */
-  const captionsOf = new Map(placed.map((p) => [p, sceneCaptions(p)]));
+  /**
+   * Each scene's captions, built once from its words when the film has a
+   * caption style: a captioned frame only finds its line.
+   */
+  const captionsOf =
+    captions === undefined ? undefined : new Map(placed.map((p) => [p, sceneCaptions(p)]));
 
   const localWords = new Map(
     placed.map((p) => [
@@ -849,7 +842,7 @@ export const createFilm = (spec: FilmSpec): Film => {
 
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
     const { a, b } = getAssets();
-    const boil = Math.floor(T * BOIL_FPS + 1e-6);
+    const boil = boilTick(T);
     const cur = sceneAt(T);
     const prev = placed[cur.index - 1];
     const enter = cur.spec.enter;
@@ -910,7 +903,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       const style = captions;
       const voice = probe(cur, 0, 1);
       probing(ctx, voice === undefined ? undefined : { ...voice, caption: true }, () =>
-        caption(ctx, captionsOf.get(cur) ?? [], local - cur.speechStart, width, height, style),
+        caption(ctx, captionsOf?.get(cur) ?? [], local - cur.speechStart, width, height, style),
       );
     }
     ctx.restore();

@@ -192,6 +192,9 @@ const normal: Vec2 = [0, 0];
 /** How many times a second the ink boils: every line re-jitters on each tick. */
 export const BOIL_FPS = 12;
 
+/** The boil tick at film second `T`: the frame the compositor and a short both draw it on. */
+export const boilTick = (T: number): number => Math.floor(T * BOIL_FPS + 1e-6);
+
 export interface Hand {
   /** The boil tick (`BOIL_FPS` a second); lines re-jitter every tick. */
   readonly boil: number;

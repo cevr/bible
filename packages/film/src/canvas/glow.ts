@@ -7,18 +7,19 @@
 // kept (`GRADIENTS_KEPT`) of each kind, so a light whose colour moves every
 // frame makes a gradient a frame but never holds more than a few.
 //
-// Counted over righteousness-by-faith's frames on one context (pass 6,
-// `p6-engine-probe/gradient-work.ts`): `message` fills 16.4 unit gradients a
+// Counted over righteousness-by-faith's frames on one context (pass 6, each
+// unit gradient filled and made logged per frame): `message` fills 16.4 unit gradients a
 // frame, 21,336 over its 1,304 frames, and makes 6; `within` 8,899 and makes
 // 6; `daily`, whose glow changes colour every frame, 4,794 and makes 258.
 
 import { type Clear, type Hex, clearOf } from './colour.ts';
+import { keepAtMost } from './paper.ts';
 
 /** The most unit gradients kept per context, of each kind. */
 export const GRADIENTS_KEPT = 64;
 
 /** What a unit gradient lights: each kind keeps its own. */
-export type UnitKind = 'glow' | 'sky' | 'ground';
+type UnitKind = 'glow' | 'sky' | 'ground';
 
 const kept: Record<UnitKind, WeakMap<CanvasRenderingContext2D, Map<string, CanvasGradient>>> = {
   glow: new WeakMap(),
@@ -47,13 +48,7 @@ export const unitGradient = <A>(
   }
   const hit = mine.get(key);
   if (hit !== undefined) return hit;
-  if (mine.size >= GRADIENTS_KEPT) {
-    const oldest = mine.keys().next();
-    if (oldest.done !== true) mine.delete(oldest.value);
-  }
-  const made = make(ctx, of);
-  mine.set(key, made);
-  return made;
+  return keepAtMost(mine, key, make(ctx, of), GRADIENTS_KEPT);
 };
 
 /** A glow's gradient: the colour at its heart, the same colour clear at its rim. */

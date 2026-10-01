@@ -36,7 +36,7 @@ interface SetPhrase {
   readonly lines: ReadonlyArray<SetLine>;
 }
 
-/** How far the marker reaches past a word's ends, and above and below its glyphs, in px. */
+/** How far the marker reaches past a word's ends, and how far its top sits below the font's ascent, in px. */
 const MARK_PAD = 6;
 /** How opaque the gold marker lays over the paper. */
 const MARK_ALPHA = 0.7;

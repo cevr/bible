@@ -4,7 +4,8 @@
 // the two-pass draw, so a faded, blurred or shadowed face looks as it did.
 
 import { describe, expect, test } from 'bun:test';
-import { type FaceState, magnifies, preblends, stretchOf } from './cutout.ts';
+import { type FaceState, cutout, magnifies, preblends, stretchOf } from './cutout.ts';
+import { recorder, withDom } from './fixtures/stand-in.ts';
 
 const flat: FaceState = {
   globalAlpha: 1,
@@ -68,5 +69,55 @@ describe('magnifies', () => {
     ['a skew', { a: 1, b: 0, c: 0.5, d: 1 }],
   ])('%s takes the two-pass draw', (_, m) => {
     expect(magnifies(m)).toBe(true);
+  });
+});
+
+describe('a cutout on the stand-in takes the face path it takes on a canvas', () => {
+  const square: ReadonlyArray<readonly [number, number]> = [
+    [0, 0],
+    [120, 0],
+    [120, 120],
+    [0, 120],
+  ];
+
+  /** Whether a cutout drawn after `before` soft-lit its pastel over the face (the two-pass draw). */
+  const layers = (before: (ctx: CanvasRenderingContext2D) => void) =>
+    withDom(() => {
+      let softLit = false;
+      const { ctx } = recorder(400, 400, {
+        record: false,
+        onCall: (key, args) => {
+          if (key === 'globalCompositeOperation' && args[0] === 'soft-light') softLit = true;
+        },
+      });
+      before(ctx);
+      cutout(ctx, [...square], { color: '#c8643a', grain: 0.6 }, { seed: 7, boil: 0 });
+      return softLit;
+    });
+
+  test('an opaque face on a flat sheet takes one fill of its pre-blended tile', () => {
+    expect(layers(() => undefined)).toBe(false);
+  });
+
+  test('a shadow set and restored before it casts nothing on the face', () => {
+    expect(
+      layers((ctx) => {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 8;
+        ctx.restore();
+      }),
+    ).toBe(false);
+  });
+
+  test('a faded, pushed-in or shadowed face keeps the two-pass draw', () => {
+    expect(layers((ctx) => (ctx.globalAlpha = 0.5))).toBe(true);
+    expect(layers((ctx) => ctx.scale(1.4, 1.4))).toBe(true);
+    expect(
+      layers((ctx) => {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 8;
+      }),
+    ).toBe(true);
   });
 });

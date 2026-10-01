@@ -25,6 +25,9 @@ const SWATCH_W = 132;
 const SWATCH_H = SWATCH + 44;
 const HEADER_H = 64;
 
+/** Chromium's largest canvas side: a canvas past it is never backed and encodes to nothing. */
+const CANVAS_SIDE = 32_767;
+
 const INK = '#efe6d4';
 const MUTED = '#9d927f';
 const PAGE = '#16130f';
@@ -38,7 +41,7 @@ export interface Tile {
   readonly moment: SceneMoment;
 }
 
-/** A composed look-book: the sheet and where each still sits on it. */
+/** A composed look-book: the sheet and where each still sits on it, in the sheet's px. */
 export interface Lookbook {
   readonly canvas: HTMLCanvasElement;
   readonly tiles: ReadonlyArray<Tile>;
@@ -53,7 +56,7 @@ const fit = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
 };
 
 /** The family of a CSS font (`600 64px "Fraunces"` → `"Fraunces"`): what follows its size. */
-export const familyOf = (font: string): string =>
+export const fontFamilyOf = (font: string): string =>
   /\d(?:px|pt|em|rem|%)(?:\/\S+)?\s+(.+)$/.exec(font)?.[1] ?? 'sans-serif';
 
 /** `cue topple start` reads as `topple ▸`, `cue topple end` as `topple ◂`. */
@@ -66,7 +69,9 @@ const labelOf = (at: string) =>
 /**
  * Compose the look-book of `film`. Draws every still with `film.render` into
  * one full-size frame, then scales it onto the sheet; `onProgress` hears each
- * still as it lands, and the page gets a turn between stills.
+ * still as it lands, and the page gets a turn between stills. A sheet laid
+ * out taller or wider than `CANVAS_SIDE` is drawn scaled down to fit it, so a
+ * long film's sheet is smaller rather than blank.
  */
 export const composeLookbook = async (
   film: Film,
@@ -104,15 +109,18 @@ export const composeLookbook = async (
     y += Math.ceil(mine.length / COLS) * (TILE_H + LABEL_H + GAP) + GAP;
   }
 
+  const height = y + PAD;
+  const scale = Math.min(1, CANVAS_SIDE / width, CANVAS_SIDE / height);
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = y + PAD;
+  canvas.width = Math.floor(width * scale);
+  canvas.height = Math.floor(height * scale);
   const ctx = canvas.getContext('2d');
   if (ctx === null) throw new Error('2d context unavailable');
+  ctx.scale(scale, scale);
   ctx.fillStyle = PAGE;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const display = familyOf(film.look.short.hook.font);
-  const body = familyOf(film.look.short.caption.font);
+  ctx.fillRect(0, 0, width, height);
+  const display = fontFamilyOf(film.look.short.hook.font);
+  const body = fontFamilyOf(film.look.short.caption.font);
 
   // The title, and what the sheet shows.
   ctx.textBaseline = 'alphabetic';
@@ -177,7 +185,16 @@ export const composeLookbook = async (
       }),
     Promise.resolve(),
   );
-  return { canvas, tiles };
+  return {
+    canvas,
+    tiles: tiles.map((t) => ({
+      ...t,
+      x: t.x * scale,
+      y: t.y * scale,
+      w: t.w * scale,
+      h: t.h * scale,
+    })),
+  };
 };
 
 /**

@@ -29,6 +29,47 @@ export const offscreen = (w: number, h: number): Offscreen => {
   return { c, ctx };
 };
 
+/** One repeating pattern per context and tile, made once. */
+const patterns = new WeakMap<
+  CanvasRenderingContext2D,
+  WeakMap<HTMLCanvasElement, CanvasPattern | null>
+>();
+
+/**
+ * `ctx`'s repeating pattern of `tile`, made the first time it is asked for
+ * and kept while both live. A draw that places the pattern sets its transform
+ * before every fill, so a pattern kept across draws lands where a new one would.
+ */
+export const patternOf = (
+  ctx: CanvasRenderingContext2D,
+  tile: HTMLCanvasElement,
+): CanvasPattern | null => {
+  let mine = patterns.get(ctx);
+  if (mine === undefined) {
+    mine = new WeakMap();
+    patterns.set(ctx, mine);
+  }
+  const have = mine.get(tile);
+  if (have !== undefined) return have;
+  const made = ctx.createPattern(tile, 'repeat');
+  mine.set(tile, made);
+  return made;
+};
+
+/**
+ * Keep `value` under `key` in `kept`, letting go of the oldest entry once
+ * `most` are kept, and hand it back: a sheet, tile or gradient the draw
+ * makes on a miss and reads on every hit after.
+ */
+export const keepAtMost = <K, V>(kept: Map<K, V>, key: K, value: V, most: number): V => {
+  if (kept.size >= most) {
+    const oldest = kept.keys().next();
+    if (oldest.done !== true) kept.delete(oldest.value);
+  }
+  kept.set(key, value);
+  return value;
+};
+
 /** A full-frame sheet: base colour, soft mottling, fibres, and flecks. */
 export const makePaper = (w: number, h: number, style: PaperStyle): HTMLCanvasElement => {
   const { c, ctx } = offscreen(w, h);
@@ -198,7 +239,7 @@ export const grainRect = (
 };
 
 /** Darken the edges toward `color`: a radial gradient multiplied over the frame at `strength`. */
-export const vignette = (
+const vignette = (
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,

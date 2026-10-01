@@ -9,7 +9,7 @@
 
 import { rng } from '../core/random.ts';
 import type { Camera } from './camera.ts';
-import { offscreen } from './paper.ts';
+import { keepAtMost, offscreen, patternOf } from './paper.ts';
 
 /** The tile's side in px. */
 export const FIBRE_SIZE = 320;
@@ -43,7 +43,7 @@ const wrapped = (
  * fibre), for soft light over a plane: the mottle moves a mid-tone 3–6 %.
  * Built once.
  */
-export const fibreTile = (): HTMLCanvasElement => {
+const fibreTile = (): HTMLCanvasElement => {
   if (tile !== undefined) return tile;
   const { c, ctx } = offscreen(FIBRE_SIZE, FIBRE_SIZE);
   const r = rng(7331);
@@ -100,31 +100,7 @@ const scaledTile = (period: number): HTMLCanvasElement => {
   // Drawn at the tile's wrap offsets too, so the resampled edges wrap.
   for (const dx of [-period, 0, period])
     for (const dy of [-period, 0, period]) ctx.drawImage(fibreTile(), dx, dy, period, period);
-  if (scaled.size >= SCALES_KEPT) {
-    const oldest = scaled.keys().next();
-    if (oldest.done !== true) scaled.delete(oldest.value);
-  }
-  scaled.set(period, c);
-  return c;
-};
-
-/** One repeating pattern per context and tile, made once. */
-const patterns = new WeakMap<
-  CanvasRenderingContext2D,
-  WeakMap<HTMLCanvasElement, CanvasPattern | null>
->();
-
-const patternOf = (ctx: CanvasRenderingContext2D, tileOf: HTMLCanvasElement) => {
-  let mine = patterns.get(ctx);
-  if (mine === undefined) {
-    mine = new WeakMap();
-    patterns.set(ctx, mine);
-  }
-  const have = mine.get(tileOf);
-  if (have !== undefined) return have;
-  const made = ctx.createPattern(tileOf, 'repeat');
-  mine.set(tileOf, made);
-  return made;
+  return keepAtMost(scaled, period, c, SCALES_KEPT);
 };
 
 /** `n` wrapped into [0, period). */

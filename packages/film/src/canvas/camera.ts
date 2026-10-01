@@ -67,7 +67,7 @@ const drawing = new WeakSet<CanvasRenderingContext2D>();
  * its start and its end, 1 at its middle (`sin(π · through)`), and 0
  * everywhere for a scene held still.
  */
-export const breathAt = (drift: Drift | 0, through: number): number =>
+const breathAt = (drift: Drift | 0, through: number): number =>
   drift === 0 ? 0 : Math.sin(Math.PI * Math.min(1, Math.max(0, through)));
 
 /** A breath under this draws as none: a scene's first and last frame sit as framed. */
@@ -383,7 +383,7 @@ export const PLANE_LIFT_MIN = 0.4;
 export const PLANE_LIFT_MAX = 2.5;
 
 /** How high a plane at `z` stands over the sheet behind it: its nearness, 1 / z, within bounds. */
-export const planeLift = (z: number) =>
+const planeLift = (z: number) =>
   Math.min(PLANE_LIFT_MAX, Math.max(PLANE_LIFT_MIN, 1 / Math.max(z, 1e-3)));
 
 export interface Depth {

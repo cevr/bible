@@ -4,7 +4,7 @@
 
 import { type Vec2, vec2 } from 'math';
 import { type Boil, type Hand, type Path, type Pt, boilPhase, resample } from './ink.ts';
-import { offscreen } from './paper.ts';
+import { offscreen, patternOf } from './paper.ts';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1, rng } from '../core/random.ts';
 
@@ -215,9 +215,19 @@ const PREBLEND_STRETCH = 1.05;
  */
 export const magnifies = (m: Linear): boolean => stretchOf(m) > PREBLEND_STRETCH;
 
-/** Where a face's pastel sits: shifted by the hand's seed, so neighbours never line up. */
-const pastelAt = (pattern: CanvasPattern, hand: Hand) =>
-  pattern.setTransform(new DOMMatrix().translate(hand.seed % 320, (hand.seed >> 8) % 320));
+/** Scratch for a face pattern's placement, written before each fill. */
+const PLACED = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+
+/**
+ * Where a face's pastel sits: shifted by the hand's seed, so neighbours never
+ * line up. The context keeps one pattern per tile (`patternOf`), placed here
+ * before every fill.
+ */
+const pastelAt = (pattern: CanvasPattern, hand: Hand) => {
+  PLACED.e = hand.seed % 320;
+  PLACED.f = (hand.seed >> 8) % 320;
+  pattern.setTransform(PLACED);
+};
 
 /** The face in one fill of its pre-blended tile; false when this face cannot take it. */
 export const blendedFace = (
@@ -230,7 +240,7 @@ export const blendedFace = (
   if (grain <= 0 || !preblends(ctx) || magnifies(ctx.getTransform())) return false;
   const blended = faceOf(style.color, grain);
   if (!blended.opaque) return false;
-  const pattern = ctx.createPattern(blended.tile, 'repeat');
+  const pattern = patternOf(ctx, blended.tile);
   if (pattern === null) return false;
   pastelAt(pattern, hand);
   ctx.fillStyle = pattern;
@@ -257,7 +267,7 @@ export const layeredFace = (
   ctx.save();
   trace(ctx, face);
   ctx.clip();
-  const pattern = ctx.createPattern(pastelTile(), 'repeat');
+  const pattern = patternOf(ctx, pastelTile());
   if (pattern !== null) {
     pastelAt(pattern, hand);
     ctx.globalAlpha *= grain;
